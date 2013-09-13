@@ -822,10 +822,23 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             raise StandardError,"%s >> mid scale | error: %s"%(_str_funcName,error)   
 
         try:#Parent at very end to keep the joint from moving
+            attributes.doConnectAttr("%s.worldMatrix"%(i_baseParent.mNode),"%s.%s"%(i_upStart.mNode,'inputMatrix'))
+            attributes.doConnectAttr("%s.%s"%(i_upStart.mNode,"outputRotate"),"%s.%s"%(i_startAimConstraint.mNode,"upVector"))            
+            attributes.doConnectAttr("%s.worldMatrix"%(i_endParent.mNode),"%s.%s"%(i_upEnd.mNode,'inputMatrix'))
+            attributes.doConnectAttr("%s.%s"%(i_upEnd.mNode,"outputRotate"),"%s.%s"%(i_endAimConstraint.mNode,"upVector"))  
+            
+            for mi_const in [i_startAimConstraint,i_endAimConstraint]:
+                mi_const.worldUpVector = [0,0,0]            
+            
+            
+            
             if i_control != i_obj:#Parent our control if we have one
-                i_control.parent = i_orientGroup.mNode
-                i_control.doGroup(True)
-                mc.makeIdentity(i_control.mNode, apply=True,t=1,r=0,s=1,n=0)
+                if i_control.getMessage('masterGroup'):
+                    i_control.masterGroup.parent = i_orientGroup
+                else:
+                    i_control.parent = i_orientGroup.mNode
+                    i_control.doGroup(True)
+                    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=0,s=1,n=0)
                 i_obj.parent = i_control.mNode
             else:
                 i_obj.parent = i_orientGroup.mNode
@@ -836,14 +849,6 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             i_constraintSplineCurve.parent = i_segmentGroup.mNode
             i_linearFollowNull.parent = i_segmentGroup.mNode	
             i_splineFollowNull.parent = i_segmentGroup.mNode
-            
-            attributes.doConnectAttr("%s.worldMatrix"%(i_baseParent.mNode),"%s.%s"%(i_upStart.mNode,'inputMatrix'))
-            attributes.doConnectAttr("%s.%s"%(i_upStart.mNode,"outputRotate"),"%s.%s"%(i_startAimConstraint.mNode,"upVector"))            
-            attributes.doConnectAttr("%s.worldMatrix"%(i_endParent.mNode),"%s.%s"%(i_upEnd.mNode,'inputMatrix'))
-            attributes.doConnectAttr("%s.%s"%(i_upEnd.mNode,"outputRotate"),"%s.%s"%(i_endAimConstraint.mNode,"upVector"))  
-            
-            for mi_const in [i_startAimConstraint,i_endAimConstraint]:
-                mi_const.worldUpVector = [0,0,0]
             
         except StandardError,error:
             raise StandardError,"%s >> parent end | error: %s"%(_str_funcName,error)   
