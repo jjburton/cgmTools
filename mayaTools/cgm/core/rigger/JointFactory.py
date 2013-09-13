@@ -1,7 +1,7 @@
 # From Python =============================================================
 import copy
 import re
-
+import time
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 import logging
@@ -427,7 +427,7 @@ def doSkeletonizeEyelids(self):
     return True
 
     
-#@r9General.Timer
+@cgmGeneral.Timer
 def doSkeletonizeLimb(self):
     """ 
     DESCRIPTION:
@@ -444,39 +444,52 @@ def doSkeletonizeLimb(self):
     #==================	        
     assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
     assert mc.objExists(self._i_module.mNode),"module no longer exists"
-    curve = self.i_curve.mNode
-    partName = self._partName
-    l_limbJoints = []
+    _str_funcName = "doSkeletonizeLimb(%s)"%self._strShortName   
+    log.debug(">>> %s >>> "%(_str_funcName) + "="*75)    
+    start = time.clock()
     
-    log.debug(">>> %s.doSkeletonizeLimb >> "%self._strShortName + "="*75)            
+    try:
+	_str_subFunc = "Info gather"
+	curve = self.i_curve.mNode
+	partName = self._partName
+	l_limbJoints = []
     
-    #>>> Check roll joint args
-    rollJoints = self.i_templateNull.rollJoints
-    d_rollJointOverride = self.i_templateNull.rollOverride
-    if type(d_rollJointOverride) is not dict:
-        d_rollJointOverride = False
+	#>>> Check roll joint args
+	rollJoints = self.i_templateNull.rollJoints
+	d_rollJointOverride = self.i_templateNull.rollOverride
+	if type(d_rollJointOverride) is not dict:
+	    d_rollJointOverride = False
+	    
+	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    #>>> See if we have have a suitable parent joint to use
-    # We'll know it is if the first template position shares an equivalent position with it's parentModule
-    #======================================================
-    i_parentJointToUse = False
+    try:#>>> See if we have have a suitable parent joint to use
+	# We'll know it is if the first template position shares an equivalent position with it's parentModule
+	#======================================================
+	_str_subFunc = "Parent check"	
+	i_parentJointToUse = False
+	
+	pos = distance.returnWorldSpacePosition( self._ml_controlObjects[0].mNode )
+	log.debug("pos: %s"%pos)
+	#Get parent position, if we have one
+	if self._i_module.getMessage('moduleParent'):
+	    log.debug("Found moduleParent, checking joints...")
+	    i_parentRigNull = self._i_module.moduleParent.rigNull
+	    parentJoints = i_parentRigNull.msgList_getMessage('moduleJoints')
+	    log.debug(parentJoints)
+	    if parentJoints:
+		parent_pos = distance.returnWorldSpacePosition( parentJoints[-1] )
+		log.debug("parentPos: %s"%parent_pos)  
+		
+	    log.debug("Equivalent: %s"%cgmMath.isVectorEquivalent(pos,parent_pos))
+	    if cgmMath.isVectorEquivalent(pos,parent_pos):#if they're equivalent
+		i_parentJointToUse = cgmMeta.cgmObject(parentJoints[-1])
+		
+	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    pos = distance.returnWorldSpacePosition( self._ml_controlObjects[0].mNode )
-    log.debug("pos: %s"%pos)
-    #Get parent position, if we have one
-    if self._i_module.getMessage('moduleParent'):
-        log.debug("Found moduleParent, checking joints...")
-        i_parentRigNull = self._i_module.moduleParent.rigNull
-        parentJoints = i_parentRigNull.msgList_getMessage('moduleJoints')
-        log.debug(parentJoints)
-        if parentJoints:
-            parent_pos = distance.returnWorldSpacePosition( parentJoints[-1] )
-            log.debug("parentPos: %s"%parent_pos)  
-            
-        log.debug("Equivalent: %s"%cgmMath.isVectorEquivalent(pos,parent_pos))
-        if cgmMath.isVectorEquivalent(pos,parent_pos):#if they're equivalent
-            i_parentJointToUse = cgmMeta.cgmObject(parentJoints[-1])
-            
     #>>> Make if our segment only has one handle
     #==========================================	
     mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Parent Check...'), progress=1)    				    
@@ -499,51 +512,56 @@ def doSkeletonizeLimb(self):
 	    self.b_parentStole = True
             
         #>>> Make the limb segment
-        #==========================	
-	mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Making segment joints...'), progress=1)    				    	
-        l_spanUPositions = []
-        #>>> Divide stuff
-        for i_obj in self._ml_controlObjects:#These are our base span u positions on the curve
-            l_spanUPositions.append(distance.returnNearestPointOnCurveInfo(i_obj.mNode,curve)['parameter'])
-        l_spanSegmentUPositions = lists.parseListToPairs(l_spanUPositions)
-        #>>>Get div per span
-        l_spanDivs = self._i_module.get_rollJointCountList() or []
-	"""
-        for segment in l_spanSegmentUPositions:
-            l_spanDivs.append(rollJoints)
-            
-        if d_rollJointOverride:
-            for k in d_rollJointOverride.keys():
-                try:
-                    l_spanDivs[int(k)]#If the arg passes
-                    l_spanDivs[int(k)] = d_rollJointOverride.get(k)#Override the roll value
-                except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))
-        """
-        log.debug("l_spanSegmentUPositions: %s"%l_spanSegmentUPositions)
-        log.debug("l_spanDivs: %s"%l_spanDivs)
+        #==========================
+	try:
+	    _str_subFunc = "getUPositions"		    
+	    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Making segment joints...'), progress=1)    				    	
+	    l_spanUPositions = []
+	    #>>> Divide stuff
+	    for i_obj in self._ml_controlObjects:#These are our base span u positions on the curve
+		l_spanUPositions.append(distance.returnNearestPointOnCurveInfo(i_obj.mNode,curve)['parameter'])
+	    l_spanSegmentUPositions = lists.parseListToPairs(l_spanUPositions)
+	    #>>>Get div per span
+	    l_spanDivs = self._i_module.get_rollJointCountList() or []
+	    
+	    log.debug("l_spanSegmentUPositions: %s"%l_spanSegmentUPositions)
+	    log.debug("l_spanDivs: %s"%l_spanDivs)	    
+
+	    log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
+	except StandardError,error:
+	    raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+
         
-        #>>>Get div per span 
-        l_jointUPositions = []
-        for i,segment in enumerate(l_spanSegmentUPositions):#Split stuff up
-            #Get our span u value distance
-            length = segment[1]-segment[0]
-            div = length / (l_spanDivs[i] +1)
-            tally = segment[0]
-            l_jointUPositions.append(tally)
-            for i in range(l_spanDivs[i] +1)[1:]:
-                tally = segment[0]+(i*div)
-                l_jointUPositions.append(tally)
-        l_jointUPositions.append(l_spanUPositions[-1])
-                
-        l_jointPositions = []
-        for u in l_jointUPositions:
-            l_jointPositions.append(mc.pointPosition("%s.u[%f]"%(curve,u)))
-            
-        #>>> Remove the duplicate positions"""
-        l_jointPositions = lists.returnPosListNoDuplicates(l_jointPositions)
-        #>>> Actually making the joints
-        for pos in l_jointPositions:
-            l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
+	try:#>>>Get div per span 
+	    _str_subFunc = "initial Joint creation"
+	    
+	    l_jointUPositions = []
+	    for i,segment in enumerate(l_spanSegmentUPositions):#Split stuff up
+		#Get our span u value distance
+		length = segment[1]-segment[0]
+		div = length / (l_spanDivs[i] +1)
+		tally = segment[0]
+		l_jointUPositions.append(tally)
+		for i in range(l_spanDivs[i] +1)[1:]:
+		    tally = segment[0]+(i*div)
+		    l_jointUPositions.append(tally)
+	    l_jointUPositions.append(l_spanUPositions[-1])
+		    
+	    l_jointPositions = []
+	    for u in l_jointUPositions:
+		l_jointPositions.append(mc.pointPosition("%s.u[%f]"%(curve,u)))
+		
+		
+	    #>>> Remove the duplicate positions"""
+	    l_jointPositions = lists.returnPosListNoDuplicates(l_jointPositions)
+	    #>>> Actually making the joints
+	    for pos in l_jointPositions:
+		l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
+	    
+	    log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
+	except StandardError,error:
+	    raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+
                
     #>>> Naming
     #=========== 
@@ -554,39 +572,60 @@ def doSkeletonizeLimb(self):
     #attributes.copyUserAttrs(moduleNull,l_limbJoints[0],attrsToCopy=['cgmNameModifier'])
     mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Naming...'), progress=2)    				    
     
-    #>>>First we need to find our matches
-    log.debug("Finding matches from module controlObjects")
-    for i_obj in self._ml_controlObjects:
-        closestJoint = distance.returnClosestObject(i_obj.mNode,l_limbJoints)
-        #transferObj = attributes.returnMessageObject(obj,'cgmName')
-        """Then we copy it"""
-        attributes.copyUserAttrs(i_obj.mNode,closestJoint,attrsToCopy=['cgmPosition','cgmNameModifier','cgmDirection','cgmName'])
-	self._d_handleToHandleJoints[i_obj] = cgmMeta.cgmNode(closestJoint)
-	i_obj.connectChildNode(closestJoint,'handleJoint')
-	
-    #>>>If we stole our parents anchor joint, we need to to reconnect it
-    log.debug("STOLEN>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s"%self.b_parentStole)
-    if self.b_parentStole:
-	i_parentControl = self._i_module.moduleParent.templateNull.msgList_get('controlObjects')[-1]
-	log.debug("parentControl: %s"%i_parentControl.getShortName())
-        closestJoint = distance.returnClosestObject(i_parentControl.mNode,l_limbJoints)	
-	i_parentControl.connectChildNode(closestJoint,'handleJoint')
-    
+    try:#>>>First we need to find our matches
+	_str_subFunc = "Find matches"	
+	log.debug("Finding matches from module controlObjects")
+	for i_obj in self._ml_controlObjects:
+	    closestJoint = distance.returnClosestObject(i_obj.mNode,l_limbJoints)
+	    #transferObj = attributes.returnMessageObject(obj,'cgmName')
+	    """Then we copy it"""
+	    attributes.copyUserAttrs(i_obj.mNode,closestJoint,attrsToCopy=['cgmPosition','cgmNameModifier','cgmDirection','cgmName'])
+	    self._d_handleToHandleJoints[i_obj] = cgmMeta.cgmNode(closestJoint)
+	    i_obj.connectChildNode(closestJoint,'handleJoint')
+	    
+	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+
+    try:#>>>If we stole our parents anchor joint, we need to to reconnect it
+	_str_subFunc = "ParentStole reconnect"		
+	log.debug("%s"%_str_subFunc)
+	if self.b_parentStole:
+	    i_parentControl = self._i_module.moduleParent.templateNull.msgList_get('controlObjects')[-1]
+	    log.debug("parentControl: %s"%i_parentControl.getShortName())
+	    closestJoint = distance.returnClosestObject(i_parentControl.mNode,l_limbJoints)	
+	    i_parentControl.connectChildNode(closestJoint,'handleJoint')
+	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+
     #>>>Store it
-    #self._i_rigNull.connectChildren(l_limbJoints,'moduleJoints','module')
     self._i_rigNull.msgList_connect(l_limbJoints,'moduleJoints','rigNull')
-    #self._i_rigNull.msgList_connect(l_limbJoints,'baseJoints','module')
   
 
     #>>>Store these joints and rename the heirarchy
-    log.debug("Metaclassing our objects") 
-    for i,o in enumerate(l_limbJoints):
-        i_o = cgmMeta.cgmObject(o)
-        i_o.addAttr('mClass','cgmObject',lock=True) 
-        i_o.addAttr('d_jointFlags', '{}',attrType = 'string', lock=True, hidden=True) 
+    try:#Metaclassing our objects
+	_str_subFunc = "Metaclassing our objects"
+	log.debug("%s"%_str_subFunc)		
+	for i,o in enumerate(l_limbJoints):
+	    i_o = cgmMeta.cgmObject(o)
+	    i_o.addAttr('mClass','cgmObject',lock=True) 
+	    i_o.addAttr('d_jointFlags', '{}',attrType = 'string', lock=True, hidden=True) 
+	    
+	ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True)  
 	
-    ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True)    
-    ml_moduleJoints[0].doName(nameChildren=True,fastIterate=False)#name
+	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
+    try:#Naming
+	_str_subFunc = "Naming"	
+	log.debug("%s"%_str_subFunc)	
+	ml_moduleJoints[0].doName(nameChildren=True,fastIterate=True)#name
+	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+
     l_moduleJoints = [i_j.p_nameShort for i_j in ml_moduleJoints]#store
     
     #>>> Orientation    
@@ -619,7 +658,7 @@ def doSkeletonizeLimb(self):
 	    
     return True 
 
-#@r9General.Timer
+@cgmGeneral.Timer
 def doOrientSegment(self):
     """ 
     Segement orienter. Must have a JointFactory Instance
@@ -832,7 +871,7 @@ def deleteSkeleton(self,*args,**kws):
     
     return True
 
-#@r9General.Timer
+@cgmGeneral.Timer
 def connectToParentModule(self):
     """
     Pass a module class. Constrains template root to parent's closest template object
