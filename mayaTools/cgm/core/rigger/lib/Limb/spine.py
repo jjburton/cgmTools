@@ -22,7 +22,7 @@ Necessary variables:
 3) __l_jointAttrs__
 ================================================================
 """
-__version__ = 0.09092013
+__version__ = 01.09122013
 
 # From Python =============================================================
 import copy
@@ -519,7 +519,6 @@ def build_deformation(self):
 	           self._jointOrientation]:
 	    log.debug(o)
 	return"""
-	
 	midReturn = rUtils.addCGMSegmentSubControl(ml_influenceJoints[1].mNode,
 	                                           segmentCurve = i_curve,
 	                                           baseParent=ml_influenceJoints[0],
@@ -528,14 +527,11 @@ def build_deformation(self):
 	                                           baseName=self._partName,
 	                                           controlTwistAxis =  'r'+self._jointOrientation[0],
 	                                           orientation=self._jointOrientation)
-	
 	for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
 	    i_grp.parent = mi_cog.mNode
-	    
     except StandardError,error:
 	log.error("build_spine>>Control Segment build fail")
 	raise StandardError,error
-    
     
     try:#Setup top twist driver
 	#Create an fk additive attributes
