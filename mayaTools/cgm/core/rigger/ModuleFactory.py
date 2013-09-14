@@ -1102,7 +1102,7 @@ def animReset(self,transformsOnly = True):
     log.debug(">>> %s "%(_str_funcName) + "="*75)  		
     try:
 	self.rigNull.moduleSet.select()
-	if buffer:
+	if mc.ls(sl=True):
 	    ml_resetChannels.main(transformsOnly = transformsOnly)
 	    return True
 	return False

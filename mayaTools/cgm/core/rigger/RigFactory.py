@@ -104,7 +104,6 @@ class go(object):
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	
 	#Some basic assertions
-        assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        
         assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
         
         log.debug(">>> forceNew: %s"%forceNew)	
@@ -424,7 +423,7 @@ class go(object):
 	
     
     def build_subVis(self):
-	_str_funcName = "build_subVis(%s)"%self._strShortName
+	_str_funcName = "go.build_subVis(%s)"%self._strShortName
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	start = time.clock()	
 	try:
@@ -454,7 +453,7 @@ class go(object):
     #=====================================================================
         
     def build_rigChain(self):
-	_str_funcName = "build_rigChain(%s)"%self._strShortName
+	_str_funcName = "go.build_rigChain(%s)"%self._strShortName
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	start = time.clock()	
 	try:
@@ -490,7 +489,7 @@ class go(object):
 	
     
     def build_handleChain(self,typeModifier = 'handle',connectNodesAs = False): 
-	_str_funcName = "build_handleChain(%s)"%self._strShortName
+	_str_funcName = "go.build_handleChain(%s)"%self._strShortName
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	start = time.clock()		
 	try:
@@ -524,7 +523,7 @@ class go(object):
 	"""
 	This is only necessary because message connections are duplicated and make duplicating connected joints problematic
 	"""
-	_str_funcName = "duplicate_moduleJoint(%s)"%self._strShortName
+	_str_funcName = "go.duplicate_moduleJoint(%s)"%self._strShortName
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	start = time.clock()		
 	try:
@@ -556,7 +555,7 @@ class go(object):
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
     def build_segmentChains(self, ml_segmentHandleJoints = None, connectNodes = True):
-	_str_funcName = "build_segmentChains(%s)"%self._strShortName
+	_str_funcName = "go.build_segmentChains(%s)"%self._strShortName
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	start = time.clock()
 	try:
@@ -612,7 +611,7 @@ class go(object):
 	"""
 	
 	"""
-	_str_funcName = "build_simpleInfluenceChains(%s)"%self._strShortName
+	_str_funcName = "go.build_simpleInfluenceChains(%s)"%self._strShortName
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	start = time.clock()
 	try:
@@ -689,7 +688,7 @@ class go(object):
 
 def isBuildable(goInstance):
     self = goInstance
-    _str_funcName = "isBuildable(%s)"%self._strShortName
+    _str_funcName = "%s.isBuildable"%self._strShortName
     log.debug(">>> %s "%(_str_funcName) + "="*75)    
     try:
 	if not issubclass(type(goInstance),go):
@@ -744,7 +743,7 @@ def verify_moduleRigToggles(goInstance):
 	raise StandardError
     
     self = goInstance
-    _str_funcName = "verify_moduleRigToggles(%s)"%self._strShortName
+    _str_funcName = "%s.verify_moduleRigToggles"%self._strShortName
     log.debug(">>> %s "%(_str_funcName) + "="*75)   
     start = time.clock()    
     try:
@@ -776,11 +775,9 @@ def bindJoints_connect(goInstance):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
 	raise StandardError
     self = goInstance
-    _str_funcName = "verify_moduleRigToggles(%s)"%self._strShortName
-    log.debug(">>> %s "%(_str_funcName) + "="*75)   
     start = time.clock()    
     try:
-	_str_funcName = "bindJoints_connect(%s)"%self._strShortName  
+	_str_funcName = "%s.bindJoints_connect"%self._strShortName  
 	log.debug(">>> %s "%(_str_funcName) + "="*75)      
 	
 	l_rigJoints = self._i_rigNull.msgList_get('rigJoints',False) or False
@@ -812,7 +809,7 @@ def bindJoints_connectToBlend(goInstance):
 	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
 	raise StandardError
     self = goInstance
-    _str_funcName = "verify_moduleRigToggles(%s)"%self._strShortName
+    _str_funcName = "%s.verify_moduleRigToggles"%self._strShortName
     log.debug(">>> %s "%(_str_funcName) + "="*75)   
     start = time.clock()        
     try:
@@ -842,7 +839,7 @@ You should only pass modules into these
 
 def get_skinJoints(self, asMeta = True):
     try:
-	_str_funcName = "get_skinJoints(%s)"%self.p_nameShort  
+	_str_funcName = "%s.get_skinJoints"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
 	start = time.clock()        	
 	"""
@@ -869,7 +866,7 @@ def get_skinJoints(self, asMeta = True):
 def get_rigHandleJoints(self, asMeta = True):
     #Get our rig handle joints
     try:
-	_str_funcName = "get_rigHandleJoints(%s)"%self.p_nameShort  
+	_str_funcName = "%s.get_rigHandleJoints"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
 	start = time.clock()        		
 	"""
@@ -894,7 +891,7 @@ def get_rigHandleJoints(self, asMeta = True):
 def get_rigDeformationJoints(self,asMeta = True):
     #Get our joints that segment joints will connect to
     try:
-	_str_funcName = "get_rigHandleJoints(%s)"%self.p_nameShort  
+	_str_funcName = "%s.get_rigHandleJoints"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 	
 	start = time.clock()        		
 	
@@ -920,7 +917,7 @@ def get_rigDeformationJoints(self,asMeta = True):
 def get_handleJoints(self,asMeta = True):
     #Get our segment joints
     try:
-	_str_funcName = "get_handleJoints(%s)"%self.p_nameShort  
+	_str_funcName = "%s.get_handleJoints"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
 	return self.rigNull.msgList_get('handleJoints',asMeta = asMeta, cull = True)
 	"""
@@ -941,7 +938,7 @@ def get_segmentHandleTargets(self):
     Figure out which segment handle target joints
     """
     try:
-	_str_funcName = "get_segmentHandleTargets(%s)"%self.p_nameShort  
+	_str_funcName = "%s.get_segmentHandleTargets"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
 	start = time.clock()        		
 	
@@ -976,7 +973,7 @@ def get_segmentHandleTargets(self):
 def get_influenceChains(self):
     try:
 	#>>>Influence Joints
-	_str_funcName = "get_influenceChains(%s)"%self.p_nameShort  
+	_str_funcName = "%s.get_influenceChains"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 	
 	start = time.clock()        		
 	
@@ -999,7 +996,7 @@ def get_influenceChains(self):
     
 def get_segmentHandleChains(self):
     try:
-	_str_funcName = "get_segmentHandleChains(%s)"%self.p_nameShort  
+	_str_funcName = "%s.get_segmentHandleChains"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 	
 	start = time.clock()        		
 	
@@ -1021,7 +1018,7 @@ def get_segmentHandleChains(self):
 def get_segmentChains(self):
     try:
 	#Get our segment joints
-	_str_funcName = "get_segmentChains(%s)"%self.p_nameShort  
+	_str_funcName = "%s.get_segmentChains"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
 	start = time.clock()        		
 	
@@ -1045,7 +1042,7 @@ def get_rigJointDriversDict(self,printReport = True):
     """
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
-    _str_funcName = "get_rigJointDriversDict(%s)"%self.p_nameShort  
+    _str_funcName = "%s.get_rigJointDriversDict"%self.p_nameShort  
     log.debug(">>> %s "%(_str_funcName) + "="*75)   
     start = time.clock()        		
     
@@ -1172,7 +1169,7 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     """
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
-    _str_funcName = "get_simpleRigJointDriverDict(%s)"%self.p_nameShort  
+    _str_funcName = "%s.get_simpleRigJointDriverDict"%self.p_nameShort  
     log.debug(">>> %s "%(_str_funcName) + "="*75)    
     start = time.clock()        		    
     #>>>Initial checks
@@ -1271,7 +1268,7 @@ def get_simpleRigJointDriverDict(self,printReport = True):
 
 def get_report(self):
     #try:
-    _str_funcName = "get_report(%s)"%self.p_nameShort  
+    _str_funcName = "%s.get_report"%self.p_nameShort  
     log.debug(">>> %s "%(_str_funcName) + "="*75)  
     start = time.clock()        		    
     if not self.isSkeletonized():
@@ -1285,16 +1282,16 @@ def get_report(self):
     ml_rigDefJoints = get_rigDeformationJoints(self) or []
     ml_segmentHandleTargets = get_segmentHandleTargets(self) or []
     
-    log.debug("%s.get_report >> "%self.getShortName() + "="*50)
-    log.debug("moduleJoints: len - %s | %s"%(len(l_moduleJoints),l_moduleJoints))	
-    log.debug("skinJoints: len - %s | %s"%(len(l_skinJoints),l_skinJoints))	
-    log.debug("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
-    log.debug("rigJoints: len - %s | %s"%(len(l_rigJoints),l_rigJoints))	
-    log.debug("rigHandleJoints: len - %s | %s"%(len(ml_rigHandleJoints),[i_jnt.getShortName() for i_jnt in ml_rigHandleJoints]))	
-    log.debug("rigDeformationJoints: len - %s | %s"%(len(ml_rigDefJoints),[i_jnt.getShortName() for i_jnt in ml_rigDefJoints]))	
-    log.debug("segmentHandleTargets: len - %s | %s"%(len(ml_segmentHandleTargets),[i_jnt.getShortName() for i_jnt in ml_segmentHandleTargets]))	
+    log.info("%s.get_report >> "%self.getShortName() + "="*50)
+    log.info("moduleJoints: len - %s | %s"%(len(l_moduleJoints),l_moduleJoints))	
+    log.info("skinJoints: len - %s | %s"%(len(l_skinJoints),l_skinJoints))	
+    log.info("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
+    log.info("rigJoints: len - %s | %s"%(len(l_rigJoints),l_rigJoints))	
+    log.info("rigHandleJoints: len - %s | %s"%(len(ml_rigHandleJoints),[i_jnt.getShortName() for i_jnt in ml_rigHandleJoints]))	
+    log.info("rigDeformationJoints: len - %s | %s"%(len(ml_rigDefJoints),[i_jnt.getShortName() for i_jnt in ml_rigDefJoints]))	
+    log.info("segmentHandleTargets: len - %s | %s"%(len(ml_segmentHandleTargets),[i_jnt.getShortName() for i_jnt in ml_segmentHandleTargets]))	
     
-    log.debug("="*75)
+    log.info("="*75)
     log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
     #except StandardError,error:
 	#raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
@@ -1307,7 +1304,7 @@ def get_eyeLook(self):
 	raise StandardError,"get_eyeLook >> self: %s | error: %s"%(self,error)
     
     try:#Get our segment joints
-	_str_funcName = "verify_eyeLook(%s)"%self.p_nameShort  
+	_str_funcName = "%s.verify_eyeLook"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 	
 	#We need a module type, find a head etc
 	if self.moduleType != 'eyeball':
@@ -1340,7 +1337,7 @@ def verify_eyeLook(self):
 	raise StandardError,"verify_eyeLook >> self: %s | error: %s"%(self,error)
     
     try:#Get our segment joints
-	_str_funcName = "verify_eyeLook(%s)"%self.p_nameShort  
+	_str_funcName = "%s.verify_eyeLook"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
 	start = time.clock()        		
 	

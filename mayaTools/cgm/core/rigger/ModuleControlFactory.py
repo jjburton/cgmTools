@@ -579,6 +579,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
     except StandardError,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)  
     
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)             
     return {'instance':i_control,'ml_groups':ml_groups,'ml_constraintGroups':ml_constraintGroups}
 
     

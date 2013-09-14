@@ -1151,7 +1151,7 @@ def returnClosestUV (targetObject,surface):
     mc.delete (tmpObj)
     return UVs
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-@cgmGeneral.Timer
+#@cgmGeneral.Timer
 def returnClosestUPosition (targetObject,curve):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1201,7 +1201,7 @@ def returnClosestUPosition (targetObject,curve):
 
     return positions[matchIndex]
 
-@cgmGeneral.TimerDebug
+#@cgmGeneral.TimerDebug
 def returnNearestPointOnCurveInfo(targetObject,curve,deleteNode = True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
