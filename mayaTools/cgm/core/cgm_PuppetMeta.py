@@ -36,6 +36,7 @@ import cgm_Meta as cgmMeta
 from cgm.core.lib import nameTools
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import PuppetFactory as pFactory
+reload(pFactory)
 from cgm.core.rigger import MorpheusFactory as morphyF
 
 from cgm.core.classes import NodeFactory as nodeF
@@ -385,6 +386,48 @@ class cgmPuppet(cgmMeta.cgmNode):
 	Returns puppet state. That is the minimum state of it's modules
 	"""
 	return pFactory.getState(self) 
+    
+    #>>> Animation
+    #========================================================================
+    def anim_key(self,**kws):
+	_str_funcName = "%s.animKey()"%self.p_nameShort  
+	start = time.clock()
+	b_return = None
+	try:
+	    try:buffer = self.puppetSet.getList()
+	    except:buffer = []
+	    if buffer:
+		mc.select(buffer)
+		mc.setKeyframe(**kws)
+		b_return =  True
+	    b_return = False
+	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+	    return b_return
+	except StandardError,error:
+	    log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
+	    return False
+	
+    def mirrorMe(self):
+	_str_funcName = "%s.mirrorMe()"%self.p_nameShort  
+	start = time.clock()
+	buffer = pFactory.mirrorMe(self)
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+	return buffer
+    
+    def anim_reset(self):
+	_str_funcName = "%s.anim_reset()"%self.p_nameShort  
+	start = time.clock()
+	buffer = pFactory.animReset(self)
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+	return buffer
+    
+    def anim_select(self):
+	_str_funcName = "%s.anim_select()"%self.p_nameShort  
+	start = time.clock()
+	try:self.puppetSet.select()
+	except:pass
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+	return buffer
     
     def isCustomizable(self):
 	return False 

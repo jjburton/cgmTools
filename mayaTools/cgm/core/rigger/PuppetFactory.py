@@ -1,3 +1,4 @@
+import time
 import maya.cmds as mc
 import copy as copy
 
@@ -9,10 +10,13 @@ log.setLevel(logging.INFO)
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
+from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.lib import (search,attributes)
 from cgm.core import cgm_General as cgmGeneral
+from cgm.lib.ml import ml_resetChannels
+
 reload(cgmGeneral)
 #Shared Settings
 #========================= 
@@ -268,14 +272,41 @@ def getOrderedParentModules(self):
                     """
                     
     return l_orderedParentModules
-    """
-    while len(moduleChildrenD)>0 and cnt < 100:
-    for module in self.orderedParentModules:
-        print module
-        for child in moduleChildrenD.keys():
-            cnt +=1
-            if child in moduleParents.keys() and moduleParents[child] == module:
-                self.orderedParentModules.append(child)
-                moduleChildrenD.pop(child)
-    """
- 
+
+#=====================================================================================================
+#>>> Anim functions functions
+#=====================================================================================================
+def animReset(self,transformsOnly = True):
+    _str_funcName = "%s.animReset()"%self.p_nameShort  
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  		
+    try:
+	self.puppetSet.select()
+	if mc.ls(sl=True):
+	    ml_resetChannels.main(transformsOnly = transformsOnly)
+	    return True
+	return False
+    except StandardError,error:
+	log.error("%s >> error: %s"%(_str_funcName,error))
+	return False
+    
+def mirrorMe(self,**kws):
+    _str_funcName = "%s.mirrorMe()"%self.p_nameShort  
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  	
+    try:
+	l_controls = self.puppetSet.getList()
+	#for mModule in getModules(self):
+	"""
+	for mModule in self.moduleChildren:
+	    try:l_buffer = mModule.rigNull.moduleSet.getList()
+	    except:l_buffer = []
+	    if l_buffer:
+		l_controls.extend(l_buffer)"""
+	if l_controls:
+	    r9Anim.MirrorHierarchy(l_controls).mirrorData(mode = '')
+	    mc.select(l_controls)
+	    return True
+	return False
+    except StandardError,error:
+	log.error("%s >> error: %s"%(_str_funcName,error))
+	return False
+
