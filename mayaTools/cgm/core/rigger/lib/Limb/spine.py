@@ -22,7 +22,7 @@ Necessary variables:
 3) __l_jointAttrs__
 ================================================================
 """
-__version__ = 01.09122013
+__version__ = 01.09142013
 
 # From Python =============================================================
 import copy
@@ -113,7 +113,8 @@ def __bindSkeletonSetup__(self):
 	
 	self._i_module.rigNull.msgList_connect(ml_skinJoints,'skinJoints')    	
 	log.debug("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
-	log.debug("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))	
+	log.debug("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
     except StandardError,error:
 	raise StandardError,"%s >>> error : %s"%(_str_funcName,error)
 
@@ -463,7 +464,7 @@ def build_controls(self):
 	d_buffer = mControlFactory.registerControl(i_IKEnd,copyTransform = i_loc.mNode,
 	                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",
 	                                           typeModifier = 'ik',addSpacePivots = 2, addDynParentGroup = True, addConstraintGroup=True,
-	                                           makeAimable = True,setRotateOrder=4)
+	                                           makeAimable = True,setRotateOrder=0)
 	i_IKEnd = d_buffer['instance']	
 		
 	i_loc.delete()#delete
@@ -488,8 +489,8 @@ def build_controls(self):
 	i_loc = i_hips.doLoc()
 	mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)
 	
-	d_buffer =  mControlFactory.registerControl(i_hips,addSpacePivots = 2, addDynParentGroup = True, mirrorSide=self._str_mirrorDirection,
-	                                            mirrorAxis="translateX,rotateY,rotateZ",
+	d_buffer =  mControlFactory.registerControl(i_hips,addSpacePivots = 2, addDynParentGroup = True,
+	                                            mirrorSide=self._str_mirrorDirection, mirrorAxis="translateX,rotateY,rotateZ",
 	                                            addConstraintGroup=True, makeAimable = True,copyPivot=i_loc.mNode,setRotateOrder=5)
 	self._i_rigNull.connectChildNode(i_hips,'hips','rigNull')
 	i_hips = d_buffer['instance']
