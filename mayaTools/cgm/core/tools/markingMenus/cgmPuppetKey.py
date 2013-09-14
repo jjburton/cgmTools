@@ -187,6 +187,8 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 
 	self.ml_modules = []
 	self.l_modules = []
+	self.l_puppets = []	
+	self.ml_puppets = []
 	if l_selected:selCheck = True
 	else:selCheck = False
 
@@ -267,12 +269,24 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		self.d_objectsInfo[i_o] = d_buffer
 		
 		#>>> Module --------------------------------------------------------------------------
-		if self.BuildModuleOptionVar.value:
-		    buffer = i_o.getMessage('module')
-		    try:
-			self.ml_modules.append(i_o.rigNull.module)
-		    except StandardError,error:
-			log.info("Failed to append module for: %s | %s"%(i_o.getShortName(),error))
+		if self.BuildModuleOptionVar.value or self.BuildPuppetOptionVar.value:
+		    if i_o.getMessage('rigNull'):
+			_mi_rigNull = i_o.rigNull			
+			_mi_module = _mi_rigNull.module
+			
+			if self.BuildModuleOptionVar.value:
+			    try:
+				self.ml_modules.append(_mi_module)
+			    except StandardError,error:
+				log.info("Failed to append module for: %s | %s"%(i_o.getShortName(),error))
+		    if self.BuildPuppetOptionVar.value:
+			try:
+			    buffer = _mi_module.getMessage('modulePuppet')
+			    if buffer:
+				self.l_puppets.append(buffer[0])
+			except StandardError,error:
+			    log.info("Failed to append puppet for: %s | %s"%(i_o.getShortName(),error))
+			
 	    log.info(">"*10  + ' Object list build =  %0.3f seconds  ' % (time.clock()-timeStart_objectList) + '<'*10)  
 	    for k in self.d_objectsInfo.keys():
 		log.debug("%s: %s"%(k.getShortName(),self.d_objectsInfo.get(k)))
@@ -352,7 +366,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    else:
 			log.debug("'%s':lacks dynParent"%i_o.getShortName())
 				
-	#>>> Module
+	#>>> Module =====================================================================================================
 	timeStart_ModuleStuff = time.clock()  	    
 	if self.BuildModuleOptionVar.value and self.ml_modules:
 	    #MelMenuItem(parent,l="-- Modules --",en = False)	    
@@ -394,15 +408,14 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		except StandardError,error:
 		    log.info("Failed to build dynSwitch for: %s | %s"%(i_o.getShortName(),error))	
 		try:#module basic menu
-		    if i_module.rigNull.msgList_exists('controlsAll'):
-			MelMenuItem( use_parent, l="Key",
-		                     c = Callback(i_module.animKey))							
-			MelMenuItem( use_parent, l="Select",
-		                     c = Callback(i_module.animSelect))	
-			MelMenuItem( use_parent, l="Reset",
-		                     c = Callback(i_module.animReset))
-			MelMenuItem( use_parent, l="Mirror",
-		                     c = Callback(i_module.mirrorMe))				
+		    MelMenuItem( use_parent, l="Key",
+		                 c = Callback(i_module.animKey))							
+		    MelMenuItem( use_parent, l="Select",
+		                 c = Callback(i_module.animSelect))	
+		    MelMenuItem( use_parent, l="Reset",
+		                 c = Callback(i_module.animReset))
+		    MelMenuItem( use_parent, l="Mirror",
+		                 c = Callback(i_module.mirrorMe))				
 		except StandardError,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 		try:#module children
@@ -422,6 +435,61 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 
 		MelMenuItemDiv(parent)						
 	log.info(">"*10  + ' Module options build =  %0.3f seconds  ' % (time.clock()-timeStart_ModuleStuff) + '<'*10)  
+	
+	#>>> Puppet =====================================================================================================
+	timeStart_PuppetStuff = time.clock()  	    
+	if self.BuildPuppetOptionVar.value and self.l_puppets:
+	    #MelMenuItem(parent,l="-- Puppets --",en = False)	    
+	    self.l_puppets = lists.returnListNoDuplicates(self.l_puppets)
+	    self.ml_puppets = cgmMeta.validateObjListArg(self.l_puppets)
+	    
+	    int_lenPuppets = len(self.ml_puppets)
+	    if int_lenPuppets == 1:
+		use_parent = parent
+		state_multiPuppet = False
+	    else:
+		iSubM_puppets = MelMenuItem(parent,l="Puppets(%s)"%(int_lenPuppets),subMenu = True)
+		use_parent = iSubM_puppets
+		state_multiPuppet = True
+		MelMenuItem( parent, l="Select",
+	                     c = Callback(func_multiPuppetSelect))
+		MelMenuItem( parent, l="Key",
+	                     c = Callback(func_multiPuppetKey))	
+		"""
+		MelMenuItem( parent, l="toFK",
+	                     c = Callback(func_multiDynSwitch,0))	
+		MelMenuItem( parent, l="toIK",
+	                     c = Callback(func_multiDynSwitch,1))	
+		"""
+	    for i_puppet in self.ml_puppets:
+		if state_multiPuppet:
+		    iTmpPuppetSub = MelMenuItem(iSubM_puppets,l=" %s  "%i_puppet.cgmName,subMenu = True)
+		    use_parent = iTmpPuppetSub
+			    
+		else:
+		    MelMenuItem(parent,l="-- %s --"%i_puppet.cgmName,en = False)
+		try:#To build dynswitch
+		    i_switch = i_puppet.rigNull.dynSwitch
+		    for a in i_switch.l_dynSwitchAlias:
+			MelMenuItem( use_parent, l="%s"%a,
+		                     c = Callback(i_switch.go,a))						
+		except StandardError,error:
+		    log.info("Failed to build dynSwitch for: %s | %s"%(i_o.getShortName(),error))	
+		try:#puppet basic menu
+		    MelMenuItem( use_parent, l="Key",
+		                 c = Callback(i_puppet.anim_key))							
+		    MelMenuItem( use_parent, l="Select",
+		                 c = Callback(i_puppet.anim_select))	
+		    MelMenuItem( use_parent, l="Reset",
+		                 c = Callback(i_puppet.anim_reset))
+		    MelMenuItem( use_parent, l="Mirror",
+		                 c = Callback(i_puppet.mirrorMe))				
+		except StandardError,error:
+		    log.info("Failed to build basic puppet menu for: %s | %s"%(i_o.getShortName(),error))									
+
+		MelMenuItemDiv(parent)						
+	log.info(">"*10  + ' Puppet options build =  %0.3f seconds  ' % (time.clock()-timeStart_PuppetStuff) + '<'*10)  		
+		
 		
 	#>>> Options menus
 	#================================================================================
