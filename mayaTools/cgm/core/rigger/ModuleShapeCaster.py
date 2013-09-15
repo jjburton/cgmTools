@@ -121,10 +121,7 @@ class go(object):
 	    self.md_returnPivots = {}   
 	    self.md_fkControls = {}
 	    self.md_segmentHandles = {}
-	    try:
-		self._baseModuleDistance = self._returnBaseThickness()
-		log.debug("%s >>> _baseModuleDistance: %s"%(_str_funcName,self._baseModuleDistance))
-	    except StandardError,error: raise StandardError,"base sizing fail. error: %s"%error
+	    self._baseModuleDistance = self._returnBaseThickness()
 	    
 	except StandardError,error:
 	    raise StandardError,"%s >> Module data gather fail! | %s"%(self._strShortName,error)	
@@ -241,19 +238,27 @@ class go(object):
 	#We're going to cast from the middle of our limb segment to reduce the chance of firing to nowhere
 	#Start by casting along template up and out
 	_str_funcName = "go._returnBaseThickness(%s)"%self._strShortName
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+	log.info(">>> %s ..."%(_str_funcName) + "="*75)
+	try:
+	    log.info("%s >> self.l_controlSnapObjects = %s"%(_str_funcName,self.l_controlSnapObjects))
+	    log.info("%s >> self._targetMesh = %s"%(_str_funcName,self._targetMesh))	    
+	    if self.l_controlSnapObjects and self._targetMesh:
+		midIndex = int(len(self.l_controlSnapObjects)/2)
+		log.info("%s >> midIndex = %s"%(_str_funcName,midIndex))	    		
+		d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self._jointOrientation[1],self._jointOrientation[2]])
+		log.info("%s >> d_return = %s"%(_str_funcName,d_return))	    		
+		l_lengths = [d_return[k] for k in d_return.keys()]
+		log.info("%s >> l_lengths = %s"%(_str_funcName,l_lengths))	    				
+		average = (sum(l_lengths))/len(l_lengths)
+		return average *1.25
+	    elif self._mi_module.getMessage('helper'):
+		return distance.returnBoundingBoxSizeToAverage(self._mi_module.getMessage('helper'))
+	    else:
+		raise StandardError, "%s >> Not enough info to figure out"%_str_funcName
 	
-	if self.l_controlSnapObjects and self._targetMesh:
-	    midIndex = int(len(self.l_controlSnapObjects)/2)
-	    d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self._jointOrientation[1],self._jointOrientation[2]])
-	    l_lengths = [d_return[k] for k in d_return.keys()]
-	    average = (sum(l_lengths))/len(l_lengths)
-	    return average *1.25
-	elif self._mi_module.getMessage('helper'):
-	    return distance.returnBoundingBoxSizeToAverage(self._mi_module.getMessage('helper'))
-	else:
-	    raise StandardError, "%s >> Not enough info to figure out"%_str_funcName
-    
+	except StandardError,error:
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
+	
     #@cgmGeneral.Timer    
     def build_eyelids(self):
 	_str_funcName = "go.build_eyelids(%s)"%self._strShortName
@@ -990,19 +995,20 @@ class go(object):
 	    #figure out our settings
 	    #================================================================
 	    #defaults first
-
-
+	    """
 	    returnBuffer = ShapeCast.createWrapControlShape(mi_mid.mNode,self._targetMesh,
-	                                          points = 10,
-	                                          curveDegree=3,
-	                                          insetMult = .5,
-	                                          posOffset = [0,0,self._skinOffset*3],
-	                                          joinMode=True,
-	                                          joinHits = [0,5],
-	                                          extendMode='cylinder')
+	                                                    points = 10,
+	                                                    curveDegree=3,
+	                                                    insetMult = .5,
+	                                                    posOffset = [0,0,self._skinOffset*3],
+	                                                    joinMode=True,
+	                                                    joinHits = [0,5],
+	                                                    extendMode='cylinder')
 	    
-	    mi_newCurve = returnBuffer['instance']
-	    mi_newCurve.doCopyPivot(obj)
+	    mi_newCurve = returnBuffer['instance']"""
+	    mi_newCurve = cgmMeta.cgmObject(curves.createControlCurve('sphere',size = self._baseModuleDistance * .75))
+	    Snap.go(mi_newCurve,obj,True, True)#Snap to main object
+	    
 	    #>>> Color
 	    curves.setCurveColorByName(mi_newCurve.mNode,self.l_moduleColors[0])                    
 	    mi_newCurve.addAttr('cgmType',attrType='string',value = 'midIK',lock=True)	
