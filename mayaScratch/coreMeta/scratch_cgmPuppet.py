@@ -20,6 +20,14 @@ reload(mFactory)
 reload(tFactory)
 reload(jFactory)
 
+#>>> Morphy Puppet
+#=======================================================
+Morphy = cgmPM.cgmPuppet('Morphy_puppetNetwork')
+Morphy.p_nameShort
+Morphy.getModules()
+Morphy.mirrorMe()
+Morphy.puppetSet.select()
+
 obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []

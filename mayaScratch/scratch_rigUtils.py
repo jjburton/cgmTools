@@ -152,7 +152,6 @@ controlOrientation = 'yxz'
 controlOrientation = 'yzx'
 rUtils.addCGMSegmentSubControl(joints,segmentCurve,baseParent, endParent,midControls=midControls,controlOrientation=controlOrientation)
 
-
 rUtils.addCGMSegmentSubControl('spine_2_influenceJoint',
                                segmentCurve = 'spine_splineIKCurve',
                                baseParent='spine_1_influenceJoint',
@@ -197,8 +196,8 @@ endControl = 'l_seg_0_knee_ik_anim'
 startControl = 'l_seg_1_knee_ik_anim'
 endControl = 'l_seg_1_ankle_ik_anim'
 controlOrientation = 'zyx'
-t = rUtils.createCGMSegment(jointList,influenceJoints=influenceJoints, startControl=startControl,endControl=endControl,secondaryAxis = 'zup',controlOrientation=controlOrientation)
-
+t = rUtils.createCGMSegment(jointList,influenceJoints=influenceJoints, startControl=startControl,endControl=endControl,secondaryAxis = 'zup',controlOrientation=controlOrientation,additiveScaleSetup=True,connectAdditiveScale=True)
+reload(rUtils)
 startControl = 'l_seg_0_hip_ik_anim'
 endControl = 'l_seg_0_knee_ik_anim'
 startControl = 'l_seg_1_knee_ik_anim'

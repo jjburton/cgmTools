@@ -33,7 +33,10 @@ RayCast.findMeshIntersectionFromObjectAxis(mesh,i_obj.mNode,'z+',singleReturn=Fa
 RayCast.findFurthestPointInRangeFromObject(mesh,i_obj.mNode,'z+')
 pos = RayCast.findMeshMidPointFromObject(mesh,i_obj.mNode, axisToCheck=['y'])
 locators.doLocPos(pos)
-
+obj = 'l_ankle_tmplObj'
+mesh = '|Morphy_grp|noTransform_grp|geo_grp|base_geo_grp|Morphy_Body_GEO'
+RayCast.findMeshIntersectionFromObjectAxis(mesh,obj,'z+')
+                                           
 log.info(info)
 info = RayCast.findMeshIntersection(mesh,i_obj.getPosition(), vector)
 vector = [matrix[9],matrix[10],matrix[11]]

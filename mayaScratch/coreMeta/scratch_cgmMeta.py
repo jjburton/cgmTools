@@ -117,3 +117,70 @@ nf(i_net1).getFastIterator()
 nf(i_net1).getIterator()
 
 cgmMeta.cgmNode(mc.ls(sl=1)[0]).doName()
+
+
+#>>>msgList stuff
+#================================================================
+import cgm.core
+cgm.core._reload()
+mi_obj = cgmMeta.cgmObject(nodeType = 'transform')
+items1 = mc.ls(sl=True)
+mi_obj.msgList_connect(items1,'testList1','backTrack2')
+mi_obj.msgList_connect(items1,'testList1')
+mi_obj.msgList_connect(items1,'testList2')
+mi_obj.msgList_connect(items1,'testList3')
+
+cgmMeta.validateObjListArg(items1)
+os = cgmMeta.cgmObjectSet(setName='testing')
+n1 = cgmMeta.cgmNode(nodeType='transform')
+n2 = cgmMeta.cgmNode(nodeType='transform')
+os.extend([n2,n1])
+os.extend(n2,n1)
+
+
+#>>>Object set stuff
+#================================================================
+import cgm.core
+cgm.core._reload()
+
+os = cgmMeta.cgmObjectSet(setName='testing')
+n1 = cgmMeta.cgmNode(nodeType='transform')
+n2 = cgmMeta.cgmNode(nodeType='transform')
+os.extend([n2,n1])
+os.extend(n2,n1)
+
+#>>> mirror stuff
+#================================================================
+from Red9.core import Red9_AnimationUtils as r9Anim
+
+import cgm.core
+cgm.core._reload()
+mCtrl = cgmMeta.cgmControl('hips_anim')
+mCtrl.isMirrorable()
+mCtrl.doMirrorMe()
+cgmMeta.cgmControl('cog_anim').doMirrorMe()
+spine = cgmMeta.cgmNode('spine_part')
+spine.mirrorMe()
+spine.animReset()
+
+mirror=MirrorHierarchy(cmds.ls(sl=True)[0])
+#set the settings object to run metaData
+mirror.settings.metaRig=True
+mirror.settings.printSettings()
+mirror.printMirrorDict()
+inverseCall = r9Anim.AnimFunctions.inverseAttributes
+for data in mirror.mirrorDict['Centre'].values():
+    inverseCall(data['node'], data['axis'])
+mirror.mirrorData(mode='') 
+mirror.mirrorData('cog_anim', mode='') 
+r9Anim.MirrorHierarchy(mc.ls(sl=True)).mirrorData(mode = '')
+r9Anim.MirrorHierarchy(['hips_anim']).mirrorData(mode = '')
+r9Anim.MirrorHierarchy(spine.rigNull.moduleSet.getList()).mirrorData(mode = '')
+
+mirror = r9Anim.MirrorHierarchy(nodes = spine.rigNull.moduleSet.getList())
+r9Anim.MirrorHierarchy(nodes = spine.rigNull.moduleSet.getList())
+
+spine.rigNull.moduleSet.getList()
+spine.rigNull.moduleSet.select()
+mirror.mirrorData(mode='')
+r9Anim.MirrorSetup.show()
