@@ -5,8 +5,9 @@ Module for building controls for cgmModules
 # From Python =============================================================
 import copy
 import re
+import time
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 import logging
 logging.basicConfig()
@@ -37,12 +38,12 @@ from cgm.lib import (cgmMath,
                      )
 
 from cgm.core.lib import nameTools
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 def returnBaseControlSize(mi_obj,mesh,axis=True):
     """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Figure out the base size for a control from a point in space within a mesh
 
@@ -53,61 +54,67 @@ def returnBaseControlSize(mi_obj,mesh,axis=True):
     
     RETURNS:
     axisDistances(dict) -- axis distances, average
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """ 
-    #if type(l_mesh) not in [list,tuple]:l_mesh = [l_mesh]
-    if mc.objExists(mi_obj):
-	try:
-	    mi_obj = cgmMeta.cgmObject(mi_obj)
-	except StandardError,error:
-		log.error("returnBaseControlSize Failed to initialize mi_obj! | %s"%error) 
-		raise StandardError    
-    elif not issubclass(type(mi_obj),cgmMeta.cgmObject):
-	try:
-	    mi_obj = cgmMeta.cgmObject(mi_obj.mNode)
-	except StandardError,error:
-		log.error("returnBaseControlSize Failed to initialize existing instance as mi_obj! | %s"%error) 
-		raise StandardError  
-	       
-    #>>>Figure out the axis to do
-    d_axisToDo = {}
-    if axis == True:
-        axis = ['x','y','z']
-    if type(axis) in [list,tuple]:
-        for a in axis:
-            if a in dictionary.stringToVectorDict.keys():
-                if list(a)[0] in d_axisToDo.keys():
-                    d_axisToDo[list(a)[0]].append( a )
-                else:
-                    d_axisToDo[list(a)[0]] = [ a ]
-                     
-            elif type(a) is str and a.lower() in ['x','y','z']:
-                buffer = []
-                buffer.append('%s+'%a.lower())
-                buffer.append('%s-'%a.lower())  
-                d_axisToDo[a.lower()] = buffer
-            else:
-                log.warning("Don't know what with: '%s'"%a)
+    mi_obj = cgmMeta.validateObjArg(mi_obj,cgmMeta.cgmObject)
     
-    log.debug(d_axisToDo)
-    if not d_axisToDo:return False
-    #>>>
-    d_returnDistances = {}
-    for axis in d_axisToDo:
-        log.debug("Checking: %s"%axis)
-        directions = d_axisToDo[axis]
-        if len(directions) == 1:#gonna multiply our distance 
-            info = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[0])
-            d_returnDistances[axis] = (distance.returnDistanceBetweenPoints(info['hit'],mi_obj.getPosition()) *2)
-        else:
-            info1 = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[0])
-            info2 = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[1])
-            if info1 and info2:
-                d_returnDistances[axis] = distance.returnDistanceBetweenPoints(info1['hit'],info2['hit'])                    
-    log.debug(d_returnDistances) 
+    _str_funcName = "returnBaseControlSize(%s)"%mi_obj.p_nameShort
+    log.debug(">> %s "%(_str_funcName) + "="*75)
+    start = time.clock()
     
-    #>>>Add the average
-    d_returnDistances['average'] = (sum([d_returnDistances.get(k) for k in d_returnDistances.keys()]))/len(d_returnDistances.keys())
+    log.debug("%s >> mesh: %s "%(_str_funcName,mesh))  
+    log.debug("%s >> axis: %s "%(_str_funcName,axis))        
+    try:#>>Figure out the axis to do
+	d_axisToDo = {}
+	if axis == True:
+	    axis = ['x','y','z']
+	if type(axis) in [list,tuple]:
+	    for a in axis:
+		if a in dictionary.stringToVectorDict.keys():
+		    if list(a)[0] in d_axisToDo.keys():
+			d_axisToDo[list(a)[0]].append( a )
+		    else:
+			d_axisToDo[list(a)[0]] = [ a ]
+			 
+		elif type(a) is str and a.lower() in ['x','y','z']:
+		    buffer = []
+		    buffer.append('%s+'%a.lower())
+		    buffer.append('%s-'%a.lower())  
+		    d_axisToDo[a.lower()] = buffer
+		else:
+		    log.warning("Don't know what with: '%s'"%a)
+	
+	log.debug("%s >> d_axisToDo: %s "%(_str_funcName,d_axisToDo))        
+	if not d_axisToDo:return False
+	#>>
+	d_returnDistances = {}
+	for axis in d_axisToDo:
+	    log.debug("Checking: %s"%axis)
+	    directions = d_axisToDo[axis]
+	    if len(directions) == 1:#gonna multiply our distance 
+		try:
+		    info = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[0])
+		    d_returnDistances[axis] = (distance.returnDistanceBetweenPoints(info['hit'],mi_obj.getPosition()) *2)
+		except StandardError,error:
+		    raise StandardError,"raycast | %s"%error
+	    else:
+		try:
+		    info1 = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[0])
+		    info2 = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[1])
+		    if info1 and info2:
+			d_returnDistances[axis] = distance.returnDistanceBetweenPoints(info1['hit'],info2['hit'])                    
+		except StandardError,error:
+		    raise StandardError,"raycast | %s"%error
+		
+	if not d_returnDistances:raise StandardError,"No intersections found"
+	    
+	#>>Add the average
+	log.debug("%s >> d_returnDistances: %s "%(_str_funcName,d_returnDistances))        	
+	d_returnDistances['average'] = (sum([d_returnDistances.get(k) for k in d_returnDistances.keys()]))/len(d_returnDistances.keys())
+    
+    except StandardError,error:
+	raise StandardError,"%s >> %s"(_str_funcName,error)
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
     
     return d_returnDistances
 
@@ -119,7 +126,7 @@ def joinCurves(targetObjects, mode = 'simple', curveDegree = 1):
 	for i_obj in ml_targetObjects:
 	    d_buffer = {}
 	    if i_obj.getMayaType() != 'nurbsCurve':
-		raise StandardError,"joinCurve>>> %s is not a 'nurbsCurve'. Type: %s"%(i_obj.getShortName(),i_obj.getMayaType())
+		raise StandardError,"joinCurve>> %s is not a 'nurbsCurve'. Type: %s"%(i_obj.getShortName(),i_obj.getMayaType())
 	    l_components = i_obj.getComponents('ep')
 	    l_componentIndices = []
 	    for c in l_components:
@@ -151,7 +158,7 @@ def joinCurves(targetObjects, mode = 'simple', curveDegree = 1):
 	return l_created
     
     except StandardError,error:
-	raise StandardError,"joinCurve>>> Failure. targets: %s | error: %s"%(targetObjects,error)
+	raise StandardError,"joinCurve>> Failure. targets: %s | error: %s"%(targetObjects,error)
 
 #@r9General.Timer    
 def createWrapControlShape(targetObjects,
@@ -185,13 +192,13 @@ def createWrapControlShape(targetObjects,
     Change offsets to use lathe axis rather than 
     """
     _str_funcName = "createWrapControlShape"
-    log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
+    log.debug(">> %s >> "%(_str_funcName) + "="*75)  
     
     if type(targetObjects) not in [list,tuple]:targetObjects = [targetObjects]
     if not targetGeo:
 	raise NotImplementedError, "Must have geo for now"
     if len(mc.ls(targetGeo))>1:
-	raise StandardError,"createWrapControlShape>>> More than one mesh named: %s"%targetGeo  
+	raise StandardError,"createWrapControlShape>> More than one mesh named: %s"%targetGeo  
     assert type(points) is int,"Points must be int: %s"%points
     assert type(curveDegree) is int,"Points must be int: %s"%points
     assert curveDegree > 0,"Curve degree must be greater than 1: %s"%curveDegree
@@ -208,15 +215,15 @@ def createWrapControlShape(targetObjects,
     if len(aimAxis) == 2:single_aimAxis = aimAxis[0]
     else:single_aimAxis = aimAxis
     log.debug("Single aim: %s"%single_aimAxis)
-    log.debug("createWrapControlShape>>> midMeshCast: %s"%midMeshCast)
+    log.debug("createWrapControlShape>> midMeshCast: %s"%midMeshCast)
         
-    #>>> Info
+    #>> Info
     l_groupsBuffer = []
     il_curvesToCombine = []
     l_sliceReturns = []
     #Need to do more to get a better size
     
-    #>>> Build curves
+    #>> Build curves
     #=================================================================
     #> Root curve #
     log.debug("RootRotate: %s"%rootRotate)
@@ -228,7 +235,7 @@ def createWrapControlShape(targetObjects,
 	log.debug("rootRotate: %s"%rootRotate)	
 	mc.rotate(rootRotate[0],rootRotate[1],rootRotate[2], [mi_rootLoc.mNode], os = True,r=True)   
 	    
-    #>>> Root
+    #>> Root
     mi_rootLoc.doGroup()#Group to zero    
     if extendMode == 'segment':
 	log.debug("segment mode. Target len: %s"%len(targetObjects[1:]))	
@@ -276,7 +283,7 @@ def createWrapControlShape(targetObjects,
 		    mc.delete(mi_endLoc.parent)#delete the loc
 		    
 	except StandardError,error:
-	    raise StandardError,"createWrapControlShape>>> segment wrap fail! | %s"%error
+	    raise StandardError,"createWrapControlShape>> segment wrap fail! | %s"%error
 	
     elif extendMode == 'radial':
 	    d_handleInner = createMeshSliceCurve(targetGeo,mi_rootLoc,midMeshCast=midMeshCast,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
@@ -446,9 +453,9 @@ def createWrapControlShape(targetObjects,
 		try:
 		    l_curvesToCombine.append( mc.curve(d=curveDegree,ep=l_pos,os =True) )#Make the curve
 		except:
-		    log.debug("createWrapControlShape>>>> skipping curve fail: %s"%(degree))
+		    log.debug("createWrapControlShape>>> skipping curve fail: %s"%(degree))
 		    
-    #>>>Combine the curves
+    #>>Combine the curves
     newCurve = curves.combineCurves(l_curvesToCombine) 
     mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(targetObjects[0],False) )
     curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
@@ -499,15 +506,15 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		return False
 
     log.debug("Casting: '%s"%mi_obj.mNode)
-    log.debug("createMeshSliceCurve>>> midMeshCast: %s"%midMeshCast)    
+    log.debug("createMeshSliceCurve>> midMeshCast: %s"%midMeshCast)    
     if type(mesh) in [list,tuple]:
 	log.error("Can only pass one mesh. passing first: '%s'"%mesh[0])
 	mesh = mesh[0]
 	if len(mc.ls(mesh))>1:
-	    raise StandardError,"createMeshSliceCurve>>> More than one mesh named: %s"%mesh
+	    raise StandardError,"createMeshSliceCurve>> More than one mesh named: %s"%mesh
     assert mc.objExists(mesh),"Mesh doesn't exist: '%s'"%mesh
     
-    #>>>> Info
+    #>>> Info
     #================================================================
     mi_loc = mi_obj.doLoc()
     mi_loc.doGroup()
@@ -535,7 +542,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     #midMeshCast
     if midMeshCast:
 	axisToCheck = axisToCheck or kws.get('axisToCheck') or [a for a in ['x','y','z'] if a != latheAxis]
-	log.debug("createMeshSliceCurve>>> axisToCheck: %s"%axisToCheck)
+	log.debug("createMeshSliceCurve>> axisToCheck: %s"%axisToCheck)
 	try:
 	    Snap.go(mi_loc.parent,mesh,True,False,midSurfacePos=True, axisToCheck = axisToCheck)
 	except:
@@ -558,7 +565,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     else:
 	rotateCeiling = 360
     
-    #>>>> Get our rotate info
+    #>>> Get our rotate info
     #================================================================
     l_rotateSettings = []
     
@@ -582,7 +589,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     
     if not l_rotateSettings:raise StandardError, "Should have had some l_rotateSettings by now"
     log.debug("rotateSettings: %s"%l_rotateSettings)
-    #>>>> Pew, pew !
+    #>>> Pew, pew !
     #================================================================
     for i,rotateValue in enumerate(l_rotateSettings):
 	d_castReturn = {}
@@ -623,7 +630,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    d_rawHitFromValue[rotateValue] = hit
 
 	except StandardError,error:
-		raise StandardError,"createMeshSliceCurve>>> error: %s"%error 
+		raise StandardError,"createMeshSliceCurve>> error: %s"%error 
 	log.debug("rotateValue %s | raw hit: %s"%(rotateValue,hit))
 	if hit and not cgmMath.isVectorEquivalent(hit,d_rawHitFromValue.get(l_rotateSettings[i-1])):
 	    log.debug("last raw: %s"%d_rawHitFromValue.get(l_rotateSettings[i-1]))

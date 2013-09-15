@@ -102,6 +102,7 @@ class go(object):
 	
 	_str_funcName = "go.__init__(%s)"%i_module.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()
 	
 	#Some basic assertions
         assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
@@ -257,6 +258,9 @@ class go(object):
 		log.debug("'%s' No autobuild."%self._strShortName)
 	else:
 	    log.warning("'%s' module type not in done list. No auto build"%self.buildModule.__name__)
+	    
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	    
+	
     
     
     def doBuild(self,buildTo = '',**kws):
