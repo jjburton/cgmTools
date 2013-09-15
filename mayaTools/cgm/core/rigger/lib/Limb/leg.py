@@ -10,11 +10,12 @@ Website : http://www.cgmonks.com
 leg rig builder
 ================================================================
 """
-__version__ = 0.0
+__version__ = 01.09142013
 
 # From Python =============================================================
 import copy
 import re
+import time
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -60,7 +61,6 @@ reload(joints)
 def build_shapes(self):
     """
     """ 
-    log.info(">>> %s.build_shapes >> "%self._strShortName + "-"*75)        
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -68,6 +68,10 @@ def build_shapes(self):
     except StandardError,error:
 	log.error("leg.build_rig>>bad self!")
 	raise StandardError,error
+    
+    _str_funcName = "build_matchSystem(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()       
     
     if self._i_templateNull.handles > 4:
 	raise StandardError, "%s.build_shapes>>> Too many handles. don't know how to rig"%(self._strShortName)
@@ -115,7 +119,9 @@ def build_shapes(self):
 	
     except StandardError,error:
 	log.error("build_leg>>Build shapes fail!")
-	raise StandardError,error   
+	raise StandardError,error  
+    
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	    
     return True
 
 #>>> Skeleton
@@ -125,12 +131,10 @@ __d_preferredAngles__ = {'hip':[0,0,-10],'knee':[0,0,10]}#In terms of aim up out
 __d_controlShapes__ = {'shape':['segmentIK','controlsFK','midIK','settings','foot'],
                        'pivot':['toe','heel','ball','inner','outer']}
 
-@cgmGeneral.Timer
 def __bindSkeletonSetup__(self):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
     """
-    log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "-"*75)            
     try:
 	if not self._cgmClass == 'JointFactory.go':
 	    log.error("Not a JointFactory.go instance: '%s'"%self)
@@ -138,6 +142,10 @@ def __bindSkeletonSetup__(self):
     except StandardError,error:
 	log.error("leg.__bindSkeletonSetup__>>bad self!")
 	raise StandardError,error
+    
+    _str_funcName = "__bindSkeletonSetup__(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()
     
     #>>> Re parent joints
     #=============================================================  
@@ -181,16 +189,15 @@ def __bindSkeletonSetup__(self):
 	#self._i_rigNull.msgList_connect(ml_skinJoints,'skinJoints','module')
 	
 	self._i_module.rig_getReport()#report
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
 
     except StandardError,error:
 	log.error("build_leg>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
     
-@cgmGeneral.Timer
 def build_rigSkeleton(self):
     """
     """
-    log.info(">>> %s.build_rigSkeleton >> "%self._strShortName + "-"*75)                
     try:#===================================================
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -199,74 +206,93 @@ def build_rigSkeleton(self):
 	log.error("leg.build_deformationRig>>bad self!")
 	raise StandardError,error
     
-    #>>> Get our pivots
-    #=============================================================
-    for pivot in __d_controlShapes__['pivot']:
-	l_buffer = self._i_templateNull.getMessage("pivot_%s"%pivot,False)
-	if not l_buffer:
-	    raise StandardError, "%s.build_shapes>>> Template null missing pivot: '%s'"%(self._strShortName,pivot)
-	log.info("pivot (%s) from template: %s"%(pivot,l_buffer))
-	#Duplicate and store the nulls
-	i_pivot = cgmMeta.validateObjArg(l_buffer)
-	i_trans = i_pivot.doDuplicateTransform(True)
-	i_trans.parent = False
-	if pivot in ['inner','outer'] and self._direction == 'right':#if right, rotate the pivots
-	    mc.rotate(0,180,0,i_trans.mNode,relative = True, os = True)
-	self._i_rigNull.connectChildNode(i_trans,"pivot_%s"%pivot,"rigNull")
-	
-    #Ball Joint pivot
-    i_ballJointPivot = self._ml_skinJoints[-1].doDuplicateTransform(True)#dup ball in place
-    i_ballJointPivot.parent = False
-    i_ballJointPivot.cgmName = 'ballJoint'
-    i_ballJointPivot.addAttr('cgmTypeModifier','pivot')
-    i_ballJointPivot.doName()
-    self._i_rigNull.connectChildNode(i_ballJointPivot,"pivot_ballJoint","rigNull")
+    _str_funcName = "build_rigSkeleton(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()
     
-    #Ball wiggle pivot
-    i_ballWigglePivot = i_ballJointPivot.doDuplicate(True,)#dup ball in place
-    i_ballWigglePivot.parent = False
-    i_ballWigglePivot.cgmName = 'ballWiggle'
-    i_ballWigglePivot.doName()
-    self._i_rigNull.connectChildNode(i_ballWigglePivot,"pivot_ballWiggle","rigNull") 
-    
-    mi_toePivot = self._i_rigNull.pivot_toe or False 
-    if not mi_toePivot:
-	raise StandardError,"%s.build_rigSkeleton>>> missing our toe pivot"%self._strShortName
+    try:#>>> Get our pivots
+	#=============================================================
+	_str_subFunc = "Get Pivots"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
 	
+	for pivot in __d_controlShapes__['pivot']:
+	    l_buffer = self._i_templateNull.getMessage("pivot_%s"%pivot,False)
+	    if not l_buffer:
+		raise StandardError, "%s.build_shapes>>> Template null missing pivot: '%s'"%(self._strShortName,pivot)
+	    log.info("pivot (%s) from template: %s"%(pivot,l_buffer))
+	    #Duplicate and store the nulls
+	    i_pivot = cgmMeta.validateObjArg(l_buffer)
+	    i_trans = i_pivot.doDuplicateTransform(True)
+	    i_trans.parent = False
+	    if pivot in ['inner','outer'] and self._direction == 'right':#if right, rotate the pivots
+		mc.rotate(0,180,0,i_trans.mNode,relative = True, os = True)
+	    self._i_rigNull.connectChildNode(i_trans,"pivot_%s"%pivot,"rigNull")
+	    
+	#Ball Joint pivot
+	i_ballJointPivot = self._ml_skinJoints[-1].doDuplicateTransform(True)#dup ball in place
+	i_ballJointPivot.parent = False
+	i_ballJointPivot.cgmName = 'ballJoint'
+	i_ballJointPivot.addAttr('cgmTypeModifier','pivot')
+	i_ballJointPivot.doName()
+	self._i_rigNull.connectChildNode(i_ballJointPivot,"pivot_ballJoint","rigNull")
+	
+	#Ball wiggle pivot
+	i_ballWigglePivot = i_ballJointPivot.doDuplicate(True,)#dup ball in place
+	i_ballWigglePivot.parent = False
+	i_ballWigglePivot.cgmName = 'ballWiggle'
+	i_ballWigglePivot.doName()
+	self._i_rigNull.connectChildNode(i_ballWigglePivot,"pivot_ballWiggle","rigNull") 
+	
+	mi_toePivot = self._i_rigNull.pivot_toe or False 
+	if not mi_toePivot:
+	    raise StandardError,"%s.build_rigSkeleton>>> missing our toe pivot"%self._strShortName
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
     #>>>Create joint chains
     #=============================================================    
-    try:
-	#>>Rig chain  
-	#=====================================================================	
+    try:#>>Rig chain #=====================================================================	
+	_str_subFunc = "Rig Chain"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	ml_rigJoints = self.build_rigChain()
 	ml_rigJoints[0].parent = False#Parent to world
 		
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_rigSkeleton>>Build rig joints fail!")
-	raise StandardError,error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    try:#>>FK chain
-	#=====================================================================		
+    try:#>>FK chain#=====================================================================
+	_str_subFunc = "FK Chain"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	ml_fkJoints = self.build_handleChain('fk','fkJoints')
 	d_fkRotateOrders = {'hip':0,'ankle':0}#old hip - 5
 	for i_obj in ml_fkJoints:
 	    if i_obj.getAttr('cgmName') in d_fkRotateOrders.keys():
 		i_obj.rotateOrder = d_fkRotateOrders.get(i_obj.cgmName)   	
 
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_rigSkeleton>>Build fk joints fail!")
-	raise StandardError,error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    try:#>>Blend chain
-	#=====================================================================	
+    try:#>>Blend chain #=====================================================================	
 	ml_blendJoints = self.build_handleChain('blend','blendJoints')
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_rigSkeleton>>Build blend joints fail!")
-	raise StandardError,error  
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    try:#>>IK chain
-	#=====================================================================	
+    try:#>>IK chain #=====================================================================
+	_str_subFunc = "IK Chain"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	"""Important - we're going to set our preferred angles on the main ik joints so ik works as expected"""
 	ml_ikJoints = self.build_handleChain('ik','ikJoints')
 	
@@ -276,12 +302,15 @@ def build_rigSkeleton(self):
 		for i,v in enumerate(__d_preferredAngles__.get(i_jnt.cgmName)):	  
 		    i_jnt.__setattr__('preferredAngle%s'%self._jointOrientation[i].upper(),v)	    
 
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("%s.build_rigSkeleton>>Build ik joints fail!"%self._strShortName)
-	raise StandardError,error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    try:#>>IK PV chain
-	#=====================================================================	
+    try:#>>IK PV chain #=====================================================================	
+	_str_subFunc = "IK PV Chain"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	ml_ikPVJoints = []
 	for i_jnt in ml_ikJoints[:3]:
 	    i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
@@ -290,12 +319,16 @@ def build_rigSkeleton(self):
 	    if ml_ikPVJoints:#if we have data, parent to last
 		i_new.parent = ml_ikPVJoints[-1]
 	    ml_ikPVJoints.append(i_new)	
+	    
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_rigSkeleton>>Build ik pv joints fail!")
-	raise StandardError,error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    try:#>>IK NoFlip chain
-	#=====================================================================	
+    try:#>>IK NoFlip chain #=====================================================================
+	_str_subFunc = "IK NoFlip Chain"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	ml_ikNoFlipJoints = []
 	for i_jnt in ml_ikJoints[:3]:
 	    i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
@@ -305,12 +338,15 @@ def build_rigSkeleton(self):
 		i_new.parent = ml_ikNoFlipJoints[-1]
 	    ml_ikNoFlipJoints.append(i_new)		
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_rigSkeleton>>Build ik no flip joints fail!")
-	raise StandardError,error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    try:#>>Make our toe
-	#=====================================================================	
+    try:#>>Make our toe #=====================================================================
+	_str_subFunc = "Toe"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	#Do the toe
 	i_toeJoint = ml_ikJoints[-1].doDuplicate()
 	Snap.go(i_toeJoint, mi_toePivot.mNode,True,False)
@@ -323,12 +359,15 @@ def build_rigSkeleton(self):
 	ml_ikJoints.append(i_toeJoint)
 	self._i_rigNull.msgList_append(i_toeJoint,'ikJoints','rigNull')
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_rigSkeleton>>Build toe joint fail!")
-	raise StandardError,error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    try:#>>Influence chain
-	#=====================================================================		
+    try:#>>Influence chain #=====================================================================
+	_str_subFunc = "Influence Chain"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	d_influenceChainReturns = self.build_simpleInfluenceChains(True)
 	ml_influenceChains = d_influenceChainReturns['ml_influenceChains']
 	ml_influenceJoints= d_influenceChainReturns['ml_influenceJoints']	
@@ -337,21 +376,27 @@ def build_rigSkeleton(self):
 	if len(ml_segmentHandleJoints)!=3:
 	    raise StandardError,"%s.build_rigSkeleton>>> don't have 3 influence joints: '%s'"%(self._i_module.getShortName(),l_segmentHandleJoints)
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_rigSkeleton>>Build influence joints fail!")
-	raise StandardError,error    
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
 
     
-    try:#>>Segment chain  
-	#=====================================================================
+    try:#>>Segment chain  #=====================================================================
+	_str_subFunc = "Segment Chain"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	ml_segmentChains = self.build_segmentChains(ml_segmentHandleJoints,True)
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_rigSkeleton>>Build segment joints fail!")
-	raise StandardError,error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
 
-    try:#>>> Store em all to our instance
-	#=====================================================================		
+    try:#>>> Store em all to our instance #=====================================================================
+	_str_subFunc = "Store"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	self._i_rigNull.msgList_connect(ml_ikNoFlipJoints,'ikNoFlipJoints',"rigNull")
 	self._i_rigNull.msgList_connect(ml_ikPVJoints,'ikPVJoints',"rigNull")
 	self._i_rigNull.msgList_connect(ml_influenceJoints,'influenceJoints',"rigNull")
@@ -363,29 +408,36 @@ def build_rigSkeleton(self):
 	log.info("ikNoFlipJoints>> %s"%self._i_rigNull.msgList_getMessage('ikNoFlipJoints',False))
 	log.info("ikPVJoints>> %s"%self._i_rigNull.msgList_getMessage('ikPVJoints',False))
    	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("build_leg>>StoreJoints fail!")
-	raise StandardError,error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
 
-    ml_jointsToConnect = []
-    ml_jointsToConnect.extend(ml_rigJoints)    
-    ml_jointsToConnect.extend(ml_ikJoints)
-    ml_jointsToConnect.extend(ml_ikNoFlipJoints)    
-    ml_jointsToConnect.extend(ml_ikPVJoints)    
-    ml_jointsToConnect.extend(ml_influenceJoints)    
-    for ml_chain in ml_segmentChains + ml_influenceChains:
-	ml_jointsToConnect.extend(ml_chain)
-
-    #Vis only
-    self.connect_toRigGutsVis(ml_jointsToConnect,vis=True)
+    try:#Vis connect =====================================================================
+	_str_subFunc = "Vis Connect"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	ml_jointsToConnect = []
+	ml_jointsToConnect.extend(ml_rigJoints)    
+	ml_jointsToConnect.extend(ml_ikJoints)
+	ml_jointsToConnect.extend(ml_ikNoFlipJoints)    
+	ml_jointsToConnect.extend(ml_ikPVJoints)    
+	ml_jointsToConnect.extend(ml_influenceJoints)    
+	for ml_chain in ml_segmentChains + ml_influenceChains:
+	    ml_jointsToConnect.extend(ml_chain)
     
+	#Vis only
+	self.connect_toRigGutsVis(ml_jointsToConnect,vis=True)
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	    
     return True
 
-@cgmGeneral.Timer
 def build_foot(self):
     """
     """
-    log.info(">>> %s.build_foot >> "%self._strShortName + "-"*75)                        
     try:#===================================================
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -394,62 +446,86 @@ def build_foot(self):
 	log.error("leg.build_foot>>bad self!")
 	raise StandardError,error
     
-    #>>>Get data
-    ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
-    ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
-    ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
-    ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
-    ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
-    ml_ikPVJoints = self._i_rigNull.msgList_get('ikPVJoints')
-    ml_ikNoFlipJoints = self._i_rigNull.msgList_get('ikNoFlipJoints')
+    _str_funcName = "build_foot(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()
     
-    mi_settings = self._i_rigNull.settings
-    
-    mi_pivToe = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_toe'),cgmMeta.cgmObject)
-    mi_pivHeel = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_heel'),cgmMeta.cgmObject)
-    mi_pivBall = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ball'),cgmMeta.cgmObject)
-    mi_pivInner = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_inner'),cgmMeta.cgmObject)
-    mi_pivOuter = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_outer'),cgmMeta.cgmObject)      
-    mi_pivBallJoint = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ballJoint'),cgmMeta.cgmObject)      
-    mi_pivBallWiggle = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ballWiggle'),cgmMeta.cgmObject)      
-        
-    aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
-    upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
-    outVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[2])  
-    
-    mi_controlIK = self._i_rigNull.controlIK
+    try:#>>>Get data
+	_str_subFunc = "Get Data"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
+	ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+	ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
+	ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
+	ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
+	ml_ikPVJoints = self._i_rigNull.msgList_get('ikPVJoints')
+	ml_ikNoFlipJoints = self._i_rigNull.msgList_get('ikNoFlipJoints')
+	
+	mi_settings = self._i_rigNull.settings
+	
+	mi_pivToe = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_toe'),cgmMeta.cgmObject)
+	mi_pivHeel = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_heel'),cgmMeta.cgmObject)
+	mi_pivBall = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ball'),cgmMeta.cgmObject)
+	mi_pivInner = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_inner'),cgmMeta.cgmObject)
+	mi_pivOuter = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_outer'),cgmMeta.cgmObject)      
+	mi_pivBallJoint = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ballJoint'),cgmMeta.cgmObject)      
+	mi_pivBallWiggle = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ballWiggle'),cgmMeta.cgmObject)      
+	    
+	aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
+	upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
+	outVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[2])  
+	
+	mi_controlIK = self._i_rigNull.controlIK
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #=============================================================    
-    #try:#>>>Foot setup
-    mi_pivHeel.parent = mi_controlIK.mNode#heel to foot
-    mi_pivToe.parent = mi_pivHeel.mNode#toe to heel    
-    mi_pivOuter.parent = mi_pivToe.mNode#outer to heel
-    mi_pivInner.parent = mi_pivOuter.mNode#inner to outer
-    mi_pivBall.parent = mi_pivInner.mNode#pivBall to toe
-    mi_pivBallJoint.parent = mi_pivBall.mNode#ballJoint to ball        
-    mi_pivBallWiggle.parent = mi_pivInner.mNode
-    
-    #for each of our pivots, we're going to zero group them
-    for pivot in [mi_pivToe,mi_pivHeel,mi_pivBall,mi_pivInner,mi_pivOuter,mi_pivBallJoint,mi_pivBallWiggle]:
-	pivot.rotateOrder = 0
-	pivot.doZeroGroup()
-	log.info("pivot: %s"%pivot.getShortName())    
-    
-    #Add driving attrs
-    mPlug_roll = cgmMeta.cgmAttr(mi_controlIK,'roll',attrType='float',defaultValue = 0,keyable = True)
-    mPlug_toeLift = cgmMeta.cgmAttr(mi_controlIK,'toeLift',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
-    mPlug_toeStaighten = cgmMeta.cgmAttr(mi_controlIK,'toeStaighten',attrType='float',initialValue = 65,defaultValue = 70,keyable = True)
-    mPlug_toeWiggle= cgmMeta.cgmAttr(mi_controlIK,'toeWiggle',attrType='float',defaultValue = 0,keyable = True)
-    mPlug_toeSpin = cgmMeta.cgmAttr(mi_controlIK,'toeSpin',attrType='float',defaultValue = 0,keyable = True)
-    mPlug_lean = cgmMeta.cgmAttr(mi_controlIK,'lean',attrType='float',defaultValue = 0,keyable = True)
-    mPlug_side = cgmMeta.cgmAttr(mi_controlIK,'bank',attrType='float',defaultValue = 0,keyable = True)
-    mPlug_kneeSpin = cgmMeta.cgmAttr(mi_controlIK,'kneeSpin',attrType='float',defaultValue = 0,keyable = True)
-    mPlug_stretch = cgmMeta.cgmAttr(mi_controlIK,'autoStretch',attrType='float',defaultValue = 1,keyable = True)
-    mPlug_showKnee = cgmMeta.cgmAttr(mi_controlIK,'showKnee',attrType='bool',defaultValue = 0,keyable = False)
-    mPlug_lengthUpr= cgmMeta.cgmAttr(mi_controlIK,'lengthUpr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
-    mPlug_lengthLwr = cgmMeta.cgmAttr(mi_controlIK,'lengthLwr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
+    try:#>>>Attr setup
+	_str_subFunc = "Attribute Setup"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	mi_pivHeel.parent = mi_controlIK.mNode#heel to foot
+	mi_pivToe.parent = mi_pivHeel.mNode#toe to heel    
+	mi_pivOuter.parent = mi_pivToe.mNode#outer to heel
+	mi_pivInner.parent = mi_pivOuter.mNode#inner to outer
+	mi_pivBall.parent = mi_pivInner.mNode#pivBall to toe
+	mi_pivBallJoint.parent = mi_pivBall.mNode#ballJoint to ball        
+	mi_pivBallWiggle.parent = mi_pivInner.mNode
+	
+	#for each of our pivots, we're going to zero group them
+	for pivot in [mi_pivToe,mi_pivHeel,mi_pivBall,mi_pivInner,mi_pivOuter,mi_pivBallJoint,mi_pivBallWiggle]:
+	    pivot.rotateOrder = 0
+	    pivot.doZeroGroup()
+	    log.info("pivot: %s"%pivot.getShortName())    
+	
+	#Add driving attrs
+	mPlug_roll = cgmMeta.cgmAttr(mi_controlIK,'roll',attrType='float',defaultValue = 0,keyable = True)
+	mPlug_toeLift = cgmMeta.cgmAttr(mi_controlIK,'toeLift',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
+	mPlug_toeStaighten = cgmMeta.cgmAttr(mi_controlIK,'toeStaighten',attrType='float',initialValue = 65,defaultValue = 70,keyable = True)
+	mPlug_toeWiggle= cgmMeta.cgmAttr(mi_controlIK,'toeWiggle',attrType='float',defaultValue = 0,keyable = True)
+	mPlug_toeSpin = cgmMeta.cgmAttr(mi_controlIK,'toeSpin',attrType='float',defaultValue = 0,keyable = True)
+	mPlug_lean = cgmMeta.cgmAttr(mi_controlIK,'lean',attrType='float',defaultValue = 0,keyable = True)
+	mPlug_side = cgmMeta.cgmAttr(mi_controlIK,'bank',attrType='float',defaultValue = 0,keyable = True)
+	mPlug_kneeSpin = cgmMeta.cgmAttr(mi_controlIK,'kneeSpin',attrType='float',defaultValue = 0,keyable = True)
+	mPlug_stretch = cgmMeta.cgmAttr(mi_controlIK,'autoStretch',attrType='float',defaultValue = 1,keyable = True)
+	mPlug_showKnee = cgmMeta.cgmAttr(mi_controlIK,'showKnee',attrType='bool',defaultValue = 0,keyable = False)
+	mPlug_lengthUpr= cgmMeta.cgmAttr(mi_controlIK,'lengthUpr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
+	mPlug_lengthLwr = cgmMeta.cgmAttr(mi_controlIK,'lengthLwr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#heel setup
+	_str_subFunc = "Heel Setup"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc) 
+	
 	#Add driven attrs
 	mPlug_heelClampResult = cgmMeta.cgmAttr(mi_controlIK,'result_clamp_heel',attrType='float',keyable = False,hidden=True)
 	#mPlug_heelResult = cgmMeta.cgmAttr(mi_controlIK,'result_heel',attrType='float',keyable = False,hidden=True)
@@ -462,8 +538,10 @@ def build_foot(self):
 	#Inversion
 	#NodeF.argsToNodes("%s = -%s"%(mPlug_heelResult.p_combinedShortName,mPlug_heelClampResult.p_combinedShortName)).doBuild()
 	mPlug_heelClampResult.doConnectOut("%s.r%s"%(mi_pivHeel.mNode,self._jointOrientation[2].lower()))
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"verify_moduleRigToggles>> heel setup fail: %s"%error    
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)  
     
     try:#ball setup
 	"""
@@ -472,6 +550,10 @@ def build_foot(self):
 			ballToeLiftRoll        md   ( pma   toeToeStraightRoll                    md  
 				1               4       3             2                            5
 	"""
+	_str_subFunc = "Ball setup"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	mPlug_ballToeLiftRollResult = cgmMeta.cgmAttr(mi_controlIK,'result_range_ballToeLiftRoll',attrType='float',keyable = False,hidden=True)
 	mPlug_toeStraightRollResult = cgmMeta.cgmAttr(mi_controlIK,'result_range_toeStraightRoll',attrType='float',keyable = False,hidden=True)
 	mPlug_oneMinusToeResultResult = cgmMeta.cgmAttr(mi_controlIK,'result_pma_one_minus_toeStraitRollRange',attrType='float',keyable = False,hidden=True)
@@ -501,8 +583,9 @@ def build_foot(self):
 	    
 	mPlug_all_x_rollResult.doConnectOut("%s.r%s"%(mi_pivBallJoint.mNode,self._jointOrientation[2].lower()))
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"verify_moduleRigToggles>> ball setup fail: %s"%error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
 	
     try:#toe setup    
 	"""
@@ -511,6 +594,10 @@ def build_foot(self):
 			      setRange                           md
 				 1                                2
 	"""
+	_str_subFunc = "Toe setup"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	mPlug_toeRangeResult = cgmMeta.cgmAttr(mi_controlIK,'result_range_toeLiftStraightRoll',attrType='float',keyable = False,hidden=True)
 	mPlug_toe_x_rollResult = cgmMeta.cgmAttr(mi_controlIK,'result_md_toeRange_x_roll',attrType='float',keyable = False,hidden=True)
 	
@@ -525,8 +612,10 @@ def build_foot(self):
 	    NodeF.argsToNodes(arg).doBuild()    
 	
 	mPlug_toe_x_rollResult.doConnectOut("%s.r%s"%(mi_pivToe.mNode,self._jointOrientation[2].lower()))
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"verify_moduleRigToggles>> toe setup fail: %s"%error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error) 
     
     try:#bank setup 
 	"""
@@ -536,6 +625,10 @@ def build_foot(self):
 	inside_loc.rotateZ = max(0,$side);
 	clamp2
 	"""    
+	_str_subFunc = "Bank setup"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  	
+	
 	mPlug_outerResult = cgmMeta.cgmAttr(mi_controlIK,'result_clamp_outerBank',attrType='float',keyable = False,hidden=True)
 	mPlug_innerResult = cgmMeta.cgmAttr(mi_controlIK,'result_clamp_innerBank',attrType='float',keyable = False,hidden=True)
 	
@@ -549,14 +642,19 @@ def build_foot(self):
 	mPlug_outerResult.doConnectOut("%s.r%s"%(mi_pivOuter.mNode,self._jointOrientation[0].lower()))
 	mPlug_innerResult.doConnectOut("%s.r%s"%(mi_pivInner.mNode,self._jointOrientation[0].lower()))
 
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"verify_moduleRigToggles>> bank setup fail: %s"%error       
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)      
     
     try:#lean setup 
 	"""
 	Schleifer's
 	ball_loc.rotateZ = $lean;
 	"""    
+	_str_subFunc = "Lean setup"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	if self._i_module.getAttr('cgmDirection') and self._i_module.cgmDirection.lower() in ['right']:
 	    str_leanDriver = "%s.r%s = -%s"%(mi_pivBallJoint.mNode,self._jointOrientation[0].lower(),
 	                                     mPlug_lean.p_combinedShortName)
@@ -564,14 +662,19 @@ def build_foot(self):
 	else:
 	    mPlug_lean.doConnectOut("%s.r%s"%(mi_pivBallJoint.mNode,self._jointOrientation[0].lower()))
 	    
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"verify_moduleRigToggles>> lean setup fail: %s"%error  
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#toe spin setup 
 	"""
 	Schleifer's
 	toe_loc.rotateY = $spin;
-	"""   
+	"""  
+	_str_subFunc = "Toe spin setup"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	if self._i_module.getAttr('cgmDirection') and self._i_module.cgmDirection.lower() in ['right']:
 	    str_leanDriver = "%s.r%s = -%s"%(mi_pivToe.mNode,self._jointOrientation[1].lower(),
 	                                     mPlug_toeSpin.p_combinedShortName)
@@ -579,27 +682,31 @@ def build_foot(self):
 	else:
 	    mPlug_toeSpin.doConnectOut("%s.r%s"%(mi_pivToe.mNode,self._jointOrientation[1].lower()))
 
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"verify_moduleRigToggles>> toe spin setup fail: %s"%error 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#toe wiggle setup 
 	"""
 	Schleifer's
 	toeWiggle_loc.rx = $wiggle;
-	"""    
+	""" 
+	_str_subFunc = "Toe wiggle setup"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	mPlug_toeWiggle.doConnectOut("%s.r%s"%(mi_pivBallWiggle.mNode,self._jointOrientation[2].lower()))
 
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"verify_moduleRigToggles>> toe wiggle setup fail: %s"%error 
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
+    return True
     
-    
-    
-#@cgmGeneral.Timer
 def build_FKIK(self):
     """
     """
-    log.info(">>> %s.build_FKIK >> "%self._strShortName + "-"*75)                    
     try:#===================================================
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -608,54 +715,75 @@ def build_FKIK(self):
 	log.error("leg.build_FKIK>>bad self!")
 	raise StandardError,error
     
-    #>>>Get data
-    ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')   
-    ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
-    ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
-    ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
-    ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
-    if len(ml_ikJoints) != 5:raise StandardError,"Length of ikJoints is wrong. %s != 4"%(len(ml_ikJoints))
-    ml_ikPVJoints = self._i_rigNull.msgList_get('ikPVJoints')
-    ml_ikNoFlipJoints = self._i_rigNull.msgList_get('ikNoFlipJoints')
+    _str_funcName = "build_FKIK(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()    
     
-    mi_settings = self._i_rigNull.settings
-    
-    mi_pivToe = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_toe'),cgmMeta.cgmObject)
-    mi_pivHeel = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_heel'),cgmMeta.cgmObject)
-    mi_pivBall = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ball'),cgmMeta.cgmObject)
-    mi_pivInner = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_inner'),cgmMeta.cgmObject)
-    mi_pivOuter = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_outer'),cgmMeta.cgmObject)      
-    mi_pivBallJoint = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ballJoint'),cgmMeta.cgmObject)      
-    mi_pivBallWiggle = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ballWiggle'),cgmMeta.cgmObject)      
-        
-    aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
-    upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
-    outVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[2])
-    
-    mi_controlIK = self._i_rigNull.controlIK
-    mi_controlMidIK = self._i_rigNull.midIK
-    mPlug_lockMid = cgmMeta.cgmAttr(mi_controlMidIK,'lockMid',attrType='float',defaultValue = 0,keyable = True,minValue=0,maxValue=1.0)
-    
-    for chain in [ml_ikJoints,ml_blendJoints,ml_ikNoFlipJoints,ml_ikPVJoints]:
-	chain[0].parent = self._i_constrainNull.mNode
+    try:#>>>Get data
+	_str_subFunc = "Get Data"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
 	
-    #for more stable ik, we're gonna lock off the lower channels degrees of freedom
-    for chain in [ml_ikNoFlipJoints,ml_ikPVJoints]:
-	for axis in self._jointOrientation[:2]:
-	    log.info(axis)
-	    for i_j in chain[1:]:
-		attributes.doSetAttr(i_j.mNode,"jointType%s"%axis.upper(),0)
-    
+	ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')   
+	ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+	ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
+	ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
+	ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
+	if len(ml_ikJoints) != 5:raise StandardError,"Length of ikJoints is wrong. %s != 4"%(len(ml_ikJoints))
+	ml_ikPVJoints = self._i_rigNull.msgList_get('ikPVJoints')
+	ml_ikNoFlipJoints = self._i_rigNull.msgList_get('ikNoFlipJoints')
+	
+	mi_settings = self._i_rigNull.settings
+	
+	mi_pivToe = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_toe'),cgmMeta.cgmObject)
+	mi_pivHeel = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_heel'),cgmMeta.cgmObject)
+	mi_pivBall = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ball'),cgmMeta.cgmObject)
+	mi_pivInner = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_inner'),cgmMeta.cgmObject)
+	mi_pivOuter = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_outer'),cgmMeta.cgmObject)      
+	mi_pivBallJoint = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ballJoint'),cgmMeta.cgmObject)      
+	mi_pivBallWiggle = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ballWiggle'),cgmMeta.cgmObject)      
+	    
+	aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
+	upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
+	outVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[2])
+	
+	mi_controlIK = self._i_rigNull.controlIK
+	mi_controlMidIK = self._i_rigNull.midIK
+	mPlug_lockMid = cgmMeta.cgmAttr(mi_controlMidIK,'lockMid',attrType='float',defaultValue = 0,keyable = True,minValue=0,maxValue=1.0)
+	
+	for chain in [ml_ikJoints,ml_blendJoints,ml_ikNoFlipJoints,ml_ikPVJoints]:
+	    chain[0].parent = self._i_constrainNull.mNode
+	    
+	#for more stable ik, we're gonna lock off the lower channels degrees of freedom
+	for chain in [ml_ikNoFlipJoints,ml_ikPVJoints]:
+	    for axis in self._jointOrientation[:2]:
+		log.info(axis)
+		for i_j in chain[1:]:
+		    attributes.doSetAttr(i_j.mNode,"jointType%s"%axis.upper(),0)
+		    
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+
     #=============================================================    
     try:#>>>FK Length connector
+	_str_subFunc = "FK Length connection"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	for i,i_jnt in enumerate(ml_fkJoints[:-2]):
 	    rUtils.addJointLengthAttr(i_jnt,orientation=self._jointOrientation)
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> fk length connect error: %s"%(self._strShortName,error)
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #=============================================================    
     try:#>>>IK No Flip Chain
+	_str_subFunc = "Build IK No Flip"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')    
 	i_tmpLoc = ml_ikNoFlipJoints[-1].doLoc()
 	if self._direction == 'left':#if right, rotate the pivots
@@ -718,13 +846,18 @@ def build_FKIK(self):
 	#>>> Fix our ik_handle twist at the end of all of the parenting
 	rUtils.IKHandle_fixTwist(mi_ankleIKHandleNF)#Fix the twist
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> IK No Flip error: %s"%(self._strShortName,error)
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #=============================================================    
     try:#>>>IK PV Chain
 	#Create no flip leg IK
 	#We're gonna use the no flip stuff for the most part
+	_str_subFunc = "Build IK PV"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	d_anklePVReturn = rUtils.IKHandle_create(ml_ikPVJoints[0].mNode,ml_ikPVJoints[-1].mNode,nameSuffix = 'PV',
 	                                         rpHandle=ml_distHandlesNF[1],controlObject=mi_controlIK,
 	                                         moduleInstance=self._i_module)
@@ -776,11 +909,16 @@ def build_FKIK(self):
 	    
 	mPlug_lockMid.doTransferTo(mi_controlMidIK.mNode)#move the lock mid	
     
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> IK PV error: %s"%(self._strShortName,error)
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #=============================================================    
     try:#>>>Foot chains and connection
+	_str_subFunc = "Foot Chains"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	#Create foot IK
 	d_ballReturn = rUtils.IKHandle_create(ml_ikJoints[2].mNode,ml_ikJoints[3].mNode,solverType='ikSCsolver',
 	                                      baseName=ml_ikJoints[3].cgmName,moduleInstance=self._i_module)
@@ -796,11 +934,16 @@ def build_FKIK(self):
 	mi_ballIKHandle.parent = mi_pivInner.mNode#ballIK to toe
 	mi_toeIKHandle.parent = mi_pivBallWiggle.mNode#toeIK to wiggle
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> Foot chains error: %s"%(self._strShortName,error)
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #=============================================================    
     try:#>>>Connect Blend Chains and connections
+	_str_subFunc = "Connect Blend Chains"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	#Connect Vis of knee
 	#=========================================================================================
 	mPlug_showKnee = cgmMeta.cgmAttr(mi_controlIK,'showKnee',attrType='bool',defaultValue = 0,keyable = True)	
@@ -829,9 +972,11 @@ def build_FKIK(self):
 	mPlug_FKon.doConnectOut("%s.visibility"%self._i_constrainNull.controlsFK.mNode)
 	mPlug_IKon.doConnectOut("%s.visibility"%self._i_constrainNull.controlsIK.mNode)
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
-    log.info("%s.build_FKIK complete!"%self._i_module.getShortName())
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
     return True
     
 def build_controls(self):
@@ -846,6 +991,10 @@ def build_controls(self):
 	log.error("leg.build_rig>>bad self!")
 	raise StandardError,error
     
+    _str_funcName = "build_controls(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()   
+    
     if not self.isShaped():
 	raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
     if not self.isRigSkeletonized():
@@ -856,41 +1005,55 @@ def build_controls(self):
     for shape in __d_controlShapes__['shape']:
 	self.__dict__['mi_%s'%shape] = cgmMeta.validateObjArg(self._i_rigNull.msgList_getMessage('shape_%s'%shape),noneValid=False)
 	log.info(self.__dict__['mi_%s'%shape] )"""
-    ml_controlsFK = self._i_rigNull.msgList_get('shape_controlsFK')
-    ml_segmentIK = self._i_rigNull.msgList_get('shape_segmentIK')
-    #self._i_rigNull.msgList_connect(self._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,"rigNull")		
-    l_segmentIKChains = []
-    ml_segmentIKChains = []
-    for i in range(50):
-	buffer = self._i_rigNull.msgList_getMessage('shape_segmentIK_%s'%i)
-	if buffer:
-	    l_segmentIKChains.append(buffer)
-	    ml_segmentIKChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
-	else:
-	    break  
-	 
-    mi_midIK = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_midIK'),cgmMeta.cgmObject)
-    mi_settings= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
-    mi_foot= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_foot'),cgmMeta.cgmObject)
-    mi_pivToe = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_toe'),cgmMeta.cgmObject)
-    mi_pivHeel = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_heel'),cgmMeta.cgmObject)
-    mi_pivBall = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ball'),cgmMeta.cgmObject)
-    mi_pivInner = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_inner'),cgmMeta.cgmObject)
-    mi_pivOuter = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_outer'),cgmMeta.cgmObject)
-    ml_fkJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_get('fkJoints'),cgmMeta.cgmObject)
     
-    #>>>Make a few extra groups for storing controls and what not to in the deform group
-    for grp in ['controlsFK','controlsIK']:
-	i_dup = self._i_constrainNull.doDuplicateTransform(True)
-	i_dup.parent = self._i_constrainNull.mNode
-	i_dup.addAttr('cgmTypeModifier',grp,lock=True)
-	i_dup.doName()
+    try:#Data gather
+	_str_subFunc = "Get Data"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
 	
-	self._i_constrainNull.connectChildNode(i_dup,grp,'owner')
+	ml_controlsFK = self._i_rigNull.msgList_get('shape_controlsFK')
+	ml_segmentIK = self._i_rigNull.msgList_get('shape_segmentIK')
+	#self._i_rigNull.msgList_connect(self._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,"rigNull")		
+	l_segmentIKChains = []
+	ml_segmentIKChains = []
+	for i in range(50):
+	    buffer = self._i_rigNull.msgList_getMessage('shape_segmentIK_%s'%i)
+	    if buffer:
+		l_segmentIKChains.append(buffer)
+		ml_segmentIKChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+	    else:
+		break  
+	     
+	mi_midIK = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_midIK'),cgmMeta.cgmObject)
+	mi_settings= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
+	mi_foot= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_foot'),cgmMeta.cgmObject)
+	mi_pivToe = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_toe'),cgmMeta.cgmObject)
+	mi_pivHeel = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_heel'),cgmMeta.cgmObject)
+	mi_pivBall = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_ball'),cgmMeta.cgmObject)
+	mi_pivInner = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_inner'),cgmMeta.cgmObject)
+	mi_pivOuter = cgmMeta.validateObjArg(self._i_rigNull.getMessage('pivot_outer'),cgmMeta.cgmObject)
+	ml_fkJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_get('fkJoints'),cgmMeta.cgmObject)
 	
+	#>>>Make a few extra groups for storing controls and what not to in the deform group
+	for grp in ['controlsFK','controlsIK']:
+	    i_dup = self._i_constrainNull.doDuplicateTransform(True)
+	    i_dup.parent = self._i_constrainNull.mNode
+	    i_dup.addAttr('cgmTypeModifier',grp,lock=True)
+	    i_dup.doName()
+	    
+	    self._i_constrainNull.connectChildNode(i_dup,grp,'owner')
+	    
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
     l_controlsAll = []
     #==================================================================
     try:#>>>> FK Segments
+	_str_subFunc = "FK Segments"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	if len( ml_controlsFK )<3:
 	    raise StandardError,"%s.build_controls>>> Must have at least three fk controls"%self._strShortName	    
 	
@@ -915,12 +1078,16 @@ def build_controls(self):
 	self._i_rigNull.msgList_connect(ml_fkJoints,'controlsFK',"rigNull")
 	l_controlsAll.extend(ml_fkJoints)	
     
-    except StandardError,error:	
-	log.error("%s.build_controls>>> Build fk fail!"%self._strShortName)
-	raise StandardError,error
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #==================================================================    
     try:#>>>> IK Handle
+	_str_subFunc = "IK Handle"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	i_IKEnd = mi_foot
 	i_IKEnd.parent = False
 	d_buffer = mControlFactory.registerControl(i_IKEnd,
@@ -937,12 +1104,16 @@ def build_controls(self):
 	i_IKEnd.axisAim = 'z+'
 	i_IKEnd.axisUp= 'y+'
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("%s.build_controls>>> Build ik handle fail!"%self._strShortName)	
-	raise StandardError,error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #==================================================================    
     try:#>>>> midIK Handle
+	_str_subFunc = "midIK"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	i_IKmid = mi_midIK
 	i_IKmid.parent = False
 	d_buffer = mControlFactory.registerControl(i_IKmid,addSpacePivots = 1,
@@ -955,12 +1126,16 @@ def build_controls(self):
 	self._i_rigNull.connectChildNode(i_IKmid,'midIK',"rigNull")#connect
 	l_controlsAll.append(i_IKmid)	
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("%s.build_controls>>> Build ik handle fail!"%self._strShortName)	
-	raise StandardError,error   
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
         
     #==================================================================
     try:#>>>> Settings
+	_str_subFunc = "Settings"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	d_buffer = mControlFactory.registerControl(mi_settings,addExtraGroups=0,typeModifier='settings',autoLockNHide=True,
                                                    setRotateOrder=2)       
 	i_obj = d_buffer['instance']
@@ -987,12 +1162,16 @@ def build_controls(self):
 	           'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubDriver.attr]]}]
 	NodeF.build_mdNetwork(visArg)
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("%s.build_controls>>> Build settings fail!"%self._strShortName)		
-	raise StandardError,error    
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #==================================================================    
     try:#>>>> IK Segments
+	_str_subFunc = "Segment IK"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	for i,chain in enumerate(ml_segmentIKChains):
 	    ml_controlChain =[]
 	    for i_obj in chain:
@@ -1012,11 +1191,15 @@ def build_controls(self):
 		curves.setCurveColorByName(i_mainHandle.mNode,self._i_module.getModuleColors()[0])    
 		attributes.doBreakConnection(i_mainHandle.mNode,'visibility')
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("%s.build_controls>>> IK segments fail!"%self._strShortName)		
-	raise StandardError,error
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     #==================================================================    
     try:#>>>> Add all of our Attrs
+	_str_subFunc = "Attributes"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	#Add driving attrs
 	mPlug_roll = cgmMeta.cgmAttr(i_IKEnd,'roll',attrType='float',defaultValue = 0,keyable = True)
 	mPlug_toeLift = cgmMeta.cgmAttr(i_IKEnd,'toeLift',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
@@ -1033,12 +1216,22 @@ def build_controls(self):
 	
 	mPlug_lockMid = cgmMeta.cgmAttr(i_IKmid,'lockMid',attrType='float',defaultValue = 0,keyable = True,minValue=0,maxValue=1.0)
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("%s.build_controls>>> Add Control Attrs Fail!"%self._strShortName)	
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
 	
-    #Connect all controls
-    self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')
+    try:#Connect all controls
+	_str_subFunc = "Connect"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	    
     return True
 
 
@@ -1046,8 +1239,7 @@ def build_deformation(self):
     """
     Rotate orders
     hips = 3
-    """  
-    log.info(">>> %s.build_deformation >> "%self._strShortName + "-"*75)                
+    """      
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -1056,8 +1248,16 @@ def build_deformation(self):
 	log.error("leg.build_deformationRig>>bad self!")
 	raise StandardError,error
     
+    _str_funcName = "build_deformation(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock() 
+    
     #==========================================================================
     try:#Info gathering
+	_str_subFunc = "Get Data"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	#segmentHandles_%s
 	#Get our segment controls
 	ml_segmentHandleChains = self._get_segmentHandleChains()
@@ -1084,23 +1284,30 @@ def build_deformation(self):
 	aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
 	upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("%s.build_deformation>>> data gather fail!"%(self._strShortName))
-	raise StandardError,error
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    #Main Attributes
-    #==================================================================================== 
-    #This is a bit of a complicated setup, pretty much we're gathering and splitting out potential drivers of the twist per segment
-    str_twistOrientation = "r%s"%self._jointOrientation[0]   
-    
-    mPlug_Blend0 = cgmMeta.cgmAttr(ml_blendJoints[0],str_twistOrientation)
-    mPlug_constraintNullRotate = cgmMeta.cgmAttr(self._i_constrainNull,str_twistOrientation)    
-    mPlug_worldIKStartIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKStart" , attrType='float' , lock = True)
-    mPlug_worldIKEndIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKEnd" , attrType='float' , lock = True)
-    mPlug_worldIKEndOut = cgmMeta.cgmAttr(mi_settings,"out_worldIKEnd" , attrType='float' , lock = True) 
-    
-    mPlug_worldIKEndIn.doConnectOut(mPlug_worldIKEndOut.p_combinedShortName)
-    
+    try:#Main Attributes
+	#==================================================================================== 
+	_str_subFunc = "Main Attributes"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	#This is a bit of a complicated setup, pretty much we're gathering and splitting out potential drivers of the twist per segment
+	str_twistOrientation = "r%s"%self._jointOrientation[0]   
+	
+	mPlug_Blend0 = cgmMeta.cgmAttr(ml_blendJoints[0],str_twistOrientation)
+	mPlug_constraintNullRotate = cgmMeta.cgmAttr(self._i_constrainNull,str_twistOrientation)    
+	mPlug_worldIKStartIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKStart" , attrType='float' , lock = True)
+	mPlug_worldIKEndIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKEnd" , attrType='float' , lock = True)
+	mPlug_worldIKEndOut = cgmMeta.cgmAttr(mi_settings,"out_worldIKEnd" , attrType='float' , lock = True) 
+	
+	mPlug_worldIKEndIn.doConnectOut(mPlug_worldIKEndOut.p_combinedShortName)
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)    
     #=========================================================================================
     
     #Control Segment
@@ -1109,7 +1316,10 @@ def build_deformation(self):
     ml_segmentReturns = []
     ml_segmentJointChainsReset = []
     try:#Control Segment
-	log.debug(self._jointOrientation)
+	_str_subFunc = "Control Segment"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	capAim = self._jointOrientation[0].capitalize()
 	log.debug("capAim: %s"%capAim)
 	for i,ml_segmentHandles in enumerate(ml_segmentHandleChains):
@@ -1342,12 +1552,23 @@ def build_deformation(self):
 	    #cgmMeta.cgmAttr(i_curve,'scaleMidUp').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)
 	    #cgmMeta.cgmAttr(i_curve,'scaleMidOut').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)	    
 
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("%s.build_deformation>>> Segment fail!"%(self._strShortName))
-	raise StandardError,error	
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    #TODO	
-    self._i_rigNull.msgList_connect(ml_segmentCurves,'segmentCurves',"rigNull")
+    #TODO
+    try:#Connection
+	_str_subFunc = "Connection"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	self._i_rigNull.msgList_connect(ml_segmentCurves,'segmentCurves',"rigNull")
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
     
     return True
 
@@ -1356,7 +1577,6 @@ def build_rig(self):
     Rotate orders
     hips = 3
     """   
-    log.info(">>> { %s.build_rig } >> "%self._strShortName + "-"*75)        
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -1365,7 +1585,16 @@ def build_rig(self):
 	log.error("leg.build_deformationRig>>bad self!")
 	raise StandardError,error
     
+    _str_funcName = "build_rig(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()     
+    
+    
     try:#>>>Get data
+	_str_subFunc = "Get Data"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
 	mi_moduleParent = False
 	if self._i_module.getMessage('moduleParent'):
@@ -1399,17 +1628,28 @@ def build_rig(self):
 	#Build our contrain to pool
 	d_indexRigJointToDriver = self._get_simpleRigJointDriverDict()
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("leg.build_rig>> Gather data fail!")
-	raise StandardError,error
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    #Constrain to pelvis
-    if mi_moduleParent:
-	mc.parentConstraint(mi_moduleParent.rigNull.msgList_getMessage('moduleJoints')[0],self._i_constrainNull.mNode,maintainOffset = True)
+    try:#Constrain to pelvis
+	_str_subFunc = "Parent constrain"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	if mi_moduleParent:
+	    mc.parentConstraint(mi_moduleParent.rigNull.msgList_getMessage('moduleJoints')[0],self._i_constrainNull.mNode,maintainOffset = True)
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)   
     
     #Dynamic parent groups
     #====================================================================================
     try:#>>>> Foot
+	_str_subFunc = "Foot dynParent"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	#Build our dynamic groups
 	ml_footDynParents = [self._i_masterControl]
 	if mi_moduleParent:
@@ -1433,13 +1673,17 @@ def build_rig(self):
 	i_dynGroup.rebuild()
 	
 	#i_dynGroup.dynFollow.parent = self._i_masterDeformGroup.mNode
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("leg.build_rig>> foot dynamic parent setup fail!")
-	raise StandardError,error
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #Dynamic parent groups
     #====================================================================================
     try:#>>>> Knee
+	_str_subFunc = "Knee dynParent"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	#Build our dynamic groups
 	ml_kneeDynParents = [mi_controlIK]
 	ml_kneeDynParents.append(self._i_masterControl)
@@ -1465,43 +1709,55 @@ def build_rig(self):
 	
 	#i_dynGroup.dynFollow.parent = self._i_masterDeformGroup.mNode
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	log.error("leg.build_rig>> knee dynamic parent setup fail!")
-	raise StandardError,error
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #Make some connections
     #=
     #cgmMeta.cgmAttr(mi_settings,"kneeSpace_in").doConnectIn("%s.space"%mi_controlMidIK.mNode)#This connects to one of our twist fixes from the deformation setup
     
 
-    #Parent and constrain joints
-    #====================================================================================
-    ml_rigJoints[0].parent = self._i_deformNull.mNode#hip
-    
-    for i,i_jnt in enumerate(d_indexRigJointToDriver.keys()):
-	#Don't try scale constraints in here, they're not viable
-	attachJoint = d_indexRigJointToDriver[i_jnt].getShortName()
-	log.info("'%s'>>drives>>'%s'"%(attachJoint,i_jnt.getShortName()))
-	pntConstBuffer = mc.pointConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
-	orConstBuffer = mc.orientConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
-	if i_jnt.hasAttr('scaleJoint') and i_jnt.cgmName != 'ankle':
-	    mc.connectAttr((attachJoint+'.s'),(i_jnt.getMessage('scaleJoint')[0] +'.s'))	    
-	else:
-	    mc.connectAttr((attachJoint+'.s'),(i_jnt.mNode+'.s'))
-	    
-    if ml_rigHandleJoints[-2].getMessage('scaleJoint'):#If our ankle has a scale joint, we need to connect it to our last joint of our last segment
-	attributes.doConnectAttr((ml_segmentChains[-1][-1].mNode + '.s'),(ml_rigHandleJoints[-2].scaleJoint.mNode+'.s'))
-    
-    
-    #Now we need to make an average for the extra knee that averages the seg0,1 knees
-    i_pma = cgmMeta.cgmNode(nodeType = 'plusMinusAverage')
-    i_pma.operation = 3#average
-    mc.connectAttr("%s.s"%ml_segmentChains[0][-1].mNode,"%s.%s"%(i_pma.mNode,'input3D[0]'))
-    mc.connectAttr("%s.s"%ml_segmentChains[-1][0].mNode,"%s.%s"%(i_pma.mNode,'input3D[1]'))
-    mc.connectAttr("%s.%s"%(i_pma.mNode,'output3D'),"%s.s"%(ml_rigHandleJoints[1].scaleJoint.mNode),force=True)
+    try:#Parent and constrain joints
+	#====================================================================================
+	_str_subFunc = "Parent joints"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	ml_rigJoints[0].parent = self._i_deformNull.mNode#hip
+	
+	for i,i_jnt in enumerate(d_indexRigJointToDriver.keys()):
+	    #Don't try scale constraints in here, they're not viable
+	    attachJoint = d_indexRigJointToDriver[i_jnt].getShortName()
+	    log.info("'%s'>>drives>>'%s'"%(attachJoint,i_jnt.getShortName()))
+	    pntConstBuffer = mc.pointConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
+	    orConstBuffer = mc.orientConstraint(attachJoint,i_jnt.mNode,maintainOffset=False,weight=1)
+	    if i_jnt.hasAttr('scaleJoint') and i_jnt.cgmName != 'ankle':
+		mc.connectAttr((attachJoint+'.s'),(i_jnt.getMessage('scaleJoint')[0] +'.s'))	    
+	    else:
+		mc.connectAttr((attachJoint+'.s'),(i_jnt.mNode+'.s'))
+		
+	if ml_rigHandleJoints[-2].getMessage('scaleJoint'):#If our ankle has a scale joint, we need to connect it to our last joint of our last segment
+	    attributes.doConnectAttr((ml_segmentChains[-1][-1].mNode + '.s'),(ml_rigHandleJoints[-2].scaleJoint.mNode+'.s'))
+	
+	
+	#Now we need to make an average for the extra knee that averages the seg0,1 knees
+	i_pma = cgmMeta.cgmNode(nodeType = 'plusMinusAverage')
+	i_pma.operation = 3#average
+	mc.connectAttr("%s.s"%ml_segmentChains[0][-1].mNode,"%s.%s"%(i_pma.mNode,'input3D[0]'))
+	mc.connectAttr("%s.s"%ml_segmentChains[-1][0].mNode,"%s.%s"%(i_pma.mNode,'input3D[1]'))
+	mc.connectAttr("%s.%s"%(i_pma.mNode,'output3D'),"%s.s"%(ml_rigHandleJoints[1].scaleJoint.mNode),force=True)
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)    
     
     try:#Setup foot Scaling
 	#====================================================================================
+	_str_subFunc = "Foot Scaling"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
 	ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
 	ml_ikPVJoints = self._i_rigNull.msgList_get('ikPVJoints')
@@ -1537,20 +1793,34 @@ def build_rig(self):
 	mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK')
 	rUtils.connectBlendJointChain(ml_fkJoints[-2:],ml_ikJoints[-3:-1],ml_blendJoints[-2:],
 	                              driver = mPlug_FKIK.p_combinedName,channels=['scale'])    
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_rig >> failed to setup foot scale | %s"%(self._strShortName,error)	     
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)	     
      
-    #Vis Network, lock and hide
-    #====================================================================================
-    #Segment handles need to lock
-    attributes.doSetLockHideKeyableAttr(mi_settings.mNode,lock=True, visible=False, keyable=False)
-    
-    for i_jnt in ml_blendJoints:
-        attributes.doSetLockHideKeyableAttr(i_jnt.mNode,lock=True, visible=True, keyable=False)
-
+    try:#Vis Network, lock and hide
+	#====================================================================================
+	_str_subFunc = "Lock and Hide"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	#Segment handles need to lock
+	attributes.doSetLockHideKeyableAttr(mi_settings.mNode,lock=True, visible=False, keyable=False)
+	
+	for i_jnt in ml_blendJoints:
+	    attributes.doSetLockHideKeyableAttr(i_jnt.mNode,lock=True, visible=True, keyable=False)
+	    
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+     
      
     try:#Set up some defaults
 	#====================================================================================
+	_str_subFunc = "Attribute Defaults"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	mPlug_autoStretch = cgmMeta.cgmAttr(mi_controlIK,'autoStretch')
 	mPlug_autoStretch.p_defaultValue = 1.0
 	mPlug_autoStretch.value =  1
@@ -1572,15 +1842,18 @@ def build_rig(self):
 	mPlug_seg1mid.p_defaultValue = 1
 	mPlug_seg1mid.value = 1		
 
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_rig >> failed to setup defaults | %s"%(self._strShortName,error)	     
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)     
      
     #Final stuff
     self._set_versionToCurrent()
+    
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
+    
     return True 
 #------------------------------------------------------------------------------------------------------------#    
 def build_twistDriver_hip(self):
-    log.info(">>> %s.build_twistDriver_hip >> "%self._strShortName + "-"*75)
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -1589,18 +1862,38 @@ def build_twistDriver_hip(self):
 	log.error("build_twistDriver_hip>>bad self!")
 	raise StandardError,error
     
-    try:
+    _str_funcName = "build_twistDriver_hip(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()      
+    
+    try:#Data gather
+	_str_subFunc = "Get Data"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	mi_settings = self._i_rigNull.settings	
 	mPlug_worldIKStartIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKStart" , attrType='float' , lock = True)
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_twistDriver_hip >> failed to setup start attr | %s"%(self._strShortName,error)	
-    try:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
+    try:#Parenting
+	_str_subFunc = "Parenting"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	mi_parentRigNull = self._i_module.moduleParent.rigNull
 	mi_hips = mi_parentRigNull.hips	
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_twistDriver_hip >> failed to find hips | %s"%(self._strShortName,error)	
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    try:
+    try:#Create
+	_str_subFunc = "Create"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	outVector = self._vectorOut
 	upVector = self._vectorUp      
 	ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
@@ -1631,11 +1924,16 @@ def build_twistDriver_hip(self):
 	i_startEnd.__setattr__('t%s'%self._jointOrientation[0],(fl_dist))
 	
 	i_startRoot.parent = ml_blendJoints[0].mNode
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_twistDriver_hip >> Failed joint creation,positioning | %s"%(self._strShortName,error)	    
-    
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     #=============================================================================
     try:#setup stable hip rotate group  
+	_str_subFunc = "Stable hit rotate group"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	i_rotGroup = self._i_constrainNull.doDuplicateTransform(False)
 	i_rotGroup.addAttr('cgmType','stableHipTwistRotGroup')
 	i_rotGroup.doName()
@@ -1648,12 +1946,16 @@ def build_twistDriver_hip(self):
 	                                            self._i_constrainNull.p_nameShort,
 	                                            ml_blendJoints[0].p_nameShort)).doBuild()	
 	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_twistDriver_hip >> failed to create stable roteate group: %s"%(self._strShortName,error)
-    
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     #=============================================================================
     #Create IK handle
     try:
+	_str_subFunc = "IK Handle"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	buffer = mc.ikHandle( sj=i_startRoot.mNode, ee=i_startEnd.mNode,
 	                      solver = 'ikRPsolver', forceSolver = True,
 	                      snapHandleFlagToggle=True )  
@@ -1675,20 +1977,28 @@ def build_twistDriver_hip(self):
 	cBuffer = mc.poleVectorConstraint(i_upLoc.mNode,i_ik_handle.mNode)#Polevector	
 	rUtils.IKHandle_fixTwist(i_ik_handle.mNode)#Fix the wist
 	
-    except:
-	raise StandardError,"%s.build_twistDriver_hip >> failed to create ik handle: %s"%(self._strShortName,error)
-       
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
     #>>> Control	
-    try:
-	#>>> Connect in
+    try:#>>> Connect in
+	_str_subFunc = "Connect Control"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	cgmMeta.cgmAttr(self._i_module.rigNull.settings,'in_worldIKStart').doConnectIn("%s.r%s"%(i_startRoot.mNode,self._jointOrientation[0]))
 	self.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_twistDriver_hip >> finish failed| %s"%(self._strShortName,error)
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
+    
     return True
 #------------------------------------------------------------------------------------------------------------#    
 def build_twistDriver_ankle(self):
-    log.info(">>> %s.build_ankleTwistDriver >> "%self._strShortName + "-"*75)
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -1697,14 +2007,28 @@ def build_twistDriver_ankle(self):
 	log.error("build_ankleTwistDriver>>bad self!")
 	raise StandardError,error
     
-    try:
+    _str_funcName = "build_twistDriver_ankle(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()   
+    
+    try:#Get Data
+	_str_subFunc = "Get Data"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	mi_controlIK = self._i_rigNull.controlIK
 	mi_settings = self._i_rigNull.settings
 	mPlug_worldIKEndIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKEnd" , attrType='float' , lock = True)
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+	
     except StandardError,error:
-	raise StandardError,"%s.build_ankleTwistDriver >> failed to setup start attr | %s"%(self._strShortName,error)	
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
 
     try:
+	_str_subFunc = "Create"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	str_baseName = self._partName + "_endTwistDriver"
 	
 	outVector = self._vectorOut
@@ -1750,11 +2074,17 @@ def build_twistDriver_ankle(self):
 	i_startRoot.rotateOrder = 0 #xyz
 	mc.pointConstraint(i_blendAnkle.mNode,i_startRoot.mNode,mo=True)#constrain
 	
+ 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_ankleTwistDriver >> Failed joint creation,positioning | %s"%(self._strShortName,error)	    
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
     #=============================================================================
     #Create IK handle
     try:
+	_str_subFunc = "IK Handle"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	buffer = mc.ikHandle( sj=i_startRoot.mNode, ee=i_startEnd.mNode,
 	                      solver = 'ikRPsolver', forceSolver = True,
 	                      snapHandleFlagToggle=True )  
@@ -1774,11 +2104,16 @@ def build_twistDriver_ankle(self):
 	cBuffer = mc.poleVectorConstraint(i_upLoc.mNode,i_ik_handle.mNode)#Polevector	
 	rUtils.IKHandle_fixTwist(i_ik_handle.mNode)#Fix the wist
 	
-    except:
-	raise StandardError,"%s.build_ankleTwistDriver >> failed to create ik handle: %s"%(self._strShortName,error)
-       
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
     #>>> Control	
     try:
+	_str_subFunc = "Control"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
 	i_rotGroup = mi_controlIK.doDuplicateTransform(False)
 	i_rotGroup.addAttr('cgmType','ikEndRotGroup')
 	i_rotGroup.doName()
@@ -1794,11 +2129,14 @@ def build_twistDriver_ankle(self):
 	#>>> Connect in
 	mPlug_worldIKEndIn.doConnectIn("%s.r%s"%(i_startRoot.mNode,self._jointOrientation[0]))
 	self.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
-	raise StandardError,"%s.build_ankleTwistDriver >> finish failed| %s"%(self._strShortName,error)	
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	    
     return True
     
-@cgmGeneral.Timer
 def build_matchSystem(self):
     try:
 	if not self._cgmClass == 'RigFactory.go':
@@ -1807,136 +2145,190 @@ def build_matchSystem(self):
     except StandardError,error:
 	log.error("leg.build_deformationRig>>bad self!")
 	raise StandardError,error
-    log.info(">>> %s.build_matchSystem >> "%self._strShortName + "-"*75)    
-    #Base info
-    mi_moduleParent = False
-    if self._i_module.getMessage('moduleParent'):
-	mi_moduleParent = self._i_module.moduleParent
+    
+    _str_funcName = "build_matchSystem(%s)"%self._strShortName
+    log.info(">>> %s "%(_str_funcName) + "="*75)
+    start = time.clock()    
+    
+    try:#Base info
+	_str_subFunc = "Get Data"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
 	
-    mi_controlIK = self._i_rigNull.controlIK
-    mi_controlMidIK = self._i_rigNull.midIK 
-    ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
-    ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
-    ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
-    mi_settings = self._i_rigNull.settings
-
-    mi_controlIK = self._i_rigNull.controlIK
-    mi_controlMidIK = self._i_rigNull.midIK  
+	mi_moduleParent = False
+	if self._i_module.getMessage('moduleParent'):
+	    mi_moduleParent = self._i_module.moduleParent
+	    
+	mi_controlIK = self._i_rigNull.controlIK
+	mi_controlMidIK = self._i_rigNull.midIK 
+	ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
+	ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
+	ml_blendJoints = self._i_rigNull.msgList_get('blendJoints')
+	mi_settings = self._i_rigNull.settings
     
-    ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
-    ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
-    ml_ikPVJoints = self._i_rigNull.msgList_get('ikPVJoints')
-    ml_ikNoFlipJoints = self._i_rigNull.msgList_get('ikNoFlipJoints')
+	mi_controlIK = self._i_rigNull.controlIK
+	mi_controlMidIK = self._i_rigNull.midIK  
+	
+	ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
+	ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
+	ml_ikPVJoints = self._i_rigNull.msgList_get('ikPVJoints')
+	ml_ikNoFlipJoints = self._i_rigNull.msgList_get('ikNoFlipJoints')
+	
+	mi_dynSwitch = self._i_dynSwitch
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error) 
     
-    mi_dynSwitch = self._i_dynSwitch
+    try:#>>> First IK to FK
+	_str_subFunc = "IK to FK"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	i_ikFootMatch_noKnee = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlIK,
+	                                                  dynPrefix = "FKtoIK",
+	                                                  dynMatchTargets=ml_blendJoints[-2])
+	i_ikFootMatch_noKnee.addPrematchData({'roll':0,'toeSpin':0,'lean':0,'bank':0})
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+	
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    #>>> First IK to FK
-    i_ikFootMatch_noKnee = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlIK,
-                                                      dynPrefix = "FKtoIK",
-                                                      dynMatchTargets=ml_blendJoints[-2])
-    i_ikFootMatch_noKnee.addPrematchData({'roll':0,'toeSpin':0,'lean':0,'bank':0})
+    try:#Toe iter
+	_str_subFunc = "Toe iter"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[-1],
+	                                      matchTarget = ml_blendJoints[-1],#Make a new one
+	                                      minValue=-90,
+	                                      maxValue=90,
+	                                      maxIter=15,
+	                                      driverAttr='toeWiggle')
+	
+	i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[1],#knee
+	                                      matchObject = ml_blendJoints[1],
+	                                      drivenAttr= 't%s'%self._jointOrientation[0],
+	                                      matchAttr = 't%s'%self._jointOrientation[0],
+	                                      minValue=0.001,
+	                                      maxValue=30,
+	                                      maxIter=15,
+	                                      driverAttr='lengthUpr')    
+	i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[2],#ankle
+	                                      matchObject= ml_blendJoints[2],#Make a new one
+	                                      drivenAttr='t%s'%self._jointOrientation[0],
+	                                      matchAttr = 't%s'%self._jointOrientation[0],
+	                                      minValue=0.001,
+	                                      maxValue=30,
+	                                      maxIter=15,
+	                                      driverAttr='lengthLwr')  
+	
+	i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikNoFlipJoints[1],#knee
+	                                      matchTarget = ml_blendJoints[1],#Make a new one
+	                                      minValue=-179,
+	                                      maxValue=179,
+	                                      maxIter=15,
+	                                      driverAttr='kneeSpin') 
+	
     
-    #Toe iter
-    i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[-1],
-                                          matchTarget = ml_blendJoints[-1],#Make a new one
-                                          minValue=-90,
-                                          maxValue=90,
-                                          maxIter=15,
-                                          driverAttr='toeWiggle')
+	i_ikFootMatch_noKnee.addDynAttrMatchTarget(dynObjectAttr='ikScale',
+	                                           matchAttrArg= [ml_blendJoints[-2].mNode,'s%s'%self._jointOrientation[0]],#Make a new one
+	                                           )
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[1],#knee
-                                          matchObject = ml_blendJoints[1],
-                                          drivenAttr= 't%s'%self._jointOrientation[0],
-                                          matchAttr = 't%s'%self._jointOrientation[0],
-                                          minValue=0.001,
-                                          maxValue=30,
-                                          maxIter=15,
-                                          driverAttr='lengthUpr')    
-    i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[2],#ankle
-                                          matchObject= ml_blendJoints[2],#Make a new one
-                                          drivenAttr='t%s'%self._jointOrientation[0],
-                                          matchAttr = 't%s'%self._jointOrientation[0],
-                                          minValue=0.001,
-                                          maxValue=30,
-                                          maxIter=15,
-                                          driverAttr='lengthLwr')  
+    try:#>> Mid...
+	_str_subFunc = "Mid"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	"""
+	i_ikMidMatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlMidIK,
+						  dynPrefix = "FKtoIK",
+						  dynMatchTargets=ml_blendJoints[1]) """
+	
+	i_ikMidMatch = mi_controlMidIK.FKtoIK_dynMatchDriver
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikNoFlipJoints[1],#knee
-                                          matchTarget = ml_blendJoints[1],#Make a new one
-                                          minValue=-179,
-                                          maxValue=179,
-                                          maxIter=15,
-                                          driverAttr='kneeSpin') 
+    try:#>>> FK to IK
+	_str_subFunc = "FK to IK"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	i_fkHipMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[0],
+	                                          dynPrefix = "IKtoFK",
+	                                          dynMatchTargets=ml_blendJoints[0])
+	i_fkHipMatch.addDynIterTarget(drivenObject =ml_fkJoints[1],
+	                              #matchTarget = ml_blendJoints[1],#Make a new one
+	                              matchObject = ml_blendJoints[1],
+	                              drivenAttr='t%s'%self._jointOrientation[0],
+	                              matchAttr = 't%s'%self._jointOrientation[0],
+	                              minValue=0.001,
+	                              maxValue=30,
+	                              maxIter=15,
+	                              driverAttr='length')  
+	
+	i_fkKneeMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[1],
+	                                           dynPrefix = "IKtoFK",
+	                                           dynMatchTargets=ml_blendJoints[1])
+	i_fkKneeMatch.addDynIterTarget(drivenObject =ml_fkJoints[2],
+	                               #matchTarget = ml_blendJoints[2],#Make a new one
+	                               matchObject = ml_blendJoints[2],                                   
+	                               drivenAttr='t%s'%self._jointOrientation[0],
+	                               matchAttr = 't%s'%self._jointOrientation[0],
+	                               minValue=0.001,
+	                               maxValue=30,
+	                               maxIter=15,
+	                               driverAttr='length')  
+	
+	i_fkAnkleMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[2],
+	                                          dynPrefix = "IKtoFK",
+	                                          dynMatchTargets=ml_blendJoints[2])
+	i_fkBallMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[3],
+	                                          dynPrefix = "IKtoFK",
+	                                          dynMatchTargets=ml_blendJoints[3])   
+	  
+	i_fkAnkleMatch.addDynAttrMatchTarget(dynObjectAttr='fkScale',
+	                                     matchAttrArg= [ml_blendJoints[-2].mNode,'s%s'%self._jointOrientation[0]],
+	                                     )    
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-
-    i_ikFootMatch_noKnee.addDynAttrMatchTarget(dynObjectAttr='ikScale',
-                                               matchAttrArg= [ml_blendJoints[-2].mNode,'s%s'%self._jointOrientation[0]],#Make a new one
-                                               )
-    #>> Foot
-    """
-    i_ikMidMatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlMidIK,
-                                              dynPrefix = "FKtoIK",
-                                              dynMatchTargets=ml_blendJoints[1]) """
+    try:#>>> Register the switches
+	_str_subFunc = "Register switches"
+	time_sub = time.clock() 
+	log.info(">>> %s..."%_str_subFunc)  
+	
+	mi_dynSwitch.addSwitch('snapToFK',[mi_settings.mNode,'blend_FKIK'],
+	                       0,
+	                       [i_fkHipMatch,i_fkKneeMatch,i_fkAnkleMatch,i_fkBallMatch])
+	
+	mi_dynSwitch.addSwitch('snapToIK_noKnee',[mi_settings.mNode,'blend_FKIK'],
+	                       1,
+	                       [i_ikFootMatch_noKnee,i_ikMidMatch])
+	mi_dynSwitch.addSwitch('snapToIK_knee',[mi_settings.mNode,'blend_FKIK'],
+	                       1,
+	                       [i_ikFootMatch_noKnee,i_ikMidMatch])
+	
+	mi_dynSwitch.setPostmatchAliasAttr('snapToIK_noKnee',[mi_controlIK.mNode,'showKnee'],0)
+	mi_dynSwitch.setPostmatchAliasAttr('snapToIK_knee',[mi_controlIK.mNode,'showKnee'],1)
+	
+	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except StandardError,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
-    i_ikMidMatch = mi_controlMidIK.FKtoIK_dynMatchDriver
-    #>>> FK to IK
-    i_fkHipMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[0],
-                                              dynPrefix = "IKtoFK",
-                                              dynMatchTargets=ml_blendJoints[0])
-    i_fkHipMatch.addDynIterTarget(drivenObject =ml_fkJoints[1],
-                                  #matchTarget = ml_blendJoints[1],#Make a new one
-                                  matchObject = ml_blendJoints[1],
-                                  drivenAttr='t%s'%self._jointOrientation[0],
-                                  matchAttr = 't%s'%self._jointOrientation[0],
-                                  minValue=0.001,
-                                  maxValue=30,
-                                  maxIter=15,
-                                  driverAttr='length')  
-    
-    i_fkKneeMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[1],
-                                               dynPrefix = "IKtoFK",
-                                               dynMatchTargets=ml_blendJoints[1])
-    i_fkKneeMatch.addDynIterTarget(drivenObject =ml_fkJoints[2],
-                                   #matchTarget = ml_blendJoints[2],#Make a new one
-                                   matchObject = ml_blendJoints[2],                                   
-                                   drivenAttr='t%s'%self._jointOrientation[0],
-                                   matchAttr = 't%s'%self._jointOrientation[0],
-                                   minValue=0.001,
-                                   maxValue=30,
-                                   maxIter=15,
-                                   driverAttr='length')  
-    
-    i_fkAnkleMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[2],
-                                              dynPrefix = "IKtoFK",
-                                              dynMatchTargets=ml_blendJoints[2])
-    i_fkBallMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[3],
-                                              dynPrefix = "IKtoFK",
-                                              dynMatchTargets=ml_blendJoints[3])   
-      
-    i_fkAnkleMatch.addDynAttrMatchTarget(dynObjectAttr='fkScale',
-                                         matchAttrArg= [ml_blendJoints[-2].mNode,'s%s'%self._jointOrientation[0]],
-                                         )    
-    #>>> Register the switches
-    mi_dynSwitch.addSwitch('snapToFK',[mi_settings.mNode,'blend_FKIK'],
-                           0,
-                           [i_fkHipMatch,i_fkKneeMatch,i_fkAnkleMatch,i_fkBallMatch])
-    
-    mi_dynSwitch.addSwitch('snapToIK_noKnee',[mi_settings.mNode,'blend_FKIK'],
-                           1,
-                           [i_ikFootMatch_noKnee,i_ikMidMatch])
-    mi_dynSwitch.addSwitch('snapToIK_knee',[mi_settings.mNode,'blend_FKIK'],
-                           1,
-                           [i_ikFootMatch_noKnee,i_ikMidMatch])
-    
-    mi_dynSwitch.setPostmatchAliasAttr('snapToIK_noKnee',[mi_controlIK.mNode,'showKnee'],0)
-    mi_dynSwitch.setPostmatchAliasAttr('snapToIK_knee',[mi_controlIK.mNode,'showKnee'],1)
+    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	    
     return True
     
-@cgmGeneral.Timer
+"""
 def __build__(self, buildTo='',*args,**kws): 
-    """
-    For the leg, build order is skeleton first as we need our mid segment handle joints created to cast from
-    """
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
@@ -1970,7 +2362,7 @@ def __build__(self, buildTo='',*args,**kws):
     #build_deformation(self)
     #build_rig(self)    
     
-    return True
+    return True"""
 
 #----------------------------------------------------------------------------------------------
 # Important info ==============================================================================
