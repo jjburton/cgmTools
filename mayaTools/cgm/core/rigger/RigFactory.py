@@ -86,7 +86,7 @@ class go(object):
         #>>> module null data
 	"""
 	try:moduleInstance
-	except StandardError,error:
+	except Exception,error:
 	    log.error("RigFactory.go.__init__>>module instance isn't working!")
 	    raise StandardError,error    
 	"""
@@ -95,13 +95,13 @@ class go(object):
 	try:
 	    if moduleInstance.isModule():
 		i_module = moduleInstance
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"RigFactory.go.init. Module call failure. Probably not a module: '%s'"%error	    
 	if not i_module:
 	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%moduleInstance
 	
 	_str_funcName = "go.__init__(%s)"%i_module.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	log.info(">>> %s "%(_str_funcName) + "="*100)
 	start = time.clock()
 	
 	#Some basic assertions
@@ -135,7 +135,7 @@ class go(object):
 	    else:
 		self._i_dynSwitch = self._i_module.rigNull.dynSwitch
 	    log.debug("switch: '%s'"%self._i_dynSwitch.getShortName())
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> Dynamic switch build failed! | %s"%(self._strShortName,error)
 				
 	try:#>>> Gather info =========================================================================
@@ -180,7 +180,7 @@ class go(object):
 	    self._vectorUp = cgmValid.simpleAxis("%s+"%self._jointOrientation[1]).p_vector
 	    self._vectorOut = cgmValid.simpleAxis("%s+"%self._jointOrientation[2]).p_vector	    
 
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> Module data gather fail! | %s"%(_str_funcName,error)
 	    
         #>>> See if we have a buildable module -- do we have a builder
@@ -196,17 +196,17 @@ class go(object):
 		if forceNew and self._i_module.isRigged():
 		    self._i_module.rigDelete()
 		log.debug("%s >>> '%s' rig version up to date !"%(_str_funcName,self.buildModule.__name__))	
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s  >> Version check fail | %s"%(self._strShortName,error)
 
 	#>>>Connect switches
 	try: verify_moduleRigToggles(self)
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s  >> Module data gather fail! | %s"%(self._strShortName,error)
 	
 	#>>> Object Set
 	try: self._i_module.__verifyObjectSet__()
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >>> error : %s"%(_str_funcName,error) 
 	
 	try:#>>> Deform group for the module =====================================================
@@ -226,7 +226,7 @@ class go(object):
 		    self._i_module.connectChildNode(i_grp,'deformNull','module')
 		
 	    self._i_deformNull = self._i_module.deformNull
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s  >> Deform Null fail! | %s"%(self._strShortName,error)	
 	
 	try:#>>> Constrain Deform group for the module ==========================================
@@ -246,7 +246,7 @@ class go(object):
 		    self._i_module.connectChildNode(i_grp,'constrainNull','module')
 		
 	    self._i_constrainNull = self._i_module.constrainNull
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s  >> Constrain Null fail! | %s"%(self._strShortName,error)	
 	
         #Make our stuff
@@ -292,7 +292,7 @@ class go(object):
 		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
 		    break
 		log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 		
-	    except StandardError,error:
+	    except Exception,error:
 		raise StandardError,"%s.doBuild >> Step %s failed! | %s"%(self._strShortName,str_name,error)
 	
 	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
@@ -323,7 +323,7 @@ class go(object):
 				break
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	    return True
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >>  %s"%(_str_funcName,error)  
 	
     def isRigSkeletonized(self):
@@ -386,7 +386,7 @@ class go(object):
 	    
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)
     
     def connect_restoreJointLists(self):
@@ -397,7 +397,7 @@ class go(object):
 		self._i_rigNull.connectChildrenNodes(self._ml_rigJoints,'rigJoints','rigNull')
 	    self._i_rigNull.connectChildrenNodes(self._ml_skinJoints,'skinJoints','rigNull')#Push back
 	    self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s.connect_restoreJointLists >> Failure: %s"%(self._strShortName,error)
     
     #>> Attributes
@@ -411,7 +411,7 @@ class go(object):
 	    mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
 	    mPlug_globalScale.doConnectOut(mPlug_moduleMasterScale)
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)
 	
 	
@@ -422,12 +422,12 @@ class go(object):
 	    if self._i_rigNull.hasAttr('masterScale'):
 		return cgmMeta.cgmAttr(self._i_rigNull,'masterScale')
 	    return cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)   
 	
     
-    def build_subVis(self):
-	_str_funcName = "go.build_subVis(%s)"%self._strShortName
+    def build_visSub(self):
+	_str_funcName = "go.build_visSub(%s)"%self._strShortName
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	start = time.clock()	
 	try:
@@ -451,11 +451,33 @@ class go(object):
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
 	    return mPlug_result_moduleSubDriver
 	    
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)   
+	
     #>>> Joint chains
     #=====================================================================
-        
+    def mirrorChainOrientation(self,ml_chain):
+	_str_funcName = "go.mirrorChainOrientation(%s)"%self._strShortName
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()	
+	try:
+	    #Get our segment joints
+	    for mJoint in ml_chain:
+		mJoint.parent = False
+		
+	    for mJoint in ml_chain:
+		mJoint.__setattr__("r%s"%self._jointOrientation[2],180)
+		
+	    for i,mJoint in enumerate(ml_chain[1:]):
+		mJoint.parent = ml_chain[i]
+		
+	    jntUtils.metaFreezeJointOrientation(ml_chain)
+	    
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
+	    return ml_chain
+	except Exception,error:
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
+	
     def build_rigChain(self):
 	_str_funcName = "go.build_rigChain(%s)"%self._strShortName
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
@@ -488,7 +510,7 @@ class go(object):
 	    self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
 	    return ml_rigJoints
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
     
@@ -519,7 +541,7 @@ class go(object):
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	    return ml_handleChain
 
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
     
     
@@ -555,7 +577,7 @@ class go(object):
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	    return i_new
 
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
     def build_segmentChains(self, ml_segmentHandleJoints = None, connectNodes = True):
@@ -607,7 +629,7 @@ class go(object):
 	    
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	    return ml_segmentChains
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
     
@@ -684,7 +706,7 @@ class go(object):
 	    
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	    return {'ml_influenceChains':ml_influenceChains,'ml_influenceJoints':ml_influenceJoints,'ml_segmentHandleJoints':ml_segmentHandleJoints}
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
 #>>> Functions
@@ -733,7 +755,7 @@ def isBuildable(goInstance):
     
 	
 	return True
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s"%(_str_funcName,error)
     
 
@@ -757,20 +779,19 @@ def verify_moduleRigToggles(goInstance):
 	
 	self._i_masterSettings.addAttr(str_partBase,enumName = 'off:lock:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
 	try:NodeF.argsToNodes("%s.gutsVis = if %s.%s > 0"%(str_moduleRigNull,str_settings,str_partBase)).doBuild()
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"verify_moduleRigToggles>> vis arg fail: %s"%error
 	try:NodeF.argsToNodes("%s.gutsLock = if %s.%s == 2:0 else 2"%(str_moduleRigNull,str_settings,str_partBase)).doBuild()
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"verify_moduleRigToggles>> lock arg fail: %s"%error
     
 	self._i_rigNull.overrideEnabled = 1		
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(self._i_rigNull.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(self._i_rigNull.mNode,'overrideDisplayType'))    
 	
-	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
-    
+	log.debug("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	return True
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s"%(_str_funcName,error)
     
 
@@ -804,7 +825,7 @@ def bindJoints_connect(goInstance):
 	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	
 	return True
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s"%(_str_funcName,error)
     
 
@@ -833,7 +854,7 @@ def bindJoints_connectToBlend(goInstance):
 	    #Scale constraint connect doesn't work
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
 	return True
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s"%(_str_funcName,error)
 
 #>>> Module rig functions
@@ -859,11 +880,11 @@ def get_skinJoints(self, asMeta = True):
 	    for attr in __l_moduleJointMsgListHooks__:
 		l_buffer = i_j.msgList_get(attr,asMeta = asMeta,cull = True)
 		
-	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
+	log.debug("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
 	if asMeta:return ml_skinJoints
 	if ml_skinJoints:
 	    return [obj.p_nameShort for obj in ml_skinJoints]
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError, "%s >> %s"(_str_funcName,error)	
     
     
@@ -888,7 +909,7 @@ def get_rigHandleJoints(self, asMeta = True):
 	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
 	if asMeta:return cgmMeta.validateObjListArg(l_rigHandleJoints,noneValid=True)	    
 	return l_rigHandleJoints
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> Probably isn't skeletonized | error: %s"%(_str_funcName,error)
     
     
@@ -914,7 +935,7 @@ def get_rigDeformationJoints(self,asMeta = True):
 	elif ml_defJoints:return [j.p_nameShort for j in ml_defJoints]
 	return []
     
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"get_rigDeformationJoints >> self: %s | error: %s"%(self,error)
     
     
@@ -933,7 +954,7 @@ def get_handleJoints(self,asMeta = True):
 		return False
 	    ml_handleJoints.append( buffer )
 	return ml_handleJoints"""
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"get_handleJoints >> self: %s | error: %s"%(self,error)
     
 
@@ -969,7 +990,7 @@ def get_segmentHandleTargets(self):
 	
 	return ml_segmentHandleJoints    
     
-    except StandardError,error:
+    except Exception,error:
 	log.error("get_segmentHandleTargets >> self: %s | error: %s"%(self,error))
 	return False
     
@@ -995,7 +1016,7 @@ def get_influenceChains(self):
 	log.debug("%s._get_influenceChains>>> Segment Influence Chains -- cnt: %s | lists: %s"%(self.getShortName(),len(l_influenceChains),l_influenceChains)) 		
 	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
 	return ml_influenceChains
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"_get_influenceChains >> self: %s | error: %s"%(self,error)
     
 def get_segmentHandleChains(self):
@@ -1016,7 +1037,7 @@ def get_segmentHandleChains(self):
 	log.debug("%s._get_segmentHandleChains>>> Segment Handle Chains -- cnt: %s | lists: %s"%(self.getShortName(),len(l_segmentHandleChains),l_segmentHandleChains)) 	
 	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
 	return ml_segmentHandleChains
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"_get_segmentHandleChains >> self: %s | error: %s"%(self,error)
     
 def get_segmentChains(self):
@@ -1038,7 +1059,7 @@ def get_segmentChains(self):
 	log.debug("%s.get_segmentChains>>> Segment Chains -- cnt: %s | lists: %s"%(self.getShortName(),len(l_segmentChains),l_segmentChains)) 
 	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)			
 	return ml_segmentChains
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"get_segmentChains >> self: %s | error: %s"%(self,error)
     
     
@@ -1082,7 +1103,7 @@ def get_rigJointDriversDict(self,printReport = True):
     except:log.warning("%s.get_deformationRigDriversDict >> no blend joints found"%self.getShortName())
 	 
     try:mll_segmentChains = get_segmentChains(self)
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s.get_deformationRigDriversDict >> mll_segmentChains failure: %s"%(self.getShortName(),error))
     
     if not ml_blendJoints:log.warning("%s.get_deformationRigDriversDict >> no blend joints found"%self.getShortName())
@@ -1164,7 +1185,7 @@ def get_rigJointDriversDict(self,printReport = True):
     log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		    
     return d_rigIndexToDriverInstance
     
-    #except StandardError,error:
+    #except Exception,error:
 	#raise StandardError,"get_rigJointDriversDict >> self: %s | error: %s"%(self,error)
 	
     
@@ -1196,7 +1217,7 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     except:log.warning("%s.get_simpleRigJointDriverDict >> no blend joints found"%self.getShortName())
 	 
     try:mll_segmentChains = get_segmentChains(self)
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s.get_simpleRigJointDriverDict >> mll_segmentChains failure: %s"%(self.getShortName(),error))
     
     if not ml_blendJoints:log.error("%s.get_simpleRigJointDriverDict >> no blend joints found"%self.getShortName())
@@ -1265,7 +1286,7 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
     return d_returnBuffer
     
-    #except StandardError,error:
+    #except Exception,error:
 	#raise StandardError,"get_rigJointDriversDict >> self: %s | error: %s"%(self,error)
     
     
@@ -1297,14 +1318,14 @@ def get_report(self):
     
     log.info("="*75)
     log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
-    #except StandardError,error:
+    #except Exception,error:
 	#raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
 
     
 def get_eyeLook(self):
     try:
 	self.isModule()
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"get_eyeLook >> self: %s | error: %s"%(self,error)
     
     try:#Get our segment joints
@@ -1330,14 +1351,14 @@ def get_eyeLook(self):
 		else:
 		    raise StandardError,"More than one puppet eye look"
 	    raise StandardError,"The end."
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >>> Failed to find eyeLook! | error: %s"%(_str_funcName,error)
     
     
 def verify_eyeLook(self):
     try:
 	self.isModule()
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"verify_eyeLook >> self: %s | error: %s"%(self,error)
     
     try:#Get our segment joints
@@ -1355,18 +1376,18 @@ def verify_eyeLook(self):
 		mi_puppet = self.modulePuppet
 	    #First see if we have one connected
 	    
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"Gather data | %s"%(error)
 	
 	try:#Build ====================================================================
 	    try:mShapeCast.go(mi_buildModule,['eyeLook'])
-	    except StandardError,error:raise StandardError,"shapeCast | %s"%(error)	    
+	    except Exception,error:raise StandardError,"shapeCast | %s"%(error)	    
 	    try:mi_eyeLookShape = mi_rigNull.shape_eyeLook
-	    except StandardError,error:raise StandardError,"grabShape | %s"%(error)	    
+	    except Exception,error:raise StandardError,"grabShape | %s"%(error)	    
 	    mi_rigNull.doRemove('shape_eyeLook')
 	    try:d_buffer = mControlFactory.registerControl(mi_eyeLookShape.mNode,addDynParentGroup=True,
 	                                                   addSpacePivots=2)
-	    except StandardError,error:raise StandardError,"register Control | %s"%(error)
+	    except Exception,error:raise StandardError,"register Control | %s"%(error)
 	    mi_eyeLookShape = d_buffer['instance']
 	    mi_eyeLookShape.masterGroup.parent = mi_puppet.masterControl
 	    
@@ -1384,25 +1405,25 @@ def verify_eyeLook(self):
 		for o in ml_dynParentsToAdd:
 		    mi_dynGroup.addDynParent(o)
 		mi_dynGroup.rebuild()	    
-	    except StandardError,error:raise StandardError,"dynParent setup | %s"%(error)	
+	    except Exception,error:raise StandardError,"dynParent setup | %s"%(error)	
 	    
 	    try:#Setup dynamic parent -------------------------------------------
 		mi_puppet.msgList_append(mi_eyeLookShape,'eyeLook','puppet')
 		mi_buildModule.connectChildNode(mi_eyeLookShape,'eyeLook')
 		#need to add connection to face or whatever
-	    except StandardError,error:raise StandardError,"connect | %s"%(error)	
+	    except Exception,error:raise StandardError,"connect | %s"%(error)	
 	    
 	    try:#DynSwitch ------------------------------------------------------
 		mi_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=mi_eyeLookShape.mNode)
-	    except StandardError,error:raise StandardError,"dynSwitch | %s"%(error)	
+	    except Exception,error:raise StandardError,"dynSwitch | %s"%(error)	
 		
 	    mi_eyeLookShape._setControlGroupLocks(True)
 	
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"Build | %s"%(error)	
 	
 	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
 	
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >>> failed | error: %s"%(_str_funcName,error)
     

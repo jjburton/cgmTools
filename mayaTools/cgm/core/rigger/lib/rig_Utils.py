@@ -14,7 +14,7 @@ Key:
 # From Python =============================================================
 import copy
 import re
-
+import time
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
@@ -116,7 +116,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
         if len(l_toBuild) > 1:
             l_toBuild.insert(0,'blend')    
         if not l_toBuild:raise StandardError,"createEyeballRig >>> No options set to build anything. Aborting!"
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> Gather data fail! | error: %s"%(_str_funcName,error)
 
     try:#>>> Module instance
@@ -128,7 +128,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
         except:pass
         if i_module and not d_nameTags:#get some name tags from the module if we don't have them  assigned
             d_nameTags = i_module.getNameDict(ignore = 'cgmType')
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> Module check fail! | error: %s"%(_str_funcName,error)
 
     try:#>>> Joints
@@ -141,7 +141,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
             str_ballJoint = mc.joint (p=(l_pos[0],l_pos[1],l_pos[2]))
             mi_ballJoint = cgmMeta.validateObjArg(str_ballJoint,cgmMeta.cgmObject,noneValid=True,mayaType=['joint'])	
             mi_ballJoint.parent = False
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> Setup joints fail! | error: %s"%(_str_funcName,error)
 
 
@@ -177,11 +177,11 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
 
                 md_locs[s] = mi_loc #Store it to our dict
                 mi_loc.parent = mi_group #Parent to group
-            except StandardError,error:
+            except Exception,error:
                 raise StandardError, "createEyeballRig >>> Failed to create '%s' loc | error: %s"%(s,error)
         d_return['md_locs']=md_locs#store to return dict
 
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> Setup transform fail! | error: %s"%(_str_funcName,error)
 
     try:#Build our ik one ------------------------------------------
@@ -205,7 +205,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
                                            upVector = axis_up.p_vector,
                                            worldUpObject = mi_upLoc.mNode,
                                            worldUpType = 'object')
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> ik setup fail! | error: %s"%(_str_funcName,error)
 
     try:#Build blend loc --------------------------------------------------------------
@@ -222,7 +222,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
             mi_shape.localScaleY = f_averageSize
             mi_shape.localScaleZ = f_averageSize
 
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> blend loc setup fail! | error: %s"%(_str_funcName,error)
 
     try:#Vis blend
@@ -239,7 +239,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
             d_return['mPlug_fkVis'] = mPlug_FKon
             d_return['mPlug_ikVis'] = mPlug_IKon	    
 
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> Vis blend setup failed! | error: %s"%(_str_funcName,error)
 
     try:#Module stuff --------------------------------------------------------------
@@ -250,7 +250,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
                 i_loc.overrideEnabled = 1		
                 cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_loc.mNode,'overrideVisibility'))    
                 cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_loc.mNode,'overrideDisplayType'))    
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> blend loc setup fail! | error: %s"%(_str_funcName,error)
 
     try:#Setup contstraints for the joint
@@ -264,7 +264,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
             log.info("%s >> FK constraining. target: '%s' | control: '%s'"%(_str_funcName,mi_fkLoc.p_nameShort,mi_fkControl.p_nameShort))		
             mc.orientConstraint(mi_fkControl.mNode,mi_fkLoc.mNode,maintainOffset= True)
 
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> joint constraint setup fail! | error: %s"%(_str_funcName,error)
 
     return d_return
@@ -350,7 +350,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
         outChannel = orientation[2]
         upChannel = '%sup'%orientation[1]            
         
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> data gather | error: %s"%(_str_funcName,error)  
     
     try:#>>> Module instance =====================================================================================
@@ -376,7 +376,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
         log.debug('i_segmentCurve: %s'%i_segmentCurve)
         log.debug('i_module: %s'%i_module)      
         
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> Module check | error: %s"%(_str_funcName,error)     
     
     """    
@@ -468,7 +468,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
         i_constraintLinearCurveCluster.addAttr('cgmTypeModifier','constraint', lock=True)
         i_constraintLinearCurveCluster.doName()	
         
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> constraint curve | error: %s"%(_str_funcName,error)    
 
     try:#Make some up locs for the base and end aim ============================================================================
@@ -492,7 +492,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
         i_upEnd.parent = i_endParent.mNode  
         attributes.doSetAttr(i_upEnd.mNode,'t%s'%orientation[1],baseDist)
         """
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> up transforms | error: %s"%(_str_funcName,error)   
     
     for i,i_obj in enumerate(ml_newJoints):
@@ -575,7 +575,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             ml_pointOnCurveInfos.append(i_closestLinearPointNode) 	    
             i_linearPosNull.parent = i_linearFollowNull.mNode#paren the pos obj
 
-        except StandardError,error:
+        except Exception,error:
             raise StandardError,"%s >> build transforms | error: %s"%(_str_funcName,error)   
 
 
@@ -606,7 +606,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             d_midPointBlendReturn['d_result2']['mi_plug'].p_hidden = True
 
 
-        except StandardError,error:
+        except Exception,error:
             raise StandardError,"%s >> Translate constrain setup | error: %s"%(_str_funcName,error)   
 
         try:#>>>Aim constraint and blend
@@ -622,7 +622,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                 i_upEnd.addAttr('cgmName',baseName,attrType='string',lock=True)                
                 i_upEnd.addAttr('cgmType','midEndAimUp',attrType='string',lock=True)
                 i_upEnd.doName()                
-            except StandardError,error:
+            except Exception,error:
                 raise StandardError,"decomposeMatrix | error: %s"%(_str_funcName,error)                   
                 
             cBuffer = mc.aimConstraint(i_baseParent.mNode,
@@ -671,7 +671,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             d_midOrientBlendReturn['d_result2']['mi_plug'].p_hidden = True
 
 
-        except StandardError,error:
+        except Exception,error:
             raise StandardError,"%s >> Orient constrain setup | error: %s"%(_str_funcName,error)   
 
         try:#Skincluster work ---------------------------------------------------------------------------------------
@@ -679,7 +679,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                 mc.skinCluster(i_segmentCurveSkinCluster.mNode,edit=True,ai=i_obj.mNode,dropoffRate = 2.5)
                 #Smooth the weights
                 controlCurveTightenEndWeights(i_segmentCurve.mNode,i_baseParent.mNode,i_endParent.mNode,2)	
-        except StandardError,error:
+        except Exception,error:
             raise StandardError,"%s >> Skincluster fix  | error: %s"%(_str_funcName,error)   
 
         try:#>>>Add Twist -------------------------------------------------------------------------------------------
@@ -780,7 +780,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                                                            operation=1)
 
                         attributes.doConnectAttr("%s.output1D"%i_pmaAdd.mNode,plug_rotateGroup)
-                    except StandardError,error:
+                    except Exception,error:
                         log.error("'%s' Failed | %s"%(i_jnt.getShortName(),error))
 
                 for i,i_jnt in enumerate(ml_beforeJoints):
@@ -789,7 +789,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                 for i,i_jnt in enumerate(ml_afterJoints):
                     addFactorToJoint(i,i_jnt)
 
-        except StandardError,error:
+        except Exception,error:
             raise StandardError,"%s >> add twist | error: %s"%(_str_funcName,error)   
 
         try:#>>> Connect mid scale work ---------------------------------------------------------------------------------------
@@ -818,7 +818,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                 mc.scaleConstraint([i_baseParent.mNode,i_endParent.mNode],i_orientGroup.mNode)
 
 
-        except StandardError,error:
+        except Exception,error:
             raise StandardError,"%s >> mid scale | error: %s"%(_str_funcName,error)   
 
         try:#Parent at very end to keep the joint from moving
@@ -850,7 +850,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             i_linearFollowNull.parent = i_segmentGroup.mNode	
             i_splineFollowNull.parent = i_segmentGroup.mNode
             
-        except StandardError,error:
+        except Exception,error:
             raise StandardError,"%s >> parent end | error: %s"%(_str_funcName,error)   
 
         return {'ml_followGroups':[i_followGroup]}
@@ -950,7 +950,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
 
 
 
-    except StandardError,error:
+    except Exception,error:
         log.error("addCGMSegmentSubControl>>Curve construction fail!")
         raise StandardError,error 	    
 
@@ -976,7 +976,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
         i_upEnd.parent = i_endParent.mNode  
         attributes.doSetAttr(i_upEnd.mNode,'t%s'%orientation[1],baseDist)
 
-    except StandardError,error:
+    except Exception,error:
         log.error("addCGMSegmentSubControl>>Up transforms fail!")
         raise StandardError,error 
 
@@ -1060,7 +1060,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
             ml_pointOnCurveInfos.append(i_closestLinearPointNode) 	    
             i_linearPosNull.parent = i_linearFollowNull.mNode#paren the pos obj
 
-        except StandardError,error:
+        except Exception,error:
             log.error("addCGMSegmentSubControl>>Build transforms fail! | obj: %s"%i_obj.getShortName())
             raise StandardError,error 	
 
@@ -1090,7 +1090,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
 
 
 
-        except StandardError,error:
+        except Exception,error:
             log.error("addCGMSegmentSubControl>>Translate constrain setup fail! | obj: %s"%i_obj.getShortName())
             raise StandardError,error 	
 
@@ -1140,7 +1140,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
 
 
 
-        except StandardError,error:
+        except Exception,error:
             log.error("addCGMSegmentSubControl>>Orient constrain setup fail! | obj: %s"%i_obj.getShortName())
             raise StandardError,error 	
 
@@ -1149,7 +1149,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
                 mc.skinCluster(i_segmentCurveSkinCluster.mNode,edit=True,ai=i_obj.mNode,dropoffRate = 2.5)
                 #Smooth the weights
                 controlCurveTightenEndWeights(i_segmentCurve.mNode,i_baseParent.mNode,i_endParent.mNode,2)	
-        except StandardError,error:
+        except Exception,error:
             log.error("addCGMSegmentSubControl>>Skincluster fix fail! | curve: %s"%i_segmentCurve.getShortName())
             raise StandardError,error 
 
@@ -1194,7 +1194,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
                                                    operation=1)
                 for a in rotDriven:#BridgeBack
                     attributes.doConnectAttr("%s.output1D"%i_pmaAdd.mNode,a)	    
-        except StandardError,error:
+        except Exception,error:
             log.error("addCGMSegmentSubControl>>Add twist fail! | obj: %s"%i_obj.getShortName())
             raise StandardError,error 	
 
@@ -1268,7 +1268,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         ml_influenceJoints = cgmMeta.validateObjListArg(influenceJoints,cgmMeta.cgmObject,noneValid=False,mayaType=['joint'])
         
         try:ml_jointList = cgmMeta.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False,mayaType=['joint'])
-        except StandardError,error:
+        except Exception,error:
             raise StandardError,"%s >>Joint metaclassing | error : %s"%(_str_funcName,error)
         
         #> module -------------------------------------------------------------
@@ -1303,7 +1303,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         #> baseDistance -------------------------------------------------------------
         baseDist = distance.returnDistanceBetweenObjects(ml_jointList[0].mNode,ml_jointList[-1].mNode)/2        
         
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> data gather | error: %s"%(_str_funcName,error)  
     
     try:#>>> Module instance =====================================================================================
@@ -1313,7 +1313,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
                 i_module = moduleInstance    
                 log.info("%s >> module instance found: %s"%(_str_funcName,i_module.p_nameShort))		
         except:pass
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> Module check fail! | error: %s"%(_str_funcName,error)    
 
     try:#Build Transforms =====================================================================================
@@ -1448,7 +1448,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
 		cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
 		"""
-    except StandardError,error:
+    except Exception,error:
         log.error("createCGMSegment>>Joint anchor and loc build fail! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error 
 
@@ -1466,7 +1466,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         i_endOrientConstraint.interpType = 0
 
 
-    except StandardError,error:
+    except Exception,error:
         log.error("createCGMSegment>>Constrain locs build fail! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error 
 
@@ -1501,7 +1501,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         d_endFollowBlendReturn['d_result1']['mi_plug'].p_hidden = True
         d_endFollowBlendReturn['d_result2']['mi_plug'].p_hidden = True
         
-    except StandardError,error:
+    except Exception,error:
         log.error("createCGMSegment>>Constrain locs build fail! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error 
 
@@ -1579,7 +1579,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
                     i_twistEndPlug.doConnectIn("%s.r%s"%(i_endControl.mNode,controlOrientation[0]))
 
 
-    except StandardError,error:
+    except Exception,error:
         log.error("createCGMSegment>>Build segment fail! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error     
 
@@ -1601,7 +1601,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 		                                  end = ml_influenceJoints[-1].mNode,tightLength=1,
 		                                  blendLength = int(len(jointList)/2))"""
 
-    except StandardError,error:
+    except Exception,error:
         log.error("createCGMSegment>>Build segment fail! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error 
   
@@ -1625,7 +1625,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
                 #Aim
                 #AimBlend
 
-    except StandardError,error:
+    except Exception,error:
         log.error("createCGMSegment>>Extra Influence Object Setup Fail! %s"%[i_obj.getShortName() for i_obj in ml_influenceJoints])
         raise StandardError,error  
     
@@ -1652,7 +1652,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
                                    worldUpType = 'object' ) 
         i_endAimConstraint = cgmMeta.cgmNode(cBuffer[0],setClass=True)  
 
-    except StandardError,error:
+    except Exception,error:
         log.error("createCGMSegment>>Build aim constraints! | start joint: %s"%ml_jointList[0].getShortName())
         raise StandardError,error   
 
@@ -1662,7 +1662,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         mi_segmentCurve.connectChildNode(i_attachStartNull,'attachStart','segmentCurve')
         mi_segmentCurve.connectChildNode(i_attachEndNull,'attachEnd','segmentCurve')
 
-    except StandardError,error:
+    except Exception,error:
         log.error("createCGMSegment>>Info storage fail!")
 
     return {'mi_segmentCurve':mi_segmentCurve,'mi_anchorStart':i_anchorStart,'mi_anchorEnd':i_anchorEnd,'mPlug_extendTwist':mPlug_extendTwist,
@@ -1881,10 +1881,10 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
         
         #> joints -------------------------------------------------------------       
         #try:ml_jointList = cgmMeta.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False,mayaType=['joint'])
-        #except StandardError,error:
+        #except Exception,error:
             #raise StandardError,"%s >>Joint metaclassing | error : %s"%(_str_funcName,error)
         
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> data gather | error: %s"%(_str_funcName,error)  
     
     try:#>>> Module instance =====================================================================================
@@ -1905,7 +1905,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
                 log.debug('baseName set to module: %s'%baseName)	    	    
         if baseName is None:baseName = 'testSegmentCurve'    
         
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> Module check | error: %s"%(_str_funcName,error)  
     
     
@@ -1926,7 +1926,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
             WILL NOT connect right without this.
             """
                 joints.orientJoint(i_jnt.mNode,orientation,secondaryAxis)
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> base group | error: %s"%(_str_funcName,error)  
     
     try:#Joints
@@ -1965,14 +1965,14 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
         i_ikHandle.parent = i_grp.mNode
     
         i_segmentCurve.connectChildNode(i_grp,'segmentGroup','owner')
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> joints and curve | error: %s"%(_str_funcName,error)  
     
     try:#Add twist
         d_twistReturn = IKHandle_addSplineIKTwist(i_ikHandle.mNode,advancedTwistSetup)
         mPlug_twistStart = d_twistReturn['mi_plug_start']
         mPlug_twistEnd = d_twistReturn['mi_plug_end']
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> initial twist | error: %s"%(_str_funcName,error)  
     
     try:#>>> Twist stuff
@@ -2068,7 +2068,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
                     NodeF.argsToNodes(arg).doBuild() 
     
                 d_mPlugs_rotateGroupDrivers[i] = mPlug_twistSum
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> twist | error: %s"%(_str_funcName,error) 
     """
 	#A joints roll = current tally + offset
@@ -2157,7 +2157,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     
         #Orient constrain our last joint to our splineIK Joint
         mc.orientConstraint(ml_driverJoints[-1].mNode,ml_jointList[-1].mNode,maintainOffset = True)
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> attach and connect | error: %s"%(_str_funcName,error) 
     
     try:#>>> Scale stuff =============================================================================
@@ -2214,7 +2214,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     
         #>> Second part for the full twist setup
         aimChannel = orientation[0]  
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> scale guts | error: %s"%(_str_funcName,error) 
     
     try:#fix twists
@@ -2227,7 +2227,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     
             if mc.xform (i_jnt.mNode, q=True, ws=True, ro=True) != rotBuffer:
                 log.debug("Found the following on '%s': %s"%(i_jnt.getShortName(),mc.xform (i_jnt.mNode, q=True, ws=True, ro=True)))
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> fix twists | error: %s"%(_str_funcName,error) 
     
     try:#>>>Hook up scales
@@ -2256,7 +2256,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
     
             #Store our distance base to our buffer
             try:i_jntScaleBufferNode.store(ml_distanceShapes[i].distance)#Store to our buffer
-            except StandardError,error:
+            except Exception,error:
                 log.error(error)
                 raise StandardError,"Failed to store joint distance: %s"%ml_distanceShapes[i].mNode
     
@@ -2330,7 +2330,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
                     i_attrNormalDist.doConnectOut('%s.t%s'%(ml_jointList[i+1].mNode,orientation[0]))
                     i_attrNormalDist.doConnectOut('%s.t%s'%(ml_driverJoints[i+1].mNode,orientation[0]))    
     
-                except StandardError,error:
+                except Exception,error:
                     log.error(error)
                     raise StandardError,"Failed to connect joint attrs by translate: %s"%i_jnt.mNode	
             else:
@@ -2339,7 +2339,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
                     i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,orientation[0]))
                     i_attrResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,orientation[0]))
     
-                except StandardError,error:
+                except Exception,error:
                     log.error(error)
                     raise StandardError,"Failed to connect joint attrs by scale: %s"%i_jnt.mNode
 
@@ -2348,7 +2348,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
         for axis in [orientation[1],orientation[2]]:
             attributes.doConnectAttr('%s.s%s'%(i_jnt.mNode,axis),#>>
                                      '%s.s%s'%(ml_driverJoints[i].mNode,axis))	 	
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> scale wiring | error: %s"%(_str_funcName,error) 
 
 
@@ -2359,7 +2359,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
                                      '%s.%s'%(ml_jointList[-1].mNode,axis))	 
     
         mc.pointConstraint(ml_driverJoints[0].mNode,ml_jointList[0].mNode,maintainOffset = False)
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> constrain | error: %s"%(_str_funcName,error) 
 
 
@@ -2369,7 +2369,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
         i_segmentCurve.connectChildNode(i_jntScaleBufferNode,'scaleBuffer','segmentCurve')
         i_segmentCurve.msgList_connect(ml_jointList,'drivenJoints','segmentCurve')       
         i_segmentCurve.msgList_connect(ml_driverJoints,'driverJoints','segmentCurve')   
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >> final connect | error: %s"%(_str_funcName,error) 
 
 
@@ -2629,7 +2629,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx',secondaryAxis = None,
 
         #Store our distance base to our buffer
         try:i_jntScaleBufferNode.store(ml_distanceShapes[i].distance)#Store to our buffer
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"Failed to store joint distance: %s"%ml_distanceShapes[i].mNode
 
@@ -2705,7 +2705,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx',secondaryAxis = None,
                 i_attrNormalDist.doConnectOut('%s.t%s'%(ml_jointList[i+1].mNode,orientation[0]))
                 i_attrNormalDist.doConnectOut('%s.t%s'%(ml_driverJoints[i+1].mNode,orientation[0]))    
 
-            except StandardError,error:
+            except Exception,error:
                 log.error(error)
                 raise StandardError,"Failed to connect joint attrs by scale: %s"%i_jnt.mNode
 
@@ -2716,7 +2716,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx',secondaryAxis = None,
                 i_attrResult.doConnectOut('%s.s%s'%(i_jnt.mNode,orientation[0]))
                 i_attrResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,orientation[0]))
 
-            except StandardError,error:
+            except Exception,error:
                 log.error(error)
                 raise StandardError,"Failed to connect joint attrs by scale: %s"%i_jnt.mNode
 
@@ -2754,7 +2754,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         i_parent = cgmMeta.validateObjArg(parentTo,cgmMeta.cgmObject,noneValid=True)    
         bbSize = distance.returnBoundingBoxSize(i_obj.mNode,True)
         size = max(bbSize)
-    except StandardError,error:raise StandardError,"%s >> get info | %s"%(str_shortName,error)  
+    except Exception,error:raise StandardError,"%s >> get info | %s"%(str_shortName,error)  
     
     _str_funcName = "create_spaceLocatorForObject(%s)"%i_obj.p_nameShort  
     log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
@@ -2762,15 +2762,15 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     try:#>>>Create #====================================================
         i_control = cgmMeta.cgmObject(curves.createControlCurve('pivotLocator',size),setClass=True)
         try:l_color = curves.returnColorsFromCurve(i_obj.mNode)
-        except StandardError,error:raise StandardError,"color | %s"%(error)          
+        except Exception,error:raise StandardError,"color | %s"%(error)          
         log.debug("l_color: %s"%l_color)
         curves.setColorByIndex(i_control.mNode,l_color[0])
-    except StandardError,error:raise StandardError,"%s >> create | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> create | %s"%(_str_funcName,error)  
 
     try:#>>>Snap and Lock
         #====================================================	
         Snap.go(i_control,i_obj.mNode,move=True, orient = True)
-    except StandardError,error:raise StandardError,"%s >> snapNLock | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> snapNLock | %s"%(_str_funcName,error)  
 
     try:#>>>Copy Transform
         #====================================================   
@@ -2783,7 +2783,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         i_newTransform.parent = mBuffer.parent#Copy parent
         i_control = i_newTransform
         mc.delete(mBuffer.mNode)
-    except StandardError,error:raise StandardError,"%s >> copy transform | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> copy transform | %s"%(_str_funcName,error)  
 
     try:#>>>Register
         #====================================================    
@@ -2792,7 +2792,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         str_pivotAttr = str("pivot_%s"%i)
         str_objName = str(i_obj.getShortName())
         str_pivotName = str(i_control.getShortName())
-    except StandardError,error:raise StandardError,"%s >> register | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> register | %s"%(_str_funcName,error)  
 
     try:#Build the network
         i_obj.addAttr(str_pivotAttr,enumName = 'off:lock:on', defaultValue = 2, value = 0, attrType = 'enum',keyable = False, hidden = False)
@@ -2801,14 +2801,14 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         log.debug(d_ret)
         d_ret = NodeF.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
         log.debug(d_ret)
-    except StandardError,error:raise StandardError,"%s >> network | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> network | %s"%(_str_funcName,error)  
     
     try:
         for shape in mc.listRelatives(i_control.mNode,shapes=True,fullPath=True):
             log.debug(shape)
             mc.connectAttr("%s.overrideVisibility"%i_control.mNode,"%s.overrideVisibility"%shape,force=True)
             mc.connectAttr("%s.overrideDisplayType"%i_control.mNode,"%s.overrideDisplayType"%shape,force=True)
-    except StandardError,error:raise StandardError,"%s >> shape connect | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> shape connect | %s"%(_str_funcName,error)  
 
     try:#Vis 
         #>>>Name stuff
@@ -2824,7 +2824,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         i_control.doName(nameShapes=True)
     
         i_control.addAttr('cgmAlias',(i_obj.getNameAlias()+'_pivot_%s'%i),lock=True)
-    except StandardError,error:raise StandardError,"%s >> vis | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> vis | %s"%(_str_funcName,error)  
 
     try:#Store on object
         #====================================================    
@@ -2834,7 +2834,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
             buffer.append(i_control.mNode)
             i_obj.msgList_append(buffer,'spacePivots','controlTarget')
         log.debug("spacePivots: %s"%i_obj.msgList_get('spacePivots',asMeta = True))
-    except StandardError,error:raise StandardError,"%s >> store | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> store | %s"%(_str_funcName,error)  
     
     try:#parent
         if i_parent:
@@ -2845,7 +2845,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
             i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	
     
             log.debug("constraintGroup: '%s'"%i_constraintGroup.getShortName())		
-    except StandardError,error:raise StandardError,"%s >> parent | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> parent | %s"%(_str_funcName,error)  
     
     return i_control
 
@@ -3726,7 +3726,7 @@ def connectBlendChainByConstraint(l_jointChain1,l_jointChain2,l_blendChain, driv
         d_blendReturn['ml_nodes'] = ml_nodes
 
         return d_blendReturn
-    except StandardError,error:
+    except Exception,error:
         raise StandardError,"%s >>  error: %s"%(_str_funcName,error)   
 
 def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = None, channels = ['translate','rotate']):
@@ -3794,44 +3794,75 @@ def addJointLengthAttr(joint,attrArg = None,connectBy = 'translate',orientation 
     orienation(str) -- joint orientation
 
     """
-    mi_joint = cgmMeta.validateObjArg(joint,cgmMeta.cgmObject)
+    _str_funcName = 'addJointLengthAttr'
+    _str_funcDebug = "%s >> ARGS >> joint : %s | attrArg : %s | connectBy : %s | orientation : %s "%(_str_funcName,joint,attrArg,connectBy,orientation)
+    start = time.clock()        		    
 
-    d_driver = cgmMeta.validateAttrArg(attrArg,noneValid=True)
-    mi_driver = False
-    if d_driver:mi_driver = d_driver.get('mi_plug') or False
-    log.debug("attrArgDriver: %s"%d_driver)
-    if not mi_driver:#If we still don't have one, make one
-        mi_driver = cgmMeta.cgmAttr(mi_joint,'length',attrType = 'float')
-
-    #CHeck the settings
-    mi_driver.p_defaultValue = 1
-    mi_driver.p_minValue = 0
-    mi_driver.value = 1
-    mi_driver.p_hidden = False
-    mi_driver.p_keyable = True
-
-    #>>> Actual meat
-    #===========================================================
-    if connectBy == 'translate':
-        #Find the child joint
-        cBuffer = mc.listRelatives(mi_joint.mNode,type='joint') or False
-        if len(cBuffer)>1:
-            raise NotImplementedError,"addJointLengthAttr('%s')>>> Too many child joints to know which is length: %s"%(mi_joint.getShortName(),len(cBuffer))
-        elif not cBuffer:
-            raise NotImplementedError,"addJointLengthAttr('%s')>>> No chidren joints found"%(mi_joint.getShortName(),len(cBuffer))
-
-        mi_childJoint = cgmMeta.validateObjArg(cBuffer[0],cgmMeta.cgmObject)
-        #Get the length
-        #length = mi_childJoint.__getattribute__('t%s'%orientation[0].lower())
-        length = mc.getAttr("%s.t%s"%(mi_childJoint.mNode,orientation[0].lower()))
-
-        mi_baseAttr = cgmMeta.cgmAttr(mi_childJoint,'baseLength',value=length,lock=True)
-        return NodeF.argsToNodes("%s.t%s = %s * %s"%(mi_childJoint.getShortName(),orientation[0].lower(),
-                                                     mi_driver.p_combinedShortName,mi_baseAttr.p_combinedShortName)).doBuild()
-
-    else:
-        raise NotImplementedError,"addJointLengthAttr('%s')>>> connectBy '%s' not available"%(mi_joint.getShortName(),connectBy)
-
+    log.info(">>> %s >> "%_str_funcName + "="*75)  
+    try:
+	try:#Data
+	    _str_subFunc = "Arg validation"
+		    
+	    mi_joint = cgmMeta.validateObjArg(joint,cgmMeta.cgmObject)
+	    d_driver = cgmMeta.validateAttrArg(attrArg,noneValid=True)
+	    mi_driver = False
+	    if d_driver:mi_driver = d_driver.get('mi_plug') or False
+	    log.debug("attrArgDriver: %s"%d_driver)
+	    if not mi_driver:#If we still don't have one, make one
+		mi_driver = cgmMeta.cgmAttr(mi_joint,'length',attrType = 'float')
+			    
+	except Exception,error:
+	    raise StandardError,"%s >> FAIL STEP >> %s | %s"%(_str_funcName,_str_subFunc,error)       	
+	
+	try:#CHeck the settings
+	    _str_subFunc = "Check driver settings"		
+	    mi_driver.p_defaultValue = 1
+	    mi_driver.p_minValue = 0
+	    mi_driver.value = 1
+	    mi_driver.p_hidden = False
+	    mi_driver.p_keyable = True
+	except Exception,error:
+	    raise StandardError,"%s >> FAIL STEP >> %s | %s"%(_str_funcName,_str_subFunc,error)   
+	
+	try:#>>> Actual meat
+	    #===========================================================
+	    _str_subFunc = "Setup"
+    
+	    if connectBy == 'translate':
+		#Find the child joint
+		cBuffer = mc.listRelatives(mi_joint.mNode,type='joint') or False
+		if len(cBuffer) == 2:
+		    l_pos = mi_joint.getPosition()
+		    for c in cBuffer:
+			if not cgmMath.isVectorEquivalent(l_pos,cgmMeta.cgmObject(c).getPosition()):
+			    log.info("%s >> good child: %s"%(_str_funcName,c))
+			    cBuffer = [c]
+			
+		if len(cBuffer)>1:
+		    raise NotImplementedError,"Too many child joints to know which is length: %s"%(len(cBuffer))
+		elif not cBuffer:
+		    raise NotImplementedError,"No chidren joints found"
+	
+		mi_childJoint = cgmMeta.validateObjArg(cBuffer[0],cgmMeta.cgmObject)
+		#Get the length
+		#length = mi_childJoint.__getattribute__('t%s'%orientation[0].lower())
+		length = mc.getAttr("%s.t%s"%(mi_childJoint.mNode,orientation[0].lower()))
+	
+		mi_baseAttr = cgmMeta.cgmAttr(mi_childJoint,'baseLength',value=length,lock=True)
+		
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
+		
+		return NodeF.argsToNodes("%s.t%s = %s * %s"%(mi_childJoint.getShortName(),orientation[0].lower(),
+		                                             mi_driver.p_combinedShortName,mi_baseAttr.p_combinedShortName)).doBuild()
+	
+	    else:
+		raise StandardError,"connectBy '%s' not available"%(mi_joint.getShortName(),connectBy)
+	except Exception,error:
+	    raise StandardError,"%s >> FAIL STEP >> %s | %s"%(_str_funcName,_str_subFunc,error)   
+	
+    except Exception,error:
+        log.error(_str_funcDebug)
+	raise error
 
 @r9General.Timer
 def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = None,
@@ -4056,7 +4087,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
 
         #Store our distance base to our buffer
         try:i_jntScaleBufferNode.store(ml_distanceShapes[i].distance)#Store to our buffer
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"Failed to store joint distance: %s"%ml_distanceShapes[i].mNode
 
@@ -4082,7 +4113,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
             for axis in orientation[1:]:
                 attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,'masterScale'),#>>
                                          '%s.s%s'%(i_jnt.mNode,axis))	    
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
 
@@ -4386,7 +4417,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
     for i,i_jnt in enumerate(ml_jointList[:-1]):
         #Store our distance base to our buffer
         try:i_jntScaleBufferNode.store(ml_distanceShapes[i].distance)#Store to our buffer
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"Failed to store joint distance: %s"%ml_distanceShapes[i].mNode
 
@@ -4408,7 +4439,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
             for axis in orientation[1:]:
                 attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,'masterScale'),#>>
                                          '%s.s%s'%(i_jnt.mNode,axis))	    
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
 
@@ -4580,7 +4611,7 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
     for i,i_jnt in enumerate(ml_jointList[:-1]):
         #Store our distance base to our buffer
         try:i_jntScaleBufferNode.store(ml_distanceShapes[i].distance)#Store to our buffer
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"Failed to store joint distance: %s"%ml_distanceShapes[i].mNode
 
@@ -4602,7 +4633,7 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
             for axis in orientation[1:]:
                 attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,'masterScale'),#>>
                                          '%s.s%s'%(i_jnt.mNode,axis))	    
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
 
@@ -4613,7 +4644,7 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
 	          #'driven':[[i_jnt.mNode,'sy'],[i_jnt.mNode,'sx']]}]
 
         try:NodeF.build_mdNetwork(mdArg, defaultAttrType='float',operation=2)
-	except StandardError,error:
+	except Exception,error:
 	    log.error(error)
 	    raise StandardError,"Failed to build network: %s"%mdArg 
 	"""
@@ -4718,7 +4749,7 @@ def addRibbonTwistToControlSetup(jointList,
                 blendConnection = [i_blendPMA.mNode,"output1D"]
             else:
                 blendConnection = d_drivenPlugs[blendDriverIndex]
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"averageNetwork_four>failed to find or build blendDriver: %s"%blendDriverIndex
 
@@ -4845,7 +4876,7 @@ def addRibbonTwistToControlSetup(jointList,
                     averageNetwork_four(chunk)
                 else:
                     raise StandardError,"Chunk too long: %s"%chunk
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"Chunk failed to network: %s"%chunk
 
@@ -5135,7 +5166,7 @@ def addAdditiveScaleToSegmentCurveSetup(segmentCurve, orientation = 'zyx', modul
     #>>> Validate info
     mi_segmentCurve = cgmMeta.validateObjArg(segmentCurve,cgmMeta.cgmObject,False)
     try:ml_drivenJoints = cgmMeta.validateObjListArg( mi_segmentCurve.msgList_get('drivenJoints',asMeta = True)[:-1],cgmMeta.cgmObject,False)
-    except StandardError,error:
+    except Exception,error:
         log.error("addAdditiveScaleToSegmentCurveSetup >> '%s' lacks driven joints"%mi_segmentCurve.getShortName())
         raise StandardError,error
 
@@ -5690,7 +5721,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
 
         #Store our distance base to our buffer
         try:i_jntScaleBufferNode.store(ml_distanceShapes[i].distance)#Store to our buffer
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"Failed to store joint distance: %s"%ml_distanceShapes[i].mNode
 
@@ -5716,7 +5747,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
             for axis in orientation[1:]:
                 attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,'masterScale'),#>>
                                          '%s.s%s'%(i_jnt.mNode,axis))       
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             raise StandardError,"Failed to connect joint attrs: %s"%i_jnt.mNode
 

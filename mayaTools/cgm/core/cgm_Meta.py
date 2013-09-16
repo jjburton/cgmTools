@@ -1743,7 +1743,7 @@ class cgmControl(cgmObject):
 	    log.debug("outVector: %s"%outVector)
 	    aimConstraintBuffer = mc.aimConstraint(i_target.mNode,self.mNode,maintainOffset = False, weight = 1, aimVector = aimVector, upVector = upVector, worldUpType = 'scene' )
 	    mc.delete(aimConstraintBuffer)
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError, "%s.doAim fail! | %s"%(self.getShortName(),error)
 	
     #>>> Mirror stuff
@@ -1752,11 +1752,11 @@ class cgmControl(cgmObject):
 	_str_funcName = "%s._verifyMirrorable()"%self.p_nameShort
 	log.debug(">>> %s "%(_str_funcName) + "="*75)    	
 	try:
-	    self.addAttr('mirrorSide',attrType = 'enum', enumName = 'Centre:Left:Right', value = 2,keyable = False, hidden = True, lock =True)
+	    self.addAttr('mirrorSide',attrType = 'enum', enumName = 'Centre:Left:Right', initialValue = 0,keyable = False, hidden = True, lock =True)
 	    self.addAttr('mirrorIndex',attrType = 'int',keyable = False, hidden = True, lock = True)
 	    self.addAttr('mirrorAxis',initialValue = '',attrType = 'string',lock=True)
 	    return True
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >>> error: %s"%(_str_funcName,error) 
 	
     def isMirrorable(self):

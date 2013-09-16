@@ -117,7 +117,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 		if not self.__verify__(name,**kws):
 		    #log.critical("'%s' failed to __verify__!"%name)
 		    raise StandardError,"'%s' failed to verify!"%name
-	    except StandardError,error:
+	    except Exception,error:
 		raise StandardError,"%s >>> verify fail | error : %s"%(_str_funcName,error) 
 
     #====================================================================================
@@ -161,7 +161,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    self.addAttr('masterControl',attrType = 'messageSimple',lock=True)  	
 	    self.addAttr('moduleChildren',attrType = 'message',lock=True) 
 	    self.addAttr('unifiedGeo',attrType = 'messageSimple',lock=True) 
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >>> Puppet network |error : %s"%(_str_funcName,error)
 	
 	try:#Settings ============================================================================
@@ -175,7 +175,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    
 	    self.doName()
 	    log.debug("Network good...")
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >>> Settings |error : %s"%(_str_funcName,error)
 		
         try:#MasterNull ===========================================================================
@@ -195,7 +195,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 		    return False
 	    attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
 	    log.debug("Master Null good...")
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >>> MasterNull | error : %s"%(_str_funcName,error)	
 	    
 	try:#Quick select sets ================================================================
@@ -207,7 +207,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    cgmMeta.cgmAttr(self,'cgmName').doCopyTo(i_selectSet.mNode,connectTargetToSource =True)
 	    i_selectSet.doName()	    
 	    
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >>> ObjectSet | error : %s"%(_str_funcName,error)
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Groups
@@ -235,7 +235,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 		else:    
 		    self.__dict__[Attr].doParent(self.i_masterNull)
 		attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >>> groups |error : %s"%(_str_funcName,error)	
 	    
         return True
@@ -403,7 +403,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    b_return = False
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
 	    return b_return
-	except StandardError,error:
+	except Exception,error:
 	    log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
 	    return False
 	
@@ -465,7 +465,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	i_masterControl.parent = self.masterNull.mNode
 	i_masterControl.doName()
 	"""    
-	except StandardError,error:
+	except Exception,error:
 	    log.error("_verifyMasterControl>> masterControl fail! "%error)
 	    raise StandardError,error """
 	
@@ -485,7 +485,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 		          {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
 		           ]
 		nodeF.build_mdNetwork(visArg)
-	except StandardError,error:
+	except Exception,error:
 	    log.error("_verifyMasterControl>> visNetwork fail! "%error)
 	    raise StandardError,error 	
 	log.debug("Verified: '%s'"%self.cgmName)  
@@ -1400,7 +1400,7 @@ class cgmModule(cgmMeta.cgmObject):
 	    """
 	    try: 		
 		i_buffer = r9Meta.MetaClass(obj)
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("buffer failed ('%s') failed: %s"%(attr,error))		
 		return False
 	    
@@ -1577,7 +1577,7 @@ class cgmModule(cgmMeta.cgmObject):
 		    i_null.addAttr(attr,initialValue = '{}', attrType = dictToUse[attr],lock = True )                                
 		else:
 		    i_null.addAttr(attr,attrType = dictToUse[attr],lock = True )   
-	    except StandardError,error:
+	    except Exception,error:
 		log.error(">>> %s.%s >> failed: %s"%(self.p_nameShort,attr,error))     
 		
     def __verifyObjectSet__(self):
@@ -1595,7 +1595,7 @@ class cgmModule(cgmMeta.cgmObject):
 	    if self.getMessage('modulePuppet'):
 		self.modulePuppet.puppetSet.addObj(i_selectSet.mNode)
 	    
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >>> ObjectSet | error : %s"%(_str_funcName,error)
     
     def getModuleColors(self):
@@ -1824,7 +1824,7 @@ class cgmModule(cgmMeta.cgmObject):
 		mc.setKeyframe(**kws)
 		return True
 	    return False
-	except StandardError,error:
+	except Exception,error:
 	    log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
 	    return False
 	
@@ -1835,7 +1835,7 @@ class cgmModule(cgmMeta.cgmObject):
 		mc.select(buffer)
 		return True
 	    return False
-	except StandardError,error:
+	except Exception,error:
 	    log.error("%s.animSelect>> animSelect fail | %s"%(self.getBaseName(),error))
 	    return False
 	
@@ -2162,7 +2162,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	    if k in self.kw_callNameTags.keys():
 		log.debug("%s.__verify__ >>> trying to set key: %s | data: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k)))
 		try:self.__setattr__(d_enumToCGMTag.get(k),self.kw_callNameTags.get(k))
-		except StandardError,error: log.error("%s.__verify__ >>> Failed to set key: %s | data: %s | error: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k),error))
+		except Exception,error: log.error("%s.__verify__ >>> Failed to set key: %s | data: %s | error: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k),error))
 	
 	self.doName()   
 	
@@ -2220,7 +2220,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	    try:
 		log.debug(">>> %s >>> Has no module, creating")
 		mi_module = self.__buildModule__()
-	    except StandardError,error:
+	    except Exception,error:
 		raise StandardError, ">>> %s>>> module build failed. error: %s"%(_str_funcName,error)
 	if mi_module.getMessage('modulePuppet'):
 	    log.debug(">>> %s >>> already has a puppet. Aborting"%_str_funcName)
@@ -2284,7 +2284,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	self.verifyAttrDict(cgmEyeballBlock.d_attrsToMake,keyable = False, hidden = False)
 	for attr in cgmEyeballBlock.d_defaultSettings.keys():
 	    try:self.addAttr(attr, value = cgmEyeballBlock.d_defaultSettings[attr], defaultValue = cgmEyeballBlock.d_defaultSettings[attr])
-	    except StandardError,error: raise StandardError,"%s.__verify__ >>> Failed to set value on: %s | data: %s | error: %s"%(self.p_nameShort,attr,cgmEyeballBlock.d_defaultSettings[attr],error)
+	    except Exception,error: raise StandardError,"%s.__verify__ >>> Failed to set value on: %s | data: %s | error: %s"%(self.p_nameShort,attr,cgmEyeballBlock.d_defaultSettings[attr],error)
 	if not self.getShapes():
 	    self.__rebuildShapes__()
 	    
@@ -2391,7 +2391,7 @@ class cgmEyeballBlock(cgmRigBlock):
 		mi_dup.cgmDirection = mi_dup.getEnumValueString('direction')
 		mi_dup.doName()
 			
-	    except StandardError,error:raise StandardError,"Failed to mirror mirror shapes | error: %s "%(error)
+	    except Exception,error:raise StandardError,"Failed to mirror mirror shapes | error: %s "%(error)
 	    try:#Find our shapes =====================================================================
 		l_shapes = ['iris','pupil','uprLid','lwrLid']
 		ml_crvs = [mi_dup]
@@ -2402,16 +2402,16 @@ class cgmEyeballBlock(cgmRigBlock):
 			if i_c.getAttr('cgmName') == shape:
 			    mi_dup.connectChildNode(i_c,'%sHelper'%shape,'mi_block')
 			    ml_crvs.append(i_c)
-	    except StandardError,error:raise StandardError,"Failed to mirror mirror shapes | error: %s "%(error)
+	    except Exception,error:raise StandardError,"Failed to mirror mirror shapes | error: %s "%(error)
 	    try:#Color =====================================================================
 		__color = getSettingsColors( mi_dup.getAttr('cgmDirection') )
 		for mCrv in ml_crvs:
 		    curves.setCurveColorByName(mCrv.mNode,__color[0])#Set the color	    
-	    except StandardError,error:raise StandardError,"Color mirror| error: %s "%(error)
+	    except Exception,error:raise StandardError,"Color mirror| error: %s "%(error)
 	    
 	    self.__mirrorPush__()
 	    return mi_dup
-	except StandardError,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
+	except Exception,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
 	
     def __mirrorPush__(self):
 	cgmRigBlock.__buildModule__(self)
@@ -2427,7 +2427,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	    mi_mirror.ty = self.ty
 	    mi_mirror.sy = self.sy
 	    
-	except StandardError,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
+	except Exception,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
  
 	
     def __buildModule__(self):
@@ -2445,7 +2445,7 @@ class cgmEyeballBlock(cgmRigBlock):
 		                      position = bfr_position,
 		                      direction = bfr_direction)
 		self.connectChildNode(i_module,"moduleTarget","helper")
-	    except StandardError,error:raise StandardError,"Failed to build eyeball module | error: %s "%(error)
+	    except Exception,error:raise StandardError,"Failed to build eyeball module | error: %s "%(error)
 	    try:#Eyelids module
 		#===================================================================
 		i_eyelidsModule = cgmEyelids(name = 'eyelids',
@@ -2454,7 +2454,7 @@ class cgmEyeballBlock(cgmRigBlock):
 		i_eyelidsModule.doSetParentModule(i_module)
 		self.connectChildNode(i_eyelidsModule,"moduleEyelids","helper")
 		
-	    except StandardError,error:raise StandardError,"Failed to build eyelids module | error: %s "%(error)
+	    except Exception,error:raise StandardError,"Failed to build eyelids module | error: %s "%(error)
 	    try:#Mirror ============================================================
 		if self.autoMirror:
 		    log.debug("%s >> mirror mode"%(_str_funcName))
@@ -2471,7 +2471,7 @@ class cgmEyeballBlock(cgmRigBlock):
 			                            direction = bfr_mirrorDirection)
 			i_module.connectChildNode(i_moduleMirror,"moduleMirror","moduleMirror")
 			mi_mirror.connectChildNode(i_moduleMirror,"moduleTarget","helper")		    
-		    except StandardError,error:raise StandardError,"Failed to mirror eyeball module | error: %s "%(error)
+		    except Exception,error:raise StandardError,"Failed to mirror eyeball module | error: %s "%(error)
 		    try:#Eyelids module
 			#===================================================================
 			i_eyelidsModuleMirror = cgmEyelids(name = 'eyelids',
@@ -2479,8 +2479,8 @@ class cgmEyeballBlock(cgmRigBlock):
 			                                   direction = bfr_mirrorDirection)
 			i_eyelidsModuleMirror.doSetParentModule(i_moduleMirror)
 			mi_mirror.connectChildNode(i_eyelidsModuleMirror,"moduleEyelids","helper")
-		    except StandardError,error:raise StandardError,"Failed to mirror eyelids module | error: %s "%(error)
-	    except StandardError,error:raise StandardError,"failed to mirror | error: %s "%(error)
+		    except Exception,error:raise StandardError,"Failed to mirror eyelids module | error: %s "%(error)
+	    except Exception,error:raise StandardError,"failed to mirror | error: %s "%(error)
 	    
 	    self.__storeNames__()
 	    
@@ -2489,7 +2489,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	    
 	    #>>>Let's do our manual sizing
 	    return i_module
-	except StandardError,error:raise StandardError,"%s >>>  error: %s "%(_str_funcName,error)
+	except Exception,error:raise StandardError,"%s >>>  error: %s "%(_str_funcName,error)
     
     def __storeNames__(self):
 	#Store our names
@@ -2504,7 +2504,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	try:#Mirror ============================================================
 	    if self.autoMirror:
 		self.moduleTarget.moduleMirror.coreNames.value = l_names
-	except StandardError,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_funcName,error)
+	except Exception,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_funcName,error)
 
 	return True
     
@@ -2524,17 +2524,17 @@ class cgmEyeballBlock(cgmRigBlock):
 	    try:
 		if self.getAttr(d_helpercheck[k].get('check')) and self.getMessage(d_helpercheck[k].get('plug')):
 		    l_pos.append(self.getMessageInstance(d_helpercheck[k].get('plug')).getPosition())
-	    except StandardError,error:
+	    except Exception,error:
 		log.error(">>> %s >>> helper check failed: %s | error: %s"%(_str_funcName,k,error))	
 	"""
 	##ml_helpers = self.msgList_get('ml_helpers')#Get our helpers
 	"""
 	if self.buildPupil:
 	    try:l_pos.append(self.pupilHelper.getPosition())
-	    except StandardError,error:raise StandardError,"%s >>> Missing Pupil helper | error: %s "%(_str_funcName,error)
+	    except Exception,error:raise StandardError,"%s >>> Missing Pupil helper | error: %s "%(_str_funcName,error)
 	if self.buildIris:
 	    try:l_pos.append(self.irisHelper.getPosition())
-	    except StandardError,error:raise StandardError,"%s >>> Missing Iris helper | error: %s "%(_str_funcName,error)
+	    except Exception,error:raise StandardError,"%s >>> Missing Iris helper | error: %s "%(_str_funcName,error)
 	
 	log.info("%s >>> l_pos: %s"%(_str_funcName,l_pos))		
 

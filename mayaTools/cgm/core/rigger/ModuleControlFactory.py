@@ -64,7 +64,7 @@ class go(object):
 	try:
 	    if moduleInstance.isModule():
 		i_module = moduleInstance
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"RigFactory.go.init. Module call failure. Probably not a module: '%s'"%error	    
 		
 	if not mc.objExists(moduleInstance.mNode):
@@ -146,7 +146,7 @@ class go(object):
 	    try:
 		storageInstance._d_controlShapes = self.d_returnControls
 		storageInstance._md_controlShapes = self.md_ReturnControls
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("storage fail! | %s"%storageInstance) 
 		raise StandardError,"Did not get all necessary controls built"
 
@@ -180,7 +180,7 @@ class go(object):
 	    curves.setCurveColorByName(i_crv.mNode,self.l_moduleColors[0])    
 	    self.d_returnControls['cog'] = i_crv.mNode
 	    self.md_ReturnControls['cog'] = i_crv
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_cog fail! | %s"%error) 
 		return False
 	
@@ -221,7 +221,7 @@ class go(object):
 	    self.d_returnControls['hips'] = i_crv.mNode
 	    self.md_ReturnControls['hips'] = i_crv
 	    	    
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_hips fail! | %s"%error) 
 		return False
     	    
@@ -251,7 +251,7 @@ class go(object):
 	    self.d_returnControls['segmentFK'] = l_segmentControls 
 	    self.md_ReturnControls['segmentFK'] = l_iSegmentControls
 	    
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_segmentIKHandles fail! | %s"%error) 
 		return False
 	    
@@ -301,7 +301,7 @@ class go(object):
 	    self.d_returnControls['segmentIKEnd'] = i_crv.mNode 		
 	    self.md_ReturnControls['segmentIKEnd'] = i_crv
 		
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_segmentIKHandles! | %s"%error) 
 		return False
 '''	    
@@ -363,7 +363,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    i_control = cgmMeta.cgmControl(i_newTransform.mNode,setClass=True)
 	    mc.delete(mBuffer.mNode)
 	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Shape Parent #====================================================
@@ -377,7 +377,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    #i_control.delete()
 	    i_control = i_target#replace the control with the joint    
 	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
       
     try:#>>>Copy Pivot #====================================================
@@ -394,7 +394,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    #Need to move this to default cgmNode stuff
 	    i_control.doCopyPivot(i_target.mNode)
 	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Name stuff #====================================================
@@ -407,7 +407,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	i_control.doName()#i_control.doName(nameShapes=True)
 	str_shortName = i_control.getShortName()
 	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Add aiming info #====================================================
@@ -417,24 +417,34 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	if aim is not None or up is not None or makeAimable:
 	    i_control._verifyAimable()
 	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Add mirror info #====================================================
 	_str_subFunc = "Mirror"
 	time_sub = time.clock()  	
-	log.debug(">>> %s..."%_str_subFunc)                			
+	log.debug(">>> %s..."%_str_subFunc)          			
 	if str_mirrorSide is not None or b_makeMirrorable:
-	    i_control._verifyMirrorable()
-	    
-	    if str_mirrorSide in cgmMeta.cgmAttr(i_control,'mirrorSide').p_enum:
-		i_control.mirrorSide = str_mirrorSide
-		
+	    log.debug("%s >> %s >> str_mirrorSide : %s"%(_str_funcName,_str_subFunc,str_mirrorSide))
+	    log.debug("%s >> %s >> str_mirrorAxis : %s"%(_str_funcName,_str_subFunc,str_mirrorAxis))
+	    log.debug("%s >> %s >> b_makeMirrorable : %s"%(_str_funcName,_str_subFunc,b_makeMirrorable))
+	    try:i_control._verifyMirrorable()
+	    except Exception,error:raise StandardError,"_verifyMirror | %s"%(error)
+	    l_enum = cgmMeta.cgmAttr(i_control,'mirrorSide').p_enum
+	    if str_mirrorSide in l_enum:
+		log.debug("%s >> %s >> found in : %s"%(_str_funcName,_str_subFunc,l_enum))		
+		try:
+		    i_control.mirrorSide = l_enum.index(str_mirrorSide)
+		    log.debug("%s >> %s >> mirrorSide set to: %s"%(_str_funcName,_str_subFunc,i_control.mirrorSide ))						    
+		except Exception,error:raise StandardError,"str_mirrorSide : %s | %s"%(str_mirrorSide,error)
 	    if str_mirrorAxis:
-		i_control.mirrorAxis = str_mirrorAxis
+		try:
+		    i_control.mirrorAxis = str_mirrorAxis
+		    log.debug("%s >> %s >> str_mirrorAxis set: %s"%(_str_funcName,_str_subFunc,str_mirrorAxis))				    
+		except Exception,error:raise StandardError,"str_mirrorAxis : %s | %s"%(str_mirrorAxis,error)
 		
 	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:#>>>Rotate Order #====================================================
@@ -456,7 +466,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    _rotateOrder = dictionary.validateRotateOrderString(_rotateOrder)
 	    mc.xform(i_control.mNode, rotateOrder = _rotateOrder)
 	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     #>>>Freeze stuff 
@@ -468,13 +478,13 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	if freezeAll:
 	    mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)
 	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:
 	if addDynParentGroup or addSpacePivots or i_control.cgmName.lower() == 'cog':
 	    i_control.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> spacer | %s"%(_str_funcName,error)       
 	
     #==================================================== 
@@ -525,7 +535,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 		log.debug("constraintGroup: '%s'"%i_constraintGroup.getShortName())	
 		
 	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)    
     
     #try:#>>>Space Pivots #====================================================  
@@ -541,10 +551,10 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 		    log.info("%s >> %s | obj: %s | parent: %s"%(_str_funcName,i,i_control.p_nameShort,parent))
 		    i_pivot = rUtils.create_spaceLocatorForObject(i_control.mNode,parent)
 		    ml_spaceLocators.append(i_pivot)
-		except StandardError,error:
+		except Exception,error:
 		    raise StandardError,"space pivot %s | %s"%(i,error)
 	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)   
     
     try:#>>>Freeze stuff  #====================================================
@@ -561,7 +571,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 		mc.makeIdentity(i_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
 	    
 	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)  
     
     try:#>>>Lock and hide #====================================================
@@ -576,7 +586,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 		attributes.doSetLockHideKeyableAttr(i_control.mNode,channels=['sx','sy','sz'])
 	    cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
 	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)  
     
     log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)             

@@ -90,7 +90,7 @@ def gatherModules(self):
         log.debug(">>> %s >>> "%(_str_funcName) + "="*75)      
         for m in getModules(self):
             self.connectModule(m)
-    except StandardError,error:
+    except Exception,error:
 		raise StandardError,"%s >>> error: %s"%(_str_funcName,error)
 
   
@@ -118,7 +118,7 @@ def getModuleFromDict(self,*args,**kws):
                 log.debug("Found Morpheus Module: '%s'"%i_m.getShortName())
                 return i_m
         return False
-    except StandardError,error:
+    except Exception,error:
         log.error("kws: %s"%kws)
         raise StandardError,"%s.getModuleFromDict>> error: %s"%error
     
@@ -285,7 +285,7 @@ def animReset(self,transformsOnly = True):
 	    ml_resetChannels.main(transformsOnly = transformsOnly)
 	    return True
 	return False
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s >> error: %s"%(_str_funcName,error))
 	return False
     
@@ -293,20 +293,19 @@ def mirrorMe(self,**kws):
     _str_funcName = "%s.mirrorMe()"%self.p_nameShort  
     log.debug(">>> %s "%(_str_funcName) + "="*75)  	
     try:
-	l_controls = self.puppetSet.getList()
+	#l_controls = self.puppetSet.getList()
 	#for mModule in getModules(self):
-	"""
+	l_controls = []
 	for mModule in self.moduleChildren:
-	    try:l_buffer = mModule.rigNull.moduleSet.getList()
-	    except:l_buffer = []
-	    if l_buffer:
-		l_controls.extend(l_buffer)"""
+	    try:mModule.mirrorMe()
+	    except:pass
+	"""
 	if l_controls:
 	    r9Anim.MirrorHierarchy(l_controls).mirrorData(mode = '')
 	    mc.select(l_controls)
-	    return True
-	return False
-    except StandardError,error:
+	    return True"""
+	#return False
+    except Exception,error:
 	log.error("%s >> error: %s"%(_str_funcName,error))
 	return False
 

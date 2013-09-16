@@ -389,10 +389,10 @@ def build_controls(self):
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
     try:
-	_str_subFunc = "subVis"
+	_str_subFunc = "visSub"
 	time_sub = time.clock() 
 	log.debug(">>> %s..."%_str_subFunc) 	
-	mPlug_result_moduleSubDriver = self.build_subVis()	
+	mPlug_result_moduleSubDriver = self.build_visSub()	
     except StandardError,error:
 	raise StandardError,"%s >>> buildVis | %s"%(_str_funcName,error)   
     

@@ -123,7 +123,7 @@ class go(object):
 	    self.md_segmentHandles = {}
 	    self._baseModuleDistance = self._returnBaseThickness()
 	    
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> Module data gather fail! | %s"%(self._strShortName,error)	
 	
         #>>> We need to figure out which control to make
@@ -152,7 +152,7 @@ class go(object):
 		storageInstance._md_fkControls = self.md_fkControls
 		storageInstance._md_controlPivots = self.md_returnPivots
 
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("storage fail! | %s"%storageInstance) 
 		raise StandardError,"Did not get all necessary controls built"
 	    
@@ -194,7 +194,7 @@ class go(object):
 			self.__dict__[k] = d_kws['default'].get(k)
 	    log.debug("_pushKWsDict << " + "="*50)
 	    
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"_pushKWsDict>> failed to push arg: %s | %s"%(d_kws,error)
 	return True
 
@@ -256,7 +256,7 @@ class go(object):
 	    else:
 		raise StandardError, "%s >> Not enough info to figure out"%_str_funcName
 	
-	except StandardError,error:
+	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
     #@cgmGeneral.Timer    
@@ -270,15 +270,15 @@ class go(object):
 		if not mi_helper:raise StandardError,"No suitable helper found"    
 		
 		try:ml_uprLidHandles = self.mi_rigNull.msgList_get('handleJoints_upr')
-		except StandardError,error:raise StandardError,"Missing uprlid handleJoints | error: %s "%(error)
+		except Exception,error:raise StandardError,"Missing uprlid handleJoints | error: %s "%(error)
 		try:ml_lwrLidHandles = self.mi_rigNull.msgList_getMessage('handleJoints_lwr')
-		except StandardError,error:raise StandardError,"Missing lwrlid handleJoints | error: %s "%(error)  
+		except Exception,error:raise StandardError,"Missing lwrlid handleJoints | error: %s "%(error)  
 		log.info("%s >>> ml_uprLidHandles : %s "%(_str_funcName,[mObj.mNode for mObj in ml_uprLidHandles]))	
 		log.info("%s >>> ml_lwrLidHandles : %s"%(_str_funcName,[mObj.mNode for mObj in ml_lwrLidHandles]))		
 		
 		__baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_uprLidHandles]) /2 
 		log.info("%s >>> baseDistance : %s"%(_str_funcName,__baseDistance))				
-	    except StandardError,error:
+	    except Exception,error:
 		raise StandardError,"Gather Data fail! | error: %s"%(error)  
 	    
 	    ml_handleCrvs = []
@@ -304,14 +304,14 @@ class go(object):
 		    ml_handleCrvs.append(mi_crv)
 		    #>>Copy pivot
 		    mi_crv.doCopyPivot(mObj.mNode)
-		except StandardError,error:
+		except Exception,error:
 		    raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
 		
 	    self.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in ml_handleCrvs]
 	    self.md_ReturnControls['ml_handleCurves'] = ml_handleCrvs
 	    self.mi_rigNull.msgList_connect(ml_handleCrvs,'handleCurves','owner')
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
-	except StandardError,error:
+	except Exception,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
@@ -346,7 +346,7 @@ class go(object):
 	    self.mi_rigNull.connectChildNode(mi_crv,'shape_settings','owner')
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
-	except StandardError,error:
+	except Exception,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
@@ -375,12 +375,12 @@ class go(object):
 	    
 	    #>>>Combine the curves
 	    try:newCurve = curves.combineCurves(l_curvesToCombine) 
-	    except StandardError,error:raise StandardError,"Failed to combine | error: %s"%error
+	    except Exception,error:raise StandardError,"Failed to combine | error: %s"%error
 	    
 	    mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_helper.mNode,False) )
 	    
 	    try:curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
-	    except StandardError,error:raise StandardError,"Parent shape in place fail | error: %s"%error
+	    except Exception,error:raise StandardError,"Parent shape in place fail | error: %s"%error
 	    
 	    mc.delete(_str_trace)
 	    
@@ -397,7 +397,7 @@ class go(object):
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
-	except StandardError,error:
+	except Exception,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
@@ -433,7 +433,7 @@ class go(object):
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
-	except StandardError,error:
+	except Exception,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
@@ -459,7 +459,7 @@ class go(object):
 	    #if self._partType == "eyeball":
 	    mi_crv.__setattr__('t%s'%self._jointOrientation[2],0)
 
-	except StandardError,error:
+	except Exception,error:
 	    log.error("%s >>> Find info | %s"%(_str_funcName,error) )
 	    
 	try:    
@@ -478,7 +478,7 @@ class go(object):
 	    	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
-	except StandardError,error:
+	except Exception,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
@@ -543,7 +543,7 @@ class go(object):
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_cog fail! | %s"%error) 
 		return False
 	    
@@ -652,7 +652,7 @@ class go(object):
 	    self.mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFK','owner')
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_segmentFKHandles fail! | %s"%error) 
 		return False
 	    
@@ -767,7 +767,7 @@ class go(object):
 	    self.md_ReturnControls['segmentFK_Loli'] = ml_segmentControls
 	    self.mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFKLoli','owner')
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         	    
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_segmentFKLoliHandles fail! | %s"%error) 
 		return False
 	    
@@ -854,7 +854,7 @@ class go(object):
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_moduleCap fail! | %s"%error) 
 		return False
     #@cgmGeneral.Timer    
@@ -1007,6 +1007,8 @@ class go(object):
 	    
 	    mi_newCurve = returnBuffer['instance']"""
 	    mi_newCurve = cgmMeta.cgmObject(curves.createControlCurve('sphere',size = self._baseModuleDistance * .75))
+	    mi_newCurve.doCopyNameTagsFromObject(mi_mid.mNode)
+	    
 	    Snap.go(mi_newCurve,obj,True, True)#Snap to main object
 	    
 	    #>>> Color
@@ -1024,7 +1026,7 @@ class go(object):
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_midIKHandle fail! | %s"%error) 
 		return False
 	    
@@ -1089,7 +1091,7 @@ class go(object):
 	    self.md_ReturnControls['loliHandles'] = ml_controls
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         		
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_loliHandles! | %s"%error) 
 		return False
 	     
@@ -1155,7 +1157,7 @@ class go(object):
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 		
-	except StandardError,error:
+	except Exception,error:
 		log.error("build_torsoIKHandles! | %s"%error) 
 		return False
 	    
@@ -1910,6 +1912,6 @@ class go(object):
 	self.mi_rigNull.msgList_connect(ml_SegmentControls,'shape_segmentIK','owner')
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
-	#except StandardError,error:
+	#except Exception,error:
 	#	log.error("build_segmentIKHandles! | %s"%error) 
 	#	return False
