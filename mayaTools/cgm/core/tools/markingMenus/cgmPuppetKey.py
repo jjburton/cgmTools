@@ -413,9 +413,13 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    MelMenuItem( use_parent, l="Select",
 		                 c = Callback(i_module.animSelect))	
 		    MelMenuItem( use_parent, l="Reset",
-		                 c = Callback(i_module.animReset))
+		                 c = Callback(i_module.animReset,self.ResetModeOptionVar.value))
 		    MelMenuItem( use_parent, l="Mirror",
-		                 c = Callback(i_module.mirrorMe))				
+		                 c = Callback(i_module.mirrorMe))
+		    MelMenuItem( use_parent, l="Mirror Push",
+		                 c = Callback(i_module.mirrorPush))	
+		    MelMenuItem( use_parent, l="Mirror Pull",
+		                 c = Callback(i_module.mirrorPull))			    
 		except StandardError,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 		try:#module children
@@ -481,7 +485,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    MelMenuItem( use_parent, l="Select",
 		                 c = Callback(i_puppet.anim_select))	
 		    MelMenuItem( use_parent, l="Reset",
-		                 c = Callback(i_puppet.anim_reset))
+		                 c = Callback(i_puppet.anim_reset,self.ResetModeOptionVar.value))
 		    MelMenuItem( use_parent, l="Mirror",
 		                 c = Callback(i_puppet.mirrorMe))				
 		except StandardError,error:
