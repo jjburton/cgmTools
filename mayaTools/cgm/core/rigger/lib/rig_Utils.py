@@ -1669,7 +1669,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
             'mi_constraintStartAim':i_startAimConstraint,'mi_constraintEndAim':i_endAimConstraint}
 
 
-@r9General.Timer
+
 def controlSurfaceSmoothWeights(controlSurface,start = None, end = None):
     """Weight fixer for surfaces"""
     if issubclass(type(controlSurface),cgmMeta.cgmNode):
@@ -1725,7 +1725,7 @@ def controlSurfaceSmoothWeights(controlSurface,start = None, end = None):
                 mc.skinPercent(i_skinCluster.mNode,("%s.cv[%s][%s]"%(i_surface.mNode,startInt,endInt)),
                                tv = [influence,1-(i*blendFactor)])
 
-@r9General.Timer
+
 def controlCurveSkinningTwoJointBlend(curve,start = None, end = None, tightLength = 1, blendLength = None):
     """Weight fixer for curves"""
     if issubclass(type(curve),cgmMeta.cgmNode):
@@ -1785,7 +1785,7 @@ def controlCurveSkinningTwoJointBlend(curve,start = None, end = None, tightLengt
                 log.debug("cv: %s | blendFactor: %s"%(cv,1 - ((i+1)*blendFactor)))
                 mc.skinPercent(i_skinCluster.mNode,("%s.cv[%s]"%(i_curve.mNode,cv)),
                                tv = [influence,1-((i+1)*blendFactor)])
-@r9General.Timer
+
 def controlCurveTightenEndWeights(curve,start = None, end = None, blendLength = 2):
     """Weight fixer for curves"""
     if issubclass(type(curve),cgmMeta.cgmNode):
@@ -2380,7 +2380,7 @@ def createSegmentCurve(jointList,orientation = 'zyx',secondaryAxis = None,
 
     return d_return
 
-@r9General.Timer
+
 def createSegmentCurve2(jointList,orientation = 'zyx',secondaryAxis = None, 
                         baseName = None, connectBy = 'trans', moduleInstance = None):
     """
@@ -2747,7 +2747,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx',secondaryAxis = None,
             'l_drivenJoints':jointList,'ml_drivenJoints':ml_jointList}
 
 
-@r9General.Timer
+
 def create_spaceLocatorForObject(obj,parentTo = False):
     try:#Get size
         i_obj = cgmMeta.validateObjArg(obj,cgmMeta.cgmObject,noneValid=False)    
@@ -2944,7 +2944,7 @@ def create_distanceMeasure(start = None, end = None, baseName = None):
 
     return {'mi_shape':i_distanceShape , 'mi_object':i_distanceObject}
 
-@r9General.Timer
+
 def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, drivenAttr = None, driverAttr = None, 
                         minIn = -180, maxIn = 180, maxIterations = 40, matchValue = None):
     """
@@ -3270,8 +3270,6 @@ def IKHandle_fixTwist(ikHandle):
     return True
 
 
-
-@r9General.Timer
 def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = False, lockMid = True, addLengthMulti = False,
                     stretch = False, globalScaleAttr = None, controlObject = None, baseName = 'ikChain', nameSuffix = None,
                     handles = [],#If one given, assumed to be mid, can't have more than length of joints
@@ -3784,7 +3782,7 @@ def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = No
 
     return ml_nodes
 
-@r9General.Timer
+
 def addJointLengthAttr(joint,attrArg = None,connectBy = 'translate',orientation = 'zyx'):
     """
     @kws
@@ -3796,7 +3794,7 @@ def addJointLengthAttr(joint,attrArg = None,connectBy = 'translate',orientation 
     """
     _str_funcName = 'addJointLengthAttr'
     _str_funcDebug = "%s >> ARGS >> joint : %s | attrArg : %s | connectBy : %s | orientation : %s "%(_str_funcName,joint,attrArg,connectBy,orientation)
-    start = time.clock()        		    
+    t_start = time.clock()        		    
 
     log.info(">>> %s >> "%_str_funcName + "="*75)  
     try:
@@ -3850,7 +3848,7 @@ def addJointLengthAttr(joint,attrArg = None,connectBy = 'translate',orientation 
 	
 		mi_baseAttr = cgmMeta.cgmAttr(mi_childJoint,'baseLength',value=length,lock=True)
 		
-		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-t_start)) + "-"*75)		
 		
 		return NodeF.argsToNodes("%s.t%s = %s * %s"%(mi_childJoint.getShortName(),orientation[0].lower(),
 		                                             mi_driver.p_combinedShortName,mi_baseAttr.p_combinedShortName)).doBuild()
@@ -3864,7 +3862,7 @@ def addJointLengthAttr(joint,attrArg = None,connectBy = 'translate',orientation 
         log.error(_str_funcDebug)
 	raise error
 
-@r9General.Timer
+
 def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = None,
                                 baseName ='test', moduleInstance = None):
     """
@@ -4128,7 +4126,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
                                  '%s.%s'%(ml_jointList[-1].mNode,axis))	 
 
     return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,'surfaceScaleBuffer':i_jntScaleBufferNode.mNode,'i_surfaceScaleBuffer':i_jntScaleBufferNode,'l_joints':jointList,'l_iJoints':ml_jointList}
-@r9General.Timer
+
 def createConstraintSurfaceSegmentTranslatePosition(jointList,orientation = 'zyx',baseName ='test', moduleInstance = None):
     """
     """
@@ -4227,7 +4225,7 @@ def createConstraintSurfaceSegmentTranslatePosition(jointList,orientation = 'zyx
     return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,
             'il_snapToGroups':il_snapToGroups,'l_snapToGroups':l_snapToGroups}
 
-@r9General.Timer
+
 def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test', moduleInstance = None):
     """
     """
@@ -4454,7 +4452,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
 
     return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,'surfaceScaleBuffer':i_jntScaleBufferNode.mNode,'i_surfaceScaleBuffer':i_jntScaleBufferNode,'l_joints':jointList,'l_iJoints':ml_jointList}
 
-@r9General.Timer
+
 def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='test', moduleInstance = None):
     """
     """
@@ -4657,7 +4655,7 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
     return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,'surfaceScaleBuffer':i_jntScaleBufferNode.mNode,'i_surfaceScaleBuffer':i_jntScaleBufferNode,'l_joints':jointList,'l_iJoints':ml_jointList}
 
 
-@r9General.Timer
+
 def addRibbonTwistToControlSetup(jointList,
                                  startControlDriver = None, endControlDriver = None,
                                  rotateGroupAxis = 'rotateZ',
@@ -4911,7 +4909,7 @@ def addRibbonTwistToControlSetup(jointList,
 	attributes.doConnectAttr('%s.%s'%(d_drivenPlugs[key][0],d_drivenPlugs[key][1]),'%s.input1D[%s]'%(i_pma.mNode,i))
 	"""
 
-@r9General.Timer
+
 def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,jointList,orientation = 'zyx', moduleInstance = None):
     """
     """
@@ -5043,7 +5041,7 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
 	    '''
         ml_attrs.append(i_attr)
 
-@r9General.Timer
+
 def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy = 'scale',
                                            orientation = 'zyx', moduleInstance = None):
     """
@@ -5313,7 +5311,7 @@ def addAdditiveScaleToSegmentCurveSetup(segmentCurve, orientation = 'zyx', modul
             "plug_midUp":mPlug_in_midUp.p_combinedName,"plug_midOut":mPlug_in_midOut.p_combinedName}
 
 
-@r9General.Timer
+
 def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,connectBy = 'scale', orientation = 'zyx', moduleInstance = None):
     """
     """
@@ -5498,7 +5496,7 @@ def copyAxisOptions(self,target):
     doSetOutAxis(self,target.optionOutAxis.get())
 
 
-@r9General.Timer
+
 def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',secondaryAxis = None,
                                               baseName ='test', moduleInstance = None):
     """
