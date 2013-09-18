@@ -13,6 +13,7 @@ Class Factory for building node networks
 # From Python =============================================================
 import copy
 import re
+import time
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 import logging
@@ -29,14 +30,57 @@ from Red9.core import Red9_General as r9General
 from cgm.core.cgmPy import str_Utils as strUtils
 
 # From cgm ==============================================================
+from cgm.core import cgm_General as cgmGeneral
+reload(cgmGeneral)
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (lists,
                      cgmMath,
                      search,
                      attributes)
 reload(search)
-
-
+class connectNegativeAttrs(cgmGeneral.clsFunc):
+    def __init__(self,source = None, target = None, l_attrs = [], **kws):
+	"""
+	@kws
+	source -- joint to add length to
+	target -- the attr to connect this to. If none is provided, it adds to the joint
+	connectBy -- mode
+	orienation(str) -- joint orientation
+    
+	"""	
+	super(connectNegativeAttrs, self).__init__(self,**kws)
+	self._str_funcName = 'connectNegativeVector'	
+	self.__dataBind__(**kws)
+	self.d_kwsDefined = {'source':source,'target':target,'l_attrs':l_attrs}
+	self._d_funcSteps = {0:{'step':'validate','function':self._validate},
+	                     1:{'step':'create','function':self._create}}	
+	
+	#=================================================================
+	
+    def _validate(self):	
+	self.mi_source = cgmMeta.validateObjArg(self.d_kwsDefined['source'])
+	self.mi_target = cgmMeta.validateObjArg(self.d_kwsDefined['target'])
+	
+    def _create(self):	
+	assert 1 ==2, "No as;lkjasldkfjaslkdfja;sdkfja;sdjkf"
+	
+class testRange(cgmGeneral.clsFunc):    
+    def __init__(self,maxTest = 500,**kws):
+	super(testRange, self).__init__(self,**kws)
+	self._str_funcName = 'testRange'	
+	self.__dataBind__(**kws)
+	self.d_kwsDefined = {'maxTest':maxTest}
+	
+	#=================================================================
+	
+    def __func__(self):	
+	#self.d_kwsDefined = {'source':source,'target':target}
+        for i,n in enumerate(range(1,self.d_kwsDefined['maxTest'])):
+            #log.info(">>> %s"%(pow(n,i)))
+	    log.info("%s,%s"%(i,n))
+	    x = pow(n,i)
+    
+    
 def createAndConnectBlendColors(driverObj1, driverObj2, l_drivenObjs, driver = None, channels = ['translate','rotate']):
     """
     @kws
