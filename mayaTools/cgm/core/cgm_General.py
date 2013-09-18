@@ -35,73 +35,55 @@ log.setLevel(logging.INFO)
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #========================================================================= 
 class clsFunc(object):
-    """Simple class for use with TimerSimple"""
+    """Simple class for use with TimerSimple"""	    
     def __init__(self,*args, **kws):
         self._str_funcClass = None
 	self._str_funcCombined = None
         self._str_funcName = None
         self._str_funcDebug = None
+	self.d_kwsDefined  = {}
+	self.d_funcSteps = {}
+	self.d_return = {}
+	self._str_modPath = None
+	self._str_mod = None	
     
     def __dataBind__(self,*args,**kws):
+	try:self._d_funcArgs = args
+	except:self._d_funcArgs = {}
+	try:self._d_funcKWs = kws
+	except:self._d_funcKWs = {}	
 	try:self._str_funcArgs = "%s"%args
 	except:self._str_funcArgs = None
 	try:self._str_funcKWs = "%s"%kws
 	except:self._str_funcKWs = None
-	self.d_kwsDefined  = {}
-	self._d_funcSteps = {}
-	
-	self._str_modPath = None
-	self._str_mod = None
         try:
             mod = inspect.getmodule(self)
 	    self._str_modPath = inspect.getmodule(self)
             self._str_mod = '%s' % mod.__name__.split('.')[-1]
 	    self._str_funcCombined = "%s.%s"%(self._str_mod,self._str_funcName)
         except:self._str_funcCombined = self._str_funcName
-	
 	self._str_reportStart = " %s >> "%(self._str_funcName)
 	
     def __func__(self,*args,**kws):pass
-    """
-    def go(self,*args,**kws):
-	t1 = time.clock()
-	try:res = self.__func__(*args,**kws) 
-	except Exception,error:
-	    log.error(">"*3 + " %s "%self._str_funcCombined + "="*75)
-	    log.error(">"*3 + " Module: %s "%self._str_modPath)	    		    
-	    log.error(">"*3 + " Args: %s "%self._str_funcArgs)
-	    log.error(">"*3 + " KWs: %s "%self._str_funcKWs)	       
-	    log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)) + "-"*75)			    
-	    raise error            
-	t2 = time.clock()
-	
-	#Initial print			
-	log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(t2-t1)) + "-"*75)		
-	return res"""
-    
+
     def go(self,goTo = '',**kws):
 	"""
-	Return if a module is shaped or not
 	"""
 	t_start = time.clock()
+	try:
+	    if not self.d_funcSteps: d_funcSteps = {0:{'function':self.__func__}}
+	    else: d_funcSteps = self.d_funcSteps
+	    int_keys = d_funcSteps.keys()
+	except Exception,error:
+	    raise StandardError, ">"*3 + " %s >!FAILURE!> go start | Error: %s"%(self._str_funcCombined,error)
 	
-	if not self._d_funcSteps:
-	    d_funcSteps = {0:{'function':self.__func__}}
-	else:
-	    d_funcSteps = self._d_funcSteps
-	    
-	int_keys = d_funcSteps.keys()
-	
-	#Build our progress Bar
-	#mayaMainProgressBar = gui.doStartMayaProgressBar(len(int_keys))
-	#mc.progressBar(mayaMainProgressBar, edit=True, progress=0) 
 	for k in int_keys:
 	    t1 = time.clock()	    
 	    try:	
 		_str_step = d_funcSteps[k].get('step') or ''
-		#_func_current = d_funcSteps[k].get('function')
-		#mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >>Rigging>> step:'%s'..."%(self._strShortName,str_name), progress=k+1)    
 		res = d_funcSteps[k]['function']()
+		if res is not None:
+		    self.d_return[_str_step] = res
 		"""
 		if goTo.lower() == str_name:
 		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
@@ -114,47 +96,35 @@ class clsFunc(object):
 		if self.d_kwsDefined:
 		    for k in self.d_kwsDefined.keys():
 			log.error(">"*3 + " '%s' : %s "%(k,self.d_kwsDefined[k]))		
-		log.error(">"*3 + " %s >> Step: '%s' Failure"%(self._str_funcCombined,_str_step))
-		log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)) + "-"*75)			
-		raise error    		
+		_str_fail = ">"*3 + " %s >!FAILURE!> Step: '%s' | Error: %s"%(self._str_funcCombined,_str_step,error)
+		log.error(_str_fail)
+		log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)) + "-"*75)
+		self.d_return[_str_step] = None	
+		raise StandardError, _str_fail
 	    t2 = time.clock()
-	    log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)) + "-"*75)		
+	    if k >=1: log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)) + "-"*75)		
 	
 	log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)) + "-"*75)		
-	#gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
-	
+	if len(self.d_return.keys()) == 1:#If it's a one step, return, return the single return
+	    return self.d_return[self.d_return.keys()[0]]
+	return self.d_return
+    
     def report(self):
 	log.info(">"*3 + " %s "%self._str_funcCombined + "="*75)
 	log.info(">"*3 + " Module: %s "%self._str_modPath)	
-	log.info(">"*3 + " _d_funcSteps: %s "%self._d_funcSteps)	    			
+	log.info(">"*3 + " d_funcSteps: %s "%self.d_funcSteps)	    			
 	if self._str_funcArgs:log.info(">"*3 + " Args: %s "%self._str_funcArgs)
 	if self._str_funcKWs:log.info(">"*3 + " KWs: %s "%self._str_funcKWs)	  
 	if self.d_kwsDefined:
 	    log.info(">"*3 + " KWs Defined " + "-"*75)	  	    
 	    for k in self.d_kwsDefined.keys():
 		log.info(">"*3 + " '%s' : %s "%(k,self.d_kwsDefined[k]))
-	if self._d_funcSteps:
+	if self.d_funcSteps:
 	    log.info(">"*3 + " Steps " + "-"*75)	  	    
-	    for k in self._d_funcSteps.keys():
-		log.info(">"*3 + " '%s' : %s "%(k,self._d_funcSteps[k].get('step')))
+	    for k in self.d_funcSteps.keys():
+		log.info(">"*3 + " '%s' : %s "%(k,self.d_funcSteps[k].get('step')))
 	log.info("#" + "-" *100)
-	
-    def step(self,*args,**kws):
-	t1 = time.clock()
-	try:res = self.__func__(*args,**kws) 
-	except Exception,error:
-	    log.error(">"*3 + " %s "%self._str_funcCombined + "="*75)
-	    log.error(">"*3 + " Module: %s "%self._str_modPath)	    		    
-	    log.error(">"*3 + " Args: %s "%self._str_funcArgs)
-	    log.error(">"*3 + " KWs: %s "%self._str_funcKWs)	       
-	    log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)) + "-"*75)			    
-	    raise error            
-	t2 = time.clock()
-	
-	#Initial print			
-	log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(t2-t1)) + "-"*75)		
-	return res
-	
+		
 class cgmFunctionClass2(object):
     """Simple class for use with TimerSimple"""
     def __init__(self,*args, **kws):
