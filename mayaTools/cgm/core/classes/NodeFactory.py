@@ -52,17 +52,60 @@ class connectNegativeAttrs(cgmGeneral.clsFunc):
 	self._str_funcName = 'connectNegativeVector'	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'source':source,'target':target,'l_attrs':l_attrs}
-	self._d_funcSteps = {0:{'step':'validate','function':self._validate},
-	                     1:{'step':'create','function':self._create}}	
-	
+	self.d_funcSteps = {0:{'step':'Validate','function':self._validate},
+	                    1:{'step':'Create','function':self._create}}	
 	#=================================================================
-	
-    def _validate(self):	
+	#log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
+	if log.getEffectiveLevel() == 10:#If debug
+	    self.report()
+
+    def _validate(self):
+	"""
+	Validate the args, get our data
+	"""
 	self.mi_source = cgmMeta.validateObjArg(self.d_kwsDefined['source'])
 	self.mi_target = cgmMeta.validateObjArg(self.d_kwsDefined['target'])
+	self.l_attrsToDo = []
+	self.d_sourcePlugs = {}
+	self.d_targetPlugs = {}
 	
-    def _create(self):	
-	assert 1 ==2, "No as;lkjasldkfjaslkdfja;sdkfja;sdjkf"
+	for a in self.d_kwsDefined['l_attrs']:
+	    if self.mi_source.hasAttr(a):
+		if self.mi_target.hasAttr(a):
+		    self.d_sourcePlugs[a] = cgmMeta.cgmAttr(self.mi_source,a)	
+		    self.d_targetPlugs[a] = cgmMeta.cgmAttr(self.mi_target,a)	
+		    if self.d_sourcePlugs[a].isNumeric() and self.d_targetPlugs[a].isNumeric():#if both are numeric
+			self.l_attrsToDo.append(a)
+		    else:log.warning("%s Not all numeric |  source: %s | target : %s | attr : %s"%(self._str_reportStart, self.mi_source.p_nameShort,self.mi_target.p_nameShort,a))		    
+		else:log.warning("%s target : %s |  lacks attr : %s"%(self._str_reportStart, self.mi_target.p_nameShort,a))
+	if not self.l_attrsToDo:
+	    raise Exception,"Found no attrs to do"
+	return True
+	
+    def _create(self):
+	l_nodes = []
+	mi_source = self.mi_source
+	mi_target = self.mi_target
+
+	for a in self.l_attrsToDo:
+	    #Make our node =================================================================
+	    mPlug_source = self.d_sourcePlugs[a]
+	    mPlug_target = self.d_targetPlugs[a]	    
+	    try:mi_revNode = cgmMeta.cgmNode(nodeType='multiplyDivide')
+	    except:raise StandardError,"Failed to create reverse node for: %s"%a
+	    mi_revNode.doStore('cgmName',mi_source.p_nameShort)
+	    mi_revNode.addAttr('cgmTypeModifier',value = a,lock = True)	    
+	    mi_revNode.doName()
+	    l_nodes.append(mi_revNode.p_nameShort)
+	    
+	    #Make our connections =================================================================
+	    mi_revNode.operation = 1
+	    mi_revNode.input2X = -1
+	    try:mPlug_source.doConnectOut("%s.input1X"%mi_revNode.mNode)
+	    except Exception,error:raise Exception,"Source: %s | error: %s"%(mPlug_source.p_combinedShortName,error)
+	    try:mPlug_target.doConnectIn("%s.outputX"%mi_revNode.mNode)	    
+	    except Exception,error:raise Exception,"Target: %s | error: %s"%(mPlug_target.p_combinedShortName,error)
+	return l_nodes
 	
 class testRange(cgmGeneral.clsFunc):    
     def __init__(self,maxTest = 500,**kws):
@@ -70,14 +113,14 @@ class testRange(cgmGeneral.clsFunc):
 	self._str_funcName = 'testRange'	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'maxTest':maxTest}
-	
+	#self.d_funcSteps = {0:{'step':'validate','function':self._validate},        
 	#=================================================================
 	
     def __func__(self):	
 	#self.d_kwsDefined = {'source':source,'target':target}
         for i,n in enumerate(range(1,self.d_kwsDefined['maxTest'])):
             #log.info(">>> %s"%(pow(n,i)))
-	    log.info("%s,%s"%(i,n))
+	    #log.info("%s,%s"%(i,n))
 	    x = pow(n,i)
     
     
