@@ -276,25 +276,58 @@ def getOrderedParentModules(self):
 #=====================================================================================================
 #>>> Anim functions functions
 #=====================================================================================================
-def animReset(self,transformsOnly = True):
-    _str_funcName = "%s.animReset()"%self.p_nameShort  
-    log.debug(">>> %s "%(_str_funcName) + "="*75)  		
-    try:
-	self.puppetSet.select()
+class animReset(cgmGeneral.clsFunc):
+    def __init__(self,puppetInstance = None,**kws):
+	"""
+	"""	
+	super(animReset, self).__init__(self,**kws)
+	self._str_funcName = 'animReset(%s)'%puppetInstance.p_nameShort	
+	self.__dataBind__(**kws)
+	self.d_kwsDefined = {'puppetInstance':puppetInstance}
+	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	#=================================================================
+	if log.getEffectiveLevel() == 10:self.report()#If debug
+
+    def _process(self):
+	"""
+	"""
+	puppetInstance = self.d_kwsDefined['puppetInstance']
+	puppetInstance.puppetSet.select()
 	if mc.ls(sl=True):
-	    ml_resetChannels.main(transformsOnly = transformsOnly)
+	    ml_resetChannels.main(transformsOnly = self._d_funcKWs.get('transformsOnly'))
 	    return True
-	return False
-    except Exception,error:
-	log.error("%s >> error: %s"%(_str_funcName,error))
-	return False
+	return False  
     
+class mirrorMe(cgmGeneral.clsFunc):
+    def __init__(self,puppetInstance = None,**kws):
+	"""
+	"""	
+	super(mirrorMe, self).__init__(self,**kws)
+	self._str_funcName = 'mirrorMe(%s)'%puppetInstance.p_nameShort	
+	self.__dataBind__(**kws)
+	self.d_kwsDefined = {'puppetInstance':puppetInstance}
+	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	#=================================================================
+	if log.getEffectiveLevel() == 10:self.report()#If debug
+
+    def _process(self):
+	"""
+	"""
+	puppetInstance = self.d_kwsDefined['puppetInstance']
+	l_controls = puppetInstance.puppetSet.getList()
+	if l_controls:
+	    r9Anim.MirrorHierarchy(l_controls).mirrorData(mode = '')
+	    mc.select(l_controls)
+	    return True
+
+'''	
 def mirrorMe(self,**kws):
     _str_funcName = "%s.mirrorMe()"%self.p_nameShort  
     log.debug(">>> %s "%(_str_funcName) + "="*75)  	
     try:
-	#l_controls = self.puppetSet.getList()
+	l_controls = self.puppetSet.getList()
 	#for mModule in getModules(self):
+	"""
 	l_controls = []
 	for mModule in self.moduleChildren:
 	    try:mModule.mirrorMe()
@@ -303,9 +336,9 @@ def mirrorMe(self,**kws):
 	if l_controls:
 	    r9Anim.MirrorHierarchy(l_controls).mirrorData(mode = '')
 	    mc.select(l_controls)
-	    return True"""
+	    return True
 	#return False
     except Exception,error:
 	log.error("%s >> error: %s"%(_str_funcName,error))
-	return False
+	return False'''
 

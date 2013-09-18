@@ -408,18 +408,10 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    return False
 	
     def mirrorMe(self):
-	_str_funcName = "%s.mirrorMe()"%self.p_nameShort  
-	start = time.clock()
-	buffer = pFactory.mirrorMe(self)
-	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
-	return buffer
-    
-    def anim_reset(self):
-	_str_funcName = "%s.anim_reset()"%self.p_nameShort  
-	start = time.clock()
-	buffer = pFactory.animReset(self)
-	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
-	return buffer
+	return pFactory.mirrorMe(self).go()
+
+    def anim_reset(self,transformsOnly = True):
+	return pFactory.animReset(self,transformsOnly = transformsOnly).go()
     
     def anim_select(self):
 	_str_funcName = "%s.anim_select()"%self.p_nameShort  
@@ -1842,7 +1834,11 @@ class cgmModule(cgmMeta.cgmObject):
     def animReset(self,transformsOnly = True):
 	return mFactory.animReset(self,transformsOnly = transformsOnly)
     def mirrorMe(self,**kws):
-	return mFactory.mirrorMe(self,**kws)
+	return mFactory.mirrorMe(self,**kws).go()
+    def mirrorPush(self,**kws):
+	return mFactory.mirrorPush(self,**kws).go()
+    def mirrorPull(self,**kws):
+	return mFactory.mirrorPull(self,**kws).go()
     
     #>>> Module Children
     #========================================================================

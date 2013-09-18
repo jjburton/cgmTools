@@ -17,6 +17,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
+reload(cgmGeneral)
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.rigger import RigFactory as mRig
@@ -695,7 +696,6 @@ def returnTemplateObjects(self):
 #=====================================================================================================
 #>>> Skeleton
 #=====================================================================================================
-
 def get_rollJointCountList(self):
     try:
 	_str_funcName = "get_rollJointCountList(%s)"%self.p_nameShort   
@@ -716,6 +716,7 @@ def get_rollJointCountList(self):
 	return l_segmentRollCount
     except Exception,error:
 	raise StandardError,"%s >> %s"%(_str_funcName,error)   
+    
 def isSkeletonized(self):
     """
     Return if a module is skeletonized or not
@@ -805,7 +806,6 @@ def returnExpectedJointCount(self):
 #=====================================================================================================
 #>>> States
 #=====================================================================================================        
-
 def validateStateArg(stateArg):
     _str_funcName = "validateStateArg(%s)"%stateArg 
     log.debug(">>> %s "%(_str_funcName) + "="*75)       
@@ -1112,6 +1112,47 @@ def readPose_templateSettings(self):
 #=====================================================================================================
 #>>> Anim functions functions
 #=====================================================================================================
+class get_mirror(cgmGeneral.clsFunc):
+    def __init__(self,moduleInstance = None,**kws):
+	"""
+	"""	
+	super(get_mirror, self).__init__(self,**kws)
+	self._str_funcName = 'get_mirror(%s)'%moduleInstance.p_nameShort	
+	self.__dataBind__(**kws)
+	self.d_kwsDefined = {'moduleInstance':moduleInstance}
+	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	#=================================================================
+	if log.getEffectiveLevel() == 10:self.report()#If debug
+
+
+    def _process(self):
+	"""
+	"""
+	mi_module = self.d_kwsDefined['moduleInstance']
+	l_direction = ['left','right']
+	if mi_module.cgmDirection not in l_direction:
+	    raise StandardError, "%s >> Module doesn't have direction"%_str_funcName
+	int_direction = l_direction.index(mi_module.cgmDirection)
+	d = {'moduleType':mi_module.moduleType,'cgmDirection':l_direction[not int_direction]}
+	
+	return mi_module.modulePuppet.getModuleFromDict(d)
+"""    
+def get_mirror(self):
+    _str_funcName = "%s.getMirror()"%self.p_nameShort  
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  		
+    try:
+	l_direction = ['left','right']
+	if self.cgmDirection not in l_direction:
+	    raise StandardError, "%s >> Module doesn't have direction"%_str_funcName
+	int_direction = l_direction.index(self.cgmDirection)
+	d = {'moduleType':self.moduleType,'cgmDirection':l_direction[not int_direction]}
+	
+	return self.modulePuppet.getModuleFromDict(d)
+    except Exception,error:
+	log.debug("%s >> error: %s"%(_str_funcName,error))
+	return False
+	"""
+    
 def animReset(self,transformsOnly = True):
     _str_funcName = "%s.animReset()"%self.p_nameShort  
     log.debug(">>> %s "%(_str_funcName) + "="*75)  		
@@ -1124,25 +1165,92 @@ def animReset(self,transformsOnly = True):
     except Exception,error:
 	log.error("%s >> error: %s"%(_str_funcName,error))
 	return False
-    
-def mirrorMe(self,**kws):
-    _str_funcName = "%s.mirrorModule()"%self.p_nameShort  
-    log.debug(">>> %s "%(_str_funcName) + "="*75)  	
-    try:
-	l_buffer = self.rigNull.moduleSet.getList()
+
+class mirrorMe(cgmGeneral.clsFunc):
+    def __init__(self,moduleInstance = None,**kws):
+	"""
+	"""	
+	super(mirrorMe, self).__init__(self,**kws)
+	self._str_funcName = 'mirrorMe(%s)'%moduleInstance.p_nameShort	
+	self.__dataBind__(**kws)
+	self.d_kwsDefined = {'moduleInstance':moduleInstance}
+	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	#=================================================================
+	if log.getEffectiveLevel() == 10:self.report()#If debug
+
+    def _process(self):
+	"""
+	"""
+	mi_module = self.d_kwsDefined['moduleInstance']
+	l_buffer = mi_module.rigNull.moduleSet.getList()
+	mi_mirror = get_mirror(mi_module).go()
+	if mi_mirror:
+	    l_buffer.extend(mi_mirror.rigNull.moduleSet.getList())
 	if l_buffer:
 	    r9Anim.MirrorHierarchy(l_buffer).mirrorData(mode = '')
 	    mc.select(l_buffer)
 	    return True
 	return False
-    except Exception,error:
-	log.error("%s >> error: %s"%(_str_funcName,error))
+    
+class mirrorPush(cgmGeneral.clsFunc):
+    def __init__(self,moduleInstance = None,**kws):
+	"""
+	"""	
+	super(mirrorPush, self).__init__(self,**kws)
+	self._str_funcName = 'mirrorPush(%s)'%moduleInstance.p_nameShort	
+	self.__dataBind__(**kws)
+	self.d_kwsDefined = {'moduleInstance':moduleInstance}
+	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	#=================================================================
+	if log.getEffectiveLevel() == 10:self.report()#If debug
+
+    def _process(self):
+	"""
+	"""
+	mi_module = self.d_kwsDefined['moduleInstance']
+	l_buffer = mi_module.rigNull.moduleSet.getList()
+	mi_mirror = get_mirror(mi_module).go()
+	if mi_mirror:
+	    l_buffer.extend(mi_mirror.rigNull.moduleSet.getList())
+	else:raise StandardError, "Module doesn't have mirror"
+	
+	if l_buffer:
+	    r9Anim.MirrorHierarchy(l_buffer).makeSymmetrical(mode = '',primeAxis = mi_module.cgmDirection.capitalize() )
+	    mc.select(l_buffer)
+	    return True
 	return False
     
+class mirrorPull(cgmGeneral.clsFunc):
+    def __init__(self,moduleInstance = None,**kws):
+	"""
+	"""	
+	super(mirrorPull, self).__init__(self,**kws)
+	self._str_funcName = 'mirrorPull(%s)'%moduleInstance.p_nameShort	
+	self.__dataBind__(**kws)
+	self.d_kwsDefined = {'moduleInstance':moduleInstance}
+	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	#=================================================================
+	if log.getEffectiveLevel() == 10:self.report()#If debug
+
+    def _process(self):
+	"""
+	"""
+	mi_module = self.d_kwsDefined['moduleInstance']
+	l_buffer = mi_module.rigNull.moduleSet.getList()
+	mi_mirror = get_mirror(mi_module).go()
+	if mi_mirror:
+	    l_buffer.extend(mi_mirror.rigNull.moduleSet.getList())
+	else:raise StandardError, "Module doesn't have mirror"
+	
+	if l_buffer:
+	    r9Anim.MirrorHierarchy(l_buffer).makeSymmetrical(mode = '',primeAxis = mi_mirror.cgmDirection.capitalize() )
+	    mc.select(l_buffer)
+	    return True
+	return False	    
+
 #=====================================================================================================
 #>>> Children functions
 #=====================================================================================================  
-
 def getAllModuleChildren(self):
     """
     Finds all module descendants of a module.
