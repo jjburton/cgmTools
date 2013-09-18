@@ -274,17 +274,22 @@ def build_rigSkeleton(self):
 	
 	ml_fkJoints = self.build_handleChain('fk','fkJoints')
 	d_fkRotateOrders = {'hip':0,'ankle':0}#old hip - 5
-	for i_obj in ml_fkJoints:
-	    if i_obj.getAttr('cgmName') in d_fkRotateOrders.keys():
-		i_obj.rotateOrder = d_fkRotateOrders.get(i_obj.cgmName)   	
+	ml_fkDriverJoints = []
+	for mObj in ml_fkJoints:
+	    log.info("ro check: %s"%(mObj.p_nameShort))	    
+	    if mObj.getAttr('cgmName') in d_fkRotateOrders.keys():
+		mObj.rotateOrder = d_fkRotateOrders.get(mObj.cgmName)   	
 	
 	if self._str_mirrorDirection == 'Right':#mirror control setup
 	    self.mirrorChainOrientation(ml_fkJoints)#New 
 	    
-	    ml_fkDriverJoints = self.build_handleChain('fkAttach')
+	    ml_fkDriverJoints = self.build_handleChain('fkAttach','fkAttachJoints')
 	    for i,mJoint in enumerate(ml_fkJoints):
+		log.info("Mirror connect: %s | %s"%(i,mJoint.p_nameShort))
 		mJoint.connectChildNode(ml_fkDriverJoints[i],"attachJoint","rootJoint")
-		ml_fkDriverJoints[i].parent = mJoint
+		#attributes.doConnectAttr(("%s.rotateOrder"%mJoint.mNode),("%s.rotateOrder"%ml_fkDriverJoints[i].mNode))
+		cgmMeta.cgmAttr(mJoint.mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkDriverJoints[i].mNode)
+		#mJoint.rotateOrder = ml_fkDriverJoints[i].rotateOrder
 		
 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:
@@ -431,7 +436,9 @@ def build_rigSkeleton(self):
 	ml_jointsToConnect.extend(ml_ikJoints)
 	ml_jointsToConnect.extend(ml_ikNoFlipJoints)    
 	ml_jointsToConnect.extend(ml_ikPVJoints)    
-	ml_jointsToConnect.extend(ml_influenceJoints)    
+	ml_jointsToConnect.extend(ml_influenceJoints)   
+	if ml_fkDriverJoints:ml_jointsToConnect.extend(ml_fkDriverJoints)    
+	
 	for ml_chain in ml_segmentChains + ml_influenceChains:
 	    ml_jointsToConnect.extend(ml_chain)
     
@@ -732,6 +739,7 @@ def build_FKIK(self):
 	_str_subFunc = "Get Data"
 	time_sub = time.clock() 
 	log.info(">>> %s >> %s "%(_str_funcName,_str_subFunc) + "="*50)  
+	ml_toParentChains = []
 	
 	ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')   
 	ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
@@ -740,8 +748,8 @@ def build_FKIK(self):
 	ml_fkAttachJoints = []
 	if self._str_mirrorDirection == 'Right':#mirror control setup
 	    log.info(">>> %s >> %s | getting attach joints"%(_str_funcName,_str_subFunc))  
-	    for i,mJoint in enumerate(ml_fkJoints):
-		ml_fkAttachJoints.append(mJoint.attachJoint)#Swap in the attach joint
+	    ml_fkAttachJoints = self._i_rigNull.msgList_get('fkAttachJoints')
+	    ml_toParentChains.append(ml_fkAttachJoints)
 	    log.info(">>> %s >> %s | attach joints: %s"%(_str_funcName,_str_subFunc,[mJoint.p_nameShort for mJoint in ml_fkAttachJoints]))  
 
 	ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
@@ -768,7 +776,8 @@ def build_FKIK(self):
 	mi_controlMidIK = self._i_rigNull.midIK
 	mPlug_lockMid = cgmMeta.cgmAttr(mi_controlMidIK,'lockMid',attrType='float',defaultValue = 0,keyable = True,minValue=0,maxValue=1.0)
 	
-	for chain in [ml_ikJoints,ml_blendJoints,ml_ikNoFlipJoints,ml_ikPVJoints]:
+	ml_toParentChains.extend([ml_ikJoints,ml_blendJoints,ml_ikNoFlipJoints,ml_ikPVJoints])
+	for chain in ml_toParentChains:
 	    chain[0].parent = self._i_constrainNull.mNode
 	    
 	#for more stable ik, we're gonna lock off the lower channels degrees of freedom
@@ -973,6 +982,12 @@ def build_FKIK(self):
 	                              driver = mPlug_FKIK.p_combinedName,channels=['translate','rotate'])"""
 	if ml_fkAttachJoints:
 	    ml_fkUse = ml_fkAttachJoints
+	    for i,mJoint in enumerate(ml_fkAttachJoints):
+		mc.pointConstraint(ml_fkJoints[i].mNode,mJoint.mNode,maintainOffset = False)
+		#Connect inversed aim and up
+		NodeF.connectNegativeAttrs(ml_fkJoints[i].mNode, mJoint.mNode,
+		                           ["r%s"%self._jointOrientation[0],"r%s"%self._jointOrientation[1]]).go()
+		cgmMeta.cgmAttr(ml_fkJoints[i].mNode,"r%s"%self._jointOrientation[2]).doConnectOut("%s.r%s"%(mJoint.mNode,self._jointOrientation[2]))
 	else:
 	    ml_fkUse = ml_fkJoints
 	rUtils.connectBlendChainByConstraint(ml_fkUse,ml_ikJoints,ml_blendJoints,
@@ -1160,7 +1175,8 @@ def build_controls(self):
 	time_sub = time.clock() 
 	log.info(">>> %s >> %s "%(_str_funcName,_str_subFunc) + "="*50)  
 	
-	d_buffer = mControlFactory.registerControl(mi_settings,addExtraGroups=0,typeModifier='settings',autoLockNHide=True,
+	d_buffer = mControlFactory.registerControl(mi_settings,addExtraGroups=0,mirrorSide=self._str_mirrorDirection,
+	                                           typeModifier='settings',autoLockNHide=True,
                                                    setRotateOrder=2)       
 	i_obj = d_buffer['instance']
 	i_obj.masterGroup.parent = self._i_constrainNull.mNode
@@ -1307,6 +1323,10 @@ def build_deformation(self):
 	aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
 	upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
 	
+	ml_driversFK = ml_controlsFK
+	if self._str_mirrorDirection == 'Right':
+	    ml_driversFK = self._i_rigNull.msgList_get('fkAttachJoints')
+
 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
@@ -1476,8 +1496,10 @@ def build_deformation(self):
 	    l_endDrivers.append("%s"%mPlug_TwistEndIKResult.p_combinedShortName )		    
 	    l_fkEndDrivers = []
 	    l_ikEndDrivers = []
-
-	    l_fkEndDrivers.append("%s.%s"%(ml_controlsFK[i+1].getShortName(),str_twistOrientation))    
+	    
+	    
+	    l_fkEndDrivers.append("%s.%s"%(ml_driversFK[i+1].getShortName(),str_twistOrientation))   
+		
 	    """
 	    for ii in range(i+2):
 		if ii !=  0:	
@@ -1517,7 +1539,8 @@ def build_deformation(self):
 	    if l_fkStartDrivers:
 		str_ArgFKStart_Sum = "%s = %s"%(mPlug_TwistStartFKSum.p_combinedShortName," + ".join(l_fkStartDrivers))
 		log.info("start FK sum arg: '%s'"%(str_ArgFKStart_Sum))
-		NodeF.argsToNodes(str_ArgFKStart_Sum).doBuild()		
+		NodeF.argsToNodes(str_ArgFKStart_Sum).doBuild()				
+
 		str_ArgFKStart_Result = "%s = %s * %s"%(mPlug_TwistStartFKResult.p_combinedShortName,mPlug_TwistStartFKSum.p_combinedShortName,mPlug_FKon.p_combinedShortName)
 		log.info("start FK result arg: '%s'"%(str_ArgFKStart_Result))
 		NodeF.argsToNodes(str_ArgFKStart_Result).doBuild()		
@@ -1542,7 +1565,8 @@ def build_deformation(self):
 	    if l_fkEndDrivers:
 		str_ArgFKEnd_Sum = "%s = %s"%(mPlug_TwistEndFKSum.p_combinedShortName," + ".join(l_fkEndDrivers))
 		log.info("end FK sum arg: '%s'"%(str_ArgFKEnd_Sum))
-		NodeF.argsToNodes(str_ArgFKEnd_Sum).doBuild()				
+		NodeF.argsToNodes(str_ArgFKEnd_Sum).doBuild()	
+	
 		str_ArgFKEnd_Result = "%s = %s * %s"%(mPlug_TwistEndFKResult.p_combinedShortName,mPlug_TwistEndFKSum.p_combinedShortName,mPlug_FKon.p_combinedShortName)
 		log.info("end FK result arg: '%s'"%(str_ArgFKEnd_Result))
 		NodeF.argsToNodes(str_ArgFKEnd_Result).doBuild()				
@@ -1962,7 +1986,7 @@ def build_twistDriver_hip(self):
 	if self._direction == 'left':#if right, rotate the pivots
 	    i_upLoc.__setattr__('t%s'%self._jointOrientation[2],fl_dist)	
 	else:
-	    i_upLoc.__setattr__('t%s'%self._jointOrientation[2],-fl_dist)		
+	    i_upLoc.__setattr__('t%s'%self._jointOrientation[2],fl_dist)		
 	
 	#Move up
 	i_startEnd.__setattr__('t%s'%self._jointOrientation[0],(fl_dist))
@@ -2220,6 +2244,9 @@ def build_matchSystem(self):
 	
 	mi_dynSwitch = self._i_dynSwitch
 	
+	if self._str_mirrorDirection == 'Right':
+	    ml_fkJoints = self._i_rigNull.msgList_get('fkAttachJoints')	
+	
 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error) 
@@ -2307,7 +2334,8 @@ def build_matchSystem(self):
 	i_fkHipMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[0],
 	                                          dynPrefix = "IKtoFK",
 	                                          dynMatchTargets=ml_blendJoints[0])
-	i_fkHipMatch.addDynIterTarget(drivenObject =ml_fkJoints[1],
+	
+	i_fkHipMatch.addDynIterTarget(drivenObject = ml_fkJoints[1],
 	                              #matchTarget = ml_blendJoints[1],#Make a new one
 	                              matchObject = ml_blendJoints[1],
 	                              drivenAttr='t%s'%self._jointOrientation[0],
@@ -2320,6 +2348,7 @@ def build_matchSystem(self):
 	i_fkKneeMatch = cgmRigMeta.cgmDynamicMatch(dynObject = ml_controlsFK[1],
 	                                           dynPrefix = "IKtoFK",
 	                                           dynMatchTargets=ml_blendJoints[1])
+	
 	i_fkKneeMatch.addDynIterTarget(drivenObject =ml_fkJoints[2],
 	                               #matchTarget = ml_blendJoints[2],#Make a new one
 	                               matchObject = ml_blendJoints[2],                                   
