@@ -1967,6 +1967,9 @@ class cgmObjectSet(cgmNode):
     
     #Value
     #==============  
+    def getMetaList(self):
+	return validateObjListArg(self.getList(),noneValid=True)   
+    
     def getList(self):
 	return mc.sets(self.mNode, q = True) or []    
     
