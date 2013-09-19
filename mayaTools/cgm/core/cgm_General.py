@@ -71,7 +71,7 @@ class clsFunc(object):
 	"""
 	t_start = time.clock()
 	try:
-	    if not self.d_funcSteps: d_funcSteps = {0:{'function':self.__func__}}
+	    if not self.d_funcSteps: d_funcSteps = {0:{'call':self.__func__}}
 	    else: d_funcSteps = self.d_funcSteps
 	    int_keys = d_funcSteps.keys()
 	except Exception,error:
@@ -81,7 +81,7 @@ class clsFunc(object):
 	    t1 = time.clock()	    
 	    try:	
 		_str_step = d_funcSteps[k].get('step') or ''
-		res = d_funcSteps[k]['function']()
+		res = d_funcSteps[k]['call']()
 		if res is not None:
 		    self.d_return[_str_step] = res
 		"""
@@ -102,7 +102,7 @@ class clsFunc(object):
 		self.d_return[_str_step] = None	
 		raise StandardError, _str_fail
 	    t2 = time.clock()
-	    if k >=1: log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)) + "-"*75)		
+	    if len(int_keys)!=1: log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)) + "-"*75)		
 	
 	log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)) + "-"*75)		
 	if len(self.d_return.keys()) == 1:#If it's a one step, return, return the single return
