@@ -18,6 +18,8 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
+from cgm.core.rigger.lib import module_utils as modUtils
+
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
@@ -123,9 +125,10 @@ class go(object):
 	    raise StandardError,"%s >>> '%s' already rigged and not forceNew"%(_str_funcName,self._i_module.getShortName())
 	
 	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
-	if not self._i_module.modulePuppet.__verify__():
+	self._i_puppet = self._i_module.modulePuppet
+	if not self._i_puppet.__verify__():
 	    raise StandardError,"%s >>> modulePuppet failed to verify"%_str_funcName	
-	if not self._i_module.modulePuppet._verifyMasterControl():
+	if not self._i_puppet._verifyMasterControl():
 	    raise StandardError,"%s >>> masterControl failed to verify"%_str_funcName
 	
 	#Verify a dynamic switch
@@ -155,11 +158,9 @@ class go(object):
 	    self._version = self._i_rigNull.version
 	    self._direction = self._i_module.getAttr('cgmDirection')
 	    
-	    if self._direction is not None and self._direction.lower() in ['right','left']:
-		self._str_mirrorDirection = self._direction.capitalize()
-	    else:
-		self._str_mirrorDirection = 'Centre'
-	    
+	    #Mirror stuff
+	    self._str_mirrorDirection = self._i_module.get_mirrorSideAsString()
+
 	    #Joints ------------------------------------------------------------------
 	    self._ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True,cull = True)
 	    if not self._ml_moduleJoints:raise StandardError, "No module joints found!"
@@ -343,7 +344,7 @@ class go(object):
 	    for subkey in self._shapesDict[key]:
 		self._i_rigNull.doRemove('%s_%s'%(key,subkey))
 	return True
-    
+	                         
     def _get_influenceChains(self):
 	return get_influenceChains(self._i_module)	
 	
@@ -543,7 +544,30 @@ class go(object):
 
 	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
-    
+	
+    def duplicate_jointChain(self,ml_jointList = None, typeModifier = 'handle',connectNodesAs = False): 
+	_str_funcName = "go.duplicate_jointChain(%s)"%self._strShortName
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()		
+	try:
+	    ml_dupChain = []
+	    for i,i_handle in enumerate(ml_jointList):
+		i_new = i_handle.doDuplicate()
+		if ml_dupChain:i_new.parent = ml_dupChain[-1]#if we have data, parent to last
+		else:i_new.parent = False
+		i_new.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
+		i_new.doName()
+		ml_dupChain.append(i_new)
+		
+	    log.debug("%s.duplicate_jointChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_dupChain]))
+	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
+		self._i_rigNull.msgList_connect(ml_dupChain,connectNodesAs,'rigNull')#Push back
+	    
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+	    return ml_dupChain
+
+	except Exception,error:
+	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
     
     def duplicate_moduleJoint(self, index = None, typeModifier = 'duplicate', connectNodesAs = False):    
 	"""
