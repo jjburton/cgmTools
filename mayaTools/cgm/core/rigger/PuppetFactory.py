@@ -25,7 +25,7 @@ geoTypes = 'nurbsSurface','mesh','poly','subdiv'
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Puppet Wrapper
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-class puppetFactoryWrapper(cgmGeneral.clsFunc):
+class puppetFactoryWrapper(cgmGeneral.cgmFuncCls):
     def __init__(self,puppet = None,**kws):
 	"""
 	"""	
@@ -351,7 +351,7 @@ def getOrderedParentModules(self):
 #=====================================================================================================
 #>>> Anim functions functions
 #=====================================================================================================
-class animReset(cgmGeneral.clsFunc):
+class animReset(cgmGeneral.cgmFuncCls):
     def __init__(self,puppetInstance = None,**kws):
 	"""
 	"""	
@@ -373,7 +373,7 @@ class animReset(cgmGeneral.clsFunc):
 	    return True
 	return False  
     
-class mirrorMe(cgmGeneral.clsFunc):
+class mirrorMe(cgmGeneral.cgmFuncCls):
     def __init__(self,puppetInstance = None,**kws):
 	"""
 	"""	

@@ -1129,7 +1129,7 @@ def readPose_templateSettings(self):
 #=====================================================================================================
 #>>> Anim functions functions
 #=====================================================================================================
-class get_mirror(cgmGeneral.clsFunc):
+class get_mirror(cgmGeneral.cgmFuncCls):
     def __init__(self,moduleInstance = None,**kws):
 	"""
 	"""	
@@ -1184,7 +1184,7 @@ def animReset(self,transformsOnly = True):
 	log.error("%s >> error: %s"%(_str_funcName,error))
 	return False
 
-class mirrorMe(cgmGeneral.clsFunc):
+class mirrorMe(cgmGeneral.cgmFuncCls):
     def __init__(self,moduleInstance = None,**kws):
 	"""
 	"""	
@@ -1211,7 +1211,7 @@ class mirrorMe(cgmGeneral.clsFunc):
 	    return True
 	return False
     
-class mirrorPush(cgmGeneral.clsFunc):
+class mirrorPush(cgmGeneral.cgmFuncCls):
     def __init__(self,moduleInstance = None,**kws):
 	"""
 	"""	
@@ -1239,7 +1239,7 @@ class mirrorPush(cgmGeneral.clsFunc):
 	    return True
 	return False
     
-class mirrorPull(cgmGeneral.clsFunc):
+class mirrorPull(cgmGeneral.cgmFuncCls):
     def __init__(self,moduleInstance = None,**kws):
 	"""
 	"""	
@@ -1416,7 +1416,7 @@ def get_mirrorSideAsString(module = None,*args,**kws):
     return clsModuleFunc(module).go()
 """    
 #===================================================================================
-class moduleFactoryWrapper(cgmGeneral.clsFunc):
+class moduleFactoryWrapper(cgmGeneral.cgmFuncCls):
     def __init__(self,module = None,**kws):
 	"""
 	"""	

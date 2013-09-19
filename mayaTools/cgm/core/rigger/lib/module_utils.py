@@ -31,7 +31,7 @@ from cgm.core import cgm_General as cgmGeneral
 
 #>>> Utilities
 #===================================================================
-class rigStep(cgmGeneral.clsFunc):
+class rigStep(cgmGeneral.cgmFuncCls):
     def __init__(self,goInstance = None,**kws):
 	"""
 	"""	

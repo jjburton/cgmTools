@@ -38,7 +38,8 @@ from cgm.lib import (lists,
                      search,
                      attributes)
 reload(search)
-class connectNegativeAttrs(cgmGeneral.clsFunc):
+
+class connectNegativeAttrs(cgmGeneral.cgmFuncCls):
     def __init__(self,source = None, target = None, l_attrs = [], **kws):
 	"""
 	@kws
@@ -107,7 +108,7 @@ class connectNegativeAttrs(cgmGeneral.clsFunc):
 	    except Exception,error:raise Exception,"Target: %s | error: %s"%(mPlug_target.p_combinedShortName,error)
 	return l_nodes
 	
-class testRange(cgmGeneral.clsFunc):    
+class testRange(cgmGeneral.cgmFuncCls):    
     def __init__(self,maxTest = 500,**kws):
 	super(testRange, self).__init__(self,**kws)
 	self._str_funcName = 'testRange'	

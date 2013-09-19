@@ -34,7 +34,7 @@ log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #========================================================================= 
-class clsFunc(object):
+class cgmFuncCls(object):
     """Simple class for use with TimerSimple"""	    
     def __init__(self,*args, **kws):
         self._str_funcClass = None
