@@ -45,7 +45,7 @@ class rigStep(cgmGeneral.clsFunc):
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'goInstance':goInstance}
 	self._go = goInstance
-	self.d_funcSteps = {0:{'step':'Get Data','call':self._getData}}	
+	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	#=================================================================
 	if log.getEffectiveLevel() == 10:self.report()#If debug
 	
@@ -63,7 +63,7 @@ class example(rigStep):
 	
 	self._str_funcName = 'example(%s)'%self.d_kwsDefined['goInstance']._strShortName	
 	self.__dataBind__(**kws)
-	self.d_funcSteps = {0:{'step':'Get Data','call':self._getData}}	
+	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	#=================================================================
 	if log.getEffectiveLevel() == 10:self.report()#If debug
 	
@@ -82,7 +82,7 @@ def exampleWrap(goInstance = None):
 	    super(example, self).__init__(goInstance)
 	    self._str_funcName = 'example(%s)'%self.d_kwsDefined['goInstance']._strShortName	
 	    self.__dataBind__()
-	    self.d_funcSteps = {0:{'step':'Get Data','call':self._getData}}
+	    self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    if log.getEffectiveLevel() == 10:self.report()#If debug

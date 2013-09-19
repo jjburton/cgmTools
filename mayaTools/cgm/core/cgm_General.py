@@ -42,7 +42,7 @@ class clsFunc(object):
         self._str_funcName = None
         self._str_funcDebug = None
 	self.d_kwsDefined  = {}
-	self.d_funcSteps = {}
+	self.l_funcSteps = []
 	self.d_return = {}
 	self._str_modPath = None
 	self._str_mod = None	
@@ -64,24 +64,26 @@ class clsFunc(object):
         except:self._str_funcCombined = self._str_funcName
 	self._str_reportStart = " %s >> "%(self._str_funcName)
 	
-    def __func__(self,*args,**kws):pass
+    def __func__(self,*args,**kws):
+	raise StandardError,"%s No function set"%self._str_reportStart
 
     def go(self,goTo = '',**kws):
 	"""
 	"""
 	t_start = time.clock()
 	try:
-	    if not self.d_funcSteps: d_funcSteps = {0:{'call':self.__func__}}
-	    else: d_funcSteps = self.d_funcSteps
-	    int_keys = d_funcSteps.keys()
+	    if not self.l_funcSteps: l_funcSteps = [{'call':self.__func__}]
+	    else: l_funcSteps = self.l_funcSteps
+	    int_keys = range(0,len(l_funcSteps)-1)
+	    int_max = len(l_funcSteps)-1
 	except Exception,error:
 	    raise StandardError, ">"*3 + " %s >!FAILURE!> go start | Error: %s"%(self._str_funcCombined,error)
 	
-	for k in int_keys:
+	for i,d_step in enumerate(l_funcSteps):
 	    t1 = time.clock()	    
 	    try:	
-		_str_step = d_funcSteps[k].get('step') or ''
-		res = d_funcSteps[k]['call']()
+		_str_step = d_step.get('step') or self._str_funcName
+		res = d_step['call']()
 		if res is not None:
 		    self.d_return[_str_step] = res
 		"""
@@ -102,27 +104,29 @@ class clsFunc(object):
 		self.d_return[_str_step] = None	
 		raise StandardError, _str_fail
 	    t2 = time.clock()
-	    if len(int_keys)!=1: log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)) + "-"*75)		
+	    if int_max != 0: log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)) + "-"*75)		
 	
 	log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)) + "-"*75)		
-	if len(self.d_return.keys()) == 1:#If it's a one step, return, return the single return
-	    return self.d_return[self.d_return.keys()[0]]
+	if int_max == 0:#If it's a one step, return, return the single return
+	    try:return self.d_return[self.d_return.keys()[0]]
+	    except:pass
 	return self.d_return
     
     def report(self):
 	log.info(">"*3 + " %s "%self._str_funcCombined + "="*75)
 	log.info(">"*3 + " Module: %s "%self._str_modPath)	
-	log.info(">"*3 + " d_funcSteps: %s "%self.d_funcSteps)	    			
+	log.info(">"*3 + " l_funcSteps: %s "%self.l_funcSteps)	    			
 	if self._str_funcArgs:log.info(">"*3 + " Args: %s "%self._str_funcArgs)
 	if self._str_funcKWs:log.info(">"*3 + " KWs: %s "%self._str_funcKWs)	  
 	if self.d_kwsDefined:
 	    log.info(">"*3 + " KWs Defined " + "-"*75)	  	    
 	    for k in self.d_kwsDefined.keys():
 		log.info(">"*3 + " '%s' : %s "%(k,self.d_kwsDefined[k]))
-	if self.d_funcSteps:
+	if self.l_funcSteps:
 	    log.info(">"*3 + " Steps " + "-"*75)	  	    
-	    for k in self.d_funcSteps.keys():
-		log.info(">"*3 + " '%s' : %s "%(k,self.d_funcSteps[k].get('step')))
+	    for i,d in enumerate(l_funcSteps):
+		try:log.info(">"*3 + " '%s' : %s "%(i,d.get('step')))
+		except:pass
 	log.info("#" + "-" *100)
 		
 class cgmFunctionClass2(object):
