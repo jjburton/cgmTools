@@ -23,9 +23,84 @@ reload(cgmGeneral)
 geoTypes = 'nurbsSurface','mesh','poly','subdiv'
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Puppet Wrapper
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+class puppetFactoryWrapper(cgmGeneral.clsFunc):
+    def __init__(self,puppet = None,**kws):
+	"""
+	"""	
+	super(puppetFactoryWrapper, self).__init__(self,**kws)
+	try:
+	    puppet.mNode
+	except StandardError,error:
+	    raise StandardError,error	
+	
+	self._str_funcName = 'puppetFactoryWrapper(%s)'%puppet.p_nameShort	
+	self.__dataBind__(**kws)
+	self.d_kwsDefined = {'puppet':puppet}
+	self._mi_puppet = puppet
+	#self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	#=================================================================
+	if log.getEffectiveLevel() == 10:self.report()#If debug
+	
+    def __func__(self):
+	"""
+	"""
+	self.report()
+	
+def exampleWrap(puppet = None,*args,**kws):
+    class clsPuppetFunc(puppetFactoryWrapper):
+	def __init__(self,puppet = None,*args,**kws):
+	    """
+	    """	
+	    super(clsPuppetFunc, self).__init__(puppet,*args,**kws)
+	    self._str_funcName = 'example(%s)'%self._mi_puppet.p_nameShort	
+	    self.__dataBind__()
+	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	    
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self):
+	    """
+	    """
+	    self.report()
+	    
+    #We wrap it so that it autoruns and returns
+    return clsPuppetFunc(puppet).go()	
+
+def stateCheck(puppet = None,arg = None,*args,**kws):
+    class clsPuppetFunc(puppetFactoryWrapper):
+	def __init__(self,puppet = None,arg = None,*args,**kws):
+	    """
+	    """	
+	    super(clsPuppetFunc, self).__init__(puppet,*args,**kws)
+	    self._str_funcName = 'stateCheck(%s)'%self._mi_puppet.p_nameShort	
+	    self.__dataBind__()
+	    self.d_kwsDefined['arg'] = arg
+	    
+	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]	    
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self):
+	    """
+	    """
+	    ml_orderedModules = getOrderedModules(self._mi_puppet)
+	    
+	    for mod in ml_orderedModules:
+		try:
+		    mod.stateCheck(self.d_kwsDefined['arg'])
+		except Exception,error: log.error("%s module: %s | %s"%(self._str_reportStart,mod.p_nameShort,error))
+	    
+    #We wrap it so that it autoruns and returns
+    return clsPuppetFunc(puppet,arg,*args,**kws).go()	
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Puppet Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
- 
 def simplePuppetReturn():
     catch = mc.ls(type='network')
     returnList = []
@@ -284,7 +359,7 @@ class animReset(cgmGeneral.clsFunc):
 	self._str_funcName = 'animReset(%s)'%puppetInstance.p_nameShort	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'puppetInstance':puppetInstance}
-	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	self.l_funcSteps = [{'step':'Process','call':self._process}]	
 	#=================================================================
 	if log.getEffectiveLevel() == 10:self.report()#If debug
 
@@ -306,7 +381,7 @@ class mirrorMe(cgmGeneral.clsFunc):
 	self._str_funcName = 'mirrorMe(%s)'%puppetInstance.p_nameShort	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'puppetInstance':puppetInstance}
-	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	self.l_funcSteps = [{'step':'Process','call':self._process}]
 	#=================================================================
 	if log.getEffectiveLevel() == 10:self.report()#If debug
 
@@ -342,3 +417,121 @@ def mirrorMe(self,**kws):
 	log.error("%s >> error: %s"%(_str_funcName,error))
 	return False'''
 
+def get_mirrorIndexDict(puppet = None):
+    class clsPuppetFunc(puppetFactoryWrapper):
+	def __init__(self,puppet = None):
+	    """
+	    """	
+	    super(clsPuppetFunc, self).__init__(puppet)
+	    self._str_funcName = 'get_MirrorIndexDict(%s)'%self._mi_puppet.p_nameShort	
+	    self.__dataBind__()
+	    
+	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]	    
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self):
+	    d_return = {}
+	    
+	    for mod in getModules(self._mi_puppet):
+		try:mi_moduleSet = mod.rigNull.moduleSet.getMetaList()
+		except:mi_moduleSet = []
+		for mObj in mi_moduleSet:
+		    if mObj.hasAttr('mirrorSide') and mObj.hasAttr('mirrorIndex'):
+			int_side = mObj.getAttr('mirrorSide')
+			int_idx = mObj.getAttr('mirrorIndex')
+			str_side = mObj.getEnumValueString('mirrorSide')
+			
+			if not d_return.get(int_side):
+			    d_return[int_side] = []
+			    
+			if int_idx in d_return[int_side]:
+			    log.warning("%s mod: %s | side: %s | idx :%s already stored"%(self._str_reportStart,mod.p_nameShort, str_side,int_idx))
+			else:
+			    d_return[int_side].append(int_idx)
+		    
+	    return d_return
+   
+    #We wrap it so that it autoruns and returns
+    return clsPuppetFunc(puppet).go()
+
+def get_mirrorIndexDict(puppet = None,side = None):
+    class clsPuppetFunc(puppetFactoryWrapper):
+	def __init__(self,puppet = None):
+	    """
+	    """	
+	    super(clsPuppetFunc, self).__init__(puppet)
+	    self._str_funcName = 'get_MirrorIndexDict(%s)'%self._mi_puppet.p_nameShort	
+	    self.__dataBind__()
+	    
+	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]	    
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self):
+	    d_return = {}
+	    
+	    for mod in getModules(self._mi_puppet):
+		try:mi_moduleSet = mod.rigNull.moduleSet.getMetaList()
+		except:mi_moduleSet = []
+		for mObj in mi_moduleSet:
+		    if mObj.hasAttr('mirrorSide') and mObj.hasAttr('mirrorIndex'):
+			int_side = mObj.getAttr('mirrorSide')
+			int_idx = mObj.getAttr('mirrorIndex')
+			str_side = mObj.getEnumValueString('mirrorSide')
+			
+			if not d_return.get(int_side):
+			    d_return[int_side] = []
+			    
+			if int_idx in d_return[int_side]:
+			    log.warning("%s mod: %s | side: %s | idx :%s already stored"%(self._str_reportStart,mod.p_nameShort, str_side,int_idx))
+			else:
+			    d_return[int_side].append(int_idx)
+		    
+	    return d_return
+   
+    #We wrap it so that it autoruns and returns
+    return clsPuppetFunc(puppet,side).go()	
+
+def get_nextMirrorIndex(puppet = None,side = None,*args,**kws):
+    class clsPuppetFunc(puppetFactoryWrapper):
+	def __init__(self,puppet = None,side = None,*args,**kws):
+	    """
+	    """	
+	    super(clsPuppetFunc, self).__init__(puppet,*args,**kws)
+	    self._str_funcName = 'stateCheck(%s)'%self._mi_puppet.p_nameShort	
+	    self.__dataBind__()
+	    self.d_kwsDefined['side'] = side
+	    
+	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]	    
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self):
+	    """
+	    """
+	    l_return = []
+	    
+	    for mModule in getModules(self._mi_puppet):
+		#log.info("Checking: %s"%mModule.p_nameShort)		
+		if mModule.get_mirrorSideAsString() == self.d_kwsDefined['side'].capitalize() :
+		    #log.info("match Side %s | %s"%(self.d_kwsDefined['side'],mModule.p_nameShort))		    
+		    try:mi_moduleSet = mModule.rigNull.moduleSet.getMetaList()
+		    except:mi_moduleSet = []
+		    for mObj in mi_moduleSet:
+			int_side = mObj.getAttr('mirrorSide')
+			int_idx = mObj.getAttr('mirrorIndex')
+			str_side = mObj.getEnumValueString('mirrorSide')
+						    
+			l_return.append(int_idx)
+			l_return.sort()
+			
+	    if l_return:
+		return max(l_return)+1
+	    else:return 0
+	
+    #We wrap it so that it autoruns and returns
+    return clsPuppetFunc(puppet,side,*args,**kws).go()	
