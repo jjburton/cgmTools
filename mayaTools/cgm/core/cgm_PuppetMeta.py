@@ -376,6 +376,23 @@ class cgmPuppet(cgmMeta.cgmNode):
 	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
 	"""
 	return pFactory.getModules(self)
+    
+    def getOrderedModules(self):
+	"""
+	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
+	"""
+	return pFactory.getOrderedModules(self)
+    
+    def get_mirrorIndexDict(self):
+	"""
+	"""
+	return pFactory.get_mirrorIndexDict(self)
+    
+    def get_nextMirrorIndex(self,side = None):
+	"""
+	"""
+	return pFactory.get_nextMirrorIndex(self,side)    
+    
     def gatherModules(self):
 	"""
 	Gathers all connected module children to the puppet
@@ -1637,6 +1654,10 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.isModule)
         """
         return mFactory.isModule(self)
+    
+    def get_mirrorSideAsString(self):
+        return mFactory.get_mirrorSideAsString(self)    
+    
     #>>> States
     #===========================================================
     def getState(self):
@@ -1651,7 +1672,14 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.setState)
         """
-        return mFactory.setState(self,*args,**kws)	
+        return mFactory.setState(self,*args,**kws)
+    
+    def stateCheck(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.checkState)
+        """
+        return mFactory.checkState(self,*args,**kws)	
     
     #>>> Sizing
     #===========================================================
