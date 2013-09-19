@@ -817,7 +817,11 @@ def doOrientSegment(self):
 	raise StandardError, "Failed to connect to module parent"
     
     #""" Freeze the rotations """
-    jntUtils.metaFreezeJointOrientation(ml_moduleJoints)   
+    try:
+	jntUtils.metaFreezeJointOrientation(ml_moduleJoints) 
+    except Exception,error:
+	raise StandardError,"Failed to freeze rotations | %s"%error
+
     try:
 	for i,i_jnt in enumerate(ml_moduleJoints):
 	    log.debug(i_jnt.getAttr('cgmName'))
