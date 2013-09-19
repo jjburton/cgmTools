@@ -909,7 +909,24 @@ def setState(self,stateArg,rebuildFrom = None, *args,**kws):
     except Exception,error:
 	raise StandardError,"%s >> %s"%(_str_funcName,error)   
     
-
+def checkState(self,stateArg):
+    """ 
+    Check a module state, if it's the state, return True
+    
+    """
+    _str_funcName = "checkState(%s)"%self.p_nameShort   
+    log.debug(">>> %s.checkState( stateArg = %s) >> "%(self.p_nameShort,stateArg) + "="*75) 		                                	        
+    try:
+	l_stateArg = validateStateArg(stateArg)
+	if not l_stateArg:raise StandardError,"Couldn't find valid state"
+	
+	if getState(self) > l_stateArg[0]:
+	    return True
+	    
+	changeState(self, stateArg)
+    except Exception,error:
+	raise StandardError,"%s >> %s"%(_str_funcName,error)   
+    
 def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws):
     """ 
     Changes a module state
@@ -1120,7 +1137,7 @@ class get_mirror(cgmGeneral.clsFunc):
 	self._str_funcName = 'get_mirror(%s)'%moduleInstance.p_nameShort	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'moduleInstance':moduleInstance}
-	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	self.l_funcSteps = [{'step':'Process','call':self._process}]	
 	#=================================================================
 	if log.getEffectiveLevel() == 10:self.report()#If debug
 
@@ -1130,8 +1147,9 @@ class get_mirror(cgmGeneral.clsFunc):
 	"""
 	mi_module = self.d_kwsDefined['moduleInstance']
 	l_direction = ['left','right']
-	if mi_module.cgmDirection not in l_direction:
-	    raise StandardError, "%s >> Module doesn't have direction"%_str_funcName
+	if mi_module.getAttr('cgmDirection') not in l_direction:
+	    log.debug("Module doesn't have direction")
+	    return False
 	int_direction = l_direction.index(mi_module.cgmDirection)
 	d = {'moduleType':mi_module.moduleType,'cgmDirection':l_direction[not int_direction]}
 	
@@ -1174,7 +1192,7 @@ class mirrorMe(cgmGeneral.clsFunc):
 	self._str_funcName = 'mirrorMe(%s)'%moduleInstance.p_nameShort	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'moduleInstance':moduleInstance}
-	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	self.l_funcSteps = [{'step':'Process','call':self._process}]	
 	#=================================================================
 	if log.getEffectiveLevel() == 10:self.report()#If debug
 
@@ -1183,7 +1201,8 @@ class mirrorMe(cgmGeneral.clsFunc):
 	"""
 	mi_module = self.d_kwsDefined['moduleInstance']
 	l_buffer = mi_module.rigNull.moduleSet.getList()
-	mi_mirror = get_mirror(mi_module).go()
+	try:mi_mirror = get_mirror(mi_module).go()
+	except Exception,error:raise StandardError,"get_mirror | %s"%error
 	if mi_mirror:
 	    l_buffer.extend(mi_mirror.rigNull.moduleSet.getList())
 	if l_buffer:
@@ -1200,7 +1219,7 @@ class mirrorPush(cgmGeneral.clsFunc):
 	self._str_funcName = 'mirrorPush(%s)'%moduleInstance.p_nameShort	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'moduleInstance':moduleInstance}
-	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	self.l_funcSteps = [{'step':'Process','call':self._process}]	
 	#=================================================================
 	if log.getEffectiveLevel() == 10:self.report()#If debug
 
@@ -1228,7 +1247,7 @@ class mirrorPull(cgmGeneral.clsFunc):
 	self._str_funcName = 'mirrorPull(%s)'%moduleInstance.p_nameShort	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'moduleInstance':moduleInstance}
-	self.d_funcSteps = {0:{'step':'Process','function':self._process}}	
+	self.l_funcSteps = [{'step':'Process','call':self._process}]	
 	#=================================================================
 	if log.getEffectiveLevel() == 10:self.report()#If debug
 
@@ -1360,4 +1379,84 @@ def dynSwitch_children(self,arg):
 	    log.error("%s.dynSwitch_children>> fail | %s"%(self.getBaseName(),error))
 	    return False  
     except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
+	raise StandardError,"%s >> %s"%(_str_funcName,error) 
+  
+def get_mirrorSideAsString(self,):
+    _str_funcName = "get_mirrorSideAsString(%s)"%self.p_nameShort   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)   
+    try:
+	_str_direction = self.getAttr('cgmDirection') 
+	if _str_direction is not None and _str_direction.lower() in ['right','left']:
+	    return _str_direction.capitalize()
+	else:
+	    return 'Centre'
+    except Exception,error:
+	raise StandardError,"%s >> %s"%(_str_funcName,error) 
+"""
+def get_mirrorSideAsString(module = None,*args,**kws):
+    class clsModuleFunc(moduleFactoryWrapper):
+	def __init__(self,module = None,*args,**kws):
+	    super(clsModuleFunc, self).__init__(module,*args,**kws)
+	    self._str_funcName = 'get_mirrorSideAsString(%s)'%self._mi_module.p_nameShort	
+	    self.__dataBind__()
+	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	    
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self):
+	    _str_direction = self._mi_module.getAttr('cgmDirection') 
+	    if _str_direction is not None and _str_direction.lower() in ['right','left']:
+		return _str_direction.capitalize()
+	    else:
+		return 'Centre'
+	    
+    #We wrap it so that it autoruns and returns
+    return clsModuleFunc(module).go()
+"""    
+#===================================================================================
+class moduleFactoryWrapper(cgmGeneral.clsFunc):
+    def __init__(self,module = None,**kws):
+	"""
+	"""	
+	super(moduleFactoryWrapper, self).__init__(self,**kws)
+	try:
+	    module.mNode
+	except StandardError,error:
+	    raise StandardError,error	
+	
+	self._str_funcName = 'moduleFactoryWrapper(%s)'%module.p_nameShort	
+	self.__dataBind__(**kws)
+	self.d_kwsDefined = {'module':module}
+	self._mi_module = module
+	#self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	#=================================================================
+	if log.getEffectiveLevel() == 10:self.report()#If debug
+	
+    def __func__(self):
+	"""
+	"""
+	self.report()
+	
+def exampleWrap(module = None,*args,**kws):
+    class clsModuleFunc(moduleFactoryWrapper):
+	def __init__(self,module = None,*args,**kws):
+	    """
+	    """	
+	    super(clsModuleFunc, self).__init__(module,*args,**kws)
+	    self._str_funcName = 'example(%s)'%self._mi_module.p_nameShort	
+	    self.__dataBind__()
+	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	    
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self):
+	    """
+	    """
+	    self.report()
+	    
+    #We wrap it so that it autoruns and returns
+    return clsModuleFunc(module).go()	
