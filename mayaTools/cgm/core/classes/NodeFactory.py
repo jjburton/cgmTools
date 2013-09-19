@@ -52,8 +52,8 @@ class connectNegativeAttrs(cgmGeneral.clsFunc):
 	self._str_funcName = 'connectNegativeVector'	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'source':source,'target':target,'l_attrs':l_attrs}
-	self.d_funcSteps = {0:{'step':'Validate','call':self._validate},
-	                    1:{'step':'Create','call':self._create}}	
+	self.l_funcSteps = [{'step':'Validate','call':self._validate},
+	                    {'step':'Create','call':self._create}]	
 	#=================================================================
 	#log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
 	if log.getEffectiveLevel() == 10:#If debug
@@ -113,7 +113,6 @@ class testRange(cgmGeneral.clsFunc):
 	self._str_funcName = 'testRange'	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'maxTest':maxTest}
-	#self.d_funcSteps = {0:{'step':'validate','function':self._validate},        
 	#=================================================================
 	
     def __func__(self):	
