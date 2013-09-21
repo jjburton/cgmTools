@@ -24,6 +24,7 @@ from Red9.core import Red9_General as r9General
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
+from cgm.core.lib import curve_Utils as crvUtils
 reload(RayCast)
 reload(Snap)
 from cgm.lib import (cgmMath,
@@ -149,6 +150,15 @@ def joinCurves(targetObjects, mode = 'simple', curveDegree = 1):
 		    if ep == 'mid':ep = d_objInfo[i_crv]['indexMid']
 		    l_pos.append( cgmMeta.cgmNode(d_objInfo[i_crv]['components'][ep]).getPosition() )
 		l_created.append( mc.curve(d=curveDegree,ep=l_pos,os =True) )#Make the curve
+	elif mode == 'quartered':
+	    d_pntsConnect = {}
+	    for mObj in ml_targetObjects:
+		l_pos = crvUtils.returnSplitCurveList( mObj.mNode, 5 ) 
+		for i,p in enumerate(l_pos):
+		    if not d_pntsConnect.get(i):d_pntsConnect[i] = []
+		    d_pntsConnect[i].append(p)
+	    for k in d_pntsConnect.keys():
+		l_created.append( mc.curve(d=curveDegree,ep=d_pntsConnect[k],os =True) )#Make the curve		    
 	else:
 	    for idx in d_objInfo[d_objInfo.keys()[0]]['indices']:
 		l_pos = []
