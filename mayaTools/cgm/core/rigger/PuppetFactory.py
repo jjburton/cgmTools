@@ -389,7 +389,9 @@ class mirrorMe(cgmGeneral.cgmFuncCls):
 	"""
 	"""
 	puppetInstance = self.d_kwsDefined['puppetInstance']
-	l_controls = puppetInstance.puppetSet.getList()
+	puppetInstance.puppetSet.select()
+	l_controls = mc.ls(sl=True)
+	log.info(l_controls)
 	if l_controls:
 	    r9Anim.MirrorHierarchy(l_controls).mirrorData(mode = '')
 	    mc.select(l_controls)
