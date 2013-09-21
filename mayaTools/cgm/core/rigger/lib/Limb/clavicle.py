@@ -30,7 +30,7 @@ from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-from cgm.core.rigger.lib import module_utils as modUtils
+from cgm.core.rigger.lib import module_Utils as modUtils
 reload(modUtils)
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
