@@ -34,8 +34,7 @@ log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #========================================================================= 
-class cgmFuncCls(object):
-    """Simple class for use with TimerSimple"""	    
+class cgmFuncCls(object):  
     def __init__(self,*args, **kws):
         self._str_funcClass = None
 	self._str_funcCombined = None
@@ -46,6 +45,12 @@ class cgmFuncCls(object):
 	self.d_return = {}
 	self._str_modPath = None
 	self._str_mod = None	
+	#This is our mask so that the fail report ignores them
+	self.l_dictMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','l_dictMask',
+	                   '_str_funcClass','_str_funcName','d_kwsDefined','_str_funcCombined','_d_funcArgs',
+	                   '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
+	
+    """Simple class for use with TimerSimple"""	  
     
     def __dataBind__(self,*args,**kws):
 	try:self._d_funcArgs = args
@@ -100,6 +105,11 @@ class cgmFuncCls(object):
 			log.error(">"*3 + " '%s' : %s "%(k,self.d_kwsDefined[k]))		
 		_str_fail = ">"*3 + " %s >!FAILURE!> Step: '%s' | Error: %s"%(self._str_funcCombined,_str_step,error)
 		log.error(_str_fail)
+		
+		log.error(">"*3 + " Self Stored " + "-"*75)	  	    		    
+		for k in self.__dict__.keys():
+		    if k not in self.l_dictMask:
+			log.error(">"*3 + " '%s' : %s "%(k,self.__dict__[k]))
 		log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)) + "-"*75)
 		self.d_return[_str_step] = None	
 		raise StandardError, _str_fail
