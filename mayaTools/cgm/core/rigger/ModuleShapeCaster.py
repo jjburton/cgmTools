@@ -712,7 +712,7 @@ class go(object):
 		#d_kws[0]['l_specifiedRotates'] = [-90,-60,-30,0,30,60,90]
 		#d_kws[0]['closedCurve'] = False
 		
-		self.posOffset = [0,0,self._skinOffset*2]
+		self.posOffset = [0,0,self._skinOffset*3]
 		if self._direction == 'left':
 		    self.aimAxis = 'x+'
 		else:self.aimAxis = 'x-'
@@ -1661,28 +1661,7 @@ class go(object):
 	    raise NotImplementedError,"haven't implemented hand"
 	elif self._partType == 'armSimple':
 	    raise NotImplementedError,"haven't implemented hand"
-	
-	    """
-	    #find the hand. 1) Build search dict
-	    d_search = {'moduleType':'hand'}
-	    for key in ['cgmDirection','cgmPosition']:
-		buffer = self._mi_module.getAttr(key)
-		if buffer:
-		    d_search[key] = buffer
-	    #Find it
-	    mi_handModule = self._mi_puppet.getModuleFromDict(d_search)
-	    ml_children = self._mi_module.moduleChildren
-	    if mi_handModule in ml_children:log.info("found match modules: %s"%mi_handModule)
-	    
-	    ml_controlSnapObjects = []
-	    for mi_obj in mi_handModule.templateNull.controlObjects:
-		ml_controlSnapObjects.append(mi_obj.helper)  
-	    log.info("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
-	    if ml_controlSnapObjects[1].cgmName != 'palm':
-		raise StandardError,"go.build_handShape>>> Expected second snap object to be 'palm'. Found: %s"%ml_controlSnapObjects[1].mNode
-	    mi_palm = ml_controlSnapObjects[1]
-	    mi_wrist = ml_controlSnapObjects[0]"""
-	    
+		    
 	elif self._partType == 'arm':
 	    for obj in self.l_controlSnapObjects:
 		if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'wrist':
@@ -1709,7 +1688,7 @@ class go(object):
 	else:
 	    mi_palmLoc = mi_wristLoc.doDuplicate()
 	    mi_palmLoc.doGroup()
-	    mi_palmLoc.__setattr__('t%s'%self._jointOrientation[0],dist_wristSize/2)
+	    mi_palmLoc.__setattr__('t%s'%self._jointOrientation[0],dist_wristSize/4)
 	    
 	mi_wristLoc.doGroup()
 	mi_wristLoc.__setattr__('t%s'%self._jointOrientation[0],-dist_wristSize/2)
@@ -1749,7 +1728,7 @@ class go(object):
 	
 	#Let's collect the points to join
 	l_curvesToCombine = [d_startReturn['curve'],d_endReturn['curve']]	
-	joinReturn = ShapeCast.joinCurves(l_curvesToCombine)
+	joinReturn = ShapeCast.joinCurves(l_curvesToCombine,mode = 'quartered')
 	
 	l_curvesToCombine.extend(joinReturn)
 	
