@@ -178,14 +178,13 @@ def build_rigSkeleton(goInstance = None):
 	    
 	    try:
 		if self._go._str_mirrorDirection == 'Right':#mirror control setup
-		    #ml_fkDriverJoints = self._go.duplicate_jointChain(ml_fkJoints,'fkAttach','fkAttachJoints')
-		    self._go.mirrorChainOrientation(ml_fkJoints)#Mirror 
-		    """
+		    self.mirrorChainOrientation(ml_fkJoints)#New 
+		    
+		    ml_fkDriverJoints = self.build_handleChain('fkAttach','fkAttachJoints')
 		    for i,mJoint in enumerate(ml_fkJoints):
 			log.info("Mirror connect: %s | %s"%(i,mJoint.p_nameShort))
 			mJoint.connectChildNode(ml_fkDriverJoints[i],"attachJoint","rootJoint")
 			cgmMeta.cgmAttr(mJoint.mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkDriverJoints[i].mNode)
-			"""
 	    except Exception,error: raise StandardError,"Failed to create mirror chain | %s"%error
 	    
 	    self._go._i_rigNull.msgList_connect(ml_fkJoints,'fkJoints',"rigNull")
@@ -621,7 +620,7 @@ def build_controls(goInstance = None):
 		i_obj.axisAim = "%s+"%self._go._jointOrientation[0]
 		i_obj.axisUp= "%s+"%self._go._jointOrientation[1]	
 		i_obj.axisOut= "%s+"%self._go._jointOrientation[2]
-		
+		i_obj.drawStyle = 6#Stick joint draw style
 		cgmMeta.cgmAttr(i_obj,'radius',hidden=True)
 		
 	    for i_obj in ml_controlsFK:
@@ -1166,16 +1165,25 @@ def build_FKIK(goInstance = None):
 	    self.mi_controlIK = self._go._i_rigNull.controlIK
 	    self.mi_controlMidIK = self._go._i_rigNull.midIK
 	    self.mPlug_lockMid = cgmMeta.cgmAttr(self.mi_controlMidIK,'lockMid',attrType='float',defaultValue = 0,keyable = True,minValue=0,maxValue=1.0)
-	    
-	    for chain in [self.ml_ikJoints,self.ml_blendJoints]:
-		chain[0].parent = self._go._i_constrainNull.mNode
-		
+	    		
 	    #for more stable ik, we're gonna lock off the lower channels degrees of freedom
 	    for chain in [self.ml_ikJoints]:
 		for axis in self._go._jointOrientation[:2]:
 		    for i_j in chain[1:]:
 			attributes.doSetAttr(i_j.mNode,"jointType%s"%axis.upper(),1)
-			
+		
+	    self.ml_toParentChains = []
+	    self.ml_fkAttachJoints = []
+	    if self._go._str_mirrorDirection == 'Right':#mirror control setup
+		log.info(">>> %s >> %s | getting attach joints"%(_str_funcName,_str_subFunc))  
+		self.ml_fkAttachJoints = self._go._i_rigNull.msgList_get('fkAttachJoints')
+		self.ml_toParentChains.append(self.ml_fkAttachJoints)
+		log.info(">>> %s >> %s | attach joints: %s"%(_str_funcName,_str_subFunc,[mJoint.p_nameShort for mJoint in ml_fkAttachJoints]))  
+	    
+	    self.ml_toParentChains.extend([self.ml_ikJoints,self.ml_blendJoints])
+	    for chain in self.ml_toParentChains:
+		chain[0].parent = self._go._i_constrainNull.mNode
+		
 	def build_fkJointLength(self):      
 	    for i,i_jnt in enumerate(self.ml_fkJoints[:-1]):
 		rUtils.addJointLengthAttr(i_jnt,orientation=self._go._jointOrientation)
@@ -1228,10 +1236,27 @@ def build_FKIK(goInstance = None):
 	    mc.orientConstraint(self.mi_controlIK.mNode,self.ml_ikJoints[-1].mNode, maintainOffset = False)	    
 	    
 	def build_connections(self):
-	    self.mPlug_FKIK = cgmMeta.cgmAttr(self.mi_settings.mNode,'blend_FKIK',lock=False,keyable=True)
+	    try:
+		self.mPlug_FKIK = cgmMeta.cgmAttr(self.mi_settings.mNode,'blend_FKIK',lock=False,keyable=True)
+			
+    
+		if self.ml_fkAttachJoints:
+		    ml_fkUse = self.ml_fkAttachJoints
+		    for i,mJoint in enumerate(self.ml_fkAttachJoints):
+			mc.pointConstraint(self.ml_fkJoints[i].mNode,mJoint.mNode,maintainOffset = False)
+			#Connect inversed aim and up
+			NodeF.connectNegativeAttrs(self.ml_fkJoints[i].mNode, mJoint.mNode,
+			                           ["r%s"%self._go._jointOrientation[0],"r%s"%self._go._jointOrientation[1]]).go()
+			cgmMeta.cgmAttr(self.ml_fkJoints[i].mNode,"r%s"%self._go._jointOrientation[2]).doConnectOut("%s.r%s"%(mJoint.mNode,self._go._jointOrientation[2]))
+		else:
+		    ml_fkUse = self.ml_fkJoints
 		    
-	    rUtils.connectBlendChainByConstraint(self.ml_fkJoints,self.ml_ikJoints,self.ml_blendJoints,
-                                                 driver = self.mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])		    
+		rUtils.connectBlendChainByConstraint(ml_fkUse,self.ml_ikJoints,self.ml_blendJoints,
+		                                     driver = self.mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])
+	    except Exception,error: raise StandardError,"Connect joint chains | %s "%error
+	
+		
+	    
 	    #>>> Settings - constrain
 	    mc.parentConstraint(self.ml_blendJoints[0].mNode, self.mi_settings.masterGroup.mNode, maintainOffset = True)
 	    
@@ -1709,6 +1734,9 @@ def build_deformation(goInstance = None):
 		    attrName = "seg_%s_%s_mult"%(i,ii)
 		    cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_settings.mNode,attrName,connectSourceToTarget = True)
 		    cgmMeta.cgmAttr(mi_settings.mNode,attrName,defaultValue = 1,keyable=True)
+		   
+		#Segement scale 
+		cgmMeta.cgmAttr(i_buffer,'segmentScale').doCopyTo(mi_settings.mNode,"segmentScale_%s"%i,connectSourceToTarget=True)	    
 		    
 		#Other attributes transfer
 		cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
@@ -2023,7 +2051,9 @@ def build_rig(goInstance = None):
 	    self.l_funcSteps = [{'step':'Verify','call':self.verify},
 	                        {'step':'Constrain to parent','call':self.build_parentConnect},
 	                        {'step':'dynParent Groups','call':self.build_dynParentGroups},
-	                        {'step':'Rig Structure','call':self.build_rigStructure}]
+	                        {'step':'Rig Structure','call':self.build_rigStructure},
+	                        {'step':'Lock N Hide','call':self.build_lockNHide},
+	                        {'step':'Finalize','call':self.build_finalize}]
 	    #=================================================================
 	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
@@ -2084,7 +2114,7 @@ def build_rig(goInstance = None):
 		
 		if self.mi_moduleParent:
 		    mi_parentRigNull = self.mi_moduleParent.rigNull
-		    ml_buffer = mi_parentRigNull.msgList_get('skinJoints')
+		    ml_buffer = mi_parentRigNull.msgList_get('moduleJoints')
 		    if ml_buffer:
 			ml_handDynParents.append( ml_buffer[0])	    
 		    
@@ -2117,7 +2147,7 @@ def build_rig(goInstance = None):
 		
 		if self.mi_moduleParent:
 		    mi_parentRigNull = self.mi_moduleParent.rigNull
-		    ml_buffer = mi_parentRigNull.msgList_get('skinJoints')
+		    ml_buffer = mi_parentRigNull.msgList_get('moduleJoints')
 		    if ml_buffer:
 			ml_elbowDynParents.append(ml_buffer[0])
 			
@@ -2146,17 +2176,19 @@ def build_rig(goInstance = None):
 	    try:#>>>> fk shoulder orient
 		#Build our dynamic groups
 		ml_shoulderDynParents = []
-		
-		if self.mi_moduleParent:
-		    mi_parentRigNull = self.mi_moduleParent.rigNull
-		    ml_buffer = mi_parentRigNull.msgList_get('skinJoints')
-		    if ml_buffer:
-			ml_shoulderDynParents.append( ml_buffer[-1])
-			
+					
 		if mi_spine:
 		    ml_shoulderDynParents.append( mi_spineRigNull.handleIK )	    
 		    ml_shoulderDynParents.append( mi_spineRigNull.cog )
-	
+		    
+		if self.mi_moduleParent:
+		    mi_parentRigNull = self.mi_moduleParent.rigNull
+		    ml_buffer = mi_parentRigNull.msgList_get('moduleJoints')
+		    if ml_buffer:
+			if ml_shoulderDynParents:
+			    ml_shoulderDynParents.insert(1,ml_buffer[-1])
+			else:
+			    ml_shoulderDynParents.append(ml_buffer[-1])			    
 		ml_shoulderDynParents.append(self._go._i_masterControl)
 			  
 		log.info("%s.build_rig>>> Dynamic parents to add: %s"%(self._go._strShortName,[i_obj.getShortName() for i_obj in ml_shoulderDynParents]))
@@ -2238,14 +2270,7 @@ def build_rig(goInstance = None):
 	    mPlug_FKIK = cgmMeta.cgmAttr(self.mi_settings.mNode,'blend_FKIK')
 	    rUtils.connectBlendJointChain(ml_fkJoints[-1],ml_ikJoints[2:],self.ml_blendJoints[2:],
 	                                  driver = mPlug_FKIK.p_combinedName,channels=['scale'])    
-	    
-	    #Vis Network, lock and hide
-	    #====================================================================================
-	    #Segment handles need to lock
-	    attributes.doSetLockHideKeyableAttr(self.mi_settings.mNode,lock=True, visible=False, keyable=False)
-	    
-	    for i_jnt in self.ml_blendJoints:
-		attributes.doSetLockHideKeyableAttr(i_jnt.mNode,lock=True, visible=True, keyable=False)
+	    	   
 	   
 	    try:#Set up some defaults
 		#====================================================================================
@@ -2273,6 +2298,28 @@ def build_rig(goInstance = None):
 	    except StandardError,error:
 		raise StandardError,"failed to setup defaults | %s"%(error)	     
 	     
+	def build_lockNHide(self):
+	    #Vis Network, lock and hide
+	    #====================================================================================
+	    #Segment handles need to lock
+	    attributes.doSetLockHideKeyableAttr(self.mi_settings.mNode,lock=True, visible=False, keyable=False)
+	    
+	    for i_jnt in self.ml_blendJoints:
+		attributes.doSetLockHideKeyableAttr(i_jnt.mNode,lock=True, visible=True, keyable=False)
+		i_jnt.radius = 0#This is how we can hide joints without hiding them since we have children we want to ride along
+		i_jnt.drawStyle = 2
+	   	    		
+	    #Set group lockks
+	    for mCtrl in self._go._i_rigNull.msgList_get('controlsAll'):
+		mCtrl._setControlGroupLocks()	
+		
+	    #Aim Scale locking on segment handles
+	    for mChain in self.ml_segmentHandleChains:
+		for mCtrl in mChain:
+		    cgmMeta.cgmAttr(mCtrl,"s%s"%self.orientation[0],lock=True,hidden=True,keyable=False)  
+		    
+		    
+	def build_finalize(self):
 	    #Final stuff
 	    self._go._set_versionToCurrent()
 	    
