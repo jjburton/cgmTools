@@ -18,16 +18,13 @@ import copy
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
 from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.lib import nameTools
-reload(nameTools)
 from cgm.lib.ml import (ml_resetChannels)
-reload(ml_resetChannels)
 
 from cgm.lib import (lists,
                      search,
