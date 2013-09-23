@@ -1867,12 +1867,17 @@ class cgmModule(cgmMeta.cgmObject):
 	return mFactory.mirrorPush(self,**kws).go()
     def mirrorPull(self,**kws):
 	return mFactory.mirrorPull(self,**kws).go()
+    def getMirror(self,**kws):
+	return mFactory.get_mirror(self,**kws).go()  
     
     #>>> Module Children
     #========================================================================
     def getAllModuleChildren(self):
 	return mFactory.getAllModuleChildren(self)
-		
+    
+    def getModuleSiblings(self):
+	return mFactory.getSiblings(self)
+    
     def animKey_children(self,**kws):
 	mFactory.animKey_children(self,**kws)
 

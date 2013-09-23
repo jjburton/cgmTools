@@ -17,17 +17,14 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.rigger import RigFactory as mRig
 from cgm.lib import (modules,curves,distance,attributes)
 from cgm.lib.ml import ml_resetChannels
 
-reload(attributes)
 from cgm.core.lib import nameTools
 from cgm.core.classes import DraggerContextFactory as dragFactory
-reload(dragFactory)
 
 from cgm.lib.ml import (ml_breakdownDragger,
                         ml_resetChannels)
@@ -38,6 +35,30 @@ from cgm.lib.ml import (ml_breakdownDragger,
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 l_moduleStates = ['define','size','template','skeleton','rig']
 l_modulesClasses = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids']
+
+class ModuleFunc(cgmGeneral.cgmFuncCls):
+    def __init__(self,moduleInstance = None,**kws):
+	"""
+	"""	
+	super(ModuleFunc, self).__init__(self,**kws)
+	try:
+	    assert isModule(moduleInstance)
+	except StandardError,error:
+	    raise StandardError,"Not a module instance : %s"%error	
+	
+	self._str_funcName = 'moduleStep(%s)'%moduleInstance.p_nameShort	
+	self.__dataBind__(**kws)
+	#self.d_kwsDefined = {'moduleInstance':moduleInstance}
+	self.mi_module = moduleInstance
+	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	#=================================================================
+	if log.getEffectiveLevel() == 10:self.report()#If debug
+	
+    def _getData(self):
+	"""
+	"""
+	#moduleInstance = self.d_kwsDefined['moduleInstance']
+	self.report()
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -1151,7 +1172,7 @@ class get_mirror(cgmGeneral.cgmFuncCls):
 	    log.debug("Module doesn't have direction")
 	    return False
 	int_direction = l_direction.index(mi_module.cgmDirection)
-	d = {'moduleType':mi_module.moduleType,'cgmDirection':l_direction[not int_direction]}
+	d = {'cgmName':mi_module.cgmName,'moduleType':mi_module.moduleType,'cgmDirection':l_direction[not int_direction]}
 	
 	return mi_module.modulePuppet.getModuleFromDict(d)
 """    
@@ -1266,6 +1287,30 @@ class mirrorPull(cgmGeneral.cgmFuncCls):
 	    mc.select(l_buffer)
 	    return True
 	return False	    
+        
+def getSiblings(moduleInstance = None, excludeSelf = True):
+    class fncWrap(ModuleFunc):
+	def __init__(self,goInstance = None, excludeSelf = True):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(moduleInstance)
+	    self._str_funcName = 'getSiblings(%s)'%self.mi_module.p_nameShort
+	    self.__dataBind__()
+	    self.d_kwsDefined['excludeSelf'] = excludeSelf	    	    
+	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self):
+	    ml_buffer = self.mi_module.moduleParent.moduleChildren
+	    if self.d_kwsDefined['excludeSelf']:ml_buffer.remove(self.mi_module)
+	    if ml_buffer: return ml_buffer
+	    return False
+	    
+	    
+    #We wrap it so that it autoruns and returns
+    return fncWrap(moduleInstance,excludeSelf).go()
 
 #=====================================================================================================
 #>>> Children functions
