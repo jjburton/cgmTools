@@ -26,19 +26,15 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
 from cgm.core.cgmPy import validateArgs as cgmValid
-reload(cgmValid)
 from cgm.core.classes import SnapFactory as Snap
 
 from cgm.core.lib import nameTools
 from cgm.core.classes import NodeFactory as NodeF
-reload(NodeF)
 from cgm.lib import (distance,
                      attributes,
                      curves,

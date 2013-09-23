@@ -52,7 +52,6 @@ from cgm.lib import (attributes,
                      search,
                      curves,
                      )
-reload(joints)
 
 #>>> Skeleton
 #=========================================================================================================

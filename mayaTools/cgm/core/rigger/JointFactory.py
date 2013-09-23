@@ -14,7 +14,6 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-#from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral

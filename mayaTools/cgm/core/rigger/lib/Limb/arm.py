@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 arm rig builder
 ================================================================
 """
-__version__ = 0.04292013
+__version__ = 1.09232013
 
 # From Python =============================================================
 import copy
@@ -178,9 +178,9 @@ def build_rigSkeleton(goInstance = None):
 	    
 	    try:
 		if self._go._str_mirrorDirection == 'Right':#mirror control setup
-		    self.mirrorChainOrientation(ml_fkJoints)#New 
+		    self._go.mirrorChainOrientation(ml_fkJoints)#New 
 		    
-		    ml_fkDriverJoints = self.build_handleChain('fkAttach','fkAttachJoints')
+		    ml_fkDriverJoints = self._go.build_handleChain('fkAttach','fkAttachJoints')
 		    for i,mJoint in enumerate(ml_fkJoints):
 			log.info("Mirror connect: %s | %s"%(i,mJoint.p_nameShort))
 			mJoint.connectChildNode(ml_fkDriverJoints[i],"attachJoint","rootJoint")
@@ -1175,10 +1175,8 @@ def build_FKIK(goInstance = None):
 	    self.ml_toParentChains = []
 	    self.ml_fkAttachJoints = []
 	    if self._go._str_mirrorDirection == 'Right':#mirror control setup
-		log.info(">>> %s >> %s | getting attach joints"%(_str_funcName,_str_subFunc))  
 		self.ml_fkAttachJoints = self._go._i_rigNull.msgList_get('fkAttachJoints')
 		self.ml_toParentChains.append(self.ml_fkAttachJoints)
-		log.info(">>> %s >> %s | attach joints: %s"%(_str_funcName,_str_subFunc,[mJoint.p_nameShort for mJoint in ml_fkAttachJoints]))  
 	    
 	    self.ml_toParentChains.extend([self.ml_ikJoints,self.ml_blendJoints])
 	    for chain in self.ml_toParentChains:
@@ -1494,7 +1492,10 @@ def build_deformation(goInstance = None):
 	    
 	    self.aimVector = cgmValid.simpleAxis("%s+"%self._go._jointOrientation[0]).p_vector#dictionary.stringToVectorDict.get("%s+"%self._go._jointOrientation[0])
 	    self.upVector = cgmValid.simpleAxis("%s+"%self._go._jointOrientation[1]).p_vector#dictionary.stringToVectorDict.get("%s+"%self._go._jointOrientation[1])	    
-	
+	    
+	    self.ml_driversFK = self.ml_controlsFK
+	    if self._go._str_mirrorDirection == 'Right':
+		self.ml_driversFK = self._go._i_rigNull.msgList_get('fkAttachJoints')	
 	
 	def build_segments(self):
 	    ml_controlsFK = self.ml_controlsFK   
@@ -1662,7 +1663,7 @@ def build_deformation(goInstance = None):
 		l_fkEndDrivers = []
 		l_ikEndDrivers = []
     
-		l_fkEndDrivers.append("%s.%s"%(ml_controlsFK[i+1].getShortName(),str_twistOrientation))    
+		l_fkEndDrivers.append("%s.%s"%(self.ml_driversFK[i+1].getShortName(),str_twistOrientation))    
 
 		if i == 0:#if seg 0
 		    l_ikStartDrivers.append(mPlug_worldIKStartIn.p_combinedShortName)
@@ -2213,6 +2214,9 @@ def build_rig(goInstance = None):
 	    #Parent and constrain joints
 	    #====================================================================================
 	    orientation = self.orientation
+	    
+	    if self._go._str_mirrorDirection == 'Right':#We need to paren the attach joint to the parent of the fk root, usually the dynamic parent
+		self._go._i_rigNull.msgList_get('fkAttachJoints')[0].parent = self.ml_controlsFK[0].parent		    
 	    
 	    self.ml_rigJoints[0].parent = self._go._i_deformNull.mNode#shoulder
 	    
