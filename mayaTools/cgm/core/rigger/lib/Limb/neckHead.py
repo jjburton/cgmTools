@@ -408,6 +408,7 @@ def build_controls(self):
 		                                           mirrorSide=self._str_mirrorDirection, mirrorAxis="translateX,rotateY,rotateZ",
 		                                           ) 	    
 		i_obj = d_buffer['instance']
+		i_obj.drawStyle = 6#Stick joint draw style		
 	    except StandardError,error:
 		raise StandardError,"%s failed | error: %s"%(i_obj.mNode,error)
 	#i_loc.delete()

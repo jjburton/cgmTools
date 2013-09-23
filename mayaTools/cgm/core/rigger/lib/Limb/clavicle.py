@@ -240,6 +240,7 @@ def build_controls(goInstance = None):
 		i_obj.axisAim = "%s+"%self._go._jointOrientation[0]
 		i_obj.axisUp= "%s+"%self._go._jointOrientation[1]	
 		i_obj.axisOut= "%s+"%self._go._jointOrientation[2]
+		i_obj.drawStyle = 6#Stick joint draw style	    
 		
 		cgmMeta.cgmAttr(i_obj,'radius',hidden=True)
 	    except Exception,error: raise StandardError,"Failed to set attrs | %s"%error

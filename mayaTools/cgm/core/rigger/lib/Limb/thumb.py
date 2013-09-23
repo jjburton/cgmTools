@@ -394,6 +394,7 @@ def build_controls(self):
 	    i_obj.axisAim = "%s+"%self._jointOrientation[0]
 	    i_obj.axisUp= "%s+"%self._jointOrientation[1]	
 	    i_obj.axisOut= "%s+"%self._jointOrientation[2]
+	    i_obj.drawStyle = 6#Stick joint draw style
 	    
 	    cgmMeta.cgmAttr(i_obj,'radius',hidden=True)
 	    

@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 leg rig builder
 ================================================================
 """
-__version__ = 01.09142013
+__version__ = 01.09182013
 
 # From Python =============================================================
 import copy
@@ -1105,6 +1105,7 @@ def build_controls(self):
 	    i_obj.axisAim = "%s+"%self._jointOrientation[0]
 	    i_obj.axisUp= "%s+"%self._jointOrientation[1]	
 	    i_obj.axisOut= "%s+"%self._jointOrientation[2]
+	    i_obj.drawStyle = 6#Stick joint draw style	    
 	    
 	    cgmMeta.cgmAttr(i_obj,'radius',hidden=True)
 	    
@@ -1868,6 +1869,8 @@ def build_rig(self):
 	
 	for i_jnt in ml_blendJoints:
 	    attributes.doSetLockHideKeyableAttr(i_jnt.mNode,lock=True, visible=True, keyable=False)
+	    i_jnt.radius = 0#This is how we can hide joints without hiding them since we have children we want to ride along
+	    i_jnt.drawStyle = 2
 	    
 	#Set group lockks
 	for mCtrl in self._i_rigNull.msgList_get('controlsAll'):

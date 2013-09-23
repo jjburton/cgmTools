@@ -419,6 +419,7 @@ def build_controls(self):
 		d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,setRotateOrder=5,typeModifier='fk',
 		                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",) 
 	    i_obj = d_buffer['instance']
+	    i_obj.drawStyle = 6#Stick joint draw style	    
 	self._i_rigNull.msgList_connect(ml_segmentsFK,'controlsFK','rigNull')
 	l_controlsAll.extend(ml_segmentsFK)	
     
