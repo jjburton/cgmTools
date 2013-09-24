@@ -406,6 +406,11 @@ class cgmPuppet(cgmMeta.cgmNode):
     
     #>>> Animation
     #========================================================================
+    def toggle_subVis(self):
+	try:
+	    self.masterControl.controlVis.subControls = not self.masterControl.controlVis.subControls
+	except:pass
+	
     def anim_key(self,**kws):
 	_str_funcName = "%s.animKey()"%self.p_nameShort  
 	start = time.clock()
@@ -1858,18 +1863,18 @@ class cgmModule(cgmMeta.cgmObject):
 	except Exception,error:
 	    log.error("%s.animSelect>> animSelect fail | %s"%(self.getBaseName(),error))
 	    return False
-	
+
     def animReset(self,transformsOnly = True):
 	return mFactory.animReset(self,transformsOnly = transformsOnly)
     def mirrorMe(self,**kws):
-	return mFactory.mirrorMe(self,**kws).go()
+	return mFactory.mirrorMe(self,**kws)
     def mirrorPush(self,**kws):
-	return mFactory.mirrorPush(self,**kws).go()
+	return mFactory.mirrorPush(self,**kws)
     def mirrorPull(self,**kws):
-	return mFactory.mirrorPull(self,**kws).go()
+	return mFactory.mirrorPull(self,**kws)
     def getMirror(self,**kws):
-	return mFactory.get_mirror(self,**kws).go()  
-    
+	return mFactory.get_mirror(self,**kws)
+
     #>>> Module Children
     #========================================================================
     def getAllModuleChildren(self):
@@ -1880,16 +1885,38 @@ class cgmModule(cgmMeta.cgmObject):
     
     def animKey_children(self,**kws):
 	mFactory.animKey_children(self,**kws)
-
+    def animKey_siblings(self,excludeSelf = False,**kws):
+	mFactory.animKey_siblings(self,excludeSelf,**kws)
+	
     def animSelect_children(self,**kws):
 	mFactory.animSelect_children(self,**kws)
-
+    def animSelect_siblings(self,excludeSelf = False, **kws):
+	mFactory.animSelect_siblings(self,excludeSelf,**kws)
+	
     def dynSwitch_children(self,arg):
 	mFactory.dynSwitch_children(self,arg)
-	
-    #>>> Module Siblings
-    #========================================================================    
 
+    #>>> Module Siblings
+    #========================================================================  
+    def animReset_siblings(self,transformsOnly = False, excludeSelf = False,**kws):
+	return mFactory.animReset_siblings(self,transformsOnly,excludeSelf,**kws)     
+    def mirrorMe_siblings(self,excludeSelf = False,**kws):
+	return mFactory.mirrorMe_siblings(self,excludeSelf,**kws) 
+    def mirrorPull_siblings(self,excludeSelf = False,**kws):
+	return mFactory.mirrorPull_siblings(self,excludeSelf,**kws) 
+    def mirrorPush_siblings(self,excludeSelf = False,**kws):
+	return mFactory.mirrorPush_siblings(self,excludeSelf,**kws) 
+    def animPushPose_siblings(self,**kws):
+	return mFactory.animPushPose_siblings(self,**kws)    
+    
+    def dynSwitch_siblings(self,arg,excludeSelf = True):
+	mFactory.dynSwitch_siblings(self,arg,excludeSelf)
+	
+    #>>> Toggles
+    #========================================================================  
+    def toggle_subVis(self,**kws):
+	return mFactory.toggle_subVis(self,**kws)   
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>      
