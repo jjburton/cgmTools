@@ -166,7 +166,41 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		try:i_obj.doMirrorMe()
 		except StandardError,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,i_obj.p_nameShort,error))
-		    
+		
+	def children_mirror(self,module):
+	    _str_funcName = "%s.children_mirror"%puppetKeyMarkingMenu._str_funcName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)  
+	    try:module.mirrorMe()
+	    except StandardError,error:
+		log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,module.p_nameShort,error))	    
+
+	    for mMod in module.getAllModuleChildren():
+		try:mMod.mirrorMe()
+		except StandardError,error:
+		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))
+	def children_mirrorPush(self,module):
+	    _str_funcName = "%s.children_mirror"%puppetKeyMarkingMenu._str_funcName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    try:module.mirrorPush()
+	    except StandardError,error:
+		log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,module.p_nameShort,error))
+		
+	    for mMod in module.getAllModuleChildren():
+		try:mMod.mirrorPush()
+		except StandardError,error:
+		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))
+	def children_mirrorPull(self,module):
+	    _str_funcName = "%s.children_mirror"%puppetKeyMarkingMenu._str_funcName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)  
+	    try:module.mirrorPull()
+	    except StandardError,error:
+		log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,module.p_nameShort,error))
+		
+	    for mMod in module.getAllModuleChildren():
+		try:mMod.mirrorPull()
+		except StandardError,error:
+		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))
+		    	
 	time_buildMenuStart =  time.clock()
 	self.setupVariables()#Setup our optionVars
 
@@ -419,7 +453,9 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    MelMenuItem( use_parent, l="Mirror Push",
 		                 c = Callback(i_module.mirrorPush))	
 		    MelMenuItem( use_parent, l="Mirror Pull",
-		                 c = Callback(i_module.mirrorPull))			    
+		                 c = Callback(i_module.mirrorPull))
+		    MelMenuItem( use_parent, l="Toggle Sub",
+		                 c = Callback(i_module.toggle_subVis))			    
 		except StandardError,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 		try:#module children
@@ -433,7 +469,37 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			MelMenuItem( iSubM_Children, l="Key Below",
 		                     c = Callback(i_module.animKey_children))							
 			MelMenuItem( iSubM_Children, l="Select Below",
-		                     c = Callback(i_module.animSelect_children))																
+		                     c = Callback(i_module.animSelect_children))
+			MelMenuItem( iSubM_Children, l="Mirror",
+			             c = Callback(children_mirror,self,i_module))
+			MelMenuItem( iSubM_Children, l="Mirror Push",
+			             c = Callback(children_mirrorPush,self,i_module))
+			MelMenuItem( iSubM_Children, l="Mirror Pull",
+			             c = Callback(children_mirrorPull,self,i_module))
+		except StandardError,error:
+		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
+		try:#module siblings
+		    if i_module.getModuleSiblings():
+			iSubM_Siblings = MelMenuItem( use_parent, l="Siblings:",
+		                                     subMenu = True)
+			MelMenuItem( iSubM_Siblings, l="toFK",
+		                     c = Callback(i_module.dynSwitch_siblings,0,False))	
+			MelMenuItem( iSubM_Siblings, l="toIK",
+		                     c = Callback(i_module.dynSwitch_siblings,1,False))				
+			MelMenuItem( iSubM_Siblings, l="Key",
+		                     c = Callback(i_module.animKey_siblings,False))							
+			MelMenuItem( iSubM_Siblings, l="Select",
+		                     c = Callback(i_module.animSelect_siblings,False))
+			MelMenuItem( iSubM_Siblings, l="Reset",
+		                     c = Callback(i_module.animReset_siblings,False))			
+			MelMenuItem( iSubM_Siblings, l="Push pose",
+		                     c = Callback(i_module.animPushPose_siblings))			
+			MelMenuItem( iSubM_Siblings, l="Mirror",
+		                     c = Callback(i_module.mirrorMe_siblings,False))
+			MelMenuItem( iSubM_Siblings, l="Mirror Push",
+			             c = Callback(i_module.mirrorPush_siblings,False))
+			MelMenuItem( iSubM_Siblings, l="Mirror Pull",
+			             c = Callback(i_module.mirrorPull_siblings,False))
 		except StandardError,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 
@@ -487,7 +553,9 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    MelMenuItem( use_parent, l="Reset",
 		                 c = Callback(i_puppet.anim_reset,self.ResetModeOptionVar.value))
 		    MelMenuItem( use_parent, l="Mirror",
-		                 c = Callback(i_puppet.mirrorMe))				
+		                 c = Callback(i_puppet.mirrorMe))	
+		    MelMenuItem( use_parent, l="Toggle Sub",
+		                 c = Callback(i_puppet.toggle_subVis))			    
 		except StandardError,error:
 		    log.info("Failed to build basic puppet menu for: %s | %s"%(i_o.getShortName(),error))									
 
