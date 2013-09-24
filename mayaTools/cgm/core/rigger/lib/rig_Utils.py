@@ -3698,7 +3698,7 @@ def connectBlendChainByConstraint(l_jointChain1,l_jointChain2,l_blendChain, driv
                                                                                  ml_jointChain2[i].getShortName(),
                                                                                  ml_blendChain[i].getShortName(),constraint))	    
                 i_c = cgmMeta.cgmNode( d_funcs[constraint]([ml_jointChain2[i].getShortName(),ml_jointChain1[i].getShortName()],
-                                                           ml_blendChain[i].getShortName(),maintainOffset = True)[0])
+                                                           ml_blendChain[i].getShortName(),maintainOffset = False)[0])
 
 
                 targetWeights = d_funcs[constraint](i_c.mNode,q=True, weightAliasList=True)
