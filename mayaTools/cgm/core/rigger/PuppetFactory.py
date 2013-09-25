@@ -38,7 +38,7 @@ class puppetFactoryWrapper(cgmGeneral.cgmFuncCls):
 	self._str_funcName = 'puppetFactoryWrapper(%s)'%puppet.p_nameShort	
 	self.__dataBind__(**kws)
 	self.d_kwsDefined = {'puppet':puppet}
-	self._mi_puppet = puppet
+	self.mi_puppet = puppet
 	#self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	#=================================================================
 	if log.getEffectiveLevel() == 10:self.report()#If debug
@@ -54,7 +54,7 @@ def exampleWrap(puppet = None,*args,**kws):
 	    """
 	    """	
 	    super(clsPuppetFunc, self).__init__(puppet,*args,**kws)
-	    self._str_funcName = 'example(%s)'%self._mi_puppet.p_nameShort	
+	    self._str_funcName = 'example(%s)'%self.mi_puppet.p_nameShort	
 	    self.__dataBind__()
 	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	    
@@ -76,7 +76,7 @@ def stateCheck(puppet = None,arg = None,*args,**kws):
 	    """
 	    """	
 	    super(clsPuppetFunc, self).__init__(puppet,*args,**kws)
-	    self._str_funcName = 'stateCheck(%s)'%self._mi_puppet.p_nameShort	
+	    self._str_funcName = 'stateCheck(%s)'%self.mi_puppet.p_nameShort	
 	    self.__dataBind__()
 	    self.d_kwsDefined['arg'] = arg
 	    
@@ -88,7 +88,7 @@ def stateCheck(puppet = None,arg = None,*args,**kws):
 	def __func__(self):
 	    """
 	    """
-	    ml_orderedModules = getOrderedModules(self._mi_puppet)
+	    ml_orderedModules = getOrderedModules(self.mi_puppet)
 	    
 	    for mod in ml_orderedModules:
 		try:
@@ -425,7 +425,7 @@ def get_mirrorIndexDict(puppet = None):
 	    """
 	    """	
 	    super(clsPuppetFunc, self).__init__(puppet)
-	    self._str_funcName = 'get_MirrorIndexDict(%s)'%self._mi_puppet.p_nameShort	
+	    self._str_funcName = 'get_MirrorIndexDict(%s)'%self.mi_puppet.p_nameShort	
 	    self.__dataBind__()
 	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]	    
@@ -436,7 +436,7 @@ def get_mirrorIndexDict(puppet = None):
 	def __func__(self):
 	    d_return = {}
 	    
-	    for mod in getModules(self._mi_puppet):
+	    for mod in getModules(self.mi_puppet):
 		try:mi_moduleSet = mod.rigNull.moduleSet.getMetaList()
 		except:mi_moduleSet = []
 		for mObj in mi_moduleSet:
@@ -464,7 +464,7 @@ def get_mirrorIndexDict(puppet = None,side = None):
 	    """
 	    """	
 	    super(clsPuppetFunc, self).__init__(puppet)
-	    self._str_funcName = 'get_MirrorIndexDict(%s)'%self._mi_puppet.p_nameShort	
+	    self._str_funcName = 'get_MirrorIndexDict(%s)'%self.mi_puppet.p_nameShort	
 	    self.__dataBind__()
 	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]	    
@@ -475,7 +475,7 @@ def get_mirrorIndexDict(puppet = None,side = None):
 	def __func__(self):
 	    d_return = {}
 	    
-	    for mod in getModules(self._mi_puppet):
+	    for mod in getModules(self.mi_puppet):
 		try:mi_moduleSet = mod.rigNull.moduleSet.getMetaList()
 		except:mi_moduleSet = []
 		for mObj in mi_moduleSet:
@@ -503,7 +503,7 @@ def get_nextMirrorIndex(puppet = None,side = None,*args,**kws):
 	    """
 	    """	
 	    super(clsPuppetFunc, self).__init__(puppet,*args,**kws)
-	    self._str_funcName = 'stateCheck(%s)'%self._mi_puppet.p_nameShort	
+	    self._str_funcName = 'stateCheck(%s)'%self.mi_puppet.p_nameShort	
 	    self.__dataBind__()
 	    self.d_kwsDefined['side'] = side
 	    
@@ -517,7 +517,7 @@ def get_nextMirrorIndex(puppet = None,side = None,*args,**kws):
 	    """
 	    l_return = []
 	    
-	    for mModule in getModules(self._mi_puppet):
+	    for mModule in getModules(self.mi_puppet):
 		#log.info("Checking: %s"%mModule.p_nameShort)		
 		if mModule.get_mirrorSideAsString() == self.d_kwsDefined['side'].capitalize() :
 		    #log.info("match Side %s | %s"%(self.d_kwsDefined['side'],mModule.p_nameShort))		    
@@ -537,3 +537,48 @@ def get_nextMirrorIndex(puppet = None,side = None,*args,**kws):
 	
     #We wrap it so that it autoruns and returns
     return clsPuppetFunc(puppet,side,*args,**kws).go()	
+
+def animSetAttr(puppetInstance = None, attr = None, value = None, settingsOnly = False):
+    class clsPuppetFunc(puppetFactoryWrapper):
+	def __init__(self,puppetInstance = None, attr = None, value = None, settingsOnly = False):
+	    """
+	    """	
+	    super(clsPuppetFunc, self).__init__(puppetInstance)
+	    self._str_funcName = 'animSetAttr(%s)'%self.mi_puppet.p_nameShort
+	    self.__dataBind__()
+	    self.d_kwsDefined['attr'] = attr	  
+	    self.d_kwsDefined['value'] = value	  
+	    self.d_kwsDefined['settingsOnly'] = settingsOnly	  
+	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self): 
+	    try:
+		ml_buffer = self.mi_puppet.moduleChildren
+		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
+		for i,mModule in enumerate(ml_buffer):
+		    try:
+			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,mModule.p_nameShort), progress=i)    				        			
+			if self.d_kwsDefined['settingsOnly']:
+			    mi_rigNull = mModule.rigNull
+			    if mi_rigNull.getMessage('settings'):
+				mi_rigNull.settings.__setattr__(self.d_kwsDefined['attr'],self.d_kwsDefined['value'])
+			else:
+			    for o in mModule.rigNull.moduleSet.getList():
+				attributes.doSetAttr(o,self.d_kwsDefined['attr'],self.d_kwsDefined['value'])
+		    except Exception,error:
+			log.error("%s  child: %s | %s"%(self._str_reportStart,mModule.p_nameShort,error))
+		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
+		return False
+	    except Exception,error:
+		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+		except:
+		    raise StandardError,error
+	    return False  
+	
+    #We wrap it so that it autoruns and returns
+    return clsPuppetFunc(puppetInstance,attr,value,settingsOnly).go()
+
+

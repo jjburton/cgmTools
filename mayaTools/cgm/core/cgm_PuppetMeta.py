@@ -406,6 +406,9 @@ class cgmPuppet(cgmMeta.cgmNode):
     
     #>>> Animation
     #========================================================================
+    def animSetAttr(self,attr = None, value = None, settingsOnly = False):
+	return pFactory.animSetAttr(self,attr, value, settingsOnly)
+    
     def toggle_subVis(self):
 	try:
 	    self.masterControl.controlVis.subControls = not self.masterControl.controlVis.subControls

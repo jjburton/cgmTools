@@ -1894,7 +1894,9 @@ def animSetAttr_children(moduleInstance = None, attr = None, value = None, setti
 		    try:
 			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,mModule.p_nameShort), progress=i)    				        			
 			if self.d_kwsDefined['settingsOnly']:
-			    mModule.rigNull.settings.__setattr__(self.d_kwsDefined['attr'],self.d_kwsDefined['value'])
+			    mi_rigNull = mModule.rigNull
+			    if mi_rigNull.getMessage('settings'):
+				mi_rigNull.settings.__setattr__(self.d_kwsDefined['attr'],self.d_kwsDefined['value'])
 			else:
 			    for o in mModule.rigNull.moduleSet.getList():
 				attributes.doSetAttr(o,self.d_kwsDefined['attr'],self.d_kwsDefined['value'])

@@ -571,8 +571,10 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		                 c = Callback(i_puppet.anim_reset,self.ResetModeOptionVar.value))
 		    MelMenuItem( use_parent, l="Mirror",
 		                 c = Callback(i_puppet.mirrorMe))	
-		    MelMenuItem( use_parent, l="Toggle Sub",
-		                 c = Callback(i_puppet.toggle_subVis))			    
+		    MelMenuItem( use_parent, l="visSub Show",
+		                 c = Callback(i_puppet.animSetAttr,'visSub',1,True))				
+		    MelMenuItem( use_parent, l="visSub Hide",
+		                 c = Callback(i_puppet.animSetAttr,'visSub',0,True))			    
 		except StandardError,error:
 		    log.info("Failed to build basic puppet menu for: %s | %s"%(i_o.getShortName(),error))									
 
