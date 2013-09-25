@@ -4,6 +4,7 @@ import maya.mel as mel
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 
@@ -92,7 +93,10 @@ class puppetKeyMarkingMenu(BaseMelWindow):
     def createUI(self,parent):
 	"""
 	Create the UI
-	"""		
+	"""	
+	time_buildMenuStart =  time.clock()
+	self.setupVariables()#Setup our optionVars
+	
 	def buttonAction(command):
 	    """
 	    execute a command and let the menu know not do do the default button action but just kill the ui
@@ -129,7 +133,14 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    l_buffer.extend( i_m.rigNull.msgList_getMessage('controlsAll') )
 		mc.select(l_buffer )
 	    killUI()	
-	    
+	def func_multiReset():
+	    """
+	    execute a command and let the menu know not do do the default button action but just kill the ui
+	    """		
+	    if self.ml_modules:
+		for i_m in self.ml_modules:
+		    i_m.animReset(self.ResetModeOptionVar.value)
+	    killUI()		    
 	def func_multiChangeDynParent(attr,option):
 	    """
 	    execute a command and let the menu know not do do the default button action but just kill the ui
@@ -189,6 +200,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		try:mMod.mirrorPush()
 		except StandardError,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))
+	
 	def children_mirrorPull(self,module):
 	    _str_funcName = "%s.children_mirror"%puppetKeyMarkingMenu._str_funcName
 	    log.debug(">>> %s "%(_str_funcName) + "="*75)  
@@ -200,10 +212,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		try:mMod.mirrorPull()
 		except StandardError,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))
-		    	
-	time_buildMenuStart =  time.clock()
-	self.setupVariables()#Setup our optionVars
-
+	
 	IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked',value = 0)
 	IsClickedOptionVar.value = 1
 	
@@ -421,6 +430,8 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	                     c = Callback(func_multiDynSwitch,0))	
 		MelMenuItem( parent, l="toIK",
 	                     c = Callback(func_multiDynSwitch,1))
+		MelMenuItem( parent, l="Reset",
+	                     c = Callback(func_multiReset))		
 		"""
 		MelMenuItem( parent, l="Key Below",
 			     c = Callback(i_module.animKey_children))							
@@ -466,16 +477,22 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		                     c = Callback(i_module.dynSwitch_children,0))	
 			MelMenuItem( iSubM_Children, l="toIK",
 		                     c = Callback(i_module.dynSwitch_children,1))				
-			MelMenuItem( iSubM_Children, l="Key Below",
+			MelMenuItem( iSubM_Children, l="Key",
 		                     c = Callback(i_module.animKey_children))							
-			MelMenuItem( iSubM_Children, l="Select Below",
+			MelMenuItem( iSubM_Children, l="Select",
 		                     c = Callback(i_module.animSelect_children))
+			MelMenuItem( iSubM_Children, l="Reset",
+			             c = Callback(i_module.animReset_children,self.ResetModeOptionVar.value))			
 			MelMenuItem( iSubM_Children, l="Mirror",
 			             c = Callback(children_mirror,self,i_module))
 			MelMenuItem( iSubM_Children, l="Mirror Push",
 			             c = Callback(children_mirrorPush,self,i_module))
 			MelMenuItem( iSubM_Children, l="Mirror Pull",
 			             c = Callback(children_mirrorPull,self,i_module))
+			MelMenuItem( iSubM_Children, l="visSub Show",
+		                     c = Callback(i_module.animSetAttr_children,'visSub',1,True,False))				
+			MelMenuItem( iSubM_Children, l="visSub Hide",
+		                     c = Callback(i_module.animSetAttr_children,'visSub',0,True,False))			
 		except StandardError,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 		try:#module siblings

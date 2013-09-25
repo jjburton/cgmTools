@@ -1878,26 +1878,22 @@ class cgmModule(cgmMeta.cgmObject):
     #>>> Module Children
     #========================================================================
     def getAllModuleChildren(self):
-	return mFactory.getAllModuleChildren(self)
-    
-    def getModuleSiblings(self):
-	return mFactory.getSiblings(self)
-    
+	return mFactory.getAllModuleChildren(self)  
+    def animReset_children(self,transformsOnly = False, excludeSelf = False,**kws):
+	return mFactory.animReset_children(self,transformsOnly,excludeSelf,**kws)   
     def animKey_children(self,**kws):
-	mFactory.animKey_children(self,**kws)
-    def animKey_siblings(self,excludeSelf = False,**kws):
-	mFactory.animKey_siblings(self,excludeSelf,**kws)
-	
+	return mFactory.animKey_children(self,**kws)
     def animSelect_children(self,**kws):
-	mFactory.animSelect_children(self,**kws)
-    def animSelect_siblings(self,excludeSelf = False, **kws):
-	mFactory.animSelect_siblings(self,excludeSelf,**kws)
-	
-    def dynSwitch_children(self,arg):
-	mFactory.dynSwitch_children(self,arg)
+	return mFactory.animSelect_children(self,**kws)
 
+    def dynSwitch_children(self,arg):
+	return mFactory.dynSwitch_children(self,arg)
+    def animSetAttr_children(self,attr = None, value = None, settingsOnly = False, excludeSelf = True):
+	return mFactory.animSetAttr_children(self,attr, value, settingsOnly, excludeSelf)
     #>>> Module Siblings
     #========================================================================  
+    def getModuleSiblings(self):
+	return mFactory.getSiblings(self)    
     def animReset_siblings(self,transformsOnly = False, excludeSelf = False,**kws):
 	return mFactory.animReset_siblings(self,transformsOnly,excludeSelf,**kws)     
     def mirrorMe_siblings(self,excludeSelf = False,**kws):
@@ -1907,10 +1903,13 @@ class cgmModule(cgmMeta.cgmObject):
     def mirrorPush_siblings(self,excludeSelf = False,**kws):
 	return mFactory.mirrorPush_siblings(self,excludeSelf,**kws) 
     def animPushPose_siblings(self,**kws):
-	return mFactory.animPushPose_siblings(self,**kws)    
-    
+	return mFactory.animPushPose_siblings(self,**kws)   
+    def animKey_siblings(self,excludeSelf = False,**kws):
+	return mFactory.animKey_siblings(self,excludeSelf,**kws)    
+    def animSelect_siblings(self,excludeSelf = False, **kws):
+	return mFactory.animSelect_siblings(self,excludeSelf,**kws)    
     def dynSwitch_siblings(self,arg,excludeSelf = True):
-	mFactory.dynSwitch_siblings(self,arg,excludeSelf)
+	return mFactory.dynSwitch_siblings(self,arg,excludeSelf)
 	
     #>>> Toggles
     #========================================================================  

@@ -1176,48 +1176,6 @@ def get_mirror(moduleInstance = None):
 	
     #We wrap it so that it autoruns and returns
     return fncWrap(moduleInstance).go()  
-
-class get_mirror2(cgmGeneral.cgmFuncCls):
-    def __init__(self,moduleInstance = None,**kws):
-	"""
-	"""	
-	super(get_mirror, self).__init__(self,**kws)
-	self._str_funcName = 'get_mirror(%s)'%moduleInstance.p_nameShort	
-	self.__dataBind__(**kws)
-	self.d_kwsDefined = {'moduleInstance':moduleInstance}
-	self.l_funcSteps = [{'step':'Process','call':self._process}]	
-	#=================================================================
-	if log.getEffectiveLevel() == 10:self.report()#If debug
-
-
-    def _process(self):
-	"""
-	"""
-	mi_module = self.d_kwsDefined['moduleInstance']
-	l_direction = ['left','right']
-	if mi_module.getAttr('cgmDirection') not in l_direction:
-	    log.debug("Module doesn't have direction")
-	    return False
-	int_direction = l_direction.index(mi_module.cgmDirection)
-	d = {'cgmName':mi_module.cgmName,'moduleType':mi_module.moduleType,'cgmDirection':l_direction[not int_direction]}
-	
-	return mi_module.modulePuppet.getModuleFromDict(d)
-"""    
-def get_mirror(self):
-    _str_funcName = "%s.getMirror()"%self.p_nameShort  
-    log.debug(">>> %s "%(_str_funcName) + "="*75)  		
-    try:
-	l_direction = ['left','right']
-	if self.cgmDirection not in l_direction:
-	    raise StandardError, "%s >> Module doesn't have direction"%_str_funcName
-	int_direction = l_direction.index(self.cgmDirection)
-	d = {'moduleType':self.moduleType,'cgmDirection':l_direction[not int_direction]}
-	
-	return self.modulePuppet.getModuleFromDict(d)
-    except Exception,error:
-	log.debug("%s >> error: %s"%(_str_funcName,error))
-	return False
-	"""
     
 def animReset(self,transformsOnly = True):
     _str_funcName = "%s.animReset()"%self.p_nameShort  
@@ -1415,6 +1373,48 @@ def animReset_siblings(moduleInstance = None, transformsOnly = True, excludeSelf
     #We wrap it so that it autoruns and returns
     return fncWrap(moduleInstance,transformsOnly,excludeSelf).go()
 
+def animReset_children(moduleInstance = None, transformsOnly = True, excludeSelf = True):
+    class fncWrap(ModuleFunc):
+	def __init__(self,goInstance = None,  transformsOnly = True, excludeSelf = True):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(moduleInstance)
+	    self._str_funcName = 'animReset_siblings(%s)'%self.mi_module.p_nameShort
+	    self.__dataBind__()
+	    self.d_kwsDefined['excludeSelf'] = excludeSelf	  
+	    self.d_kwsDefined['transformsOnly'] = transformsOnly	    	    	    
+	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self): 
+	    try:
+		ml_buffer = getAllModuleChildren(self.mi_module,self.d_kwsDefined['excludeSelf'])
+		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
+		l_controls = []
+		for i,mModule in enumerate(ml_buffer):
+		    try:
+			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,mModule.p_nameShort), progress=i)    				        			
+			l_controls.extend(mModule.rigNull.moduleSet.getList())			
+		    except Exception,error:
+			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
+		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
+		if l_controls:
+		    mc.select(l_controls)
+		    ml_resetChannels.main(transformsOnly = self.d_kwsDefined['transformsOnly'])
+		    return True
+		return False
+		
+	    except Exception,error:
+		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+		except:
+		    raise StandardError,error
+	    return False  
+	
+    #We wrap it so that it autoruns and returns
+    return fncWrap(moduleInstance,transformsOnly,excludeSelf).go()
+
 def mirrorPush_siblings(moduleInstance = None, excludeSelf = True):
     class fncWrap(ModuleFunc):
 	def __init__(self,goInstance = None, excludeSelf = True):
@@ -1492,6 +1492,7 @@ def mirrorPull_siblings(moduleInstance = None, excludeSelf = True):
     return fncWrap(moduleInstance,excludeSelf).go()  
 
 def getSiblings(moduleInstance = None, excludeSelf = True):
+    l_sibblingIgnoreCheck = ['finger','thumb']
     class fncWrap(ModuleFunc):
 	def __init__(self,goInstance = None, excludeSelf = True):
 	    """
@@ -1507,10 +1508,14 @@ def getSiblings(moduleInstance = None, excludeSelf = True):
 	    
 	def __func__(self):
 	    ml_buffer = copy.copy(self.mi_module.moduleParent.moduleChildren)
-	    if self.d_kwsDefined['excludeSelf']:
-		for i,m in enumerate(ml_buffer):
-		    if m.mNode == self.mi_module.mNode:ml_buffer.remove(m)	    		
-	    if ml_buffer: return ml_buffer
+	    ml_return = []
+	    for i,m in enumerate(ml_buffer):
+		if m.mNode == self.mi_module.mNode and not self.d_kwsDefined['excludeSelf']:
+		    ml_return.append(self.mi_module)
+		if self.mi_module.moduleType == m.moduleType or self.mi_module.moduleType in l_sibblingIgnoreCheck:
+		    if self.mi_module.getAttr('cgmDirection') and self.mi_module.getAttr('cgmDirection') == m.getAttr('cgmDirection'):
+			ml_return.append(m)
+	    if len(ml_return)>1: return ml_return
 	    return []
 
     #We wrap it so that it autoruns and returns
@@ -1519,34 +1524,48 @@ def getSiblings(moduleInstance = None, excludeSelf = True):
 #=====================================================================================================
 #>>> Children functions
 #=====================================================================================================  
-def getAllModuleChildren(self):
-    """
-    Finds all module descendants of a module.
-    """   
-    _str_funcName = "getAllModuleChildren(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)  
-    try:
-	ml_children = []
-	ml_childrenCull = copy.copy(self.moduleChildren)
-		       
-	cnt = 0
-	#Process the childdren looking for parents as children and so on and so forth, appending them as it finds them
-	while len(ml_childrenCull)>0 and cnt < 100:#While we still have a cull list
-	    cnt+=1                        
-	    if cnt == 99:
-		log.error('%s.getAllModuleChildren >> Max count')
-	    for i_child in ml_childrenCull:
-		log.debug("i_child: %s"%i_child.getShortName())
-		if i_child not in ml_children:
-		    ml_children.append(i_child)
-		for i_subChild in i_child.moduleChildren:
-		    ml_childrenCull.append(i_subChild)
-		ml_childrenCull.remove(i_child) 
+def getAllModuleChildren(moduleInstance = None,excludeSelf = True):
+    class fncWrap(ModuleFunc):
+	def __init__(self,goInstance = None,excludeSelf = True):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(moduleInstance)
+	    self._str_funcName = 'getAllModuleChildren(%s)'%self.mi_module.p_nameShort
+	    self.__dataBind__()
+	    self.d_kwsDefined['excludeSelf'] = excludeSelf	    	    	    
+	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self): 
+	    try:
+		ml_children = []
+		ml_childrenCull = copy.copy(self.mi_module.moduleChildren)
+			       
+		cnt = 0
+		#Process the childdren looking for parents as children and so on and so forth, appending them as it finds them
+		while len(ml_childrenCull)>0 and cnt < 100:#While we still have a cull list
+		    cnt+=1                        
+		    if cnt == 99:
+			raise StandardError,"Max count reached"
+		    for i_child in ml_childrenCull:
+			if i_child not in ml_children:
+			    ml_children.append(i_child)
+			for i_subChild in i_child.moduleChildren:
+			    ml_childrenCull.append(i_subChild)
+			ml_childrenCull.remove(i_child) 
 			
-	return ml_children
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-    
+		if not self.d_kwsDefined['excludeSelf']:
+		    ml_children.append(self.mi_module)		
+		return ml_children
+		
+	    except Exception,error:
+		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+		except:raise StandardError,error
+	    return False  
+    #We wrap it so that it autoruns and returns
+    return fncWrap(moduleInstance,excludeSelf).go()    
 
 def animKey_children(self,**kws):
     """
@@ -1789,7 +1808,7 @@ def dynSwitch_siblings(moduleInstance = None, arg = None, excludeSelf = True):
     #We wrap it so that it autoruns and returns
     return fncWrap(moduleInstance,arg,excludeSelf).go()
   
-def get_mirrorSideAsString(self,):
+def get_mirrorSideAsString(self):
     _str_funcName = "get_mirrorSideAsString(%s)"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)   
     try:
@@ -1848,4 +1867,49 @@ def toggle_subVis(moduleInstance = None):
 	
     #We wrap it so that it autoruns and returns
     return fncWrap(moduleInstance).go()
+
+def animSetAttr_children(moduleInstance = None, attr = None, value = None, settingsOnly = False, excludeSelf = True):
+    class fncWrap(ModuleFunc):
+	def __init__(self,goInstance = None, attr = None, value = None, settingsOnly = False,excludeSelf = True):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(moduleInstance)
+	    self._str_funcName = 'animReset_siblings(%s)'%self.mi_module.p_nameShort
+	    self.__dataBind__()
+	    self.d_kwsDefined['excludeSelf'] = excludeSelf	
+	    self.d_kwsDefined['attr'] = attr	  
+	    self.d_kwsDefined['value'] = value	  
+	    self.d_kwsDefined['settingsOnly'] = settingsOnly	  
+	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def __func__(self): 
+	    try:
+		ml_buffer = getAllModuleChildren(self.mi_module,self.d_kwsDefined['excludeSelf'])
+
+		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
+		for i,mModule in enumerate(ml_buffer):
+		    try:
+			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,mModule.p_nameShort), progress=i)    				        			
+			if self.d_kwsDefined['settingsOnly']:
+			    mModule.rigNull.settings.__setattr__(self.d_kwsDefined['attr'],self.d_kwsDefined['value'])
+			else:
+			    for o in mModule.rigNull.moduleSet.getList():
+				attributes.doSetAttr(o,self.d_kwsDefined['attr'],self.d_kwsDefined['value'])
+		    except Exception,error:
+			log.error("%s  child: %s | %s"%(self._str_reportStart,mModule.p_nameShort,error))
+		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
+		return False
+		
+	    except Exception,error:
+		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+		except:
+		    raise StandardError,error
+	    return False  
+	
+    #We wrap it so that it autoruns and returns
+    return fncWrap(moduleInstance,attr,value,settingsOnly,excludeSelf).go()
+
 
