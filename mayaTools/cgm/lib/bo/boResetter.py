@@ -37,10 +37,14 @@
 """
 
 import pymel.core as pm
+import logging
 
 __version__ = '2.2.0'
 
 DEFAULTS_ATTR = 'brstDefaults'
+
+LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.INFO)
 
 
 class GUI(object):
@@ -155,7 +159,7 @@ def setDefaults(nodes=None, attrList=[], key=True, nonkey=False, cbsel=False, at
         else:
             pm.warning('No matching attributes for {0} to set defaults. removing defaults'.format(n))
             removeDefaults(n)
-    print('# set defaults for {0} object(s)'.format(len(nodes)))
+    LOG.debug('set defaults for {0} object(s)'.format(len(nodes)))
 
 def setDefaultsForAttrs(attrs):
     """
@@ -181,7 +185,7 @@ def setDefaultsForAttrs(attrs):
         pm.warning('cannot store defaults, {0} is locked'.format(dattr))
     else:
         dattr.set(str(defaults))
-        print ('# stored {0} default(s) for {1}: {2}'.format(len(defaults.keys()), node, defaults.keys()))
+        LOG.debug('stored {0} default(s) for {1}: {2}'.format(len(defaults.keys()), node, defaults.keys()))
 
 
 
@@ -341,10 +345,10 @@ def reset(nodes=None, useDefaults=True, useStandards=False, useCBSelection=True)
                 try:
                     attr.set(value)
                 except Exception as e:    
-                    print ('# skipping {0}. could not set attribute:'.format(attr))
-                    print (e)
+                    LOG.info ('skipping {0}. could not set attribute:'.format(attr))
+                    LOG.info (e)
             else:
-                print ('# skipping {0}. attribute not settable'.format(attr))
+                LOG.info ('skipping {0}. attribute not settable'.format(attr))
 
 
 # Utils
@@ -352,9 +356,9 @@ def reset(nodes=None, useDefaults=True, useStandards=False, useCBSelection=True)
 
 def listObjectsWithDefaults():
     nodes = getObjectsWithDefaults()
-    print('\n# Objects with defaults ({0})'.format(len(nodes)))
+    LOG.info('Objects with defaults ({0})'.format(len(nodes)))
     for n in nodes:
-        print('#   {0}'.format(n))
+        LOG.info('   {0}'.format(n))
 
 def listDefaults(nodes=None):
     if nodes is None:
@@ -364,10 +368,10 @@ def listDefaults(nodes=None):
         else:
             nodes = getObjectsWithDefaults()
     nodesWithDefaults = [n for n in nodes if n.hasAttr(DEFAULTS_ATTR)]
-    print('\n# Object defaults ({0})'.format(len(nodesWithDefaults)))
+    LOG.info('Object defaults ({0})'.format(len(nodesWithDefaults)))
     for n in nodesWithDefaults:
         defaults = getDefaults(n)
-        print('#   {0}: {1}'.format(n, defaults))
+        LOG.info('   {0}: {1}'.format(n, defaults))
 
 def selectObjectsWithDefaults():
     pm.select(getObjectsWithDefaults())

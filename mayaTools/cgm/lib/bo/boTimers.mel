@@ -1,0 +1,61 @@
+/*
+    Bo Timers Mel
+    1.0
+    
+    created by Bohdon Sayre
+    bsayre@c.ringling.edu
+    
+    Description:
+        Provides the boTimersStart and boTimersCancel procedures
+		for using the boTimers.py module
+    
+    Version 1.0:
+		> boTimerCancel runs the kill() function, then deletes the variabls
+		> boTimerStart creates a boTimer python class instance, but doesn't clear the variable when it's finished...
+
+*/
+
+global proc boTimerStart(string $timerPyName, float $dur, string $cmd) {
+	python("from boTimers import *");
+	python($timerPyName+"=boTimerStart("+$dur+", \""+encodeString($cmd)+"\")");
+}
+global proc boTimerCancel(string $timerPyName) {
+	python("from boTimers import *");
+	python($timerPyName+".kill()\ndel "+$timerPyName);
+}
+
+global proc btcPythonAppendScriptsPath() {
+	string $env = `getenv "MAYA_SCRIPT_PATH"`;
+	string $dirs[] = stringToStringArray($env, ";");
+	string $goalPath;
+	
+	for ($dir in $dirs) {
+		if (size(`match "/2008/scripts$" $dir`))
+			$goalPath = $dir;
+	}
+	while(size(`match "/" $goalPath`))
+		$goalPath = `substitute "/" $goalPath "\\\\"`;
+	
+	python("import sys");
+	string $curPaths[] = `python "sys.path"`;
+	for ($path in $curPaths) {
+		if (size(`match "\\\\2008\\\\scripts" $path`)) {
+			//print ("path found: "+$path+"\n"); //pv
+			return;
+		}
+	}
+	
+	//append it
+	string $cmd;
+	$cmd = ("sys.path.append(\""+$goalPath+"\")");
+	python($cmd);
+	
+	$curPaths = `python "sys.path"`;
+	//print("new python sys paths:\n");
+	//print $curPaths;
+	//print "\n";
+	
+}
+
+btcPythonAppendScriptsPath();
+python("from boTimers import *");

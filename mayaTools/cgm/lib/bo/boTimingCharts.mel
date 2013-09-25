@@ -1,0 +1,2977 @@
+/*
+    Timing Charts
+    0.61
+    
+    Copyright © 2009 Bohdon Sayre
+	All Rights Reserved.
+    bsayre@c.ringling.edu
+    
+    Description:
+        Provides an interactive timing chart system for
+		animation one or many objects via charts and gesture
+		based sketching.
+    
+    unique prefix: btc
+    
+    Version 0.61:
+		> Optional tick mark next to numbers to show the current frame
+		> Tool tips underneath the current chart let you know which mode you're in
+		> Right click menu on ticks and numbers lets you choose from possible times
+		> Arbitrary Inbetweens now possible with Shift+click or middle mouse
+		> Option for enabling Update During Playback
+		> Ability to Clear/Record any number reference
+		> Number Sketch References are saved to the user's preferences
+		> Chart Title window for easily renaming charts
+		> Chart Color defaults can be saved to the user's preferences
+		> Chart Color control window for easily setting chart colors
+		> Dynamic storing/loading of chart data per keyframe segment
+		> Gesture based Sketch Numbers Tool
+		> Gesture based Sketch Breakdowns Tool
+    
+    Feel free to email me with any bugs, comments, or requests!
+*/
+
+global proc boTimingCharts() {
+//builds the main window for managing timing charts
+
+	//window name
+	$win = "btcWin";
+	
+	//check for pre-existing window
+	if (`window -ex $win`) deleteUI -wnd $win;
+	
+	//create window
+	window -w 100 -h 100 -rtf 1 -mb 1 -mxb 0 -t "btc 0.61" -mnc ("window -e -t \"btc 0.61\" "+$win+";") $win;
+	
+	//main layout
+	columnLayout -adj 1 -rs 2;
+		button -l "Setup Timing Charts!" -c "btcSetupTimingCharts \"persp\"";
+		button -l "Remove Timing Charts" -c "btcRemoveTimingCharts";
+		button -l "Clear Timing Chart Preferences" -c "btcClearTimingChartPrefs";
+		separator -h 4 -st none;
+		button -l "Make Chart (select objects first)" -c "btcAddChart(`ls -sl`)";
+	
+	//window -e -w 100 -h 100 $win;
+	showWindow $win;
+}
+//====================================================================================================
+// SETUP AND REMOVAL PROCEDURES
+global proc btcSetupTimingCharts(string $cam) {
+//sets up the main group nodes and hierarchy connected to the camera
+//the camera will be dynamic later, with easy swapping abilities
+
+	source boTimers;
+	source boRightClickManager;
+	
+	//check parameters
+	if (!`objExists $cam`) {
+		error ($cam+" is not a valid camera");
+	}
+	
+	//check for main hierarchy
+	if (`objExists btcTimingCharts`) {
+		error ("Timing Charts have already been set up");
+	}
+	
+	string $selList[];
+	string $camShape;
+	float $btcCommonPrefs[];
+	float $numRecogResponse;
+	string $btcTimingCharts;
+	string $btcCameraTransform;
+	string $btcCameraZ;
+	string $btcSketchRefGrp;
+	string $btcSketchRefCurve;
+	string $btcCameraAdjust;
+	
+	
+	$selList = `ls -r 1 -sl`;
+	$camShape = btcGetFrom(`listRelatives -c -typ "camera" $cam`, 0);
+	if ($camShape == "") {
+		error ($cam+" is not a valid camera");
+	}
+	
+	//get common prefs
+	if (`optionVar -ex "btcTimingChartCommonPrefs"`)
+		$btcCommonPrefs = `optionVar -q "btcTimingChartCommonPrefs"`;
+	else
+		$btcCommonPrefs = {0.25};
+	$numRecogResponse = $btcCommonPrefs[0];
+	
+	//build main hierarchy
+	//main group node, holds a few options
+	$btcTimingCharts = `group -em -n "btcTimingCharts"`;
+	addAttr -ln "currentChart" -dt "string" $btcTimingCharts;
+	setAttr -l 1 -type "string" ($btcTimingCharts+".currentChart");
+	addAttr -ln "sketchRefObj" -dt "string" $btcTimingCharts;
+	addAttr -ln "numRecogResponse" -at double -min .1 -max 1 -dv $numRecogResponse $btcTimingCharts;
+	//add an expression that updates the chart during playback, but only if global int $btcUpdateDuringPlayback is true
+	expression -s ("tx = 0; //needed to attach the expression to the node\n\if (`exists btcAlwaysEvaluateProc`)\n\tbtcAlwaysEvaluateProc;") -o $btcTimingCharts -ae 1 -sn -uc all -n "btcAlwaysEvaluate_exp";
+	//
+	//the Camera Transform node follows the designated camera
+	$btcCameraTransform = `group -em -p $btcTimingCharts -n "btcCameraTransform"`;
+	btcConnectSameAttrs($cam, $btcCameraTransform, {"tx","ty","tz","rx","ry","rz","sx","sy","sz"});
+	//camera adjustment forward (1 unit)
+	string $btcCameraZ = `group -em -p $btcCameraTransform -n "btcCameraZ"`;
+	setAttr ($btcCameraZ+".tz") -1;
+	//
+	//sketch recognition group for storing the reference curves
+	$btcSketchRefGrp = `group -em -p $btcCameraZ -n "btcSketchRecogRefGrp"`;
+	setAttr ($btcSketchRefGrp+".tz") -20;
+	setAttr ($btcSketchRefGrp+".sx") 10;
+	setAttr ($btcSketchRefGrp+".sy") 10;
+	setAttr ($btcSketchRefGrp+".sz") 10;
+	setAttr ($btcSketchRefGrp+".v") 0;
+	//
+	//make the hidden sketch reference curve (used in objectViewPlane projects of each draggerContext)
+	$btcSketchRefCurve = `curve -d 1 -p 0 0 0 -p 0 0 0 -n ("btcSketchRecogRefCurve")`;
+	setAttr -l 1 ($btcSketchRefCurve+".v") 0;
+	btcSetAttrs({$btcSketchRefCurve}, {"[allXforms]"}, 1, 0, 0);
+	parent $btcSketchRefCurve $btcCameraZ;
+	$btcSketchRefCurve = btcGetFrom(`ls -l -sl`, 0);
+	//take this time to also lock the attribute
+	setAttr -l 1 -type "string" ($btcTimingCharts+".sketchRefObj") $btcSketchRefCurve;
+	//
+	//the Camera Adjust node adjusts for film aperture, and offsets in front of the camera to avoid nearclipping
+	$btcCameraAdjust = `group -em -p $btcCameraZ -n "btcCameraAdjust"`;
+	setAttr ($btcCameraAdjust+".sy") -1;
+	addAttr -ln "cameraFocalLength"  -at double $btcCameraAdjust;
+	setAttr -e -k 0 -cb 1 ($btcCameraAdjust+".cameraFocalLength");
+	//focal length is compensated in this node (the cameraAdjust node)
+	expression -s ("cameraFocalLength = "+$camShape+".focalLength;\nsx = -sy = -(35/cameraFocalLength);")  -o $btcCameraAdjust -ae 1 -sn -uc all -n "btcCameraAdjust_exp";
+	//
+	//lock up attributes
+	btcSetAttrs({$btcTimingCharts, $btcCameraTransform, $btcCameraAdjust, $btcCameraZ, $btcSketchRefGrp}, {"[allXforms]"}, 1, 0, 0);
+	btcSetAttrs({$btcTimingCharts, $btcCameraTransform, $btcCameraAdjust, $btcCameraZ, $btcSketchRefGrp}, {"v"}, 0, 0, 1);
+	
+	//setup sketching context
+	btcSetup_sketchContexts;
+	//setup the default reference curves
+	btcSetup_sketchBreakdownRefs;
+	//setup selection checking script job
+	btcSetup_setupScriptJobs;
+	//load any saved number references
+	btcCtx_SketchNumbersLoadRefs;
+	//add the right click condition for boTimingCharts
+	brcmRegisterCondition("btcTimingChartsRMBCondition", 0);
+	brcmRegisterHitCondition("btcTimingChartsRMBHitCondition");
+	
+	
+	//setup global variables
+	global int $btcTimingChartsSetup;
+	global int $btcShowNumberTickers;
+	global int $btcUpdateDuringPlayback;
+	global int $btcAutoSelect_chartMainTitle;
+	global int $btcAutoSelect_lineCurve;
+	global int $btcAutoSelect_arcCurve;
+	global int $btcAutoSelect_chartMainLine;
+	global int $btcSketchNumberTraining;
+	global float $btcTimerX;
+	//set certain globals
+	$btcAutoSelect_chartMainTitle = 1;
+	$btcAutoSelect_chartMainLine = 1;
+	$btcAutoSelect_arcCurve = 1;
+	$btcAutoSelect_lineCurve = 1;
+	$btcUpdateDuringPlayback = 0;
+	$btcShowNumberTickers = 1;
+	$btcTimingChartsSetup = 1;
+	$btcSketchNumberTraining = 0;
+	
+	btcSaveTimingChartCommonPrefs;
+	
+	select -cl;
+	select $selList;
+	
+	//finished!
+	print ("// Bo Timing Charts setup successfully!...\n");
+}
+global proc btcSetup_sketchBreakdownRefs() {
+//creates the curves in btcSketchRefGrp that are used for breakdown recognition
+
+	string $btcSketchRefGrp = ("btcSketchRecogRefGrp");
+	
+	//build the arc versions
+	string $curveNames[] = {"halvesRight", "halvesLeft", "thirdsRight", "thirdsLeft"};
+	float $curveDivs[] = {2, 2, 3, 3};
+	float $curveSides[] = {1, -1, 1, -1};
+	for ($i = 0; $i < size($curveNames); $i++) {
+		
+		string $tempCurves[];
+		float $curDivs = $curveDivs[$i];
+		string $name = $curveNames[$i];
+		int $scaleX = $curveSides[$i];
+		
+		for ($j = 0; $j < $curDivs; $j++) {
+			$tempCurves[size($tempCurves)] = btcBuildArc(($j/$curDivs), (($j+1)/$curDivs));
+		}
+		string $attached = btcGetFrom(`attachCurve  -ch 0 -rpo 0 -kmk 1 -m 1 -bb 0.5 -bki 1 -p 0.1 $tempCurves`, 0);
+		string $final = btcGetFrom(`rebuildCurve -ch 0 -rpo 1 -rt 0 -end 1 -kr 0 -kcp 0 -kep 1 -kt 0 -s 60 -d 1 -tol 0.000000001 $attached`, 0);
+		delete $tempCurves;
+		
+		$final = `rename $final ("btcBreakdownSketchRef_"+$name+"1")`;
+		setAttr ($final+".sx") $scaleX;
+		
+		btcSetAttrs({$final}, {"[allXforms]"}, 1, 0, 0);
+		string $curve;
+		$curve = btcUnitizeCurve($final);
+		btcSetAttrs({$curve}, {"[allXforms]"}, 1, 0, 0);
+		
+		// add breakdown data
+		addAttr -ln "numDivs"  -at long  -dv $curDivs $curve;
+		setAttr -l 1 -cb 1 ($curve+".numDivs");
+		
+		//duplicate the curve and reverse it
+		$curve = btcGetFrom(`duplicate -rr $curve`, 0);
+		reverseCurve -ch 0 -rpo 1 $curve;
+	}
+	
+	//make the quicker versions (a single line (both ways) and a zig zag)
+	for ($i = 0; $i < 2; $i++) {
+		string $final = `curve -d 1 -p 0 0 0 -p 1 1 0 -k 0 -k 1`;
+		$final = `rename $final ("btcBreakdownSketchRef_halvesQuick"+($i+1))`;
+		setAttr ($final+".sx") (($i*2)-1);
+		btcSetAttrs({$final}, {"[allXforms]"}, 1, 0, 0);
+		string $curve = btcUnitizeCurve($final);
+		btcSetAttrs({$curve}, {"[allXforms]"}, 1, 0, 0);
+		// add breakdown data
+		addAttr -ln "numDivs"  -at long  -dv 2 $curve;
+		setAttr -l 1 -cb 1 ($curve+".numDivs");
+		
+		//duplicate the curve and reverse it
+		$curve = btcGetFrom(`duplicate -rr $curve`, 0);
+		reverseCurve -ch 0 -rpo 1 $curve;
+	}
+	//and the thirds version... (a zig zag)
+	for ($i = 0; $i < 2; $i++) {
+		string $final = `curve -d 1 -p 0 1 0 -p 1 .5 0 -p 0 0 0 -k 0 -k 1 -k 2`;
+		$final = `rename $final ("btcBreakdownSketchRef_thirdsQuick"+($i+1))`;
+		setAttr ($final+".sx") (($i*2)-1);
+		btcSetAttrs({$final}, {"[allXforms]"}, 1, 0, 0);
+		string $curve = btcUnitizeCurve($final);
+		btcSetAttrs({$curve}, {"[allXforms]"}, 1, 0, 0);
+		// add breakdown data
+		addAttr -ln "numDivs"  -at long  -dv 3 $curve;
+		setAttr -l 1 -cb 1 ($curve+".numDivs");
+		
+		//duplicate the curve and reverse it
+		$curve = btcGetFrom(`duplicate -rr $curve`, 0);
+		reverseCurve -ch 0 -rpo 1 $curve;
+	}
+}
+global proc btcSetup_setupScriptJobs() {
+//sets up the scriptnode that contains the script jobs for Bo Timing Charts
+
+	string $beforeScript;
+	$beforeScript = "if (`exists btcSelectScriptJobProc` && `exists btcTimeChangeCheck`) {\n scriptJob -cu 1 -kws -e \"SelectionChanged\" \"btcSelectScriptJobProc\";\n scriptJob -cu 1 -kws -e \"timeChanged\" \"btcTimeChangeCheck\";\n }\n if (`exists btcFileOpenProc`)\n btcFileOpenProc;";
+	
+	string $afterScript;
+	$afterScript = " btcKillScriptJobByName(\"" + encodeString("\"SelectionChanged\" \"btcSelectScriptJobProc\"") + "\");\n btcKillScriptJobByName(\"" + encodeString("\"timeChanged\" \"btcTimeChangeCheck\"") + "\");";
+	
+	scriptNode -bs $beforeScript -as $afterScript -st 1 -n "btcScriptJobs_sn";
+	scriptNode -eb "btcScriptJobs_sn";
+}
+global proc btcRemoveTimingCharts() {
+//removes all timing charts and associated data
+
+	//delete charts
+	if (`objExists "btcTimingCharts"`)
+		delete btcTimingCharts;
+	
+	if (size(`ls "*btcScriptJobs_sn*"`)>0)
+		delete `ls "*btcScriptJobs_sn*"`;
+	
+	//remove registered right click conditions
+	source boRightClickManager;
+	brcmRemoveCondition("btcTimingChartsRMBCondition");
+	brcmRemoveHitCondition("btcTimingChartsRMBHitCondition");
+	
+	//global variables
+	global int $btcTimingChartsSetup;
+	global string $btcChartList[];
+	$btcTimingChartsSetup = 0;
+	clear $btcChartList;
+}
+global proc btcSaveTimingChartCommonPrefs() {
+//saves common timing chart preferences like num response time
+
+	optionVar -ca "btcTimingChartCommonPrefs";
+	float $numRecogResponse = `getAttr ("btcTimingCharts.numRecogResponse")`;
+	global int $btcAutoSelect_chartMainTitle;
+	global int $btcAutoSelect_chartMainLine;
+	global int $btcAutoSelect_arcCurve;
+	global int $btcAutoSelect_lineCurve;
+	global int $btcShowNumberTickers;
+	optionVar -fva "btcTimingChartCommonPrefs" $numRecogResponse;
+	optionVar -fva "btcTimingChartCommonPrefs" $btcAutoSelect_chartMainTitle;
+	optionVar -fva "btcTimingChartCommonPrefs" $btcAutoSelect_chartMainLine;
+	optionVar -fva "btcTimingChartCommonPrefs" $btcAutoSelect_arcCurve;
+	optionVar -fva "btcTimingChartCommonPrefs" $btcAutoSelect_lineCurve;
+	optionVar -fva "btcTimingChartCommonPrefs" $btcShowNumberTickers;
+	
+	//print ("//Timing Chart common preferences saved...\n");
+}
+global proc btcClearTimingChartPrefs() {
+//removes all optionVars created by Bo Timing Charts
+
+	string $optionVars[];
+	$optionVars = {"btcChartColorDefaults",
+					"btcNumSketchRefCurves",
+					"btcTimingChartCommonPrefs"};
+	
+	for ($option in $optionVars) {
+		optionVar -remove $option;
+	}
+	
+	print ("// Timing Chart Preferences successfully removed...\n");
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//MANAGING PROCEDURES
+global proc string btcAddChart(string $objs[]) {
+//adds a timing chart for the specified object (TODO: more than one object)
+//currently finds the CameraAdjust node by name (TODO: more stable search)
+//(TODO: prompt for name if more than one object is specified?)
+//(TODO: prevent duplicate charts on the same object (to avoid chartControl naming conflicts))
+//the registered chart name is incremental, all objects involved are contained in an attribute
+//returns name of the chart
+
+
+	global int $btcTimingChartsSetup;
+	global string $btcChartList[];
+	string $chartNum; //most important variable
+	string $chartControlName;
+	string $chartControl;
+	string $chartMainCurve;
+	string $chartMainLinesGrp;
+	string $chartMainArcGrp;
+	string $chartMainDataGrp;
+	string $chartMainNumsGrp;
+	string $chartTitle;
+	string $chartTitleStr;
+	string $chartTitleShape;
+	string $chartToolText;
+	string $chartToolShape;
+	string $mainObj;
+	int $chartColorDefaults[];
+	
+	//check for timing charts setup
+	if (!`objExists "*btcTimingCharts*"`) {
+		error ("Please setup Bo Timing Charts first");
+		return "";
+	}
+	for ($obj in $objs) {
+		if (!`objExists $obj`) {
+			error ("Specified object(s) do not exist");
+			return "";
+		}
+	}
+	$mainObj = $objs[0];
+	if (size($objs) > 1) {
+		//prompt for the chartTitleStr
+		$result = `promptDialog
+			-title "Chart Title"
+			-message "Enter a name for your chart):"
+			-button "OK"
+			-button "Random"
+			-button "Cancel"
+			-db "OK"
+			-cb "Cancel"`;
+		if ($result == "OK" && `promptDialog -q -text` != "") {
+			$chartTitleStr = `promptDialog -q -text`;
+		} else if ($result == "Random") {
+			$chartTitleStr = btcRandomName();
+		} else {
+			return "";
+		}
+	} else {
+		$chartTitleStr = $mainObj;
+	}
+	
+	//setup naming
+	global string $btcChartList[];
+	if (size($btcChartList) > 0) {
+		$chartNum = btcGetNextNum($btcChartList[size($btcChartList)-1]);
+	} else {
+		//first chart
+		$chartNum = "001";
+	}
+	
+	$chartControlName = "btcChartControl_" + $chartNum;
+	//add to global list
+	$btcChartList[size($btcChartList)] = $chartNum;
+	
+	//create Control Node
+	$chartControl = `group -em -p btcCameraAdjust -n $chartControlName`;
+	btcSetCurrentChart($chartNum);
+	
+	$chartControl =  btcGetFrom(`ls -l -sl`, 0);
+	btcSetAttrs({$chartControl}, {"v"}, 0, 0, 1);
+	//add attributes for objects and chart name
+	addAttr -ln "chartTitle" -dt "string" $chartControl;
+	addAttr -ln "chartNum" -dt "string" $chartControl;
+	addAttr -ln "chartObjects" -dt stringArray $chartControl;
+	addAttr -ln "currentIndeces" -dt stringArray $chartControl;
+	addAttr -ln "currentArcData" -dt stringArray $chartControl;
+	addAttr -ln "currentTimeData" -dt stringArray $chartControl;
+	addAttr -ln "currentKeyRange" -dt stringArray $chartControl;
+	addAttr -ln "lastKeyTimes" -dt stringArray $chartControl;
+	addAttr -ln "toolText" -dt "string" $chartControl;
+	setAttr -type "string" ($chartControl+".chartTitle") $chartTitleStr;
+	setAttr -l 1 -type "string" ($chartControl+".chartNum") $chartNum;
+	btcSetStringArrayAttr(($chartControl+".chartObjects"), $objs);
+	
+	//display attributes
+	if (`optionVar -ex "btcChartColorDefaults"`)
+		$chartColorDefaults = `optionVar -q "btcChartColorDefaults"`;
+	else
+		$chartColorDefaults = {8, 1, 1, 1, 1, 3};
+	addAttr -ln "arcDisplayWidth" -at double -min .25 -max 1 -dv 1 $chartControl;
+	addAttr -ln "lineDisplayWidth" -at double -min .25 -max 2 -dv 1 $chartControl;
+	addAttr -ln "titleColor" -at long -min 0 -max 32 -dv $chartColorDefaults[0] $chartControl;
+	addAttr -ln "mainLineColor" -at long -min 0 -max 32 -dv $chartColorDefaults[1] $chartControl;
+	addAttr -ln "keysColor" -at long -min 0 -max 32 -dv $chartColorDefaults[2] $chartControl;
+	addAttr -ln "inbetweensColor" -at long -min 0 -max 32 -dv $chartColorDefaults[3] $chartControl;
+	addAttr -ln "tickLinesColor" -at long -min 0 -max 32 -dv $chartColorDefaults[4] $chartControl;
+	addAttr -ln "arcsColor" -at long -min 0 -max 32 -dv $chartColorDefaults[5] $chartControl;
+	setAttr -k 0 -cb 1 ($chartControl+".arcDisplayWidth");
+	setAttr -k 0 -cb 1 ($chartControl+".lineDisplayWidth");
+	setAttr -k 0 -cb 1 ($chartControl+".titleColor");
+	setAttr -k 0 -cb 1 ($chartControl+".mainLineColor");
+	setAttr -k 0 -cb 1 ($chartControl+".keysColor");
+	setAttr -k 0 -cb 1 ($chartControl+".inbetweensColor");
+	setAttr -k 0 -cb 1 ($chartControl+".tickLinesColor");
+	setAttr -k 0 -cb 1 ($chartControl+".arcsColor");
+	
+	//create mainLine curve
+	$chartMainCurve = `curve -d 1 -p 0 -0.5 0 -p 0 0.5 0 -k 0 -k 1`;
+	//use the renaming method so the shape gets named automatically
+	$chartMainCurve = `rename $chartMainCurve ("btcChartMainLine_"+$chartNum)`;
+	setAttr ($chartMainCurve+".overrideEnabled") 1;
+	connectAttr -f ($chartControl+".mainLineColor") ($chartMainCurve+".overrideColor");
+	//lock attributes so parenting doesn't change them
+	btcSetAttrs({$chartMainCurve}, {"[allXforms]"}, 1, 0, 0);
+	$chartMainCurve = btcGetFrom(`parent $chartMainCurve $chartControl`, 0);
+	//
+	//create main group for line curves
+	$chartMainLinesGrp = `group -em -p $chartControl -n ("btcChartLinesGrp_"+$chartNum)`;
+	setAttr ($chartMainLinesGrp+".ty") -.5;
+	setAttr ($chartMainLinesGrp+".overrideEnabled") 1;
+	connectAttr -f ($chartControl+".lineDisplayWidth") ($chartMainLinesGrp+".sx");
+	connectAttr -f ($chartControl+".tickLinesColor") ($chartMainLinesGrp+".overrideColor");
+	//create main group for arc curves
+	$chartMainArcGrp = `group -em -p $chartControl -n ("btcChartArcsGrp_"+$chartNum)`;
+	setAttr ($chartMainArcGrp+".ty") -.5;
+	setAttr ($chartMainArcGrp+".overrideEnabled") 1;
+	connectAttr -f ($chartControl+".arcDisplayWidth") ($chartMainArcGrp+".sx");
+	connectAttr -f ($chartControl+".arcsColor") ($chartMainArcGrp+".overrideColor");
+	//create main group for chart data
+	$chartMainDataGrp = `group -em -p $chartControl -n ("btcChartDataGrp_"+$chartNum)`;
+	//create main group for arc numbers
+	$chartMainNumsGrp = `group -em -p $chartControl -n ("btcChartNumsGrp_"+$chartNum)`;
+	setAttr ($chartMainNumsGrp+".ty") -.5;
+	setAttr ($chartMainNumsGrp+".overrideEnabled") 1;
+	connectAttr -f ($chartControl+".inbetweensColor") ($chartMainNumsGrp+".overrideColor");
+	connectAttr -f ($chartControl+".lineDisplayWidth") ($chartMainNumsGrp+".sx");
+	//give the chart a title
+	annotate -tx $chartTitleStr ("btcChartMainLine_"+$chartNum);
+	$chartTitle = `rename ("btcChartMainTitle_"+$chartNum)`;
+	$chartTitle = btcGetFrom(`ls -l -sl`, 0);
+	expression -s ("ty = (-1/(btcChartControl_"+$chartNum+".scaleY))*.01-.52;") -o $chartTitle -ae 1 -sn -uc all -n ("btcTitleAdjust_"+$chartNum+"_exp");
+	btcSetAttrs({$chartTitle}, {"[allXforms]"}, 1, 0, 0);
+	//
+	$chartTitleShape = btcGetFrom(`listRelatives -c -s $chartTitle`, 0);
+	setAttr ($chartTitleShape+".displayArrow") 0;
+	connectAttr -f ($chartControl+".chartTitle") ($chartTitleShape+".text");
+	//
+	setAttr ($chartTitle+".overrideEnabled") 1;
+	connectAttr -f ($chartControl+".titleColor") ($chartTitle+".overrideColor");
+	parent $chartTitle $chartControl;
+	//give the chart a tool text
+	annotate -tx "" ("btcChartMainLine_"+$chartNum);
+	$chartToolText = `rename ("btcChartToolText_"+$chartNum)`;
+	$chartToolText = btcGetFrom(`ls -l -sl`, 0);
+	expression -s ("ty = (1/(btcChartControl_"+$chartNum+".scaleY))*.01+.53;") -o $chartToolText -ae 1 -sn -uc all -n ("btcToolTextAdjust_"+$chartNum+"_exp");
+	btcSetAttrs({$chartToolText}, {"[allXforms]"}, 1, 0, 0);
+	//
+	$chartToolTextShape = btcGetFrom(`listRelatives -c -s $chartToolText`, 0);
+	setAttr ($chartToolTextShape+".displayArrow") 0;
+	connectAttr -f ($chartControl+".toolText") ($chartToolTextShape+".text");
+	//
+	setAttr ($chartToolText+".overrideEnabled") 1;
+	setAttr ($chartToolText+".overrideColor") 2;
+	parent $chartToolText $chartControl;
+	
+	//position the chart somewhere
+	setAttr ($chartControl+".sx") .3;
+	setAttr ($chartControl+".sy") .3;
+	setAttr ($chartControl+".sz") .3;
+	
+	//time change check will take care of creating the first chartData node :)
+	btcTimeChangeCheck;
+	btcUpdateChartControl($chartNum);
+	
+	select $chartControl;
+	
+	print ("// timing chart added successfully...\n");
+	
+	return $chartNum;
+}
+global proc btcSetCurrentChart(string $chartNum) {
+//sets the current chart
+
+	if ($chartNum != "" && `objExists ("btcChartControl_"+$chartNum)`)
+		setAttr -l 0 "|btcTimingCharts.currentChart";
+		setAttr -l 1 -type "string" "|btcTimingCharts.currentChart" $chartNum;
+}
+global proc btcSelectChartObjects(string $chartNum) {
+//selects the objects associated with a chart
+
+	string $chartObjects[] = btcGetChartObjects($chartNum);
+	select -add $chartObjects;
+}
+global proc btcAddObjectsToChart(string $objs[], string $chartNum) {
+//adds the specified objects to the chart
+
+	//filter objects
+	string $filteredObjs[] = {};
+	for ($obj in $objs) {
+		if (!size(`match "btcChart" $obj`) && !size(`match "btcNumber" $obj`) && !size(`match "btcArc" $obj`)) {
+			$filteredObjs[size($filteredObjs)] = $obj;
+		}
+	}
+	
+	//first get the current objects
+	string $chartObjects[] = btcGetChartObjects($chartNum);
+	int $size, $sizeBefore, $sizeAfter;
+	$size = size($filteredObjs);
+	$sizeBefore = size($chartObjects);
+	$chartObjects = stringArrayCatenate($chartObjects, $filteredObjs);
+	$chartObjects = stringArrayRemoveDuplicates($chartObjects);
+	$sizeAfter = size($chartObjects);
+	
+	btcSetStringArrayAttr(("btcChartControl_"+$chartNum+".chartObjects"), $chartObjects);
+	
+	if ($size) {
+		if ($sizeBefore != $sizeAfter) {
+			print ("// Successfully added "+($sizeAfter - $sizeBefore)+" object(s)\n");
+		} else {
+			warning ("objects already exist on chart "+`getAttr ("btcChartControl_"+$chartNum+".chartTitle")`);
+		}
+	} else {
+		warning ("no valid objects found to be added");
+	}
+}
+global proc btcRemoveObjectsFromChart(string $objs[], string $chartNum) {
+//adds the specified objects to the chart
+
+	//first get the current objects
+	string $chartObjects[] = btcGetChartObjects($chartNum);
+	string $chartName = `getAttr ("btcChartControl_"+$chartNum+".chartTitle")`;
+	int $sizeBefore, $sizeAfter;
+	
+	$sizeBefore = size($chartObjects);
+	$chartObjects = stringArrayRemove($objs, $chartObjects);
+	$sizeAfter = size($chartObjects);
+	
+	if ($sizeAfter == 0)
+		error ("cannot remove the last objects from chart "+$chartName+"\n");
+	
+	btcSetStringArrayAttr(("btcChartControl_"+$chartNum+".chartObjects"), $chartObjects);
+	if ($sizeBefore != $sizeAfter)
+		print ("// Successfully removed "+($sizeBefore - $sizeAfter)+" object(s)\n");
+	else
+		warning ("objects were not found on chart "+$chartName);
+}
+global proc int btcAddBreakdown(float $params[]) {
+//adds a breakdown to the current chart based on its current indeces and the params
+//$params = {start, end, side, numDivisions}
+
+	global int $btcArbitraryInbetweenMode;
+	string $curChartControl;
+	string $chartNum = btcGetCurrentChart();
+	float $chartIndeces[];
+	float $minStartDist = 500;
+	float $minEndDist = 500;
+	int $closestIndeces[];
+	int $numIndeces;
+	float $startY = $params[0];
+	float $endY = $params[1];
+	int $side = $params[2];
+	int $numDiv = $params[3];
+	float $yMid = $params[4];
+	string $chartArcsGrp = ("btcChartArcsGrp_"+$chartNum);
+	
+	//perform checks
+	if (!`objExists ("btcChartControl_"+$chartNum)`)
+		return 0;
+	
+	//get current chart indeces
+	$chartIndeces = `btcGetIndeces($chartNum)`;
+	$numIndeces = size($chartIndeces);
+	
+	//compare the params against the chart indeces to find
+	//the appropriate slot for inserting the breakdown
+	$closestIndeces[0] = 0;
+	$closestIndeces[1] = 0;
+	for ($i = 0; $i < $numIndeces; $i++) {
+		float $index = $chartIndeces[$i];
+		
+		float $paramStartDist = btcGetDistance({$index}, {$startY});
+		float $paramEndDist = btcGetDistance({$index}, {$endY});
+		
+		if ($paramStartDist < $minStartDist) {
+			$minStartDist = $paramStartDist;
+			$closestIndeces[0] = $i;
+		}
+		if ($paramEndDist < $minEndDist) {
+			$minEndDist = $paramEndDist;
+			$closestIndeces[1] = $i;
+		}
+	}
+	//check to see if the closest's are next to each other
+	if (abs($closestIndeces[0] - $closestIndeces[1]) > 1) {
+		warning ("//the sketched breakdown was invalid, breakdowns must not cross other breakdowns!\n");
+		return 0;
+	}
+		
+	//alright, so they're next to each other, but are they the same? find out and resolve
+	if ($closestIndeces[0] == $closestIndeces[1]) {
+		//theyre the same, this could mean they cross over one, or they are both underneath/above one
+		//if they're crossing, cancel (unless its on the edges), else bump down/up the farthest one from their shared index
+		//also, if they're magically perfectly on one, then cancel, because theres not enough info
+		float $index = $chartIndeces[$closestIndeces[0]];
+		if ($startY <= $index && $endY >= $index) {
+			//crossing: cancel if it's not the edges
+			if ($startY < 0) {
+				//it's the bottom edge, so set them to 0 and 1
+				$closestIndeces = {0, 1};
+			} else if ($endY > 1) {
+				//it's the top edge, so set them to size-2 and size-1
+				$closestIndeces = {$numIndeces-2, $numIndeces-1};
+			} else {
+				//not the edges. cancel
+				warning ("//the sketched breakdown was invalid, breakdowns must not cross other breakdowns!\n");
+				return 0;
+			}
+		} else if ($startY <= $index && $endY <= $index) {
+			//both below: bump start down
+			$closestIndeces[0] -= 1;
+		} else if ($startY >= $index && $endY >= $index) {
+			//both above: bump end up
+			$closestIndeces[1] += 1;
+		}
+	}
+	
+	//there's now no way that they're equal, so check to make sure they aren't above/below bounds, else bump them down/up
+	if ($closestIndeces[0] < 0) {
+		$closestIndeces[0] += 1;
+		$closestIndeces[1] += 1;
+	} else if ($closestIndeces[1] > $numIndeces-1) {
+		$closestIndeces[0] -= 1;
+		$closestIndeces[1] -= 1;
+	}
+	
+	string $arcGroup;
+	if ($btcArbitraryInbetweenMode) {
+		//were going to use the arbitrary arc values as bounds, but split it at the midpoint of the stroke
+		if ($yMid > $chartIndeces[$closestIndeces[0]] && $yMid < $chartIndeces[$closestIndeces[1]]) {
+			//it's valid, so continue
+			//
+			//First
+			$arcGroup = `btcBuildArcSequence $chartIndeces[$closestIndeces[0]] $yMid 1 $chartNum`;
+			setAttr ($arcGroup+".sx") $side;
+			btcSetAttrs({$arcGroup}, {"[allXforms]"}, 1, 0, 0);
+			parent $arcGroup $chartArcsGrp;
+			//
+			//Second
+			$arcGroup = `btcBuildArcSequence $yMid $chartIndeces[$closestIndeces[1]] 1 $chartNum`;
+			setAttr ($arcGroup+".sx") $side;
+			btcSetAttrs({$arcGroup}, {"[allXforms]"}, 1, 0, 0);
+			parent $arcGroup $chartArcsGrp;
+			//
+		}
+	} else {
+		//build arcs normally
+		$arcGroup = `btcBuildArcSequence $chartIndeces[$closestIndeces[0]] $chartIndeces[$closestIndeces[1]] $numDiv $chartNum`;
+		setAttr ($arcGroup+".sx") $side;
+		btcSetAttrs({$arcGroup}, {"[allXforms]"}, 1, 0, 0);
+		parent $arcGroup $chartArcsGrp;
+	}
+		
+	//update the chartControl
+	btcUpdateChartControl($chartNum);
+	
+	select -cl;
+	return 1;
+}
+global proc btcAddTimeValueToSel(float $value) {
+//uses btcAddTimeValue and the selected chart line to add a time value
+
+	string $selList[] = `ls -r 1 -l -sl`;
+	if (!size($selList))
+		return;
+	string $obj = $selList[0];
+	float $index = `getAttr ($obj+".index")`;
+	//if the object is a chart line,
+	//then it's parent will give us the chart number easily
+	string $objParents[] = `listRelatives -p $obj`;
+	string $chartNum = btcGetChart($objParents[0]);
+	
+	btcAddTimeValue($index, $value, $chartNum);
+	
+	select $selList;
+}
+global proc int btcAddTimeValue(float $index, float $time, string $chartNum) {
+//adds a value to the timeData based on current indeces and the params
+	
+	if (!`objExists ("btcChartControl_"+$chartNum)`)
+		return 0;
+	
+	if ($index == 0 || $index == 1) //can't manually set the times of the existing keys
+		return 0;
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	float $keyRange[] = btcGetCurrentKeyRange($chartNum);
+	if ($time <= $keyRange[0] || $time >= $keyRange[1]) {
+		warning ("Number Result out of range: "+$time);
+		return 0;
+	}
+	
+	btcClearTimeDataMatches({$index}, {$time}, $chartNum);
+	string $timeDataAdd = ((string)$index+"^"+(string)$time);
+	string $timeData[] = `getAttr ($chartControl+".currentTimeData")`;
+	$timeData[size($timeData)] = $timeDataAdd;
+	btcSetStringArrayAttr(($chartControl+".currentTimeData"), $timeData);
+	
+	//update the chart
+	btcUpdateChartControl($chartNum);
+	//build breakdowns only if num objects < 10
+	string $chartObjects[] = btcGetChartObjects($chartNum);
+	if (size($chartObjects) <= 10)
+		btcAnim_buildCurrentBreakdowns($chartNum);
+	
+	return 1;
+}
+global proc btcClearTimesOnSel() {
+//clears all of the times for the selected line curves
+
+	string $selList[] = `ls -r 1 -l -sl`;
+	if (!size($selList))
+		return;
+	
+	float $indeces[];
+	for ($obj in $selList) {
+		$indeces[size($indeces)] = `getAttr ($obj+".index")`;
+	}
+	
+	string $objParents[] = `listRelatives -p $selList[0]`;
+	string $chartNum = btcGetChart($objParents[0]);
+		
+	btcClearTimeDataMatches($indeces, {}, $chartNum);
+	
+	//update the chart
+	btcUpdateChartControl($chartNum);
+}
+global proc int btcClearTimeDataMatches(float $indeces[], float $values[], string $chartNum) {
+//removes the specified indeces from the currentTimeData attribute
+//removes the specified values from the currentTimeData attribute
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $timeData[] = `getAttr ($chartControl+".currentTimeData")`;
+	if (!size($timeData))
+		return 2;
+
+	//we need an array that doesn't change (so we can loop through it), so we'll create the timeDataRead array
+	string $timeDataRead[] = $timeData;
+	for ($data in $timeDataRead) {
+		//remove indeces
+		for ($index in $indeces) {
+			string $indexStr = (string)$index;
+			$indexStr = `substitute "\\." $indexStr "\\."`;
+			if (size(`match ("^"+$indexStr+"\\^") $data`))
+				$timeData = stringArrayRemove({$data}, $timeData);
+		}
+		
+		//remove values
+		for ($value in $values) {
+			string $valueStr = (string)$value;
+			$valueStr = `substitute "\\." $valueStr "\\."`;
+			if (size(`match ("\\^"+$valueStr+"$") $data`))
+				$timeData = stringArrayRemove({$data}, $timeData);
+		}
+	}
+	
+	btcSetStringArrayAttr(($chartControl+".currentTimeData"), $timeData);
+	
+	return 1;
+}
+global proc btcClearCurrentChartData(string $chartNum) {
+//removes all data from the current key segment and refreshes the chart
+
+	string $chartData = btcGetCurrentChartData($chartNum);
+	float $keyRange[] = btcGetCurrentKeyRange($chartNum);
+	setAttr ($chartData+".arcData") -type stringArray 0;
+	setAttr ($chartData+".timeData") -type stringArray 0;
+	
+	btcAnim_clearCurrentBreakdowns($chartNum);
+	btcUpdateChart_loadData($chartNum, $keyRange[0]);
+	btcUpdateChartControl($chartNum);
+}
+global proc btcClearBlankChartData(string $chartNum) {
+//checks the current range, then deletes any chart data if a corresponding key doesn't exist for its time
+
+	float $keyRange[] = btcGetCurrentKeyRange($chartNum);
+	for ($i = $keyRange[0]+1; $i < $keyRange[1]; $i++) {
+		string $data[] = {};
+		$data = `ls -l ("btcChartData_"+$chartNum+"_"+$i)`;
+		//
+		if (!size($data))
+			continue;
+		if (`objExists $data[0]`)
+			delete $data;
+	}
+}
+//
+global proc btcRunOnCharts(string $proc, string $charts[]) {
+//runs the specified procedure on the selected charts
+//the procedure must receive the $chartNum parameter
+
+	for ($obj in $charts) {
+		string $chartNum = btcGetChart($obj);
+		if (size($chartNum) == 3) {
+			eval($proc+"(\""+$chartNum+"\")");
+		}
+	}
+}
+global proc btcDeleteBreakdownArc(string $obj) {
+//deletes the specified arc, then updates it's chart
+
+	string $relatives[] = `listRelatives -p -typ "transform" $obj`;
+	string $allArcs[] = `ls -r 1 -sl "btcArcCurve_*"`;
+	if (size($allArcs))
+		delete $allArcs;
+	else
+		delete $obj;
+	string $chartNum = btcGetChart($relatives[0]);
+	btcUpdateChartControl($chartNum);
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//CHECKING PROCEDURES
+global proc btcAlwaysEvaluateProc() {
+	//quick check
+	btcTimeChangeCheckQuick;
+	
+	//longer check
+	global int $btcUpdateDuringPlayback;
+	if ($btcUpdateDuringPlayback)
+		btcTimeChangeCheck;
+}
+global proc btcTimeChangeCheckQuick() {
+//this is a quick check to update the ticker on btcNumbers
+
+	btcUpdate_numberTickers;
+}
+global proc btcTimeChangeCheck() {
+//run by scriptJob on timechange
+	
+	global string $btcLastSelList[];
+	$btcLastSelList = `ls -sl`;
+	
+	//print ("//TimeChangeCheck...\n");
+	//refresh;
+	global float $btcTimerX;
+	$btcTimerX = `timerX`;
+	//as of now, this proc will handle the distribution of cases like deleted keys and new ranges, etc..
+	string $chartList[] = `ls -r 1 "btcChartControl_*"`;
+	for ($obj in $chartList)
+		btcCheck_checkRanges(`btcGetChart $obj`);
+	
+	$btcTimerX = `timerX`;
+	//print ("//TimeChangeCheck End ["+`timerX -st $btcTimerX`+"]\n");
+}
+global proc btcCheck_checkRanges(string $chartNum) {
+//checks the current keyframe range compared to the last known range
+//it then btcCheck_chartData check if the time has changed
+
+	//print ("checking ranges..\n");
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $chartObjects[] = btcGetChartObjects($chartNum);
+	string $timeData[] = `getAttr ($chartControl+".currentTimeData")`;
+	float $lastTimeValues[] = btcGetTimeValuesFromTimeData($timeData);
+	float $lastStart = `btcGetBound $lastTimeValues 0`;
+	float $lastEnd = `btcGetBound $lastTimeValues 1`;
+	float $lastRange[] = {$lastStart, $lastEnd};
+	float $curRange[] = btcGetKeyframeRange($chartObjects);
+	
+	//this procedure only happens after the keyframe indeces are checked,
+	//so we assume that the known indeces and current indeces are in sync
+	//(we don't have to check if only one or the other key time is the same/different)
+	if ($lastRange[0] == $curRange[0] && $lastRange[1] == $curRange[1]) {
+		//print ("range is the same...\n");
+	} else {
+		//print ("new range! loading chart data...\n");
+		//passes the current or last keyframe (curRange[0])
+		//the chartData is named with that frame
+		btcCheck_chartData($chartNum, $curRange[0]);
+		btcUpdateChartControl($chartNum);
+	}
+}
+global proc btcCheck_chartData(string $chartNum, float $time) {
+//checks for existing chart data from the new current range
+//if none exists, runs btcUpdateChart_createData
+//otherwise, runs btcUpdateChart_loadData
+
+	if (!`objExists ("btcChartDataGrp_"+$chartNum)`)
+		return;
+	
+	if (`objExists ("btcChartData_"+$chartNum+"_"+$time)`) {
+		//chart data exists, eventually we'll check to make sure it's range matches but... 0_0 not yet
+		btcUpdateChart_loadData($chartNum, $time);
+	} else {
+		//create chart data (for this range only...)
+		btcUpdateChart_createData($chartNum, $time);
+	}
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//UPDATING PROCEDURES
+global proc btcUpdateChart_createData(string $chartNum, float $time) {
+//creates a chartData node under the ChartDataGrp node which as attributes
+//for storing arcData, timeData, and it's known key range
+//it should be noted that indeces is very dependent on arcData, so we don't store it here
+
+	if (!`objExists ("btcChartDataGrp_"+$chartNum)`)
+		return;
+	string $chartDataGrp = ("btcChartDataGrp_"+$chartNum);
+	string $chartObjects[] = btcGetChartObjects($chartNum);
+	float $keyRange[] = btcGetKeyframeRange($chartObjects);
+	string $keyRangeList[] = btcFloatArrayToStringArray($keyRange);
+	string $chartData = ("btcChartData_"+$chartNum+"_"+$time);
+	
+	//create node
+	$chartData = `group -em -p $chartDataGrp -n $chartData`;
+	//add attributes for objects and chart name
+	addAttr -ln "arcData" -dt stringArray $chartData;
+	addAttr -ln "timeData" -dt stringArray $chartData;
+	addAttr -ln "keyRange" -dt stringArray $chartData;
+	setAttr ($chartData+".arcData") -type stringArray 0;
+	setAttr ($chartData+".timeData") -type stringArray 0;
+	btcSetStringArrayAttr(($chartData+".keyRange"), $keyRangeList);
+	
+	//load data into chartControl
+	btcUpdateChart_loadData($chartNum, $time);
+}
+global proc btcUpdateChart_loadData(string $chartNum, float $time) {
+//gets chart data from the ChartDataGrp and then sets the current values of the chartControl
+//this also then builds the arcs, so that when UpdateChart_general is run, it's just refreshing arcData
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $chartData = ("btcChartData_"+$chartNum+"_"+$time);
+	string $arcData[] = `getAttr ($chartData+".arcData")`;
+	string $timeData[] = `getAttr ($chartData+".timeData")`;
+	string $keyRange[] = `getAttr ($chartData+".keyRange")`;
+	
+	//set the control attributes
+	btcSetStringArrayAttr(($chartControl+".currentArcData"), $arcData);
+	btcSetStringArrayAttr(($chartControl+".currentTimeData"), $timeData);
+	btcSetStringArrayAttr(($chartControl+".currentKeyRange"), $keyRange);
+	
+	//rebuild/delete old arcs
+	btcUpdate_buildArcsFromData($chartNum);
+}
+global proc btcUpdate_buildArcsFromData(string $chartNum) {
+//pretty much the reverse of btcUpdate_currentArcData, this procedure is run
+//after new arcData is loaded
+//it deletes all current arcs, then creates new ones based on the arc data
+
+	//print ("building arcs from data!!...\n");
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $chartArcsGrp = ("btcChartArcsGrp_"+$chartNum);
+	string $arcData[] = `getAttr ($chartControl+".currentArcData")`;
+	
+	//delete current arcs
+	string $curArcs[] = `listRelatives -c -typ "transform" $chartArcsGrp`;
+	for ($obj in $curArcs)
+		delete $obj;
+	
+	for ($data in $arcData) {
+		//split into individual information
+		float $dataSplit[] = btcStringToFloatArray($data, "^");
+		float $start = $dataSplit[0];
+		float $end = $dataSplit[1];
+		int $numDiv = (int)$dataSplit[2];
+		int $side = (int)$dataSplit[3];
+		
+		//build arc!
+		string $arcGroup = `btcBuildArcSequence $start $end $numDiv $chartNum`;
+		//adjust the returned arc groups naming
+		setAttr ($arcGroup+".sx") $side;
+		//lock the groups attributes, for parenting purposes
+		btcSetAttrs({$arcGroup}, {"[all]"}, 1, 0, 0);
+		parent $arcGroup $chartArcsGrp;
+	}
+	
+	//don't need to update because this procedure only occurs during a load
+}
+global proc btcUpdateChartControl(string $chartNum) {
+//updates the specified chart
+//this includes possibly updating arc data, indeces, rebuilding arcs, lines, and numbers, etc
+
+	if (!`objExists ("btcChartControl_"+$chartNum)`)
+		return;
+
+	//print ("//Updating Chart "+$chartNum+" //\n");
+	global float $btcTimerX;
+	$btcTimerX = `timerX`;
+	string $selList[] = `ls -r 1 -l -sl "btcChartMainLine_*"`;
+	
+	if (size($selList) > 0) {
+		btcSetCurrentChart(`btcGetChart($selList[size($selList)-1])`);
+	}
+	
+	//rebuild arc data based on current existing arcs
+	//NOTICE: as of now, arcs that are deleted don't affect any others, so there can be floating arcs (so to speak)...
+	btcUpdate_lastKeyTimes($chartNum);
+	btcUpdate_currentKeyRange($chartNum);
+	btcUpdate_currentArcData($chartNum);
+	btcUpdate_currentIndeces($chartNum);
+	btcUpdate_currentTimeData($chartNum);
+	btcUpdate_setChartData($chartNum);
+	btcClearBlankChartData($chartNum);
+	btcUpdate_numberTickers();
+	
+	select -cl;
+	
+	global string $btcLastSelList[];
+	select $btcLastSelList;
+	clear $btcLastSelList;
+	
+	//print ("//Done Updating ["+`timerX -st $btcTimerX`+"]\n");
+	refresh;
+}
+global proc btcUpdate_lastKeyTimes(string $chartNum) {
+//sets the lastKeyTimes attribute of the chart control to match the
+//keyTimes of all the chartObjects
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $chartObjects[] = btcGetChartObjects($chartNum);
+	float $keyTimes[] = btcGetObjectKeyTimes($chartObjects);
+	string $keyTimesList[] = btcFloatArrayToStringArray($keyTimes);
+	
+	btcSetStringArrayAttr(($chartControl+".lastKeyTimes"), $keyTimesList);
+}
+global proc btcUpdate_currentKeyRange(string $chartNum) {
+//sets the lastKeyTimes attribute of the chart control to match the
+//current key range of all the chartObjects
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $chartObjects[] = btcGetChartObjects($chartNum);
+	float $keyRange[] = btcGetKeyframeRange($chartObjects);
+	string $keyRangeList[] = btcFloatArrayToStringArray($keyRange);
+	
+	btcSetStringArrayAttr(($chartControl+".currentKeyRange"), $keyRangeList);
+}
+global proc btcUpdate_currentArcData(string $chartNum) {
+//this procedure is run only if the current range hasn't changed
+//checks for new/deleted arc curves, then rebuilds arcData accordingly
+//all it really does is loop through all the arcs and grab their indeces and scaleX's
+
+	if (!`objExists ("btcChartArcsGrp_"+$chartNum)`)
+		return;
+	
+	string $arcData[];
+	string $arcsGrp = ("btcChartArcsGrp_"+$chartNum);
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $arcs[] = `listRelatives -c -typ "transform" -f $arcsGrp`;
+	
+	for ($arc in $arcs) {
+		//the size of arcIndeces split by ^ will determine the numDivs
+		//scaleX will determine what side
+		string $arcIndeces = `getAttr ($arc+".arcIndeces")`;
+		string $indeces[] = stringToStringArray($arcIndeces, "^");
+		int $numDiv = size($indeces)-1;
+		int $side = `getAttr ($arc+".scaleX")`;
+		string $arcDataStr = ($indeces[0]+"^"+$indeces[size($indeces)-1]+"^"+$numDiv+"^"+$side);
+		
+		$arcData[size($arcData)] = $arcDataStr;
+	}
+	$arcData = sort($arcData);
+	
+	btcSetStringArrayAttr(($chartControl+".currentArcData"), $arcData);
+	
+	//update the current frames arcData
+}
+global proc btcUpdate_currentIndeces(string $chartNum) {
+//sets the charts currentIndeces attribute based on the currentArcData attribute
+//this happends after btcUpdate_currentArcData
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $curArcData[];
+	string $curIndeces;
+	float $indeces[];
+	string $indecesList[];
+	
+	$curArcData = `getAttr ($chartControl+".currentArcData")`;
+	
+	//if there is no arc data
+	if (!size($curArcData)) {
+		$indeces = {0, 1};
+	} else {
+		$indeces = btcGetIndecesFromArcData($curArcData);
+	}
+	
+	$indecesList = btcFloatArrayToStringArray($indeces);
+	btcSetStringArrayAttr(($chartControl+".currentIndeces"), $indecesList);
+	
+	//now actually build the lines
+	btcBuildLineSequence($indeces, $chartNum);
+}
+global proc btcUpdate_currentTimeData(string $chartNum) {
+//rebuilds the timeData to check for obsolete indeces
+//this happens after btcUpdate_currentIndeces
+//right now, the chart is unfortunately upside down... but I'll get to that...
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	//we always clear 0 and 1 to update them... this will later be handled with the range check
+	btcClearTimeDataMatches({0, 1}, {}, $chartNum);
+	string $timeData[] = `getAttr ($chartControl+".currentTimeData")`;
+	string $chartObjects[] = btcGetChartObjects($chartNum);
+	float $mainFrameRange[];
+	float $indeces[];
+	float $timeIndeces[], $newTimeIndeces[];
+	float $timeValues[], $newTimeValues[];
+	string $indecesStr;
+	$mainFrameRange = btcGetKeyframeRange($chartObjects);
+	
+	if (!size($timeData)) {
+		//timeData doesn't exist, so make it
+		//build 0 and 1, then exit
+		float $startTime = $mainFrameRange[0];
+		float $endTime = $mainFrameRange[1];
+		$timeData = {("0^"+$startTime), ("1^"+$endTime)};
+		
+		btcSetStringArrayAttr(($chartControl+".currentTimeData"), $timeData);
+		btcBuildNumSequence({0.0, 1.0}, {$startTime, $endTime}, $chartNum);
+		return;
+	}
+	
+	//timeData exists, so check all the indeces, then rebuild timeData accordingly
+	$indeces = btcGetIndeces($chartNum);
+	$indecesStr = ("^"+`btcFloatArrayToString $indeces "^"`+"^");
+	$timeIndeces = btcGetTimeIndecesFromTimeData($timeData);
+	$timeValues = btcGetTimeValuesFromTimeData($timeData);
+	
+	//simultaneously build the new indeces and the timeData
+	//clear timeData, we'll use timeIndeces and timeValues to restore it)
+	$timeData = {};
+	//add 0 and 1 indeces and their values
+	for ($i = 0; $i <= 1; $i++) {
+		$timeData[$i] = ($i+"^"+$mainFrameRange[$i]);
+		$newTimeIndeces[$i] = $i;
+		$newTimeValues[$i] = $mainFrameRange[$i];
+	}
+	
+	for ($i = 0; $i < size($timeIndeces); $i++) {
+		if (size(`match ("\\^"+(string)$timeIndeces[$i]+"\\^") $indecesStr`)) {
+			//the index still exists, so add this one to the newTimeIndeces
+			$newTimeIndeces[size($newTimeIndeces)] = $timeIndeces[$i];
+			$newTimeValues[size($newTimeValues)] = $timeValues[$i];
+			$timeData[size($timeData)] = ((string)$timeIndeces[$i]+"^"+(string)$timeValues[$i]);
+		}
+	}
+	$timeData = sort($timeData);
+	btcSetStringArrayAttr(($chartControl+".currentTimeData"), $timeData);
+	
+	//now, actually build the annotations
+	btcBuildNumSequence($newTimeIndeces, $newTimeValues, $chartNum);
+}
+global proc btcUpdate_setChartData(string $chartNum) {
+//stores all the current data to the chartData of the current key range
+
+	//grab all the info, then set it
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $chartObjects[] = btcGetChartObjects($chartNum);
+	float $curRange[] = btcGetKeyframeRange($chartObjects);
+	string $curRangeList[] = btcFloatArrayToStringArray($curRange);
+	float $time = $curRange[0];
+	string $chartData = ("btcChartData_"+$chartNum+"_"+$time);
+	string $arcData[] = `getAttr ($chartControl+".currentArcData")`;
+	string $timeData[] = `getAttr ($chartControl+".currentTimeData")`;
+	btcSetStringArrayAttr(($chartData+".arcData"), $arcData);
+	btcSetStringArrayAttr(($chartData+".timeData"), $timeData);
+	btcSetStringArrayAttr(($chartData+".keyRange"), $curRangeList);
+}
+global proc btcUpdate_numberTickers() {
+//puts a tick next to a number if the current time is equal to it
+
+	global int $btcShowNumberTickers;
+	if (!$btcShowNumberTickers)
+		return;
+	//find all number objects
+	string $numberList[] = `ls "btcNumber_*Shape*"`;
+	float $curTime = `currentTime -q`;
+	for ($num in $numberList) {
+		string $text = `getAttr ($num+".text")`;
+		float $match = (float)`match "[0-9]*$" $text`;
+		if ($match == $curTime)
+			setAttr -type "string" ($num+".text") ("       >"+$match);
+		else
+			setAttr -type "string" ($num+".text") ((string)$match);
+	}
+}
+global proc btcUpdate_removeNumberTickers() {
+//removes any ticks next to numbers
+
+	//find all number objects
+	string $numberList[] = `ls "btcNumber_*Shape*"`;
+	for ($num in $numberList) {
+		string $text = `getAttr ($num+".text")`;
+		float $match = (float)`match "[0-9]*$" $text`;
+		setAttr -type "string" ($num+".text") ((string)$match);
+	}
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//UIs and stuff
+global proc btcUI_chartTitleSet(string $chartNum) {
+//queries a new name for the current chart
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	if (!`objExists $chartControl`)
+		return;
+	string $chartTitle = `getAttr ($chartControl+".chartTitle")`;
+	//prompt for the chart title
+	$result = `promptDialog
+		-title "Edit Title"
+		-text $chartTitle
+		-button "OK"
+		-button "Random"
+		-button "Cancel"
+		-db "OK"
+		-cb "Cancel"`;
+	if ($result == "OK" && `promptDialog -q -text` != "") {
+		$chartTitle = `promptDialog -q -text`;
+	} else if ($result == "Random") {
+		$chartTitle = btcRandomName();
+	} else {
+		return;
+	}
+	
+	if (size($chartTitle))
+		setAttr -type "string" ($chartControl+".chartTitle") $chartTitle;
+}
+global proc btcUI_chartColors() {
+	select -cl;
+	//load the current charts colors
+	string $chartNum = btcGetCurrentChart();
+	print ("btcCurrentChart: "+$chartNum+"\n"); //pv
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $chartTitle = `getAttr ($chartControl+".chartTitle")`;
+	$lastTitleCol = `getAttr ($chartControl+".titleColor")`;
+	$lastMainLineCol = `getAttr ($chartControl+".mainLineColor")`;
+	$lastKeysCol = `getAttr ($chartControl+".keysColor")`;
+	$lastInbetweensCol = `getAttr ($chartControl+".inbetweensColor")`;
+	$lastTickLinesCol = `getAttr ($chartControl+".tickLinesColor")`;
+	$lastArcsCol = `getAttr ($chartControl+".arcsColor")`;
+	
+	
+	//window name
+	string $win = "btcUI_chartColorsWin";
+	//check for existing window
+	if (`window -ex $win`) deleteUI -wnd $win;
+	
+	//create window
+	window -rtf 1 -tlb 1 -s 0 -t (" Chart Colors: "+$chartTitle) $win;
+		
+	//main layout
+	frameLayout -bv 0 -lv 0 -mh 3 -mw 3;
+		columnLayout -rs 2 -adj 1;
+			colorIndexSliderGrp -cw4 70 40 140 2 -min 1 -max 32 -v ($lastTitleCol+1) -fdr
+				-cc ("setAttr "+$chartControl+".titleColor (`colorIndexSliderGrp -q -v btcUI_chartColors_titleSlider`-1)")
+				-dc ("setAttr "+$chartControl+".titleColor (`colorIndexSliderGrp -q -v btcUI_chartColors_titleSlider`-1)")
+				-l "Title"
+				btcUI_chartColors_titleSlider;
+			colorIndexSliderGrp -cw4 70 40 140 2 -min 1 -max 32 -v ($lastKeysCol+1) -fdr
+				-cc ("setAttr "+$chartControl+".keysColor (`colorIndexSliderGrp -q -v btcUI_chartColors_keysSlider`-1)")
+				-dc ("setAttr "+$chartControl+".keysColor (`colorIndexSliderGrp -q -v btcUI_chartColors_keysSlider`-1)")
+				-l "Keys"
+				btcUI_chartColors_keysSlider;
+			colorIndexSliderGrp -cw4 70 40 140 2 -min 1 -max 32 -v ($lastInbetweensCol+1) -fdr
+				-cc ("setAttr "+$chartControl+".inbetweensColor (`colorIndexSliderGrp -q -v btcUI_chartColors_inbetweensSlider`-1)")
+				-dc ("setAttr "+$chartControl+".inbetweensColor (`colorIndexSliderGrp -q -v btcUI_chartColors_inbetweensSlider`-1)")
+				-l "Inbetweens"
+				btcUI_chartColors_inbetweensSlider;
+			colorIndexSliderGrp -cw4 70 40 140 2 -min 1 -max 32 -v ($lastMainLineCol+1) -fdr
+				-cc ("setAttr "+$chartControl+".mainLineColor (`colorIndexSliderGrp -q -v btcUI_chartColors_mainLineSlider`-1)")
+				-dc ("setAttr "+$chartControl+".mainLineColor (`colorIndexSliderGrp -q -v btcUI_chartColors_mainLineSlider`-1)")
+				-l "Main Line"
+				btcUI_chartColors_mainLineSlider;
+			colorIndexSliderGrp -cw4 70 40 140 2 -min 1 -max 32 -v ($lastArcsCol+1) -fdr
+				-cc ("setAttr "+$chartControl+".arcsColor (`colorIndexSliderGrp -q -v btcUI_chartColors_arcsSlider`-1)")
+				-dc ("setAttr "+$chartControl+".arcsColor (`colorIndexSliderGrp -q -v btcUI_chartColors_arcsSlider`-1)")
+				-l "Arc Lines"
+				btcUI_chartColors_arcsSlider;
+			colorIndexSliderGrp -cw4 70 40 140 2 -min 1 -max 32 -v ($lastTickLinesCol+1) -fdr
+				-cc ("setAttr "+$chartControl+".tickLinesColor (`colorIndexSliderGrp -q -v btcUI_chartColors_tickLinesSlider`-1)")
+				-dc ("setAttr "+$chartControl+".tickLinesColor (`colorIndexSliderGrp -q -v btcUI_chartColors_tickLinesSlider`-1)")
+				-l "Tick Lines"
+				btcUI_chartColors_tickLinesSlider;
+			//
+			separator -h 10 -st "in" btcUI_chartColors_separator01;
+			
+			formLayout -nd 100 btcUI_chartColorsForm01;
+				button -l "OK"
+					-c ("deleteUI -wnd "+$win)
+					btcUI_chartColors_OKBtn;
+				button -l "Set Default"
+					-c ("btcUI_chartColorsSetDefaults (`colorIndexSliderGrp -q -v btcUI_chartColors_titleSlider`-1) (`colorIndexSliderGrp -q -v btcUI_chartColors_mainLineSlider`-1) (`colorIndexSliderGrp -q -v btcUI_chartColors_keysSlider`-1) (`colorIndexSliderGrp -q -v btcUI_chartColors_inbetweensSlider`-1) (`colorIndexSliderGrp -q -v btcUI_chartColors_tickLinesSlider`-1) (`colorIndexSliderGrp -q -v btcUI_chartColors_arcsSlider`-1) ;")
+					btcUI_chartColors_setDefaultBtn;
+				button -l "Load Default"
+					-c ("btcUI_chartColorsLoadDefaults \""+$chartNum+"\";")
+					btcUI_chartColors_loadDefaultBtn;
+				button -l "Cancel"
+					-c ("setAttr "+$chartControl+".titleColor "+$lastTitleCol+"; setAttr "+$chartControl+".mainLineColor "+$lastMainLineCol+"; setAttr "+$chartControl+".keysColor "+$lastKeysCol+"; setAttr "+$chartControl+".inbetweensColor "+$lastInbetweensCol+"; setAttr "+$chartControl+".tickLinesColor "+$lastTickLinesCol+"; setAttr "+$chartControl+".arcsColor "+$lastArcsCol+"; deleteUI -wnd "+$win)
+					btcUI_chartColors_cancelBtn;
+				//
+				formLayout -e
+					-ap btcUI_chartColors_OKBtn "left" 0 0
+					-ap btcUI_chartColors_OKBtn "right" 2 50
+					-ap btcUI_chartColors_cancelBtn "left" 2 50
+					-ap btcUI_chartColors_cancelBtn "right" 0 100
+					-ac btcUI_chartColors_setDefaultBtn "top" 2 btcUI_chartColors_OKBtn
+					-ap btcUI_chartColors_setDefaultBtn "left" 0 0
+					-ap btcUI_chartColors_setDefaultBtn "right" 2 50
+					-ac btcUI_chartColors_loadDefaultBtn "top" 2 btcUI_chartColors_OKBtn
+					-ap btcUI_chartColors_loadDefaultBtn "left" 2 50
+					-ap btcUI_chartColors_loadDefaultBtn "right" 0 100
+					btcUI_chartColorsForm01;
+					
+	
+	window -e -h 244 $win;
+	showWindow $win;
+}
+
+global proc btcUI_chartColorsSetDefaults(int $title, int $mainLine, int $keys, int $inbetweens, int $tickLines, int $arcs) {
+//sets the six color values as the defaults
+
+	optionVar -ca "btcChartColorDefaults";
+	optionVar -iva "btcChartColorDefaults" $title;
+	optionVar -iva "btcChartColorDefaults" $mainLine;
+	optionVar -iva "btcChartColorDefaults" $keys;
+	optionVar -iva "btcChartColorDefaults" $inbetweens;
+	optionVar -iva "btcChartColorDefaults" $tickLines;
+	optionVar -iva "btcChartColorDefaults" $arcs;
+	
+	//print ("optionVar btcChartColorDefaults:\n");
+	//print `optionVar -q btcChartColorDefaults`;
+	//print ("btcChartColorDefaults length: "+`optionVar -as "btcChartColorDefaults"`+"\n");
+	print ("// Chart Colors successfully stored as defaults...\n");
+}
+global proc btcUI_chartColorsLoadDefaults(string $chartNum) {
+//sets the colors of the chart to the defaults
+
+	if (`optionVar -ex "btcChartColorDefaults"`) {
+		string $chartControl = ("btcChartControl_"+$chartNum);
+		int $defaultColors[] = `optionVar -q "btcChartColorDefaults"`;
+		setAttr ($chartControl+".titleColor") $defaultColors[0];
+		colorIndexSliderGrp -e -v ($defaultColors[0]+1) btcUI_chartColors_titleSlider;
+		setAttr ($chartControl+".mainLineColor") $defaultColors[1];
+		colorIndexSliderGrp -e -v ($defaultColors[1]+1) btcUI_chartColors_mainLineSlider;
+		setAttr ($chartControl+".keysColor") $defaultColors[2];
+		colorIndexSliderGrp -e -v ($defaultColors[2]+1) btcUI_chartColors_keysSlider;
+		setAttr ($chartControl+".inbetweensColor") $defaultColors[3];
+		colorIndexSliderGrp -e -v ($defaultColors[3]+1) btcUI_chartColors_inbetweensSlider;
+		setAttr ($chartControl+".tickLinesColor") $defaultColors[4];
+		colorIndexSliderGrp -e -v ($defaultColors[4]+1) btcUI_chartColors_tickLinesSlider;
+		setAttr ($chartControl+".arcsColor") $defaultColors[5];
+		colorIndexSliderGrp -e -v ($defaultColors[5]+1) btcUI_chartColors_arcsSlider;
+		print ("// Loaded chart color defaults successfully...\n");
+	} else {
+		print ("// No color defaults were found...\n");
+	}
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//ANIMATION PROCEDURES
+global proc btcAnim_clearCurrentBreakdowns(string $chartNum) {
+//removes all breakdowns in the current keyframe range
+
+	if (!`objExists ("btcChartControl_"+$chartNum)`)
+		return;
+	
+	global float $btcTimerX;
+	$btcTimerX = `timerX`;
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $chartObjects[];
+	float $timeRange[];
+	float $startTime, $endTime;
+	
+	setAttr -type "string" ($chartControl+".toolText") "clearing...";
+	refresh;
+	
+	$chartObjects = btcGetChartObjects($chartNum);
+	$timeRange = btcGetKeyframeRange($chartObjects);
+	$startTime = $timeRange[0];
+	$endTime = $timeRange[1];
+	
+	string $nodes[] = `keyframe -q -name $chartObjects[0]`;
+	float $keys[] = `keyframe -t ($startTime+":"+$endTime) -q -bd $nodes[0]`;
+	//print ("breakdowns found:\n"); //pv
+	//print $keys;
+	if (size($keys))
+		cutKey -time ($keys[0]+":"+$keys[size($keys)-1]) -option keys $chartObjects;
+	
+	setAttr -type "string" ($chartControl+".toolText") "";
+	print ("//Clear Breakdowns End ["+`timerX -st $btcTimerX`+"]\n");
+}
+global proc int btcAnim_buildCurrentBreakdowns(string $chartNum) {
+//builds the breakdowns of the chartObjects for the current keyframe segment
+
+	if (!`objExists ("btcChartControl_"+$chartNum)`)
+		return 0;
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $chartObjs[];
+	string $timeData[];
+	float $timeRange[];
+	float $startTime, $endTime;
+	float $timeIndeces[];
+	float $timeValues[];
+	string $inTangents[];
+	string $outTangents[];
+	//
+	string $curveList[];
+	float $tempValues[];
+	
+	//remove all the breakdowns for the current segment first
+	btcAnim_clearCurrentBreakdowns($chartNum);
+	
+	global float $btcTimerX;
+	$btcTimerX = `timerX`;
+	
+	setAttr -type "string" ($chartControl+".toolText") "setting...";
+	refresh;
+	
+	$chartObjs = btcGetChartObjects($chartNum);
+	$timeData = `getAttr ($chartControl+".currentTimeData")`;
+	$timeRange = btcGetKeyframeRange($chartObjs);
+	$timeIndeces = btcGetTimeIndecesFromTimeData($timeData);
+	$timeValues = btcGetTimeValuesFromTimeData($timeData);
+	$startTime = $timeRange[0];
+	$endTime = $timeRange[1];
+	//
+	$curveList = `keyframe -q -name $chartObjs`;
+	
+	for ($curve in $curveList) {
+		//get the tangent types, then set to linear
+		$inTangents[0] = btcGetFrom(`keyTangent -t $startTime -q -itt $curve`, 0);
+		$outTangents[0] = btcGetFrom(`keyTangent -t $startTime -q -ott $curve`, 0);
+		keyTangent -e -t $startTime -itt "linear" -ott "linear" $curve;
+		
+		for ($i = 0; $i < size($timeValues); $i++) {
+			if ($timeIndeces[$i] != 0 && $timeIndeces[$i] != 1) {
+				//
+				float $sampleTime = ($endTime - $startTime) * $timeIndeces[$i] + $startTime;
+				float $tempVal[] = `keyframe -t $sampleTime -q -eval $curve`;
+				//print ("sampling time:"+$sampleTime+", value:"+$tempVal[0]+"\n");
+				$tempValues[$i] = $tempVal[0];
+			}
+		}
+		for ($i = 0; $i < size($timeValues); $i++) {
+			if ($timeIndeces[$i] != 0 && $timeIndeces[$i] != 1) {
+				setKeyframe -bd 1 -t $timeValues[$i] -v $tempValues[$i] $curve;
+				keyTangent -e -t $timeValues[$i] -itt $inTangents[0] -ott $outTangents[0] $curve;
+				//print ("setting key time:"+$timeValues[$i]+", value:"+$tempValues[$i]+"\n");
+			}
+		}
+		//return start key to normal tangent
+		keyTangent -e -t $startTime -itt $inTangents[0] -ott $outTangents[0] $curve;
+	}
+	
+	
+	setAttr -type "string" ($chartControl+".toolText") "";
+	print ("//Build Breakdowns ["+`timerX -st $btcTimerX`+"]\n");
+	return 1;
+}
+global proc btcAnim_buildAllBreakdowns(string $chartNum) {
+//builds the breakdowns of the chartObjects for all keyframe segments
+
+	
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//condition procedures for right clicking, and right click hit testing
+global proc string btcTimingChartsRMBCondition() {
+	string $selList[] = `ls -r 1 -sl`;
+	if (size(`match "btcChartControl_" $selList[0]`)) {
+		return "btcMM_chartMainLine";
+	}
+	
+	return "";
+}
+global proc string btcTimingChartsRMBHitCondition(string $object) {
+	global string $btcRMBHitObject;
+	$btcRMBHitObject = $object;
+	
+	if (size(`match "btcChartMainLine_" $object`)) {
+		return ("btcMM_chartMainLine");
+	} else if (size(`match "btcChartMainTitle_" $object`)) {
+		return ("btcMM_chartMainLine");
+	} else if (size(`match "btcLineCurve_" $object`)) {
+		return ("btcMM_lineCurve");
+	} else if (size(`match "btcNumber_" $object`)) {
+		return ("btcMM_number");
+	} else if (size(`match "btcArcCurve_" $object`)) {
+		return ("btcMM_arcCurve");
+	}
+	
+	return "";
+}
+//marking menu procedures
+global proc btcMM_chartMainLine(string $parent) {
+	//get the hit object
+	global string $btcRMBHitObject;
+	global float $btcTimerX;
+	string $chartNum = btcGetCurrentChart();
+	string $chartList[];
+	if (size($btcRMBHitObject))
+		$chartList[0] = btcGetChart($btcRMBHitObject);
+	//
+	//append the selection to the list (if any)
+	string $selList[] = `ls -r 1 -sl`;
+	for ($obj in $selList)
+		$chartList[size($chartList)] = btcGetChart($obj);
+	$chartList = stringArrayRemoveDuplicates($chartList);
+	//
+	//create a chart array string, for the commands that require it
+	string $chartStr = ("{\""+`stringArrayToString $chartList "\", \""`+"\"}");
+	//and a selection cmd...
+	string $selStr;
+	if (size($selList) > 0)
+		$selStr = ("select {\""+`stringArrayToString $selList "\", \""`+"\"}");
+	else
+		$selStr = "";
+	
+	if (size($chartList[size($chartList)-1]) == 3)
+		btcSetCurrentChart($chartList[size($chartList)-1]);
+	
+	global int $btcUpdateDuringPlayback;
+	global int $btcShowNumberTickers;
+	
+	
+	setParent -menu $parent;
+	menuItem -rp "N" -l "Clear Inbetweens" -c ("btcRunOnCharts \"btcAnim_clearCurrentBreakdowns\" "+$chartStr+";"+$selStr);
+	menuItem -rp "S" -l "Set Inbetweens" -c ("btcRunOnCharts \"btcAnim_buildCurrentBreakdowns\" "+$chartStr+";"+$selStr);
+	menuItem -rp "W" -l "Select Chart"  -c ("select \"btcChartControl_"+$chartNum+"\";");
+	menuItem -rp "E" -l "Select Objects"  -c ("select -cl; btcRunOnCharts \"btcSelectChartObjects\" "+$chartStr+";");
+	
+	//Playback and time options
+	menuItem -cb ($btcUpdateDuringPlayback) -l "Update During Playback" -c "global int $btcUpdateDuringPlayback; $btcUpdateDuringPlayback = !$btcUpdateDuringPlayback;";
+	menuItem -cb ($btcShowNumberTickers) -l "Mark Current Time" -c "btcUpdate_removeNumberTickers; global int $btcShowNumberTickers; $btcShowNumberTickers = !$btcShowNumberTickers; btcSaveTimingChartCommonPrefs; btcUpdate_numberTickers;";
+	
+	//Add/Remove Objects (only if no charts are selected)
+	if (size($selList)) {
+		if (!size(`ls -sl "*btcChart*"`) && !size(`ls -sl "*btcNumber*"`) && !size(`ls -sl "*btcArc*"`) && !size(`ls -sl "*btcSketch*"`)) {
+			menuItem -d 1;
+			menuItem -l "Add Objects to Chart" -c ("btcAddObjectsToChart `ls -sl` \""+$chartNum+"\";");
+			menuItem -l "Remove Objects from Chart" -c ("btcRemoveObjectsFromChart `ls -sl` \""+$chartNum+"\";");
+		}
+	}
+	
+	//Color settings
+	menuItem -d 1;
+	menuItem -l "Chart Title..." -c ("btcUI_chartTitleSet \""+$chartNum+"\";");
+	menuItem -l "Chart Colors..." -c ("btcUI_chartColors;");
+	
+	//Number Recognition options
+	menuItem -d 1;
+	menuItem -l "Number Recognition Training" -c "btcCtx_SketchNumbersTraining 0 9";
+	float $responseTimes[] = {0.1, 0.15, 0.2, 0.25, 0.35, 0.5};
+	float $curResponse = `getAttr ("btcTimingCharts.numRecogResponse")`;
+	menuItem -sm 1 -l "Response Time...";
+		for ($time in $responseTimes) {
+			menuItem -l (($time == $curResponse ? "> " : "    ")+$time+" sec") -c ("setAttr btcTimingCharts.numRecogResponse "+$time+"; btcSaveTimingChartCommonPrefs;");
+		}
+		setParent -m ..;
+	menuItem -sm 1 -l "Record Number...";
+	
+	//get the count of each number ref that is currently recorded
+	float $counts[];
+	for ($i = 0; $i <= 9; $i++) {
+		$counts[$i] = size(`ls -r 1 ("btcSketchRecogRefGrp|btcNumSketchRef_"+$i+"*")`);
+	}
+	
+	for ($i = 0; $i <= 9; $i++) {
+		menuItem -l ($i+"  ["+$counts[$i]+"]") -c ("btcCtx_SketchNumbersTraining "+$i+" "+$i+";");
+	}
+		menuItem -d 1;
+		menuItem -l "Save Refs" -c "btcCtx_SketchNumbersSaveRefs";
+		setParent -m ..;
+	menuItem -sm 1 -l "Clear Number References...";
+	for ($i = 0; $i <= 9; $i++) {
+		menuItem -l ($i+"  ["+$counts[$i]+"]") -c ("btcCtx_SketchNumbersClearRefs {"+$i+"};");
+	}
+		menuItem -d 1;
+		menuItem -l "Clear All" -c "btcCtx_SketchNumbersClearRefs {0,1,2,3,4,5,6,7,8,9}";
+		setParent -m ..;
+	
+	//Complete Clear at the bottom
+	menuItem -d 1;
+	menuItem -l "Clear Entire Range" -c ("btcRunOnCharts \"btcClearCurrentChartData\" "+$chartStr+";"+$selStr);
+	
+	//clear the RMB object so it doesn't get carried over
+	$btcRMBHitObject = "";
+}
+global proc btcMM_lineCurve(string $parent) {
+	global string $btcRMBHitObject;
+	string $chartNum = btcGetCurrentChart();
+	float $keyRange[] = btcGetCurrentKeyRange($chartNum);
+	
+	setParent -menu $parent;
+	menuItem -rp "N" -l "Clear Time" -c ("select "+$btcRMBHitObject+";btcClearTimesOnSel;select -cl;");
+	
+	//numbers
+	for ($i = $keyRange[0]+1; $i < $keyRange[1]; $i++) {
+		float $index = `getAttr ($btcRMBHitObject+".index")`;
+		menuItem -l ($i) -c ("btcAddTimeValue "+$index+" "+$i+" \""+$chartNum+"\"");
+	}
+}
+global proc btcMM_number(string $parent) {
+	global string $btcRMBHitObject;
+	string $chartNum = btcGetCurrentChart();
+	float $keyRange[] = btcGetCurrentKeyRange($chartNum);
+	float $tickTime = `getAttr ($btcRMBHitObject+".time")`;
+	
+	setParent -menu $parent;
+	menuItem -rp "N" -l "Clear Time" -c ("select "+$btcRMBHitObject+";btcClearTimesOnSel;select -cl;");
+	menuItem -rp "E" -l ("Go To "+$tickTime) -c ("currentTime -e "+$tickTime+";");
+	
+	//numbers
+	for ($i = $keyRange[0]+1; $i < $keyRange[1]; $i++) {
+		float $index = `getAttr ($btcRMBHitObject+".index")`;
+		menuItem -l ($i) -c ("btcAddTimeValue "+$index+" "+$i+" \""+$chartNum+"\"");
+	}
+}
+global proc btcMM_arcCurve(string $parent) {
+	global string $btcRMBHitObject;
+	setParent -menu $parent;
+	menuItem -rp "N" -l "Delete Breakdown(s)" -c ("btcDeleteBreakdownArc "+$btcRMBHitObject+";");
+}
+//====================================================================================================
+
+//====================================================================================================
+//procedures for scriptJobs run on selection change
+global proc btcSelectScriptJobProc() {
+	if (size(`ls -sl "btcChartMainTitle_*"`) > 0){
+		global int $btcAutoSelect_chartMainTitle;
+		if ($btcAutoSelect_chartMainTitle)
+			btcSelectCommand_chartMainTitle;
+	} else if (size(`ls -sl "btcLineCurve_*"`) > 0){
+		global int $btcAutoSelect_lineCurve;
+		if ($btcAutoSelect_lineCurve)
+			btcSelectCommand_lineCurve;
+	} else if (size(`ls -sl "btcArcCurve_*"`) > 0) {
+		global int $btcAutoSelect_arcCurve;
+		if ($btcAutoSelect_arcCurve)
+			btcSelectCommand_arcCurve;
+	} else if (size(`ls -sl "btcChartMainLine_*"`) > 0) {
+		global int $btcAutoSelect_chartMainLine;
+		if ($btcAutoSelect_chartMainLine)
+			btcSelectCommand_chartMainLine;
+	}
+}
+global proc btcSelectCommand_chartMainTitle() {
+//run when a chart title is selected
+	string $chartNum;
+	string $chartMainTitles[] = `ls -r 1 -l -sl "btcChartMainTitle_*"`;
+	select -cl;
+	
+	string $chartControls[];
+	for ($chartTitle in $chartMainTitles) {
+		$chartNum = btcGetChart($chartTitle);
+		btcSetCurrentChart($chartNum);
+		select -add ("btcChartControl_"+$chartNum);
+	}
+}
+global proc btcSelectCommand_chartMainLine() {
+//command run when a chart main line is selected
+
+	string $chartNum;
+	string $chartMainLines[] = `ls -r 1 -l -sl "btcChartMainLine_*"`;
+	select -cl;
+	
+	//the last selected chart is the current one
+	btcSetCurrentChart(`btcGetChart($chartMainLines[size($chartMainLines)-1])`);
+	
+	//update the chart
+	for ($chartLine in $chartMainLines) {
+		$chartNum = btcGetChart($chartLine);
+		btcUpdateChartControl($chartNum);
+	}
+	
+	//select $chartMainLines;
+
+	//set the tool to the sketch breakdowns ctx
+	global string $btcSketchBreakdownsCtx;
+	setToolTo $btcSketchBreakdownsCtx;
+}
+global proc btcSelectCommand_lineCurve() {
+//command run when a line curve is selected
+
+	//deselect everything but the breakdown lines\n\
+	string $lines[] = `ls -sl "btcLineCurve_*"`;
+	select -cl;
+	select $lines;
+	string $parent = btcGetFrom(`listRelatives -p -typ "transform" $lines[0]`, 0);
+	
+	btcSetCurrentChart(`btcGetChart($parent)`);
+	
+	//set the tool to the sketch breakdowns ctx
+	global string $btcSketchNumbersCtx;
+	setToolTo $btcSketchNumbersCtx;
+}
+global proc btcSelectCommand_arcCurve() {
+//command run when an arc curve is selected
+
+	//deselect everything but the arc curves
+	string $arcs[] = `ls -sl "btcArcCurve_*"`;
+	select -cl;
+	select $arcs;
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//CONTEXTS
+global proc btcSetup_sketchContexts() {
+//sets up the dragger contexts for gesture recognition
+
+	global string $btcSketchBreakdownsCtx;
+	$btcSketchBreakdownsCtx = "btcSketchBreakdownsCtx";
+	if( `draggerContext -q -ex $btcSketchBreakdownsCtx` )
+		deleteUI $btcSketchBreakdownsCtx;
+	draggerContext
+		-inz "btcCtx_SketchBreakdownsInit"
+		-ppc "select `btcGetSketchRefObj`;"
+		-pc "btcCtx_SketchBreakdownsPress"
+		-dc "btcCtx_SketchBreakdownsDrag"
+		-rc "btcCtx_SketchBreakdownsRelease"
+		-fnz "btcCtx_SketchBreakdownsFinalize"
+		-um "step"
+		-pr "objectViewPlane"
+		-sp "object"
+		-cursor "crossHair"
+		-name "SketchBreakdownsTool"
+		$btcSketchBreakdownsCtx;
+	
+	
+	global string $btcSketchNumbersCtx;
+	$btcSketchNumbersCtx = "btcSketchNumbersCtx";
+	if( `draggerContext -q -ex $btcSketchNumbersCtx` )
+		deleteUI $btcSketchNumbersCtx;
+	draggerContext
+		-inz "btcCtx_SketchNumbersInit"
+		-ppc "select `btcGetSketchRefObj`;"
+		-pc "btcCtx_SketchNumbersPress"
+		-dc "btcCtx_SketchNumbersDrag"
+		-rc "btcCtx_SketchNumbersRelease"
+		-fnz "btcCtx_SketchNumbersFinalize"
+		-um "sequence"
+		-pr "objectViewPlane"
+		-sp "object"
+		-cursor "crossHair"
+		-name "SketchNumbersTool"
+		$btcSketchNumbersCtx;
+}
+global proc btcCtx_SketchBreakdownsInit() {
+//initialize command for sketch breakdown tool
+	string $chartNum = btcGetCurrentChart();
+	if (!`objExists ("btcChartControl_"+$chartNum)`) {
+		global string $gSelect;
+		setToolTo $gSelect;
+		error "the current chart cannot be found, please set or recreate a chart";
+	}
+	
+	//set the tool string to "Sketch Inbetweens..."
+	setAttr -type "string" ("btcChartControl_"+$chartNum+".toolText") "draw inbetweens...";
+	
+	select `btcGetSketchRefObj`;
+}
+global proc btcCtx_SketchBreakdownsPress() {
+//press command for btcSketchBreakdownsCtx tool
+	
+	global string $btcSketchBreakdownsCtx;
+	global int $btcArbitraryInbetweenMode;
+	global string $btcSketchCtxCurve;
+	string $chartNum = btcGetCurrentChart();
+	
+	//if button 2 or ctl is pressed, use arbitrary mode, else shut it off
+	string $mod = `draggerContext -q -mo $btcSketchBreakdownsCtx`;
+	int $button = `draggerContext -q -bu $btcSketchBreakdownsCtx`;
+	if ($mod == "shift" || $button == 2)
+		$btcArbitraryInbetweenMode = 1;
+	else
+		$btcArbitraryInbetweenMode = 0;
+	
+	//start curve (although it's impossible, check to make sure it doesn't exist first)
+	if (`objExists $btcSketchCtxCurve`)
+		delete $btcSketchCtxCurve;
+	//
+	float $point[] = `draggerContext -q -ap $btcSketchBreakdownsCtx`;
+	//breakdown sketches get parented to the chart control, because they need to get local data
+	string $parent = ("btcChartControl_"+$chartNum);
+	//
+	$btcSketchCtxCurve = `curve -d 2 -p 0 0 0`;
+	btcSetAttrs({$btcSketchCtxCurve}, {"[allXforms]"}, 1, 0, 0);
+	$btcSketchCtxCurve = btcGetFrom(`parent $btcSketchCtxCurve $parent`, 0);
+	$btcSketchCtxCurve = `curve -r -d 2 -ws -p $point[0] $point[1] $point[2] -p $point[0] $point[1] $point[2] -p $point[0] $point[1] $point[2] -k 0 -k 1 -k 2 -k 3 $btcSketchCtxCurve`;
+}
+global proc btcCtx_SketchBreakdownsDrag() {
+//drag command for btcSketchBreakdownsCtx tool
+
+	string $chartNum = btcGetCurrentChart();
+	global string $btcSketchBreakdownsCtx;
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	
+	float $point[] = `draggerContext -q -dragPoint $btcSketchBreakdownsCtx`;
+	
+	//curve drawing
+	global string $btcSketchCtxCurve;
+	if (`objExists $btcSketchCtxCurve`) {
+		curve -a -ws -p $point[0] $point[1] $point[2] $btcSketchCtxCurve;
+	} else {
+		print("Ok, you did something impossible...\n");
+		btcCtx_SketchBreakdownsPress;
+	}
+	
+	refresh;
+}
+global proc btcCtx_SketchBreakdownsRelease() {
+//release command for btcSketchBreakdownsCtx tool
+
+	//get globals
+	global string $btcSketchCtxCurve;
+		
+	//evaluate curve
+	string $breakdownRefs[];
+	float $sketchResults[];
+	$breakdownRefs = btcGetSketchRefCurves("^btcBreakdownSketchRef_");
+	$sketchResults = btcCtx_SketchBreakdownsAnalyze($btcSketchCtxCurve, $breakdownRefs);
+	//delete curve
+	if (`objExists $btcSketchCtxCurve`)
+		delete $btcSketchCtxCurve;
+	$btcSketchCtxCurve = "";
+	refresh;
+
+	if (size($sketchResults)) {
+		btcAddBreakdown($sketchResults);
+	}
+	
+	select `btcGetSketchRefObj`;
+}
+global proc btcCtx_SketchBreakdownsFinalize() {
+//finalize command for the btcSketchBreakdownsCtx tool
+
+	string $chartNum = btcGetCurrentChart();
+	
+	//set the tool string to ""
+	setAttr -type "string" ("btcChartControl_"+$chartNum+".toolText") "";
+}
+global proc float[] btcCtx_SketchBreakdownsAnalyze(string $curve, string $refCurves[]) {
+//analyzes a breakdown curve to get upper and lower bounds, plus x side
+//then uses btcCtx_GetSketchCurveMatches to determine the number of divisions
+
+	float $lowerBound, $upperBound, $side, $numDivs;
+	//getting the curve match will unitize the curve, so get the bounds first
+	string $curveShape = btcGetFrom(`listRelatives -c -s $curve`, 0);
+	//get local y of start and end ep's
+	float $spans = `getAttr ($curveShape+".spans")`;
+	if ($spans == 1)
+		return {};
+	float $yPts[] = {};
+	float $yMid;
+	$yPts[0] = `getAttr ($curve+".editPoints[0].yValueEp")`;
+	$yPts[1] = `getAttr ($curve+".editPoints["+$spans+"].yValueEp")`;
+	$lowerBound = btcGetBound($yPts, 0);
+	$upperBound = btcGetBound($yPts, 1);
+	$lowerBound += .5;
+	$upperBound += .5;
+	//get x average
+	float $xPts[] = {};
+	for ($i = 0; $i < $spans; $i++) {
+		$xPts[$i] = `getAttr ($curve+".editPoints["+$i+"].xValueEp")`;
+	}
+	if (btcGetAverage($xPts) > 0) {
+		$side = 1;
+	} else {
+		$side = -1;
+	}
+	$yMid = btcGetAverage($yPts) + .5;
+	
+	//get match
+	string $goalCurve[];
+	$goalCurve = btcCtx_GetSketchCurveMatches({$curve}, $refCurves);
+	$numDivs = `getAttr ($goalCurve[0]+".numDivs")`;
+	
+	return {$lowerBound, $upperBound, $side, $numDivs, $yMid};
+}
+//
+//SketchNumber Ctx
+global proc btcCtx_SketchNumbersInit() {
+//initialize command for sketch numbers tool
+
+	string $chartNum = btcGetCurrentChart();
+	global int $btcSketchNumberTraining;
+	global string $gSelect;
+	
+	if (!$btcSketchNumberTraining) {
+		if (!`objExists ("btcChartControl_"+$chartNum)`) {
+			setToolTo $gSelect;
+			error "the current chart cannot be found, please set or recreate a chart";
+		}
+		
+		if (!`objExists ("btcSketchRecogRefGrp")`) {
+			setToolTo $gSelect;
+			warning ("Number recognition reference curves could not be found, please setup Bo Timing Charts again");
+			return;
+		}
+		if (!size(`btcGetSketchRefCurves "^btcNumSketchRef_"`)) {
+			setToolTo $gSelect;
+			warning ("There are no recogition curves available, please run Number Recognition Training from a chart menu");
+			return;
+		}
+		//set global index
+		string $selList[] = `ls -r 1 -sl`;
+		global float $btcSketchNumbersIndex;
+		$btcSketchNumbersIndex = `getAttr ($selList[0]+".index")`;
+	}
+	
+	//set the tool string to "Write a Time..."
+	setAttr -type "string" ("btcChartControl_"+$chartNum+".toolText") "write time...";
+	
+	//clear globals
+	global string $btcSketchNumbersTimer;
+	global string $btcSketchNumbersGrp[];
+	global string $btcSketchCtxCurve;
+	$btcSketchNumbersTimer = "btcSketchNumbersTimer";
+	boTimerStart($btcSketchNumbersTimer, .1, "");
+	if (size($btcSketchNumbersGrp))
+		for ($obj in $btcSketchNumbersGrp)
+			if (`objExists $obj`)
+				delete $obj;
+	clear $btcSketchNumbersGrp;
+	
+	select `btcGetSketchRefObj`;
+	
+	//if it's in training mode, display the message for the first number
+	if ($btcSketchNumberTraining)
+		headsUpMessage -t 2 ("Please write the number "+($btcSketchNumberTraining-1));
+}
+global proc btcCtx_SketchNumbersPress() {
+//press command for sketch numbers tool
+
+	global int $btcSketchNumberTraining;
+	global string $btcSketchNumbersCtx;
+	global string $btcSketchCtxCurve;
+	global string $btcSketchNumbersTimer;
+	boTimerCancel($btcSketchNumbersTimer);
+	
+	//start curve (although it's impossible, check to make sure it doesn't exist first)
+	if (`objExists $btcSketchCtxCurve`)
+		delete $btcSketchCtxCurve;
+	//
+	float $point[] = `draggerContext -q -ap $btcSketchNumbersCtx`;
+	//numbers get parented to cameraZ because it's not upside down (and neither are the references)
+	string $parent = ("btcCameraZ");
+	//
+	$btcSketchCtxCurve = `curve -d 2 -p 0 0 0`;
+	btcSetAttrs({$btcSketchCtxCurve}, {"[allXforms]"}, 1, 0, 0);
+	$btcSketchCtxCurve = btcGetFrom(`parent $btcSketchCtxCurve $parent`, 0);
+	$btcSketchCtxCurve = `curve -r -d 2 -ws -p $point[0] $point[1] $point[2] -p $point[0] $point[1] $point[2] -p $point[0] $point[1] $point[2] -k 0 -k 1 -k 2 -k 3 $btcSketchCtxCurve`;
+}
+global proc btcCtx_SketchNumbersDrag() {
+//drag command for sketch numbers tool
+
+	string $chartNum = btcGetCurrentChart();
+	global string $btcSketchNumbersCtx;
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	
+	float $point[] = `draggerContext -q -dragPoint $btcSketchNumbersCtx`;
+	
+	//curve drawing
+	global string $btcSketchCtxCurve;
+	if (`objExists $btcSketchCtxCurve`) {
+		curve -a -ws -p $point[0] $point[1] $point[2] $btcSketchCtxCurve;
+	} else {
+		print("Ok, you did something impossible...\n");
+		btcCtx_SketchNumbersPress;
+	}
+	
+	refresh;
+}
+global proc btcCtx_SketchNumbersRelease() {
+//release command for sketch numbers tool
+
+	//get globals
+	global string $btcSketchNumbersTimer;
+	global int $btcSketchNumberTraining;
+	global string $btcSketchCtxCurve;
+	global string $btcSketchNumbersGrp[];
+	
+	//add the curve to the group, and clear
+	$btcSketchNumbersGrp[size($btcSketchNumbersGrp)] = $btcSketchCtxCurve;
+	$btcSketchCtxCurve = "";
+	
+	if (!$btcSketchNumberTraining) {
+		if (size($btcSketchNumbersGrp) > 4) {
+			//make a null timer so the finalize doesn't error out (for now...)
+			boTimerStart($btcSketchNumbersTimer, .1, "");
+			btcCtx_SketchNumbersComplete;
+		} else {
+			//start a timer
+			//we use the boTimers python module, and call the timer $btcSketchNumbersTimer
+			float $time = `getAttr ("btcTimingCharts.numRecogResponse")`;
+			print ("time: "+$time+"\n"); //pv
+			boTimerStart($btcSketchNumbersTimer, $time, "btcCtx_SketchNumbersComplete");
+		}
+	} else {
+		//make a null timer so the finalize doesn't error out (for now...)
+		boTimerStart($btcSketchNumbersTimer, .1, "");
+		//it's training mode, so complete instantly
+		btcCtx_SketchNumbersComplete;
+	}
+	
+	select `btcGetSketchRefObj`;
+}
+global proc btcCtx_SketchNumbersComplete() {
+//proc run when the timer hits (user is done inputting curves)
+
+	global int $btcSketchNumberTraining;
+	global int $btcSketchNumberTrainingEnd;
+	global string $btcSketchNumbersCtx;
+	global string $btcSketchNumbersGrp[];
+	global float $btcSketchNumbersIndex;
+	string $curveGrp[] = $btcSketchNumbersGrp;
+	float $index = $btcSketchNumbersIndex;
+	
+	global int $btcTimingChartsSetup;
+	string $chartNum = btcGetCurrentChart();
+	global string $gSelect;
+	
+	if (!$btcSketchNumberTraining) {
+		string $numRefs[] = btcGetSketchRefCurves("^btcNumSketchRef_");
+		float $time = btcCtx_SketchNumbersAnalyze($btcSketchNumbersGrp, $numRefs);
+		btcAddTimeValue($index, $time, $chartNum);
+		
+		//change to select tool (which runs btcCtx_SketchNumbersFinalize)
+		setToolTo $gSelect;
+	} else {
+		//in training mode, we just need to unitize the curve and add attributes
+		string $curve = btcUnitizeCurve($btcSketchNumbersGrp[0]);
+		btcSetAttrs({$curve}, {"[allXforms]"}, 1, 0, 0);
+		$curve = `rename $curve ("btcNumSketchRef_"+($btcSketchNumberTraining-1)+"_1")`;
+		
+		// add number data
+		addAttr -ln "number"  -at long -dv ($btcSketchNumberTraining-1) $curve;
+		setAttr -l 1 -cb 1 ($curve+".number");
+		
+		//clear the numbers group (we don't want it to get deleted)
+		$btcSketchNumbersGrp = {};
+		
+		//increment
+		$btcSketchNumberTraining += 1;
+		if (($btcSketchNumberTraining) <= $btcSketchNumberTrainingEnd) {
+			headsUpMessage -t 2 ("Please write the number "+($btcSketchNumberTraining-1));
+		} else {
+			btcCtx_SketchNumbersSaveRefs;
+			$btcSketchNumberTraining = 0;
+			setToolTo $gSelect;
+		}
+	}
+}
+global proc btcCtx_SketchNumbersFinalize() {
+//finalize command of sketch numbers command
+
+	//clear globals
+	global string $btcSketchNumbersGrp[];
+	global string $btcSketchCtxCurve;
+	string $chartNum = btcGetCurrentChart();
+	global int $btcSketchNumberTraining;
+	global string $btcSketchNumbersTimer;
+	//cancel training mode
+	if ($btcSketchNumberTraining != 0) {
+		btcCtx_SketchNumbersSaveRefs;
+		$btcSketchNumberTraining = 0;
+	}
+	
+	//set the tool string to ""
+	setAttr -type "string" ("btcChartControl_"+$chartNum+".toolText") "";
+	
+	if (size($btcSketchNumbersGrp))
+		for ($obj in $btcSketchNumbersGrp)
+			if (`objExists $obj`)
+				delete $obj;
+	
+	clear $btcSketchNumbersGrp;
+	boTimerCancel($btcSketchNumbersTimer);
+}
+global proc float btcCtx_SketchNumbersAnalyze(string $btcSketchNumbersGrp[], string $numRecogRefs[]) {
+//takes all the curves from the numbers sketch and uses GetSketchCurveMatches to retrieve the numbers
+//then combines all numbers and returns a time
+
+	string $goalCurves[] = btcCtx_GetSketchCurveMatches($btcSketchNumbersGrp, $numRecogRefs);
+	float $numbers[] = {};
+	
+	for ($curve in $goalCurves) {
+		$numbers[size($numbers)] = `getAttr ($curve+".number")`;
+	}
+	
+	string $numStr = btcFloatArrayToString($numbers, "");
+	float $time = (float)$numStr;
+	
+	return $time;
+}
+global proc btcCtx_SketchNumbersTraining(int $start, int $end) {
+//starts a training sequence
+
+	if (!size(`ls "btcChartControl*"`)) {
+		print ("// please set up at least one chart first...\n");
+		return;
+	}
+	//turn on training mode, and activate the numbersCTX
+	global int $btcSketchNumberTraining;
+	global int $btcSketchNumberTrainingEnd;
+	$btcSketchNumberTraining = ($start+1);
+	$btcSketchNumberTrainingEnd = ($end+1);
+	
+	global string $btcSketchNumbersCtx;
+	setToolTo $btcSketchNumbersCtx;
+}
+//
+//procedures for all Sketch Tools
+global proc string[] btcCtx_GetSketchCurveMatches(string $curves[], string $refCurves[]) {
+//takes a list of curves and analyzes then, then returns the ref curves that are the closest match (in order)
+
+	string $goalCurves[] = {};
+	
+	//unlock the curves
+	btcSetAttrs($curves, {"[allXforms]"}, 0, 1, 1);
+	
+	for ($curve in $curves) {
+		//scale/translate it so it matches the reference curves
+		$curve = btcUnitizeCurve($curve);
+		$curveShape = btcGetFrom(`listRelatives -c -s $curve`, 0);
+		int $spans = `getAttr ($curveShape+".spans")`;
+		
+		//we know there are only $spans number of points
+		float $minAvgDist = 1000000;
+		string $goalCurve = "";
+		for ($refCurve in $refCurves) {
+			float $distances[] = {};
+			float $avgDist = 0;
+			
+			//loop through eps
+			for ($j = 0; $j < $spans; $j++) {
+				vector $refPt = `pointPosition -w ($refCurve+".ep["+$j+"]")`;
+				vector $curPt = `pointPosition -w ($curve+".ep["+$j+"]")`;
+				
+				float $dist = btcGetDistance({$refPt.x, $refPt.y, $refPt.z}, {$curPt.x, $curPt.y, $curPt.z});
+				$distances[size($distances)] = $dist;
+			}
+			$avgDist = btcGetAverage($distances);
+			
+			if ($avgDist < $minAvgDist) {
+				$minAvgDist = $avgDist;
+				$goalCurve = $refCurve;
+			}
+		}
+		
+		$goalCurves[size($goalCurves)] = $goalCurve;
+	}
+	
+	return $goalCurves;
+}
+global proc btcCtx_SketchNumbersClearRefs(float $nums[]) {
+//deletes all of number reference curves in the btcSketchRecogRefGrp
+
+	if (`objExists "btcSketchRecogRefGrp"`) {
+		string $refs[];
+		for ($i in $nums) {
+			$refs = btcGetSketchRefCurves("^btcNumSketchRef_"+$i);
+			if (size($refs))
+				delete $refs;
+		}
+	}
+	//update optionVar
+	btcCtx_SketchNumbersSaveRefs;
+}
+global proc btcCtx_SketchNumbersLoadRefs() {
+//load and build the curves from the optionVar
+
+	if (`optionVar -ex "btcNumSketchRefCurves"`) {
+		string $parent = ("btcSketchRecogRefGrp");
+		string $curve;
+	
+		string $refVar[] = `optionVar -q "btcNumSketchRefCurves"`;
+		for ($ref in $refVar) {
+			int $number = `match "^[0-9]" $ref`;
+			string $cvStr = `match "[^:]*$" $ref`;
+			string $cvSplit[] = stringToStringArray($cvStr, "|");
+			
+			//start building a curve
+			//
+			float $point[] = btcStringToFloatArray($cvSplit[0], "^");
+			$curve = `curve -d 2 -p $point[0] $point[1] 0 -p $point[0] $point[1] 0 -p $point[0] $point[1] 0 -k 0 -k 1 -k 2 -k 3`;
+			btcSetAttrs({$curve}, {"[allXforms]"}, 1, 0, 0);
+			$curve = btcGetFrom(`parent $curve $parent`, 0);
+			$curve = `rename $curve ("btcNumSketchRef_"+$number+"_1")`;
+			for ($i = 1; $i < size($cvSplit); $i++) {
+				$point = btcStringToFloatArray($cvSplit[$i], "^");
+				curve -a -p $point[0] $point[1] $point[2] $curve;
+			}
+			// add number data
+			addAttr -ln "number"  -at long -dv ($number) $curve;
+			setAttr -l 1 -cb 1 ($curve+".number");
+			//no need to unitize
+		}
+	}
+}
+global proc btcCtx_SketchNumbersSaveRefs() {
+//saves the curve points of each number reference curve to an option var string array
+
+	//final array will be in this form:
+	//{"0^0^0|1^1^1|2^2^2", "0^0^0|1^1^1|2^2^2", etc...}
+	
+	string $numRefs[] = btcGetSketchRefCurves("btcNumSketchRef_");
+	string $refVar[];
+	string $refStr;
+	for ($ref in $numRefs) {
+		int $number = `getAttr ($ref+".number")`;
+		string $shape = btcGetFrom(`listRelatives -c -s $ref`, 0);
+		int $spans = `getAttr ($shape+".spans")`;
+		//
+		string $cvPts[] = {};
+		for ($i = 0; $i < $spans; $i++) {
+			float $cvPt[];
+			$cvPt[0] = `getAttr ($shape+".editPoints["+$i+"].xValueEp")`;
+			$cvPt[1] = `getAttr ($shape+".editPoints["+$i+"].yValueEp")`;
+			$cvPt[2] = 0;//`getAttr ($shape+".editPoints["+$i+"].zValueEp")`; //z should be 0 anyway, but it usually ends of as an insanely small number instead
+			$cvPts[size($cvPts)] = ($cvPt[0]+"^"+$cvPt[1]+"^"+$cvPt[2]);
+		}
+		//start string
+		$refStr = ($number+":");
+		$refStr += stringArrayToString($cvPts, "|");
+		$refVar[size($refVar)] = $refStr;
+	}
+	
+	//store to an option var
+	optionVar -ca "btcNumSketchRefCurves";
+	for ($ref in $refVar) {
+		optionVar -sva "btcNumSketchRefCurves" $ref;
+	}
+}
+//====================================================================================================
+
+
+//====================================================================================================
+global proc string btcBuildArcSequence(float $start, float $end, int $numDiv, string $chartNum) {
+//builds $numDiv arcs between $start and $end and groups them
+//values go from 0 to 1
+//returns:
+//	name of the group of arcs
+	
+	int $maxDivisions = 20;
+	string $nextCount = "01";
+	string $arcCurves[];
+	string $indecesList[];
+	float $indeces[];
+	
+	clear $indeces;
+	
+	//check for valid entries ranges
+	if ($start >= $end || $end > 1 || $start < 0 || $end <= $start)
+		return "";
+	
+	//clip range
+	if ($numDiv <= 0 || $numDiv > $maxDivisions)
+		return "";
+	
+	//get scale/unit
+	float $scale = $end - $start;
+	float $unit = $scale / $numDiv;
+	float $offset = $start;
+	for ($i = 0; $i <= $numDiv; $i++) {
+		$indeces[$i] = ($i*$unit) + $offset;
+		$indecesList[$i] = string($indeces[$i]);
+	}
+	
+	//get information about current arcs
+	$arcCurves = `listRelatives -c ("btcChartArcsGrp_"+$chartNum)`;
+	if (size($arcCurves) != 0) {
+		$nextCount = `btcGetNextNum($arcCurves[size($arcCurves)-1])`;
+	}
+	
+	//create group
+	group -em -n ("btcArcCurve_"+$chartNum+"_"+$nextCount);
+	//get long name
+	string $group = btcGetFrom(`ls -l -sl`, 0);
+	//add attributes
+	addAttr -ln "arcIndeces" -dt "string" $group;
+	setAttr -typ "string" ($group+".arcIndeces") `stringArrayToString $indecesList "^"`;
+	
+	//create arcs
+	for ($i = 0; $i < $numDiv; $i++) {
+		string $curve = btcBuildArc($indeces[$i], $indeces[$i+1]);
+		string $curveShape = btcGetFrom(`listRelatives -c -s $curve`, 0);
+		$curveShape = `rename $curveShape ("btcArcCurve_"+$chartNum+"_"+$nextCount+"_Shape"+($i+1))`;
+		parent -add -s $curveShape $group;
+		delete $curve;
+	}
+	
+	return $group;
+}
+
+global proc string btcBuildArc(float $start, float $end) {
+//builds an arc from the starting percentage to the end percentage,
+//values go from 0 to 1
+//returns the name of the new curve
+
+	//check for valid entries ranges
+	if ($start >= $end || $end > 1 || $start < 0 || $end <= $start)
+		return "";
+	
+	/*each arc contains 7 points, multiply all of the default (0 to 1) values
+		by the scale ($end - $start) to get the new values*/
+	float $scale = $end - $start;
+	//perfect arc
+	//float $ptsX[] = {0.000, 0.131, 0.392, 0.554, 0.392, 0.131, 0.000};
+	//float $ptsY[] = {0.000, 0.000, 0.108, 0.500, 0.892, 1.000, 1.000};
+	//imperfect arc :)
+	float $ptsX[] = {0.000, 0.146, 0.371, 0.476, 0.371, 0.146, 0.000};
+	float $ptsY[] = {0.000, 0.028, 0.182, 0.500, 0.818, 0.972, 1.000};
+	
+	for ($i = 0; $i < 7; $i++) {
+		$ptsX[$i] *= $scale;
+		$ptsY[$i] = $ptsY[$i]*$scale + $start;
+	}
+
+	curve -d 3 -p $ptsX[0] $ptsY[0] 0 -p $ptsX[1] $ptsY[1] 0 -p $ptsX[2] $ptsY[2] 0
+				-p $ptsX[3] $ptsY[3] 0 -p $ptsX[4] $ptsY[4] 0 -p $ptsX[5] $ptsY[5] 0 -p $ptsX[6] $ptsY[6] 0
+				-k 0 -k 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 4 -k 4;
+	string $arc = `rename "btcArcCurve"`;
+	
+	//get long name
+	$arc = btcGetFrom(`ls -l -sl`, 0);
+	return $arc;
+}
+global proc btcBuildLineSequence(float $values[], string $chartNum) {
+//creates a series of lines at the specified values from 0 to 1
+//no return value because this procedure handles the parenting
+
+	string $chartLinesGrp = ("btcChartLinesGrp_"+$chartNum);
+	
+	//clean up existing lines
+	if (size(`listRelatives -c $chartLinesGrp`) > 0)
+		for ($obj in `listRelatives -c $chartLinesGrp`)
+			delete $obj;
+	
+	//create new lines
+	for ($i = 0; $i < size($values); $i++) {
+		string $line = btcBuildLine($values[$i]);
+		string $count = btcPadding(($i+1), 2);
+		$line = `rename $line ("btcLineCurve_"+$chartNum+"_"+$count)`;
+		//lock, then parent
+		btcSetAttrs({$line}, {"[allXforms]"}, 1, 0, 0);
+		parent $line $chartLinesGrp;
+	}
+}
+global proc string btcBuildLine(float $value) {
+//creates a line at the specified y value from 0 to 1
+//returns the name of the new curve
+
+	//check for valid entries
+	if ($value < 0 || $value > 1)
+		return "";
+	
+	float $xWidthDefault = 0.125;
+	float $xWidth;
+	//determine width based on the division factor (1/2, 1/3, 1/4, 1/8 etc)
+	for ($i = 1; $i <= 16; $i++) {
+		float $fraction = (1/(float)$i);
+		
+		if (($value%$fraction) == 0) {
+			//use fraction * default
+			$xWidth = ($fraction * $xWidthDefault + .015);
+			break;
+		}
+		if ($i == 16) {
+			//use minimum size
+			$xWidth = ($fraction * $xWidthDefault + .015);
+		}
+	}
+	
+	curve -d 1 -p (-.5*$xWidth) $value 0 -p (.5*$xWidth) $value 0 -k 0 -k 1 ;
+	string $line = `rename btcLineCurve`;
+	
+	addAttr -ln "index"  -at double  -min 0 -max 1 -dv 0 $line;
+	setAttr -e -k 0 -l 1 -cb 1 ($line+".index") $value;
+	//get long name
+	$line = btcGetFrom(`ls -l -sl`, 0);
+	return $line;
+}
+global proc btcBuildNumSequence(float $indeces[], float $times[], string $chartNum) {
+//creates annotations at the specified indeces with the specified times
+//they're annotated to the chartMainLine with btcBuildNum
+
+	string $chartNumsGrp = ("btcChartNumsGrp_"+$chartNum);
+	
+	//clean up existing numbers
+	if (size(`listRelatives -c $chartNumsGrp`) > 0)
+		for ($obj in `listRelatives -c $chartNumsGrp`)
+			delete $obj;
+	
+	//create annotations
+	for ($i = 0; $i < size($indeces); $i++) {
+		string $num = `btcBuildNum $indeces[$i] $times[$i] $chartNum`;
+		string $count = btcPadding(($i+1), 2);
+		$num = `rename $num ("btcNumber_"+$chartNum+"_"+$count)`;
+		//lock then parent
+		btcSetAttrs({$num}, {"[allXforms]"}, 1, 0, 0);
+		$num = btcGetFrom(`parent $num $chartNumsGrp`, 0);
+	}
+}
+global proc string btcBuildNum(float $value, float $time, string $chartNum) {
+//creates an annotation with the specified time
+//this proc requires the chart number because it annotates the mainlineShape
+
+	string $annotation, $relatives[];
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $expName = ("btcTimeAdjusts_"+$chartNum+"_exp_1");
+	//
+	annotate -tx ((string)$time) ("btcChartMainLine_"+$chartNum);
+	$annotation = `rename btcNumber`;
+	$annotation = btcGetFrom(`ls -l -sl`, 0);
+	$relatives = `listRelatives -c -s $annotation`;
+	setAttr ($relatives[0]+".displayArrow") 0;
+	expression -s ("ty = (1/(btcChartControl_"+$chartNum+".scaleY))*.007+"+$value+";\n tx = (1/(btcChartControl_"+$chartNum+".scaleX))*.005+.08;") -o $annotation -ae 1 -sn -uc all -n $expName;
+	
+	if ($value == 0 || $value == 1) {
+		setAttr ($annotation+".overrideEnabled") 1;
+		connectAttr -f ($chartControl+".keysColor") ($annotation+".overrideColor");
+	}
+	
+	addAttr -ln "index"  -at double  -min 0 -max 1 -dv 0 $annotation;
+	setAttr -e -k 0 -l 1 -cb 1 ($annotation+".index") $value;
+	addAttr -ln "time"  -at double -dv 0 $annotation;
+	setAttr -e -k 0 -l 1 -cb 1 ($annotation+".time") $time;
+	
+	return $annotation;
+}
+global proc string btcUnitizeCurve(string $curve) {
+//takes a curve and scales/translates it within the btcSketchRecogRefGrp
+
+	string $refGrp = ("btcSketchRecogRefGrp");
+	int $spans = 60;
+	string $curveShape = btcGetFrom(`listRelatives -c -s $curve`, 0);
+	
+	//unitize scales to 1x1, and move to 0 0 0
+	string $curParent = btcGetFrom(`listRelatives -p -typ "transform" $curve`, 0);
+	if ($curParent != $refGrp)
+		$curve = btcGetFrom(`parent $curve $refGrp`, 0);
+	xform -cp $curve;
+	
+	//unlock
+	btcSetAttrs({$curve}, {"[all]"}, 0, 0, 0);
+	//trans
+	float $trans[] = (`xform -q -ws -rp $refGrp`);
+	move -a -ws ($trans[0]) ($trans[1]) ($trans[2]) $curve;
+	$trans = (`xform -q -r -rp $curve`);
+	setAttr ($curve+".tx") (-$trans[0]);
+	setAttr ($curve+".ty") (-$trans[1]);
+	makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 $curve;
+	//scale
+	float $scaleX = 1, $scaleY = 1;
+	float $boundX = `getAttr ($curve+".bbsx")`;
+	float $boundY = `getAttr ($curve+".bbsy")`;
+	//get ratio of $boundX to $boundY, if it's less than .05, don't scale width
+	if ($boundX/$boundY > .2)
+		$scaleX = 1.0/$boundX;
+	$scaleY = 1.0/$boundY;
+	setAttr ($curve+".sx") $scaleX;
+	setAttr ($curve+".sy") $scaleY;
+	makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 $curve;
+	
+	//this is the dumb part. rebuilding curves straight to $spans will sometimes result with a horrible curve
+	//so we double the spans, until the double would be more than $spans, (then we just use $spans)
+
+	//don't let this occur more than 6 times, because then somethings wrong
+	for ($i = 0; $i < 6; $i++) {
+		$curSpans = `getAttr ($curveShape+".spans")`;
+		if ($curSpans*2 > $spans) {
+			rebuildCurve -ch 0 -rpo 1 -rt 0 -end 1 -kr 0 -kcp 0 -kep 1 -kt 0 -s $spans -d 3 $curve;
+			break;
+		} else {
+			rebuildCurve -ch 0 -rpo 1 -rt 0 -end 1 -kr 0 -kcp 0 -kep 1 -kt 0 -s ($curSpans*2) -d 3 $curve;
+		}
+	}
+	
+	return $curve;
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//procedures for getting/checking information about animation
+global proc float[] btcGetObjectKeyTimes(string $objects[]) {
+//assumes that all curves are keyed at the same times,
+//use btcCheckObjectKeyTimes to ensure that this is true
+
+	float $keyTimes[];
+	string $nodes[] = `keyframe -q -name $objects[0]`;
+	$keyTimes = `keyframe -q -tc $nodes[0]`;
+
+	return $keyTimes;
+}
+global proc int btcCheckObjectKeySync(string $objects[]) {
+//checks all the objects keyTime arrays to make sure they are in sync
+
+	return 1;
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//procedures for getting timing chart data
+global proc string btcGetCurrentChart() {
+//returns the current chart (from the btcTimingCharts node)
+
+	return `getAttr "|btcTimingCharts.currentChart"`;
+}
+global proc string btcGetSketchRefObj() {
+//returns the sketch reference object (from the btcTimingCharts node)
+
+	return `getAttr "|btcTimingCharts.sketchRefObj"`;
+}
+global proc string btcGetNextNum(string $name) {
+//returns the next incremental number based on name
+
+	string $numExtStr = `match "[0-9]+$" $name`;
+	int $padding = size($numExtStr);
+	//strip zeros
+	$numExtStr = `substitute "^[0]+" $numExtStr ""`;
+	int $newNum = `python($numExtStr+"+1")`;
+	string $newNumStr = btcPadding($newNum, $padding);
+	//
+	return $newNumStr;
+}
+global proc string btcGetChart(string $obj) {
+//returns the number suffix, which is $chartNum, the chart ID
+
+	//print ("getting chart for object: "+$obj+"\n");
+	if (!`objExists $obj`)
+		return (`match "[0-9][0-9][0-9]$" $obj`);
+	
+	string $relatives[];
+	string $chartNum;
+	if (`nodeType $obj` != "transform") {
+		//print ("	- not a transform, getting parent...\n");
+		$relatives = `listRelatives -p -typ "transform" $obj`;
+		if (!size($relatives))
+			return "";
+	} else {
+		//print ("	- is a transform, using object\n");
+		$relatives = {$obj};
+	}
+	
+	//print ("	checking suffix of: "+$relatives[0]+"\n");
+	string $match = `match "[0-9][0-9][0-9]$" $relatives[0]`;
+	
+	//print ("match: "+$match+"\n"); //pv
+	return $match;
+}
+global proc string btcGetCurrentChartData(string $chartNum) {
+//returns the name of the current chartData node
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	float $keyRange[] = btcGetCurrentKeyRange($chartNum);
+	string $chartData = ("btcChartData_"+$chartNum+"_"+(string)$keyRange[0]);
+	
+	return $chartData;
+}
+global proc float[] btcGetCurrentKeyRange(string $chartNum) {
+//returns a float array of the current key range attribute on the specified chart
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $keyRangeList[] = `getAttr ($chartControl+".currentKeyRange")`;
+	float $keyRange[] = {};
+	for ($time in $keyRangeList) {
+		$keyRange[size($keyRange)] = (float)$time;
+	}
+
+	return $keyRange;
+}
+global proc float[] btcGetLastKeyTimes(string $chartNum) {
+//retuns a float array of the last keyTimes attribute on the specified chart	
+	
+	return `getAttr ("btcChartControl_"+$chartNum+".lastKeyTimes")`;
+}
+global proc string[] btcGetChartObjects(string $chartNum) {
+//returns a string array containting the objects of the specified chart
+
+	if (`objExists ("btcChartControl_"+$chartNum)`)
+		return `getAttr ("btcChartControl_"+$chartNum+".chartObjects")`;
+	
+	warning("could not remove objects");
+	return {};
+}
+global proc float[] btcGetIndeces(string $chartNum) {
+//returns a float array containing the current indeces of the specified chart
+
+	string $chartControl = ("btcChartControl_"+$chartNum);
+	string $indecesList[] = `getAttr ($chartControl+".currentIndeces")`;
+	float $indeces[];
+	for ($i = 0; $i < size($indecesList); $i++) {
+		$indeces[$i] = `python($indecesList[$i]+"+0")`;
+	}
+	
+	return $indeces;
+}
+global proc float[] btcGetIndecesFromArcData(string $arcData[]) {
+//returns an array of indeces based on the arcData provided
+
+	if (!size($arcData))
+		return {};
+	
+	float $indeces[];
+	string $indecesList[];
+	for ($arc in $arcData) {
+		string $arcSplit[] = stringToStringArray($arc, "^");
+		//arcData segments should be start^end^numDiv^side
+		if (size($arcSplit) != 4)
+			continue;
+		
+		//calculate the extra indeces (depending on numDiv)
+		float $start = (float)$arcSplit[0];
+		float $end = (float)$arcSplit[1];
+		int $numDiv = $arcSplit[2];
+		float $unit = ($end - $start)/$numDiv;
+		
+		//add start and end
+		$indecesList[size($indecesList)] = $start;
+		$indecesList[size($indecesList)] = $end;
+		
+		//add middle indeces
+		for ($i = 1; $i < $numDiv; $i++) {
+			$indecesList[size($indecesList)] = ($i * $unit + $start);
+ 		}
+		
+	}
+	//since were about to remove duplicates, just add 0 and 1 to be sure
+	$indecesList[size($indecesList)] = "0";
+	$indecesList[size($indecesList)] = "1";
+	$indecesList = stringArrayRemoveDuplicates($indecesList);
+	$indecesList = sort($indecesList);
+	//print ("Retrieved Arc Indeces:\n");
+	//print $indecesList;
+	if (!size($indecesList))
+		return {};
+	$indecesPyStr = ("["+`stringArrayToString $indecesList ", "`+"]");
+	$indeces = `python("list("+$indecesPyStr+")")`;
+	
+	return $indeces;
+}
+global proc float[] btcGetTimeIndecesFromTimeData(string $timeData[]) {
+//returns a float array of time indeces based on the timeData
+
+	float $results[];
+	for ($item in $timeData) {
+		string $itemSplit[] = stringToStringArray($item, "^");
+		$results[size($results)] = (float)$itemSplit[0];
+	}
+	
+	return $results;
+}
+global proc float[] btcGetTimeValuesFromTimeData(string $timeData[]) {
+//returns a float array of time indeces based on the timeData
+
+	float $results[];
+	for ($item in $timeData) {
+		string $itemSplit[] = stringToStringArray($item, "^");
+		$results[size($results)] = (float)$itemSplit[1];
+	}
+	
+	return $results;
+}
+global proc float[] btcGetKeyframeRange(string $objects[]) {
+//returns the current range of keyframes for the specified objects
+
+	float $startKey = 0, $prevKey = 0, $nextKey = 0, $endKey = 0;
+	int $foundEnd = 0, $foundStart = 0;
+	float $curTime = `currentTime -q`;
+	$nextKey = $curTime;
+	
+	//get end key (skipping breakdowns)
+	while (!$foundEnd) {
+		$nextKey = `findKeyframe -w next -t $nextKey $objects[0]`;
+		if (!size(`keyframe -t $nextKey -q -bd $objects[0]`) || $nextKey == `findKeyframe -w last ($objects[0])`) { //strange bug when a "]" is next to a "`", so use ()
+			$foundEnd = 1;
+			$endKey = $nextKey;
+		}
+	}
+	//get start key 
+	if ($endKey < $curTime) {
+		//we're past the last keyframe
+		$startKey = $endKey;
+	} else {
+		$prevKey = $endKey;
+		while(!$foundStart) {
+			$prevKey = `findKeyframe -w previous -t $prevKey $objects[0]`;
+			if (!size(`keyframe -t $prevKey -q -bd $objects[0]`) || $prevKey == `findKeyframe -w first ($objects[0])`) {
+				$foundStart = 1;
+				$startKey = $prevKey;
+			}
+		}
+	}
+
+	return {$startKey, $endKey};
+}
+global proc string[] btcGetSketchRefCurves(string $match) {
+//returns a list of all the available number reference curves that match the $match string
+
+	string $sketchRecogGrp = "btcSketchRecogRefGrp";
+	string $allRefs[] = `listRelatives -c -typ "transform" $sketchRecogGrp`;
+	string $matchRefs[] = {};
+	
+	for ($ref in $allRefs) {
+		if (size(`match $match $ref`))
+			$matchRefs[size($matchRefs)] = $ref;
+	}
+	
+	return $matchRefs;
+}
+//====================================================================================================
+
+
+//====================================================================================================
+//procedures for common math/string or other manipulation
+global proc btcSetAttrs(string $objs[], string $attrs[], int $l, int $k, int $cb){
+//locks all the specified attributes on the specified objects
+//params:
+//	objs: string array of objects
+//	attrs: string array of attributes
+//	l: locked, boolean
+//	k: keyable, boolean
+//	cb: channel box visible, boolean
+
+	if ($attrs[0] == "[allXforms]") {
+		$attrs = {"tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "shxy", "shxz", "shyz"};
+	} else if ($attrs[0] == "[all]") {
+		$attrs = {"tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "shxy", "shxz", "shyz", "v"};
+	}
+	for ($obj in $objs) {
+		for ($attr in $attrs) {
+			setAttr -l $l -k $k -cb $cb ($obj+"."+$attr);
+		}
+	}
+}
+global proc btcSetStringArrayAttr(string $attr, string $array[]) {
+//sets the attr by turning the array into a string such as: "a" "b" "c" "d"
+
+	if (!`objExists $attr`)
+		return;
+	
+	if (!size($array)) {
+		setAttr $attr -type stringArray 0;
+	} else {
+		string $arrayString = ("\""+`stringArrayToString $array "\" \""`+"\"");
+		string $cmd = ("setAttr "+$attr+" -type stringArray "+(size($array))+" "+$arrayString+";");
+		eval($cmd);
+	}
+}
+global proc btcConnectSameAttrs(string $fromObj, string $toObj, string $attrs[]){
+//connects the same specified attributes from $fromObj to $toObj
+
+	for ($attr in $attrs) {
+		connectAttr -f ($fromObj+"."+$attr) ($toObj+"."+$attr);
+	}
+}
+global proc string btcPadding(int $num, int $padding) {
+//returns a string of num padded with the necessary amount of zeros
+
+	string $numStr = string($num);
+	while (size($numStr) < $padding) {
+		$numStr = "0"+$numStr;
+	}
+	
+	return $numStr;
+}
+global proc string btcGetFrom(string $array[], int $index) {
+//returns the item in the array at the specified index to avoid
+//having to create unneeded arrays
+//wish you could type `command`[index]...
+	return ($array[$index]);
+}
+global proc float btcGetAverage(float $array[]) {
+//returns the average value of a float array
+	int $size = size($array);
+	float $sum = 0;
+	float $avg;
+	
+	for ($val in $array) {
+		$sum += $val;
+	}
+	$avg = $sum / $size;
+	
+	return $avg;
+}
+global proc float btcGetDistance(float $array1[], float $array2[]) {
+//gets the distance between 1, 2, or 3 dimensional points
+	
+	float $result;
+	if (size($array1) == 1) {
+		$result = abs($array1[0] - $array2[0]);
+		
+	} else if (size($array1) == 2) {
+		$result = sqrt((`pow ($array1[0] - $array2[0]) 2`) + (`pow ($array1[1] - $array2[1]) 2`));
+	} else if (size($array1) == 3) {
+		vector $array1V = <<$array1[0], $array1[1], $array1[2]>>;
+		vector $array2V = <<$array2[0], $array2[1], $array2[2]>>;
+		$result = `mag ($array1V - $array2V)`;
+		
+	}
+	
+	return $result;
+}
+global proc float btcGetBound(float $values[], int $upper) {
+//returns the minimum or maximum of an array
+
+	float $bound = $values[0];
+	if ($upper) {
+		for ($val in $values) {
+			if ($val > $bound)
+				$bound = $val;
+		}
+	} else {
+		for ($val in $values) {
+			if ($val < $bound)
+				$bound = $val;
+		}
+	}
+	
+	return $bound;
+}
+global proc string btcFloatArrayToString(float $array[], string $separator) {
+//does the same thing as stringArrayToString, except with floats
+
+	if (!size($array))
+		return {};
+	
+	string $result = "";
+	for ($item in $array) {
+		$result += $item;
+		if ($item != $array[size($array)-1])
+			$result += $separator;
+	}
+	
+	return $result;
+}
+global proc string[] btcFloatArrayToStringArray(float $array[]) {
+//converts a float array to a string array
+
+	if (!size($array))
+		return {};
+	
+	string $results[] = {};
+	for ($item in $array) {
+		$results[size($results)] = (string)$item;
+	}
+	
+	return $results;
+}
+global proc float[] btcStringToFloatArray(string $string, string $separator) {
+//does the same thing as stringToStringArray, except returns a float[]
+
+	if (!size($string))
+		return {};
+	
+	float $results[] = {};
+	string $resultList[] = {};
+	$resultList = stringToStringArray($string, $separator);
+	for ($item in $resultList) {
+		$results[size($results)] = (float)$item;
+	}
+	
+	return $results;
+}
+global proc string btcRandomName() {
+	string $randName;
+	$nameListStr = "Adrastea, Amalthea, Ananke, Ariel, Atlas, Belinda, Belior, Bianca, Callisto, Calypso, Carme, Ceres, Charon, Cordelia, Cressida, Cybele, Davida, Deimos, Desdemona, Elara, Enceladus, Endor, Epimetheus, Europa, Helene, Himalia, Hygeia, Hyperion, Iapetus, Interamnia, Io, Irdrial, Janus, Juliet, Jupiter, Kyrrdis, Leda, Lireal, Lysithea, Mars, Mercury, Metis, Mimas, Miranda, Mormallor, Neptune, Nereid, Oberon, Ophelia, Pallas, Pallas, Pandora, Pasiphae, Persephone, Phobos, Phoebe, Pluto, Portia, Prometheus, Puck, Rhea, Rosalind, Saturn, Shanganagh, Shankill, Shilmore, Sinope, Telesto, Tethys, Thebe, Timor, Titan, Titania, Triton, Umbriel, Uranus, Venus, Vesta, Titania";
+	$nameListStr = `substituteAllString $nameListStr " " ""`; //remove all spaces
+	$nameListStr = `substituteAllString $nameListStr "	" ""`; //remove all tabs
+	$randNameList = stringToStringArray($nameListStr, ",");
+	$seed = (int)`timerX`;
+	seed $seed;
+	$randName = $randNameList[(int)`rand (size($randNameList))`];
+	return $randName;
+}
+global proc string[] btcKillScriptJobByName(string $regExp) {
+//deletes any script jobs that match the regular expression specified
+//returns the names of the jobs killed
+
+	string $jobsKilled[] = {};
+	string $scriptJobList[] = `scriptJob -lj`;
+	for ($job in $scriptJobList) {
+		string $num = `match "^[0-9]*[^:]*" $job`;
+		string $match = (`match $regExp $job`);
+		if (size($match) > 0 && (int)$num > 29) {
+			if (!catch(`scriptJob -k ((int)$num)`)) {
+				//add it to the list
+				$jobsKilled[size($jobsKilled)] = $job;
+			}
+			
+		}
+	}
+	
+	return $jobsKilled;
+}
+//====================================================================================================
+
+global proc btcFileOpenProc() {
+//script run when boTimingCharts is setup in a scene, and that scene is opened
+	evalDeferred("btcSetup_sketchContexts");
+
+	if (`objExists "|btcTimingCharts"`) {
+		brcmRegisterCondition("btcTimingChartsRMBCondition", 0);
+		brcmRegisterHitCondition("btcTimingChartsRMBHitCondition");
+		
+		global int $btcAutoSelect_chartMainTitle;
+		global int $btcAutoSelect_chartMainLine;
+		global int $btcAutoSelect_arcCurve;
+		global int $btcAutoSelect_lineCurve;
+		global int $btcShowNumberTickers;
+		
+		if (`optionVar -ex "btcTimingChartCommonPrefs"`) {
+			float $commonPrefs[] = `optionVar -q "btcTimingChartCommonPrefs"`;
+			$btcAutoSelect_chartMainTitle = $commonPrefs[1];
+			$btcAutoSelect_chartMainLine = $commonPrefs[2];
+			$btcAutoSelect_arcCurv = $commonPrefs[3];
+			$btcAutoSelect_lineCurve = $commonPrefs[4];
+			$btcShowNumberTickers = $commonPrefs[5];
+		}
+	}
+}
+
