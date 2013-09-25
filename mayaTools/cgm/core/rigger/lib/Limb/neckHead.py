@@ -39,6 +39,7 @@ from cgm.core.classes import NodeFactory as NodeF
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
+reload(mControlFactory)
 from cgm.core.lib import nameTools
 
 from cgm.core.rigger.lib import rig_Utils as rUtils
@@ -255,10 +256,8 @@ def build_rigSkeleton(self):
 	ml_jointsToConnect.extend(ml_segmentJoints)    
 	ml_jointsToConnect.extend(ml_influenceJoints)
     
-	for i_jnt in ml_jointsToConnect:
-	    i_jnt.overrideEnabled = 1		
-	    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
-	    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
+	self.connect_toRigGutsVis( ml_jointsToConnect )
+	
 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
@@ -315,10 +314,10 @@ def build_controls(self):
 	_str_subFunc = "Special pivot"
 	time_sub = time.clock() 
 	log.info(">>> %s..."%_str_subFunc)  
-	
+	ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
 	l_segmentJoints  = self._i_rigNull.msgList_getMessage('moduleJoints')
 	tmpCurve = curves.curveFromObjList(l_segmentJoints)
-	basePivotPos = distance.returnWorldSpacePosition("%s.u[%f]"%(tmpCurve,.3))
+	basePivotPos = distance.returnWorldSpacePosition("%s.u[%f]"%(tmpCurve,.4))
 	log.info("basePivotPos : %s"%basePivotPos)   
 	mc.delete(tmpCurve)
 	
@@ -391,7 +390,6 @@ def build_controls(self):
 	    raise StandardError,"build_controls>> Must have at least two fk controls"
 		
 	ml_segmentsFK = ml_shapes_segmentFKLoli[:-1]
-	log.info(ml_segmentsFK)
 	
 	i_loc = ml_segmentsFK[0].doLoc()
 	mc.move (basePivotPos[0],basePivotPos[1],basePivotPos[2], i_loc.mNode)	
@@ -402,17 +400,22 @@ def build_controls(self):
 	for i,i_obj in enumerate(ml_segmentsFK):
 	    if i == 0:
 		copyPivot = i_loc.mNode
-	    else:copyPivot = None
+		copyTransform = ml_rigJoints[0].mNode
+	    else:
+		copyPivot = None
+		copyTransform = None
 	    try:
-		d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,setRotateOrder=5,typeModifier='fk',copyPivot=copyPivot,
+		d_buffer = mControlFactory.registerControl(i_obj,copyTransform = copyTransform,addExtraGroups=1,setRotateOrder=5,typeModifier='fk',copyPivot=copyPivot,
 		                                           mirrorSide=self._str_mirrorDirection, mirrorAxis="translateX,rotateY,rotateZ",
-		                                           ) 	    
+		                                           ) 
+		log.info(d_buffer)
 		i_obj = d_buffer['instance']
-		i_obj.drawStyle = 6#Stick joint draw style		
+		i_obj.drawStyle = 6#Stick joint draw style
+		ml_segmentsFK[i] = i_obj
 	    except StandardError,error:
 		raise StandardError,"%s failed | error: %s"%(i_obj.mNode,error)
-	#i_loc.delete()
-	log.info(ml_segmentsFK)
+	    
+	i_loc.delete()
 	self._i_rigNull.msgList_connect(ml_segmentsFK,'controlsFK','rigNull')
 	ml_controlsAll.extend(ml_segmentsFK)	
 	ml_segmentsFK[0].masterGroup.parent = self._i_deformNull.mNode
@@ -443,10 +446,13 @@ def build_controls(self):
     try:#Connect all controls =============================================================================
 	_str_subFunc = "Connect controls"
 	time_sub = time.clock() 
-	log.info(">>> %s..."%_str_subFunc)  
-	#Set the mirror index
+	log.info(">>> %s..."%_str_subFunc) 
+	
+	int_strt = self._i_puppet.get_nextMirrorIndex( self._str_mirrorDirection )
 	for i,mCtrl in enumerate(ml_controlsAll):
-	    mCtrl.mirrorIndex = i
+	    try:
+		mCtrl.addAttr('mirrorIndex', value = (int_strt + i))		
+	    except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 	    
 	self._i_rigNull.msgList_connect(ml_controlsAll,'controlsAll')
 	self._i_rigNull.moduleSet.extend(ml_controlsAll)#Connect to quick select set	
@@ -487,6 +493,7 @@ def build_deformation(self):
 	aimVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[0])
 	upVector = dictionary.stringToVectorDict.get("%s+"%self._jointOrientation[1])
 	mi_handleIK = self._i_rigNull.handleIK
+	mi_settings = self._i_rigNull.settings
 	
 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
@@ -538,6 +545,32 @@ def build_deformation(self):
     except StandardError,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
+    try:#>>> Main attribute
+	_str_subFunc = "Top twist driver"
+	mPlug_worldIKEndIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKEnd" , attrType='float' , lock = True)
+
+	mi_loc = mi_handleIK.doLoc()
+	mi_loc.addAttr('cgmType','headTwistEnd',attrType='string',lock=True)
+	mi_loc.doName()
+	
+	mi_loc.rotateOrder = self._jointOrientation#Set orientation to twist last
+	mc.pointConstraint(mi_handleIK.mNode,mi_loc.mNode)
+	mi_loc.parent = self._i_deformNull#Parent to deform null
+	self.connect_toRigGutsVis( mi_loc )
+	
+	mNode_decomposeMatrix = cgmMeta.cgmNode(nodeType='decomposeMatrix')
+	mNode_decomposeMatrix.doStore('cgmName',self._i_module.mNode)
+	mNode_decomposeMatrix.addAttr('cgmType','headTwistEnd',attrType='string',lock=True)
+	mNode_decomposeMatrix.doName()
+	
+	attributes.doConnectAttr("%s.matrix"%(mi_handleIK.mNode),"%s.%s"%(mNode_decomposeMatrix.mNode,'inputMatrix'))
+	attributes.doConnectAttr("%s.%s"%(mNode_decomposeMatrix.mNode,"outputRotate"),"%s.%s"%(mi_loc.mNode,"rotate"))            
+	
+	mPlug_worldIKEndIn.doConnectIn("%s.outputRotate%s"%(mNode_decomposeMatrix.mNode,self._jointOrientation[0].capitalize()))
+	    
+    except StandardError,error:
+	raise StandardError,error	
+    
     try:#Setup top twist driver
 	_str_subFunc = "Top Twist driver"
 	time_sub = time.clock() 
@@ -547,7 +580,8 @@ def build_deformation(self):
 	str_curve = curveSegmentReturn['mi_segmentCurve'].getShortName()
 	#fk_drivers = ["%s.r%s"%(i_obj.mNode,self._jointOrientation[0]) for i_obj in ml_controlsFK]
 	drivers = ["%s.r%s"%(ml_segmentHandles[-1].mNode,self._jointOrientation[0])]
-	drivers.append("%s.r%s"%(mi_handleIK.mNode,self._jointOrientation[0]))
+	#drivers.append("%s.r%s"%(mi_handleIK.mNode,self._jointOrientation[0]))
+	drivers.append(mPlug_worldIKEndIn.p_combinedShortName)
 
 	NodeF.createAverageNode(drivers,
 	                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistEnd"],1)
@@ -737,10 +771,6 @@ def build_rig(self):
 	    mc.connectAttr((i_jnt.mNode+'.s'),(attachJoint+'.s'))
 	    
 	mc.connectAttr((mi_handleIK.mNode+'.s'),(ml_rigJoints[-1].mNode+'.s'))
-	
-	#mc.pointConstraint(ml_anchorJoints[-1].mNode,ml_rigHandleJoints[-1].mNode,maintainOffset=False)
-	#mc.orientConstraint(ml_anchorJoints[-1].mNode,ml_rigHandleJoints[-1].mNode,maintainOffset=False)
-	#mc.connectAttr((ml_anchorJoints[-1].mNode+'.s'),(ml_rigHandleJoints[-1].mNode+'.s'))
 	
 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
