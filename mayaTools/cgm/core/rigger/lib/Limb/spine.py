@@ -407,13 +407,15 @@ def build_controls(self):
 	ml_segmentsFK[0].parent = i_cog.mNode
 	for i,i_obj in enumerate(ml_segmentsFK):
 	    if i == 0:
-		i_loc = ml_segmentsFK[i].doLoc()
-		mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)		
+		#i_loc = ml_segmentsFK[i].doLoc()
+		#mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)	
+		str_pelvis = self._i_rigNull.msgList_getMessage('moduleJoints')[0]
+		log.info(str_pelvis)
 		d_buffer = mControlFactory.registerControl(i_obj,addConstraintGroup=1,
 		                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",
 		                                           setRotateOrder=5,
-		                                           copyPivot=i_loc.mNode,typeModifier='fk') 
-		i_loc.delete()
+		                                           copyPivot=str_pelvis,typeModifier='fk') 
+		#i_loc.delete()
 		
 	    else:
 		d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,setRotateOrder=5,typeModifier='fk',
@@ -465,7 +467,7 @@ def build_controls(self):
 	d_buffer = mControlFactory.registerControl(i_IKEnd,copyTransform = i_loc.mNode,
 	                                           mirrorSide=self._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",
 	                                           typeModifier = 'ik',addSpacePivots = 2, addDynParentGroup = True, addConstraintGroup=True,
-	                                           makeAimable = True,setRotateOrder=0)
+	                                           makeAimable = True,setRotateOrder=5)
 	i_IKEnd = d_buffer['instance']	
 		
 	i_loc.delete()#delete
@@ -878,7 +880,7 @@ def build_rig(self):
 	_str_subFunc = "Cog/fk vis"
 	time_sub = time.clock() 
 	log.debug(">>> %s..."%_str_subFunc) 	
-	mi_cog.addAttr('visFK', defaultValue = 1, attrType = 'bool',keyable = False,hidden = False, initialValue = 1)
+	cgmMeta.cgmAttr(mi_cog,'visFK', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
 	cgmMeta.cgmAttr( ml_controlsFK[0].mNode,'visibility').doConnectIn('%s.%s'%(mi_cog.mNode,'visFK'))    
 	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
