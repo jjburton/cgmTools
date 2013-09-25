@@ -1715,36 +1715,44 @@ def build_twistDriver_shoulder(goInstance = None):
 		outVector = self._go._vectorOut
 		upVector = self._go._vectorUp      
 		ml_blendJoints = self._go._i_rigNull.msgList_get('blendJoints')
+		ml_handleJoints = self._go._i_module.rig_getHandleJoints()
+		mi_mainSegmentHandle = self._go._i_rigNull.mainSegmentHandle
 		
-	
-		#Create joints
-		#i_startAim = self._go.duplicate_moduleJoint(0,'startAim')
-		#i_startEnd = self._go.duplicate_moduleJoint(0,'startAimEnd')
-		i_startRoot = self._go._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
+		#Create joints -------------------------------------------------------------------
+		i_startRoot = ml_handleJoints[0].doDuplicate(incomingConnections = False)
 		i_startRoot.addAttr('cgmName',self._go._partName)	
 		i_startRoot.addAttr('cgmTypeModifier','twistDriver')
 		i_startRoot.doName()
-		i_startEnd = self._go._ml_moduleJoints[0].doDuplicate(incomingConnections = False)
-		i_startEnd.addAttr('cgmTypeModifier','twistDriverEnd')
-		i_startEnd.doName()    
+		i_startRoot.parent = self._go._i_constrainNull.mNode
 		
+		i_startEnd = ml_handleJoints[0].doDuplicate(incomingConnections = False)
+		i_startEnd.addAttr('cgmTypeModifier','twistDriverEnd')
+		i_startEnd.doName() 
+		i_startEnd.parent = i_startRoot.mNode
+		
+		i_driver = ml_handleJoints[0].doDuplicate(incomingConnections = False)
+		i_driver.addAttr('cgmName',self._go._partName)	
+		i_driver.addAttr('cgmTypeModifier','twistDriverResult')
+		i_driver.doName()
+		i_driver.parent = ml_blendJoints[0]#parent to the root blend to get it in the same space
+		
+		#Loc -------------------------------------------------------------------
 		i_upLoc = i_startRoot.doLoc()	
 		i_upLoc.parent = self._go._i_constrainNull.mNode#parent
+		self._go.connect_toRigGutsVis(i_upLoc)
 		
-		#Restore out lists
-		
-		i_startEnd.parent = i_startRoot.mNode
-		ml_twistObjects = [i_startRoot,i_startEnd,i_upLoc]
+		ml_twistObjects = [i_startRoot,i_startEnd,i_upLoc,i_driver]
 		fl_dist = 25
+		i_upLoc.__setattr__('t%s'%self._go._jointOrientation[1],fl_dist)	
+		'''
 		if self._go._direction == 'left':#if right, rotate the pivots
-		    i_upLoc.__setattr__('t%s'%self._go._jointOrientation[2],fl_dist)	
+		    i_upLoc.__setattr__('t%s'%self._go._jointOrientation[1],fl_dist)	
 		else:
 		    i_upLoc.__setattr__('t%s'%self._go._jointOrientation[2],-fl_dist)		
+		'''
+		#Move aim joint out
+		i_startEnd.__setattr__('t%s'%self._go._jointOrientation[0],5)
 		
-		#Move up
-		i_startEnd.__setattr__('t%s'%self._go._jointOrientation[0],(fl_dist))
-		
-		i_startRoot.parent = ml_blendJoints[0].mNode
 	    except StandardError,error:
 		raise StandardError,"Failed joint creation,positioning | %s"%(error)	    
 	    
@@ -1765,6 +1773,9 @@ def build_twistDriver_shoulder(goInstance = None):
 	    #=============================================================================
 	    #Create IK handle
 	    try:
+		pos = i_startRoot.getPosition()
+		mc.move (0,pos[1],pos[2], i_startRoot.mNode, ws = True)#zero out aim joint's x pos
+		
 		buffer = mc.ikHandle( sj=i_startRoot.mNode, ee=i_startEnd.mNode,
 	                              solver = 'ikRPsolver', forceSolver = True,
 	                              snapHandleFlagToggle=True )  
@@ -1775,7 +1786,7 @@ def build_twistDriver_shoulder(goInstance = None):
 		i_ik_handle.addAttr('cgmName',str_baseName ,attrType='string',lock=True)    
 		i_ik_handle.doName()
 		i_ik_handle.parent = self._go._i_rigNull.mNode
-		mc.pointConstraint(ml_blendJoints[1].mNode,i_ik_handle.mNode)
+		mc.pointConstraint(mi_mainSegmentHandle.mNode,i_ik_handle.mNode,maintainOffset = False)
 		
 		ml_twistObjects.append(i_ik_handle)
 		
@@ -1792,7 +1803,8 @@ def build_twistDriver_shoulder(goInstance = None):
 	    #>>> Control	
 	    try:
 		#>>> Connect in
-		cgmMeta.cgmAttr(self._go._i_module.rigNull.settings,'in_worldIKStart').doConnectIn("%s.r%s"%(i_startRoot.mNode,self._go._jointOrientation[0]))
+		mc.orientConstraint(i_startRoot.mNode,i_driver.mNode,maintainOffset = True, skip = [self._go._jointOrientation[1],self._go._jointOrientation[2]])
+		cgmMeta.cgmAttr(self._go._i_module.rigNull.settings,'in_worldIKStart').doConnectIn("%s.r%s"%(i_driver.mNode,self._go._jointOrientation[0]))
 		self._go.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
 	    except StandardError,error:
 		raise StandardError,"finish failed| %s"%(error)
