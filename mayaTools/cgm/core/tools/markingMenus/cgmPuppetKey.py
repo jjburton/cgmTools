@@ -108,11 +108,12 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	def func_multiModuleSelect():
 	    """
 	    execute a command and let the menu know not do do the default button action but just kill the ui
-	    """		
+	    """	
+	    l_buffer = []
 	    if self.ml_modules:
 		l_buffer = []
 		for i_m in self.ml_modules:
-		    l_buffer.extend( i_m.rigNull.msgList_getMessage('controlsAll') )
+		    l_buffer.extend( i_m.rigNull.moduleSet.getList() )
 		mc.select(l_buffer )
 	    killUI()	
 	    
@@ -130,8 +131,8 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    """		
 	    if self.ml_modules:
 		for i_m in self.ml_modules:
-		    l_buffer.extend( i_m.rigNull.msgList_getMessage('controlsAll') )
-		mc.select(l_buffer )
+		    try:i_m.rigNull.dynSwitch.go(arg)
+		    except Exception,error:log.error(error)
 	    killUI()	
 	def func_multiReset():
 	    """
