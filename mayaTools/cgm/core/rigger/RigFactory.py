@@ -18,7 +18,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-from cgm.core.rigger.lib import module_utils as modUtils
+from cgm.core.rigger.lib import module_Utils as modUtils
 
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
