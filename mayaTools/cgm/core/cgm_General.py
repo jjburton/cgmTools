@@ -77,14 +77,13 @@ class cgmFuncCls(object):
 	"""
 	t_start = time.clock()
 	try:
-	    if not self.l_funcSteps: l_funcSteps = [{'call':self.__func__}]
-	    else: l_funcSteps = self.l_funcSteps
-	    int_keys = range(0,len(l_funcSteps)-1)
-	    int_max = len(l_funcSteps)-1
+	    if not self.l_funcSteps: self.l_funcSteps = [{'call':self.__func__}]
+	    int_keys = range(0,len(self.l_funcSteps)-1)
+	    int_max = len(self.l_funcSteps)-1
 	except Exception,error:
 	    raise StandardError, ">"*3 + " %s >!FAILURE!> go start | Error: %s"%(self._str_funcCombined,error)
 	
-	for i,d_step in enumerate(l_funcSteps):
+	for i,d_step in enumerate(self.l_funcSteps):
 	    t1 = time.clock()	    
 	    try:	
 		_str_step = d_step.get('step') or self._str_funcName
@@ -132,9 +131,19 @@ class cgmFuncCls(object):
 	    log.info(">"*3 + " KWs Defined " + "-"*75)	  	    
 	    for k in self.d_kwsDefined.keys():
 		log.info(">"*3 + " '%s' : %s "%(k,self.d_kwsDefined[k]))
+	log.info(">"*3 + " Self Stored " + "-"*75)	  	    		    
+	for k in self.__dict__.keys():
+	    if k not in self.l_dictMask:
+		buffer = self.__dict__[k]
+		if type(buffer) is dict:
+		    log.info(">"*6 + " Nested Dict: %s "%k + "-"*75)	
+		    for k2 in buffer.keys():
+			log.info(">"*6 + " '%s' : %s "%(k2,buffer[k2]))			
+		else:
+		    log.info(">"*3 + " '%s' : %s "%(k,self.__dict__[k]))
 	if self.l_funcSteps:
 	    log.info(">"*3 + " Steps " + "-"*75)	  	    
-	    for i,d in enumerate(l_funcSteps):
+	    for i,d in enumerate(self.l_funcSteps):
 		try:log.info(">"*3 + " '%s' : %s "%(i,d.get('step')))
 		except:pass
 	log.info("#" + "-" *100)
