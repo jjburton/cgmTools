@@ -73,7 +73,7 @@ class SceneReviewerUI(object):
             sceneName=self.getSceneName()
             
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-        window = cmds.window(self.win, title=self.win, s=True, widthHeight=(260,300))
+        window = cmds.window(self.win, title=self.win, s=True, widthHeight=(450,700))
         cmds.scrollLayout('reviewScrollLayout',rc=lambda *args:self.resizeTextScrollers())
         cmds.columnLayout(adjustableColumn=True,columnAttach=('both',5))
         cmds.textFieldGrp('author',label='Author', ed=False, text=author)#, tcc=partial(self.updateInternalDict))
@@ -306,13 +306,13 @@ class RecordAttrs(object):
             cmds.window('MouseMoCap',e=True,widthHeight=(260, 180))
                
 
-def monitorAttrs():
-    cmds.headsUpDisplay(
-                        section = 0,
-                        block=8,
-                        blockSize="small",
-                        label ="Blends:",
-                        labelFontSize ="large",
-                        dataFontSize="large",
-                        command ="BlendCounter ",
-                        atr= ("HUDBlendCounter"))
+#def monitorAttrs():
+#    cmds.headsUpDisplay(
+#                        section = 0,
+#                        block=8,
+#                        blockSize="small",
+#                        label ="Blends:",
+#                        labelFontSize ="large",
+#                        dataFontSize="large",
+#                        command ="BlendCounter ",
+#                        atr= ("HUDBlendCounter"))

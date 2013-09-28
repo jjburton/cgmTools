@@ -32,7 +32,10 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
     kDestinationLongFlag = "-destination" 
     kTimeFlag = "-te"
     kTimeLongFlag = "-timeEnabled" 
-
+    kTransFlag = "-st"
+    kTransLongFlag = "-snapTranslates" 
+    kRotsFlag = "-sr"
+    kRotsLongFlag = "-snapRotates" 
     
     def __init__(self):
         OpenMayaMPx.MPxCommand.__init__(self)  
@@ -42,6 +45,8 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
         self.TimeEnabled=False 
         self.MFntSource=None
         self.MFntDestin=None
+        self.snapTranslation=True
+        self.snapRotation=True
     
     def isUndoable(self):
         '''
@@ -74,6 +79,7 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
         '''
         Source=None
         Destin=None
+        result=[]
 
         #Build the Arg List from the MSyntax/MArgDatabase, we need to 
         #do this as when called this object is in the API world not Python
@@ -84,6 +90,10 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
             Destin=argData.flagArgumentString(self.kDestinationFlag, 0)
         if argData.isFlagSet(self.kTimeFlag):
             self.TimeEnabled=argData.flagArgumentBool(self.kTimeFlag, 0)  
+        if argData.isFlagSet(self.kTransFlag):
+            self.snapTranslation=argData.flagArgumentBool(self.kTransFlag, 0)  
+        if argData.isFlagSet(self.kRotsFlag):
+            self.snapRotation=argData.flagArgumentBool(self.kRotsFlag, 0)  
             #print ('timeEnabled',self.TimeEnabled) 
 
         #Make the api.MFnTransorm Nodes
@@ -98,33 +108,38 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
             self.origTime=apiAnim.MAnimControl().currentTime()
             apiAnim.MAnimControl.setCurrentTime(self.origTime)
         
-        #--------------------------
-        #DEAL WITH THE TRANSLATES :
-        #--------------------------
-        rotPivA=OpenMaya.MVector(self.MFntSource.rotatePivot(OpenMaya.MSpace.kWorld))
-        rotPivB=OpenMaya.MVector(self.MFntDestin.rotatePivot(OpenMaya.MSpace.kWorld))
-        self.origTrans=self.MFntDestin.getTranslation(OpenMaya.MSpace.kWorld)
-        #We subtract the destinations translation from it's rotPivot, before adding it
-        #to the source rotPiv. This compensates for offsets in the 2 nodes pivots
-        targetTrans=(rotPivA + (self.origTrans - rotPivB))
-        self.MFntDestin.setTranslation(targetTrans ,OpenMaya.MSpace.kWorld)
-        
-        #-----------------------
-        #DEAL WITH THE ROTATES :
-        #-----------------------
-        #Fill the Undo 
-        self.origRots=OpenMaya.MQuaternion()
-        self.MFntDestin.getRotation(self.origRots,OpenMaya.MSpace.kWorld)
-        
-        #Read the source Quaternions and copy to destination
-        Quat = OpenMaya.MQuaternion()
-        self.MFntSource.getRotation(Quat,OpenMaya.MSpace.kWorld)
-        self.MFntDestin.setRotation(Quat,OpenMaya.MSpace.kWorld)
+        if self.snapTranslation:
+            #--------------------------
+            #DEAL WITH THE TRANSLATES :
+            #--------------------------
+            rotPivA=OpenMaya.MVector(self.MFntSource.rotatePivot(OpenMaya.MSpace.kWorld))
+            rotPivB=OpenMaya.MVector(self.MFntDestin.rotatePivot(OpenMaya.MSpace.kWorld))
+            self.origTrans=self.MFntDestin.getTranslation(OpenMaya.MSpace.kWorld)
+            #We subtract the destinations translation from it's rotPivot, before adding it
+            #to the source rotPiv. This compensates for offsets in the 2 nodes pivots
+            targetTrans=(rotPivA + (self.origTrans - rotPivB))
+            self.MFntDestin.setTranslation(targetTrans ,OpenMaya.MSpace.kWorld)
+            result.append(targetTrans)
+            
+        if self.snapRotation:
+            #-----------------------
+            #DEAL WITH THE ROTATES :
+            #-----------------------
+            #Fill the Undo 
+            self.origRots=OpenMaya.MQuaternion()
+            self.MFntDestin.getRotation(self.origRots,OpenMaya.MSpace.kWorld)
+            
+            #Read the source Quaternions and copy to destination
+            Quat = OpenMaya.MQuaternion()
+            self.MFntSource.getRotation(Quat,OpenMaya.MSpace.kWorld)
+            self.MFntDestin.setRotation(Quat,OpenMaya.MSpace.kWorld)
+            result.append(Quat)
         
         #set the returns
         OpenMayaMPx.MPxCommand.clearResult()
         #Pass back the destination co-ordinates required
-        OpenMayaMPx.MPxCommand.setResult([targetTrans,Quat])
+        #OpenMayaMPx.MPxCommand.setResult([targetTrans,Quat])
+        OpenMayaMPx.MPxCommand.setResult(result)
 
         
     def redoIt(self):
@@ -136,8 +151,10 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
         '''
         if self.TimeEnabled:
             apiAnim.MAnimControl.setCurrentTime(self.origTime)
-        self.MFntDestin.setTranslation(self.origTrans,OpenMaya.MSpace.kWorld)
-        self.MFntDestin.setRotation(self.origRots,OpenMaya.MSpace.kWorld)
+        if self.origTrans:
+            self.MFntDestin.setTranslation(self.origTrans,OpenMaya.MSpace.kWorld)
+        if self.origRots:
+            self.MFntDestin.setRotation(self.origRots,OpenMaya.MSpace.kWorld)
         
     @classmethod
     def cmdCreator(cls):
@@ -151,6 +168,8 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
         syntax.addFlag(cls.kSourceFlag, cls.kSourceLongFlag, OpenMaya.MSyntax.kString)
         syntax.addFlag(cls.kDestinationFlag, cls.kDestinationLongFlag, OpenMaya.MSyntax.kString)
         syntax.addFlag(cls.kTimeFlag, cls.kTimeLongFlag, OpenMaya.MSyntax.kBoolean)
+        syntax.addFlag(cls.kTransFlag, cls.kTransLongFlag, OpenMaya.MSyntax.kBoolean)
+        syntax.addFlag(cls.kRotsFlag, cls.kRotsLongFlag, OpenMaya.MSyntax.kBoolean)
         return syntax
     
     

@@ -822,12 +822,17 @@ class FilterNode(object):
                 #in-order to walk over the animBlendNodes to the actual animCurves. 
                 if r9Anim.getAnimLayersFromGivenNodes(nodes):
                     treeDepth=3
+                    log.debug('AnimLayers found, increasing search depth')
                 
-                #Deal with curves linked to character sets or animation layer
-                animCurves=[curve for curve in cmds.listHistory(nodes,pdo=True,lf=False,lv=treeDepth) \
-                                           if cmds.nodeType(curve,i=True)[0]=='animCurve']
+                    #Deal with curves linked to character sets or animation layer
+                    animCurves=[curve for curve in cmds.listHistory(nodes,pdo=True,lf=False,lv=treeDepth) \
+                                               if cmds.nodeType(curve,i=True)[0]=='animCurve']
+                else:
+                    animCurves=cmds.listConnections(nodes,s=True,d=False,type='animCurve')
             except:
                 pass
+        if not animCurves:
+            return []
         if not safe:
             return list(set(animCurves))
         else:
@@ -1667,10 +1672,12 @@ class LockChannels(object):
             if not node.hasAttr('attrMap'):
                 node.addAttr('attrMap', self.statusDict)
             else:
-                cmds.setAttr('%s.attrMap' % serializeNode, l=False)
+                node.attrSetLocked('attrMap',False)
+                #cmds.setAttr('%s.attrMap' % serializeNode, l=False)
                 node.attrMap=self.statusDict
             try:
-                cmds.setAttr('%s.attrMap' % serializeNode, l=True)
+                node.attrSetLocked('attrMap',True)
+                #cmds.setAttr('%s.attrMap' % serializeNode, l=True)
             except StandardError,error:
                 #referenced attrs, even though we've just added it, can't be locked!
                 raise StandardError(error)

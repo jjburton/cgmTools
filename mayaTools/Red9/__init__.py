@@ -1,6 +1,7 @@
 '''
     ===============================================================================
     Red9 StudioPack:
+    author : Mark Jackson
     email : rednineinfo@gmail.com
 
     This is the main entry point for initilizing the Red9 StudioPack. 
@@ -62,10 +63,11 @@
 global RED9_META_REGISTERY
 RED9_META_REGISTERY=[]
 
+import maya.cmds as cmds    
 import startup.setup as setup
 
 def start(Menu=True):
-    import maya.cmds as cmds
+  
     #Run the main setups. If you DON'T want the Red9Menu set 'Menu=False'
     cmds.evalDeferred("Red9.setup.start(Menu=%s)" % Menu)
     #Import the core, not this is on LowPriority to make sure it 

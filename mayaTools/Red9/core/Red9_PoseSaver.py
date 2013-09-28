@@ -190,6 +190,10 @@ class PoseData(object):
         if self.metaRig:
             self.infoDict['metaRigNode']  =self.metaRig.mNode
             self.infoDict['metaRigNodeID']=self.metaRig.mNodeID
+            if self.metaRig.hasAttr('version'):
+                self.infoDict['version'] = self.metaRig.version
+            if self.metaRig.hasAttr('rigType'):
+                self.infoDict['rigType'] = self.metaRig.rigType  
         if self.rootJnt:
             self.infoDict['skeletonRootJnt']=self.rootJnt
         
@@ -698,6 +702,9 @@ class PoseCompare(object):
                     new dict to serialize the current skeleton data to the pose, this means that
                     we can compare a pose on a rig via the internal skeleton transforms as well
                     as the actual rig controllers...makes validation a lot more accurate for export
+                    'poseDict'     = [poseData] main controller data
+                    'skeletonDict' = [skeletonDict] block generated if exportSkeletonRoot is connected
+                    'infoDict'     = [info] block
         '''
         self.compareDict=compareDict
         self.angularTolerance=angularTolerance
@@ -711,12 +718,16 @@ class PoseCompare(object):
         elif os.path.exists(currentPose):
             self.currentPose=PoseData()
             self.currentPose._readPose(currentPose)
+        elif not os.path.exists(referencePose):
+            raise IOError('Given CurrentPose Path is invalid!')
             
         if isinstance(referencePose,PoseData):    
             self.referencePose=referencePose
         elif os.path.exists(referencePose):
             self.referencePose=PoseData()
             self.referencePose._readPose(referencePose)
+        elif not os.path.exists(referencePose):
+            raise IOError('Given ReferencePose Path is invalid!')
 
     def __addFailedAttr(self,key,attr):
         '''

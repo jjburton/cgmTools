@@ -453,18 +453,19 @@ class AnimBinderUI(object):
         cmds.checkBox(value=self.settings.BindTrans, label="BindTrans", ann="Bind only the Translates of the given Controller", al="left", \
                       onc=lambda x:self.settings.__setattr__('BindTrans', True), \
                       ofc=lambda x:self.settings.__setattr__('BindTrans', False))	
-        cmds.checkBox(value=1, label="AlignTrans CtrSpace", ann="Force the BindLocator to the position of the Controller", al="left", \
-                      onc=lambda x:self.settings.__setattr__('AlignToControlTrans', True), \
-                      ofc=lambda x:self.settings.__setattr__('AlignToSourceTrans', True))	
         cmds.checkBox(value=1, label="AlignRots CtrSpace", ann="Force the BindLocator to the position of the Controller", al="left", \
                       onc=lambda x:self.settings.__setattr__('AlignToControlRots', True), \
                       ofc=lambda x:self.settings.__setattr__('AlignToSourceRots', True))	
+        cmds.checkBox(value=1, label="AlignTrans CtrSpace", ann="Force the BindLocator to the position of the Controller", al="left", \
+                      onc=lambda x:self.settings.__setattr__('AlignToControlTrans', True), \
+                      ofc=lambda x:self.settings.__setattr__('AlignToSourceTrans', True))    
+        cmds.checkBox(value=self.settings.ResetRotates, label="Reset Rots Offsets", ann="Reset any Offset during bind, snapping the systems together", al="left", \
+                      onc=lambda x:self.settings.__setattr__('ResetRotates', True), \
+                      ofc=lambda x:self.settings.__setattr__('ResetRotates', False)) 
         cmds.checkBox(value=self.settings.ResetTranslates, label="Reset Trans Offsets", ann="Reset any Offset during bind, snapping the systems together", al="left", \
                       onc=lambda x:self.settings.__setattr__('ResetTranslates', True), \
                       ofc=lambda x:self.settings.__setattr__('ResetTranslates', False))    
-        cmds.checkBox(value=self.settings.ResetRotates, label="Reset Rots Offsets", ann="Reset any Offset during bind, snapping the systems together", al="left", \
-                      onc=lambda x:self.settings.__setattr__('ResetRotates', True), \
-                      ofc=lambda x:self.settings.__setattr__('ResetRotates', False))    
+   
         cmds.setParent('..')
         cmds.separator (h=10, style="none") 
         cmds.button(label="BasicBind", al="center",\

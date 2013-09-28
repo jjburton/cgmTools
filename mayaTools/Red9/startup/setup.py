@@ -15,7 +15,8 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
 __author__ = 'Mark Jackson'
-__buildVersionID__=1.32
+__buildVersionID__ = 1.34
+installedVersion= False
 
 import sys
 import os
@@ -26,7 +27,6 @@ import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
 
 '''
  Maya Version Mapping History:
@@ -177,7 +177,37 @@ def menuSetup():
     cmds.menuItem('redNineInfoItem',l="systems: INFO",ann="Turn all the logging to Info only",
                   echoCommand=True, c="Red9.core._setlogginglevel_info()")
     cmds.menuItem(divider=True,p='redNineDebuggerItem')
-    cmds.menuItem('redNineReloadItem',l="systems: reload()",ann="Force a complete reload on the core of Red9",
+    
+    cmds.menuItem(l='Individual DEBUG',sm=True,p='redNineDebuggerItem')
+    cmds.menuItem(l="Debug : r9Core",ann="Turn all the logging to Debug",
+                  echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Core')")
+    cmds.menuItem(l="Debug : r9Meta",ann="Turn all the logging to Debug",
+                  echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Meta')")
+    cmds.menuItem(l="Debug : r9Anim",ann="Turn all the logging to Debug",
+                  echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Anim')")
+    cmds.menuItem(l="Debug : r9Tools",ann="Turn all the logging to Debug",
+                  echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Tools')")
+    cmds.menuItem(l="Debug : r9Pose",ann="Turn all the logging to Debug",
+                  echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Pose')")
+    cmds.menuItem(l="Debug : r9General",ann="Turn all the logging to Debug",
+                  echoCommand=True, c="Red9.core._setlogginglevel_debug('r9General')")
+    
+    cmds.menuItem(l='Individual INFO',sm=True,p='redNineDebuggerItem')
+    cmds.menuItem(l="Info : r9Core",ann="Turn all the logging to Info only",
+                  echoCommand=True, c="Red9.core._setlogginglevel_info('r9Core')")
+    cmds.menuItem(l="Info : r9Meta",ann="Turn all the logging to Info only",
+                  echoCommand=True, c="Red9.core._setlogginglevel_info('r9Meta')")
+    cmds.menuItem(l="Info : r9Anim",ann="Turn all the logging to Info only",
+                  echoCommand=True, c="Red9.core._setlogginglevel_info('r9Anim')")
+    cmds.menuItem(l="Info : r9Tools",ann="Turn all the logging to Info only",
+                  echoCommand=True, c="Red9.core._setlogginglevel_info('r9Tools')")
+    cmds.menuItem(l="Info : r9Pose",ann="Turn all the logging to Info only",
+                  echoCommand=True, c="Red9.core._setlogginglevel_info('r9Pose')")
+    cmds.menuItem(l="Info : r9General",ann="Turn all the logging to Info only",
+                  echoCommand=True, c="Red9.core._setlogginglevel_info('r9General')")
+    cmds.menuItem(divider=True,p='redNineDebuggerItem')
+    cmds.menuItem('redNineReloadItem',l="systems: reload()", p='redNineDebuggerItem',
+                  ann="Force a complete reload on the core of Red9",
                   echoCommand=True, c="Red9.core._reload()")
     
 def addToMayaMenus():
@@ -206,13 +236,18 @@ def red9ButtonBGC(colour):
         return [0.5, 0.5, 0.5]
    
 def red9ContactInfo(*args):
-    cmds.confirmDialog(title='Red9_StudioPack : build %f' % red9_getVersion(), 
+    result=cmds.confirmDialog(title='Red9_StudioPack : build %f' % red9_getVersion(), 
                        message=("Author: Mark Jackson\r\r"+
                                 "Technical Animation Director\r\r"+
                                 "Contact me at rednineinfo@gmail.com for more information\r\r"+
                                 "thanks for trying the toolset. If you have any\r"+
                                 "suggestions or bugs please let me know!"),
-                       button='thankyou',messageAlign='center')   
+                       button=['thankyou','ChangeLog'],messageAlign='center')  
+    if result=='ChangeLog':
+        import Red9.core.Red9_General as r9General #lazy load
+        r9General.os_OpenFile(os.path.join(red9ModulePath(),'changeLog.txt'))   
+    
+     
     
 def red9ModulePath():
     '''   
@@ -350,37 +385,55 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True):
     '''
     log.info('Red9 StudioPack v%s : author: %s' % (red9_getVersion(), red9_getAuthor()))
     log.info('Red9 StudioPack Setup Calls :: Booting from >> %s' % red9ModulePath())
-    if Menu:
-        try:
-            menuSetup()
-        except:
-            log.debug('Red9 main menu Build Failed!')
-        
+    
+    #check for current builds
+#    currentBuild=False
+#    try:
+#        currentBuild = mel.eval('$temp=$buildInstalled')
+#    except:
+#        print 'Red9 : version not found'
+#
+#    if currentBuild:
+#        print 'Red9 : StudioPack already found : v', currentBuild
+#        if currentBuild<=red9_getVersion():
+#            print 'Red9 StudioPack Start Aborted : v%f is already installed' % currentBuild
+#            return
+#    else:
+#        print 'Red9 : no version currently loaded'
+            
+
     #Ensure the Plug-in and Icon paths are up   
     addPluginPath()
     addIconsPath()
-    
     #Need to add a Mel Folder to the scripts path
     addScriptsPath(os.path.join(red9ModulePath(),'core'))
     
     #Add the Packages folder
     #AddPythonPackages()
-    
-    if MayaUIHooks:
-        #Source Maya Hacked Mel files
-        hacked=red9MayaNativePath()
-        if hacked and MayaOverloads:
-            addScriptsPath(os.path.join(red9ModulePath(),'startup','maya_native'))
-            addScriptsPath(hacked)
+    if not cmds.about(batch=True):
+        if Menu:
             try:
-                mel.eval('source Red9_MelCore' ) 
-                sourceMelFolderContents(hacked)
-            except StandardError, error:
-                log.info(error)
-    
-        #Add custom items to standard built Maya menus       
-        addToMayaMenus()
+                menuSetup()
+            except:
+                log.debug('Red9 main menu Build Failed!')
+                
+        if MayaUIHooks:
+            #Source Maya Hacked Mel files
+            hacked=red9MayaNativePath()
+            if hacked and MayaOverloads:
+                addScriptsPath(os.path.join(red9ModulePath(),'startup','maya_native'))
+                addScriptsPath(hacked)
+                try:
+                    mel.eval('source Red9_MelCore' ) 
+                    sourceMelFolderContents(hacked)
+                except StandardError, error:
+                    log.info(error)
         
+            #Add custom items to standard built Maya menus       
+            addToMayaMenus()
+        
+    #mel.eval('global float $buildInstalled=%f' % red9_getVersion())
+    
     log.info('Red9 StudioPack Complete!')
 
     

@@ -37,29 +37,51 @@ def _reload():
     Red9_Meta.registerMClassInheritanceMapping()
     print('Red9 Core Reloaded and META REGISTRY updated') 
     
-def _setlogginglevel_debug():
+def _setlogginglevel_debug(module='all'):
     '''
     Dev wrapper to set the logging level to debug
     '''
-    Red9_CoreUtils.log.setLevel(Red9_CoreUtils.logging.DEBUG)
-    Red9_AnimationUtils.log.setLevel(Red9_AnimationUtils.logging.DEBUG)
-    Red9_General.log.setLevel(Red9_General.logging.DEBUG)
-    Red9_Tools.log.setLevel(Red9_Tools.logging.DEBUG)
-    Red9_PoseSaver.log.setLevel(Red9_PoseSaver.logging.DEBUG)
-    Red9_Meta.log.setLevel(Red9_Meta.logging.DEBUG)
-    print('Red9 Core set to DEBUG state')
+    if module=='r9Core' or  module=='all':
+        Red9_CoreUtils.log.setLevel(Red9_CoreUtils.logging.DEBUG)
+        print('Red9_CoreUtils set to DEBUG state')
+    if module=='r9Anim' or  module=='all':
+        Red9_AnimationUtils.log.setLevel(Red9_AnimationUtils.logging.DEBUG)
+        print('Red9_AnimationUtils set to DEBUG state')
+    if module=='r9General' or  module=='all':
+        Red9_General.log.setLevel(Red9_General.logging.DEBUG)
+        print('Red9_General set to DEBUG state')
+    if module=='r9Tools' or  module=='all':
+        Red9_Tools.log.setLevel(Red9_Tools.logging.DEBUG)
+        print('Red9_Tools set to DEBUG state')
+    if module=='r9Pose' or  module=='all':
+        Red9_PoseSaver.log.setLevel(Red9_PoseSaver.logging.DEBUG)
+        print('Red9_PoseSaver set to DEBUG state')
+    if module=='r9Meta' or  module=='all':
+        Red9_Meta.log.setLevel(Red9_Meta.logging.DEBUG)
+        print('Red9_Meta set to DEBUG state')
         
-def _setlogginglevel_info():
+def _setlogginglevel_info(module='all'):
     '''
     Dev wrapper to set the logging to Info, usual state
     '''
-    Red9_CoreUtils.log.setLevel(Red9_CoreUtils.logging.INFO)
-    Red9_AnimationUtils.log.setLevel(Red9_AnimationUtils.logging.INFO)
-    Red9_General.log.setLevel(Red9_General.logging.INFO)
-    Red9_Tools.log.setLevel(Red9_Tools.logging.INFO)
-    Red9_PoseSaver.log.setLevel(Red9_PoseSaver.logging.INFO)
-    Red9_Meta.log.setLevel(Red9_Meta.logging.INFO)
-    print('Red9 Core set to INFO state')
+    if module=='r9Core' or  module=='all':
+        Red9_CoreUtils.log.setLevel(Red9_CoreUtils.logging.INFO)
+        print('Red9_CoreUtils set to INFO state')
+    if module=='r9Anim' or  module=='all':
+        Red9_AnimationUtils.log.setLevel(Red9_AnimationUtils.logging.INFO)
+        print('Red9_AnimationUtils set to INFO state')
+    if module=='r9General' or  module=='all':
+        Red9_General.log.setLevel(Red9_General.logging.INFO)
+        print('Red9_General set to INFO state')
+    if module=='r9Tools' or  module=='all':
+        Red9_Tools.log.setLevel(Red9_Tools.logging.INFO)
+        print('Red9_Tools set to INFO state')
+    if module=='r9Pose' or  module=='all':
+        Red9_PoseSaver.log.setLevel(Red9_PoseSaver.logging.INFO)
+        print('Red9_PoseSaver set to INFO state')
+    if module=='r9Meta' or  module=='all':
+        Red9_Meta.log.setLevel(Red9_Meta.logging.INFO)
+        print('Red9_Meta set to INFO state')
 
 
 #========================================================================

@@ -171,7 +171,7 @@ def Timer(func):
         except:
             log.debug('function class inspect failure')
         functionTrace+=func.__name__ 
-        log.debug('TIMER : %s: took %0.3f ms' % (functionTrace,(t2-t1)*1000.0))
+        log.info('TIMER : %s: took %0.3f ms' % (functionTrace,(t2-t1)*1000.0))
         #log.info('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
     return wrapper  
@@ -219,10 +219,11 @@ class AnimationContext(object):
             log.exception('%s : %s'%(exc_type, exc_value))
         # If this was false, it would re-raise the exception when complete
         return True 
+    
 
 class undoContext(object):
     """
-    Simple Context Manager for restoring Animation settings
+    Simple Context Manager for chunking the undoState
     """        
     def __enter__(self):
         cmds.undoInfo(openChunk=True)
@@ -234,6 +235,68 @@ class undoContext(object):
         # If this was false, it would re-raise the exception when complete
         return True 
     
+
+class ProgressBarContext(object):
+    '''
+    Context manager to make it easier to wrap progressBars
+    
+    example usage:
+        step=5
+        progressBar=r9General.ProgressBarContext(1000)
+        progressBar.setStep(step)
+        count=0
+        with progressBar:            
+            for i in range(1:1000):
+            
+                if progressBar.isCanceled():
+                    print 'process cancelled'
+                    return
+
+                progressBar.setProgress(count)
+                count+=step
+    '''
+    def __init__(self, maxValue=100, interruptable=True):
+        if maxValue <= 0:
+            raise ValueError("Max has to be greater than 0")
+        self._maxValue = maxValue
+        self._interruptable = interruptable
+        self._gMainProgressBar = mel.eval('$tmp = $gMainProgressBar')
+                
+    def isCanceled(self):
+        #print 'cancelled check : ', cmds.progressBar(self._gMainProgressBar, query=True, isCancelled=True)
+        return cmds.progressBar(self._gMainProgressBar, query=True, isCancelled=True)
+
+    def setText(self, text):
+        cmds.progressBar(self._gMainProgressBar, edit=True, status=text)
+
+    def setMaxValue(self, value):
+        cmds.progressBar(self._gMainProgressBar, edit=True, maxValue=int(value))
+        
+    def setStep(self, value):
+        cmds.progressBar(self._gMainProgressBar, edit=True, step=int(value))
+    
+    def setProgress(self, value):
+        cmds.progressBar(self._gMainProgressBar, edit=True, progress=int(value))  
+        
+    def reset(self):
+        self.setMaxValue(self._maxValue)
+        self.setText("")
+
+    def __enter__( self ): 
+        cmds.progressBar(self._gMainProgressBar,
+                          edit=True,
+                          beginProgress=True,
+                          isInterruptable=self._interruptable,
+                          maxValue=self._maxValue)
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        cmds.progressBar(self._gMainProgressBar, edit=True, endProgress=True)
+        if exc_type:
+            log.exception('%s : %s'%(exc_type, exc_value))  
+        del(self)  
+        return False #False so that the exceptiopn gets re-raised 
+    
+       
 class HIKContext(object):
     """
     Simple Context Manager for restoring HIK Animation settings and managing HIK callbacks
@@ -461,8 +524,12 @@ def thumbnailApiFromView(filename, width, height, compression='bmp', modelPanel=
     if modelPanel is None:
         view = OpenMayaUI.M3dView.active3dView()
     else:
-        view = OpenMayaUI.M3dView()
-        OpenMayaUI.M3dView.getM3dViewFromModelEditor(modelPanel, view)
+        try:
+            view = OpenMayaUI.M3dView()
+            OpenMayaUI.M3dView.getM3dViewFromModelEditor(modelPanel, view)
+        except:
+            #in case the given modelPanel doesn't exist!!
+            view = OpenMayaUI.M3dView.active3dView()
 
     #read the color buffer from the view, and save the MImage to disk
     image = OpenMaya.MImage()

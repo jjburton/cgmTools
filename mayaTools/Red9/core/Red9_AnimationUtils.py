@@ -302,7 +302,6 @@ class AnimationUI(object):
     def show(cls):
         animUI=cls()
         if r9General.getModifier()=='Ctrl':
-            print 'False'
             animUI.dock=False
         animUI._showUI() 
            
@@ -315,8 +314,8 @@ class AnimationUI(object):
             self.dock=False
         
         if cmds.window(self.win, exists=True): cmds.deleteUI(self.win, window=True)
-        animwindow=cmds.window(self.win , title=self.label)#, widthHeight=(325, 420))
-        #cmds.columnLayout()
+        animwindow=cmds.window(self.win , title=self.label)
+        
         cmds.menuBarLayout()
         cmds.menu(l="VimeoHelp")
         cmds.menuItem(l="Open Vimeo > WalkThrough",\
@@ -399,7 +398,7 @@ class AnimationUI(object):
 
         cmds.setParent('..')
         cmds.separator(h=2, style='none')  
-        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 70), (3, 130)], columnSpacing=[(1, 10), (2, 10)])
+        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 70), (3, 120)], columnSpacing=[(1, 10), (2, 10)])
         self.uicbCKeyRange = cmds.checkBox(ann='ONLY Copy Keys over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)', 
                                             l='TimeRange', al='left', v=False)
         cmds.text(l='Paste by ' , align='right') 
@@ -453,18 +452,26 @@ class AnimationUI(object):
         cmds.separator(h=10, st='in')
         cmds.frameLayout(label='Track or Stabilize', cll=True, borderStyle='etchedOut')
         cmds.columnLayout(adjustableColumn=True)
-        
-        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 80), (2, 110), (3, 115)], columnSpacing=[(1, 10), (3, 5)])
+        #cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)])
+        cmds.rowColumnLayout(numberOfColumns=4, columnWidth=[(1, 100), (2, 55), (3, 55), (4,100)], columnSpacing=[(1, 10),(3,5)])
         self.uicbStabRange = cmds.checkBox(ann='Process over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)', 
                                             l='TimeRange', al='left', v=False) 
-        self.uiifgStabStep = cmds.intFieldGrp('uiifgStabStep', l='FrmStep', value1=1, cw2=(50, 50), 
-                                           ann='Frames to advance the timeline between Processing - accepts negative values')
-        cmds.button(label='Process', bgc=self.buttonBgc, 
+        self.uicbStabTrans = cmds.checkBox(ann='Track the Translation data', l='Trans', al='left', v=True) 
+        self.uicbStabRots = cmds.checkBox(ann='Track the Rotational data', l='Rots', al='left', v=True) 
+        self.uiffgStabStep = cmds.floatFieldGrp('uiffgStabStep', l='Step', value1=1, cw2=(40, 50),
+                                              ann='Frames to advance the timeline between Processing - accepts negative values')
+        cmds.setParent('..')
+        cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 160), (2, 160)], columnSpacing=[(2, 2)])
+        cmds.button(label='<< Process Back <<', bgc=self.buttonBgc, 
                      ann='Stabilize Mode : Select a SINGLE Object - this will stabilize it in place over time\
                      \nTrack Object Mode : Select TWO Objects - first is source, second will track with offset\
                      \nTrack Component Mode :  Select a Component (poly,vert,edge) then an Object - second will track the component with offset',
-                     command=partial(self.__uiCall, 'Stabilize'))   
-
+                     command=partial(self.__uiCall, 'StabilizeBack'))   
+        cmds.button(label='>>  Process Fwd  >>', bgc=self.buttonBgc, 
+                     ann='Stabilize Mode : Select a SINGLE Object - this will stabilize it in place over time\
+                     \nTrack Object Mode : Select TWO Objects - first is source, second will track with offset\
+                     \nTrack Component Mode :  Select a Component (poly,vert,edge) then an Object - second will track the component with offset',
+                     command=partial(self.__uiCall, 'StabilizeFwd'))   
         cmds.setParent(self.AnimLayout)  
         
         
@@ -501,7 +508,7 @@ class AnimationUI(object):
         self.uicbTimeOffsetRandom = cmds.checkBox('uicbTimeOffsetRandom', l='Randomizer', 
                                             ann='Randomize the offsets using the offset field as the max such that offsets are random(0,offset)', 
                                             al='left', v=False)  
-        self.uiffgTimeOffset = cmds.floatFieldGrp('uiffgTimeOffset', l='Offset ', value1=1, cw2=(35, 60), 
+        self.uiffgTimeOffset = cmds.floatFieldGrp('uiffgTimeOffset', l='Offset ', value1=1, cw2=(35, 50), 
                                             ann='Frames to offset the data by')
         cmds.setParent('..')
         cmds.button(label='Offset', bgc=self.buttonBgc, 
@@ -790,7 +797,8 @@ class AnimationUI(object):
         #====================
         # Header
         #====================
-        cmds.setParent(self.MainLayout)
+        if not r9Setup.mayaVersion()==2009:
+            cmds.setParent(self.MainLayout)
         cmds.separator(h=10, style='none')
         self.r9strap=cmds.iconTextButton('r9strap', style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp', 
                              c=lambda * args:(r9Setup.red9ContactInfo()), h=22, w=340)
@@ -1669,6 +1677,8 @@ class AnimationUI(object):
     def __uiPoseCopyToProject(self,*args):
         '''
         Copy local pose to the Project Pose Folder
+        TODO: have a way to let the user select the ProjectSubfolder the
+        pose gets copied down too
         '''
         import shutil      
         syncSubFolder=True  
@@ -1894,15 +1904,19 @@ class AnimationUI(object):
         else:
             AnimFunctions(matchMethod=self.matchMethod).snapTransform(nodes=None, **self.kws)   
     
-    def __Stabilize(self):
+    def __Stabilize(self, direction):
         '''
         Internal UI call for Stabilize
         '''
         time = ()
-        step = cmds.intFieldGrp('uiifgStabStep', q=True, v=True)[0]
+        step = cmds.floatFieldGrp('uiffgStabStep', q=True, v=True)[0]
+        if direction=='back':
+            step=-step
         if cmds.checkBox(self.uicbStabRange, q=True, v=True):
             time = timeLineRangeGet()
-        AnimFunctions.stabilizer(cmds.ls(sl=True, l=True), time, step)  
+        AnimFunctions.stabilizer(cmds.ls(sl=True, l=True), time, step, 
+                                 cmds.checkBox(self.uicbStabTrans, q=True, v=True),
+                                 cmds.checkBox(self.uicbStabRots, q=True, v=True))  
                                       
     def __TimeOffset(self):
         '''
@@ -2071,8 +2085,10 @@ class AnimationUI(object):
                 self.__CopyKeys()                        
             elif func == 'Snap':
                 self.__Snap()   
-            elif func == 'Stabilize':
-                self.__Stabilize()
+            elif func == 'StabilizeFwd':
+                self.__Stabilize('fwd')
+            elif func == 'StabilizeBack':
+                self.__Stabilize('back')
             elif func == 'TimeOffset':
                 self.__TimeOffset()
             elif func == 'HierarchyTest':
@@ -2176,8 +2192,7 @@ class AnimFunctions(object):
         a Dumb copy, no matching and no Hierarchy filtering, copies using 
         selected pairs obj[0]>obj[1], obj[2]>obj[3] etc 
         -----------------------------------------------------------------
-        
-        TODO: add support in the UI for 'replaceCompletely' paste method....
+
         '''
         if not matchMethod:matchMethod=self.matchMethod
         log.debug('CopyKey params : nodes=%s\n : time=%s\n : pasteKey=%s\n : attributes=%s\n : filterSettings=%s\n : matchMethod=%s\n'\
@@ -2350,7 +2365,8 @@ class AnimFunctions(object):
             checkRunTimeCmds()
         except StandardError, error:
             raise StandardError(error)
-            
+        cancelled=False           
+        
         log.debug('snapTransform params : nodes=%s : time=%s : step=%s : preCopyKeys=%s : \
                     preCopyAttrs=%s : filterSettings=%s : matchMethod=%s' \
                    % (nodes, time, step, preCopyKeys, preCopyAttrs, filterSettings, matchMethod))
@@ -2359,48 +2375,57 @@ class AnimFunctions(object):
         nodeList = r9Core.processMatchedNodes(nodes, 
                                               filterSettings, 
                                               matchMethod=matchMethod)
-        
         if nodeList.MatchedPairs:    
-            nodeList.MatchedPairs.reverse() #reverse order so we're dealing with children before their parents
-            
+            nodeList.MatchedPairs.reverse() #reverse order so we're dealing with children before their parents 
             if preCopyAttrs:
                 self.copyAttributes(nodes=nodeList, skipAttrs=skipAttrs, filterSettings=filterSettings, **kws)
-            
             if time:
-                with r9General.AnimationContext(): #Context manager to restore settings
-                    
+                with r9General.AnimationContext(): #Context manager to restore settings  
                     cmds.autoKeyframe(state=False)   
                     #run a copyKeys pass to take all non transform data over  
                     #maybe do a channel attr pass to get non-keyed data over too?                   
                     if preCopyKeys: 
                         self.copyKeys(nodes=nodeList, time=time, filterSettings=filterSettings, **kws)
+                     
+                    progressBar = r9General.ProgressBarContext(time[1]-time[0])
+                    progressBar.setStep(step)
+                    count=0
+                    
+                    with progressBar:                 
+                        for t in timeLineRangeProcess(time[0], time[1], step, incEnds=True):
+                            if progressBar.isCanceled():
+                                cancelled =True
+                                break
+                            dataAligned = False
+                            processRepeat = iterations
                            
-                    for t in timeLineRangeProcess(time[0], time[1], step, incEnds=True):
-                        dataAligned = False
-                        processRepeat = iterations
-                       
-                        while not dataAligned:
-                            for src, dest in nodeList.MatchedPairs:     
-                                #we'll use the API MTimeControl in the runtime function 
-                                #to update the scene without refreshing the Viewports
-                                cmds.currentTime(t, e=True, u=False)
-                                #pass to the plug-in SnapCommand
-                                cmds.SnapTransforms(source=src, destination=dest, timeEnabled=True)    
-                                #fill the snap cache for error checking later
-                                #self.snapCacheData[dest]=data
-                                cmds.setKeyframe(dest, at='translate')
-                                cmds.setKeyframe(dest, at='rotate')
-                                log.debug('Snapfrm %s : %s - %s : to : %s' % (str(t), r9Core.nodeNameStrip(src), dest, src))
-        
-                            processRepeat -= 1   
-                            if not processRepeat:
-                                dataAligned = True
+                            while not dataAligned:
+                                for src, dest in nodeList.MatchedPairs:     
+                                    #we'll use the API MTimeControl in the runtime function 
+                                    #to update the scene without refreshing the Viewports
+                                    cmds.currentTime(t, e=True, u=False)
+                                    #pass to the plug-in SnapCommand
+                                    cmds.SnapTransforms(source=src, destination=dest, timeEnabled=True)    
+                                    #fill the snap cache for error checking later
+                                    #self.snapCacheData[dest]=data
+                                    cmds.setKeyframe(dest, at='translate')
+                                    cmds.setKeyframe(dest, at='rotate')
+                                    log.debug('Snapfrm %s : %s - %s : to : %s' % (str(t), r9Core.nodeNameStrip(src), dest, src))
+            
+                                processRepeat -= 1   
+                                if not processRepeat:
+                                    dataAligned = True
+                            progressBar.setProgress(count)
+                            count+=step
             else:
                 for _ in range(0, iterations):
                     for src, dest in nodeList.MatchedPairs:
                         cmds.SnapTransforms(source=src, destination=dest, timeEnabled=False) 
                         #self.snapCacheData[dest]=data 
-                        log.debug('Snapped : %s - %s : to : %s' % (r9Core.nodeNameStrip(src), dest, src))   
+                        log.debug('Snapped : %s - %s : to : %s' % (r9Core.nodeNameStrip(src), dest, src))  
+                         
+            if cancelled and preCopyKeys:
+                cmds.undo()
         else:
             raise StandardError('Nothing found by the Hierarchy Code to process')
         return True 
@@ -2443,7 +2468,7 @@ class AnimFunctions(object):
  
         
     @staticmethod
-    def stabilizer(nodes=None, time=(), step=1):
+    def stabilizer(nodes=None, time=(), step=1, trans=True, rots=True):
         '''
         This is designed with 2 specific functionalities:
         If you have a single node selected it will stabilize it regardless 
@@ -2501,17 +2526,17 @@ class AnimFunctions(object):
                     raise StandardError('Component Level Tracking is only available in Maya2011 upwards')
             
             cmds.parent(snapRef, offsetRef)
-            cmds.SnapTransforms(source=destObj, destination=snapRef)
+            cmds.SnapTransforms(source=destObj, destination=snapRef, snapTranslates=trans, snapRotates=rots)
         else:
             # Stabilizer Mode - take the reference from the node position itself
-            cmds.SnapTransforms(source=destObj, destination=snapRef)
+            cmds.SnapTransforms(source=destObj, destination=snapRef, snapTranslates=trans, snapRotates=rots)
 
         #Now run the snap against the reference node we've just made
         #==========================================================
         for time in timeRange:
             #Switched to using the Commands time query to stop  the viewport updates
             cmds.currentTime(time, e=True, u=False)
-            cmds.SnapTransforms(source=snapRef, destination=destObj, timeEnabled=True) 
+            cmds.SnapTransforms(source=snapRef, destination=destObj, timeEnabled=True, snapTranslates=trans, snapRotates=rots)
             try:
                 cmds.setKeyframe(destObj, at='translate')
             except:
@@ -3140,14 +3165,11 @@ class MirrorHierarchy(object):
         
         #default Attributes used to define the system
         self.defaultMirrorAxis=['translateX','rotateY','rotateZ']
-        #self.mirrorSide='MirrorMarker' #switched attr names to unify this and the MetaRig setups
-        #self.mirrorIndex='MirrorList'  #switched attr names to unify this and the MetaRig setups
-        #self.mirrorAxis='MirrorAxis'   #switched attr names to unify this and the MetaRig setups
         self.mirrorSide='mirrorSide'
         self.mirrorIndex='mirrorIndex'
         self.mirrorAxis='mirrorAxis'
         self.mirrorDict={'Centre':{},'Left':{},'Right':{}}
-        self.kws=kws #allows us to pass kws into the copyKey and copyAttr call if needed
+        self.kws=kws #allows us to pass kws into the copyKey and copyAttr call if needed, ie, pasteMethod!
         print 'kws in Mirror call : ',self.kws
         
         # make sure we have a settings object
@@ -3325,10 +3347,7 @@ class MirrorHierarchy(object):
         '''
         take the left and right matched pairs and exchange the animData
         or poseData across between them
-        
-        FIXME: there's an issue here, if left has keys at 0,5 and right has keys 0,10
-        we'll end up with right having keys at 0,5,10 as the copyKeys is a replace
-        not a replaceComplete? Do we add a flag for that situation?
+
         '''
         objs=cmds.ls(sl=True,l=True)
         if mode=='Anim':
@@ -3513,6 +3532,9 @@ class MirrorSetup(object):
         cmds.checkBox('default',l='use default settings', v=True, 
                       onc=lambda x:self.__uicb_default(False),
                       ofc=lambda x:self.__uicb_default(True))
+#        cmds.checkBox('directCopy',l='directCopy', v=True, 
+#                      onc=lambda x:cmds.checkBox('default',e=True, v=False),
+#                      ofc=lambda x:cmds.checkBox('default',e=True, v=True))
         cmds.separator(h=5, style='none')
         cmds.rowColumnLayout(ann='attrs', numberOfColumns=3, 
                                  columnWidth=[(1,90),(2,90),(3,90)])        
@@ -3614,8 +3636,10 @@ class MirrorSetup(object):
         '''
         note this is a string
         '''
-        if cmds.checkBox('default',q=True,v=True):
+        if cmds.checkBox('default', q=True, v=True):
             return None
+        #elif cmds.checkBox('directCopy', q=True, v=True):
+        #    return 'None'
         else:
             axis=[]
             if cmds.checkBox('translateX',q=True,v=True):
