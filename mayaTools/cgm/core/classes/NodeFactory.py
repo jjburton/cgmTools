@@ -39,6 +39,103 @@ from cgm.lib import (lists,
                      attributes)
 reload(search)
 
+def createNormalizedClosestPointNode(objToAttach = None, targetSurface = None, **kws):
+    """
+    Function to attach an object to a surface. Actions to do:
+    1)Make a transform group that follows the surface
+    2)Make a follicle
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self, objToAttach = None, targetSurface = None, **kws):
+	    """
+	    @kws
+	    source -- joint to add length to
+	    target -- the attr to connect this to. If none is provided, it adds to the joint
+	    connectBy -- mode
+	    orienation(str) -- joint orientation
+    
+	    """		    
+	    super(fncWrap, self).__init__(objToAttach, targetSurface,**kws)
+	    self._str_funcName = 'createNormalizedClosestPointNode'	
+	    self.__dataBind__(**kws)
+	    self.d_kwsDefined = {'objToAttach':objToAttach,
+	                         'targetSurface':targetSurface,
+	                         }	    
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:#If debug
+		self.report()
+		
+	def __func__(self):
+	    #>> validate ============================================================================
+	    self.mi_obj= cgmMeta.validateObjArg(self.d_kwsDefined['objToAttach'],cgmMeta.cgmObject,noneValid=False)
+	    self.mi_targetSurface = cgmMeta.validateObjArg(self.d_kwsDefined['targetSurface'],mayaType='nurbsSurface',noneValid=False)
+	    self.l_shapes = mc.listRelatives(self.mi_targetSurface.mNode,shapes=True)
+	    if len(self.l_shapes)>1:
+		log.warning( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(self.mi_targetSurface.p_nameShort,self.l_shapes) )
+	    self.mi_shape = cgmMeta.validateObjArg(self.l_shapes[0],cgmMeta.cgmNode,noneValid=False)
+	    
+	    #>> Create node ============================================================================
+	    mi_cpos = cgmMeta.cgmNode(nodeType='closestPointOnSurface')
+	    mi_cpos.doStore('cgmName',self.mi_obj.mNode)
+	    mi_cpos.addAttr('cgmTypeModifier','cgmModified',lock=True)	    
+	    mi_cpos.doName()
+	    
+	    self.mi_cpos = mi_cpos
+	    self.mi_obj.connectChildNode(mi_cpos,"closestPointOnSurfaceNode")
+	    
+	    self.mPlug_uValue= cgmMeta.cgmAttr(mi_cpos,'parameterU')	    
+	    self.mPlug_uMin = cgmMeta.cgmAttr(mi_cpos,'uMin',attrType='float',lock=True,keyable=False,hidden=True)
+	    self.mPlug_uMax = cgmMeta.cgmAttr(mi_cpos,'uMax',attrType='float',lock=True,keyable=False,hidden=True)
+	    self.mPlug_uSize = cgmMeta.cgmAttr(mi_cpos,'uSize',attrType='float',lock=True,keyable=False,hidden=True)
+	    self.mPlug_uSum = cgmMeta.cgmAttr(mi_cpos,'uSum',attrType='float',lock=True,keyable=False,hidden=True)	    	    
+	    self.mPlug_uNormal= cgmMeta.cgmAttr(mi_cpos,'out_uNormal',attrType='float',lock=True,keyable=False,hidden=True)
+	    
+	    self.mPlug_vValue= cgmMeta.cgmAttr(mi_cpos,'parameterV')	    
+	    self.mPlug_vMin= cgmMeta.cgmAttr(mi_cpos,'vMin',attrType='float',lock=True,keyable=False,hidden=True)
+	    self.mPlug_vMax = cgmMeta.cgmAttr(mi_cpos,'vMax',attrType='float',lock=True,keyable=False,hidden=True)
+	    self.mPlug_vSize = cgmMeta.cgmAttr(mi_cpos,'vSize',attrType='float',lock=True,keyable=False,hidden=True)
+	    self.mPlug_vSum = cgmMeta.cgmAttr(mi_cpos,'vSum',attrType='float',lock=True,keyable=False,hidden=True)	    	    	    
+	    self.mPlug_vNormal = cgmMeta.cgmAttr(mi_cpos,'out_vNormal',attrType='float',lock=True,keyable=False,hidden=True)
+	    
+	    #Connections ----------------------------------------------------------------------------------
+	    attributes.doConnectAttr((self.mi_shape.mNode+'.worldSpace'),(mi_cpos.mNode+'.inputSurface'))
+	    
+	    self.mPlug_uMin.doConnectIn("%s.mnu"%self.mi_shape.mNode)
+	    self.mPlug_uMax.doConnectIn("%s.mxu"%self.mi_shape.mNode)
+	    
+	    self.mPlug_vMin.doConnectIn("%s.mnv"%self.mi_shape.mNode)
+	    self.mPlug_vMax.doConnectIn("%s.mxv"%self.mi_shape.mNode)
+	    
+	    #Do some math nodes ---------------------------------------------------------------------------------
+	    #Size
+	    self.arg_uSize = "%s = %s - %s"%(self.mPlug_uSize.p_combinedShortName,
+	                                     self.mPlug_uMax.p_combinedShortName,
+	                                     self.mPlug_uMin.p_combinedShortName)
+	    self.arg_vSize = "%s = %s - %s"%(self.mPlug_vSize.p_combinedShortName,
+	                                     self.mPlug_vMax.p_combinedShortName,
+	                                     self.mPlug_vMin.p_combinedShortName)
+	    #value + min
+	    self.arg_uSum = "%s = %s + %s"%(self.mPlug_uSum.p_combinedShortName,
+	                                    self.mPlug_uValue.p_combinedShortName,
+	                                    self.mPlug_uMin.p_combinedShortName)
+	    self.arg_vSum = "%s = %s + %s"%(self.mPlug_vSum.p_combinedShortName,
+	                                    self.mPlug_vValue.p_combinedShortName,
+	                                    self.mPlug_vMin.p_combinedShortName)	    
+	    #sum / size
+	    self.arg_uDiv = "%s = %s / %s"%(self.mPlug_uNormal.p_combinedShortName,
+	                                    self.mPlug_uSum.p_combinedShortName,
+	                                    self.mPlug_uSize.p_combinedShortName)
+	    self.arg_vDiv = "%s = %s / %s"%(self.mPlug_vNormal.p_combinedShortName,
+	                                    self.mPlug_vSum.p_combinedShortName,
+	                                    self.mPlug_vSize.p_combinedShortName)	    
+	    
+	    for arg in self.arg_uSize,self.arg_vSize,self.arg_uSum,self.arg_vSum,self.arg_uDiv,self.arg_vDiv :
+		argsToNodes(arg).doBuild()    
+	    
+	    return self.mi_cpos
+	
+    return fncWrap(objToAttach, targetSurface,**kws).go()
+
 class connectNegativeAttrs(cgmGeneral.cgmFuncCls):
     def __init__(self,source = None, target = None, l_attrs = [], **kws):
 	"""
