@@ -21,9 +21,11 @@ import sys
 # From Red9 =============================================================
 
 # From cgm ==============================================================
-from cgm.core import cgm_General as cgmGeneral
 from cgm.lib import cgmMath
 from cgm.lib import search
+from cgm.core import cgm_General as cgmGeneral
+reload(cgmGeneral)
+
 # Shared Defaults ========================================================
 
 #=========================================================================
@@ -43,8 +45,8 @@ def stringArg(arg = None,noneValid = True,calledFrom = None):
     Simple string validation
     """
     log.debug(">>> stringArg >> arg = %s"%arg + "="*75) 
-    if calledFrom: _str_funcName = "%s.stringArg(%s)"%(calledFrom,arg)
-    else:_str_funcName = "stringArg(%s)"%arg    
+    if calledFrom: _str_funcName = "%s.stringArg(%s)"%(calledFrom,arg)    
+    else:_str_funcName = "stringArg(%s)"%arg       
     if type(arg) in [str,unicode]:
 	return arg
     elif noneValid:
@@ -59,7 +61,6 @@ def boolArg(arg = None, calledFrom = None):
     calledFrom = stringArg(calledFrom,noneValid=True)
     if calledFrom: _str_funcName = "%s.boolArg(%s)"%(calledFrom,arg)
     else:_str_funcName = "boolArg(%s)"%arg
-    
     if type(arg) is bool:
 	return arg
     elif type(arg) is int and arg in [0,1]:
@@ -79,6 +80,7 @@ def objString(arg = None, mayaType = None, noneValid = False, isTransform = None
     calledFrom = stringArg(calledFrom,noneValid=True)
     if calledFrom: _str_funcName = "%s.objString(%s)"%(calledFrom,arg)
     else:_str_funcName = "objString(%s)"%arg
+    t_start = time.clock()
     
     if len(mc.ls(arg)) > 1:
 	raise StandardError,"More than one object named %s"%arg
@@ -130,6 +132,7 @@ def objStringList(l_args = None, mayaType = None, noneValid = False,isTransform 
     calledFrom = stringArg(calledFrom,noneValid=True)    
     if calledFrom: _str_funcName = "%s.objStringList"%(calledFrom)
     else:_str_funcName = "objStringList"    
+    t_start = time.clock()
     try:
 	if type(l_args) not in [list,tuple]:l_args = [l_args]
 	returnList = []
@@ -157,7 +160,7 @@ def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = No
     log.debug(">>> valueArg >> numberToCheck = %s"%numberToCheck + "="*75) 
     calledFrom = stringArg(calledFrom,noneValid=True)    
     if calledFrom: _str_funcName = "%s.valueArg"%(calledFrom)
-    else:_str_funcName = "valueArg"    
+    else:_str_funcName = "valueArg"  
     try:
 	if numberToCheck is None:raise StandardError,"numberToCheck cannot be none."
 	if type(numberToCheck) not in [float,int]:
@@ -198,6 +201,51 @@ def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = No
 	log.error("%s >>Failure! int: %s | range: %s | min: %s | max: %s | isValue: %s"%(_str_funcName,numberToCheck,inRange,minValue,maxValue,isValue))
 	raise StandardError,error 
     
+#>>> Maya orientation ============================================================================
+d_rotateOrder = {'xyz':0,
+                 'yzx':1,
+                 'zxy':2,
+                 'xzy':3,
+                 'yxz':4,
+                 'zyx':5}   
+class simpleOrientation():
+    """ 
+    """
+    def __init__(self,arg = None, calledFrom = None):
+	calledFrom = stringArg(calledFrom,noneValid=True)
+	
+	if calledFrom: _str_funcName = "%s.simpleOrientation"%(calledFrom)
+	else:_str_funcName = "simpleOrientation"  
+	
+	log.debug(">>> %s(arg = %s)"%(_str_funcName,arg) + "="*75)
+	str_arg = stringArg(arg,noneValid=False,calledFrom = _str_funcName)
+	        
+        if str_arg.lower() in d_rotateOrder.keys():
+            self.str_orientation = str_arg.lower()
+	else:
+            self.str_orientation = False
+
+	if self.str_orientation is False :
+	    log.info("str_orientation: %s"%self.str_orientation)	    
+            raise StandardError, ">>> %s(arg = %s) Failed to validate as a simple orientation"%(_str_funcName,arg)
+	    
+    def asString(self):
+	return self.str_orientation
+    
+    def getAimAxis(self):
+	return simpleAxis(self.str_orientation[0])
+    def getUpAxis(self):
+	return simpleAxis(self.str_orientation[1])
+    def getOutAxis(self):
+	return simpleAxis(self.str_orientation[2]) 
+    def getRotateOrderIndex(self):
+	return d_rotateOrder.get(self.str_orientation)     
+    p_string = property(asString)
+    p_aim = property(getAimAxis)
+    p_up = property(getUpAxis)
+    p_out = property(getOutAxis)
+    p_ro = property(getRotateOrderIndex)
+    
 #>>> Simple Axis ==========================================================================
 l_axisDirectionsByString = ['x+','y+','z+','x-','y-','z-'] #Used for several menus and what not
 
@@ -228,6 +276,7 @@ class simpleAxis():
     def __init__(self,arg):
 	_str_funcName = "simpleAxis"    
 	log.debug(">>> %s(arg = %s)"%(_str_funcName,arg) + "="*75)
+	t_start = time.clock()
 	
         self.str_axis = None
         self.v_axis = None
@@ -266,5 +315,6 @@ class simpleAxis():
     
     p_vector = property(asVector)
     p_string = property(asString)
+    
 
 
