@@ -46,14 +46,14 @@ reload(distance)
 
 #>>> Utilities
 #===================================================================
-def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLoc = None, targetUpObj = None, orientation = None,**kws):
+def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLoc = False, targetUpObj = None, orientation = None,**kws):
     """
     Function to attach an object to a surface. Actions to do:
     1)Make a transform group that follows the surface
     2)Make a follicle
     """
     class fncWrap(cgmGeneral.cgmFuncCls):
-	def __init__(self, objToAttach = None, targetSurface = None, createControlLoc = None, targetUpObj = None, orientation = None,**kws):
+	def __init__(self, objToAttach = None, targetSurface = None, createControlLoc = False, targetUpObj = None, orientation = None,**kws):
 	    """
 	    @kws
 	    source -- joint to add length to
@@ -62,7 +62,7 @@ def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLo
 	    orienation(str) -- joint orientation
     
 	    """		    
-	    super(fncWrap, self).__init__(objToAttach, targetSurface,createControlLoc, targetUpObj,orientation,**kws)
+	    super(fncWrap, self).__init__(objToAttach, targetSurface, createControlLoc, targetUpObj,orientation,**kws)
 	    self._str_funcName = 'attachObjToSurface'	
 	    self.__dataBind__(**kws)
 	    self.d_kwsDefined = {'objToAttach':objToAttach,
@@ -96,99 +96,120 @@ def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLo
 	def _create(self):
 	    d_closestInfo = self.d_closestInfo
 	    
-	    #>>> Follicle ============================================================================
+	    #>>> Follicle ============================================================================	    
 	    l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
-	    mi_follicleFollowTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
-	    mi_follicleFollowShape = cgmMeta.cgmNode(l_follicleInfo[0])
-	    
-	    l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
-	    mi_follicleRootTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
-	    mi_follicleRootShape = cgmMeta.cgmNode(l_follicleInfo[0])	    
+	    mi_follicleAttachTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
+	    mi_follicleAttachShape = cgmMeta.cgmNode(l_follicleInfo[0])	    
 	    
 	    #> Name ----------------------------------------------------------------------------------
-	    mi_follicleFollowTrans.doStore('cgmName',self.mi_obj.mNode)
-	    mi_follicleFollowTrans.addAttr('cgmTypeModifier','follow',lock=True)
-	    mi_follicleFollowTrans.doName()
-	    
-	    mi_follicleRootTrans.doStore('cgmName',self.mi_obj.mNode)
-	    mi_follicleRootTrans.addAttr('cgmTypeModifier','root',lock=True)
-	    mi_follicleRootTrans.doName()
+	    mi_follicleAttachTrans.doStore('cgmName',self.mi_obj.mNode)
+	    mi_follicleAttachTrans.addAttr('cgmTypeModifier','attach',lock=True)
+	    mi_follicleAttachTrans.doName()
 	    
 	    #>Set follicle value ---------------------------------------------------------------------
-	    for follShape in mi_follicleFollowShape, mi_follicleRootShape:
-		follShape.parameterU = d_closestInfo['normalizedU']
-		follShape.parameterV = d_closestInfo['normalizedV']
+	    mi_follicleAttachShape.parameterU = d_closestInfo['normalizedU']
+	    mi_follicleAttachShape.parameterV = d_closestInfo['normalizedV']
             
-            self.mi_follicleFollowTrans = mi_follicleFollowTrans#link
-	    self.mi_follicleFollowShape = mi_follicleFollowShape#link
-	    self.mi_follicleRootTrans = mi_follicleRootTrans#link
-	    self.mi_follicleRootShape = mi_follicleRootShape#link
-	    
-            #Groups =======================================================================================
-	    mi_followGroup = mi_follicleFollowTrans.duplicateTransform()
-	    mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
-	    mi_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
-	    mi_followGroup.doName()
-	    self.mi_followGroup = mi_followGroup
-	    self.mi_followGroup.parent = mi_follicleFollowTrans
-	    
-	    mi_offsetGroup = self.mi_obj.duplicateTransform()
-	    mi_offsetGroup.doStore('cgmName',self.mi_obj.mNode)
-	    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
-	    mi_offsetGroup.doName()
-	    mi_offsetGroup.parent = mi_followGroup
-	    self.mi_offsetGroup =   mi_offsetGroup 
-	    
-	    mi_zeroGroup = cgmMeta.cgmObject( mi_offsetGroup.doGroup(True),setClass=True)	 
-	    mi_zeroGroup.doStore('cgmName',self.mi_obj.mNode)
-	    mi_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
-	    mi_zeroGroup.doName()	    
-	    mi_zeroGroup.parent = mi_followGroup
-            self.mi_zeroGroup = mi_zeroGroup
-	    
-	    self.mi_targetUpObj 
-	    
-	    #Driver loc -----------------------------------------------------------------------
-	    mi_driverLoc = self.mi_obj.doLoc()
-	    mi_driverLoc.doStore('cgmName',self.mi_obj.mNode)
-	    mi_driverLoc.addAttr('cgmTypeModifier','driver',lock=True)
-	    mi_driverLoc.doName()
-	    self.mi_driverLoc = mi_driverLoc
-	    mi_driverLoc.parent = mi_offsetGroup
-	    
-	    #Closest setup =====================================================================
-	    mi_controlLoc = self.mi_obj.doLoc()
-	    mi_controlLoc.doStore('cgmName',self.mi_obj.mNode)
-	    mi_controlLoc.addAttr('cgmTypeModifier','control',lock=True)
-	    mi_controlLoc.doName()
-	    self.mi_controlLoc = mi_controlLoc
-	    
-	    mi_group = cgmMeta.cgmObject( mi_controlLoc.doGroup(),setClass=True )
-	    mi_group.parent = mi_follicleRootTrans
-	    
-	    #Create decompose node --------------------------------------------------------------
-	    mi_worldTranslate = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-	    mi_worldTranslate.doStore('cgmName',self.mi_obj.mNode)
-	    mi_worldTranslate.doName()
-	    self.mi_worldTranslate = mi_worldTranslate
-	
-	    attributes.doConnectAttr("%s.worldMatrix"%(mi_controlLoc.mNode),"%s.%s"%(mi_worldTranslate.mNode,'inputMatrix'))
-	    
-	    #Create node --------------------------------------------------------------
-	    mi_cpos = NodeF.createNormalizedClosestPointNode(self.mi_obj,self.mi_targetSurface)
+	    self.mi_follicleAttachTrans = mi_follicleAttachTrans#link
+	    self.mi_follicleAttachShape = mi_follicleAttachShape#link
+	    self.mi_obj.connectChildNode(mi_follicleAttachTrans,"follicleAttach","targetObject")
+	        
+	    if not self.b_createControlLoc:#If we don't have a control loc setup, we're just attaching to the surface
+		#Groups =======================================================================================
+		mi_zeroGroup = cgmMeta.cgmObject( self.mi_obj.doGroup(False),setClass=True)	 
+		mi_zeroGroup.doStore('cgmName',self.mi_obj.mNode)
+		mi_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
+		mi_zeroGroup.doName()	    
+		mi_zeroGroup.parent = mi_follicleAttachTrans
+		
+		self.mi_obj.parent = mi_zeroGroup
+		
+		return {}
+		
+	    else:
+		#>>> Follicle ============================================================================
+		l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
+		mi_follicleFollowTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
+		mi_follicleFollowShape = cgmMeta.cgmNode(l_follicleInfo[0])
+		
+		#> Name ----------------------------------------------------------------------------------
+		mi_follicleFollowTrans.doStore('cgmName',self.mi_obj.mNode)
+		mi_follicleFollowTrans.addAttr('cgmTypeModifier','follow',lock=True)
+		mi_follicleFollowTrans.doName()
+		
 
-	    attributes.doConnectAttr ((mi_cpos.mNode+'.out_uNormal'),(mi_follicleFollowShape.mNode+'.parameterU'))
-	    attributes.doConnectAttr  ((mi_cpos.mNode+'.out_vNormal'),(mi_follicleFollowShape.mNode+'.parameterV'))
-	    #attributes.doConnectAttr  ((mi_controlLoc.mNode+'.translate'),(mi_cpos.mNode+'.inPosition'))
-	    attributes.doConnectAttr  ((mi_worldTranslate.mNode+'.outputTranslate'),(mi_cpos.mNode+'.inPosition'))
+		#>Set follicle value ---------------------------------------------------------------------
+		mi_follicleFollowShape.parameterU = d_closestInfo['normalizedU']
+		mi_follicleFollowShape.parameterV = d_closestInfo['normalizedV']
+		
+		self.mi_follicleFollowTrans = mi_follicleFollowTrans#link
+		self.mi_follicleFollowShape = mi_follicleFollowShape#link
+	
+
+		#Groups =======================================================================================
+		mi_followGroup = mi_follicleFollowTrans.duplicateTransform()
+		mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
+		mi_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
+		mi_followGroup.doName()
+		self.mi_followGroup = mi_followGroup
+		self.mi_followGroup.parent = mi_follicleFollowTrans
+		
+		mi_offsetGroup = self.mi_obj.duplicateTransform()
+		mi_offsetGroup.doStore('cgmName',self.mi_obj.mNode)
+		mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
+		mi_offsetGroup.doName()
+		mi_offsetGroup.parent = mi_followGroup
+		self.mi_offsetGroup =   mi_offsetGroup 
+		
+		mi_zeroGroup = cgmMeta.cgmObject( mi_offsetGroup.doGroup(True),setClass=True)	 
+		mi_zeroGroup.doStore('cgmName',self.mi_obj.mNode)
+		mi_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
+		mi_zeroGroup.doName()	    
+		mi_zeroGroup.parent = mi_followGroup
+		self.mi_zeroGroup = mi_zeroGroup
+				
+		#Driver loc -----------------------------------------------------------------------
+		mi_driverLoc = self.mi_obj.doLoc()
+		mi_driverLoc.doStore('cgmName',self.mi_obj.mNode)
+		mi_driverLoc.addAttr('cgmTypeModifier','driver',lock=True)
+		mi_driverLoc.doName()
+		self.mi_driverLoc = mi_driverLoc
+		mi_driverLoc.parent = mi_offsetGroup
+		mi_driverLoc.visibility = False
+		
+		#Closest setup =====================================================================
+		mi_controlLoc = self.mi_obj.doLoc()
+		mi_controlLoc.doStore('cgmName',self.mi_obj.mNode)
+		mi_controlLoc.addAttr('cgmTypeModifier','control',lock=True)
+		mi_controlLoc.doName()
+		self.mi_controlLoc = mi_controlLoc
+		
+		mi_group = cgmMeta.cgmObject( mi_controlLoc.doGroup(),setClass=True )
+		mi_group.parent = mi_follicleAttachTrans
+		
+		#Create decompose node --------------------------------------------------------------
+		mi_worldTranslate = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
+		mi_worldTranslate.doStore('cgmName',self.mi_obj.mNode)
+		mi_worldTranslate.doName()
+		self.mi_worldTranslate = mi_worldTranslate
 	    
-	    #Constrain =====================================================================
-	    mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
-	    mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)    
-	    
-	    #mc.orientConstraint(self.mi_controlLoc.mNode, self.mi_driverLoc.mNode, maintainOffset = True) 
-	    for attr in ['z']:
-		attributes.doConnectAttr  ((mi_controlLoc.mNode+'.t%s'%attr),(mi_offsetGroup.mNode+'.t%s'%attr))
+		attributes.doConnectAttr("%s.worldMatrix"%(mi_controlLoc.mNode),"%s.%s"%(mi_worldTranslate.mNode,'inputMatrix'))
+		
+		#Create node --------------------------------------------------------------
+		mi_cpos = NodeF.createNormalizedClosestPointNode(self.mi_obj,self.mi_targetSurface)
+    
+		attributes.doConnectAttr ((mi_cpos.mNode+'.out_uNormal'),(mi_follicleFollowShape.mNode+'.parameterU'))
+		attributes.doConnectAttr  ((mi_cpos.mNode+'.out_vNormal'),(mi_follicleFollowShape.mNode+'.parameterV'))
+		#attributes.doConnectAttr  ((mi_controlLoc.mNode+'.translate'),(mi_cpos.mNode+'.inPosition'))
+		attributes.doConnectAttr  ((mi_worldTranslate.mNode+'.outputTranslate'),(mi_cpos.mNode+'.inPosition'))
+		
+		#Constrain =====================================================================
+		mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
+		mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)    
+		
+		#mc.orientConstraint(self.mi_controlLoc.mNode, self.mi_driverLoc.mNode, maintainOffset = True) 
+		for attr in ['z']:
+		    attributes.doConnectAttr  ((mi_controlLoc.mNode+'.t%s'%attr),(mi_offsetGroup.mNode+'.t%s'%attr))
 		
 	    return
 	    
