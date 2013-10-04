@@ -31,6 +31,7 @@ from Red9.core import Red9_Meta as r9Meta
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.classes import SnapFactory as Snap
+from cgm.core.cgmPy import validateArgs as cgmValid
 
 from cgm.lib import (distance,
                      attributes,
@@ -48,6 +49,40 @@ reload(distance)
 
 #>>> Utilities
 #===================================================================
+def mirrorJointOrientation(l_joints = None,orientation = 'xyz',**kws):
+    """
+    Function to mirror a joint orientation in place
+    @kws
+    baseCurve -- curve on check
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,l_joints = None,orientation = 'xyz',**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(curve = None)
+	    self._str_funcName = 'mirrorJointOrientation'	
+	    self.__dataBind__(**kws)
+	    self.d_kwsDefined = {'l_joints':l_joints,
+	                         'orientation':orientation}
+	    #=================================================================
+	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
+	    if log.getEffectiveLevel() == 10:#If debug
+		self.report()
+    
+	def __func__(self):
+	    """
+	    """
+	    self.ml_joints = cgmMeta.validateObjListArg(self.d_kwsDefined['l_joints'],cgmMeta.cgmObject,mayaType='joint',noneValid=False)
+	    self.mi_orientation = cgmValid.simpleOrientation(self.d_kwsDefined['orientation'],self._str_funcCombined)
+	    ml_chain = self.ml_joints
+	    		
+	    for mJoint in ml_chain:
+		mJoint.__setattr__("r%s"%self.mi_orientation.p_string[2],180)
+		
+	    metaFreezeJointOrientation(ml_chain)
+	    	
+    return fncWrap(l_joints,orientation,**kws).go()
+    
 #@cgmGeneral.Timer
 def metaFreezeJointOrientation(targetJoints):
     """
@@ -90,10 +125,31 @@ def metaFreezeJointOrientation(targetJoints):
 	buffer = mc.duplicate(i_jnt.mNode,po=True,ic=False)[0]#Duplicate the joint
 	i_dup = cgmMeta.cgmObject(buffer)
 	i_dup.rotateOrder = 0
-        mc.delete(mc.orientConstraint(i_jnt.mNode, i_dup.mNode, w=1, maintainOffset = False))
 	
-	#i_dup.parent = False
+	#New method  ----
+	mi_zLoc = i_jnt.doLoc()#Make some locs
+	mi_yLoc = i_jnt.doLoc()
+	str_group = mi_zLoc.doGroup() #group for easy move
+	mi_yLoc.parent = str_group
 	
+	mi_zLoc.tz = 1#Move
+	mi_yLoc.ty = 1
+	
+	mc.makeIdentity(i_dup.mNode, apply = 1, jo = 1)#Freeze
+	
+	#Aim
+	str_const = mc.aimConstraint(mi_zLoc.mNode,i_dup.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = [0,1,0], worldUpObject = mi_yLoc.mNode, worldUpType = 'object' )[0]
+	
+	i_jnt.rotate = [0,0,0] #Move to joint
+	i_jnt.jointOrient = i_dup.rotate
+	
+	mc.delete([str_const,str_group])#Delete extra stuff
+        i_dup.delete()
+	
+	#Old method
+	"""
+	mc.delete(mc.orientConstraint(i_jnt.mNode, i_dup.mNode, w=1, maintainOffset = False))
+
 	l_rValue = i_dup.rotate
 	l_joValue = i_dup.jointOrient
 	l_added = cgmMath.list_add(l_rValue,l_joValue)	
@@ -106,9 +162,10 @@ def metaFreezeJointOrientation(targetJoints):
 	i_dup.parent = i_jnt.parent
 	
 	i_jnt.rotate = [0,0,0]
-	i_jnt.jointOrient = i_dup.jointOrient	
-	
-        i_dup.delete()
+	i_jnt.jointOrient = i_dup.jointOrient
+	i_dup.delete()
+
+	"""
 	
     #reparent
     if mi_parent:
@@ -142,7 +199,6 @@ def get_orientChild(targetJoint):
 #===================================================================
 __l_helperTypes__ = 'halfHold','childRootHold','halfPush'
 
-@cgmGeneral.Timer
 def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
                        orientation = 'zyx',doSetup = True, forceNew = False):
     """
@@ -223,7 +279,6 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
 	        
     return i_dupJnt
 
-@cgmGeneral.Timer
 def setup_defHelpJoint(targetJoint,orientation = 'zyx'):
     """
     Setup a helper joint
