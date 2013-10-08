@@ -22,6 +22,8 @@ from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_AnimationUtils as r9Anim
 from cgm.core import cgm_General as cgmGeneral
 
+from cgm.core.lib import curve_Utils as crvUtils
+
 #========================================================================
 import logging
 logging.basicConfig()
@@ -48,8 +50,8 @@ from cgm.lib import (modules,
                      search,
                      curves)
 
-cgmModuleTypes = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids']
-l_faceModuleTypes = ['eyeball','eyelids']
+cgmModuleTypes = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow']
+l_faceModuleTypes = ['eyeball','eyelids','eyebrow']
 ########################################################################
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
@@ -2124,6 +2126,58 @@ class cgmEyelids(cgmModule):
 	    for attr in settings.keys():
 		self.templateNull.addAttr(attr, value = settings[attr],lock = True)   
 	return True
+    
+#>>> Brow  =====================================================================================================
+d_eyebrow_rigNullAttrs_toMake = {'templateControl':'bool',#Whether we should have a iris setup
+                              'uprCheekControl':'bool',#Whether we should have a pupil control
+                              }
+
+d_eyebrow_templateNullAttrs_toMake = {}
+
+class cgmEyebrow(cgmModule):
+    #@cgmGeneral.Timer    
+    def __init__(self,*args,**kws):
+	""" 
+	Intializes an brow master class handler
+	Args:
+	node = existing module in scene
+	name = treated as a base name
+
+	Keyword arguments:
+	moduleName(string) -- either base name or the name of an existing module in scene
+	moduleParent(string) -- module parent to connect to. MUST exist if called. If the default False flag is passed, it looks for what's stored
+	
+	mType(string) -- must be in cgm_PuppetMeta.limbTypes.keys()
+	Naming and template tags. All Default to False
+	position(string) -- position tag
+	nameModifier(string)
+	forceNew(bool) --whether to force the creation of another if the object exists
+	"""
+	_str_funcName = "cgmEyebrow.__init__"    
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
+	if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
+	       
+	if 'name' not in kws.keys() and 'mType' in kws.keys():
+	    kws['name'] = kws['mType']
+	super(cgmEyebrow, self).__init__(*args,**kws) 
+
+    def __verify__(self,**kws):
+	cgmModule.__verify__(self,**kws)
+
+	if self.moduleType != 'eyebrow':
+	    log.debug("Changing type to '%s' type"%'eyebrow')
+	self.moduleType = 'eyebrow'
+	
+	#>>> Attributes ...
+	self.__verifyAttributesOn__(self.i_rigNull,d_eyebrow_rigNullAttrs_toMake)
+	self.__verifyAttributesOn__(self.i_templateNull,d_eyebrow_templateNullAttrs_toMake)
+	
+	settings = {'handles': 3}
+	if settings:
+	    for attr in settings.keys():
+		self.templateNull.addAttr(attr, value = settings[attr],lock = True)   
+	return True
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Rig Blocks
@@ -2189,7 +2243,10 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	success(bool)
 	"""
 	_str_funcName = "cgmRigBlock.__verify__"    
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	
+	if self.isReferenced():
+	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
 	
 	#>>> Block transform ==================                   
 	self.addAttr('mClass', initialValue='cgmRigBlock',lock=True) 
@@ -2333,9 +2390,6 @@ class cgmEyeballBlock(cgmRigBlock):
 	_str_funcName = "cgmEyeballBlock.__verify__(%s)"%self.p_nameShort    
 	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
         cgmRigBlock.__verify__(self,**kws)
-	
-	if self.isReferenced():
-	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
 
 	#>>> Attributes ..
 	self.addAttr('buildAs','cgmEyeball',lock=True)
@@ -2604,7 +2658,205 @@ class cgmEyeballBlock(cgmRigBlock):
 	"""
 	return True
 	
+class cgmEyebrowBlock(cgmRigBlock):
+    d_attrsToMake = {'buildTemple':'bool',
+                     'buildSquashStretch':'bool',                                          
+                     'buildUprCheek':'bool',                     
+                     'browJoints':'int',
+                     'templeJoints':'int',
+                     'cheekJoints':'int',                                          
+                     'leftBrowHelper':'messageSimple',
+                     'rightBrowHelper':'messageSimple',
+                     'leftTempleHelper':'messageSimple',
+                     'rightTempleHelper':'messageSimple',  
+                     'leftUprCheekHelper':'messageSimple',                     
+                     'rightUprCheekHelper':'messageSimple',                                          
+                     'skullPlate':'messageSimple', 
+                     'jawPlate':'messageSimple',                                          
+                     'moduleBrow':'messageSimple'} 
+    d_defaultSettings = {'buildTemple':True,'buildSquashStretch':True,'buildCheek':True,
+                         'browJoints':4,'templeJoints':2,'cheekJoints':2}
+    d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
+                        'pupil':{'plug':'pupilHelper','check':'buildIris'}}
+
+    def __init__(self,*args,**kws):
+        """ 
+        """
+	_str_funcName = "cgmEyebrowBlock.__init__"  
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        if kws:log.debug("kws: %s"%str(kws))         
+        if args:log.debug("args: %s"%str(args))  
+               
+        if 'name' not in kws.keys():
+            kws['name'] = 'brow'  
+        super(cgmEyebrowBlock, self).__init__(*args,**kws) 
+
+    def __verify__(self,**kws):
+	_str_funcName = "cgmEyebrowBlock.__verify__(%s)"%self.p_nameShort    
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+        cgmRigBlock.__verify__(self,**kws)
+	
+	#>>> Attributes ..
+	self.addAttr('buildAs','cgmEyebrow',lock=True)
+	self.verifyAttrDict(cgmEyebrowBlock.d_attrsToMake,keyable = False, hidden = False)
+	for attr in cgmEyebrowBlock.d_defaultSettings.keys():
+	    try:self.addAttr(attr, value = cgmEyebrowBlock.d_defaultSettings[attr], defaultValue = cgmEyebrowBlock.d_defaultSettings[attr])
+	    except Exception,error: raise StandardError,"%s.__verify__ >>> Failed to set value on: %s | data: %s | error: %s"%(self.p_nameShort,attr,cgmEyebrowBlock.d_defaultSettings[attr],error)
+	if not self.getShapes():
+	    self.__rebuildShapes__()
+	    
+	self.doName()        
+        return True
+
+    def __rebuildShapes__(self,size = None):
+	_str_funcName = "cgmEyebrowBlock.__rebuildShapes__(%s)"%self.p_nameShort   
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	if self.isReferenced():
+	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
+		    
+	ml_shapes = cgmMeta.validateObjListArg( self.getShapes(),noneValid=True )
+	self.color = getSettingsColors( self.getAttr('cgmDirection') )
+	
+	#>> restore some settings
+	self.direction = 'center'
+	self.autoMirror = True
+	
+	#>>> Figure out the control size 	
+	if size is None:#
+	    if ml_shapes:
+		absSize =  distance.returnAbsoluteSizeCurve(self.mNode)
+		size = max(absSize)
+	    else:size = 10
+	    
+	#>>> Delete shapes
+	if ml_shapes:
+	    log.debug("%s >>> deleting: %s"%(_str_funcName,ml_shapes))	    
+	    mc.delete([mObj.mNode for mObj in ml_shapes])
+	
+	#>>> Main Shape
+	str_root =  mc.curve( d = 1,p = [[0.0, 2.2934297141192093, -5.0924369479492732e-16], [-0.68646875796765439, 1.2637265771677275, -2.8060366856047015e-16], [-0.34323437898382719, 1.2637265771677275, -2.8060366856047015e-16], [-0.34323437898382719, 0.34323437898382719, -7.6213342078152378e-17], [-1.2637265771677275, 0.34323437898382719, -7.6213342078152378e-17], [-1.2637265771677275, 0.68646875796765439, -1.5242668415630476e-16], [-2.2934297141192093, 0.0, 0.0], [-1.2637265771677275, -0.68646875796765439, 1.5242668415630476e-16], [-1.2637265771677275, -0.34323437898382719, 7.6213342078152378e-17], [-0.34323437898382719, -0.34323437898382719, 7.6213342078152378e-17], [-0.34323437898382719, -1.2637265771677275, 2.8060366856047015e-16], [-0.68646875796765439, -1.2637265771677275, 2.8060366856047015e-16], [0.0, -2.2934297141192093, 5.0924369479492732e-16], [0.68646875796765439, -1.2637265771677275, 2.8060366856047015e-16], [0.34323437898382719, -1.2637265771677275, 2.8060366856047015e-16], [0.34323437898382719, -0.34323437898382719, 7.6213342078152378e-17], [1.2637265771677275, -0.34323437898382719, 7.6213342078152378e-17], [1.2637265771677275, -0.68646875796765439, 1.5242668415630476e-16], [2.2934297141192093, 0.0, 0.0], [1.2637265771677275, 0.68646875796765439, -1.5242668415630476e-16], [1.2637265771677275, 0.34323437898382719, -7.6213342078152378e-17], [0.34323437898382719, 0.34323437898382719, -7.6213342078152378e-17], [0.34323437898382719, 1.2637265771677275, -2.8060366856047015e-16], [0.68646875796765439, 1.2637265771677275, -2.8060366856047015e-16], [0.0, 2.2934297141192093, -5.0924369479492732e-16]],k = (0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0))	
+	
+	curves.parentShapeInPlace(self.mNode,str_root)#parent shape in place	
+	curves.setCurveColorByName(self.mNode,self.color[0])#Set the color	    	
+	mc.delete(str_root)
+	
+	
+	#>>>Build the Brow curves
+	l_buildOrder = ['leftBrow','rightBrow','leftTemple','rightTemple','leftUprCheek','rightUprCheek']
+	d_buildCurves = {'leftBrow': mc.curve( d = 3,p = [[3.2074032095569307, 0.088162999957347665, -2.3016555193378068], [4.251097108912214, 0.024232165150834817, -2.4497118908209892], [6.3384849076227407, -0.10362950446324248, -2.7458246337874641], [8.7788670165788485, -0.72794558079678495, -5.7291335329457826], [9.4595644079063881, -2.2640763188546771, -7.2217667690319409], [9.7999131035701303, -3.0321416878841205, -7.96808338707506]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 3.0, 3.0)),
+	                 'rightBrow': mc.curve( d = 3,p = [[-3.2074032095569307, 0.088162999957347665, -2.3016555193378068], [-4.251097108912214, 0.024232165150834817, -2.4497118908209892], [-6.3384849076227407, -0.10362950446324248, -2.7458246337874641], [-8.7788670165788485, -0.72794558079678495, -5.7291335329457826], [-9.4595644079063881, -2.2640763188546771, -7.2217667690319409], [-9.7999131035701303, -3.0321416878841205, -7.96808338707506]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 3.0, 3.0)),
+	                 'leftTemple': mc.curve( d = 1,p = [[11.540519886111845, -5.2113010025090887, -12.865421648687006], [10.689684322507841, -5.4688004729911484, -9.7566605218848697]],k = (0.0, 3.2333609258955258)),
+	                 'rightTemple': mc.curve( d = 1,p = [[-11.540519886111845, -5.2113010025090887, -12.865421648687006], [-10.689684322507841, -5.4688004729911484, -9.7566605218848697]],k = (0.0, 3.2333609258955258)),
+	                 'leftUprCheek': mc.curve( d = 3,p = [[10.261528402499881, -9.0683619621701723, -8.3652067775967627], [9.9616161190362469, -9.5687755274758786, -7.6585499901992584], [9.361791552108933, -10.569602658087973, -6.2452364154043138], [6.4660266032352167, -9.9530720383801849, -4.5705546635419321], [5.0181441287983555, -9.6448067285263903, -3.7332137876107456]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0)),
+	                 'rightUprCheek': mc.curve( d = 3,p = [[-10.261528402499881, -9.0683619621701723, -8.3652067775967627], [-9.9616161190362469, -9.5687755274758786, -7.6585499901992584], [-9.361791552108933, -10.569602658087973, -6.2452364154043138], [-6.4660266032352167, -9.9530720383801849, -4.5705546635419321], [-5.0181441287983555, -9.6448067285263903, -3.7332137876107456]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0)),
+	                 }
+	
+	d_colors = {'left':getSettingsColors('left'),
+	            'right':getSettingsColors('right')}
+	
+	ml_curves = []
+	md_curves = {}
+	for k in l_buildOrder:
+	    str_return = d_buildCurves.get(k)
+	    mi_obj = cgmMeta.cgmObject(str_return,setClass=True)#instance
+	    mi_obj.addAttr('cgmName',k)#tag
+	    mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)
+	    if 'left' in k:
+		curves.setCurveColorByName(mi_obj.mNode,d_colors.get('left')[0])#Set the color	    					
+	    else:
+		curves.setCurveColorByName(mi_obj.mNode,d_colors.get('right')[0])#Set the color	 
 		
+	    ml_curves.append(mi_obj)#append
+	    md_curves[k] = mi_obj
+	    mi_obj.doName()#Name	
+
+	    mi_obj.doCopyPivot(self)
+		
+	    self.connectChildNode(mi_obj,'%sHelper'%k,'mi_block')
+	    
+	    mi_obj.parent = self
+	    for a in ['scale','translate','rotate','v']:
+		cgmMeta.cgmAttr(mi_obj,a,keyable=False,lock=True,hidden=True)	
+		
+	#Connect in our scales so we're scaling the eye one one channel
+	cgmMeta.cgmAttr(self,'sx').doConnectIn("%s.scaleY"%self.mNode)
+	cgmMeta.cgmAttr(self,'sz').doConnectIn("%s.scaleY"%self.mNode)
+	for a in ['sx','sz','rotate','v']:
+	    cgmMeta.cgmAttr(self,a,keyable=False,lock=True,hidden=True)
+	
+    def mirrorBrowCurvesTMP(self):
+	_str_funcName = "cgmEyebrowBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:
+	    crvUtils.mirrorCurve(self.getMessage('leftBrowHelper')[0],self.getMessage('rightBrowHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+	except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error))
+	try:
+	    crvUtils.mirrorCurve(self.getMessage('leftTemplateHelper')[0],self.getMessage('rightTemplateHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+	except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error)) 
+	
+	try:
+	    crvUtils.mirrorCurve(self.getMessage('leftUprCheekHelper')[0],self.getMessage('rightUprCheekHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+	except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error)) 
+	
+    def __buildModule__(self):
+	cgmRigBlock.__buildModule__(self)
+	_str_funcName = "cgmEyebrowBlock.__buildModule__(%s)"%self.p_nameShort   
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:
+	    bfr_name = self._d_buildKWS.get('name') or None
+	    bfr_position = self._d_buildKWS.get('position') or None
+	    
+	    try:#Brow module
+		#===================================================================
+		i_module = cgmEyebrow(name = bfr_name,
+		                      position = bfr_position)
+		self.connectChildNode(i_module,"moduleTarget","helper")
+	    except Exception,error:raise StandardError,"Failed to build eyeball module | error: %s "%(error)
+		
+	    except Exception,error:raise StandardError,"Failed to build eyelids module | error: %s "%(error)
+	    try:#Mirror ============================================================
+		if self.autoMirror:
+		    log.debug("%s >> mirror mode"%(_str_funcName))
+	    except Exception,error:raise StandardError,"Failed to mirror | error: %s "%(error)
+		    
+	    #self.__storeNames__()
+	    
+	    #Size it
+	    #self.__updateSizeData__()
+	    
+	    #>>>Let's do our manual sizing
+	    return i_module
+	except Exception,error:raise StandardError,"%s >>>  error: %s "%(_str_funcName,error)
+    
+    def __storeNames__(self):
+	#Store our names
+	_str_funcName = "cgmEyebrowBlock.__storeNames__(%s)"%self.p_nameShort   	
+	if not self.getMessage("moduleTarget"):
+	    raise StandardError," %s >>> No Module!"%(_str_funcName)
+	
+	l_names= ['brow']
+	if self.buildIris:l_names.append('iris')
+	if self.buildPupil:l_names.append('pupil')
+	self.moduleTarget.coreNames.value = l_names
+	try:#Mirror ============================================================
+	    if self.autoMirror:
+		self.moduleTarget.moduleMirror.coreNames.value = l_names
+	except Exception,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_funcName,error)
+
+	return True
+    
+    def __updateSizeData__(self):
+	"""For overload"""
+	_str_funcName = "cgmEyebrowBlock.__updateSizeData__(%s)"%self.p_nameShort   
+	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	if not self.getMessage('moduleTarget'):
+	    raise StandardError,">>> %s >>> No module found "%(_str_funcName)
+	
+	i_module = self.mi_module#Lilnk
+	l_pos = [self.getPosition()]
+	d_helpercheck = cgmEyeballBlock.d_helperSettings#Link
+	
+	return True	
 	
 	    
 #Minor Utilities

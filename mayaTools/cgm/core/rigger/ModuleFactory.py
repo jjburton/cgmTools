@@ -34,7 +34,7 @@ from cgm.lib.ml import (ml_breakdownDragger,
 # Shared libraries
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 l_moduleStates = ['define','size','template','skeleton','rig']
-l_modulesClasses = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids']
+l_modulesClasses = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow']
 
 class ModuleFunc(cgmGeneral.cgmFuncCls):
     def __init__(self,moduleInstance = None,**kws):
@@ -69,7 +69,7 @@ def isSized(self):
     """
     _str_funcName = "isSized(%s)"%self.p_nameShort   
     log.info(">>> %s "%(_str_funcName) + "="*75)
-    if self.mClass in ['cgmEyelids','cgmEyeball']:
+    if self.mClass in ['cgmEyelids','cgmEyeball','cgmEyebrow']:
 	if self.getMessage('helper'):
 	    log.debug("%s.isSized>>> has size helper, good to go."%self.getShortName())	    
 	    return True
@@ -616,7 +616,7 @@ def isTemplated(self):
     _str_funcName = "isTemplated(%s)"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)    
     try:
-	if self.mClass in ['cgmEyelids','cgmEyeball']:
+	if self.mClass in ['cgmEyelids','cgmEyeball','cgmEyebrow']:
 	    if self.getMessage('helper'):
 		log.debug("%s.isTemplated>>> has size helper, good to go."%self.getShortName())	    
 		return True
