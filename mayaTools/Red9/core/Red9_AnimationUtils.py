@@ -614,18 +614,21 @@ class AnimationUI(object):
         cmds.text('Available Presets:')      
         self.uitslPresets = cmds.textScrollList(numberOfRows=8, allowMultiSelection=False, 
                                                selectCommand=partial(self.__uiPresetSelection), 
-                                               height=80)
+                                               height=110)
         cmds.popupMenu()
         cmds.menuItem(label='DeletePreset', command=partial(self.__uiPresetDelete))
-        cmds.menuItem(label='OpenPresetDir', command=partial(self.__uiPresetOpenDir))
-        
+        cmds.menuItem(label='OpenPresetDir', command=partial(self.__uiPresetOpenDir)) 
         cmds.separator(h=10, style='none')
+        cmds.setParent(self.FilterLayout)
+        cmds.separator('filterInfoTop', style='in', vis=False)
+        cmds.text('filterSettingsInfo',label='', ww=True)
+        cmds.separator('filterInfoBase', style='in', vis=False)
         cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 140), (2, 162)])
         self.uicbIncRoots = cmds.checkBox('uicbIncRoots',
                                             ann='include RootNodes in the Filter', 
                                             l='Include Roots', 
                                             al='left', v=True,
-                                            cc=lambda x:self.__uiCache_storeUIElements())   
+                                            cc=self.__uiCache_storeUIElements)   
         
 #        cmds.optionMenuGrp('uiomMatchMethod',label='MatchMethod:',
 #                        ann='Default = "replace", paste method used by the copy code internally',
@@ -685,7 +688,7 @@ class AnimationUI(object):
                                             ann='PosePath SubFolders', 
                                             text="", 
                                             bl='SubFolders',
-                                            bc=lambda * x:self.__uiCB_switchSubFolders(),
+                                            bc=self.__uiCB_switchSubFolders,
                                             #cc=lambda * x:self.__uiCB_setSubFolder(),
                                             ed=False,
                                             cw=[(1,190),(2,40)])
@@ -702,8 +705,7 @@ class AnimationUI(object):
                                                 tcc=lambda x:self.__uiCB_fillPoses(searchFilter=cmds.textFieldGrp('tfPoseSearchFilter',q=True,text=True)))         
         else :
             self.searchFilter=cmds.textFieldGrp('tfPoseSearchFilter', label='searchFilter : ',text='', 
-                                                cw=((1,87),(2,160)),
-                                                fcc=True,
+                                                cw=((1,87),(2,160)), fcc=True,
                                                 cc=lambda x:self.__uiCB_fillPoses(searchFilter=cmds.textFieldGrp('tfPoseSearchFilter',q=True,text=True)))
         cmds.separator(h=10, style='none')
         
@@ -747,15 +749,19 @@ class AnimationUI(object):
                                             ann='Hierarchy Root Node for the Pose', 
                                             text="", 
                                             bl='SetRootNode',
-                                            bc=lambda * x: self.__uiCB_setPoseRootNode(),
+                                            bc=self.__uiCB_setPoseRootNode,
                                             cw=[(1,180),(2,60)])
 
         cmds.setParent(self.poseUILayout)
         cmds.separator(h=10,style='in')
+        cmds.rowColumnLayout(nc=2,columnWidth=[(1, 120), (2, 160)])
         self.uicbPoseRelative = cmds.checkBox('uicbPoseRelative', 
                                             l='RelativePose', al='left', en=True, v=False, 
-                                            cc=lambda x:self.__uiCB_enableRelativeSwitches())
-
+                                            cc=self.__uiCB_enableRelativeSwitches)
+        self.uicbPoseSpace = cmds.checkBox('uicbPoseSpace', 
+                                            l='Maintain ParentSpaces', al='left', en=True, v=False,
+                                            cc=lambda *x:self.__uiCache_addCheckbox('uicbPoseSpace'))
+        cmds.setParent(self.poseUILayout)
         cmds.separator(h=5,style='none')
         self.uiflPoseRelativeFrame=cmds.frameLayout('PoseRelativeFrame', label='Relative Offset Methods',cll=True,en=False)
         cmds.rowColumnLayout(nc=3,columnWidth=[(1, 120), (2, 80),(3,80)])
@@ -920,6 +926,9 @@ class AnimationUI(object):
         cmds.textFieldGrp('uitfgSpecificAttrs', e=True, text="")
         cmds.textFieldGrp('uitfgSpecificPattern', e=True, text="")
         cmds.textScrollList('uitslFilterPriority', e=True, ra=True)
+        cmds.separator('filterInfoTop', e=True, vis=False)
+        cmds.text('filterSettingsInfo', edit=True, label="")
+        cmds.separator('filterInfoBase', e=True, vis=False)
         cmds.checkBox(self.uicbMetaRig, e=True, v=False)
         
     def __uiPresetsUpdate(self): 
@@ -994,8 +1003,11 @@ class AnimationUI(object):
         if self.filterSettings.filterPriority:
             cmds.textScrollList('uitslFilterPriority', e=True, 
                               append=self.filterSettings.filterPriority)
-
-        cmds.checkBox(self.uicbMetaRig, e=True, v=self.filterSettings.metaRig) 
+        if self.filterSettings.infoBlock:
+            cmds.separator('filterInfoTop', e=True, vis=True)
+            cmds.text('filterSettingsInfo', edit=True, label='  %s  ' % self.filterSettings.infoBlock)
+            cmds.separator('filterInfoBase', e=True, vis=True)
+        cmds.checkBox(self.uicbMetaRig, e=True, v=self.filterSettings.metaRig)
         cmds.checkBox(self.uicbIncRoots,e=True, v=self.filterSettings.incRoots)
         
         #need to run the callback on the PoseRootUI setup
@@ -1369,7 +1381,7 @@ class AnimationUI(object):
         cmds.menuItem(divider=True, p=parent)
         cmds.menuItem(label='Debug: Open Pose File', p=parent, command=partial(self.__uiPoseOpenFile))
         cmds.menuItem(label='Debug: Open Pose Directory', p=parent, command=partial(self.__uiPoseOpenDir))
-        cmds.menuItem(label='Debug: Pose Compare with current', p=parent, command=partial(self.__uiPoseCompare))
+        cmds.menuItem(label='Debug: Pose Compare with current', p=parent, command=partial(self.__uiCall,'PoseCompare'))
         cmds.menuItem(label='Debug: Copy poseHandler.py to folder', en=enableState, p=parent, command=partial(self.__uiPoseAddPoseHandler))  
         cmds.menuItem(divider=True, p=parent)
         cmds.menuItem(label='Copy Pose >> Project Poses', en=enableState, p=parent, command=partial(self.__uiPoseCopyToProject))     
@@ -1471,7 +1483,7 @@ class AnimationUI(object):
             except ValueError,error:
                 raise ValueError(error)
    
-    def __uiCB_setPoseRootNode(self):
+    def __uiCB_setPoseRootNode(self, *args):
         '''
         This changes the mode for the Button that fills in rootPath in the poseUI
         Either fills with the given node, or fill it with the connected MetaRig
@@ -1536,11 +1548,17 @@ class AnimationUI(object):
                 raise StandardError('No Nodes Set or selected for Pose')
         return PoseNodes
     
-    def __uiCB_enableRelativeSwitches(self):
+    def __uiCB_enableRelativeSwitches(self, *args):
+        '''
+        switch the relative mode on for the poseLaoder
+        '''
         self.__uiCache_addCheckbox('uicbPoseRelative')
-        cmds.frameLayout(self.uiflPoseRelativeFrame, e=True,en=cmds.checkBox(self.uicbPoseRelative,q=True,v=True))
-   
-                
+        state = cmds.checkBox(self.uicbPoseRelative,q=True,v=True)
+        cmds.checkBox('uicbPoseSpace', e=True, en=False)
+        if cmds.checkBox('uicbMetaRig',q=True,v=True):
+            cmds.checkBox('uicbPoseSpace', e=True, en=state)
+        cmds.frameLayout(self.uiflPoseRelativeFrame, e=True, en=state)
+             
     def __uiPoseDelete(self,*args):
         self.__validatePoseFunc('DeletePose')
         result = cmds.confirmDialog(
@@ -1618,23 +1636,6 @@ class AnimationUI(object):
         self.__uiCB_fillPoses()
         self.__uiCB_selectPose(self.poseSelected)   
 
-    def __uiPoseCompare(self,*args):
-
-        mPoseA=r9Pose.PoseData()
-        mPoseA.metaPose=True
-        mPoseA.buildInternalPoseData(self.__uiCB_getPoseInputNodes())
-        compare=r9Pose.PoseCompare(mPoseA,self.getPosePath(),compareDict='skeletonDict')
-        
-        if not compare.compare():
-            info='Selected Pose is different to the rigs current pose\nsee script editor for debug details'
-        else:
-            info='Poses are the same'
-        cmds.confirmDialog( title='Pose Compare Results',
-                            button=['Close'],
-                            message=info,
-                            defaultButton='Close',
-                            cancelButton='Close',
-                            dismissString='Close')
         
     def __uiPoseSelectObjects(self,*args): 
         '''
@@ -1752,7 +1753,7 @@ class AnimationUI(object):
     #------------------------------------------------------------------------------
     #UI Elements ConfigStore Callbacks --------------------------------------------  
 
-    def __uiCache_storeUIElements(self):
+    def __uiCache_storeUIElements(self, *args):
         '''
         Store some of the main components of the UI out to an ini file
         '''
@@ -1954,7 +1955,8 @@ class AnimationUI(object):
     
     def __PoseSave(self,path=None,storeThumbnail=True):
         '''
-        Internal UI call for PoseLibrary
+        Internal UI call for PoseLibrary Save func, note that filterSettings is bound
+        but only filled by the main __uiCall call
         '''
         if not path:
             try:
@@ -1971,8 +1973,13 @@ class AnimationUI(object):
         self.__uiCB_fillPoses(rebuildFileList=True)
             
     def __PoseLoad(self):  
+        '''
+        Internal UI call for PoseLibrary Load func, note that filterSettings is bound
+        but only filled by the main __uiCall call
+        '''
         poseHierarchy=cmds.checkBox('uicbPoseHierarchy',q=True,v=True)
         poseRelative=cmds.checkBox('uicbPoseRelative',q=True,v=True)
+        maintainSpaces=cmds.checkBox('uicbPoseSpace',q=True,v=True)
         rotRelMethod=cmds.radioCollection( self.uircbPoseRotMethod,q=True,select=True)
         tranRelMethod=cmds.radioCollection( self.uircbPoseTranMethod,q=True,select=True)
         relativeRots='projected'
@@ -1989,7 +1996,29 @@ class AnimationUI(object):
                                                       useFilter=poseHierarchy,
                                                       relativePose=poseRelative,
                                                       relativeRots=relativeRots,
-                                                      relativeTrans=relativeTrans) 
+                                                      relativeTrans=relativeTrans,
+                                                      maintainSpaces=maintainSpaces) 
+        
+    def __PoseCompare(self,*args):
+        '''
+        Internal UI call for Pose Compare func, note that filterSettings is bound
+        but only filled by the main __uiCall call
+        '''
+        mPoseA=r9Pose.PoseData(self.filterSettings)
+        mPoseA.buildInternalPoseData(self.__uiCB_getPoseInputNodes())
+        compare=r9Pose.PoseCompare(mPoseA,self.getPosePath(),compareDict='skeletonDict')
+        
+        if not compare.compare():
+            info='Selected Pose is different to the rigs current pose\nsee script editor for debug details'
+        else:
+            info='Poses are the same'
+        cmds.confirmDialog( title='Pose Compare Results',
+                            button=['Close'],
+                            message=info,
+                            defaultButton='Close',
+                            cancelButton='Close',
+                            dismissString='Close')
+        
     def __PosePointCloud(self,func):
         '''
         Note: this is dependant on EITHER a wire from the root of the pose to a GEO
@@ -2060,6 +2089,8 @@ class AnimationUI(object):
     def __uiCall(self, func, *args):
         '''
         MAIN ANIMATION UI CALL
+        Why not just call the procs directly? well this also manages the collection /pushing
+        of the filterSettings data for all procs
         '''
         #issue : up to v2011 Maya puts each action into the UndoQueue separately
         #when called by lambda or partial - Fix is to open an UndoChunk to catch
@@ -2097,6 +2128,8 @@ class AnimationUI(object):
                 self.__PoseSave()    
             elif func == 'PoseLoad':
                 self.__PoseLoad()
+            elif func == 'PoseCompare':
+                self.__PoseCompare()
             elif func == 'PosePC_Make':
                 self.__PosePointCloud('make')
             elif func == 'PosePC_Delete':

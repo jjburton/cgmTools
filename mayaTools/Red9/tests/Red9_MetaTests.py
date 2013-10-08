@@ -43,7 +43,8 @@ class Test_MetaRegistryCalls():
         
         #reset the NodeTypes
         r9Meta.resetMClassNodeTypes()
-        assert r9Meta.getMClassNodeTypes()==['network']
+        print r9Meta.getMClassNodeTypes()
+        assert r9Meta.getMClassNodeTypes()==['network','objectSet']
         assert [cmds.nodeType(n.mNode) for n in r9Meta.getMetaNodes()]==['network'] 
         
     

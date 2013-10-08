@@ -494,7 +494,8 @@ class PoseData(object):
         
         
     @r9General.Timer
-    def poseLoad(self, nodes, filepath=None, useFilter=True, relativePose=False, relativeRots='projected',relativeTrans='projected'):
+    def poseLoad(self, nodes, filepath=None, useFilter=True, relativePose=False, relativeRots='projected',relativeTrans='projected',
+                 maintainSpaces=False):
         '''
         Entry point for the generic PoseLoad
         @param nodes:  if given load the data to only these. If given and filter=True this is the rootNode for the filter
@@ -504,19 +505,22 @@ class PoseData(object):
         @param relativePose: kick in the posePointCloud to align the loaded pose relatively to the selected node
         @param relativeRots: 'projected' or 'absolute' - how to calculate the offset
         @param relativeTrans: 'projected' or 'absolute' - how to calculate the offset
+        @param maintainSpaces: ONLY valid in MetaRig, this preserves any parentSwitching mismatches between the
+                        stored pose and the current rig settings, current spaces are maintained.
         '''
-
+        
         if relativePose and not cmds.ls(sl=True):
             raise StandardError('Nothing selected to align Relative Pose too')
         if not type(nodes)==list:nodes=[nodes] #cast to list for consistency
         rootNode=nodes[0]
         
         #push args to object - means that any poseHandler.py file has access to them          
-        self.relativePose=relativePose
-        self.relativeRots=relativeRots
-        self.relativeTrans=relativeTrans
-        self.filepath=filepath
-        self.useFilter=useFilter
+        self.relativePose = relativePose
+        self.relativeRots = relativeRots
+        self.relativeTrans = relativeTrans
+        self.filepath = filepath
+        self.useFilter = useFilter
+        self.maintainSpaces = maintainSpaces
         
         if self.filepath and not os.path.exists(self.filepath):
             raise StandardError('Given Path does not Exist')
@@ -559,6 +563,8 @@ class PoseData(object):
                 reference=cmds.ls(sl=True,l=True)[0]
                 self._buildOffsetCloud(nodesToLoad,reference,raw=True)
                 resetCache=[cmds.getAttr('%s.translate' % self.posePointRoot), cmds.getAttr('%s.rotate' % self.posePointRoot)]  
+                if self.maintainSpaces and self.metaRig:
+                    self.parentSpaceCache = self.metaRig.getParentSwitchData()
             
             self._applyPose(matchedPairs)
             log.info('Pose Read Successfully from : %s' % filepath)
@@ -596,6 +602,12 @@ class PoseData(object):
                     elif self.mayaUpAxis=='z': # fucking Z!!!!!!
                         cmds.setAttr('%s.tx' % self.posePointRoot,resetCache[0][0][0])    
                         cmds.setAttr('%s.ty' % self.posePointRoot,resetCache[0][0][1])    
+                
+                #if maintainSpaces then restore the original parentSwitch attr values
+                #BEFORE pushing the point cloud data back to the rig
+                if self.maintainSpaces and self.metaRig:
+                    for child,attr,value in self.parentSpaceCache:
+                        cmds.setAttr('%s.%s' % (child,attr), value)      
                             
                 self._snapNodestoPosePnts()  
                 cmds.delete(self.posePointRoot)

@@ -337,6 +337,10 @@ class Test_FilterNode():
                                             '|World_Root2_chSet|pCube4_AttrMarked_Bingo',
                                             '|World_Root2_chSet|joint4|joint5_AttrMarked']
 
+    def test_CharacterSubSetTest(self):
+        #TODO: Fill Test
+        pass
+ 
     def test_SelectionSetHandler(self):
         #TODO: Fill Test
         pass

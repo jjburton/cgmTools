@@ -202,7 +202,8 @@ class FilterNode_Settings(object):
                        'metaRig':False,         #??Do we do this here?? {'MetaClass','functCall'}
                        'filterPriority':[],     #A way of re-ordering the hierarchy lists
                        'incRoots':True,         #process rootNodes in the filters
-                       'transformClamp':True}   #clamp any nodes found to their transforms
+                       'transformClamp':True,
+                       'infoBlock':''}   #clamp any nodes found to their transforms
         
         self.resetFilters() #Just in case I screw up below 
         
@@ -264,6 +265,7 @@ class FilterNode_Settings(object):
         self.incRoots=True
         self.metaRig=False
         self.transformClamp=True
+        self.infoBlock=""
         
 #    def write(self,filepath):
 #        '''
@@ -594,6 +596,12 @@ class FilterNode(object):
     # Hierarchy Block 
     #---------------------------------------------------------------------------------
     
+    def getObjectSetMembers(self, objSet):
+        '''
+        return objectSet members in long form
+        '''
+        return cmds.ls(cmds.sets(objSet,q=True,nodesOnly=True),l=True,type='transform') or []
+        
     def lsHierarchy(self, incRoots=False, transformClamp=False):
         
         '''
@@ -603,6 +611,7 @@ class FilterNode(object):
         Also if a single rootNode is passed, and it's of type 'character' 
         then the code will return the characterMembers instead
         @param incRoots: include the given rootNodes in the filter 
+        #TODO : objectSet modifications need testing!!!!!
         '''
 
         self.hierarchy=[]
@@ -611,8 +620,14 @@ class FilterNode(object):
             for node in self.rootNodes:
                 if cmds.nodeType(node)=='character':
                     self.hierarchy.extend(self.lsCharacterMembers())
-                elif cmds.nodeType(node)=='objectSet':
-                    self.hierarchy.extend(cmds.sets(node,q=True,nodesOnly=True))
+                elif cmds.nodeType(node)=='objectSet':  
+                    #print 'objectSets - here'
+                    self.hierarchy.extend(self.getObjectSetMembers(node))
+                    childSets=cmds.listConnections(node,type='objectSet',s=True,d=False) #need a walk here??
+                    if childSets:
+                        #print 'childSet : ', childSets
+                        for childSet in childSets:
+                            self.hierarchy.extend(self.getObjectSetMembers(childSet)) 
                 else:
                     if incRoots:
                         self.hierarchy.append(node)
@@ -665,7 +680,8 @@ class FilterNode(object):
                 nodes = self.lsCharacterMembers()
                 log.debug('adding CharacterSetMembers to nodes for processing : %s', nodes)
             elif cmds.nodeType(self.rootNodes[0])=='objectSet':
-                nodes=cmds.sets(self.rootNodes[0],q=True,nodesOnly=True)
+                nodes=self.lsHierarchy(self.rootNodes[0])
+                #nodes=cmds.sets(self.rootNodes[0],q=True,nodesOnly=True)
                 log.debug('adding SelectionSetMember to nodes for processing : %s', nodes)
        
         if nodes:
@@ -813,7 +829,7 @@ class FilterNode(object):
                      will strip out SetDrivens, Clips curves etc..        
         '''
         animCurves=[]
-        treeDepth=1
+        treeDepth=2
         if not nodes:
             animCurves=cmds.ls(type='animCurve',r=True)
         else:
@@ -828,7 +844,9 @@ class FilterNode(object):
                     animCurves=[curve for curve in cmds.listHistory(nodes,pdo=True,lf=False,lv=treeDepth) \
                                                if cmds.nodeType(curve,i=True)[0]=='animCurve']
                 else:
-                    animCurves=cmds.listConnections(nodes,s=True,d=False,type='animCurve')
+                    #animCurves=cmds.listConnections(nodes,s=True,d=False,type='animCurve')
+                    animCurves=[curve for curve in cmds.listHistory(nodes,pdo=True,lf=False,lv=treeDepth) \
+                                               if cmds.nodeType(curve,i=True)[0]=='animCurve']
             except:
                 pass
         if not animCurves:
@@ -1073,6 +1091,11 @@ class FilterNode(object):
         if self.processMode=='Selected':
             #If any of the rootNodes are characterSet then return those
             if [cSets.append(node) for node in self.rootNodes if cmds.nodeType(node) =='character']:
+                for node in self.rootNodes:
+                    #include subSets in this list
+                    subSets=cmds.listConnections(node,type='character',s=True,d=False)
+                    if subSets:
+                        cSets.extend(subSets)
                 return cSets
             else:
                 #Test the full hierarchy for characterSet memberships
@@ -1092,7 +1115,8 @@ class FilterNode(object):
         '''
         From self.characterSets return all it's node members. If characterSets attr 
         hasn't been set then it will invoke a test on the RootNode down through 
-        it's hierarchy to find all characterSet links. 
+        it's hierarchy to find all characterSet links. Not that this now processes
+        subCharacterSets too
         
         ##### THIS NEEDS WORK TO RETURN THE MEMBERS IN THE CORRECT ORDER #####
         '''
@@ -1102,6 +1126,9 @@ class FilterNode(object):
             for cset in cSets:
                 log.debug('cSet : %s', cset)
                 self.characterSetMembers.extend(cmds.character(cset,query=True,nodesOnly=True))
+            #make sure the cSets are not part of the return
+            [self.characterSetMembers.remove(cset) for cset in cSets if cset in self.characterSetMembers]
+                    
             return cmds.ls(self.characterSetMembers,l=True)
 
     def lsMetaRigControllers(self, walk=True, incMain=True): 

@@ -214,6 +214,8 @@ def isMetaNode(node, mTypes=[]):
             if mTypes:
                 if mClass in mTypesToRegistryKey(mTypes):
                     return True
+                else:
+                    return False
             else:
                 return True        
         else:
@@ -1496,9 +1498,8 @@ class MetaClass(object):
         if not walk:
             return getConnectedMetaNodes(self.mNode, source=False, destination=True, mAttrs=mAttrs, dataType='mClass', **kws)
         else:
-            dataType='unicode' #in the walk we scan and process as Maya nodes NOT instantiated mNodes for speed
             metaNodes=[]
-            children=getConnectedMetaNodes(self.mNode, source=False, destination=True, mAttrs=mAttrs, dataType=dataType, **kws)
+            children=getConnectedMetaNodes(self.mNode, source=False, destination=True, mAttrs=mAttrs, dataType='unicode', **kws)
  
             if children:
                 runaways=0
@@ -1507,10 +1508,7 @@ class MetaClass(object):
                 extendedChildren=[]
                 while children and runaways<=1000:
                     for child in children:
-                        if dataType=='mClass':
-                            mNode=child.mNode
-                        else:
-                            mNode=child
+                        mNode=child
                         if mNode not in processed:
                             metaNodes.append(child)
                         else:
@@ -1521,7 +1519,7 @@ class MetaClass(object):
                         children.remove(child)
                         processed.append(mNode)                
                         #log.info( 'connections too : %s' % mNode)
-                        extendedChildren.extend(getConnectedMetaNodes(mNode,source=False,destination=True,mAttrs=mAttrs, dataType=dataType, **kws))
+                        extendedChildren.extend(getConnectedMetaNodes(mNode,source=False,destination=True,mAttrs=mAttrs, dataType='unicode', **kws))
                         #log.info('left to process : %s' % ','.join([c.mNode for c in children]))
                         if not children:
                             if extendedChildren:
@@ -1530,11 +1528,8 @@ class MetaClass(object):
                                 children.extend(extendedChildren)
                                 extendedChildren=[]
                                 depth+=1                                 
-                        runaways+=1    
-                if dataType=='mClass':
-                    return metaNodes
-                else:       
-                    return [MetaClass(node) for node in metaNodes]
+                        runaways+=1       
+                return [MetaClass(node) for node in metaNodes]
         return []
     
     def getParentMetaNode(self, **kws):
@@ -1620,13 +1615,22 @@ class MetaClass(object):
                 connections.extend(con)
         if not connections:
             return connections
-        data=connections[-1].split('.')
-        if isMetaNode(data[0],mTypes=mTypes):
-            mNodes['metaAttr']=data[1]
-            try:
-                mNodes['metaNodeID']=cmds.getAttr('%s.mNodeID' % data[0])
-            except:
-                mNodes['metaNodeID']=node.split(':')[-1].split('|')[-1]
+
+        log.debug('%s : connectionMap : %s' % (node.split('|')[-1].split(':')[-1],connections[1::2]))
+
+        for con in connections[1::2]:
+            data = con.split('.') #attr
+            if isMetaNode(data[0], mTypes=mTypes):
+                mNodes['metaAttr'] = data[1]
+                try:
+                    mNodes['metaNodeID']=cmds.getAttr('%s.mNodeID' % data[0])
+                except:
+                    mNodes['metaNodeID']=node.split(':')[-1].split('|')[-1]
+                return mNodes
+            elif mTypes:
+                continue
+            if not mTypes: #if not mTypes passed bail the loop and retunr the first connection
+                return mNodes
         return mNodes          
 
     def getNodeConnetionAttr(self, node):
@@ -1688,6 +1692,7 @@ class MetaRig(MetaClass):
         self.rigGlobalCtrlAttr='CTRL_Main' #attribute linked to the top globalCtrl in the rig
         #cmds.lockNode(self.mNode, lock=True) #lock the node to avoid accidental removal
         self.lockState=True
+        self.parentSwitchAttr='parent'  #attr used for parentSwitching
         
     def __bindData__(self):
         self.addAttr('version',1.0) #ensure these are added by default
@@ -1756,7 +1761,21 @@ class MetaRig(MetaClass):
         if self.hasAttr('exportSkeletonRoot'):
             return self.exportSkeletonRoot
         return None
-        
+    
+    def getParentSwitchData(self):
+        '''
+        Simple func for over-loading. This returns a list of tuples [(node,attr)] for all
+        found parentSwitch attrs on your rig. This is used by the PoseLaoder to maintain
+        parentSwitching when a pose is applied.
+        Note: that by default I assume you use the same attr name for all parent switching 
+        on your rig. If not then you'll have to over-load this more carefully.
+        '''
+        parentSwitches=[]
+        for child in self.getChildren(walk=True):
+            if cmds.attributeQuery(self.parentSwitchAttr, exists=True,node=child):
+                parentSwitches.append((child, self.parentSwitchAttr, cmds.getAttr('%s.%s' % (child,self.parentSwitchAttr))))
+        return parentSwitches
+                  
 
     #Do we supply a few generic presets?
     #---------------------------------------------------------------------------------
@@ -1801,7 +1820,7 @@ class MetaRig(MetaClass):
         self.addRigCtrl(node,'Neck', 
                         mirrorData={'side':side, 'slot':6,'axis':axis})
  
-    def addSupportMetaNode(self, attr, nodeName=None): 
+    def addSupportMetaNode(self, attr, nodeName=None, mClass='MetaRigSupport'): 
         '''
         Not sure the best way to do this, but was thinking that the main mRig
         node should be able to have sub MetaClass nodes to cleanly define
@@ -1814,7 +1833,7 @@ class MetaRig(MetaClass):
         '''
         if not nodeName:
             nodeName=attr
-        return self.addChildMetaNode('MetaRigSupport', attr=attr, nodeName=nodeName)
+        return self.addChildMetaNode(mClass, attr=attr, nodeName=nodeName)
   
     def addSupportNode(self, node, attr, boundData=None):
         '''
@@ -1900,6 +1919,7 @@ class MetaRig(MetaClass):
         will load the cached pose from this objects instance, if there is one stored.
         @param nodes: if given load only the cached pose to the given nodes
         @param attr: attr in which a pose has been stored internally on the mRig
+        TODO: add relative flags so that they can pass through this call
         '''
         import Red9.core.Red9_PoseSaver as r9Pose
         if attr:
