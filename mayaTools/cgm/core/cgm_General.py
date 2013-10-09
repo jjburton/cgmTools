@@ -105,8 +105,10 @@ class cgmFuncCls(object):
 		_str_fail = ">"*3 + " %s >!FAILURE!> Step: '%s' | Error: %s"%(self._str_funcCombined,_str_step,error)
 		log.error(_str_fail)
 		
-		log.error(">"*3 + " Self Stored " + "-"*75)	  	    		    
-		for k in self.__dict__.keys():
+		log.error(">"*3 + " Self Stored " + "-"*75)
+		l_keys = self.__dict__.keys()
+		l_keys.sort()
+		for k in l_keys:		
 		    if k not in self.l_dictMask:
 			log.error(">"*3 + " '%s' : %s "%(k,self.__dict__[k]))
 		log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)) + "-"*75)
@@ -131,12 +133,16 @@ class cgmFuncCls(object):
 	    log.info(">"*3 + " KWs Defined " + "-"*75)	  	    
 	    for k in self.d_kwsDefined.keys():
 		log.info(">"*3 + " '%s' : %s "%(k,self.d_kwsDefined[k]))
-	log.info(">"*3 + " Self Stored " + "-"*75)	  	    		    
-	for k in self.__dict__.keys():
+	log.info(">"*3 + " Self Stored " + "-"*75)	
+	l_keys = self.__dict__.keys()
+	l_keys.sort()
+	for k in l_keys:
 	    if k not in self.l_dictMask:
 		buffer = self.__dict__[k]
 		if type(buffer) is dict:
-		    log.info(">"*6 + " Nested Dict: %s "%k + "-"*75)	
+		    log.info(">"*6 + " Nested Dict: %s "%k + "-"*75)
+		    l_bufferKeys = buffer.keys()
+		    l_bufferKeys.sort()
 		    for k2 in buffer.keys():
 			log.info(">"*6 + " '%s' : %s "%(k2,buffer[k2]))			
 		else:
