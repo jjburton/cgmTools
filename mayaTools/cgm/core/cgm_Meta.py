@@ -4142,7 +4142,7 @@ class NameFactory(object):
 	    
 	    str_baseName = i_node.getBaseName()
 	    if  str_baseName != nameCandidate:
-		log.warning("'%s' not named to: '%s'"%(str_baseName,nameCandidate))
+		log.debug("'%s' not named to: '%s'"%(str_baseName,nameCandidate))
 		
 	    return str_baseName
 	except StandardError,error:
