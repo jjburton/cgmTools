@@ -172,7 +172,7 @@ def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = No
 	    except StandardError,error:raise StandardError,"Range arg failed. error: %s"%(inRange,error)
 	if type(minValue) in [float,int]:
 	    try:#Min check
-		if not numberToCheck > minValue:
+		if not numberToCheck >= minValue:
 		    if autoClamp:
 			return minValue		    
 		    return False
