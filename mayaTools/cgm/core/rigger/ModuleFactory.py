@@ -755,7 +755,7 @@ def isSkeletonized(self):
 	goodCount = returnExpectedJointCount(self)
 	currentCount = len(l_moduleJoints)
 	if  currentCount < (goodCount-1):
-	    log.warning("Expected at least %s joints. %s found: '%s'"%(goodCount-1,currentCount,self.getShortName()))
+	    log.warning("%s >> Expected at least %s joints. %s found"%(self.p_nameShort,goodCount-1,currentCount))
 	    return False
 	return True
     except Exception,error:
