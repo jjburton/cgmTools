@@ -161,7 +161,7 @@ def getMClassNodeTypes():
 
 def resetMClassNodeTypes():
     global RED9_META_NODETYPE_REGISTERY    
-    RED9_META_NODETYPE_REGISTERY=['network','objectSet']
+    RED9_META_NODETYPE_REGISTERY=['network','objectSet','HIKCharacterNode']
 
     
 # ====================================================================================   
@@ -196,7 +196,14 @@ def attributeDataType(val):
     if issubclass(type(val),tuple):
         log.debug('Val : %s : is a tuple')
         return 'complex'
- 
+
+def getMClassDataFromNode(node):
+    
+    if cmds.attributeQuery('mClass', exists=True, node=node):
+        return cmds.getAttr('%s.%s' % (node,'mClass'))
+    elif cmds.nodeType(node) =='HIKCharacterNode':
+        return 'MetaHIKCharacter'
+        
 #@pymelHandler
 def isMetaNode(node, mTypes=[]):
     '''
@@ -206,10 +213,15 @@ def isMetaNode(node, mTypes=[]):
     @param node: Maya node to test
     @param mTypes: only match given MetaClass's - str or class accepted
     '''
+    #mClass=None
     if issubclass(type(node), MetaClass):
-        node=node.mNode    
-    if cmds.attributeQuery('mClass', exists=True, node=node):
-        mClass=cmds.getAttr('%s.%s' % (node,'mClass'))
+        node=node.mNode   
+    mClass=getMClassDataFromNode(node) 
+    #if cmds.attributeQuery('mClass', exists=True, node=node):
+    #    mClass=cmds.getAttr('%s.%s' % (node,'mClass'))
+    #elif cmds.nodeType(node) =='HIKCharacterNode':
+    #    mClass='MetaHIKCharacter'
+    if mClass:
         if RED9_META_REGISTERY.has_key(mClass):
             if mTypes:
                 if mClass in mTypesToRegistryKey(mTypes):
@@ -519,7 +531,7 @@ class MClassNodeUI():
           
         if sortBy=='byClass':
             #self.mNodes=sorted(self.mNodes, key=lambda x: x.mClass.upper())
-            self.mNodes=sorted(self.mNodes, key=lambda x: cmds.getAttr('%s.mClass' % x).upper())
+            self.mNodes=sorted(self.mNodes, key=lambda x: getMClassDataFromNode(x).upper()) #cmds.getAttr('%s.mClass' % x).upper())
         elif sortBy=='byName':
             #self.mNodes=sorted(self.mNodes, key=lambda x: x.mNode.upper())
             self.mNodes=sorted(self.mNodes, key=lambda x: x.upper())
@@ -535,7 +547,7 @@ class MClassNodeUI():
             for meta in self.mNodes:
                 cmds.textScrollList('slMetaNodeList', edit=True,
                                         #append=('{0:<%i}:{1:}' % width).format(meta.mNode, meta.mClass),
-                                        append=('{0:<%i}:{1:}' % width).format(meta, cmds.getAttr('%s.mClass' % meta)),
+                                        append=('{0:<%i}:{1:}' % width).format(meta, getMClassDataFromNode(meta)), #cmds.getAttr('%s.mClass' % meta)),
                                         sc=lambda *args:self.selectCmd(),
                                         dcc=lambda *x:self.doubleClick() )   
 
@@ -558,10 +570,11 @@ def nodeLockManager(func):
     def wrapper( *args, **kws):
         res=None
         err=None
+        locked=False
         try:
-            mNode=args[0]
-            #log.debug('nodeLockManager > func : %s : metaNode / self: %s' % (func.__name__,mNode.mNode))
             locked=False
+            mNode=args[0] #args[0] is self
+            #log.debug('nodeLockManager > func : %s : metaNode / self: %s' % (func.__name__,mNode.mNode))
             if mNode.mNode and mNode._lockState:
                 locked=True
                 cmds.lockNode(mNode.mNode,lock=False) 
@@ -615,7 +628,12 @@ class MetaClass(object):
         if args:
             mNode=args[0]
             if isMetaNode(mNode):
-                mClass=cmds.getAttr('%s.%s' % (mNode,'mClass'))
+                mClass=getMClassDataFromNode(mNode)
+                #try:
+                #    mClass=cmds.getAttr('%s.%s' % (mNode,'mClass'))
+                #except:
+                #    if cmds.nodeType(mNode) =='HIKCharacterNode':
+                #        mClass='MetaHIKCharacter'
         if mClass:
             log.debug("mClass derived from MayaNode Attr : %s" % mClass)
             if RED9_META_REGISTERY.has_key(mClass):   
@@ -1138,12 +1156,12 @@ class MetaClass(object):
         cmds.select(self.mNode)
         
     @nodeLockManager        
-    def rename(self,name):
+    def rename(self, name):
         '''
         rename the mNode itself
         '''
         cmds.rename(self.mNode, name)
-        self.mNode=name
+        #self.mNode=name
               
     def delete(self):
         '''
@@ -1893,18 +1911,19 @@ class MetaRig(MetaClass):
         r9Anim.MirrorHierarchy(self.getChildren()).loadMirrorSetups(mirrorMap)
     
     @nodeLockManager              
-    def poseCacheStore(self, attr=None):
+    def poseCacheStore(self, attr=None, filepath=None, *args, **kws):
         '''
         intended as a cached pose for this mRig, if an attr is given then
         the cached pose is stored internally on the node so it can be loaded 
         back from the mNode internally. If not given then the pose is cached
         on this object instance only.
-        @param attr: attr to store the cached pose to
+        @param attr: optional - attr to store the cached pose to
+        @param filepath: optional - path to store the pose too
         '''
         import Red9.core.Red9_PoseSaver as r9Pose
         self.poseCache=r9Pose.PoseData()
         self.poseCache.metaPose=True
-        self.poseCache.poseSave(self.mNode, filepath=None, useFilter=True) #no path so cache against this pose instance
+        self.poseCache.poseSave(self.mNode, filepath=filepath, useFilter=True, *args, **kws) #no path so cache against this pose instance
         if attr:
             if not self.hasAttr(attr):
                 self.addAttr(attr, value=self.poseCache.poseDict, hidden=True)
@@ -1912,25 +1931,27 @@ class MetaRig(MetaClass):
                 setattr(self, attr, self.poseCache.poseDict)
             self.attrSetLocked(attr,True)
         
-    def poseCacheLoad(self, nodes=None, attr=None):
+    def poseCacheLoad(self, nodes=None, attr=None, filepath=None, *args, **kws):
         '''
         load a cached pose back to this mRig. If attr is given then its assumed
         that that attr is a cached poseDict on the mNode. If not given then it
         will load the cached pose from this objects instance, if there is one stored.
         @param nodes: if given load only the cached pose to the given nodes
-        @param attr: attr in which a pose has been stored internally on the mRig
+        @param attr: optional - attr in which a pose has been stored internally on the mRig
+        @param filepath: optional - posefile to load back
         TODO: add relative flags so that they can pass through this call
         '''
         import Red9.core.Red9_PoseSaver as r9Pose
-        if attr:
+        if attr or filepath:
             self.poseCache=r9Pose.PoseData()
             self.poseCache.metaPose=True
-            self.poseCache.poseDict=getattr(self,attr)
+            if attr:
+                self.poseCache.poseDict=getattr(self,attr)
         if self.poseCache:
             if not nodes:
-                self.poseCache.poseLoad(self.mNode, filepath=None, useFilter=True)
+                self.poseCache.poseLoad(self.mNode, filepath=filepath, useFilter=True, *args, **kws)
             else:
-                self.poseCache.poseLoad(nodes, filepath=None, useFilter=False)
+                self.poseCache.poseLoad(nodes, filepath=filepath, useFilter=False, *args, **kws)
      
     def poseCompare(self, poseFile, supressWarning=False, compareDict='skeletonDict'):  
         '''
@@ -2040,6 +2061,18 @@ class MetaFacialRigSupport(MetaClass):
                 for key, value in boundData.iteritems():
                     log.debug('Adding boundData to node : %s:%s' %(key,value))
                     MetaClass(node).addAttr(key, value=value)  
+
+
+class MetaHIKCharacter(MetaClass): 
+    '''
+    Testing only : casting HIK directly to a metaClass so it's
+    treated as meta by default. Why the hell not, it's a complex
+    character node that is default in Maya and useful for management 
+    in the systems
+    '''  
+    def __init__(self, *args, **kws):
+        kws.setdefault('autofill','messageOnly')
+        super(MetaHIKCharacter, self).__init__(*args,**kws)       
 
 
 
