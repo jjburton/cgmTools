@@ -59,7 +59,7 @@ def returnSplitCurveList(curve = None,points = 3, markPoints = False, startSplit
     returns l_pos
     """
     _str_funcName = 'returnSplitCurveList'
-    log.info(">>> %s >> "%_str_funcName + "="*75)   
+    log.debug(">>> %s >> "%_str_funcName + "="*75)   
     try:
 	mi_crv = cgmMeta.validateObjArg(curve,cgmMeta.cgmObject,mayaType='nurbsCurve',noneValid=False)
 	int_points = cgmValid.valueArg(points,minValue=3,calledFrom=_str_funcName)
@@ -81,58 +81,63 @@ def returnSplitCurveList(curve = None,points = 3, markPoints = False, startSplit
 	#==========================	
 	l_spanUPositions = []
 	str_bufferU = mc.ls("%s.u[*]"%useCurve)[0]
-	log.info("%s >> u list : %s"%(_str_funcName,str_bufferU))       
+	log.debug("%s >> u list : %s"%(_str_funcName,str_bufferU))       
 	f_maxU = float(str_bufferU.split(':')[-1].split(']')[0])
 	l_uValues = [0]
 
 	if f_startSplitFactor is not False:
 	    if points < 5:
 		raise StandardError,"%s >> Need at least 5 points for startSplitFactor. Points : %s"%(_str_funcName,points)
-	    log.info("%s >> f_startSplitFactor : %s"%(_str_funcName,f_startSplitFactor))  
+	    log.debug("%s >> f_startSplitFactor : %s"%(_str_funcName,f_startSplitFactor))  
 	    #Figure out our u's
 	    f_base = f_startSplitFactor * f_maxU 
 	    l_uValues.append( f_base )
 	    f_len = f_maxU - (f_base *2)	
 	    int_toMake = f_points-4
 	    f_factor = f_len/(int_toMake+1)
-	    log.info("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
-	    log.info("%s >> f_len : %s"%(_str_funcName,f_len)) 	
-	    log.info("%s >> int_toMake : %s"%(_str_funcName,int_toMake)) 						
-	    log.info("%s >> f_base : %s"%(_str_funcName,f_base)) 			
-	    log.info("%s >> f_factor : %s"%(_str_funcName,f_factor))               
+	    log.debug("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
+	    log.debug("%s >> f_len : %s"%(_str_funcName,f_len)) 	
+	    log.debug("%s >> int_toMake : %s"%(_str_funcName,int_toMake)) 						
+	    log.debug("%s >> f_base : %s"%(_str_funcName,f_base)) 			
+	    log.debug("%s >> f_factor : %s"%(_str_funcName,f_factor))               
 	    for i in range(1,int_points-3):
 		l_uValues.append(((i*f_factor + f_base)))
 	    l_uValues.append(f_maxU - f_base)
 	    l_uValues.append(f_maxU)
-	    log.info("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  			
+	    log.debug("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  			
 	elif f_insetSplitFactor is not False:
-	    log.info("%s >> f_insetSplitFactor : %s"%(_str_funcName,f_insetSplitFactor))  
+	    log.debug("%s >> f_insetSplitFactor : %s"%(_str_funcName,f_insetSplitFactor))  
 	    #Figure out our u's
 	    f_base = f_insetSplitFactor * f_maxU 
 	    f_len = f_maxU - (f_base *2)	
 	    f_factor = f_len/(f_points-1)
-	    log.info("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
-	    log.info("%s >> f_len : %s"%(_str_funcName,f_len)) 			
-	    log.info("%s >> f_base : %s"%(_str_funcName,f_base)) 			
-	    log.info("%s >> f_factor : %s"%(_str_funcName,f_factor))               
+	    log.debug("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
+	    log.debug("%s >> f_len : %s"%(_str_funcName,f_len)) 			
+	    log.debug("%s >> f_base : %s"%(_str_funcName,f_base)) 			
+	    log.debug("%s >> f_factor : %s"%(_str_funcName,f_factor))               
 	    for i in range(1,int_points-1):
 		l_uValues.append((i*f_factor))
 	    l_uValues.append(f_maxU)
-	    log.info("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  			
+	    log.debug("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  			
 	else:
 	    #Figure out our u's
-	    f_factor = f_maxU/(f_points-1)
-	    log.info("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
-	    log.info("%s >> f_factor : %s"%(_str_funcName,f_factor))               
-	    for i in range(1,int_points-1):
-		l_uValues.append(i*f_factor)
-	    l_uValues.append(f_maxU)
-	    log.info("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  
+	    log.debug("%s >> Regular mode. Points = %s "%(_str_funcName,int_points))
+	    if int_points == 3:
+		l_uValues.append(f_maxU/2)
+		l_uValues.append(f_maxU)
+	    else:
+		f_factor = f_maxU/(f_points-1)
+		log.debug("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
+		log.debug("%s >> f_factor : %s"%(_str_funcName,f_factor))               
+		for i in range(1,int_points-1):
+		    l_uValues.append(i*f_factor)
+		l_uValues.append(f_maxU)
+	    log.debug("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  
 
 	for u in l_uValues:
 	    try:l_spanUPositions.append(mc.pointPosition("%s.u[%f]"%(useCurve,u)))
 	    except StandardError,error:raise StandardError,"failed on pointPositioning: %s"%u			
-	log.info("%s >> l_spanUPositions | len: %s | list: %s"%(_str_funcName,len(l_spanUPositions),l_spanUPositions))  
+	log.debug("%s >> l_spanUPositions | len: %s | list: %s"%(_str_funcName,len(l_spanUPositions),l_spanUPositions))  
 
 	try:
 	    if b_markPoints:
@@ -140,7 +145,7 @@ def returnSplitCurveList(curve = None,points = 3, markPoints = False, startSplit
 		for i,pos in enumerate(l_spanUPositions):
 		    buffer =  mc.spaceLocator(n = "%s_u_%f"%(useCurve,(l_uValues[i])))[0] 
 		    ml_built.append( cgmMeta.cgmObject(buffer))
-		    log.info("%s >> created : %s | at: %s"%(_str_funcName,ml_built[-1].p_nameShort,pos))              											
+		    log.debug("%s >> created : %s | at: %s"%(_str_funcName,ml_built[-1].p_nameShort,pos))              											
 		    mc.xform(ml_built[-1].mNode, t = (pos[0],pos[1],pos[2]), ws=True)
 
 		try:f_distance = distance.returnAverageDistanceBetweenObjects([o.mNode for o in ml_built]) * .5
@@ -342,11 +347,10 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
 	    mi_target = self.mi_targetCurve
 	    
 	    self.l_baseCvPos = []
+	    self.d_base = self.getCurveMirrorData(mi_base)
+	    
 	    if not mi_target:#if no target, mirror self
-		self.d_base = self.getCurveMirrorData(mi_base)
-		
 		if not self.d_base['b_oneSided']:
-		    log.info("%s One sided"%self._str_reportStart)
 		    if self.d_base['b_even']:
 			log.info("%s Even"%self._str_reportStart)			
 			l_cvPos = self.d_base['l_cvPos']
@@ -370,12 +374,29 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
 		    for i,pos in enumerate(l_otherSide):
 			l_otherSide[i] = [-pos[0],pos[1],pos[2]]
 			
-		    l_newCurvePos = l_epPos + l_otherSide[1:]
+		    #l_newCurvePos = l_epPos + l_otherSide
+		    l_newCurvePos = l_otherSide
 		    l_newCurvePos = lists.returnListNoDuplicates(l_newCurvePos)
-		    self.report()	    
-		    return mc.curve(d=2,p=l_newCurvePos,os =True)
+		    #self.report()
+		    self.mi_created = cgmMeta.cgmObject( mc.curve(d=2,p=l_newCurvePos,os = True) )
+		    self.mi_created.rename( mi_base.p_nameBase + '_mirrored')
+		    return self.mi_created.p_nameShort
 		    
 		#See if we need to make new curve to have stuff to mirror
+	    else:#if we have a target
+		self.d_target = self.getCurveMirrorData(mi_target)
+		l_cvsBase = self.d_base['l_cvs']			
+		l_cvsTarget = self.d_target['l_cvs']
+		if len(l_cvsBase) != len(l_cvsTarget):
+		    raise NotImplementedError,"Haven't added ability to do curves of differing cv lengths yet"
+		for i,pos in enumerate(self.d_base['l_cvPos']):
+		    mc.move(-pos[0],pos[1],pos[2], l_cvsTarget[i], ws=True)
+		    
+		return True
+		    
+
+		
+		
 		
 
 	    self.report()
@@ -401,8 +422,10 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
 
 	    #> Check thresholds ----------------------------------------------------------------------
 	    try:
-		if abs(d_return['f_bbMin']) <= self.f_threshold or abs(d_return['f_bbMax']) <= self.f_threshold:
-		    d_return['b_oneSided'] = True
+		if d_return['f_bbMin'] >= self.f_threshold and d_return['f_bbMax'] >= self.f_threshold or d_return['f_bbMin'] <= -self.f_threshold and d_return['f_bbMax'] <= -self.f_threshold:
+		    d_return['b_oneSided'] = True		
+		"""if abs(d_return['f_bbMin']) <= self.f_threshold or abs(d_return['f_bbMax']) <= self.f_threshold:
+		    d_return['b_oneSided'] = True"""
 	    except Exception,error:raise StandardError,"Threshholds check | %s"%error
 	
 	    #> Is ep --------------------------------------------------------------------
