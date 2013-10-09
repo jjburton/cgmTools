@@ -11,8 +11,18 @@ from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.rigger import JointFactory as jFactory
 
 from cgm.core import cgm_PuppetMeta as cgmPM
+m1 = r9Meta.MetaClass('r_index_part')
 
 reload(mFactory)
+mFactory.animReset_children(m1)
+mFactory.getSiblings(m1)
+mFactory.getSiblings(m1,False)
+mFactory.animSelect_siblings(m1,False)
+mFactory.animKey_siblings(m1,False,)
+mFactory.animPushPose_siblings(m1)
+mFactory.animSetAttr_children(m1,'visSub',0,True,False)
+mFactory.animSetAttr_children(m1,'visSub',1,True,False)
+mFactory.animSelect_siblings(m1,True)
 reload(tFactory)
 reload(jFactory)
 mFactory.get_rollJointCountList(leg)
@@ -26,6 +36,21 @@ obj = ''
 objList = []
 mFactory.log.setLevel(mFactory.logging.INFO)
 mFactory.log.setLevel(mFactory.logging.DEBUG)
+
+#>>> Mirror stuff
+#=======================================================
+reload(mFactory)
+mFactory.getMirrorModule(leg1)
+mFactory.mirrorPush(leg1)
+mFactory.mirrorPull(leg1)
+
+leg1 = r9Meta.MetaClass('l_leg_part')
+leg2 = r9Meta.MetaClass('r_leg_part')
+leg1.connectChildNode(leg2,'moduleMirror','moduleMirror')
+
+m1 = r9Meta.MetaClass('l_clav_part')
+jFactory.go(m1)
+
 #>>> Modules
 #=======================================================
 m1 = cgmPM.cgmEyeball(name = 'eye')

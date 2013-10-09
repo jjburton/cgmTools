@@ -26,7 +26,14 @@ objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
 
-#>>> Stretch IK
+#>>> mirror curve curve list
+#=======================================================
+reload(crvUtils)
+baseCrv = 'curve18'
+crvUtils.mirrorCurve(baseCrv)
+crvUtils.mirrorCurve(baseCrv,mirrorAcross='y')
+
+#>>> Split curve list
 #=======================================================
 reload(crvUtils)
 crv = 'uprLid_rigHelper'

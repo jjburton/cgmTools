@@ -12,14 +12,17 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.lib import search
 from cgm.core.rigger import ModuleFactory as mFactory
+from cgm.core.rigger import PuppetFactory as pFactory
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.rigger import JointFactory as jFactory
 from cgm.lib import attributes
 reload(attributes)
+reload(pFactory)
 reload(mFactory)
 reload(tFactory)
 reload(jFactory)
 
+pFactory.animSetAttr(m1.modulePuppet,'visSub',1,True)
 #>>> Morphy Puppet
 #=======================================================
 Morphy = cgmPM.cgmPuppet('Morphy_puppetNetwork')
