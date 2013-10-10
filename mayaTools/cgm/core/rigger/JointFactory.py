@@ -20,6 +20,7 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
+from cgm.core.lib import rayCaster as rayCast
 from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.classes import SnapFactory as Snap
@@ -366,7 +367,7 @@ def doSkeletonizeEyelids(self):
 	log.info("%s >>> uprCount : %s"%(_str_funcName,int_uprLidJoints))
 	log.info("%s >>> lwrCount : %s"%(_str_funcName,int_lwrLidJoints))
 	
-	#Pupil and Iris
+	#Curves --------------------------------------------------------------------------------
 	str_partName = self._partName	
 	d_buildCurves = {'upr':{'crv':mi_uprLidBase,'count':int_uprLidJoints},
 	                 'lwr':{'crv':mi_lwrLidBase,'count':int_lwrLidJoints}}
@@ -381,7 +382,6 @@ def doSkeletonizeEyelids(self):
 	raise StandardError,"Data gather fail! | error: %s "%(error)       
     
     try:
-	#mi_root = cgmMeta.cgmObject( mc.joint(p = mi_helper.getPosition()),setClass=True )
 	for k in d_buildCurves.keys():
 	    mi_crv = d_buildCurves[k].get('crv')#get instance
 	    int_count = d_buildCurves[k].get('count')#get int
@@ -468,6 +468,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 	                        {'step':'Build Cheek','call':self._buildCheek_},
 	                        {'step':'Build Temple','call':self._buildTemple_},
 	                        {'step':'Build midBrow','call':self._buildMidBrow_},
+	                        {'step':'Build Squash and Stretch','call':self._buildSquashStretch_},
 	                        {'step':'Connect','call':self._connect_}]
 	    
 	    assert self.mi_module.mClass == 'cgmEyebrow',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(_str_funcName,self.mi_module.mClass)
@@ -485,6 +486,19 @@ def doSkeletonizeEyebrow(goInstance = None):
 		self.l_targetMesh = self.mi_go._mi_puppet.getUnifiedGeo() or self.mi_go._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
 	    except Exception,error:
 		raise error
+	    
+	    #Find our head attach joint ------------------------------------------------------------------------------------------------
+	    self.str_rootJoint = False
+	    if self.mi_module.getMessage('moduleParent'):
+		try:
+		    mi_end = self.mi_module.moduleParent.rigNull.msgList_get('moduleJoints')[-1]
+		    buffer =  mi_end.getMessage('scaleJoint')
+		    if buffer:
+			self.str_rootJoint = buffer[0]
+		    else:
+			self.str_rootJoint = mi_end.mNode
+		except Exception,error:
+		    log.error("%s failed to find root joint from moduleParent | %s"%(self._str_reportStart,error))
 	    
 	    #Orient info ------------------------------------------------------------------------------------------------
 	    self.v_aimNegative = cgmValid.simpleAxis(self.str_orientation[0]+"-").p_vector
@@ -504,11 +518,65 @@ def doSkeletonizeEyebrow(goInstance = None):
 	    self.mi_leftUprCheekCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftUprCheekHelper'),noneValid=False)
 	    self.mi_rightUprCheekCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightUprCheekHelper'),noneValid=False)
 	    
+	    self.mi_squashCastHelper = cgmMeta.validateObjArg(self.mi_helper.getMessage('squashCastHelper'),noneValid=True)
+	    self.mi_uprFacePivotHelper = cgmMeta.validateObjArg(self.mi_helper.getMessage('uprFacePivotHelper'),noneValid=True)
+	    
+	    self.mi_jawPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('jawPlate'),noneValid=True)
+	    self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=True)
+	    
 	    #Get some data from helpers --------------------------------------------------------------------------------------
 	    self.int_browJointsCnt = self.mi_helper.browJoints
 	    self.int_templeJointsCnt = self.mi_helper.templeJoints
 	    self.int_cheekJointsCnt = self.mi_helper.cheekJoints	
 	    
+	    return True
+	
+	def _buildSquashStretch_(self): 
+	    if not self.mi_helper.buildSquashStretch:
+		return False
+	    if not self.mi_skullPlate:
+		log.error("%s Squash and stretch on. No skull plate found"%(self._str_reportStart))
+		return False
+	    
+	    d_casts = {'top':{'direction':self.str_orientation[1]+"+"},
+	               'left':{'direction':self.str_orientation[2]+"+"},
+	               'right':{'direction':self.str_orientation[2]+"-"},
+	               'back':{'direction':self.str_orientation[0]+"-"}}
+	    
+	    self.d_squash = d_casts
+	    
+	    #Need to build some locs
+	    for k in d_casts.keys():
+		str_cast = d_casts[k]['direction']
+		d_return = rayCast.findMeshIntersectionFromObjectAxis(self.l_targetMesh[0],self.mi_squashCastHelper.mNode,str_cast)
+		pos = d_return.get('hit')
+		if not pos:
+		    log.warning("rayCast.findMeshIntersectionFromObjectAxis(%s,%s,%s)"%(self.l_targetMesh[0],self.mi_squashCastHelper.mNode,str_cast))
+		    raise StandardError, "Failed to find hit." 
+		if log.getEffectiveLevel() == 10:log.debug("%s >>> Squash stretch cast. key: %s | cast: %s | pos:%s"%(self._str_reportStart,k, str_cast,pos))
+		try:#Create and name
+		    mc.select(cl=True)
+		    mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+		    mi_jnt.parent = False
+		    mi_jnt.addAttr('cgmDirection',k ,lock=True)			    
+		    mi_jnt.addAttr('cgmName',"head",lock=True)	
+		    mi_jnt.addAttr('cgmNameModifier',"squash",lock=True)			    
+		    mi_jnt.doName()
+		except Exception,error:
+		    raise StandardError,"Create fail. direction: %s | pos : %s | error: %s "%(k,pos,error)       
+		try:#Orient
+		    constraintBuffer = mc.normalConstraint(self.l_targetMesh[0],mi_jnt.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
+		    mc.delete(constraintBuffer)
+		    mi_jnt.parent = self.str_rootJoint
+		except Exception,error:raise StandardError,"Orient fail. direction: %s | pos : %s | error: %s "%(k,pos,error)       
+       
+		jntUtils.metaFreezeJointOrientation(mi_jnt)
+		
+		self.d_squash[k]['ml_joints'] = [mi_jnt] #nested list
+		self.ml_moduleJoints.append(mi_jnt)
+		
+	    return True
+	
 	def _buildMidBrow_(self): 	    
 	    d_buildCurves = {'left':{'crv':self.mi_leftTempleCrv},
 		             'right':{'crv':self.mi_rightTempleCrv}}	
@@ -524,7 +592,8 @@ def doSkeletonizeEyebrow(goInstance = None):
 		mc.select(cl=True)
 		mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
 		mi_jnt.parent = False
-		mi_jnt.addAttr('cgmName',"centerBrow",lock=True)		    			
+		mi_jnt.addAttr('cgmName',"brow",lock=True)
+		mi_jnt.addAttr('cgmDirection',"center",lock=True)		    					
 		mi_jnt.doName()
 		#log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_templeJoints]))
 	    except Exception,error:
@@ -532,14 +601,14 @@ def doSkeletonizeEyebrow(goInstance = None):
 	    try:#Orient
 		constraintBuffer = mc.normalConstraint(self.l_targetMesh[0],mi_jnt.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
 		mc.delete(constraintBuffer)
-		#mi_jnt.parent = mi_root
+		mi_jnt.parent = self.str_rootJoint
 	    except Exception,error:raise StandardError,"error: %s "%(error)       
 	  
 	    jntUtils.metaFreezeJointOrientation(mi_jnt)	  
 	    
 	    self.ml_moduleJoints.append(mi_jnt)
 	    d_buildCurves['ml_joints'] = [mi_jnt] #nested list
-	    self.mi_go._mi_rigNull.msgList_connect(mi_jnt,'moduleCenterBrowJoints','rigNull')#Connect
+	    #self.mi_go._mi_rigNull.msgList_connect(mi_jnt,'moduleCenterBrowJoints','rigNull')#Connect
 	    
 	    return True
 		
@@ -551,11 +620,11 @@ def doSkeletonizeEyebrow(goInstance = None):
 	    for k in d_buildCurves.keys():#Make our left and right joints
 		mi_crv = d_buildCurves[k].get('crv')#get instance
 		int_count = self.int_browJointsCnt#get int
-		log.info("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
+		if log.getEffectiveLevel() == 10:log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
 		try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
 		except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)       
 		d_buildCurves[k]['l_pos'] = l_pos#Store it
-		log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
+		if log.getEffectiveLevel() == 10:log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
 		l_jointBuffer = []
 		ml_endJoints = []
 		ml_browJoints = []
@@ -576,13 +645,13 @@ def doSkeletonizeEyebrow(goInstance = None):
 		    try:#Orient
 			constraintBuffer = mc.normalConstraint(self.l_targetMesh[0],mi_jnt.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
 			mc.delete(constraintBuffer)
-			#mi_jnt.parent = mi_root
+			mi_jnt.parent = self.str_rootJoint
 		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Constraint fail | error: %s "%(k,i,error)       
 		    try:#freeze
 			jntUtils.metaFreezeJointOrientation(mi_jnt)
 		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       
 		d_buildCurves[k]['ml_joints'] = ml_browJoints #nested list
-		self.mi_go._mi_rigNull.msgList_connect(ml_browJoints,'moduleBrowJoints_%s'%k,'rigNull')
+		#self.mi_go._mi_rigNull.msgList_connect(ml_browJoints,'moduleBrowJoints_%s'%k,'rigNull')
 		self.ml_moduleJoints.extend(ml_browJoints)
 	    
 	    return True
@@ -600,7 +669,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 	    for k in d_buildCurves.keys():#Make our left and right joints
 		mi_crv = d_buildCurves[k].get('crv')#get instance
 		int_count = self.int_cheekJointsCnt#get int
-		log.info("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
+		if log.getEffectiveLevel() == 10:log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
 		#Get our l_pos on which to build the joints ------------------------------------------------------------
 		if int_count == 1:
 		    l_pos = [ mc.pointPosition(mi_crv.getComponents('cv')[0], w = True)]
@@ -608,7 +677,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 		    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
 		    except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)       
 		d_buildCurves[k]['l_pos'] = l_pos#Store it
-		log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
+		if log.getEffectiveLevel() == 10:log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
 		l_jointBuffer = []
 		ml_endJoints = []
 		ml_cheekJoints = []
@@ -629,13 +698,13 @@ def doSkeletonizeEyebrow(goInstance = None):
 		    try:#Orient
 			constraintBuffer = mc.normalConstraint(self.l_targetMesh[0],mi_jnt.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
 			mc.delete(constraintBuffer)
-			#mi_jnt.parent = mi_root
+			mi_jnt.parent = self.str_rootJoint
 		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Constraint fail | error: %s "%(k,i,error)       
 		    try:#freeze
 			jntUtils.metaFreezeJointOrientation(mi_jnt)
 		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       
 		d_buildCurves[k]['ml_joints'] = ml_cheekJoints #nested list
-		self.mi_go._mi_rigNull.msgList_connect(ml_cheekJoints,'moduleCheekJoints_%s'%k,'rigNull')
+		#self.mi_go._mi_rigNull.msgList_connect(ml_cheekJoints,'moduleCheekJoints_%s'%k,'rigNull')
 		self.ml_moduleJoints.extend(ml_cheekJoints)
 		
 	    return True
@@ -653,7 +722,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 	    for k in d_buildCurves.keys():#Make our left and right joints
 		mi_crv = d_buildCurves[k].get('crv')#get instance
 		int_count = self.int_templeJointsCnt#get int
-		log.info("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
+		if log.getEffectiveLevel() == 10:log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
 		#Get our l_pos on which to build the joints ------------------------------------------------------------
 		if int_count == 1:
 		    l_pos = [ mc.pointPosition(mi_crv.getComponents('cv')[0], w = True)]
@@ -661,7 +730,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 		    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
 		    except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)       
 		d_buildCurves[k]['l_pos'] = l_pos#Store it
-		log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
+		if log.getEffectiveLevel() == 10:log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
 		l_jointBuffer = []
 		ml_endJoints = []
 		ml_templeJoints = []
@@ -682,13 +751,13 @@ def doSkeletonizeEyebrow(goInstance = None):
 		    try:#Orient
 			constraintBuffer = mc.normalConstraint(self.l_targetMesh[0],mi_jnt.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
 			mc.delete(constraintBuffer)
-			#mi_jnt.parent = mi_root
+			mi_jnt.parent = self.str_rootJoint
 		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Constraint fail | error: %s "%(k,i,error)       
 		    try:#freeze
 			jntUtils.metaFreezeJointOrientation(mi_jnt)
 		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       
 		d_buildCurves[k]['ml_joints'] = ml_templeJoints #nested list
-		self.mi_go._mi_rigNull.msgList_connect(ml_templeJoints,'moduleTempleJoints_%s'%k,'rigNull')
+		#self.mi_go._mi_rigNull.msgList_connect(ml_templeJoints,'moduleTempleJoints_%s'%k,'rigNull')
 		self.ml_moduleJoints.extend(ml_templeJoints)
 		
 	    return True
@@ -823,7 +892,6 @@ def doSkeletonizeEyebrow2(self):
     return True
 
     
-@cgmGeneral.Timer
 def doSkeletonizeLimb(self):
     """ 
     DESCRIPTION:
