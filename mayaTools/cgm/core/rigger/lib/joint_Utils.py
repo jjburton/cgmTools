@@ -180,6 +180,8 @@ def metaFreezeJointOrientation(targetJoints):
 	
     return True
 
+def freezeJointOrientation(targetJoints):
+    return metaFreezeJointOrientation(targetJoints)
 
 def get_orientChild(targetJoint):
     mi_targetJoint = cgmMeta.validateObjArg(targetJoint,cgmMeta.cgmObject,mayaType='joint')
