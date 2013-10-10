@@ -2135,7 +2135,6 @@ d_eyebrow_rigNullAttrs_toMake = {'templateControl':'bool',#Whether we should hav
 d_eyebrow_templateNullAttrs_toMake = {}
 
 class cgmEyebrow(cgmModule):
-    #@cgmGeneral.Timer    
     def __init__(self,*args,**kws):
 	""" 
 	Intializes an brow master class handler
@@ -2670,7 +2669,9 @@ class cgmEyebrowBlock(cgmRigBlock):
                      'leftTempleHelper':'messageSimple',
                      'rightTempleHelper':'messageSimple',  
                      'leftUprCheekHelper':'messageSimple',                     
-                     'rightUprCheekHelper':'messageSimple',                                          
+                     'rightUprCheekHelper':'messageSimple',
+                     'squashCastHelper':'messageSimple',                                          
+                     'uprFacePivotHelper':'messageSimple',                                                               
                      'skullPlate':'messageSimple', 
                      'jawPlate':'messageSimple',                                          
                      'moduleBrow':'messageSimple'} 
@@ -2749,6 +2750,7 @@ class cgmEyebrowBlock(cgmRigBlock):
 	                 'rightTemple': mc.curve( d = 1,p = [[-11.540519886111845, -5.2113010025090887, -12.865421648687006], [-10.689684322507841, -5.4688004729911484, -9.7566605218848697]],k = (0.0, 3.2333609258955258)),
 	                 'leftUprCheek': mc.curve( d = 3,p = [[10.261528402499881, -9.0683619621701723, -8.3652067775967627], [9.9616161190362469, -9.5687755274758786, -7.6585499901992584], [9.361791552108933, -10.569602658087973, -6.2452364154043138], [6.4660266032352167, -9.9530720383801849, -4.5705546635419321], [5.0181441287983555, -9.6448067285263903, -3.7332137876107456]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0)),
 	                 'rightUprCheek': mc.curve( d = 3,p = [[-10.261528402499881, -9.0683619621701723, -8.3652067775967627], [-9.9616161190362469, -9.5687755274758786, -7.6585499901992584], [-9.361791552108933, -10.569602658087973, -6.2452364154043138], [-6.4660266032352167, -9.9530720383801849, -4.5705546635419321], [-5.0181441287983555, -9.6448067285263903, -3.7332137876107456]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0)),
+	                 
 	                 }
 	
 	d_colors = {'left':getSettingsColors('left'),
