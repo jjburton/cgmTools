@@ -246,7 +246,39 @@ def isEP(curve = None):
 		return True
 	    else: return False	     
     return fncWrap(curve).go()
+
+def getMidPoint(curve = None):
+    """
+    Function to see if a curve is an ep curve
+    @kws
+    baseCurve -- curve on check
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,curve = None, **kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(curve = None)
+	    self._str_funcName = 'getMidPoint'	
+	    self.__dataBind__(**kws)
+	    self.d_kwsDefined = {'curve':curve}
+	    #=================================================================
+	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
+	    if log.getEffectiveLevel() == 10:#If debug
+		self.report()
+    
+	def __func__(self):
+	    """
+	    """
+	    self.mi_crv = cgmMeta.validateObjArg(self.d_kwsDefined['curve'],mayaType='nurbsCurve',noneValid=False)
+	    self._str_funcCombined = self._str_funcCombined + "(%s)"%self.mi_crv.p_nameShort
 	    
+	    self.str_bufferU = mc.ls("%s.u[*]"%self.mi_crv.mNode)[0]
+	    self.f_maxU = float(self.str_bufferU.split(':')[-1].split(']')[0])	
+	    
+	    return mc.pointPosition("%s.u[%f]"%(self.mi_crv.mNode,self.f_maxU/2), w=True)
+	    
+    return fncWrap(curve).go()
+
     
 def convertCurve(baseCurve = None, arg = 'ep', keepOriginal = True,**kws):
     """
