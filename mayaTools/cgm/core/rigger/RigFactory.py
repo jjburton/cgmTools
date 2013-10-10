@@ -33,7 +33,7 @@ reload(mControlFactory)
 from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)
-from cgm.core.rigger.lib.Face import (eyeball,eyelids)
+from cgm.core.rigger.lib.Face import (eyeball,eyelids,eyebrow)
 
 from cgm.lib import (cgmMath,
                      attributes,
@@ -64,6 +64,7 @@ d_moduleTypeToBuildModule = {'leg':leg,
                              'finger':finger,
                              'thumb':finger,
                              'eyeball':eyeball,
+                             'eyebrow':eyebrow,
                              'eyelids':eyelids,
                             } 
 for module in d_moduleTypeToBuildModule.keys():
