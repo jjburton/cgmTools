@@ -26,6 +26,13 @@ objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
 
+#>>> midpoint
+#=======================================================
+reload(crvUtils)
+baseCrv = 'curve18'
+crvUtils.getMidPoint(mc.ls(sl=True))
+
+
 #>>> mirror curve curve list
 #=======================================================
 reload(crvUtils)
