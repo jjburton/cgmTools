@@ -135,7 +135,6 @@ class go(object):
     #======================================================================
     # Move
     #======================================================================    
-    @r9General.Timer    
     def doMove(self,**kws):
 	if kws:log.debug("Snap.doMove>>> kws: %s"%kws)
 	if len(self.l_targets) == 1:
