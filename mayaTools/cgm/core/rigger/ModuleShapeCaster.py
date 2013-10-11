@@ -23,8 +23,11 @@ from Red9.core import Red9_General as r9General
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
+from cgm.core.cgmPy import validateArgs as cgmValid
+
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
+from cgm.core.lib import meta_Utils as metaUtils
 from cgm.core.lib import shapeCaster as ShapeCast
 reload(ShapeCast)
 reload(RayCast)
@@ -45,7 +48,6 @@ from cgm.core.lib import nameTools
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
-    @r9General.Timer
     def __init__(self,moduleInstance,controlTypes = [],targetObjects = [],storageInstance = False,b_midSplits = None,**kws): 
         """
 	Class factor generating module controls
@@ -70,6 +72,7 @@ class go(object):
 	                                'eyeballIK':self.build_eyeballIK,
 	                                'eyelids':self.build_eyelids,
 	                                'eyeLook':self.build_eyeLook,
+	                                'eyebrow':shapeCast_eyebrow,
 	                                'eyeballSettings':self.build_eyeballSettings,
 	                                'settings':self.build_settings}
         # Get our base info
@@ -97,23 +100,23 @@ class go(object):
 	    self.l_moduleColors = self._mi_module.getModuleColors()
 	    self._mi_puppet = self._mi_module.modulePuppet
 	    self.l_coreNames = self._mi_module.coreNames.value
-	    self.mi_templateNull = self._mi_module.templateNull#speed link
-	    self.mi_rigNull = self._mi_module.rigNull#speed link
+	    self._mi_templateNull = self._mi_module.templateNull#speed link
+	    self._mi_rigNull = self._mi_module.rigNull#speed link
 	    self._targetMesh = self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
 	    self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
-	    self._ml_controlObjects = self.mi_templateNull.msgList_get('controlObjects')
+	    self._ml_controlObjects = self._mi_templateNull.msgList_get('controlObjects')
 	    
 	    #>>> part name 
-	    self._partName = self._mi_module.getPartNameBase()
-	    self._partType = self._mi_module.moduleType or False
+	    self.str_partName = self._mi_module.getPartNameBase()
+	    self.str_partType = self._mi_module.moduleType or False
 	    
 	    self._direction = None
 	    if self._mi_module.hasAttr('cgmDirection'):
 		self._direction = self._mi_module.cgmDirection or None
 		   
 	    #>>> Instances and joint stuff
-	    self._jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   
-	    self._skinOffset = self._mi_puppet.getAttr('skinDepth') or 1 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<		
+	    self.str_jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   
+	    self.f_skinOffset = self._mi_puppet.getAttr('skinDepth') or 1 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<		
 	    self._verifyCastObjects()#verify cast objects
 	    self.d_returnControls = {}	
 	    self.md_ReturnControls = {}	
@@ -140,7 +143,10 @@ class go(object):
 	if not self.l_controlsToMakeArg:
 	    log.debug("No arguments for shapes to cast.Initializing only.")
 	for key in self.l_controlsToMakeArg:
-	    self.d_controlBuildFunctions[key]()#Run it
+	    try:
+		self.d_controlBuildFunctions[key]()#Run it
+	    except:
+		self.d_controlBuildFunctions[key](self)
 	    #if key not in self.d_returnControls:
 		#log.warning("Necessary control shape(s) was not built: '%s'"%key)
 		#raise StandardError,"Did not get all necessary controls built"
@@ -218,12 +224,12 @@ class go(object):
 	    #Distance stuff    
 	    d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,
 	                                                          mi_lastLoc.mNode,
-	                                                          self._jointOrientation[0]+'+',
-	                                                          pierceDepth=self._skinOffset*15) or {}
+	                                                          self.str_jointOrientation[0]+'+',
+	                                                          pierceDepth=self.f_skinOffset*15) or {}
 	    if not d_return.get('hit'):
 		raise StandardError,"go._verifyCastObjects>>failed to get hit to measure first distance"
 	    dist_cast = distance.returnDistanceBetweenPoints(mi_lastLoc.getPosition(),d_return['hit']) * 1.25
-	    mi_lastLoc.__setattr__("t"+self._jointOrientation[0],dist_cast*.6)#Move
+	    mi_lastLoc.__setattr__("t"+self.str_jointOrientation[0],dist_cast*.6)#Move
 	    pBuffer = mi_lastLoc.parent
 	    mi_lastLoc.parent = False
 	    mc.delete(pBuffer)
@@ -245,7 +251,7 @@ class go(object):
 	    if self.l_controlSnapObjects and self._targetMesh:
 		midIndex = int(len(self.l_controlSnapObjects)/2)
 		log.info("%s >> midIndex = %s"%(_str_funcName,midIndex))	    		
-		d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self._jointOrientation[1],self._jointOrientation[2]])
+		d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self.str_jointOrientation[1],self.str_jointOrientation[2]])
 		log.info("%s >> d_return = %s"%(_str_funcName,d_return))	    		
 		l_lengths = [d_return[k] for k in d_return.keys()]
 		log.info("%s >> l_lengths = %s"%(_str_funcName,l_lengths))	    				
@@ -258,8 +264,7 @@ class go(object):
 	
 	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
-	
-    #@cgmGeneral.Timer    
+
     def build_eyelids(self):
 	_str_funcName = "go.build_eyelids(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
@@ -269,9 +274,9 @@ class go(object):
 		mi_helper = self._mi_module.helper
 		if not mi_helper:raise StandardError,"No suitable helper found"    
 		
-		try:ml_uprLidHandles = self.mi_rigNull.msgList_get('handleJoints_upr')
+		try:ml_uprLidHandles = self._mi_rigNull.msgList_get('handleJoints_upr')
 		except Exception,error:raise StandardError,"Missing uprlid handleJoints | error: %s "%(error)
-		try:ml_lwrLidHandles = self.mi_rigNull.msgList_getMessage('handleJoints_lwr')
+		try:ml_lwrLidHandles = self._mi_rigNull.msgList_getMessage('handleJoints_lwr')
 		except Exception,error:raise StandardError,"Missing lwrlid handleJoints | error: %s "%(error)  
 		log.info("%s >>> ml_uprLidHandles : %s "%(_str_funcName,[mObj.mNode for mObj in ml_uprLidHandles]))	
 		log.info("%s >>> ml_lwrLidHandles : %s"%(_str_funcName,[mObj.mNode for mObj in ml_lwrLidHandles]))		
@@ -287,10 +292,10 @@ class go(object):
 		    if mObj.getAttr('isSubControl') or mObj in [ml_uprLidHandles[0],ml_uprLidHandles[-1]]:
 			_size = __baseDistance * .6
 		    else:_size = __baseDistance
-		    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self._jointOrientation[0]+'+'),setClass=True)	
+		    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_jointOrientation[0]+'+'),setClass=True)	
 		    Snap.go(mi_crv,mObj.mNode,move=True,orient=False)
 		    str_grp = mi_crv.doGroup()
-		    mi_crv.__setattr__("t%s"%self._jointOrientation[0],__baseDistance)
+		    mi_crv.__setattr__("t%s"%self.str_jointOrientation[0],__baseDistance)
 		    mi_crv.parent = False
 		    mc.delete(str_grp)
 		    #>>Color curve		    		    
@@ -309,13 +314,13 @@ class go(object):
 		
 	    self.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in ml_handleCrvs]
 	    self.md_ReturnControls['ml_handleCurves'] = ml_handleCrvs
-	    self.mi_rigNull.msgList_connect(ml_handleCrvs,'handleCurves','owner')
+	    self._mi_rigNull.msgList_connect(ml_handleCrvs,'handleCurves','owner')
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
+	
 	except Exception,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    #@cgmGeneral.Timer    
     def build_eyeballSettings(self):
 	_str_funcName = "go.build_eyeballSettings(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
@@ -330,7 +335,7 @@ class go(object):
 	                                                          absoluteSize=False),setClass=True)
 	    Snap.go(mi_crv,mi_helper.mNode)
 	    mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
-	    mi_crv.__setattr__('t%s'%self._jointOrientation[0],_baseDistance * 2)
+	    mi_crv.__setattr__('t%s'%self.str_jointOrientation[0],_baseDistance * 2)
 	    mi_crv.parent = False
 	    mi_tmpGroup.delete()
 	    	    	    
@@ -343,14 +348,13 @@ class go(object):
 	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[1])    
 	    self.d_returnControls['settings'] = mi_crv.mNode
 	    self.md_ReturnControls['settings'] = mi_crv
-	    self.mi_rigNull.connectChildNode(mi_crv,'shape_settings','owner')
+	    self._mi_rigNull.connectChildNode(mi_crv,'shape_settings','owner')
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
 	except Exception,error:
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    #@cgmGeneral.Timer    
     def build_eyeballFK(self):
 	_str_funcName = "go.build_eyeballFK(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
@@ -364,7 +368,7 @@ class go(object):
 	                                                              absoluteSize=False),setClass=True)
 	    Snap.go(mi_crvBase,mi_helper.mNode)
 	    mi_tmpGroup = cgmMeta.cgmObject( mi_crvBase.doGroup())
-	    mi_crvBase.__setattr__('t%s'%self._jointOrientation[0],_baseDistance * 2)
+	    mi_crvBase.__setattr__('t%s'%self.str_jointOrientation[0],_baseDistance * 2)
 	    mi_crvBase.parent = False
 	    mi_tmpGroup.delete()
 	    
@@ -393,7 +397,7 @@ class go(object):
 	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
 	    self.d_returnControls['eyeballFK'] = mi_crv.mNode
 	    self.md_ReturnControls['eyeballFK'] = mi_crv
-	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeballFK','owner')
+	    self._mi_rigNull.connectChildNode(mi_crv,'shape_eyeballFK','owner')
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
@@ -401,7 +405,6 @@ class go(object):
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    #@cgmGeneral.Timer    
     def build_eyeballIK(self):
 	_str_funcName = "go.build_eyeballIK(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
@@ -416,7 +419,7 @@ class go(object):
 	                                    setClass=True)
 	    Snap.go(mi_crv,mi_helper.mNode)
 	    mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
-	    mi_crv.__setattr__('t%s'%self._jointOrientation[0],_baseDistance * 6)
+	    mi_crv.__setattr__('t%s'%self.str_jointOrientation[0],_baseDistance * 6)
 	    mi_crv.parent = False
 	    mi_tmpGroup.delete()
 	    	    	    
@@ -429,7 +432,7 @@ class go(object):
 	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
 	    self.d_returnControls['eyeballFK'] = mi_crv.mNode
 	    self.md_ReturnControls['eyeballFK'] = mi_crv
-	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeballIK','owner')
+	    self._mi_rigNull.connectChildNode(mi_crv,'shape_eyeballIK','owner')
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
@@ -437,7 +440,6 @@ class go(object):
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    #@cgmGeneral.Timer    
     def build_eyeLook(self):
 	_str_funcName = "go.build_eyeLook(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
@@ -451,13 +453,13 @@ class go(object):
 	                                                          absoluteSize=False),setClass=True)	    
 	    Snap.go(mi_crv,mi_helper.mNode)
 	    mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
-	    mi_crv.__setattr__('t%s'%self._jointOrientation[0],_baseDistance * 6)
+	    mi_crv.__setattr__('t%s'%self.str_jointOrientation[0],_baseDistance * 6)
 	    
 	    mi_crv.parent = False
 	    mi_tmpGroup.delete()
 	    
-	    #if self._partType == "eyeball":
-	    mi_crv.__setattr__('t%s'%self._jointOrientation[2],0)
+	    #if self.str_partType == "eyeball":
+	    mi_crv.__setattr__('t%s'%self.str_jointOrientation[2],0)
 
 	except Exception,error:
 	    log.error("%s >>> Find info | %s"%(_str_funcName,error) )
@@ -474,7 +476,7 @@ class go(object):
 	    curves.setCurveColorByName(mi_crv.mNode,l_color[0])    
 	    self.d_returnControls['eyeLook'] = mi_crv.mNode
 	    self.md_ReturnControls['eyeLook'] = mi_crv
-	    self.mi_rigNull.connectChildNode(mi_crv,'shape_eyeLook','owner')
+	    self._mi_rigNull.connectChildNode(mi_crv,'shape_eyeLook','owner')
 	    	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
@@ -482,14 +484,13 @@ class go(object):
 	    log.error("%s >>> fail! | %s"%(_str_funcName,error) )
 	    return False
 	
-    #@cgmGeneral.Timer    
     def build_cog(self):
 	_str_funcName = "go.build_cog(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
 	time_func = time.clock() 		
 	try:
 	    multiplier = 1.1
-	    tmplRoot = self.mi_templateNull.root.mNode
+	    tmplRoot = self._mi_templateNull.root.mNode
 	    mi_loc = cgmMeta.cgmNode(tmplRoot).doLoc()#make loc for sizing
 	    mi_loc.doGroup()#group to zero
 	    sizeReturn = ShapeCast.returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y'])#Get size
@@ -513,7 +514,7 @@ class go(object):
 		if not d_return.get('hit'):
 		    raise StandardError,"build_cog>>failed to get hit. Master template object probably isn't in mesh"
 		log.debug("hitDict: %s"%d_return)
-		dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self._skinOffset*10)
+		dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self.f_skinOffset*10)
 		log.debug("dist: %s"%dist)
 		log.debug("crv: %s"%mi_crvBase.mNode)
 		mi_crvBase.__setattr__("tz",dist)
@@ -539,7 +540,7 @@ class go(object):
 	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
 	    self.d_returnControls['cog'] = mi_crv.mNode
 	    self.md_ReturnControls['cog'] = mi_crv
-	    self.mi_rigNull.connectChildNode(mi_crv,'shape_cog','owner')
+	    self._mi_rigNull.connectChildNode(mi_crv,'shape_cog','owner')
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
@@ -547,7 +548,6 @@ class go(object):
 		log.error("build_cog fail! | %s"%error) 
 		return False
 	    
-    #@cgmGeneral.Timer
     def build_hips(self):
 	_str_funcName = "go.build_hips(%s)"%self._strShortName
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
@@ -570,7 +570,7 @@ class go(object):
                                               insetMult = .2,
                                               closedCurve=True,
 	                                      points = 8,
-                                              posOffset = [0,0,self._skinOffset*3],
+                                              posOffset = [0,0,self.f_skinOffset*3],
                                               extendMode='')
 	mi_crvRound = returnBuffer['instance']
 	
@@ -579,7 +579,7 @@ class go(object):
 	                                    curveDegree=3,
 	                                    closedCurve=False,
 	                                    l_specifiedRotates=[0,-30,-60,-90,-120,-150,-180],
-	                                    posOffset = [0,0,self._skinOffset*3],
+	                                    posOffset = [0,0,self.f_skinOffset*3],
 	                                    )
 	
 	mi_crv = cgmMeta.cgmObject ( curves.combineCurves([mi_crvRound.mNode,str_traceCrv]) )
@@ -595,7 +595,7 @@ class go(object):
 	curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
 	self.d_returnControls['hips'] = mi_crv.mNode
 	self.md_ReturnControls['hips'] = mi_crv
-	self.mi_rigNull.connectChildNode(mi_crv,'shape_hips','owner')
+	self._mi_rigNull.connectChildNode(mi_crv,'shape_hips','owner')
 	
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	
@@ -608,20 +608,20 @@ class go(object):
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
-	    if self._partType == 'torso':
+	    if self.str_partType == 'torso':
 		l_segmentsToDo = self.l_segments[1:-1]
 	    else:
 		l_segmentsToDo = self.l_segments
 	    log.debug("segments: %s"%l_segmentsToDo)
 	    self.l_specifiedRotates = None
 	    d_kws = False
-	    self.posOffset = [0,0,self._skinOffset*3]
+	    self.posOffset = [0,0,self.f_skinOffset*3]
 	    self.maxDistance = self._baseModuleDistance
 	    self.joinHits = [0,2,4,6,8]	  
 	    self.points = 10
 	    
 	    if self._mi_module.moduleType.lower() in ['finger','thumb']:
-		self.posOffset = [0,0,self._skinOffset/2]
+		self.posOffset = [0,0,self.f_skinOffset/2]
 		self.maxDistance = self._baseModuleDistance * .75
 		self.joinHits = [0,5]	    
 		    
@@ -649,7 +649,7 @@ class go(object):
 		
 	    self.d_returnControls['segmentFK'] = l_segmentControls 
 	    self.md_ReturnControls['segmentFK'] = ml_segmentControls
-	    self.mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFK','owner')
+	    self._mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFK','owner')
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
 	except Exception,error:
@@ -664,7 +664,7 @@ class go(object):
 	try:
 	    l_segmentControls = []
 	    ml_segmentControls = []
-	    if self._partType == 'torso':
+	    if self.str_partType == 'torso':
 		l_segmentsToDo = self.l_segments[1:-1]
 	    else:
 		l_segmentsToDo = self.l_segments
@@ -682,12 +682,12 @@ class go(object):
 	    self.rotateBank = None	
 	    self.rootOffset = []
 	    self.rootRotate = None
-	    if 'neck' in self._partType:
-		self.posOffset = [0,0,self._skinOffset*5]
+	    if 'neck' in self.str_partType:
+		self.posOffset = [0,0,self.f_skinOffset*5]
 		self.l_specifiedRotates = [-30,-10,0,10,30]
 		self.latheAxis = 'z'
 		self.aimAxis = 'y+'
-	    elif 'leg' in self._partType:
+	    elif 'leg' in self.str_partType:
 		d_kws = {'default':{'closedCurve':False,
 		                    'latheAxis':'z',
 		                    'l_specifiedRotates':[-60,-40,-20,0,20,40,60],
@@ -696,13 +696,13 @@ class go(object):
 		         0:{},
 		         -2:{}}	
 		d_kws[0]['l_specifiedRotates'] = [-110,-90,-60,-30,0,30,60,90,110]
-		d_kws[0]['rootOffset'] = [0,0,self._skinOffset*8]	
+		d_kws[0]['rootOffset'] = [0,0,self.f_skinOffset*8]	
 		
-		self.posOffset = [0,0,self._skinOffset*3]
+		self.posOffset = [0,0,self.f_skinOffset*3]
 		if self._direction == 'left':
 		    self.aimAxis = 'x+'
 		else:self.aimAxis = 'x-'
-	    elif 'arm' in self._partType:
+	    elif 'arm' in self.str_partType:
 		d_kws = {'default':{'closedCurve':True,
 	                            'latheAxis':'z',
 	                            'l_specifiedRotates':[],
@@ -712,12 +712,12 @@ class go(object):
 		#d_kws[0]['l_specifiedRotates'] = [-90,-60,-30,0,30,60,90]
 		#d_kws[0]['closedCurve'] = False
 		
-		self.posOffset = [0,0,self._skinOffset*3]
+		self.posOffset = [0,0,self.f_skinOffset*3]
 		if self._direction == 'left':
 		    self.aimAxis = 'x+'
 		else:self.aimAxis = 'x-'
 		
-	    elif self._partType in ['index','middle','ring','pinky','thumb','finger']:
+	    elif self.str_partType in ['index','middle','ring','pinky','thumb','finger']:
 		d_kws = {'default':{'closedCurve':True,
 	                            'latheAxis':'z',
 	                            'l_specifiedRotates':[],
@@ -728,7 +728,7 @@ class go(object):
 		d_kws[0]['l_specifiedRotates'] = [-60,-30,0,30,60]
 		d_kws[0]['maxDistance'] = self._baseModuleDistance * 10	
 		d_kws[0]['closedCurve'] = False
-		self.posOffset = [0,0,self._skinOffset/2]
+		self.posOffset = [0,0,self.f_skinOffset/2]
 		
 	    log.debug("Snap Objects: %s"%self.l_controlSnapObjects)
 	    for i,obj in enumerate(self.l_controlSnapObjects):			
@@ -765,7 +765,7 @@ class go(object):
 		
 	    self.d_returnControls['segmentFK_Loli'] = l_segmentControls 
 	    self.md_ReturnControls['segmentFK_Loli'] = ml_segmentControls
-	    self.mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFKLoli','owner')
+	    self._mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFKLoli','owner')
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         	    
 	except Exception,error:
 		log.error("build_segmentFKLoliHandles fail! | %s"%error) 
@@ -789,18 +789,18 @@ class go(object):
 	    self.l_specifiedRotates = None
 	    self.joinMode = False
 	    self.closedCurve = True
-	    self.latheAxis = self._jointOrientation[0]
-	    self.aimAxis = self._jointOrientation[1] + '+'
+	    self.latheAxis = self.str_jointOrientation[0]
+	    self.aimAxis = self.str_jointOrientation[1] + '+'
 	    self.rotateBank = None	
 	    self.rootOffset = []
 	    self.rootRotate = None	
 	    _snapObject = self.l_controlSnapObjects[-1]
 	    self.maxDistance = self._baseModuleDistance
 	    _lastCreated = False
-	    if self._partType in ['index','middle','ring','pinky','thumb','finger']:
+	    if self.str_partType in ['index','middle','ring','pinky','thumb','finger']:
 		d_kws = {'default':{'rootOffset':[],
 		                    'maxDistance': self._baseModuleDistance * 1.5,
-		                    'posOffset':[0,0,self._skinOffset/2],
+		                    'posOffset':[0,0,self.f_skinOffset/2],
 	                            'rootRotate':None},
 	                 0:{}}	
 	
@@ -809,12 +809,12 @@ class go(object):
 		#Distance stuff    
 		d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,
 	                                                              mi_lastLoc.mNode,
-	                                                              self._jointOrientation[0]+'+',
-	                                                              pierceDepth=self._skinOffset*15) or {}
+	                                                              self.str_jointOrientation[0]+'+',
+	                                                              pierceDepth=self.f_skinOffset*15) or {}
 		if not d_return.get('hit'):
 		    raise StandardError,"go._verifyCastObjects>>failed to get hit to measure first distance"
 		dist_cast = distance.returnDistanceBetweenPoints(mi_lastLoc.getPosition(),d_return['hit']) * 1.25
-		mi_lastLoc.__setattr__("t"+self._jointOrientation[0],dist_cast*.6)#Move
+		mi_lastLoc.__setattr__("t"+self.str_jointOrientation[0],dist_cast*.6)#Move
 		pBuffer = mi_lastLoc.parent
 		mi_lastLoc.parent = False
 		mc.delete(pBuffer)
@@ -850,7 +850,7 @@ class go(object):
 		
 	    self.d_returnControls['moduleCap'] = mi_newCurve.mNode 
 	    self.md_ReturnControls['moduleCap'] = mi_newCurve
-	    self.mi_rigNull.connectChildNode(mi_newCurve,'shape_moduleCap','owner')
+	    self._mi_rigNull.connectChildNode(mi_newCurve,'shape_moduleCap','owner')
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
@@ -890,13 +890,13 @@ class go(object):
 
 	#Get our distance for our casts
 	if self._direction == 'left':
-	    self.aimAxis = self._jointOrientation[2] + '-'
-	    axis_distanceDirectionCast = self._jointOrientation[2] + '+'
+	    self.aimAxis = self.str_jointOrientation[2] + '-'
+	    axis_distanceDirectionCast = self.str_jointOrientation[2] + '+'
 	    l_specifiedRotates = [-15,-30,-90,-120,-180]
 	    rootRotate = -30
 	else:
-	    self.aimAxis = self._jointOrientation[2] + '+'
-	    axis_distanceDirectionCast = self._jointOrientation[2] + '-'	    
+	    self.aimAxis = self.str_jointOrientation[2] + '+'
+	    axis_distanceDirectionCast = self.str_jointOrientation[2] + '-'	    
 	    l_specifiedRotates = [15,30,90,120,180]
 	    rootRotate = 30	    
 
@@ -905,17 +905,17 @@ class go(object):
 	#Move our cast locs
 	mi_startLoc.doGroup()#zero
 	mi_endLoc.doGroup()#zero
-	mi_startLoc.__setattr__('t%s'%self._jointOrientation[0],dist_inset)
-	mi_endLoc.__setattr__('t%s'%self._jointOrientation[0],-dist_inset/2)	
-	mi_startLoc.__setattr__('r%s'%self._jointOrientation[1],rootRotate)
-	mi_endLoc.__setattr__('r%s'%self._jointOrientation[1],rootRotate)
+	mi_startLoc.__setattr__('t%s'%self.str_jointOrientation[0],dist_inset)
+	mi_endLoc.__setattr__('t%s'%self.str_jointOrientation[0],-dist_inset/2)	
+	mi_startLoc.__setattr__('r%s'%self.str_jointOrientation[1],rootRotate)
+	mi_endLoc.__setattr__('r%s'%self.str_jointOrientation[1],rootRotate)
 	
 	mi_castLoc = mi_startLoc.doDuplicate()
 
-	Snap.go(mi_castLoc,self._targetMesh,True,False,midSurfacePos=True, axisToCheck = [self._jointOrientation[2]])
+	Snap.go(mi_castLoc,self._targetMesh,True,False,midSurfacePos=True, axisToCheck = [self.str_jointOrientation[2]])
 	
 	#Distance stuff    
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh, mi_endLoc.mNode, axis_distanceDirectionCast, pierceDepth=self._skinOffset*2) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh, mi_endLoc.mNode, axis_distanceDirectionCast, pierceDepth=self.f_skinOffset*2) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_clavicle>>failed to get hit to measure first distance"
 	dist_cast = distance.returnDistanceBetweenPoints(mi_endLoc.getPosition(),d_return['hit']) * 1.25
@@ -925,8 +925,8 @@ class go(object):
 	
 	#Cast our stuff
 	#============================================================================
-	self.posOffset = [0,0,self._skinOffset*3]
-	self.latheAxis = self._jointOrientation[0]
+	self.posOffset = [0,0,self.f_skinOffset*3]
+	self.latheAxis = self.str_jointOrientation[0]
 	log.debug("aim: %s"%self.aimAxis)
 	log.debug("lathe: %s"%self.latheAxis)
 	
@@ -964,7 +964,7 @@ class go(object):
 	    
 	self.d_returnControls['clavicle'] = mi_crv.mNode 		
 	self.md_ReturnControls['clavicle'] = mi_crv	
-	self.mi_rigNull.connectChildNode(mi_crv,'shape_clavicle','owner')
+	self._mi_rigNull.connectChildNode(mi_crv,'shape_clavicle','owner')
 	
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	
@@ -979,12 +979,12 @@ class go(object):
 	    ml_segmentControls = []
 
 	    mi_mid = False
-	    if 'arm' in self._partType:
+	    if 'arm' in self.str_partType:
 		for obj in self.l_controlSnapObjects:
 		    if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'elbow':
 			mi_mid = cgmMeta.cgmObject(obj)
 			break
-	    if 'leg' in self._partType:
+	    if 'leg' in self.str_partType:
 		for obj in self.l_controlSnapObjects:
 		    if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'knee':
 			mi_mid = cgmMeta.cgmObject(obj)
@@ -1000,7 +1000,7 @@ class go(object):
 	                                                    points = 10,
 	                                                    curveDegree=3,
 	                                                    insetMult = .5,
-	                                                    posOffset = [0,0,self._skinOffset*3],
+	                                                    posOffset = [0,0,self.f_skinOffset*3],
 	                                                    joinMode=True,
 	                                                    joinHits = [0,5],
 	                                                    extendMode='cylinder')
@@ -1022,7 +1022,7 @@ class go(object):
 		
 	    self.d_returnControls['midIK'] = mi_newCurve.mNode 
 	    self.md_ReturnControls['midIK'] = mi_newCurve
-	    self.mi_rigNull.connectChildNode(mi_newCurve,'shape_midIK','owner')
+	    self._mi_rigNull.connectChildNode(mi_newCurve,'shape_midIK','owner')
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
@@ -1043,7 +1043,7 @@ class go(object):
 	    ml_controls = []
 
 	    for i,i_target in enumerate(self._ml_targetObjects):	
-		d_size = ShapeCast.returnBaseControlSize(i_target,self._targetMesh,axis=[self._jointOrientation[1],self._jointOrientation[2]])#Get size			
+		d_size = ShapeCast.returnBaseControlSize(i_target,self._targetMesh,axis=[self.str_jointOrientation[1],self.str_jointOrientation[2]])#Get size			
 		l_size = d_size.get('average')
 		size = sum(l_size)/1.5
 		
@@ -1059,7 +1059,7 @@ class go(object):
 		                                      closedCurve=False,
 		                                      maxDistance=self._baseModuleDistance,		                                      
 		                                      l_specifiedRotates = [-30,-10,0,10,30],
-	                                              posOffset = [0,0,self._skinOffset*1.2],
+	                                              posOffset = [0,0,self.f_skinOffset*1.2],
 	                                              extendMode='')
 		mi_crv = returnBuffer['instance']
 		l_eps = mi_crv.getComponents('ep')
@@ -1070,7 +1070,7 @@ class go(object):
 		#Move the ball
 		pos = distance.returnWorldSpacePosition(l_eps[midIndex])
 		mc.xform( i_ball.mNode, translation = pos, ws = True)#Snap to the mid ep
-		mc.move(0,self._skinOffset*3,0,i_ball.mNode,relative = True,os=True)
+		mc.move(0,self.f_skinOffset*3,0,i_ball.mNode,relative = True,os=True)
 		
 		#Make the curve between the two 
 		traceCurve = mc.curve(degree = 1, ep = [pos,i_ball.getPosition()])
@@ -1111,7 +1111,7 @@ class go(object):
 		                                      points = 8,
 		                                      curveDegree=3,
 		                                      insetMult = .05,
-		                                      posOffset = [0,0,self._skinOffset*3],
+		                                      posOffset = [0,0,self.f_skinOffset*3],
 		                                      joinMode=True,
 		                                      maxDistance=self._baseModuleDistance,		                                      
 		                                      extendMode='disc')
@@ -1127,7 +1127,7 @@ class go(object):
 		
 	    self.d_returnControls['segmentIK'] = l_segmentControls 
 	    self.md_ReturnControls['segmentIK'] = ml_segmentControls
-	    self.mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentIK','owner')
+	    self._mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentIK','owner')
 	    
 	    if len(self.l_segments)>2:
 		objects = self.l_controlSnapObjects[-2:]
@@ -1138,7 +1138,7 @@ class go(object):
 	                                          points = 12 ,
 	                                          curveDegree=3,
 	                                          insetMult = .05,
-	                                          posOffset = [0,0,self._skinOffset*3],
+	                                          posOffset = [0,0,self.f_skinOffset*3],
 	                                          joinHits = [0,6],	                                          
 	                                          joinMode=True,
 	                                          maxDistance=self._baseModuleDistance*.6,
@@ -1153,7 +1153,7 @@ class go(object):
 		
 	    self.d_returnControls['segmentIKEnd'] = mi_crv.mNode 		
 	    self.md_ReturnControls['segmentIKEnd'] = mi_crv
-	    self.mi_rigNull.connectChildNode(mi_crv,'shape_handleIK','owner')
+	    self._mi_rigNull.connectChildNode(mi_crv,'shape_handleIK','owner')
 	    
 	    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 		
@@ -1171,10 +1171,10 @@ class go(object):
 	
 	#Find our settings
 	#============================================================================	
-	self.latheAxis = self._jointOrientation[0]
-	self.aimAxis = self._jointOrientation[1] + '-'
-	self.outAxis = self._jointOrientation[2]
-	self.posOffset = [0,0,self._skinOffset*6]
+	self.latheAxis = self.str_jointOrientation[0]
+	self.aimAxis = self.str_jointOrientation[1] + '-'
+	self.outAxis = self.str_jointOrientation[2]
+	self.posOffset = [0,0,self.f_skinOffset*6]
 	self.settingsVector = [0,1,0]	    	
 	self.gearVector = [0,0,-1]
 	_moveMultiplier = 1.5
@@ -1183,11 +1183,11 @@ class go(object):
 	index_size = index
 	_castMode = 'vector'	
 	_sizeMultiplier = 1
-	if self._partType == 'leg':
+	if self.str_partType == 'leg':
 	    index = -2
 	    index_size = -2
 	    self.settingsVector = [0,0,-1]
-	elif self._partType == 'arm':
+	elif self.str_partType == 'arm':
 	    index_size = 1
 	    index = 0    
 	    _direction = self.aimAxis	    
@@ -1197,10 +1197,10 @@ class go(object):
 	elif self._mi_module.moduleType.lower() in ['finger','thumb']:
 	    index_size = -2
 	    index = 1
-	    _direction = self._jointOrientation[2] + '+'  
+	    _direction = self.str_jointOrientation[2] + '+'  
 	    self.settingsVector = [0,1,0]
 	    _castMode = 'axis'
-	    self.aimAxis = self._jointOrientation[1] + '+'	    
+	    self.aimAxis = self.str_jointOrientation[1] + '+'	    
 	    _moveMultiplier = 2
 	    _sizeMultiplier = .75
 	i_target = cgmMeta.cgmObject( self.l_controlSnapObjects[index] )
@@ -1239,7 +1239,7 @@ class go(object):
 	    dist_move = distance.returnDistanceBetweenPoints(mi_rootLoc.getPosition(),d_return['hit'])
 	    log.debug("axis cast move: %s"%dist_move)
 	    grp = mi_rootLoc.doGroup(True)
-	    mi_rootLoc.__setattr__("t%s"%self._jointOrientation[1],dist_move*_moveMultiplier)
+	    mi_rootLoc.__setattr__("t%s"%self.str_jointOrientation[1],dist_move*_moveMultiplier)
 	    
 	    Snap.go(i_gear.mNode,mi_rootLoc.mNode,move = True, orient = True)	    
 	    mc.delete(mi_rootLoc.parent)
@@ -1252,13 +1252,13 @@ class go(object):
 	#>>> Color
 	curves.setCurveColorByName(i_gear.mNode,self.l_moduleColors[0])                    
 	#i_gear.doCopyNameTagsFromObject(i_target.mNode,ignore = ['cgmType'])
-	i_gear.addAttr('cgmName',self._partName,attrType='string',lock=True)	    
+	i_gear.addAttr('cgmName',self.str_partName,attrType='string',lock=True)	    
 	i_gear.addAttr('cgmType',attrType='string',value = 'settings',lock=True)	    
 	i_gear.doName()
 	    
 	self.d_returnControls['settings'] = i_gear.mNode 		
 	self.md_ReturnControls['settings'] = i_gear		
-	self.mi_rigNull.connectChildNode(i_gear,'shape_settings','owner')
+	self._mi_rigNull.connectChildNode(i_gear,'shape_settings','owner')
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	
     #@cgmGeneral.Timer
@@ -1275,9 +1275,9 @@ class go(object):
 	
 	#Find our foot
 	#============================================================================	
-	if self._partType == 'foot':
+	if self.str_partType == 'foot':
 	    raise NotImplementedError,"haven't implemented foot"
-	elif self._partType == 'legSimple':
+	elif self.str_partType == 'legSimple':
 	    #find the foot. 1) Build search dict
 	    d_search = {'moduleType':'foot'}
 	    for key in ['cgmDirection','cgmPosition']:
@@ -1298,7 +1298,7 @@ class go(object):
 	    mi_ball = ml_controlSnapObjects[1]
 	    mi_ankle = ml_controlSnapObjects[0]
 	    
-	elif self._partType == 'leg':
+	elif self.str_partType == 'leg':
 	    for obj in self.l_controlSnapObjects:
 		if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'ankle':
 		    mi_ankle = cgmMeta.cgmObject(obj)
@@ -1315,12 +1315,12 @@ class go(object):
 	#============================================================================
 	mi_heelLoc = mi_ankle.doLoc()
 	mi_ballLoc = mi_ball.doLoc()
-	mi_heelLoc.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_heelLoc.__setattr__('t%s'%self._jointOrientation[1],mi_ballLoc.getAttr('t%s'%self._jointOrientation[1]))
+	mi_heelLoc.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_heelLoc.__setattr__('t%s'%self.str_jointOrientation[1],mi_ballLoc.getAttr('t%s'%self.str_jointOrientation[1]))
 	
 	#Get our distance for our front cast
 	
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,self._jointOrientation[0]+'+',pierceDepth=self._skinOffset*15) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,self.str_jointOrientation[0]+'+',pierceDepth=self.f_skinOffset*15) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get hit to measure first distance"
 	dist = distance.returnDistanceBetweenPoints(mi_ballLoc.getPosition(),d_return['hit']) *1.5
@@ -1330,8 +1330,8 @@ class go(object):
 	#===================================================================================
 	#Ball pivot
 	mi_ballPivot = mi_ballLoc.doLoc()
-	mi_ballPivot.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_ballPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_ballPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_ballPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_ballPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
 	mi_ballPivot.doName()
 	self.d_returnPivots['ball'] = mi_ballPivot.mNode 		
@@ -1340,8 +1340,8 @@ class go(object):
 	#Toe pivot
 	mi_toePivot =  mi_ballLoc.doLoc()
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_toePivot.mNode)
-	mi_toePivot.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_toePivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_toePivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_toePivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_toePivot.addAttr('cgmName','toe',lock=True)	
 	mi_toePivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
 	mi_toePivot.doName()	
@@ -1351,20 +1351,20 @@ class go(object):
 	
 	#Inner bank pivots
 	if self._direction == 'left':
-	    innerAim = self._jointOrientation[2]+'-'
-	    outerAim = self._jointOrientation[2]+'+'
+	    innerAim = self.str_jointOrientation[2]+'-'
+	    outerAim = self.str_jointOrientation[2]+'+'
 	    
 	else:
-	    innerAim = self._jointOrientation[2]+'+'
-	    outerAim = self._jointOrientation[2]+'-'
+	    innerAim = self.str_jointOrientation[2]+'+'
+	    outerAim = self.str_jointOrientation[2]+'-'
 	    
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,innerAim,pierceDepth=self._skinOffset*5) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,innerAim,pierceDepth=self.f_skinOffset*5) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get inner bank hit"	
 	mi_innerPivot =  mi_ballLoc.doLoc()
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_innerPivot.mNode)
-	mi_innerPivot.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_innerPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_innerPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_innerPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_innerPivot.addAttr('cgmName','ball',lock=True)	
 	mi_innerPivot.addAttr('cgmDirectionModifier','inner',lock=True)		    
 	mi_innerPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
@@ -1372,13 +1372,13 @@ class go(object):
 	self.d_returnPivots['inner'] = mi_innerPivot.mNode 		
 	self.md_returnPivots['inner'] = mi_innerPivot	
 	
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,outerAim,pierceDepth=self._skinOffset*5) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,outerAim,pierceDepth=self.f_skinOffset*5) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get inner bank hit"	
 	mi_outerPivot =  mi_ballLoc.doLoc()
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_outerPivot.mNode)
-	mi_outerPivot.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_outerPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_outerPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_outerPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_outerPivot.addAttr('cgmName','ball',lock=True)	
 	mi_outerPivot.addAttr('cgmDirectionModifier','outer',lock=True)		    	    
 	mi_outerPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
@@ -1388,14 +1388,14 @@ class go(object):
 	
 	#Heel pivot
 	mi_heelPivot =  mi_heelLoc.doLoc()
-	mi_heelPivot.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_heelPivot.__setattr__('t%s'%self._jointOrientation[1],.25)
+	mi_heelPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_heelPivot.__setattr__('t%s'%self.str_jointOrientation[1],.25)
 	
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_heelPivot.mNode,self._jointOrientation[0]+'-',pierceDepth=self._skinOffset*5) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_heelPivot.mNode,self.str_jointOrientation[0]+'-',pierceDepth=self.f_skinOffset*5) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get inner bank hit"	
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_heelPivot.mNode)
-	mi_heelPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_heelPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_heelPivot.addAttr('cgmName','heel',lock=True)	
 	mi_heelPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
 	mi_heelPivot.doName()		
@@ -1406,15 +1406,15 @@ class go(object):
 	mi_heelLoc.delete()
 	
 	#Store em all
-	self.mi_templateNull.connectChildNode(mi_toePivot,'pivot_toe','module')
-	self.mi_templateNull.connectChildNode(mi_heelPivot,'pivot_heel','module')
-	self.mi_templateNull.connectChildNode(mi_ballPivot,'pivot_ball','module')
-	self.mi_templateNull.connectChildNode(mi_innerPivot,'pivot_inner','module')
-	self.mi_templateNull.connectChildNode(mi_outerPivot,'pivot_outer','module')
+	self._mi_templateNull.connectChildNode(mi_toePivot,'pivot_toe','module')
+	self._mi_templateNull.connectChildNode(mi_heelPivot,'pivot_heel','module')
+	self._mi_templateNull.connectChildNode(mi_ballPivot,'pivot_ball','module')
+	self._mi_templateNull.connectChildNode(mi_innerPivot,'pivot_inner','module')
+	self._mi_templateNull.connectChildNode(mi_outerPivot,'pivot_outer','module')
 	
 	#Parent
 	for p in mi_toePivot,mi_heelPivot,mi_ballPivot,mi_innerPivot,mi_outerPivot:
-	    p.parent = self.mi_templateNull.mNode	
+	    p.parent = self._mi_templateNull.mNode	
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	
     #@cgmGeneral.Timer
@@ -1433,9 +1433,9 @@ class go(object):
 	
 	#Find our foot
 	#============================================================================	
-	if self._partType == 'foot':
+	if self.str_partType == 'foot':
 	    raise NotImplementedError,"haven't implemented foot"
-	elif self._partType == 'legSimple':
+	elif self.str_partType == 'legSimple':
 	    #find the foot. 1) Build search dict
 	    d_search = {'moduleType':'foot'}
 	    for key in ['cgmDirection','cgmPosition']:
@@ -1456,7 +1456,7 @@ class go(object):
 	    mi_ball = ml_controlSnapObjects[1]
 	    mi_ankle = ml_controlSnapObjects[0]
 	    
-	elif self._partType == 'leg':
+	elif self.str_partType == 'leg':
 	    for obj in self.l_controlSnapObjects:
 		if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'ankle':
 		    mi_ankle = cgmMeta.cgmObject(obj)
@@ -1473,12 +1473,12 @@ class go(object):
 	#============================================================================
 	mi_heelLoc = mi_ankle.doLoc()
 	mi_ballLoc = mi_ball.doLoc()
-	mi_heelLoc.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_heelLoc.__setattr__('t%s'%self._jointOrientation[1],mi_ballLoc.getAttr('t%s'%self._jointOrientation[1]))
+	mi_heelLoc.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_heelLoc.__setattr__('t%s'%self.str_jointOrientation[1],mi_ballLoc.getAttr('t%s'%self.str_jointOrientation[1]))
 	
 	#Get our distance for our front cast
 	
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,self._jointOrientation[0]+'+',pierceDepth=self._skinOffset*15) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,self.str_jointOrientation[0]+'+',pierceDepth=self.f_skinOffset*15) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get hit to measure first distance"
 	dist = distance.returnDistanceBetweenPoints(mi_ballLoc.getPosition(),d_return['hit']) *1.25
@@ -1489,8 +1489,8 @@ class go(object):
 	"""
 	#Ball pivot
 	mi_ballPivot = mi_ballLoc.doLoc()
-	mi_ballPivot.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_ballPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_ballPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_ballPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_ballPivot.addAttr('cgmTypeModifier','pivot',lock=True)
 	mi_ballPivot.doName()
 	self.d_returnPivots['ball'] = mi_ballPivot.mNode 		
@@ -1499,8 +1499,8 @@ class go(object):
 	#Toe pivot
 	mi_toePivot =  mi_ballLoc.doLoc()
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_toePivot.mNode)
-	mi_toePivot.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_toePivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_toePivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_toePivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_toePivot.addAttr('cgmName','toe',lock=True)	
 	mi_toePivot.addAttr('cgmTypeModifier','pivot',lock=True)
 	mi_toePivot.doName()	
@@ -1510,33 +1510,33 @@ class go(object):
 	
 	#Inner bank pivots
 	if self._direction == 'left':
-	    innerAim = self._jointOrientation[2]+'-'
-	    outerAim = self._jointOrientation[2]+'+'
+	    innerAim = self.str_jointOrientation[2]+'-'
+	    outerAim = self.str_jointOrientation[2]+'+'
 	    
 	else:
-	    innerAim = self._jointOrientation[2]+'+'
-	    outerAim = self._jointOrientation[2]+'-'
+	    innerAim = self.str_jointOrientation[2]+'+'
+	    outerAim = self.str_jointOrientation[2]+'-'
 	    
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,innerAim,pierceDepth=self._skinOffset*5) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,innerAim,pierceDepth=self.f_skinOffset*5) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get inner bank hit"	
 	mi_innerPivot =  mi_ballLoc.doLoc()
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_innerPivot.mNode)
-	mi_innerPivot.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_innerPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_innerPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_innerPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_innerPivot.addAttr('cgmName','inner',lock=True)	
 	mi_innerPivot.addAttr('cgmTypeModifier','pivot',lock=True)
 	mi_innerPivot.doName()		
 	self.d_returnPivots['inner'] = mi_innerPivot.mNode 		
 	self.md_returnPivots['inner'] = mi_innerPivot	
 	
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,outerAim,pierceDepth=self._skinOffset*5) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,outerAim,pierceDepth=self.f_skinOffset*5) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get inner bank hit"	
 	mi_outerPivot =  mi_ballLoc.doLoc()
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_outerPivot.mNode)
-	mi_outerPivot.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_outerPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_outerPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_outerPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_outerPivot.addAttr('cgmName','outer',lock=True)	
 	mi_outerPivot.addAttr('cgmTypeModifier','pivot',lock=True)
 	mi_outerPivot.doName()	
@@ -1545,14 +1545,14 @@ class go(object):
 	
 	#Heel pivot
 	mi_heelPivot =  mi_heelLoc.doLoc()
-	mi_heelPivot.__setattr__('r%s'%self._jointOrientation[2],0)
-	mi_heelPivot.__setattr__('t%s'%self._jointOrientation[1],.25)
+	mi_heelPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
+	mi_heelPivot.__setattr__('t%s'%self.str_jointOrientation[1],.25)
 	
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_heelPivot.mNode,self._jointOrientation[0]+'-',pierceDepth=self._skinOffset*5) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_heelPivot.mNode,self.str_jointOrientation[0]+'-',pierceDepth=self.f_skinOffset*5) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_footShape>>failed to get inner bank hit"	
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_heelPivot.mNode)
-	mi_heelPivot.__setattr__('t%s'%self._jointOrientation[1],0)
+	mi_heelPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_heelPivot.addAttr('cgmName','heel',lock=True)	
 	mi_heelPivot.addAttr('cgmTypeModifier','pivot',lock=True)
 	mi_heelPivot.doName()		
@@ -1561,9 +1561,9 @@ class go(object):
 	"""
 	#Cast our stuff
 	#============================================================================
-	self.posOffset = [0,0,self._skinOffset*3]
-	self.latheAxis = self._jointOrientation[1]
-	self.aimAxis = self._jointOrientation[0] + '+'
+	self.posOffset = [0,0,self.f_skinOffset*3]
+	self.latheAxis = self.str_jointOrientation[1]
+	self.aimAxis = self.str_jointOrientation[0] + '+'
 	
 	if self._direction == 'left':
 	    l_specifiedRotates = [-40,-20,0,20,60,80]
@@ -1578,7 +1578,7 @@ class go(object):
 	
 	#Heel cast
 
-	self.aimAxis = self._jointOrientation[0] + '-'	
+	self.aimAxis = self.str_jointOrientation[0] + '-'	
 	if self._direction == 'left':
 	    l_specifiedRotates = [-90,-60,-20,-10,0,10,20,40,60,80]#foot back, closed false, closest in range false
 	    
@@ -1590,7 +1590,7 @@ class go(object):
 	str_backCurve = d_return['curve']
 	
 	#side cast
-	self.aimAxis = self._jointOrientation[0] + '+'
+	self.aimAxis = self.str_jointOrientation[0] + '+'
 	if self._direction == 'left':
 	    l_specifiedRotates = [-100,-80,-50]#foot front closest, closed false, closest in range true
 	    
@@ -1637,7 +1637,7 @@ class go(object):
 	    
 	self.d_returnControls['foot'] = mi_crv.mNode 		
 	self.md_ReturnControls['foot'] = mi_crv	
-	self.mi_rigNull.connectChildNode(mi_crv,'shape_foot','owner')
+	self._mi_rigNull.connectChildNode(mi_crv,'shape_foot','owner')
 	
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 
@@ -1657,12 +1657,12 @@ class go(object):
 	
 	#Find our hand
 	#============================================================================	
-	if self._partType == 'hand':
+	if self.str_partType == 'hand':
 	    raise NotImplementedError,"haven't implemented hand"
-	elif self._partType == 'armSimple':
+	elif self.str_partType == 'armSimple':
 	    raise NotImplementedError,"haven't implemented hand"
 		    
-	elif self._partType == 'arm':
+	elif self.str_partType == 'arm':
 	    for obj in self.l_controlSnapObjects:
 		if cgmMeta.cgmObject(obj).getAttr('cgmName') == 'wrist':
 		    mi_wrist = cgmMeta.cgmObject(obj)
@@ -1678,7 +1678,7 @@ class go(object):
 	#Get our helper objects
 	#============================================================================
 	mi_wristLoc = mi_wrist.doLoc()
-	d_wristSize = ShapeCast.returnBaseControlSize(mi_wristLoc.mNode,self._targetMesh,[self._jointOrientation[1],self._jointOrientation[2]])
+	d_wristSize = ShapeCast.returnBaseControlSize(mi_wristLoc.mNode,self._targetMesh,[self.str_jointOrientation[1],self.str_jointOrientation[2]])
 	#Average the wrist size
 	dist_wristSize = d_wristSize.get('average')
 	log.debug("dist_wristSize: %s"%dist_wristSize)	
@@ -1688,41 +1688,41 @@ class go(object):
 	else:
 	    mi_palmLoc = mi_wristLoc.doDuplicate()
 	    mi_palmLoc.doGroup()
-	    mi_palmLoc.__setattr__('t%s'%self._jointOrientation[0],dist_wristSize/4)
+	    mi_palmLoc.__setattr__('t%s'%self.str_jointOrientation[0],dist_wristSize/4)
 	    
 	mi_wristLoc.doGroup()
-	mi_wristLoc.__setattr__('t%s'%self._jointOrientation[0],-dist_wristSize/2)
+	mi_wristLoc.__setattr__('t%s'%self.str_jointOrientation[0],-dist_wristSize/2)
 
 	#Get our distance for our casts
 	if self._direction == 'left':
-	    self.aimAxis = self._jointOrientation[2] + '-'
-	    axis_distanceDirectionCast = self._jointOrientation[2] + '+'
+	    self.aimAxis = self.str_jointOrientation[2] + '-'
+	    axis_distanceDirectionCast = self.str_jointOrientation[2] + '+'
 	    rootRotate = -30
 	else:
-	    self.aimAxis = self._jointOrientation[2] + '+'
-	    axis_distanceDirectionCast = self._jointOrientation[2] + '-'	    
+	    self.aimAxis = self.str_jointOrientation[2] + '+'
+	    axis_distanceDirectionCast = self.str_jointOrientation[2] + '-'	    
 	    rootRotate = 30	   
 
 	#Distance stuff    
-	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_palmLoc.mNode,axis_distanceDirectionCast,pierceDepth=self._skinOffset*15) or {}
+	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_palmLoc.mNode,axis_distanceDirectionCast,pierceDepth=self.f_skinOffset*15) or {}
 	if not d_return.get('hit'):
 	    raise StandardError,"go.build_clavicle>>failed to get hit to measure first distance"
 	dist_cast = distance.returnDistanceBetweenPoints(mi_palmLoc.getPosition(),d_return['hit']) * 4
 	
 	#Cast our stuff
 	#============================================================================
-	self.posOffset = [0,0,self._skinOffset*3]
-	self.latheAxis = self._jointOrientation[0]
+	self.posOffset = [0,0,self.f_skinOffset*3]
+	self.latheAxis = self.str_jointOrientation[0]
 	log.debug("aim: %s"%self.aimAxis)
 	log.debug("lathe: %s"%self.latheAxis)
 	log.debug("dist: %s"%dist_cast)
 	
 	d_startReturn = ShapeCast.createMeshSliceCurve(self._targetMesh,mi_wristLoc.mNode,offsetMode='vector',maxDistance = dist_cast,
-	                                               closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self._jointOrientation[1],self._jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
+	                                               closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self.str_jointOrientation[1],self.str_jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
 	                                               latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=True)
 	
 	d_endReturn = ShapeCast.createMeshSliceCurve(self._targetMesh,mi_palmLoc.mNode,offsetMode='vector',maxDistance = dist_cast,
-	                                             closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self._jointOrientation[1],self._jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
+	                                             closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self.str_jointOrientation[1],self.str_jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
 	                                             latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=True)
 	
 	
@@ -1749,7 +1749,7 @@ class go(object):
 	    
 	self.d_returnControls['hand'] = mi_crv.mNode 		
 	self.md_ReturnControls['hand'] = mi_crv	
-	self.mi_rigNull.connectChildNode(mi_crv,'shape_hand','owner')
+	self._mi_rigNull.connectChildNode(mi_crv,'shape_hand','owner')
 	
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	
@@ -1762,7 +1762,7 @@ class go(object):
 	ml_SegmentControls = []
 	
 	#Defaults
-	self.posOffset = [0,0,self._skinOffset*1.2]
+	self.posOffset = [0,0,self.f_skinOffset*1.2]
 	self.l_specifiedRotates = None	
 	self.joinMode = True
 	self.closedCurve = True
@@ -1775,15 +1775,15 @@ class go(object):
 	self.rootRotate = None
 	self.rootOffset = None
 	self.midMeshCast = True
-	self.axisToCheck = [self._jointOrientation[1]]
+	self.axisToCheck = [self.str_jointOrientation[1]]
 	d_kws = {}
 	l_objectsToDo = []
 	
 	#Figure out some flag stuff
-	if 'neck' in self._partType:
+	if 'neck' in self.str_partType:
 	    self.maxDistance = 1000
 	    self.insetMult = .05
-	    self.posOffset = [0,0,self._skinOffset*2]
+	    self.posOffset = [0,0,self.f_skinOffset*2]
 	    d_kws = {'default':{'l_specifiedRotates':None,
 	                        'joinMode': True,
 	                        'rotateBank':None,
@@ -1792,10 +1792,10 @@ class go(object):
 	             0:{'rotateBank':10},
 	             -1:{'closedCurve':False,'l_specifiedRotates':[-90,-60,-30,0,30,60,90],'rotateBank':-10}}
 	    
-	elif self._partType == 'leg':
+	elif self.str_partType == 'leg':
 	    """Use influence joints to cast these"""
 	    l_objectsToDo = self.l_controlSnapObjects[:-1]
-	    self.posOffset = [0,0,self._skinOffset*2]
+	    self.posOffset = [0,0,self.f_skinOffset*2]
 	    self.points = 12
 	    d_kws = {'default':{'closedCurve':True,
 	                        'l_specifiedRotates':[],
@@ -1803,8 +1803,8 @@ class go(object):
 	                        'rootRotate':None,
 	                        'rootOffset':[],
 	                        'rotateBank':[]},
-	             0:{'rootOffset':[0,0,self._skinOffset*6]},
-	             -1:{'rootOffset':[0,0,-self._skinOffset*6]}}
+	             0:{'rootOffset':[0,0,self.f_skinOffset*6]},
+	             -1:{'rootOffset':[0,0,-self.f_skinOffset*6]}}
 	    
 	    if self._direction == 'left':
 		self.aimAxis = 'x+'
@@ -1815,8 +1815,8 @@ class go(object):
 		d_kws['default']['aimAxis']= 'x-'
 		d_kws[0]['rotateBank'] = 10
 		
-	elif self._partType == 'arm':
-	    self.posOffset = [0,0,self._skinOffset*2]
+	elif self.str_partType == 'arm':
+	    self.posOffset = [0,0,self.f_skinOffset*2]
 	    self.points = 12
 	    d_kws = {'default':{'closedCurve':True,
 	                        'l_specifiedRotates':[],
@@ -1824,8 +1824,8 @@ class go(object):
 	                        'rootRotate':None,
 	                        'rootOffset':[],
 	                        'rotateBank':[]},
-	             0:{'rootOffset':[0,0,self._skinOffset*3]},
-	             -1:{'rootOffset':[0,0,-self._skinOffset*3]}}
+	             0:{'rootOffset':[0,0,self.f_skinOffset*3]},
+	             -1:{'rootOffset':[0,0,-self.f_skinOffset*3]}}
 	    
 	    if self._direction == 'left':
 		self.aimAxis = 'x+'
@@ -1888,9 +1888,292 @@ class go(object):
 	    
 	self.d_returnControls['segmentIK'] = l_segmentControls 
 	self.md_ReturnControls['segmentIK'] = ml_SegmentControls
-	self.mi_rigNull.msgList_connect(ml_SegmentControls,'shape_segmentIK','owner')
+	self._mi_rigNull.msgList_connect(ml_SegmentControls,'shape_segmentIK','owner')
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 	    
 	#except Exception,error:
 	#	log.error("build_segmentIKHandles! | %s"%error) 
 	#	return False
+	
+class ShapeCasterFunc(cgmGeneral.cgmFuncCls):
+    def __init__(self,goInstance = None,**kws):
+	"""
+	"""	
+	if not issubclass(type(goInstance),go):
+	    raise StandardError,"Not a ModuleShapeCaster.go instance: '%s'"%goInstance
+	assert mc.objExists(goInstance._mi_module.mNode),"Module no longer exists"
+
+	super(ShapeCasterFunc, self).__init__(goInstance,**kws)
+	
+	self._str_funcName = 'ShapeCasterFunc(%s)'%goInstance._mi_module.p_nameShort	
+	self.__dataBind__(**kws)
+	self.mi_go = goInstance
+	self.mi_module = goInstance._mi_module
+	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	
+	#=================================================================
+	if log.getEffectiveLevel() == 10:self.report()#If debug
+	
+    def _getData(self):
+	"""
+	"""
+	self.report()
+	
+def shapeCast_eyebrow(goInstance = None):
+    class fncWrap(ShapeCasterFunc):
+	def __init__(self,goInstance = None):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(goInstance)
+	    self._str_funcName = 'shapeCast_eyebrow(%s)'%self.mi_module.p_nameShort
+	    self.__dataBind__()
+	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
+	                        {'step':'Brow Shapes','call':self._browShapes_},
+	                        {'step':'Cheek Shapes','call':self._uprCheekShapes_},
+	                        {'step':'Face Pins','call':self._facePins_},
+	                        ]
+	    
+	    assert self.mi_module.mClass == 'cgmEyebrow',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(_str_funcName,self.mi_module.mClass)
+	    
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def _gatherInfo_(self): 
+	    self.str_orientation = self.mi_go.str_jointOrientation #Link
+	    self.str_partName = self.mi_go.str_partName		    
+	    
+	    self.d_colors = {'left':metaUtils.getSettingsColors('left'),
+	                     'right':metaUtils.getSettingsColors('right'),
+	                     'center':metaUtils.getSettingsColors('center')}
+	    
+	    #Orient info ------------------------------------------------------------------------------------------------
+	    self.v_aimNegative = cgmValid.simpleAxis(self.str_orientation[0]+"-").p_vector
+	    self.v_aim = cgmValid.simpleAxis(self.str_orientation[0]).p_vector	
+	    self.v_up = cgmValid.simpleAxis(self.str_orientation[1]).p_vector	
+	    
+	    #Find our helpers -------------------------------------------------------------------------------------------
+	    self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
+	    if not self.mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
+	    """
+	    self.mi_leftBrowCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftBrowHelper'),noneValid=False)
+	    self.mi_rightBrowCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightBrowHelper'),noneValid=False)
+	    
+	    self.mi_leftTempleCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftTempleHelper'),noneValid=False)
+	    self.mi_rightTempleCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightTempleHelper'),noneValid=False)
+	    
+	    self.mi_leftUprCheekCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftUprCheekHelper'),noneValid=False)
+	    self.mi_rightUprCheekCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightUprCheekHelper'),noneValid=False)
+	    
+	    self.mi_squashCastHelper = cgmMeta.validateObjArg(self.mi_helper.getMessage('squashCastHelper'),noneValid=True)
+	    self.mi_uprFacePivotHelper = cgmMeta.validateObjArg(self.mi_helper.getMessage('uprFacePivotHelper'),noneValid=True)
+	    
+	    self.mi_jawPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('jawPlate'),noneValid=True)
+	    self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=True)
+	    """
+	    #>> Find our joint lists ===================================================================
+	    ml_handleJoints = self.mi_module.rigNull.msgList_get('handleJoints')
+	    ml_rigJoints = self.mi_module.rigNull.msgList_get('rigJoints')
+ 	    
+	    self.ml_browLeftHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                    cgmDirection = 'left',
+	                                                                    cgmName = 'brow')
+	    self.ml_browRightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                    cgmDirection = 'right',
+	                                                                    cgmName = 'brow')	 
+	    self.ml_browCenterHandles = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                      cgmDirection = 'center',
+	                                                                      cgmName = 'brow')
+	    if not self.ml_browLeftHandles:raise StandardError,"Failed to find left brow handle joints"
+	    if not self.ml_browRightHandles:raise StandardError,"Failed to find right brow handle joints"
+	    if not self.ml_browCenterHandles:raise StandardError,"Failed to find center brow rig joints"
+	    
+	    #>> Cheek --------------------------------------------------------------------------
+	    self.ml_cheekLeftHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                     cgmDirection = 'left',
+	                                                                     cgmName = 'uprCheek')
+	    self.ml_cheekRightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                      cgmDirection = 'right',
+	                                                                      cgmName = 'uprCheek')		    
+	    
+	    #Rig joints... ---------------------------------------------------------------------
+	    self.ml_leftRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                  cgmDirection = 'left')
+	    self.ml_rightRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                  cgmDirection = 'right')
+	    self.ml_centerRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                    cgmDirection = 'center')	
+	    self.ml_topRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                 cgmDirection = 'top')	
+	    self.ml_backRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                  cgmDirection = 'back')		    
+	    if not self.ml_leftRigJoints:raise StandardError,"Failed to find left rig joints"
+	    if not self.ml_rightRigJoints:raise StandardError,"Failed to find right rig joints"
+	    if not self.ml_centerRigJoints:raise StandardError,"Failed to find center rig joints"	    
+	    
+	    #>> Running lists --------------------------------------------------------------------
+	    self.ml_handles = []
+	    self.ml_pinHandles = []
+	    
+	    return True
+
+	def _browShapes_(self): 
+	    
+	    d_build = {'left':{'jointList': self.ml_browLeftHandles},
+	               'right':{'jointList': self.ml_browRightHandles},
+	               'center':{'jointList': self.ml_browCenterHandles},}
+	    
+	    for str_direction in d_build.keys():
+		ml_handleCrvs = []		
+		ml_jointList = d_build[str_direction].get('jointList')
+		l_colors = self.d_colors[str_direction]
+		
+		try:#Get a casted base distance
+		    d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],ml_jointList[0].mNode,axis=self.str_orientation[0]+'+')
+		    if d_return:
+			pos = d_return.get('hit')			
+			__baseDistance = distance.returnDistanceBetweenPoints(pos,ml_jointList[0].getPosition()) * 2
+		    if not d_return:raise Exception
+		except:
+		    __baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_jointList]) /4 		
+		
+		
+		for mObj in ml_jointList:
+		    try:
+			if mObj.getAttr('isSubControl') or len(ml_jointList) >1 and mObj in [ml_jointList[1]]:
+			    _size = __baseDistance * .8
+			    _color = l_colors[1]
+			else:
+			    _size = __baseDistance * 1.5
+			    _color = l_colors[0]
+			    
+			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
+			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
+			str_grp = mi_crv.doGroup()
+			mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)
+			mi_crv.parent = False
+			mc.delete(str_grp)
+			
+			#>>Color curve --------------------------------------------------------------------------------		    		    
+			if mObj.getAttr('isSubControl'):
+			    curves.setCurveColorByName(mi_crv.mNode,_color)  
+			else:curves.setCurveColorByName(mi_crv.mNode,_color)  
+			#>>Copy tags and name		    
+			mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+			mi_crv.doName()
+			mi_crv.connectChildNode(mObj,'handleJoint','controlCurve')
+			ml_handleCrvs.append(mi_crv)
+			
+		    except Exception,error:
+			raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
+		self.ml_handles.extend(ml_handleCrvs)
+		
+	def _uprCheekShapes_(self): 
+	    if not self.ml_cheekLeftHandles and self.ml_cheekRightHandles:
+		return False
+	    
+	    d_build = {'left':{'jointList': self.ml_cheekLeftHandles},
+	               'right':{'jointList': self.ml_cheekRightHandles},
+	               }
+	    
+	    for str_direction in d_build.keys():
+		ml_handleCrvs = []		
+		ml_jointList = d_build[str_direction].get('jointList')
+		l_colors = self.d_colors[str_direction]
+		try:#Get a casted base distance
+		    d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],ml_jointList[0].mNode,axis=self.str_orientation[0]+'+')
+		    if d_return:
+			pos = d_return.get('hit')			
+			__baseDistance = distance.returnDistanceBetweenPoints(pos,ml_jointList[0].getPosition()) * 2
+		    if not d_return:raise Exception
+		except:
+		    __baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_jointList]) /4 		
+
+		for mObj in ml_jointList:
+		    try:
+			if mObj.getAttr('isSubControl') or len(ml_jointList) >1 and mObj in [ml_jointList[1]]:
+			    _size = __baseDistance * .8
+			    _color = l_colors[1]
+			else:
+			    _size = __baseDistance * 1.5
+			    _color = l_colors[0]
+			    
+			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
+			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
+			str_grp = mi_crv.doGroup()
+			mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)
+			mi_crv.parent = False
+			mc.delete(str_grp)
+			
+			#>>Color curve --------------------------------------------------------------------------------		    		    
+			if mObj.getAttr('isSubControl'):
+			    curves.setCurveColorByName(mi_crv.mNode,_color)  
+			else:curves.setCurveColorByName(mi_crv.mNode,_color)  
+			#>>Copy tags and name		    
+			mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+			mi_crv.doName()
+			mi_crv.connectChildNode(mObj,'handleJoint','controlCurve')
+			ml_handleCrvs.append(mi_crv)
+			
+		    except Exception,error:
+			raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
+		self.ml_handles.extend(ml_handleCrvs)	
+		
+	def _facePins_(self): 
+	    __baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in self.ml_browLeftHandles]) /2 
+	    log.info("%s >>> baseDistance : %s"%(self._str_reportStart,__baseDistance))
+	    
+	    d_build = {'left':{'jointList': self.ml_leftRigJoints},
+	               'right':{'jointList': self.ml_rightRigJoints},
+	               'center':{'jointList': self.ml_centerRigJoints + self.ml_topRigJoints + self.ml_backRigJoints},}
+	    
+	    for str_direction in d_build.keys():
+		ml_handleCrvs = []		
+		ml_jointList = d_build[str_direction].get('jointList')
+		l_colors = self.d_colors[str_direction]
+		for mObj in ml_jointList:
+		    try:
+			_size = __baseDistance / 3
+			_color = l_colors[1]
+			    
+			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('semiSphere',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
+			str_cast = self.str_orientation[0]+'+'	
+			try:
+			    d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],mObj.mNode,axis=str_cast)
+			    if d_return:
+				pos = d_return.get('hit')			
+				mc.move (pos[0],pos[1],pos[2], mi_crv.mNode)
+				mc.delete( mc.orientConstraint(mObj.mNode,mi_crv.mNode,maintainOffset = False))
+			    if not d_return:raise Exception
+			except:
+			    Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
+						
+			#>>Color curve --------------------------------------------------------------------------------		    		    
+			curves.setCurveColorByName(mi_crv.mNode,_color) 
+			
+			#>>Copy tags and name		    
+			mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+			mi_crv.addAttr('cgmTypeModifier','direct',lock=True)
+			mi_crv.doName()
+			mi_crv.connectChildNode(mObj,'targetJoint','controlDirectCurve')
+			ml_handleCrvs.append(mi_crv)
+			
+			#>>Copy pivot ---------------------------------------------------------------------------------
+			#mi_crv.doCopyPivot(mObj.mNode)
+		    except Exception,error:
+			raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
+		self.ml_pinHandles.extend(ml_handleCrvs)	
+	    
+    def _connect_(self): 
+	self.mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
+	self.mi_go.md_ReturnControls['ml_handleCurves'] = self.ml_handles
+	self._mi_rigNull.msgList_connect(self.ml_handleCrvs,'shape_handleCurves','owner')
+	
+	self.mi_go.d_returnControls['l_pinCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
+	self.mi_go.md_ReturnControls['ml_pinCurves'] = self.ml_handles
+	self._mi_rigNull.msgList_connect(self.ml_pinHandles,'shape_pinCurves','owner')
+	
+	return True
+	
+    #We wrap it so that it autoruns and returns
+    return fncWrap(goInstance).go()  

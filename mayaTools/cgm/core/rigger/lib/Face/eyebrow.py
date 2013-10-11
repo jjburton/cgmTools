@@ -59,7 +59,7 @@ from cgm.lib import (attributes,
 
 #>>> Skeleton
 #=========================================================================================================
-__l_jointAttrs__ = ['rigJoints','anchorJoints']   
+__l_jointAttrs__ = ['rigJoints','handleJoints']   
 
 def __bindSkeletonSetup__(self):
     """
@@ -229,16 +229,77 @@ def build_rigSkeleton(goInstance = None):
 	
 #>>> Shapes
 #===================================================================
-__d_controlShapes__ = {'shape':['eyebrowFK','eyebrowIK','settings']}
-def build_shapes(self):
-    pass
-    
+__d_controlShapes__ = {'shape':['shape_handleCurves','shape_pinCurves']}
+def build_shapes(goInstance = None):
+    class fncWrap(modUtils.rigStep):
+	def __init__(self,goInstance = None):
+	    super(fncWrap, self).__init__(goInstance)
+	    self._str_funcName = 'build_shapes(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self.__dataBind__()
+	    self.l_funcSteps = [{'step':'Build Shapes','call':self.buildShapes},
+	                        ]	
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	
+	def buildShapes(self):
+	    mi_go = self._go#Rig Go instance link
+	    mShapeCast.go(mi_go._i_module,['eyebrow'], storageInstance=mi_go)#This will store controls to a dict called    
+	    
+    return fncWrap(goInstance).go()
+
 #>>> Controls
 #===================================================================
-def build_controls(self):
-    pass
-    
-    return True
+def build_controls(goInstance = None):
+    class fncWrap(modUtils.rigStep):
+	def __init__(self,goInstance = None):
+	    super(fncWrap, self).__init__(goInstance)
+	    self._str_funcName = 'build_controls(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self.__dataBind__()
+	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
+	                        ]	
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	
+	def _gatherInfo_(self):
+	    mi_go = self._go#Rig Go instance link
+	    self.md_jointLists = {}
+	    
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    if not self.mi_helper:raise StandardError,"No suitable helper found"
+	    
+	    #Get our joint lists
+	    ml_handleJoints = self.mi_module.rigNull.msgList_get('handleJoints')
+	    ml_rigJoints = self.mi_module.rigNull.msgList_get('rigJoints')
+	    
+	    if self.mi_helper.buildTemple:
+		self.mi_leftTempleCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftTempleHelper'),noneValid=False)
+		self.mi_rightTempleCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightTempleHelper'),noneValid=False)
+	    
+	    if self.mi_helper.buildUprCheek:
+		self.mi_leftUprCheekCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftUprCheekHelper'),noneValid=False)
+		self.mi_rightUprCheekCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightUprCheekHelper'),noneValid=False)
+		
+	    #>>> Sorting ==========================================================
+	    #We need to sort our joints and figure out what our options are
+	    self.md_sortedJoints = {}
+	    
+	    for mJnt in mi_go._ml_skinJoints:
+		str_nameTag = mJnt.getAttr('cgmName')
+		str_directionTag = mJnt.getAttr('cgmDirection') 
+		#Verify our dict can store
+		if str_nameTag not in self.md_sortedJoints.keys():
+		    self.md_sortedJoints[str_nameTag] = {}
+		if str_directionTag not in self.md_sortedJoints[str_nameTag].keys():
+		    self.md_sortedJoints[str_nameTag][str_directionTag] = {'skin':[]}
+		    
+		#log.info("Checking: '%s' | nameTag: '%s'  | directionTag: '%s' "%(mJnt.p_nameShort,str_nameTag,str_directionTag)) 
+		self.md_sortedJoints[str_nameTag][str_directionTag]['skin'].append(mJnt)	
+	    	    
+	def build_rigJoints(self):
+	    #We'll have a rig joint for every joint
+	    mi_go = self._go#Rig Go instance link
+	    ml_rigJoints = mi_go.build_rigChain()
+	    
 
 def build_rig(self):
     pass
