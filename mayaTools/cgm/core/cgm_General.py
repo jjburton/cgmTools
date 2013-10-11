@@ -40,6 +40,7 @@ class cgmFuncCls(object):
 	self._str_funcCombined = None
         self._str_funcName = None
         self._str_funcDebug = None
+	self._b_WIP = False
 	self.d_kwsDefined  = {}
 	self.l_funcSteps = []
 	self.d_return = {}
@@ -53,13 +54,13 @@ class cgmFuncCls(object):
     """Simple class for use with TimerSimple"""	  
     
     def __dataBind__(self,*args,**kws):
-	try:self._d_funcArgs = args
-	except:self._d_funcArgs = {}
+	try:self._l_funcArgs = args
+	except:self._l_funcArgs = []
 	try:self._d_funcKWs = kws
 	except:self._d_funcKWs = {}	
-	try:self._str_funcArgs = "%s"%args
+	try:self._str_funcArgs = str(args)
 	except:self._str_funcArgs = None
-	try:self._str_funcKWs = "%s"%kws
+	try:self._str_funcKWs = str(kws)
 	except:self._str_funcKWs = None
         try:
             mod = inspect.getmodule(self)
@@ -111,13 +112,15 @@ class cgmFuncCls(object):
 		for k in l_keys:		
 		    if k not in self.l_dictMask:
 			log.error(">"*3 + " '%s' : %s "%(k,self.__dict__[k]))
-		log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)) + "-"*75)
+		if self._b_WIP:
+		    log.error(">"*40 + " WIP CODE " + "<"*40)	
+		log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)))
 		self.d_return[_str_step] = None	
 		raise StandardError, _str_fail
 	    t2 = time.clock()
-	    if int_max != 0: log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)) + "-"*75)		
+	    if int_max != 0: log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)))		
 	
-	log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)) + "-"*75)		
+	log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)))		
 	if int_max == 0:#If it's a one step, return, return the single return
 	    try:return self.d_return[self.d_return.keys()[0]]
 	    except:pass
@@ -152,6 +155,8 @@ class cgmFuncCls(object):
 	    for i,d in enumerate(self.l_funcSteps):
 		try:log.info(">"*3 + " '%s' : %s "%(i,d.get('step')))
 		except:pass
+	if self._b_WIP:
+	    log.info(">"*40 + " WIP CODE " + "<"*40)	  	    
 	log.info("#" + "-" *100)
 		
 class cgmFunctionClass2(object):
