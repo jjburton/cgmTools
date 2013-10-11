@@ -52,6 +52,24 @@ def stringArg(arg = None,noneValid = True,calledFrom = None):
     elif noneValid:
 	return False
     else: raise StandardError, ">>> stringArg >> Arg failed: arg = %s | type: %s"%(arg,type(arg))
+
+def stringListArg(l_args = None, noneValid = False, calledFrom = None):
+    log.debug(">>> stringArg >> l_args = %s"%l_args + "="*75) 
+    calledFrom = stringArg(calledFrom,noneValid=True)    
+    if calledFrom: _str_funcName = "%s.stringArg"%(calledFrom)
+    else:_str_funcName = "objStringList"    
+    t_start = time.clock()
+    try:
+	if type(l_args) not in [list,tuple]:l_args = [l_args]
+	returnList = []
+	for arg in l_args:
+	    buffer = stringArg(arg,noneValid,calledFrom)
+	    if buffer:returnList.append(buffer)
+	    else:log.warning("%s >> failed: '%s'"%(_str_funcName,arg))
+	return returnList
+    except StandardError,error:
+	log.error("%s >>Failure! l_args: %s "%(_str_funcName,l_args))
+	raise StandardError,error 
     
 def boolArg(arg = None, calledFrom = None):
     """
@@ -179,7 +197,7 @@ def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = No
 	    except StandardError,error:raise StandardError,"min value check fail. error: %s"%(error)
 	if type(maxValue) in [float,int]:
 	    try:#Max check
-		if not numberToCheck < maxValue:
+		if not numberToCheck <= maxValue:
 		    if autoClamp:
 			return maxValue
 		    return False
