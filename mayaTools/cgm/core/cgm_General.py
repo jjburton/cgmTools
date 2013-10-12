@@ -48,7 +48,7 @@ class cgmFuncCls(object):
 	self._str_mod = None	
 	#This is our mask so that the fail report ignores them
 	self.l_dictMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','l_dictMask',
-	                   '_str_funcClass','_str_funcName','d_kwsDefined','_str_funcCombined','_d_funcArgs',
+	                   '_str_funcClass','_str_funcName','d_kwsDefined','_str_funcCombined','_l_funcArgs','_b_WIP',
 	                   '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
 	
     """Simple class for use with TimerSimple"""	  
