@@ -53,6 +53,7 @@ from cgm.lib import (cgmMath,
                      )
 reload(rigging)
 l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball']
+__l_faceModules__ = ['eyebrow','eyelids','eyeball']
 #l_modulesDone = []
 #>>> Register rig functions
 #=====================================================================
@@ -213,10 +214,8 @@ class go(object):
 	
 	try:#>>> Deform group for the module =====================================================
 	    if not self._i_module.getMessage('deformNull'):
-		if self._partType == 'eyelids':
-		    if not self._mi_moduleParent:
-			raise StandardError,"Must have a module parent"
-		    self._i_module.connectChildNode(self._mi_moduleParent.deformNull,'deformNull','module')		
+		if self._partType in __l_faceModules__:
+		    self._verify_faceDeformNull_()
 		else:
 		    #Make it and link it
 		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
@@ -233,10 +232,8 @@ class go(object):
 	
 	try:#>>> Constrain Deform group for the module ==========================================
 	    if not self._i_module.getMessage('constrainNull'):
-		if self._partType == 'eyelids':
-		    if not self._mi_moduleParent:
-			raise StandardError,"Must have a module parent"
-		    self._i_module.connectChildNode(self._mi_moduleParent.constrainNull,'constrainNull','module')
+		if self._partType in __l_faceModules__:
+		    self._verify_faceConstrainNull_()
 		else:
 		    #Make it and link it
 		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
@@ -338,6 +335,101 @@ class go(object):
 	    if not self._i_rigNull.getMessage('%s'%(key)) and not self._i_rigNull.msgList_getMessage('%s'%(key)):
 		log.error("%s.isRigSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
 		return False		
+	return True
+    
+    def _return_faceModuleAttachJoint_(self):
+	_str_funcName = "go._return_faceModuleAttachJoint_(%s)"%self._i_module.p_nameShort  
+	
+	#Find our head attach joint ------------------------------------------------------------------------------------------------
+	self.str_faceAttachJoint = False
+	if not self._i_module.getMessage('moduleParent'):
+	    raise StandardError,"%s >> Must have a module parent"%_str_funcName
+	try:
+	    mi_end = self._i_module.moduleParent.rigNull.msgList_get('moduleJoints')[-1]
+	    buffer =  mi_end.getMessage('scaleJoint')
+	    if buffer:
+		self.str_faceAttachJoint = buffer[0]
+	    else:
+		self.str_faceAttachJoint = mi_end.mNode
+	except Exception,error:
+	    log.error("%s failed to find root joint from moduleParent | %s"%(_str_funcName,error))
+	
+	return self.str_faceAttachJoint
+    
+    def _verify_faceDeformNull_(self):
+	"""
+	Return if a module is rig skeletonized or not
+	"""
+	_str_funcName = "go._verify_faceDeformNull_(%s)"%self._i_module.p_nameShort  
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	if self._partType not in __l_faceModules__:
+	    raise StandardError, "%s >> Not a face module"%_str_funcName
+	
+	#Try to see if we ahve a face attach joint ==============================
+	try:self.str_faceAttachJoint
+	except:
+	    try:self._return_faceModuleAttachJoint_()
+	    except Exception,error:
+		raise StandardError, "%s >> error: %s"%(_str_funcName,error)
+	
+	#>> Deform Null ==========================================================    
+	if self._i_module.getMessage('deformNull'):
+	    return True
+	
+	#Check if we have a face deformNull on a parent --------------------------	    
+	buffer = self._mi_moduleParent.getMessage('faceDeformNull')
+	if buffer:
+	    self._i_module.connectChildNode(buffer[0],'deformNull','module')		    
+	    return True
+	
+	#Make it and link it ------------------------------------------------------
+	buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
+	i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+	i_grp.addAttr('cgmName','face',lock=True)
+	i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
+	i_grp.doName()
+	i_grp.parent = self._i_masterDeformGroup.mNode	
+	self._i_module.connectChildNode(i_grp,'deformNull','module')
+	self._mi_moduleParent.connectChildNode(i_grp,'faceDeformNull','module')
+	
+	return True
+    
+    def _verify_faceConstrainNull_(self):
+	"""
+	Return if a module is rig skeletonized or not
+	"""
+	_str_funcName = "go._verify_faceConstrainNull_(%s)"%self._i_module.p_nameShort  
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	if self._partType not in __l_faceModules__:
+	    raise StandardError, "%s >> Not a face module"%_str_funcName
+	
+	#Try to see if we ahve a face attach joint ==============================
+	try:self.str_faceAttachJoint
+	except:
+	    try:self._return_faceModuleAttachJoint_()
+	    except Exception,error:
+		raise StandardError, "%s >> error: %s"%(_str_funcName,error)
+	
+	#>> Constrain Null ==========================================================    
+	if self._i_module.getMessage('constrainNull'):
+	    return True
+	
+	#Check if we have a face constrainNull on a parent --------------------------	    
+	buffer = self._mi_moduleParent.getMessage('faceConstrainNull')
+	if buffer:
+	    self._i_module.connectChildNode(buffer[0],'constrainNull','module')		    
+	    return True
+	
+	#Make it and link it ------------------------------------------------------
+	buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
+	i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+	i_grp.addAttr('cgmName','face',lock=True)
+	i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
+	i_grp.doName()
+	i_grp.parent = self._i_deformNull		
+	self._i_module.connectChildNode(i_grp,'constrainNull','module')
+	self._mi_moduleParent.connectChildNode(i_grp,'faceConstrainNull','module')
+	
 	return True
     
     def cleanTempAttrs(self):
