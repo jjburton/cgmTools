@@ -305,8 +305,8 @@ class go(object):
 		log.error("build_segmentIKHandles! | %s"%error) 
 		return False
 '''	    
-#@cgmGeneral.TimerDebug
-def registerControl(controlObject,typeModifier = None,copyTransform = None,copyPivot = None,shapeParentTo = None,
+def registerControl(controlObject, typeModifier = None, copyTransform = None, copyPivot = None,
+                    shapeParentTo = None, useShape = None,
                     setRotateOrder = None, autoLockNHide = True, mirrorAxis = None, mirrorSide = None, makeMirrorable = True,
                     addDynParentGroup = False, addExtraGroups = False, addConstraintGroup = False, freezeAll = False,
                     addSpacePivots = False, controlType = None, aim = None, up = None, out = None, makeAimable = False):
@@ -362,7 +362,7 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    i_newTransform.parent = i_control.parent#Copy parent
 	    i_control = cgmMeta.cgmControl(i_newTransform.mNode,setClass=True)
 	    mc.delete(mBuffer.mNode)
-	log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
     
@@ -379,7 +379,17 @@ def registerControl(controlObject,typeModifier = None,copyTransform = None,copyP
 	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:
 	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
-      
+    
+    try:#>>>Use Shape #====================================================
+	_str_subFunc = "Use Shape "
+	time_sub = time.clock()  	
+	if useShape is not None:
+	    i_shape = cgmMeta.validateObjArg(useShape,cgmMeta.cgmObject,mayaType='nurbsCurve')
+	    curves.parentShapeInPlace(i_control.mNode,i_shape.mNode)
+	    log.info("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
+    except Exception,error:
+	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+    
     try:#>>>Copy Pivot #====================================================
 	_str_subFunc = "Copy Pivot"
 	time_sub = time.clock()  	
