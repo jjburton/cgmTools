@@ -1202,7 +1202,7 @@ def returnClosestUPosition (targetObject,curve):
     return positions[matchIndex]
 
 #@cgmGeneral.TimerDebug
-def returnNearestPointOnCurveInfo(targetObject,curve,deleteNode = True):
+def returnNearestPointOnCurveInfo(targetObject,curve,deleteNode = True,cullOriginalShapes = True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1226,6 +1226,10 @@ def returnNearestPointOnCurveInfo(targetObject,curve,deleteNode = True):
 	    shapes.append(curve)
 	else:
 	    shapes = mc.listRelatives (curve, shapes=True)
+	if cullOriginalShapes:
+	    for shape in shapes:
+		if len(shape)>5 and shape[-4:] == 'Orig':
+		    shapes.remove(shape)
 	#to account for target objects in heirarchies """
 	tmpObj = rigging.locMeObjectStandAlone(targetObject)
 	l_positions = []
@@ -1370,7 +1374,6 @@ def returnClosestPointOnSurfaceInfo(targetObj, surface):
     f_sizeV = f_maxV - f_minV    
 
     # to account for target objects in heirarchies #
-    log.debug(returnWorldSpacePosition(targetObj))
     pos = returnWorldSpacePosition(targetObj)
     attributes.doSetAttr(closestPointNode,'inPositionX',pos[0])
     attributes.doSetAttr(closestPointNode,'inPositionY',pos[1])
