@@ -33,6 +33,7 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.rigger.lib import module_Utils as modUtils
+from cgm.core.lib import meta_Utils as metaUtils
 
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
@@ -41,6 +42,7 @@ from cgm.core.rigger.lib import joint_Utils as jntUtils
 reload(jntUtils)
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
+reload(mControlFactory)
 from cgm.core.lib import nameTools
 from cgm.core.lib import curve_Utils as crvUtils
 
@@ -71,7 +73,7 @@ def __bindSkeletonSetup__(self):
 	    log.error("Not a JointFactory.go instance: '%s'"%self)
 	    raise StandardError
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("eyebrow.__bindSkeletonSetup__>>bad self!")
 	raise StandardError,error
     
@@ -82,7 +84,7 @@ def __bindSkeletonSetup__(self):
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     try:
 	self._i_module.rig_getReport()#report	
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_eyebrow>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
     
@@ -164,6 +166,8 @@ def build_rigSkeleton(goInstance = None):
 			#Build our copy list -------------------------------------------
 			if k_name == 'brow' and k_direction in ['left','right']:
 			    self.l_build = [ml_skinJoints[0],'mid',ml_skinJoints[-1]]
+			elif k_name == 'brow' and k_direction in ['center']:
+			    self.l_build = [ml_skinJoints[0]]			    
 			elif k_name == 'uprCheek' and k_direction in ['left','right']:
 			    self.l_build = [ml_skinJoints[0],ml_skinJoints[-1]]
 			    
@@ -215,9 +219,9 @@ def build_rigSkeleton(goInstance = None):
 	def build_connections(self):    
 	    ml_jointsToConnect = []
 	    ml_jointsToConnect.extend(self.ml_rigJoints)    
-	    ml_jointsToConnect.extend(self.ml_moduleHandleJoints)
+	    #ml_jointsToConnect.extend(self.ml_moduleHandleJoints)
 	    
-	    self._go.connect_toRigGutsVis(ml_jointsToConnect,vis = True)#connect to guts vis switches
+	    #self._go.connect_toRigGutsVis(ml_jointsToConnect,vis = True)#connect to guts vis switches
 	    
 	    """
 	    for i_jnt in ml_jointsToConnect:
@@ -256,6 +260,9 @@ def build_controls(goInstance = None):
 	    self._str_funcName = 'build_controls(%s)'%self.d_kwsDefined['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
+	                        {'step':'Settings','call':self._buildSettings_},	                        
+	                        {'step':'Direct Controls','call':self._buildControls_},
+	                        {'step':'Build Connections','call':self._buildConnections_}	                        
 	                        ]	
 	    #=================================================================
 	    if log.getEffectiveLevel() == 10:self.report()#If debug
@@ -281,35 +288,165 @@ def build_controls(goInstance = None):
 		for obj in l_missingCurves:
 		    log.error(">"*5 + " %s"%obj)
 		raise StandardError,"Some joints missing controlShape curves"
-	
+	    
 	    #>> Running lists ===========================================================================
-	    self.ml_leftControls = []
-	    self.ml_rightControls = []
-	    self.ml_centerJoints = []
+	    self.md_directionControls = {"Left":[],"Right":[],"Centre":[]}
+	    self.ml_directControls = []
+	    self.ml_controlsAll = []
+	    return True
+	    	    
+	def _buildSettings_(self):
+	    mi_go = self._go#Rig Go instance link
+	    mi_go.verify_faceSettings()
+	    
+	    #>>> Verify out vis controls	    
+	    self.mPlug_result_moduleFaceSubDriver = mi_go.build_visSubFace()	
+	    #self.mPlug_result_moduleFaceSubDriver = self._go.build_visSubFace()	
+
+	def _buildControls_(self):
+	    mi_go = self._go#Rig Go instance link
+	    
+	    ml_rigJoints = self.ml_rigJoints
+	    ml_handleJoints = self.ml_handleJoints
+		
+	    l_strTypeModifiers = ['direct',None]
+	    for ii,ml_list in enumerate( [ml_rigJoints,ml_handleJoints] ):
+		for i,mObj in enumerate(ml_list):
+		    str_mirrorSide = False
+		    try:
+			mObj.parent = mi_go._i_constrainNull
+			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
+			#Register 
+			try:
+			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),
+				                                       mirrorSide = str_mirrorSide, mirrorAxis="",		                                           
+				                                       makeAimable=False, typeModifier=l_strTypeModifiers[ii]) 	    
+			except Exception,error:
+			    log.error("mObj: %s"%mObj.p_nameShort)
+			    log.error("useShape: %s"%mObj.getMessage('controlShape'))
+			    log.error("mirrorSide: %s"%str_mirrorSide)			
+			    raise StandardError,"Register fail : %s"%error
+			
+			#Vis sub connect
+			if ii == 0:
+			    self.mPlug_result_moduleFaceSubDriver.doConnectOut("%s.visibility"%mObj.mNode)
+			
+			#
+			mc.delete(mObj.getMessage('controlShape'))
+			mObj.doRemove('controlShape')
+			self.md_directionControls[str_mirrorSide].append(mObj)
+			
+			#i_obj.drawStyle = 6#Stick joint draw style
+			cgmMeta.cgmAttr(mObj,'radius',value=.01, hidden=True)
+			self.ml_directControls.append(mObj)
+			
+		    except Exception, error:
+			raise StandardError,"Iterative fail item: %s | obj: %s | mirror side: %s | error: %s"%(i,mObj.p_nameShort,str_mirrorSide,error)
+		    
+	    self._go._i_rigNull.msgList_connect(self.ml_directControls ,'controlsDirect', 'rigNull')	    
+	    self.ml_controlsAll.extend(self.ml_directControls)#append	
+	    
+	def _buildConnections_(self):
+	    #Register our mirror indices ---------------------------------------------------------------------------------------
+	    mi_go = self._go#Rig Go instance link	    
+	    for str_direction in self.md_directionControls.keys():
+		int_start = self._go._i_puppet.get_nextMirrorIndex( self._go._str_mirrorDirection )
+		for i,mCtrl in enumerate(self.md_directionControls[str_direction]):
+		    try:
+			mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
+		    except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
+
+	    try:self._go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll')
+	    except Exception,error: raise StandardError,"Controls all connect| %s"%error	    
+	    try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
+	    except Exception,error: raise StandardError,"Failed to set module objectSet | %s"%error
+	    
+    return fncWrap(goInstance).go()
+	    
+
+def build_rig(goInstance = None):
+    class fncWrap(modUtils.rigStep):
+	def __init__(self,goInstance = None):
+	    super(fncWrap, self).__init__(goInstance)
+	    self._str_funcName = 'build_rig(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self.__dataBind__()
+	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
+	                        {'step':'Rig Brows','call':self._buildBrows_},
+	                        ]	
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	
+	def _gatherInfo_(self):
+	    mi_go = self._go#Rig Go instance link
+	    
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    if not self.mi_helper:raise StandardError,"No suitable helper found"
+	    
+	    self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=True)
+	    if not self.mi_skullPlate:raise StandardError,"No skullPlate found"
+	    mi_go._i_rigNull.connectChildNode(self.mi_skullPlate,'skullPlate')#Connect it
+	    
+	    self.mi_jawPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('jawPlate'),noneValid=True)
+	    
+	    #>> Get our lists ==========================================================================
+	    '''
+	    We need lists of handle and a rig joints for each segment - brow, upr cheek temple
+	    md_joints = {'leftBrow:{'ml_handleJoints':[],'ml_rigJoints':[],'mi_crv'}}
+	    '''
+	    ml_handleJoints = mi_go._i_module.rigNull.msgList_get('handleJoints')
+	    ml_rigJoints = mi_go._i_module.rigNull.msgList_get('rigJoints')
+	    self.md_rigList = {"brow":{"left":{},"right":{},"center":{}},
+	                       "uprCheek":{"left":{},"right":{}},
+	                       "squash":{},
+	                       "temple":{"left":{},"right":{}}}
+	    #>> Brow --------------------------------------------------------------------------------------------------
+	    self.md_rigList['brow']['left']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                                          cgmDirection = 'left',
+	                                                                                          cgmName = 'brow')
+	    self.md_rigList['brow']['right']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                                           cgmDirection = 'right',
+	                                                                                           cgmName = 'brow') 
+	    self.md_rigList['brow']['center']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                                           cgmDirection = 'center',
+	                                                                                           cgmName = 'brow') 
+	    self.md_rigList['brow']['left']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                                            cgmDirection = 'left',
+	                                                                                            cgmName = 'brow')
+	    self.md_rigList['brow']['right']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                                             cgmDirection = 'right',
+	                                                                                             cgmName = 'brow') 
+	    self.md_rigList['brow']['center']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                                              cgmDirection = 'center',
+	                                                                                              cgmName = 'brow') 	    
+	    if not self.md_rigList['brow']['left'].get('ml_handles'):raise StandardError,"Failed to find left brow handle joints"
+	    if not self.md_rigList['brow']['right'].get('ml_handles'):raise StandardError,"Failed to find right brow handle joints"
+	    if not self.md_rigList['brow']['center'].get('ml_handles'):raise StandardError,"Failed to find center brow handle joints"
+	    
+	    #>> Cheek --------------------------------------------------------------------------------------------------
+	    self.md_rigList['uprCheek']['left']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                                              cgmDirection = 'left',
+	                                                                                              cgmName = 'uprCheek')
+	    self.md_rigList['uprCheek']['right']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                                               cgmDirection = 'right',
+	                                                                                               cgmName = 'uprCheek') 		    
+	    self.md_rigList['uprCheek']['left']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                                                cgmDirection = 'left',
+	                                                                                                cgmName = 'uprCheek')
+	    self.md_rigList['uprCheek']['right']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                                                 cgmDirection = 'right',
+	                                                                                                 cgmName = 'uprCheek') 	    
+	    #>> Temple --------------------------------------------------------------------------------------------------
+	    self.md_rigList['temple']['left']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                                                cgmDirection = 'left',
+	                                                                                                cgmName = 'temple')
+	    self.md_rigList['temple']['right']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                                                 cgmDirection = 'right',
+	                                                                                                 cgmName = 'temple') 	 	    
+	    #>> Squash --------------------------------------------------------------------------------------------------
+	    self.md_rigList['squash']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                                      cgmNameModifier = 'squash')
 	    
 	    """
-	    self.ml_browLeftHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                    cgmDirection = 'left',
-	                                                                    cgmName = 'brow')
-	    self.ml_browRightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                    cgmDirection = 'right',
-	                                                                    cgmName = 'brow')	 
-	    self.ml_browCenterHandles = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                      cgmDirection = 'center',
-	                                                                      cgmName = 'brow')
-	    if not self.ml_browLeftHandles:raise StandardError,"Failed to find left brow handle joints"
-	    if not self.ml_browRightHandles:raise StandardError,"Failed to find right brow handle joints"
-	    if not self.ml_browCenterHandles:raise StandardError,"Failed to find center brow rig joints"
-	    
-	    #>> Cheek --------------------------------------------------------------------------
-	    self.ml_cheekLeftHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                     cgmDirection = 'left',
-	                                                                     cgmName = 'uprCheek')
-	    self.ml_cheekRightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                      cgmDirection = 'right',
-	                                                                      cgmName = 'uprCheek')		    
-	    
-	    #Rig joints... ---------------------------------------------------------------------
 	    self.ml_leftRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                  cgmDirection = 'left')
 	    self.ml_rightRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
@@ -319,50 +456,57 @@ def build_controls(goInstance = None):
 	    self.ml_topRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                 cgmDirection = 'top')	
 	    self.ml_backRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                  cgmDirection = 'back')		    
+	                                                                  cgmDirection = 'back')
+	    
 	    if not self.ml_leftRigJoints:raise StandardError,"Failed to find left rig joints"
 	    if not self.ml_rightRigJoints:raise StandardError,"Failed to find right rig joints"
-	    if not self.ml_centerRigJoints:raise StandardError,"Failed to find center rig joints"	    
+	    if not self.ml_centerRigJoints:raise StandardError,"Failed to find center rig joints"	
 	    """
+	    #>> Running lists ==========================================================================
+	    self.ml_toVisConnect = []
+	    self.ml_curves = []
+	    
 	    self.report()
 	    return True
-	    	    
-	def build_rigJoints(self):
-	    #We'll have a rig joint for every joint
-	    mi_go = self._go#Rig Go instance link
-	    ml_rigJoints = mi_go.build_rigChain()
-	    
-	def build_controls(self):
-	    ml_rigJoints = self.ml_rigJoints
-	    ml_handleJoints = self.ml_handleJoints
-	    	    
-	    
-	    ml_fkJoints[0].parent = self._go._i_constrainNull.controlsFK.mNode
-		    
-	    for i,i_obj in enumerate(ml_controlsFK):
-		d_buffer = mControlFactory.registerControl(i_obj,shapeParentTo=ml_fkJoints[i],
-		                                           mirrorSide=self._go._str_mirrorDirection, mirrorAxis="",		                                           
-		                                           makeAimable=True,typeModifier='fk',) 	    
+	
+	def _buildBrows_(self):
+	    #>> Setup our curves =======================================================================================
+	    for i,d_browSide in enumerate( [self.md_rigList['brow']['left'],self.md_rigList['brow']['right']] ):
+		ml_handles = d_browSide['ml_handles']
+		ml_rigJoints = d_browSide['ml_rigJoints']
 		
-		i_obj = d_buffer['instance']
-		i_obj.axisAim = "%s+"%self._go._jointOrientation[0]
-		i_obj.axisUp= "%s+"%self._go._jointOrientation[1]	
-		i_obj.axisOut= "%s+"%self._go._jointOrientation[2]
-		i_obj.drawStyle = 6#Stick joint draw style
-		cgmMeta.cgmAttr(i_obj,'radius',hidden=True)
+		if len(ml_handles) != 3:
+		    raise StandardError,"Only know how to rig a 3 handle brow segment. step: %s"%(i) 	
 		
-	    for i_obj in ml_controlsFK:
-		i_obj.delete()
+		try:#Create our curves ------------------------------------------------------------------------------------
+		    str_crv = mc.curve(d=1,ep=[mObj.getPosition() for mObj in ml_rigJoints],os =True)
+		    mi_crv = cgmMeta.cgmObject(str_crv,setClass=True)
+		    mi_crv.doCopyNameTagsFromObject(ml_rigJoints[0].mNode,ignore=['cgmIterator','cgmTypeModifier','cgmType'])
+		    mi_crv.addAttr('cgmTypeModifier','driver',lock=True)
+		    mi_crv.doName()
+		    self.ml_toVisConnect.append(mi_crv)	
+		    d_browSide['mi_crv'] = mi_crv
+		except Exception,error:raise StandardError,"Failed to build crv. step: %s | error : %s"%(i,error) 
+		try:#Skin -------------------------------------------------------------------------------------------------
+		    mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mObj.mNode for mObj in ml_handles],
+		                                                  mi_crv.mNode,
+		                                                  tsb=True,
+		                                                  maximumInfluences = 3,
+		                                                  normalizeWeights = 1,dropoffRate=2.5)[0])
+		    mi_skinNode.doCopyNameTagsFromObject(mi_crv.mNode,ignore=['cgmType'])
+		    mi_skinNode.doName()
+		    d_browSide['mi_skinNode'] = mi_skinNode
+		except Exception,error:raise StandardError,"Failed to skinCluster crv. step: %s | error : %s"%(i,error) 		
+		try:#Setup mid --------------------------------------------------------------------------------------------
+		    mc.parentConstraint([ml_handles[0].mNode,ml_handles[-1].mNode], ml_handles[1].masterGroup.mNode,maintainOffset = True)
+		except Exception,error:raise StandardError,"Mid failed. step: %s | error : %s"%(i,error) 		
 		
-	    log.info("%s fk: %s"%(self._str_reportStart,self.ml_fkJoints))
-	    self._go._i_rigNull.msgList_connect(ml_fkJoints,'controlsFK',"rigNull")	    
-	    self.ml_controlsAll.extend(ml_fkJoints)#append	
-	    
-    return fncWrap(goInstance).go()
-	    
+	    return True
+	    """
+	    for jnt in mc.ls(sl=True):
+		surfUtils.attachObjToSurface(jnt,self.mi_skullPlate.mNode,True)"""
 
-def build_rig(self):
-    pass
+    return fncWrap(goInstance).go()
     
 #----------------------------------------------------------------------------------------------
 # Important info ==============================================================================

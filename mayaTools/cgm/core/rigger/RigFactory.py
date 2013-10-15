@@ -215,7 +215,7 @@ class go(object):
 	try:#>>> Deform group for the module =====================================================
 	    if not self._i_module.getMessage('deformNull'):
 		if self._partType in __l_faceModules__:
-		    self._verify_faceDeformNull_()
+		    self.verify_faceDeformNull()
 		else:
 		    #Make it and link it
 		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
@@ -233,7 +233,7 @@ class go(object):
 	try:#>>> Constrain Deform group for the module ==========================================
 	    if not self._i_module.getMessage('constrainNull'):
 		if self._partType in __l_faceModules__:
-		    self._verify_faceConstrainNull_()
+		    self.verify_faceConstrainNull()
 		else:
 		    #Make it and link it
 		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
@@ -337,8 +337,8 @@ class go(object):
 		return False		
 	return True
     
-    def _return_faceModuleAttachJoint_(self):
-	_str_funcName = "go._return_faceModuleAttachJoint_(%s)"%self._i_module.p_nameShort  
+    def return_faceModuleAttachJoint(self):
+	_str_funcName = "go.return_faceModuleAttachJoint(%s)"%self._i_module.p_nameShort  
 	
 	#Find our head attach joint ------------------------------------------------------------------------------------------------
 	self.str_faceAttachJoint = False
@@ -356,11 +356,11 @@ class go(object):
 	
 	return self.str_faceAttachJoint
     
-    def _verify_faceDeformNull_(self):
+    def verify_faceDeformNull(self):
 	"""
 	Return if a module is rig skeletonized or not
 	"""
-	_str_funcName = "go._verify_faceDeformNull_(%s)"%self._i_module.p_nameShort  
+	_str_funcName = "go.verify_faceDeformNull(%s)"%self._i_module.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	if self._partType not in __l_faceModules__:
 	    raise StandardError, "%s >> Not a face module"%_str_funcName
@@ -368,7 +368,7 @@ class go(object):
 	#Try to see if we ahve a face attach joint ==============================
 	try:self.str_faceAttachJoint
 	except:
-	    try:self._return_faceModuleAttachJoint_()
+	    try:self.return_faceModuleAttachJoint()
 	    except Exception,error:
 		raise StandardError, "%s >> error: %s"%(_str_funcName,error)
 	
@@ -394,11 +394,11 @@ class go(object):
 	
 	return True
     
-    def _verify_faceConstrainNull_(self):
+    def verify_faceConstrainNull(self):
 	"""
 	Return if a module is rig skeletonized or not
 	"""
-	_str_funcName = "go._verify_faceConstrainNull_(%s)"%self._i_module.p_nameShort  
+	_str_funcName = "go.verify_faceConstrainNull(%s)"%self._i_module.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75)
 	if self._partType not in __l_faceModules__:
 	    raise StandardError, "%s >> Not a face module"%_str_funcName
@@ -406,7 +406,7 @@ class go(object):
 	#Try to see if we ahve a face attach joint ==============================
 	try:self.str_faceAttachJoint
 	except:
-	    try:self._return_faceModuleAttachJoint_()
+	    try:self.return_faceModuleAttachJoint()
 	    except Exception,error:
 		raise StandardError, "%s >> error: %s"%(_str_funcName,error)
 	
@@ -432,6 +432,38 @@ class go(object):
 	
 	return True
     
+    def verify_faceSettings(self):
+	"""
+	Return if a module is rig skeletonized or not
+	"""
+	_str_funcName = "go.verify_faceSettings(%s)"%self._i_module.p_nameShort  
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	if self._partType not in __l_faceModules__:
+	    raise StandardError, "%s >> Not a face module"%_str_funcName
+		
+	#>> Constrain Null ==========================================================    
+	if self._i_rigNull.getMessage('settings'):
+	    return True
+	
+	#Check if we have a settings control on parent module --------------------------	    
+	buffer = self._mi_moduleParent.rigNull.getMessage('settings')
+	if buffer:
+	    self._i_rigNull.connectChildNode(buffer[0],'settings')		    
+	    return True
+	
+	raise Exception,"No face settings found!"
+     
+    def verify_mirrorSideArg(self,arg  = None):
+	_str_funcName = "return_mirrorSideAsString(%s)"%self._i_module.p_nameShort   
+	log.debug(">>> %s "%(_str_funcName) + "="*75)   
+	try:
+	    if arg is not None and arg.lower() in ['right','left']:
+		return arg.capitalize()
+	    else:
+		return 'Centre'
+	except Exception,error:
+	    raise StandardError,"%s >> %s"%(_str_funcName,error) 
+	
     def cleanTempAttrs(self):
 	for key in self._shapesDict.keys():
 	    for subkey in self._shapesDict[key]:
@@ -547,7 +579,36 @@ class go(object):
 	    
 	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)   
+    
+    def build_visSubFace(self):
+	_str_funcName = "go.build_visSubFace(%s)"%self._strShortName
+	log.debug(">>> %s "%(_str_funcName) + "="*75)
+	start = time.clock()	
+	try:
+	    mi_settings = self._i_rigNull.settings
+	    #Add our attrs
+	    mPlug_moduleSubFaceDriver = cgmMeta.cgmAttr(mi_settings,'visSubFace', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
+	    mPlug_result_moduleSubFaceDriver = cgmMeta.cgmAttr(mi_settings,'visSubFace_out', defaultValue = 1, attrType = 'int', keyable = False,hidden = True,lock=True)
+	    
+	    #Get one of the drivers
+	    if self._i_module.getAttr('cgmDirection') and self._i_module.cgmDirection.lower() in ['left','right']:
+		str_mainSubDriver = "%s.%sSubControls_out"%(self._i_masterControl.controlVis.getShortName(),
+		                                            self._i_module.cgmDirection)
+	    else:
+		str_mainSubDriver = "%s.subControls_out"%(self._i_masterControl.controlVis.getShortName())
 	
+	    iVis = self._i_masterControl.controlVis
+	    visArg = [{'result':[mPlug_result_moduleSubFaceDriver.obj.mNode,mPlug_result_moduleSubFaceDriver.attr],
+		       'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubFaceDriver.attr]]}]
+	    NodeF.build_mdNetwork(visArg)
+	    
+	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
+	    return mPlug_result_moduleSubFaceDriver
+	    
+	except Exception,error:
+	    raise StandardError,"%s >> %s"%(_str_funcName,error) 
+    
+    
     #>>> Joint chains
     #=====================================================================
     def mirrorChainOrientation(self,ml_chain):

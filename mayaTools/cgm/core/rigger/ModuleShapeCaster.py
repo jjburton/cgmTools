@@ -1981,7 +1981,7 @@ def shapeCast_eyebrow(goInstance = None):
 	    self.ml_browRightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                                    cgmDirection = 'right',
 	                                                                    cgmName = 'brow')	 
-	    self.ml_browCenterHandles = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	    self.ml_browCenterHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                                      cgmDirection = 'center',
 	                                                                      cgmName = 'brow')
 	    if not self.ml_browLeftHandles:raise StandardError,"Failed to find left brow handle joints"
@@ -2037,7 +2037,7 @@ def shapeCast_eyebrow(goInstance = None):
 		except:
 		    __baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_jointList]) /4 		
 		
-		
+		    
 		for mObj in ml_jointList:
 		    try:
 			if mObj.getAttr('isSubControl') or len(ml_jointList) >1 and mObj in [ml_jointList[1]]:
@@ -2061,12 +2061,13 @@ def shapeCast_eyebrow(goInstance = None):
 			#>>Copy tags and name		    
 			mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
 			mi_crv.doName()
-			mi_crv.connectChildNode(mObj,'handleJoint','controlCurve')
+			mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
 			ml_handleCrvs.append(mi_crv)
 			
 		    except Exception,error:
 			raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
-		self.ml_handles.extend(ml_handleCrvs)
+		    
+		self.ml_handles.extend(ml_handleCrvs)	    
 		
 	def _uprCheekShapes_(self): 
 	    if not self.ml_cheekLeftHandles and self.ml_cheekRightHandles:
@@ -2112,7 +2113,7 @@ def shapeCast_eyebrow(goInstance = None):
 			#>>Copy tags and name		    
 			mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
 			mi_crv.doName()
-			mi_crv.connectChildNode(mObj,'handleJoint','controlCurve')
+			mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
 			ml_handleCrvs.append(mi_crv)
 			
 		    except Exception,error:
@@ -2131,13 +2132,13 @@ def shapeCast_eyebrow(goInstance = None):
 		ml_handleCrvs = []		
 		ml_jointList = d_build[str_direction].get('jointList')
 		l_colors = self.d_colors[str_direction]
+		_size = __baseDistance / 3
+		_color = l_colors[1]	
+		str_cast = self.str_orientation[0]+'+'	
+		
 		for mObj in ml_jointList:
 		    try:
-			_size = __baseDistance / 3
-			_color = l_colors[1]
-			    
 			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('semiSphere',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
-			str_cast = self.str_orientation[0]+'+'	
 			try:
 			    d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],mObj.mNode,axis=str_cast)
 			    if d_return:
@@ -2155,7 +2156,7 @@ def shapeCast_eyebrow(goInstance = None):
 			mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
 			mi_crv.addAttr('cgmTypeModifier','direct',lock=True)
 			mi_crv.doName()
-			mi_crv.connectChildNode(mObj,'targetJoint','controlDirectCurve')
+			mi_crv.connectChildNode(mObj,'targetJoint','controlShape')
 			ml_handleCrvs.append(mi_crv)
 			
 			#>>Copy pivot ---------------------------------------------------------------------------------
