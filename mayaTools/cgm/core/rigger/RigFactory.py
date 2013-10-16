@@ -178,11 +178,15 @@ class go(object):
 	    self._strShortName = self._i_module.getShortName() or False
 	    
 	    #>>> Instances and joint stuff ----------------------------------------------------
-	    self._jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'       
-	    self._vectorAim = cgmValid.simpleAxis("%s+"%self._jointOrientation[0]).p_vector
-	    self._vectorUp = cgmValid.simpleAxis("%s+"%self._jointOrientation[1]).p_vector
-	    self._vectorOut = cgmValid.simpleAxis("%s+"%self._jointOrientation[2]).p_vector	    
-
+	    self._mi_orientation = cgmValid.simpleOrientation(str(modules.returnSettingsData('jointOrientation')) or 'zyx')
+	    self._jointOrientation = self._mi_orientation.p_string      
+	    self._vectorAim = self._mi_orientation.p_aim.p_vector
+	    self._vectorUp = self._mi_orientation.p_up.p_vector
+	    self._vectorOut = self._mi_orientation.p_out.p_vector
+	    self._vectorAimNegative = self._mi_orientation.p_aimNegative.p_vector
+	    self._vectorUpNegative = self._mi_orientation.p_upNegative.p_vector
+	    self._vectorOutNegative = self._mi_orientation.p_outNegative.p_vector
+	    
 	except Exception,error:
 	    raise StandardError,"%s >> Module data gather fail! | %s"%(_str_funcName,error)
 	    
