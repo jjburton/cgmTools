@@ -374,8 +374,10 @@ def build_rig(goInstance = None):
 	    self._str_funcName = 'build_rig(%s)'%self.d_kwsDefined['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-	                        #{'step':'Up Locs','call':self._buildLocs_},	                        
+	                        {'step':'Special Locs','call':self._buildSpecialLocs_},	                        
 	                        {'step':'Rig Brows','call':self._buildBrows_},
+	                        {'step':'Clean up','call':self._cleanUp_},
+	                        
 	                        ]	
 	    #=================================================================
 	    if log.getEffectiveLevel() == 10:self.report()#If debug
@@ -476,18 +478,48 @@ def build_rig(goInstance = None):
 	    
 	    return True
 	
-	def _buildLocs_(self):
+	def _buildSpecialLocs_(self):
 	    #>> Need to build some up locs =======================================================================================
-	    mi_go = self._go#Rig Go instance link	    
+	    mi_go = self._go#Rig Go instance link
+	    """
 	    str_cast = mi_go._jointOrientation[1]+"+"
 	    d_return = rayCast.findMeshIntersectionFromObjectAxis(self.mi_skullPlate.mNode,self.mi_squashCastHelper.mNode,str_cast)
 	    log.info(d_return)
 	    pos = d_return.get('hit')
 	    if not pos:
 		log.warning("rayCast.findMeshIntersectionFromObjectAxis(%s,%s,%s)"%(self.l_targetMesh[0],self.mi_squashCastHelper.mNode,str_cast))
-		raise StandardError, "Failed to find hit." 	
-	    return pos
-	
+		raise StandardError, "Failed to find hit." 
+		"""
+	    try:#Brow up loc
+		str_skullPlate = self.mi_skullPlate.mNode
+		d_section = self.md_rigList['brow']		
+		#Some measurements
+		#From the outer brow to outer brow
+		f_distBrowToBrow = distance.returnDistanceBetweenObjects(d_section['left']['ml_rigJoints'][-1].mNode,
+		                                                         d_section['right']['ml_rigJoints'][-1].mNode)		
+		mi_browUpLoc = self.mi_helper.doLoc()
+		#mi_browUpLoc.parent = False
+		str_grp = mi_browUpLoc.doGroup()
+		mi_browUpLoc.__setattr__("t%s"%mi_go._jointOrientation[0],-f_distBrowToBrow/2)
+		mi_browUpLoc.__setattr__("t%s"%mi_go._jointOrientation[1],f_distBrowToBrow/2)
+		mi_browUpLoc.addAttr('cgmTypeModifier','moduleUp',lock = True)
+		mi_browUpLoc.doName()
+		
+		#mi_browUpLoc.parent = mi_go._i_rigNull#parent to rigNull
+		self.mi_browUpLoc = mi_browUpLoc #Link
+		try:
+		    d_return = surfUtils.attachObjToSurface(objToAttach = mi_browUpLoc.mNode,
+			                                    targetSurface = str_skullPlate,
+			                                    createControlLoc = False,
+			                                    createUpLoc = False,	
+		                                            parentToFollowGroup = True,		                                            
+			                                    orientation = mi_go._jointOrientation)
+		except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+		self.md_attachReturns[mi_browUpLoc] = d_return		
+		mc.delete(str_grp)
+		
+	    except Exception,error:raise StandardError,"Brow up setup. | error : %s"%(error)
+
 	def _buildBrows_(self):
 	    try:#>> Attach brow rig joints =======================================================================================
 		mi_go = self._go#Rig Go instance link
@@ -496,7 +528,8 @@ def build_rig(goInstance = None):
 		ml_rigJoints = d_section['center']['ml_rigJoints'] + d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
 		ml_handles = d_section['center']['ml_handles'] + d_section['left']['ml_handles'] + d_section['right']['ml_handles']
 		str_centerBrowRigJoint = d_section['center']['ml_rigJoints'][0].mNode
-		
+		f_offsetOfUpLoc = distance.returnDistanceBetweenObjects(d_section['left']['ml_rigJoints'][0].mNode,
+		                                                        d_section['left']['ml_rigJoints'][-1].mNode)
 		for mObj in ml_rigJoints:
 		    try:
 			try:#>> Attach ------------------------------------------------------------------------------------------
@@ -504,7 +537,7 @@ def build_rig(goInstance = None):
 				                                    targetSurface = str_skullPlate,
 				                                    createControlLoc = True,
 				                                    createUpLoc = True,
-				                                    f_offset = 1.0,
+				                                    f_offset = f_offsetOfUpLoc,
 				                                    orientation = mi_go._jointOrientation)
 			except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
 			try:#>> Setup curve locs ------------------------------------------------------------------------------------------
@@ -512,7 +545,7 @@ def build_rig(goInstance = None):
 			    mi_crvLoc = mi_controlLoc.doDuplicate(parentOnly=False)
 			    mi_crvLoc.addAttr('cgmTypeModifier','crvAttach',lock=True)
 			    mi_crvLoc.doName()
-			    mi_crvLoc.parent = False
+			    mi_crvLoc.parent = mi_go._i_rigNull#parent to rigNull
 			    d_return['crvLoc'] = mi_crvLoc #Add the curve loc
 			except Exception,error:raise StandardError,"Loc setup. | error : %s"%(error)
     
@@ -526,7 +559,8 @@ def build_rig(goInstance = None):
 			    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
 				                                    targetSurface = str_skullPlate,
 				                                    createControlLoc = False,
-				                                    createUpLoc = True,			                                        
+				                                    createUpLoc = True,	
+			                                            parentToFollowGroup = False,
 				                                    orientation = mi_go._jointOrientation)
 			except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
 			self.md_attachReturns[mObj] = d_return
@@ -543,7 +577,8 @@ def build_rig(goInstance = None):
 		
 		try:#Connect the control loc to the center handle
 		    mi_controlLoc = self.md_attachReturns[ml_rigJoints[0]]['controlLoc']
-		    cgmMeta.cgmAttr(mi_controlLoc,"translate").doConnectIn("%s.translate"%mi_centerHandle.mNode)
+		    mc.pointConstraint(mi_centerHandle.mNode,mi_controlLoc.mNode)
+		    #cgmMeta.cgmAttr(mi_controlLoc,"translate").doConnectIn("%s.translate"%mi_centerHandle.mNode)
 		except Exception,error:raise StandardError,"Control loc connect | error: %s"%(error)			
 		    
 		try:#Setup the offset group which will take half the left/right handles
@@ -560,10 +595,10 @@ def build_rig(goInstance = None):
 		    NodeF.argsToNodes(arg).doBuild()
 		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)			
 		try:#Create the brow up loc and parent it to the 
-		    mi_browUpLoc = mi_offsetGroup.doLoc()
-		    mi_browUpLoc.parent = mi_offsetGroup.parent
-		    mi_browUpLoc.tz = 10
-		    self.mi_browUpLoc = mi_browUpLoc
+		    mi_browFrontUpLoc = mi_offsetGroup.doLoc()
+		    mi_browFrontUpLoc.parent = mi_offsetGroup.parent
+		    mi_browFrontUpLoc.tz = f_offsetOfUpLoc
+		    self.mi_browFrontUpLoc = mi_browFrontUpLoc
 		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)			
 		
 	    except Exception,error:
@@ -573,13 +608,14 @@ def build_rig(goInstance = None):
 	    for i,d_browSide in enumerate([self.md_rigList['brow']['left'],self.md_rigList['brow']['right']] ):
 		ml_handles = d_browSide['ml_handles']
 		ml_rigJoints = d_browSide['ml_rigJoints']
+		"""
 		log.info("%s Handles >>>>"%self._str_reportStart)
 		for mObj in ml_handles:
 		    log.info(">>> %s "%mObj.p_nameShort)
 		log.info("%s Rig Joints >>>>"%self._str_reportStart)
 		for mObj in ml_rigJoints:
 		    log.info(">>> %s "%mObj.p_nameShort)
-		    
+		    """
 		if len(ml_handles) != 3:
 		    raise StandardError,"Only know how to rig a 3 handle brow segment. step: %s"%(i) 	
 		
@@ -596,6 +632,7 @@ def build_rig(goInstance = None):
 		    mi_crv.doCopyNameTagsFromObject(ml_rigJoints[0].mNode,ignore=['cgmIterator','cgmTypeModifier','cgmType'])
 		    mi_crv.addAttr('cgmTypeModifier','driver',lock=True)
 		    mi_crv.doName()
+		    mi_crv.parent = mi_go._i_rigNull#parent to rigNull
 		    self.ml_toVisConnect.append(mi_crv)	
 		    d_browSide['mi_crv'] = mi_crv
 		except Exception,error:raise StandardError,"Failed to build crv. step: %s | error : %s"%(i,error) 
@@ -666,8 +703,7 @@ def build_rig(goInstance = None):
 		    d_firstHandle = self.md_attachReturns[ml_handles[0]]		    
 		    self.d_buffer = d_firstRigJoint	    
 		    mi_midHandle = ml_handles[1]
-		    str_upLoc = self.mi_browUpLoc.mNode
-		    mc.parentConstraint([ml_handles[0].mNode,ml_handles[-1].mNode], mi_midHandle.masterGroup.mNode,maintainOffset = True)
+		    str_upLoc = self.mi_browUpLoc .mNode
 		    
 		    #Create offsetgroup for the mid
 		    mi_offsetGroup = cgmMeta.cgmObject( mi_midHandle.doGroup(True),setClass=True)	 
@@ -675,21 +711,41 @@ def build_rig(goInstance = None):
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
 		    
+		    mc.parentConstraint([ml_handles[0].mNode,ml_handles[-1].mNode], mi_offsetGroup.mNode,maintainOffset = True)
+		    
+		    #Create offsetgroup for the mid
+		    mi_aimGroup = cgmMeta.cgmObject( mi_midHandle.doGroup(True),setClass=True)	 
+		    mi_aimGroup.doStore('cgmName',mi_midHandle.mNode)
+		    mi_aimGroup.addAttr('cgmTypeModifier','aim',lock=True)
+		    mi_aimGroup.doName()
+		    
 		    if str_side == 'left':
 			v_aim = mi_go._vectorOutNegative
 		    else:
 			v_aim = mi_go._vectorOut
 			
-		    mc.aimConstraint(d_firstHandle['followGroup'].mNode, mi_offsetGroup.mNode,
+		    mc.aimConstraint(ml_handles[0].mNode, mi_aimGroup.mNode,
 		                     maintainOffset = True, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )
 				     
 		except Exception,error:raise StandardError,"Mid failed. step: %s | error : %s"%(i,error) 		
-		
+		    
 	    return True
 	    """
 	    for jnt in mc.ls(sl=True):
 		surfUtils.attachObjToSurface(jnt,self.mi_skullPlate.mNode,True)"""
-
+	    
+	def _cleanUp_(self):
+	    #>> Need to build some up locs =======================================================================================
+	    mi_go = self._go#Rig Go instance link
+	    try:#parent folicles to rignull
+		for k in self.md_attachReturns.keys():# we wanna parent 
+		    d_buffer = self.md_attachReturns[k]
+		    try:d_buffer['follicleFollow'].parent = mi_go._i_rigNull
+		    except:pass
+		    try:d_buffer['follicleAttach'].parent = mi_go._i_rigNull
+		    except:pass				
+	    except Exception,error:raise StandardError,"Parent follicles. | error : %s"%(error)
+	    
     return fncWrap(goInstance).go()
     
 #----------------------------------------------------------------------------------------------
