@@ -69,18 +69,32 @@ def attachObjToSurface(*args,**kws):
 	    self._str_funcName = 'attachObjToSurface'	
 	    self.__dataBind__(*args,**kws)
 	    #Trying a new method to generate args and defaults
+	    """
 	    d_kwsBuild = {'objToAttach':{'idx':0,"except":kws.get('objToAttach') or None},
 	                  'targetSurface':{'idx':1,"except":kws.get('targetSurface') or None},
 	                  'createControlLoc':{'idx':2,"except":kws.get('createControlLoc') or False},
 	                  'createUpLoc':{'idx':3,"except":kws.get('createUpLoc') or False},
-	                  'f_offset':{'idx':4,"except":kws.get('f_offset') or 1.0},
-	                  'orientation':{'idx':5,"except":kws.get('orientation') or 'zyx'}}
+	                  'parentToFollowGroup':{'idx':4,"except":kws.get('parentToFollowGroup') or True},	                  
+	                  'f_offset':{'idx':5,"except":kws.get('f_offset') or 1.0},
+	                  'orientation':{'idx':6,"except":kws.get('orientation') or 'zyx'}}
 	    for k in d_kwsBuild.iterkeys():
 		try:self.d_kwsDefined[k] = args[ d_kwsBuild[k]['idx'] ]
-		except:self.d_kwsDefined[k] = d_kwsBuild[k].get("except")
-
+		except:self.d_kwsDefined[k] = d_kwsBuild[k].get("except")"""
+	    l_kwsBuild = [{'kw':'objToAttach',"default":None},
+	                  {'kw':'targetSurface',"default":None},
+	                  {'kw':"createControlLoc","default":True},
+	                  {'kw':"createUpLoc","default":False},
+	                  {'kw':"parentToFollowGroup","default":False},	                  
+	                  {'kw':'f_offset',"default":1.0},
+	                  {'kw':'orientation',"default":'zyx'}]
+	    for i,d_buffer in enumerate(l_kwsBuild):
+		try:self.d_kwsDefined[d_buffer['kw']] = args[ i ]
+		except:
+		    try:self.d_kwsDefined[d_buffer['kw']] = kws[d_buffer['kw']]
+		    except:self.d_kwsDefined[d_buffer['kw']] = d_buffer.get("default")
 	    self.l_funcSteps = [{'step':'Validate','call':self._validate},
-		                {'step':'Create','call':self._create}]		    
+		                {'step':'Create','call':self._create}]
+	    
 	    #=================================================================
 	    if log.getEffectiveLevel() == 10:#If debug
 		self.report()
@@ -98,6 +112,7 @@ def attachObjToSurface(*args,**kws):
 	    self.mi_shape = cgmMeta.validateObjArg(self.l_shapes[0],cgmMeta.cgmNode,noneValid=False)
 	    self.b_createControlLoc = cgmValid.boolArg(self.d_kwsDefined['createControlLoc'],calledFrom=self._str_funcCombined)
 	    self.b_createUpLoc = cgmValid.boolArg(self.d_kwsDefined['createUpLoc'],calledFrom=self._str_funcCombined)
+	    self.b_parentToFollowGroup = cgmValid.boolArg(self.d_kwsDefined['parentToFollowGroup'],calledFrom=self._str_funcCombined)
 	    
 	    self.f_offset = cgmValid.valueArg(self.d_kwsDefined['f_offset'], calledFrom=self._str_funcCombined)
 	    #Get info ============================================================================
@@ -132,16 +147,33 @@ def attachObjToSurface(*args,**kws):
 	    
 	    if not self.b_createControlLoc:#If we don't have a control loc setup, we're just attaching to the surface
 		#Groups =======================================================================================
-		mi_followGroup = cgmMeta.cgmObject( self.mi_obj.doGroup(False),setClass=True)	 
+		mi_followGroup = self.mi_obj.doDuplicateTransform(True)
 		mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
 		mi_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
 		mi_followGroup.doName()	    
 		mi_followGroup.parent = mi_follicleAttachTrans
 		
-		self.mi_obj.parent = mi_followGroup	
-		self.md_return["followGroup"] = mi_followGroup
+		if self.b_parentToFollowGroup:
+		    #raise StandardError,"shouldn't be here"		    
+		    self.mi_obj.parent = mi_followGroup	
+		    self.md_return["followGroup"] = mi_followGroup
+		else:
+		    #Driver loc -----------------------------------------------------------------------
+		    mi_driverLoc = self.mi_obj.doLoc()
+		    mi_driverLoc.doStore('cgmName',self.mi_obj.mNode)
+		    mi_driverLoc.addAttr('cgmTypeModifier','driver',lock=True)
+		    mi_driverLoc.doName()
+		    self.mi_driverLoc = mi_driverLoc
+		    mi_driverLoc.parent = mi_followGroup
+		    mi_driverLoc.visibility = False
+		
+		    self.md_return["driverLoc"] = mi_driverLoc
+		    #Constrain =====================================================================
+		    mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
+		    mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)  		    
 		
 	    else:#Setup control loc stuff
+		#raise StandardError,"nope"
 		#>>> Follicle ============================================================================
 		l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
 		mi_follicleFollowTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
