@@ -256,6 +256,12 @@ class simpleOrientation():
 	return simpleAxis(self.str_orientation[1])
     def getOutAxis(self):
 	return simpleAxis(self.str_orientation[2]) 
+    def getAimAxisNegative(self):
+	return simpleAxis(self.str_orientation[0]+"-")
+    def getUpAxisNegative(self):
+	return simpleAxis(self.str_orientation[1]+"-")
+    def getOutAxisNegative(self):
+	return simpleAxis(self.str_orientation[2]+"-")     
     def getRotateOrderIndex(self):
 	return d_rotateOrder.get(self.str_orientation)     
     p_string = property(asString)
@@ -263,7 +269,9 @@ class simpleOrientation():
     p_up = property(getUpAxis)
     p_out = property(getOutAxis)
     p_ro = property(getRotateOrderIndex)
-    
+    p_aimNegative = property(getAimAxisNegative)
+    p_upNegative = property(getUpAxisNegative)
+    p_outNegative = property(getOutAxisNegative)    
 #>>> Simple Axis ==========================================================================
 l_axisDirectionsByString = ['x+','y+','z+','x-','y-','z-'] #Used for several menus and what not
 
