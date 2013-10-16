@@ -124,6 +124,10 @@ class cgmFuncCls(object):
 	if int_max == 0:#If it's a one step, return, return the single return
 	    try:return self.d_return[self.d_return.keys()[0]]
 	    except:pass
+	for k in self.d_return.keys():#Otherise we return the first one with actual data
+	    buffer = self.d_return.get(k)
+	    if buffer:
+		return buffer
 	return self.d_return
     
     def report(self):
