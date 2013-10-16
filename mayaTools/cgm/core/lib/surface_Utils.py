@@ -46,14 +46,17 @@ reload(distance)
 
 #>>> Utilities
 #===================================================================
-def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLoc = False, targetUpObj = None, orientation = None,**kws):
+def attachObjToSurface(*args,**kws):
     """
-    Function to attach an object to a surface. Actions to do:
-    1)Make a transform group that follows the surface
-    2)Make a follicle
+    objToAttach = None
+    targetSurface = None
+    createControlLoc False
+    createUpLoc = None
+    f_offset = 1.0
+    orientation = 'zyx',
     """
     class fncWrap(cgmGeneral.cgmFuncCls):
-	def __init__(self, objToAttach = None, targetSurface = None, createControlLoc = False, targetUpObj = None, orientation = None,**kws):
+	def __init__(self,*args, **kws):
 	    """
 	    @kws
 	    source -- joint to add length to
@@ -62,14 +65,20 @@ def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLo
 	    orienation(str) -- joint orientation
     
 	    """		    
-	    super(fncWrap, self).__init__(objToAttach, targetSurface, createControlLoc, targetUpObj,orientation,**kws)
+	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = 'attachObjToSurface'	
-	    self.__dataBind__(**kws)
-	    self.d_kwsDefined = {'objToAttach':objToAttach,
-	                         'targetSurface':targetSurface,
-	                         'targetUpObj':targetUpObj,
-	                         'createControlLoc':createControlLoc,
-	                         'orientation':orientation,}
+	    self.__dataBind__(*args,**kws)
+	    #Trying a new method to generate args and defaults
+	    d_kwsBuild = {'objToAttach':{'idx':0,"except":kws.get('objToAttach') or None},
+	                  'targetSurface':{'idx':1,"except":kws.get('targetSurface') or None},
+	                  'createControlLoc':{'idx':2,"except":kws.get('createControlLoc') or False},
+	                  'createUpLoc':{'idx':3,"except":kws.get('createUpLoc') or False},
+	                  'f_offset':{'idx':4,"except":kws.get('f_offset') or 1.0},
+	                  'orientation':{'idx':5,"except":kws.get('orientation') or 'zyx'}}
+	    for k in d_kwsBuild.iterkeys():
+		try:self.d_kwsDefined[k] = args[ d_kwsBuild[k]['idx'] ]
+		except:self.d_kwsDefined[k] = d_kwsBuild[k].get("except")
+
 	    self.l_funcSteps = [{'step':'Validate','call':self._validate},
 		                {'step':'Create','call':self._create}]		    
 	    #=================================================================
@@ -79,21 +88,26 @@ def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLo
 	def _validate(self):
 	    #>> validate ============================================================================
 	    self.mi_obj = cgmMeta.validateObjArg(self.d_kwsDefined['objToAttach'],cgmMeta.cgmObject,noneValid=False)
-	    self.mi_targetUpObj = cgmMeta.validateObjArg(self.d_kwsDefined['targetUpObj'],cgmMeta.cgmObject,noneValid=True)
 	    self.mi_targetSurface = cgmMeta.validateObjArg(self.d_kwsDefined['targetSurface'],mayaType='nurbsSurface',noneValid=False)
-	    
+	    self.mi_orientation = cgmValid.simpleOrientation( self.d_kwsDefined['orientation'] )
 	    self._str_funcCombined = self._str_funcCombined + "(%s,%s)"%(self.mi_obj.p_nameShort,self.mi_targetSurface.p_nameShort)
 	    
 	    self.l_shapes = mc.listRelatives(self.mi_targetSurface.mNode,shapes=True)
 	    if len(self.l_shapes)>1:
-		log.warning( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(self.mi_targetSurface.p_nameShort,self.l_shapes) )
+		log.debug( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(self.mi_targetSurface.p_nameShort,self.l_shapes) )
 	    self.mi_shape = cgmMeta.validateObjArg(self.l_shapes[0],cgmMeta.cgmNode,noneValid=False)
 	    self.b_createControlLoc = cgmValid.boolArg(self.d_kwsDefined['createControlLoc'],calledFrom=self._str_funcCombined)
+	    self.b_createUpLoc = cgmValid.boolArg(self.d_kwsDefined['createUpLoc'],calledFrom=self._str_funcCombined)
 	    
+	    self.f_offset = cgmValid.valueArg(self.d_kwsDefined['f_offset'], calledFrom=self._str_funcCombined)
 	    #Get info ============================================================================
 	    self.d_closestInfo = distance.returnClosestPointOnSurfaceInfo(self.mi_obj.mNode,self.mi_targetSurface.mNode)
 	    
+	    #Running Lists ============================================================================
+	    self.md_return = {}
+	    
 	def _create(self):
+	    #>> Quick links ============================================================================ 
 	    d_closestInfo = self.d_closestInfo
 	    
 	    #>>> Follicle ============================================================================	    
@@ -113,20 +127,21 @@ def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLo
 	    self.mi_follicleAttachTrans = mi_follicleAttachTrans#link
 	    self.mi_follicleAttachShape = mi_follicleAttachShape#link
 	    self.mi_obj.connectChildNode(mi_follicleAttachTrans,"follicleAttach","targetObject")
-	        
+	    self.md_return["follicleAttach"] = mi_follicleAttachTrans
+	    self.md_return["follicleAttachShape"] = mi_follicleAttachShape
+	    
 	    if not self.b_createControlLoc:#If we don't have a control loc setup, we're just attaching to the surface
 		#Groups =======================================================================================
-		mi_zeroGroup = cgmMeta.cgmObject( self.mi_obj.doGroup(False),setClass=True)	 
-		mi_zeroGroup.doStore('cgmName',self.mi_obj.mNode)
-		mi_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
-		mi_zeroGroup.doName()	    
-		mi_zeroGroup.parent = mi_follicleAttachTrans
+		mi_followGroup = cgmMeta.cgmObject( self.mi_obj.doGroup(False),setClass=True)	 
+		mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
+		mi_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
+		mi_followGroup.doName()	    
+		mi_followGroup.parent = mi_follicleAttachTrans
 		
-		self.mi_obj.parent = mi_zeroGroup
+		self.mi_obj.parent = mi_followGroup	
+		self.md_return["followGroup"] = mi_followGroup
 		
-		return {}
-		
-	    else:
+	    else:#Setup control loc stuff
 		#>>> Follicle ============================================================================
 		l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
 		mi_follicleFollowTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
@@ -137,15 +152,17 @@ def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLo
 		mi_follicleFollowTrans.addAttr('cgmTypeModifier','follow',lock=True)
 		mi_follicleFollowTrans.doName()
 		
-
 		#>Set follicle value ---------------------------------------------------------------------
 		mi_follicleFollowShape.parameterU = d_closestInfo['normalizedU']
 		mi_follicleFollowShape.parameterV = d_closestInfo['normalizedV']
 		
 		self.mi_follicleFollowTrans = mi_follicleFollowTrans#link
 		self.mi_follicleFollowShape = mi_follicleFollowShape#link
+		self.md_return["follicleFollow"] = mi_follicleFollowTrans
+		self.md_return["follicleFollowShape"] = mi_follicleFollowShape
+		
+		self.mi_obj.connectChildNode(mi_follicleFollowTrans,"follicleFollow")
 	
-
 		#Groups =======================================================================================
 		mi_followGroup = mi_follicleFollowTrans.duplicateTransform()
 		mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
@@ -153,13 +170,16 @@ def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLo
 		mi_followGroup.doName()
 		self.mi_followGroup = mi_followGroup
 		self.mi_followGroup.parent = mi_follicleFollowTrans
+		self.md_return["followGroup"] = mi_followGroup
 		
 		mi_offsetGroup = self.mi_obj.duplicateTransform()
 		mi_offsetGroup.doStore('cgmName',self.mi_obj.mNode)
 		mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		mi_offsetGroup.doName()
 		mi_offsetGroup.parent = mi_followGroup
-		self.mi_offsetGroup =   mi_offsetGroup 
+		self.mi_offsetGroup = mi_offsetGroup 
+		self.md_return["offsetGroup"] = mi_offsetGroup
+		mi_follicleFollowTrans.connectChildNode(mi_offsetGroup,"followOffsetGroup","follicle")
 		
 		mi_zeroGroup = cgmMeta.cgmObject( mi_offsetGroup.doGroup(True),setClass=True)	 
 		mi_zeroGroup.doStore('cgmName',self.mi_obj.mNode)
@@ -167,6 +187,7 @@ def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLo
 		mi_zeroGroup.doName()	    
 		mi_zeroGroup.parent = mi_followGroup
 		self.mi_zeroGroup = mi_zeroGroup
+		self.md_return["zeroGroup"] = mi_zeroGroup
 				
 		#Driver loc -----------------------------------------------------------------------
 		mi_driverLoc = self.mi_obj.doLoc()
@@ -177,12 +198,15 @@ def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLo
 		mi_driverLoc.parent = mi_offsetGroup
 		mi_driverLoc.visibility = False
 		
+		self.md_return["driverLoc"] = mi_driverLoc
+		
 		#Closest setup =====================================================================
 		mi_controlLoc = self.mi_obj.doLoc()
 		mi_controlLoc.doStore('cgmName',self.mi_obj.mNode)
 		mi_controlLoc.addAttr('cgmTypeModifier','control',lock=True)
 		mi_controlLoc.doName()
 		self.mi_controlLoc = mi_controlLoc
+		self.md_return["controlLoc"] = mi_controlLoc
 		
 		mi_group = cgmMeta.cgmObject( mi_controlLoc.doGroup(),setClass=True )
 		mi_group.parent = mi_follicleAttachTrans
@@ -208,71 +232,21 @@ def attachObjToSurface(objToAttach = None, targetSurface = None, createControlLo
 		mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)    
 		
 		#mc.orientConstraint(self.mi_controlLoc.mNode, self.mi_driverLoc.mNode, maintainOffset = True) 
-		for attr in ['z']:
+		for attr in self.mi_orientation.p_string[0]:
 		    attributes.doConnectAttr  ((mi_controlLoc.mNode+'.t%s'%attr),(mi_offsetGroup.mNode+'.t%s'%attr))
-		
-	    return
-	    
-	    """ make the node """
-	    closestPointNode = mc.createNode ('closestPointOnSurface',name= (obj+'_closestPointInfoNode'))
-	    """ to account for target objects in heirarchies """
-	    attributes.doConnectAttr((surfaceLoc+'.translate'),(closestPointNode+'.inPosition'))
-	    attributes.doConnectAttr((controlSurface[0]+'.worldSpace'),(closestPointNode+'.inputSurface'))
-	    
-	    pointOnSurfaceNode = mc.createNode ('pointOnSurfaceInfo',name= (obj+'_posInfoNode'))
-	    """ Connect the info node to the surface """                  
-	    attributes.doConnectAttr  ((controlSurface[0]+'.worldSpace'),(pointOnSurfaceNode+'.inputSurface'))
-	    """ Contect the pos group to the info node"""
-	    attributes.doConnectAttr ((pointOnSurfaceNode+'.position'),(surfaceFollowGroup+'.translate'))
-	    attributes.doConnectAttr ((closestPointNode+'.parameterU'),(pointOnSurfaceNode+'.parameterU'))
-	    attributes.doConnectAttr  ((closestPointNode+'.parameterV'),(pointOnSurfaceNode+'.parameterV'))
+		    
+		if self.b_createUpLoc:#Make our up loc =============================================================
+		    mi_upLoc = mi_zeroGroup.doLoc()
+		    mi_upLoc.doStore('cgmName',self.mi_obj.mNode)
+		    mi_upLoc.addAttr('cgmTypeModifier','up',lock=True)
+		    mi_upLoc.doName()
+		    mi_upLoc.parent = mi_zeroGroup
+		    self.md_return["upLoc"] = mi_upLoc
+		    mi_follicleFollowTrans.connectChildNode(mi_upLoc,"followUpLoc","follicle")
+		    
+		    #Move it ----------------------------------------------------------------------------------------
+		    mi_upLoc.__setattr__("t%s"%self.mi_orientation.p_string[0],self.f_offset)
+				
+	    return self.md_return
 	
-	    """ if we wanna aim """
-	    if aimObject != False: 
-		""" make some locs """
-		upLoc = locators.locMeObject(surface)
-		aimLoc = locators.locMeObject(aimObject)
-		attributes.storeInfo(upLoc,'cgmName',obj)
-		attributes.storeInfo(upLoc,'cgmTypeModifier','up')
-		upLoc = NameFactoryOld.doNameObject(upLoc)
-		
-		attributes.storeInfo(aimLoc,'cgmName',aimObject)
-		attributes.storeInfo(aimLoc,'cgmTypeModifier','aim')
-		aimLoc = NameFactoryOld.doNameObject(aimLoc)
-	
-		attributes.storeInfo(surfaceFollowGroup,'locatorUp',upLoc)
-		attributes.storeInfo(surfaceFollowGroup,'aimLoc',aimLoc)
-		#mc.parent(upLoc,aimObject)
-		
-		boundingBoxSize = distance.returnBoundingBoxSize(surface)
-		f_distance = max(boundingBoxSize)*2
-		
-		mc.xform(upLoc,t = [0,f_distance,0],ws=True,r=True)
-		
-		attributes.doConnectAttr((aimLoc+'.translate'),(closestPointNode+'.inPosition'))
-	
-		""" constrain the aim loc to the aim object """
-		pointConstraintBuffer = mc.pointConstraint(aimObject,aimLoc,maintainOffset = True, weight = 1)
-		
-		""" aim it """
-		aimConstraintBuffer = mc.aimConstraint(aimLoc,surfaceFollowGroup,maintainOffset = True, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
-	
-		""" aim the controller back at the obj"""
-		aimConstraintBuffer = mc.aimConstraint(obj,aimLoc,maintainOffset = True, weight = 1, aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
-		
-		mc.parent(upLoc,aimObject)
-	    else:
-		mc.delete(closestPointNode)
-	    
-	    transformGroup = rigging.doParentReturnName(transformGroup,surfaceFollowGroup)
-	    """finally parent it"""    
-	    if parent == True:
-		mc.parent(obj,transformGroup)
-		
-	    if parent == 'constrain':
-		mc.parentConstraint(transformGroup,obj,maintainOffset = True)
-	    
-	    mc.delete(surfaceLoc)
-	    return [transformGroup,surfaceFollowGroup]
-	
-    return fncWrap(objToAttach, targetSurface, createControlLoc, targetUpObj, orientation,**kws).go()
+    return fncWrap(*args,**kws).go()
