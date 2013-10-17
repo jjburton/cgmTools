@@ -375,7 +375,8 @@ def build_rig(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Special Locs','call':self._buildSpecialLocs_},	                        
-	                        {'step':'Rig Brows','call':self._buildBrows_},
+	                        #{'step':'Rig Brows','call':self._buildBrows_},
+	                        {'step':'Rig Upr Cheek','call':self._buildUprCheek_},
 	                        {'step':'Clean up','call':self._cleanUp_},
 	                        
 	                        ]	
@@ -673,9 +674,7 @@ def build_rig(goInstance = None):
 					                     weight = 1,
 					                     aimVector = d_sub['aimVector'], upVector = v_up,
 					                     worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )
-					mc.orientConstraint([d_tomake['aimIn']['aimLoc'].mNode, d_tomake['aimOut']['aimLoc'].mNode],str_offsetGroup,maintainOffset = True)
-					#str_centerBrowRigJoint
-					
+					mc.orientConstraint([d_tomake['aimIn']['aimLoc'].mNode, d_tomake['aimOut']['aimLoc'].mNode],str_offsetGroup,maintainOffset = True)					
 				    else:
 					ml_targets = [ml_rigJoints[obj_idx+1]]	
 					mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup,
@@ -730,9 +729,119 @@ def build_rig(goInstance = None):
 		except Exception,error:raise StandardError,"Mid failed. step: %s | error : %s"%(i,error) 		
 		    
 	    return True
-	    """
-	    for jnt in mc.ls(sl=True):
-		surfUtils.attachObjToSurface(jnt,self.mi_skullPlate.mNode,True)"""
+	
+	def _buildUprCheek_(self):
+	    try:#>> Attach uprCheek rig joints =======================================================================================
+		mi_go = self._go#Rig Go instance link
+		str_skullPlate = self.mi_skullPlate.mNode
+		d_section = self.md_rigList['uprCheek']
+		ml_rigJoints = d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
+		ml_handles = d_section['left']['ml_handles'] + d_section['right']['ml_handles']
+		f_offsetOfUpLoc = distance.returnDistanceBetweenObjects(d_section['left']['ml_rigJoints'][0].mNode,
+		                                                        d_section['left']['ml_rigJoints'][-1].mNode)
+		for mObj in ml_rigJoints:
+		    try:
+			try:#>> Attach ------------------------------------------------------------------------------------------
+			    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+				                                    targetSurface = str_skullPlate,
+				                                    createControlLoc = True,
+				                                    createUpLoc = True,
+				                                    f_offset = f_offsetOfUpLoc,
+				                                    orientation = mi_go._jointOrientation)
+			except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+			try:#>> Setup curve locs ------------------------------------------------------------------------------------------
+			    mi_controlLoc = d_return['controlLoc']
+			    mi_crvLoc = mi_controlLoc.doDuplicate(parentOnly=False)
+			    mi_crvLoc.addAttr('cgmTypeModifier','crvAttach',lock=True)
+			    mi_crvLoc.doName()
+			    mi_crvLoc.parent = mi_go._i_rigNull#parent to rigNull
+			    d_return['crvLoc'] = mi_crvLoc #Add the curve loc
+			except Exception,error:raise StandardError,"Loc setup. | error : %s"%(error)
+    
+			self.md_attachReturns[mObj] = d_return
+		    except Exception,error:
+			raise StandardError,"Attach rig joint loop. obj: %s | error : %s"%(mObj.p_nameShort,error)	    
+		    
+		for mObj in ml_handles:
+		    try:
+			try:#>> Attach ------------------------------------------------------------------------------------------
+			    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+				                                    targetSurface = str_skullPlate,
+				                                    createControlLoc = False,
+				                                    createUpLoc = True,	
+			                                            parentToFollowGroup = False,
+				                                    orientation = mi_go._jointOrientation)
+			except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+			self.md_attachReturns[mObj] = d_return
+		    except Exception,error:
+			raise StandardError,"Attach handle. obj: %s | error : %s"%(mObj.p_nameShort,error)	  
+	    except Exception,error:
+		raise StandardError,"Attach | %s"%(error)
+	    	    
+	    #>> Left and Right =======================================================================================
+	    for i,d_uprCheekSide in enumerate([self.md_rigList['uprCheek']['left'],self.md_rigList['uprCheek']['right']] ):
+		ml_handles = d_uprCheekSide['ml_handles']
+		ml_rigJoints = d_uprCheekSide['ml_rigJoints']
+
+		if len(ml_handles) != 2:
+		    raise StandardError,"Only know how to rig a 2 handle uprCheek segment. step: %s"%(i) 	
+		
+		str_side = ml_rigJoints[0].cgmDirection
+		v_up = mi_go._vectorAim
+		if str_side == 'left':
+		    v_aim = mi_go._vectorOut
+		else:
+		    v_aim = mi_go._vectorOutNegative
+		    
+		try:#Create our curves ------------------------------------------------------------------------------------
+		    str_crv = mc.curve(d=1,ep=[mObj.getPosition() for mObj in ml_rigJoints],os =True)
+		    mi_crv = cgmMeta.cgmObject(str_crv,setClass=True)
+		    mi_crv.doCopyNameTagsFromObject(ml_rigJoints[0].mNode,ignore=['cgmIterator','cgmTypeModifier','cgmType'])
+		    mi_crv.addAttr('cgmTypeModifier','driver',lock=True)
+		    mi_crv.doName()
+		    mi_crv.parent = mi_go._i_rigNull#parent to rigNull
+		    self.ml_toVisConnect.append(mi_crv)	
+		    d_uprCheekSide['mi_crv'] = mi_crv
+		except Exception,error:raise StandardError,"Failed to build crv. step: %s | error : %s"%(i,error) 
+		
+		try:# Setup rig joints ------------------------------------------------------------------------------------
+		    int_lastIndex = len(ml_rigJoints) - 1
+		    for obj_idx,mObj in enumerate( ml_rigJoints ):
+			d_current = self.md_attachReturns[mObj]
+			try:
+			    try:#>> Attach  loc to curve --------------------------------------------------------------------------------------
+				mi_crvLoc = d_current['crvLoc']
+				mi_controlLoc = d_current['controlLoc']
+				crvUtils.attachObjToCurve(mi_crvLoc.mNode,mi_crv.mNode)
+				mc.pointConstraint(mi_crvLoc.mNode,mi_controlLoc.mNode,maintainOffset = True)
+				
+			    except Exception,error:raise StandardError,"Failed to attach to crv. | error : %s"%(error)
+			    try:#>> Aim the offset group  ------------------------------------------------------------------------------------------
+				if obj_idx != int_lastIndex:
+				    str_upLoc = d_current['upLoc'].mNode
+				    str_offsetGroup = d_current['offsetGroup'].mNode				    
+				    ml_targets = [ml_rigJoints[obj_idx+1]]	
+				    mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup,
+				                     maintainOffset = True, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )				    
+			    except Exception,error:raise StandardError,"Loc setup. | error : %s"%(error)
+	
+			    self.md_attachReturns[mObj] = d_current#push back
+			except Exception,error:
+			    raise StandardError,"Rig joint setup fail. obj: %s | error : %s"%(mObj.p_nameShort,error)	    
+		except Exception,error:raise StandardError,"Rig joint setup fail. step: %s | error : %s"%(i,error) 
+		
+		try:#Skin -------------------------------------------------------------------------------------------------
+		    mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mObj.mNode for mObj in ml_handles],
+		                                                  mi_crv.mNode,
+		                                                  tsb=True,
+		                                                  maximumInfluences = 3,
+		                                                  normalizeWeights = 1,dropoffRate=2.5)[0])
+		    mi_skinNode.doCopyNameTagsFromObject(mi_crv.mNode,ignore=['cgmType'])
+		    mi_skinNode.doName()
+		    d_uprCheekSide['mi_skinNode'] = mi_skinNode
+		except Exception,error:raise StandardError,"Failed to skinCluster crv. step: %s | error : %s"%(i,error) 
+		    
+	    return True
 	    
 	def _cleanUp_(self):
 	    #>> Need to build some up locs =======================================================================================
