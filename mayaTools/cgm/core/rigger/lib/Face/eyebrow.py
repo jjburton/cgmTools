@@ -144,6 +144,11 @@ def build_rigSkeleton(goInstance = None):
 	    ml_rigJoints = mi_go.build_rigChain()
 	    for mJnt in ml_rigJoints:
 		mJnt.parent = False
+		
+	    ml_rightRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints , cgmDirection = 'right')
+	    for mJoint in ml_rightRigJoints:
+		mJoint.__setattr__("r%s"%mi_go._jointOrientation[1],180)
+		jntUtils.freezeJointOrientation(mJoint)
 	    """
 	    ml_rigJoints = []
 	    for i,mJoint in enumerate(mi_go._ml_skinJoints):
@@ -204,19 +209,25 @@ def build_rigSkeleton(goInstance = None):
 				i_j = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
 				i_j.parent = False#Parent to world				
 				i_j.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
-				if i == 0:
-				    i_j.addAttr('cgmNameModifier','start',attrType='string',lock=True)
-				else:
-				    i_j.addAttr('cgmNameModifier','end',attrType='string',lock=True)
-				
+				if len(self.l_build)>1:
+				    if i == 0:
+					i_j.addAttr('cgmNameModifier','start',attrType='string',lock=True)
+				    else:
+					i_j.addAttr('cgmNameModifier','end',attrType='string',lock=True)
+				    
 				try:i_j.doRemove('cgmIterator')#Purge the iterator
 				except:pass
-				
 				i_j.doName()
 				ml_handleJoints.append(i_j)			
 			
 			self.md_sortedJoints[k_name][k_direction]['handle'] = ml_handleJoints
 			ml_moduleHandleJoints.extend(ml_handleJoints)
+			
+			ml_rightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints , cgmDirection = 'right')
+			for mJoint in ml_rightHandles:
+			    mJoint.__setattr__("r%s"%mi_go._jointOrientation[1],180)
+			    jntUtils.freezeJointOrientation(mJoint)			
+			    
 	    mi_go._i_rigNull.msgList_connect(ml_moduleHandleJoints,'handleJoints',"rigNull")
 	    self.ml_moduleHandleJoints = ml_moduleHandleJoints
 		    
@@ -321,7 +332,7 @@ def build_controls(goInstance = None):
 			#Register 
 			try:
 			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),
-				                                       mirrorSide = str_mirrorSide, mirrorAxis="",		                                           
+				                                       mirrorSide = str_mirrorSide, mirrorAxis="translateZ,rotateX,rotateY",		                                           
 				                                       makeAimable=False, typeModifier=l_strTypeModifiers[ii]) 	    
 			except Exception,error:
 			    log.error("mObj: %s"%mObj.p_nameShort)
@@ -376,7 +387,8 @@ def build_rig(goInstance = None):
 	                        {'step':'Special Locs','call':self._buildSpecialLocs_},	                        
 	                        {'step':'Rig Brows','call':self._buildBrows_},
 	                        {'step':'Rig Upr Cheek','call':self._buildUprCheek_},
-	                        {'step':'Attach squash','call':self._attachSquash_},
+	                        {'step':'Rig Temple','call':self._buildTemple_},
+	                        {'step':'Attach Squash','call':self._attachSquash_},
 	                        {'step':'Clean up','call':self._cleanUp_},
 	                        
 	                        ]	
@@ -445,6 +457,13 @@ def build_rig(goInstance = None):
 	                                                                                                 cgmDirection = 'right',
 	                                                                                                 cgmName = 'uprCheek') 	    
 	    #>> Temple --------------------------------------------------------------------------------------------------
+	    self.md_rigList['temple']['left']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                                              cgmDirection = 'left',
+	                                                                                              cgmName = 'temple')
+	    self.md_rigList['temple']['right']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                                               cgmDirection = 'right',
+	                                                                                               cgmName = 'temple') 	
+	    
 	    self.md_rigList['temple']['left']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                                                cgmDirection = 'left',
 	                                                                                                cgmName = 'temple')
@@ -456,22 +475,11 @@ def build_rig(goInstance = None):
 	                                                                                      cgmNameModifier = 'squash')
 	    
 	    self.mi_squashCastHelper = cgmMeta.validateObjArg(self.mi_helper.getMessage('squashCastHelper'),noneValid=True)	    
-	    """
-	    self.ml_leftRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                  cgmDirection = 'left')
-	    self.ml_rightRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                  cgmDirection = 'right')
-	    self.ml_centerRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                    cgmDirection = 'center')	
-	    self.ml_topRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                 cgmDirection = 'top')	
-	    self.ml_backRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                  cgmDirection = 'back')
+
+	    #>> Calculate ==========================================================================
+	    self.f_offsetOfUpLoc = distance.returnDistanceBetweenObjects(self.md_rigList['brow']['left']['ml_rigJoints'][0].mNode,
+	                                                                 self.md_rigList['brow']['left']['ml_rigJoints'][-1].mNode)
 	    
-	    if not self.ml_leftRigJoints:raise StandardError,"Failed to find left rig joints"
-	    if not self.ml_rightRigJoints:raise StandardError,"Failed to find right rig joints"
-	    if not self.ml_centerRigJoints:raise StandardError,"Failed to find center rig joints"	
-	    """
 	    #>> Running lists ==========================================================================
 	    self.ml_toVisConnect = []
 	    self.ml_curves = []
@@ -669,10 +677,13 @@ def build_rig(goInstance = None):
 					    mi_loc.doName()
 					    mi_loc.parent = d_current['zeroGroup']
 					    d_sub['aimLoc'] = mi_loc
+					    v_aimVector = d_sub['aimVector']
+					    if str_side == 'right':
+						v_aimVector = cgmMath.multiplyLists([v_aimVector,[-1,-1,-1]])
 					    mc.aimConstraint(str_target,mi_loc.mNode,
 					                     maintainOffset = True,
 					                     weight = 1,
-					                     aimVector = d_sub['aimVector'], upVector = v_up,
+					                     aimVector = v_aimVector, upVector = v_up,
 					                     worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )
 					mc.orientConstraint([d_tomake['aimIn']['aimLoc'].mNode, d_tomake['aimOut']['aimLoc'].mNode],str_offsetGroup,maintainOffset = True)					
 				    else:
@@ -737,8 +748,8 @@ def build_rig(goInstance = None):
 		d_section = self.md_rigList['uprCheek']
 		ml_rigJoints = d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
 		ml_handles = d_section['left']['ml_handles'] + d_section['right']['ml_handles']
-		f_offsetOfUpLoc = distance.returnDistanceBetweenObjects(d_section['left']['ml_rigJoints'][0].mNode,
-		                                                        d_section['left']['ml_rigJoints'][-1].mNode)
+		f_offsetOfUpLoc = self.f_offsetOfUpLoc
+		
 		for mObj in ml_rigJoints:
 		    try:
 			try:#>> Attach ------------------------------------------------------------------------------------------
@@ -864,7 +875,53 @@ def build_rig(goInstance = None):
 	    return True
 		
 	def _buildTemple_(self):
-	    pass
+	    try:#>> Attach temple rig joints =======================================================================================
+		mi_go = self._go#Rig Go instance link
+		str_skullPlate = self.mi_skullPlate.mNode
+		d_section = self.md_rigList['temple']
+		ml_rigJoints = d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
+		ml_handles = d_section['left']['ml_handles'] + d_section['right']['ml_handles']
+    
+		for mObj in ml_rigJoints:
+		    try:
+			try:#>> Attach ------------------------------------------------------------------------------------------
+			    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+				                                    targetSurface = str_skullPlate,
+				                                    createControlLoc = True,
+				                                    createUpLoc = True,
+				                                    f_offset = self.f_offsetOfUpLoc,
+				                                    orientation = mi_go._jointOrientation)
+			except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+			self.md_attachReturns[mObj] = d_return
+		    except Exception,error:
+			raise StandardError,"Attach rig joint loop. obj: %s | error : %s"%(mObj.p_nameShort,error)	    
+		    
+		for mObj in ml_handles:
+		    try:
+			try:#>> Attach ------------------------------------------------------------------------------------------
+			    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+				                                    targetSurface = str_skullPlate,
+				                                    createControlLoc = False,
+				                                    createUpLoc = True,	
+				                                    parentToFollowGroup = False,
+				                                    orientation = mi_go._jointOrientation)
+			except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+			self.md_attachReturns[mObj] = d_return
+		    except Exception,error:
+			raise StandardError,"Attach handle. obj: %s | error : %s"%(mObj.p_nameShort,error)	  
+	    except Exception,error:
+		raise StandardError,"Attach | %s"%(error)		
+	    
+	    try:#>> Setup handle =======================================================================================
+		for i,mObj in enumerate(ml_handles):
+		    try:#Connect the control loc to the center handle
+			mi_controlLoc = self.md_attachReturns[ml_rigJoints[i]]['controlLoc']
+			mc.pointConstraint(mObj.mNode,mi_controlLoc.mNode,maintainOffset = True)
+			#cgmMeta.cgmAttr(mi_controlLoc,"translate").doConnectIn("%s.translate"%mi_centerHandle.mNode)
+		    except Exception,error:raise StandardError,"Control loc connect | error: %s"%(error)			
+				
+	    except Exception,error:
+		raise StandardError,"Setup handle | %s"%(error)
 	
 	def _cleanUp_(self):
 	    #>> Need to build some up locs =======================================================================================
