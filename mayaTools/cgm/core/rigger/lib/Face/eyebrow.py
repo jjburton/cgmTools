@@ -161,7 +161,7 @@ def build_rigSkeleton(goInstance = None):
 	    ml_moduleHandleJoints = []
 	    for k_name in self.md_sortedJoints.keys():#For each name...
 		for k_direction in self.md_sortedJoints[k_name].keys():#for each direction....
-		    if k_name in ['brow','uprCheek']:
+		    if k_name in ['brow','uprCheek','temple']:
 			log.info("Building '%s' | '%s' handle joints"%(k_name,k_direction))
 			ml_skinJoints = self.md_sortedJoints[k_name][k_direction]['skin']
 			ml_handleJoints = []
@@ -173,7 +173,8 @@ def build_rigSkeleton(goInstance = None):
 			    self.l_build = [ml_skinJoints[0]]			    
 			elif k_name == 'uprCheek' and k_direction in ['left','right']:
 			    self.l_build = [ml_skinJoints[0],ml_skinJoints[-1]]
-			    
+			elif k_name == 'temple' and k_direction in ['left','right']:
+			    self.l_build = [ml_skinJoints[0]]
 			#Build ----------------------------------------------------------
 			for i,mJnt in enumerate(self.l_build):
 			    if mJnt == 'mid':
@@ -223,9 +224,7 @@ def build_rigSkeleton(goInstance = None):
 	    ml_jointsToConnect = []
 	    ml_jointsToConnect.extend(self.ml_rigJoints)    
 	    #ml_jointsToConnect.extend(self.ml_moduleHandleJoints)
-	    
 	    #self._go.connect_toRigGutsVis(ml_jointsToConnect,vis = True)#connect to guts vis switches
-	    
 	    """
 	    for i_jnt in ml_jointsToConnect:
 		i_jnt.overrideEnabled = 1		
@@ -375,8 +374,9 @@ def build_rig(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Special Locs','call':self._buildSpecialLocs_},	                        
-	                        #{'step':'Rig Brows','call':self._buildBrows_},
+	                        {'step':'Rig Brows','call':self._buildBrows_},
 	                        {'step':'Rig Upr Cheek','call':self._buildUprCheek_},
+	                        {'step':'Attach squash','call':self._attachSquash_},
 	                        {'step':'Clean up','call':self._cleanUp_},
 	                        
 	                        ]	
@@ -843,6 +843,29 @@ def build_rig(goInstance = None):
 		    
 	    return True
 	    
+	def _attachSquash_(self):
+	    mi_go = self._go#Rig Go instance link
+	    str_skullPlate = self.mi_skullPlate.mNode
+	    d_section = self.md_rigList['squash']
+	    ml_rigJoints = d_section['ml_rigJoints']	
+	    for mObj in ml_rigJoints:
+		try:
+		    try:#>> Attach ------------------------------------------------------------------------------------------
+			d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+		                                                targetSurface = str_skullPlate,
+		                                                createControlLoc = False,
+		                                                createUpLoc = False,
+		                                                orientation = mi_go._jointOrientation)
+		    except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+		    self.md_attachReturns[mObj] = d_return
+		except Exception,error:
+		    raise StandardError,"Attach rig joint loop. obj: %s | error : %s"%(mObj.p_nameShort,error)	
+		
+	    return True
+		
+	def _buildTemple_(self):
+	    pass
+	
 	def _cleanUp_(self):
 	    #>> Need to build some up locs =======================================================================================
 	    mi_go = self._go#Rig Go instance link

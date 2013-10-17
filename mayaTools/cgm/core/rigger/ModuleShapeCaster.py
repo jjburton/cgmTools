@@ -1930,6 +1930,7 @@ def shapeCast_eyebrow(goInstance = None):
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Brow Shapes','call':self._browShapes_},
 	                        {'step':'Cheek Shapes','call':self._uprCheekShapes_},
+	                        {'step':'Temple Shapes','call':self._templeShapes_},	                        
 	                        {'step':'Face Pins','call':self._facePins_},
 	                        ]
 	    
@@ -1955,22 +1956,7 @@ def shapeCast_eyebrow(goInstance = None):
 	    #Find our helpers -------------------------------------------------------------------------------------------
 	    self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
-	    """
-	    self.mi_leftBrowCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftBrowHelper'),noneValid=False)
-	    self.mi_rightBrowCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightBrowHelper'),noneValid=False)
-	    
-	    self.mi_leftTempleCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftTempleHelper'),noneValid=False)
-	    self.mi_rightTempleCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightTempleHelper'),noneValid=False)
-	    
-	    self.mi_leftUprCheekCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftUprCheekHelper'),noneValid=False)
-	    self.mi_rightUprCheekCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightUprCheekHelper'),noneValid=False)
-	    
-	    self.mi_squashCastHelper = cgmMeta.validateObjArg(self.mi_helper.getMessage('squashCastHelper'),noneValid=True)
-	    self.mi_uprFacePivotHelper = cgmMeta.validateObjArg(self.mi_helper.getMessage('uprFacePivotHelper'),noneValid=True)
-	    
-	    self.mi_jawPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('jawPlate'),noneValid=True)
-	    self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=True)
-	    """
+
 	    #>> Find our joint lists ===================================================================
 	    ml_handleJoints = self.mi_module.rigNull.msgList_get('handleJoints')
 	    ml_rigJoints = self.mi_module.rigNull.msgList_get('rigJoints')
@@ -1996,6 +1982,14 @@ def shapeCast_eyebrow(goInstance = None):
 	                                                                      cgmDirection = 'right',
 	                                                                      cgmName = 'uprCheek')		    
 	    
+	    #>> Temple --------------------------------------------------------------------------
+	    self.ml_templeLeftHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                      cgmDirection = 'left',
+	                                                                      cgmName = 'temple')
+	    self.ml_templeRightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                       cgmDirection = 'right',
+	                                                                       cgmName = 'temple')
+	    
 	    #Rig joints... ---------------------------------------------------------------------
 	    self.ml_leftRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                  cgmDirection = 'left')
@@ -2010,6 +2004,17 @@ def shapeCast_eyebrow(goInstance = None):
 	    if not self.ml_leftRigJoints:raise StandardError,"Failed to find left rig joints"
 	    if not self.ml_rightRigJoints:raise StandardError,"Failed to find right rig joints"
 	    if not self.ml_centerRigJoints:raise StandardError,"Failed to find center rig joints"	    
+	    
+	    #>> calculate ------------------------------------------------------------------------
+	    ml_measureJointList = self.ml_browLeftHandles
+	    try:#Get a casted base distance
+		d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],ml_measureJointList[0].mNode,axis=self.str_orientation[0]+'+')
+		if d_return:
+		    pos = d_return.get('hit')			
+		    self.f_baseDistance = distance.returnDistanceBetweenPoints(pos,ml_measureJointList[0].getPosition()) * 2
+		if not d_return:raise Exception
+	    except:
+		self.f_baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_measureJointList]) /4 		
 	    
 	    #>> Running lists --------------------------------------------------------------------
 	    self.ml_handles = []
@@ -2027,7 +2032,8 @@ def shapeCast_eyebrow(goInstance = None):
 		ml_handleCrvs = []		
 		ml_jointList = d_build[str_direction].get('jointList')
 		l_colors = self.d_colors[str_direction]
-		
+		__baseDistance = self.f_baseDistance
+		"""
 		try:#Get a casted base distance
 		    d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],ml_jointList[0].mNode,axis=self.str_orientation[0]+'+')
 		    if d_return:
@@ -2036,7 +2042,7 @@ def shapeCast_eyebrow(goInstance = None):
 		    if not d_return:raise Exception
 		except:
 		    __baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_jointList]) /4 		
-		
+		"""
 		    
 		for mObj in ml_jointList:
 		    try:
@@ -2081,6 +2087,8 @@ def shapeCast_eyebrow(goInstance = None):
 		ml_handleCrvs = []		
 		ml_jointList = d_build[str_direction].get('jointList')
 		l_colors = self.d_colors[str_direction]
+		__baseDistance = self.f_baseDistance
+		"""
 		try:#Get a casted base distance
 		    d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],ml_jointList[0].mNode,axis=self.str_orientation[0]+'+')
 		    if d_return:
@@ -2089,7 +2097,51 @@ def shapeCast_eyebrow(goInstance = None):
 		    if not d_return:raise Exception
 		except:
 		    __baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_jointList]) /4 		
-
+		"""
+		for mObj in ml_jointList:
+		    try:
+			if mObj.getAttr('isSubControl') or len(ml_jointList) >1 and mObj in [ml_jointList[1]]:
+			    _size = __baseDistance * .8
+			    _color = l_colors[1]
+			else:
+			    _size = __baseDistance * 1.5
+			    _color = l_colors[0]
+			    
+			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
+			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
+			str_grp = mi_crv.doGroup()
+			mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)
+			mi_crv.parent = False
+			mc.delete(str_grp)
+			
+			#>>Color curve --------------------------------------------------------------------------------		    		    
+			if mObj.getAttr('isSubControl'):
+			    curves.setCurveColorByName(mi_crv.mNode,_color)  
+			else:curves.setCurveColorByName(mi_crv.mNode,_color)  
+			#>>Copy tags and name		    
+			mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+			mi_crv.doName()
+			mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
+			ml_handleCrvs.append(mi_crv)
+			
+		    except Exception,error:
+			raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
+		self.ml_handles.extend(ml_handleCrvs)
+		
+	def _templeShapes_(self): 
+	    if not self.ml_templeLeftHandles and self.ml_templeRightHandles:
+		return False
+	    
+	    d_build = {'left':{'jointList': self.ml_templeLeftHandles},
+	               'right':{'jointList': self.ml_templeRightHandles},
+	               }
+	    
+	    for str_direction in d_build.keys():
+		ml_handleCrvs = []		
+		ml_jointList = d_build[str_direction].get('jointList')
+		l_colors = self.d_colors[str_direction]
+		__baseDistance = self.f_baseDistance
+		
 		for mObj in ml_jointList:
 		    try:
 			if mObj.getAttr('isSubControl') or len(ml_jointList) >1 and mObj in [ml_jointList[1]]:
