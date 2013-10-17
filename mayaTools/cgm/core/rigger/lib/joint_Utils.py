@@ -49,25 +49,24 @@ reload(distance)
 
 #>>> Utilities
 #===================================================================
-def mirrorJointOrientation(l_joints = None,orientation = 'xyz',**kws):
+def mirrorJointOrientation(*args,**kws):
     """
     Function to mirror a joint orientation in place
     @kws
     baseCurve -- curve on check
     """
     class fncWrap(cgmGeneral.cgmFuncCls):
-	def __init__(self,l_joints = None,orientation = 'xyz',**kws):
+	def __init__(self,*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(curve = None)
-	    self._str_funcName = 'mirrorJointOrientation'	
-	    self.__dataBind__(**kws)
-	    self.d_kwsDefined = {'l_joints':l_joints,
-	                         'orientation':orientation}
+	    self._str_funcName = 'mirrorJointOrientation'
+	    self._b_WIP = True
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'l_joints',"default":None},
+	                                 {'kw':'orientation',"default":'zyx'}]	    
+	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
-	    if log.getEffectiveLevel() == 10:#If debug
-		self.report()
     
 	def __func__(self):
 	    """
@@ -81,7 +80,7 @@ def mirrorJointOrientation(l_joints = None,orientation = 'xyz',**kws):
 		
 	    metaFreezeJointOrientation(ml_chain)
 	    	
-    return fncWrap(l_joints,orientation,**kws).go()
+    return fncWrap(*args,**kws).go()
     
 #@cgmGeneral.Timer
 def metaFreezeJointOrientation(targetJoints):
