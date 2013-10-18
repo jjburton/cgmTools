@@ -120,8 +120,7 @@ class cgmFuncCls(object):
 		_str_step = d_step.get('step') or self._str_funcName
 		res = d_step['call']()
 		if res is not None:
-		    buffer = res
-		    if buffer:self.d_return[_str_step] = buffer
+		    self.d_return[_str_step] = res
 		"""
 		if goTo.lower() == str_name:
 		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
