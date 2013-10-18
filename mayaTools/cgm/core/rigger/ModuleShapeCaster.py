@@ -2056,7 +2056,10 @@ def shapeCast_eyebrow(goInstance = None):
 			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
 			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
 			str_grp = mi_crv.doGroup()
-			mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)
+			if str_direction == 'right':
+			    mi_crv.__setattr__("t%s"%self.str_orientation[0],-__baseDistance)
+			else:
+			    mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)			    
 			mi_crv.parent = False
 			mc.delete(str_grp)
 			
@@ -2110,7 +2113,11 @@ def shapeCast_eyebrow(goInstance = None):
 			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
 			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
 			str_grp = mi_crv.doGroup()
-			mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)
+			if str_direction == 'right':
+			    mi_crv.__setattr__("t%s"%self.str_orientation[0],-__baseDistance)
+			else:
+			    mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)
+			
 			mi_crv.parent = False
 			mc.delete(str_grp)
 			
@@ -2154,7 +2161,11 @@ def shapeCast_eyebrow(goInstance = None):
 			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
 			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
 			str_grp = mi_crv.doGroup()
-			mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)
+			if str_direction == 'right':
+			    mi_crv.__setattr__("t%s"%self.str_orientation[0],-__baseDistance)
+			else:
+			    mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)			
+
 			mi_crv.parent = False
 			mc.delete(str_grp)
 			
@@ -2186,11 +2197,15 @@ def shapeCast_eyebrow(goInstance = None):
 		l_colors = self.d_colors[str_direction]
 		_size = __baseDistance / 3
 		_color = l_colors[1]	
-		str_cast = self.str_orientation[0]+'+'	
 		
+		if str_direction == 'right':
+		    str_cast = self.str_orientation[0]+'-'	
+		else:
+		    str_cast = self.str_orientation[0]+'+'	
+		    
 		for mObj in ml_jointList:
 		    try:
-			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('semiSphere',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
+			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('semiSphere',size = _size,direction=str_cast),setClass=True)	
 			try:
 			    d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],mObj.mNode,axis=str_cast)
 			    if d_return:
@@ -2200,7 +2215,9 @@ def shapeCast_eyebrow(goInstance = None):
 			    if not d_return:raise Exception
 			except:
 			    Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
-						
+			    if str_direction == 'right':
+				pass
+				#mi_crv.__setattr__("r%s"%self.str_orientation[1],(mi_crv.getAttr("r%s"%self.str_orientation[1]) + 180))		
 			#>>Color curve --------------------------------------------------------------------------------		    		    
 			curves.setCurveColorByName(mi_crv.mNode,_color) 
 			
