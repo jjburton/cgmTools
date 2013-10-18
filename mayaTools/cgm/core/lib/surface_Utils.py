@@ -66,32 +66,17 @@ def attachObjToSurface(*args,**kws):
     
 	    """		    
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName = 'attachObjToSurface'	
+	    self._str_funcName = 'attachObjToSurface'
+	    self._b_WIP = True
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'objToAttach',"default":None},
+	                                 {'kw':'targetSurface',"default":None},
+	                                 {'kw':"createControlLoc","default":True},
+	                                 {'kw':"createUpLoc","default":False},
+	                                 {'kw':"parentToFollowGroup","default":False},	                  
+	                                 {'kw':'f_offset',"default":1.0},
+	                                 {'kw':'orientation',"default":'zyx'}]
 	    self.__dataBind__(*args,**kws)
-	    #Trying a new method to generate args and defaults
-	    """
-	    d_kwsBuild = {'objToAttach':{'idx':0,"except":kws.get('objToAttach') or None},
-	                  'targetSurface':{'idx':1,"except":kws.get('targetSurface') or None},
-	                  'createControlLoc':{'idx':2,"except":kws.get('createControlLoc') or False},
-	                  'createUpLoc':{'idx':3,"except":kws.get('createUpLoc') or False},
-	                  'parentToFollowGroup':{'idx':4,"except":kws.get('parentToFollowGroup') or True},	                  
-	                  'f_offset':{'idx':5,"except":kws.get('f_offset') or 1.0},
-	                  'orientation':{'idx':6,"except":kws.get('orientation') or 'zyx'}}
-	    for k in d_kwsBuild.iterkeys():
-		try:self.d_kwsDefined[k] = args[ d_kwsBuild[k]['idx'] ]
-		except:self.d_kwsDefined[k] = d_kwsBuild[k].get("except")"""
-	    l_kwsBuild = [{'kw':'objToAttach',"default":None},
-	                  {'kw':'targetSurface',"default":None},
-	                  {'kw':"createControlLoc","default":True},
-	                  {'kw':"createUpLoc","default":False},
-	                  {'kw':"parentToFollowGroup","default":False},	                  
-	                  {'kw':'f_offset',"default":1.0},
-	                  {'kw':'orientation',"default":'zyx'}]
-	    for i,d_buffer in enumerate(l_kwsBuild):
-		try:self.d_kwsDefined[d_buffer['kw']] = args[ i ]
-		except:
-		    try:self.d_kwsDefined[d_buffer['kw']] = kws[d_buffer['kw']]
-		    except:self.d_kwsDefined[d_buffer['kw']] = d_buffer.get("default")
+	    
 	    self.l_funcSteps = [{'step':'Validate','call':self._validate},
 		                {'step':'Create','call':self._create}]
 	    
