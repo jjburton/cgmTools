@@ -19,6 +19,10 @@ obj = mc.ls(sl=True)[0] or False
 obj = ''
 objList = []
 
+#>>
+surface = 'skullPlate'
+RayCast.findSurfaceIntersection(surface,[0,0,0],[0,1,0])
+
 #>>> Distance
 #=======================================================
 i_obj = cgmMeta.cgmObject(mc.ls(sl=True)[0])

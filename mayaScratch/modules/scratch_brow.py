@@ -37,7 +37,7 @@ m1.__verify__()
 m1.modulePuppet._verifyMasterControl()
 m1.helper.__storeNames__()
 
-i_rig.buildModule.__build__(i_rig)
+
 m1.rigConnect()
 m1.rig_getReport()
 i_rig = Rig.go(m1,forceNew=False,autoBuild = False)#call to do general rig

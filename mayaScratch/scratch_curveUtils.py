@@ -30,6 +30,14 @@ cgmMeta.cgmObject(obj).createTransformFromObj()
 #=======================================================
 reload(crvUtils)
 baseCrv = 'curve18'
+obj = 'l_brow_direct_0_anim_master_grp_control_loc1'
+crv = 'l_brow_driver_crv'
+crvUtils.attachObjToCurve(obj,crv)
+
+#>>> midpoint
+#=======================================================
+reload(crvUtils)
+baseCrv = 'curve18'
 crvUtils.getMidPoint(mc.ls(sl=True))
 
 
