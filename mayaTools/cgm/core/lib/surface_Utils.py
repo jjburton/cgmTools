@@ -67,7 +67,6 @@ def attachObjToSurface(*args,**kws):
 	    """		    
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = 'attachObjToSurface'
-	    self._b_WIP = True
 	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'objToAttach',"default":None},
 	                                 {'kw':'targetSurface',"default":None},
 	                                 {'kw':"createControlLoc","default":True},

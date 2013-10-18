@@ -51,18 +51,24 @@ class cgmFuncCls(object):
 	self._str_funcCombined = None
         self._str_funcName = None
         self._str_funcDebug = None
-	self._l_ARGS_KWS_DEFAULTS = []
 	self._b_WIP = False
+	self._l_ARGS_KWS_DEFAULTS = []
 	self.d_kwsDefined  = {}
 	self.l_funcSteps = []
 	self.d_return = {}
 	self._str_modPath = None
 	self._str_mod = None	
+	self._d_stepTimes = {}
 	#This is our mask so that the fail report ignores them
-	self.l_dictMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','l_dictMask',
-	                   '_str_funcClass','_str_funcName','d_kwsDefined','_str_funcCombined','_l_funcArgs','_b_WIP',
-	                   '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
-	    
+	self._l_reportMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	                     '_str_funcClass','_str_funcName','d_kwsDefined','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_d_stepTimes','_l_ARGS_KWS_DEFAULTS',
+	                     '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
+	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask',
+	                    '_str_funcClass','_str_funcName','d_kwsDefined','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
+	                    '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
+	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
+	self._l_kwMask = ['reportTimes','reportShow']
+	     
     def __dataBind__(self,*args,**kws):
 	try:self._l_funcArgs = args
 	except:self._l_funcArgs = []
@@ -91,13 +97,12 @@ class cgmFuncCls(object):
 	    try:
 		if kw not in l_storedKeys:self.d_kwsDefined[kw] = kws[kw]
 	    except Exception,error:raise StandardError,"%s failed to store kw: %s | value: %s | error: %s"%(self._str_reportStart,kw,kws[kw],error)
-	    
-	if self._b_WIP:
+	if self._b_WIP or self.d_kwsDefined.get('reportShow'):
 	    self.report()
 	    
     def __func__(self,*args,**kws):
 	raise StandardError,"%s No function set"%self._str_reportStart
-
+        
     def go(self,goTo = '',**kws):
 	"""
 	"""	
@@ -115,7 +120,8 @@ class cgmFuncCls(object):
 		_str_step = d_step.get('step') or self._str_funcName
 		res = d_step['call']()
 		if res is not None:
-		    self.d_return[_str_step] = res
+		    buffer = res
+		    if buffer:self.d_return[_str_step] = buffer
 		"""
 		if goTo.lower() == str_name:
 		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
@@ -135,15 +141,17 @@ class cgmFuncCls(object):
 		l_keys = self.__dict__.keys()
 		l_keys.sort()
 		for k in l_keys:		
-		    if k not in self.l_dictMask:
+		    if k not in self._l_errorMask:
 			log.error(">"*3 + " '%s' : %s "%(k,self.__dict__[k]))
 		if self._b_WIP:
 		    log.error(">"*40 + " WIP CODE " + "<"*40)	
 		log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)))
-		self.d_return[_str_step] = None	
+		#self.d_return[_str_step] = None	
 		raise StandardError, _str_fail
 	    t2 = time.clock()
-	    if int_max != 0: log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)))		
+	    _str_time = "%0.3f seconds"%(t2-t1)
+	    self._d_stepTimes[_str_step] = _str_time
+	    if int_max != 0 and self.d_kwsDefined.get('reportTimes'): log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)))		
 	
 	log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)))		
 	if int_max == 0:#If it's a one step, return, return the single return
@@ -158,18 +166,21 @@ class cgmFuncCls(object):
     def report(self):
 	log.info(">"*3 + " %s "%self._str_funcCombined + "="*75)
 	log.info(">"*3 + " Module: %s "%self._str_modPath)	
-	log.info(">"*3 + " l_funcSteps: %s "%self.l_funcSteps)	    			
-	if self._str_funcArgs:log.info(">"*3 + " Args: %s "%self._str_funcArgs)
-	if self._str_funcKWs:log.info(">"*3 + " KWs: %s "%self._str_funcKWs)	  
+	if self.l_funcSteps:log.info(">"*3 + " l_funcSteps: %s "%self.l_funcSteps)	
+	self.reportArgsKwsDefaults()	
+	#if self._str_funcArgs:log.info(">"*3 + " Args: %s "%self._str_funcArgs)
+	#if self._str_funcKWs:log.info(">"*3 + " KWs: %s "%self._str_funcKWs)	  
 	if self.d_kwsDefined:
-	    log.info(">"*3 + " KWs Defined " + "-"*75)	  	    
-	    for k in self.d_kwsDefined.keys():
+	    log.info(">"*3 + " KWs Defined " + "-"*75)	
+	    l_keys = self.d_kwsDefined.keys()
+	    l_keys.sort()	    
+	    for k in l_keys:
 		log.info(">"*3 + " '%s' : %s "%(k,self.d_kwsDefined[k]))
 	log.info(">"*3 + " Self Stored " + "-"*75)	
 	l_keys = self.__dict__.keys()
 	l_keys.sort()
 	for k in l_keys:
-	    if k not in self.l_dictMask:
+	    if k not in self._l_reportMask:
 		buffer = self.__dict__[k]
 		if type(buffer) is dict:
 		    log.info(">"*6 + " Nested Dict: %s "%k + "-"*75)
@@ -184,9 +195,22 @@ class cgmFuncCls(object):
 	    for i,d in enumerate(self.l_funcSteps):
 		try:log.info(">"*3 + " '%s' : %s "%(i,d.get('step')))
 		except:pass
+			
 	if self._b_WIP:
-	    log.info(">"*40 + " WIP CODE " + "<"*40)	  	    
+	    log.info(">"*40 + " WIP Function " + "<"*40)	  	    
 	log.info("#" + "-" *100)
+	
+    def reportArgsKwsDefaults(self):
+	if self._l_ARGS_KWS_DEFAULTS:
+	    log.info(">"*3 + " Args/KWs/Defaults " + "-"*75)	  	    	    
+	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
+		l_tmp = [['Arg',i,]]
+		try:l_tmp.append(['kw',"'%s'"%d_buffer.get('kw')])
+		except:pass
+		try:l_tmp.append(['default',d_buffer.get('default')])
+		except:pass		
+		l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
+		log.info(" | ".join(l_build))
 		
 class cgmFunctionClass2(object):
     """Simple class for use with TimerSimple"""

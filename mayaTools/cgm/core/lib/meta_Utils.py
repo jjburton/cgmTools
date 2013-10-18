@@ -134,7 +134,11 @@ def get_matchedListFromAttrDict(*args,**kws):
 	    elif 'checkDict' in kws.keys():
 		self.d_check = kws.get('checkDict')
 	    else:
-		self.d_check = kws
+		d_kws = {}
+		for kw in kws:
+		    if kw not in self._l_kwMask:
+			d_kws[kw] = kws[kw]
+		self.d_check = d_kws
 	       
 	    #=================================================================
 	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
