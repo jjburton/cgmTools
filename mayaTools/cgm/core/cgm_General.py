@@ -35,11 +35,23 @@ log.setLevel(logging.INFO)
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #========================================================================= 
 class cgmFuncCls(object):  
+    """
+    Examples:
+    
+    self._l_ARGS_KWS_DEFAULTS = [{'kw':'objToAttach',"default":None},
+				 {'kw':'targetSurface',"default":None},
+				 {'kw':"createControlLoc","default":True},
+				 {'kw':"createUpLoc","default":False},
+				 {'kw':"parentToFollowGroup","default":False},	                  
+				 {'kw':'f_offset',"default":1.0},
+				 {'kw':'orientation',"default":'zyx'}]
+    """
     def __init__(self,*args, **kws):
         self._str_funcClass = None
 	self._str_funcCombined = None
         self._str_funcName = None
         self._str_funcDebug = None
+	self._l_ARGS_KWS_DEFAULTS = []
 	self._b_WIP = False
 	self.d_kwsDefined  = {}
 	self.l_funcSteps = []
@@ -50,9 +62,7 @@ class cgmFuncCls(object):
 	self.l_dictMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','l_dictMask',
 	                   '_str_funcClass','_str_funcName','d_kwsDefined','_str_funcCombined','_l_funcArgs','_b_WIP',
 	                   '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
-	
-    """Simple class for use with TimerSimple"""	  
-    
+	    
     def __dataBind__(self,*args,**kws):
 	try:self._l_funcArgs = args
 	except:self._l_funcArgs = []
@@ -70,12 +80,27 @@ class cgmFuncCls(object):
         except:self._str_funcCombined = self._str_funcName
 	self._str_reportStart = " %s >> "%(self._str_funcName)
 	
+	if self._l_ARGS_KWS_DEFAULTS:
+	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
+		try:self.d_kwsDefined[d_buffer['kw']] = args[ i ]#First we try the arg index
+		except:
+		    try:self.d_kwsDefined[d_buffer['kw']] = kws[d_buffer['kw']]#Then we try a kw call
+		    except:self.d_kwsDefined[d_buffer['kw']] = d_buffer.get("default")#Lastly, we use the default value	
+	l_storedKeys = self.d_kwsDefined.keys()
+	for kw in kws:
+	    try:
+		if kw not in l_storedKeys:self.d_kwsDefined[kw] = kws[kw]
+	    except Exception,error:raise StandardError,"%s failed to store kw: %s | value: %s | error: %s"%(self._str_reportStart,kw,kws[kw],error)
+	    
+	if self._b_WIP:
+	    self.report()
+	    
     def __func__(self,*args,**kws):
 	raise StandardError,"%s No function set"%self._str_reportStart
 
     def go(self,goTo = '',**kws):
 	"""
-	"""
+	"""	
 	t_start = time.clock()
 	try:
 	    if not self.l_funcSteps: self.l_funcSteps = [{'call':self.__func__}]

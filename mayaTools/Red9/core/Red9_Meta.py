@@ -119,10 +119,21 @@ def mTypesToRegistryKey(mTypes):
             keys.append(cls)
     return keys
 
-
+def getMClassDataFromNode(node):
+    '''
+    from the node get the class to instantiate, this gives us a level of
+    flexibility over mClass attr rather than pure hard coding as it was previously
+    '''
+    if cmds.attributeQuery('mClass', exists=True, node=node):
+        return cmds.getAttr('%s.%s' % (node,'mClass'))
+    elif 'Meta%s' % cmds.nodeType(node) in RED9_META_REGISTERY.keys():
+        return 'Meta%s' % cmds.nodeType(node)
+    
+    
 # NodeType Management ---------------------------
-
-def registerMClassNodeMapping(nodeTypes='network'):
+  
+ 
+def registerMClassNodeMapping(nodeTypes=None) : #'network'):
     '''
     Hook to allow you to extend the type of nodes included in all the
     getMeta searches. Allows you to expand into using nodes of any type
@@ -135,17 +146,24 @@ def registerMClassNodeMapping(nodeTypes='network'):
         plugin but that plugin isn't currently loaded, this now stops that type being 
         generically added by any custom boot sequence.
     '''
-    global RED9_META_NODETYPE_REGISTERY    
-    RED9_META_NODETYPE_REGISTERY=['network']   
+    baseTypes=['network','objectSet','HIKCharacterNode']
+    
+    global RED9_META_NODETYPE_REGISTERY   
+    RED9_META_NODETYPE_REGISTERY =  []
+    
+    if nodeTypes:
+        if not type(nodeTypes)==list:nodeTypes=[nodeTypes]
+        baseTypes.extend(nodeTypes)
+
     try:
         MayaRegisteredNodes=cmds.allNodeTypes()
-        if not type(nodeTypes)==list:nodeTypes=[nodeTypes]
-        for nType in nodeTypes:
+        
+        for nType in baseTypes:
             if not nType in RED9_META_NODETYPE_REGISTERY and nType in MayaRegisteredNodes:
                 log.debug('nodeType : "%s" : added to NODETYPE_REGISTRY' % nType)
                 RED9_META_NODETYPE_REGISTERY.append(nType)
-            #else:
-            #    raise StandardError('nType: "%s" is an invalid Maya NodeType')
+            else:
+                log.debug('nType: "%s" is an invalid Maya NodeType' % nType)
     except:
         log.warning('registerMClassNodeMapping failure - seems to have issues in Maya2009')
         #raise StandardError('registerMClassNodeMapping failure - seems to have issues in Maya2009')
@@ -156,12 +174,11 @@ def printMetaTypeRegistry():
 def getMClassNodeTypes():
     '''
     Generic getWrapper for all nodeTypes registered in the Meta_NodeType global
-    '''    
+    '''      
     return RED9_META_NODETYPE_REGISTERY 
 
 def resetMClassNodeTypes():
-    global RED9_META_NODETYPE_REGISTERY    
-    RED9_META_NODETYPE_REGISTERY=['network','objectSet','HIKCharacterNode']
+    registerMClassNodeMapping(nodeTypes=None)
 
     
 # ====================================================================================   
@@ -196,13 +213,6 @@ def attributeDataType(val):
     if issubclass(type(val),tuple):
         log.debug('Val : %s : is a tuple')
         return 'complex'
-
-def getMClassDataFromNode(node):
-    
-    if cmds.attributeQuery('mClass', exists=True, node=node):
-        return cmds.getAttr('%s.%s' % (node,'mClass'))
-    elif cmds.nodeType(node) =='HIKCharacterNode':
-        return 'MetaHIKCharacter'
         
 #@pymelHandler
 def isMetaNode(node, mTypes=[]):
@@ -213,14 +223,12 @@ def isMetaNode(node, mTypes=[]):
     @param node: Maya node to test
     @param mTypes: only match given MetaClass's - str or class accepted
     '''
-    #mClass=None
+
+    if not node: 
+        return False
     if issubclass(type(node), MetaClass):
         node=node.mNode   
     mClass=getMClassDataFromNode(node) 
-    #if cmds.attributeQuery('mClass', exists=True, node=node):
-    #    mClass=cmds.getAttr('%s.%s' % (node,'mClass'))
-    #elif cmds.nodeType(node) =='HIKCharacterNode':
-    #    mClass='MetaHIKCharacter'
     if mClass:
         if RED9_META_REGISTERY.has_key(mClass):
             if mTypes:
@@ -236,6 +244,21 @@ def isMetaNode(node, mTypes=[]):
     else:
         return False
 
+# def isMetaNodeInherited(node, mInstances=[]):
+#     '''
+#     unlike isMetaNode which checks the node against a particular MetaClass,
+#     this expands the check to see if the node is inherited from or a subclass of
+#     a given Meta base class, ie, part of a system
+#     TODO : we COULD return the instantiated metaClass object here rather than just a bool??
+#     '''    
+#     if isMetaNode(node):
+#         mClass=MetaClass(node) #instantiate the metaClass so we can work out subclass mapping
+#         for inst in mTypesToRegistryKey(mInstances):
+#             log.debug('testing class inheritance: %s > %s' % ( inst, RED9_META_REGISTERY[inst],type(mClass)))
+#             if issubclass(type(mClass), RED9_META_REGISTERY[inst]):
+#                 log.debug('MetaNode %s is of subclass >> %s' % (mClass,inst))
+#                 return True
+
 def isMetaNodeInherited(node, mInstances=[]):
     '''
     unlike isMetaNode which checks the node against a particular MetaClass,
@@ -243,14 +266,19 @@ def isMetaNodeInherited(node, mInstances=[]):
     a given Meta base class, ie, part of a system
     TODO : we COULD return the instantiated metaClass object here rather than just a bool??
     '''    
-    if isMetaNode(node):
-        mClass=MetaClass(node) #instantiate the metaClass so we can work out subclass mapping
+    if not node: 
+        return False
+    if issubclass(type(node), MetaClass):
+        node=node.mNode   
+    mClass=getMClassDataFromNode(node) 
+    if mClass and RED9_META_REGISTERY.has_key(mClass):
         for inst in mTypesToRegistryKey(mInstances):
-            print inst, RED9_META_REGISTERY[inst],type(mClass)
-            if issubclass(type(mClass), RED9_META_REGISTERY[inst]):
+            log.debug('testing class inheritance: %s > %s' % ( inst, mClass))
+            if issubclass(RED9_META_REGISTERY[mClass], RED9_META_REGISTERY[inst]):
                 log.debug('MetaNode %s is of subclass >> %s' % (mClass,inst))
                 return True
-                    
+    return False
+                   
 @r9General.Timer                 
 def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass', **kws):
     '''
@@ -262,6 +290,9 @@ def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass', **kws
     @param mAttrs: uses the FilterNode.lsSearchAttributes call to match nodes via given attrs
     @param dataType: default='mClass' return the nodes already instantiated to 
                 the correct class object. If not then return the Maya node itself
+    TODO: speed up the mInstances call as it's bastard slow! At the moment it's instantiating
+    every found metaNode to test the inheritance on it. Maybe we should do this in the
+    initial registry, build up an inheritance map that we check against?
     '''
     mNodes=[]
     #if mTypes and not type(mTypes)==list:mTypes=[mTypes]
@@ -272,6 +303,8 @@ def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass', **kws
         else:
             if isMetaNodeInherited(node,mInstances):
                 mNodes.append(node)
+    if not mNodes:
+        return mNodes
     if mAttrs:
         #lazy to avoid cyclic imports
         import Red9_CoreUtils as r9Core 
@@ -781,10 +814,27 @@ class MetaClass(object):
                 object.__setattr__(self, '_MObjectHandle',OpenMaya.MObjectHandle(mobj)) 
             except StandardError, error:
                 raise StandardError(error)
-                  
-               
+         
     mNode = property(__get_mNode, __set_mNode)
     
+    @property
+    def mNodeMObject(self):
+        '''
+        exposed wrapper to return the MObject directly, this passes via the MObjectHandle
+        to ensure that the MObject cached is still valid
+        '''
+        mobjHandle=object.__getattribute__(self, "_MObjectHandle") 
+        if mobjHandle:   
+            try:
+                if not mobjHandle.isValid():
+                    log.info('MObject is no longer valid - %s - object may have been deleted or the scene reloaded?'\
+                              % object.__getattribute__(self,'mNodeID')) 
+                    return   
+                #if we have an object thats a dagNode, ensure we return FULL Path
+                return object.__getattribute__(self, "_MObject")
+            except StandardError,error:
+                raise StandardError(error)      
+        
     #property managing the lockNode state of the mNode
     def __get_lockState(self):
         return self._lockState
@@ -888,7 +938,7 @@ class MetaClass(object):
                     self.__setEnumAttr__(attr, value)
                           
                 #Message Link handling
-                elif cmds.attributeQuery(attr, node=self.mNode, message=True):          
+                elif cmds.attributeQuery(attr, node=self.mNode, message=True):  
                     self.__setMessageAttr__(attr, value, force)     
                           
                 #Standard Attribute
@@ -1263,7 +1313,7 @@ class MetaClass(object):
                         to another node force the connection to the new attr 
         TODO: check the attr type, if attr exists and is a non-multi messgae then don't run the indexBlock
         '''
-
+        
         #make sure we have the attr on the mNode
         self.addAttr(attr, attrType='message')
         
@@ -1273,7 +1323,10 @@ class MetaClass(object):
             self.__disconnectCurrentAttrPlugs(attr)  #disconnect/cleanup current plugs to this attr
         if not srcAttr:
             srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
-            
+        if not nodes:
+            #this allows 'None' to be passed into the set attr calls and in turn, allow 
+            #self.mymessagelink=None to clear all current connections
+            return    
         for node in nodes:
             ismeta=False
             if isMetaNode(node):
@@ -1332,7 +1385,10 @@ class MetaClass(object):
                 self.__disconnectCurrentAttrPlugs(attr) #disconnect/cleanup current plugs to this attr     
             if not srcAttr:          
                 srcAttr=self.mNodeID  #attr on the nodes source side for the child connection
-                                
+            if not node:
+                #this allows 'None' to be passed into the set attr calls and in turn, allow 
+                #self.mymessagelink=None to clear all current connections
+                return                 
             if isMetaNode(node):
                 if not issubclass(type(node), MetaClass): #allows you to pass in an metaClass
                     MetaClass(node).addAttr(srcAttr,attrType='messageSimple')
@@ -2063,7 +2119,7 @@ class MetaFacialRigSupport(MetaClass):
                     MetaClass(node).addAttr(key, value=value)  
 
 
-class MetaHIKCharacter(MetaClass): 
+class MetaHIKCharacterNode(MetaClass): 
     '''
     Testing only : casting HIK directly to a metaClass so it's
     treated as meta by default. Why the hell not, it's a complex
@@ -2072,7 +2128,7 @@ class MetaHIKCharacter(MetaClass):
     '''  
     def __init__(self, *args, **kws):
         kws.setdefault('autofill','messageOnly')
-        super(MetaHIKCharacter, self).__init__(*args,**kws)       
+        super(MetaHIKCharacterNode, self).__init__(*args,**kws)       
 
 
 
