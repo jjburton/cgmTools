@@ -216,10 +216,18 @@ class go(object):
 	except Exception,error:
 	    raise StandardError,"%s >>> error : %s"%(_str_funcName,error) 
 	
+	try:#>>> FACE MODULES If face module we need a couple of data points
+	    if self._partType in __l_faceModules__:
+		self.verify_faceModuleAttachJoint()
+		self.verify_faceSkullPlate()
+	except Exception,error:
+	    raise StandardError,"%s >>> error : %s"%(_str_funcName,error) 	
+	
 	try:#>>> Deform group for the module =====================================================
 	    if not self._i_module.getMessage('deformNull'):
 		if self._partType in __l_faceModules__:
 		    self.verify_faceDeformNull()
+		    self._i_deformNull.parent = self.str_faceAttachJoint
 		else:
 		    #Make it and link it
 		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
@@ -236,9 +244,7 @@ class go(object):
 	
 	try:#>>> Constrain Deform group for the module ==========================================
 	    if not self._i_module.getMessage('constrainNull'):
-		if self._partType in __l_faceModules__:
-		    self.verify_faceConstrainNull()
-		else:
+		if self._partType not in __l_faceModules__:
 		    #Make it and link it
 		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
 		    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
@@ -341,8 +347,8 @@ class go(object):
 		return False		
 	return True
     
-    def return_faceModuleAttachJoint(self):
-	_str_funcName = "go.return_faceModuleAttachJoint(%s)"%self._i_module.p_nameShort  
+    def verify_faceModuleAttachJoint(self):
+	_str_funcName = "go.verify_faceModuleAttachJoint(%s)"%self._i_module.p_nameShort  
 	
 	#Find our head attach joint ------------------------------------------------------------------------------------------------
 	self.str_faceAttachJoint = False
@@ -360,6 +366,9 @@ class go(object):
 	
 	return self.str_faceAttachJoint
     
+    def verify_faceSkullPlate(self,*args,**kws):
+	return fnc_verify_faceSkullPlate(self,*args,**kws)
+
     def verify_faceDeformNull(self):
 	"""
 	Return if a module is rig skeletonized or not
@@ -372,7 +381,7 @@ class go(object):
 	#Try to see if we ahve a face attach joint ==============================
 	try:self.str_faceAttachJoint
 	except:
-	    try:self.return_faceModuleAttachJoint()
+	    try:self.verify_faceModuleAttachJoint()
 	    except Exception,error:
 		raise StandardError, "%s >> error: %s"%(_str_funcName,error)
 	
@@ -383,7 +392,8 @@ class go(object):
 	#Check if we have a face deformNull on a parent --------------------------	    
 	buffer = self._mi_moduleParent.getMessage('faceDeformNull')
 	if buffer:
-	    self._i_module.connectChildNode(buffer[0],'deformNull','module')		    
+	    self._i_module.connectChildNode(buffer[0],'deformNull','module')
+	    self._i_module.connectChildNode(buffer[0],'constrainNull','module')	    	    
 	    return True
 	
 	#Make it and link it ------------------------------------------------------
@@ -394,45 +404,9 @@ class go(object):
 	i_grp.doName()
 	i_grp.parent = self._i_masterDeformGroup.mNode	
 	self._i_module.connectChildNode(i_grp,'deformNull','module')
+	self._i_module.connectChildNode(i_grp,'constrainNull','module')	
 	self._mi_moduleParent.connectChildNode(i_grp,'faceDeformNull','module')
-	
-	return True
-    
-    def verify_faceConstrainNull(self):
-	"""
-	Return if a module is rig skeletonized or not
-	"""
-	_str_funcName = "go.verify_faceConstrainNull(%s)"%self._i_module.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	if self._partType not in __l_faceModules__:
-	    raise StandardError, "%s >> Not a face module"%_str_funcName
-	
-	#Try to see if we ahve a face attach joint ==============================
-	try:self.str_faceAttachJoint
-	except:
-	    try:self.return_faceModuleAttachJoint()
-	    except Exception,error:
-		raise StandardError, "%s >> error: %s"%(_str_funcName,error)
-	
-	#>> Constrain Null ==========================================================    
-	if self._i_module.getMessage('constrainNull'):
-	    return True
-	
-	#Check if we have a face constrainNull on a parent --------------------------	    
-	buffer = self._mi_moduleParent.getMessage('faceConstrainNull')
-	if buffer:
-	    self._i_module.connectChildNode(buffer[0],'constrainNull','module')		    
-	    return True
-	
-	#Make it and link it ------------------------------------------------------
-	buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
-	i_grp = cgmMeta.cgmObject(buffer,setClass=True)
-	i_grp.addAttr('cgmName','face',lock=True)
-	i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
-	i_grp.doName()
-	i_grp.parent = self._i_deformNull		
-	self._i_module.connectChildNode(i_grp,'constrainNull','module')
-	self._mi_moduleParent.connectChildNode(i_grp,'faceConstrainNull','module')
+	self._i_deformNull = i_grp#link
 	
 	return True
     
@@ -893,6 +867,84 @@ class go(object):
 	
 #>>> Functions
 #=============================================================================================================
+class RigFactoryFunc(cgmGeneral.cgmFuncCls):
+    def __init__(self,*args,**kws):
+	"""
+	"""
+	try:
+	    goInstance = args[0]			    
+	    if not issubclass(type(goInstance),go):
+		raise StandardError,"Not a RigFactory.go instance: '%s'"%goInstance
+	    assert mc.objExists(goInstance._i_module.mNode),"Module no longer exists"
+	except Exception,error:raise StandardError,"RigFactoryFunc fail | %s"%error
+	
+	super(RigFactoryFunc, self).__init__(*args, **kws)
+	self._str_moduleShortName = goInstance._strShortName
+	
+	self._str_funcName = 'RigFactoryFunc(%s)'%self._str_moduleShortName	
+	
+	self._l_ARGS_KWS_DEFAULTS = [{'kw':'goInstance',"default":None}]
+	#self.__dataBind__(*args,**kws)	
+	
+	self.mi_go = goInstance
+	self.mi_module = goInstance._i_module
+
+	
+def testFunc(*args,**kws):
+    class fncWrap(RigFactoryFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """    
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'testFunc(%s)'%self._str_moduleShortName	
+	    
+	    #EXTEND our args and defaults
+	    self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'cat',"default":None}])
+	    self.__dataBind__(*args,**kws)	
+	    self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	    
+	    #=================================================================
+	    
+	def _getData(self):
+	    """
+	    """
+	    self.report()  
+    return fncWrap(*args,**kws).go()
+
+def fnc_verify_faceSkullPlate(*args,**kws):
+    class fncWrap(RigFactoryFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """    
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = '__verify_faceSkullPlate(%s)'%self._str_moduleShortName	
+	    
+	    #EXTEND our args and defaults
+	    #self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'cat',"default":None}])
+	    self.__dataBind__(*args,**kws)
+	    self.l_funcSteps = [{'step':'Find skullPlate','call':self._findData}]
+		
+	def _findData(self):
+	    mi_go = self.mi_go
+	    #>> validate ============================================================================
+	    mModuleParent = self.mi_module.moduleParent
+	    mParentRigNull = mModuleParent.rigNull
+	    buffer = mParentRigNull.getMessage('skullPlate')
+	    if buffer:
+		mi_go._mi_skullPlate = mParentRigNull.skullPlate
+		return True
+	    
+	    #See if we have a helper
+	    mi_go._mi_rigHelper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
+	    if mi_go._mi_rigHelper:#See if we have a connected skullPlate
+		mi_skullPlate = cgmMeta.validateObjArg(mi_go._mi_rigHelper.getMessage('skullPlate'),cgmMeta.cgmObject,noneValid=True)
+		if mi_skullPlate:#then we connect it
+		    log.info("%s '%s' connected to module parent"%(self._str_reportStart,mi_skullPlate.p_nameShort))
+		    mParentRigNull.connectChildNode(mi_skullPlate,'skullPlate','module')
+		    mi_go._mi_skullPlate = mi_skullPlate
+		    return True
+	    return False
+    return fncWrap(*args,**kws).go()
 
 def isBuildable(goInstance):
     self = goInstance
@@ -1470,8 +1522,6 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     
     #except Exception,error:
 	#raise StandardError,"get_rigJointDriversDict >> self: %s | error: %s"%(self,error)
-    
-    
 
 def get_report(self):
     #try:
@@ -1503,7 +1553,6 @@ def get_report(self):
     #except Exception,error:
 	#raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
 
-    
 def get_eyeLook(self):
     try:
 	self.isModule()
@@ -1535,7 +1584,6 @@ def get_eyeLook(self):
 	    raise StandardError,"The end."
     except Exception,error:
 	raise StandardError,"%s >>> Failed to find eyeLook! | error: %s"%(_str_funcName,error)
-    
     
 def verify_eyeLook(self):
     try:
@@ -1609,3 +1657,5 @@ def verify_eyeLook(self):
     except Exception,error:
 	raise StandardError,"%s >>> failed | error: %s"%(_str_funcName,error)
     
+
+
