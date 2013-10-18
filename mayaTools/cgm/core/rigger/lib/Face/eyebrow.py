@@ -389,7 +389,7 @@ def build_rig(goInstance = None):
 	                        {'step':'Rig Upr Cheek','call':self._buildUprCheek_},
 	                        {'step':'Rig Temple','call':self._buildTemple_},
 	                        {'step':'Attach Squash','call':self._attachSquash_},
-	                        {'step':'Clean up','call':self._cleanUp_},
+	                        {'step':'Lock N hide','call':self._lockNHide_},
 	                        
 	                        ]	
 	    #=================================================================
@@ -420,6 +420,7 @@ def build_rig(goInstance = None):
 	                       "temple":{"left":{},"right":{}}}
 	    
 	    self.ml_rigJoints = ml_rigJoints
+	    self.ml_handlesJoints = ml_handleJoints
 	    #>> Brow --------------------------------------------------------------------------------------------------
 	    self.md_rigList['brow']['left']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                                                          cgmDirection = 'left',
@@ -596,6 +597,7 @@ def build_rig(goInstance = None):
 		    mi_offsetGroup.doStore('cgmName',mi_centerHandle.mNode)
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
+		    mi_centerHandle.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
 		    
 		    arg = "%s.ty = %s.ty >< %s.ty"%(mi_offsetGroup.p_nameShort,
 		                                    self.md_rigList['brow']['left']['ml_handles'][0].p_nameShort,
@@ -720,13 +722,14 @@ def build_rig(goInstance = None):
 		    mi_offsetGroup.doStore('cgmName',mi_midHandle.mNode)
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
-		    
+		    mi_midHandle.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')
 		    mc.parentConstraint([ml_handles[0].mNode,ml_handles[-1].mNode], mi_offsetGroup.mNode,maintainOffset = True)
 		    
 		    #Create offsetgroup for the mid
 		    mi_aimGroup = cgmMeta.cgmObject( mi_midHandle.doGroup(True),setClass=True)	 
 		    mi_aimGroup.doStore('cgmName',mi_midHandle.mNode)
 		    mi_aimGroup.addAttr('cgmTypeModifier','aim',lock=True)
+		    mi_midHandle.connectChildNode(mi_aimGroup,'aimGroup','groupChild')		    
 		    mi_aimGroup.doName()
 		    
 		    if str_side == 'left':
@@ -923,8 +926,15 @@ def build_rig(goInstance = None):
 	    except Exception,error:
 		raise StandardError,"Setup handle | %s"%(error)
 	
-	def _cleanUp_(self):
-	    #>> Need to build some up locs =======================================================================================
+	def _lockNHide_(self):
+	    #Lock and hide all 
+	    for mHandle in self.ml_handlesJoints:
+		cgmMeta.cgmAttr(mHandle,'scale',lock = True, hidden = True)
+		mHandle._setControlGroupLocks()	
+		
+	    for mJoint in self.ml_rigJoints:
+		mJoint._setControlGroupLocks()	
+
 	    mi_go = self._go#Rig Go instance link
 	    try:#parent folicles to rignull
 		for k in self.md_attachReturns.keys():# we wanna parent 
