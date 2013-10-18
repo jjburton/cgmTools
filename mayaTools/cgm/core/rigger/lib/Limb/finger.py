@@ -149,7 +149,6 @@ def build_rigSkeleton(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build Chains','call':self.build}]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def build(self):#================================================================================   	
 	    #>>>Create joint chains
@@ -275,7 +274,6 @@ def build_shapes(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build NOT BROKEN UP YET','call':self.build}]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def build(self):#================================================================================   	
 	    
@@ -339,7 +337,6 @@ def build_controls(goInstance = None):
 	    self.l_funcSteps = [{'step':'Build NOT BROKEN UP YET','call':self.build_old},
 	                        {'step':'Connections','call':self.build_connections}]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def build_old(self):#================================================================================   	
 	    
@@ -501,7 +498,6 @@ def build_FKIK(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build NOT BROKEN UP YET','call':self.build}]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def build(self):#================================================================================   	
 	    
@@ -723,7 +719,6 @@ def build_rig(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build NOT BROKEN UP YET','call':self.build}]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def build(self):#================================================================================   	
 		    
@@ -904,7 +899,6 @@ def build_matchSystem(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build NOT BROKEN UP YET','call':self.build}]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def build(self):#================================================================================   	
 		

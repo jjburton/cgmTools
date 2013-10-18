@@ -95,7 +95,6 @@ def build_rigSkeleton(goInstance = None):
 	                        {'step':'Rotate Orders','call':self.build_rotateOrders},
 	                        {'step':'Connections','call':self.build_connections}]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def build_rigJoints(self):
 	    go = self.d_kwsDefined['goInstance']
@@ -172,7 +171,6 @@ def build_shapes(goInstance = None):
 	    self.l_funcSteps = [{'step':'Verify','call':self.verify},
 	                        {'step':'Shapes','call':self.build_shapes}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):
 	    if self._go._i_templateNull.handles > 2:
@@ -199,7 +197,6 @@ def build_controls(goInstance = None):
 	                        {'step':'FK','call':self.build_fk},
 	                        {'step':'Connections','call':self.build_connections}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):
 	    self.ml_controlsFK = cgmMeta.validateObjListArg(self._go._i_rigNull.getMessage('shape_clavicle'),cgmMeta.cgmObject,noneValid=False) 
@@ -279,7 +276,6 @@ def build_rig(goInstance = None):
 	                        {'step':'Lock N Hide','call':self.build_lockNHide},
 	                        {'step':'Finalize','call':self.finalize}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):
 	    orientation = self._go._jointOrientation

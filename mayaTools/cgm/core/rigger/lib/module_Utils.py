@@ -47,7 +47,6 @@ class rigStep(cgmGeneral.cgmFuncCls):
 	self._go = goInstance
 	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	#=================================================================
-	if log.getEffectiveLevel() == 10:self.report()#If debug
 	
     def _getData(self):
 	"""
@@ -64,9 +63,7 @@ class example(rigStep):
 	self._str_funcName = 'example(%s)'%self.d_kwsDefined['goInstance']._strShortName	
 	self.__dataBind__(**kws)
 	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
-	#=================================================================
-	if log.getEffectiveLevel() == 10:self.report()#If debug
-	
+	#=================================================================	
 
     def _getData(self):
 	"""
@@ -84,9 +81,7 @@ def exampleWrap(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	    #The idea is to register the functions needed to be called
-	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
-	    
+	    #=================================================================	    
     
 	def _getData(self):
 	    """

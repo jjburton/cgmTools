@@ -201,7 +201,6 @@ class JointFactoryFunc(cgmGeneral.cgmFuncCls):
 	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	
 	#=================================================================
-	if log.getEffectiveLevel() == 10:self.report()#If debug
 	
     def _getData(self):
 	"""
@@ -475,7 +474,6 @@ def doSkeletonizeEyebrow(goInstance = None):
 	    
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def _gatherInfo_(self): 
 	    self.str_orientation = self.mi_go.str_jointOrientation #Link
@@ -553,7 +551,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 		if not pos:
 		    log.warning("rayCast.findMeshIntersectionFromObjectAxis(%s,%s,%s)"%(self.l_targetMesh[0],self.mi_squashCastHelper.mNode,str_cast))
 		    raise StandardError, "Failed to find hit." 
-		if log.getEffectiveLevel() == 10:log.debug("%s >>> Squash stretch cast. key: %s | cast: %s | pos:%s"%(self._str_reportStart,k, str_cast,pos))
+		log.debug("%s >>> Squash stretch cast. key: %s | cast: %s | pos:%s"%(self._str_reportStart,k, str_cast,pos))
 		try:#Create and name
 		    mc.select(cl=True)
 		    mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
@@ -620,11 +618,11 @@ def doSkeletonizeEyebrow(goInstance = None):
 	    for k in d_buildCurves.keys():#Make our left and right joints
 		mi_crv = d_buildCurves[k].get('crv')#get instance
 		int_count = self.int_browJointsCnt#get int
-		if log.getEffectiveLevel() == 10:log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
+		log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
 		try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
 		except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)       
 		d_buildCurves[k]['l_pos'] = l_pos#Store it
-		if log.getEffectiveLevel() == 10:log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
+		log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
 		l_jointBuffer = []
 		ml_endJoints = []
 		ml_browJoints = []
@@ -669,7 +667,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 	    for k in d_buildCurves.keys():#Make our left and right joints
 		mi_crv = d_buildCurves[k].get('crv')#get instance
 		int_count = self.int_cheekJointsCnt#get int
-		if log.getEffectiveLevel() == 10:log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
+		log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
 		#Get our l_pos on which to build the joints ------------------------------------------------------------
 		if int_count == 1:
 		    l_pos = [ mc.pointPosition(mi_crv.getComponents('cv')[0], w = True)]
@@ -677,7 +675,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 		    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
 		    except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)       
 		d_buildCurves[k]['l_pos'] = l_pos#Store it
-		if log.getEffectiveLevel() == 10:log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
+		log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
 		l_jointBuffer = []
 		ml_endJoints = []
 		ml_cheekJoints = []
@@ -722,7 +720,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 	    for k in d_buildCurves.keys():#Make our left and right joints
 		mi_crv = d_buildCurves[k].get('crv')#get instance
 		int_count = self.int_templeJointsCnt#get int
-		if log.getEffectiveLevel() == 10:log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
+		log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
 		#Get our l_pos on which to build the joints ------------------------------------------------------------
 		if int_count == 1:
 		    l_pos = [ mc.pointPosition(mi_crv.getComponents('cv')[0], w = True)]
@@ -730,7 +728,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 		    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
 		    except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)       
 		d_buildCurves[k]['l_pos'] = l_pos#Store it
-		if log.getEffectiveLevel() == 10:log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
+		log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
 		l_jointBuffer = []
 		ml_endJoints = []
 		ml_templeJoints = []

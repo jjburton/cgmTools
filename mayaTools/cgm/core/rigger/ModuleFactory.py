@@ -52,7 +52,6 @@ class ModuleFunc(cgmGeneral.cgmFuncCls):
 	self.mi_module = moduleInstance
 	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	#=================================================================
-	if log.getEffectiveLevel() == 10:self.report()#If debug
 	
     def _getData(self):
 	"""
@@ -1161,7 +1160,6 @@ def get_mirror(moduleInstance = None):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    mi_module = self.mi_module
@@ -1201,7 +1199,6 @@ def mirrorPush(moduleInstance = None):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    mi_module = self.mi_module
@@ -1231,7 +1228,6 @@ def mirrorPull(moduleInstance = None):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    mi_module = self.mi_module
@@ -1262,7 +1258,6 @@ def mirrorMe(moduleInstance = None):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    mi_module = self.mi_module
@@ -1296,7 +1291,6 @@ def mirrorMe_siblings(moduleInstance = None, excludeSelf = True):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:
@@ -1343,7 +1337,6 @@ def animReset_siblings(moduleInstance = None, transformsOnly = True, excludeSelf
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:
@@ -1386,7 +1379,6 @@ def animReset_children(moduleInstance = None, transformsOnly = True, excludeSelf
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:
@@ -1427,7 +1419,6 @@ def mirrorPush_siblings(moduleInstance = None, excludeSelf = True):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:
@@ -1464,7 +1455,6 @@ def mirrorPull_siblings(moduleInstance = None, excludeSelf = True):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:
@@ -1504,7 +1494,6 @@ def getSiblings(moduleInstance = None, excludeSelf = True):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self):
 	    ml_buffer = copy.copy(self.mi_module.moduleParent.moduleChildren)
@@ -1536,7 +1525,6 @@ def getAllModuleChildren(moduleInstance = None,excludeSelf = True):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:
@@ -1607,7 +1595,6 @@ def animKey_siblings(moduleInstance = None, excludeSelf = True,**kws):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:
@@ -1675,7 +1662,6 @@ def animSelect_siblings(moduleInstance = None, excludeSelf = True):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:
@@ -1714,7 +1700,6 @@ def animPushPose_siblings(moduleInstance = None,):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:
@@ -1786,7 +1771,6 @@ def dynSwitch_siblings(moduleInstance = None, arg = None, excludeSelf = True):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:
@@ -1830,7 +1814,6 @@ def get_mirrorSideAsString(module = None,*args,**kws):
 	    
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self):
 	    _str_direction = self._mi_module.getAttr('cgmDirection') 
@@ -1854,7 +1837,6 @@ def toggle_subVis(moduleInstance = None):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    mi_module = self.mi_module
@@ -1883,7 +1865,6 @@ def animSetAttr_children(moduleInstance = None, attr = None, value = None, setti
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:

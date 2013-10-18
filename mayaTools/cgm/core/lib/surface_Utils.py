@@ -80,8 +80,6 @@ def attachObjToSurface(*args,**kws):
 		                {'step':'Create','call':self._create}]
 	    
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:#If debug
-		self.report()
 		
 	def _validate(self):
 	    #>> validate ============================================================================

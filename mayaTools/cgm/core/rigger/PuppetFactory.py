@@ -41,7 +41,6 @@ class puppetFactoryWrapper(cgmGeneral.cgmFuncCls):
 	self.mi_puppet = puppet
 	#self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	#=================================================================
-	if log.getEffectiveLevel() == 10:self.report()#If debug
 	
     def __func__(self):
 	"""
@@ -60,7 +59,6 @@ def exampleWrap(puppet = None,*args,**kws):
 	    
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self):
 	    """
@@ -83,7 +81,6 @@ def stateCheck(puppet = None,arg = None,*args,**kws):
 	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]	    
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self):
 	    """
@@ -361,7 +358,6 @@ class animReset(cgmGeneral.cgmFuncCls):
 	self.d_kwsDefined = {'puppetInstance':puppetInstance}
 	self.l_funcSteps = [{'step':'Process','call':self._process}]	
 	#=================================================================
-	if log.getEffectiveLevel() == 10:self.report()#If debug
 
     def _process(self):
 	"""
@@ -383,7 +379,6 @@ class mirrorMe(cgmGeneral.cgmFuncCls):
 	self.d_kwsDefined = {'puppetInstance':puppetInstance}
 	self.l_funcSteps = [{'step':'Process','call':self._process}]
 	#=================================================================
-	if log.getEffectiveLevel() == 10:self.report()#If debug
 
     def _process(self):
 	"""
@@ -431,7 +426,6 @@ def get_mirrorIndexDict(puppet = None):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]	    
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self):
 	    d_return = {}
@@ -470,7 +464,6 @@ def get_mirrorIndexDict(puppet = None,side = None):
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]	    
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self):
 	    d_return = {}
@@ -510,7 +503,6 @@ def get_nextMirrorIndex(puppet = None,side = None,*args,**kws):
 	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]	    
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self):
 	    """
@@ -552,7 +544,6 @@ def animSetAttr(puppetInstance = None, attr = None, value = None, settingsOnly =
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def __func__(self): 
 	    try:

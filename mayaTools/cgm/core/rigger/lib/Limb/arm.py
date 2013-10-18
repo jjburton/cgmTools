@@ -140,7 +140,6 @@ def build_rigSkeleton(goInstance = None):
 	                        {'step':'Segment Chains','call':self.build_segmentChains},
 	                        {'step':'Connections','call':self.build_connections}]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def build_chains(self):#================================================================================
 	    self.ml_jointsToConnect = []
@@ -238,7 +237,6 @@ def build_shapes(goInstance = None):
 	    self.l_funcSteps = [{'step':'Verify','call':self.verify},
 	                        {'step':'Shapes','call':self.build_shapes}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):
 	    if self._go._i_templateNull.handles > 4:
@@ -300,7 +298,6 @@ def build_controls(goInstance = None):
 	                        {'step':'attributes','call':self.build_attributes},	                        
 	                        {'step':'Connections','call':self.build_connections}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):  
 	    self.ml_controlsAll = []
@@ -682,7 +679,6 @@ def build_FKIK(goInstance = None):
 	                        {'step':'IK Setup','call':self.build_pvIK},
 	                        {'step':'Connections','call':self.build_connections}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):      
 	    self.ml_controlsFK =  self._go._i_rigNull.msgList_get('controlsFK')   
@@ -816,7 +812,6 @@ def build_deformation(goInstance = None):
 	    self.l_funcSteps = [{'step':'Verify','call':self.verify},
 	                        {'step':'Build Segments','call':self.build_segments}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):      
 	    self.ml_segmentHandleChains = self._go._get_segmentHandleChains()
@@ -1406,7 +1401,6 @@ def build_rig(goInstance = None):
 	                        {'step':'Lock N Hide','call':self.build_lockNHide},
 	                        {'step':'Finalize','call':self.build_finalize}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):      
 	    self.orientation = self._go._jointOrientation or modules.returnSettingsData('jointOrientation')
@@ -1697,7 +1691,6 @@ def build_twistDriver_shoulder(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Verify','call':self.verify}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):      
 	    try:
@@ -1821,7 +1814,6 @@ def build_twistDriver_wrist(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Verify','call':self.verify}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):      
 	    try:
@@ -1941,7 +1933,6 @@ def build_matchSystem(goInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Verify','call':self.verify}]
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	    
 	def verify(self):      
 	    #Base info

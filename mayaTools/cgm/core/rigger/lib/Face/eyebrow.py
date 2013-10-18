@@ -103,7 +103,6 @@ def build_rigSkeleton(goInstance = None):
 	                        {'step':'Connections','call':self.build_connections}
 	                        ]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	
 	def gatherInfo(self):
 	    mi_go = self._go#Rig Go instance link
@@ -256,7 +255,6 @@ def build_shapes(goInstance = None):
 	    self.l_funcSteps = [{'step':'Build Shapes','call':self.buildShapes},
 	                        ]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	
 	def buildShapes(self):
 	    mi_go = self._go#Rig Go instance link
@@ -278,7 +276,6 @@ def build_controls(goInstance = None):
 	                        {'step':'Build Connections','call':self._buildConnections_}	                        
 	                        ]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	
 	def _gatherInfo_(self):
 	    mi_go = self._go#Rig Go instance link
@@ -327,7 +324,7 @@ def build_controls(goInstance = None):
 		for i,mObj in enumerate(ml_list):
 		    str_mirrorSide = False
 		    try:
-			mObj.parent = mi_go._i_constrainNull
+			mObj.parent = mi_go._i_deformNull
 			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
 			#Register 
 			try:
@@ -393,7 +390,6 @@ def build_rig(goInstance = None):
 	                        
 	                        ]	
 	    #=================================================================
-	    if log.getEffectiveLevel() == 10:self.report()#If debug
 	
 	def _gatherInfo_(self):
 	    mi_go = self._go#Rig Go instance link
@@ -401,9 +397,9 @@ def build_rig(goInstance = None):
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
-	    self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=True)
-	    if not self.mi_skullPlate:raise StandardError,"No skullPlate found"
+	    self.mi_skullPlate = mi_go._mi_skullPlate
 	    mi_go._i_rigNull.connectChildNode(self.mi_skullPlate,'skullPlate')#Connect it
+	    self.str_skullPlate = self.mi_skullPlate.mNode
 	    
 	    self.mi_jawPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('jawPlate'),noneValid=True)
 	    
@@ -501,7 +497,7 @@ def build_rig(goInstance = None):
 		raise StandardError, "Failed to find hit." 
 		"""
 	    try:#Brow up loc
-		str_skullPlate = self.mi_skullPlate.mNode
+		str_skullPlate = self.str_skullPlate
 		d_section = self.md_rigList['brow']		
 		#Some measurements
 		#From the outer brow to outer brow
@@ -533,7 +529,7 @@ def build_rig(goInstance = None):
 	def _buildBrows_(self):
 	    try:#>> Attach brow rig joints =======================================================================================
 		mi_go = self._go#Rig Go instance link
-		str_skullPlate = self.mi_skullPlate.mNode
+		str_skullPlate = self.str_skullPlate
 		d_section = self.md_rigList['brow']
 		ml_rigJoints = d_section['center']['ml_rigJoints'] + d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
 		ml_handles = d_section['center']['ml_handles'] + d_section['left']['ml_handles'] + d_section['right']['ml_handles']
@@ -747,7 +743,7 @@ def build_rig(goInstance = None):
 	def _buildUprCheek_(self):
 	    try:#>> Attach uprCheek rig joints =======================================================================================
 		mi_go = self._go#Rig Go instance link
-		str_skullPlate = self.mi_skullPlate.mNode
+		str_skullPlate = self.str_skullPlate
 		d_section = self.md_rigList['uprCheek']
 		ml_rigJoints = d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
 		ml_handles = d_section['left']['ml_handles'] + d_section['right']['ml_handles']
@@ -859,7 +855,7 @@ def build_rig(goInstance = None):
 	    
 	def _attachSquash_(self):
 	    mi_go = self._go#Rig Go instance link
-	    str_skullPlate = self.mi_skullPlate.mNode
+	    str_skullPlate = self.str_skullPlate
 	    d_section = self.md_rigList['squash']
 	    ml_rigJoints = d_section['ml_rigJoints']	
 	    for mObj in ml_rigJoints:
@@ -880,7 +876,7 @@ def build_rig(goInstance = None):
 	def _buildTemple_(self):
 	    try:#>> Attach temple rig joints =======================================================================================
 		mi_go = self._go#Rig Go instance link
-		str_skullPlate = self.mi_skullPlate.mNode
+		str_skullPlate = self.str_skullPlate
 		d_section = self.md_rigList['temple']
 		ml_rigJoints = d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
 		ml_handles = d_section['left']['ml_handles'] + d_section['right']['ml_handles']

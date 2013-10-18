@@ -233,8 +233,6 @@ def isEP(curve = None):
 	    self.d_kwsDefined = {'curve':curve}
 	    #=================================================================
 	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
-	    if log.getEffectiveLevel() == 10:#If debug
-		self.report()
     
 	def __func__(self):
 	    """
@@ -263,8 +261,6 @@ def getMidPoint(curve = None):
 	    self.d_kwsDefined = {'curve':curve}
 	    #=================================================================
 	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
-	    if log.getEffectiveLevel() == 10:#If debug
-		self.report()
     
 	def __func__(self):
 	    """
@@ -302,8 +298,6 @@ def convertCurve(baseCurve = None, arg = 'ep', keepOriginal = True,**kws):
 	                         'arg':arg,}
 	    #=================================================================
 	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
-	    if log.getEffectiveLevel() == 10:#If debug
-		self.report()
     
 	def __func__(self):
 	    """
@@ -357,9 +351,6 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
 	    self.l_funcSteps = [{'step':'Validate','call':self._validate},
 		                {'step':'Create','call':self._create}]	
 	    #=================================================================
-	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
-	    if log.getEffectiveLevel() == 10:#If debug
-		self.report()
     
 	def _validate(self):
 	    """

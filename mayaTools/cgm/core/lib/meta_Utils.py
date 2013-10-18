@@ -45,9 +45,6 @@ def sort_listToDictByAttrs(ml_toSort = None,l_attrsToCheck = None):
 	    self.d_kwsDefined = {'ml_toSort':ml_toSort,
 	                         'l_attrsToCheck':l_attrsToCheck}
 	    #=================================================================
-	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
-	    if log.getEffectiveLevel() == 10:#If debug
-		self.report()
     
 	def __func__(self):
 	    """
@@ -142,8 +139,6 @@ def get_matchedListFromAttrDict(*args,**kws):
 	       
 	    #=================================================================
 	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
-	    if log.getEffectiveLevel() == 10:#If debug
-		self.report()
     
 	def __func__(self):
 	    """
