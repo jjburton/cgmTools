@@ -105,7 +105,10 @@ class cgmFuncCls(object):
         
     def go(self,goTo = '',**kws):
 	"""
-	"""	
+	"""
+	if self.d_kwsDefined.get('printHelpBlock'):
+	    self.printHelpBlock()
+	    
 	t_start = time.clock()
 	try:
 	    if not self.l_funcSteps: self.l_funcSteps = [{'call':self.__func__}]
@@ -127,7 +130,7 @@ class cgmFuncCls(object):
 		    break"""
 	    except Exception,error:
 		log.error(">"*3 + " %s "%self._str_funcCombined + "="*75)
-		log.error(">"*3 + " Module: %s "%self._str_modPath)	    		    
+		log.error("Python Module: %s "%self._str_modPath)	    		    
 		if self._str_funcArgs:log.error(">"*3 + " Args: %s "%self._str_funcArgs)
 		if self._str_funcKWs:log.error(">"*3 + " KWs: %s "%self._str_funcKWs)	 
 		if self.d_kwsDefined:
@@ -173,7 +176,7 @@ class cgmFuncCls(object):
     
     def report(self):
 	log.info(">"*3 + " %s "%self._str_funcCombined + "="*75)
-	log.info(">"*3 + " Module: %s "%self._str_modPath)	
+	log.info("Python Module: %s "%self._str_modPath)	
 	if self.l_funcSteps:log.info(">"*3 + " l_funcSteps: %s "%self.l_funcSteps)	
 	self.reportArgsKwsDefaults()	
 	#if self._str_funcArgs:log.info(">"*3 + " Args: %s "%self._str_funcArgs)
@@ -183,7 +186,7 @@ class cgmFuncCls(object):
 	    l_keys = self.d_kwsDefined.keys()
 	    l_keys.sort()	    
 	    for k in l_keys:
-		log.info(">"*3 + " '%s' : %s "%(k,self.d_kwsDefined[k]))
+		log.info("'%s' : %s "%(k,self.d_kwsDefined[k]))
 	log.info(">"*3 + " Self Stored " + "-"*75)	
 	l_keys = self.__dict__.keys()
 	l_keys.sort()
@@ -201,7 +204,7 @@ class cgmFuncCls(object):
 	if self.l_funcSteps:
 	    log.info(">"*3 + " Steps " + "-"*75)	  	    
 	    for i,d in enumerate(self.l_funcSteps):
-		try:log.info(">"*3 + " '%s' : %s "%(i,d.get('step')))
+		try:log.info("'%s' : %s "%(i,d.get('step')))
 		except:pass
 			
 	if self._b_WIP:
@@ -219,6 +222,20 @@ class cgmFuncCls(object):
 		except:pass		
 		l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
 		log.info(" | ".join(l_build))
+    
+    def printHelpBlock(self):
+	if self._l_ARGS_KWS_DEFAULTS:
+	    print("@kws")	  	    	    
+	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
+		l_tmp = ['Arg %i |'%i]
+		try:l_tmp.append(" kw '%s'"%d_buffer['kw'])
+		except:pass
+		try:l_tmp.append("(%s)"%(d_buffer['default']))
+		except:pass			
+		try:l_tmp.append("  -- %s"%d_buffer['help'])
+		except:pass		
+		#l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
+		print("".join(l_tmp))	
 		
 class cgmFunctionClass2(object):
     """Simple class for use with TimerSimple"""
