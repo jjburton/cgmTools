@@ -217,20 +217,21 @@ def getUParamOnCurve(obj = None, crv = None):
     return paramUtil.getDouble(buffer)
 
 
-def isEP(curve = None):
+def isEP(*args, **kws):
     """
     Function to see if a curve is an ep curve
     @kws
     baseCurve -- curve on check
     """
     class fncWrap(cgmGeneral.cgmFuncCls):
-	def __init__(self,curve = None, **kws):
+	def __init__(self,*args, **kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(curve = None)
 	    self._str_funcName = 'isEP'	
-	    self.__dataBind__(**kws)
-	    self.d_kwsDefined = {'curve':curve}
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'curve',"default":None},
+	                                 {'kw':'reportTimes',"default":False}]	    
+	    self.__dataBind__(*args, **kws)
 	    #=================================================================
 	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
     
@@ -243,22 +244,22 @@ def isEP(curve = None):
 	    if len(l_cvs)-len(self.mi_crv.getComponents('ep')) < 2:
 		return True
 	    else: return False	     
-    return fncWrap(curve).go()
+    return fncWrap(*args, **kws).go()
 
-def getMidPoint(curve = None):
+def getMidPoint(*args, **kws):
     """
     Function to see if a curve is an ep curve
     @kws
     baseCurve -- curve on check
     """
     class fncWrap(cgmGeneral.cgmFuncCls):
-	def __init__(self,curve = None, **kws):
+	def __init__(self,*args, **kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(curve = None)
 	    self._str_funcName = 'getMidPoint'	
-	    self.__dataBind__(**kws)
-	    self.d_kwsDefined = {'curve':curve}
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'curve',"default":None}]	    
+	    self.__dataBind__(*args, **kws)
 	    #=================================================================
 	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
     
@@ -266,22 +267,22 @@ def getMidPoint(curve = None):
 	    """
 	    """
 	    self.mi_crv = cgmMeta.validateObjArg(self.d_kwsDefined['curve'],mayaType='nurbsCurve',noneValid=False)
-	    self._str_funcCombined = self._str_funcCombined + "(%s)"%self.mi_crv.p_nameShort
+	    self._str_funcCombined = self._str_funcCombined + "('%s')"%self.mi_crv.p_nameShort
 	    
 	    self.str_bufferU = mc.ls("%s.u[*]"%self.mi_crv.mNode)[0]
 	    self.f_maxU = float(self.str_bufferU.split(':')[-1].split(']')[0])	
 	    
 	    return mc.pointPosition("%s.u[%f]"%(self.mi_crv.mNode,self.f_maxU/2), w=True)
 	    
-    return fncWrap(curve).go()
+    return fncWrap(*args, **kws).go()
 
     
-def convertCurve(baseCurve = None, arg = 'ep', keepOriginal = True,**kws):
+def convertCurve(*args, **kws):
     """
     Function to convert a curve
     """
     class fncWrap(cgmGeneral.cgmFuncCls):
-	def __init__(self,baseCurve = None, arg = None, keepOriginal = True,**kws):
+	def __init__(self,*args, **kws):
 	    """
 	    @kws
 	    source -- joint to add length to
@@ -290,12 +291,12 @@ def convertCurve(baseCurve = None, arg = 'ep', keepOriginal = True,**kws):
 	    orienation(str) -- joint orientation
     
 	    """	
-	    super(fncWrap, self).__init__(baseCurve, arg, keepOriginal, **kws)
+	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = 'convertCurve'	
-	    self.__dataBind__(**kws)
-	    self.d_kwsDefined = {'baseCurve':baseCurve,
-	                         'keepOriginal':keepOriginal,
-	                         'arg':arg,}
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'baseCurve',"default":None},
+	                                 {'kw':'arg',"default":'ep'},
+	                                 {'kw':"keepOriginal","default":True}]	    
+	    self.__dataBind__(*args, **kws)
 	    #=================================================================
 	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
     
@@ -325,16 +326,15 @@ def convertCurve(baseCurve = None, arg = 'ep', keepOriginal = True,**kws):
 		#return curves.curveFromPosList(l_pos)
 	    raise NotImplementedError,"arg: %s"%self.str_arg
 	
-    return fncWrap(baseCurve, arg, keepOriginal, **kws).go()
+    return fncWrap(*args, **kws).go()
 
-def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
-                mirrorAcross = 'x'):
+def mirrorCurve(*args, **kws):
     """
     Function to mirror a curve or push mirror settings to a second curve
     if a second curve is specified
     """
     class fncWrap(cgmGeneral.cgmFuncCls):
-	def __init__(self,baseCurve = None, targetCurve = None, mirrorThreshold = .5, mirrorAcross = 'x', **kws):
+	def __init__(self,*args, **kws):
 	    """
 	    @kws
 	    source -- joint to add length to
@@ -344,10 +344,14 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
     
 	    """	
 	    super(fncWrap, self).__init__(baseCurve = None, targetCurve = None, mirrorThreshold = .5, mirrorAcross = 'x',**kws)
-	    self._str_funcName = 'mirrorCurve'	
-	    self.__dataBind__(**kws)
-	    self.d_kwsDefined = {'baseCurve':baseCurve,'targetCurve':targetCurve,
-	                         'mirrorThreshold':mirrorThreshold,'mirrorAcross':mirrorAcross}
+	    self._str_funcName = 'mirrorCurve'
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'baseCurve',"default":None},
+	                                 {'kw':'targetCurve',"default":None},
+	                                 {'kw':"mirrorThreshold","default":.5},
+	                                 {'kw':"mirrorAcross","default":'x'},
+	                                 {'kw':"blendBias","default":.5},
+	                                 {'kw':"reportTimes","default":False}]	    
+	    self.__dataBind__(*args, **kws)
 	    self.l_funcSteps = [{'step':'Validate','call':self._validate},
 		                {'step':'Create','call':self._create}]	
 	    #=================================================================
@@ -375,7 +379,7 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
 	    if not mi_target:#if no target, mirror self
 		if not self.d_base['b_oneSided']:
 		    if self.d_base['b_even']:
-			log.info("%s Even"%self._str_reportStart)			
+			log.info("%s Even mirror"%self._str_reportStart)			
 			l_cvPos = self.d_base['l_cvPos']
 			l_cvs = self.d_base['l_cvs']			
 			int_split = int(len(l_cvPos)/2)
@@ -389,6 +393,24 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
 			for i,cv in enumerate(l_splitDriven):
 			    pos = l_splitDriverPos[i]
 			    mc.move(-pos[0],pos[1],pos[2], cv, ws=True)
+			return True
+		    else:
+			log.info("%s nonEven mirror"%self._str_reportStart)			
+			l_cvPos = self.d_base['l_cvPos']
+			l_cvs = self.d_base['l_cvs']			
+			int_split = int(len(l_cvPos)/2)
+			l_cvPos.pop(int_split)
+			l_cvs.pop(int_split)
+			l_splitDriven = l_cvs[int_split:]
+			l_splitDriver = l_cvs[:int_split]
+			l_splitDriverPos = l_cvPos[:int_split]			
+			l_splitDriverPos.reverse()
+			log.info("%s l_splitDriven: %s"%(self._str_reportStart,l_splitDriven))
+			log.info("%s l_splitDriver: %s"%(self._str_reportStart,l_splitDriver))			
+			for i,cv in enumerate(l_splitDriven):
+			    pos = l_splitDriverPos[i]
+			    mc.move(-pos[0],pos[1],pos[2], cv, ws=True)
+			return True		
 		else:#it's one sided
 		    log.info("%s Build other side. New crv"%self._str_reportStart)
 		    l_epPos = self.d_base['l_epPos']
@@ -400,8 +422,27 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
 		    #l_newCurvePos = l_epPos + l_otherSide
 		    l_newCurvePos = l_otherSide
 		    l_newCurvePos = lists.returnListNoDuplicates(l_newCurvePos)
-		    #self.report()
+		    
 		    self.mi_created = cgmMeta.cgmObject( mc.curve(d=2,p=l_newCurvePos,os = True) )
+		    self.mi_created.rename( mi_base.p_nameBase + '_mirrored')
+		    
+		    #
+		    if self.d_base['b_startInThreshold'] or self.d_base['b_endInThreshold']:
+			#In this case we need to combine and rebuild the curve
+			try:
+			    str_attachedCurves  = mc.attachCurve([self.mi_created.mNode,self.mi_baseCurve.mNode],
+			                                         blendBias = self.d_kwsDefined['blendBias'])
+			except Exception,error:raise StandardError,"Attach curve | %s"%error
+			#mc.delete(self.mi_created.mNode)#delete the old one
+			#self.mi_created = cgmMeta.cgmObject(str_attachedCurves[0])
+			#int_spans = (len(l_epPos)*1.5)
+			int_spans = len(l_epPos)+1			
+			try:
+			    mc.rebuildCurve (self.mi_created.mNode, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_spans, d=3, tol=0.001)
+			except Exception,error:raise StandardError,"Rebuild curve | %s"%error
+			try:
+			    mc.reverseCurve (self.mi_created.mNode, rpo=1)
+			except Exception,error:raise StandardError,"Reverse curve | %s"%error			
 		    self.mi_created.rename( mi_base.p_nameBase + '_mirrored')
 		    return self.mi_created.p_nameShort
 		    
@@ -417,13 +458,6 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
 		    
 		return True
 		    
-
-		
-		
-		
-
-	    self.report()
-	    
 	def getCurveMirrorData(self,mi_crv):
 	    d_return = {}
 	    d_return['f_bbMin'] = mi_crv.boundingBoxMin[self.int_across]
@@ -445,7 +479,7 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
 
 	    #> Check thresholds ----------------------------------------------------------------------
 	    try:
-		if d_return['f_bbMin'] >= self.f_threshold and d_return['f_bbMax'] >= self.f_threshold or d_return['f_bbMin'] <= -self.f_threshold and d_return['f_bbMax'] <= -self.f_threshold:
+		if -d_return['f_bbMin'] <= self.f_threshold and d_return['f_bbMax'] >= self.f_threshold or d_return['f_bbMin'] <= -self.f_threshold and d_return['f_bbMax'] <= -self.f_threshold:
 		    d_return['b_oneSided'] = True		
 		"""if abs(d_return['f_bbMin']) <= self.f_threshold or abs(d_return['f_bbMax']) <= self.f_threshold:
 		    d_return['b_oneSided'] = True"""
@@ -500,4 +534,4 @@ def mirrorCurve(baseCurve = None,targetCurve = None, mirrorThreshold = .5,
 	    
 	    return d_return
 	
-    return fncWrap(baseCurve,targetCurve,mirrorThreshold,mirrorAcross).go()
+    return fncWrap(*args, **kws).go()
