@@ -44,6 +44,145 @@ reload(distance)
 
 #>>> Utilities
 #===================================================================
+def returnSplitCurveList(*args, **kws):
+    """
+    Function to split a curve up u positionally 
+    
+    @kws
+    Arg 0 | kw 'curve'(None)  -- Curve to split
+    Arg 1 | kw 'points'(3)  -- Number of points to generate positions for
+    Arg 2 | kw 'markPoints'(False)  -- If you want the positions marked with locators
+    Arg 3 | kw 'startSplitFactor'(None)  -- inset factor for subsequent splits after then ends
+    Arg 4 | kw 'insetSplitFactor'(None)  -- Multiplier for pushing splits one way or another on a curve
+    Arg 5 | kw 'rebuildForSplit'(True)  -- Whether to rebuild before split (for smoother splitting)
+    Arg 6 | kw 'rebuildSpans'(10)  -- How many spans for the rebuild
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args, **kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(curve = None)
+	    self._str_funcName = 'attachObjToCurve'	
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'curve',"default":None,
+	                                  'help':"Curve to split"},
+	                                 {'kw':'points',"default":3,
+	                                  'help':"Number of points to generate positions for"},
+	                                 {'kw':'markPoints',"default":False,
+	                                  'help':"If you want the positions marked with locators"},
+	                                 {'kw':'startSplitFactor',"default":None,
+	                                  'help':"inset factor for subsequent splits after then ends"},
+	                                 {'kw':'insetSplitFactor',"default":None,
+	                                  'help':"Multiplier for pushing splits one way or another on a curve"},
+	                                 {'kw':'rebuildForSplit',"default":True,
+	                                  'help':"Whether to rebuild before split (for smoother splitting)"},
+	                                 {'kw':'rebuildSpans',"default":10,
+	                                  'help':"How many spans for the rebuild"}]	    
+	    self.__dataBind__(*args, **kws)
+	    
+	def __func__(self):
+	    """
+	    """
+	    _str_funcName = self._str_funcCombined
+	    curve = self.d_kwsDefined['curve']
+	    points = self.d_kwsDefined['points']
+	    mi_crv = cgmMeta.validateObjArg(self.d_kwsDefined['curve'],cgmMeta.cgmObject,mayaType='nurbsCurve',noneValid=False)
+	    int_points = cgmValid.valueArg(self.d_kwsDefined['points'],minValue=3,calledFrom = self._str_funcCombined)
+	    f_insetSplitFactor = cgmValid.valueArg(self.d_kwsDefined['insetSplitFactor'],calledFrom=self._str_funcCombined)	
+	    f_startSplitFactor = cgmValid.valueArg(self.d_kwsDefined['startSplitFactor'],calledFrom=self._str_funcCombined)		
+    
+	    f_points = float(int_points)
+	    int_spans = int(cgmValid.valueArg(self.d_kwsDefined['points'],minValue=5,autoClamp=True,calledFrom=self._str_funcCombined))
+	    b_rebuild = cgmValid.boolArg(self.d_kwsDefined['rebuildForSplit'],calledFrom = self._str_funcCombined)
+	    b_markPoints = cgmValid.boolArg(self.d_kwsDefined['markPoints'],calledFrom = self._str_funcCombined)
+	    #>>> Rebuild curve
+	    if b_rebuild:
+		useCurve = mc.rebuildCurve (curve, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_spans, d=3, tol=0.001)[0]
+	    else:
+		useCurve = curve
+    
+	    #>>> Divide stuff
+	    #==========================	
+	    l_spanUPositions = []
+	    str_bufferU = mc.ls("%s.u[*]"%useCurve)[0]
+	    log.debug("%s >> u list : %s"%(_str_funcName,str_bufferU))       
+	    f_maxU = float(str_bufferU.split(':')[-1].split(']')[0])
+	    l_uValues = [0]
+    
+	    if f_startSplitFactor is not False:
+		if points < 5:
+		    raise StandardError,"Need at least 5 points for startSplitFactor. Points : %s"%(points)
+		log.debug("%s >> f_startSplitFactor : %s"%(_str_funcName,f_startSplitFactor))  
+		#Figure out our u's
+		f_base = f_startSplitFactor * f_maxU 
+		l_uValues.append( f_base )
+		f_len = f_maxU - (f_base *2)	
+		int_toMake = f_points-4
+		f_factor = f_len/(int_toMake+1)
+		log.debug("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
+		log.debug("%s >> f_len : %s"%(_str_funcName,f_len)) 	
+		log.debug("%s >> int_toMake : %s"%(_str_funcName,int_toMake)) 						
+		log.debug("%s >> f_base : %s"%(_str_funcName,f_base)) 			
+		log.debug("%s >> f_factor : %s"%(_str_funcName,f_factor))               
+		for i in range(1,int_points-3):
+		    l_uValues.append(((i*f_factor + f_base)))
+		l_uValues.append(f_maxU - f_base)
+		l_uValues.append(f_maxU)
+		log.debug("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  			
+	    elif f_insetSplitFactor is not False:
+		log.debug("%s >> f_insetSplitFactor : %s"%(_str_funcName,f_insetSplitFactor))  
+		#Figure out our u's
+		f_base = f_insetSplitFactor * f_maxU 
+		f_len = f_maxU - (f_base *2)	
+		f_factor = f_len/(f_points-1)
+		log.debug("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
+		log.debug("%s >> f_len : %s"%(_str_funcName,f_len)) 			
+		log.debug("%s >> f_base : %s"%(_str_funcName,f_base)) 			
+		log.debug("%s >> f_factor : %s"%(_str_funcName,f_factor))               
+		for i in range(1,int_points-1):
+		    l_uValues.append((i*f_factor))
+		l_uValues.append(f_maxU)
+		log.debug("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  			
+	    else:
+		#Figure out our u's
+		log.debug("%s >> Regular mode. Points = %s "%(_str_funcName,int_points))
+		if int_points == 3:
+		    l_uValues.append(f_maxU/2)
+		    l_uValues.append(f_maxU)
+		else:
+		    f_factor = f_maxU/(f_points-1)
+		    log.debug("%s >> f_maxU : %s"%(_str_funcName,f_maxU)) 
+		    log.debug("%s >> f_factor : %s"%(_str_funcName,f_factor))               
+		    for i in range(1,int_points-1):
+			l_uValues.append(i*f_factor)
+		    l_uValues.append(f_maxU)
+		log.debug("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  
+    
+	    for u in l_uValues:
+		try:l_spanUPositions.append(mc.pointPosition("%s.u[%f]"%(useCurve,u)))
+		except StandardError,error:raise StandardError,"Failed on pointPositioning: %s"%u			
+	    log.debug("%s >> l_spanUPositions | len: %s | list: %s"%(_str_funcName,len(l_spanUPositions),l_spanUPositions))  
+    
+	    try:
+		if b_markPoints:
+		    ml_built = []
+		    for i,pos in enumerate(l_spanUPositions):
+			buffer =  mc.spaceLocator(n = "%s_u_%f"%(useCurve,(l_uValues[i])))[0] 
+			ml_built.append( cgmMeta.cgmObject(buffer))
+			log.debug("%s >> created : %s | at: %s"%(_str_funcName,ml_built[-1].p_nameShort,pos))              											
+			mc.xform(ml_built[-1].mNode, t = (pos[0],pos[1],pos[2]), ws=True)
+    
+		    try:f_distance = distance.returnAverageDistanceBetweenObjects([o.mNode for o in ml_built]) * .5
+		    except StandardError,error:raise StandardError,"Average distance fail. Objects: %s| error: %s"%([o.mNode for o in ml_built],error)
+		    try:
+			for o in ml_built:
+			    o.scale = [f_distance,f_distance,f_distance]
+		    except StandardError,error:raise StandardError,"Scale fail : %s"%error
+	    except StandardError,error:log.error("Mark points fail. error : %s"%(error))
+	    if b_rebuild:mc.delete(useCurve)
+	    return l_spanUPositions
+		
+    return fncWrap(*args, **kws).go()
+'''
 def returnSplitCurveList(curve = None,points = 3, markPoints = False, startSplitFactor = None, insetSplitFactor = None,
                          rebuildForSplit = True,rebuildSpans = 10):
     """
@@ -159,7 +298,8 @@ def returnSplitCurveList(curve = None,points = 3, markPoints = False, startSplit
 	return l_spanUPositions
     except StandardError,error:
 	raise StandardError,"%s >>> error : %s"%(_str_funcName,error)
-
+'''
+'''
 def attachObjToCurve(obj = None, crv = None):
     """
     @Parameters
@@ -183,6 +323,39 @@ def attachObjToCurve(obj = None, crv = None):
 
     except StandardError,error:
 	raise StandardError,"%s >>> error : %s"%(_str_funcName,error)	
+'''
+def attachObjToCurve(*args, **kws):
+    """
+    Function to see if a curve is an ep curve
+    @kws
+    baseCurve -- curve on check
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args, **kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(curve = None)
+	    self._str_funcName = 'attachObjToCurve'	
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'obj',"default":None},
+	                                 {'kw':'crv',"default":None}]	    
+	    self.__dataBind__(*args, **kws)
+	    #=================================================================
+    
+	def __func__(self):
+	    """
+	    """
+	    obj = cgmValid.objString(self.d_kwsDefined['obj'],isTransform=True)
+	    crv = cgmValid.objString(self.d_kwsDefined['crv'],mayaType='nurbsCurve')	
+	    d_returnBuff = distance.returnNearestPointOnCurveInfo(obj,crv)
+	    mi_poci = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
+	    mc.connectAttr("%s.worldSpace"%d_returnBuff['shape'],"%s.inputCurve"%mi_poci.mNode)
+	    mi_poci.parameter = d_returnBuff['parameter']
+	    mc.connectAttr("%s.position"%mi_poci.mNode,"%s.t"%obj)
+	    mi_poci.doStore('cgmName',obj)
+	    mi_poci.doName()
+	    
+	    return True
+    return fncWrap(*args, **kws).go()
 
 def getUParamOnCurve(obj = None, crv = None):
     """
