@@ -139,9 +139,17 @@ class cgmFuncCls(object):
 		log.error(">"*3 + " Self Stored " + "-"*75)
 		l_keys = self.__dict__.keys()
 		l_keys.sort()
-		for k in l_keys:		
+		for k in l_keys:
 		    if k not in self._l_errorMask:
-			log.error(">"*3 + " '%s' : %s "%(k,self.__dict__[k]))
+			buffer = self.__dict__[k]
+			if type(buffer) is dict:
+			    log.error(">"*6 + " Nested Dict: %s "%k + "-"*75)
+			    l_bufferKeys = buffer.keys()
+			    l_bufferKeys.sort()
+			    for k2 in buffer.keys():
+				log.error(">"*6 + " '%s' : %s "%(k2,buffer[k2]))			
+			else:
+			    log.error(">"*3 + " '%s' : %s "%(k,self.__dict__[k]))
 		if self._b_WIP:
 		    log.error(">"*40 + " WIP CODE " + "<"*40)	
 		log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)))
@@ -152,7 +160,8 @@ class cgmFuncCls(object):
 	    self._d_stepTimes[_str_step] = _str_time
 	    if int_max != 0 and self.d_kwsDefined.get('reportTimes'): log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)))		
 	
-	log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)))		
+	if self.d_kwsDefined.get('reportTimes'):
+	    log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)))		
 	if int_max == 0:#If it's a one step, return, return the single return
 	    try:return self.d_return[self.d_return.keys()[0]]
 	    except:pass
