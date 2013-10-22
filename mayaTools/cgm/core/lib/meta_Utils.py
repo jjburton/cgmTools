@@ -42,7 +42,7 @@ def sort_listToDictByAttrs(ml_toSort = None,l_attrsToCheck = None):
 	    self._b_WIP =True
 	    self._str_funcName = 'sort_listToDictByAttrs'	
 	    self.__dataBind__(**kws)
-	    self.d_kwsDefined = {'ml_toSort':ml_toSort,
+	    self.d_kws = {'ml_toSort':ml_toSort,
 	                         'l_attrsToCheck':l_attrsToCheck}
 	    #=================================================================
     
@@ -50,9 +50,9 @@ def sort_listToDictByAttrs(ml_toSort = None,l_attrsToCheck = None):
 	    """
 	    """
 	    self.d_return = {}
-	    ml_toSort = self.d_kwsDefined['ml_toSort']
+	    ml_toSort = self.d_kws['ml_toSort']
 	    ml_toCull = copy.copy(ml_toSort)
-	    self.l_attrsToCheck = cgmValid.stringListArg( self.d_kwsDefined['l_attrsToCheck'],True,self._str_funcCombined)
+	    self.l_attrsToCheck = cgmValid.stringListArg( self.d_kws['l_attrsToCheck'],True,self._str_funcCombined)
 	    self.d_objAttrs = {}
 	    self.d_objAttrKeys = {}
 	    self.d_matchObjects = {}

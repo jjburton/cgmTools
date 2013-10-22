@@ -110,7 +110,7 @@ def build_rigSkeleton(goInstance = None):
     class fncWrap(modUtils.rigStep):
 	def __init__(self,goInstance = None):
 	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build Chains','call':self.build}]	
 	    #=================================================================
@@ -352,7 +352,7 @@ def build_shapes(goInstance = None):
     class fncWrap(modUtils.rigStep):
 	def __init__(self,goInstance = None):
 	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_shapes(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self._str_funcName = 'build_shapes(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build NOT BROKEN UP YET','call':self.build}]	
 	    #=================================================================
@@ -473,7 +473,7 @@ def build_controls(goInstance = None):
     class fncWrap(modUtils.rigStep):
 	def __init__(self,goInstance = None):
 	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_controls(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self._str_funcName = 'build_controls(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build NOT BROKEN UP YET','call':self.build_old},
 	                        {'step':'Connections','call':self.build_connections}]	
@@ -836,7 +836,7 @@ def build_FKIK(goInstance = None):
     class fncWrap(modUtils.rigStep):
 	def __init__(self,goInstance = None):
 	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_FKIK(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self._str_funcName = 'build_FKIK(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build NOT BROKEN UP YET','call':self.build}]	
 	    #=================================================================
@@ -1232,7 +1232,7 @@ def build_rig(goInstance = None):
     class fncWrap(modUtils.rigStep):
 	def __init__(self,goInstance = None):
 	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_rig(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self._str_funcName = 'build_rig(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build NOT BROKEN UP YET','call':self.build}]	
 	    #=================================================================
@@ -1545,7 +1545,7 @@ def build_matchSystem(goInstance = None):
     class fncWrap(modUtils.rigStep):
 	def __init__(self,goInstance = None):
 	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_matchSystem(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self._str_funcName = 'build_matchSystem(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build NOT BROKEN UP YET','call':self.build}]	
 	    #=================================================================

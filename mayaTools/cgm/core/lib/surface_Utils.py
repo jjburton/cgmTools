@@ -67,7 +67,7 @@ def attachObjToSurface(*args,**kws):
 	    """		    
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = 'attachObjToSurface'
-	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'objToAttach',"default":None},
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'objToAttach',"default":None,'help':"Object to attach to the surface"},
 	                                 {'kw':'targetSurface',"default":None},
 	                                 {'kw':"createControlLoc","default":True},
 	                                 {'kw':"createUpLoc","default":False},
@@ -83,20 +83,20 @@ def attachObjToSurface(*args,**kws):
 		
 	def _validate(self):
 	    #>> validate ============================================================================
-	    self.mi_obj = cgmMeta.validateObjArg(self.d_kwsDefined['objToAttach'],cgmMeta.cgmObject,noneValid=False)
-	    self.mi_targetSurface = cgmMeta.validateObjArg(self.d_kwsDefined['targetSurface'],mayaType='nurbsSurface',noneValid=False)
-	    self.mi_orientation = cgmValid.simpleOrientation( self.d_kwsDefined['orientation'] )
+	    self.mi_obj = cgmMeta.validateObjArg(self.d_kws['objToAttach'],cgmMeta.cgmObject,noneValid=False)
+	    self.mi_targetSurface = cgmMeta.validateObjArg(self.d_kws['targetSurface'],mayaType='nurbsSurface',noneValid=False)
+	    self.mi_orientation = cgmValid.simpleOrientation( self.d_kws['orientation'] )
 	    self._str_funcCombined = self._str_funcCombined + "(%s,%s)"%(self.mi_obj.p_nameShort,self.mi_targetSurface.p_nameShort)
 	    
 	    self.l_shapes = mc.listRelatives(self.mi_targetSurface.mNode,shapes=True)
 	    if len(self.l_shapes)>1:
 		log.debug( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(self.mi_targetSurface.p_nameShort,self.l_shapes) )
 	    self.mi_shape = cgmMeta.validateObjArg(self.l_shapes[0],cgmMeta.cgmNode,noneValid=False)
-	    self.b_createControlLoc = cgmValid.boolArg(self.d_kwsDefined['createControlLoc'],calledFrom=self._str_funcCombined)
-	    self.b_createUpLoc = cgmValid.boolArg(self.d_kwsDefined['createUpLoc'],calledFrom=self._str_funcCombined)
-	    self.b_parentToFollowGroup = cgmValid.boolArg(self.d_kwsDefined['parentToFollowGroup'],calledFrom=self._str_funcCombined)
+	    self.b_createControlLoc = cgmValid.boolArg(self.d_kws['createControlLoc'],calledFrom=self._str_funcCombined)
+	    self.b_createUpLoc = cgmValid.boolArg(self.d_kws['createUpLoc'],calledFrom=self._str_funcCombined)
+	    self.b_parentToFollowGroup = cgmValid.boolArg(self.d_kws['parentToFollowGroup'],calledFrom=self._str_funcCombined)
 	    
-	    self.f_offset = cgmValid.valueArg(self.d_kwsDefined['f_offset'], calledFrom=self._str_funcCombined)
+	    self.f_offset = cgmValid.valueArg(self.d_kws['f_offset'], calledFrom=self._str_funcCombined)
 	    #Get info ============================================================================
 	    self.d_closestInfo = distance.returnClosestPointOnSurfaceInfo(self.mi_obj.mNode,self.mi_targetSurface.mNode)
 	    

@@ -91,11 +91,11 @@ def __bindSkeletonSetup__(self):
 	log.error("build_eyebrow>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
     
-def build_rigSkeleton(goInstance = None):
+def build_rigSkeleton(*args, **kws):
     class fncWrap(modUtils.rigStep):
-	def __init__(self,goInstance = None):
-	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self.gatherInfo},
 	                        {'step':'Rig Joints','call':self.build_rigJoints},
@@ -241,16 +241,16 @@ def build_rigSkeleton(goInstance = None):
 		cgmMeta.cgmAttr(self._go._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
 		cgmMeta.cgmAttr(self._go._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
 		"""
-    return fncWrap(goInstance).go()
+    return fncWrap(*args, **kws).go()
 	
 #>>> Shapes
 #===================================================================
 __d_controlShapes__ = {'shape':['shape_handleCurves','shape_pinCurves']}
-def build_shapes(goInstance = None):
+def build_shapes(*args, **kws):
     class fncWrap(modUtils.rigStep):
-	def __init__(self,goInstance = None):
-	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_shapes(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'build_shapes(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Build Shapes','call':self.buildShapes},
 	                        ]	
@@ -260,15 +260,15 @@ def build_shapes(goInstance = None):
 	    mi_go = self._go#Rig Go instance link
 	    mShapeCast.go(mi_go._i_module,['eyebrow'], storageInstance=mi_go)#This will store controls to a dict called    
 	    
-    return fncWrap(goInstance).go()
+    return fncWrap(*args, **kws).go()
 
 #>>> Controls
 #===================================================================
-def build_controls(goInstance = None):
+def build_controls(*args, **kws):
     class fncWrap(modUtils.rigStep):
-	def __init__(self,goInstance = None):
-	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_controls(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'build_controls(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Settings','call':self._buildSettings_},	                        
@@ -371,14 +371,14 @@ def build_controls(goInstance = None):
 	    try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
 	    except Exception,error: raise StandardError,"Failed to set module objectSet | %s"%error
 	    
-    return fncWrap(goInstance).go()
+    return fncWrap(*args, **kws).go()
 	    
 
-def build_rig(goInstance = None):
+def build_rig(*args, **kws):
     class fncWrap(modUtils.rigStep):
-	def __init__(self,goInstance = None):
-	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_rig(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'build_rig(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Special Locs','call':self._buildSpecialLocs_},	                        
@@ -941,7 +941,7 @@ def build_rig(goInstance = None):
 		    except:pass				
 	    except Exception,error:raise StandardError,"Parent follicles. | error : %s"%(error)
 	    
-    return fncWrap(goInstance).go()
+    return fncWrap(*args, **kws).go()
     
 #----------------------------------------------------------------------------------------------
 # Important info ==============================================================================

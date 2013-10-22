@@ -88,7 +88,7 @@ def build_rigSkeleton(goInstance = None):
     class fncWrap(modUtils.rigStep):
 	def __init__(self,goInstance = None):
 	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Rig Chain','call':self.build_rigJoints},
 	                        {'step':'FK Chain','call':self.build_fkJoints},
@@ -97,7 +97,7 @@ def build_rigSkeleton(goInstance = None):
 	    #=================================================================
 	    
 	def build_rigJoints(self):
-	    go = self.d_kwsDefined['goInstance']
+	    go = self.d_kws['goInstance']
 	    ml_rigJoints = []
 	    for i,j in enumerate(self._go._ml_skinJoints):
 		i_j = j.doDuplicate()
@@ -166,7 +166,7 @@ def build_shapes(goInstance = None):
     class fncWrap(modUtils.rigStep):
 	def __init__(self,goInstance = None):
 	    super(fncWrap, self).__init__(goInstance)
-	    self._str_funcName = 'build_shapes(%s)'%self.d_kwsDefined['goInstance']._strShortName	
+	    self._str_funcName = 'build_shapes(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Verify','call':self.verify},
 	                        {'step':'Shapes','call':self.build_shapes}]

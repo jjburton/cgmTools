@@ -83,17 +83,17 @@ def returnSplitCurveList(*args, **kws):
 	    """
 	    """
 	    _str_funcName = self._str_funcCombined
-	    curve = self.d_kwsDefined['curve']
-	    points = self.d_kwsDefined['points']
-	    mi_crv = cgmMeta.validateObjArg(self.d_kwsDefined['curve'],cgmMeta.cgmObject,mayaType='nurbsCurve',noneValid=False)
-	    int_points = cgmValid.valueArg(self.d_kwsDefined['points'],minValue=3,calledFrom = self._str_funcCombined)
-	    f_insetSplitFactor = cgmValid.valueArg(self.d_kwsDefined['insetSplitFactor'],calledFrom=self._str_funcCombined)	
-	    f_startSplitFactor = cgmValid.valueArg(self.d_kwsDefined['startSplitFactor'],calledFrom=self._str_funcCombined)		
+	    curve = self.d_kws['curve']
+	    points = self.d_kws['points']
+	    mi_crv = cgmMeta.validateObjArg(self.d_kws['curve'],cgmMeta.cgmObject,mayaType='nurbsCurve',noneValid=False)
+	    int_points = cgmValid.valueArg(self.d_kws['points'],minValue=3,calledFrom = self._str_funcCombined)
+	    f_insetSplitFactor = cgmValid.valueArg(self.d_kws['insetSplitFactor'],calledFrom=self._str_funcCombined)	
+	    f_startSplitFactor = cgmValid.valueArg(self.d_kws['startSplitFactor'],calledFrom=self._str_funcCombined)		
     
 	    f_points = float(int_points)
-	    int_spans = int(cgmValid.valueArg(self.d_kwsDefined['points'],minValue=5,autoClamp=True,calledFrom=self._str_funcCombined))
-	    b_rebuild = cgmValid.boolArg(self.d_kwsDefined['rebuildForSplit'],calledFrom = self._str_funcCombined)
-	    b_markPoints = cgmValid.boolArg(self.d_kwsDefined['markPoints'],calledFrom = self._str_funcCombined)
+	    int_spans = int(cgmValid.valueArg(self.d_kws['points'],minValue=5,autoClamp=True,calledFrom=self._str_funcCombined))
+	    b_rebuild = cgmValid.boolArg(self.d_kws['rebuildForSplit'],calledFrom = self._str_funcCombined)
+	    b_markPoints = cgmValid.boolArg(self.d_kws['markPoints'],calledFrom = self._str_funcCombined)
 	    #>>> Rebuild curve
 	    if b_rebuild:
 		useCurve = mc.rebuildCurve (curve, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_spans, d=3, tol=0.001)[0]
@@ -344,8 +344,8 @@ def attachObjToCurve(*args, **kws):
 	def __func__(self):
 	    """
 	    """
-	    obj = cgmValid.objString(self.d_kwsDefined['obj'],isTransform=True)
-	    crv = cgmValid.objString(self.d_kwsDefined['crv'],mayaType='nurbsCurve')	
+	    obj = cgmValid.objString(self.d_kws['obj'],isTransform=True)
+	    crv = cgmValid.objString(self.d_kws['crv'],mayaType='nurbsCurve')	
 	    d_returnBuff = distance.returnNearestPointOnCurveInfo(obj,crv)
 	    mi_poci = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
 	    mc.connectAttr("%s.worldSpace"%d_returnBuff['shape'],"%s.inputCurve"%mi_poci.mNode)
@@ -411,7 +411,7 @@ def isEP(*args, **kws):
 	def __func__(self):
 	    """
 	    """
-	    self.mi_crv = cgmMeta.validateObjArg(self.d_kwsDefined['curve'],mayaType='nurbsCurve',noneValid=False)
+	    self.mi_crv = cgmMeta.validateObjArg(self.d_kws['curve'],mayaType='nurbsCurve',noneValid=False)
 	    self._str_funcCombined = self._str_funcCombined + "(%s)"%self.mi_crv.p_nameShort
 	    l_cvs = self.mi_crv.getComponents('cv')	    	    
 	    if len(l_cvs)-len(self.mi_crv.getComponents('ep')) < 2:
@@ -439,7 +439,7 @@ def getMidPoint(*args, **kws):
 	def __func__(self):
 	    """
 	    """
-	    self.mi_crv = cgmMeta.validateObjArg(self.d_kwsDefined['curve'],mayaType='nurbsCurve',noneValid=False)
+	    self.mi_crv = cgmMeta.validateObjArg(self.d_kws['curve'],mayaType='nurbsCurve',noneValid=False)
 	    self._str_funcCombined = self._str_funcCombined + "('%s')"%self.mi_crv.p_nameShort
 	    
 	    self.str_bufferU = mc.ls("%s.u[*]"%self.mi_crv.mNode)[0]
@@ -476,11 +476,11 @@ def convertCurve(*args, **kws):
 	def __func__(self):
 	    """
 	    """
-	    self.mi_baseCurve = cgmMeta.validateObjArg(self.d_kwsDefined['baseCurve'],mayaType='nurbsCurve',noneValid=False)
+	    self.mi_baseCurve = cgmMeta.validateObjArg(self.d_kws['baseCurve'],mayaType='nurbsCurve',noneValid=False)
 	    self._str_funcCombined = self._str_funcCombined + "(%s)"%self.mi_baseCurve.p_nameShort
 	    
-	    self.str_arg = cgmValid.stringArg(self.d_kwsDefined['arg'],noneValid=True)
-	    self.b_keepOriginal = cgmValid.boolArg(self.d_kwsDefined['keepOriginal'], calledFrom=self._str_funcCombined)
+	    self.str_arg = cgmValid.stringArg(self.d_kws['arg'],noneValid=True)
+	    self.b_keepOriginal = cgmValid.boolArg(self.d_kws['keepOriginal'], calledFrom=self._str_funcCombined)
 	    
 	    if isEP(self.mi_baseCurve):
 		log.warning("%s %s already an ep curve"%(self._str_reportStart,self.mi_baseCurve.p_nameShort))
@@ -533,11 +533,11 @@ def mirrorCurve(*args, **kws):
 	    """
 	    Validate the args, get our data
 	    """
-	    self.mi_baseCurve = cgmMeta.validateObjArg(self.d_kwsDefined['baseCurve'],mayaType='nurbsCurve',noneValid=False)
-	    self.mi_targetCurve = cgmMeta.validateObjArg(self.d_kwsDefined['targetCurve'],mayaType='nurbsCurve',noneValid=True)
-	    self.f_threshold = cgmValid.valueArg(self.d_kwsDefined['mirrorThreshold'],calledFrom = self._str_funcCombined)
+	    self.mi_baseCurve = cgmMeta.validateObjArg(self.d_kws['baseCurve'],mayaType='nurbsCurve',noneValid=False)
+	    self.mi_targetCurve = cgmMeta.validateObjArg(self.d_kws['targetCurve'],mayaType='nurbsCurve',noneValid=True)
+	    self.f_threshold = cgmValid.valueArg(self.d_kws['mirrorThreshold'],calledFrom = self._str_funcCombined)
 	    
-	    self.str_mirrorAcross = cgmValid.stringArg(self.d_kwsDefined['mirrorAcross'],noneValid=True)
+	    self.str_mirrorAcross = cgmValid.stringArg(self.d_kws['mirrorAcross'],noneValid=True)
 	    self.int_across = 0#This is the index to check -- ie pos[0] for x
 	    if self.str_mirrorAcross.lower() != 'x':
 		raise NotImplementedError, "Only implmeneted x mirror so far | kw: %s"%self.str_mirrorAcross
@@ -604,7 +604,7 @@ def mirrorCurve(*args, **kws):
 			#In this case we need to combine and rebuild the curve
 			try:
 			    str_attachedCurves  = mc.attachCurve([self.mi_created.mNode,self.mi_baseCurve.mNode],
-			                                         blendBias = self.d_kwsDefined['blendBias'])
+			                                         blendBias = self.d_kws['blendBias'])
 			except Exception,error:raise StandardError,"Attach curve | %s"%error
 			#mc.delete(self.mi_created.mNode)#delete the old one
 			#self.mi_created = cgmMeta.cgmObject(str_attachedCurves[0])

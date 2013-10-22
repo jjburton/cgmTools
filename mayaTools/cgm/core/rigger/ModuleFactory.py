@@ -35,29 +35,45 @@ from cgm.lib.ml import (ml_breakdownDragger,
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 l_moduleStates = ['define','size','template','skeleton','rig']
 l_modulesClasses = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow']
+__l_faceModules__ = ['eyebrow','eyelids','eyeball','mouth','nose']
 
 class ModuleFunc(cgmGeneral.cgmFuncCls):
-    def __init__(self,moduleInstance = None,**kws):
+    def __init__(self,*args,**kws):
 	"""
 	"""	
-	super(ModuleFunc, self).__init__(self,**kws)
 	try:
-	    assert isModule(moduleInstance)
-	except StandardError,error:
-	    raise StandardError,"Not a module instance : %s"%error	
-	
-	self._str_funcName = 'moduleStep(%s)'%moduleInstance.p_nameShort	
-	self.__dataBind__(**kws)
-	#self.d_kwsDefined = {'moduleInstance':moduleInstance}
-	self.mi_module = moduleInstance
-	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	    moduleInstance = args[0]
+	    try:
+		assert isModule(moduleInstance)
+	    except Exception,error:raise StandardError,"Not a module instance : %s"%error	
+	except Exception,error:raise StandardError,"ModuleFunc fail | %s"%error
+	self._str_funcName= "testFModuleFuncunc"		
+	super(ModuleFunc, self).__init__(*args, **kws)
+
+	self.mi_module = moduleInstance	
+	self._l_ARGS_KWS_DEFAULTS = [{'kw':'moduleInstance',"default":None}]	
 	#=================================================================
 	
-    def _getData(self):
-	"""
-	"""
-	#moduleInstance = self.d_kwsDefined['moduleInstance']
-	self.report()
+def testFunc(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """    
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "testFunc(%s)"%self.mi_module.p_nameShort	
+	    
+	    #EXTEND our args and defaults
+	    self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'cat',"default":None}])
+	    self.__dataBind__(*args,**kws)	
+	    self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	    
+	    #=================================================================
+	    
+	def _getData(self):
+	    """
+	    """
+	    self.report()  
+    return fncWrap(*args,**kws).go()
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -386,101 +402,119 @@ def doRig(self,*args,**kws):
 	raise StandardError,"%s >> %s"%(_str_funcName,error)    
 
 
-def isRigged(self):
+def isRigged(*args,**kws):
     """
     Return if a module is rigged or not
-    """
-    """
-    if not isSkeletonized(self):
-        log.warning("%s.isRigged>>> Not skeletonized"%self.getShortName())
-        return False   """
-    _str_funcName = "isRigged(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)   
-    try:
-	i_rigNull = self.rigNull
-	str_shortName = self.getShortName()
-	
-	ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
-	l_rigJoints = [i_j.p_nameShort for i_j in ml_rigJoints] or []
-	l_skinJoints = mRig.get_skinJoints(self,asMeta=False)
-	
-	if not ml_rigJoints:
-	    log.debug("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
-	    i_rigNull.version = ''#clear the version	
-	    return False
-	
-	#See if we can find any constraints on the rig Joints
-	b_foundConstraint = False
-	for i,mJoint in enumerate(ml_rigJoints):
-	    if mJoint.getConstraintsTo():
-		b_foundConstraint = True
-	    elif i == (len(ml_rigJoints) - 1) and not b_foundConstraint:
-		log.warning("moduleFactory.isRigged('%s')>>>> No rig joints are constrained"%(str_shortName))	    
+    """    
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """    
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "isRigged(%s)"%self.mi_module.p_nameShort	
+	    
+	    #EXTEND our args and defaults
+	    #self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'cat',"default":None}])
+	    self.__dataBind__(*args,**kws)	
+	    #=================================================================
+	    
+	def __func__(self):
+	    if not isSkeletonized(self.mi_module):
+		    log.warning("%s.isRigged>>> Not skeletonized"%self.mi_module.getShortName())
+		    return False   
+	    _str_funcName = "isRigged(%s)"%self.mi_module.p_nameShort   
+	    i_rigNull = self.mi_module.rigNull
+	    str_shortName = self.mi_module.getShortName()
+	    
+	    ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
+	    l_rigJoints = [i_j.p_nameShort for i_j in ml_rigJoints] or []
+	    l_skinJoints = mRig.get_skinJoints(self.mi_module,asMeta=False)
+	    
+	    if not ml_rigJoints:
+		log.debug("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
+		i_rigNull.version = ''#clear the version	
 		return False
 	    
-	if len( l_skinJoints ) < len( ml_rigJoints ):
-	    log.warning("moduleFactory.isRigged('%s')>>>> %s != %s. Not enough rig joints"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
-	    i_rigNull.version = ''#clear the version        
-	    return False
-	
-	for attr in ['controlsAll']:
-	    if not i_rigNull.msgList_get(attr,asMeta = False):
-		log.debug("moduleFactory.isRigged('%s')>>>> No data found on '%s'"%(str_shortName,attr))
-		i_rigNull.version = ''#clear the version            
-		return False    
+	    #See if we can find any constraints on the rig Joints
+	    if self.mi_module.moduleType.lower() in __l_faceModules__:
+		log.warning("%s Need to find a better face rig joint test rather than constraints"%(self._str_reportStart))	    
+	    else:
+		b_foundConstraint = False
+		for i,mJoint in enumerate(ml_rigJoints):
+		    if mJoint.getConstraintsTo():
+			b_foundConstraint = True
+		    elif i == (len(ml_rigJoints) - 1) and not b_foundConstraint:
+			log.warning("%s No rig joints are constrained"%(self._str_reportStart))	    
+			return False
 		
-	return True
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-    
-
-def rigDelete(self,*args,**kws):
-    #1 zero out controls
-    #2 see if connected, if so break connection
-    #3 delete everything but the rig - rigNull, deform stuff
-    #Data get
-    _str_funcName = "rigDelete(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)       
-    str_shortName = self.getShortName()
-    
-    #if not isRigged(self):
-        #raise StandardError,"moduleFactory.rigDelete('%s')>>>> Module not rigged"%(str_shortName)
-    try:
-	if isRigConnected(self):
-	    rigDisconnect(self)#Disconnect
-	"""
-	try:
-	    objList = returnTemplateObjects(self)
-	    if objList:
-		mc.delete(objList)
-	    for obj in self.templateNull.getChildren():
-		mc.delete(obj)
-	    return True
-	except Exception,error:
-	    log.warning(error)"""
-	i_rigNull = self.rigNull
-	rigNullStuff = i_rigNull.getAllChildren()
-	#Build a control master group List
-	l_masterGroups = []
-	for i_obj in i_rigNull.msgList_get('controlsAll'):
-	    if i_obj.hasAttr('masterGroup'):
-		l_masterGroups.append(i_obj.getMessage('masterGroup',False)[0])
-		
-	log.debug("moduleFactory.rigDisconnect('%s')>> masterGroups found: %s"%(str_shortName,l_masterGroups))  
-	for obj in l_masterGroups:
-	    if mc.objExists(obj):
-		mc.delete(obj)
-		
-	if self.getMessage('deformNull'):
-	    mc.delete(self.getMessage('deformNull'))
+	    if len( l_skinJoints ) < len( ml_rigJoints ):
+		log.warning("%s %s != %s. Not enough rig joints"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
+		i_rigNull.version = ''#clear the version        
+		return False
 	    
-	mc.delete(self.rigNull.getChildren())
-	
-	i_rigNull.version = ''#clear the version
-	
-	return True
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
+	    for attr in ['controlsAll']:
+		if not i_rigNull.msgList_get(attr,asMeta = False):
+		    log.debug("moduleFactory.isRigged('%s')>>>> No data found on '%s'"%(str_shortName,attr))
+		    i_rigNull.version = ''#clear the version            
+		    return False    
+	    return True	     
+    return fncWrap(*args,**kws).go()
+
+
+def rigDelete(*args,**kws):
+    """
+    Return if a module is rigged or not
+    """    
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """    
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "rigDelete(%s)"%self.mi_module.p_nameShort	
+	    
+	    #EXTEND our args and defaults
+	    #self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'cat',"default":None}])
+	    self.__dataBind__(*args,**kws)	
+	    #=================================================================
+	    
+	def __func__(self):
+	    #if not isRigged(self):
+		#raise StandardError,"moduleFactory.rigDelete('%s')>>>> Module not rigged"%(str_shortName)
+	    if isRigConnected(self.mi_module):
+		rigDisconnect(self.mi_module)#Disconnect
+	    """
+	    try:
+		objList = returnTemplateObjects(self)
+		if objList:
+		    mc.delete(objList)
+		for obj in self.templateNull.getChildren():
+		    mc.delete(obj)
+		return True
+	    except Exception,error:
+		log.warning(error)"""
+	    i_rigNull = self.mi_module.rigNull
+	    rigNullStuff = i_rigNull.getAllChildren()
+	    
+	    #Build a control master group List
+	    l_masterGroups = []
+	    for i_obj in i_rigNull.msgList_get('controlsAll'):
+		if i_obj.hasAttr('masterGroup'):
+		    l_masterGroups.append(i_obj.getMessage('masterGroup',False)[0])
+		    
+	    log.debug("%s masterGroups found: %s"%(self._str_reportStart,l_masterGroups))  
+	    for obj in l_masterGroups:
+		if mc.objExists(obj):
+		    mc.delete(obj)
+		    
+	    if self.mi_module.getMessage('deformNull'):
+		mc.delete(self.mi_module.getMessage('deformNull'))
+		
+	    mc.delete(self.mi_module.rigNull.getChildren())
+	    
+	    i_rigNull.version = ''#clear the version
+	    
+	    return True   
+    return fncWrap(*args,**kws).go()
 
 def isRigConnected(self,*args,**kws):
     _str_funcName = "isRigConnected(%s)"%self.p_nameShort   
@@ -1287,7 +1321,7 @@ def mirrorMe_siblings(moduleInstance = None, excludeSelf = True):
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'mirrorMe_siblings(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	    	    
+	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
@@ -1332,15 +1366,15 @@ def animReset_siblings(moduleInstance = None, transformsOnly = True, excludeSelf
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'animReset_siblings(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	  
-	    self.d_kwsDefined['transformsOnly'] = transformsOnly	    	    	    
+	    self.d_kws['excludeSelf'] = excludeSelf	  
+	    self.d_kws['transformsOnly'] = transformsOnly	    	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kwsDefined['excludeSelf'])
+		ml_buffer = getSiblings(self.mi_module,self.d_kws['excludeSelf'])
 		
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
@@ -1353,7 +1387,7 @@ def animReset_siblings(moduleInstance = None, transformsOnly = True, excludeSelf
 		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
 		if l_controls:
 		    mc.select(l_controls)
-		    ml_resetChannels.main(transformsOnly = self.d_kwsDefined['transformsOnly'])
+		    ml_resetChannels.main(transformsOnly = self.d_kws['transformsOnly'])
 		    return True
 		return False
 		
@@ -1374,15 +1408,15 @@ def animReset_children(moduleInstance = None, transformsOnly = True, excludeSelf
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'animReset_siblings(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	  
-	    self.d_kwsDefined['transformsOnly'] = transformsOnly	    	    	    
+	    self.d_kws['excludeSelf'] = excludeSelf	  
+	    self.d_kws['transformsOnly'] = transformsOnly	    	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getAllModuleChildren(self.mi_module,self.d_kwsDefined['excludeSelf'])
+		ml_buffer = getAllModuleChildren(self.mi_module,self.d_kws['excludeSelf'])
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
 		for i,mModule in enumerate(ml_buffer):
@@ -1394,7 +1428,7 @@ def animReset_children(moduleInstance = None, transformsOnly = True, excludeSelf
 		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
 		if l_controls:
 		    mc.select(l_controls)
-		    ml_resetChannels.main(transformsOnly = self.d_kwsDefined['transformsOnly'])
+		    ml_resetChannels.main(transformsOnly = self.d_kws['transformsOnly'])
 		    return True
 		return False
 		
@@ -1415,14 +1449,14 @@ def mirrorPush_siblings(moduleInstance = None, excludeSelf = True):
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'mirrorPush_siblings(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	    	    
+	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kwsDefined.get('excludeSelf'))
+		ml_buffer = getSiblings(self.mi_module,self.d_kws.get('excludeSelf'))
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
 		for i,i_c in enumerate(ml_buffer):
@@ -1451,14 +1485,14 @@ def mirrorPull_siblings(moduleInstance = None, excludeSelf = True):
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'mirrorPull_siblings(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	    	    
+	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kwsDefined.get('excludeSelf'))
+		ml_buffer = getSiblings(self.mi_module,self.d_kws.get('excludeSelf'))
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
 		for i,i_c in enumerate(ml_buffer):
@@ -1490,7 +1524,7 @@ def getSiblings(moduleInstance = None, excludeSelf = True):
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'getSiblings(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	    	    
+	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
@@ -1499,7 +1533,7 @@ def getSiblings(moduleInstance = None, excludeSelf = True):
 	    ml_buffer = copy.copy(self.mi_module.moduleParent.moduleChildren)
 	    ml_return = []
 	    for i,m in enumerate(ml_buffer):
-		if m.mNode == self.mi_module.mNode and not self.d_kwsDefined['excludeSelf']:
+		if m.mNode == self.mi_module.mNode and not self.d_kws['excludeSelf']:
 		    ml_return.append(self.mi_module)
 		if self.mi_module.moduleType == m.moduleType or self.mi_module.moduleType in l_sibblingIgnoreCheck:
 		    if self.mi_module.getAttr('cgmDirection') and self.mi_module.getAttr('cgmDirection') == m.getAttr('cgmDirection'):
@@ -1521,7 +1555,7 @@ def getAllModuleChildren(moduleInstance = None,excludeSelf = True):
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'getAllModuleChildren(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	    	    	    
+	    self.d_kws['excludeSelf'] = excludeSelf	    	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
@@ -1544,7 +1578,7 @@ def getAllModuleChildren(moduleInstance = None,excludeSelf = True):
 			    ml_childrenCull.append(i_subChild)
 			ml_childrenCull.remove(i_child) 
 			
-		if not self.d_kwsDefined['excludeSelf']:
+		if not self.d_kws['excludeSelf']:
 		    ml_children.append(self.mi_module)		
 		return ml_children
 		
@@ -1591,14 +1625,14 @@ def animKey_siblings(moduleInstance = None, excludeSelf = True,**kws):
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'animKey_siblings(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	    	    
+	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kwsDefined.get('excludeSelf'))
+		ml_buffer = getSiblings(self.mi_module,self.d_kws.get('excludeSelf'))
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
 		for i,i_c in enumerate(ml_buffer):
@@ -1658,14 +1692,14 @@ def animSelect_siblings(moduleInstance = None, excludeSelf = True):
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'animSelect_siblings(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	    	    
+	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kwsDefined.get('excludeSelf'))
+		ml_buffer = getSiblings(self.mi_module,self.d_kws.get('excludeSelf'))
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
 		for i,i_c in enumerate(ml_buffer):
@@ -1766,20 +1800,20 @@ def dynSwitch_siblings(moduleInstance = None, arg = None, excludeSelf = True):
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'dynSwitch_siblings(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['arg'] = arg	    	    	    
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	    	    
+	    self.d_kws['arg'] = arg	    	    	    
+	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kwsDefined['excludeSelf'])
+		ml_buffer = getSiblings(self.mi_module,self.d_kws['excludeSelf'])
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))    
 		for i,i_c in enumerate(ml_buffer):
 		    try:
 			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self.mi_module.p_nameShort,i_c.p_nameShort), progress=i)    				        			
-			i_c.rigNull.dynSwitch.go(self.d_kwsDefined['arg'])
+			i_c.rigNull.dynSwitch.go(self.d_kws['arg'])
 		    except Exception,error:
 			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
 		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
@@ -1858,29 +1892,29 @@ def animSetAttr_children(moduleInstance = None, attr = None, value = None, setti
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = 'animReset_siblings(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['excludeSelf'] = excludeSelf	
-	    self.d_kwsDefined['attr'] = attr	  
-	    self.d_kwsDefined['value'] = value	  
-	    self.d_kwsDefined['settingsOnly'] = settingsOnly	  
+	    self.d_kws['excludeSelf'] = excludeSelf	
+	    self.d_kws['attr'] = attr	  
+	    self.d_kws['value'] = value	  
+	    self.d_kws['settingsOnly'] = settingsOnly	  
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getAllModuleChildren(self.mi_module,self.d_kwsDefined['excludeSelf'])
+		ml_buffer = getAllModuleChildren(self.mi_module,self.d_kws['excludeSelf'])
 
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		for i,mModule in enumerate(ml_buffer):
 		    try:
 			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,mModule.p_nameShort), progress=i)    				        			
-			if self.d_kwsDefined['settingsOnly']:
+			if self.d_kws['settingsOnly']:
 			    mi_rigNull = mModule.rigNull
 			    if mi_rigNull.getMessage('settings'):
-				mi_rigNull.settings.__setattr__(self.d_kwsDefined['attr'],self.d_kwsDefined['value'])
+				mi_rigNull.settings.__setattr__(self.d_kws['attr'],self.d_kws['value'])
 			else:
 			    for o in mModule.rigNull.moduleSet.getList():
-				attributes.doSetAttr(o,self.d_kwsDefined['attr'],self.d_kwsDefined['value'])
+				attributes.doSetAttr(o,self.d_kws['attr'],self.d_kws['value'])
 		    except Exception,error:
 			log.error("%s  child: %s | %s"%(self._str_reportStart,mModule.p_nameShort,error))
 		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 

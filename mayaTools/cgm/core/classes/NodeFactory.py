@@ -58,7 +58,7 @@ def createNormalizedClosestPointNode(objToAttach = None, targetSurface = None, *
 	    super(fncWrap, self).__init__(objToAttach, targetSurface,**kws)
 	    self._str_funcName = 'createNormalizedClosestPointNode'	
 	    self.__dataBind__(**kws)
-	    self.d_kwsDefined = {'objToAttach':objToAttach,
+	    self.d_kws = {'objToAttach':objToAttach,
 	                         'targetSurface':targetSurface,
 	                         }	    
 	    #=================================================================
@@ -67,8 +67,8 @@ def createNormalizedClosestPointNode(objToAttach = None, targetSurface = None, *
 		
 	def __func__(self):
 	    #>> validate ============================================================================
-	    self.mi_obj= cgmMeta.validateObjArg(self.d_kwsDefined['objToAttach'],cgmMeta.cgmObject,noneValid=False)
-	    self.mi_targetSurface = cgmMeta.validateObjArg(self.d_kwsDefined['targetSurface'],mayaType='nurbsSurface',noneValid=False)
+	    self.mi_obj= cgmMeta.validateObjArg(self.d_kws['objToAttach'],cgmMeta.cgmObject,noneValid=False)
+	    self.mi_targetSurface = cgmMeta.validateObjArg(self.d_kws['targetSurface'],mayaType='nurbsSurface',noneValid=False)
 	    self.l_shapes = mc.listRelatives(self.mi_targetSurface.mNode,shapes=True)
 	    if len(self.l_shapes)>1:
 		log.warning( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(self.mi_targetSurface.p_nameShort,self.l_shapes) )
@@ -149,7 +149,7 @@ class connectNegativeAttrs(cgmGeneral.cgmFuncCls):
 	super(connectNegativeAttrs, self).__init__(self,**kws)
 	self._str_funcName = 'connectNegativeVector'	
 	self.__dataBind__(**kws)
-	self.d_kwsDefined = {'source':source,'target':target,'l_attrs':l_attrs}
+	self.d_kws = {'source':source,'target':target,'l_attrs':l_attrs}
 	self.l_funcSteps = [{'step':'Validate','call':self._validate},
 	                    {'step':'Create','call':self._create}]	
 	#=================================================================
@@ -161,13 +161,13 @@ class connectNegativeAttrs(cgmGeneral.cgmFuncCls):
 	"""
 	Validate the args, get our data
 	"""
-	self.mi_source = cgmMeta.validateObjArg(self.d_kwsDefined['source'])
-	self.mi_target = cgmMeta.validateObjArg(self.d_kwsDefined['target'])
+	self.mi_source = cgmMeta.validateObjArg(self.d_kws['source'])
+	self.mi_target = cgmMeta.validateObjArg(self.d_kws['target'])
 	self.l_attrsToDo = []
 	self.d_sourcePlugs = {}
 	self.d_targetPlugs = {}
 	
-	for a in self.d_kwsDefined['l_attrs']:
+	for a in self.d_kws['l_attrs']:
 	    if self.mi_source.hasAttr(a):
 		if self.mi_target.hasAttr(a):
 		    self.d_sourcePlugs[a] = cgmMeta.cgmAttr(self.mi_source,a)	
@@ -210,12 +210,12 @@ class testRange(cgmGeneral.cgmFuncCls):
 	super(testRange, self).__init__(self,**kws)
 	self._str_funcName = 'testRange'	
 	self.__dataBind__(**kws)
-	self.d_kwsDefined = {'maxTest':maxTest}
+	self.d_kws = {'maxTest':maxTest}
 	#=================================================================
 	
     def __func__(self):	
-	#self.d_kwsDefined = {'source':source,'target':target}
-        for i,n in enumerate(range(1,self.d_kwsDefined['maxTest'])):
+	#self.d_kws = {'source':source,'target':target}
+        for i,n in enumerate(range(1,self.d_kws['maxTest'])):
             #log.info(">>> %s"%(pow(n,i)))
 	    #log.info("%s,%s"%(i,n))
 	    x = pow(n,i)

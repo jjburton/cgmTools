@@ -38,7 +38,7 @@ class cgmFuncCls(object):
     """
     Examples:
     
-    self._l_ARGS_KWS_DEFAULTS = [{'kw':'objToAttach',"default":None},
+    self._l_ARGS_KWS_DEFAULTS = [{'kw':'kwString',"default":None,'help':"FillINToHelp","argType":"mObject"}
 				 {'kw':'targetSurface',"default":None},
 				 {'kw':"createControlLoc","default":True},
 				 {'kw':"createUpLoc","default":False},
@@ -53,7 +53,7 @@ class cgmFuncCls(object):
         self._str_funcDebug = None
 	self._b_WIP = False
 	self._l_ARGS_KWS_DEFAULTS = []
-	self.d_kwsDefined  = {}
+	self.d_kws  = {}
 	self.l_funcSteps = []
 	self.d_return = {}
 	self._str_modPath = None
@@ -61,10 +61,10 @@ class cgmFuncCls(object):
 	self._d_stepTimes = {}
 	#This is our mask so that the fail report ignores them
 	self._l_reportMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
-	                     '_str_funcClass','_str_funcName','d_kwsDefined','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_d_stepTimes','_l_ARGS_KWS_DEFAULTS',
+	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_d_stepTimes','_l_ARGS_KWS_DEFAULTS',
 	                     '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
 	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask',
-	                    '_str_funcClass','_str_funcName','d_kwsDefined','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
+	                    '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
 	                    '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
 	self._l_kwMask = ['reportTimes','reportShow']
@@ -88,26 +88,26 @@ class cgmFuncCls(object):
 	
 	if self._l_ARGS_KWS_DEFAULTS:
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
-		try:self.d_kwsDefined[d_buffer['kw']] = args[ i ]#First we try the arg index
+		try:self.d_kws[d_buffer['kw']] = args[ i ]#First we try the arg index
 		except:
-		    try:self.d_kwsDefined[d_buffer['kw']] = kws[d_buffer['kw']]#Then we try a kw call
-		    except:self.d_kwsDefined[d_buffer['kw']] = d_buffer.get("default")#Lastly, we use the default value	
-	l_storedKeys = self.d_kwsDefined.keys()
+		    try:self.d_kws[d_buffer['kw']] = kws[d_buffer['kw']]#Then we try a kw call
+		    except:self.d_kws[d_buffer['kw']] = d_buffer.get("default")#Lastly, we use the default value	
+	l_storedKeys = self.d_kws.keys()
 	for kw in kws:
 	    try:
-		if kw not in l_storedKeys:self.d_kwsDefined[kw] = kws[kw]
+		if kw not in l_storedKeys:self.d_kws[kw] = kws[kw]
 	    except Exception,error:raise StandardError,"%s failed to store kw: %s | value: %s | error: %s"%(self._str_reportStart,kw,kws[kw],error)
-	if self._b_WIP or self.d_kwsDefined.get('reportShow'):
+	if self._b_WIP or self.d_kws.get('reportShow'):
 	    self.report()
-	    
     def __func__(self,*args,**kws):
 	raise StandardError,"%s No function set"%self._str_reportStart
         
     def go(self,goTo = '',**kws):
 	"""
 	"""
-	if self.d_kwsDefined.get('printHelpBlock'):
+	if self.d_kws.get('printHelp'):
 	    self.printHelpBlock()
+	    return True
 	    
 	t_start = time.clock()
 	try:
@@ -133,9 +133,9 @@ class cgmFuncCls(object):
 		log.error("Python Module: %s "%self._str_modPath)	    		    
 		if self._str_funcArgs:log.error(">"*3 + " Args: %s "%self._str_funcArgs)
 		if self._str_funcKWs:log.error(">"*3 + " KWs: %s "%self._str_funcKWs)	 
-		if self.d_kwsDefined:
-		    for k in self.d_kwsDefined.keys():
-			log.error(">"*3 + " '%s' : %s "%(k,self.d_kwsDefined[k]))		
+		if self.d_kws:
+		    for k in self.d_kws.keys():
+			log.error(">"*3 + " '%s' : %s "%(k,self.d_kws[k]))		
 		_str_fail = ">"*3 + " %s >!FAILURE!> Step: '%s' | Error: %s"%(self._str_funcCombined,_str_step,error)
 		log.error(_str_fail)
 		
@@ -161,9 +161,9 @@ class cgmFuncCls(object):
 	    t2 = time.clock()
 	    _str_time = "%0.3f seconds"%(t2-t1)
 	    self._d_stepTimes[_str_step] = _str_time
-	    if int_max != 0 and self.d_kwsDefined.get('reportTimes'): log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)))		
+	    if int_max != 0 and self.d_kws.get('reportTimes'): log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)))		
 	
-	if self.d_kwsDefined.get('reportTimes'):
+	if self.d_kws.get('reportTimes'):
 	    log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)))		
 	if int_max == 0:#If it's a one step, return, return the single return
 	    try:return self.d_return[self.d_return.keys()[0]]
@@ -181,12 +181,12 @@ class cgmFuncCls(object):
 	self.reportArgsKwsDefaults()	
 	#if self._str_funcArgs:log.info(">"*3 + " Args: %s "%self._str_funcArgs)
 	#if self._str_funcKWs:log.info(">"*3 + " KWs: %s "%self._str_funcKWs)	  
-	if self.d_kwsDefined:
+	if self.d_kws:
 	    log.info(">"*3 + " KWs Defined " + "-"*75)	
-	    l_keys = self.d_kwsDefined.keys()
+	    l_keys = self.d_kws.keys()
 	    l_keys.sort()	    
 	    for k in l_keys:
-		log.info("'%s' : %s "%(k,self.d_kwsDefined[k]))
+		log.info("'%s' : %s "%(k,self.d_kws[k]))
 	log.info(">"*3 + " Self Stored " + "-"*75)	
 	l_keys = self.__dict__.keys()
 	l_keys.sort()
@@ -219,20 +219,31 @@ class cgmFuncCls(object):
 		try:l_tmp.append(['kw',"'%s'"%d_buffer.get('kw')])
 		except:pass
 		try:l_tmp.append(['default',d_buffer.get('default')])
+		except:pass	
+		try:l_tmp.append(['argType',d_buffer.get('argType')])
 		except:pass		
 		l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
 		log.info(" | ".join(l_build))
     
     def printHelpBlock(self):
+	print("#" + ">"*3 + " %s "%self._str_funcCombined + "="*50)
+	print("Python Module: %s "%self._str_modPath)	    		    	
 	if self._l_ARGS_KWS_DEFAULTS:
 	    print("@kws")	  	    	    
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
-		l_tmp = ['Arg %i |'%i]
-		try:l_tmp.append(" kw '%s'"%d_buffer['kw'])
+		l_tmp = ['%i - '%i]
+		try:l_tmp.append("'%s'"%d_buffer['kw'])
 		except:pass
-		try:l_tmp.append("(%s)"%(d_buffer['default']))
+		#arg default/type -------------------------------
+		l_buffer = ["("]
+		try:l_buffer.append("%s - "%(d_buffer['argType']))
 		except:pass			
-		try:l_tmp.append("  -- %s"%d_buffer['help'])
+		try:l_buffer.append("%s"%(d_buffer['default']))
+		except:pass	
+		l_buffer.append(")")
+		l_tmp.append("".join(l_buffer))
+		#-------------------------------------------------
+		try:l_tmp.append(" -- %s"%d_buffer['help'])
 		except:pass		
 		#l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
 		print("".join(l_tmp))	

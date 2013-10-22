@@ -71,8 +71,8 @@ def mirrorJointOrientation(*args,**kws):
 	def __func__(self):
 	    """
 	    """
-	    self.ml_joints = cgmMeta.validateObjListArg(self.d_kwsDefined['l_joints'],cgmMeta.cgmObject,mayaType='joint',noneValid=False)
-	    self.mi_orientation = cgmValid.simpleOrientation(self.d_kwsDefined['orientation'],self._str_funcCombined)
+	    self.ml_joints = cgmMeta.validateObjListArg(self.d_kws['l_joints'],cgmMeta.cgmObject,mayaType='joint',noneValid=False)
+	    self.mi_orientation = cgmValid.simpleOrientation(self.d_kws['orientation'],self._str_funcCombined)
 	    ml_chain = self.ml_joints
 	    		
 	    for mJoint in ml_chain:

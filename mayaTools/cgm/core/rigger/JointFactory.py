@@ -195,7 +195,7 @@ class JointFactoryFunc(cgmGeneral.cgmFuncCls):
 	
 	self._str_funcName = 'JointFactoryFunc(%s)'%goInstance._mi_module.p_nameShort	
 	self.__dataBind__(**kws)
-	#self.d_kwsDefined = {'goInstance':goInstance}
+	#self.d_kws = {'goInstance':goInstance}
 	self.mi_go = goInstance
 	self.mi_module = goInstance._mi_module
 	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]

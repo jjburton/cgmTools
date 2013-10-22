@@ -32,53 +32,32 @@ from cgm.core import cgm_General as cgmGeneral
 #>>> Utilities
 #===================================================================
 class rigStep(cgmGeneral.cgmFuncCls):
-    def __init__(self,goInstance = None,**kws):
+    def __init__(self,*args,**kws):
 	"""
 	"""	
-	super(rigStep, self).__init__(self,**kws)
+	super(rigStep, self).__init__(self,*args,**kws)
+	goInstance = args[0]
 	try:
 	    assert goInstance._cgmClass == 'RigFactory.go'
 	except StandardError,error:
 	    raise StandardError,"Not a RigFactory.go : %s"%error	
 	
 	self._str_funcName = 'moduleStep(%s)'%goInstance._strShortName	
-	self.__dataBind__(**kws)
-	self.d_kwsDefined = {'goInstance':goInstance}
+	self._l_ARGS_KWS_DEFAULTS = [{'kw':'goInstance', "default":None, 'help':"This is your RigFactory go instance", "argType":"RigFactory.go"},
+	                             {'kw':'reportTimes', "default":True, 'help':"Change to report defaults", "argType":"bool"}]
+	self.__dataBind__(*args, **kws)
 	self._go = goInstance
-	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	#self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	#=================================================================
 	
-    def _getData(self):
-	"""
-	"""
-	goInstance = self.d_kwsDefined['goInstance']
-	self.report()
-	
-class example(rigStep):
-    def __init__(self,goInstance = None, **kws):
-	"""
-	"""	
-	super(example, self).__init__(goInstance,**kws)
-	
-	self._str_funcName = 'example(%s)'%self.d_kwsDefined['goInstance']._strShortName	
-	self.__dataBind__(**kws)
-	self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
-	#=================================================================	
-
-    def _getData(self):
-	"""
-	"""
-	goInstance = self.d_kwsDefined['goInstance']
-	self.report()
-	
-def exampleWrap(goInstance = None):
+def exampleWrap(*args, **kws):
     class example(rigStep):
-	def __init__(self,goInstance = None):
+	def __init__(self,*args, **kws):
 	    """
 	    """	
-	    super(example, self).__init__(goInstance)
-	    self._str_funcName = 'example(%s)'%self.d_kwsDefined['goInstance']._strShortName	
-	    self.__dataBind__()
+	    super(example, self).__init__(*args, **kws)
+	    self._str_funcName = 'example()'	
+	    self.__dataBind__(*args, **kws)
 	    self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================	    
@@ -86,8 +65,7 @@ def exampleWrap(goInstance = None):
 	def _getData(self):
 	    """
 	    """
-	    goInstance = self.d_kwsDefined['goInstance']
 	    self.report()
 	    
     #We wrap it so that it autoruns and returns
-    return example(goInstance).go()
+    return example(*args, **kws).go()

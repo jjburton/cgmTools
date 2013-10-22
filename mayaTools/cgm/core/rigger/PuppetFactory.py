@@ -37,7 +37,7 @@ class puppetFactoryWrapper(cgmGeneral.cgmFuncCls):
 	
 	self._str_funcName = 'puppetFactoryWrapper(%s)'%puppet.p_nameShort	
 	self.__dataBind__(**kws)
-	self.d_kwsDefined = {'puppet':puppet}
+	self.d_kws = {'puppet':puppet}
 	self.mi_puppet = puppet
 	#self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	#=================================================================
@@ -76,7 +76,7 @@ def stateCheck(puppet = None,arg = None,*args,**kws):
 	    super(clsPuppetFunc, self).__init__(puppet,*args,**kws)
 	    self._str_funcName = 'stateCheck(%s)'%self.mi_puppet.p_nameShort	
 	    self.__dataBind__()
-	    self.d_kwsDefined['arg'] = arg
+	    self.d_kws['arg'] = arg
 	    
 	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]	    
 	    #The idea is to register the functions needed to be called
@@ -89,7 +89,7 @@ def stateCheck(puppet = None,arg = None,*args,**kws):
 	    
 	    for mod in ml_orderedModules:
 		try:
-		    mod.stateCheck(self.d_kwsDefined['arg'])
+		    mod.stateCheck(self.d_kws['arg'])
 		except Exception,error: log.error("%s module: %s | %s"%(self._str_reportStart,mod.p_nameShort,error))
 	    
     #We wrap it so that it autoruns and returns
@@ -355,14 +355,14 @@ class animReset(cgmGeneral.cgmFuncCls):
 	super(animReset, self).__init__(self,**kws)
 	self._str_funcName = 'animReset(%s)'%puppetInstance.p_nameShort	
 	self.__dataBind__(**kws)
-	self.d_kwsDefined = {'puppetInstance':puppetInstance}
+	self.d_kws = {'puppetInstance':puppetInstance}
 	self.l_funcSteps = [{'step':'Process','call':self._process}]	
 	#=================================================================
 
     def _process(self):
 	"""
 	"""
-	puppetInstance = self.d_kwsDefined['puppetInstance']
+	puppetInstance = self.d_kws['puppetInstance']
 	puppetInstance.puppetSet.select()
 	if mc.ls(sl=True):
 	    ml_resetChannels.main(transformsOnly = self._d_funcKWs.get('transformsOnly'))
@@ -376,14 +376,14 @@ class mirrorMe(cgmGeneral.cgmFuncCls):
 	super(mirrorMe, self).__init__(self,**kws)
 	self._str_funcName = 'mirrorMe(%s)'%puppetInstance.p_nameShort	
 	self.__dataBind__(**kws)
-	self.d_kwsDefined = {'puppetInstance':puppetInstance}
+	self.d_kws = {'puppetInstance':puppetInstance}
 	self.l_funcSteps = [{'step':'Process','call':self._process}]
 	#=================================================================
 
     def _process(self):
 	"""
 	"""
-	puppetInstance = self.d_kwsDefined['puppetInstance']
+	puppetInstance = self.d_kws['puppetInstance']
 	puppetInstance.puppetSet.select()
 	l_controls = mc.ls(sl=True)
 	log.info(l_controls)
@@ -498,7 +498,7 @@ def get_nextMirrorIndex(puppet = None,side = None,*args,**kws):
 	    super(clsPuppetFunc, self).__init__(puppet,*args,**kws)
 	    self._str_funcName = 'stateCheck(%s)'%self.mi_puppet.p_nameShort	
 	    self.__dataBind__()
-	    self.d_kwsDefined['side'] = side
+	    self.d_kws['side'] = side
 	    
 	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]	    
 	    #The idea is to register the functions needed to be called
@@ -511,8 +511,8 @@ def get_nextMirrorIndex(puppet = None,side = None,*args,**kws):
 	    
 	    for mModule in getModules(self.mi_puppet):
 		#log.info("Checking: %s"%mModule.p_nameShort)		
-		if mModule.get_mirrorSideAsString() == self.d_kwsDefined['side'].capitalize() :
-		    #log.info("match Side %s | %s"%(self.d_kwsDefined['side'],mModule.p_nameShort))		    
+		if mModule.get_mirrorSideAsString() == self.d_kws['side'].capitalize() :
+		    #log.info("match Side %s | %s"%(self.d_kws['side'],mModule.p_nameShort))		    
 		    try:mi_moduleSet = mModule.rigNull.moduleSet.getMetaList()
 		    except:mi_moduleSet = []
 		    for mObj in mi_moduleSet:
@@ -538,9 +538,9 @@ def animSetAttr(puppetInstance = None, attr = None, value = None, settingsOnly =
 	    super(clsPuppetFunc, self).__init__(puppetInstance)
 	    self._str_funcName = 'animSetAttr(%s)'%self.mi_puppet.p_nameShort
 	    self.__dataBind__()
-	    self.d_kwsDefined['attr'] = attr	  
-	    self.d_kwsDefined['value'] = value	  
-	    self.d_kwsDefined['settingsOnly'] = settingsOnly	  
+	    self.d_kws['attr'] = attr	  
+	    self.d_kws['value'] = value	  
+	    self.d_kws['settingsOnly'] = settingsOnly	  
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
@@ -552,13 +552,13 @@ def animSetAttr(puppetInstance = None, attr = None, value = None, settingsOnly =
 		for i,mModule in enumerate(ml_buffer):
 		    try:
 			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,mModule.p_nameShort), progress=i)    				        			
-			if self.d_kwsDefined['settingsOnly']:
+			if self.d_kws['settingsOnly']:
 			    mi_rigNull = mModule.rigNull
 			    if mi_rigNull.getMessage('settings'):
-				mi_rigNull.settings.__setattr__(self.d_kwsDefined['attr'],self.d_kwsDefined['value'])
+				mi_rigNull.settings.__setattr__(self.d_kws['attr'],self.d_kws['value'])
 			else:
 			    for o in mModule.rigNull.moduleSet.getList():
-				attributes.doSetAttr(o,self.d_kwsDefined['attr'],self.d_kwsDefined['value'])
+				attributes.doSetAttr(o,self.d_kws['attr'],self.d_kws['value'])
 		    except Exception,error:
 			log.error("%s  child: %s | %s"%(self._str_reportStart,mModule.p_nameShort,error))
 		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
