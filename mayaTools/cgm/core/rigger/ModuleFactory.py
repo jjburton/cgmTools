@@ -34,7 +34,7 @@ from cgm.lib.ml import (ml_breakdownDragger,
 # Shared libraries
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 l_moduleStates = ['define','size','template','skeleton','rig']
-l_modulesClasses = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow']
+__l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow']
 __l_faceModules__ = ['eyebrow','eyelids','eyeball','mouth','nose']
 
 class ModuleFunc(cgmGeneral.cgmFuncCls):
@@ -269,7 +269,7 @@ def doSetParentModule(self,moduleParent,force = False):
         log.warning("'%s' lacks an mClass attr"%module.mNode)	    
         return False
 
-    if moduleParent.mClass not in l_modulesClasses:
+    if moduleParent.mClass not in __l_modulesClasses__:
         log.warning("'%s' is not a recognized module type"%moduleParent.mClass)
         return False
 
@@ -894,7 +894,7 @@ def isModule(self):
     if not self.hasAttr('mClass'):
         log.warning("Has no 'mClass', not a module: '%s'"%self.getShortName())
         return False
-    if self.mClass not in l_modulesClasses:
+    if self.mClass not in __l_modulesClasses__:
         log.warning("Class not a known module type: '%s'"%self.mClass)
         return False  
     log.debug("Is a module: : '%s'"%self.getShortName())
@@ -1183,18 +1183,17 @@ def readPose_templateSettings(self):
 #=====================================================================================================
 #>>> Anim functions functions
 #=====================================================================================================
-def get_mirror(moduleInstance = None):
+def get_mirror(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,goInstance = None):
 	    """
 	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
+	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = 'get_mirror(%s)'%self.mi_module.p_nameShort
-	    self.__dataBind__()
+	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    
 	def __func__(self): 
 	    mi_module = self.mi_module
 	    l_direction = ['left','right']
@@ -1203,11 +1202,8 @@ def get_mirror(moduleInstance = None):
 		return False
 	    int_direction = l_direction.index(mi_module.cgmDirection)
 	    d = {'cgmName':mi_module.cgmName,'moduleType':mi_module.moduleType,'cgmDirection':l_direction[not int_direction]}
-	    
 	    return mi_module.modulePuppet.getModuleFromDict(d)	 
-	
-    #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance).go()  
+    return fncWrap(*args,**kws).go()  
     
 def animReset(self,transformsOnly = True):
     _str_funcName = "%s.animReset()"%self.p_nameShort  
@@ -1222,18 +1218,16 @@ def animReset(self,transformsOnly = True):
 	log.error("%s >> error: %s"%(_str_funcName,error))
 	return False
     
-def mirrorPush(moduleInstance = None):
+def mirrorPush(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None):
+	def __init__(self,*args,**kws):
 	    """
 	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
+	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = 'mirrorPush(%s)'%self.mi_module.p_nameShort
-	    self.__dataBind__()
+	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
-	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    
 	def __func__(self): 
 	    mi_module = self.mi_module
 	    l_buffer = mi_module.rigNull.moduleSet.getList()
@@ -1248,17 +1242,16 @@ def mirrorPush(moduleInstance = None):
 		return True
 	    return False	 
 	
-    #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance).go()   
+    return fncWrap(*args,**kws).go()   
         
-def mirrorPull(moduleInstance = None):
+def mirrorPull(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None):
+	def __init__(self,*args,**kws):
 	    """
 	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
+	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = 'mirrorPull(%s)'%self.mi_module.p_nameShort
-	    self.__dataBind__()
+	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
@@ -1277,22 +1270,18 @@ def mirrorPull(moduleInstance = None):
 		return True
 	    return False	 
 	
-    #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance).go()
+    return fncWrap(*args,**kws).go()
      
-    
-def mirrorMe(moduleInstance = None):
+def mirrorMe(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None):
+	def __init__(self,*args,**kws):
 	    """
 	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
+	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = 'mirrorMe(%s)'%self.mi_module.p_nameShort
-	    self.__dataBind__()
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
+	    self.__dataBind__(*args,**kws)
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
-	    
 	def __func__(self): 
 	    mi_module = self.mi_module
 	    l_buffer = mi_module.rigNull.moduleSet.getList()
@@ -1304,12 +1293,46 @@ def mirrorMe(moduleInstance = None):
 		r9Anim.MirrorHierarchy(l_buffer).mirrorData(mode = '')
 		mc.select(l_buffer)
 		return True
-		
 	    return False  
 	
-    #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance).go()
+    return fncWrap(*args,**kws).go()
 
+def mirrorSymLeft(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = 'mirrorSymLeft(%s)'%self.mi_module.p_nameShort
+	    self.__dataBind__(*args,**kws)
+	    #=================================================================
+	def __func__(self): 
+	    mi_module = self.mi_module
+	    l_buffer = mi_module.rigNull.moduleSet.getList()
+	    if l_buffer:
+		r9Anim.MirrorHierarchy(l_buffer).makeSymmetrical(mode = '',primeAxis = "Left" )
+		mc.select(l_buffer)
+		return True
+	    return False	 
+    return fncWrap(*args,**kws).go() 
+def mirrorSymRight(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = 'mirrorSymRight(%s)'%self.mi_module.p_nameShort
+	    self.__dataBind__(*args,**kws)
+	    #=================================================================
+	def __func__(self): 
+	    mi_module = self.mi_module
+	    l_buffer = mi_module.rigNull.moduleSet.getList()
+	    if l_buffer:
+		r9Anim.MirrorHierarchy(l_buffer).makeSymmetrical(mode = '',primeAxis = "Right" )
+		mc.select(l_buffer)
+		return True
+	    return False	 
+    return fncWrap(*args,**kws).go() 
 #=====================================================================================================
 #>>> Sibling functions
 #=====================================================================================================  
@@ -1837,28 +1860,6 @@ def get_mirrorSideAsString(self):
 	    return 'Centre'
     except Exception,error:
 	raise StandardError,"%s >> %s"%(_str_funcName,error) 
-"""
-def get_mirrorSideAsString(module = None,*args,**kws):
-    class clsModuleFunc(moduleFactoryWrapper):
-	def __init__(self,module = None,*args,**kws):
-	    super(clsModuleFunc, self).__init__(module,*args,**kws)
-	    self._str_funcName = 'get_mirrorSideAsString(%s)'%self._mi_module.p_nameShort	
-	    self.__dataBind__()
-	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
-	    
-	    #The idea is to register the functions needed to be called
-	    #=================================================================
-	    
-	def __func__(self):
-	    _str_direction = self._mi_module.getAttr('cgmDirection') 
-	    if _str_direction is not None and _str_direction.lower() in ['right','left']:
-		return _str_direction.capitalize()
-	    else:
-		return 'Centre'
-	    
-    #We wrap it so that it autoruns and returns
-    return clsModuleFunc(module).go()
-"""  
 
 def toggle_subVis(moduleInstance = None):
     class fncWrap(ModuleFunc):
@@ -1875,7 +1876,10 @@ def toggle_subVis(moduleInstance = None):
 	def __func__(self): 
 	    mi_module = self.mi_module
 	    try:
-		mi_module.rigNull.settings.visSub = not mi_module.rigNull.settings.visSub
+		if mi_module.moduleType in __l_faceModules__:
+		    mi_module.rigNull.settings.visSubFace = not mi_module.rigNull.settings.visSubFace		    
+		else:
+		    mi_module.rigNull.settings.visSub = not mi_module.rigNull.settings.visSub
 		return True
 	    except Exception,error:
 		log.error("%s | %s"%(self._str_reportStart,error))

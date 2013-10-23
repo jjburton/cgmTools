@@ -37,6 +37,7 @@ log.setLevel(logging.INFO)
 import cgm_Meta as cgmMeta
 from cgm.core.lib import nameTools
 from cgm.core.rigger import ModuleFactory as mFactory
+reload(mFactory)
 from cgm.core.rigger import PuppetFactory as pFactory
 reload(pFactory)
 from cgm.core.rigger import MorpheusFactory as morphyF
@@ -50,17 +51,18 @@ from cgm.lib import (modules,
                      search,
                      curves)
 
-cgmModuleTypes = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow']
-l_faceModuleTypes = ['eyeball','eyelids','eyebrow']
+cgmModuleTypes = mFactory.__l_modulesClasses__
+__l_faceModuleTypes__ = mFactory.__l_faceModules__
+
 ########################################################################
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
     #----------------------------------------------------------------------
     #@cgmGeneral.Timer
     def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
-        log.debug(">>> cgmPuppet.__init__")
-        if kws:log.debug("kws: %s"%str(kws))
-        if args:log.debug("args: %s"%str(args))
+        #if log.getEffectiveLevel() == 10:log.debug(">>> cgmPuppet.__init__")
+        #if kws:log.debug("kws: %s"%str(kws))
+        #if args:log.debug("args: %s"%str(args))
 	
         """Constructor"""
         #>>>Keyword args
@@ -75,11 +77,11 @@ class cgmPuppet(cgmMeta.cgmNode):
         ##If a name is provided, see if there's a puppet with that name, 
         ##If nothing is provided, just make one
         if node is None and name is None and args:
-            log.debug("Checking '%s'"%args[0])
+            #if log.getEffectiveLevel() == 10:log.debug("Checking '%s'"%args[0])
             node = args[0]
 
         if puppets:#If we have puppets, check em
-            log.debug("Found the following puppets: '%s'"%"','".join(puppets))            
+            #if log.getEffectiveLevel() == 10:log.debug("Found the following puppets: '%s'"%"','".join(puppets))            
             if name is not None or node is not None:    
                 if node is not None and node in puppets:
                     puppet = node
@@ -87,7 +89,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 else:
                     for p in puppets:
                         if attributes.doGetAttr(p,'cgmName') in [node,name]:
-                            log.debug("Puppet tagged '%s' exists. Checking '%s'..."%(attributes.doGetAttr(p,'cgmName'),p))
+                            #if log.getEffectiveLevel() == 10:log.debug("Puppet tagged '%s' exists. Checking '%s'..."%(attributes.doGetAttr(p,'cgmName'),p))
                             puppet = p
                             name = attributes.doGetAttr(p,'cgmName')
                             break
@@ -99,7 +101,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Verify or Initialize
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>           
-        log.debug("Puppet is '%s'"%name)
+        #if log.getEffectiveLevel() == 10:log.debug("Puppet is '%s'"%name)
 	if puppet is None:puppetCreatedState = True
 	else:puppetCreatedState = False
         super(cgmPuppet, self).__init__(node = puppet, name = name) 
@@ -109,12 +111,12 @@ class cgmPuppet(cgmMeta.cgmNode):
 	
         #>>> Puppet Network Initialization Procedure ==================       
         if self.isReferenced() or initializeOnly:
-            log.debug("'%s' Initializing only..."%name)
+            #if log.getEffectiveLevel() == 10:log.debug("'%s' Initializing only..."%name)
             if not self.initialize():
                 #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
                 raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
 	elif self.__justCreatedState__ or doVerify:
-	    log.debug("Verifying...")
+	    #if log.getEffectiveLevel() == 10:log.debug("Verifying...")
 	    try:
 		if not self.__verify__(name,**kws):
 		    #log.critical("'%s' failed to __verify__!"%name)
@@ -149,11 +151,11 @@ class cgmPuppet(cgmMeta.cgmNode):
         success(bool)
         """             
 	_str_funcName = "cgmPuppet.__verify__(%s)"%self.p_nameShort
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
 	
         #============== 
 	try:#Puppet Network Node ================================================================
-	    log.debug(1)
+	    #if log.getEffectiveLevel() == 10:log.debug(1)
 	    self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
 	    if name is not None and name:
 		self.addAttr('cgmName',name, attrType='string', lock = True)
@@ -167,7 +169,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    raise StandardError,"%s >>> Puppet network |error : %s"%(_str_funcName,error)
 	
 	try:#Settings ============================================================================
-	    log.debug(2)	
+	    #if log.getEffectiveLevel() == 10:log.debug(2)	
 	    defaultFont = modules.returnSettingsData('defaultTextFont')
 	    self.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
 	    self.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
@@ -176,19 +178,19 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    self.addAttr('skinDepth',attrType = 'float',initialValue=.75,lock=True)   
 	    
 	    self.doName()
-	    log.debug("Network good...")
+	    #if log.getEffectiveLevel() == 10:log.debug("Network good...")
 	except Exception,error:
 	    raise StandardError,"%s >>> Settings |error : %s"%(_str_funcName,error)
 		
         try:#MasterNull ===========================================================================
-	    log.debug(4)	
+	    #if log.getEffectiveLevel() == 10:log.debug(4)	
 	    if not self.getMessage('masterNull'):#If we don't have a masterNull, make one
 		self.i_masterNull = cgmMasterNull(puppet = self)
-		log.debug('Master created.')
+		#if log.getEffectiveLevel() == 10:log.debug('Master created.')
 	    else:
-		log.debug('Master null exists. linking....')            
+		#if log.getEffectiveLevel() == 10:log.debug('Master null exists. linking....')            
 		self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
-		log.debug('self.i_masterNull: %s'%self.i_masterNull)
+		#if log.getEffectiveLevel() == 10:log.debug('self.i_masterNull: %s'%self.i_masterNull)
 		self.i_masterNull.__verify__()
 	    if self.i_masterNull.getShortName() != self.cgmName:
 		self.masterNull.doName()
@@ -196,7 +198,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 		    log.warning("Master Null name still doesn't match what it should be.")
 		    return False
 	    attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
-	    log.debug("Master Null good...")
+	    #if log.getEffectiveLevel() == 10:log.debug("Master Null good...")
 	except Exception,error:
 	    raise StandardError,"%s >>> MasterNull | error : %s"%(_str_funcName,error)	
 	    
@@ -215,19 +217,19 @@ class cgmPuppet(cgmMeta.cgmNode):
         # Groups
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 	try:
-	    log.debug(5)
+	    #if log.getEffectiveLevel() == 10:log.debug(5)
 	    for attr in 'deform','noTransform','geo','parts':
 		grp = attributes.returnMessageObject(self.i_masterNull.mNode,attr+'Group')# Find the group
 		Attr = 'i_' + attr+'Group'#Get a better attribute store string           
 		if mc.objExists( grp ):
 		    self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
-		    log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
+		    #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
 		else:#Make it
-		    log.debug('Creating %s'%attr)                                    
+		    #if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
 		    self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
 		    self.__dict__[Attr].doName()
 		    self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
-		    log.debug("Initialized as 'self.%s'"%(Attr))                    
+		    #if log.getEffectiveLevel() == 10:log.debug("Initialized as 'self.%s'"%(Attr))                    
 		    self.__dict__[Attr].__verify__()
 		    
 		# Few Case things
@@ -346,8 +348,8 @@ class cgmPuppet(cgmMeta.cgmNode):
         #Connect
         #==============	
         else:
-            log.debug("Current children: %s"%self.getMessage('moduleChildren'))
-            log.debug("Adding '%s'!"%module.getShortName())    
+            #if log.getEffectiveLevel() == 10:log.debug("Current children: %s"%self.getMessage('moduleChildren'))
+            #if log.getEffectiveLevel() == 10:log.debug("Adding '%s'!"%module.getShortName())    
 
             buffer.append(module.mNode)
 	    self.__setMessageAttr__('moduleChildren',buffer) #Going to manually maintaining these so we can use simpleMessage attr  parents
@@ -456,30 +458,30 @@ class cgmPuppet(cgmMeta.cgmNode):
 	""" 
 	"""
 	_str_funcName = "cgmPuppet._verifyMasterControl(%s)"%self.p_nameShort    
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
 	# Master Curve
 	#==================================================================
 	masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
 	if mc.objExists( masterControl ):
 	    #If exists, initialize it
-	    log.debug('masterControl exists')                                    	    
+	    #if log.getEffectiveLevel() == 10:log.debug('masterControl exists')                                    	    
 	    i_masterControl = self.masterControl
 	else:#Make it
-	    log.debug('Creating masterControl')  
+	    #if log.getEffectiveLevel() == 10:log.debug('Creating masterControl')  
 	    #Get size
 	    if self.getGeo():
 		averageBBSize = distance.returnBoundingBoxSizeToAverage(self.masterNull.geoGroup.mNode)
-		log.debug("averageBBSize: %s"%averageBBSize)
+		#if log.getEffectiveLevel() == 10:log.debug("averageBBSize: %s"%averageBBSize)
 		kws['size'] = averageBBSize * 1.5
 	    elif len(self.moduleChildren) == 1 and self.moduleChildren[0].getMessage('helper'):
-		log.debug(">>> %s : Helper found.Sizing that."%_str_funcName)
+		#if log.getEffectiveLevel() == 10:log.debug(">>> %s : Helper found.Sizing that."%_str_funcName)
 		averageBBSize = distance.returnBoundingBoxSizeToAverage(self.moduleChildren[0].getMessage('helper'))		
 		kws['size'] = averageBBSize * 1.5
 	    elif 'size' not in kws.keys():kws['size'] = 50
-	    log.debug("kws['size']: %s"%kws['size'])
+	    #if log.getEffectiveLevel() == 10:log.debug("kws['size']: %s"%kws['size'])
 	    i_masterControl = cgmMasterControl(puppet = self,**kws)#Create and initialize
 	    #self.masterControl = self.i_masterControl.mNode
-	    log.debug('Verifying')
+	    #if log.getEffectiveLevel() == 10:log.debug('Verifying')
 	    i_masterControl.__verify__()
 	i_masterControl.parent = self.masterNull.mNode
 	i_masterControl.doName()
@@ -507,7 +509,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	except Exception,error:
 	    log.error("_verifyMasterControl>> visNetwork fail! "%error)
 	    raise StandardError,error 	
-	log.debug("Verified: '%s'"%self.cgmName)  
+	#if log.getEffectiveLevel() == 10:log.debug("Verified: '%s'"%self.cgmName)  
 	
 	# Settings setup
 	# Setup the settings network
@@ -593,8 +595,8 @@ class cgmMasterNull(cgmMeta.cgmObject):
 	if mc.objExists(name) and node is None:
 	    node = name
 	    
-	log.debug("node: '%s'"%node)
-	log.debug("name: '%s'"%name)	
+	#if log.getEffectiveLevel() == 10:log.debug("node: '%s'"%node)
+	#if log.getEffectiveLevel() == 10:log.debug("name: '%s'"%name)	
         super(cgmMasterNull, self).__init__(node=node, name = name)
 	        
         if not self.isReferenced():   
@@ -613,9 +615,9 @@ class cgmMasterNull(cgmMeta.cgmObject):
         """ 
         puppet = kws.pop('puppet',False)
         if puppet and not self.isReferenced():
-            log.debug("Puppet provided!")
-            log.debug(puppet.cgmName)
-            log.debug(puppet.mNode)
+            #if log.getEffectiveLevel() == 10:log.debug("Puppet provided!")
+            #if log.getEffectiveLevel() == 10:log.debug(puppet.cgmName)
+            #if log.getEffectiveLevel() == 10:log.debug(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
             self.addAttr('puppet',attrType = 'messageSimple')
             if not self.connectParentNode(puppet,'puppet','masterNull'):
@@ -641,8 +643,8 @@ class cgmInfoNode(cgmMeta.cgmNode):
     """"""
     def __init__(self,node = None, name = None, doVerify = False, *args,**kws):
         """Constructor"""
-        log.debug(">>> cgmInfoNode.__init__")
-        if kws:log.debug("kws: %s"%kws)
+        #if log.getEffectiveLevel() == 10:log.debug(">>> cgmInfoNode.__init__")
+        #if kws:log.debug("kws: %s"%kws)
         
         puppet = kws.pop('puppet',False)#to pass a puppet instance in 
         infoType = kws.pop('infoType','')
@@ -650,7 +652,7 @@ class cgmInfoNode(cgmMeta.cgmNode):
         #>>>Keyword args
         super(cgmInfoNode, self).__init__(node=node, name = name,*args,**kws)
 
-        log.debug("puppet :%s"%puppet)
+        #if log.getEffectiveLevel() == 10:log.debug("puppet :%s"%puppet)
         if puppet:
             self.doStore('cgmName',puppet.mNode+'.cgmName')
             self.connectParentNode(puppet, 'puppet',infoType)               
@@ -679,7 +681,7 @@ class cgmInfoNode(cgmMeta.cgmNode):
         RETURNS:
         success(bool)
         """ 
-        log.debug(">"*10 + " cgmInfoNode.verify.... " + "<"*10)
+        #if log.getEffectiveLevel() == 10:log.debug(">"*10 + " cgmInfoNode.verify.... " + "<"*10)
         #See if it's named properly. Need to loop back after scene stuff is querying properly
         self.doName()  
         return True
@@ -692,20 +694,18 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
     """"""
     def __init__(self,*args,**kws):
         """Constructor"""
-        log.debug(">>> cgmMorpheusMakerNetwork.__init__")
-	if kws:log.debug("kws: %s"%str(kws))
-	if args:log.debug("args: %s"%str(args))
+        #if log.getEffectiveLevel() == 10:log.debug(">>> cgmMorpheusMakerNetwork.__init__")
+	#if kws:log.debug("kws: %s"%str(kws))
+	#if args:log.debug("args: %s"%str(args))
 	doVerify = kws.get('doVerify') or False
 	
         #>>>Keyword args
         super(cgmMorpheusMakerNetwork, self).__init__(*args,**kws)
 	if not 'initializeOnly' in kws.keys():initializeOnly = False
 	else:initializeOnly = kws.get('initializeOnly')
-	log.debug("initOnly: '%s'"%initializeOnly)
+	#if log.getEffectiveLevel() == 10:log.debug("initOnly: '%s'"%initializeOnly)
 	
-        if self.isReferenced() or initializeOnly: 
-	    log.debug("'%s' initialized!"%self.mNode)
-	elif self.__justCreatedState__ or doVerify:
+	if self.__justCreatedState__ or doVerify:
 	    if not self.__verify__():
 		raise StandardError,"Failed!"
 
@@ -773,16 +773,16 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	if not mc.objExists(attributes.returnMessageObject(self.mNode,'masterNull')):#If we don't have a masterNull, make one
 	    self.i_masterNull = cgmMeta.cgmObject()
 	    self.addAttr('masterNull',self.i_masterNull.mNode,attrType = 'messageSimple',lock=True)
-	    log.debug('Master created.')
+	    #if log.getEffectiveLevel() == 10:log.debug('Master created.')
 	else:
-	    log.debug('Master null exists. linking....')            
+	    #if log.getEffectiveLevel() == 10:log.debug('Master null exists. linking....')            
 	    self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
 
 	self.i_masterNull.doStore('cgmName', self.mNode + '.cgmName')	
 	#self.masterNull.addAttr('cgmName',self.cgmName,attrType = 'string',lock=True)
 	self.i_masterNull.doName()
 	attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
-	log.debug("Master Null good...")
+	#if log.getEffectiveLevel() == 10:log.debug("Master Null good...")
 	
 	# Groups
 	#======================================================================
@@ -800,24 +800,24 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	l_autoPickerWatchAttrs = ['left_earGeo','right_earGeo','left_eyeGeo','right_eyeGeo']
 	l_autoPickerWatchGroups = []
 	for attr in l_baseGroups + l_customGeoGroups+ l_bsTargetGroups + l_bsBodyTargets + l_bsFaceTargets + l_earGeoGroups + l_eyeGeoGroups:
-	    log.debug('On attr: %s'%attr)
+	    #if log.getEffectiveLevel() == 10:log.debug('On attr: %s'%attr)
 	    self.i_masterNull.addAttr(attr+'Group',attrType = 'messageSimple', lock = True)
 	    grp = attributes.returnMessageObject(self.masterNull.mNode,attr+'Group')# Find the group
 	    Attr = 'i_' + attr+'Group'#Get a better attribute store string           
 	    if mc.objExists( grp ):
 		#If exists, initialize it
 		self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
-		log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
-		log.debug(self.__dict__[Attr].mNode)
+		#if log.getEffectiveLevel() == 10:log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
+		#if log.getEffectiveLevel() == 10:log.debug(self.__dict__[Attr].mNode)
 
 	    else:#Make it
-		log.debug('Creating %s'%attr)                                    
+		#if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
 		self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
 		self.__dict__[Attr].doName()
 		#self.i_masterNull.connectChildNode(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
 		self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
 		
-		log.debug("Initialized as 'self.%s'"%(Attr))         
+		#if log.getEffectiveLevel() == 10:log.debug("Initialized as 'self.%s'"%(Attr))         
 		
 	    #>>> Special data parsing to get things named how we want
 	    if 'left' in attr and not self.__dict__[Attr].hasAttr('cgmDirection'):
@@ -881,7 +881,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    self.i_masterControl.mClass = 'cgmMasterControl'
 
 	else:#Make it
-	    log.debug('Creating masterControl')                                    
+	    #if log.getEffectiveLevel() == 10:log.debug('Creating masterControl')                                    
 	    self.i_masterControl = cgmMasterControl(puppet = self)#Create and initialize
 	    #self.masterControl = self.i_masterControl.mNode
 	    self.i_masterControl.__verify__()
@@ -906,12 +906,12 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    
 	    nodeF.build_mdNetwork(visArg)
 	
-	log.debug("Verified: '%s'"%self.cgmName)
+	#if log.getEffectiveLevel() == 10:log.debug("Verified: '%s'"%self.cgmName)
         return True
         
     def doChangeName(self,name = ''):
-	log.debug(">>> cgmMorpheusMakerNetwork.doChangeName")
-	log.debug("name: '%s'"%name)	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> cgmMorpheusMakerNetwork.doChangeName")
+	#if log.getEffectiveLevel() == 10:log.debug("name: '%s'"%name)	
         if name == self.cgmName:
             log.error("Network already named '%s'"%self.cgmName)
             return
@@ -932,7 +932,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	--skinned?
 	--blendshaped?
 	"""
-	log.debug(">>> cgmMorpheusMakerNetwork.doChangeName")	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> cgmMorpheusMakerNetwork.doChangeName")	
 	controlsLeft = self.getMessage('controlsLeft')
 	if not controlsLeft:
 	    log.warning("No left controls. Aborting check.")
@@ -1002,15 +1002,15 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	if not pickerGroups:
 	    log.warning("No autoPickerWatchGroups detected")
 	    return False
-	log.debug( pickerGroups )
+	#if log.getEffectiveLevel() == 10:log.debug( pickerGroups )
 	#nodeF.build_conditionNetworkFromGroup('group1',controlObject = 'settings')
 	i_settingsControl = self.masterControl.controlSettings
 	settingsControl = i_settingsControl.getShortName()
 	
-	log.debug( i_settingsControl.mNode )
+	#if log.getEffectiveLevel() == 10:log.debug( i_settingsControl.mNode )
 	for i_grp in self.autoPickerWatchGroups:
 	    shortName = i_grp.getShortName()
-	    log.debug(shortName)
+	    #if log.getEffectiveLevel() == 10:log.debug(shortName)
 	    #Let's get basic info for a good attr name
 	    d = nameTools.returnObjectGeneratedNameDict(shortName,ignore=['cgmTypeModifier','cgmType'])
 	    n = nameTools.returnCombinedNameFromDict(d)
@@ -1021,8 +1021,8 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	""" 
 	Update a blendshape node by it checking it's source folder
 	""" 
-	log.debug(">>> cgmMorpheusMakerNetwork.doUpdateBlendshapeNode")
-	log.debug("blendshapeAttr: '%s'"%blendshapeAttr)	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> cgmMorpheusMakerNetwork.doUpdateBlendshapeNode")
+	#if log.getEffectiveLevel() == 10:log.debug("blendshapeAttr: '%s'"%blendshapeAttr)	
 	
 	# Get our base info
 	#==================	        
@@ -1070,9 +1070,9 @@ class cgmMasterControl(cgmMeta.cgmObject):
         #>>>Keyword args
         super(cgmMasterControl, self).__init__(*args,**kws)
 	
-        log.debug(">>> cgmMasterControl.__init__")
-	if kws:log.debug("kws: %s"%str(kws))
-	if args:log.debug("args: %s"%str(args)) 	
+        #if log.getEffectiveLevel() == 10:log.debug(">>> cgmMasterControl.__init__")
+	#if kws:log.debug("kws: %s"%str(kws))
+	#if args:log.debug("args: %s"%str(args)) 	
 	doVerify = kws.get('doVerify') or False
 	
         if not self.isReferenced():
@@ -1084,9 +1084,9 @@ class cgmMasterControl(cgmMeta.cgmObject):
     def __verify__(self,*args,**kws):
         puppet = kws.pop('puppet',False)
         if puppet and not self.isReferenced():
-            log.debug("Puppet provided!")
-            log.debug(puppet.cgmName)
-            log.debug(puppet.mNode)
+            #if log.getEffectiveLevel() == 10:log.debug("Puppet provided!")
+            #if log.getEffectiveLevel() == 10:log.debug(puppet.cgmName)
+            #if log.getEffectiveLevel() == 10:log.debug(puppet.mNode)
             self.doStore('cgmName',puppet.mNode+'.cgmName')
             self.addAttr('puppet',attrType = 'messageSimple')
             self.connectParentNode(puppet,'puppet','masterControl') 	
@@ -1124,14 +1124,14 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	#=====================================================================
 	#>>> Master curves
 	if not self.getShapes() or len(self.getShapes())<3:
-	    log.debug("Need to build shapes")
+	    #if log.getEffectiveLevel() == 10:log.debug("Need to build shapes")
 	    self.rebuildControlCurve(**kws)
 	    
 	#======================
 	#>>> Sub controls
 	visControl = attributes.returnMessageObject(self.mNode,'controlVis')
 	if not mc.objExists( visControl ):
-	    log.debug('Creating visControl')
+	    #if log.getEffectiveLevel() == 10:log.debug('Creating visControl')
 	    buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 135, controls = ['controlVisibility'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
 	    i_c = cgmMeta.cgmObject(buffer.get('controlVisibility'))
 	    i_c.addAttr('mClass','cgmObject')
@@ -1148,7 +1148,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	    settingsControl = attributes.returnMessageObject(self.mNode,'controlSettings')
 	    
 	    if not mc.objExists( settingsControl ):
-		log.debug('Creating settingsControl')
+		#if log.getEffectiveLevel() == 10:log.debug('Creating settingsControl')
 		buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 225, controls = ['controlSettings'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
 		i_c = cgmMeta.cgmObject(buffer.get('controlSettings'))
 		i_c.addAttr('mClass','cgmObject')
@@ -1167,7 +1167,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
 	"""
 	Rebuild the master control curve
 	"""
-	log.debug('>>> rebuildControlCurve')
+	#if log.getEffectiveLevel() == 10:log.debug('>>> rebuildControlCurve')
 	ml_shapes = cgmMeta.validateObjListArg( self.getShapes(),noneValid=True )
 	self.color =  modules.returnSettingsData('colorMaster',True)
 	
@@ -1212,8 +1212,8 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
     ##@r9General.Timer    
     def __init__(self,node = None, name = None ,initializeOnly = False,*args,**kws):
 	#DO NOT PUT A DEFAULT NAME IN THE DEFINITION...RECURSIVE HELL
-        log.debug(">>> cgmModuleBufferNode.__init__")
-        if kws:log.debug("kws: %s"%kws)    
+        #if log.getEffectiveLevel() == 10:log.debug(">>> cgmModuleBufferNode.__init__")
+        #if kws:log.debug("kws: %s"%kws)    
         
         """Constructor"""
         module = kws.get('module') or False
@@ -1222,9 +1222,9 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
 	
         #>>> Keyword args
         super(cgmModuleBufferNode, self).__init__(node=node, name = name,*args,**kws)
-        log.debug(">"*10 + " cgmModuleBufferNode.init.... " + "<"*10)
-        log.debug(args)
-        log.debug(kws)        
+        #if log.getEffectiveLevel() == 10:log.debug(">"*10 + " cgmModuleBufferNode.init.... " + "<"*10)
+        #if log.getEffectiveLevel() == 10:log.debug(args)
+        #if log.getEffectiveLevel() == 10:log.debug(kws)        
         
         if not self.isReferenced(): 
 	    if self.__justCreatedState__ or doVerify:	    
@@ -1241,7 +1241,7 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         success(bool)
         """ 
 	_str_funcName = "cgmModuleBufferNode.__verify__(%s)"%(self.p_nameShort)
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
 	
 	cgmMeta.cgmBufferNode.__verify__(self,**kws)
 	
@@ -1348,9 +1348,9 @@ class cgmModule(cgmMeta.cgmObject):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
-        log.debug(">>> cgmModule.__init__")
-        if kws:log.debug("kws: %s"%str(kws))         
-        if args:log.debug("args: %s"%str(args))            
+        #if log.getEffectiveLevel() == 10:log.debug(">>> cgmModule.__init__")
+        #if kws:log.debug("kws: %s"%str(kws))         
+        #if args:log.debug("args: %s"%str(args))            
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Figure out the node
@@ -1389,11 +1389,11 @@ class cgmModule(cgmMeta.cgmObject):
 		    raise StandardError,"'%s' failed to verify!"%self.mNode 
 		return
 	    
-	log.debug("'%s' Initializing only..."%self.mNode)
+	#if log.getEffectiveLevel() == 10:log.debug("'%s' Initializing only..."%self.mNode)
 	if not self.initialize():
 	    log.critical("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.mNode)
 	    raise StandardError,"'%s' failed to initialize!"%self.mNode
-        log.debug("'%s' Checks out!"%self.getShortName())
+        #if log.getEffectiveLevel() == 10:log.debug("'%s' Checks out!"%self.getShortName())
 	
     ##@r9General.Timer
     def initialize(self,**kws):
@@ -1404,7 +1404,7 @@ class cgmModule(cgmMeta.cgmObject):
         success(bool)
         """  
 	_str_funcName = "cgmModule.initialize(%s)"%(self.p_nameShort)
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  	
         #Puppet Network Node
         #==============
 	if not issubclass(type(self),cgmModule):
@@ -1412,7 +1412,7 @@ class cgmModule(cgmMeta.cgmObject):
             return False
 	
         for attr in moduleBuffers_toMake:
-	    log.debug("checking: %s"%attr)
+	    #if log.getEffectiveLevel() == 10:log.debug("checking: %s"%attr)
             Attr = 'i_' + attr#Get a better attribute store string   
 	    obj = attributes.returnMessageObject(self.mNode,attr)# Find the object
 	    if not obj:return False
@@ -1441,7 +1441,7 @@ class cgmModule(cgmMeta.cgmObject):
         success(bool)
         """
 	_str_funcName = "cgmModule.__verify__(%s)"%(self.p_nameShort)
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  	
         #>>> Module Null ==================                   
         self.addAttr('mClass', initialValue='cgmModule',lock=True) 
         self.addAttr('cgmType',value = 'module',lock=True)
@@ -1459,10 +1459,10 @@ class cgmModule(cgmMeta.cgmObject):
         #==============  
         for k in self.kw_callNameTags.keys():
             if self.kw_callNameTags.get(k):
-                log.debug(k + " : " + str(self.kw_callNameTags.get(k)))                
+                #if log.getEffectiveLevel() == 10:log.debug(k + " : " + str(self.kw_callNameTags.get(k)))                
                 self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
-                log.debug(str(self.getNameDict()))
-                log.debug(self.__dict__[k])
+                #if log.getEffectiveLevel() == 10:log.debug(str(self.getNameDict()))
+                #if log.getEffectiveLevel() == 10:log.debug(self.__dict__[k])
             #elif k in self.parentTagDict.keys():
                 #   self.store(k,'%s.%s'%(self.msgModuleParent.value,k))
 	self.doName()  
@@ -1483,30 +1483,30 @@ class cgmModule(cgmMeta.cgmObject):
         self.addAttr('deformNull',attrType='messageSimple',lock=True)	
         self.addAttr('coreNames',attrType='messageSimple',lock=True)
 
-        log.debug("Module null good...")
+        #if log.getEffectiveLevel() == 10:log.debug("Module null good...")
         #>>> Rig/Template Nulls ==================   
 
         #Initialization
         #==============      
         for attr in moduleNulls_toMake:
-            log.debug(attr)
+            #if log.getEffectiveLevel() == 10:log.debug(attr)
             grp = attributes.returnMessageObject(self.mNode,attr+'Null')# Find the group
             Attr = 'i_' + attr+'Null'#Get a better attribute store string           
             if mc.objExists( grp ):
                 #If exists, initialize it
                 try:     
                     self.__dict__[Attr] = r9Meta.MetaClass(grp)#Initialize if exists  
-                    log.debug("'%s' initialized to 'self.%s'"%(grp,Attr))                    
+                    #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized to 'self.%s'"%(grp,Attr))                    
                 except:
                     log.error("'%s' group failed. Please verify puppet."%attr)                    
                     return False   
 
             else:#Make it
-                log.debug('Creating %s'%attr)                                    
+                #if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
 		self.__dict__[Attr].connectParentNode(self.mNode,'module', attr+'Null')                
                 self.__dict__[Attr].addAttr('cgmType',attr+'Null',lock=True)
-                log.debug("'%s' initialized to 'self.%s'"%(grp,Attr))                    
+                #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized to 'self.%s'"%(grp,Attr))                    
 
             self.__dict__[Attr].doParent(self.mNode)
             self.__dict__[Attr].doName()
@@ -1514,21 +1514,21 @@ class cgmModule(cgmMeta.cgmObject):
             attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
 	    
         for attr in moduleBuffers_toMake:
-            log.debug(attr)
+            #if log.getEffectiveLevel() == 10:log.debug(attr)
             obj = attributes.returnMessageObject(self.mNode,attr)# Find the object
             Attr = 'i_' + attr#Get a better attribute store string           
             if mc.objExists( obj ):
                 #If exists, initialize it
                 try:     
                     self.__dict__[Attr]  = r9Meta.MetaClass(obj)#Initialize if exists  
-                    log.debug("'%s' initialized to 'self.%s'"%(obj,Attr))                    
+                    #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized to 'self.%s'"%(obj,Attr))                    
                 except:
                     log.error("'%s' null failed. Please verify modules."%attr)                    
                     return False               
             else:#Make it
-                log.debug('Creating %s'%attr)                                    
+                #if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmModuleBufferNode(module = self, name = attr, bufferType = attr, overideMessageCheck = True)#Create and initialize
-                log.debug("'%s' initialized to 'self.%s'"%(attr,Attr))  
+                #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized to 'self.%s'"%(attr,Attr))  
 		
 	    self.__dict__[Attr].__verify__()
 	    
@@ -1571,7 +1571,7 @@ class cgmModule(cgmMeta.cgmObject):
     def __verifyAttributesOn__(self,null,dictToUse):
         #Attrbute checking
         #=================
-	log.debug(">>> %s.__verifyAttributesOn__ >> "%(self.p_nameShort) + "="*75)            	        	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s.__verifyAttributesOn__ >> "%(self.p_nameShort) + "="*75)            	        	
 	if type(dictToUse) is not dict:
 	    raise StandardError,"Not a dict: %s"%null
 	i_null = cgmMeta.validateObjArg(null)
@@ -1580,9 +1580,9 @@ class cgmModule(cgmMeta.cgmObject):
 	
         for attr in sorted(dictToUse.keys()):#See table just above cgmModule
 	    try:
-		log.debug("Checking '%s' on template Null"%attr)	
+		#if log.getEffectiveLevel() == 10:log.debug("Checking '%s' on template Null"%attr)	
 		if attr == 'rollJoints':
-		    log.debug("rollJoints: %s"%self.kw_rollJoints)
+		    #if log.getEffectiveLevel() == 10:log.debug("rollJoints: %s"%self.kw_rollJoints)
 		    if self.kw_rollJoints == 0:
 			i_null.addAttr(attr,initialValue = self.kw_rollJoints, attrType = dictToUse[attr],lock = True )                
 		    else:
@@ -1601,7 +1601,7 @@ class cgmModule(cgmMeta.cgmObject):
 		
     def __verifyObjectSet__(self):
 	_str_funcName = "__verifyObjectSet__(%s)"%self.p_nameShort
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)		
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)		
 	try:#Quick select sets ================================================================
 	    if not self.rigNull.getMessage('moduleSet'):#
 		i_selectSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
@@ -1632,13 +1632,13 @@ class cgmModule(cgmMeta.cgmObject):
 	Call to figure out a module's settings control
 	"""
 	_str_funcName = "getSettingsControl(%s)"%self.p_nameShort
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
 	mi_rigNull = self.rigNull#Link
 	try:
 	    return mi_rigNull.settings#fastest check
 	except:log.debug("%s >>> No settings connected. Probably not rigged, so let's check ..."%_str_funcName)
-	if self.moduleType in l_faceModuleTypes:
-	    log.debug("%s >>> Face module..."%_str_funcName)
+	if self.moduleType in __l_faceModuleTypes__:
+	    #if log.getEffectiveLevel() == 10:log.debug("%s >>> Face module..."%_str_funcName)
 	    try:return self.moduleParent.rigNull.settings#fastest check
 	    except:log.debug("%s >>> No moduleParent settings connected..."%_str_funcName)	    
 	    try:return self.modulePuppet.masterControl.controlSettings#fastest check
@@ -1879,7 +1879,10 @@ class cgmModule(cgmMeta.cgmObject):
 	return mFactory.mirrorPull(self,**kws)
     def getMirror(self,**kws):
 	return mFactory.get_mirror(self,**kws)
-
+    def mirrorLeft(self,**kws):
+	return mFactory.mirrorSymLeft(self,**kws)
+    def mirrorRight(self,**kws):
+	return mFactory.mirrorSymRight(self,**kws)    
     #>>> Module Children
     #========================================================================
     def getAllModuleChildren(self):
@@ -1975,9 +1978,9 @@ class cgmLimb(cgmModule):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
-        log.debug(">>> cgmLimb.__init__")
-        if kws:log.debug("kws: %s"%str(kws))         
-        if args:log.debug("args: %s"%str(args))  
+        #if log.getEffectiveLevel() == 10:log.debug(">>> cgmLimb.__init__")
+        #if kws:log.debug("kws: %s"%str(kws))         
+        #if args:log.debug("args: %s"%str(args))  
         
         start = time.clock()	
         
@@ -1990,9 +1993,8 @@ class cgmLimb(cgmModule):
     def __verify__(self,**kws):
         cgmModule.__verify__(self,**kws)
 	#super(cgmLimb,self).__verify(**kws)
-	log.debug('here')
         if 'mType' not in kws.keys() and self.moduleType in limbTypes.keys():
-            log.debug("'%s' type checks out."%self.moduleType)	    
+            #if log.getEffectiveLevel() == 10:log.debug("'%s' type checks out."%self.moduleType)	    
             moduleType = self.moduleType
 	elif 'mType' in kws.keys():
 	    moduleType = kws['mType']
@@ -2002,11 +2004,11 @@ class cgmLimb(cgmModule):
             moduleType = kws.pop('mType','segment')	
 
         if not moduleType in limbTypes.keys():
-            log.debug("'%s' type is unknown. Using segment type"%moduleType)
+            #if log.getEffectiveLevel() == 10:log.debug("'%s' type is unknown. Using segment type"%moduleType)
             moduleType = 'segment'
 
         if self.moduleType != moduleType:
-            log.debug("Changing type to '%s' type"%moduleType)
+            #if log.getEffectiveLevel() == 10:log.debug("Changing type to '%s' type"%moduleType)
             self.moduleType = moduleType
 	    
 	#>>> Attributes ...
@@ -2049,9 +2051,9 @@ class cgmEyeball(cgmModule):
         forceNew(bool) --whether to force the creation of another if the object exists
         """
 	_str_funcName = "cgmEyeball.__init__"    
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
-	if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
-	if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
+	#if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
                
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
@@ -2061,8 +2063,6 @@ class cgmEyeball(cgmModule):
         cgmModule.__verify__(self,**kws)
 	moduleType = kws.pop('mType','eyeball')	
 
-        if self.moduleType != moduleType:
-            log.debug("Changing type to '%s' type"%moduleType)
 	self.moduleType = moduleType
 	
 	#>>> Attributes ...
@@ -2101,9 +2101,9 @@ class cgmEyelids(cgmModule):
 	forceNew(bool) --whether to force the creation of another if the object exists
 	"""
 	_str_funcName = "cgmEyelids.__init__"    
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
-	if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
-	if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
+	#if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
 	       
 	if 'name' not in kws.keys() and 'mType' in kws.keys():
 	    kws['name'] = kws['mType']
@@ -2113,8 +2113,6 @@ class cgmEyelids(cgmModule):
 	cgmModule.__verify__(self,**kws)
 	moduleType = kws.pop('mType','eyelids')	
 
-	if self.moduleType != moduleType:
-	    log.debug("Changing type to '%s' type"%moduleType)
 	self.moduleType = moduleType
 	
 	#>>> Attributes ...
@@ -2153,9 +2151,9 @@ class cgmEyebrow(cgmModule):
 	forceNew(bool) --whether to force the creation of another if the object exists
 	"""
 	_str_funcName = "cgmEyebrow.__init__"    
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
-	if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
-	if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
+	#if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
 	       
 	if 'name' not in kws.keys() and 'mType' in kws.keys():
 	    kws['name'] = kws['mType']
@@ -2164,8 +2162,6 @@ class cgmEyebrow(cgmModule):
     def __verify__(self,**kws):
 	cgmModule.__verify__(self,**kws)
 
-	if self.moduleType != 'eyebrow':
-	    log.debug("Changing type to '%s' type"%'eyebrow')
 	self.moduleType = 'eyebrow'
 	
 	#>>> Attributes ...
@@ -2202,9 +2198,9 @@ class cgmRigBlock(cgmMeta.cgmObject):
 
 	"""
 	_str_funcName = "cgmRigBlock.__init__"    
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
-	if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
-	if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args)))    
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
+	#if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args)))    
 		
 	#>>Verify or Initialize
 	super(cgmRigBlock, self).__init__(*args,**kws) 
@@ -2230,7 +2226,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 		    log.critical("'%s' failed to verify!"%self.mNode)
 		    raise StandardError,"'%s' failed to verify!"%self.mNode 
 		return
-	log.debug("'%s' Checks out!"%self.getShortName())
+	#if log.getEffectiveLevel() == 10:log.debug("'%s' Checks out!"%self.getShortName())
 	
     ##@r9General.Timer
     def __verify__(self,**kws):
@@ -2242,7 +2238,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	success(bool)
 	"""
 	_str_funcName = "cgmRigBlock.__verify__"    
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	
 	if self.isReferenced():
 	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
@@ -2260,21 +2256,21 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	#==============  
 	for k in self.kw_callNameTags.keys():
 	    if self.kw_callNameTags.get(k):
-		log.debug(k + " : " + str(self.kw_callNameTags.get(k)))                
+		#if log.getEffectiveLevel() == 10:log.debug(k + " : " + str(self.kw_callNameTags.get(k)))                
 		self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
-		log.debug(str(self.getNameDict()))
-		log.debug(self.__dict__[k])
+		#if log.getEffectiveLevel() == 10:log.debug(str(self.getNameDict()))
+		#if log.getEffectiveLevel() == 10:log.debug(self.__dict__[k])
 
 
 	#Attrbute checking
 	#=================
 	self.verifyAttrDict(d_rigBlockAttrs_toMake,keyable = False, hidden = False)
-	log.debug("%s.__verify__ >>> kw_callNameTags: %s"%(self.p_nameShort,self.kw_callNameTags))	    	
+	#if log.getEffectiveLevel() == 10:log.debug("%s.__verify__ >>> kw_callNameTags: %s"%(self.p_nameShort,self.kw_callNameTags))	    	
 	d_enumToCGMTag = {'cgmDirection':'direction','cgmPosition':'position'}
 	for k in d_enumToCGMTag.keys():
-	    log.debug("%s.__verify__ >>> trying to set key: %s"%(self.p_nameShort,k))	    
+	    #if log.getEffectiveLevel() == 10:log.debug("%s.__verify__ >>> trying to set key: %s"%(self.p_nameShort,k))	    
 	    if k in self.kw_callNameTags.keys():
-		log.debug("%s.__verify__ >>> trying to set key: %s | data: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k)))
+		#if log.getEffectiveLevel() == 10:log.debug("%s.__verify__ >>> trying to set key: %s | data: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k)))
 		try:self.__setattr__(d_enumToCGMTag.get(k),self.kw_callNameTags.get(k))
 		except Exception,error: log.error("%s.__verify__ >>> Failed to set key: %s | data: %s | error: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k),error))
 	
@@ -2287,11 +2283,11 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	Verify
 	"""
 	_str_funcName = "cgmRigBlock.__verifyModule__"    
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	
 	#First see if we have a module
 	if not self.getMessage('mi_module'):
-	    log.debug(">>> %s >>> No module found. Building... "%(_str_funcName))
+	    #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> No module found. Building... "%(_str_funcName))
 	    self.__buildModule__()
 	return True
 	    
@@ -2300,7 +2296,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	General Module build before expected pass to individual blocks for specialization
 	"""
 	_str_funcName = "cgmRigBlock.__buildModule__(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	
 	#>>> Gather basic info for module build
 	d_kws = {}
@@ -2314,13 +2310,11 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	if str_position != 'none':
 	    d_kws['position'] = str_position
 	    
-	log.debug(">>> %s >>> kws..."%(_str_funcName)) 
-	for k in d_kws.keys():
-	    log.debug("%s : %s"%(k,d_kws.get(k)))
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> kws..."%(_str_funcName)) 
 	self._d_buildKWS = d_kws    
 	
 	#>>>Initial module build in 
-	log.debug(">>> %s >>> passing..."%(_str_funcName))
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> passing..."%(_str_funcName))
     
     #@cgmGeneral.Timer
     def __buildSimplePuppet__(self):
@@ -2328,19 +2322,19 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	Build a simple puppet for itself
 	"""
 	_str_funcName = "cgmRigBlock.__buildSimplePuppet__(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	mi_module = self.moduleTarget
 	if not mi_module:
 	    try:
-		log.debug(">>> %s >>> Has no module, creating")
+		#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> Has no module, creating")
 		mi_module = self.__buildModule__()
 	    except Exception,error:
 		raise StandardError, ">>> %s>>> module build failed. error: %s"%(_str_funcName,error)
 	if mi_module.getMessage('modulePuppet'):
-	    log.debug(">>> %s >>> already has a puppet. Aborting"%_str_funcName)
+	    #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> already has a puppet. Aborting"%_str_funcName)
 	    return False
 	
-	log.debug(">>> %s >>> Building puppet..."%(_str_funcName))
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> Building puppet..."%(_str_funcName))
 	mi_puppet = cgmPuppet(name = mi_module.getNameAlias())
 	mi_puppet.connectModule(mi_module)	
 	if mi_module.getMessage('moduleMirror'):
@@ -2376,9 +2370,9 @@ class cgmEyeballBlock(cgmRigBlock):
         """ 
         """
 	_str_funcName = "cgmEyeballBlock.__init__"  
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
-        if kws:log.debug("kws: %s"%str(kws))         
-        if args:log.debug("args: %s"%str(args))  
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        #if kws:log.debug("kws: %s"%str(kws))         
+        #if args:log.debug("args: %s"%str(args))  
                
         if 'name' not in kws.keys():
             kws['name'] = 'eye'  
@@ -2387,7 +2381,7 @@ class cgmEyeballBlock(cgmRigBlock):
     #@cgmGeneral.Timer
     def __verify__(self,**kws):
 	_str_funcName = "cgmEyeballBlock.__verify__(%s)"%self.p_nameShort    
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
         cgmRigBlock.__verify__(self,**kws)
 
 	#>>> Attributes ..
@@ -2405,7 +2399,7 @@ class cgmEyeballBlock(cgmRigBlock):
     #@cgmGeneral.Timer
     def __rebuildShapes__(self,size = None):
 	_str_funcName = "cgmEyeballBlock.__rebuildShapes__(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
 	if self.isReferenced():
 	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
 	
@@ -2425,7 +2419,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	    
 	#>>> Delete shapes
 	if l_shapes:
-	    log.debug("%s >>> deleting: %s"%(_str_funcName,l_shapes))	    
+	    #if log.getEffectiveLevel() == 10:log.debug("%s >>> deleting: %s"%(_str_funcName,l_shapes))	    
 	    mc.delete(ml_shapes)
 	
 	#>>> Build the eyeorb
@@ -2488,7 +2482,7 @@ class cgmEyeballBlock(cgmRigBlock):
     def __mirrorBuild__(self):
 	cgmRigBlock.__buildModule__(self)
 	_str_funcName = "cgmEyeballBlock.__buildMirror__(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
 	    try:#Mirror curves =====================================================================
 		if not self.getMessage('blockMirror'):
@@ -2527,7 +2521,7 @@ class cgmEyeballBlock(cgmRigBlock):
     def __mirrorPush__(self):
 	cgmRigBlock.__buildModule__(self)
 	_str_funcName = "cgmEyeballBlock.__pushToMirror__(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	try:
 	    if not self.getMessage('blockMirror'):
 		log.warning("%s >> no blockMirror found"%_str_funcName)
@@ -2544,7 +2538,7 @@ class cgmEyeballBlock(cgmRigBlock):
     def __buildModule__(self):
 	cgmRigBlock.__buildModule__(self)
 	_str_funcName = "cgmEyeballBlock.__buildModule__(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	try:
 	    bfr_name = self._d_buildKWS.get('name') or None
 	    bfr_position = self._d_buildKWS.get('position') or None
@@ -2568,7 +2562,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	    except Exception,error:raise StandardError,"Failed to build eyelids module | error: %s "%(error)
 	    try:#Mirror ============================================================
 		if self.autoMirror:
-		    log.debug("%s >> mirror mode"%(_str_funcName))
+		    #if log.getEffectiveLevel() == 10:log.debug("%s >> mirror mode"%(_str_funcName))
 		    if not self.getMessage('blockMirror'):
 			mi_mirror = self.__mirrorBuild__()
 		    else:
@@ -2622,7 +2616,7 @@ class cgmEyeballBlock(cgmRigBlock):
     def __updateSizeData__(self):
 	"""For overload"""
 	_str_funcName = "cgmEyeballBlock.__updateSizeData__(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	if not self.getMessage('moduleTarget'):
 	    raise StandardError,">>> %s >>> No module found "%(_str_funcName)
 	
@@ -2684,9 +2678,9 @@ class cgmEyebrowBlock(cgmRigBlock):
         """ 
         """
 	_str_funcName = "cgmEyebrowBlock.__init__"  
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
-        if kws:log.debug("kws: %s"%str(kws))         
-        if args:log.debug("args: %s"%str(args))  
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        #if kws:log.debug("kws: %s"%str(kws))         
+        #if args:log.debug("args: %s"%str(args))  
                
         if 'name' not in kws.keys():
             kws['name'] = 'brow'  
@@ -2694,7 +2688,7 @@ class cgmEyebrowBlock(cgmRigBlock):
 
     def __verify__(self,**kws):
 	_str_funcName = "cgmEyebrowBlock.__verify__(%s)"%self.p_nameShort    
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
         cgmRigBlock.__verify__(self,**kws)
 	
 	#>>> Attributes ..
@@ -2711,7 +2705,7 @@ class cgmEyebrowBlock(cgmRigBlock):
 
     def __rebuildShapes__(self,size = None):
 	_str_funcName = "cgmEyebrowBlock.__rebuildShapes__(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
 	if self.isReferenced():
 	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
 		    
@@ -2731,7 +2725,7 @@ class cgmEyebrowBlock(cgmRigBlock):
 	    
 	#>>> Delete shapes
 	if ml_shapes:
-	    log.debug("%s >>> deleting: %s"%(_str_funcName,ml_shapes))	    
+	    #if log.getEffectiveLevel() == 10:log.debug("%s >>> deleting: %s"%(_str_funcName,ml_shapes))	    
 	    mc.delete([mObj.mNode for mObj in ml_shapes])
 	
 	#>>> Main Shape
@@ -2788,7 +2782,7 @@ class cgmEyebrowBlock(cgmRigBlock):
 	
     def mirrorBrowCurvesTMP(self):
 	_str_funcName = "cgmEyebrowBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	try:
 	    crvUtils.mirrorCurve(self.getMessage('leftBrowHelper')[0],self.getMessage('rightBrowHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
 	except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error))
@@ -2803,7 +2797,7 @@ class cgmEyebrowBlock(cgmRigBlock):
     def __buildModule__(self):
 	cgmRigBlock.__buildModule__(self)
 	_str_funcName = "cgmEyebrowBlock.__buildModule__(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	try:
 	    bfr_name = self._d_buildKWS.get('name') or None
 	    bfr_position = self._d_buildKWS.get('position') or None
@@ -2818,7 +2812,8 @@ class cgmEyebrowBlock(cgmRigBlock):
 	    except Exception,error:raise StandardError,"Failed to build eyelids module | error: %s "%(error)
 	    try:#Mirror ============================================================
 		if self.autoMirror:
-		    log.debug("%s >> mirror mode"%(_str_funcName))
+		    pass
+		    #if log.getEffectiveLevel() == 10:log.debug("%s >> mirror mode"%(_str_funcName))
 	    except Exception,error:raise StandardError,"Failed to mirror | error: %s "%(error)
 		    
 	    #self.__storeNames__()
@@ -2850,7 +2845,7 @@ class cgmEyebrowBlock(cgmRigBlock):
     def __updateSizeData__(self):
 	"""For overload"""
 	_str_funcName = "cgmEyebrowBlock.__updateSizeData__(%s)"%self.p_nameShort   
-	log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	if not self.getMessage('moduleTarget'):
 	    raise StandardError,">>> %s >>> No module found "%(_str_funcName)
 	
