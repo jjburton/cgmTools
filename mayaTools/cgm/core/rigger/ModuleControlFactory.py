@@ -81,10 +81,10 @@ def registerControl(*args,**kws):
 	    """
 	    """    
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self.mi_control = cgmMeta.validateObjArg(args[0],cgmMeta.cgmObject,noneValid=False)
-	    self._str_funcCombined = "registerControl(%s)"%self.mi_control.p_nameShort  
+	    if args:self.mi_control = cgmMeta.validateObjArg(args[0],cgmMeta.cgmObject,noneValid=False)
+	    try:self._str_funcName = "registerControl(%s)"%self.mi_control.p_nameShort  
+	    except:self._str_funcName = "registerControl"
 	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'controlObject', "default":None, 'help':"The object to use as a control", "argType":"mObject"},
-	                                 {'kw':'typeModifier', "default":None, 'help':"Tag for cgmTypeModifier for naming", "argType":"string"},
 	                                 {'kw':'copyTransform', "default":None, 'help':"Object to copy the transform of for our control object", "argType":"mObject"},
 	                                 {'kw':'copyPivot', "default":None, 'help':"Object to copy the pivot of for our control object", "argType":"mObject"},
 	                                 {'kw':'shapeParentTo',"default":None,'help':"Object to shape parent our control curve to to use that transform","argType":"mObject"},
@@ -100,6 +100,8 @@ def registerControl(*args,**kws):
 	                                 {'kw':'freezeAll',"default":False,'help':"Freeze all transforms on the control object","argType":"bool"},
 	                                 {'kw':'addSpacePivots',"default":False,'help':"Number of space pivots to generate and connect","argType":"int"},
 	                                 {'kw':'controlType',"default":None,'help':"Tag for cgmType","argType":"string"},
+	                                 {'kw':'typeModifier', "default":None, 'help':"Tag for cgmTypeModifier for naming", "argType":"string"},	                                 
+	                                 {'kw':'addPushPull',"default":None,'help':"Push Pull driver setup. Looking for an attribute to drive","argType":"mAttr"},	                                 
 	                                 {'kw':'aim',"default":None,'help':"aim axis to use","argType":"string/int"},
 	                                 {'kw':'up',"default":None,'help':"up axis to use","argType":"string/int"},
 	                                 {'kw':'out',"default":None,'help':"out axis to use","argType":"string/int"},
@@ -119,6 +121,7 @@ def registerControl(*args,**kws):
 	                        {'step':'Groups Setup','call':self._groupsSetup},
 	                        {'step':'Space Pivot','call':self._spacePivots},
 	                        {'step':'Freeze','call':self._freeze},
+	                        {'step':'Push Pull Setup','call':self._pushPull},	                        
 	                        {'step':'lock N Hide','call':self._lockNHide},
 	                        {'step':'Return build','call':self._returnBuild}]
 	    
@@ -332,7 +335,27 @@ def registerControl(*args,**kws):
 			mc.makeIdentity(self.mi_control.mNode, apply=True,t=1,r=0,s=1,n=0)
 		else:
 		    mc.makeIdentity(self.mi_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
-
+	def _pushPull(self):	    		
+	    addPushPull = self.d_kws['addPushPull']
+	    
+	    if addPushPull:
+		mPlug_pushPullDriver = cgmMeta.cgmAttr(self.mi_control,"pushPull",attrType = 'float',keyable=True)
+		try:
+		    mPlug_pushPullDriven = cgmMeta.validateAttrArg([self.mi_control,addPushPull])['mi_plug']
+		except Exception,error:raise StandardError,"push pull driver | %s"%(error)
+		
+		if self.str_mirrorSide.lower() == 'right':
+		    arg_pushPull = "%s = -%s"%(mPlug_pushPullDriven.p_combinedShortName,
+		                               mPlug_pushPullDriver.p_combinedShortName)		    
+		else:
+		    arg_pushPull = "%s = %s"%(mPlug_pushPullDriven.p_combinedShortName,
+		                               mPlug_pushPullDriver.p_combinedShortName)
+		    
+		mPlug_pushPullDriven.p_locked = True
+		mPlug_pushPullDriven.p_hidden = True
+		mPlug_pushPullDriven.p_keyable = False		
+		NodeF.argsToNodes(arg_pushPull).doBuild()
+		
 	def _lockNHide(self):	
 	    autoLockNHide = self.d_kws['autoLockNHide']	    
 	    if autoLockNHide:
