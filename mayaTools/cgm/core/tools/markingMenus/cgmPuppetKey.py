@@ -462,10 +462,17 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		                 c = Callback(i_module.animReset,self.ResetModeOptionVar.value))
 		    MelMenuItem( use_parent, l="Mirror",
 		                 c = Callback(i_module.mirrorMe))
-		    MelMenuItem( use_parent, l="Mirror Push",
-		                 c = Callback(i_module.mirrorPush))	
-		    MelMenuItem( use_parent, l="Mirror Pull",
-		                 c = Callback(i_module.mirrorPull))
+		    if i_module.moduleType not in cgmPM.__l_faceModuleTypes__:
+			MelMenuItem( use_parent, l="Mirror Push",
+			             c = Callback(i_module.mirrorPush))	
+			MelMenuItem( use_parent, l="Mirror Pull",
+			             c = Callback(i_module.mirrorPull))
+		    else:#Face module....
+			MelMenuItem( use_parent, l="Mirror Left",
+			             c = Callback(i_module.mirrorLeft))	
+			MelMenuItem( use_parent, l="Mirror Right",
+			             c = Callback(i_module.mirrorRight))
+			
 		    MelMenuItem( use_parent, l="Toggle Sub",
 		                 c = Callback(i_module.toggle_subVis))			    
 		except StandardError,error:
@@ -486,10 +493,11 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			             c = Callback(i_module.animReset_children,self.ResetModeOptionVar.value))			
 			MelMenuItem( iSubM_Children, l="Mirror",
 			             c = Callback(children_mirror,self,i_module))
-			MelMenuItem( iSubM_Children, l="Mirror Push",
-			             c = Callback(children_mirrorPush,self,i_module))
-			MelMenuItem( iSubM_Children, l="Mirror Pull",
-			             c = Callback(children_mirrorPull,self,i_module))
+			if i_module.moduleType not in cgmPM.__l_faceModuleTypes__:
+			    MelMenuItem( iSubM_Children, l="Mirror Push",
+				         c = Callback(children_mirrorPush,self,i_module))
+			    MelMenuItem( iSubM_Children, l="Mirror Pull",
+				         c = Callback(children_mirrorPull,self,i_module))
 			MelMenuItem( iSubM_Children, l="visSub Show",
 		                     c = Callback(i_module.animSetAttr_children,'visSub',1,True,False))				
 			MelMenuItem( iSubM_Children, l="visSub Hide",
@@ -514,10 +522,12 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		                     c = Callback(i_module.animPushPose_siblings))			
 			MelMenuItem( iSubM_Siblings, l="Mirror",
 		                     c = Callback(i_module.mirrorMe_siblings,False))
-			MelMenuItem( iSubM_Siblings, l="Mirror Push",
-			             c = Callback(i_module.mirrorPush_siblings,False))
-			MelMenuItem( iSubM_Siblings, l="Mirror Pull",
-			             c = Callback(i_module.mirrorPull_siblings,False))
+			
+			if i_module.moduleType not in cgmPM.__l_faceModuleTypes__:
+			    MelMenuItem( iSubM_Siblings, l="Mirror Push",
+				         c = Callback(i_module.mirrorPush_siblings,False))
+			    MelMenuItem( iSubM_Siblings, l="Mirror Pull",
+				         c = Callback(i_module.mirrorPull_siblings,False))
 		except StandardError,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 
