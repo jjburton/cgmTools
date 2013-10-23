@@ -931,7 +931,7 @@ def fnc_verify_faceSkullPlate(*args,**kws):
 	    mParentRigNull = mModuleParent.rigNull
 	    buffer = mParentRigNull.getMessage('skullPlate')
 	    if buffer:
-		mi_go._mi_skullPlate = mParentRigNull.skullPlate
+		mi_go._mi_skullPlate = cgmMeta.validateObjArg(mParentRigNull.getMessage('skullPlate'),cgmMeta.cgmObject,noneValid=True)
 		return True
 	    
 	    #See if we have a helper

@@ -106,6 +106,7 @@ def build_rigSkeleton(*args, **kws):
 	
 	def gatherInfo(self):
 	    mi_go = self._go#Rig Go instance link
+	    self.mi_skullPlate = mi_go._mi_skullPlate
 	    
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
@@ -201,9 +202,15 @@ def build_rigSkeleton(*args, **kws):
 				ml_handleJoints.append(mi_jnt)
 				
 				#Orient
-				mc.delete( mc.orientConstraint([ml_skinJoints[0].mNode,ml_skinJoints[-1].mNode],mi_jnt.mNode, maintainOffset = False))
+				#mc.delete( mc.orientConstraint([ml_skinJoints[0].mNode,ml_skinJoints[-1].mNode],mi_jnt.mNode, maintainOffset = False))
+				v_aimVector = mi_go._vectorAim				
+				v_upVector = mi_go._vectorOutNegative
+				if k_direction == 'right':
+				    v_upVector = cgmMath.multiplyLists([v_upVector,[-1,-1,-1]])				
+				mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode,
+				                               weight = 1, aimVector = v_aimVector, upVector = v_upVector, 
+				                               worldUpObject = ml_skinJoints[0].mNode, worldUpType = 'object' ))				
 				jntUtils.freezeJointOrientation(mi_jnt)
-				
 			    else:
 				i_j = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
 				i_j.parent = False#Parent to world				
@@ -224,7 +231,8 @@ def build_rigSkeleton(*args, **kws):
 			
 			ml_rightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints , cgmDirection = 'right')
 			for mJoint in ml_rightHandles:
-			    mJoint.__setattr__("r%s"%mi_go._jointOrientation[1],180)
+			    log.info("%s flipping"% mJoint.p_nameShort)
+			    mJoint.__setattr__("r%s"% mi_go._jointOrientation[1],180)
 			    jntUtils.freezeJointOrientation(mJoint)			
 			    
 	    mi_go._i_rigNull.msgList_connect(ml_moduleHandleJoints,'handleJoints',"rigNull")
@@ -328,7 +336,7 @@ def build_controls(*args, **kws):
 			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
 			#Register 
 			try:
-			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),
+			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addPushPull = "t%s"%mi_go._jointOrientation[0],
 				                                       mirrorSide = str_mirrorSide, mirrorAxis="translateZ,rotateX,rotateY",		                                           
 				                                       makeAimable=False, typeModifier=l_strTypeModifiers[ii]) 	    
 			except Exception,error:
@@ -926,10 +934,12 @@ def build_rig(*args, **kws):
 	    #Lock and hide all 
 	    for mHandle in self.ml_handlesJoints:
 		cgmMeta.cgmAttr(mHandle,'scale',lock = True, hidden = True)
+		cgmMeta.cgmAttr(mHandle,'v',lock = True, hidden = True)		
 		mHandle._setControlGroupLocks()	
 		
 	    for mJoint in self.ml_rigJoints:
 		mJoint._setControlGroupLocks()	
+		cgmMeta.cgmAttr(mJoint,'v',lock = True, hidden = True)		
 
 	    mi_go = self._go#Rig Go instance link
 	    try:#parent folicles to rignull
