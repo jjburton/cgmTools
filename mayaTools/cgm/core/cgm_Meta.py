@@ -123,6 +123,15 @@ class cgmMetaFactory(object):
           
         return False
             
+class cgmMetaFunc(cgmGeneral.cgmFuncCls):
+    def __init__(self,*args,**kws):
+	"""
+	"""
+	self._str_funcName= "subFunc"		
+	super(cgmMetaFunc, self).__init__(*args, **kws)
+	#self._l_ARGS_KWS_DEFAULTS = [{'kw':'mNodeInstance',"default":None}]
+	#=================================================================  
+	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmNode - subclass to Red9.MetaClass
 #========================================================================= 
@@ -132,19 +141,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	Setup before maya object initialization
 	"""
 	self.referencePrefix = False
-    #@cgmGeneral.TimerDebug
+	
     def __init__(self,node = None, name = None,nodeType = 'network',setClass = False, *args,**kws):	
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
-        #log.debug("In cgmNode.__init__ Node is '%s'"%node)
-        #log.debug("In cgmNode.__init__ Name is '%s'"%name) 
-	
-	#if node == None:
-	    #log.info("Creating node of type '%s'"%nodeType)
-	    #catch = cgmMeta(name = name, nodeType = nodeType,*args,**kws)
-	    #node = catch.mNode
-	    #log.info(node)
 	if node is None or name is not None and mc.objExists(name):
 	    createdState = True
 	else:createdState = False
@@ -170,6 +171,33 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         
     def __verify__(self):
 	pass#For overload
+    
+    def testWrap(self,*args,**kws):
+	_mNodeSelf = self
+	class fncWrap(cgmMetaFunc):
+	    def __init__(self,*args,**kws):
+		"""
+		"""    
+		#args.insert(0,_mNodeSelf)
+		super(fncWrap, self).__init__(*args,**kws)
+		self.mi_mNode = _mNodeSelf
+		self._str_funcName= "testFunc(%s)"%self.mi_mNode.p_nameShort	
+		
+		#EXTEND our args and defaults
+		#self._l_ARGS_KWS_DEFAULTS = [{'kw':'cat',"default":None}]
+		self.__dataBind__(*args,**kws)	
+		self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+		
+		#=================================================================
+		
+	    def _getData(self):
+		"""
+		"""
+		log.info(self.mi_mNode.p_nameShort)
+		self.report()  
+		
+	return fncWrap(*args,**kws).go()
+        
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
