@@ -2180,7 +2180,7 @@ class cgmEyebrow(cgmModule):
 d_rigBlockAttrs_toMake = {'version':'string',#Attributes to be initialzed for any module
                           'buildAs':'string',
                           'autoMirror':'bool',
-                          'direction':'left:right:center',
+                          'direction':'none:left:right:center',
                           'position':'none:front:back:upper:lower:forward',
                           'moduleTarget':'messageSimple',
                           'blockMirror':'messageSimple'}
@@ -2268,9 +2268,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	#if log.getEffectiveLevel() == 10:log.debug("%s.__verify__ >>> kw_callNameTags: %s"%(self.p_nameShort,self.kw_callNameTags))	    	
 	d_enumToCGMTag = {'cgmDirection':'direction','cgmPosition':'position'}
 	for k in d_enumToCGMTag.keys():
-	    #if log.getEffectiveLevel() == 10:log.debug("%s.__verify__ >>> trying to set key: %s"%(self.p_nameShort,k))	    
 	    if k in self.kw_callNameTags.keys():
-		#if log.getEffectiveLevel() == 10:log.debug("%s.__verify__ >>> trying to set key: %s | data: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k)))
 		try:self.__setattr__(d_enumToCGMTag.get(k),self.kw_callNameTags.get(k))
 		except Exception,error: log.error("%s.__verify__ >>> Failed to set key: %s | data: %s | error: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k),error))
 	
@@ -2365,7 +2363,6 @@ class cgmEyeballBlock(cgmRigBlock):
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
 
-    #@cgmGeneral.Timer    
     def __init__(self,*args,**kws):
         """ 
         """
@@ -2378,7 +2375,6 @@ class cgmEyeballBlock(cgmRigBlock):
             kws['name'] = 'eye'  
         super(cgmEyeballBlock, self).__init__(*args,**kws) 
 
-    #@cgmGeneral.Timer
     def __verify__(self,**kws):
 	_str_funcName = "cgmEyeballBlock.__verify__(%s)"%self.p_nameShort    
 	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
@@ -2396,7 +2392,6 @@ class cgmEyeballBlock(cgmRigBlock):
 	self.doName()        
         return True
 
-    #@cgmGeneral.Timer
     def __rebuildShapes__(self,size = None):
 	_str_funcName = "cgmEyeballBlock.__rebuildShapes__(%s)"%self.p_nameShort   
 	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
@@ -2419,7 +2414,6 @@ class cgmEyeballBlock(cgmRigBlock):
 	    
 	#>>> Delete shapes
 	if l_shapes:
-	    #if log.getEffectiveLevel() == 10:log.debug("%s >>> deleting: %s"%(_str_funcName,l_shapes))	    
 	    mc.delete(ml_shapes)
 	
 	#>>> Build the eyeorb
@@ -2853,8 +2847,344 @@ class cgmEyebrowBlock(cgmRigBlock):
 	l_pos = [self.getPosition()]
 	d_helpercheck = cgmEyeballBlock.d_helperSettings#Link
 	
-	return True	
+	return True
+    
+class cgmLowerFaceBlock(cgmRigBlock):
+    d_attrsToMake = {'buildSquashStretch':'bool',
+                     'buildNose':'bool',                                                               
+                     'buildNostril':'bool',                                          
+                     'buildCheek':'bool',
+                     'buildUprCheek':'bool',                     
+                     'buildJawLine':'bool',                                          
+                     'nostrilJoints':'int',
+                     'cheekLoftCount':'int',
+                     'cheekJoints':'int',
+                     'lipJoints':'int',                       
+                     'uprCheekJoints':'int',                     
+                     'noseProfileHelper':'messageSimple',
+                     'noseMidCastHelper':'messageSimple',
+                     'noseBaseCastHelper':'messageSimple',
+                     'lipUprHelper':'messageSimple',  
+                     'lipLwrHelper':'messageSimple',                   
+                     'lipOverTraceHelper':'messageSimple',
+                     'lipUnderTraceHelper':'messageSimple',                                          
+                     'mouthTopCastHelper':'messageSimple',
+                     'mouthMidCastHelper':'messageSimple',                                                               
+                     'mouthLowCastHelper':'messageSimple',
+                     'leftUprCheekHelper':'messageSimple',                     
+                     'rightUprCheekHelper':'messageSimple',                     
+                     'jawLineHelper':'messageSimple',
+                     'smileLeftHelper':'messageSimple',                                                                                    
+                     'smileRightHelper':'messageSimple',
+                     'jawPivotHelper':'messageSimple',
+                     'squashStartHelper':'messageSimple',
+                     'squashEndHelper':'messageSimple',                      
+                     'skullPlate':'messageSimple', 
+                     'moduleNose':'messageSimple'} 
+    d_defaultSettings = {'buildNose':True,'buildNostril':True,'buildUprCheek':True,'buildSquashStretch':True,'buildJawLine':True,
+                         'uprCheekJoints':3,'nostrilJoints':1,'cheekLoftCount':2,'lipJoints':5,'cheekJoints':2}
+    d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
+                        'pupil':{'plug':'pupilHelper','check':'buildIris'}}
+
+    def __init__(self,*args,**kws):
+        """ 
+        """
+	_str_funcName = "cgmLowerFaceBlock.__init__"  
+        if 'name' not in kws.keys():
+            kws['name'] = 'lwrFace'  
+        super(cgmLowerFaceBlock, self).__init__(*args,**kws) 
+
+    def __verify__(self,*args,**kws):
+        cgmRigBlock.__verify__(self,*args,**kws)
 	
+	#>>> Attributes ..
+	self.addAttr('buildAs','cgmLowerFace',lock=True)
+	self.verifyAttrDict(cgmLowerFaceBlock.d_attrsToMake,keyable = False, hidden = False)
+	for attr in cgmLowerFaceBlock.d_defaultSettings.keys():
+	    try:self.addAttr(attr, value = cgmLowerFaceBlock.d_defaultSettings[attr], defaultValue = cgmLowerFaceBlock.d_defaultSettings[attr])
+	    except Exception,error: raise StandardError,"%s.__verify__ >>> Failed to set value on: %s | data: %s | error: %s"%(self.p_nameShort,attr,cgmLowerFaceBlock.d_defaultSettings[attr],error)
+	if not self.getShapes():
+	    self.__rebuildShapes__(*args,**kws)  
+	self.doName()        
+        return True
+    
+    def __rebuildShapes__(self,*args,**kws):
+	_mNodeSelf = self
+	class fncWrap(cgmMeta.cgmMetaFunc):
+	    def __init__(self,*args,**kws): 
+		super(fncWrap, self).__init__(*args,**kws)
+		self.mi_mNode = _mNodeSelf
+		self._str_funcName= "cgmLowerFaceBlock.__rebuildShapes__(%s)"%self.mi_mNode.p_nameShort	
+		self._l_ARGS_KWS_DEFAULTS = [{'kw':'size',"default":None,'help':"Sizing parameter for the build","argType":"int"}]		
+		self.__dataBind__(*args,**kws)	
+		#self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+		#=================================================================
+	    def __func__(self):
+		size = self.d_kws['size']
+		
+		if _mNodeSelf.isReferenced():
+		    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
+				    
+		ml_shapes = cgmMeta.validateObjListArg( _mNodeSelf.getShapes(),noneValid=True )
+		self.color = getSettingsColors( _mNodeSelf.getAttr('cgmDirection') )
+		
+		#>> restore some settings
+		_mNodeSelf.direction = 'center'
+		_mNodeSelf.autoMirror = True
+		
+		try:#>>> Figure out the control size ================================================================================ 	 
+		    if size is None:#
+			if ml_shapes:
+			    absSize =  distance.returnAbsoluteSizeCurve(_mNodeSelf.mNode)
+			    size = max(absSize)
+			else:size = 10
+		except Exception,error:raise StandardError,"Size check | %s"%error
+		
+		#>>> Delete shapes ================================================================================
+		try:
+		    if ml_shapes:
+			mc.delete([mObj.mNode for mObj in ml_shapes])
+		except Exception,error:raise StandardError,"Deleting | %s"%error
+		
+		try:#>>> Main Shape ================================================================================
+		    str_root =  mc.curve( d = 1,p = [[0.0, 2.2934297141192093, -5.0924369479492732e-16], [-0.68646875796765439, 1.2637265771677275, -2.8060366856047015e-16], [-0.34323437898382719, 1.2637265771677275, -2.8060366856047015e-16], [-0.34323437898382719, 0.34323437898382719, -7.6213342078152378e-17], [-1.2637265771677275, 0.34323437898382719, -7.6213342078152378e-17], [-1.2637265771677275, 0.68646875796765439, -1.5242668415630476e-16], [-2.2934297141192093, 0.0, 0.0], [-1.2637265771677275, -0.68646875796765439, 1.5242668415630476e-16], [-1.2637265771677275, -0.34323437898382719, 7.6213342078152378e-17], [-0.34323437898382719, -0.34323437898382719, 7.6213342078152378e-17], [-0.34323437898382719, -1.2637265771677275, 2.8060366856047015e-16], [-0.68646875796765439, -1.2637265771677275, 2.8060366856047015e-16], [0.0, -2.2934297141192093, 5.0924369479492732e-16], [0.68646875796765439, -1.2637265771677275, 2.8060366856047015e-16], [0.34323437898382719, -1.2637265771677275, 2.8060366856047015e-16], [0.34323437898382719, -0.34323437898382719, 7.6213342078152378e-17], [1.2637265771677275, -0.34323437898382719, 7.6213342078152378e-17], [1.2637265771677275, -0.68646875796765439, 1.5242668415630476e-16], [2.2934297141192093, 0.0, 0.0], [1.2637265771677275, 0.68646875796765439, -1.5242668415630476e-16], [1.2637265771677275, 0.34323437898382719, -7.6213342078152378e-17], [0.34323437898382719, 0.34323437898382719, -7.6213342078152378e-17], [0.34323437898382719, 1.2637265771677275, -2.8060366856047015e-16], [0.68646875796765439, 1.2637265771677275, -2.8060366856047015e-16], [0.0, 2.2934297141192093, -5.0924369479492732e-16]],k = (0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0))	
+		    
+		    curves.parentShapeInPlace(_mNodeSelf.mNode,str_root)#parent shape in place	
+		    curves.setCurveColorByName(_mNodeSelf.mNode,self.color[0])#Set the color	    	
+		    mc.delete(str_root)
+		except Exception,error:raise StandardError,"Main shape | %s"%error
+		
+		
+		try:#>>>Build the Brow curves ================================================================================
+		    l_buildOrder = [{'crv':'noseProfile','build':mc.curve( d = 3,p = [[0.0071058104709784686, 2.8157872873693464, -1.5303367770731064], [8.8224690376410021e-34, 3.6036757230719445, -0.12815530395825903], [-0.022857528316571063, 5.6133128322901484, 1.7578810638711033], [0.0084687663164082494, 6.4378123657563435, -1.3531125841832754], [-0.040077561738581124, 8.2676761853471135, -3.5536332527857937], [0.0, 9.8178480085368562, -3.8394009886168767]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 3.0, 3.0))},
+		                    {'crv':'noseMidCast','build':mc.curve( d = 3,p = [[1.6983394422024412, 5.2813359016787444, -2.9400486872124318], [1.6310453158808398, 5.3898339770375969, -2.5744822722452056], [1.4131940779627328, 5.5038999136491213, -1.7243073078472229], [0.73100829748370899, 5.9963203078795573, -0.83600170561425813], [0.057109115093676763, 6.3348867875182577, -0.53743731237954862], [-0.73100829748370899, 5.9963203078795573, -0.83600170561425813], [-1.4131940779627328, 5.5038999136491213, -1.7243073078472229], [-1.6310453158808398, 5.3898339770375969, -2.5744822722452056], [-1.6983394422024412, 5.2813359016787444, -2.9400486872124318]],k = (0.0, 0.0, 0.0, 0.16666666666666663, 0.33333333333333337, 0.5, 0.66666666666666674, 0.83333333333333337, 1.0, 1.0, 1.0))},
+		                    {'crv':'noseBaseCast','build':mc.curve( d = 3,p = [[2.4985515433249095, 3.8486761019605069, -3.0705716915104269], [2.7299954103202286, 3.9195089351071601, -2.3897403808922881], [2.3376354969600279, 3.9523314663460951, -1.4944812669517447], [1.319591935027461, 4.0428286553548958, -0.49851545672136766], [0.029496350099690382, 4.1066002869620206, 1.0815918576672807], [-1.319591935027461, 4.0428286553548958, -0.49851545672136766], [-2.3376354969600279, 3.9523314663460951, -1.4944812669517447], [-2.7299954103202286, 3.9195089351071601, -2.3897403808922881], [-2.4985515433249095, 3.8486761019605069, -3.0705716915104269]],k = (0.0, 0.0, 0.0, 0.16666666666666663, 0.33333333333333337, 0.5, 0.66666666666666674, 0.83333333333333337, 1.0, 1.0, 1.0))},
+		                    {'crv':'lipUpr','build':mc.curve( d = 3,p = [[2.9305258839798061, -0.17091337891787362, -3.3275438749864925], [2.8061136667804929, -0.08408510729458385, -3.1506082613480508], [2.4508219073064383, 0.054068689883337129, -2.7319226134277663], [1.8307537832329963, 0.32717945883189259, -1.9157491446310644], [0.97707033634765039, 0.49164296205066194, -1.3999622476763776], [9.3467220516264686e-34, 0.40238616637327596, -1.2039892399981049], [-0.97707033634765028, 0.49164296205063351, -1.3999622476763847], [-1.8307537832329961, 0.32717945883186417, -1.9157491446310679], [-2.4508219073064379, 0.054068689883308707, -2.7319226134277699], [-2.8061136667804925, -0.084085107294612271, -3.1506082613480544], [-2.9305258839798061, -0.17091337891790204, -3.3275438749864961]],k = (0.0, 0.0, 0.0, 0.125, 0.25000000000000011, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, 1.0, 1.0))},
+		                    {'crv':'lipLwr','build':mc.curve( d = 3,p = [[2.9305258839798061, -0.17091337891790204, -3.3275438749864961], [2.7603606199527406, -0.23847238755482181, -3.1779971372257592], [2.4521198201384178, -0.51147110433913667, -2.9279302632533195], [1.7320614023491856, -0.744044177399104, -2.3015214821935608], [0.88785464627450406, -0.82492983255991703, -1.9985183572134098], [9.3467220516264686e-34, -0.94476820689476426, -1.8359184280694087], [-0.87132121772734594, -0.82613500683052621, -2.00906552013614], [-1.7088438956313943, -0.73009313709894741, -2.3113876951650312], [-2.4387125345003793, -0.49839488302342261, -2.9336080203078403], [-2.7404636916985536, -0.2269968762737733, -3.1814085738706694], [-2.9305258839798061, -0.17091337891793046, -3.3275438749864996]],k = (0.0, 0.0, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, 1.0, 1.0))},
+		                    {'crv':'lipOverTrace','build':mc.curve( d = 3,p = [[2.9305258839798061, 0.56699713055132861, -3.334341498870252], [2.8061136667804929, 0.68033535469334083, -3.1549652892727309], [2.4508219073064383, 0.88189673933626977, -2.7209843290457734], [1.8307537832329963, 1.2785742124775936, -1.8755317852591489], [0.97707033634765039, 1.521208352478169, -1.3400917451471877], [9.3467220516264686e-34, 1.463177923561517, -1.1151891047616367], [-0.97707033634765028, 1.5212083524781121, -1.3400917451471877], [-1.8307537832329961, 1.2785742124775368, -1.8755317852591453], [-2.4508219073064379, 0.88189673933624135, -2.7209843290457698], [-2.8061136667804925, 0.68033535469331241, -3.1549652892727309], [-2.9305258839798061, 0.56699713055130019, -3.334341498870252]],k = (0.0, 0.0, 0.0, 0.125, 0.25000000000000011, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, 1.0, 1.0))},
+		                    {'crv':'lipUnderTrace','build':mc.curve( d = 3,p = [[3.1483484461419113, -1.0523475410344645, -3.8069003514597881], [2.9655349970215177, -1.1779084481836435, -3.6826061680550879], [2.6343830189966577, -1.6553904409133793, -3.4998018901966574], [1.8608035010094508, -2.0970539844398672, -2.9712819764923353], [0.95384784392420441, -2.2578444652306189, -2.7106832974747164], [1.0041452972186513e-33, -2.4719034457568227, -2.58279652394517], [-0.93608550496640852, -2.2589690363780051, -2.7203834440351571], [-1.835860264166588, -2.0728990868443589, -2.9779968767162188], [-2.6199791854948784, -1.6330514856255149, -3.502876437450837], [-2.944159153356559, -1.158436700149025, -3.6838873387920472], [-3.1483484461419113, -1.0523475410345213, -3.8069003514598023]],k = (0.0, 0.0, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, 1.0, 1.0))},
+		                    {'crv':'mouthTopCast','build':mc.curve( d = 2,p = [[2.2796384177507973, 3.7721611655865956, -3.0037282536322945], [1.8739271773282293, 3.7604478794155227, -2.9387368699568501], [1.4064199710533587, 3.749925941526925, -2.8726569572412748], [0.71220288592933301, 3.7441085150249478, -2.7851699911626571], [8.8224690376410021e-34, 3.7456390400398334, -2.7589283736493244], [-0.71220288592933301, 3.7441085150249478, -2.7851699911626566], [-1.4064199710533587, 3.749925941526925, -2.8726569572412748], [-1.8739271773282296, 3.7604478794155227, -2.9387368699568501], [-2.2796384177507978, 3.7721611655865956, -3.003728253632294]],k = (0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0))},
+		                    {'crv':'mouthMidCast','build':mc.curve( d = 2,p = [[2.9305258839798061, -0.17091337891783454, -3.3275438749864801], [2.4787664175593829, -0.20372786955008948, -3.0561236532050842], [1.6993434363491937, -0.19141450743114774, -2.69144974476675], [0.83818093956168649, -0.1921663573192447, -2.3939422900672511], [8.8224690376410021e-34, -0.20813625813288539, -2.366722750679763], [-0.83818093956168649, -0.1921663573192447, -2.3939422900672511], [-1.6993434363491937, -0.19141450743114774, -2.69144974476675], [-2.4787664175593829, -0.20372786955006816, -3.0561236532050842], [-2.9305258839798061, -0.17091337891780256, -3.3275438749864801]],k = (0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0))},
+		                    {'crv':'mouthLowCast','build':mc.curve( d = 2,p = [[1.9191687473303787, -4.5250079607757385, -4.3388765759353465], [1.5624021014510341, -4.5345230614859275, -4.1341634447491327], [1.1729706798451223, -4.5430703894700741, -3.9700158414164584], [0.77053519023939043, -4.5477960828606427, -3.9190107166256771], [8.8224690376410021e-34, -4.5465527853399124, -3.8685987158968471], [-0.77053519023939054, -4.5477960828606427, -3.9190107166256754], [-1.1729706798451223, -4.5430703894701026, -3.9700158414164548], [-1.5624021014510341, -4.5345230614859275, -4.1341634447491309], [-1.9191687473303789, -4.5250079607757385, -4.3388765759353447]],k = (0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0))},
+		                    {'crv':'jawLine','build':mc.curve( d = 3,p = [[10.280120866755682, 0.25156895683588232, -14.674226505769099], [9.8838593938489243, -0.45064659559670872, -13.653800138426188], [9.4048726640343236, -1.5645032943484125, -11.099299406228145], [7.2365077189624243, -3.085889188098264, -8.991315934011892], [4.7770336494068033, -4.5397574281530808, -6.8594451775956067], [1.4964809599950355, -5.3271768164440232, -4.0600676436545236], [-1.342102488616838, -5.3476785269627385, -4.1749655830569701], [-4.6738388336380563, -4.4669441161316001, -6.7814883355823401], [-7.2386874087871984, -3.0948622262322658, -8.9156442241085578], [-9.1909972678893652, -1.6073111610383251, -11.266970470266923], [-9.8887878551793271, -0.42215506140215098, -13.614331737181931], [-10.379444055515531, 0.2576728932989738, -14.674226505769099]],k = (0.0, 0.0, 0.0, 0.11111111111111116, 0.22222222222222221, 0.33333333333333337, 0.44444444444444442, 0.55555555555555558, 0.66666666666666674, 0.77777777777777779, 0.88888888888888884, 1.0, 1.0, 1.0))},
+		                    {'crv':'smileLeft','build':mc.curve( d = 3,p = [[1.9719219725546537, 5.2630842124150377, -3.1751890702552501], [3.4117328415495929, 5.1794941062202042, -3.5383313350484578], [4.577691638408484, 2.9534427292250314, -4.2983553273563402], [4.6757209802557789, 0.4025284021136315, -4.7499401568950415], [3.8815734401047433, -1.9931313539364908, -4.1265521541113941], [2.3352378738230142, -3.263798226801498, -3.6651277118896601]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 3.0, 3.0))},
+		                    {'crv':'squashStart','pos':[0.0, 5.8829912280671977, -7.8415670853293538],
+		                     'build':curves.createControlCurve('arrowsLocator3d',5)},
+		                    {'crv':'squashEnd','pos':[0.0, -4.457696693978674, -7.8245184630993476],
+		                     'build':curves.createControlCurve('arrowsLocator3d',5)},
+		                    {'crv':'jawPivot','pos':[0.0, 4.1497239011318925, -16.516275079037065],
+		                     'build':curves.createControlCurve('arrowsLocator3d',5)},
+		                    {'crv':'smileRight','build':mc.curve( d = 2,p = [[-2.3352378738230142, -3.263798226801498, -3.6651277118896601], [-3.6578843946194062, -1.8427749234695909, -4.1244921869156954], [-4.4957910645456307, 0.44046596054249676, -4.5323498644894116], [-4.3637834902508787, 2.8782470458953355, -4.2381688297264475], [-3.1779007947145459, 4.8581891345421298, -3.5508166047877374], [-1.9719219725546537, 5.2630842124150377, -3.1751890702552501]],k = (0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 4.0))},
+		                    {'crv':'leftUprCheek','build':mc.curve( d = 3,p = [[10.261528402499881, 6.5673628044320083, -9.7737008952598554], [9.9616161190362469, 6.066949239126302, -9.0670441078623512], [9.361791552108933, 5.0661221085142074, -7.6537305330674066], [6.4660266032352167, 5.6826527282219956, -5.9790487812050248], [5.0181441287983555, 5.9909180380757903, -5.1417079052738384]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0))},
+		                    {'crv':'rightUprCheek','build':mc.curve( d = 3,p = [[-10.261528402499881, 6.5673628044320083, -9.7737008952598554], [-9.9616161190362469, 6.066949239126302, -9.0670441078623512], [-9.361791552108933, 5.0661221085142074, -7.6537305330674066], [-6.4660266032352167, 5.6826527282219956, -5.9790487812050248], [-5.0181441287983555, 5.9909180380757903, -5.1417079052738384]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0))}]
+		    		    
+		    d_colors = {'left':getSettingsColors('left'),
+			        'right':getSettingsColors('right'),
+		                'center':getSettingsColors('center')}
+		
+		    ml_curves = []
+		    md_curves = {}
+		    for d in l_buildOrder:
+			try:
+			    str_name = d.get('crv')
+			    self.str_name = str_name
+			    str_return = d.get('build')
+			    self.str_return = str_return
+			    
+			    mi_obj = cgmMeta.cgmObject(str_return,setClass=True)#instance
+			    mi_obj.addAttr('cgmName',str_name)#tag
+			    mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)
+			    if 'left' in str_name or 'Left' in str_name:
+				curves.setCurveColorByName(mi_obj.mNode,d_colors.get('left')[0])#Set the color	    					
+			    elif 'right' in str_name or 'Right' in str_name:
+				curves.setCurveColorByName(mi_obj.mNode,d_colors.get('right')[0])#Set the color	 
+			    elif 'Cast' in str_name or 'Pivot' in str_name or 'squash' in str_name:
+				curves.setCurveColorByName(mi_obj.mNode,'greenBright')#Set the color	 				
+			    else:
+				curves.setCurveColorByName(mi_obj.mNode,d_colors.get('center')[0])#Set the color	 
+			    
+			    ml_curves.append(mi_obj)#append
+			    md_curves[str_name] = mi_obj
+			    mi_obj.doName()#Name
+			    
+			    l_keys = d.keys()
+			    if not 'pos' in l_keys:
+				mi_obj.doCopyPivot(_mNodeSelf)
+			    else:
+				mi_obj.translate = d.get('pos')
+				
+			    _mNodeSelf.connectChildNode(mi_obj,'%sHelper'%str_name,'mi_block')
+			    mi_obj.parent = _mNodeSelf
+			    
+			    #Lock n hide
+			    if not 'pos' in l_keys:
+				for a in ['scale','translate','rotate','v']:
+				    cgmMeta.cgmAttr(mi_obj,a,keyable=False,lock=True,hidden=True)				    
+			    else:
+				for a in ['tx','scale','v']:
+				    cgmMeta.cgmAttr(mi_obj,a,keyable=False,lock=True,hidden=True)					
+			except Exception,error:raise StandardError,"%s | %s"%(str_name,error)			
+		except Exception,error:raise StandardError,"Curves | %s"%error
+
+		try: #Connect in our scales so we're scaling the eye one one channel
+		    cgmMeta.cgmAttr(_mNodeSelf,'sx').doConnectIn("%s.scaleY"%_mNodeSelf.mNode)
+		    cgmMeta.cgmAttr(_mNodeSelf,'sz').doConnectIn("%s.scaleY"%_mNodeSelf.mNode)
+		    for a in ['sx','sz','rotate','v']:
+			cgmMeta.cgmAttr(_mNodeSelf,a,keyable=False,lock=True,hidden=True)
+		except Exception,error:raise StandardError,"Finalize | %s"%error
+	
+	return fncWrap(*args,**kws).go()
+    
+    def __rebuildShapes__2(self,size = None):
+	_str_funcName = "cgmLowerFaceBlock.__rebuildShapes__(%s)"%self.p_nameShort   
+	if self.isReferenced():
+	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
+		    
+	ml_shapes = cgmMeta.validateObjListArg( self.getShapes(),noneValid=True )
+	self.color = getSettingsColors( self.getAttr('cgmDirection') )
+	
+	#>> restore some settings
+	self.direction = 'center'
+	self.autoMirror = True
+	
+	#>>> Figure out the control size 	
+	if size is None:#
+	    if ml_shapes:
+		absSize =  distance.returnAbsoluteSizeCurve(self.mNode)
+		size = max(absSize)
+	    else:size = 10
+	    
+	#>>> Delete shapes
+	if ml_shapes:
+	    #if log.getEffectiveLevel() == 10:log.debug("%s >>> deleting: %s"%(_str_funcName,ml_shapes))	    
+	    mc.delete([mObj.mNode for mObj in ml_shapes])
+	
+	#>>> Main Shape
+	str_root =  mc.curve( d = 1,p = [[0.0, 2.2934297141192093, -5.0924369479492732e-16], [-0.68646875796765439, 1.2637265771677275, -2.8060366856047015e-16], [-0.34323437898382719, 1.2637265771677275, -2.8060366856047015e-16], [-0.34323437898382719, 0.34323437898382719, -7.6213342078152378e-17], [-1.2637265771677275, 0.34323437898382719, -7.6213342078152378e-17], [-1.2637265771677275, 0.68646875796765439, -1.5242668415630476e-16], [-2.2934297141192093, 0.0, 0.0], [-1.2637265771677275, -0.68646875796765439, 1.5242668415630476e-16], [-1.2637265771677275, -0.34323437898382719, 7.6213342078152378e-17], [-0.34323437898382719, -0.34323437898382719, 7.6213342078152378e-17], [-0.34323437898382719, -1.2637265771677275, 2.8060366856047015e-16], [-0.68646875796765439, -1.2637265771677275, 2.8060366856047015e-16], [0.0, -2.2934297141192093, 5.0924369479492732e-16], [0.68646875796765439, -1.2637265771677275, 2.8060366856047015e-16], [0.34323437898382719, -1.2637265771677275, 2.8060366856047015e-16], [0.34323437898382719, -0.34323437898382719, 7.6213342078152378e-17], [1.2637265771677275, -0.34323437898382719, 7.6213342078152378e-17], [1.2637265771677275, -0.68646875796765439, 1.5242668415630476e-16], [2.2934297141192093, 0.0, 0.0], [1.2637265771677275, 0.68646875796765439, -1.5242668415630476e-16], [1.2637265771677275, 0.34323437898382719, -7.6213342078152378e-17], [0.34323437898382719, 0.34323437898382719, -7.6213342078152378e-17], [0.34323437898382719, 1.2637265771677275, -2.8060366856047015e-16], [0.68646875796765439, 1.2637265771677275, -2.8060366856047015e-16], [0.0, 2.2934297141192093, -5.0924369479492732e-16]],k = (0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0))	
+	
+	curves.parentShapeInPlace(self.mNode,str_root)#parent shape in place	
+	curves.setCurveColorByName(self.mNode,self.color[0])#Set the color	    	
+	mc.delete(str_root)
+	
+	
+	#>>>Build the Brow curves
+	l_buildOrder = ['leftBrow','rightBrow','leftTemple','rightTemple','leftUprCheek','rightUprCheek']
+	d_buildCurves = {'leftBrow': mc.curve( d = 3,p = [[3.2074032095569307, 0.088162999957347665, -2.3016555193378068], [4.251097108912214, 0.024232165150834817, -2.4497118908209892], [6.3384849076227407, -0.10362950446324248, -2.7458246337874641], [8.7788670165788485, -0.72794558079678495, -5.7291335329457826], [9.4595644079063881, -2.2640763188546771, -7.2217667690319409], [9.7999131035701303, -3.0321416878841205, -7.96808338707506]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 3.0, 3.0)),
+	                 'rightBrow': mc.curve( d = 3,p = [[-3.2074032095569307, 0.088162999957347665, -2.3016555193378068], [-4.251097108912214, 0.024232165150834817, -2.4497118908209892], [-6.3384849076227407, -0.10362950446324248, -2.7458246337874641], [-8.7788670165788485, -0.72794558079678495, -5.7291335329457826], [-9.4595644079063881, -2.2640763188546771, -7.2217667690319409], [-9.7999131035701303, -3.0321416878841205, -7.96808338707506]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 3.0, 3.0)),
+	                 'leftTemple': mc.curve( d = 1,p = [[11.540519886111845, -5.2113010025090887, -12.865421648687006], [10.689684322507841, -5.4688004729911484, -9.7566605218848697]],k = (0.0, 3.2333609258955258)),
+	                 'rightTemple': mc.curve( d = 1,p = [[-11.540519886111845, -5.2113010025090887, -12.865421648687006], [-10.689684322507841, -5.4688004729911484, -9.7566605218848697]],k = (0.0, 3.2333609258955258)),
+	                 'leftUprCheek': mc.curve( d = 3,p = [[10.261528402499881, -9.0683619621701723, -8.3652067775967627], [9.9616161190362469, -9.5687755274758786, -7.6585499901992584], [9.361791552108933, -10.569602658087973, -6.2452364154043138], [6.4660266032352167, -9.9530720383801849, -4.5705546635419321], [5.0181441287983555, -9.6448067285263903, -3.7332137876107456]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0)),
+	                 'rightUprCheek': mc.curve( d = 3,p = [[-10.261528402499881, -9.0683619621701723, -8.3652067775967627], [-9.9616161190362469, -9.5687755274758786, -7.6585499901992584], [-9.361791552108933, -10.569602658087973, -6.2452364154043138], [-6.4660266032352167, -9.9530720383801849, -4.5705546635419321], [-5.0181441287983555, -9.6448067285263903, -3.7332137876107456]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0)),
+	                 
+	                 }
+	
+	d_colors = {'left':getSettingsColors('left'),
+	            'right':getSettingsColors('right')}
+	
+	ml_curves = []
+	md_curves = {}
+	for k in l_buildOrder:
+	    str_return = d_buildCurves.get(k)
+	    mi_obj = cgmMeta.cgmObject(str_return,setClass=True)#instance
+	    mi_obj.addAttr('cgmName',k)#tag
+	    mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)
+	    if 'left' in k:
+		curves.setCurveColorByName(mi_obj.mNode,d_colors.get('left')[0])#Set the color	    					
+	    else:
+		curves.setCurveColorByName(mi_obj.mNode,d_colors.get('right')[0])#Set the color	 
+		
+	    ml_curves.append(mi_obj)#append
+	    md_curves[k] = mi_obj
+	    mi_obj.doName()#Name	
+
+	    mi_obj.doCopyPivot(self)
+		
+	    self.connectChildNode(mi_obj,'%sHelper'%k,'mi_block')
+	    
+	    mi_obj.parent = self
+	    for a in ['scale','translate','rotate','v']:
+		cgmMeta.cgmAttr(mi_obj,a,keyable=False,lock=True,hidden=True)	
+		
+	#Connect in our scales so we're scaling the eye one one channel
+	cgmMeta.cgmAttr(self,'sx').doConnectIn("%s.scaleY"%self.mNode)
+	cgmMeta.cgmAttr(self,'sz').doConnectIn("%s.scaleY"%self.mNode)
+	for a in ['sx','sz','rotate','v']:
+	    cgmMeta.cgmAttr(self,a,keyable=False,lock=True,hidden=True)
+	
+    def mirrorBrowCurvesTMP(self):
+	_str_funcName = "cgmLowerFaceBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:
+	    crvUtils.mirrorCurve(self.getMessage('leftBrowHelper')[0],self.getMessage('rightBrowHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+	except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error))
+	try:
+	    crvUtils.mirrorCurve(self.getMessage('leftTemplateHelper')[0],self.getMessage('rightTemplateHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+	except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error)) 
+	
+	try:
+	    crvUtils.mirrorCurve(self.getMessage('leftUprCheekHelper')[0],self.getMessage('rightUprCheekHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+	except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error)) 
+	
+    def __buildModule__(self):
+	cgmRigBlock.__buildModule__(self)
+	_str_funcName = "cgmLowerFaceBlock.__buildModule__(%s)"%self.p_nameShort   
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	try:
+	    bfr_name = self._d_buildKWS.get('name') or None
+	    bfr_position = self._d_buildKWS.get('position') or None
+	    
+	    try:#Brow module
+		#===================================================================
+		i_module = cgmLowerFace(name = bfr_name,
+		                      position = bfr_position)
+		self.connectChildNode(i_module,"moduleTarget","helper")
+	    except Exception,error:raise StandardError,"Failed to build eyeball module | error: %s "%(error)
+		
+	    except Exception,error:raise StandardError,"Failed to build eyelids module | error: %s "%(error)
+	    try:#Mirror ============================================================
+		if self.autoMirror:
+		    pass
+		    #if log.getEffectiveLevel() == 10:log.debug("%s >> mirror mode"%(_str_funcName))
+	    except Exception,error:raise StandardError,"Failed to mirror | error: %s "%(error)
+		    
+	    #self.__storeNames__()
+	    
+	    #Size it
+	    #self.__updateSizeData__()
+	    
+	    #>>>Let's do our manual sizing
+	    return i_module
+	except Exception,error:raise StandardError,"%s >>>  error: %s "%(_str_funcName,error)
+    
+    def __storeNames__(self):
+	#Store our names
+	_str_funcName = "cgmLowerFaceBlock.__storeNames__(%s)"%self.p_nameShort   	
+	if not self.getMessage("moduleTarget"):
+	    raise StandardError," %s >>> No Module!"%(_str_funcName)
+	
+	l_names= ['brow']
+	if self.buildIris:l_names.append('iris')
+	if self.buildPupil:l_names.append('pupil')
+	self.moduleTarget.coreNames.value = l_names
+	try:#Mirror ============================================================
+	    if self.autoMirror:
+		self.moduleTarget.moduleMirror.coreNames.value = l_names
+	except Exception,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_funcName,error)
+
+	return True
+    
+    def __updateSizeData__(self):
+	"""For overload"""
+	_str_funcName = "cgmLowerFaceBlock.__updateSizeData__(%s)"%self.p_nameShort   
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	if not self.getMessage('moduleTarget'):
+	    raise StandardError,">>> %s >>> No module found "%(_str_funcName)
+	
+	i_module = self.mi_module#Lilnk
+	l_pos = [self.getPosition()]
+	d_helpercheck = cgmEyeballBlock.d_helperSettings#Link
+	
+	return True	
 	    
 #Minor Utilities
 def getSettingsColors(arg = None):
