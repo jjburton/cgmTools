@@ -75,6 +75,10 @@ def returnSplitCurveList(*args, **kws):
 	                                  'help':"Multiplier for pushing splits one way or another on a curve"},
 	                                 {'kw':'rebuildForSplit',"default":True,
 	                                  'help':"Whether to rebuild before split (for smoother splitting)"},
+	                                 {'kw':'minU',"default":None,
+	                                  'help':"Minimum U value to use to start splitting"},
+	                                 {'kw':'maxU',"default":None,
+	                                  'help':"Maximum U value to use to start splitting"},	                                 
 	                                 {'kw':'rebuildSpans',"default":10,
 	                                  'help':"How many spans for the rebuild"}]	    
 	    self.__dataBind__(*args, **kws)
@@ -86,14 +90,16 @@ def returnSplitCurveList(*args, **kws):
 	    curve = self.d_kws['curve']
 	    points = self.d_kws['points']
 	    mi_crv = cgmMeta.validateObjArg(self.d_kws['curve'],cgmMeta.cgmObject,mayaType='nurbsCurve',noneValid=False)
-	    int_points = cgmValid.valueArg(self.d_kws['points'],minValue=3,calledFrom = self._str_funcCombined)
-	    f_insetSplitFactor = cgmValid.valueArg(self.d_kws['insetSplitFactor'],calledFrom=self._str_funcCombined)	
-	    f_startSplitFactor = cgmValid.valueArg(self.d_kws['startSplitFactor'],calledFrom=self._str_funcCombined)		
-    
+	    int_points = cgmValid.valueArg(self.d_kws['points'],minValue=1,calledFrom = _str_funcName)
+	    f_insetSplitFactor = cgmValid.valueArg(self.d_kws['insetSplitFactor'],calledFrom = _str_funcName)	
+	    f_startSplitFactor = cgmValid.valueArg(self.d_kws['startSplitFactor'],calledFrom = _str_funcName)		
+	    f_kwMinU = cgmValid.valueArg(self.d_kws['minU'], noneValid=True, calledFrom = _str_funcName)	
+	    f_kwMaxU = cgmValid.valueArg(self.d_kws['maxU'], noneValid=True, calledFrom = _str_funcName)	    
 	    f_points = float(int_points)
-	    int_spans = int(cgmValid.valueArg(self.d_kws['points'],minValue=5,autoClamp=True,calledFrom=self._str_funcCombined))
-	    b_rebuild = cgmValid.boolArg(self.d_kws['rebuildForSplit'],calledFrom = self._str_funcCombined)
-	    b_markPoints = cgmValid.boolArg(self.d_kws['markPoints'],calledFrom = self._str_funcCombined)
+	    int_spans = int(cgmValid.valueArg(self.d_kws['points'],minValue=5,autoClamp=True,calledFrom = _str_funcName))
+	    b_rebuild = cgmValid.boolArg(self.d_kws['rebuildForSplit'],calledFrom = _str_funcName)
+	    b_markPoints = cgmValid.boolArg(self.d_kws['markPoints'],calledFrom = _str_funcName)
+	    
 	    #>>> Rebuild curve
 	    if b_rebuild:
 		useCurve = mc.rebuildCurve (curve, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_spans, d=3, tol=0.001)[0]
@@ -127,7 +133,8 @@ def returnSplitCurveList(*args, **kws):
 		    l_uValues.append(((i*f_factor + f_base)))
 		l_uValues.append(f_maxU - f_base)
 		l_uValues.append(f_maxU)
-		log.debug("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  			
+		log.debug("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  	
+		
 	    elif f_insetSplitFactor is not False:
 		log.debug("%s >> f_insetSplitFactor : %s"%(_str_funcName,f_insetSplitFactor))  
 		#Figure out our u's
@@ -142,6 +149,31 @@ def returnSplitCurveList(*args, **kws):
 		    l_uValues.append((i*f_factor))
 		l_uValues.append(f_maxU)
 		log.debug("%s >> l_uValues : %s"%(_str_funcName,l_uValues))  			
+	    elif f_kwMinU is not False or f_kwMaxU is not False:
+		log.debug("%s >> Sub mode. "%(_str_funcName))
+		if f_kwMinU is not False:
+		    if f_kwMinU > f_maxU:
+			raise StandardError, "kw minU value(%s) cannot be greater than maxU(%s)"%(f_kwMinU,f_maxU)
+		    f_useMinU = f_kwMinU
+		else:f_useMinU = 0.0
+		if f_kwMaxU is not False:
+		    if f_kwMaxU > f_maxU:
+			raise StandardError, "kw maxU value(%s) cannot be greater than maxU(%s)"%(f_kwMaxU,f_maxU)	
+		    f_useMaxU = f_kwMaxU
+		else:f_useMaxU = f_maxU
+		
+		if int_points == 1:
+		    l_uValues = [(f_useMaxU - f_useMinU)/2]
+		elif int_points == 2:
+		    l_uValues = [f_useMaxU,f_useMinU]		    
+		else:
+		    l_uValues = [f_useMinU]
+		    f_factor = (f_useMaxU - f_useMinU)/(f_points-1)
+		    log.debug("%s >> f_maxU : %s"%(_str_funcName,f_useMaxU)) 
+		    log.debug("%s >> f_factor : %s"%(_str_funcName,f_factor))               
+		    for i in range(1,int_points-1):
+			l_uValues.append((i*f_factor) + f_useMinU)
+		    l_uValues.append(f_useMaxU)
 	    else:
 		#Figure out our u's
 		log.debug("%s >> Regular mode. Points = %s "%(_str_funcName,int_points))
@@ -170,13 +202,14 @@ def returnSplitCurveList(*args, **kws):
 			ml_built.append( cgmMeta.cgmObject(buffer))
 			log.debug("%s >> created : %s | at: %s"%(_str_funcName,ml_built[-1].p_nameShort,pos))              											
 			mc.xform(ml_built[-1].mNode, t = (pos[0],pos[1],pos[2]), ws=True)
-    
-		    try:f_distance = distance.returnAverageDistanceBetweenObjects([o.mNode for o in ml_built]) * .5
-		    except StandardError,error:raise StandardError,"Average distance fail. Objects: %s| error: %s"%([o.mNode for o in ml_built],error)
-		    try:
-			for o in ml_built:
-			    o.scale = [f_distance,f_distance,f_distance]
-		    except StandardError,error:raise StandardError,"Scale fail : %s"%error
+		    
+		    if len(ml_built)>1:
+			try:f_distance = distance.returnAverageDistanceBetweenObjects([o.mNode for o in ml_built]) * .5
+			except StandardError,error:raise StandardError,"Average distance fail. Objects: %s| error: %s"%([o.mNode for o in ml_built],error)
+			try:
+			    for o in ml_built:
+				o.scale = [f_distance,f_distance,f_distance]
+			except StandardError,error:raise StandardError,"Scale fail : %s"%error
 	    except StandardError,error:log.error("Mark points fail. error : %s"%(error))
 	    if b_rebuild:mc.delete(useCurve)
 	    return l_spanUPositions
