@@ -51,7 +51,7 @@ crvUtils.mirrorCurve(baseCrv,mirrorAcross='y')
 #>>> Split curve list
 #=======================================================
 reload(crvUtils)
-crv = 'uprLid_rigHelper'
+crv = 'upper_l_lip_crv_mirrored4'
 crvUtils.returnSplitCurveList(crv,8,markPoints=True,rebuildForSplit=True)
 crvUtils.returnSplitCurveList(crv,5,markPoints=True,rebuildForSplit=True,insetSplitFactor=.01)
 crvUtils.returnSplitCurveList(crv,8,markPoints=True,rebuildForSplit=True,startSplitFactor=.3)
