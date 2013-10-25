@@ -2841,18 +2841,16 @@ class cgmAttr(object):
         
         # If it exists we need to check the type. 
         if mc.objExists('%s.%s'%(self.obj.mNode,attrName)):
-            #log.debug("'%s.%s' exists"%(self.obj.mNode,attrName))
+            #log.info("'%s.%s' exists"%(self.obj.mNode,attrName))
             currentType = mc.getAttr('%s.%s'%(self.obj.mNode,attrName),type=True)
-            #log.debug("Current type is '%s'"%currentType)
+            #log.info("Current type is '%s'"%currentType)
             if not attributes.validateAttrTypeMatch(self.attrType,currentType) and self.attrType is not False:
                 if self.obj.isReferenced():
                     log.error("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.mNode,attrName,attrType))                   
                 self.doConvert(self.attrType)             
-                
             else:
                 self.attr = attrName
-                self.attrType = currentType
-                
+                self.attrType = currentType   
         else:
             try:
                 if self.attrType == False:
@@ -2966,8 +2964,8 @@ class cgmAttr(object):
 		return attributes.returnMessageData(self.obj.mNode,self.attr)
 	    else:
 		return attributes.doGetAttr(self.obj.mNode,self.attr)
-        except:
-            log.debug("'%s.%s' failed to get"%(self.obj.mNode,self.attr))
+        except Exception,error:
+            log.warning("'%s.%s' failed to get | %s"%(self.obj.mNode,self.attr,error))
 	    
     def doDelete(self):
         """ 
@@ -4252,98 +4250,243 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
 	    returnList.append(o)
     return returnList
 
-#=========================================================================      
+#=======================================================================================================      
 # Argument validation
-#=========================================================================  
-#@cgmGeneral.TimerDebug
-def validateObjArg(arg = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
+#=======================================================================================================  
+class ModuleFunc(cgmGeneral.cgmFuncCls):
+    def __init__(self,*args,**kws):
+	"""
+	"""	
+	try:
+	    try:moduleInstance = kws['moduleInstance']
+	    except:moduleInstance = args[0]
+	    try:
+		assert isModule(moduleInstance)
+	    except Exception,error:raise StandardError,"Not a module instance : %s"%error	
+	except Exception,error:raise StandardError,"ModuleFunc failed to initialize | %s"%error
+	self._str_funcName= "testFModuleFuncunc"		
+	super(ModuleFunc, self).__init__(*args, **kws)
+
+	self.mi_module = moduleInstance	
+	self._l_ARGS_KWS_DEFAULTS = [{'kw':'moduleInstance',"default":None}]	
+	#=================================================================
+'''
+def SampleFunc(*args,**kws):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    self._str_funcName= "testFModuleFuncunc"		
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'moduleInstance',"default":None}]	
+	    #=================================================================
+		
+    return fncWrap(*args,**kws).go()
+'''
+def validateObjArg(*args,**kws):
     """
     validate an objArg to be able to get instance of the object
     
-    arg -- obj or instance
-    mType -- if not None, make sure instance is this type
-    noneValid -- whether none is a valid arg
-    default_mType -- type to intialize as for default
-    """
-    _str_funcName = 'validateObjArg'
-    #log.debug(">>> %s >> "%_str_funcName + "="*75)
-    try:
-	i_arg = False
-	argType = type(arg)
-	if argType in [list,tuple]:#make sure it's not a list
-	    if len(arg) ==1:
-		arg = arg[0]
-	    elif arg == []:
-		arg = None
-	    else:raise StandardError,"validateObjArg>>> arg cannot be list or tuple: %s"%arg	
-	if not noneValid:
-	    if arg in [None,False]:raise StandardError,"validateObjArg>>> arg cannot be None"
-	else:
-	    if arg in [None,False]:
-		if arg not in [None,False]:log.warning("validateObjArg>>> arg fail: %s"%arg)
-		return False
-	#log.debug("validateObjArg>>> arg: %s"%arg)
-	
-	if issubclass(argType,r9Meta.MetaClass):#we have an instance already
-	    i_arg = arg
-	elif not mc.objExists(arg):
-	    if noneValid: return False
-	    else:raise StandardError,"validateObjArg>>> Doesn't exist: %s"%arg   
-	elif mType is not None:
-	    #log.debug("validateObjArg>>> mType arg: '%s'"%mType)
-	    if i_arg: i_autoInstance = i_arg
-	    else: i_autoInstance = r9Meta.MetaClass(arg)
-	    if type(mType) in [unicode,str]:
-		#log.debug("validateObjArg>>> string mType: '%s'"%mType)
-		if i_autoInstance.getAttr('mClass') == mType:
-		    i_arg = i_autoInstance
-		else:
-		    raise StandardError,"validateObjArg>>> '%s' Not correct mType: mType:%s != %s"%(i_autoInstance.p_nameShort,type(i_autoInstance),mType)			    
-	    else:
-		#log.debug("validateObjArg>>> class mType: '%s'"%mType)		
-		if issubclass(type(i_autoInstance),mType):#if it's a subclass of our mType, good to go
-		    i_arg = i_autoInstance
-	    #log.debug("validateObjArg>>> Initializing as mType: %s"%mType)	
-	    i_arg =  mType(arg)
-	else:
-	    #log.debug("validateObjArg>>> Initializing as defaultType: %s"%default_mType)
-	    i_arg = default_mType(arg)
+    @kws
+    0 - 'arg'(mObject - None) -- mObject instance or string
+    1 - 'mType'(mClass - None) -- what mType to be looking for
+    2 - 'noneValid'(bool - False) -- Whether None is a valid argument or not
+    3 - 'default_mType'(mClass - <class 'cgm.core.cgm_Meta.cgmNode'>) -- What type to initialize as if no mClass is set
+    4 - 'mayaType'(str/list - None) -- If the object needs to be a certain object type
+    """    
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "validateObjArg"			    
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'arg',"default":None,'help':"mObject instance or string","argType":"mObject"},
+	                                 {'kw':'mType',"default":None,'help':"what mType to be looking for","argType":"mClass"},
+	                                 {'kw':'noneValid',"default":False,'help':"Whether None is a valid argument or not","argType":"bool"},
+	                                 {'kw':'default_mType',"default":cgmNode,'help':"What type to initialize as if no mClass is set","argType":"mClass"},
+	                                 {'kw':'mayaType',"default":None,'help':"If the object needs to be a certain object type","argType":"str/list"}]	                                 
+	    self.__dataBind__(*args,**kws)
+	    #=================================================================
 	    
-	if mayaType is not None and len(mayaType):
-	    if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
-	    else: l_mayaTypes = mayaType
-	    str_type = search.returnObjectType(i_arg.getComponent())
-	    if str_type not in l_mayaTypes:
-		if noneValid:
-		    log.warning("validateObjArg>>> '%s' mayaType: '%s' not in: '%s'"%(i_arg.p_nameShort,str_type,l_mayaTypes))
+	def __func__(self,*args,**kws):
+	    #Pull kws local ====================================================================
+	    arg = self.d_kws['arg']
+	    mType = self.d_kws['mType']	    
+	    noneValid = self.d_kws['noneValid']
+	    default_mType = self.d_kws['default_mType']
+	    mayaType = self.d_kws['mayaType']		
+	    #------------------------------------------------------------------------------------
+	    i_arg = False
+	    argType = type(arg)
+	    if argType in [list,tuple]:#make sure it's not a list
+		if len(arg) ==1:
+		    arg = arg[0]
+		elif arg == []:
+		    arg = None
+		else:raise StandardError,"arg cannot be list or tuple: %s"%arg	
+	    if not noneValid:
+		if arg in [None,False]:raise StandardError,"arg cannot be None"
+	    else:
+		if arg in [None,False]:
+		    if arg not in [None,False]:log.warning("%s arg fail: %s"%(self._str_reportStart,arg))
 		    return False
-		raise StandardError,"validateObjArg>>> '%s' mayaType: '%s' not in: '%s'"%(i_arg.p_nameShort,str_type,l_mayaTypes)			    	
-	return i_arg
+	    
+	    if issubclass(argType,r9Meta.MetaClass):#we have an instance already
+		i_arg = arg
+	    elif not mc.objExists(arg):
+		if noneValid: return False
+		else:raise StandardError,"Doesn't exist: %s"%arg   
+	    elif mType is not None:
+		#log.debug("validateObjArg>>> mType arg: '%s'"%mType)
+		if i_arg: i_autoInstance = i_arg
+		else: i_autoInstance = r9Meta.MetaClass(arg)
+		if type(mType) in [unicode,str]:
+		    #log.debug("validateObjArg>>> string mType: '%s'"%mType)
+		    if i_autoInstance.getAttr('mClass') == mType:
+			i_arg = i_autoInstance
+		    else:
+			raise StandardError,"'%s' Not correct mType: mType:%s != %s"%(i_autoInstance.p_nameShort,i_autoInstance.mClass,mType)			    
+		else:
+		    #log.debug("validateObjArg>>> class mType: '%s'"%mType)		
+		    if issubclass(type(i_autoInstance),mType):#if it's a subclass of our mType, good to go
+			i_arg = i_autoInstance
+		#log.debug("validateObjArg>>> Initializing as mType: %s"%mType)	
+		i_arg =  mType(arg)
+	    else:
+		#log.debug("validateObjArg>>> Initializing as defaultType: %s"%default_mType)
+		i_arg = default_mType(arg)
+		
+	    if mayaType is not None and len(mayaType):
+		if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
+		else: l_mayaTypes = mayaType
+		str_type = search.returnObjectType(i_arg.getComponent())
+		if str_type not in l_mayaTypes:
+		    if noneValid:
+			log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(self._str_reportStart,i_arg.p_nameShort,str_type,l_mayaTypes))
+			return False
+		    raise StandardError,"'%s' mayaType: '%s' not in: '%s'"%(i_arg.p_nameShort,str_type,l_mayaTypes)			    	
+	    return i_arg	    
+    return fncWrap(*args,**kws).go()
+ 
+def validateObjListArg(*args,**kws):
+    """
+    validate an objArg to be able to get instance of the object
     
-    except StandardError,error:
-	log.error("validateObjArg>>Failure! arg: %s | mType: %s"%(arg,mType))
-	raise StandardError,error  
-    
-#@cgmGeneral.TimerDebug   
-def validateObjListArg(l_args = None,mType = None, noneValid = False, default_mType = cgmNode, mayaType = None):
-    #log.debug(">>> validateObjListArg >> l_args = %s"%l_args + "="*75)            	        
-    try:
-	if type(l_args) not in [list,tuple]:l_args = [l_args]
-	returnList = []
-	for arg in l_args:
-	    buffer = validateObjArg(arg,mType,noneValid,default_mType,mayaType)
-	    if buffer:returnList.append(buffer)
-	return returnList
-    except StandardError,error:
-	log.error("validateObjListArg>>Failure! l_args: %s | mType: %s"%(l_args,mType))
-	raise StandardError,error    
+    @kws
+    0 - 'l_args'(mObjects - None) -- mObject instance or string list
+    1 - 'mType'(mClass - None) -- what mType to be looking for
+    2 - 'noneValid'(bool - False) -- Whether None is a valid argument or not
+    3 - 'default_mType'(mClass - <class 'cgm.core.cgm_Meta.cgmNode'>) -- What type to initialize as if no mClass is set
+    4 - 'mayaType'(str/list - None) -- If the object needs to be a certain object type
+    """    
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "validateObjListArg"			    
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'l_args',"default":None,'help':"mObject instance or string list","argType":"mObjects"},
+	                                 {'kw':'mType',"default":None,'help':"what mType to be looking for","argType":"mClass"},
+	                                 {'kw':'noneValid',"default":False,'help':"Whether None is a valid argument or not","argType":"bool"},
+	                                 {'kw':'default_mType',"default":cgmNode,'help':"What type to initialize as if no mClass is set","argType":"mClass"},
+	                                 {'kw':'mayaType',"default":None,'help':"If the object needs to be a certain object type","argType":"str/list"}]	                                 
+	    self.__dataBind__(*args,**kws)
+	    #=================================================================
+	    
+	def __func__(self,*args,**kws):
+	    #Pull kws local ====================================================================
+	    l_args = self.d_kws['l_args']
+	    mType = self.d_kws['mType']	    
+	    noneValid = self.d_kws['noneValid']
+	    default_mType = self.d_kws['default_mType']
+	    mayaType = self.d_kws['mayaType']
+	    kws = self.d_kws
+	    #------------------------------------------------------------------------------------
+	    if type(l_args) not in [list,tuple]:l_args = [l_args]
+	    returnList = []
+	    for arg in l_args:
+		buffer = validateObjArg(arg,**kws)
+		if buffer:returnList.append(buffer)
+	    return returnList	    
+    return fncWrap(*args,**kws).go()
 
-#@cgmGeneral.TimerDebug    
+#Attr validation ===============================================================================================================
+'''
+def validateAttrArg(*args,**kws):
+    """
+    Validate an attr arg to usable info
+   
+
+    """    
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "validateAttrArg"			    
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'arg',"default":None,
+	                                  'help':"Arg should be sting 'obj.attr' or ['obj','attr'] format","argType":"mObjects"},
+	                                 {'kw':'defaultType',"default":'float','help':"Attr type to look for","argType":"string"},
+	                                 {'kw':'noneValid',"default":False,'help':"Whether None is a valid argument or not","argType":"bool"}]	                                 
+	    self.__dataBind__(*args,**kws)
+	    #=================================================================
+	    
+	def __func__(self,*args,**kws):
+	    #Pull kws local ====================================================================
+	    arg = self.d_kws['arg']
+	    defaultType = self.d_kws['defaultType']	    
+	    noneValid = self.d_kws['noneValid']
+	    kws = self.d_kws
+	    mi_obj = False
+	    #------------------------------------------------------------------------------------
+	    try:
+		try:
+		    combined = arg.p_combinedName
+		    obj = arg.obj.mNode
+		    attr = arg.attr
+		    mi_obj = arg
+		    return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':arg}
+		except:
+		    if type(arg) in [list,tuple]:
+			if  len(arg) == 2:
+			    try:
+				obj = arg[0].mNode
+				mi_obj = arg[0]
+			    except:
+				obj = arg[0]
+			    attr = arg[1]
+			    combined = "%s.%s"%(obj,attr)
+			elif len(arg) == 1:
+			    arg = arg[0]
+			    obj = arg.split('.')[0]
+			    attr = '.'.join(arg.split('.')[1:])
+			    combined = arg		    
+		    elif '.' in arg:
+			obj = arg.split('.')[0]
+			attr = '.'.join(arg.split('.')[1:])
+			combined = arg
+		    else:raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
+		if not mc.objExists(obj):
+		    raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%obj
+		if not mc.objExists(combined):
+		    if noneValid:
+			return False
+		    else:
+			if mi_obj: i_plug = cgmAttr(mi_obj,attr,attrType=defaultType,**kws)  
+			else: i_plug = cgmAttr(obj,attr,attrType=defaultType,**kws)
+		elif mi_obj:i_plug = cgmAttr(mi_obj,attr,**kws)	
+		else:i_plug = cgmAttr(obj,attr,**kws)
+		return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug}
+	    except StandardError,error:
+		if noneValid:
+		    return False	    
+    return fncWrap(*args,**kws).go()
+
+'''
 def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
     """
     Validate an attr arg to usable info
     Arg should be sting 'obj.attr' or ['obj','attr'] format.
-
     """
     _str_funcName = 'validateAttrArg'
     #log.debug(">>> %s >> "%_str_funcName + "="*75)
@@ -4398,7 +4541,6 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
 	    return False
 	raise StandardError,"%s >> arg: %s | defaultType: %s | noneValid: %s | %s"%(_str_funcName,defaultType,noneValid,error)
     
-#@cgmGeneral.TimerDebug    
 def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**kws):
     try:
 	#log.debug(">>> validateAttrListArg >> l_args = %s"%l_args + "="*75)            	
@@ -4419,6 +4561,7 @@ def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**
     except StandardError,error:
 	log.error("validateAttrListArg>>Failure! l_args: %s | defaultType: %s"%(l_args,defaultType))
 	raise StandardError,error    
+    
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================    

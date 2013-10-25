@@ -1647,35 +1647,35 @@ class cgmModule(cgmMeta.cgmObject):
 	log.error("%s >>> Unable to find settings control."%(_str_funcName))
 	return False
     
-    def doSetParentModule(self,moduleParent,force = False):
+    def doSetParentModule(self,*args,**kws):
         """
         Set a module parent of a module
 
         module(string)
         """
-        mFactory.doSetParentModule(self,moduleParent,force)
+        mFactory.doSetParentModule(self,*args,**kws)
 
-    def getGeneratedCoreNames(self):
-        return mFactory.getGeneratedCoreNames(self)
+    def getGeneratedCoreNames(self,*args,**kws):
+        return mFactory.getGeneratedCoreNames(self,*args,**kws)
     
-    def isModule(self):
+    def isModule(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isModule)
         """
-        return mFactory.isModule(self)
+        return mFactory.isModule(self,*args,**kws)
     
-    def get_mirrorSideAsString(self):
-        return mFactory.get_mirrorSideAsString(self)    
+    def get_mirrorSideAsString(self,*args,**kws):
+        return mFactory.get_mirrorSideAsString(self,*args,**kws)    
     
     #>>> States
     #===========================================================
-    def getState(self):
+    def getState(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.getState)
         """
-        return mFactory.getState(self)
+        return mFactory.getState(self,*args,**kws)
     
     def setState(self,*args,**kws):
         """
@@ -1708,12 +1708,12 @@ class cgmModule(cgmMeta.cgmObject):
     
     #>>> Templates
     #===========================================================    
-    def isTemplated(self):
+    def isTemplated(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isTemplated)
         """
-        return mFactory.isTemplated(self)
+        return mFactory.isTemplated(self,*args,**kws)
     
     def doTemplate(self,*args,**kws):
         """
@@ -1722,48 +1722,48 @@ class cgmModule(cgmMeta.cgmObject):
         """
         return mFactory.doTemplate(self,*args,**kws)
     
-    def deleteTemplate(self):
+    def deleteTemplate(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.deleteTemplate)
         """
-        return mFactory.deleteTemplate(self) 
+        return mFactory.deleteTemplate(self,*args,**kws) 
     
-    def storeTemplatePose(self):
+    def storeTemplatePose(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.storePose_templateSettings)
         """
-        return mFactory.storePose_templateSettings(self)   
+        return mFactory.storePose_templateSettings(self,*args,**kws)   
     
-    def loadTemplatePose(self):
+    def loadTemplatePose(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.readPose_templateSettings)
         """
-        return mFactory.readPose_templateSettings(self)   
+        return mFactory.readPose_templateSettings(self,*args,**kws)   
     
     #>>> Skeletonize
     #===========================================================  
-    def isSkeletonized(self):
+    def isSkeletonized(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isSkeletonized)
         """
-        return mFactory.isSkeletonized(self)
+        return mFactory.isSkeletonized(self,*args,**kws)
     
-    def doSkeletonize(self):
+    def doSkeletonize(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.doSkeletonize)
         """
-        return mFactory.doSkeletonize(self)
-    def skeletonDelete(self):
+        return mFactory.doSkeletonize(self,*args,**kws)
+    def skeletonDelete(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.deleteSkeleton)
         """
-        return mFactory.deleteSkeleton(self)
+        return mFactory.deleteSkeleton(self,*args,**kws)
     
     #>>> Rig
     #===========================================================
@@ -1774,40 +1774,40 @@ class cgmModule(cgmMeta.cgmObject):
         """
         return mFactory.doRig(self,*args,**kws)
     
-    def isRigged(self,**kws):
+    def isRigged(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isRigged)
         """
-        return mFactory.isRigged(self,**kws)  
+        return mFactory.isRigged(self,*args,**kws)  
     
-    def isRigConnected(self,**kws):
+    def isRigConnected(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isRigConnected)
         """
-        return mFactory.isRigConnected(self,**kws)  
+        return mFactory.isRigConnected(self,*args,**kws)  
     
-    def rigConnect(self,**kws):
+    def rigConnect(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rigConnect)
         """
-        return mFactory.rigConnect(self,**kws) 
+        return mFactory.rigConnect(self,*args,**kws) 
     
-    def rigDisconnect(self,**kws):
+    def rigDisconnect(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rigDisconnect)
         """
-        return mFactory.rigDisconnect(self,**kws)  
+        return mFactory.rigDisconnect(self,*args,**kws)  
     
-    def rigDelete(self,**kws):
+    def rigDelete(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rigDisconnect)
         """
-        return mFactory.rigDelete(self,**kws)     
+        return mFactory.rigDelete(self,*args,**kws)     
     
     def rig_getReport(self):
         """
@@ -1816,33 +1816,33 @@ class cgmModule(cgmMeta.cgmObject):
         """
         return mFactory.rig_getReport(self)  
     
-    def rig_getSkinJoints(self,asMeta = True):
+    def rig_getSkinJoints(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rig_getSkinJoints)
         """
-        return mFactory.rig_getSkinJoints(self,asMeta)  
+        return mFactory.rig_getSkinJoints(self,*args,**kws)  
     
-    def rig_getHandleJoints(self,asMeta = True):
+    def rig_getHandleJoints(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rig_getHandleJoints)
         """
-        return mFactory.rig_getHandleJoints(self,asMeta)
+        return mFactory.rig_getHandleJoints(self,*args,**kws)
     
-    def rig_getRigHandleJoints(self,asMeta = True):
+    def rig_getRigHandleJoints(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rig_getRigHandleJoints)
         """
-        return mFactory.rig_getRigHandleJoints(self,asMeta)      
+        return mFactory.rig_getRigHandleJoints(self,*args,**kws)      
     
-    def get_rollJointCountList(self):
+    def get_rollJointCountList(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.get_rollJointCountList)
         """
-        return mFactory.get_rollJointCountList(self)     
+        return mFactory.get_rollJointCountList(self,*args,**kws)     
     
     #>>> Animation
     #========================================================================
@@ -2127,8 +2127,8 @@ class cgmEyelids(cgmModule):
     
 #>>> Brow  =====================================================================================================
 d_eyebrow_rigNullAttrs_toMake = {'templateControl':'bool',#Whether we should have a iris setup
-                              'uprCheekControl':'bool',#Whether we should have a pupil control
-                              }
+                                 'uprCheekControl':'bool',#Whether we should have a pupil control
+                                 }
 
 d_eyebrow_templateNullAttrs_toMake = {}
 
@@ -2292,10 +2292,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
     def __buildModule__(self):
 	"""
 	General Module build before expected pass to individual blocks for specialization
-	"""
-	_str_funcName = "cgmRigBlock.__buildModule__(%s)"%self.p_nameShort   
-	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
-	
+	"""	
 	#>>> Gather basic info for module build
 	d_kws = {}
 	d_kws['name'] = self.cgmName
@@ -2308,13 +2305,8 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	if str_position != 'none':
 	    d_kws['position'] = str_position
 	    
-	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> kws..."%(_str_funcName)) 
 	self._d_buildKWS = d_kws    
-	
-	#>>>Initial module build in 
-	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> passing..."%(_str_funcName))
     
-    #@cgmGeneral.Timer
     def __buildSimplePuppet__(self):
 	"""
 	Build a simple puppet for itself
@@ -2324,24 +2316,18 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	mi_module = self.moduleTarget
 	if not mi_module:
 	    try:
-		#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> Has no module, creating")
 		mi_module = self.__buildModule__()
 	    except Exception,error:
 		raise StandardError, ">>> %s>>> module build failed. error: %s"%(_str_funcName,error)
 	if mi_module.getMessage('modulePuppet'):
-	    #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> already has a puppet. Aborting"%_str_funcName)
 	    return False
 	
-	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> Building puppet..."%(_str_funcName))
 	mi_puppet = cgmPuppet(name = mi_module.getNameAlias())
 	mi_puppet.connectModule(mi_module)	
 	if mi_module.getMessage('moduleMirror'):
 	    mi_puppet.connectModule(mi_module.moduleMirror)
 	mi_puppet.gatherModules()#Gather any modules in the chain
 	return mi_puppet
-	
-	
-	    
 	    
     def __updateSizeData__(self):
 	"""For overload"""
@@ -2849,7 +2835,42 @@ class cgmEyebrowBlock(cgmRigBlock):
 	
 	return True
     
-class cgmLowerFaceBlock(cgmRigBlock):
+#>>> MouthNose  =====================================================================================================
+d_mouthNose_rigNullAttrs_toMake = {'templateControl':'bool',#
+                                   }
+
+d_mouthNose_templateNullAttrs_toMake = {}
+class cgmMouthNose(cgmModule):
+    def __init__(self,*args,**kws):
+	""" 
+	Intializes a mouth/nose master class handler
+	Args:
+	node = existing module in scene
+	name = treated as a base name
+
+	Keyword arguments:
+	moduleName(string) -- either base name or the name of an existing module in scene
+	moduleParent(string) -- module parent to connect to. MUST exist if called. If the default False flag is passed, it looks for what's stored
+	"""
+	if not kws:kws = {'mType':'mouthNose'}
+	if 'name' not in kws.keys() and 'mType' in kws.keys():
+	    kws['name'] = kws['mType']
+	super(cgmMouthNose, self).__init__(*args,**kws) 
+
+    def __verify__(self,*args,**kws):
+	cgmModule.__verify__(self,*args,**kws)
+	self.moduleType = 'mouthNose'
+	
+	#>>> Attributes ...
+	self.__verifyAttributesOn__(self.i_rigNull,d_mouthNose_rigNullAttrs_toMake)
+	self.__verifyAttributesOn__(self.i_templateNull,d_mouthNose_templateNullAttrs_toMake)
+	
+	settings = {'handles': 3}
+	for attr in settings.keys():
+	    self.templateNull.addAttr(attr, value = settings[attr],lock = True)   
+	return True
+	
+class cgmMouthNoseBlock(cgmRigBlock):
     d_attrsToMake = {'buildSquashStretch':'bool',
                      'buildNose':'bool',                                                               
                      'buildNostril':'bool',                                          
@@ -2882,27 +2903,27 @@ class cgmLowerFaceBlock(cgmRigBlock):
                      'skullPlate':'messageSimple', 
                      'moduleNose':'messageSimple'} 
     d_defaultSettings = {'buildNose':True,'buildNostril':True,'buildUprCheek':True,'buildSquashStretch':True,'buildJawLine':True,
-                         'uprCheekJoints':3,'nostrilJoints':1,'cheekLoftCount':2,'lipJoints':5,'cheekJoints':2}
+                         'uprCheekJoints':3,'nostrilJoints':1,'cheekLoftCount':2,'lipJoints':7,'cheekJoints':3}
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
 
     def __init__(self,*args,**kws):
         """ 
         """
-	_str_funcName = "cgmLowerFaceBlock.__init__"  
+	if not kws:kws = {}
         if 'name' not in kws.keys():
-            kws['name'] = 'lwrFace'  
-        super(cgmLowerFaceBlock, self).__init__(*args,**kws) 
+            kws['name'] = 'mouthNose'  
+        super(cgmMouthNoseBlock, self).__init__(*args,**kws) 
 
     def __verify__(self,*args,**kws):
         cgmRigBlock.__verify__(self,*args,**kws)
 	
 	#>>> Attributes ..
-	self.addAttr('buildAs','cgmLowerFace',lock=True)
-	self.verifyAttrDict(cgmLowerFaceBlock.d_attrsToMake,keyable = False, hidden = False)
-	for attr in cgmLowerFaceBlock.d_defaultSettings.keys():
-	    try:self.addAttr(attr, value = cgmLowerFaceBlock.d_defaultSettings[attr], defaultValue = cgmLowerFaceBlock.d_defaultSettings[attr])
-	    except Exception,error: raise StandardError,"%s.__verify__ >>> Failed to set value on: %s | data: %s | error: %s"%(self.p_nameShort,attr,cgmLowerFaceBlock.d_defaultSettings[attr],error)
+	self.addAttr('buildAs','cgmMouthNose',lock=True)
+	self.verifyAttrDict(cgmMouthNoseBlock.d_attrsToMake,keyable = False, hidden = False)
+	for attr in cgmMouthNoseBlock.d_defaultSettings.keys():
+	    try:self.addAttr(attr, value = cgmMouthNoseBlock.d_defaultSettings[attr], defaultValue = cgmMouthNoseBlock.d_defaultSettings[attr])
+	    except Exception,error: raise StandardError,"%s.__verify__ >>> Failed to set value on: %s | data: %s | error: %s"%(self.p_nameShort,attr,cgmMouthNoseBlock.d_defaultSettings[attr],error)
 	if not self.getShapes():
 	    self.__rebuildShapes__(*args,**kws)  
 	self.doName()        
@@ -2914,7 +2935,7 @@ class cgmLowerFaceBlock(cgmRigBlock):
 	    def __init__(self,*args,**kws): 
 		super(fncWrap, self).__init__(*args,**kws)
 		self.mi_mNode = _mNodeSelf
-		self._str_funcName= "cgmLowerFaceBlock.__rebuildShapes__(%s)"%self.mi_mNode.p_nameShort	
+		self._str_funcName= "cgmMouthNoseBlock.__rebuildShapes__(%s)"%self.mi_mNode.p_nameShort	
 		self._l_ARGS_KWS_DEFAULTS = [{'kw':'size',"default":None,'help':"Sizing parameter for the build","argType":"int"}]		
 		self.__dataBind__(*args,**kws)	
 		#self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
@@ -3021,7 +3042,7 @@ class cgmLowerFaceBlock(cgmRigBlock):
 				for a in ['scale','translate','rotate','v']:
 				    cgmMeta.cgmAttr(mi_obj,a,keyable=False,lock=True,hidden=True)				    
 			    else:
-				for a in ['tx','scale','v']:
+				for a in ['tx','ry','rz','scale','v']:
 				    cgmMeta.cgmAttr(mi_obj,a,keyable=False,lock=True,hidden=True)					
 			except Exception,error:raise StandardError,"%s | %s"%(str_name,error)			
 		except Exception,error:raise StandardError,"Curves | %s"%error
@@ -3032,87 +3053,10 @@ class cgmLowerFaceBlock(cgmRigBlock):
 		    for a in ['sx','sz','rotate','v']:
 			cgmMeta.cgmAttr(_mNodeSelf,a,keyable=False,lock=True,hidden=True)
 		except Exception,error:raise StandardError,"Finalize | %s"%error
-	
 	return fncWrap(*args,**kws).go()
-    
-    def __rebuildShapes__2(self,size = None):
-	_str_funcName = "cgmLowerFaceBlock.__rebuildShapes__(%s)"%self.p_nameShort   
-	if self.isReferenced():
-	    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
-		    
-	ml_shapes = cgmMeta.validateObjListArg( self.getShapes(),noneValid=True )
-	self.color = getSettingsColors( self.getAttr('cgmDirection') )
-	
-	#>> restore some settings
-	self.direction = 'center'
-	self.autoMirror = True
-	
-	#>>> Figure out the control size 	
-	if size is None:#
-	    if ml_shapes:
-		absSize =  distance.returnAbsoluteSizeCurve(self.mNode)
-		size = max(absSize)
-	    else:size = 10
-	    
-	#>>> Delete shapes
-	if ml_shapes:
-	    #if log.getEffectiveLevel() == 10:log.debug("%s >>> deleting: %s"%(_str_funcName,ml_shapes))	    
-	    mc.delete([mObj.mNode for mObj in ml_shapes])
-	
-	#>>> Main Shape
-	str_root =  mc.curve( d = 1,p = [[0.0, 2.2934297141192093, -5.0924369479492732e-16], [-0.68646875796765439, 1.2637265771677275, -2.8060366856047015e-16], [-0.34323437898382719, 1.2637265771677275, -2.8060366856047015e-16], [-0.34323437898382719, 0.34323437898382719, -7.6213342078152378e-17], [-1.2637265771677275, 0.34323437898382719, -7.6213342078152378e-17], [-1.2637265771677275, 0.68646875796765439, -1.5242668415630476e-16], [-2.2934297141192093, 0.0, 0.0], [-1.2637265771677275, -0.68646875796765439, 1.5242668415630476e-16], [-1.2637265771677275, -0.34323437898382719, 7.6213342078152378e-17], [-0.34323437898382719, -0.34323437898382719, 7.6213342078152378e-17], [-0.34323437898382719, -1.2637265771677275, 2.8060366856047015e-16], [-0.68646875796765439, -1.2637265771677275, 2.8060366856047015e-16], [0.0, -2.2934297141192093, 5.0924369479492732e-16], [0.68646875796765439, -1.2637265771677275, 2.8060366856047015e-16], [0.34323437898382719, -1.2637265771677275, 2.8060366856047015e-16], [0.34323437898382719, -0.34323437898382719, 7.6213342078152378e-17], [1.2637265771677275, -0.34323437898382719, 7.6213342078152378e-17], [1.2637265771677275, -0.68646875796765439, 1.5242668415630476e-16], [2.2934297141192093, 0.0, 0.0], [1.2637265771677275, 0.68646875796765439, -1.5242668415630476e-16], [1.2637265771677275, 0.34323437898382719, -7.6213342078152378e-17], [0.34323437898382719, 0.34323437898382719, -7.6213342078152378e-17], [0.34323437898382719, 1.2637265771677275, -2.8060366856047015e-16], [0.68646875796765439, 1.2637265771677275, -2.8060366856047015e-16], [0.0, 2.2934297141192093, -5.0924369479492732e-16]],k = (0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0))	
-	
-	curves.parentShapeInPlace(self.mNode,str_root)#parent shape in place	
-	curves.setCurveColorByName(self.mNode,self.color[0])#Set the color	    	
-	mc.delete(str_root)
-	
-	
-	#>>>Build the Brow curves
-	l_buildOrder = ['leftBrow','rightBrow','leftTemple','rightTemple','leftUprCheek','rightUprCheek']
-	d_buildCurves = {'leftBrow': mc.curve( d = 3,p = [[3.2074032095569307, 0.088162999957347665, -2.3016555193378068], [4.251097108912214, 0.024232165150834817, -2.4497118908209892], [6.3384849076227407, -0.10362950446324248, -2.7458246337874641], [8.7788670165788485, -0.72794558079678495, -5.7291335329457826], [9.4595644079063881, -2.2640763188546771, -7.2217667690319409], [9.7999131035701303, -3.0321416878841205, -7.96808338707506]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 3.0, 3.0)),
-	                 'rightBrow': mc.curve( d = 3,p = [[-3.2074032095569307, 0.088162999957347665, -2.3016555193378068], [-4.251097108912214, 0.024232165150834817, -2.4497118908209892], [-6.3384849076227407, -0.10362950446324248, -2.7458246337874641], [-8.7788670165788485, -0.72794558079678495, -5.7291335329457826], [-9.4595644079063881, -2.2640763188546771, -7.2217667690319409], [-9.7999131035701303, -3.0321416878841205, -7.96808338707506]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 3.0, 3.0)),
-	                 'leftTemple': mc.curve( d = 1,p = [[11.540519886111845, -5.2113010025090887, -12.865421648687006], [10.689684322507841, -5.4688004729911484, -9.7566605218848697]],k = (0.0, 3.2333609258955258)),
-	                 'rightTemple': mc.curve( d = 1,p = [[-11.540519886111845, -5.2113010025090887, -12.865421648687006], [-10.689684322507841, -5.4688004729911484, -9.7566605218848697]],k = (0.0, 3.2333609258955258)),
-	                 'leftUprCheek': mc.curve( d = 3,p = [[10.261528402499881, -9.0683619621701723, -8.3652067775967627], [9.9616161190362469, -9.5687755274758786, -7.6585499901992584], [9.361791552108933, -10.569602658087973, -6.2452364154043138], [6.4660266032352167, -9.9530720383801849, -4.5705546635419321], [5.0181441287983555, -9.6448067285263903, -3.7332137876107456]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0)),
-	                 'rightUprCheek': mc.curve( d = 3,p = [[-10.261528402499881, -9.0683619621701723, -8.3652067775967627], [-9.9616161190362469, -9.5687755274758786, -7.6585499901992584], [-9.361791552108933, -10.569602658087973, -6.2452364154043138], [-6.4660266032352167, -9.9530720383801849, -4.5705546635419321], [-5.0181441287983555, -9.6448067285263903, -3.7332137876107456]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0)),
-	                 
-	                 }
-	
-	d_colors = {'left':getSettingsColors('left'),
-	            'right':getSettingsColors('right')}
-	
-	ml_curves = []
-	md_curves = {}
-	for k in l_buildOrder:
-	    str_return = d_buildCurves.get(k)
-	    mi_obj = cgmMeta.cgmObject(str_return,setClass=True)#instance
-	    mi_obj.addAttr('cgmName',k)#tag
-	    mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)
-	    if 'left' in k:
-		curves.setCurveColorByName(mi_obj.mNode,d_colors.get('left')[0])#Set the color	    					
-	    else:
-		curves.setCurveColorByName(mi_obj.mNode,d_colors.get('right')[0])#Set the color	 
-		
-	    ml_curves.append(mi_obj)#append
-	    md_curves[k] = mi_obj
-	    mi_obj.doName()#Name	
-
-	    mi_obj.doCopyPivot(self)
-		
-	    self.connectChildNode(mi_obj,'%sHelper'%k,'mi_block')
-	    
-	    mi_obj.parent = self
-	    for a in ['scale','translate','rotate','v']:
-		cgmMeta.cgmAttr(mi_obj,a,keyable=False,lock=True,hidden=True)	
-		
-	#Connect in our scales so we're scaling the eye one one channel
-	cgmMeta.cgmAttr(self,'sx').doConnectIn("%s.scaleY"%self.mNode)
-	cgmMeta.cgmAttr(self,'sz').doConnectIn("%s.scaleY"%self.mNode)
-	for a in ['sx','sz','rotate','v']:
-	    cgmMeta.cgmAttr(self,a,keyable=False,lock=True,hidden=True)
-	
+    	
     def mirrorBrowCurvesTMP(self):
-	_str_funcName = "cgmLowerFaceBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
+	_str_funcName = "cgmMouthNoseBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
 	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	try:
 	    crvUtils.mirrorCurve(self.getMessage('leftBrowHelper')[0],self.getMessage('rightBrowHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
@@ -3125,17 +3069,35 @@ class cgmLowerFaceBlock(cgmRigBlock):
 	    crvUtils.mirrorCurve(self.getMessage('leftUprCheekHelper')[0],self.getMessage('rightUprCheekHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
 	except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error)) 
 	
-    def __buildModule__(self):
-	cgmRigBlock.__buildModule__(self)
-	_str_funcName = "cgmLowerFaceBlock.__buildModule__(%s)"%self.p_nameShort   
-	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+    def __buildModule__(self,*args,**kws):
+	cgmRigBlock.__buildModule__(self,*args,**kws)
+	_mNodeSelf = self
+	class fncWrap(cgmMeta.cgmMetaFunc):
+	    def __init__(self,*args,**kws): 
+		super(fncWrap, self).__init__(*args,**kws)
+		self.mi_mNode = _mNodeSelf
+		self._str_funcName= "cgmMouthNoseBlock.__buildModule__(%s)"%self.mi_mNode.p_nameShort	
+		#self._l_ARGS_KWS_DEFAULTS = [{'kw':'size',"default":None,'help':"Sizing parameter for the build","argType":"int"}]		
+		self.__dataBind__(*args,**kws)	
+		self.l_funcSteps = [{'step':'Mouth Build','call':self._checkMouthModule}]
+		#=================================================================
+	    def _checkMouthModule(self):
+		bfr_name = _mNodeSelf._d_buildKWS.get('name') or None
+		bfr_position = _mNodeSelf._d_buildKWS.get('position') or None
+		
+		i_module = cgmMouthNose(name = bfr_name,
+		                        position = bfr_position)
+		_mNodeSelf.connectChildNode(i_module,"moduleTarget","helper")	
+		
+	return fncWrap(*args,**kws).go()	
+	"""
 	try:
 	    bfr_name = self._d_buildKWS.get('name') or None
 	    bfr_position = self._d_buildKWS.get('position') or None
 	    
 	    try:#Brow module
 		#===================================================================
-		i_module = cgmLowerFace(name = bfr_name,
+		i_module = cgmMouthNose(name = bfr_name,
 		                      position = bfr_position)
 		self.connectChildNode(i_module,"moduleTarget","helper")
 	    except Exception,error:raise StandardError,"Failed to build eyeball module | error: %s "%(error)
@@ -3155,10 +3117,10 @@ class cgmLowerFaceBlock(cgmRigBlock):
 	    #>>>Let's do our manual sizing
 	    return i_module
 	except Exception,error:raise StandardError,"%s >>>  error: %s "%(_str_funcName,error)
-    
+	"""
     def __storeNames__(self):
 	#Store our names
-	_str_funcName = "cgmLowerFaceBlock.__storeNames__(%s)"%self.p_nameShort   	
+	_str_funcName = "cgmMouthNoseBlock.__storeNames__(%s)"%self.p_nameShort   	
 	if not self.getMessage("moduleTarget"):
 	    raise StandardError," %s >>> No Module!"%(_str_funcName)
 	
@@ -3175,7 +3137,7 @@ class cgmLowerFaceBlock(cgmRigBlock):
     
     def __updateSizeData__(self):
 	"""For overload"""
-	_str_funcName = "cgmLowerFaceBlock.__updateSizeData__(%s)"%self.p_nameShort   
+	_str_funcName = "cgmMouthNoseBlock.__updateSizeData__(%s)"%self.p_nameShort   
 	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	if not self.getMessage('moduleTarget'):
 	    raise StandardError,">>> %s >>> No module found "%(_str_funcName)

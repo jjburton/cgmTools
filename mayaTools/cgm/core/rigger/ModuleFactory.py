@@ -34,82 +34,92 @@ from cgm.lib.ml import (ml_breakdownDragger,
 # Shared libraries
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 l_moduleStates = ['define','size','template','skeleton','rig']
-__l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow']
-__l_faceModules__ = ['eyebrow','eyelids','eyeball','mouth','nose']
+__l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow','cgmMouthNose']
+__l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthNose']
 
 class ModuleFunc(cgmGeneral.cgmFuncCls):
     def __init__(self,*args,**kws):
 	"""
 	"""	
 	try:
-	    moduleInstance = args[0]
+	    try:moduleInstance = kws['moduleInstance']
+	    except:moduleInstance = args[0]
 	    try:
 		assert isModule(moduleInstance)
 	    except Exception,error:raise StandardError,"Not a module instance : %s"%error	
-	except Exception,error:raise StandardError,"ModuleFunc fail | %s"%error
+	except Exception,error:raise StandardError,"ModuleFunc failed to initialize | %s"%error
 	self._str_funcName= "testFModuleFuncunc"		
 	super(ModuleFunc, self).__init__(*args, **kws)
 
 	self.mi_module = moduleInstance	
 	self._l_ARGS_KWS_DEFAULTS = [{'kw':'moduleInstance',"default":None}]	
 	#=================================================================
-	
-def testFunc(*args,**kws):
+
+def SampleFunc(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
 	    """
-	    """    
+	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "testFunc(%s)"%self.mi_module.p_nameShort	
 	    
-	    #EXTEND our args and defaults
-	    self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'cat',"default":None}])
+	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
 	    self.__dataBind__(*args,**kws)	
-	    self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
+	    self.l_funcSteps = [{'step':'Get Data','call':self.__func__}]
 	    
 	    #=================================================================
 	    
-	def _getData(self):
+	def __func__(self,*args,**kws):
 	    """
 	    """
-	    self.report()  
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    
     return fncWrap(*args,**kws).go()
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-
-def isSized(self):
-    """
-    Return if a moudle is sized or not
-    """
-    _str_funcName = "isSized(%s)"%self.p_nameShort   
-    log.info(">>> %s "%(_str_funcName) + "="*75)
-    if self.mClass in ['cgmEyelids','cgmEyeball','cgmEyebrow']:
-	if self.getMessage('helper'):
-	    log.debug("%s.isSized>>> has size helper, good to go."%self.getShortName())	    
-	    return True
-    handles = self.templateNull.handles
-    i_coreNames = self.coreNames
-    if len(i_coreNames.value) < handles:
-        log.debug("%s.isSized>>> Not enough names for handles"%self.getShortName())
-        return False
-    if len(i_coreNames.value) > handles:
-        log.debug("%s.isSized>>> Not enough handles for names"%self.getShortName())	
-        return False
-    if self.templateNull.templateStarterData:
-	if len(self.templateNull.templateStarterData) == handles:
-	    for i,pos in enumerate(self.templateNull.templateStarterData):
-		if not pos:
-		    log.debug("%s.isSized>>> [%s] has no data"%(self.getShortName(),i))			    
+def isSized(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = 'isSized(%s)'%self.mi_module.p_nameShort
+	    self.__dataBind__(*args,**kws)
+	    #=================================================================
+	def __func__(self): 
+	    mi_module = self.mi_module
+	    
+	    if mi_module.moduleType in __l_faceModules__:
+		if mi_module.getMessage('helper'):
+		    log.debug("%s has size helper, good to go."%self._str_reportStart)	    
+		    return True
+		else:
+		    log.debug("%s No size helper found."%self._str_reportStart)	    		    
+	    handles = mi_module.templateNull.handles
+	    i_coreNames = mi_module.coreNames
+	    if len(i_coreNames.value) < handles:
+		log.debug("%s Not enough names for handles"%self._str_reportStart)
+		return False
+	    if len(i_coreNames.value) > handles:
+		log.debug("%s Not enough handles for names"%self._str_reportStart)	
+		return False
+	    if mi_module.templateNull.templateStarterData:
+		if len(mi_module.templateNull.templateStarterData) == handles:
+		    for i,pos in enumerate(mi_module.templateNull.templateStarterData):
+			if not pos:
+			    log.debug("%s [%s] has no data"%(self._str_reportStart,i))			    
+			    return False
+		    return True
+		else:
+		    log.debug("%s %i is not == %i handles necessary"%(self._str_reportStart,len(mi_module.templateNull.templateStarterData),handles))			    	    
 		    return False
-	    return True
-	else:
-	    log.debug("%s.isSized>>> %i is not == %i handles necessary"%(self.getShortName(),len(self.templateNull.templateStarterData),handles))			    	    
-	    return False
-    else:
-	log.debug("%s.isSized>>> No template starter data found"%self.getShortName())	
-    return False
-    
+	    else:
+		log.debug("%s No template starter data found"%self._str_reportStart)	
+	    return False	 
+    return fncWrap(*args,**kws).go() 
+
 def deleteSizeInfo(self,*args,**kws):
     log.debug(">>> %s.deleteSizeInfo() >> "%(self.p_nameShort) + "="*75) 		                                	                            
     self.templateNull.__setattr__('templateStarterData','',lock=True)
@@ -237,74 +247,59 @@ def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
                        create = 'locator',
                        toCreate = namesToCreate)
     
-
-def doSetParentModule(self,moduleParent,force = False):
-    """
-    Set a module parent of a module
-
-    module(string)
-    """
-    #See if parent exists and is a module, if so...
-    #>>>buffer children
-    #>>>see if already connected
-    #>>Check existance
-        #==============	
-    #Get our instance
-    _str_funcName = "doSetParentModule(%s)"%self.p_nameShort   
-    log.debug(">>> %s.doSetParentModule(moduleParent = %s, force = %s) >> "%(self.p_nameShort,moduleParent,force) + "="*75) 		                                	                            
-    
-    try:
-        moduleParent.mNode#See if we have an instance
-
-    except:
-        if mc.objExists(moduleParent):
-            moduleParent = r9Meta.MetaClass(moduleParent)#initialize
-        else:
-            log.warning("'%s' doesn't exist"%moduleParent)#if it doesn't initialize, nothing is there		
-            return False	
-
-    #Logic checks
-    #==============
-    if not moduleParent.hasAttr('mClass'):
-        log.warning("'%s' lacks an mClass attr"%module.mNode)	    
-        return False
-
-    if moduleParent.mClass not in __l_modulesClasses__:
-        log.warning("'%s' is not a recognized module type"%moduleParent.mClass)
-        return False
-
-    if not moduleParent.hasAttr('moduleChildren'):#Quick check
-        log.warning("'%s'doesn't have 'moduleChildren' attr"%moduleParent.getShortName())#if it doesn't initialize, nothing is there		
-        return False	
-
-    buffer = copy.copy(moduleParent.getMessage('moduleChildren')) or []#Buffer till we have have append functionality	
-
-    if self.mNode in buffer:
-        log.warning("'%s' already connnected to '%s'"%(self.mNode,moduleParent.getShortName()))
-        return False
-
-        #Connect
-        #==============	
-    else:
-        log.debug("Current children: %s"%moduleParent.getMessage('moduleChildren'))
-        log.debug("Adding '%s'!"%self.getShortName())    
-
-        buffer.append(self.mNode) #Revist when children has proper add/remove handling
-        moduleParent.moduleChildren = buffer
-        self.moduleParent = moduleParent.mNode
-        #if moduleParent.getMessage('modulePuppet'):
-            #moduleParent.modulePuppet.connectModule(self.mNode) 
-            
-        #del moduleParent.moduleChildren #Revist when children has proper add/remove handling
-        #moduleParent.connectChildren(buffer,'moduleChildren','moduleParent',force=force)#Connect
-        #if moduleParent.getMessage('modulePuppet'):
-            #moduleParent.modulePuppet[0].connectModule(self)
-            ##self.__setMessageAttr__('modulePuppet',moduleParent.getMessage('modulePuppet')[0])#Connect puppet to 
-
-    self.parent = moduleParent.parent
-    return True
-
-
+def doSetParentModule(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = 'doSetParentModule(%s)'%self.mi_module.p_nameShort
+	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'moduleParent',"default":None,'help':"Module parent target","argType":"cgmModule"},
+	                                       {'kw':'force',"default":False,'help':"Whether to force things","argType":"bool"}] )			    
+	    self.__dataBind__(*args,**kws)
+	    #=================================================================
+	def __func__(self): 
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    moduleParent = self.d_kws['moduleParent']
+	    try:
+		moduleParent.mNode#See if we have an instance
+	    except:
+		if mc.objExists(moduleParent):
+		    moduleParent = r9Meta.MetaClass(moduleParent)#initialize
+		else:
+		    log.warning("'%s' doesn't exist"%moduleParent)#if it doesn't initialize, nothing is there		
+		    return False	
+	
+	    #Logic checks
+	    #==============
+	    if not moduleParent.hasAttr('mClass'):
+		log.warning("'%s' lacks an mClass attr"%module.mNode)	    
+		return False
+	
+	    if moduleParent.mClass not in __l_modulesClasses__:
+		log.warning("'%s' is not a recognized module type"%moduleParent.mClass)
+		return False
+	
+	    if not moduleParent.hasAttr('moduleChildren'):#Quick check
+		log.warning("'%s'doesn't have 'moduleChildren' attr"%moduleParent.getShortName())#if it doesn't initialize, nothing is there		
+		return False	
+	
+	    buffer = copy.copy(moduleParent.getMessage('moduleChildren')) or []#Buffer till we have have append functionality	
+	
+	    if mi_module.mNode in buffer:
+		log.warning("'%s' already connnected to '%s'"%(mi_module.mNode,moduleParent.getShortName()))
+		return False
+	
+	    else:#Connect ==========================================================================================
+		log.debug("Adding '%s'!"%mi_module.getShortName())    
+		buffer.append(mi_module.mNode) #Revist when children has proper add/remove handling
+		moduleParent.moduleChildren = buffer
+		mi_module.moduleParent = moduleParent.mNode
+	    mi_module.parent = moduleParent.parent
+	    return True	 
+	
+    return fncWrap(*args,**kws).go() 
 
 def getGeneratedCoreNames(self):
     """ 
@@ -378,28 +373,41 @@ def getGeneratedCoreNames(self):
 #=====================================================================================================
 #>>> Rig
 #=====================================================================================================
-
-def doRig(self,*args,**kws):
-    _str_funcName = "doRig(%s)"%self.p_nameShort   
-    log.info(">>> %s "%(_str_funcName) + "="*75)        
-    try:
-	if not isSkeletonized(self):
-	    log.warning("%s.doRig>>> Not skeletonized"%self.getShortName())
-	    return False      
-	if self.moduleParent and not isRigged(self.moduleParent):
-	    log.warning("%s.doRig>>> Parent module is not rigged: '%s'"%(self.getShortName(),self.moduleParent.getShortName()))
-	    return False 
-	
-	mRig.go(self,*args,**kws)      
-	if not isRigged(self):
-	    log.warning("%s.doRig>>> Failed To Rig"%self.getShortName())
-	    return False
-	
-	rigConnect(self)
-	
-	return True
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)    
+def doRig(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "doRig(%s)"%self.mi_module.p_nameShort	
+	    
+	    #self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
+	    self.__dataBind__(*args,**kws)	
+	    self.l_funcSteps = [{'step':'Get Data','call':self.__func__}]
+	    
+	    #=================================================================
+	    
+	def __func__(self):
+	    """
+	    """
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    
+	    if not isSkeletonized(mi_module):
+		log.warning("%s Not skeletonized"%self._str_reportStart)
+		return False      
+	    if mi_module.moduleParent and not isRigged(mi_module.moduleParent):
+		log.warning("%s Parent module is not rigged: '%s'"%(self._str_reportStart,mi_module.moduleParent.getShortName()))
+		return False 
+	    
+	    mRig.go(*args,**kws)      
+	    if not isRigged(*args,**kws):
+		log.warning("%s Failed To Rig"%self._str_reportStart)
+		return False
+	    
+	    rigConnect(*args,**kws)
+	    
+    return fncWrap(*args,**kws).go()
 
 
 def isRigged(*args,**kws):
@@ -412,17 +420,16 @@ def isRigged(*args,**kws):
 	    """    
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "isRigged(%s)"%self.mi_module.p_nameShort	
-	    
-	    #EXTEND our args and defaults
-	    #self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'cat',"default":None}])
 	    self.__dataBind__(*args,**kws)	
 	    #=================================================================
 	    
-	def __func__(self):
-	    if not isSkeletonized(self.mi_module):
-		    log.warning("%s.isRigged>>> Not skeletonized"%self.mi_module.getShortName())
-		    return False   
-	    _str_funcName = "isRigged(%s)"%self.mi_module.p_nameShort   
+	def __func__(self,*args,**kws):
+	    kws = self.d_kws
+	    
+	    if not isSkeletonized(*args,**kws):
+		log.debug("%s Not skeletonized"%self._str_reportStart)
+		return False   
+		
 	    i_rigNull = self.mi_module.rigNull
 	    str_shortName = self.mi_module.getShortName()
 	    
@@ -431,7 +438,7 @@ def isRigged(*args,**kws):
 	    l_skinJoints = mRig.get_skinJoints(self.mi_module,asMeta=False)
 	    
 	    if not ml_rigJoints:
-		log.debug("moduleFactory.isRigged('%s')>>>> No rig joints"%str_shortName)
+		log.debug("%s>>>> No rig joints"%self._str_reportStart)
 		i_rigNull.version = ''#clear the version	
 		return False
 	    
@@ -516,94 +523,124 @@ def rigDelete(*args,**kws):
 	    return True   
     return fncWrap(*args,**kws).go()
 
-def isRigConnected(self,*args,**kws):
-    _str_funcName = "isRigConnected(%s)"%self.p_nameShort   
-    log.info(">>> %s "%(_str_funcName) + "="*75)    
-    str_shortName = self.getShortName()
-    try:
-	if not isRigged(self):
-	    log.debug("moduleFactory.isRigConnected('%s')>>>> Module not rigged"%(str_shortName))
-	    return False
-	i_rigNull = self.rigNull
-	ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
-	ml_skinJoints = mRig.get_skinJoints(self,asMeta=True)
-	
-	for i,i_jnt in enumerate(ml_skinJoints):
-	    try:
-		if not i_jnt.isConstrainedBy(ml_rigJoints[i].mNode):
-		    log.debug("'%s'>>not constraining>>'%s'"%(ml_rigJoints[i].getShortName(),i_jnt.getShortName()))
-		    return False
-	    except Exception,error:
-		log.error(error)
-		raise StandardError,"moduleFactory.isRigConnected('%s')>> Joint failed: %s"%(str_shortName,i_jnt.getShortName())
-    
-	return True
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
+def isRigConnected(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "isRigConnected(%s)"%self.mi_module.p_nameShort	
+	    
+	    #self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	    
+	def __func__(self):
+	    """
+	    """
+	    mi_module = self.mi_module
+	    #str_shortName = mi_module.getShortName()
+	    if not isRigged(mi_module):
+		log.debug("%s Module not rigged"%(self._str_reportStart))
+		return False
+	    i_rigNull = mi_module.rigNull
+	    ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
+	    ml_skinJoints = mRig.get_skinJoints(mi_module,asMeta=True)
+	    
+	    for i,i_jnt in enumerate(ml_skinJoints):
+		try:
+		    if not i_jnt.isConstrainedBy(ml_rigJoints[i].mNode):
+			log.warning("'%s'>>not constraining>>'%s'"%(ml_rigJoints[i].getShortName(),i_jnt.getShortName()))
+			return False
+		except Exception,error:
+		    log.error(error)
+		    raise StandardError,"%s Joint failed: %s"%(self._str_reportStart,i_jnt.getShortName())
+	    return True
+    return fncWrap(*args,**kws).go()
 
-def rigConnect(self,*args,**kws):
-    _str_funcName = "rigConnect(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)  	                    
-    str_shortName = self.getShortName()
-    try:
-	if not isRigged(self):
-	    raise StandardError,"moduleFactory.rigConnect('%s')>>>> Module not rigged"%(str_shortName)
-	if isRigConnected(self):
-	    raise StandardError,"moduleFactory.rigConnect('%s')>>>> Module already connected"%(str_shortName)
+def rigConnect(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "rigConnect(%s)"%self.mi_module.p_nameShort	
+	    
+	    #self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	    
+	def __func__(self):
+	    """
+	    """
+	    mi_module = self.mi_module
+	    str_shortName = mi_module.getShortName()
+	    
+	    if not isRigged(mi_module):
+		raise StandardError,"Module not rigged"
+	    if isRigConnected(mi_module):
+		raise StandardError,"Module already connected"
+	    
+	    i_rigNull = mi_module.rigNull
+	    ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
+	    ml_skinJoints = mRig.get_skinJoints(mi_module,asMeta=True)
 	
-	i_rigNull = self.rigNull
-	ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
-	ml_skinJoints = mRig.get_skinJoints(self,asMeta=True)
-    
-	if len(ml_skinJoints)!=len(ml_rigJoints):
-	    raise StandardError,"moduleFactory.rigConnect('%s')>> Rig/Skin joint chain lengths don't match"%self.getShortName()
-	
-	for i,i_jnt in enumerate(ml_skinJoints):
-	    try:
-		log.debug("'%s'>>drives>>'%s'"%(ml_rigJoints[i].getShortName(),i_jnt.getShortName()))
-		pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
-		orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
-		attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
-	    except:
-		raise StandardError,"moduleFactory.rigConnect('%s')>> Joint failed: %s"%i_jnt.getShortName()
-    
-	return True
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
+	    if len(ml_skinJoints)!=len(ml_rigJoints):
+		raise StandardError,"Rig/Skin joint chain lengths don't match"
+	    
+	    for i,i_jnt in enumerate(ml_skinJoints):
+		try:
+		    log.debug("'%s'>>drives>>'%s'"%(ml_rigJoints[i].getShortName(),i_jnt.getShortName()))
+		    pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
+		    orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
+		    attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+		except:
+		    raise StandardError,"Joint failed: %s"%i_jnt.getShortName()
+	    return True
+    return fncWrap(*args,**kws).go()
 
-def rigDisconnect(self,*args,**kws):
-    """
-    See if rigged and connected. Zero. Gather constraints, delete, break connections
-    """
-    _str_funcName = "rigDisconnect(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)  		                        
-    str_shortName = self.getShortName()
-    try:
-	if not isRigged(self):
-	    raise StandardError,"moduleFactory.rigDisconnect('%s')>>>> Module not rigged"%(str_shortName)
-	if not isRigConnected(self):
-	    raise StandardError,"moduleFactory.rigDisconnect('%s')>>>> Module not connected"%(str_shortName)
-	
-	mc.select(cl=True)
-	mc.select(self.rigNull.msgList_getMessage('controlsAll'))
-	ml_resetChannels.main(transformsOnly = False)
-	
-	i_rigNull = self.rigNull
-	l_rigJoints = i_rigNull.getMessage('rigJoints') or False
-	l_skinJoints = i_rigNull.getMessage('skinJoints') or False
-	l_constraints = []
-	for i,i_jnt in enumerate(i_rigNull.skinJoints):
-	    try:
-		l_constraints.extend( i_jnt.getConstraintsTo() )
-		attributes.doBreakConnection("%s.scale"%i_jnt.mNode)
-	    except Exception,error:
-		log.error(error)
-		raise StandardError,"moduleFactory.rigDisconnect('%s')>> Joint failed: %s"%(str_shortName,i_jnt.getShortName())
-	log.debug("moduleFactory.rigDisconnect('%s')>> constraints found: %s"%(str_shortName,l_constraints))
-	if l_constraints:mc.delete(l_constraints)
-	return True
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
+def rigDisconnect(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "rigDisconnect(%s)"%self.mi_module.p_nameShort	
+	    
+	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
+	    
+	def __func__(self):
+	    """
+	    """
+	    mi_module = self.mi_module
+	    
+	    if not isRigged(mi_module):
+		raise StandardError,"Module not rigged"
+	    if not isRigConnected(mi_module):
+		raise StandardError,"Module not connected"
+	    
+	    mc.select(cl=True)
+	    mc.select(mi_module.rigNull.msgList_getMessage('controlsAll'))
+	    ml_resetChannels.main(transformsOnly = False)
+	    
+	    i_rigNull = mi_module.rigNull
+	    l_rigJoints = i_rigNull.getMessage('rigJoints') or False
+	    l_skinJoints = i_rigNull.getMessage('skinJoints') or False
+	    l_constraints = []
+	    for i,i_jnt in enumerate(i_rigNull.skinJoints):
+		try:
+		    l_constraints.extend( i_jnt.getConstraintsTo() )
+		    attributes.doBreakConnection("%s.scale"%i_jnt.mNode)
+		except Exception,error:
+		    log.error(error)
+		    raise StandardError,"Joint failed: %s"%(i_jnt.getShortName())
+	    log.debug("%s constraints found: %s"%(self._str_reportStart,l_constraints))
+	    if l_constraints:mc.delete(l_constraints)
+	    return True
+    return fncWrap(*args,**kws).go()
+ 
     
 def rig_getReport(self,*args,**kws):    
     mRig.get_report(self,*args,**kws)      
@@ -641,7 +678,77 @@ def rig_getRigHandleJoints(self,asMeta = True):
 #=====================================================================================================
 #>>> Template
 #=====================================================================================================
-
+def isTemplated(*args,**kws):
+    """
+    Return if a module is templated or not
+    """    
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "isTemplated(%s)"%self.mi_module.p_nameShort	
+	    
+	    self.__dataBind__(*args,**kws)	
+	    #=================================================================
+	    
+	def __func__(self):
+	    """
+	    """
+	    mi_module = self.mi_module
+	    
+	    if mi_module.moduleType in __l_faceModules__:
+		if mi_module.getMessage('helper'):
+		    log.debug("%s has size helper, good to go."%self._str_reportStart)	    
+		    return True
+		
+	    coreNamesValue = mi_module.coreNames.value
+	    if not coreNamesValue:
+		log.debug("No core names found")
+		return False
+	    if not mi_module.getMessage('templateNull'):
+		log.debug("No template null")
+		return False       
+	    if not mi_module.templateNull.getChildren():
+		log.debug("No children found in template null")
+		return False   
+	    if not mi_module.getMessage('modulePuppet'):
+		log.debug("No modulePuppet found")
+		return False   	
+	    if not mi_module.modulePuppet.getMessage('masterControl'):
+		log.debug("No masterControl")
+		return False
+		
+	    if mi_module.mClass in ['cgmModule','cgmLimb']:
+		#Check our msgList attrs
+		#=====================================================================================
+		ml_controlObjects = mi_module.templateNull.msgList_get('controlObjects')
+		for attr in 'controlObjects','orientHelpers':
+		    if not mi_module.templateNull.msgList_getMessage(attr):
+			log.warning("No data found on '%s'"%attr)
+			return False        
+		
+		#Check the others
+		for attr in 'root','curve','orientRootHelper':
+		    if not mi_module.templateNull.getMessage(attr):
+			if attr == 'orientHelpers' and len(controlObjects)==1:
+			    pass
+			else:
+			    log.warning("No data found on '%s'"%attr)
+			    return False    
+		    
+		if len(coreNamesValue) != len(ml_controlObjects):
+		    log.debug("Not enough handles.")
+		    return False    
+		    
+		if len(ml_controlObjects)>1:
+		    for i_obj in ml_controlObjects:#check for helpers
+			if not i_obj.getMessage('helper'):
+			    log.debug("'%s' missing it's helper"%i_obj.getShortName())
+			    return False
+		return True    
+    return fncWrap(*args,**kws).go()
+'''
 def isTemplated(self):
     """
     Return if a module is templated or not
@@ -705,187 +812,267 @@ def isTemplated(self):
 	    return True
     except Exception,error:
 	raise StandardError,"%s >> %s"%(_str_funcName,error)   
+'''
 
-def doTemplate(self,*args,**kws):
-    _str_funcName = "doTemplate(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75) 
-    try:
-	if not isSized(self):
-	    log.warning("Not sized: '%s'"%self.getShortName())
-	    return False      
-	tFactory.go(self,*args,**kws)      
-	if not isTemplated(self):
-	    log.warning("Template failed: '%s'"%self.getShortName())
-	    return False
-	return True  
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)       
-
-def deleteTemplate(self,*args,**kws):
-    _str_funcName = "deleteTemplate(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)    
-    try:
-        objList = returnTemplateObjects(self)
-        if objList:
-            mc.delete(objList)
-        for obj in self.templateNull.getChildren():
-            mc.delete(obj)
-        return True
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-        
-
-def returnTemplateObjects(self):
-    _str_funcName = "returnTemplateObjects(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)        
-    try:
-        templateNull = self.templateNull.getShortName()
-        returnList = []
-        for obj in mc.ls(type = 'transform'):
-            if attributes.doGetAttr(obj,'templateOwner') == templateNull:
-                returnList.append(obj)
-        return returnList
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)        
+def doTemplate(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "doTemplate(%s)"%self.mi_module.p_nameShort	
+	    self.__dataBind__(*args,**kws)	
+	    #=================================================================
+	    
+	def __func__(self,*args,**kws):
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    
+	    if isTemplated(*args,**kws):
+		return True
+	    if not isSized(*args,**kws):
+		log.warning("%s: Not sized"%self._str_reportStart)
+		return False      
+	    tFactory.go(*args,**kws)      
+	    if not isTemplated(*args,**kws):
+		log.warning("%s Template failed"%self._str_reportStart)
+		return False
+	    return True  
+    return fncWrap(*args,**kws).go()
+   
+def deleteTemplate(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "deleteTemplate(%s)"%self.mi_module.p_nameShort	
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	def __func__(self,*args,**kws):
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    
+	    objList = returnTemplateObjects(*args,**kws)
+	    if objList:
+		mc.delete(objList)
+	    for obj in mi_module.templateNull.getChildren():
+		mc.delete(obj)
+	    return True	    
+    return fncWrap(*args,**kws).go()
+ 
+def returnTemplateObjects(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "returnTemplateObjects(%s)"%self.mi_module.p_nameShort	
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	def __func__(self,*args,**kws):
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    
+	    templateNull = mi_module.templateNull.getShortName()
+	    returnList = []
+	    for obj in mc.ls(type = 'transform'):
+		if attributes.doGetAttr(obj,'templateOwner') == templateNull:
+		    returnList.append(obj)
+	    return returnList
+    return fncWrap(*args,**kws).go()
 #=====================================================================================================
 #>>> Skeleton
 #=====================================================================================================
-def get_rollJointCountList(self):
-    try:
-	_str_funcName = "get_rollJointCountList(%s)"%self.p_nameShort   
-	log.debug(">>> %s "%(_str_funcName) + "="*75)  	
-	int_rollJoints = self.templateNull.rollJoints
-	d_rollJointOverride = self.templateNull.rollOverride
-	if type(d_rollJointOverride) is not dict:d_rollJointOverride = {}
-	
-	l_segmentRollCount = [int_rollJoints for i in range(self.templateNull.handles-1)]
+def get_rollJointCountList(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "get_rollJointCountList(%s)"%self.mi_module.p_nameShort	
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	def __func__(self,*args,**kws):
+	    mi_module = self.mi_module
+	    kws = self.d_kws
 	    
-	if d_rollJointOverride:
-	    for k in d_rollJointOverride.keys():
-		try:
-		    l_segmentRollCount[int(k)]#If the arg passes
-		    l_segmentRollCount[int(k)] = d_rollJointOverride.get(k)#Override the roll value
-		except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))
-	log.debug("%s.get_rollJointCountList >>  %s"%(self.getShortName(),l_segmentRollCount))
-	return l_segmentRollCount
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-    
-def isSkeletonized(self):
-    """
-    Return if a module is skeletonized or not
-    """
-    _str_funcName = "isSkeletonized(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)      
-
-    try:
-	l_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta=False)
-	if not l_moduleJoints:
-	    log.debug("No skin joints found")
-	    return False  
-	
-	#>>> How many joints should we have 
-	goodCount = returnExpectedJointCount(self)
-	currentCount = len(l_moduleJoints)
-	if  currentCount < (goodCount-1):
-	    log.warning("%s >> Expected at least %s joints. %s found"%(self.p_nameShort,goodCount-1,currentCount))
-	    return False
-	return True
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-
-def doSkeletonize(self,*args,**kws):
-    _str_funcName = "doSkeletonize(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)        
-    try:
-        if not isTemplated(self):
-            log.warning("Not templated, can't skeletonize: '%s'"%self.getShortName())
-            return False      
-        jFactory.go(self,*args,**kws)      
-        if not isSkeletonized(self):
-            log.warning("Skeleton build failed: '%s'"%self.getShortName())
-            return False
-        return True
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   	
-
-       
-def deleteSkeleton(self,*args,**kws): 
-    _str_funcName = "deleteSkeleton(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)       
-    if isSkeletonized(self):
-        jFactory.deleteSkeleton(self,*args,**kws)
-    return True
-
-
-def returnExpectedJointCount(self):
-    """
-    Function to figure out how many joints we should have on a module for the purpose of isSkeletonized check
-    """
-    _str_funcName = "returnExpectedJointCount(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)
-    try:
-	handles = self.templateNull.handles
-	if handles == 0:
-	    log.warning("Can't count expected joints. 0 handles: '%s'"%self.getShortName())
-	    return False
-	
-	if self.templateNull.getAttr('rollJoints'):
-	    rollJoints = self.templateNull.rollJoints 
-	    d_rollJointOverride = self.templateNull.rollOverride 
+	    int_rollJoints = mi_module.templateNull.rollJoints
+	    d_rollJointOverride = mi_module.templateNull.rollOverride
+	    if type(d_rollJointOverride) is not dict:d_rollJointOverride = {}
 	    
-	    l_spanDivs = []
-	    for i in range(0,handles-1):
-		l_spanDivs.append(rollJoints)    
-	    log.debug("l_spanDivs before append: %s"%l_spanDivs)
-	
-	    if type(d_rollJointOverride) is dict:
+	    l_segmentRollCount = [int_rollJoints for i in range(mi_module.templateNull.handles-1)]
+		
+	    if d_rollJointOverride:
 		for k in d_rollJointOverride.keys():
 		    try:
-			l_spanDivs[int(k)]#If the arg passes
-			l_spanDivs[int(k)] = d_rollJointOverride.get(k)#Override the roll value
-		    except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))    
-	    log.debug("l_spanDivs: %s"%l_spanDivs)
-	    int_count = 0
-	    for i,n in enumerate(l_spanDivs):
-		int_count +=1
-		int_count +=n
-	    int_count+=1#add the last handle back
-	    return int_count
-	else:
-	    return self.templateNull.handles
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-    
+			l_segmentRollCount[int(k)]#If the arg passes
+			l_segmentRollCount[int(k)] = d_rollJointOverride.get(k)#Override the roll value
+		    except:log.warning("%s:%s rollOverride arg failed"%(k,d_rollJointOverride.get(k)))
+	    log.debug("%s %s"%(self._str_reportStart,l_segmentRollCount))
+	    return l_segmentRollCount
+    return fncWrap(*args,**kws).go()
+
+def isSkeletonized(*args,**kws):
+    """
+    Return if a module is skeletonized or not
+    """    
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "isSkeletonized(%s)"%self.mi_module.p_nameShort	
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	def __func__(self,*args,**kws):
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    
+	    l_moduleJoints = mi_module.rigNull.msgList_get('moduleJoints',asMeta=False)
+	    if not l_moduleJoints:
+		log.debug("No skin joints found")
+		return False  
+	    
+	    #>>> How many joints should we have 
+	    goodCount = returnExpectedJointCount(*args,**kws)
+	    currentCount = len(l_moduleJoints)
+	    if  currentCount < (goodCount-1):
+		log.warning("%s Expected at least %s joints. %s found"%(self._str_reportStart,goodCount-1,currentCount))
+		return False
+	    return True
+    return fncWrap(*args,**kws).go()
+
+def doSkeletonize(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "doSkeletonize(%s)"%self.mi_module.p_nameShort	
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	def __func__(self,*args,**kws):
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    
+	    if not isTemplated(*args,**kws):
+		log.warning("%s Not templated, can't skeletonize"%self._str_reportStart)
+		return False      
+	    jFactory.go(*args,**kws)      
+	    if not isSkeletonized(*args,**kws):
+		log.warning("%s Skeleton build failed"%self._str_reportStart)
+		return False
+	    return True
+    return fncWrap(*args,**kws).go()
+
+def deleteSkeleton(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "deleteSkeleton(%s)"%self.mi_module.p_nameShort	
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	def __func__(self,*args,**kws):
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    
+	    if isSkeletonized(*args,**kws):
+		jFactory.deleteSkeleton(*args,**kws)
+	    return True
+    return fncWrap(*args,**kws).go()
+       
+
+def returnExpectedJointCount(*args,**kws):
+    """
+    Function to figure out how many joints we should have on a module for the purpose of isSkeletonized check
+    """    
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "returnExpectedJointCount(%s)"%self.mi_module.p_nameShort	
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	def __func__(self,*args,**kws):
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    
+	    handles = self.templateNull.handles
+	    if handles == 0:
+		log.warning("%s Can't count expected joints. 0 handles: '%s'"%self._str_reportStart)
+		return False
+	    
+	    if self.templateNull.getAttr('rollJoints'):
+		rollJoints = self.templateNull.rollJoints 
+		d_rollJointOverride = self.templateNull.rollOverride 
+		
+		l_spanDivs = []
+		for i in range(0,handles-1):
+		    l_spanDivs.append(rollJoints)    
+		log.debug("l_spanDivs before append: %s"%l_spanDivs)
+	    
+		if type(d_rollJointOverride) is dict:
+		    for k in d_rollJointOverride.keys():
+			try:
+			    l_spanDivs[int(k)]#If the arg passes
+			    l_spanDivs[int(k)] = d_rollJointOverride.get(k)#Override the roll value
+			except:log.warning("%s %s:%s rollOverride arg failed"%(self._str_reportStart,k,d_rollJointOverride.get(k)))    
+		log.debug("l_spanDivs: %s"%l_spanDivs)
+		int_count = 0
+		for i,n in enumerate(l_spanDivs):
+		    int_count +=1
+		    int_count +=n
+		int_count+=1#add the last handle back
+		return int_count
+	    else:
+		return self.templateNull.handles
+    return fncWrap(*args,**kws).go()
+
 #=====================================================================================================
 #>>> States
-#=====================================================================================================        
-def validateStateArg(stateArg):
-    _str_funcName = "validateStateArg(%s)"%stateArg 
-    log.debug(">>> %s "%(_str_funcName) + "="*75)       
-    #>>> Validate argument
-    if type(stateArg) in [str,unicode]:
-        stateArg = stateArg.lower()
-        if stateArg in l_moduleStates:
-            stateIndex = l_moduleStates.index(stateArg)
-            stateName = stateArg
-        else:
-            log.warning("Bad stateArg: %s"%stateArg)
-            return False
-    elif type(stateArg) is int:
-        if stateArg<= len(l_moduleStates):
-            stateIndex = stateArg
-            stateName = l_moduleStates[stateArg]         
-        else:
-            log.warning("Bad stateArg: %s"%stateArg)
-            return False        
-    else:
-        log.warning("Bad stateArg: %s"%stateArg)
-        return False
-    return [stateIndex,stateName]
-    
+#=====================================================================================================   
+def validateStateArg(*args,**kws):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "validateStateArg"	
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'stateArg',"default":None,'help':"Needs to be a valid cgm module state","argType":"string/int"}] 	
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	    
+	def __func__(self,*args,**kws):
+	    stateArg = self.d_kws['stateArg']
+	    
+	    #>>> Validate argument
+	    if type(stateArg) in [str,unicode]:
+		stateArg = stateArg.lower()
+		if stateArg in l_moduleStates:
+		    stateIndex = l_moduleStates.index(stateArg)
+		    stateName = stateArg
+		else:
+		    log.warning("Bad stateArg: %s"%stateArg)
+		    return False
+	    elif type(stateArg) is int:
+		if stateArg<= len(l_moduleStates):
+		    stateIndex = stateArg
+		    stateName = l_moduleStates[stateArg]         
+		else:
+		    log.warning("Bad stateArg: %s"%stateArg)
+		    return False        
+	    else:
+		log.warning("Bad stateArg: %s"%stateArg)
+		return False
+	    return [stateIndex,stateName]
+	    
+    return fncWrap(*args,**kws).go()    
 
-def isModule(self):
+def isModule(self,*args,**kws):
     """
     Simple module check
     """
@@ -900,8 +1087,7 @@ def isModule(self):
     log.debug("Is a module: : '%s'"%self.getShortName())
     return True
 
-
-def getState(self):
+def getState(*args,**kws):
     """ 
     Check module state ONLY from the state check attributes
     
@@ -914,167 +1100,236 @@ def getState(self):
     templated
     skeletonized
     rigged
-    """
-    _str_funcName = "getState(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)       
-    try:
-	d_CheckList = {'size':isSized,
-	               'template':isTemplated,
-	               'skeleton':isSkeletonized,
-	               'rig':isRigged,
-	               }
-	goodState = 0
-	l_moduleStatesReverse = copy.copy(l_moduleStates)
-	l_moduleStatesReverse.reverse()
-	for i,state in enumerate(l_moduleStatesReverse):
-	    log.debug("Checking: %s"%state)	
-	    if state in d_CheckList.keys():
-		if d_CheckList[state](self):
-		    log.debug("good: %s"%state)
-		    goodState = l_moduleStates.index(state)
-		    break
-	    else:
-		log.warning("Need test for: '%s'"%state)
-	log.debug("'%s' state: %s | '%s'"%(self.getShortName(),goodState,l_moduleStates[goodState]))
-	return goodState
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-    
-
-def setState(self,stateArg,rebuildFrom = None, *args,**kws):
+    """    
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "getState(%s)"%self.mi_module.p_nameShort	
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	def __func__(self,*args,**kws):
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    d_CheckList = {'size':isSized,
+	                   'template':isTemplated,
+	                   'skeleton':isSkeletonized,
+	                   'rig':isRigged,
+	                   }
+	    goodState = 0
+	    l_moduleStatesReverse = copy.copy(l_moduleStates)
+	    l_moduleStatesReverse.reverse()
+	    for i,state in enumerate(l_moduleStatesReverse):
+		log.debug("Checking: %s"%state)	
+		if state in d_CheckList.keys():
+		    if d_CheckList[state](*args,**kws):
+			log.debug("good: %s"%state)
+			goodState = l_moduleStates.index(state)
+			break
+		else:
+		    log.warning("Need test for: '%s'"%state)
+	    log.debug("'%s' state: %s | '%s'"%(mi_module.getShortName(),goodState,l_moduleStates[goodState]))
+	    return goodState
+    return fncWrap(*args,**kws).go()
+'''
+def SampleFunc(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "testFunc(%s)"%self.mi_module.p_nameShort	
+	    
+	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
+	    self.__dataBind__(*args,**kws)	
+	    self.l_funcSteps = [{'step':'Get Data','call':self.__func__}]
+	    
+	    #=================================================================
+	    
+	def __func__(self,*args,**kws):
+	    """
+	    """
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    
+    return fncWrap(*args,**kws).go()
+'''
+def setState(*args,**kws):
     """ 
     Set a module's state
     
     @rebuild -- force it to rebuild each step
     TODO:
     Make template info be stored when leaving
-    """
-    _str_funcName = "setState(%s)"%self.p_nameShort   
-    log.debug(">>> %s.setState( stateArg = %s , rebuildFrom = %s) >> "%(self.p_nameShort,stateArg,rebuildFrom) + "="*75) 		                                	        
-    log.debug("stateArg: %s"%stateArg)
-    try:
-	if rebuildFrom is not None:
-	    rebuildArgs = validateStateArg(rebuildFrom)
-	    if rebuildArgs:
-		log.debug("'%s' rebuilding from: '%s'"%(self.getShortName(),rebuildArgs[1]))
-		changeState(self,rebuildArgs[1],*args,**kws)
+    """    
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "setState(%s)"%self.mi_module.p_nameShort	
 	    
-	changeState(self, stateArg, *args,**kws)
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-    
-def checkState(self,stateArg):
-    """ 
-    Check a module state, if it's the state, return True
-    
-    """
-    _str_funcName = "checkState(%s)"%self.p_nameShort   
-    log.debug(">>> %s.checkState( stateArg = %s) >> "%(self.p_nameShort,stateArg) + "="*75) 		                                	        
-    try:
-	l_stateArg = validateStateArg(stateArg)
-	if not l_stateArg:raise StandardError,"Couldn't find valid state"
-	
-	if getState(self) > l_stateArg[0]:
+	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
+	                                       {'kw':'rebuildFrom',"default":None,'help':"State to rebuild from","argType":"int/string"}] )		
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================
+	def __func__(self,*args,**kws):
+	    """
+	    """
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    rebuildFrom = kws['rebuildFrom']
+	    
+	    if rebuildFrom is not None:
+		rebuildArgs = validateStateArg(rebuildFrom,**kws)
+		if rebuildArgs:
+		    log.debug("'%s' rebuilding from: '%s'"%(mi_module.getShortName(),rebuildArgs[1]))
+		    changeState(rebuildArgs[1],**kws)
+	    changeState(*args,**kws)	
 	    return True
-	    
-	changeState(self, stateArg)
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
+    return fncWrap(*args,**kws).go()
+
+def checkState(*args,**kws):
+    """ 
+    Set a module's state
     
-def changeState(self,stateArg, rebuildFrom = None, forceNew = False, *args,**kws):
+    @rebuild -- force it to rebuild each step
+    TODO:
+    Make template info be stored when leaving
+    """    
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "checkState(%s)"%self.mi_module.p_nameShort	
+	    
+	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
+	                                       ] )		
+	    self.__dataBind__(*args,**kws)		    
+	    #=================================================================    
+	def __func__(self,*args,**kws):
+	    """
+	    """
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    stateArg = kws['stateArg']
+	    
+	    l_stateArg = validateStateArg(stateArg)
+	    if not l_stateArg:raise StandardError,"Couldn't find valid state"
+	    
+	    if getState(self,*args,**kws) > l_stateArg[0]:
+		return True
+		
+	    changeState(self,stateArg,*args,**kws)
+	    return True
+    return fncWrap(*args,**kws).go()
+    
+def changeState(*args,**kws):
     """ 
     Changes a module state
     
     TODO:
     Make template info be stored skeleton builds
     Make template builder read and use pose data stored
-    
-    
-    """
-    _str_funcName = "changeState(%s)"%self.p_nameShort   
-    log.debug(">>> %s.changeState( stateArg = %s , rebuildFrom = %s, forceNew = %s) >> "%(self.p_nameShort,stateArg,rebuildFrom,forceNew) + "="*75) 		                                	            
-    d_upStateFunctions = {'size':doSize,
-                           'template':doTemplate,
-                           'skeleton':doSkeletonize,
-                           'rig':doRig,
-                           }
-    d_downStateFunctions = {'define':deleteSizeInfo,
-                            'size':deleteTemplate,
-                            'template':deleteSkeleton,
-                            'skeleton':rigDelete,
-                            }
-    d_deleteStateFunctions = {'size':deleteSizeInfo,
-                              'template':deleteTemplate,#handle from factory now
-                              'skeleton':deleteSkeleton,
-                              'rig':rigDelete,
-                              }    
-    log.debug(">>> In ModuleFactory.changeState")
-    log.debug("stateArg: %s"%stateArg)
-    log.debug("rebuildFrom: %s"%rebuildFrom)
-    log.debug("forceNew: %s"%forceNew)
-    
-    try:
-	stateArgs = validateStateArg(stateArg)
-	if not stateArgs:
-	    log.warning("Bad stateArg from changeState: %s"%stateArg)
-	    return False
-	
-	stateIndex = stateArgs[0]
-	stateName = stateArgs[1]
-	
-	log.debug("stateIndex: %s | stateName: '%s'"%(stateIndex,stateName))
-	
-	#>>> Meat
-	#========================================================================
-	currentState = getState(self) 
-	if currentState == stateIndex and rebuildFrom is None and not forceNew:
-	    if not forceNew:log.warning("'%s' already has state: %s"%(self.getShortName(),stateName))
-	    return True
-	#If we're here, we're going to move through the set states till we get to our spot
-	log.debug("Changing states now...")
-	if stateIndex > currentState:
-	    startState = currentState+1        
-	    log.debug(' up stating...')        
-	    log.debug("Starting doState: '%s'"%l_moduleStates[startState])
-	    doStates = l_moduleStates[startState:stateIndex+1]
-	    log.debug("doStates: %s"%doStates)        
-	    for doState in doStates:
-		if doState in d_upStateFunctions.keys():
-		    if not d_upStateFunctions[doState](self,*args,**kws):return False
-		    else:
-			log.debug("'%s' completed: %s"%(self.getShortName(),doState))
-		else:
-		    log.warning("No up state function for: %s"%doState)
-	elif stateIndex < currentState:#Going down
-	    log.debug('down stating...')        
-	    l_reverseModuleStates = copy.copy(l_moduleStates)
-	    l_reverseModuleStates.reverse()
-	    startState = currentState      
-	    log.debug(' up stating...')     
-	    log.debug("l_reverseModuleStates: %s"%l_reverseModuleStates)
-	    log.debug("Starting downState: '%s'"%l_moduleStates[startState])
-	    rev_start = l_reverseModuleStates.index( l_moduleStates[startState] )+1
-	    rev_end = l_reverseModuleStates.index( l_moduleStates[stateIndex] )+1
-	    doStates = l_reverseModuleStates[rev_start:rev_end]
-	    log.debug("toDo: %s"%doStates)
+    """    
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "changeState(%s)"%self.mi_module.p_nameShort	
 	    
-	    for doState in doStates:
-		log.debug("doState: %s"%doState)
-		if doState in d_downStateFunctions.keys():
-		    if not d_downStateFunctions[doState](self,*args,**kws):return False
-		    else:log.debug("'%s': %s"%(self.getShortName(),doState))
-		else:
-		    log.warning("No down state function for: %s"%doState)  
-	else:
-	    log.debug('Forcing recreate')
-	    if stateName in d_upStateFunctions.keys():
-		#d_deleteStateFunctions[stateName](self)
-		if not d_upStateFunctions[stateName](self,*args,**kws):return False
+	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
+	                                       {'kw':'rebuildFrom',"default":None,'help':"State to rebuild from","argType":"int/string"},
+	                                       {'kw':'forceNew',"default":False,'help':"typical kw ","argType":"bool"}] )		
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
+	    
+	def __func__(self,*args,**kws):
+	    """
+	    """
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    stateArg = kws['stateArg']
+	    rebuildFrom = kws['rebuildFrom']
+	    forceNew = kws['forceNew']
+    
+	    d_upStateFunctions = {'size':doSize,
+		                   'template':doTemplate,
+		                   'skeleton':doSkeletonize,
+		                   'rig':doRig,
+		                   }
+	    d_downStateFunctions = {'define':deleteSizeInfo,
+		                    'size':deleteTemplate,
+		                    'template':deleteSkeleton,
+		                    'skeleton':rigDelete,
+		                    }
+	    d_deleteStateFunctions = {'size':deleteSizeInfo,
+		                      'template':deleteTemplate,#handle from factory now
+		                      'skeleton':deleteSkeleton,
+		                      'rig':rigDelete,
+		                      }    
+
+	    stateArgs = validateStateArg(stateArg,**kws)
+	    if not stateArgs:
+		log.warning("Bad stateArg from changeState: %s"%stateArg)
+		return False
+	    
+	    stateIndex = stateArgs[0]
+	    stateName = stateArgs[1]
+	    
+	    log.debug("stateIndex: %s | stateName: '%s'"%(stateIndex,stateName))
+	    
+	    #>>> Meat
+	    #========================================================================
+	    currentState = getState(*args,**kws) 
+	    if currentState == stateIndex and rebuildFrom is None and not forceNew:
+		if not forceNew:log.warning("'%s' already has state: %s"%(mi_module.getShortName(),stateName))
 		return True
-	    
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-    
+	    #If we're here, we're going to move through the set states till we get to our spot
+	    log.debug("Changing states now...")
+	    if stateIndex > currentState:
+		startState = currentState+1        
+		log.debug(' up stating...')        
+		log.debug("Starting doState: '%s'"%l_moduleStates[startState])
+		doStates = l_moduleStates[startState:stateIndex+1]
+		log.debug("doStates: %s"%doStates)        
+		for doState in doStates:
+		    if doState in d_upStateFunctions.keys():
+			if not d_upStateFunctions[doState](*args,**kws):return False
+			else:
+			    log.debug("'%s' completed: %s"%(mi_module.getShortName(),doState))
+		    else:
+			log.warning("No up state function for: %s"%doState)
+	    elif stateIndex < currentState:#Going down
+		log.debug('down stating...')        
+		l_reverseModuleStates = copy.copy(l_moduleStates)
+		l_reverseModuleStates.reverse()
+		startState = currentState      
+		log.debug(' up stating...')     
+		log.debug("l_reverseModuleStates: %s"%l_reverseModuleStates)
+		log.debug("Starting downState: '%s'"%l_moduleStates[startState])
+		rev_start = l_reverseModuleStates.index( l_moduleStates[startState] )+1
+		rev_end = l_reverseModuleStates.index( l_moduleStates[stateIndex] )+1
+		doStates = l_reverseModuleStates[rev_start:rev_end]
+		log.debug("toDo: %s"%doStates)
+		
+		for doState in doStates:
+		    log.debug("doState: %s"%doState)
+		    if doState in d_downStateFunctions.keys():
+			if not d_downStateFunctions[doState](*args,**kws):return False
+			else:log.debug("'%s': %s"%(mi_module.getShortName(),doState))
+		    else:
+			log.warning("No down state function for: %s"%doState)  
+	    else:
+		log.debug('Forcing recreate')
+		if stateName in d_upStateFunctions.keys():
+		    if not d_upStateFunctions[stateName](*args,**kws):return False
+		    return True
+		    
+    return fncWrap(*args,**kws).go()
 
 def storePose_templateSettings(self):
     """
@@ -1123,7 +1378,6 @@ def storePose_templateSettings(self):
 	return poseDict
     except Exception,error:
 	raise StandardError,"%s >> %s"%(_str_funcName,error)    
-
 
 def readPose_templateSettings(self):
     """
