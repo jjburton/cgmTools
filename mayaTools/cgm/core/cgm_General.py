@@ -63,7 +63,7 @@ class cgmFuncCls(object):
 	self._l_reportMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_d_stepTimes','_l_ARGS_KWS_DEFAULTS',
 	                     '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
-	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask',
+	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                    '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
 	                    '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
@@ -78,14 +78,10 @@ class cgmFuncCls(object):
 	except:self._str_funcArgs = None
 	try:self._str_funcKWs = str(kws)
 	except:self._str_funcKWs = None
-        try:
-            mod = inspect.getmodule(self)
-	    self._str_modPath = inspect.getmodule(self)
-            self._str_mod = '%s' % mod.__name__.split('.')[-1]
-	    self._str_funcCombined = "%s.%s"%(self._str_mod,self._str_funcName)
-        except:self._str_funcCombined = self._str_funcName
+	self._str_funcCombined = self._str_funcName
+	try:self._str_funcName = "%s - from %s"%(self._str_funcName,kws.get('calledFrom'))
+	except:pass
 	self._str_reportStart = " %s >> "%(self._str_funcName)
-	
 	if self._l_ARGS_KWS_DEFAULTS:
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
 		try:self.d_kws[d_buffer['kw']] = args[ i ]#First we try the arg index
@@ -99,10 +95,11 @@ class cgmFuncCls(object):
 	    except Exception,error:raise StandardError,"%s failed to store kw: %s | value: %s | error: %s"%(self._str_reportStart,kw,kws[kw],error)
 	if self._b_WIP or self.d_kws.get('reportShow'):
 	    self.report()
+	    
     def __func__(self,*args,**kws):
 	raise StandardError,"%s No function set"%self._str_reportStart
         
-    def go(self,goTo = '',**kws):
+    def go(self,*args,**kws):
 	"""
 	"""
 	if self.d_kws.get('printHelp'):
@@ -121,7 +118,7 @@ class cgmFuncCls(object):
 	    t1 = time.clock()	    
 	    try:	
 		_str_step = d_step.get('step') or self._str_funcName
-		res = d_step['call']()
+		res = d_step['call'](*args,**kws)
 		if res is not None:
 		    self.d_return[_str_step] = res
 		"""
@@ -129,6 +126,8 @@ class cgmFuncCls(object):
 		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
 		    break"""
 	    except Exception,error:
+		self.getModuleData()
+		
 		log.error(">"*3 + " %s "%self._str_funcCombined + "="*75)
 		log.error("Python Module: %s "%self._str_modPath)	    		    
 		if self._str_funcArgs:log.error(">"*3 + " Args: %s "%self._str_funcArgs)
@@ -156,7 +155,6 @@ class cgmFuncCls(object):
 		if self._b_WIP:
 		    log.error(">"*40 + " WIP CODE " + "<"*40)	
 		log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)))
-		#self.d_return[_str_step] = None	
 		raise StandardError, _str_fail
 	    t2 = time.clock()
 	    _str_time = "%0.3f seconds"%(t2-t1)
@@ -175,6 +173,8 @@ class cgmFuncCls(object):
 	return self.d_return
     
     def report(self):
+	self.getModuleData()
+	
 	log.info(">"*3 + " %s "%self._str_funcCombined + "="*75)
 	log.info("Python Module: %s "%self._str_modPath)	
 	if self.l_funcSteps:log.info(">"*3 + " l_funcSteps: %s "%self.l_funcSteps)	
@@ -247,6 +247,14 @@ class cgmFuncCls(object):
 		except:pass		
 		#l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
 		print("".join(l_tmp))	
+		
+    def getModuleData(self):
+	try:
+	    mod = inspect.getmodule(self)
+	    self._str_modPath = inspect.getmodule(self)
+	    self._str_mod = '%s' % mod.__name__.split('.')[-1]
+	    self._str_funcCombined = "%s.%s"%(self._str_mod,self._str_funcName)
+	except:self._str_funcCombined = self._str_funcName	
 		
 class cgmFunctionClass2(object):
     """Simple class for use with TimerSimple"""
