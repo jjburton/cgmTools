@@ -781,10 +781,10 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Nose','call':self._buildNose_},
-	                        #{'step':'Build Cheek','call':self._buildCheek_},
-	                        #{'step':'Build Temple','call':self._buildTemple_},
-	                        #{'step':'Build midBrow','call':self._buildMidBrow_},
-	                        #{'step':'Build Squash and Stretch','call':self._buildSquashStretch_},
+	                        ##{'step':'Build Cheek','call':self._buildCheek_},
+	                        #{'step':'Build Smile Lines','call':self._buildSmile_},
+	                        #{'step':'Build Jaw','call':self._buildJaw_},
+	                        {'step':'Build Lips','call':self._buildLips_},
 	                        #{'step':'Connect','call':self._connect_}]
 	                        ]
 	    
@@ -818,6 +818,8 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    self.v_aim = cgmValid.simpleAxis(self.str_orientation[0]).p_vector	
 	    self.v_up = cgmValid.simpleAxis(self.str_orientation[1]).p_vector	
 	    self.v_upNegative = cgmValid.simpleAxis(self.str_orientation[1]+"-").p_vector	
+	    self.v_out = cgmValid.simpleAxis(self.str_orientation[2]).p_vector	
+	    self.v_outNegative = cgmValid.simpleAxis(self.str_orientation[2]+"-").p_vector
 	    
 	    #Find our helpers -------------------------------------------------------------------------------------------
 	    self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
@@ -825,12 +827,11 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    
 	    for attr in self.mi_helper.getAttrs(userDefined = True):#Get allof our Helpers
 		if "Helper" in attr:
-		    try:
-			self.__dict__["mi_%s"%attr.replace('Helper','Crv')] = cgmMeta.validateObjArg(self.mi_helper.getMessage(attr),noneValid=False)
-		    except Exception,error:
-			raise StandardError, " Failed to find '%s' | %s"%(attr,error)
+		    try:self.__dict__["mi_%s"%attr.replace('Helper','Crv')] = cgmMeta.validateObjArg(self.mi_helper.getMessage(attr),noneValid=False)
+		    except Exception,error:raise StandardError, " Failed to find '%s' | %s"%(attr,error)
 	    self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=False)
 	    self.str_skullPlate = self.mi_skullPlate.mNode
+	    
 	    #Get some data from helpers --------------------------------------------------------------------------------------
 	    self.int_lipCount = self.mi_helper.lipJoints
 	    self.int_cheekLoftCount = self.mi_helper.cheekLoftCount
@@ -840,7 +841,175 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    
 	    #Running lists ============================================================================================
 	    self.ml_moduleJoints = []
+	    self.md_moduleJoints = {}
 	    return True
+	
+	def _buildJaw_(self):
+	    str_skullPlate = self.str_skullPlate
+	    
+	    try:#jaw Root ==============================================================================================
+		mi_crv = self.mi_jawPivotCrv
+		tag = 'jaw'
+		try:#Create an name -------------------------------------------------------------------------
+		    mi_root = cgmMeta.cgmObject( mc.joint(p = mi_crv.getPosition()),setClass=True )
+		    mi_root.addAttr('cgmName',tag,lock=True)		    			
+		    mi_root.doName()
+		    self.ml_moduleJoints.append(mi_root)
+		    self.md_moduleJoints[tag] = mi_root
+		except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)
+		try:#Aim Constraint -------------------------------------------------------------------------
+		    mi_upLoc = mi_root.doLoc()
+		    mi_aimLoc = mi_root.doLoc()
+		    mi_upLoc.parent = mi_crv
+		    mi_aimLoc.parent = mi_crv
+		    mi_aimLoc.__setattr__("t%s"%self.str_orientation[0],10)
+		    mi_upLoc.__setattr__("t%s"%self.str_orientation[1],10)
+		    mc.delete( mc.aimConstraint(mi_aimLoc.mNode,mi_root.mNode,
+	                                        weight = 1, aimVector = self.v_aim, upVector = self.v_up,
+	                                        worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) )		    
+		    mi_root.parent = self.str_rootJoint
+		    jntUtils.metaFreezeJointOrientation(mi_root)
+		    mc.delete([mi_upLoc.mNode,mi_aimLoc.mNode])
+		except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error) 
+	    except Exception,error:raise StandardError,"jaw root | %s "%(error) 
+	    	    
+	    try:#JawLine ==============================================================================================
+		mi_crv = self.mi_jawLineCrv
+		tag = 'jaw'
+		l_build = [{'direction':'center','minU':None,'maxU':None, 'reverse':False, 'count':1},
+		           {'direction':'left','minU':None,'maxU':.3, 'reverse':False,'count':3},
+	                   {'direction':'right','minU':None,'maxU':.3, 'reverse':True,'count':3}]
+		md_buffer = {}
+		for d in l_build:#First loop creates and stores to runnin md
+		    int_cnt = d['count']
+		    str_direction = d['direction']
+		    md_buffer[str_direction] = []
+		    if int_cnt == 1:
+			l_pos = [crvUtils.getMidPoint(mi_crv.mNode)]
+		    else:
+			l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode, int_cnt, minU = d['minU'], maxU = d['maxU'], reverseCurve = d['reverse'], rebuildForSplit=True)
+		    #log.info("%s l_pos : %s"%(self._str_reportStart, l_pos))
+		    for i,pos in enumerate(l_pos):
+			try:#Create an name -------------------------------------------------------------------------
+			    mc.select(cl=True)
+			    str_mdTag = "%s_%s_%s"%(str_direction,tag,i)
+			    mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+			    mi_jnt.addAttr('cgmName',tag,lock=True)
+			    if str_direction is not None:
+				mi_jnt.addAttr('cgmDirection',str_direction,lock=True)
+			    if int_cnt > 1:
+				mi_jnt.addAttr('cgmIterator',i,lock=True)		    			
+			    mi_jnt.doName()
+			    self.ml_moduleJoints.append(mi_jnt)
+			    self.md_moduleJoints[str_mdTag] = mi_jnt
+			    md_buffer[str_direction].append(mi_jnt)
+			except Exception,error:raise StandardError,"%s create and name fail | %s "%(str_mdTag,error)
+		for d in l_build:#Second loop aims....
+		    str_direction = d['direction']		    
+		    try:#Orienting -------------------------------------------------------------------------
+			str_mirror = False
+			ml_joints = md_buffer[str_direction]
+			
+			if str_direction == 'right':
+			    str_mirror = 'left'
+			    v_aim = self.v_out
+			else:
+			    str_mirror = 'right'
+			    v_aim = self.v_outNegative
+			    
+			#log.info("%s direction: %s"%(self._str_reportStart,str_direction))
+			#log.info("%s joints: %s"%(self._str_reportStart,[mJnt.p_nameShort for mJnt in ml_joints]))			
+			for i,mi_jnt in enumerate(ml_joints):
+			    if str_direction == 'center':
+				mc.delete( mc.normalConstraint(str_skullPlate,mi_jnt.mNode, weight = 1,
+				                               aimVector = self.v_aim, upVector = self.v_up,
+				                               worldUpType = 'scene' ))
+			    else:
+				if mi_jnt == ml_joints[-1]:
+				    mi_aimObj = md_buffer['center'][0]
+				else:mi_aimObj = ml_joints[i+1]
+				mi_upObj = md_buffer[str_mirror][0]
+				#log.info("%s aiming '%s' @ '%s' | up: '%s'"%(self._str_reportStart,mi_jnt.p_nameShort,mi_aimObj.p_nameShort,mi_upObj.p_nameShort))									    
+				mc.delete( mc.aimConstraint(mi_aimObj.mNode, mi_jnt.mNode,
+				                            weight = 1, aimVector = v_aim, upVector = self.v_aimNegative,
+				                            worldUpObject = mi_upObj.mNode, worldUpType = 'object' ) )			    
+			
+			    mi_jnt.parent = mi_root.mNode
+			    jntUtils.metaFreezeJointOrientation(mi_jnt)		    
+		    except Exception,error:raise StandardError,"%s orient fail | %s "%(str_mdTag,error) 
+	    except Exception,error:raise StandardError,"JawLine | %s "%(error) 	    
+	    return True	
+	
+	def _buildLips_(self):
+	    str_skullPlate = self.str_skullPlate
+	    	    	    
+	    try:#Lips ==============================================================================================
+		l_build = [{'tag':'lipUpr','crv':self.mi_lipUprCrv, 'minU':None, 'maxU':None, 'count':self.int_lipCount}]
+		
+		md_buffer = {}
+		for d in l_build:#First loop creates and stores to runnin md
+		    int_cnt = d['count']
+		    tag = d['tag']
+		    md_buffer[tag] = []
+		    mi_crv = d['crv']
+		    if int_cnt == 1:
+			l_pos = [crvUtils.getMidPoint(mi_crv.mNode)]
+		    else:
+			l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode, int_cnt, minU = d['minU'], maxU = d['maxU'], startSplitFactor=.1, rebuildForSplit=True)
+		    #log.info("%s l_pos : %s"%(self._str_reportStart, l_pos))
+		    for i,pos in enumerate(l_pos):
+			try:#Create an name -------------------------------------------------------------------------
+			    mc.select(cl=True)
+			    #str_mdTag = "%s_%s_%s"%(str_direction,tag,i)
+			    mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+			    """
+			    mi_jnt.addAttr('cgmName',tag,lock=True)
+			    if str_direction is not None:
+				mi_jnt.addAttr('cgmDirection',str_direction,lock=True)
+			    if int_cnt > 1:
+				mi_jnt.addAttr('cgmIterator',i,lock=True)		    			
+			    mi_jnt.doName()
+			    
+			    self.ml_moduleJoints.append(mi_jnt)
+			    self.md_moduleJoints[str_mdTag] = mi_jnt
+			    md_buffer[str_direction].append(mi_jnt)"""
+			except Exception,error:raise StandardError,"%s create and name fail | %s "%(str_mdTag,error)
+		return True
+		for d in l_build:#Second loop aims....
+		    str_direction = d['direction']		    
+		    try:#Orienting -------------------------------------------------------------------------
+			str_mirror = False
+			ml_joints = md_buffer[str_direction]
+			
+			if str_direction == 'right':
+			    str_mirror = 'left'
+			    v_aim = self.v_out
+			else:
+			    str_mirror = 'right'
+			    v_aim = self.v_outNegative
+			    
+			#log.info("%s direction: %s"%(self._str_reportStart,str_direction))
+			#log.info("%s joints: %s"%(self._str_reportStart,[mJnt.p_nameShort for mJnt in ml_joints]))			
+			for i,mi_jnt in enumerate(ml_joints):
+			    if str_direction == 'center':
+				mc.delete( mc.normalConstraint(str_skullPlate,mi_jnt.mNode, weight = 1,
+				                               aimVector = self.v_aim, upVector = self.v_up,
+				                               worldUpType = 'scene' ))
+			    else:
+				if mi_jnt == ml_joints[-1]:
+				    mi_aimObj = md_buffer['center'][0]
+				else:mi_aimObj = ml_joints[i+1]
+				mi_upObj = md_buffer[str_mirror][0]
+				#log.info("%s aiming '%s' @ '%s' | up: '%s'"%(self._str_reportStart,mi_jnt.p_nameShort,mi_aimObj.p_nameShort,mi_upObj.p_nameShort))									    
+				mc.delete( mc.aimConstraint(mi_aimObj.mNode, mi_jnt.mNode,
+				                            weight = 1, aimVector = v_aim, upVector = self.v_aimNegative,
+				                            worldUpObject = mi_upObj.mNode, worldUpType = 'object' ) )			    
+			
+			    mi_jnt.parent = mi_root.mNode
+			    jntUtils.metaFreezeJointOrientation(mi_jnt)		    
+		    except Exception,error:raise StandardError,"%s orient fail | %s "%(str_mdTag,error) 
+	    except Exception,error:raise StandardError,"lipLine | %s "%(error) 	    
+	    return True	
 	
 	def _buildNose_(self):
 	    str_skullPlate = self.str_skullPlate
@@ -863,18 +1032,18 @@ def doSkeletonizeMouthNose(*args,**kws):
 		try:#Normal Constraint -------------------------------------------------------------------------
 		    constraintBuffer = mc.normalConstraint(str_skullPlate,mi_root.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
 		    mc.delete(constraintBuffer)
-		    #mi_root.parent = self.str_rootJoint
+		    mi_root.parent = self.str_rootJoint
 		    jntUtils.metaFreezeJointOrientation(mi_root)		    
 		except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error) 
 	    except Exception,error:raise StandardError,"Nose root | %s "%(error) 
 		
-	    try:#Nostril ==============================================================================================
-		mi_crv = self.mi_noseBaseCastCrv
+	    try:#Profile Crv ==============================================================================================
+		mi_crv = self.mi_noseProfileCrv
 		l_components = mi_crv.getComponents('cv')
 		l_build = [{'tag':'noseTop','idx':-1,"aim":self.v_upNegative,
-		            "up":self.v_aim,"target":"noseBase","upTarget":"noseTip"},
-		           {'tag':'underNose','idx':0, "aim":self.v_aimNegative,
-		            "up":self.v_up,"target":"noseBase","upTarget":"noseTip"},
+		            "up":self.v_aim,"target":"skullPlate","upTarget":None},
+		           {'tag':'noseUnder','idx':0, "aim":self.v_aimNegative,
+		            "up":self.v_up,"target":"skullPlate","upTarget":None},
 		           {'tag':'noseTip','idx':2, "aim":self.v_aimNegative,
 		            "up":self.v_up,"target":"noseBase","upTarget":"noseTop"}]
 		for d in l_build:#First loop creates and stores to runnin md
@@ -883,13 +1052,13 @@ def doSkeletonizeMouthNose(*args,**kws):
 			idx = d['idx']
 			str_loc = locators.doLocPos( distance.returnWorldSpacePosition(l_components[idx]) )[0]
 			d_ret = distance.returnNearestPointOnCurveInfo(str_loc,mi_crv.mNode)
-			mc.delete(str_loc)#Delete the joint
-			#log.info(d_ret)
+			mc.delete(str_loc)#Delete the loc
 			mi_jnt = cgmMeta.cgmObject( mc.joint(p = d_ret['position']),setClass=True )
 			mi_jnt.addAttr('cgmName',tag,lock=True)		    			
 			mi_jnt.doName()
 			self.ml_moduleJoints.append(mi_jnt)
-			md_noseBuilt[tag] = mi_jnt		    
+			md_noseBuilt[tag] = mi_jnt
+			self.md_moduleJoints[tag] = mi_jnt			
 		    except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)  
 		for d in l_build:#Second pass aims. Two passes because we're aming at one another
 		    try:#Normal Constraint -------------------------------------------------------------------------
@@ -899,54 +1068,99 @@ def doSkeletonizeMouthNose(*args,**kws):
 			target = d['target']
 			up = d['upTarget']
 			mi_jnt = md_noseBuilt[ tag ]
-			mc.delete( mc.aimConstraint(md_noseBuilt[ target ].mNode,mi_jnt.mNode,
-			                            weight = 1, aimVector = v_aim, upVector = v_up,
-			                            worldUpObject = md_noseBuilt[ up ].mNode, worldUpType = 'object' ) )
+			if target == 'skullPlate':
+			    mc.delete( mc.normalConstraint(str_skullPlate,mi_jnt.mNode, weight = 1,
+			                                   aimVector = self.v_aim, upVector = self.v_up,
+			                                   worldUpType = 'scene' ))
+			else:
+			    mc.delete( mc.aimConstraint(md_noseBuilt[ target ].mNode,mi_jnt.mNode,
+				                        weight = 1, aimVector = v_aim, upVector = v_up,
+				                        worldUpObject = md_noseBuilt[ up ].mNode, worldUpType = 'object' ) )
 			mi_jnt.parent = mi_root.mNode
 			jntUtils.metaFreezeJointOrientation(mi_jnt)		    
 		    except Exception,error:raise StandardError,"%s orient fail | %s "%(tag,error) 
 	    except Exception,error:raise StandardError,"Profile | %s "%(error) 
 	    
-	    '''
-	    try:#Profile Crv ==============================================================================================
-		mi_crv = self.mi_noseProfileCrv
-		l_components = mi_crv.getComponents('cv')
-		l_build = [{'tag':'noseTop','idx':-1,"aim":self.v_upNegative,
-		            "up":self.v_aim,"target":"noseBase","upTarget":"noseTip"},
-		           {'tag':'underNose','idx':0, "aim":self.v_aimNegative,
-		            "up":self.v_up,"target":"noseBase","upTarget":"noseTip"},
-		           {'tag':'noseTip','idx':2, "aim":self.v_aimNegative,
-		            "up":self.v_up,"target":"noseBase","upTarget":"noseTop"}]
+	    try:#Nostril ==============================================================================================
+		mi_crv = self.mi_noseBaseCastCrv
+		int_cnt = self.int_nostrilCount
+		tag = 'nostril'
+		if int_cnt == 1:
+		    l_build = [{'direction':'left','minU':.05,'maxU':.04, 'reverse':False},
+		               {'direction':'right','minU':.05,'maxU':.04, 'reverse':True}]
+		else:
+		    raise NotImplementedError,"Don't know how to deal with more than one nostril joint yet"
+		
 		for d in l_build:#First loop creates and stores to runnin md
-		    try:#Create an name -------------------------------------------------------------------------
-			tag = d['tag']
-			idx = d['idx']
-			str_loc = locators.doLocPos( distance.returnWorldSpacePosition(l_components[idx]) )[0]
-			d_ret = distance.returnNearestPointOnCurveInfo(str_loc,mi_crv.mNode)
-			mc.delete(str_loc)#Delete the joint
-			#log.info(d_ret)
-			mi_jnt = cgmMeta.cgmObject( mc.joint(p = d_ret['position']),setClass=True )
-			mi_jnt.addAttr('cgmName',tag,lock=True)		    			
+		    l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode, int_cnt, minU = .05, maxU = .4, reverseCurve = d['reverse'], rebuildForSplit=True)
+		    #log.info("%s l_pos : %s"%(self._str_reportStart, l_pos))
+		    for i in range(int_cnt):
+			try:#Create an name -------------------------------------------------------------------------
+			    str_direction = d['direction']
+			    str_mdTag = "%s_%s_%s"%(str_direction,tag,i)
+			    mi_jnt = cgmMeta.cgmObject( mc.joint(p = l_pos[i]),setClass=True )
+			    mi_jnt.addAttr('cgmName',tag,lock=True)		    						    
+			    mi_jnt.addAttr('cgmDirection',str_direction,lock=True)
+			    mi_jnt.addAttr('cgmIterator',i,lock=True)		    			
+			    mi_jnt.doName()
+			    self.ml_moduleJoints.append(mi_jnt)
+			    md_noseBuilt[str_mdTag] = mi_jnt
+			    self.md_moduleJoints[str_mdTag] = mi_jnt						    
+			except Exception,error:raise StandardError,"%s create and name fail | %s "%(str_mdTag,error)  
+			try:#Normal Constraint -------------------------------------------------------------------------
+			    mc.delete( mc.aimConstraint(md_noseBuilt[ 'noseBase' ].mNode, mi_jnt.mNode,
+				                        weight = 1, aimVector = self.v_aimNegative, upVector = self.v_up,
+				                        worldUpObject = md_noseBuilt[ 'noseTop' ].mNode, worldUpType = 'object' ) )
+			    mi_jnt.parent = mi_root.mNode
+			    jntUtils.metaFreezeJointOrientation(mi_jnt)		    
+			except Exception,error:raise StandardError,"%s orient fail | %s "%(str_mdTag,error) 
+	    except Exception,error:raise StandardError,"Nostril | %s "%(error) 	    
+	    
+	    self.md_noseBuilt = md_noseBuilt
+	    return True
+	
+	def _buildSmile_(self):
+	    md_smileBuilt = {} #We're gonna use this as a running list 
+	    self.md_smileBuilt = md_smileBuilt#link it
+	    d_buildCurves = {'left':{'crv':self.mi_smileLeftCrv},
+		             'right':{'crv':self.mi_smileRightCrv}}	
+	    
+	    #Get some statics
+	    int_count = 5	    
+	    str_skullPlate = self.str_skullPlate
+	    			
+	    for k in d_buildCurves.keys():#Make our left and right joints
+		mi_crv = d_buildCurves[k].get('crv')#get instance
+		#log.info("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
+		#Get our l_pos on which to build the joints ------------------------------------------------------------
+		try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count, rebuildSpans=10)
+		except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)  
+		
+		d_buildCurves[k]['l_pos'] = l_pos#Store it
+		#log.info("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
+		ml_cheekJoints = []
+		for i,pos in enumerate(l_pos):
+		    try:#Create and name -----------------------------------------------------------------------------------------------
+			mc.select(cl=True)
+			mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+			mi_jnt.parent = False
+			mi_jnt.addAttr('cgmName',"smile",lock=True)		    			
+			mi_jnt.addAttr('cgmDirection',"%s"%(k),lock=True)		    
+			mi_jnt.addAttr('cgmIterator',i,lock=True,hidden=True)			
 			mi_jnt.doName()
 			self.ml_moduleJoints.append(mi_jnt)
-			md_noseBuilt[tag] = mi_jnt		    
-		    except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)  
-		for d in l_build:#Second pass aims. Two passes because we're aming at one another
-		    try:#Normal Constraint -------------------------------------------------------------------------
-			tag = d['tag']
-			v_aim = d['aim']
-			v_up = d['up']
-			target = d['target']
-			up = d['upTarget']
-			mi_jnt = md_noseBuilt[ tag ]
-			mc.delete( mc.aimConstraint(md_noseBuilt[ target ].mNode,mi_jnt.mNode,
-			                            weight = 1, aimVector = v_aim, upVector = v_up,
-			                            worldUpObject = md_noseBuilt[ up ].mNode, worldUpType = 'object' ) )
-			mi_jnt.parent = mi_root.mNode
-			jntUtils.metaFreezeJointOrientation(mi_jnt)		    
-		    except Exception,error:raise StandardError,"%s orient fail | %s "%(tag,error) 
-	    except Exception,error:raise StandardError,"Profile | %s "%(error) 
-	    '''    
+			#log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_cheekJoints]))
+		    except Exception,error:
+			raise StandardError,"curve: %s | pos count: %s | error: %s "%(k,i,error)       
+		    try:#Orient -----------------------------------------------------------------------------------------------
+			mc.delete( mc.normalConstraint(str_skullPlate,mi_jnt.mNode, weight = 1,
+			                               aimVector = self.v_aim, upVector = self.v_up,
+			                               worldUpType = 'scene' ))
+			mi_jnt.parent = self.str_rootJoint
+		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Constraint fail | error: %s "%(k,i,error)       
+		    try:#Freeze -----------------------------------------------------------------------------------------------
+			jntUtils.metaFreezeJointOrientation(mi_jnt)
+		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       		
 	    return True
 	
 	def _buildSquashStretch_(self): 
@@ -995,84 +1209,6 @@ def doSkeletonizeMouthNose(*args,**kws):
 		
 	    return True
 	
-	def _buildMidBrow_(self): 	    
-	    d_buildCurves = {'left':{'crv':self.mi_leftTempleCrv},
-		             'right':{'crv':self.mi_rightTempleCrv}}	
-	    
-	    self.d_midBuild = d_buildCurves
-	    
-	    #We need to find the middle point between 
-	    l_leftCV = self.mi_leftBrowCrv.getComponents('cv')
-	    l_rightCV = self.mi_rightBrowCrv.getComponents('cv')
-	    pos = distance.returnAveragePointPosition( [mc.pointPosition(l_leftCV[0],w=True),mc.pointPosition(l_rightCV[0],w=True)] )
-	    
-	    try:#Create and name
-		mc.select(cl=True)
-		mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
-		mi_jnt.parent = False
-		mi_jnt.addAttr('cgmName',"brow",lock=True)
-		mi_jnt.addAttr('cgmDirection',"center",lock=True)		    					
-		mi_jnt.doName()
-		#log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_templeJoints]))
-	    except Exception,error:
-		raise StandardError,"error: %s "%(error)       
-	    try:#Orient
-		constraintBuffer = mc.normalConstraint(self.l_targetMesh[0],mi_jnt.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
-		mc.delete(constraintBuffer)
-		mi_jnt.parent = self.str_rootJoint
-	    except Exception,error:raise StandardError,"error: %s "%(error)       
-	  
-	    jntUtils.metaFreezeJointOrientation(mi_jnt)	  
-	    
-	    self.ml_moduleJoints.append(mi_jnt)
-	    d_buildCurves['ml_joints'] = [mi_jnt] #nested list
-	    #self.mi_go._mi_rigNull.msgList_connect(mi_jnt,'moduleCenterBrowJoints','rigNull')#Connect
-	    
-	    return True
-		
-	def _buildBrow_(self): 	    
-	    d_buildCurves = {'left':{'crv':self.mi_leftBrowCrv},
-		             'right':{'crv':self.mi_rightBrowCrv}}	    
-	    self.d_browCurveBuild = d_buildCurves
-	    
-	    for k in d_buildCurves.keys():#Make our left and right joints
-		mi_crv = d_buildCurves[k].get('crv')#get instance
-		int_count = self.int_browJointsCnt#get int
-		log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
-		try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
-		except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)       
-		d_buildCurves[k]['l_pos'] = l_pos#Store it
-		log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
-		l_jointBuffer = []
-		ml_endJoints = []
-		ml_browJoints = []
-		for i,pos in enumerate(l_pos):
-		    try:#Create and name
-			mc.select(cl=True)
-			mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
-			mi_jnt.parent = False
-			mi_jnt.addAttr('cgmName',"brow",lock=True)		    			
-			mi_jnt.addAttr('cgmDirection',"%s"%(k),lock=True)		    
-			mi_jnt.addAttr('cgmIterator',i,lock=True,hidden=True)			
-			mi_jnt.doName()
-			l_jointBuffer.append(mi_jnt)
-			ml_browJoints.append(mi_jnt)
-			#log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_browJoints]))
-		    except Exception,error:
-			raise StandardError,"curve: %s | pos count: %s | error: %s "%(k,i,error)       
-		    try:#Orient
-			constraintBuffer = mc.normalConstraint(self.l_targetMesh[0],mi_jnt.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
-			mc.delete(constraintBuffer)
-			mi_jnt.parent = self.str_rootJoint
-		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Constraint fail | error: %s "%(k,i,error)       
-		    try:#freeze
-			jntUtils.metaFreezeJointOrientation(mi_jnt)
-		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       
-		d_buildCurves[k]['ml_joints'] = ml_browJoints #nested list
-		#self.mi_go._mi_rigNull.msgList_connect(ml_browJoints,'moduleBrowJoints_%s'%k,'rigNull')
-		self.ml_moduleJoints.extend(ml_browJoints)
-	    
-	    return True
 	
 	def _buildCheek_(self): 
 	    if not self.mi_helper.buildUprCheek:
