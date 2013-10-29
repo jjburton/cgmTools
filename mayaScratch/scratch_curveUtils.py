@@ -52,6 +52,9 @@ crvUtils.mirrorCurve(baseCrv,mirrorAcross='y')
 #=======================================================
 reload(crvUtils)
 crv = 'upper_l_lip_crv_mirrored4'
-crvUtils.returnSplitCurveList(crv,8,markPoints=True,rebuildForSplit=True)
+crv = 'noseBaseCast_1_rigHelper'
+crvUtils.returnSplitCurveList(crv,5,minU = .3, markPoints=True,rebuildForSplit=True)
+
+crvUtils.returnSplitCurveList(crv,1,markPoints=True,rebuildForSplit=True)
 crvUtils.returnSplitCurveList(crv,5,markPoints=True,rebuildForSplit=True,insetSplitFactor=.01)
 crvUtils.returnSplitCurveList(crv,8,markPoints=True,rebuildForSplit=True,startSplitFactor=.3)

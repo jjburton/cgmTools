@@ -73,7 +73,7 @@ mFactory.log.setLevel(mFactory.logging.DEBUG)
 import cgm.core
 cgm.core._reload()
 a = cgmPM.cgmMouthNoseBlock(reportTimes = True)
-a = cgmPM.cgmMouthNoseBlock('mouthNose_rigHelper')
+a = cgmPM.cgmMouthNoseBlock('mouthNose_1_rigHelper')
 m1  = a.__verifyModule__()
 a = cgmPM.cgmMouthNose()
 
