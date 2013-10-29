@@ -780,13 +780,13 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    self._str_funcName = 'doSkeletonizeMouthNose(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-	                        #{'step':'Build Nose','call':self._buildNose_},
-	                        #{'step':'Build UprCheek','call':self._buildUprCheek_},
+	                        {'step':'Build Nose','call':self._buildNose_},
+	                        {'step':'Build UprCheek','call':self._buildUprCheek_},
 	                        {'step':'Build Cheek','call':self._buildCheek_},	                        
-	                        #{'step':'Build Smile Lines','call':self._buildSmile_},
-	                        #{'step':'Build Jaw','call':self._buildJaw_},
-	                        #{'step':'Build Lips','call':self._buildLips_},
-	                        #{'step':'Build Tongue','call':self._buildTongue_},	                        
+	                        {'step':'Build Smile Lines','call':self._buildSmile_},
+	                        {'step':'Build Jaw','call':self._buildJaw_},
+	                        {'step':'Build Lips','call':self._buildLips_},
+	                        {'step':'Build Tongue','call':self._buildTongue_},	                        
 	                        {'step':'Connect','call':self._connect_}]
 	                        
 	    
@@ -891,7 +891,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 			l_pos = [crvUtils.getMidPoint(mi_crv.mNode)]
 		    else:
 			l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode, int_cnt, minU = d['minU'], maxU = d['maxU'], reverseCurve = d['reverse'], rebuildForSplit=True)
-		    #log.info("%s l_pos : %s"%(self._str_reportStart, l_pos))
+		    ##log.info("%s l_pos : %s"%(self._str_reportStart, l_pos))
 		    for i,pos in enumerate(l_pos):
 			try:#Create an name -------------------------------------------------------------------------
 			    mc.select(cl=True)
@@ -907,6 +907,10 @@ def doSkeletonizeMouthNose(*args,**kws):
 			    self.md_moduleJoints[str_mdTag] = mi_jnt
 			    md_buffer[str_direction].append(mi_jnt)
 			except Exception,error:raise StandardError,"%s create and name fail | %s "%(str_mdTag,error)
+			try:#Snap
+			    Snap.go(mi_jnt,self.str_skullPlate,snapToSurface=True)	
+			except Exception,error:
+			    raise StandardError,"snap to mesh | pos count: %s | error: %s "%(k,i,error)       		
 		for d in l_build:#Second loop aims....
 		    str_direction = d['direction']		    
 		    try:#Orienting -------------------------------------------------------------------------
@@ -920,8 +924,8 @@ def doSkeletonizeMouthNose(*args,**kws):
 			    str_mirror = 'right'
 			    v_aim = self.v_outNegative
 			    
-			#log.info("%s direction: %s"%(self._str_reportStart,str_direction))
-			#log.info("%s joints: %s"%(self._str_reportStart,[mJnt.p_nameShort for mJnt in ml_joints]))			
+			##log.info("%s direction: %s"%(self._str_reportStart,str_direction))
+			##log.info("%s joints: %s"%(self._str_reportStart,[mJnt.p_nameShort for mJnt in ml_joints]))			
 			for i,mi_jnt in enumerate(ml_joints):
 			    if str_direction == 'center':
 				mc.delete( mc.normalConstraint(str_skullPlate,mi_jnt.mNode, weight = 1,
@@ -932,7 +936,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 				    mi_aimObj = md_buffer['center'][0]
 				else:mi_aimObj = ml_joints[i+1]
 				mi_upObj = md_buffer[str_mirror][0]
-				#log.info("%s aiming '%s' @ '%s' | up: '%s'"%(self._str_reportStart,mi_jnt.p_nameShort,mi_aimObj.p_nameShort,mi_upObj.p_nameShort))									    
+				##log.info("%s aiming '%s' @ '%s' | up: '%s'"%(self._str_reportStart,mi_jnt.p_nameShort,mi_aimObj.p_nameShort,mi_upObj.p_nameShort))									    
 				mc.delete( mc.aimConstraint(mi_aimObj.mNode, mi_jnt.mNode,
 				                            weight = 1, aimVector = v_aim, upVector = self.v_aimNegative,
 				                            worldUpObject = mi_upObj.mNode, worldUpType = 'object' ) )			    
@@ -982,7 +986,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 		md_sides = {}		    
 		tag = d['tag']		    
 		ml_buffer = md_buffer[tag]['ml_list']
-		##log.info("%s %s >> %s"%(self._str_reportStart,tag,ml_buffer))		    
+		###log.info("%s %s >> %s"%(self._str_reportStart,tag,ml_buffer))		    
 		try:#Split ----------------------------------------------------------------------------------
 		    #We need to split our list
 		    int_len = len(ml_buffer)
@@ -1011,7 +1015,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 		for k in md_sides.keys():
 		    ml_side = md_sides[k]
 		    int_len = len(ml_side)
-		    ##log.info("%s | %s >> %s"%(tag,k,int_len))
+		    ###log.info("%s | %s >> %s"%(tag,k,int_len))
 		    if 'left' in k:str_direction = 'left'
 		    elif 'right' in k:str_direction = 'right'
 		    else: str_direction = 'center'
@@ -1053,7 +1057,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 				mi_upLoc.__setattr__("t%s"%self.str_orientation[1],10)
 				mi_upLoc.parent = False
 				#aim....
-				##log.info("%s aiming '%s' @ '%s' | up: '%s'"%(self._str_reportStart,mi_jnt.p_nameShort,mi_aimObj.p_nameShort,mi_upLoc.p_nameShort))									    				    
+				###log.info("%s aiming '%s' @ '%s' | up: '%s'"%(self._str_reportStart,mi_jnt.p_nameShort,mi_aimObj.p_nameShort,mi_upLoc.p_nameShort))									    				    
 				mc.delete( mc.aimConstraint(mi_aimObj.mNode, mi_jnt.mNode,
 			                                    weight = 1, aimVector = v_aim, upVector = self.v_up,
 			                                    worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) )
@@ -1147,7 +1151,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 		
 		for d in l_build:#First loop creates and stores to runnin md
 		    l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode, int_cnt, minU = .05, maxU = .4, reverseCurve = d['reverse'], rebuildForSplit=True)
-		    #log.info("%s l_pos : %s"%(self._str_reportStart, l_pos))
+		    ##log.info("%s l_pos : %s"%(self._str_reportStart, l_pos))
 		    for i in range(int_cnt):
 			try:#Create an name -------------------------------------------------------------------------
 			    str_direction = d['direction']
@@ -1185,13 +1189,13 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    			
 	    for k in d_buildCurves.keys():#Make our left and right joints
 		mi_crv = d_buildCurves[k].get('crv')#get instance
-		#log.info("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
+		##log.info("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
 		#Get our l_pos on which to build the joints ------------------------------------------------------------
 		try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count, rebuildSpans=10)
 		except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)  
 		
 		d_buildCurves[k]['l_pos'] = l_pos#Store it
-		#log.info("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
+		##log.info("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
 		ml_cheekJoints = []
 		for i,pos in enumerate(l_pos):
 		    try:#Create and name -----------------------------------------------------------------------------------------------
@@ -1203,9 +1207,15 @@ def doSkeletonizeMouthNose(*args,**kws):
 			mi_jnt.addAttr('cgmIterator',i,lock=True,hidden=True)			
 			mi_jnt.doName()
 			self.ml_moduleJoints.append(mi_jnt)
-			#log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_cheekJoints]))
+			##log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_cheekJoints]))
 		    except Exception,error:
 			raise StandardError,"curve: %s | pos count: %s | error: %s "%(k,i,error)       
+		    
+		    #try:#Snap
+			#Snap.go(mi_jnt,self.str_skullPlate,snapToSurface=True)	
+		    #except Exception,error:
+			#raise StandardError,"snap to mesh | pos count: %s | error: %s "%(k,i,error)       
+		    
 		    try:#Orient -----------------------------------------------------------------------------------------------
 			mc.delete( mc.normalConstraint(str_skullPlate,mi_jnt.mNode, weight = 1,
 			                               aimVector = self.v_aim, upVector = self.v_up,
@@ -1227,11 +1237,11 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    mi_crv = self.mi_tongueCrv#get instance	    
 	    str_squashStart = self.mi_squashStartCrv.mNode
 	    
-	    #log.info("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
+	    ##log.info("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
 	    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode, int_count, rebuildSpans=10)
 	    except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)  
 	    
-	    #log.info("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
+	    ##log.info("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
 	    ml_tongueJoints = []
 	    int_last = len(l_pos)-1
 	    for i,pos in enumerate(l_pos):
@@ -1243,7 +1253,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 		    mi_jnt.doName()
 		    self.ml_moduleJoints.append(mi_jnt)
 		    ml_tongueJoints.append(mi_jnt)
-		    #log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_tongueJoints]))
+		    ##log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_tongueJoints]))
 		except Exception,error:
 		    raise StandardError,"pos count: %s | error: %s "%(i,error)       
 	    for i,mi_jnt in enumerate(ml_tongueJoints):
@@ -1271,7 +1281,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 	
 	def _buildUprCheek_(self): 
 	    if not self.mi_helper.buildUprCheek:
-		log.info("%s >>> Build upr cheek toggle: off"%(self._str_reportStart))
+		#log.info("%s >>> Build upr cheek toggle: off"%(self._str_reportStart))
 		return True
 
 	    d_buildCurves = {'left':{'crv':self.mi_leftUprCheekCrv},
@@ -1305,7 +1315,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 			l_jointBuffer.append(mi_jnt)
 			ml_cheekJoints.append(mi_jnt)
 			self.ml_moduleJoints.append(mi_jnt)			
-			#log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_cheekJoints]))
+			##log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_cheekJoints]))
 		    except Exception,error:
 			raise StandardError,"curve: %s | pos count: %s | error: %s "%(k,i,error)       
 		    try:#Orient
@@ -1322,7 +1332,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 	
 	def _buildCheek_(self): 
 	    if not self.mi_helper.buildCheek:
-		log.info("%s >>> Build cheek toggle: off"%(self._str_reportStart))
+		#log.info("%s >>> Build cheek toggle: off"%(self._str_reportStart))
 		return True
 	    int_jointCnt = self.int_cheekCount
 	    int_loftCnt = self.int_cheekLoftCount
@@ -1330,19 +1340,44 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    d_buildCurves = {'left':{'uprCrv':self.mi_leftUprCheekCrv,'maxU':.35,'reverseCurve' : False},
 	                     'right':{'uprCrv':self.mi_rightUprCheekCrv,'maxU':.35,'reverseCurve' : True}}	
 	    self.d_cheekCurveBuild = d_buildCurves
-	    
+	    l_posList = []
 	    for k in d_buildCurves.keys():#Make our left and right joints
-		mi_crv = d_buildCurves[k].get('crv')#get instance
-		int_count = self.int_uprCheekCount#get int
-		log.debug("%s >>> building joints for %s curve | count: %s"%(self._str_reportStart,k, int_count))
+		d_buffer = d_buildCurves[k]
+		mi_uprCrv = d_buildCurves[k].get('uprCrv')#get instance
+		#log.info("%s >>> building joints for %s curve | lofts: %s | count: %s"%(self._str_reportStart,k, int_loftCnt, int_jointCnt))
+		
 		#Get our l_pos on which to build the joints ------------------------------------------------------------
-		if int_count == 1:
-		    l_pos = [ mc.pointPosition(mi_crv.getComponents('cv')[0], w = True)]
-		else:
-		    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
-		    except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(self._str_reportStart,error)       
+		#try:l_posUpr = crvUtils.returnSplitCurveList(mi_uprCrv.mNode,int_jointCnt,rebuildSpans=10)
+		#except Exception,error:raise StandardError,"upr split fail | error: %s "%(error) 
+		
+		try:l_posLwr = crvUtils.returnSplitCurveList(self.mi_jawLineCrv.mNode,int_jointCnt,rebuildSpans=10, maxU = d_buffer['maxU'], reverseCurve = d_buffer['reverseCurve'] )
+		except Exception,error:raise StandardError,"lwr split fail | error: %s "%(error)   
+		
+		str_lwrCurve = mc.curve (d=1, p = l_posLwr , os=True)
+		str_loft = mc.loft([mi_uprCrv.mNode,str_lwrCurve],uniform = True,degree = 1,ss = 1)[0]
+		
+		try:#loft split
+		    str_bufferUV = mc.ls("%s.u[*][*]"%str_loft)[0]
+		    log.debug("%s >> u list : %s"%(self._str_reportStart,str_bufferUV))       		
+		    l_splitBuffer = str_bufferUV.split('][')
+		    str_bufferU  = l_splitBuffer[0]
+		    str_bufferV = l_splitBuffer[1]
+		    f_maxU = float(str_bufferU.split(':')[-1])
+		    f_maxV = float(str_bufferV.split(':')[-1].split(']')[0])
+		    log.debug("maxU : %s | maxV: %s"%(f_maxU,f_maxV))
+		    
+		    l_uValues = cgmMath.returnSplitValueList(0,f_maxU,1)
+		    l_vValues = cgmMath.returnSplitValueList(0,f_maxV*.8,int_jointCnt)
+		    #log.info("l_uValues : %s "%(l_uValues))
+		    #log.info("l_vValues : %s "%(l_vValues))
+		    l_pos = []
+		    for v in l_vValues:
+			l_pos.append(mc.pointPosition("%s.uv[%s][%s]"%(str_loft,l_uValues[0],v)))
+		    mc.delete(str_loft,str_lwrCurve)
+		except Exception,error:raise StandardError,"loft split fail | error: %s "%(error)   
+		
 		d_buildCurves[k]['l_pos'] = l_pos#Store it
-		log.debug("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
+		#log.info("%s >>> '%s' pos list: %s"%(self._str_reportStart,k, l_pos))
 		l_jointBuffer = []
 		ml_endJoints = []
 		ml_cheekJoints = []
@@ -1351,16 +1386,21 @@ def doSkeletonizeMouthNose(*args,**kws):
 			mc.select(cl=True)
 			mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
 			mi_jnt.parent = False
-			mi_jnt.addAttr('cgmName',"uprCheek",lock=True)		    			
+			mi_jnt.addAttr('cgmName',"cheek",lock=True)		    			
 			mi_jnt.addAttr('cgmDirection',"%s"%(k),lock=True)		    
 			mi_jnt.addAttr('cgmIterator',i,lock=True,hidden=True)			
 			mi_jnt.doName()
 			l_jointBuffer.append(mi_jnt)
 			ml_cheekJoints.append(mi_jnt)
 			self.ml_moduleJoints.append(mi_jnt)			
-			#log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_cheekJoints]))
+			##log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_cheekJoints]))
 		    except Exception,error:
 			raise StandardError,"curve: %s | pos count: %s | error: %s "%(k,i,error)       
+		    try:#Snap
+			Snap.go(mi_jnt,self.str_skullPlate,snapToSurface=True)	
+		    except Exception,error:
+			raise StandardError,"snap to mesh | pos count: %s | error: %s "%(k,i,error)       
+		    
 		    try:#Orient
 			constraintBuffer = mc.normalConstraint(self.str_skullPlate,mi_jnt.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
 			mc.delete(constraintBuffer)
@@ -1370,13 +1410,12 @@ def doSkeletonizeMouthNose(*args,**kws):
 			jntUtils.metaFreezeJointOrientation(mi_jnt)
 		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       
 		d_buildCurves[k]['ml_joints'] = ml_cheekJoints #nested list
-		self.ml_moduleJoints.extend(ml_cheekJoints)
 	    return True
 		
 	def _connect_(self): 
 	    log.info("%s len - %s"%(self._str_reportStart,len(self.ml_moduleJoints)))	    
-	    for mi_jnt in self.ml_moduleJoints:
-		log.info("%s '%s'"%(self._str_reportStart,mi_jnt.p_nameShort))
+	    #for mi_jnt in self.ml_moduleJoints:
+		#log.info("'%s'"%(mi_jnt.p_nameShort))
 	    self.mi_go._mi_rigNull.msgList_connect(self.ml_moduleJoints,'moduleJoints','rigNull')
 	    return True
  	    	
