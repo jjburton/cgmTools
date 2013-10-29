@@ -1001,14 +1001,14 @@ def returnExpectedJointCount(*args,**kws):
 	    mi_module = self.mi_module
 	    kws = self.d_kws
 	    
-	    handles = self.templateNull.handles
+	    handles = mi_module.templateNull.handles
 	    if handles == 0:
 		log.warning("%s Can't count expected joints. 0 handles: '%s'"%self._str_reportStart)
 		return False
 	    
-	    if self.templateNull.getAttr('rollJoints'):
-		rollJoints = self.templateNull.rollJoints 
-		d_rollJointOverride = self.templateNull.rollOverride 
+	    if mi_module.templateNull.getAttr('rollJoints'):
+		rollJoints = mi_module.templateNull.rollJoints 
+		d_rollJointOverride = mi_module.templateNull.rollOverride 
 		
 		l_spanDivs = []
 		for i in range(0,handles-1):
@@ -1029,7 +1029,7 @@ def returnExpectedJointCount(*args,**kws):
 		int_count+=1#add the last handle back
 		return int_count
 	    else:
-		return self.templateNull.handles
+		return mi_module.templateNull.handles
     return fncWrap(*args,**kws).go()
 
 #=====================================================================================================
