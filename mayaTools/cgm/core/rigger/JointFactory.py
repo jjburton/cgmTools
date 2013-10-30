@@ -874,7 +874,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 		    jntUtils.metaFreezeJointOrientation(mi_root)
 		    mc.delete([mi_upLoc.mNode,mi_aimLoc.mNode])
 		except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error) 
-		self.mi_go._mi_rigNull.connectChildNode(mi_root,'jawJoint')		
+		self.mi_go._mi_rigNull.msgList_connect(mi_root,'jawJoint')		
 	    except Exception,error:raise StandardError,"jaw root | %s "%(error) 
 	    	    
 	    try:#JawLine ==============================================================================================
@@ -1010,8 +1010,8 @@ def doSkeletonizeMouthNose(*args,**kws):
 			    md_sides['rightCorner'] = [ml_buffer[-1]]	
 			    self.md_moduleJoints['leftLipCorner'] = ml_buffer[0]
 			    self.md_moduleJoints['rightLipCorner'] = ml_buffer[-1] 
-			    self.mi_go._mi_rigNull.connectChildNode(ml_buffer[0],"left_lipCornerJoint")			    			    
-			    self.mi_go._mi_rigNull.connectChildNode(ml_buffer[-1],"right_lipCornerJoint")			    			    
+			    self.mi_go._mi_rigNull.msgList_connect(ml_buffer[0],"left_lipCornerJoint")			    			    
+			    self.mi_go._mi_rigNull.msgList_connect(ml_buffer[-1],"right_lipCornerJoint")			    			    
 			else:
 			    md_sides['left'] = ml_buffer[:int_mid]
 			    md_sides['center'] = [ml_buffer[int_mid]]			
@@ -1034,6 +1034,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 		    
 		    #md_jointsToDirection = []
 		    for i,mi_jnt in enumerate(ml_side):
+			int_last = len(ml_side)-1			
 			l_tagBuild = [str_direction,mi_jnt.cgmName]#Need to build our storage tag
 			if 'left' in k:
 			    mi_jnt.addAttr('cgmDirection','left',lock=True)
@@ -1048,33 +1049,57 @@ def doSkeletonizeMouthNose(*args,**kws):
 			
 			str_mdTag = "_".join(l_tagBuild)
 			self.md_moduleJoints[str_mdTag] = mi_jnt#Store to our module joint running list
-			
 			try:#>>> Orient -----------------------------------------------------------------------
-			    if str_direction == 'right': v_aim = self.v_outNegative
-			    else: v_aim = self.v_out
+			    if str_direction == 'right':
+				v_aimIn = self.v_out
+				v_aimOut = self.v_outNegative				
+			    else:
+				v_aimIn = self.v_outNegative
+				v_aimOut = self.v_out					
 				
 			    #First we contrain to the skill plate for our intial orientation
 			    mc.delete( mc.normalConstraint(str_skullPlate,mi_jnt.mNode, weight = 1,
 			                                   aimVector = self.v_aim, upVector = self.v_up,
 			                                   worldUpType = 'scene' ))
 			    
-			    #Then we're gonna do a more careful aim
+			    #Then we're gonna do a more careful aim with a blend
 			    if str_direction != 'center' and 'Corner' not in mi_jnt.cgmName and tag not in ['lipOver','lipUnder']:
 				if i == 0:
-				    mi_aimObj = self.md_moduleJoints[str_direction+'LipCorner']				
-				else:mi_aimObj = ml_side[i-1]
+				    mi_aimOut = self.md_moduleJoints[str_direction+'LipCorner']	
+				    mi_aimIn = ml_side[i+1]
+				elif i == int_last:
+				    mi_aimOut = ml_side[i-1]
+				    mi_aimIn = md_sides['center'][0]			    
+				else:
+				    mi_aimOut = ml_side[i-1]
+				    mi_aimIn = ml_side[i+1]
+				    
 				#up loc ------------------------------------------------------------------------
 				mi_upLoc = mi_jnt.doLoc()
 				mi_upLoc.parent = mi_jnt
 				mi_upLoc.__setattr__("t%s"%self.str_orientation[1],10)
 				mi_upLoc.parent = False
+				
+				mi_locIn = mi_jnt.doLoc()
+				mi_locOut = mi_jnt.doLoc()
+				
+				mc.delete( mc.aimConstraint(mi_aimIn.mNode, mi_locIn.mNode,
+			                                    weight = 1, aimVector = v_aimIn, upVector = self.v_up,
+			                                    worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) )	
+				mc.delete( mc.aimConstraint(mi_aimOut.mNode, mi_locOut.mNode,
+			                                    weight = 1, aimVector = v_aimOut, upVector = self.v_up,
+			                                    worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) )
+				mc.delete( mc.orientConstraint([mi_locIn.mNode,mi_locOut.mNode], mi_jnt.mNode,
+			                                       weight = 1) )
+				mc.delete([mi_locIn.mNode,mi_locOut.mNode,mi_upLoc.mNode])
+				'''
 				#aim....
 				###log.info("%s aiming '%s' @ '%s' | up: '%s'"%(self._str_reportStart,mi_jnt.p_nameShort,mi_aimObj.p_nameShort,mi_upLoc.p_nameShort))									    				    
 				mc.delete( mc.aimConstraint(mi_aimObj.mNode, mi_jnt.mNode,
 			                                    weight = 1, aimVector = v_aim, upVector = self.v_up,
 			                                    worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) )
 				mi_upLoc.delete()
-			
+				'''
 			    mi_jnt.parent = d['parent']
 			    jntUtils.metaFreezeJointOrientation(mi_jnt)		    
 			except Exception,error:raise StandardError,"%s (%s) orient fail | %s "%(str_mdTag,mi_jnt.p_nameShort,error) 			    
@@ -1097,7 +1122,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 		    mi_root.doName()
 		    self.ml_moduleJoints.append(mi_root)
 		    md_noseBuilt[tag] = mi_root
-		    self.mi_go._mi_rigNull.connectChildNode(mi_root,"%sJoint"%(tag))				    
+		    self.mi_go._mi_rigNull.msgList_connect(mi_root,"%sJoint"%(tag))				    
 		except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)
 		try:#Normal Constraint -------------------------------------------------------------------------
 		    constraintBuffer = mc.normalConstraint(str_skullPlate,mi_root.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
@@ -1130,7 +1155,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 			md_noseBuilt[tag] = mi_jnt
 			self.md_moduleJoints[tag] = mi_jnt
 			#Store it...
-			self.mi_go._mi_rigNull.connectChildNode(mi_jnt,"%sJoint"%(tag))		
+			self.mi_go._mi_rigNull.msgList_connect(mi_jnt,"%sJoint"%(tag))		
 		    except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)  
 		for d in l_build:#Second pass aims. Two passes because we're aming at one another
 		    try:#Normal Constraint -------------------------------------------------------------------------
@@ -1159,8 +1184,8 @@ def doSkeletonizeMouthNose(*args,**kws):
 		int_cnt = self.int_nostrilCount
 		tag = 'nostril'
 		if int_cnt == 1:
-		    l_build = [{'direction':'left','minU':.05,'maxU':.04, 'reverse':False},
-		               {'direction':'right','minU':.05,'maxU':.04, 'reverse':True}]
+		    l_build = [{'direction':'left','minU':.05,'maxU':.4, 'reverse':False},
+		               {'direction':'right','minU':.05,'maxU':.4, 'reverse':True}]
 		else:
 		    raise NotImplementedError,"Don't know how to deal with more than one nostril joint yet"
 		
