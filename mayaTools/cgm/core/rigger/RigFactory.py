@@ -33,7 +33,7 @@ reload(mControlFactory)
 from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)
-from cgm.core.rigger.lib.Face import (eyeball,eyelids,eyebrow)
+from cgm.core.rigger.lib.Face import (eyeball,eyelids,eyebrow,mouthNose)
 
 from cgm.lib import (cgmMath,
                      attributes,
@@ -53,7 +53,7 @@ from cgm.lib import (cgmMath,
                      )
 reload(rigging)
 l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball']
-__l_faceModules__ = ['eyebrow','eyelids','eyeball']
+__l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthnose']
 #l_modulesDone = []
 #>>> Register rig functions
 #=====================================================================
@@ -66,6 +66,7 @@ d_moduleTypeToBuildModule = {'leg':leg,
                              'thumb':finger,
                              'eyeball':eyeball,
                              'eyebrow':eyebrow,
+                             'mouthnose':mouthNose,
                              'eyelids':eyelids,
                             } 
 for module in d_moduleTypeToBuildModule.keys():
@@ -358,7 +359,11 @@ class go(object):
 	    mi_end = self._i_module.moduleParent.rigNull.msgList_get('moduleJoints')[-1]
 	    buffer =  mi_end.getMessage('scaleJoint')
 	    if buffer:
-		self.str_faceAttachJoint = buffer[0]
+		buffer2 =  mi_end.scaleJoint.getMessage('rigJoint')
+		if buffer2:
+		    self.str_faceAttachJoint = buffer2[0]
+		else:
+		    self.str_faceAttachJoint = buffer[0]
 	    else:
 		self.str_faceAttachJoint = mi_end.mNode
 	except Exception,error:
@@ -623,20 +628,18 @@ class go(object):
 		mc.delete(l_rigJointsExist)
 		
 	    l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in self._ml_skinJoints],po=True,ic=True,rc=True)
-	    ml_rigJoints = []
-	    for i,j in enumerate(l_rigJoints):
-		i_j = cgmMeta.cgmObject(j)
-		i_j.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
-		i_j.doName()
-		l_rigJoints[i] = i_j.mNode
-		ml_rigJoints.append(i_j)
-		i_j.connectChildNode(self._l_skinJoints[i],'skinJoint','rigJoint')#Connect	    
-		if i_j.hasAttr('scaleJoint'):
-		    if i_j.scaleJoint in self._ml_skinJoints:
-			int_index = self._ml_skinJoints.index(i_j.scaleJoint)
-			i_j.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
-			
-		if i_j.hasAttr('rigJoint'):i_j.doRemove('rigJoint')
+	    ml_rigJoints = [cgmMeta.cgmObject(j) for j in l_rigJoints]
+	    
+	    for i,mJnt in enumerate(ml_rigJoints):
+		mJnt.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
+		mJnt.doName()
+		l_rigJoints[i] = mJnt.mNode
+		mJnt.connectChildNode(self._l_skinJoints[i],'skinJoint','rigJoint')#Connect	    
+		if mJnt.hasAttr('scaleJoint'):
+		    if mJnt.scaleJoint in self._ml_skinJoints:
+			int_index = self._ml_skinJoints.index(mJnt.scaleJoint)
+			mJnt.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
+		if mJnt.hasAttr('rigJoint'):mJnt.doRemove('rigJoint')
 	    
 	    self._ml_rigJoints = ml_rigJoints
 	    self._l_rigJoints = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]

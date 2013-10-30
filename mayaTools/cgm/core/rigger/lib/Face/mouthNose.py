@@ -98,9 +98,9 @@ def build_rigSkeleton(*args, **kws):
 	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self.gatherInfo},
-	                        {'step':'Rig Joints','call':self.build_rigJoints},
+	                        #{'step':'Rig Joints','call':self.build_rigJoints},
 	                        {'step':'Influence Joints','call':self.build_handleJoints},
-	                        {'step':'Connections','call':self.build_connections}
+	                        #{'step':'Connections','call':self.build_connections}
 	                        ]	
 	    #=================================================================
 	
@@ -111,122 +111,150 @@ def build_rigSkeleton(*args, **kws):
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
-	    self.mi_leftBrowCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftBrowHelper'),noneValid=False)
-	    self.mi_rightBrowCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightBrowHelper'),noneValid=False)
-	    
-	    if self.mi_helper.buildTemple:
-		self.mi_leftTempleCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftTempleHelper'),noneValid=False)
-		self.mi_rightTempleCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightTempleHelper'),noneValid=False)
-	    
-	    if self.mi_helper.buildUprCheek:
-		self.mi_leftUprCheekCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftUprCheekHelper'),noneValid=False)
-		self.mi_rightUprCheekCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('rightUprCheekHelper'),noneValid=False)
+	    for attr in self.mi_helper.getAttrs(userDefined = True):#Get allof our Helpers
+		if "Helper" in attr:
+		    try:self.__dict__["mi_%s"%attr.replace('Helper','Crv')] = cgmMeta.validateObjArg(self.mi_helper.getMessage(attr),noneValid=False)
+		    except Exception,error:raise StandardError, " Failed to find '%s' | %s"%(attr,error)
 		
-	    #>>> Sorting ==========================================================
-	    #We need to sort our joints and figure out what our options are
-	    self.md_sortedJoints = {}
+		
+	    #>> Find our joint lists ===================================================================
+	    self.md_jointList = {"smileLeft":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('left_smileLineJoint'),noneValid = False),
+	                         "smileRight":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('right_smileLineJoint'),noneValid = False),
+	                         "uprCheekLeft":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('left_uprCheekJoint'),noneValid = False),
+	                         "uprCheekRight":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('right_uprCheekJoint'),noneValid = False),
+	                         "cheekLeft":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('left_cheekJoint'),noneValid = False),
+	                         "cheekRight":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('right_cheekJoint'),noneValid = False),
+	                         "uprLipLeft":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('left_lipUprJoint'),noneValid = False),
+	                         "uprLipRight":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('right_lipUprJoint'),noneValid = False),	    
+	                         "lwrLipLeft":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('left_lipLwrJoint'),noneValid = False),
+	                         "lwrLipRight":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('right_lipLwrJoint'),noneValid = False),	    
+	                         "uprLipCenter": cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('center_lipUprJoint'),noneValid = False)[0],
+	                         "lwrLipCenter":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('center_lipLwrJoint'),noneValid = False)[0],	                         
+	                         "cornerLipLeft":cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('left_lipCornerJoint'),noneValid = False),
+	                         "cornerLipRight":cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('right_lipCornerJoint'),noneValid = False),
+	                         "noseBase":cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('noseBaseJoint'),noneValid = False),
+	                         "jaw":cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('jawJoint'),noneValid = False),
+	                         "centerJaw":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('center_jawLineJoint'),noneValid = False),	                         
+	                         "noseTop":cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('noseTopJoint'),noneValid = False),
+	                         "noseTip":cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('noseTipJoint'),noneValid = False),
+	                         "noseUnder":cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('noseUnderJoint'),noneValid = False),	                         
+	                         "nostrilLeft":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('left_nostrilJoint'),noneValid = False),
+	                         "nostrilRight":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('right_nostrilJoint'),noneValid = False),	                         
+	                         "tongue":cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('tongueJoint'),noneValid = False)}
 	    
-	    for mJnt in mi_go._ml_skinJoints:
-		str_nameTag = mJnt.getAttr('cgmName')
-		str_directionTag = mJnt.getAttr('cgmDirection') 
-		#Verify our dict can store
-		if str_nameTag not in self.md_sortedJoints.keys():
-		    self.md_sortedJoints[str_nameTag] = {}
-		if str_directionTag not in self.md_sortedJoints[str_nameTag].keys():
-		    self.md_sortedJoints[str_nameTag][str_directionTag] = {'skin':[]}
-		    
-		#log.info("Checking: '%s' | nameTag: '%s'  | directionTag: '%s' "%(mJnt.p_nameShort,str_nameTag,str_directionTag)) 
-		self.md_sortedJoints[str_nameTag][str_directionTag]['skin'].append(mJnt)	
+	    self.md_handleBuildInfo = {"smile":{"left":{'crv':self.mi_smileLeftCrv,'skinKey':'smileLeft'},
+	                                        "right":{'crv':self.mi_smileRightCrv,'skinKey':'smileRight'},
+	                                        "tags":['sneer','smile','smileBase'],'mode':'regularMid'},
+	                               "uprCheek":{"left":{'crv':self.mi_leftUprCheekCrv,'skinKey':'uprCheekLeft'},
+	                                           "right":{'crv':self.mi_rightUprCheekCrv,'skinKey':'uprCheekRight'},
+	                                           'mode':'startEnd'},
+	                               "noseBase":{"center":{'skinKey':'noseBase'},'mode':'simpleDuplicate'},
+	                               "centerJaw":{"center":{'skinKey':'centerJaw'},"tags":['chin'],'mode':'zeroDuplicate'},
+	                               "lwrLipCenter":{"center":{'skinKey':'lwrLipCenter'},'mode':'simpleDuplicate'},	                               
+	                               "uprLipCenter":{"center":{'skinKey':'uprLipCenter'},'mode':'simpleDuplicate'},
+	                               "cornerLipLeft":{"center":{'skinKey':'cornerLipLeft'},'mode':'simpleDuplicate'},	
+	                               "cornerLipRight":{"center":{'skinKey':'cornerLipRight'},'mode':'simpleDuplicate'},	                               	                               	                               
+	                               "noseTip":{"center":{'skinKey':'noseTip'},'mode':'simpleDuplicate'},
+	                               "noseUnder":{"center":{'skinKey':'noseUnder'},'mode':'simpleDuplicate'},
+	                               "jaw":{"center":{'skinKey':'jaw'},'mode':'simpleDuplicate'}}	
+	
+	    self.report()
 	    	    
 	def build_rigJoints(self):
 	    #We'll have a rig joint for every joint
 	    mi_go = self._go#Rig Go instance link
 	    ml_rigJoints = mi_go.build_rigChain()
-	    for mJnt in ml_rigJoints:
-		mJnt.parent = False
+	    for mJoint in ml_rigJoints:
+		if mJoint.parent == mi_go._ml_skinJoints[0].parent:
+		    mJoint.parent = False
+		mJoint.doName()
 		
 	    ml_rightRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints , cgmDirection = 'right')
 	    for mJoint in ml_rightRigJoints:
 		mJoint.__setattr__("r%s"%mi_go._jointOrientation[1],180)
 		jntUtils.freezeJointOrientation(mJoint)
-	    """
-	    ml_rigJoints = []
-	    for i,mJoint in enumerate(mi_go._ml_skinJoints):
-		i_j = cgmMeta.cgmObject( mc.duplicate(mJoint.mNode,po=True,ic=True,rc=True)[0],setClass=True )
-		i_j.parent = False#Parent to world				
-		i_j.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
-		i_j.doName()
-		ml_rigJoints.append(i_j)
-	    mi_go._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints',"rigNull")
-	    """
 	    self.ml_rigJoints = ml_rigJoints#pass to wrapper
 	    
 	def build_handleJoints(self):
 	    mi_go = self._go#Rig Go instance link	    
 	    ml_moduleHandleJoints = []
-	    for k_name in self.md_sortedJoints.keys():#For each name...
-		for k_direction in self.md_sortedJoints[k_name].keys():#for each direction....
-		    if k_name in ['brow','uprCheek','temple']:
-			log.info("Building '%s' | '%s' handle joints"%(k_name,k_direction))
-			ml_skinJoints = self.md_sortedJoints[k_name][k_direction]['skin']
+	    for k_name in self.md_handleBuildInfo.keys():#For each name...
+		for k_direction in ['left','right','center']:#for each direction....
+		    d_buffer = self.md_handleBuildInfo[k_name].get(k_direction)
+		    l_tags = self.md_handleBuildInfo[k_name].get('tags') or False
+		    str_mode = self.md_handleBuildInfo[k_name].get('mode') or 'regularMid'
+		    #if not d_buffer:raise StandardError,"%s %s fail"%(k_name,k_direction)
+		    if d_buffer:
+			log.info("Building '%s' | '%s' handle joints | mode: %s"%(k_name,k_direction,str_mode))
+			ml_skinJoints = self.md_jointList[d_buffer['skinKey']]
 			ml_handleJoints = []
 			self.l_build = []
 			#Build our copy list -------------------------------------------
-			if k_name == 'brow' and k_direction in ['left','right']:
-			    self.l_build = [ml_skinJoints[0],'mid',ml_skinJoints[-1]]
-			elif k_name == 'brow' and k_direction in ['center']:
-			    self.l_build = [ml_skinJoints[0]]			    
-			elif k_name == 'uprCheek' and k_direction in ['left','right']:
+			if str_mode == 'regularMid':
+			    self.l_build = [ml_skinJoints[0],'mid',ml_skinJoints[-1]]		    
+			elif str_mode == 'startEnd':
 			    self.l_build = [ml_skinJoints[0],ml_skinJoints[-1]]
-			elif k_name == 'temple' and k_direction in ['left','right']:
+			elif str_mode == 'zeroDuplicate':
 			    self.l_build = [ml_skinJoints[0]]
+			else:
+			    self.l_build = [ml_skinJoints]
 			#Build ----------------------------------------------------------
-			for i,mJnt in enumerate(self.l_build):
-			    if mJnt == 'mid':
-				useCurve = False
-				if k_direction == 'left':
-				    useCurve = self.mi_leftBrowCrv
-				elif k_direction == 'right':
-				    useCurve = self.mi_rightBrowCrv
-				if not useCurve:
-				    raise StandardError,"Step: '%s' '%s' | failed to find use curve"%(k_name,k_direction)
-				pos = crvUtils.getMidPoint(useCurve)
-				mc.select(cl=True)
-				mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
-				mi_jnt.parent = False
-				mi_jnt.addAttr('cgmName',k_name,lock=True)	
-				mi_jnt.addAttr('cgmDirection',k_direction,lock=True)
-				mi_jnt.addAttr('cgmNameModifier','mid',attrType='string',lock=True)				    
-				mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)				    
-				mi_jnt.doName()
-				ml_handleJoints.append(mi_jnt)
-				
-				#Orient
-				#mc.delete( mc.orientConstraint([ml_skinJoints[0].mNode,ml_skinJoints[-1].mNode],mi_jnt.mNode, maintainOffset = False))
-				v_aimVector = mi_go._vectorAim				
-				v_upVector = mi_go._vectorOutNegative
-				if k_direction == 'right':
-				    v_upVector = cgmMath.multiplyLists([v_upVector,[-1,-1,-1]])				
-				mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode,
-				                               weight = 1, aimVector = v_aimVector, upVector = v_upVector, 
-				                               worldUpObject = ml_skinJoints[0].mNode, worldUpType = 'object' ))				
-				jntUtils.freezeJointOrientation(mi_jnt)
-			    else:
-				i_j = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
-				i_j.parent = False#Parent to world				
-				i_j.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
-				if len(self.l_build)>1:
-				    if i == 0:
-					i_j.addAttr('cgmNameModifier','start',attrType='string',lock=True)
+			if str_mode in ['simpleDulplicate','zeroDuplicate']:
+			    mi_jnt = cgmMeta.cgmObject( mc.duplicate(self.l_build[0].mNode,po=True,ic=True,rc=True)[0],setClass=True )
+			    mi_jnt.parent = False#Parent to world	
+			    if l_tags:
+				mi_jnt.addAttr('cgmName',l_tags[0],attrType='string',lock=True)				    				    			    
+			    mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
+			    mi_jnt.doName()
+			    ml_handleJoints.append(mi_jnt)					    
+			else:
+			    for i,mJnt in enumerate(self.l_build):
+				if mJnt == 'mid':
+				    mi_crv = d_buffer.get('crv')
+				    if not mi_crv:
+					raise StandardError,"Step: '%s' '%s' | failed to find use curve"%(k_name,k_direction)
+				    pos = crvUtils.getMidPoint(mi_crv)
+				    mc.select(cl=True)
+				    mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+				    mi_jnt.parent = False
+				    mi_jnt.addAttr('cgmDirection',k_direction,lock=True)
+				    if l_tags:
+					mi_jnt.addAttr('cgmName',l_tags[1],attrType='string',lock=True)				    				    
 				    else:
-					i_j.addAttr('cgmNameModifier','end',attrType='string',lock=True)
+					mi_jnt.addAttr('cgmName',k_name,lock=True)						
+					mi_jnt.addAttr('cgmNameModifier','mid',attrType='string',lock=True)				    
+				    mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)				    
+				    mi_jnt.doName()
+				    ml_handleJoints.append(mi_jnt)
 				    
-				try:i_j.doRemove('cgmIterator')#Purge the iterator
-				except:pass
-				i_j.doName()
-				ml_handleJoints.append(i_j)			
+				    #Orient
+				    v_aimVector = mi_go._vectorAim				
+				    v_upVector = mi_go._vectorUp
+				    #if k_direction == 'right':
+					#v_upVector = mi_go._vectorUpNegative			
+				    mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode,
+					                           weight = 1, aimVector = v_aimVector, upVector = v_upVector, 
+					                           ))				
+				    jntUtils.freezeJointOrientation(mi_jnt)
+				else:
+				    i_j = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
+				    i_j.parent = False#Parent to world				
+				    i_j.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
+				    if len(self.l_build)>1:
+					if l_tags:
+					    i_j.addAttr('cgmName',l_tags[i],attrType='string',lock=True)					    
+					else:
+					    if i == 0:
+						i_j.addAttr('cgmNameModifier','start',attrType='string',lock=True)
+					    else:
+						i_j.addAttr('cgmNameModifier','end',attrType='string',lock=True)
+					
+				    try:i_j.doRemove('cgmIterator')#Purge the iterator
+				    except:pass
+				    i_j.doName()
+				    ml_handleJoints.append(i_j)			
 			
-			self.md_sortedJoints[k_name][k_direction]['handle'] = ml_handleJoints
+			d_buffer['handle'] = ml_handleJoints
 			ml_moduleHandleJoints.extend(ml_handleJoints)
 			
 			ml_rightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints , cgmDirection = 'right')
