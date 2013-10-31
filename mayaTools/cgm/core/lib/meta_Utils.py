@@ -165,7 +165,7 @@ def get_matchedListFromAttrDict(*args,**kws):
 		    for key in d_check.keys():
 			value = d_check.get(key)			
 			try:
-			    if mObj.hasAttr(key) and mObj.getAttr(key) in value:
+			    if mObj.hasAttr(key) and mObj.getAttr(key) == value:
 				int_matches +=1
 				log.debug("Match: %s | %s"%(mObj.p_nameShort,key))
 			except Exception,error:
