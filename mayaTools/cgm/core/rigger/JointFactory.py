@@ -1377,7 +1377,6 @@ def doSkeletonizeMouthNose(*args,**kws):
 			jntUtils.metaFreezeJointOrientation(mi_jnt)
 		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       
 		d_buildCurves[k]['ml_joints'] = ml_cheekJoints #nested list
-		self.ml_moduleJoints.extend(ml_cheekJoints)
 		#Store it...	    
 		self.mi_go._mi_rigNull.msgList_connect(ml_jointBuffer,"%s_%sJoint"%(k,'uprCheek'))		
 	    return True

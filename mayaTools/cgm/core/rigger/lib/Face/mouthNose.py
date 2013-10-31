@@ -98,9 +98,9 @@ def build_rigSkeleton(*args, **kws):
 	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self.gatherInfo},
-	                        #{'step':'Rig Joints','call':self.build_rigJoints},
+	                        {'step':'Rig Joints','call':self.build_rigJoints},
 	                        {'step':'Handle Joints','call':self.build_handleJoints},
-	                        #{'step':'Connections','call':self.build_connections}
+	                        {'step':'Connections','call':self.build_connections}
 	                        ]	
 	    #=================================================================
 	
@@ -158,8 +158,8 @@ def build_rigSkeleton(*args, **kws):
 	                                           "right":{'crv':self.mi_rightUprCheekCrv,'skinKey':'uprCheekRight'},
 	                                           'mode':'startEnd'},
 	                               "centerJaw":{"center":{'skinKey':'centerJaw'},"tags":['chin'],'mode':'zeroDuplicate'},
-	                               "lwrLipCenter":{"center":{'skinKey':'lwrLipCenter'},'mode':'simpleDuplicate'},	                               
-	                               "uprLipCenter":{"center":{'skinKey':'uprLipCenter'},'mode':'simpleDuplicate'},
+	                               "lipLwrCenter":{"center":{'skinKey':'lwrLipCenter'},'mode':'simpleDuplicate'},	                               
+	                               "lipUprCenter":{"center":{'skinKey':'uprLipCenter'},'mode':'simpleDuplicate'},
 	                               "cornerLipLeft":{"center":{'skinKey':'cornerLipLeft'},'mode':'simpleDuplicate'},	
 	                               "cornerLipRight":{"center":{'skinKey':'cornerLipRight'},'mode':'simpleDuplicate'},
 	                               "nose":{"center":{'skinKey':'noseBase'},'mode':'simpleDuplicate'},	                               	                               
@@ -172,7 +172,7 @@ def build_rigSkeleton(*args, **kws):
 	                                          'mode':'midSimpleAim',
 	                                          'mi_aim':self.md_jointList['noseBase'][0],'v_aim':mi_go._vectorAimNegative,
 	                                          'mi_up':self.md_jointList['noseTop'][0],'v_up':mi_go._vectorUp},
-	                               "uprLip":{"left":{'crv':self.mi_lipUprCrv,'skinKey':'uprLipLeft',
+	                               "lipUpr":{"left":{'crv':self.mi_lipUprCrv,'skinKey':'uprLipLeft',
 	                                                 'mi_aimIn':self.md_jointList['uprLipCenter'][0],'v_aimIn':mi_go._vectorOutNegative,
 	                                                 'mi_aimOut':self.md_jointList['cornerLipLeft'][0],'v_aimOut':mi_go._vectorOut,	                                                 
 	                                                 'minU':0,'maxU':.5, 'reverse':False},
@@ -182,7 +182,7 @@ def build_rigSkeleton(*args, **kws):
 	                                                   'minU':0,'maxU':.5, 'reverse':True},
 	                                          'mode':'midAimBlend',
 	                                          'mi_up':self.md_jointList['noseUnder'][0],'v_up':mi_go._vectorUp},
-	                               "lwrLip":{"left":{'crv':self.mi_lipLwrCrv,'skinKey':'lwrLipLeft',
+	                               "lipLwr":{"left":{'crv':self.mi_lipLwrCrv,'skinKey':'lwrLipLeft',
 	                                                 'mi_aimIn':self.md_jointList['lwrLipCenter'][0],'v_aimIn':mi_go._vectorOutNegative,
 	                                                 'mi_aimOut':self.md_jointList['cornerLipLeft'][0],'v_aimOut':mi_go._vectorOut,	                                                 
 	                                                 'minU':0,'maxU':.5, 'reverse':False},
@@ -207,6 +207,7 @@ def build_rigSkeleton(*args, **kws):
 		
 	    ml_rightRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints , cgmDirection = 'right')
 	    for mJoint in ml_rightRigJoints:
+		log.info(mJoint.p_nameShort)
 		mJoint.__setattr__("r%s"%mi_go._jointOrientation[1],180)
 		jntUtils.freezeJointOrientation(mJoint)
 	    self.ml_rigJoints = ml_rigJoints#pass to wrapper
