@@ -2257,10 +2257,13 @@ def shapeCast_mouthNose(*args,**kws):
 	    self._str_funcName = 'shapeCast_mouthNose(%s)'%self.mi_module.p_nameShort
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-	                        #{'step':'SmileLine Shapes','call':self._smileLineShapes_},
-	                        #{'step':'Cheek Shapes','call':self._uprCheekShapes_},
-	                        {'step':'Basic Shapes','call':self._simpleShapeCasts_},	                        
-	                        #{'step':'Face Pins','call':self._facePins_},
+	                        {'step':'Jaw Shapes','call':self._jawShapes_},	                        
+	                        {'step':'Tongue Shapes','call':self._tongueShapes_},
+	                        {'step':'Basic Shapes','call':self._simpleShapeCasts_},
+	                        {'step':'MouthMove Shapes','call':self._mouthMoveShape_},
+	                        {'step':'Nose Move Shape','call':self._noseMoveShape_},	                        	                        
+	                        {'step':'Face Pins','call':self._facePins_},
+	                        #may not be needed{'step':'Connect','call':self._connect_},
 	                        ]
 	    
 	    assert self.mi_module.mClass == 'cgmMouthNose',"%s >>> Module is not type: 'cgmMouthNose' | type is: '%s'"%(self._str_funcName,self.mi_module.mClass)
@@ -2316,7 +2319,8 @@ def shapeCast_mouthNose(*args,**kws):
 	    d_['lipCornerRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                            cgmDirection = 'right',
 	                                                            cgmName = 'lipCorner')  
-	    
+	    d_['mouthMove'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                             cgmName = 'mouthMove')  	    
 	    #Smile Line --------------------------------------------------------------------------
 	    d_['sneerLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                            cgmDirection = 'left',
@@ -2349,22 +2353,39 @@ def shapeCast_mouthNose(*args,**kws):
 	                                                               cgmDirection = 'right',
 	                                                               cgmName = 'nostril')	
 	    d_['nose'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                       cgmName = 'noseBase')		    
+	                                                       cgmName = 'noseMove')		    
 	    
 	    #>> Cheek --------------------------------------------------------------------------
-	    d_['uprCheekLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                               cgmDirection = 'left',
-	                                                               cgmName = 'uprCheek')
-	    d_['uprCheekRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                cgmDirection = 'right',
-	                                                                cgmName = 'uprCheek')
+	    d_['uprCheekOuterLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                    cgmDirection = 'left',cgmPosition = 'outer',
+	                                                                    cgmName = 'uprCheek')
+	    d_['uprCheekOuterRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                     cgmDirection = 'right',cgmPosition = 'outer',
+	                                                                     cgmName = 'uprCheek')
+	    d_['uprCheekInnerLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                    cgmDirection = 'left',cgmPosition = 'inner',
+	                                                                    cgmName = 'uprCheek')
+	    d_['uprCheekInnerRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                     cgmDirection = 'right',cgmPosition = 'inner',
+	                                                                     cgmName = 'uprCheek')	    
 	    #>> Jaw --------------------------------------------------------------------------	    
 	    d_['jaw'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                      cgmName = 'jaw')
+	    d_['jawAnchorLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                cgmDirection = 'left',
+	                                                                cgmName = 'jawAnchor')	
+	    d_['jawAnchorRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                cgmDirection = 'right',
+	                                                                cgmName = 'jawAnchor')	 	    
 	    d_['chin'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                      cgmName = 'chin')	  
-	    d_['tongue'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                         cgmName = 'tongue')		    
+	                                                       cgmName = 'chin')	    
+	    d_['tongueTip'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                            cgmName = 'tongueTip')
+	    d_['tongueBase'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                             cgmName = 'tongueBase')	
+	    d_['jawLineCenter'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+	                                                                cgmDirection = 'center',
+	                                                                cgmName = 'jawLine')	    	    
 	    for k in d_.iterkeys():
 		buffer = d_.get(k)
 		if not buffer:raise StandardError,"Failed to find %s handle joints"%k
@@ -2378,6 +2399,7 @@ def shapeCast_mouthNose(*args,**kws):
 	                                                                  cgmDirection = 'right')
 	    self.ml_centerRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                    cgmDirection = 'center')
+
 	    for tag in ['noseTip','noseTop']:
 		self.ml_centerRigJoints.extend(metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 		                                                                     cgmName = tag))
@@ -2410,118 +2432,176 @@ def shapeCast_mouthNose(*args,**kws):
 		if not d_return:raise Exception
 	    except:"""
 	    self.f_baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_measureJointList]) /4 		
-	    
+	    self.f_mouthWidth = distance.returnDistanceBetweenObjects(self.md_handles['lipCornerRight'].mNode,self.md_handles['lipCornerLeft'].mNode)
+
 	    #>> Running lists --------------------------------------------------------------------
 	    self.ml_handles = []
 	    self.ml_pinHandles = []
-	    #self.report()
 	    return True
 
-	def _smileLineShapes_(self): 
-	    d_buffer = self.md_handles
-	    d_build = {'left':{'jointList': [d_buffer['smileBaseLeft'],d_buffer['smileLeft'],d_buffer['sneerLeft']]},
-	               'right':{'jointList': [d_buffer['smileBaseRight'],d_buffer['smileRight'],d_buffer['sneerRight']]}}
+	def _tongueShapes_(self): 
+	    #if not self.md_handles['tongue']:
+		#return False
+	    	    
+	    ml_handleCrvs = []		
 	    
-
-	    for str_direction in d_build.keys():
-		ml_handleCrvs = []		
-		ml_jointList = d_build[str_direction].get('jointList')
-		for mObj in ml_jointList:
-		    log.info(mObj)
-		l_colors = self.d_colors[str_direction]
-		__baseDistance = self.f_baseDistance
-
-		for mObj in ml_jointList:
-		    try:
-			if mObj.getAttr('isSubControl') or len(ml_jointList) > 1 and mObj in [ml_jointList[1]]:
-			    _size = __baseDistance * .75
-			    _color = l_colors[1]
-			else:
-			    _size = __baseDistance * 1
-			    _color = l_colors[0]
-			    
-			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
-			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
-			str_grp = mi_crv.doGroup()
-			if str_direction == 'right':
-			    mi_crv.__setattr__("t%s"%self.str_orientation[0],-__baseDistance)
-			else:
-			    mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)			    
-			mi_crv.parent = False
-			mc.delete(str_grp)
-			
-			#>>Color curve --------------------------------------------------------------------------------		    		    
-			if mObj.getAttr('isSubControl'):
-			    curves.setCurveColorByName(mi_crv.mNode,_color)  
-			else:curves.setCurveColorByName(mi_crv.mNode,_color)  
-			#>>Copy tags and name		    
-			mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
-			mi_crv.doName()
-			mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
-			ml_handleCrvs.append(mi_crv)
-			
-		    except Exception,error:
-			raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
+	    l_colors = self.d_colors['center']
+	    __baseDistance = self.f_baseDistance
+	    _size = self.f_mouthWidth
+	    log.info(_size)
+	    
+	    d_build = {'tongueBase':{'mi_obj': self.md_handles['tongueBase'],'shape':'circleArrow','shapeMulti':1.25},
+	               'tongueTip':{'mi_obj': self.md_handles['tongueTip'],'shape':'arrowsOnBall','centerPivot':True}}
+	    
+	    for str_name in d_build.keys():
+		d_buffer = d_build[str_name]
+		try:
+		    mObj = d_buffer['mi_obj']
+		    str_shape = d_buffer['shape']
+		    f_multi = d_buffer.get('shapeMulti') or 1
+		    b_centerPivot = d_buffer.get('centerPivot') or False
+		    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve(str_shape,size = (_size * f_multi),direction=self.str_orientation[0]+'+'),setClass=True)	
+		    if b_centerPivot:
+			mc.xform(mi_crv.mNode,ws = True, piv = distance.returnCenterPivotPosition(mi_crv.mNode))
+		    Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
 		    
-		self.ml_handles.extend(ml_handleCrvs)	    
-		
-	def _uprCheekShapes_(self): 
-	    if not self.md_handles['uprCheekLeft'] and self.md_handles['uprCheekRight']:
-		return False
-	    
-	    d_build = {'left':{'jointList': self.md_handles['uprCheekLeft']},
-	               'right':{'jointList': self.md_handles['uprCheekRight']}}
-	    
-	    for str_direction in d_build.keys():
-		ml_handleCrvs = []		
-		ml_jointList = d_build[str_direction].get('jointList')
-		l_colors = self.d_colors[str_direction]
-		__baseDistance = self.f_baseDistance
+		    mi_crv.__setattr__("s%s"%self.str_orientation[1],.4)
+		    mc.makeIdentity(mi_crv.mNode, apply=True,s=1,n=0)	
 
-		for mObj in ml_jointList:
-		    try:
-			if mObj.getAttr('isSubControl') or len(ml_jointList) >1 and mObj in [ml_jointList[1]]:
-			    _size = __baseDistance * .75
-			    _color = l_colors[1]
-			else:
-			    _size = __baseDistance * 1
-			    _color = l_colors[0]
-			    
-			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
-			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
-			str_grp = mi_crv.doGroup()
-			if str_direction == 'right':
-			    mi_crv.__setattr__("t%s"%self.str_orientation[0],-__baseDistance)
-			else:
-			    mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)
-			
-			mi_crv.parent = False
-			mc.delete(str_grp)
-			
-			#>>Color curve --------------------------------------------------------------------------------		    		    
-			if mObj.getAttr('isSubControl'):
-			    curves.setCurveColorByName(mi_crv.mNode,_color)  
-			else:curves.setCurveColorByName(mi_crv.mNode,_color)  
-			#>>Copy tags and name		    
-			mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
-			mi_crv.doName()
-			mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
-			ml_handleCrvs.append(mi_crv)
-			
-		    except Exception,error:
-			raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
-		self.ml_handles.extend(ml_handleCrvs)
+		    #>>Color curve --------------------------------------------------------------------------------		    		    
+		    curves.setCurveColorByName(mi_crv.mNode,l_colors[0])  
+		    
+		    #>>Copy tags and name --------------------------------------------------------------------------------		    
+		    mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+		    mi_crv.doName()
+		    mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
+		    ml_handleCrvs.append(mi_crv)
+		    
+		except Exception,error:
+		    raise StandardError,"%s create fail! | error: %s"%(str_name,error)  
+	    self.ml_handles.extend(ml_handleCrvs)
+	    
+	def _mouthMoveShape_(self): 	    
+	    ml_handleCrvs = []		
+	    
+	    l_colors = self.d_colors['center']
+	    __baseDistance = self.f_baseDistance
+	    _size = self.f_mouthWidth
+	    	    
+	    mObj = self.md_handles['mouthMove']
+	    str_shape = 'squareRounded'
+	    f_multi = .4
+	    
+	    #b_centerPivot = d_buffer.get('centerPivot') or False
+	    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve(str_shape,size = (_size * f_multi),direction=self.str_orientation[0]+'+'),setClass=True)	
+	    #if b_centerPivot:
+		#mc.xform(mi_crv.mNode,ws = True, piv = distance.returnCenterPivotPosition(mi_crv.mNode))
 		
-	def _simpleShapeCasts_(self):	   	    
-	    l_build = [{'key':'lipUprCenter'},{'key':'lipUprLeft','isSub':True},{'key':'lipUprRight','isSub':True},
+	    Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
+	    pos1 = self.md_handles['lipLwrCenter'].controlShape.getPosition()
+	    pos2 = self.md_handles['lipUprCenter'].controlShape.getPosition()
+	    pos = distance.returnAveragePointPosition([pos1,pos2])
+	    mc.move (pos[0],pos[1],pos[2], mi_crv.mNode)
+	    
+	    mi_crv.__setattr__("s%s"%self.str_orientation[1],.1)	    
+	    mc.makeIdentity(mi_crv.mNode, apply=True,s=1,n=0)	
+
+	    #>>Color curve --------------------------------------------------------------------------------		    		    
+	    curves.setCurveColorByName(mi_crv.mNode,l_colors[0])  
+	    
+	    #>>Copy tags and name --------------------------------------------------------------------------------		    
+	    mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+	    mi_crv.doName()
+	    mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
+	    ml_handleCrvs.append(mi_crv)
+		    
+	    self.ml_handles.extend(ml_handleCrvs)
+	    
+	def _noseMoveShape_(self): 	    
+	    ml_handleCrvs = []		
+	    
+	    l_colors = self.d_colors['center']
+	    __baseDistance = self.f_baseDistance
+	    _size = self.f_mouthWidth
+	    	    
+	    mObj = self.md_handles['nose']
+	    mi_castLoc = self.md_handles['noseTip'].doLoc()
+	    pos1 = self.md_handles['nostrilLeft'].getPosition()
+	    pos2 = self.md_handles['nostrilRight'].getPosition()
+	    pos = distance.returnAveragePointPosition([pos1,pos2])
+	    f_castDistance = distance.returnDistanceBetweenPoints(pos1,pos2) * 1.5
+	    mc.move (pos[0],pos[1],pos[2], mi_castLoc.mNode)	    
+	    
+	    str_crv = ShapeCast.createMeshSliceCurve(self.mi_go._targetMesh[0],mi_castLoc.mNode,
+	                                              rotateBank = -30,curveDegree=3,posOffset = [0,0,self.mi_go.f_skinOffset/2],
+	                                              maxDistance=f_castDistance,
+	                                              points=8,returnDict = False,latheAxis=self.str_orientation[0],
+	                                              aimAxis=self.str_orientation[1]+'-')
+	    mi_crv =  cgmMeta.cgmObject(str_crv,setClass=True)	
+	    mi_castLoc.delete()
+	    #b_centerPivot = d_buffer.get('centerPivot') or False
+	    #if b_centerPivot:
+		#mc.xform(mi_crv.mNode,ws = True, piv = distance.returnCenterPivotPosition(mi_crv.mNode))
+		
+	    #>>Color curve --------------------------------------------------------------------------------		    		    
+	    curves.setCurveColorByName(mi_crv.mNode,l_colors[0])  
+	    
+	    #>>Copy tags and name --------------------------------------------------------------------------------		    
+	    mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+	    mi_crv.doName()
+	    mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
+	    ml_handleCrvs.append(mi_crv)
+		    
+	    self.ml_handles.extend(ml_handleCrvs)
+	    
+	def _jawShapes_(self): 	    
+	    ml_handleCrvs = []		
+	    
+	    l_colors = self.d_colors['center']
+	    __baseDistance = self.f_baseDistance
+	    _size = self.f_mouthWidth
+	    	    
+	    mObj = self.md_handles['jaw']
+	    mTarget = self.md_handles['jawLineCenter']
+	    str_shape = 'arrowsOnBall'
+	    f_multi = .5
+	    
+	    #b_centerPivot = d_buffer.get('centerPivot') or False
+	    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve(str_shape,size = (_size * f_multi),direction=self.str_orientation[0]+'+'),setClass=True)	
+	    #if b_centerPivot:
+		#mc.xform(mi_crv.mNode,ws = True, piv = distance.returnCenterPivotPosition(mi_crv.mNode))
+		
+	    Snap.go(mi_crv,mTarget.mNode,move=True,orient=True)
+	    Snap.go(mi_crv,self.mi_go._targetMesh[0],snapToSurface=True)					
+	    
+	    mi_crv.__setattr__("s%s"%self.str_orientation[2],1.5)
+	    mi_crv.__setattr__("s%s"%self.str_orientation[0],.6)	    
+	    mc.makeIdentity(mi_crv.mNode, apply=True,s=1,n=0)	
+
+	    #>>Color curve --------------------------------------------------------------------------------		    		    
+	    curves.setCurveColorByName(mi_crv.mNode,l_colors[0])  
+	    
+	    #>>Copy tags and name --------------------------------------------------------------------------------		    
+	    mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+	    mi_crv.doName()
+	    mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
+	    ml_handleCrvs.append(mi_crv)
+		    
+	    self.ml_handles.extend(ml_handleCrvs)
+	    
+	def _simpleShapeCasts_(self):	
+	    l_build = [{'key':'smileLeft','isSub':True},{'key':'smileBaseLeft','isSub':True},{'key':'sneerLeft','multi':1},
+	               {'key':'smileRight','isSub':True},{'key':'smileBaseRight','isSub':True},{'key':'sneerRight','multi':1},	
+	               {'key':'lipUprCenter'},{'key':'lipUprLeft','isSub':True},{'key':'lipUprRight','isSub':True},
 	               {'key':'lipLwrCenter'},{'key':'lipLwrLeft','isSub':True},{'key':'lipLwrRight','isSub':True},
-	               {'key':'lipCornerLeft'},{'key':'lipCornerRight'},{'key':'chin'},
+	               {'key':'lipCornerLeft'},{'key':'lipCornerRight'},{'key':'chin'},{'key':'jawAnchorLeft'},{'key':'jawAnchorRight'},
+	               {'key':'uprCheekOuterLeft'},{'key':'uprCheekInnerLeft','isSub':True},{'key':'uprCheekInnerRight','isSub':True},{'key':'uprCheekOuterRight'},	               
 	               {'key':'noseTip','isSub':True},{'key':'noseUnder','isSub':True},{'key':'nostrilLeft','isSub':True},{'key':'nostrilRight','isSub':True}]
 	    ml_handleCrvs = []
 	    
 	    for i,d in enumerate(l_build):
-		try:
-		    try:#Get info
+		try:#For each key ================================================================================
+		    try:#Get info --------------------------------------------------------------------------------
 			mObj = self.md_handles[d['key']]
 			try:str_direction = mObj.cgmDirection.lower()
 			except:str_direction = 'center'
@@ -2529,16 +2609,20 @@ def shapeCast_mouthNose(*args,**kws):
 			__baseDistance = self.f_baseDistance
 			
 			b_isSub = d.get('isSub') or False
-			f_multi = d.get('multi') or 1 
+			f_multi = d.get('multi') or .8
 			_size = __baseDistance * f_multi
-			if b_isSub:_size = _size * .75
-			if b_isSub:_color = l_colors[1]
-			else:_color = l_colors[0]
+			if b_isSub:
+			    _size = _size * .7
+			    _color = l_colors[1]
+			    _shape = 'circle'			    
+			else:
+			    _color = l_colors[0]
+			    _shape = 'squareRounded'
     
 		    except Exception,error:
 			raise StandardError,"%s info fail | %s"%(i,error)
 	
-		    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size, direction=self.str_orientation[0]+'+'),setClass=True)	
+		    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve(_shape,size = _size, direction=self.str_orientation[0]+'+'),setClass=True)	
 		    Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
 		    str_grp = mi_crv.doGroup()
 		    if str_direction == 'right':
@@ -2552,7 +2636,7 @@ def shapeCast_mouthNose(*args,**kws):
 		    #>>Color curve --------------------------------------------------------------------------------		    		    
 		    curves.setCurveColorByName(mi_crv.mNode,_color)
 		    
-		    #>>Copy tags and name		    
+		    #>>Copy tags and name --------------------------------------------------------------------------------		    
 		    mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
 		    mi_crv.doName()
 		    mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
@@ -2574,7 +2658,7 @@ def shapeCast_mouthNose(*args,**kws):
 		ml_handleCrvs = []		
 		ml_jointList = d_build[str_direction].get('jointList')
 		l_colors = self.d_colors[str_direction]
-		_size = __baseDistance / 3
+		_size = __baseDistance / 5
 		_color = l_colors[1]	
 		
 		if str_direction == 'right':
@@ -2614,16 +2698,16 @@ def shapeCast_mouthNose(*args,**kws):
 			    raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
 		self.ml_pinHandles.extend(ml_handleCrvs)	
 	    
-    def _connect_(self): 
-	self.mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
-	self.mi_go.md_ReturnControls['ml_handleCurves'] = self.ml_handles
-	self._mi_rigNull.msgList_connect(self.ml_handleCrvs,'shape_handleCurves','owner')
-	
-	self.mi_go.d_returnControls['l_pinCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
-	self.mi_go.md_ReturnControls['ml_pinCurves'] = self.ml_handles
-	self._mi_rigNull.msgList_connect(self.ml_pinHandles,'shape_pinCurves','owner')
-	
-	return True
+	def _connect_(self): 
+	    self.mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
+	    self.mi_go.md_ReturnControls['ml_handleCurves'] = self.ml_handles
+	    self._mi_rigNull.msgList_connect(self.ml_handleCrvs,'shape_handleCurves','owner')
+	    
+	    self.mi_go.d_returnControls['l_pinCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
+	    self.mi_go.md_ReturnControls['ml_pinCurves'] = self.ml_handles
+	    self._mi_rigNull.msgList_connect(self.ml_pinHandles,'shape_pinCurves','owner')
+	    
+	    return True
 	
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()  

@@ -910,7 +910,8 @@ def doSkeletonizeMouthNose(*args,**kws):
 			    md_buffer[str_direction].append(mi_jnt)
 			except Exception,error:raise StandardError,"%s create and name fail | %s "%(str_mdTag,error)
 			try:#Snap
-			    Snap.go(mi_jnt,self.str_skullPlate,snapToSurface=True)	
+			    Snap.go(mi_jnt,self.str_skullPlate,snapToSurface=True)
+			    if str_direction == 'center':mi_jnt.__setattr__("t%s"%self.str_orientation[2],0)
 			except Exception,error:
 			    raise StandardError,"snap to mesh | pos count: %s | error: %s "%(k,i,error) 
 		    self.ml_moduleJoints.extend(ml_createdbuffer)		    
@@ -1046,7 +1047,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 			    mi_jnt.addAttr('cgmIterator',i,lock=True)
 			    l_tagBuild.append("%s"%i)
 			mi_jnt.doName()	
-			
+			if k == 'center':mi_jnt.__setattr__("t%s"%self.str_orientation[2],0)			
 			str_mdTag = "_".join(l_tagBuild)
 			self.md_moduleJoints[str_mdTag] = mi_jnt#Store to our module joint running list
 			try:#>>> Orient -----------------------------------------------------------------------
@@ -1122,7 +1123,9 @@ def doSkeletonizeMouthNose(*args,**kws):
 		    mi_root.doName()
 		    self.ml_moduleJoints.append(mi_root)
 		    md_noseBuilt[tag] = mi_root
-		    self.mi_go._mi_rigNull.msgList_connect(mi_root,"%sJoint"%(tag))				    
+		    self.mi_go._mi_rigNull.msgList_connect(mi_root,"%sJoint"%(tag))
+		    mi_root.__setattr__("t%s"%self.str_orientation[2],0)#center
+		    
 		except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)
 		try:#Normal Constraint -------------------------------------------------------------------------
 		    constraintBuffer = mc.normalConstraint(str_skullPlate,mi_root.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
@@ -1155,7 +1158,9 @@ def doSkeletonizeMouthNose(*args,**kws):
 			md_noseBuilt[tag] = mi_jnt
 			self.md_moduleJoints[tag] = mi_jnt
 			#Store it...
-			self.mi_go._mi_rigNull.msgList_connect(mi_jnt,"%sJoint"%(tag))		
+			self.mi_go._mi_rigNull.msgList_connect(mi_jnt,"%sJoint"%(tag))
+			if tag in ['noseTop','noseUnder']:
+			    mi_jnt.__setattr__("t%s"%self.str_orientation[2],0)#center
 		    except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)  
 		for d in l_build:#Second pass aims. Two passes because we're aming at one another
 		    try:#Normal Constraint -------------------------------------------------------------------------
@@ -1301,6 +1306,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 		    mi_jnt.doName()
 		    self.ml_moduleJoints.append(mi_jnt)
 		    ml_tongueJoints.append(mi_jnt)
+		    mi_jnt.__setattr__("t%s"%self.str_orientation[2],0)#center		    
 		    ##log.info("%s >>> curve: %s | pos count: %s | joints: %s"%(self._str_reportStart,k,i,[o.p_nameShort for o in ml_tongueJoints]))
 		except Exception,error:
 		    raise StandardError,"pos count: %s | error: %s "%(i,error)       

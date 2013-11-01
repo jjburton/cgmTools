@@ -136,6 +136,8 @@ def build_rigSkeleton(*args, **kws):
 	                           "cornerLipRight":'right_lipCornerJoint',
 	                           "noseBase":'noseBaseJoint',
 	                           "jaw":'jawJoint',
+	                           "jawLineLeft":'left_jawLineJoint',
+	                           "jawLineRight":'right_jawLineJoint',
 	                           "centerJaw":'center_jawLineJoint',	                         
 	                           "noseTop":'noseTopJoint',
 	                           "noseTip":'noseTipJoint',
@@ -149,20 +151,27 @@ def build_rigSkeleton(*args, **kws):
 		except Exception,error:raise StandardError,"Failed to find key:'%s'|msgList attr:'%s'|%s"%(k,d_jointListBuldTags[k],error)
 	    #Build our handle build info stuff...
 	    #TODO make this a contditional build for when we don't use all the joints
-	    self.md_handleBuildInfo = {"smile":{"left":{'crv':self.mi_smileLeftCrv,'skinKey':'smileLeft',
+	    self.md_handleBuildInfo = {"jawAnchor":{"left":{'skinKey':'jawLineLeft'},
+	                                            "right":{'skinKey':'jawLineRight'},
+	                                            'tags':['jawAnchor'],
+	                                            'mode':'zeroDuplicate'},
+	                               "smile":{"left":{'crv':self.mi_smileLeftCrv,'skinKey':'smileLeft',
 	                                                'mi_closeTarget':self.md_jointList['cornerLipLeft'][0]},
 	                                        "right":{'crv':self.mi_smileRightCrv,'skinKey':'smileRight',
 	                                                 'mi_closeTarget':self.md_jointList['cornerLipRight'][0]},
 	                                        "tags":['sneer','smile','smileBase'],'mode':'midSmileLinePoint'},
 	                               "uprCheek":{"left":{'crv':self.mi_leftUprCheekCrv,'skinKey':'uprCheekLeft'},
 	                                           "right":{'crv':self.mi_rightUprCheekCrv,'skinKey':'uprCheekRight'},
+	                                           'tagsPosition':['outer','inner'],
 	                                           'mode':'startEnd'},
-	                               "centerJaw":{"center":{'skinKey':'centerJaw'},"tags":['chin'],'mode':'zeroDuplicate'},
+	                               "chin":{"center":{'skinKey':'centerJaw'},"tags":['chin'],'mode':'chin'},
+	                               "mouthMove":{"center":{'holder':False},
+	                                            'mode':'mouthMove'},	                               
 	                               "lipLwrCenter":{"center":{'skinKey':'lwrLipCenter'},'mode':'simpleDuplicate'},	                               
 	                               "lipUprCenter":{"center":{'skinKey':'uprLipCenter'},'mode':'simpleDuplicate'},
 	                               "cornerLipLeft":{"center":{'skinKey':'cornerLipLeft'},'mode':'simpleDuplicate'},	
 	                               "cornerLipRight":{"center":{'skinKey':'cornerLipRight'},'mode':'simpleDuplicate'},
-	                               "nose":{"center":{'skinKey':'noseBase'},'mode':'simpleDuplicate'},	                               	                               
+	                               "nose":{"center":{'skinKey':'noseBase'},'tags':['noseMove'],'mode':'simpleDuplicate'},	                               	                               
 	                               "noseTip":{"center":{'skinKey':'noseTip'},'mode':'simpleDuplicate'},
 	                               "noseUnder":{"center":{'skinKey':'noseUnder'},'mode':'simpleDuplicate'},
 	                               "nostril":{"left":{'crv':self.mi_noseBaseCastCrv,'skinKey':'nostrilLeft',
@@ -192,10 +201,9 @@ def build_rigSkeleton(*args, **kws):
 	                                                   'minU':0,'maxU':.5, 'reverse':True},
 	                                          'mode':'midAimBlend',
 	                                          'mi_up':self.md_jointList['noseUnder'][0],'v_up':mi_go._vectorUp},
-	                               "tongue":{"center":{'skinKey':'tongue'},'mode':'startEnd'},
+	                               "tongue":{"center":{'skinKey':'tongue'},'mode':'startEnd','tags':['tongueBase','tongueTip']},
 	                               "jaw":{"center":{'skinKey':'jaw'},'mode':'simpleDuplicate'}}	
-	
-	    	    
+	    
 	def build_rigJoints(self):
 	    #We'll have a rig joint for every joint
 	    mi_go = self._go#Rig Go instance link
@@ -221,11 +229,14 @@ def build_rigSkeleton(*args, **kws):
 		    try:
 			d_buffer = d_nameBuffer.get(k_direction)
 			l_tags = d_nameBuffer.get('tags') or False
+			if l_tags:log.info(l_tags)
+			l_tagsPosition = d_nameBuffer.get('tagsPosition') or False			
 			str_mode = d_nameBuffer.get('mode') or 'regularMid'
 			#if not d_buffer:raise StandardError,"%s %s fail"%(k_name,k_direction)
 			if d_buffer:
 			    log.info("Building '%s' | '%s' handle joints | mode: %s"%(k_name,k_direction,str_mode))
-			    ml_skinJoints = self.md_jointList[d_buffer['skinKey']]
+			    try:ml_skinJoints = self.md_jointList[d_buffer['skinKey']]
+			    except:ml_skinJoints = []
 			    ml_handleJoints = []
 			    self.l_build = []
 			    #Build our copy list -------------------------------------------
@@ -238,7 +249,7 @@ def build_rigSkeleton(*args, **kws):
 			    else:
 				self.l_build = ml_skinJoints
 			    #Build ----------------------------------------------------------
-			    if str_mode in ['simpleDulplicate','zeroDuplicate']:
+			    if str_mode in ['simpleDuplicate','zeroDuplicate']:
 				mi_jnt = cgmMeta.cgmObject( mc.duplicate(self.l_build[0].mNode,po=True,ic=True,rc=True)[0],setClass=True )
 				mi_jnt.parent = False#Parent to world	
 				if l_tags:
@@ -246,6 +257,50 @@ def build_rigSkeleton(*args, **kws):
 				mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
 				mi_jnt.doName()
 				ml_handleJoints.append(mi_jnt)
+			    elif str_mode == 'chin':
+				mi_leftCrv = self.mi_smileLeftCrv
+				mi_rightCrv = self.mi_smileRightCrv
+				#Get our u Values
+				str_bufferULeft = mc.ls("%s.u[*]"%mi_leftCrv.mNode)[0]
+				log.info("Left >> u list : %s"%(str_bufferULeft))       
+				f_maxULeft= float(str_bufferULeft.split(':')[-1].split(']')[0])	
+				str_bufferURight = mc.ls("%s.u[*]"%mi_rightCrv.mNode)[0]
+				log.info("Right >> u list : %s"%(str_bufferURight))       
+				f_maxURight= float(str_bufferURight.split(':')[-1].split(']')[0])	
+				
+				pos_left = distance.returnWorldSpacePosition("%s.u[%s]"%(mi_leftCrv.mNode,f_maxULeft ))
+				pos_right = distance.returnWorldSpacePosition("%s.u[%s]"%(mi_rightCrv.mNode,f_maxURight ))
+				pos = distance.returnAveragePointPosition([pos_left,pos_right])
+				log.info("pos >> %s"%pos)
+				
+				mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+				mi_jnt.parent = False
+				mi_jnt.addAttr('cgmName',k_name,lock=True)										
+				mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)				    
+				mi_jnt.doName()	
+				
+				Snap.go(mi_jnt,self.mi_skullPlate.mNode,snapToSurface=True)					
+				constraintBuffer = mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode, weight = 1, aimVector = mi_go._vectorAim, upVector = mi_go._vectorUp, worldUpType = 'scene' )
+				mc.delete(constraintBuffer)				
+				ml_handleJoints.append(mi_jnt)
+			    elif str_mode == 'mouthMove':
+				try:
+				    pos = distance.returnAveragePointPosition([self.md_jointList['cornerLipLeft'][0].getPosition(),
+				                                               self.md_jointList['cornerLipRight'][0].getPosition()])
+				except Exception,error:raise StandardError,"mouthMove pos fail: %s"%error
+				
+				mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+				mi_jnt.parent = False
+				mi_jnt.addAttr('cgmName',k_name,lock=True)										
+				mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)				    
+				mi_jnt.doName()	
+				
+				Snap.go(mi_jnt,self.mi_skullPlate.mNode,snapToSurface=True)					
+				mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode,
+				                               weight = 1, aimVector = mi_go._vectorAim,
+				                               upVector = mi_go._vectorUp, worldUpType = 'scene' ))
+				ml_handleJoints.append(mi_jnt)
+				
 			    elif str_mode in ['midSimpleAim','midAimBlend']:
 				try:#Get our data...
 				    minU = d_buffer['minU']
@@ -346,14 +401,15 @@ def build_rigSkeleton(*args, **kws):
 					i_j.parent = False#Parent to world				
 					i_j.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
 					if len(self.l_build)>1:
-					    if l_tags:
-						i_j.addAttr('cgmName',l_tags[i],attrType='string',lock=True)					    
+					    if l_tags or l_tagsPosition:
+						if l_tags:i_j.addAttr('cgmName',l_tags[i],attrType='string',lock=True)
+						if l_tagsPosition:
+						    i_j.addAttr('cgmPosition',l_tagsPosition[i],attrType='string',lock=True)						
 					    else:
 						if i == 0:
 						    i_j.addAttr('cgmNameModifier','start',attrType='string',lock=True)
 						else:
 						    i_j.addAttr('cgmNameModifier','end',attrType='string',lock=True)
-					    
 					try:i_j.doRemove('cgmIterator')#Purge the iterator
 					except:pass
 					i_j.doName()
@@ -364,7 +420,7 @@ def build_rigSkeleton(*args, **kws):
 			    
 			    ml_rightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints , cgmDirection = 'right')
 			    for mJoint in ml_rightHandles:
-				log.info("%s flipping"% mJoint.p_nameShort)
+				#log.info("%s flipping"% mJoint.p_nameShort)
 				mJoint.__setattr__("r%s"% mi_go._jointOrientation[1],180)
 				jntUtils.freezeJointOrientation(mJoint)			
 		    except Exception,error:raise StandardError,"%s | %s failed: %s"%(k_name,k_direction,error)    

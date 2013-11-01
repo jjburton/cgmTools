@@ -631,6 +631,7 @@ class go(object):
 	    ml_rigJoints = [cgmMeta.cgmObject(j) for j in l_rigJoints]
 	    
 	    for i,mJnt in enumerate(ml_rigJoints):
+		#log.info(mJnt.p_nameShort)		
 		mJnt.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
 		mJnt.doName()
 		l_rigJoints[i] = mJnt.mNode
