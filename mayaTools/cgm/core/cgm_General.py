@@ -79,7 +79,7 @@ class cgmFuncCls(object):
 	try:self._str_funcKWs = str(kws)
 	except:self._str_funcKWs = None
 	self._str_funcCombined = self._str_funcName
-	try:self._str_funcName = "%s - from %s"%(self._str_funcName,kws.get('calledFrom'))
+	try:self._str_funcName = "%s - from %s"%(self._str_funcName,kws['calledFrom'])
 	except:pass
 	self._str_reportStart = " %s >> "%(self._str_funcName)
 	if self._l_ARGS_KWS_DEFAULTS:
@@ -197,7 +197,7 @@ class cgmFuncCls(object):
 		    log.info(">"*6 + " Nested Dict: %s "%k + "-"*75)
 		    l_bufferKeys = buffer.keys()
 		    l_bufferKeys.sort()
-		    for k2 in buffer.keys():
+		    for k2 in l_bufferKeys:
 			log.info(">"*6 + " '%s' : %s "%(k2,buffer[k2]))			
 		else:
 		    log.info(">"*3 + " '%s' : %s "%(k,self.__dict__[k]))
@@ -255,7 +255,19 @@ class cgmFuncCls(object):
 	    self._str_mod = '%s' % mod.__name__.split('.')[-1]
 	    self._str_funcCombined = "%s.%s"%(self._str_mod,self._str_funcName)
 	except:self._str_funcCombined = self._str_funcName	
-		
+	
+    def info(self,arg):
+	try:
+	    log.info("%s%s"%(self._str_reportStart,str(arg)))
+	except:pass	
+    def error(self,arg):
+	try:
+	    log.error("%s%s"%(self._str_reportStart,str(arg)))
+	except:pass
+    def warning(self,arg):
+	try:
+	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
+	except:pass	    
 class cgmFunctionClass2(object):
     """Simple class for use with TimerSimple"""
     def __init__(self,*args, **kws):
