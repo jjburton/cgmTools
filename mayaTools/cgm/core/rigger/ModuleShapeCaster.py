@@ -2400,7 +2400,7 @@ def shapeCast_mouthNose(*args,**kws):
 	    self.ml_centerRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                    cgmDirection = 'center')
 
-	    for tag in ['noseTip','noseTop']:
+	    for tag in ['noseTip','noseTop','noseUnder']:
 		self.ml_centerRigJoints.extend(metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 		                                                                     cgmName = tag))
 		

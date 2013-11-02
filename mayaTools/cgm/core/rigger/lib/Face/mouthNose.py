@@ -486,17 +486,27 @@ def build_controls(*args, **kws):
 	    self.md_jointLists = {}	    
 	    self.ml_handleJoints = mi_go._i_module.rigNull.msgList_get('handleJoints')
 	    self.ml_rigJoints = mi_go._i_module.rigNull.msgList_get('rigJoints')
+	    self.ml_rigJointsToSetup = []
 	    
 	    l_missingCurves = []
-	    for mJnt in self.ml_handleJoints + self.ml_rigJoints:
+	    for mJnt in self.ml_handleJoints:
 		if not mJnt.getMessage('controlShape'):l_missingCurves.append(mJnt.p_nameShort)
-
+	    for mJnt in self.ml_rigJoints:
+		if mJnt.getMessage('controlShape'):self.ml_rigJointsToSetup.append(mJnt)	
+		
 	    if l_missingCurves:
 		log.error("Following joints missing curves: ")
 		for obj in l_missingCurves:
 		    log.error(">"*5 + " %s"%obj)
 		raise StandardError,"Some joints missing controlShape curves"
-	    
+	    '''
+	    log.info("#"*100)
+	    for ii,ml_list in enumerate( [self.ml_rigJointsToSetup,self.ml_handleJoints] ):
+		log.info("-"*100)		
+		for i,mObj in enumerate(ml_list):
+		    print mObj
+	    log.info("#"*100)
+	    '''
 	    #>> Running lists ===========================================================================
 	    self.md_directionControls = {"Left":[],"Right":[],"Centre":[]}
 	    self.ml_directControls = []
@@ -509,12 +519,11 @@ def build_controls(*args, **kws):
 	    
 	    #>>> Verify out vis controls	    
 	    self.mPlug_result_moduleFaceSubDriver = mi_go.build_visSubFace()	
-	    #self.mPlug_result_moduleFaceSubDriver = self._go.build_visSubFace()	
 
 	def _buildControls_(self):
 	    mi_go = self._go#Rig Go instance link
 	    
-	    ml_rigJoints = self.ml_rigJoints
+	    ml_rigJoints = self.ml_rigJointsToSetup
 	    ml_handleJoints = self.ml_handleJoints
 		
 	    l_strTypeModifiers = ['direct',None]
@@ -522,24 +531,28 @@ def build_controls(*args, **kws):
 		for i,mObj in enumerate(ml_list):
 		    str_mirrorSide = False
 		    try:
+			log.info("%s On '%s'..."%(self._str_reportStart,mObj.p_nameShort))
 			mObj.parent = mi_go._i_deformNull
 			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
+			_addForwardBack = "t%s"%mi_go._jointOrientation[0]
+			if mObj.cgmName in ['tongueBase','tongueTip','jaw']:_addForwardBack = False
+
 			#Register 
 			try:
-			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addPushPull = "t%s"%mi_go._jointOrientation[0],
+			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addForwardBack = _addForwardBack,
 				                                       mirrorSide = str_mirrorSide, mirrorAxis="translateZ,rotateX,rotateY",		                                           
 				                                       makeAimable=False, typeModifier=l_strTypeModifiers[ii]) 	    
 			except Exception,error:
 			    log.error("mObj: %s"%mObj.p_nameShort)
 			    log.error("useShape: %s"%mObj.getMessage('controlShape'))
-			    log.error("mirrorSide: %s"%str_mirrorSide)			
+			    log.error("mirrorSide: %s"%str_mirrorSide)		
+			    log.error("forwardBack flag: %s"%_addForwardBack)						    
 			    raise StandardError,"Register fail : %s"%error
 			
 			#Vis sub connect
 			if ii == 0:
 			    self.mPlug_result_moduleFaceSubDriver.doConnectOut("%s.visibility"%mObj.mNode)
-			
-			#
+
 			mc.delete(mObj.getMessage('controlShape'))
 			mObj.doRemove('controlShape')
 			self.md_directionControls[str_mirrorSide].append(mObj)
@@ -579,12 +592,13 @@ def build_rig(*args, **kws):
 	    self._str_funcName = 'build_rig(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-	                        {'step':'Special Locs','call':self._buildSpecialLocs_},	                        
-	                        {'step':'Rig Brows','call':self._buildBrows_},
-	                        {'step':'Rig Upr Cheek','call':self._buildUprCheek_},
-	                        {'step':'Rig Temple','call':self._buildTemple_},
-	                        {'step':'Attach Squash','call':self._attachSquash_},
-	                        {'step':'Lock N hide','call':self._lockNHide_},
+	                        {'step':'Loft some surfaces','call':self._buildAttachSurfaces_},
+	                        #{'step':'Special Locs','call':self._buildSpecialLocs_},	                        
+	                        #{'step':'Rig Brows','call':self._buildBrows_},
+	                        #{'step':'Rig Upr Cheek','call':self._buildUprCheek_},
+	                        #{'step':'Rig Temple','call':self._buildTemple_},
+	                        #{'step':'Attach Squash','call':self._attachSquash_},
+	                        #{'step':'Lock N hide','call':self._lockNHide_},
 	                        
 	                        ]	
 	    #=================================================================
@@ -596,92 +610,164 @@ def build_rig(*args, **kws):
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    self.mi_skullPlate = mi_go._mi_skullPlate
-	    mi_go._i_rigNull.connectChildNode(self.mi_skullPlate,'skullPlate')#Connect it
-	    self.str_skullPlate = self.mi_skullPlate.mNode
 	    
-	    self.mi_jawPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('jawPlate'),noneValid=True)
-	    
+	    for attr in self.mi_helper.getAttrs(userDefined = True):#Get allof our Helpers
+		if "Helper" in attr:
+		    try:self.__dict__["mi_%s"%attr.replace('Helper','Crv')] = cgmMeta.validateObjArg(self.mi_helper.getMessage(attr),noneValid=False)
+		    except Exception,error:raise StandardError, " Failed to find '%s' | %s"%(attr,error)
+		
 	    #>> Get our lists ==========================================================================
 	    '''
-	    We need lists of handle and a rig joints for each segment - brow, upr cheek temple
-	    md_joints = {'leftBrow:{'ml_handleJoints':[],'ml_rigJoints':[],'mi_crv'}}
+	    We need lists of handle and a rig joints for each part - We're going to get it by doing a procedural dict search
 	    '''
 	    ml_handleJoints = mi_go._i_module.rigNull.msgList_get('handleJoints')
 	    ml_rigJoints = mi_go._i_module.rigNull.msgList_get('rigJoints')
-	    self.md_rigList = {"brow":{"left":{},"right":{},"center":{}},
-	                       "uprCheek":{"left":{},"right":{}},
-	                       "squash":{},
-	                       "temple":{"left":{},"right":{}}}
+	    self.md_rigList = {"squash":{},
+	                       }
+	    d_buildArgs = {}
 	    
 	    self.ml_rigJoints = ml_rigJoints
 	    self.ml_handlesJoints = ml_handleJoints
-	    #>> Brow --------------------------------------------------------------------------------------------------
-	    self.md_rigList['brow']['left']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                                          cgmDirection = 'left',
-	                                                                                          cgmName = 'brow')
-	    self.md_rigList['brow']['right']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                                           cgmDirection = 'right',
-	                                                                                           cgmName = 'brow') 
-	    self.md_rigList['brow']['center']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                                           cgmDirection = 'center',
-	                                                                                           cgmName = 'brow') 
-	    self.md_rigList['brow']['left']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                                            cgmDirection = 'left',
-	                                                                                            cgmName = 'brow')
-	    self.md_rigList['brow']['right']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                                             cgmDirection = 'right',
-	                                                                                             cgmName = 'brow') 
-	    self.md_rigList['brow']['center']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                                              cgmDirection = 'center',
-	                                                                                              cgmName = 'brow') 	    
-	    if not self.md_rigList['brow']['left'].get('ml_handles'):raise StandardError,"Failed to find left brow handle joints"
-	    if not self.md_rigList['brow']['right'].get('ml_handles'):raise StandardError,"Failed to find right brow handle joints"
-	    if not self.md_rigList['brow']['center'].get('ml_handles'):raise StandardError,"Failed to find center brow handle joints"
+	    _l_directions = 'left','right','center'
+	    _l_buildDicts = []
+
+	    #>> Nose --------------------------------------------------------------------------------------------------
+	    d_noseBuild = {'nostrilHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'nostril'},
+	                    'nostrilRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'nostril'},
+	                    'noseMove':{'check':ml_handleJoints},
+	                    'noseTipRig':{'check':ml_rigJoints,'tag':'noseTip'},
+	                    'noseTipHandle':{'check':ml_handleJoints,'tag':'noseTip'},
+	                    'noseUnderRig':{'check':ml_rigJoints,'tag':'noseUnder'},
+	                    'noseUnderHandle':{'check':ml_handleJoints,'tag':'noseUnder'},
+	                    'noseTopRig':{'check':ml_rigJoints,'tag':'noseTop'},	                    	                    
+	                    }
+	    _l_buildDicts.append(d_noseBuild)	 	    
+
+	    #>> Smile Line --------------------------------------------------------------------------------------------------
+	    d_smileBuild = {'sneerHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'sneer'},
+	                    'smileHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smile'},
+	                    'smileBaseHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smileBase'},
+	                    'smileLineRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'smileLine'},	                    
+	                    }
+	    _l_buildDicts.append(d_smileBuild)	    
+
+	    #>> Smile Line --------------------------------------------------------------------------------------------------
+	    d_smileBuild = {'sneerHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'sneer'},
+	                    'smileHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smile'},
+	                    'smileBaseHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smileBase'},
+	                    'smileLineRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'smileLine'},	                    
+	                    }
+	    _l_buildDicts.append(d_smileBuild)
 	    
-	    #>> Cheek --------------------------------------------------------------------------------------------------
-	    self.md_rigList['uprCheek']['left']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                                              cgmDirection = 'left',
-	                                                                                              cgmName = 'uprCheek')
-	    self.md_rigList['uprCheek']['right']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                                               cgmDirection = 'right',
-	                                                                                               cgmName = 'uprCheek') 		    
-	    self.md_rigList['uprCheek']['left']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                                                cgmDirection = 'left',
-	                                                                                                cgmName = 'uprCheek')
-	    self.md_rigList['uprCheek']['right']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                                                 cgmDirection = 'right',
-	                                                                                                 cgmName = 'uprCheek') 	    
-	    #>> Temple --------------------------------------------------------------------------------------------------
-	    self.md_rigList['temple']['left']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                                              cgmDirection = 'left',
-	                                                                                              cgmName = 'temple')
-	    self.md_rigList['temple']['right']['ml_handles'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                                               cgmDirection = 'right',
-	                                                                                               cgmName = 'temple') 	
 	    
-	    self.md_rigList['temple']['left']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                                                cgmDirection = 'left',
-	                                                                                                cgmName = 'temple')
-	    self.md_rigList['temple']['right']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                                                 cgmDirection = 'right',
-	                                                                                                 cgmName = 'temple') 	 	    
+	    
+	    #>> Mouth --------------------------------------------------------------------------------------------------
+	    b_buildMouth = True	    
+	    d_mouthBuild = {'lipUprHandle':{"left":{},"right":{},'center':{},'check':ml_handleJoints,'tag':'lipUpr'},
+	                    'liplwrHandle':{"left":{},"right":{},'center':{},'check':ml_handleJoints,'tag':'lipLwr'},
+	                    'lipCorner':{"left":{},"right":{},'check':ml_handleJoints,'tag':'lipCorner'},
+	                    'lipUprRig':{"left":{},"right":{},'center':{},'check':ml_rigJoints,'tag':'lipUpr'},
+	                    'liplwrRig':{"left":{},"right":{},'center':{},'check':ml_rigJoints,'tag':'lipLwr'},
+			    'chin':{'check':ml_handleJoints},
+	                    'mouthMove':{'check':ml_handleJoints},	 
+	                    }
+	    _l_buildDicts.append(d_mouthBuild)
+	    
+	    #>> Jaw --------------------------------------------------------------------------------------------------
+	    b_buildJawLine = True	    
+	    d_jawBuild = {'jawAnchor':{"left":{},"right":{},'check':ml_handleJoints},
+	                  'jaw':{'check':ml_handleJoints},
+	                  'jawLine':{"left":{},"right":{},"center":{},'check':ml_rigJoints,'checkToggle':b_buildJawLine}}
+	    _l_buildDicts.append(d_jawBuild)
+		
+	    #>> uprCheek --------------------------------------------------------------------------------------------------
+	    b_buildUprCheek = True
+	    d_uprCheekBuild = {'uprCheekHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'uprCheek'},
+	                       'uprCheekRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'uprCheek','checkToggle':b_buildUprCheek}}
+	    
+	    _l_buildDicts.append(d_uprCheekBuild)
+
+	    	    
+	    #>> tongue --------------------------------------------------------------------------------------------------
+	    b_buildTongue = True
+	    d_tongueBuild = {'tongueBase':{'check':ml_handleJoints,'checkToggle':b_buildTongue},
+	                     'tongueTip':{'check':ml_handleJoints,'checkToggle':b_buildTongue}}
+	    
+	    _l_buildDicts.append(d_tongueBuild)
+
+	    #>> Build our md_rigList from our dict stuff ==========================================================
+	    for d in _l_buildDicts:
+		for k in d.iterkeys():
+		    d_buildArgs[k] = d[k]
+		
+	    for k_tag in d_buildArgs.iterkeys():
+		try:#For key loop --------------------------------------------------------------------------------
+		    d_tag = d_buildArgs[k_tag]
+		    if d_tag.get('tag'):str_tag = d_tag['tag']
+		    else:str_tag = k_tag
+		    l_keys = d_tag.keys()		
+		    if d_tag.get('checkToggle') in [True,None]:
+			self.md_rigList[k_tag] = {}
+			ml_checkBase = d_tag.get('check')
+			if not ml_checkBase:raise StandardError,"No check key for %s"%k_tag
+			else:
+			    ml_checkSub = metaUtils.get_matchedListFromAttrDict(ml_checkBase, cgmName = str_tag)
+			    #log.info("%s %s ml_checkSub: %s"%(self._str_reportStart,str_tag,ml_checkSub))
+			#Check our directions for data
+			_b_directionChecked = False
+			for k_direction in _l_directions:
+			    if d_tag.has_key(k_direction):
+				_b_directionChecked = True
+				buffer = metaUtils.get_matchedListFromAttrDict(ml_checkSub,cgmDirection = k_direction)
+				if not buffer:raise StandardError,"Failed to find %s %s data"%(str_tag,k_direction)
+				if len(buffer) == 1:buffer = buffer[0]			    
+				self.md_rigList[k_tag][k_direction] = buffer
+				self.info("%s - %s : %s"%(k_tag,k_direction,buffer))
+			if not _b_directionChecked:
+			    if len(ml_checkSub) == 1:ml_checkSub = ml_checkSub[0]			    
+			    self.md_rigList[k_tag] = ml_checkSub
+			    if self.md_rigList[k_tag]:_b_directionChecked = True
+			    self.info("%s : %s"%(k_tag,self.md_rigList[k_tag]))			    
+			if not _b_directionChecked:
+			    log.error("%s %s nothing checked"%(self._str_reportStart,k_tag))
+		    else:
+			log.error("%s %s | Check toggle off"%(self._str_reportStart,k_tag))
+		except Exception,error:raise StandardError,"%s loop | %s"%(k_tag,error)
+	     	    
 	    #>> Squash --------------------------------------------------------------------------------------------------
+	    '''
 	    self.md_rigList['squash']['ml_rigJoints'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                                      cgmNameModifier = 'squash')
 	    
 	    self.mi_squashCastHelper = cgmMeta.validateObjArg(self.mi_helper.getMessage('squashCastHelper'),noneValid=True)	    
-
+	    '''
 	    #>> Calculate ==========================================================================
+	    '''
 	    self.f_offsetOfUpLoc = distance.returnDistanceBetweenObjects(self.md_rigList['brow']['left']['ml_rigJoints'][0].mNode,
 	                                                                 self.md_rigList['brow']['left']['ml_rigJoints'][-1].mNode)
 	    
+	    '''
 	    #>> Running lists ==========================================================================
 	    self.ml_toVisConnect = []
 	    self.ml_curves = []
 	    self.md_attachReturns = {}
-	    
 	    return True
 	
+	def _buildAttachSurfaces_(self):
+	    #>> Get some data =======================================================================================
+	    mi_go = self._go#Rig Go instance link
+	    mi_mouthLoftTop = self.mi_mouthTopCastCrv
+	    mi_mouthLoftMid = self.mi_mouthMidCastCrv
+	    mi_mouthLoftBottom = self.mi_mouthLowCastCrv
+	    mi_lipUpr = self.mi_lipUprCrv
+	    mi_lipLwr = self.mi_lipLwrCrv
+	    
+	    try:#Top lip surface =======================================================================================
+		str_loft = mc.loft([mi_mouthLoftTop.mNode,mi_lipUpr.mNode],uniform = True,degree = 3,ss = 2)[0]
+		str_loft = mc.loft([mi_lipLwr.mNode,mi_mouthLoftBottom.mNode],uniform = True,degree = 3,ss = 2)[0]
+		
+	    except Exception,error:raise StandardError,"Top lip surface. | %s"%(error)
+	    
 	def _buildSpecialLocs_(self):
 	    #>> Need to build some up locs =======================================================================================
 	    mi_go = self._go#Rig Go instance link

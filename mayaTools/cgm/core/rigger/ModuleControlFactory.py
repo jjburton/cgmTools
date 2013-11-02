@@ -101,7 +101,7 @@ def registerControl(*args,**kws):
 	                                 {'kw':'addSpacePivots',"default":False,'help':"Number of space pivots to generate and connect","argType":"int"},
 	                                 {'kw':'controlType',"default":None,'help':"Tag for cgmType","argType":"string"},
 	                                 {'kw':'typeModifier', "default":None, 'help':"Tag for cgmTypeModifier for naming", "argType":"string"},	                                 
-	                                 {'kw':'addPushPull',"default":None,'help':"Push Pull driver setup. Looking for an attribute to drive","argType":"mAttr"},	                                 
+	                                 {'kw':'addForwardBack',"default":None,'help':"Forward Back driver setup. Looking for an attribute to drive","argType":"mAttr"},	                                 
 	                                 {'kw':'aim',"default":None,'help':"aim axis to use","argType":"string/int"},
 	                                 {'kw':'up',"default":None,'help':"up axis to use","argType":"string/int"},
 	                                 {'kw':'out',"default":None,'help':"out axis to use","argType":"string/int"},
@@ -121,7 +121,7 @@ def registerControl(*args,**kws):
 	                        {'step':'Groups Setup','call':self._groupsSetup},
 	                        {'step':'Space Pivot','call':self._spacePivots},
 	                        {'step':'Freeze','call':self._freeze},
-	                        {'step':'Push Pull Setup','call':self._pushPull},	                        
+	                        {'step':'Forward Back Setup','call':self._forwardBack},	                        
 	                        {'step':'lock N Hide','call':self._lockNHide},
 	                        {'step':'Return build','call':self._returnBuild}]
 	    
@@ -335,26 +335,26 @@ def registerControl(*args,**kws):
 			mc.makeIdentity(self.mi_control.mNode, apply=True,t=1,r=0,s=1,n=0)
 		else:
 		    mc.makeIdentity(self.mi_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
-	def _pushPull(self):	    		
-	    addPushPull = self.d_kws['addPushPull']
+	def _forwardBack(self):	    		
+	    addForwardBack = self.d_kws['addForwardBack']
 	    
-	    if addPushPull:
-		mPlug_pushPullDriver = cgmMeta.cgmAttr(self.mi_control,"pushPull",attrType = 'float',keyable=True)
+	    if addForwardBack:
+		mPlug_forwardBackDriver = cgmMeta.cgmAttr(self.mi_control,"forwardBack",attrType = 'float',keyable=True)
 		try:
-		    mPlug_pushPullDriven = cgmMeta.validateAttrArg([self.mi_control,addPushPull])['mi_plug']
+		    mPlug_forwardBackDriven = cgmMeta.validateAttrArg([self.mi_control,addForwardBack])['mi_plug']
 		except Exception,error:raise StandardError,"push pull driver | %s"%(error)
 		
 		if self.str_mirrorSide.lower() == 'right':
-		    arg_pushPull = "%s = -%s"%(mPlug_pushPullDriven.p_combinedShortName,
-		                               mPlug_pushPullDriver.p_combinedShortName)		    
+		    arg_forwardBack = "%s = -%s"%(mPlug_forwardBackDriven.p_combinedShortName,
+		                               mPlug_forwardBackDriver.p_combinedShortName)		    
 		else:
-		    arg_pushPull = "%s = %s"%(mPlug_pushPullDriven.p_combinedShortName,
-		                               mPlug_pushPullDriver.p_combinedShortName)
+		    arg_forwardBack = "%s = %s"%(mPlug_forwardBackDriven.p_combinedShortName,
+		                               mPlug_forwardBackDriver.p_combinedShortName)
 		    
-		mPlug_pushPullDriven.p_locked = True
-		mPlug_pushPullDriven.p_hidden = True
-		mPlug_pushPullDriven.p_keyable = False		
-		NodeF.argsToNodes(arg_pushPull).doBuild()
+		mPlug_forwardBackDriven.p_locked = True
+		mPlug_forwardBackDriven.p_hidden = True
+		mPlug_forwardBackDriven.p_keyable = False		
+		NodeF.argsToNodes(arg_forwardBack).doBuild()
 		
 	def _lockNHide(self):	
 	    autoLockNHide = self.d_kws['autoLockNHide']	    
