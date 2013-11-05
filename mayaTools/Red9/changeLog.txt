@@ -74,7 +74,7 @@ New - Red9_Anim - Interactive FilterCurves added as new feature and RandomizeKey
 Mod - Red9_Anim - Extended the 'FilterCurves' functionality, new 'snap to frms' options and added an interactive resample to it. Also now cache the current state of the curve display so that the toggle returns your last settings for display tangents and buffers.
 Fix - Red9_Anim - MAJOR CRASH under Maya 2014 when using the poseSaver, this is now fixed, something's changed in the way Maya is managing popupMenu's!
 
-1.34:
+1.40:
 -----
 New - Red9_General - added a new ContextManager for the Maya ProgressBar, makes it a damn sight easier to add and manage progressBar's - these will be added to some of the anim functions so they can now be aborted
 Mod - Red9_Startup - added new menuItems to the debug, you can now debug each module seperately.
@@ -88,6 +88,17 @@ New - Red9_Anim - Tracker now supports rot/trans flag to only snap rotate or tra
 New - Red9_Pose - added the ability (if using metaRig) to maintain parentSwitche spaces when loading a pose!! ;)
 Fix - Red9_Pose - PoseCompare in the RMB popup in the poseSaver was hard coded to only compare metaRig poses, this limitation is now lifted
 Mod - Red9_Core - FilterNode - lsHierarchy now processes sub-CharacterSets correctly, treating them as a standrad hierarchy for processing
-New - presets - Added simple presets for AndyRig, presets also now have the ability to hold an info block to make it easy on users
+New - presets - Added AndyRig, TSM and AnimMentors Stewart rig presets, also now have the ability to hold an info block to make it easy on users
 Fix - Red9_Meta - getNodeConnectionMetaDataMap func wasn't using the mTypes flag correctly
 Fix - Red9_Core - FilterNode now handles ObjectSets and subsets correctly in the main calls
+Fix - Red9_Meta - fixed the rename() call as it was bombing out
+New - Red9_Meta - new property mNodeMObject which as it suggests, gives you back the MObject for the mNode directly - passes via validation
+Mod - Red9_Meta - HUD Management upgraded in the channelBox to support sliders or headsUp, ChannelBox menu modified to reflect
+New - Red9_Anim - "Interactive curve UI" now has 2 extra buttons, 'DeleteRedunants' and 'SingleProcess'. Delete will remove curves who's value never changes and are deamed as static. SingleProcess will do just that, run the simplify at the values from the slider
+Mod - Red9_Anim - MirrorSetup now has a new checkbox which allows it to remove all current mirror settings from nodes before loading a mirrorMap
+New - Red9_Anim - SnapTransforms - 'Priority as SnapList' in the hierarchy tab can now be used to say exactly what nodes get snapped during snapTransform. Issue previously is that EVERY node found was snapped making it really slow
+Fix - Red9_Pose - When using the PosePointCloud with a given ref mesh, I now manage the overrides on that geo so it can always be selected in the viewport
+NEW - Red9_Pose - Now respects the 'Priority as SnapList' checkbox. This forces the relative code to ONLY use those nodes in the Node Priority lists when managing in the relative space compensations, everything else is left as the pose data loaded. Gets over a ton of issues on complex rigs!
+
+
+

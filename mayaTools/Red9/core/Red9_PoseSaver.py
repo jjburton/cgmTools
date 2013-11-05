@@ -47,6 +47,8 @@ def getFolderPoseHandler(posePath):
         poseHandler=poseHandlers[0]
     return poseHandler
 
+def addPoseReference(frame,posefile):
+    pass
 
 class PoseData(object):
     '''
@@ -101,6 +103,7 @@ class PoseData(object):
         self.relativeRots='projected'
         self.relativeTrans='projected'
         self.useFilter=True
+        self.prioritySnapOnly=False
         
         # make sure we have a settings object
         if filterSettings:
@@ -414,55 +417,7 @@ class PoseData(object):
         if not InternalNodes:
             raise StandardError('No Matching Nodes found!!')
         return InternalNodes
-  
-  
-    #Pose Point Cloud (PPC) ------------------------------------  
-    
-    def _buildOffsetCloud(self,nodes,rootReference=None,raw=False):
-        '''
-        Build a point cloud up for each node in nodes
-        @param nodes: list of objects to be in the cloud
-        @param rootReference: the node used for the initial pibot location
-        @param raw: build the cloud but DON'T snap the nodes into place - an optimisation for the PoseLoad sequence
-        '''
-        self.posePointCloudNodes=[]
-
-        self.posePointRoot=cmds.ls(cmds.spaceLocator(name='posePointCloud'),l=True)[0]   
-        
-        ppcShape=cmds.listRelatives(self.posePointRoot,type='shape')[0] 
-        cmds.setAttr( "%s.localScaleZ" % ppcShape, 30)
-        cmds.setAttr( "%s.localScaleX" % ppcShape, 30)
-        cmds.setAttr( "%s.localScaleY" % ppcShape, 30)
-        
-        if self.mayaUpAxis=='y':
-            cmds.setAttr('%s.rotateOrder' % self.posePointRoot, 2)
-        if rootReference:# and not mesh:
-            r9Anim.AnimFunctions.snap([rootReference,self.posePointRoot]) 
-        for node in nodes:
-            pnt=cmds.spaceLocator(name='pp_%s' % r9Core.nodeNameStrip(node))[0]
-            if not raw:
-                r9Anim.AnimFunctions.snap([node,pnt])
-            cmds.parent(pnt,self.posePointRoot)
-            self.posePointCloudNodes.append((pnt,node))
-        return self.posePointCloudNodes
-        
-    def _snapPosePntstoNodes(self):
-        '''
-        snap each pntCloud point to their respective Maya nodes
-        '''
-        for pnt,node in self.posePointCloudNodes:
-            log.debug('snapping PPT : %s' % pnt)
-            r9Anim.AnimFunctions.snap([node,pnt])
-            
-    def _snapNodestoPosePnts(self):
-        '''
-        snap each MAYA node to it's respective pntCloud point
-        '''
-        for pnt,node in self.posePointCloudNodes:
-            log.debug('snapping Ctrl : %s' % node)
-            r9Anim.AnimFunctions.snap([pnt,node])   
-    
-    
+      
     #Main Calls ----------------------------------------  
   
     @r9General.Timer              
@@ -518,8 +473,9 @@ class PoseData(object):
         self.relativePose = relativePose
         self.relativeRots = relativeRots
         self.relativeTrans = relativeTrans
+        self.PosePointCloud=None
         self.filepath = filepath
-        self.useFilter = useFilter
+        self.useFilter = useFilter #used in the getNodes call
         self.maintainSpaces = maintainSpaces
         
         if self.filepath and not os.path.exists(self.filepath):
@@ -540,7 +496,6 @@ class PoseData(object):
 
         if self.metaPose:
             if self.infoDict.has_key('metaPose') and self.metaRig:
-                #note, we eval as configPbj is string based
                 try:
                     if eval(self.infoDict['metaPose']):
                         self.matchMethod = 'metaData'
@@ -556,13 +511,19 @@ class PoseData(object):
         if not matchedPairs:
             raise StandardError('No Matching Nodes found in the PoseFile!')    
         else:
-            nodesToLoad.reverse() #for the snapping operations
-            
-            #make the reference posePointCloud and cache it's initial xforms
             if self.relativePose:
+                
+                #setup the PosePointCloud -------------------------------------------------
                 reference=cmds.ls(sl=True,l=True)[0]
-                self._buildOffsetCloud(nodesToLoad,reference,raw=True)
-                resetCache=[cmds.getAttr('%s.translate' % self.posePointRoot), cmds.getAttr('%s.rotate' % self.posePointRoot)]  
+                if self.prioritySnapOnly:
+                    #we've already filtered the hierarchy, may as well just filter the results for speed
+                    nodesToLoad=r9Core.prioritizeNodeList(nodesToLoad, self.settings.filterPriority, regex=True, prioritysOnly=True)
+                    nodesToLoad.reverse()
+                self.PosePointCloud=PosePointCloud(nodesToLoad)
+                self.PosePointCloud.buildOffsetCloud(reference, raw=True)
+                resetCache=[cmds.getAttr('%s.translate' % self.PosePointCloud.posePointRoot), 
+                            cmds.getAttr('%s.rotate' % self.PosePointCloud.posePointRoot)]  
+                
                 if self.maintainSpaces and self.metaRig:
                     self.parentSpaceCache = self.metaRig.getParentSwitchData()
             
@@ -573,44 +534,51 @@ class PoseData(object):
                 #snap the poseCloud to the new xform of the referenced node, snap the cloud
                 #to the pose, reset the clouds parent to the cached xform and then snap the 
                 #nodes back to the cloud
-                r9Anim.AnimFunctions.snap([reference,self.posePointRoot])
+                r9Anim.AnimFunctions.snap([reference,self.PosePointCloud.posePointRoot])
                  
                 if self.relativeRots=='projected':
                     if self.mayaUpAxis=='y':
-                        cmds.setAttr('%s.rx' % self.posePointRoot,0)
-                        cmds.setAttr('%s.rz' % self.posePointRoot,0)
+                        cmds.setAttr('%s.rx' % self.PosePointCloud.posePointRoot,0)
+                        cmds.setAttr('%s.rz' % self.PosePointCloud.posePointRoot,0)
                     elif self.mayaUpAxis=='z': # fucking Z!!!!!!
-                        cmds.setAttr('%s.rx' % self.posePointRoot,0)
-                        cmds.setAttr('%s.ry' % self.posePointRoot,0)
+                        cmds.setAttr('%s.rx' % self.PosePointCloud.posePointRoot,0)
+                        cmds.setAttr('%s.ry' % self.PosePointCloud.posePointRoot,0)
                     
-                self._snapPosePntstoNodes()
+                self.PosePointCloud._snapPosePntstoNodes()
                 
                 if not self.relativeTrans=='projected':
-                    cmds.setAttr('%s.translate' % self.posePointRoot,resetCache[0][0][0],resetCache[0][0][1],resetCache[0][0][2])
+                    cmds.setAttr('%s.translate' % self.PosePointCloud.posePointRoot,
+                                 resetCache[0][0][0],
+                                 resetCache[0][0][1],
+                                 resetCache[0][0][2])
                 if not self.relativeRots=='projected':
-                    cmds.setAttr('%s.rotate' % self.posePointRoot,resetCache[1][0][0],resetCache[1][0][1],resetCache[1][0][2])
+                    cmds.setAttr('%s.rotate' % self.PosePointCloud.posePointRoot,
+                                 resetCache[1][0][0],
+                                 resetCache[1][0][1],
+                                 resetCache[1][0][2])
                
                 if self.relativeRots=='projected':
                     if self.mayaUpAxis=='y':
-                        cmds.setAttr('%s.ry' % self.posePointRoot,resetCache[1][0][1])
+                        cmds.setAttr('%s.ry' % self.PosePointCloud.posePointRoot,resetCache[1][0][1])
                     elif self.mayaUpAxis=='z': # fucking Z!!!!!!
-                        cmds.setAttr('%s.rz' % self.posePointRoot,resetCache[1][0][2])
+                        cmds.setAttr('%s.rz' % self.PosePointCloud.posePointRoot,resetCache[1][0][2])
                 if self.relativeTrans=='projected':
                     if self.mayaUpAxis=='y':
-                        cmds.setAttr('%s.tx' % self.posePointRoot,resetCache[0][0][0])
-                        cmds.setAttr('%s.tz' % self.posePointRoot,resetCache[0][0][2])
+                        cmds.setAttr('%s.tx' % self.PosePointCloud.posePointRoot,resetCache[0][0][0])
+                        cmds.setAttr('%s.tz' % self.PosePointCloud.posePointRoot,resetCache[0][0][2])
                     elif self.mayaUpAxis=='z': # fucking Z!!!!!!
-                        cmds.setAttr('%s.tx' % self.posePointRoot,resetCache[0][0][0])    
-                        cmds.setAttr('%s.ty' % self.posePointRoot,resetCache[0][0][1])    
+                        cmds.setAttr('%s.tx' % self.PosePointCloud.posePointRoot,resetCache[0][0][0])    
+                        cmds.setAttr('%s.ty' % self.PosePointCloud.posePointRoot,resetCache[0][0][1])    
                 
                 #if maintainSpaces then restore the original parentSwitch attr values
                 #BEFORE pushing the point cloud data back to the rig
                 if self.maintainSpaces and self.metaRig:
                     for child,attr,value in self.parentSpaceCache:
+                        log.debug('Resetting parentSwitches : %s.%s = %f' % (r9Core.nodeNameStrip(child),attr,value))
                         cmds.setAttr('%s.%s' % (child,attr), value)      
                             
-                self._snapNodestoPosePnts()  
-                cmds.delete(self.posePointRoot)
+                self.PosePointCloud._snapNodestoPosePnts()  
+                self.PosePointCloud.delete()
                 cmds.select(reference)
 
 
@@ -621,7 +589,7 @@ class PosePointCloud(object):
     relative space. It's been added as a tool in it's own right as it's sometimes
     useful to be able to shift poses in global space.
     '''
-    def __init__(self,rootReference,nodes,filterSettings=None,mesh=None):
+    def __init__(self,nodes,filterSettings=None,mesh=None):
         '''
         @param rootReference: the object to be used as the PPT's pivot reference
         @param nodes: feed the nodes to process in as a list, if a filter is given 
@@ -630,24 +598,74 @@ class PosePointCloud(object):
         @param mesh: this is really for reference, rather than make a locator, pass in a reference geo
                      which is then shapeSwapped for the PPC root node giving great reference!
         '''
-        self.poseObject=PoseData() 
-        self.mesh=mesh
-        self.refMesh='posePointCloudGeoRef'
-        self.refMeshShape='posePointCloudGeoRefShape'
+        self.mesh = mesh
+        self.refMesh = 'posePointCloudGeoRef'
+        self.refMeshShape = 'posePointCloudGeoRefShape'
+        self.mayaUpAxis = r9Setup.mayaUpAxis()
+        self.inputNodes = nodes #inputNodes for processing
+        self.posePointCloudNodes = [] #generated ppt nodes
+        self.posePointRoot = None
+        self.settings = None
+        self.prioritySnapOnly=False #ONLY make ppt points for the filterPriority nodes
         
         if filterSettings:
             if not issubclass(type(filterSettings), r9Core.FilterNode_Settings):
                 raise StandardError('filterSettings param requires an r9Core.FilterNode_Settings object')
             elif filterSettings.filterIsActive():
-                self.poseObject.settings=filterSettings
-                nodes=r9Core.FilterNode(nodes,self.poseObject.settings).ProcessFilter()
-        if nodes:
-            nodes.reverse() #for the snapping operations
-            self.poseObject._buildOffsetCloud(nodes, rootReference=rootReference)
-        if mesh:
-            self.shapeSwapMesh()
-        cmds.select(self.poseObject.posePointRoot)
+                self.settings=filterSettings
     
+    def buildOffsetCloud(self,rootReference=None,raw=False):
+        '''
+        Build a point cloud up for each node in nodes
+        @param nodes: list of objects to be in the cloud
+        @param rootReference: the node used for the initial pivot location
+        @param raw: build the cloud but DON'T snap the nodes into place - an optimisation for the PoseLoad sequence
+        '''
+        self.posePointRoot=cmds.ls(cmds.spaceLocator(name='posePointCloud'),l=True)[0]   
+        
+        ppcShape=cmds.listRelatives(self.posePointRoot,type='shape')[0] 
+        cmds.setAttr( "%s.localScaleZ" % ppcShape, 30)
+        cmds.setAttr( "%s.localScaleX" % ppcShape, 30)
+        cmds.setAttr( "%s.localScaleY" % ppcShape, 30)
+        
+        if self.settings:
+            if self.prioritySnapOnly:
+                self.settings.searchPattern=self.settings.filterPriority
+            self.inputNodes=r9Core.FilterNode(self.inputNodes, self.settings).ProcessFilter()
+        if self.inputNodes:
+            self.inputNodes.reverse() #for the snapping operations
+        
+        if self.mayaUpAxis=='y':
+            cmds.setAttr('%s.rotateOrder' % self.posePointRoot, 2)
+        if rootReference:# and not mesh:
+            r9Anim.AnimFunctions.snap([rootReference,self.posePointRoot]) 
+        for node in self.inputNodes:
+            pnt=cmds.spaceLocator(name='pp_%s' % r9Core.nodeNameStrip(node))[0]
+            if not raw:
+                r9Anim.AnimFunctions.snap([node,pnt])
+            cmds.parent(pnt,self.posePointRoot)
+            self.posePointCloudNodes.append((pnt,node))
+        cmds.select(self.posePointRoot)
+        if self.mesh:
+            self.shapeSwapMesh()
+        return self.posePointCloudNodes
+        
+    def _snapPosePntstoNodes(self):
+        '''
+        snap each pntCloud point to their respective Maya nodes
+        '''
+        for pnt,node in self.posePointCloudNodes:
+            log.debug('snapping PPT : %s' % pnt)
+            r9Anim.AnimFunctions.snap([node,pnt])
+            
+    def _snapNodestoPosePnts(self):
+        '''
+        snap each MAYA node to it's respective pntCloud point
+        '''
+        for pnt,node in self.posePointCloudNodes:
+            log.debug('snapping Ctrl : %s' % node)
+            r9Anim.AnimFunctions.snap([pnt,node])   
+            
     def shapeSwapMesh(self):
         '''
         Swap the mesh Geo so it's a shape under the PPC transform root
@@ -655,24 +673,31 @@ class PosePointCloud(object):
         '''
         cmds.duplicate(self.mesh,rc=True,n=self.refMesh)[0]
         r9Core.LockChannels().processState(self.refMesh,['tx','ty','tz','rx','ry','rz','sx','sy','sz'],\
-                                           mode='fullkey',hierarchy=False)                                      
-        cmds.parent(self.refMesh,self.poseObject.posePointRoot)
+                                           mode='fullkey',hierarchy=False)   
+        try:     
+            #turn on the overrides so the duplicate geo can be selected
+            cmds.setAttr("%s.overrideDisplayType" % self.refMeshShape, 0)
+            cmds.setAttr("%s.overrideEnabled"  % self.refMeshShape, 1)
+            cmds.setAttr("%s.overrideLevelOfDetail"  % self.refMeshShape, 0)
+        except:
+            log.debug('Couldnt set the draw overrides for the refGeo')                            
+        cmds.parent(self.refMesh,self.posePointRoot)
         cmds.makeIdentity(self.refMesh,apply=True,t=True,r=True)
-        cmds.parent(self.refMeshShape,self.poseObject.posePointRoot,r=True,s=True)
+        cmds.parent(self.refMeshShape,self.posePointRoot,r=True,s=True)
         cmds.delete(self.refMesh)
 
     def applyPosePointCloud(self):
-        self.poseObject._snapNodestoPosePnts()
+        self._snapNodestoPosePnts()
         
-    def snapPosePointsToPose(self):
-        self.poseObject._snapPosePntstoNodes()
+    def updatePosePointCloud(self):
+        self._snapPosePntstoNodes()
         if self.mesh:
             cmds.delete(self.refMeshShape)
             self.shapeSwapMesh()
             cmds.refresh()
         
     def delete(self):
-        cmds.delete(self.poseObject.posePointRoot)
+        cmds.delete(self.posePointRoot)
         
 
 class PoseCompare(object):
@@ -718,6 +743,7 @@ class PoseCompare(object):
                     'skeletonDict' = [skeletonDict] block generated if exportSkeletonRoot is connected
                     'infoDict'     = [info] block
         '''
+        self.status=False
         self.compareDict=compareDict
         self.angularTolerance=angularTolerance
         self.angularAttrs=['rotateX','rotateY','rotateZ']
@@ -817,6 +843,7 @@ class PoseCompare(object):
             logprint+='PoseCompare returns : ========================================'
             print logprint
             return False
+        self.status=True
         return True
 
          

@@ -171,7 +171,7 @@ def Timer(func):
         except:
             log.debug('function class inspect failure')
         functionTrace+=func.__name__ 
-        log.info('TIMER : %s: took %0.3f ms' % (functionTrace,(t2-t1)*1000.0))
+        log.debug('TIMER : %s: took %0.3f ms' % (functionTrace,(t2-t1)*1000.0))
         #log.info('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
     return wrapper  
@@ -659,6 +659,14 @@ def os_OpenFile(filePath):
         except OSError:
             raise OSError('unsupported xdg-open call??')
         
+        
+def getCurrentFPS():
+    '''
+    returns the current frames per second as a number, rather than a useless string
+    '''
+    fpsDict = {"game" : 15.0, "film" : 24.0, "pal" : 25.0, "ntsc" : 30.0, "show" : 48.0, "palf" : 50.0, "ntscf" : 60.0}
+    return fpsDict[cmds.currentUnit(q=True, fullName=True, time=True)]       
+
 
 class AudioHandler():
     '''
@@ -675,10 +683,14 @@ class AudioHandler():
             return "%s(AudioHandler InternalAudioNodes: '%s')"  % (self.__class__, ','.join([self.audioNodes]))
         else:
             return "%s(AudioHandler NO AudioNodes: )"  % self.__class__
-                
+           
     def audioSelected(self):
         return cmds.ls(sl=True,type='audio')
     
+    def audioPath(self):
+        if self.audioNodes:
+            return cmds.getAttr('%s.filename' % self.audioNodes[0])
+        
     def deleteSelected(self):
         if self.audioNodes:
             cmds.delete(self.audioNodes)
@@ -688,16 +700,37 @@ class AudioHandler():
             gPlayBackSlider=mel.eval("string $temp=$gPlayBackSlider")
             cmds.timeControl(gPlayBackSlider, e=True, ds=1, sound=self.audioNodes[0]) 
 
+    def getLengthFromWav(self):
+        '''
+        This uses the wav itself bypassing the Maya handling, why?
+        In maya.standalone the audio isn't loaded correctly and always is of length 1! 
+        '''
+        import wave
+        import contextlib
+        with contextlib.closing(wave.open(self.audioPath(),'r')) as f:
+            frames=f.getnframes()
+            rate=f.getframerate()
+            duration=frames/float(rate)
+            return (duration)*getCurrentFPS()
+                
     def setTimelineToAudio(self):
         maxV=cmds.getAttr('%s.offset' % self.audioNodes[0])   #initialize backwards
         minV=cmds.getAttr('%s.endFrame' % self.audioNodes[0]) #initialize backwards
         if self.audioNodes:
             for a in self.audioNodes:
-                audioOffset=cmds.getAttr('%s.offset' % a)
-                audioEnd=cmds.getAttr('%s.endFrame' % a)  #why the hell does this always come back 1 frame over??
+                if not cmds.about(batch=True):
+                    audioOffset=cmds.getAttr('%s.offset' % a)
+                    audioEnd=cmds.getAttr('%s.endFrame' % a)  #why the hell does this always come back 1 frame over??
+                else:
+                    audioOffset=cmds.getAttr('%s.offset' % a)
+                    audioEnd=self.getLengthFromWav()+audioOffset
                 if audioOffset<minV:minV=audioOffset
                 if audioEnd>maxV:maxV=audioEnd
-            cmds.playbackOptions(min=int(minV),max=int(maxV))        
+            print 'min : ', minV
+            print 'max : ', maxV
+            cmds.playbackOptions(min=int(minV),max=int(maxV))   
+        else:
+            raise StandardError('no audioNodes passed in')     
 
     def muteSelected(self, state=True):        
         if self.audioNodes:
@@ -706,8 +739,9 @@ class AudioHandler():
 
     def openAudioPath(self):
         if self.audioNodes:
-            wav=self.audioNodes[0]
-            path=cmds.getAttr('%s.filename' % wav)
+            #wav=self.audioNodes[0]
+            #path=cmds.getAttr('%s.filename' % wav)
+            path=self.audioPath()
             if path and os.path.exists(path):
                 os_OpenFileDirectory(path)
                 

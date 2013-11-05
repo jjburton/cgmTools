@@ -70,6 +70,7 @@ from functools import partial
 import os
 import random
 import sys
+import re
 
 import Red9.packages.configobj as configobj
 #import configobj
@@ -276,7 +277,7 @@ class AnimationUI(object):
         #take generic filterSettings Object
         self.filterSettings = r9Core.FilterNode_Settings()
         self.filterSettings.transformClamp = True
-        self.presetDir = os.path.join(r9Setup.red9ModulePath(), 'presets')
+        self.presetDir = r9Setup.red9Presets() #os.path.join(r9Setup.red9ModulePath(), 'presets')
         
         #Pose Management variables
         self.posePath = None #working variable
@@ -609,7 +610,10 @@ class AnimationUI(object):
         cmds.menuItem(label='Remove selected from list', command=lambda x:self.__uiSetPriorities('remove'))
         cmds.menuItem(divider=True)
         cmds.menuItem(label='Move Up', command=lambda x:self.__uiSetPriorities('moveUp'))
-        cmds.menuItem(label='Move Down', command=lambda x:self.__uiSetPriorities('moveDown'))        
+        cmds.menuItem(label='Move Down', command=lambda x:self.__uiSetPriorities('moveDown')) 
+        self.uicbSnapPriorityOnly=cmds.checkBox('uicbSnapPriorityOnly', v=False,
+                                                label='Use Priority as SnapList', 
+                                                cc=lambda x:self.__uiCache_addCheckbox('uicbSnapPriorityOnly'))      
         cmds.separator(h=20,style='in')
         cmds.text('Available Presets:')      
         self.uitslPresets = cmds.textScrollList(numberOfRows=8, allowMultiSelection=False, 
@@ -1378,10 +1382,13 @@ class AnimationUI(object):
         cmds.menuItem(divider=True, p=parent)
         cmds.menuItem(label='Make Subfolder', en=enableState, p=parent, command=partial(self.__uiPoseMakeSubFolder))  
         cmds.menuItem(label='Refresh List', en=True, p=parent, command=lambda x: self.__uiCB_fillPoses(rebuildFileList=True))
-        cmds.menuItem(divider=True, p=parent)
-        cmds.menuItem(label='Debug: Open Pose File', p=parent, command=partial(self.__uiPoseOpenFile))
-        cmds.menuItem(label='Debug: Open Pose Directory', p=parent, command=partial(self.__uiPoseOpenDir))
-        cmds.menuItem(label='Debug: Pose Compare with current', p=parent, command=partial(self.__uiCall,'PoseCompare'))
+        cmds.menuItem(label='Open Pose File', p=parent, command=partial(self.__uiPoseOpenFile))
+        cmds.menuItem(label='Open Pose Directory', p=parent, command=partial(self.__uiPoseOpenDir))
+        cmds.menuItem(divider=True,p=parent) 
+        cmds.menuItem('red9PoseCompareSM',l='Debug: PoseCompare',sm=True,p=parent)
+        cmds.menuItem(label='Compare against - [skeletonData]', p='red9PoseCompareSM', command=partial(self.__uiCall,'PoseCompareSkelDict'))
+        cmds.menuItem(label='Compare against - [poseData]', p='red9PoseCompareSM', command=partial(self.__uiCall,'PoseComparePoseDict'))
+
         cmds.menuItem(label='Debug: Copy poseHandler.py to folder', en=enableState, p=parent, command=partial(self.__uiPoseAddPoseHandler))  
         cmds.menuItem(divider=True, p=parent)
         cmds.menuItem(label='Copy Pose >> Project Poses', en=enableState, p=parent, command=partial(self.__uiPoseCopyToProject))     
@@ -1890,6 +1897,7 @@ class AnimationUI(object):
         '''
         self.kws['preCopyKeys'] = False
         self.kws['preCopyAttrs'] = False
+        self.kws['prioritySnapOnly'] = False
         self.kws['iterations'] = cmds.intFieldGrp('uiifSnapIterations', q=True, v=True)[0]
         self.kws['step'] = cmds.intFieldGrp('uiifgSnapStep', q=True, v=True)[0]
         self.kws['pasteKey']=cmds.optionMenu('om_PasteMethod', q=True, v=True)
@@ -1901,7 +1909,8 @@ class AnimationUI(object):
         if cmds.checkBox(self.uicbSnapPreCopyAttrs, q=True, v=True):
             self.kws['preCopyAttrs'] = True  
         if cmds.checkBox(self.uicbSnapHierarchy, q=True, v=True):
-            AnimFunctions(matchMethod=self.matchMethod).snapTransform(nodes=None, filterSettings=self.filterSettings, **self.kws)     
+            self.kws['prioritySnapOnly'] = cmds.checkBox(self.uicbSnapPriorityOnly, q=True, v=True)
+            AnimFunctions(matchMethod=self.matchMethod).snapTransform(nodes=None,filterSettings=self.filterSettings, **self.kws)     
         else:
             AnimFunctions(matchMethod=self.matchMethod).snapTransform(nodes=None, **self.kws)   
     
@@ -1991,7 +2000,9 @@ class AnimationUI(object):
             
         path=self.getPosePath()
         log.info('PosePath : %s' % path)
-        r9Pose.PoseData(self.filterSettings).poseLoad(self.__uiCB_getPoseInputNodes(), 
+        poseNode=r9Pose.PoseData(self.filterSettings)
+        poseNode.prioritySnapOnly=cmds.checkBox(self.uicbSnapPriorityOnly, q=True, v=True)
+        poseNode.poseLoad(self.__uiCB_getPoseInputNodes(), 
                                                       path,
                                                       useFilter=poseHierarchy,
                                                       relativePose=poseRelative,
@@ -1999,14 +2010,14 @@ class AnimationUI(object):
                                                       relativeTrans=relativeTrans,
                                                       maintainSpaces=maintainSpaces) 
         
-    def __PoseCompare(self,*args):
+    def __PoseCompare(self, compareDict='skeletonDict', *args):
         '''
         Internal UI call for Pose Compare func, note that filterSettings is bound
         but only filled by the main __uiCall call
         '''
         mPoseA=r9Pose.PoseData(self.filterSettings)
         mPoseA.buildInternalPoseData(self.__uiCB_getPoseInputNodes())
-        compare=r9Pose.PoseCompare(mPoseA,self.getPosePath(),compareDict='skeletonDict')
+        compare=r9Pose.PoseCompare(mPoseA,self.getPosePath(),compareDict=compareDict)
         
         if not compare.compare():
             info='Selected Pose is different to the rigs current pose\nsee script editor for debug details'
@@ -2027,7 +2038,7 @@ class AnimationUI(object):
         '''
         objs=cmds.ls(sl=True)
  
-        ref=objs[0]
+        rootReference=objs[0]
         mesh=None
         mRef=r9Meta.MetaClass(self.__uiCB_getPoseInputNodes())
         if mRef.hasAttr('renderMeshes') and mRef.renderMeshes:
@@ -2047,15 +2058,18 @@ class AnimationUI(object):
                     cmds.modelEditor(cmds.getPanel(wf=True), e=True, locators=True)
                 else:
                     cmds.modelEditor('modelPanel4', e=True, locators=True)
-            self.ppc=r9Pose.PosePointCloud(ref,self.__uiCB_getPoseInputNodes(),
+            self.ppc=r9Pose.PosePointCloud(self.__uiCB_getPoseInputNodes(),
                                            self.filterSettings,
                                            mesh=mesh)
+            self.ppc.prioritySnapOnly=cmds.checkBox(self.uicbSnapPriorityOnly, q=True, v=True)
+            self.ppc.buildOffsetCloud(rootReference)
         elif func=='delete':
             self.ppc.delete()
         elif func=='snap':
+            #self.ppc.applyPosePointCloud()
             self.ppc.applyPosePointCloud()
         elif func=='update':
-            self.ppc.snapPosePointsToPose()
+            self.ppc.updatePosePointCloud()
          
     def __MirrorPoseAnim(self,func):
         '''
@@ -2128,8 +2142,10 @@ class AnimationUI(object):
                 self.__PoseSave()    
             elif func == 'PoseLoad':
                 self.__PoseLoad()
-            elif func == 'PoseCompare':
-                self.__PoseCompare()
+            elif func == 'PoseCompareSkelDict':
+                self.__PoseCompare(compareDict='skeletonDict')
+            elif func == 'PoseComparePoseDict':
+                self.__PoseCompare(compareDict='poseDict')
             elif func == 'PosePC_Make':
                 self.__PosePointCloud('make')
             elif func == 'PosePC_Delete':
@@ -2336,7 +2352,10 @@ class AnimFunctions(object):
                                 
                             for attr in attrs:
                                 if cmds.attributeQuery(attr, node=dest, exists=True):
-                                    #log.debug('attr : %s.%s' % (dest, attr))
+                                    log.debug('copyAttr : %s.%s > %s.%s' % (r9Core.nodeNameStrip(dest), 
+                                                                    r9Core.nodeNameStrip(attr),
+                                                                    r9Core.nodeNameStrip(src),
+                                                                    r9Core.nodeNameStrip(attr)))
                                     cmds.setAttr('%s.%s' % (dest, attr), cmds.getAttr('%s.%s' % (src, attr)))
                     except:
                         pass
@@ -2349,9 +2368,9 @@ class AnimFunctions(object):
     # Transform Snapping 
     #===========================================================================
     
-    #@processInputNodes 
+    @r9General.Timer 
     def snapTransform(self, nodes=None, time=(), step=1, preCopyKeys=1, preCopyAttrs=1, 
-                      filterSettings=None, iterations=1, matchMethod=None,**kws):
+                      filterSettings=None, iterations=1, matchMethod=None, prioritySnapOnly=False, **kws):
         '''
         Snap objects over a timeRange. This wraps the default hierarchy filters
         so it's capable of multiple hierarchy filtering and matching methods.
@@ -2375,8 +2394,12 @@ class AnimFunctions(object):
             all channel Values on all nodes will have their data taken across    
         @param iterations: Number of times to process the frame.
         @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
-         
+        @param prioritySnapOnly: if True ONLY snap the nodes in the filterPriority list = Super speed up!!
         NOTE: you can also pass the CopyKey kws in to the preCopy call, see copyKeys above
+        
+        NOTE: using prioritySnap with animLayers may produce unexpected results! CopyKeys doesn't yet
+        deal correctly with animLayer data when copying, it will only copy from the first active layer, 
+        really need to merge layers down first!!
         
         Generic filters passed into r9Core.MatchedNodeInputs class:
         -----------------------------------------------------------------
@@ -2392,6 +2415,7 @@ class AnimFunctions(object):
         -----------------------------------------------------------------    
         '''
         self.snapCacheData = {} #TO DO - Cache the data and check after first run data is all valid
+        self.nodesToSnap=[]
         skipAttrs = ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ']
         if not matchMethod:matchMethod=self.matchMethod
         try:
@@ -2401,15 +2425,24 @@ class AnimFunctions(object):
         cancelled=False           
         
         log.debug('snapTransform params : nodes=%s : time=%s : step=%s : preCopyKeys=%s : \
-                    preCopyAttrs=%s : filterSettings=%s : matchMethod=%s' \
-                   % (nodes, time, step, preCopyKeys, preCopyAttrs, filterSettings, matchMethod))
+                    preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s' \
+                   % (nodes, time, step, preCopyKeys, preCopyAttrs, filterSettings, matchMethod, prioritySnapOnly))
         
         #Build up the node pairs to process
-        nodeList = r9Core.processMatchedNodes(nodes, 
-                                              filterSettings, 
-                                              matchMethod=matchMethod)
+        nodeList = r9Core.processMatchedNodes(nodes, filterSettings, matchMethod=matchMethod)
         if nodeList.MatchedPairs:    
             nodeList.MatchedPairs.reverse() #reverse order so we're dealing with children before their parents 
+            #if prioritySnap then we snap align ONLY those nodes that 
+            #arein the filterSettings priority list. VAST speed increase
+            #by doing this
+            if prioritySnapOnly:
+                for pNode in filterSettings.filterPriority:
+                     for src, dest in nodeList.MatchedPairs:
+                         if re.search(pNode,r9Core.nodeNameStrip(dest)):
+                             self.nodesToSnap.append((src,dest))
+                skipAttrs=[] #reset as we need to now copy all attrs
+            else:
+                self.nodesToSnap=nodeList.MatchedPairs
             if preCopyAttrs:
                 self.copyAttributes(nodes=nodeList, skipAttrs=skipAttrs, filterSettings=filterSettings, **kws)
             if time:
@@ -2433,7 +2466,7 @@ class AnimFunctions(object):
                             processRepeat = iterations
                            
                             while not dataAligned:
-                                for src, dest in nodeList.MatchedPairs:     
+                                for src, dest in self.nodesToSnap:#nodeList.MatchedPairs:     
                                     #we'll use the API MTimeControl in the runtime function 
                                     #to update the scene without refreshing the Viewports
                                     cmds.currentTime(t, e=True, u=False)
@@ -2444,7 +2477,7 @@ class AnimFunctions(object):
                                     cmds.setKeyframe(dest, at='translate')
                                     cmds.setKeyframe(dest, at='rotate')
                                     log.debug('Snapfrm %s : %s - %s : to : %s' % (str(t), r9Core.nodeNameStrip(src), dest, src))
-            
+
                                 processRepeat -= 1   
                                 if not processRepeat:
                                     dataAligned = True
@@ -2452,7 +2485,7 @@ class AnimFunctions(object):
                             count+=step
             else:
                 for _ in range(0, iterations):
-                    for src, dest in nodeList.MatchedPairs:
+                    for src, dest in self.nodesToSnap:#nodeList.MatchedPairs:
                         cmds.SnapTransforms(source=src, destination=dest, timeEnabled=False) 
                         #self.snapCacheData[dest]=data 
                         log.debug('Snapped : %s - %s : to : %s' % (r9Core.nodeNameStrip(src), dest, src))  
@@ -2587,7 +2620,7 @@ class AnimFunctions(object):
     def bindNodes(self, nodes=None, attributes=None, filterSettings=None, 
                   bindMethod='connect', matchMethod=None, **kws):
         '''
-        Copy Keys is a Hi-Level wrapper function to copy animation data between
+        bindNodes is a Hi-Level wrapper function to bind animation data between
         filtered nodes, either in hierarchies or just selected pairs. 
                 
         @param nodes: List of Maya nodes to process. This combines the filterSettings
@@ -3061,27 +3094,33 @@ class FilterCurves(object):
                         dc=self.__uicb_setMaxRanges)
         cmds.setParent('..')
         cmds.separator(h=20, style='in') 
-        cmds.rowColumnLayout(numberOfColumns=2, cs=((1,80)))
+        cmds.rowColumnLayout(numberOfColumns=3, cw=[(1,100),(2,120),(3,120)], cs=((1,20),(2,30)))
         cmds.checkBox('snapToFrames', value=self.snapToFrame, label="Snap to Frame", 
                       ann="on exit of the sliders snap the keys to whole frames",
                       cc=self.__uicb_setToFrame)
+        cmds.button(label='Delete Redundants', 
+                    command='import maya.cmds as cmds;cmds.delete(sc=True)',
+                    ann='on selected nodes delete redundant animCurves - these are curves whos value never change, the curve will be deleted')
+        cmds.button(label='Single Process', 
+                    command=self.simplifyWrapper,         
+                    ann='Single process using the value sliders above')
         cmds.setParent('..')   
         
-        cmds.separator (h=10, style="none") 
+        cmds.separator (h=20, style="in") 
         cmds.rowColumnLayout(numberOfColumns=2, cw=((1,200),(2,200)))
         cmds.button(label='Reset All', bgc=r9Setup.red9ButtonBGC(1),
                          command=self.__uicb_resetSliders)
         cmds.button(label='ToggleBuffers', bgc=r9Setup.red9ButtonBGC(1),
                          command=self.__uicb_toggleGraphDisplay)
         cmds.setParent('..')   
-        
+      
         cmds.separator (h=20, style="none") 
         cmds.iconTextButton( style='iconOnly', bgc=(0.7,0,0),image1='Rocket9_buttonStrap2.bmp',
                                  c=r9Setup.red9ContactInfo,
                                  h=22,w=220 )
         cmds.showWindow(self.win)
-        cmds.window(self.win , e=True, widthHeight=(410, 280))
-        
+        cmds.window(self.win , e=True, widthHeight=(410, 300))
+         
         #set close event to restore standard GraphEditor curve status
         cmds.scriptJob(runOnce=True, uiDeleted=[self.win, lambda *x:animCurveDrawStyle(style='full', forceBuffer=False,
                                                                                       showBufferCurves=self.showBufferCurves,
@@ -3135,7 +3174,10 @@ class FilterCurves(object):
             self.undoDepth=1
             self.snapToFrame=False
                                   
-    def simplifyWrapper(self, *args):            
+    def simplifyWrapper(self, *args):  
+        '''
+        straight simplify of curves using a managed cmds.simplfy call
+        '''          
         with self.contextManager(self.dragActive, 
                                  undoFuncCache = self.undoFuncCache, 
                                  undoDepth = self.undoDepth ):
@@ -3152,6 +3194,9 @@ class FilterCurves(object):
                                  timeTolerance=cmds.floatSliderGrp('fsg_filterfloatValue',q=True,v=True)) 
     
     def resampleCurves(self, *args):  
+        '''
+        straight resample of curves using a managed cmds.bakeResults call
+        '''
         step = args[0]
         if self.snapToFrame:
             step = int(args[0]) 
@@ -3167,6 +3212,9 @@ class FilterCurves(object):
             cmds.bakeResults(curves, t=time, sb=step, pok=True) 
 
     def snapAnimCurvesToFrms(self,*args):
+        '''
+        called after the interaction filters, snap 
+        '''
         if self.snapToFrame:
             cmds.snapKey(timeMultiple=1)
             
@@ -3338,6 +3386,8 @@ class MirrorHierarchy(object):
                 log.debug('Side : %s Index : %s>> node %s' % \
                           ( side, index, r9Core.nodeNameStrip(node)))
                 #self.mirrorDict[side][str(index)]=node #NOTE index is cast to string!
+                if self.mirrorDict[side].has_key(str(index)):
+                    log.warning('Mirror index %i already assigned to %s' % (index,self.mirrorDict[side][str(index)]['node']))
                 self.mirrorDict[side][str(index)]={}
                 self.mirrorDict[side][str(index)]['node']=node
                 self.mirrorDict[side][str(index)]['axis']=axis
@@ -3449,7 +3499,7 @@ class MirrorHierarchy(object):
             inverseCall = AnimFunctions.inverseAnimChannels
         else:
             inverseCall = AnimFunctions.inverseAttributes
-        
+        #with r9General.HIKContext(nodes):
         #Switch Pairs on the Left and Right and inverse the channels
         for index,leftData in self.mirrorDict['Left'].items():
             if not index in self.mirrorDict['Right'].keys():
@@ -3482,7 +3532,7 @@ class MirrorHierarchy(object):
         ConfigObj.filename = filepath
         ConfigObj.write()
         
-    def loadMirrorSetups(self, filepath, nodes=None):
+    def loadMirrorSetups(self, filepath, nodes=None, clearCurrent=True):
         if not os.path.exists(filepath):
             raise IOError('invalid filepath given')
         self.mirrorDict = configobj.ConfigObj(filepath)['mirror']
@@ -3492,38 +3542,51 @@ class MirrorHierarchy(object):
             nodesToMap=list(self.nodes)
             nodesToMap.extend(cmds.listRelatives(nodesToMap,ad=True,f=True,type='transform'))
         #log.debug('nodes to load mirrors onto: %s' % ','.join(nodesToMap))
-        for node in nodesToMap:
-            found=False
-            for index,leftData in self.mirrorDict['Left'].items():
-                #print node, leftData['node']
-                if r9Core.matchNodeLists([node],[leftData['node']]):
-                    log.debug('NodeMatched: %s, Side=Left, index=%i, axis=%s' % (node,int(index),leftData['axis']))
-                    if r9Core.decodeString(leftData['axisAttr']):
-                        self.setMirrorIDs(node, side='Left', slot=int(index), axis=','.join(leftData['axis']))
-                    else:
-                        self.setMirrorIDs(node, side='Left', slot=int(index))
-                    found=True
+        
+        progressBar = r9General.ProgressBarContext(len(nodesToMap))
+        progressBar.setStep(1)
+        count=0
+ 
+        with progressBar:            
+            for node in nodesToMap:
+                if progressBar.isCanceled():
                     break
-            if not found:
-                for index,rightData in self.mirrorDict['Right'].items():
-                    if r9Core.matchNodeLists([node],[rightData['node']]):
-                        log.debug('NodeMatched: %s, Side=Right, index=%i, axis=%s' % (node,int(index),rightData['axis']))
-                        if r9Core.decodeString(rightData['axisAttr']):
-                            self.setMirrorIDs(node, side='Right', slot=int(index), axis=','.join(rightData['axis']))
+                
+                found=False
+                if clearCurrent:
+                    self.deleteMirrorIDs(node)
+                for index,leftData in self.mirrorDict['Left'].items():
+                    #print node, leftData['node']
+                    if r9Core.matchNodeLists([node],[leftData['node']]):
+                        log.debug('NodeMatched: %s, Side=Left, index=%i, axis=%s' % (node,int(index),leftData['axis']))
+                        if r9Core.decodeString(leftData['axisAttr']):
+                            self.setMirrorIDs(node, side='Left', slot=int(index), axis=','.join(leftData['axis']))
                         else:
-                            self.setMirrorIDs(node, side='Right', slot=int(index))
+                            self.setMirrorIDs(node, side='Left', slot=int(index))
                         found=True
                         break
-            if not found:
-                for index,centreData in self.mirrorDict['Centre'].items():
-                    if r9Core.matchNodeLists([node],[centreData['node']]):
-                        log.debug('NodeMatched: %s, Side=Centre, index=%i, axis=%s' % (node,int(index),centreData['axis']))
-                        if r9Core.decodeString(centreData['axisAttr']):      
-                            self.setMirrorIDs( node, side='Centre', slot=int(index), axis=','.join(centreData['axis']))
-                        else:
-                            self.setMirrorIDs(node, side='Centre', slot=int(index))
-                        break
-                    
+                if not found:
+                    for index,rightData in self.mirrorDict['Right'].items():
+                        if r9Core.matchNodeLists([node],[rightData['node']]):
+                            log.debug('NodeMatched: %s, Side=Right, index=%i, axis=%s' % (node,int(index),rightData['axis']))
+                            if r9Core.decodeString(rightData['axisAttr']):
+                                self.setMirrorIDs(node, side='Right', slot=int(index), axis=','.join(rightData['axis']))
+                            else:
+                                self.setMirrorIDs(node, side='Right', slot=int(index))
+                            found=True
+                            break
+                if not found:
+                    for index,centreData in self.mirrorDict['Centre'].items():
+                        if r9Core.matchNodeLists([node],[centreData['node']]):
+                            log.debug('NodeMatched: %s, Side=Centre, index=%i, axis=%s' % (node,int(index),centreData['axis']))
+                            if r9Core.decodeString(centreData['axisAttr']):      
+                                self.setMirrorIDs( node, side='Centre', slot=int(index), axis=','.join(centreData['axis']))
+                            else:
+                                self.setMirrorIDs(node, side='Centre', slot=int(index))
+                            break
+   
+                progressBar.setProgress(count)
+                count+=1
                    
 class MirrorSetup(object):
 
@@ -3593,7 +3656,10 @@ class MirrorSetup(object):
                      command=lambda *args:(self.__deleteMarkers()))
         cmds.setParent('..')  
         cmds.separator(h=15, style='in')
+        cmds.rowColumnLayout(nc=2,columnWidth=[(1,135), (2,135)])
         cmds.checkBox('mirrorSaveLoadHierarchy',l='hierarchy', v=False)
+        cmds.checkBox('mirrorClearCurrent', l='clear all Existing', v=True)
+        cmds.setParent('..')  
         cmds.rowColumnLayout(nc=2,columnWidth=[(1,135), (2,135)])
         cmds.button(label='Save MirrorConfigs', bgc=r9Setup.red9ButtonBGC(1),
                      ann='Save the current MirrorSetups',
@@ -3732,9 +3798,9 @@ class MirrorSetup(object):
         filepath=cmds.fileDialog2(fileFilter="mirrorMap Files (*.mirrorMap *.mirrorMap);;",okc='Load',cap='Load MirrorSetups')[0]
         if cmds.checkBox('mirrorSaveLoadHierarchy',q=True,v=True):
             self.mirrorClass.nodes=cmds.ls(sl=True,l=True)
-            self.mirrorClass.loadMirrorSetups(filepath=filepath)
+            self.mirrorClass.loadMirrorSetups(filepath=filepath, clearCurrent=cmds.checkBox('mirrorClearCurrent', q=True,v=True))
         else:
-            self.mirrorClass.loadMirrorSetups(filepath=filepath, nodes=cmds.ls(sl=True,l=True))
+            self.mirrorClass.loadMirrorSetups(filepath=filepath, nodes=cmds.ls(sl=True,l=True), clearCurrent=cmds.checkBox('mirrorClearCurrent', q=True,v=True))
 
 
 
@@ -3856,4 +3922,31 @@ class CameraTracker():
     def __runTracker(self,*args):
         self.__storePrefs()  
         self.cameraTrackView(fixed=self.fixed)
-        
+
+
+def reConnectReferencedAnimData():
+    '''
+    As per my blog posts on 'LostAnimaton's    
+    '''
+    import pymel.core as pm
+    
+    objs=pm.ls(sl=True,st=True)
+    if not objs:
+        raise StandardError('nothing selected to process, please select the characterSet of the broken reference')
+    
+    cSet,type=objs
+    refNode=cSet.referenceFile().refNode
+    
+    if not type=='character':
+        raise StandardError('You must select a CharacterSet to reconnect')
+    if not refNode:
+        raise StandardError('Given characterSet is not from a referenced file')
+    
+    animCurves=refNode.listConnections(type='animCurve',s=True)
+    cSetPlugs=pm.aliasAttr(cSet,q=True)
+    
+    for plug in cSetPlugs[::2]:
+        for anim in animCurves:
+            if anim.split(':')[-1].endswith(plug):
+                print '%s >> %s' % (anim,plug)
+                pm.connectAttr('%s.output' % anim,'%s.%s' % (cSet,plug),force=True)

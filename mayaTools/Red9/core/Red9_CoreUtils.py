@@ -48,7 +48,7 @@ def nodeNameStrip(node):
     return node.split('|')[-1].split(':')[-1]
 
 
-def prioritizeNodeList(nList,priorityList,regex=True):
+def prioritizeNodeList(nList,priorityList,regex=True,prioritysOnly=False):
     '''
     Simple function to force the order of a given nList such that nodes
     in the given priority list are moved to the front of the list
@@ -72,8 +72,8 @@ def prioritizeNodeList(nList,priorityList,regex=True):
                 reordered.append(nList[index])
                 nList.pop(index)
                 stripped.pop(index)
-
-    reordered.extend(nList)  
+    if not prioritysOnly:
+        reordered.extend(nList)  
     #[log.debug('Prioritized Index: %i = %s  <: ORIGINALLY :>  %s' % (i,nodeNameStrip(reordered[i]),n))\
     #     for i,n in enumerate(stripped)]
     return reordered  

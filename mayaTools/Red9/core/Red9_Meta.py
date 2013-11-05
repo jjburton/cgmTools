@@ -244,20 +244,20 @@ def isMetaNode(node, mTypes=[]):
     else:
         return False
 
-# def isMetaNodeInherited(node, mInstances=[]):
-#     '''
-#     unlike isMetaNode which checks the node against a particular MetaClass,
-#     this expands the check to see if the node is inherited from or a subclass of
-#     a given Meta base class, ie, part of a system
-#     TODO : we COULD return the instantiated metaClass object here rather than just a bool??
-#     '''    
-#     if isMetaNode(node):
-#         mClass=MetaClass(node) #instantiate the metaClass so we can work out subclass mapping
-#         for inst in mTypesToRegistryKey(mInstances):
-#             log.debug('testing class inheritance: %s > %s' % ( inst, RED9_META_REGISTERY[inst],type(mClass)))
-#             if issubclass(type(mClass), RED9_META_REGISTERY[inst]):
-#                 log.debug('MetaNode %s is of subclass >> %s' % (mClass,inst))
-#                 return True
+#def isMetaNodeInherited(node, mInstances=[]):
+#    '''
+#    unlike isMetaNode which checks the node against a particular MetaClass,
+#    this expands the check to see if the node is inherited from or a subclass of
+#    a given Meta base class, ie, part of a system
+#    TODO : we COULD return the instantiated metaClass object here rather than just a bool??
+#    '''    
+#    if isMetaNode(node):
+#        mClass=MetaClass(node) #instantiate the metaClass so we can work out subclass mapping
+#        for inst in mTypesToRegistryKey(mInstances):
+#            #log.debug('testing class inheritance: %s > %s' % ( inst, RED9_META_REGISTERY[inst],type(mClass)))
+#            if issubclass(type(mClass), RED9_META_REGISTERY[inst]):
+#                log.debug('MetaNode %s is of subclass >> %s' % (mClass,inst))
+#                return True
 
 def isMetaNodeInherited(node, mInstances=[]):
     '''
@@ -278,7 +278,7 @@ def isMetaNodeInherited(node, mInstances=[]):
                 log.debug('MetaNode %s is of subclass >> %s' % (mClass,inst))
                 return True
     return False
-                   
+                 
 @r9General.Timer                 
 def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass', **kws):
     '''
@@ -2149,25 +2149,45 @@ def monitorHUDaddCBAttrs():
         metaHUD=currentHUDs[0]
     if attrs:
         for attr in attrs:
+            log.info('connecting cbAttr to meta: %s' % attr)
             monitoredAttr='%s_%s' % (r9Core.nodeNameStrip(node), attr)
-            metaHUD.addMonitoredAttr(monitoredAttr, value=cmds.getAttr('%s.%s' % (node,attr)))
+            metaHUD.addMonitoredAttr(monitoredAttr, 
+                                     value=cmds.getAttr('%s.%s' % (node,attr)),
+                                     refresh=False)
+                                     #attrType=cmds.getAttr('%s.%s' % (node,attr), type=True))
             cmds.connectAttr('%s.%s' % (node,attr), '%s.%s' % (metaHUD.mNode, monitoredAttr))
     metaHUD.refreshHud()
+    cmds.select(node)
     
-def monitorHUDKill():
+def monitorHUDManagement(func):
     '''
     kill any current MetaHUD headsUpDisplay blocks
     '''
+    metaHUD=None
     currentHUDs=getMetaNodes(mTypes=MetaHUDNode,mAttrs='mNodeID=CBMonitorHUD')
     if currentHUDs:
         metaHUD=currentHUDs[0]
-        metaHUD.delete()
-    else:
-        HUDS=cmds.headsUpDisplay(lh=True)
-        for hud in HUDS:
-            if 'MetaHUDConnector' in hud:
-                print 'killing HUD : ',hud
-                cmds.headsUpDisplay(hud,remove=True)
+        
+    if func=='delete':
+        if metaHUD:
+            metaHUD.delete()
+        else:
+            #No metaData node, scene may have been deleted but the HUD 
+            #may still be up and active
+            HUDS=cmds.headsUpDisplay(lh=True)
+            for hud in HUDS:
+                if 'MetaHUDConnector' in hud:
+                    print 'killing HUD : ',hud
+                    cmds.headsUpDisplay(hud,remove=True)
+    if func=='refreshHeadsUp':
+        metaHUD.headsUpOnly=True
+        metaHUD.refreshHud()
+    if func=='refreshSliders':
+        metaHUD.headsUpOnly=False
+        metaHUD.refreshHud()
+    if func=='kill':
+        metaHUD.killHud()
+        
                 
 def monitorHUDremoveCBAttrs():
     '''
@@ -2207,6 +2227,7 @@ class MetaHUDNode(MetaClass):
         self.hudGroupActive=False
         self.eventTriggers=cmds.headsUpDisplay(le=True)
         self.size='small'
+        self.headsUpOnly=True
         
         self.addAttr('monitorAttrCache', value='[]', attrType='string') #cache the HUD names so this runs between sessions
         self.monitorAttrs=self.monitorAttrCache
@@ -2216,7 +2237,12 @@ class MetaHUDNode(MetaClass):
         #self.addAttr('eventTrigger', attrType='enum', value=5,enumName=':'.join(self.eventTriggers))        
         self.addAttr('eventTrigger', attrType='enum', value=0,enumName=':'.join(['attachToRefresh','timeChanged']))        
 
-    def addMonitoredAttr(self, attr, value=None, attrType=None): 
+        HUDS=cmds.headsUpDisplay(lh=True)
+        for hud in HUDS:
+            if 'MetaHUDConnector' in hud:
+                self.hudGroupActive=True
+                    
+    def addMonitoredAttr(self, attr, value=None, attrType=None, refresh=True): 
         '''
         wrapper that not only adds an attr to the metaNode, but also adds it
         to the internal list of attributes that are monitored and added
@@ -2227,8 +2253,11 @@ class MetaHUDNode(MetaClass):
             self.monitorAttrs.append(attr)
             #serialize back to the node
             self.monitorAttrCache=self.monitorAttrs
-            if self.hudGroupActive==True:
-                self.refreshHud()
+            if self.hudGroupActive==True and refresh:
+                try:
+                    self.refreshHud()
+                except:
+                    log.debug('addMonitorAttr failed')
         else:
             log.info('Hud attr already exists on metaHud Node')
     
@@ -2247,10 +2276,9 @@ class MetaHUDNode(MetaClass):
         to carefully manage this list
         '''
         return ['MetaHUDConnector%s' % attr for attr in self.monitorAttrs]
-    
+            
     def drawHUD(self):
         #Attributes:
-        #
         #        - Section 1, block 0, represents the top second slot of the view.
         #        - Set the blockSize to "medium", instead of the default "small"
         #        - Assigned the HUD the label: "Position"
@@ -2266,35 +2294,90 @@ class MetaHUDNode(MetaClass):
                 section = self.section+5
                 block = block-17
                 i=0
-            if self.eventTrigger==1: #timeChanged
-                cmds.headsUpDisplay( 'MetaHUDConnector%s' % attr, 
-                                     section=section, 
-                                     block=block, 
-                                     blockSize=self.size,
-                                     label=attr, 
-                                     labelFontSize=self.size, 
-                                     allowOverlap=True,
-                                     command=partial(getattr,self,attr),
-                                     event='timeChanged')
+                
+            metaHudItem='MetaHUDConnector%s' % attr
+            
+            if self.headsUpOnly:
+                if self.eventTrigger==1: #timeChanged
+                    cmds.headsUpDisplay( metaHudItem, 
+                                         section=section, 
+                                         block=block, 
+                                         blockSize=self.size,
+                                         label=attr, 
+                                         labelFontSize=self.size, 
+                                         allowOverlap=True,
+                                         command=partial(getattr,self,attr),
+                                         event='timeChanged')
+                else:
+                    cmds.headsUpDisplay( metaHudItem, 
+                                         section=section, 
+                                         block=block, 
+                                         blockSize=self.size,
+                                         label=attr, 
+                                         labelFontSize=self.size, 
+                                         allowOverlap=True,
+                                         attachToRefresh=True,
+                                         command=partial(getattr,self,attr))
             else:
-                cmds.headsUpDisplay( 'MetaHUDConnector%s' % attr, 
-                                     section=section, 
-                                     block=block, 
-                                     blockSize=self.size,
-                                     label=attr, 
-                                     labelFontSize=self.size, 
-                                     allowOverlap=True,
-                                     attachToRefresh=True,
-                                     command=partial(getattr,self,attr))
+                print 'node : ',self.mNode ,' attrs : ' , attr
+                connectedData=cmds.listConnections('%s.%s' % (self.mNode,attr),
+                                                   connections=True,
+                                                   skipConversionNodes=True,
+                                                   plugs=True)[-1].split('.')
+                cmds.hudSliderButton( metaHudItem,
+                                      section=section, 
+                                      block=block, 
+                                      vis=True, 
+                                      sliderLabel=attr, 
+                                      sliderDragCommand=partial(self.setSlidertoAttr, metaHudItem, '%s.%s' % (connectedData[0],connectedData[1])),
+                                      value=0, type='float', 
+                                      sliderLabelWidth=150, 
+                                      valueWidth=60, 
+                                      sliderLength=150, 
+                                      bl='Reset',
+                                      bw=60, bsh='rectangle',
+                                      buttonReleaseCommand=partial(self.resetSlider, metaHudItem, '%s.%s' % (connectedData[0],connectedData[1])))
+                try:
+                    attrMin=cmds.attributeQuery(connectedData[1], node=connectedData[0],  min=True)
+                    if attrMin:
+                        cmds.hudSliderButton(metaHudItem, e=True, min=attrMin[0])
+                except:
+                    cmds.hudSliderButton(metaHudItem, e=True, min=-1000)
+                try:
+                    attrMax=cmds.attributeQuery(connectedData[1],  node=connectedData[0], max=True)
+                    if attrMax:
+                        cmds.hudSliderButton(metaHudItem, e=True, max=attrMax[0])
+                except:
+                    cmds.hudSliderButton(metaHudItem, e=True, max=1000)
+                        
         self.hudGroupActive=True
-                                     
+   
+    def getConnectedAttr(self, attr):
+        return cmds.listConnections('%s.%s' % (self.mNode,attr),c=True,p=True)[-1]
+    
+    def getConnectedNode(self, attr):
+        return cmds.listConnections('%s.%s' % (self.mNode,attr))[0]   
+       
+    def setSlidertoAttr(self, slider, attr):
+        cmds.setAttr(attr, cmds.hudSliderButton(slider, query=True, v=True ))
+        
+    def resetSlider(self, slider, attr):
+        value=0
+        try:
+            value=cmds.addAttr(q=True,dv=True)
+        except:
+            pass
+        cmds.setAttr(attr, value)
+        cmds.hudSliderButton(slider, e=True, v=value )
+                                       
     def showHud(self,value):
         for hud in self.getHudDisplays():
             cmds.headsUpDisplay(hud,edit=True,visible=value)  
              
     def killHud(self):
         for hud in self.getHudDisplays():
-            cmds.headsUpDisplay(hud,remove=True)
+            if cmds.headsUpDisplay(hud,exists=True):
+                cmds.headsUpDisplay(hud,remove=True)
         self.hudGroupActive=False
     
     def refreshHud(self):

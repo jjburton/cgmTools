@@ -15,9 +15,9 @@ example of what's expected and what the systems can do on simple data
 '''
 
 
-#import pymel.core as pm
-import maya.standalone
-maya.standalone.initialize(name='python')
+import pymel.core as pm
+#import maya.standalone
+#maya.standalone.initialize(name='python')
 
 import maya.cmds as cmds
 import os

@@ -15,7 +15,7 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
 __author__ = 'Mark Jackson'
-__buildVersionID__ = 1.34
+__buildVersionID__ = 1.40
 installedVersion= False
 
 import sys
@@ -209,6 +209,11 @@ def menuSetup():
     cmds.menuItem('redNineReloadItem',l="systems: reload()", p='redNineDebuggerItem',
                   ann="Force a complete reload on the core of Red9",
                   echoCommand=True, c="Red9.core._reload()")
+    cmds.menuItem(divider=True,p='redNineDebuggerItem')
+    cmds.menuItem('redNineLostAnimItem',l="Reconnect Lost Anim", p='redNineDebuggerItem',
+                  ann="Reconnect lost animation data via a chSet - see my blog post for more details",
+                  echoCommand=True, c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.reConnectReferencedAnimData()")
+    
     
 def addToMayaMenus():
     try:
@@ -247,7 +252,8 @@ def red9ContactInfo(*args):
         import Red9.core.Red9_General as r9General #lazy load
         r9General.os_OpenFile(os.path.join(red9ModulePath(),'changeLog.txt'))   
     
-     
+def red9Presets():
+    return os.path.join(red9ModulePath(), 'presets')  
     
 def red9ModulePath():
     '''   
@@ -326,7 +332,7 @@ def addPluginPath():
     this will have already been added
     '''
     path=os.path.join(red9ModulePath(),'plug-ins')
-    plugPaths=os.environ.get('MAYA_PLUG_IN_PATH')
+    plugPaths=os.environ.get('MAYA_PLUG_IN_PATH') 
     
     if not path in plugPaths: 
         log.info('Adding Red9 Plug-ins to Plugin Paths : %s' % path)

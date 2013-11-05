@@ -23,15 +23,31 @@ global proc red9HackChannelBox(string $parent)
 	 //hack the ChannelBox RMB popup menu
 	
 	 menuItem -p $parent -d true;
-	 menuItem -label ("Red9: HUD add CB selection") 
-		-p $parent
-		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDaddCBAttrs()\")" red9HUDaddItem;
-	 menuItem -label ("Red9: HUD remove CB selection") 
-		-p $parent
+	 menuItem -label ("Red9 HUD")
+	 	-subMenu true 
+	 	-tearOff true
+	 	-p $parent red9HUDsubmenu;
+	 menuItem -label ("HUD: Monitor CB selection") 
+		-p red9HUDsubmenu
+		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDaddCBAttrs()\")" red9HUDaddStaticItem;
+	 menuItem -label ("HUD: Remove CB selection") 
+		-p red9HUDsubmenu
 		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDremoveCBAttrs()\")" red9HUDremoveItem;
-	 menuItem -label ("Red9: HUD delete") 
-		-p $parent
-		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDKill()\")" red9HUDdeleteItem;		
+	 menuItem -divider true -p red9HUDsubmenu;
+	 menuItem -label ("HUD: Show as HeadsUp") 
+		-p red9HUDsubmenu
+		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDManagement('refreshHeadsUp')\")" red9HUDrefreshHeadsUpItem;	
+	 menuItem -label ("HUD: Show as Sliders") 
+		-p red9HUDsubmenu
+		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDManagement('refreshSliders')\")" red9HUDrefreshSlidersItem;		 
+	 menuItem -label ("HUD: Show Off") 
+		-p red9HUDsubmenu
+		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDManagement('kill')\")" red9HUDkillItem;	
+	 menuItem -divider true -p red9HUDsubmenu;
+	 menuItem -label ("HUD: Delete") 
+		-p red9HUDsubmenu
+		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDManagement('delete')\")" red9HUDdeleteItem;	
+
 }
 
 
