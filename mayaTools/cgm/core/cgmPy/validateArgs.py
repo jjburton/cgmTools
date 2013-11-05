@@ -21,7 +21,6 @@ import sys
 # From Red9 =============================================================
 
 # From cgm ==============================================================
-from cgm.lib import cgmMath
 from cgm.lib import search
 from cgm.core import cgm_General as cgmGeneral
 reload(cgmGeneral)
@@ -38,7 +37,48 @@ log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #=========================================================================    
-    
+#Values ==================================================================
+def test_isFloatEquivalent():
+    assert isFloatEquivalent(-4.11241646134e-07,0.0),"sc>0.0 fail"
+    assert isFloatEquivalent(-4.11241646134e-07,0.00001),"sc>0.00001 fail"
+    assert isFloatEquivalent(-4.11241646134e-07,-0.0),"sc>0.00001 fail"
+    assert isFloatEquivalent(0.0,-0.0),"0.0>-0.0 fail"
+    assert isFloatEquivalent(0.0,0),"0.0>0 fail"
+
+def isFloatEquivalent(f1,f2,places=4):
+    """
+    Compare two floats, returns if equivalent
+    """ 
+    #zeroCheck
+    l_zeros = [-0.0,0.0]
+    zeroState = False
+
+    if round(f1,places) in l_zeros and round(f2,places) in l_zeros:
+	log.debug("zero match: %s|%s"%(f1,f2))
+	return True
+
+    #reg check
+    f1_rounded = round(f1,places)
+    f2_rounded = round(f2,places)
+    #log.debug(f1_rounded)
+    #log.debug(f2_rounded) 
+    if f1_rounded == f2_rounded:
+	return True
+    return False 
+
+def isVectorEquivalent(v1,v2,places=7):
+    """
+    Compare two vectors, returns if equivalent
+    """ 
+    if type(v1) not in [list,tuple]:return False
+    if type(v2) not in [list,tuple]:return False
+    if len(v1)!= len(v2):return False 
+
+    for i,n in enumerate(v1):
+	if not isFloatEquivalent(n,v2[i],places):
+	    return False
+    return True
+
 #>>> Basics ============================================================== 
 def stringArg(arg = None,noneValid = True,calledFrom = None):
     """
@@ -204,7 +244,7 @@ def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = No
 	    except StandardError,error:raise StandardError,"max value check fail. error: %s"%(error)		
 	if type(isEquivalent) in [float,int]:
 	    try:#Equivalent check
-		if not cgmMath.isFloatEquivalent(isEquivalent,numberToCheck):
+		if not isFloatEquivalent(isEquivalent,numberToCheck):
 		    return False
 	    except StandardError,error:raise StandardError,"isEquivalent check fail. error: %s"%(error)	    
 	if type(isValue) in [float,int]:
