@@ -227,8 +227,19 @@ class go(object):
 	try:#>>> Deform group for the module =====================================================
 	    if not self._i_module.getMessage('deformNull'):
 		if self._partType in __l_faceModules__:
-		    self.verify_faceDeformNull()
-		    self._i_deformNull.parent = self.str_faceAttachJoint
+		    self.verify_faceDeformNull()#make sure we have a face deform null
+		    
+		    #Make it and link it ------------------------------------------------------
+		    buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
+		    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+		    i_grp.addAttr('cgmName',self._partName,lock=True)
+		    i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
+		    i_grp.doName()
+		    i_grp.parent = self._i_faceDeformNull	
+		    self._i_module.connectChildNode(i_grp,'deformNull','module')
+		    self._i_module.connectChildNode(i_grp,'constrainNull','module')
+		    self._i_deformNull = i_grp#link
+		    
 		else:
 		    #Make it and link it
 		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
@@ -397,8 +408,8 @@ class go(object):
 	#Check if we have a face deformNull on a parent --------------------------	    
 	buffer = self._mi_moduleParent.getMessage('faceDeformNull')
 	if buffer:
-	    self._i_module.connectChildNode(buffer[0],'deformNull','module')
-	    self._i_module.connectChildNode(buffer[0],'constrainNull','module')	    	    
+	    self._i_module.connectChildNode(buffer[0],'faceDeformNull')
+	    self._i_faceDeformNull = self._mi_moduleParent.faceDeformNull
 	    return True
 	
 	#Make it and link it ------------------------------------------------------
@@ -408,10 +419,9 @@ class go(object):
 	i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
 	i_grp.doName()
 	i_grp.parent = self._i_masterDeformGroup.mNode	
-	self._i_module.connectChildNode(i_grp,'deformNull','module')
-	self._i_module.connectChildNode(i_grp,'constrainNull','module')	
+	self._i_module.connectChildNode(i_grp,'faceDeformNull')	
 	self._mi_moduleParent.connectChildNode(i_grp,'faceDeformNull','module')
-	self._i_deformNull = i_grp#link
+	self._i_faceDeformNull = i_grp#link
 	
 	return True
     
