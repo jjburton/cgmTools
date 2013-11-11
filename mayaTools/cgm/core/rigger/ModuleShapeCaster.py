@@ -2259,7 +2259,7 @@ def shapeCast_mouthNose(*args,**kws):
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Jaw Shapes','call':self._jawShapes_},	                        
 	                        {'step':'Tongue Shapes','call':self._tongueShapes_},
-	                        {'step':'Basic Shapes','call':self._simpleShapeCasts_},
+	                        {'step':'Basic Shapes','call':self._simpleShapeCasts_},	                        
 	                        {'step':'MouthMove Shapes','call':self._mouthMoveShape_},
 	                        {'step':'Nose Move Shape','call':self._noseMoveShape_},	                        	                        
 	                        {'step':'Face Pins','call':self._facePins_},
@@ -2354,7 +2354,8 @@ def shapeCast_mouthNose(*args,**kws):
 	                                                               cgmName = 'nostril')	
 	    d_['nose'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                       cgmName = 'noseMove')		    
-	    
+	    d_['noseTop'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                       cgmName = 'noseTop')		    
 	    #>> Cheek --------------------------------------------------------------------------
 	    d_['uprCheekOuterLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                                    cgmDirection = 'left',cgmPosition = 'outer',
@@ -2400,7 +2401,7 @@ def shapeCast_mouthNose(*args,**kws):
 	    self.ml_centerRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                    cgmDirection = 'center')
 
-	    for tag in ['noseTip','noseTop','noseUnder']:
+	    for tag in ['noseTip','noseTop','noseUnder','noseBase']:
 		self.ml_centerRigJoints.extend(metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 		                                                                     cgmName = tag))
 		
@@ -2412,28 +2413,18 @@ def shapeCast_mouthNose(*args,**kws):
 	    self.ml_rigCull.extend(metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                 cgmName = 'tongue'))
 	    self.ml_rigCull.extend(metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-	                                                                 cgmName = 'noseBase'))
-	    self.ml_rigCull.extend(metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                 cgmName = 'jaw'))
 	    self.ml_rigCull.extend(metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                 cgmName = 'teeth'))	    
 	    log.info("%s cull list:"%self._str_reportStart)
 	    for mJnt in self.ml_rigCull:
-		log.info(mJnt.p_nameShort)
+		log.info(">>> " + mJnt.p_nameShort)
 		
-	    #>> calculate ------------------------------------------------------------------------
-	    ml_measureJointList = [d_['smileBaseLeft'],d_['smileLeft'],d_['sneerLeft']]
-	    """
-	    try:#Get a casted base distance
-		d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],ml_measureJointList[0].mNode,axis=self.str_orientation[0]+'+')
-		if d_return:
-		    pos = d_return.get('hit')			
-		    self.f_baseDistance = distance.returnDistanceBetweenPoints(pos,ml_measureJointList[0].getPosition()) * 2
-		if not d_return:raise Exception
-	    except:"""
-	    self.f_baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_measureJointList]) /4 		
-	    self.f_mouthWidth = distance.returnDistanceBetweenObjects(self.md_handles['lipCornerRight'].mNode,self.md_handles['lipCornerLeft'].mNode)
-
+	    try:#>> calculate ------------------------------------------------------------------------
+		ml_measureJointList = [d_['smileBaseLeft'],d_['smileLeft'],d_['sneerLeft']]
+		self.f_baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_measureJointList]) /4 		
+		self.f_mouthWidth = distance.returnDistanceBetweenObjects(self.md_handles['lipCornerRight'].mNode,self.md_handles['lipCornerLeft'].mNode)
+	    except Exception,error:raise StandardError,"Calculation | %s"%error
 	    #>> Running lists --------------------------------------------------------------------
 	    self.ml_handles = []
 	    self.ml_pinHandles = []
@@ -2596,7 +2587,7 @@ def shapeCast_mouthNose(*args,**kws):
 	               {'key':'lipLwrCenter'},{'key':'lipLwrLeft','isSub':True},{'key':'lipLwrRight','isSub':True},
 	               {'key':'lipCornerLeft'},{'key':'lipCornerRight'},{'key':'chin'},{'key':'jawAnchorLeft'},{'key':'jawAnchorRight'},
 	               {'key':'uprCheekOuterLeft'},{'key':'uprCheekInnerLeft','isSub':True},{'key':'uprCheekInnerRight','isSub':True},{'key':'uprCheekOuterRight'},	               
-	               {'key':'noseTip','isSub':True},{'key':'noseUnder','isSub':True},{'key':'nostrilLeft','isSub':True},{'key':'nostrilRight','isSub':True}]
+	               {'key':'noseTop','isSub':True},{'key':'noseTip','isSub':True},{'key':'noseUnder','isSub':True},{'key':'nostrilLeft','isSub':True},{'key':'nostrilRight','isSub':True}]
 	    ml_handleCrvs = []
 	    
 	    for i,d in enumerate(l_build):
@@ -2668,6 +2659,7 @@ def shapeCast_mouthNose(*args,**kws):
 		    
 		for mObj in ml_jointList:
 		    if mObj not in self.ml_rigCull:
+			log.info("Facepin : %s"%mObj.p_nameShort)
 			try:
 			    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('semiSphere',size = _size,direction=str_cast),setClass=True)	
 			    try:
