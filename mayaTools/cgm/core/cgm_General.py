@@ -16,6 +16,7 @@ import maya.mel as mel
 import copy
 import time
 import inspect
+import platform
 import sys
 
 # From Red9 =============================================================
@@ -59,13 +60,14 @@ class cgmFuncCls(object):
 	self._str_modPath = None
 	self._str_mod = None	
 	self._d_stepTimes = {}
-	#This is our mask so that the fail report ignores them
+	#These are our mask so that the fail report ignores them
 	self._l_reportMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_d_stepTimes','_l_ARGS_KWS_DEFAULTS',
 	                     '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
 	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                    '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
 	                    '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
+	
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
 	self._l_kwMask = ['reportTimes','reportShow']
 	     
@@ -127,35 +129,39 @@ class cgmFuncCls(object):
 		    break"""
 	    except Exception,error:
 		self.getModuleData()
-		
-		log.error(">"*3 + " %s "%self._str_funcCombined + "="*75)
-		log.error("Python Module: %s "%self._str_modPath)	    		    
-		if self._str_funcArgs:log.error(">"*3 + " Args: %s "%self._str_funcArgs)
-		if self._str_funcKWs:log.error(">"*3 + " KWs: %s "%self._str_funcKWs)	 
+		log.error("/"*3 + " %s "%self._str_funcCombined + "="*75)
+		if self._str_funcArgs:log.error("/"*3 + " Args: %s "%self._str_funcArgs)
+		if self._str_funcKWs:log.error("/"*3 + " KWs: %s "%self._str_funcKWs)	 
 		if self.d_kws:
 		    for k in self.d_kws.keys():
-			log.error(">"*3 + " '%s' : %s "%(k,self.d_kws[k]))		
-		_str_fail = ">"*3 + " %s >!FAILURE!> Step: '%s' | Error: %s"%(self._str_funcCombined,_str_step,error)
-		log.error(_str_fail)
-		
-		log.error(">"*3 + " Self Stored " + "-"*75)
+			log.error("---" + " '%s' : %s "%(k,self.d_kws[k]))		
+		_str_fail = "Step: '%s' | Error: %s"%(_str_step,error)
+		log.error("/"*3 + " Self Stored " + "-"*75)
 		l_keys = self.__dict__.keys()
 		l_keys.sort()
 		for k in l_keys:
 		    if k not in self._l_errorMask:
 			buffer = self.__dict__[k]
 			if type(buffer) is dict:
-			    log.error(">"*6 + " Nested Dict: %s "%k + "-"*75)
+			    log.error(">" + " Nested Dict: %s "%k + "-"*75)
 			    l_bufferKeys = buffer.keys()
 			    l_bufferKeys.sort()
 			    for k2 in buffer.keys():
-				log.error(">"*6 + " '%s' : %s "%(k2,buffer[k2]))			
+				log.error("-"*2 + " '%s' : %s "%(k2,buffer[k2]))			
 			else:
-			    log.error(">"*3 + " '%s' : %s "%(k,self.__dict__[k]))
+			    log.error(">"*1 + " '%s' : %s "%(k,self.__dict__[k]))
 		if self._b_WIP:
-		    log.error(">"*40 + " WIP CODE " + "<"*40)	
-		log.error("%s >> Fail Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t1)))
-		raise StandardError, _str_fail
+		    log.error(">"*40 + " WIP CODE " + "<"*40)
+		    
+		log.error("/"*3 + " Enviornment Info " + "="*75)	
+		log.error("/"*3 + " Python Module: %s "%self._str_modPath)
+		try:log.error("/"*3 + " Python Module Version: %s "%self.mod.__version__)
+		except:pass
+		log.error("/"*3 + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
+		log.error("/"*3 + " Platform: %s "%(' | ').join(platform.uname()))	
+		log.error("/"*3 + " Error >>> %s "%_str_fail)			
+		log.error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))		
+		raise StandardError, "%s >!FAILURE!> %s"%(self._str_funcCombined,_str_fail)
 	    t2 = time.clock()
 	    _str_time = "%0.3f seconds"%(t2-t1)
 	    self._d_stepTimes[_str_step] = _str_time
@@ -174,7 +180,6 @@ class cgmFuncCls(object):
     
     def report(self):
 	self.getModuleData()
-	
 	log.info(">"*3 + " %s "%self._str_funcCombined + "="*75)
 	log.info("Python Module: %s "%self._str_modPath)	
 	if self.l_funcSteps:log.info(">"*3 + " l_funcSteps: %s "%self.l_funcSteps)	
@@ -250,24 +255,49 @@ class cgmFuncCls(object):
 		
     def getModuleData(self):
 	try:
-	    mod = inspect.getmodule(self)
-	    self._str_modPath = inspect.getmodule(self)
-	    self._str_mod = '%s' % mod.__name__.split('.')[-1]
+	    self.mod = inspect.getmodule(self)
+	    self._str_modPath = str(self.mod)
+	    self._str_mod = '%s' % self.mod.__name__.split('.')[-1]
 	    self._str_funcCombined = "%s.%s"%(self._str_mod,self._str_funcName)
 	except:self._str_funcCombined = self._str_funcName	
 	
-    def info(self,arg):
+    def log_info(self,arg):
 	try:
 	    log.info("%s%s"%(self._str_reportStart,str(arg)))
 	except:pass	
-    def error(self,arg):
+    def log_error(self,arg):
 	try:
 	    log.error("%s%s"%(self._str_reportStart,str(arg)))
 	except:pass
-    def warning(self,arg):
+    def log_warning(self,arg):
 	try:
 	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
-	except:pass	    
+	except:pass
+	
+    def log_infoNestedDict(self,arg):
+	try:
+	    if type(arg) not in [list,tuple]:arg = [arg]
+	    for atr in arg:
+		try:
+		    l_keys = self.__dict__[atr].keys()
+		    log.info('%s'%self._str_funcCombined +" Self Stored: '%s' "%atr + "-"*75)			    
+		    l_keys.sort()
+		    for k in l_keys:
+			try:str_key = k.p_nameShort
+			except:str_key = k
+			buffer = self.__dict__[atr][k]
+			if type(buffer) is dict:
+			    log.info(">" + " Nested Dict: '%s' "%(str_key) + "-"*75)
+			    l_bufferKeys = buffer.keys()
+			    l_bufferKeys.sort()
+			    for k2 in l_bufferKeys:
+				log.info("-"*2 +'>' + " '%s' : %s "%(k2,buffer[k2]))			
+			else:
+			    log.info(">" + " '%s' : %s "%(str_key,self.__dict__[atr][k]))		    
+		except Exception,error:
+		    log.warning("Key not found or not dict: %s | %s"%(atr,error))
+	except:pass
+	
 class cgmFunctionClass2(object):
     """Simple class for use with TimerSimple"""
     def __init__(self,*args, **kws):
