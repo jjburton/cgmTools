@@ -51,6 +51,7 @@ class cgmFuncCls(object):
         self._str_funcClass = None
 	self._str_funcCombined = None
         self._str_funcName = None
+	self._str_progressBar = None
         self._str_funcDebug = None
 	self._b_WIP = False
 	self._l_ARGS_KWS_DEFAULTS = []
@@ -129,43 +130,46 @@ class cgmFuncCls(object):
 		    break"""
 	    except Exception,error:
 		self.getModuleData()
-		log.error("/"*3 + " %s "%self._str_funcCombined + "="*75)
-		if self._str_funcArgs:log.error("/"*3 + " Args: %s "%self._str_funcArgs)
-		if self._str_funcKWs:log.error("/"*3 + " KWs: %s "%self._str_funcKWs)	 
+		log.info("/"*6 + " %s "%self._str_funcCombined + "="*75)
+		if self._str_funcArgs:log.info("/"*3 + " Args: %s "%self._str_funcArgs)
+		if self._str_funcKWs:log.info("/"*3 + " KWs: %s "%self._str_funcKWs)	 
 		if self.d_kws:
 		    for k in self.d_kws.keys():
-			log.error("---" + " '%s' : %s "%(k,self.d_kws[k]))		
+			log.info("---" + " '%s' : %s "%(k,self.d_kws[k]))		
 		_str_fail = "Step: '%s' | Error: %s"%(_str_step,error)
-		log.error("/"*3 + " Self Stored " + "-"*75)
+		log.info("/"*3 + " Self Stored " + "-"*75)
 		l_keys = self.__dict__.keys()
 		l_keys.sort()
 		for k in l_keys:
 		    if k not in self._l_errorMask:
 			buffer = self.__dict__[k]
 			if type(buffer) is dict:
-			    log.error(">" + " Nested Dict: %s "%k + "-"*75)
+			    log.info(">" + " Nested Dict: %s "%k + "-"*75)
 			    l_bufferKeys = buffer.keys()
 			    l_bufferKeys.sort()
 			    for k2 in buffer.keys():
-				log.error("-"*2 + " '%s' : %s "%(k2,buffer[k2]))			
+				log.info("-"*2 + " '%s' : %s "%(k2,buffer[k2]))			
 			else:
-			    log.error(">"*1 + " '%s' : %s "%(k,self.__dict__[k]))
+			    log.info(">"*1 + " '%s' : %s "%(k,self.__dict__[k]))
 		if self._b_WIP:
-		    log.error(">"*40 + " WIP CODE " + "<"*40)
+		    log.info(">"*40 + " WIP CODE " + "<"*40)
 		    
-		log.error("/"*3 + " Enviornment Info " + "="*75)	
-		log.error("/"*3 + " Python Module: %s "%self._str_modPath)
-		try:log.error("/"*3 + " Python Module Version: %s "%self.mod.__version__)
+		log.info("/"*3 + " Enviornment Info " + "="*75)	
+		log.info("/"*3 + " Python Module: %s "%self._str_modPath)
+		try:log.info("/"*3 + " Python Module Version: %s "%self.mod.__version__)
 		except:pass
-		log.error("/"*3 + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
-		log.error("/"*3 + " Platform: %s "%(' | ').join(platform.uname()))	
+		log.info("/"*3 + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
+		log.info("/"*3 + " Platform: %s "%(' | ').join(platform.uname()))	
 		log.error("/"*3 + " Error >>> %s "%_str_fail)			
-		log.error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))		
+		log.error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))	
+		self.progressBar_end()
 		raise StandardError, "%s >!FAILURE!> %s"%(self._str_funcCombined,_str_fail)
 	    t2 = time.clock()
 	    _str_time = "%0.3f seconds"%(t2-t1)
 	    self._d_stepTimes[_str_step] = _str_time
 	    if int_max != 0 and self.d_kws.get('reportTimes'): log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)))		
+	
+	self.progressBar_end()
 	
 	if self.d_kws.get('reportTimes'):
 	    log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)))		
@@ -176,6 +180,7 @@ class cgmFuncCls(object):
 	    buffer = self.d_return.get(k)
 	    if buffer:
 		return buffer
+	    
 	return self.d_return
     
     def report(self):
@@ -273,7 +278,37 @@ class cgmFuncCls(object):
 	try:
 	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
 	except:pass
+    #>>> Progress bar stuff =====================================================================
+    def progressBar_start(self,stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True):
+	self._str_progressBar = doStartMayaProgressBar(stepMaxValue, statusMessage, interruptableState)
+    
+    def progressBar_iter(self,**kws):
+	if not self._str_progressBar:self.progressBar_start()
+	if kws.get('status'):
+	    str_bfr = kws.get('status')
+	    kws['status'] = "%s > %s"%(self._str_funcCombined,str_bfr) 
+	if 'step' not in kws.keys():kws['step'] = 1
+	mc.progressBar(self._str_progressBar,edit = True, **kws)
 	
+    def progressBar_end(self,**kws):
+	try:doEndMayaProgressBar(self._str_progressBar)
+	except:pass	
+    def progressBar_setMaxStepValue(self,int_value):
+	if not self._str_progressBar:self.progressBar_start()
+	try:mc.progressBar(self._str_progressBar,edit = True, maxValue = int_value)	
+	except Exception,error:log.error("%s > failed to set progress bar maxValue | %s"%(self._str_reportStart,error))	
+    def progressBar_setMinStepValue(self,int_value):
+	if not self._str_progressBar:self.progressBar_start()	
+	try:mc.progressBar(self._str_progressBar,edit = True, minValue = int_value)	
+	except Exception,error:log.error("%s > failed to set progress bar minValue | %s"%(self._str_reportStart,error))	
+    def progressBar_set(self,**kws):
+	if not self._str_progressBar:self.progressBar_start()	
+	if kws.get('status'):
+	    str_bfr = kws.get('status')
+	    kws['status'] = "%s > %s"%(self._str_funcCombined,str_bfr) 	
+	try:mc.progressBar(self._str_progressBar,edit = True,**kws)	
+	except Exception,error:log.error("%s > failed to set progress bar status | %s"%(self._str_reportStart,error))	
+    
     def log_infoNestedDict(self,arg):
 	try:
 	    if type(arg) not in [list,tuple]:arg = [arg]
@@ -287,13 +322,13 @@ class cgmFuncCls(object):
 			except:str_key = k
 			buffer = self.__dict__[atr][k]
 			if type(buffer) is dict:
-			    log.info(">" + " Nested Dict: '%s' "%(str_key) + "-"*75)
+			    log.info('%s '%self._str_funcCombined + ">" + " Nested Dict: '%s' "%(str_key) + "-"*75)
 			    l_bufferKeys = buffer.keys()
 			    l_bufferKeys.sort()
 			    for k2 in l_bufferKeys:
-				log.info("-"*2 +'>' + " '%s' : %s "%(k2,buffer[k2]))			
+				log.info('%s '%self._str_funcCombined + "-"*2 +'>' + " '%s' : %s "%(k2,buffer[k2]))			
 			else:
-			    log.info(">" + " '%s' : %s "%(str_key,self.__dict__[atr][k]))		    
+			    log.info('%s '%self._str_funcCombined + ">" + " '%s' : %s "%(str_key,self.__dict__[atr][k]))		    
 		except Exception,error:
 		    log.warning("Key not found or not dict: %s | %s"%(atr,error))
 	except:pass
@@ -449,6 +484,7 @@ def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....'
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     mayaMainProgressBar = mel.eval('$tmp = $gMainProgressBar');
+    mc.progressBar(mayaMainProgressBar, edit=True, endProgress=True)
     mc.progressBar( mayaMainProgressBar,
                     edit=True,
                     beginProgress=True,
