@@ -592,7 +592,7 @@ def build_rig(*args, **kws):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Loft some surfaces','call':self._buildAttachSurfaces_},
-	                        {'step':'NoseBuild','call':self._buildNose_},	                        
+	                        #{'step':'NoseBuild','call':self._buildNose_},	                        
 	                        #{'step':'Lock N hide','call':self._lockNHide_},
 	                        
 	                        ]	
@@ -762,7 +762,7 @@ def build_rig(*args, **kws):
 	    
 	    def returnRebuiltCurveString(crv):
 		return mc.rebuildCurve (crv.mNode, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_spans, d=3, tol=0.001)[0]		
-	    	    
+	    '''	    
 	    try:#Ribbons -----------------------------------------------------------------------------	    
 		md_ribbonBuilds = {'nostril':{'extrudeCrv':self.mi_noseBaseCastCrv,
 		                              'joints':self.md_rigList['sneerHandle']['left'] + self.md_rigList['sneerHandle']['right']},
@@ -812,7 +812,8 @@ def build_rig(*args, **kws):
 			
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)
 	    except Exception,error:raise StandardError,"Ribbons | %s"%(error)
-	    
+	    '''
+	
 	    try:#Main plates -----------------------------------------------------------------------------
 		md_plateBuilds = {'nose':{'crvs':[self.mi_noseTopCastCrv,self.mi_noseMidCastCrv,self.mi_noseBaseCastCrv,self.mi_mouthTopCastCrv]},
 		                  'uprLip':{'crvs':[self.mi_mouthTopCastCrv,self.mi_lipOverTraceCrv,self.mi_lipUprCrv]},
@@ -859,7 +860,7 @@ def build_rig(*args, **kws):
 	               'noseMoveHandle':{'mode':'handleAttach'},
 	               'noseMoveRig':{},	               
 	               'noseTipRig':{},
-	               'noseTipHandle':{'mode':'parentOnly','attachTo':None,'parentTo':str_noseMoveMasterGroup},
+	               'noseTipHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0]},
 	               'noseUnderRig':{},
 	               'noseUnderHandle':{'mode':'parentOnly','attachTo':None,'parentTo':str_noseMoveMasterGroup},
 	               'noseTopRig':{},
