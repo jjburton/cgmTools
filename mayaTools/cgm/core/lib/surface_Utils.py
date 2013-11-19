@@ -264,3 +264,100 @@ def attachObjToSurface(*args,**kws):
 	    return self.md_return
 	
     return fncWrap(*args,**kws).go()
+
+
+def create_radialCurveLoft(*args,**kws):
+    """
+    Function to create a surface from a curve.
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args, **kws):
+	    """
+	    @kws
+	    source -- joint to add length to
+	    target -- the attr to connect this to. If none is provided, it adds to the joint
+	    connectBy -- mode
+	    orienation(str) -- joint orientation
+    
+	    """		    
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'create_radialCurveLoft'
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'crvToLoft',"default":None,
+	                                  'help':"Curve which will be lofted"},
+	                                 {'kw':'aimPointOrObject',"default":None,
+	                                  'help':"Point or object from which to loft"},
+	                                 {'kw':'f_offset',"default":-.5,
+	                                  'help':"Width of this new surface"},
+	                                 ]
+	    self.__dataBind__(*args,**kws)
+	    
+	    self.l_funcSteps = [{'step':'Validate','call':self._validate},
+		                {'step':'Create','call':self._create}
+	                        ]
+	    
+	    #=================================================================
+		
+	def _validate(self):
+	    #>> validate ============================================================================
+	    self.mi_crv = cgmMeta.validateObjArg(self.d_kws['crvToLoft'],cgmMeta.cgmObject,noneValid=False,mayaType = ['nurbsCurve'])
+	    self.mi_target = cgmMeta.validateObjArg(self.d_kws['aimPointOrObject'],cgmMeta.cgmObject,noneValid=False,mayaType = 'nurbsCurve')
+	    #self._str_funcCombined = self._str_funcCombined + "(%s,%s)"%(self.mi_obj.p_nameShort,self.mi_targetSurface.p_nameShort)	    
+	    self.f_offset = cgmValid.valueArg(self.d_kws['f_offset'], calledFrom=self._str_funcCombined)
+	    self.d_info = {'l_eps':self.mi_crv.getComponents('ep'),
+	                   'l_cvs':self.mi_crv.getComponents('cv'),
+	                   'l_constraints':[],
+	                   'ml_locators':[],
+	                   'l_locPos':[]}
+	    
+	    #Running Lists ============================================================================
+	    self.md_return = {}
+	    
+	def _create(self):
+	    #Get our 
+	    l_eps = self.d_info['l_eps']
+	    l_cvs = self.d_info['l_cvs']	
+	    int_cvCount = len(l_cvs)
+	    #l_locs = locators.locMeCVsOnCurve(self.mi_crv.mNode)
+	    self.progressBar_setMaxStepValue(int_cvCount)
+	    
+	    for i,cv in enumerate(l_cvs):
+		try:#Loc loop
+		    self.progressBar_iter(status = cv, step = i)
+		    #create it
+		    v_pos = p = mc.pointPosition(cv)
+		    str_loc = mc.spaceLocator()[0]
+		    mi_loc = cgmMeta.cgmObject(str_loc)
+		    mi_loc.translate = v_pos
+		    #self.d_info['ml_locators'].append(mi_loc)
+		    #aim it
+		    self.d_info['l_constraints'].append( mc.aimConstraint(self.mi_target.mNode,str_loc,maintainOffset = False,
+			                                                  weight = 1, aimVector = [0,0,-1], upVector = [0,1,0],
+			                                                  worldUpVector = [0,1,0], worldUpType = 'scene')[0])
+		    #move
+		    mc.move(0,0,self.f_offset, str_loc, r = True, os = True)
+		    
+		    #Get pos
+		    self.d_info['l_locPos'].append(mi_loc.getPosition())
+		    mi_loc.delete()
+		    
+		except Exception,error:
+		    raise StandardError,"Loc creation %s | %s"%(cv,error)
+		
+	    #create new rail crv
+	    str_newRailCrv = mc.curve(d = 2,p = self.d_info['l_locPos'], os = True)
+	    mc.rebuildCurve (str_newRailCrv, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_cvCount + 2, d=3, tol=0.001)[0]
+	    
+	    str_rebuiltCastCrv = mc.rebuildCurve (self.mi_crv.mNode, ch=0, rpo= 0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_cvCount + 2, d=3, tol=0.001)[0]
+
+	    #create profile crv
+	    str_profileCrv = mc.curve(d = 1,p = [mc.pointPosition(self.d_info['l_eps'][0]),self.d_info['l_locPos'][0]], os = True)
+	    
+	    str_surf = mc.singleProfileBirailSurface(str_profileCrv,str_rebuiltCastCrv,str_newRailCrv,ch=0)[0]
+	    
+	    #Delete
+	    mc.delete(str_newRailCrv,str_profileCrv,str_rebuiltCastCrv)
+
+	    return cgmMeta.cgmObject(str_surf)
+	
+    return fncWrap(*args,**kws).go()
+
