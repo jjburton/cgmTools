@@ -762,10 +762,16 @@ def build_rig(*args, **kws):
 	    
 	    def returnRebuiltCurveString(crv):
 		return mc.rebuildCurve (crv.mNode, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_spans, d=3, tol=0.001)[0]		
-	    '''	    
+	    	    
 	    try:#Ribbons -----------------------------------------------------------------------------	    
 		md_ribbonBuilds = {'nostril':{'extrudeCrv':self.mi_noseBaseCastCrv,
 		                              'joints':self.md_rigList['sneerHandle']['left'] + self.md_rigList['sneerHandle']['right']},
+		                   'uprLip':{'extrudeCrv':self.mi_lipUprCrv,
+		                              'joints':self.md_rigList['lipCorner']['left'] + self.md_rigList['lipCorner']['right']},
+		                   'lwrLip':{'extrudeCrv':self.mi_lipLwrCrv,
+		                             'joints':self.md_rigList['lipCorner']['left'] + self.md_rigList['lipCorner']['right']},		                   
+		                   'smileLeft':{'extrudeCrv':self.mi_smileLeftCrv,
+		                                'joints':self.md_rigList['smileLineRig']['left']},		                  
 		                  }
 		
 		self.progressBar_setMaxStepValue(len(md_ribbonBuilds.keys()))		
@@ -780,7 +786,7 @@ def build_rig(*args, **kws):
     
 			
 			try:#Make our loft loc -----------------------------------------------------------------------
-			    f_dist = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_joints])/10
+			    f_dist = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_joints])*.05
 			    d_buffer['dist'] = f_dist
 			    
 			    mi_loc = ml_joints[-1].doLoc()
@@ -812,8 +818,8 @@ def build_rig(*args, **kws):
 			
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)
 	    except Exception,error:raise StandardError,"Ribbons | %s"%(error)
-	    '''
-	
+	    
+	    return
 	    try:#Main plates -----------------------------------------------------------------------------
 		md_plateBuilds = {'nose':{'crvs':[self.mi_noseTopCastCrv,self.mi_noseMidCastCrv,self.mi_noseBaseCastCrv,self.mi_mouthTopCastCrv]},
 		                  'uprLip':{'crvs':[self.mi_mouthTopCastCrv,self.mi_lipOverTraceCrv,self.mi_lipUprCrv]},
