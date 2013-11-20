@@ -592,7 +592,7 @@ def build_rig(*args, **kws):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Loft some surfaces','call':self._buildAttachSurfaces_},
-	                        #{'step':'NoseBuild','call':self._buildNose_},	                        
+	                        {'step':'NoseBuild','call':self._buildNose_},	                        
 	                        #{'step':'Lock N hide','call':self._lockNHide_},
 	                        
 	                        ]	
@@ -681,7 +681,13 @@ def build_rig(*args, **kws):
 	                       'uprCheekRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'uprCheek','checkToggle':b_buildUprCheek}}
 	    
 	    _l_buildDicts.append(d_uprCheekBuild)
-
+	    
+	    #>> uprCheek --------------------------------------------------------------------------------------------------
+	    b_buildCheek = True
+	    d_cheekBuild = {#'cheekHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'cheek'},
+	                    'cheekRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'cheek','checkToggle':b_buildCheek}}
+	    
+	    _l_buildDicts.append(d_cheekBuild)
 	    	    
 	    #>> tongue --------------------------------------------------------------------------------------------------
 	    b_buildTongue = True
@@ -730,6 +736,7 @@ def build_rig(*args, **kws):
 		    else:
 			log.error("%s | Check toggle off"%(k_tag))
 		except Exception,error:raise StandardError,"%s loop | %s"%(k_tag,error)
+	    #self.log_infoNestedDict('md_rigList')		    
 	     	    
 	    #>> Squash --------------------------------------------------------------------------------------------------
 
@@ -761,8 +768,11 @@ def build_rig(*args, **kws):
 	    int_spans = 4
 	    
 	    def returnRebuiltCurveString(crv):
+		try:crv.mNode
+		except:crv = cgmMeta.cgmObject(crv)
+		
 		return mc.rebuildCurve (crv.mNode, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_spans, d=3, tol=0.001)[0]		
-	    	    
+	    
 	    try:#Ribbons -----------------------------------------------------------------------------	    
 		md_ribbonBuilds = {'nostril':{'extrudeCrv':self.mi_noseBaseCastCrv,
 		                              'joints':self.md_rigList['sneerHandle']['left'] + self.md_rigList['sneerHandle']['right']},
@@ -770,8 +780,10 @@ def build_rig(*args, **kws):
 		                              'joints':self.md_rigList['lipCorner']['left'] + self.md_rigList['lipCorner']['right']},
 		                   'lwrLip':{'extrudeCrv':self.mi_lipLwrCrv,
 		                             'joints':self.md_rigList['lipCorner']['left'] + self.md_rigList['lipCorner']['right']},		                   
-		                   'smileLeft':{'extrudeCrv':self.mi_smileLeftCrv,
-		                                'joints':self.md_rigList['smileLineRig']['left']},		                  
+		                   'smileLeft':{'extrudeCrv':self.mi_smileLeftCrv,'mode':'radialLoft','direction':'left',
+		                                'aimObj':self.md_rigList['mouthMove'][0]},
+		                   'smileRight':{'extrudeCrv':self.mi_smileRightCrv,'mode':'radialLoft','direction':'right',
+		                                 'aimObj':self.md_rigList['mouthMove'][0]},		                   
 		                  }
 		
 		self.progressBar_setMaxStepValue(len(md_ribbonBuilds.keys()))		
@@ -780,73 +792,147 @@ def build_rig(*args, **kws):
 			self.progressBar_iter(status = ("Ribbon build: '%s'"%str_name))			
 			d_buffer = md_ribbonBuilds[str_name]#get the dict
 			self.d_buffer = d_buffer
-			ml_joints = d_buffer['joints']
-			mi_crv = d_buffer['extrudeCrv']
-			#str_rebuiltExtrudeCrv = returnRebuiltCurveString(d_buffer['extrudeCrv'])
-    
+			f_dist = mi_go._f_skinOffset*.5
 			
-			try:#Make our loft loc -----------------------------------------------------------------------
-			    f_dist = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_joints])*.05
-			    d_buffer['dist'] = f_dist
-			    
-			    mi_loc = ml_joints[-1].doLoc()
-			    mi_loc.doGroup()
-			except Exception,error:raise StandardError,"loft loc | %s"%(error)
-			
-			try:#Cross section creation -----------------------------------------------------------------------
-			    l_profileCrvPos = []
-			    for dist in [0,f_dist]:
-				mi_loc.__setattr__("t%s"%mi_go._jointOrientation[1],dist)
-				l_profileCrvPos.append(mi_loc.getPosition())
+			if d_buffer.get('mode') == 'radialLoft':
+			    try:mi_obj = surfUtils.create_radialCurveLoft(d_buffer['extrudeCrv'].mNode,d_buffer['aimObj'].mNode,f_dist)
+			    except Exception,error:raise StandardError,"Radial Loft | %s"%(error)
+			else:
+			    try:#Regular loft -----------------------------------------------------------------------
+				ml_joints = d_buffer['joints']
+				mi_crv = d_buffer['extrudeCrv']
+
+				try:#Make our loft loc -----------------------------------------------------------------------
+				    #f_dist = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_joints])*.05
+				    d_buffer['dist'] = f_dist
+				    
+				    mi_loc = ml_joints[-1].doLoc()
+				    mi_loc.doGroup()
+				except Exception,error:raise StandardError,"loft loc | %s"%(error)
 				
-			    str_profileCrv = mc.curve(d = 1,ep = l_profileCrvPos, os = True)
-			except Exception,error:raise StandardError,"Cross section creation | %s"%(error)
-			
-			try:#Extrude crv -----------------------------------------------------------------------
-			    str_extruded = mc.extrude([str_profileCrv,mi_crv.mNode],et = 1, sc = 1,ch = 1,useComponentPivot = 0,fixedPath=1)[0]
-			    mi_obj = cgmMeta.cgmObject(str_extruded)
+				try:#Cross section creation -----------------------------------------------------------------------
+				    l_profileCrvPos = []
+				    for dist in [0,f_dist]:
+					mi_loc.__setattr__("t%s"%mi_go._jointOrientation[1],dist)
+					l_profileCrvPos.append(mi_loc.getPosition())
+					
+				    str_profileCrv = mc.curve(d = 1,ep = l_profileCrvPos, os = True)
+				except Exception,error:raise StandardError,"Cross section creation | %s"%(error)
+				
+				try:#Extrude crv -----------------------------------------------------------------------
+				    str_extruded = mc.extrude([str_profileCrv,mi_crv.mNode],et = 1, sc = 1,ch = 1,useComponentPivot = 0,fixedPath=1)[0]
+				    mi_obj = cgmMeta.cgmObject(str_extruded)
+				    mc.delete(mi_loc.parent,str_profileCrv)
+				except Exception,error:raise StandardError,"Extrude crv | %s"%(error)	
+			    except Exception,error:raise StandardError,"Regular loft | %s"%(error)
+			try:
 			    self.__dict__['mi_%sRibbon'%(str_name)] = mi_obj
 			    mi_obj.addAttr('cgmName',str_name,lock=True)
-			    mi_obj.addAttr('cgmTypeModifier','ribbon',lock=True)			
+			    mi_obj.addAttr('cgmTypeModifier','ribbon',lock=True)			    
+			    try:mi_obj.addAttr('cgmDirection',d_buffer['direction'] ,lock=True)
+			    except:pass
 			    mi_obj.doName()
-			    mi_go._i_rigNull.connectChildNode(mi_obj,"%sRibbon"%str_name,'module')
-			    mc.delete(mi_loc.parent,str_profileCrv)
-			    
-			except Exception,error:raise StandardError,"Extrude crv | %s"%(error)		    
-			
+			    mi_go._i_rigNull.connectChildNode(mi_obj,"%sRibbon"%str_name,'module')			    
+			except Exception,error:raise StandardError,"Naming | %s"%(error)
 			self.log_infoNestedDict('d_buffer')
 			
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)
 	    except Exception,error:raise StandardError,"Ribbons | %s"%(error)
 	    
-	    return
+	    
 	    try:#Main plates -----------------------------------------------------------------------------
 		md_plateBuilds = {'nose':{'crvs':[self.mi_noseTopCastCrv,self.mi_noseMidCastCrv,self.mi_noseBaseCastCrv,self.mi_mouthTopCastCrv]},
 		                  'uprLip':{'crvs':[self.mi_mouthTopCastCrv,self.mi_lipOverTraceCrv,self.mi_lipUprCrv]},
-		                  'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]}}
+		                  'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]},
+		                  'leftCheek':{'mode':'cheekLoft','direction':'left','name':'cheek',
+		                               'smileCrv':self.mi_smileLeftCrv,
+		                               },
+		                  'rightCheek':{'mode':'cheekLoft','direction':'right','name':'cheek',
+		                               'smileCrv':self.mi_smileRightCrv,
+		                               }}
 		
 		self.progressBar_setMaxStepValue(len(md_plateBuilds.keys()))
 		for str_name in md_plateBuilds.iterkeys():
 		    try:
 			self.progressBar_iter(status = ("Plate build: '%s'"%str_name))						
 			d_buffer = md_plateBuilds[str_name]#get the dict
-			l_crvsRebuilt = []
-			for mi_crv in d_buffer['crvs']:#rebuild crvs
-			    l_crvsRebuilt.append(returnRebuiltCurveString(mi_crv))
+			self.d_buffer = d_buffer
 			
-			str_loft = mc.loft(l_crvsRebuilt,uniform = True,degree = 3,ss = 3)[0]
-			mc.delete(l_crvsRebuilt)#Delete the rebuilt curves
+			if d_buffer.get('mode') == 'cheekLoft':
+			    try:#Cheek loft
+				l_deleteBuffer = []
+				str_direction = d_buffer['direction']
+				str_name = d_buffer['name']
+				mi_smileCrv = d_buffer['smileCrv']
+				d_buffer['uprCheekJoints'] = self.md_rigList['uprCheekRig'][str_direction]
+				d_buffer['cheekJoints'] = self.md_rigList['cheekRig'][str_direction]				
+				d_buffer['jawLineJoints'] = self.md_rigList['jawLine'][str_direction]
+				d_buffer['sneerHandle'] = self.md_rigList['sneerHandle'][str_direction][0]
+				d_buffer['smileBaseHandle'] = self.md_rigList['smileBaseHandle'][str_direction][0]				
+				    
+				try:#Build our rail curves
+				    l_railCrvs = []
+				    ml_uprCheekRev = copy.copy(d_buffer['uprCheekJoints'])
+				    ml_uprCheekRev.reverse()
+				    ml_jawLineRev = copy.copy(d_buffer['jawLineJoints'])
+				    ml_jawLineRev.reverse()
+				    
+				    ml_startRailObjs = [d_buffer['sneerHandle']] + ml_uprCheekRev
+				    ml_endRailObjs = [d_buffer['smileBaseHandle']] + ml_jawLineRev
+				    log.info("startRailObjs: %s"%[mObj.p_nameShort for mObj in ml_startRailObjs])
+				    log.info("endRailObjs: %s"%[mObj.p_nameShort for mObj in ml_endRailObjs])
+				    log.info("cheekJoints: %s"%[mObj.p_nameShort for mObj in d_buffer['cheekJoints']])
+				    
+				    str_startRailCrv = mc.curve(d = 3,ep = [mObj.getPosition() for mObj in ml_startRailObjs], os = True)
+				    str_endRailCrv = mc.curve(d = 3,ep = [mObj.getPosition() for mObj in ml_endRailObjs], os = True)
+				    
+				    str_startRailCrv = mc.rebuildCurve (str_startRailCrv, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=5, d=3, tol=0.001)[0]		
+				    str_endRailCrv = mc.rebuildCurve (str_endRailCrv, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=5, d=3, tol=0.001)[0]		
+				    
+				except Exception,error:raise StandardError,"Rail curve build | %s"%(error)
+				
+				try:				    
+				    ml_endProfileObjs = [ml_startRailObjs[-1],d_buffer['cheekJoints'][0], ml_endRailObjs[-1]]
+				    log.info("endProfileObjs: %s"%[mObj.p_nameShort for mObj in ml_endProfileObjs])
+				    str_endProfileCrv = mc.curve(d = 3,ep = [mObj.getPosition() for mObj in ml_endProfileObjs], os = True)
+				    str_startProfileCrv = mc.rebuildCurve (mi_smileCrv.mNode, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=5, d=3, tol=0.001)[0]		
+				    str_endProfileCrvRebuilt = mc.rebuildCurve (str_endProfileCrv, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=5, d=3, tol=0.001)[0]
+				    
+				except Exception,error:raise StandardError,"Profile curves build | %s"%(error)	
+				
+				try:
+				    str_loft = mc.doubleProfileBirailSurface( str_startProfileCrv, str_endProfileCrvRebuilt,
+				                                              str_startRailCrv, str_endRailCrv, 
+				                                              blendFactor = .5,constructionHistory=0, object=1, polygon=0, transformMode=0)[0]
+				except Exception,error:raise StandardError,"birail create | %s"%(error)	
+				
+				mc.delete([str_startProfileCrv,str_startRailCrv,str_endRailCrv,str_endProfileCrv])#Delete the rebuilt curves
+			    except Exception,error:raise StandardError,"Reg plate loft | %s"%(error)	
+			else:
+			    try:#Reg curve loft
+				l_crvsRebuilt = []
+				for mi_crv in d_buffer['crvs']:#rebuild crvs
+				    l_crvsRebuilt.append(returnRebuiltCurveString(mi_crv))
+				
+				str_loft = mc.loft(l_crvsRebuilt,uniform = True,degree = 3,ss = 3)[0]
+				mc.delete(l_crvsRebuilt)#Delete the rebuilt curves
+			    except Exception,error:raise StandardError,"Reg plate loft | %s"%(error)	
 			
-			#tag, name, store
-			mi_obj = cgmMeta.cgmObject(str_loft)
-			self.__dict__['mi_%sPlate'%(str_name)] = mi_obj
-			mi_obj.addAttr('cgmName',str_name,lock=True)
-			mi_obj.addAttr('cgmTypeModifier','plate',lock=True)					    
-			mi_obj.doName()
-			mi_go._i_rigNull.connectChildNode(mi_obj,"%sPlate"%str_name,'module')	
+			try:#tag, name, store
+			    mi_obj = cgmMeta.cgmObject(str_loft)
+			    self.__dict__['mi_%sPlate'%(str_name)] = mi_obj
+			    mi_obj.addAttr('cgmName',d_buffer.get('name') or str_name,lock=True)
+			    try:mi_obj.addAttr('cgmDirection',str_direction ,lock=True)
+			    except:pass
+			    mi_obj.addAttr('cgmTypeModifier','plate',lock=True)					    
+			    mi_obj.doName()
+			    mi_go._i_rigNull.connectChildNode(mi_obj,"%sPlate"%str_name,'module')
+			except Exception,error:raise StandardError,"Tag/Name/Store | %s"%(error)	
+			
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)	
+		    self.log_infoNestedDict('d_buffer')		    
 	    except Exception,error:raise StandardError,"Plate | %s"%(error)
-
+	    
 		
 	def _buildNose_(self):
 	    #>> Get some data =======================================================================================
