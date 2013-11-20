@@ -278,6 +278,7 @@ class cgmFuncCls(object):
 	try:
 	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
 	except:pass
+	
     #>>> Progress bar stuff =====================================================================
     def progressBar_start(self,stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True):
 	self._str_progressBar = doStartMayaProgressBar(stepMaxValue, statusMessage, interruptableState)
@@ -288,7 +289,9 @@ class cgmFuncCls(object):
 	    str_bfr = kws.get('status')
 	    kws['status'] = "%s > %s"%(self._str_funcCombined,str_bfr) 
 	if 'step' not in kws.keys():kws['step'] = 1
-	mc.progressBar(self._str_progressBar,edit = True, **kws)
+	if 'beginProgress' not in kws.keys():kws['beginProgress'] = 1
+	kws['edit'] = 1
+	mc.progressBar(self._str_progressBar, **kws)
 	
     def progressBar_end(self,**kws):
 	try:doEndMayaProgressBar(self._str_progressBar)
