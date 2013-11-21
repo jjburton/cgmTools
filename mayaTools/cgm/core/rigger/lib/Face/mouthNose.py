@@ -628,78 +628,80 @@ def build_rig(*args, **kws):
 	    _l_directions = 'left','right','center'
 	    _l_buildDicts = []
 	    
-	    #>> Nose --------------------------------------------------------------------------------------------------
-	    d_noseBuild = {'nostrilHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'nostril'},
-	                   'nostrilRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'nostril'},
-	                   'noseMoveHandle':{'check':ml_handleJoints,'tag':'noseMove'},
-	                   'noseMoveRig':{'check':ml_rigJoints,'tag':'noseBase'},	                   
-	                   'noseTipRig':{'check':ml_rigJoints,'tag':'noseTip'},
-	                   'noseTipHandle':{'check':ml_handleJoints,'tag':'noseTip'},
-	                   'noseUnderRig':{'check':ml_rigJoints,'tag':'noseUnder'},
-	                   'noseUnderHandle':{'check':ml_handleJoints,'tag':'noseUnder'},
-	                   'noseTopRig':{'check':ml_rigJoints,'tag':'noseTop'},	   
-	                   'noseTopHandle':{'check':ml_handleJoints,'tag':'noseTop'},	                    	                    	                   
-	                   }
-	    _l_buildDicts.append(d_noseBuild)	 	    
-
-	    #>> Smile Line --------------------------------------------------------------------------------------------------
-	    d_smileBuild = {'sneerHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'sneer'},
-	                    'smileHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smile'},
-	                    'smileBaseHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smileBase'},
-	                    'smileLineRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'smileLine'},	                    
-	                    }
-	    _l_buildDicts.append(d_smileBuild)	    
-
-	    #>> Smile Line --------------------------------------------------------------------------------------------------
-	    d_smileBuild = {'sneerHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'sneer'},
-	                    'smileHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smile'},
-	                    'smileBaseHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smileBase'},
-	                    'smileLineRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'smileLine'},	                    
-	                    }
-	    _l_buildDicts.append(d_smileBuild)
-	    	    
-	    #>> Mouth --------------------------------------------------------------------------------------------------
-	    b_buildMouth = True	    
-	    d_mouthBuild = {'lipUprHandle':{"left":{},"right":{},'center':{},'check':ml_handleJoints,'tag':'lipUpr'},
-	                    'lipLwrHandle':{"left":{},"right":{},'center':{},'check':ml_handleJoints,'tag':'lipLwr'},
-	                    'lipCornerHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'lipCorner'},
-	                    'lipCornerRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'lipCorner'},	                    
-	                    'lipUprRig':{"left":{},"right":{},'center':{},'check':ml_rigJoints,'tag':'lipUpr'},
-	                    'lipOverRig':{"left":{},"right":{},'center':{},'check':ml_rigJoints,'tag':'lipOver'},
-	                    'lipLwrRig':{"left":{},"right":{},'center':{},'check':ml_rigJoints,'tag':'lipLwr'},
-	                    'lipUnderRig':{"left":{},"right":{},'center':{},'check':ml_rigJoints,'tag':'lipUnder'},	                    
-			    'chin':{'check':ml_handleJoints},
-	                    'mouthMove':{'check':ml_handleJoints},	 
-	                    }
-	    _l_buildDicts.append(d_mouthBuild)
-	    
-	    #>> Jaw --------------------------------------------------------------------------------------------------
-	    b_buildJawLine = True	    
-	    d_jawBuild = {'jawAnchor':{"left":{},"right":{},'check':ml_handleJoints},
-	                  'jaw':{'check':ml_handleJoints},
-	                  'jawLine':{"left":{},"right":{},"center":{},'check':ml_rigJoints,'checkToggle':b_buildJawLine}}
-	    _l_buildDicts.append(d_jawBuild)
+	    try:#Build dicts to check ==================================================================================================
+		#>> Nose --------------------------------------------------------------------------------------------------
+		d_noseBuild = {'nostrilHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'nostril'},
+		               'nostrilRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'nostril'},
+		               'noseMoveHandle':{'check':ml_handleJoints,'tag':'noseMove'},
+		               'noseMoveRig':{'check':ml_rigJoints,'tag':'noseBase'},	                   
+		               'noseTipRig':{'check':ml_rigJoints,'tag':'noseTip'},
+		               'noseTipHandle':{'check':ml_handleJoints,'tag':'noseTip'},
+		               'noseUnderRig':{'check':ml_rigJoints,'tag':'noseUnder'},
+		               'noseUnderHandle':{'check':ml_handleJoints,'tag':'noseUnder'},
+		               'noseTopRig':{'check':ml_rigJoints,'tag':'noseTop'},	   
+		               'noseTopHandle':{'check':ml_handleJoints,'tag':'noseTop'},	                    	                    	                   
+		               }
+		_l_buildDicts.append(d_noseBuild)	 	
 		
-	    #>> uprCheek --------------------------------------------------------------------------------------------------
-	    b_buildUprCheek = True
-	    d_uprCheekBuild = {'uprCheekHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'uprCheek'},
-	                       'uprCheekRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'uprCheek','checkToggle':b_buildUprCheek}}
-	    
-	    _l_buildDicts.append(d_uprCheekBuild)
-	    
-	    #>> uprCheek --------------------------------------------------------------------------------------------------
-	    b_buildCheek = True
-	    d_cheekBuild = {#'cheekHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'cheek'},
-	                    'cheekRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'cheek','checkToggle':b_buildCheek}}
-	    
-	    _l_buildDicts.append(d_cheekBuild)
-	    	    
-	    #>> tongue --------------------------------------------------------------------------------------------------
-	    b_buildTongue = True
-	    d_tongueBuild = {'tongueBase':{'check':ml_handleJoints,'checkToggle':b_buildTongue},
-	                     'tongueTip':{'check':ml_handleJoints,'checkToggle':b_buildTongue}}
-	    
-	    _l_buildDicts.append(d_tongueBuild)
+		#>> Smile Line --------------------------------------------------------------------------------------------------
+		d_smileBuild = {'sneerHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'sneer'},
+		                'smileHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smile'},
+		                'smileBaseHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smileBase'},
+		                'smileLineRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'smileLine'},	                    
+		                }
+		_l_buildDicts.append(d_smileBuild)	    
+    
+		#>> Smile Line --------------------------------------------------------------------------------------------------
+		d_smileBuild = {'sneerHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'sneer'},
+		                'smileHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smile'},
+		                'smileBaseHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'smileBase'},
+		                'smileLineRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'smileLine'},	                    
+		                }
+		_l_buildDicts.append(d_smileBuild)
+			
+		#>> Mouth --------------------------------------------------------------------------------------------------
+		b_buildMouth = True	    
+		d_mouthBuild = {'lipUprHandle':{"left":{},"right":{},'center':{},'check':ml_handleJoints,'tag':'lipUpr'},
+		                'lipLwrHandle':{"left":{},"right":{},'center':{},'check':ml_handleJoints,'tag':'lipLwr'},
+		                'lipCornerHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'lipCorner'},
+		                'lipCornerRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'lipCorner'},	                    
+		                'lipUprRig':{"left":{},"right":{},'center':{},'check':ml_rigJoints,'tag':'lipUpr'},
+		                'lipOverRig':{"left":{},"right":{},'center':{},'check':ml_rigJoints,'tag':'lipOver'},
+		                'lipLwrRig':{"left":{},"right":{},'center':{},'check':ml_rigJoints,'tag':'lipLwr'},
+		                'lipUnderRig':{"left":{},"right":{},'center':{},'check':ml_rigJoints,'tag':'lipUnder'},	                    
+		                'chin':{'check':ml_handleJoints},
+		                'mouthMove':{'check':ml_handleJoints},	 
+		                }
+		_l_buildDicts.append(d_mouthBuild)
+		
+		#>> Jaw --------------------------------------------------------------------------------------------------
+		b_buildJawLine = True	    
+		d_jawBuild = {'jawAnchor':{"left":{},"right":{},'check':ml_handleJoints},
+		              'jaw':{'check':ml_handleJoints},
+		              'jawLine':{"left":{},"right":{},"center":{},'check':ml_rigJoints,'checkToggle':b_buildJawLine}}
+		_l_buildDicts.append(d_jawBuild)
+		    
+		#>> uprCheek --------------------------------------------------------------------------------------------------
+		b_buildUprCheek = True
+		d_uprCheekBuild = {'uprCheekHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'uprCheek'},
+		                   'uprCheekRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'uprCheek','checkToggle':b_buildUprCheek}}
+		
+		_l_buildDicts.append(d_uprCheekBuild)
+		
+		#>> uprCheek --------------------------------------------------------------------------------------------------
+		b_buildCheek = True
+		d_cheekBuild = {#'cheekHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'cheek'},
+		                'cheekRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'cheek','checkToggle':b_buildCheek}}
+		
+		_l_buildDicts.append(d_cheekBuild)
+			
+		#>> tongue --------------------------------------------------------------------------------------------------
+		b_buildTongue = True
+		d_tongueBuild = {'tongueBase':{'check':ml_handleJoints,'checkToggle':b_buildTongue},
+		                 'tongueTip':{'check':ml_handleJoints,'checkToggle':b_buildTongue}}
+		
+		_l_buildDicts.append(d_tongueBuild)
+	    except:pass
 
 	    #>> Build our md_rigList from our dict stuff ==========================================================
 	    for d in _l_buildDicts:
@@ -1103,234 +1105,260 @@ def build_rig(*args, **kws):
 	    mi_go = self._go#Rig Go instance link	
 	    
 	    try:#Smart Seal ===================================================================
-		self.progressBar_set(status = 'Curve creation!')
-		
-		ml_uprLipRigJoints = self.md_rigList['lipUprRig']['left'] + self.md_rigList['lipUprRig']['center'] + self.md_rigList['lipUprRig']['right']
-		ml_lwrLipRigJoints = self.md_rigList['lipLwrRig']['left'] + self.md_rigList['lipLwrRig']['center'] + self.md_rigList['lipLwrRig']['right']
-		
-		for ml in [ml_uprLipRigJoints]:
-		    ml.insert(0,self.md_rigList['lipCornerRig']['left'][0])
-		    ml.append(self.md_rigList['lipCornerRig']['right'][0])
+		try:#Curve creation -------------------------------------------------------
+		    self.progressBar_set(status = 'Curve creation!')
 		    
-		ml_uprLipHandles = self.md_rigList['lipUprHandle']['left'] + self.md_rigList['lipUprHandle']['center'] + self.md_rigList['lipUprHandle']['right']
-		ml_lwrLipHandles = self.md_rigList['lipLwrHandle']['left'] + self.md_rigList['lipLwrHandle']['center'] + self.md_rigList['lipLwrHandle']['right']
-		for ml in ml_uprLipHandles,ml_lwrLipHandles:
-		    ml.insert(0,self.md_rigList['lipCornerHandle']['left'][0])
-		    ml.append(self.md_rigList['lipCornerHandle']['right'][0])
+		    ml_uprLipRigJoints = self.md_rigList['lipUprRig']['left'] + self.md_rigList['lipUprRig']['center'] + self.md_rigList['lipUprRig']['right']
+		    ml_lwrLipRigJoints = self.md_rigList['lipLwrRig']['left'] + self.md_rigList['lipLwrRig']['center'] + self.md_rigList['lipLwrRig']['right']
 		    
-		d_logs = {'uprLipRig':ml_uprLipRigJoints,
-		          'lipLwrRig':ml_lwrLipRigJoints,
-		          'uprLipHandle':ml_uprLipHandles,
-		          'lwrLipHandle':ml_lwrLipHandles,
-		          }
-		for k in d_logs.iterkeys():
-		    log.info("%s..."%k)
-		    for mObj in d_logs[k]:
-			log.info("--> %s "%mObj.p_nameShort)		
-		ml_curves = []
-		
-		try:#Upr driven curve
-		    _str_uprDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in ml_uprLipRigJoints],os =True)
-		    mi_uprDrivenCrv = cgmMeta.cgmObject(_str_uprDrivenCurve,setClass=True)
-		    mi_uprDrivenCrv.addAttr('cgmName','uprLip',lock=True)
-		    mi_uprDrivenCrv.addAttr('cgmTypeModifier','driven',lock=True)
-		    mi_uprDrivenCrv.doName()
-		    ml_curves.append(mi_uprDrivenCrv)
+		    for ml in [ml_uprLipRigJoints]:
+			ml.insert(0,self.md_rigList['lipCornerRig']['left'][0])
+			ml.append(self.md_rigList['lipCornerRig']['right'][0])
+			
+		    ml_uprLipHandles = self.md_rigList['lipUprHandle']['left'] + self.md_rigList['lipUprHandle']['center'] + self.md_rigList['lipUprHandle']['right']
+		    ml_lwrLipHandles = self.md_rigList['lipLwrHandle']['left'] + self.md_rigList['lipLwrHandle']['center'] + self.md_rigList['lipLwrHandle']['right']
+		    for ml in ml_uprLipHandles,ml_lwrLipHandles:
+			ml.insert(0,self.md_rigList['lipCornerRig']['left'][0])
+			ml.append(self.md_rigList['lipCornerRig']['right'][0])
+			
+		    d_logs = {'uprLipRig':ml_uprLipRigJoints,
+			      'lipLwrRig':ml_lwrLipRigJoints,
+			      'uprLipHandle':ml_uprLipHandles,
+			      'lwrLipHandle':ml_lwrLipHandles,
+			      }
+		    for k in d_logs.iterkeys():
+			log.info("%s..."%k)
+			for mObj in d_logs[k]:
+			    log.info("--> %s "%mObj.p_nameShort)		
+		    ml_curves = []
 		    
-		    mi_uprLipSealCrv = mi_uprDrivenCrv.doDuplicate(False)
-		    mi_uprLipSealCrv.addAttr('cgmTypeModifier','lipSeal',lock=True)
-		    mi_uprLipSealCrv.doName()
-		    ml_curves.append(mi_uprLipSealCrv)
-		except Exception,error:raise StandardError,"upper driven curve : %s"%(error)  	    
-		
-		try:#Upper driver curve
-		    _str_uprDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_uprLipHandles],os =True)
-		    mi_uprDriverCrv = cgmMeta.cgmObject(_str_uprDriverCurve,setClass=True)
-		    mi_uprDriverCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode,ignore=['cgmTypeModifier'])
-		    mi_uprDriverCrv.addAttr('cgmTypeModifier','driver',lock=True)
-		    mi_uprDriverCrv.doName()
-		    ml_curves.append(mi_uprDriverCrv)	    
-		except Exception,error:raise StandardError,"upper driver curve : %s"%(error)  	    
-		
-		try:#Lwr driven curve
-		    _str_lwrDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in self.md_rigList['lipCornerRig']['left'] + ml_lwrLipRigJoints + self.md_rigList['lipCornerRig']['right']],os =True)
-		    mi_lwrDrivenCrv = cgmMeta.cgmObject(_str_lwrDrivenCurve,setClass=True)
-		    mi_lwrDrivenCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode)
-		    mi_lwrDrivenCrv.addAttr('cgmName','lwrLip',lock=True)	    
-		    mi_lwrDrivenCrv.doName()
-		    ml_curves.append(mi_lwrDrivenCrv)	
+		    try:#Upr driven curve
+			_str_uprDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in ml_uprLipRigJoints],os =True)
+			mi_uprDrivenCrv = cgmMeta.cgmObject(_str_uprDrivenCurve,setClass=True)
+			mi_uprDrivenCrv.addAttr('cgmName','uprLip',lock=True)
+			mi_uprDrivenCrv.addAttr('cgmTypeModifier','driven',lock=True)
+			mi_uprDrivenCrv.doName()
+			ml_curves.append(mi_uprDrivenCrv)
+			
+			mi_uprLipSealCrv = mi_uprDrivenCrv.doDuplicate(False)
+			mi_uprLipSealCrv.addAttr('cgmTypeModifier','lipSeal',lock=True)
+			mi_uprLipSealCrv.doName()
+			ml_curves.append(mi_uprLipSealCrv)
+		    except Exception,error:raise StandardError,"upper driven curve : %s"%(error)  	    
 		    
-		    mi_lwrLipSealCrv = mi_lwrDrivenCrv.doDuplicate(False)
-		    mi_lwrLipSealCrv.addAttr('cgmTypeModifier','lipSeal',lock=True)
-		    mi_lwrLipSealCrv.doName()
-		    ml_curves.append(mi_lwrLipSealCrv)
-		except Exception,error:raise StandardError,"upper driven curve : %s"%(error)  	    
-		
-		try:#Lwr driver curve
-		    _str_lwrDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_lwrLipHandles],os =True)
-		    mi_lwrDriverCrv = cgmMeta.cgmObject(_str_lwrDriverCurve,setClass=True)
-		    mi_lwrDriverCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
-		    mi_lwrDriverCrv.addAttr('cgmName','lwrLip',lock=True)	    
-		    mi_lwrDriverCrv.doName()
-		    ml_curves.append(mi_lwrDriverCrv)	    	    	    
-		except Exception,error:raise StandardError,"upper driver curve : %s"%(error)  	    
-		
-		try:#SmartLipSeal curve
-		    _str_smartLipSealCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_lwrLipHandles],os =True)
-		    mi_smartLipSealCrv = cgmMeta.cgmObject(_str_smartLipSealCurve,setClass=True)
-		    mi_smartLipSealCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
-		    mi_smartLipSealCrv.addAttr('cgmName','smartLipSeal',lock=True)	    
-		    mi_smartLipSealCrv.doName()
-		    ml_curves.append(mi_smartLipSealCrv)	    	    	    
-		except Exception,error:raise StandardError,"smartLipSeal curve : %s"%(error)  	
+		    try:#Upper driver curve
+			_str_uprDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_uprLipHandles],os =True)
+			mi_uprDriverCrv = cgmMeta.cgmObject(_str_uprDriverCurve,setClass=True)
+			mi_uprDriverCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode,ignore=['cgmTypeModifier'])
+			mi_uprDriverCrv.addAttr('cgmTypeModifier','driver',lock=True)
+			mi_uprDriverCrv.doName()
+			ml_curves.append(mi_uprDriverCrv)	    
+		    except Exception,error:raise StandardError,"upper driver curve : %s"%(error)  	    
+		    
+		    try:#Lwr driven curve
+			_str_lwrDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in self.md_rigList['lipCornerRig']['left'] + ml_lwrLipRigJoints + self.md_rigList['lipCornerRig']['right']],os =True)
+			mi_lwrDrivenCrv = cgmMeta.cgmObject(_str_lwrDrivenCurve,setClass=True)
+			mi_lwrDrivenCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode)
+			mi_lwrDrivenCrv.addAttr('cgmName','lwrLip',lock=True)	    
+			mi_lwrDrivenCrv.doName()
+			ml_curves.append(mi_lwrDrivenCrv)	
+			
+			mi_lwrLipSealCrv = mi_lwrDrivenCrv.doDuplicate(False)
+			mi_lwrLipSealCrv.addAttr('cgmTypeModifier','lipSeal',lock=True)
+			mi_lwrLipSealCrv.doName()
+			ml_curves.append(mi_lwrLipSealCrv)
+		    except Exception,error:raise StandardError,"upper driven curve : %s"%(error)  	    
+		    
+		    try:#Lwr driver curve
+			_str_lwrDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_lwrLipHandles],os =True)
+			mi_lwrDriverCrv = cgmMeta.cgmObject(_str_lwrDriverCurve,setClass=True)
+			mi_lwrDriverCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
+			mi_lwrDriverCrv.addAttr('cgmName','lwrLip',lock=True)	    
+			mi_lwrDriverCrv.doName()
+			ml_curves.append(mi_lwrDriverCrv)	    	    	    
+		    except Exception,error:raise StandardError,"upper driver curve : %s"%(error)  	    
+		    
+		    try:#SmartLipSeal curve
+			_str_smartLipSealCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_lwrLipHandles],os =True)
+			mi_smartLipSealCrv = cgmMeta.cgmObject(_str_smartLipSealCurve,setClass=True)
+			mi_smartLipSealCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
+			mi_smartLipSealCrv.addAttr('cgmName','smartLipSeal',lock=True)	    
+			mi_smartLipSealCrv.doName()
+			ml_curves.append(mi_smartLipSealCrv)	    	    	    
+		    except Exception,error:raise StandardError,"smartLipSeal curve : %s"%(error)  	
+		    '''
+		    for mi_crv in ml_curves:#Parent to rig null
+			mi_crv.parent = mi_go._i_rigNull
+		    self.ml_toVisConnect.extend(ml_curves)
+		    '''
+		except Exception,error:raise StandardError,"Curve creation | %s"%(error)   
+		'''	
+		try:#Locators and aiming -------------------------------------------------------
+		    self.progressBar_set(status = 'Locator creation!')
+		    
+		    #Make a loc group
+		    mi_locGroup = cgmMeta.cgmObject(mc.group(em=True))
+		    mi_locGroup.parent = mi_go._i_constrainNull
+		    mi_locGroup.addAttr('cgmTypeModifier','locGroup')
+		    mi_locGroup.doName()
+		    mi_locGroup.parent = mi_go._i_rigNull
+		    self.ml_toVisConnect.append(mi_locGroup)
+		    
+		    ml_locs = []
+		    self.progressBar_setMaxStepValue(len(ml_uprLipRigJoints + ml_lwrLipRigJoints))	
+		    
+		    for i,mi_obj in enumerate(ml_uprLipRigJoints + ml_lwrLipRigJoints):
+			try:
+			    self.progressBar_iter(status = ("Curve locator: '%s'"%mi_obj.p_nameShort))			    
+			    
+			    try:#Loc creation -----------------------------------------------------------
+				mi_loc = mi_obj.doLoc()
+				ml_locs.append(mi_loc)
+				mi_locShape = cgmMeta.cgmNode(mi_loc.getShapes()[0])
+				mi_locShape.localScaleX = mi_go._f_skinOffset
+				mi_locShape.localScaleY = mi_go._f_skinOffset
+				mi_locShape.localScaleZ = mi_go._f_skinOffset
+				mi_loc.parent = mi_locGroup
+			    except Exception,error:raise StandardError,"loc creation : %s"%(error)  	    
+			    #> Aim constraint
+			    #mi_root = mi_obj.root
+			    #mi_root.parent = self._i_constrainNull
+			    #try:mc.aimConstraint(mi_loc.mNode,mi_root.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
+			    #except Exception,error:raise StandardError,"aim constraint : %s"%(error)  	    
+			    #Attach to curve
+			    if i < len(ml_uprLipRigJoints):mi_crv = mi_uprDrivenCrv
+			    else:mi_crv = mi_lwrDrivenCrv
+			    try:crvUtils.attachObjToCurve(mi_loc.mNode,mi_crv.mNode)
+			    except Exception,error:raise StandardError," attach| %s "%(error)  	    
+			    self.md_attachReturns[mObj] = {'posLoc':mi_loc,'posLocShape':mi_locShape}#store it
+			except Exception,error:raise StandardError,"%s | '%s' loc setup | %s "%(i,mi_obj.p_nameShort,error)  	    
+		    
+		except Exception,error:
+		    raise StandardError,"locator/aim setup | %s"%(error)
+		'''
+		try:#Lip setup -------------------------------------------------------
+		    try:#Wire deformers -------------------------------------------------------------
+			self.progressBar_set(status = 'Smart Seal - Wire deformer...')
+			_l_return = mc.wire(mi_uprDrivenCrv.mNode, w = mi_uprDriverCrv.mNode, gw = False, en = 1, ce = 0, li =0)
+			mi_uprWire = cgmMeta.cgmNode(_l_return[0])
+			mi_uprWire.doStore('cgmName',mi_uprDrivenCrv.mNode)
+			mi_uprWire.doName()
+			_l_return = mc.wire(mi_lwrDrivenCrv.mNode, w = mi_lwrDriverCrv.mNode, gw = False, en = 1, ce = 0, li =0)
+			mi_lwrWire = cgmMeta.cgmNode(_l_return[0])
+			mi_lwrWire.doStore('cgmName',mi_lwrDrivenCrv.mNode)
+			mi_lwrWire.doName()
+		    except Exception,error:raise StandardError,">> wire deformer : %s"%(error)  	    
+		    
+		    try:#Skin driver curve ---------------------------------------------------------
+			self.progressBar_set(status = 'Smart Seal - Skin lip curves...')
+			
+			ml_uprSkinJoints = ml_uprLipHandles
+			ml_lwrSkinJoints = ml_lwrLipHandles
+			md_skinSetup = {'upr':{'ml_joints':ml_uprSkinJoints,'mi_crv':mi_uprDriverCrv},
+			                'lwr':{'ml_joints':ml_lwrSkinJoints,'mi_crv':mi_lwrDriverCrv}}
+			for k in md_skinSetup.keys():
+			    d_crv = md_skinSetup[k]
+			    str_crv = d_crv['mi_crv'].p_nameShort
+			    l_joints = [mi_obj.p_nameShort for mi_obj in d_crv['ml_joints']]
+			    log.info(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
+			    try:
+				mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mi_obj.mNode for mi_obj in d_crv['ml_joints']],
+				                                              d_crv['mi_crv'].mNode,
+				                                              tsb=True,
+				                                              maximumInfluences = 3,
+				                                              normalizeWeights = 1,dropoffRate=2.5)[0])
+			    except Exception,error:raise StandardError,"skinCluster : %s"%(error)  	    
+			    d_crv['mi_skinNode'] = mi_skinNode
+		    except Exception,error:raise StandardError,"skinning driver : %s"%(error)  	    
+		    
+		    try:#Blendshape the smart lipSeal curve ---------------------------------------------
+			self.progressBar_set(status = 'Smart Seal - Blendshape...')
+			
+			_str_bsNode = mc.blendShape([mi_uprDriverCrv.mNode,mi_lwrDriverCrv.mNode],mi_smartLipSealCrv.mNode)[0]
+			mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
+			mi_bsNode.doStore('cgmName',mi_smartLipSealCrv.mNode)
+			mi_bsNode.doName()
+			mi_sealAttrHolder = self.md_rigList['mouthMove'][0]
+			
+			mPlug_height = cgmMeta.cgmAttr(mi_sealAttrHolder,'lipSealHeight',attrType = 'float', defaultValue=.5, minValue = 0, maxValue = 1)
+			l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
+			d_return = NodeF.createSingleBlendNetwork([mi_sealAttrHolder.mNode,'lipSealHeight'],
+			                                          [mi_sealAttrHolder.mNode,'lipSealHeight_upr'],
+			                                          [mi_sealAttrHolder.mNode,'lipSealHeight_lwr'],
+			                                          keyable=True)	
+			#Connect                                  
+			d_return['d_result1']['mi_plug'].doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))
+			d_return['d_result2']['mi_plug'].doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[1]))
+		    except Exception,error:raise StandardError,"smartLipSeal bsNode : %s"%(error)  	
+		    
+		    try:#Wire deform the uper and lwr lipSeal lids ---------------------------------------------------------
+			self.progressBar_set(status = 'Smart Seal - wire deform setup...')		    
+			#Build our lipSeal match wire deformers
+			mPlug_height.value = 0	    
+			_l_return = mc.wire(mi_lwrLipSealCrv.mNode, w = mi_smartLipSealCrv.mNode, gw = False, en = 1, ce = 0, li =0)
+			mi_lwrLipSealWire = cgmMeta.cgmNode(_l_return[0])
+			mi_lwrLipSealWire.doStore('cgmName',mi_lwrDrivenCrv.mNode)
+			mi_lwrLipSealWire.addAttr('cgmTypeModifier','lipSeal')	    
+			mi_lwrLipSealWire.doName()
+			mc.setAttr("%s.scale[0]"%mi_lwrLipSealWire.mNode,0)
+			
+			mPlug_height.value = 1
+			_l_return = mc.wire(mi_uprLipSealCrv.mNode, w = mi_smartLipSealCrv.mNode, gw = False, en = 1, ce = 0, li =0)
+			mi_uprLipSealWire = cgmMeta.cgmNode(_l_return[0])
+			mi_uprLipSealWire.doStore('cgmName',mi_uprDrivenCrv.mNode)
+			mi_uprLipSealWire.addAttr('cgmTypeModifier','lipSeal')	    
+			mi_uprLipSealWire.doName()
+			mc.setAttr("%s.scale[0]"%mi_uprLipSealWire.mNode,0)
+			
+			mPlug_height.value = .5#back to default
+		    except Exception,error:raise StandardError,"lipSeal target wires : %s"%(error)  	
+		    
+		    try:#Blendshape the upr and lwr curves to smart lipSeal targets------------------------------------
+			mPlug_lipSeal = cgmMeta.cgmAttr(mi_sealAttrHolder,'lipSeal',attrType = 'float', keyable=True, minValue=0, maxValue=1, defaultValue=0)
+			d_blendshapeLipSeal = {'upr':{'mi_target':mi_uprLipSealCrv,'mi_driven':mi_uprDrivenCrv},
+			                     'lwr':{'mi_target':mi_lwrLipSealCrv,'mi_driven':mi_lwrDrivenCrv}}
+			for k in d_blendshapeLipSeal.keys():
+			    d_buffer = d_blendshapeLipSeal[k]
+			    mi_target = d_buffer['mi_target']
+			    mi_driven = d_buffer['mi_driven']
+			    _str_bsNode = mc.blendShape(mi_target.mNode,mi_driven.mNode)[0]
+			    mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
+			    mi_bsNode.doStore('cgmName',mi_uprDrivenCrv.mNode)
+			    mi_bsNode.doName()
+			    l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
+			    mPlug_lipSeal.doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))
+		    except Exception,error:raise StandardError,"lipSeal setup : %s"%(error)  	
+	    
+		except Exception,error:
+		    raise StandardError,"lip setup | %s"%(error)   	        
+	    except Exception,error:
+		raise StandardError,"Smart Seal setup fail! | error: %s"%(error)   		    
+	    
+	    #Now we need to create a duplicate of our nasil curve and chin curve for our lip follow surface tracker
+	    try:#Template Curve duplication -------------------------------------------------------
+		self.progressBar_set(status = 'Template Curve duplication')  
+		d_toDup = {'mouthTopTrace':self.mi_mouthTopCastCrv,
+		           'mouthBaseTrace':self.mi_mouthLowCastCrv}
+		for str_k in d_toDup.iterkeys():
+		    mi_dup = cgmMeta.cgmObject( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],setClass=True )
+		    mi_dup.cgmType = 'traceCrv'
+		    mi_dup.cgmName = mi_dup.cgmName.replace('Cast','')
+		    mi_dup.doName()
+		    cgmMeta.cgmAttr(mi_dup,'translate',lock = False, keyable = True)
+		    cgmMeta.cgmAttr(mi_dup,'rotate',lock = False, keyable = True)
+		    cgmMeta.cgmAttr(mi_dup,'scale',lock = False, keyable = True)
+		    mi_dup.parent = False
+		    
+		    ml_curves.append(mi_dup)
+		    self.__dict__["mi_%sCrv"%str_k] = mi_dup
 		'''
 		for mi_crv in ml_curves:#Parent to rig null
 		    mi_crv.parent = mi_go._i_rigNull
 		self.ml_toVisConnect.extend(ml_curves)
 		'''
-	    except Exception,error:raise StandardError,"Curve creation fail! | %s"%(error)   
-			    
-	    try:#Locators and aiming ================================================================
-		self.progressBar_set(status = 'Locator creation!')
-		
-		#Make a loc group
-		mi_locGroup = cgmMeta.cgmObject(mc.group(em=True))
-		mi_locGroup.parent = mi_go._i_constrainNull
-		mi_locGroup.addAttr('cgmTypeModifier','locGroup')
-		mi_locGroup.doName()
-		mi_locGroup.parent = mi_go._i_rigNull
-		self.ml_toVisConnect.append(mi_locGroup)
-		
-		ml_locs = []
-		self.progressBar_setMaxStepValue(len(ml_uprLipRigJoints + ml_lwrLipRigJoints))	
-		
-		for i,mi_obj in enumerate(ml_uprLipRigJoints + ml_lwrLipRigJoints):
-		    try:
-			self.progressBar_iter(status = ("Curve locator: '%s'"%mi_obj.p_nameShort))			    
-			
-			try:#Loc creation -----------------------------------------------------------
-			    mi_loc = mi_obj.doLoc()
-			    ml_locs.append(mi_loc)
-			    mi_locShape = cgmMeta.cgmNode(mi_loc.getShapes()[0])
-			    mi_locShape.localScaleX = mi_go._f_skinOffset
-			    mi_locShape.localScaleY = mi_go._f_skinOffset
-			    mi_locShape.localScaleZ = mi_go._f_skinOffset
-			    mi_loc.parent = mi_locGroup
-			except Exception,error:raise StandardError,"loc creation : %s"%(error)  	    
-			#> Aim constraint
-			#mi_root = mi_obj.root
-			#mi_root.parent = self._i_constrainNull
-			#try:mc.aimConstraint(mi_loc.mNode,mi_root.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
-			#except Exception,error:raise StandardError,"aim constraint : %s"%(error)  	    
-			#Attach to curve
-			if i < len(ml_uprLipRigJoints):mi_crv = mi_uprDrivenCrv
-			else:mi_crv = mi_lwrDrivenCrv
-			try:crvUtils.attachObjToCurve(mi_loc.mNode,mi_crv.mNode)
-			except Exception,error:raise StandardError," attach| %s "%(error)  	    
-			self.md_attachReturns[mObj] = {'posLoc':mi_loc,'posLocShape':mi_locShape}#store it
-		    except Exception,error:raise StandardError,"%s | '%s' loc setup | %s "%(i,mi_obj.p_nameShort,error)  	    
-		
-	    except Exception,error:
-		raise StandardError,"locator/aim setup fail! | error: %s"%(error)
+	    except Exception,error:raise StandardError,"Curve creation | %s"%(error)   	    
 	    
-	    
-	    try:#Lip setup ===================================================================
-		try:#Wire deformers -------------------------------------------------------------
-		    self.progressBar_set(status = 'Smart Seal - Wire deformer...')
-		    _l_return = mc.wire(mi_uprDrivenCrv.mNode, w = mi_uprDriverCrv.mNode, gw = False, en = 1, ce = 0, li =0)
-		    mi_uprWire = cgmMeta.cgmNode(_l_return[0])
-		    mi_uprWire.doStore('cgmName',mi_uprDrivenCrv.mNode)
-		    mi_uprWire.doName()
-		    _l_return = mc.wire(mi_lwrDrivenCrv.mNode, w = mi_lwrDriverCrv.mNode, gw = False, en = 1, ce = 0, li =0)
-		    mi_lwrWire = cgmMeta.cgmNode(_l_return[0])
-		    mi_lwrWire.doStore('cgmName',mi_lwrDrivenCrv.mNode)
-		    mi_lwrWire.doName()
-		except Exception,error:raise StandardError,">> wire deformer : %s"%(error)  	    
-		
-		try:#Skin driver curve ---------------------------------------------------------
-		    self.progressBar_set(status = 'Smart Seal - Skin lip curves...')
-		    
-		    ml_uprSkinJoints = ml_uprLipHandles
-		    ml_lwrSkinJoints = ml_lwrLipHandles
-		    md_skinSetup = {'upr':{'ml_joints':ml_uprSkinJoints,'mi_crv':mi_uprDriverCrv},
-			            'lwr':{'ml_joints':ml_lwrSkinJoints,'mi_crv':mi_lwrDriverCrv}}
-		    for k in md_skinSetup.keys():
-			d_crv = md_skinSetup[k]
-			str_crv = d_crv['mi_crv'].p_nameShort
-			l_joints = [mi_obj.p_nameShort for mi_obj in d_crv['ml_joints']]
-			log.info(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
-			try:
-			    mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mi_obj.mNode for mi_obj in d_crv['ml_joints']],
-				                                          d_crv['mi_crv'].mNode,
-				                                          tsb=True,
-				                                          maximumInfluences = 3,
-				                                          normalizeWeights = 1,dropoffRate=2.5)[0])
-			except Exception,error:raise StandardError,"skinCluster : %s"%(error)  	    
-			d_crv['mi_skinNode'] = mi_skinNode
-		except Exception,error:raise StandardError,"skinning driver : %s"%(error)  	    
-		
-		try:#Blendshape the smart lipSeal curve ---------------------------------------------
-		    self.progressBar_set(status = 'Smart Seal - Blendshape...')
-		    
-		    _str_bsNode = mc.blendShape([mi_uprDriverCrv.mNode,mi_lwrDriverCrv.mNode],mi_smartLipSealCrv.mNode)[0]
-		    mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
-		    mi_bsNode.doStore('cgmName',mi_smartLipSealCrv.mNode)
-		    mi_bsNode.doName()
-		    mi_sealAttrHolder = self.md_rigList['mouthMove'][0]
-		    
-		    mPlug_height = cgmMeta.cgmAttr(mi_sealAttrHolder,'lipSealHeight',attrType = 'float', defaultValue=.5, minValue = 0, maxValue = 1)
-		    l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
-		    d_return = NodeF.createSingleBlendNetwork([mi_sealAttrHolder.mNode,'lipSealHeight'],
-			                                      [mi_sealAttrHolder.mNode,'lipSealHeight_upr'],
-			                                      [mi_sealAttrHolder.mNode,'lipSealHeight_lwr'],
-			                                      keyable=True)	
-		    #Connect                                  
-		    d_return['d_result1']['mi_plug'].doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))
-		    d_return['d_result2']['mi_plug'].doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[1]))
-		except Exception,error:raise StandardError,"smartLipSeal bsNode : %s"%(error)  	
-		
-		try:#Wire deform the uper and lwr lipSeal lids ---------------------------------------------------------
-		    self.progressBar_set(status = 'Smart Seal - wire deform setup...')		    
-		    #Build our lipSeal match wire deformers
-		    mPlug_height.value = 0	    
-		    _l_return = mc.wire(mi_lwrLipSealCrv.mNode, w = mi_smartLipSealCrv.mNode, gw = False, en = 1, ce = 0, li =0)
-		    mi_lwrLipSealWire = cgmMeta.cgmNode(_l_return[0])
-		    mi_lwrLipSealWire.doStore('cgmName',mi_lwrDrivenCrv.mNode)
-		    mi_lwrLipSealWire.addAttr('cgmTypeModifier','lipSeal')	    
-		    mi_lwrLipSealWire.doName()
-		    mc.setAttr("%s.scale[0]"%mi_lwrLipSealWire.mNode,0)
-		    
-		    mPlug_height.value = 1
-		    _l_return = mc.wire(mi_uprLipSealCrv.mNode, w = mi_smartLipSealCrv.mNode, gw = False, en = 1, ce = 0, li =0)
-		    mi_uprLipSealWire = cgmMeta.cgmNode(_l_return[0])
-		    mi_uprLipSealWire.doStore('cgmName',mi_uprDrivenCrv.mNode)
-		    mi_uprLipSealWire.addAttr('cgmTypeModifier','lipSeal')	    
-		    mi_uprLipSealWire.doName()
-		    mc.setAttr("%s.scale[0]"%mi_uprLipSealWire.mNode,0)
-		    
-		    mPlug_height.value = .5#back to default
-		except Exception,error:raise StandardError,"lipSeal target wires : %s"%(error)  	
-		
-		try:#Blendshape the upr and lwr curves to smart lipSeal targets------------------------------------
-		    mPlug_lipSeal = cgmMeta.cgmAttr(mi_sealAttrHolder,'lipSeal',attrType = 'float', keyable=True, minValue=0, maxValue=1, defaultValue=0)
-		    d_blendshapeLipSeal = {'upr':{'mi_target':mi_uprLipSealCrv,'mi_driven':mi_uprDrivenCrv},
-			                 'lwr':{'mi_target':mi_lwrLipSealCrv,'mi_driven':mi_lwrDrivenCrv}}
-		    for k in d_blendshapeLipSeal.keys():
-			d_buffer = d_blendshapeLipSeal[k]
-			mi_target = d_buffer['mi_target']
-			mi_driven = d_buffer['mi_driven']
-			_str_bsNode = mc.blendShape(mi_target.mNode,mi_driven.mNode)[0]
-			mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
-			mi_bsNode.doStore('cgmName',mi_uprDrivenCrv.mNode)
-			mi_bsNode.doName()
-			l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
-			mPlug_lipSeal.doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))
-		except Exception,error:raise StandardError,"lipSeal setup : %s"%(error)  	
 	
-	    except Exception,error:
-		raise StandardError,"Smart Seal setup fail! | error: %s"%(error)   	        
-	    
-	    return
 	    try:#Build Ribbons --------------------------------------------------------------------------------------
 		md_ribbonBuilds = {'uprLip':{'extrudeCrv':self.mi_lipUprCrv,
 		                              'joints':self.md_rigList['lipCornerHandle']['left'] + self.md_rigList['lipCornerHandle']['right']},
@@ -1338,20 +1366,26 @@ def build_rig(*args, **kws):
 		                             'joints':self.md_rigList['lipCornerHandle']['left'] + self.md_rigList['lipCornerHandle']['right']}}
 		self.create_ribbonsFromDict(md_ribbonBuilds)
 	    except Exception,error:raise StandardError,"Ribbons | %s"%(error)
-		
+	    
 	    try:#Build plates --------------------------------------------------------------------------------------
 		md_plateBuilds = {'uprLip':{'crvs':[self.mi_mouthTopCastCrv,self.mi_lipOverTraceCrv,self.mi_lipUprCrv]},
-		                  'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]}}
+		                  'uprLipFollow':{'crvs':[self.mi_mouthTopTraceCrv,mi_uprDrivenCrv],'mode':'liveSurface'},
+		                  'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]},
+		                  'lwrLipFollow':{'crvs':[mi_lwrDrivenCrv,self.mi_mouthBaseTraceCrv],'mode':'liveSurface'}}
 		
 		self.create_plateFromDict(md_plateBuilds)
 	    except Exception,error:raise StandardError,"Plates | %s"%(error)
 	    
 	    
 	    try:#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
+		str_skullPlate = self.str_skullPlate
+		
 		str_uprLipPlate = self.mi_uprLipPlate.p_nameShort
+		str_uprLipFollowPlate = self.mi_uprLipFollowPlate.p_nameShort		
 		str_uprLipRibbon = self.mi_uprLipRibbon.p_nameShort
 		
 		str_lwrLipPlate = self.mi_lwrLipPlate.p_nameShort
+		str_uprLipFollowPlate = self.mi_lwrLipFollowPlate.p_nameShort				
 		str_lwrLipRibbon = self.mi_lwrLipRibbon.p_nameShort
 		
 		try:str_mouthMoveMasterGroup = self.md_rigList['mouthMove'][0].masterGroup.p_nameShort
@@ -1370,11 +1404,14 @@ def build_rig(*args, **kws):
 		'mouthMove':{'check':ml_handleJoints},	 
 		}
 		'''
-		d_build = {'lipUprRig':{'attachTo':str_uprLipPlate},
-		           'lipOverRig':{'attachTo':str_uprLipPlate},
-		           'lipUprHandle':{},
-		           'lipCornerHandle':{},
-		           #'lipLwrRig':{'attachTo':str_lwrLipRibbon},
+		d_build = {'mouthMove':{'mode':'handleAttach'},
+		           'lipUprRig':{'attachTo':str_uprLipPlate},
+		           'lipOverRig':{'attachTo':str_uprLipPlate ,'attachTwoTo':str_uprLipFollowPlate},		           
+		           'lipUprHandle':{'mode':'handleAttach', 'attachTo':str_uprLipRibbon,
+		                           'center':{'mode':'parentOnly','attachTo':None,'parentTo':str_mouthMoveMasterGroup}},
+		           'lipCornerRig':{},#reg, will be driven by...
+		           'lipCornerHandle':{'mode':'parentOnly','attachTo':None,'parentTo':str_mouthMoveMasterGroup},
+		           'lipLwrRig':{'attachTo':str_lwrLipRibbon},
 		           }		
 		'''
 		d_build = {'nostrilRig':{'attachTo':str_nosePlate},
@@ -1389,85 +1426,28 @@ def build_rig(*args, **kws):
 		           'noseTopHandle':{'mode':'handleAttach'}
 		           }
 		'''
-		self.attach_fromDict(d_build)		
+		self.attach_fromDict(d_build)
 	    except Exception,error:raise StandardError,"Attach | %s"%(error)
-	    return
-	    try:#>> Attach  =======================================================================================
-		mi_go = self._go#Rig Go instance link
-		str_skullPlate = self.str_skullPlate
-		#ml_rigJoints = d_section['center']['ml_rigJoints'] + d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
-		#ml_handles = d_section['center']['ml_handles'] + d_section['left']['ml_handles'] + d_section['right']['ml_handles']
-		#str_centerNoseRigJoint = d_section['center']['ml_rigJoints'][0].mNode
-		f_offsetOfUpLoc = self.f_offsetOfUpLoc
-		
-		self.progressBar_setMaxStepValue(len(d_build.keys()))
-		
-		for str_tag in d_build.iterkeys():
-		    try:
-			self.progressBar_iter(status = ("Attaching : '%s'"%str_tag))									
-			ml_buffer = []
-			buffer = self.md_rigList[str_tag]
-			if type(buffer) == dict:
-			    for str_side in ['left','right','center']:
-				bfr_side = buffer.get(str_side)
-				if bfr_side:
-				    log.info("%s:%s:%s"%(str_tag,str_side,bfr_side))
-				    ml_buffer.extend(bfr_side)
-			else:ml_buffer = buffer
-			
-			for mObj in ml_buffer:
-			    d_buffer = d_build[str_tag]
-			    try:
-				_attachTo = d_buffer.get('attachTo')
-				if _attachTo == None:_attachTo = str_skullPlate
-				_parentTo = d_buffer.get('parentTo') or False
-				str_mode = d_buffer.get('mode') or 'rigAttach'				
-				##log.info("%s | mObj: %s | mode: %s | _attachTo: %s | parentTo: %s "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo))
-				
-				if str_mode == 'rigAttach' and _attachTo:
-				    try:#Attach
-					d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
-				                                                targetSurface = _attachTo,
-				                                                createControlLoc = True,
-				                                                createUpLoc = True,
-				                                                f_offset = f_offsetOfUpLoc,
-				                                                orientation = mi_go._jointOrientation)
-				    except Exception,error:raise StandardError,"Rig mode attach. | %s"%(error)
-				    try:#>> Setup curve locs ------------------------------------------------------------------------------------------
-					mi_controlLoc = d_return['controlLoc']
-					mi_crvLoc = mi_controlLoc.doDuplicate(parentOnly=False)
-					mi_crvLoc.addAttr('cgmTypeModifier','crvAttach',lock=True)
-					mi_crvLoc.doName()
-					mi_crvLoc.parent = mi_go._i_rigNull#parent to rigNull
-					d_return['crvLoc'] = mi_crvLoc #Add the curve loc
-					self.md_attachReturns[mObj] = d_return										
-				    except Exception,error:raise StandardError,"Loc setup. | %s"%(error)
-				    #log.info("%s mode attached : %s"%(str_mode,mObj.p_nameShort))
-				elif str_mode == 'handleAttach' and _attachTo:
-				    try:
-					d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
-				                                                targetSurface = _attachTo,
-				                                                createControlLoc = False,
-				                                                createUpLoc = True,	
-				                                                parentToFollowGroup = False,
-				                                                orientation = mi_go._jointOrientation)
-					self.md_attachReturns[mObj] = d_return					
-				    except Exception,error:raise StandardError,"Handle attach. | error : %s"%(error)		    
-				    #log.info("%s mode attached : %s"%(str_mode,mObj.p_nameShort))				
-				
-				elif str_mode == 'parentOnly':
-				    try:
-					mObj.masterGroup.parent = _parentTo
-				    except Exception,error:raise StandardError,"parentTo. | error : %s"%(error)		    
-				    #log.info("%s parented : %s"%(str_mode,mObj.p_nameShort))
-				else:
-				    raise NotImplementedError,"mode: %s "%str_mode
-			    except Exception,error:  raise StandardError,"%s | %s"%(mObj,error)				
-		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)			    
-	    except Exception,error:  raise StandardError,"Attach | %s"%(error)	
-	    return
+	    
 	    #self.log_infoNestedDict('md_attachReturns')
-	    try:#>> Skin nose  =======================================================================================
+
+	    try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
+		'''
+		ml_uprLipHandles = self.md_rigList['lipUprHandle']['left'] + self.md_rigList['lipUprHandle']['center'] + self.md_rigList['lipUprHandle']['right']
+		ml_lwrLipHandles = self.md_rigList['lipLwrHandle']['left'] + self.md_rigList['lipLwrHandle']['center'] + self.md_rigList['lipLwrHandle']['right']
+		for ml in ml_uprLipHandles,ml_lwrLipHandles:
+		    ml.insert(0,self.md_rigList['lipCornerRig']['left'][0])
+		    ml.append(self.md_rigList['lipCornerRig']['right'][0])
+		    '''
+		d_build = {'uprLipTop':{'target':self.mi_mouthTopTraceCrv,
+		                        'bindJoints':[self.md_rigList['smileLine']['left'][0],
+		                                      self.md_rigList['noseUnder'][0],
+		                                      self.md_rigList['smileLine']['right'][0]]}}
+		
+	    except Exception,error:raise StandardError,"Skinning | %s"%(error)	
+	    
+	    return
+	    try:#>> Skinning  =======================================================================================
 		self.progressBar_setMaxStepValue(4)		
 		try:#Build list
 		    self.progressBar_set(status = "Skinning Nose", step = 1)
@@ -1759,71 +1739,105 @@ def build_rig(*args, **kws):
 		str_skullPlate = self.str_skullPlate
 		f_offsetOfUpLoc = self.f_offsetOfUpLoc
 		
-		self.progressBar_setMaxStepValue(len(d_build.keys()))
 		for str_tag in d_build.iterkeys():
 		    try:
-			self.progressBar_iter(status = ("Attaching : '%s'"%str_tag))									
+			md_buffer = {}
 			ml_buffer = []
 			buffer = self.md_rigList[str_tag]
 			if type(buffer) == dict:
 			    for str_side in ['left','right','center']:
 				bfr_side = buffer.get(str_side)
 				if bfr_side:
-				    log.info("%s:%s:%s"%(str_tag,str_side,bfr_side))
-				    ml_buffer.extend(bfr_side)
-			else:ml_buffer = buffer
+				    #log.info("%s:%s:%s"%(str_tag,str_side,bfr_side))
+				    #ml_buffer.extend(bfr_side)
+				    md_buffer[str_side] = bfr_side
+			else:
+			    #ml_buffer = buffer
+			    md_buffer['reg'] = buffer
 			
-			for mObj in ml_buffer:
-			    d_buffer = d_build[str_tag]
-			    try:
-				_attachTo = d_buffer.get('attachTo')
-				if _attachTo == None:_attachTo = str_skullPlate
-				_parentTo = d_buffer.get('parentTo') or False
-				str_mode = d_buffer.get('mode') or 'rigAttach'				
-				##log.info("%s | mObj: %s | mode: %s | _attachTo: %s | parentTo: %s "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo))
+			for str_key in md_buffer.iterkeys():
+			    ml_buffer = md_buffer[str_key]
+			    self.progressBar_setMaxStepValue(len(ml_buffer))
+			    
+			    if d_build[str_tag].get(str_key):#if we have special instructions for a direction key...
+				d_buffer = d_build[str_tag][str_key]
+			    else:
+				d_buffer = d_build[str_tag]
 				
-				if str_mode == 'rigAttach' and _attachTo:
-				    try:#Attach
-					d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
-				                                                targetSurface = _attachTo,
-				                                                createControlLoc = True,
-				                                                createUpLoc = True,
-				                                                f_offset = f_offsetOfUpLoc,
-				                                                orientation = mi_go._jointOrientation)
-				    except Exception,error:raise StandardError,"Rig mode attach. | %s"%(error)
-				    try:#>> Setup curve locs ------------------------------------------------------------------------------------------
-					mi_controlLoc = d_return['controlLoc']
-					mi_crvLoc = mi_controlLoc.doDuplicate(parentOnly=False)
-					mi_crvLoc.addAttr('cgmTypeModifier','crvAttach',lock=True)
-					mi_crvLoc.doName()
-					mi_crvLoc.parent = mi_go._i_rigNull#parent to rigNull
-					d_return['crvLoc'] = mi_crvLoc #Add the curve loc
-					self.md_attachReturns[mObj] = d_return										
-				    except Exception,error:raise StandardError,"Loc setup. | %s"%(error)
-				    #log.info("%s mode attached : %s"%(str_mode,mObj.p_nameShort))
-				elif str_mode == 'handleAttach' and _attachTo:
-				    try:
-					d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
-				                                                targetSurface = _attachTo,
-				                                                createControlLoc = False,
-				                                                createUpLoc = True,	
-				                                                parentToFollowGroup = False,
-				                                                orientation = mi_go._jointOrientation)
-					self.md_attachReturns[mObj] = d_return					
-				    except Exception,error:raise StandardError,"Handle attach. | error : %s"%(error)		    
-				    #log.info("%s mode attached : %s"%(str_mode,mObj.p_nameShort))				
-				
-				elif str_mode == 'parentOnly':
-				    try:
-					mObj.masterGroup.parent = _parentTo
-				    except Exception,error:raise StandardError,"parentTo. | error : %s"%(error)		    
-				    #log.info("%s parented : %s"%(str_mode,mObj.p_nameShort))
-				else:
-				    raise NotImplementedError,"mode: %s "%str_mode
-			    except Exception,error:  raise StandardError,"%s | %s"%(mObj,error)				
+			    for mObj in ml_buffer:
+				self.progressBar_iter(status = ("Attaching : %s %s > '%s'"%(str_tag,str_key,mObj.p_nameShort)))
+				try:
+				    _attachTo = d_buffer.get('attachTo')
+				    if _attachTo == None:_attachTo = str_skullPlate
+				    _parentTo = d_buffer.get('parentTo') or False
+				    str_mode = d_buffer.get('mode') or 'rigAttach'				
+				    log.info("%s | mObj: %s | mode: %s | _attachTo: %s | parentTo: %s "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo))
+				    
+				    if str_mode == 'rigAttach' and _attachTo:
+					try:#Attach
+					    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+						                                    targetSurface = _attachTo,
+						                                    createControlLoc = True,
+						                                    createUpLoc = True,
+						                                    f_offset = f_offsetOfUpLoc,
+						                                    orientation = mi_go._jointOrientation)
+					except Exception,error:raise StandardError,"Rig mode attach. | %s"%(error)
+					try:#>> Setup curve locs ------------------------------------------------------------------------------------------
+					    mi_controlLoc = d_return['controlLoc']
+					    mi_crvLoc = mi_controlLoc.doDuplicate(parentOnly=False)
+					    mi_crvLoc.addAttr('cgmTypeModifier','crvAttach',lock=True)
+					    mi_crvLoc.doName()
+					    mi_crvLoc.parent = mi_go._i_rigNull#parent to rigNull
+					    d_return['crvLoc'] = mi_crvLoc #Add the curve loc
+					    self.md_attachReturns[mObj] = d_return										
+					except Exception,error:raise StandardError,"Loc setup. | %s"%(error)
+					#log.info("%s mode attached : %s"%(str_mode,mObj.p_nameShort))
+				    elif str_mode == 'handleAttach' and _attachTo:
+					try:
+					    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+						                                    targetSurface = _attachTo,
+						                                    createControlLoc = False,
+						                                    createUpLoc = True,	
+						                                    parentToFollowGroup = False,
+						                                    orientation = mi_go._jointOrientation)
+					    self.md_attachReturns[mObj] = d_return					
+					except Exception,error:raise StandardError,"Handle attach. | error : %s"%(error)		    
+					#log.info("%s mode attached : %s"%(str_mode,mObj.p_nameShort))				
+				    
+				    elif str_mode == 'parentOnly':
+					try:
+					    mObj.masterGroup.parent = _parentTo
+					except Exception,error:raise StandardError,"parentTo. | error : %s"%(error)		    
+					#log.info("%s parented : %s"%(str_mode,mObj.p_nameShort))
+				    else:
+					raise NotImplementedError,"mode: %s "%str_mode
+				except Exception,error:  raise StandardError,"%s | %s"%(mObj,error)				
 		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)			    
 	    except Exception,error:  raise StandardError,"attach_fromDict | %s"%(error)	
 	    
+	def skin_fromDict(self,d_build):
+	    try:#>> skin  =======================================================================================
+		mi_go = self._go#Rig Go instance link
+		self.progressBar_setMaxStepValue(len(d_build.keys()))
+		
+		for str_tag in d_build.iterkeys():
+		    try:
+			try:#Build list
+			    __target = d_build['target']
+			    __bindJoints = d_build['bindJoints']
+			    
+			except Exception,error:raise StandardError,"get data | %s"%(error)
+			
+			try:#Cluster
+			    ret_cluster = mc.skinCluster([mObj.mNode for mObj in [__target] + __bindJoints], tsb = True, normalizeWeights = True, mi = 4, dr = 5)
+			    i_cluster = cgmMeta.cgmNode(ret_cluster[0],setClass=True)
+			    i_cluster.doStore('cgmName',__target.mNode)
+			    i_cluster.doName()		
+			except Exception,error:raise StandardError,"Cluster | %s"%(error)
+			
+		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)			    
+	    except Exception,error:  raise StandardError,"skin_fromDict | %s"%(error)	
+		    
 	def create_plateFromDict(self,md_plateBuilds):
 	    try:#Main plates -----------------------------------------------------------------------------	
 		mi_go = self._go#Rig Go instance link		
@@ -1834,8 +1848,8 @@ def build_rig(*args, **kws):
 			self.progressBar_iter(status = ("Plate build: '%s'"%str_name))						
 			d_buffer = md_plateBuilds[str_name]#get the dict
 			self.d_buffer = d_buffer
-			
-			if d_buffer.get('mode') == 'cheekLoft':
+			str_mode = d_buffer.get('mode')
+			if str_mode == 'cheekLoft':
 			    try:#Cheek loft
 				l_deleteBuffer = []
 				str_direction = d_buffer['direction']
@@ -1887,6 +1901,10 @@ def build_rig(*args, **kws):
 				
 				mc.delete([str_startProfileCrv,str_startRailCrv,str_endRailCrv,str_endProfileCrv])#Delete the rebuilt curves
 			    except Exception,error:raise StandardError,"Reg plate loft | %s"%(error)	
+			elif str_mode == 'liveSurface':
+			    try:
+				str_loft = mc.loft([mCrv.mNode for mCrv in d_buffer['crvs']],ch = True, uniform = True,degree = 3,ss = 3)[0]			    
+			    except Exception,error:raise StandardError,"Live Surface loft | %s"%(error)	
 			else:
 			    try:#Reg curve loft
 				l_crvsRebuilt = []
