@@ -310,7 +310,7 @@ class cgmFuncCls(object):
 	except:pass	
     def progressBar_setMaxStepValue(self,int_value):
 	if not self._str_progressBar:self.progressBar_start()
-	try:mc.progressBar(self._str_progressBar,edit = True, maxValue = int_value)	
+	try:mc.progressBar(self._str_progressBar,edit = True, progress = 0, maxValue = int_value)	
 	except Exception,error:log.error("%s > failed to set progress bar maxValue | %s"%(self._str_reportStart,error))	
     def progressBar_setMinStepValue(self,int_value):
 	if not self._str_progressBar:self.progressBar_start()	
