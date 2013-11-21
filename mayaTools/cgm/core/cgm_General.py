@@ -84,6 +84,7 @@ class cgmFuncCls(object):
 	self._str_funcCombined = self._str_funcName
 	try:self._str_funcName = "%s - from %s"%(self._str_funcName,kws['calledFrom'])
 	except:pass
+	self._str_progressBarReportStart = self._str_funcCombined
 	self._str_reportStart = " %s >> "%(self._str_funcName)
 	if self._l_ARGS_KWS_DEFAULTS:
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
@@ -117,10 +118,17 @@ class cgmFuncCls(object):
 	except Exception,error:
 	    raise StandardError, ">"*3 + " %s >!FAILURE!> go start | Error: %s"%(self._str_funcCombined,error)
 	
+	mc.undoInfo(openChunk=True)
 	for i,d_step in enumerate(self.l_funcSteps):
 	    t1 = time.clock()	    
 	    try:	
-		_str_step = d_step.get('step') or self._str_funcName
+		_str_step = d_step.get('step') or False
+		
+		if _str_step:
+		    self._str_progressBarReportStart = self._str_funcCombined + " %s "%_str_step
+
+		else: _str_step = self._str_funcName
+		
 		res = d_step['call'](*args,**kws)
 		if res is not None:
 		    self.d_return[_str_step] = res
@@ -163,6 +171,7 @@ class cgmFuncCls(object):
 		log.error("/"*3 + " Error >>> %s "%_str_fail)			
 		log.error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))	
 		self.progressBar_end()
+		mc.undoInfo(closeChunk=True)			
 		raise StandardError, "%s >!FAILURE!> %s"%(self._str_funcCombined,_str_fail)
 	    t2 = time.clock()
 	    _str_time = "%0.3f seconds"%(t2-t1)
@@ -170,6 +179,7 @@ class cgmFuncCls(object):
 	    if int_max != 0 and self.d_kws.get('reportTimes'): log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)))		
 	
 	self.progressBar_end()
+	mc.undoInfo(closeChunk=True)	
 	
 	if self.d_kws.get('reportTimes'):
 	    log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)))		
@@ -280,14 +290,16 @@ class cgmFuncCls(object):
 	except:pass
 	
     #>>> Progress bar stuff =====================================================================
-    def progressBar_start(self,stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True):
+    def progressBar_start(self,stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = False):
+	str_bfr = statusMessage
+	statusMessage = "%s > %s"%(self._str_progressBarReportStart,str_bfr) 	
 	self._str_progressBar = doStartMayaProgressBar(stepMaxValue, statusMessage, interruptableState)
-    
+	
     def progressBar_iter(self,**kws):
 	if not self._str_progressBar:self.progressBar_start()
 	if kws.get('status'):
 	    str_bfr = kws.get('status')
-	    kws['status'] = "%s > %s"%(self._str_funcCombined,str_bfr) 
+	    kws['status'] = "%s > %s"%(self._str_progressBarReportStart,str_bfr) 
 	if 'step' not in kws.keys():kws['step'] = 1
 	if 'beginProgress' not in kws.keys():kws['beginProgress'] = 1
 	kws['edit'] = 1
@@ -308,7 +320,8 @@ class cgmFuncCls(object):
 	if not self._str_progressBar:self.progressBar_start()	
 	if kws.get('status'):
 	    str_bfr = kws.get('status')
-	    kws['status'] = "%s > %s"%(self._str_funcCombined,str_bfr) 	
+	    kws['status'] = "%s > %s"%(self._str_progressBarReportStart,str_bfr) 
+	if 'beginProgress' not in kws.keys():kws['beginProgress'] = 1
 	try:mc.progressBar(self._str_progressBar,edit = True,**kws)	
 	except Exception,error:log.error("%s > failed to set progress bar status | %s"%(self._str_reportStart,error))	
     
