@@ -761,6 +761,7 @@ def build_rig(*args, **kws):
 	    self.md_attachReturns = {}
 
 	    return True
+	
 	def _buildAttachSurfaces_(self):
 	    #>> Get some data =======================================================================================
 	    """
@@ -1358,7 +1359,6 @@ def build_rig(*args, **kws):
 		'''
 	    except Exception,error:raise StandardError,"Curve creation | %s"%(error)   	    
 	    
-	
 	    try:#Build Ribbons --------------------------------------------------------------------------------------
 		md_ribbonBuilds = {'uprLip':{'extrudeCrv':self.mi_lipUprCrv,
 		                              'joints':self.md_rigList['lipCornerHandle']['left'] + self.md_rigList['lipCornerHandle']['right']},
@@ -1368,24 +1368,23 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"Ribbons | %s"%(error)
 	    
 	    try:#Build plates --------------------------------------------------------------------------------------
-		md_plateBuilds = {'uprLip':{'crvs':[self.mi_mouthTopCastCrv,self.mi_lipOverTraceCrv,self.mi_lipUprCrv]},
+		md_plateBuilds = {#OLD'uprLip':{'crvs':[self.mi_mouthTopCastCrv,self.mi_lipOverTraceCrv,self.mi_lipUprCrv]},
 		                  'uprLipFollow':{'crvs':[self.mi_mouthTopTraceCrv,mi_uprDrivenCrv],'mode':'liveSurface'},
-		                  'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]},
+		                  #OLD'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]},
 		                  'lwrLipFollow':{'crvs':[mi_lwrDrivenCrv,self.mi_mouthBaseTraceCrv],'mode':'liveSurface'}}
 		
 		self.create_plateFromDict(md_plateBuilds)
 	    except Exception,error:raise StandardError,"Plates | %s"%(error)
 	    
-	    
 	    try:#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
 		str_skullPlate = self.str_skullPlate
 		
-		str_uprLipPlate = self.mi_uprLipPlate.p_nameShort
+		#str_uprLipPlate = self.mi_uprLipPlate.p_nameShort
 		str_uprLipFollowPlate = self.mi_uprLipFollowPlate.p_nameShort		
 		str_uprLipRibbon = self.mi_uprLipRibbon.p_nameShort
 		
-		str_lwrLipPlate = self.mi_lwrLipPlate.p_nameShort
-		str_uprLipFollowPlate = self.mi_lwrLipFollowPlate.p_nameShort				
+		#str_lwrLipPlate = self.mi_lwrLipPlate.p_nameShort
+		str_lwrLipFollowPlate = self.mi_lwrLipFollowPlate.p_nameShort				
 		str_lwrLipRibbon = self.mi_lwrLipRibbon.p_nameShort
 		
 		try:str_mouthMoveMasterGroup = self.md_rigList['mouthMove'][0].masterGroup.p_nameShort
@@ -1405,8 +1404,8 @@ def build_rig(*args, **kws):
 		}
 		'''
 		d_build = {'mouthMove':{'mode':'handleAttach'},
-		           'lipUprRig':{'attachTo':str_uprLipPlate},
-		           'lipOverRig':{'attachTo':str_uprLipPlate ,'attachTwoTo':str_uprLipFollowPlate},		           
+		           'lipUprRig':{'mode':'handleAttach','attachTo':str_uprLipFollowPlate},
+		           'lipOverRig':{'mode':'handleAttach','attachTo':str_uprLipFollowPlate},		           
 		           'lipUprHandle':{'mode':'handleAttach', 'attachTo':str_uprLipRibbon,
 		                           'center':{'mode':'parentOnly','attachTo':None,'parentTo':str_mouthMoveMasterGroup}},
 		           'lipCornerRig':{},#reg, will be driven by...
@@ -1432,98 +1431,34 @@ def build_rig(*args, **kws):
 	    #self.log_infoNestedDict('md_attachReturns')
 
 	    try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
-		'''
-		ml_uprLipHandles = self.md_rigList['lipUprHandle']['left'] + self.md_rigList['lipUprHandle']['center'] + self.md_rigList['lipUprHandle']['right']
-		ml_lwrLipHandles = self.md_rigList['lipLwrHandle']['left'] + self.md_rigList['lipLwrHandle']['center'] + self.md_rigList['lipLwrHandle']['right']
-		for ml in ml_uprLipHandles,ml_lwrLipHandles:
-		    ml.insert(0,self.md_rigList['lipCornerRig']['left'][0])
-		    ml.append(self.md_rigList['lipCornerRig']['right'][0])
-		    '''
 		d_build = {'uprLipTop':{'target':self.mi_mouthTopTraceCrv,
-		                        'bindJoints':[self.md_rigList['smileLine']['left'][0],
-		                                      self.md_rigList['noseUnder'][0],
-		                                      self.md_rigList['smileLine']['right'][0]]}}
-		
-	    except Exception,error:raise StandardError,"Skinning | %s"%(error)	
+		                        'bindJoints':[self.md_rigList['smileLineRig']['left'][0],
+		                                      self.md_rigList['noseUnderRig'][0],
+		                                      self.md_rigList['smileLineRig']['right'][0]]},
+		          'uprLipRibbon':{'target':self.mi_uprLipRibbon,
+		                           'bindJoints':[self.md_rigList['lipCornerRig']['left'][0],
+		                                         self.md_rigList['lipUprHandle']['center'][0],
+		                                         self.md_rigList['lipCornerRig']['right'][0]]},
+		           'uprLipBase':{'target':self.mi_mouthBaseTraceCrv,
+		                         'bindJoints':[self.md_rigList['smileLineRig']['left'][-1],
+		                                       self.md_rigList['chin'][0],		                                       
+		                                       self.md_rigList['smileLineRig']['right'][-1]]},}
+		self.skin_fromDict(d_build)
+		'''
+		 'uprLipPlate':{'target':self.mi_uprLipPlate,
+		                          'bindJoints':ml_uprLipHandles + self.md_rigList['smileLineRig']['left'] + self.md_rigList['noseUnderRig'] + self.md_rigList['smileLineRig']['right']},		           
+		           
+		'''
+	    except Exception,error:raise StandardError,"!Skinning! | %s"%(error)	
 	    
+	        
+	    try:#>>> Connect rig joints to handles ==================================================================
+		d_build = {'lipCornerRig':{}}
+		self.connect_fromDict(d_build)
+	    except Exception,error:raise StandardError,"!Connect! | %s"%(error)	
+		
 	    return
-	    try:#>> Skinning  =======================================================================================
-		self.progressBar_setMaxStepValue(4)		
-		try:#Build list
-		    self.progressBar_set(status = "Skinning Nose", step = 1)
-		    
-		    l_toBind = [str_nosePlate]	
-		    'noseMoveHandle','noseUnderHandle'
-		    for tag in ['noseTipRig','noseTopRig','noseMoveHandle','noseUnderRig']:
-			l_toBind.append(self.md_rigList[tag][0].p_nameShort)
-		    for tag in ['smileLineRig','nostrilHandle']:
-			for str_side in 'left','right':
-			    l_toBind.append(self.md_rigList[tag][str_side][0].p_nameShort)
-		except Exception,error:raise StandardError,"build list | %s"%(error)
-		
-		ret_cluster = mc.skinCluster(l_toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
-		i_cluster = cgmMeta.cgmNode(ret_cluster[0],setClass=True)
-		i_cluster.doStore('cgmName',str_nosePlate)
-		i_cluster.doName()
-		
-	    except Exception,error:raise StandardError,"Skin nose plate| error: %s"%(error)		
-	    
-	    try:#>> Skin nostril Move =======================================================================================
-		try:#Build list
-		    self.progressBar_set(status = "Skinning Nostril", step = 3)
-		    
-		    l_toBind = [str_nostrilRibbon]	
-		    for tag in ['noseTipRig','noseMoveHandle','noseUnderRig']:
-			l_toBind.append(self.md_rigList[tag][0].p_nameShort)
-		    for tag in ['smileLineRig']:
-			for str_side in 'left','right':
-			    l_toBind.append(self.md_rigList[tag][str_side][0].p_nameShort)
-		except Exception,error:raise StandardError,"build list | %s"%(error)
-		
-		ret_cluster = mc.skinCluster(l_toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
-		i_cluster = cgmMeta.cgmNode(ret_cluster[0],setClass=True)
-		i_cluster.doStore('cgmName',str_nostrilRibbon)
-		i_cluster.doName()
-		
-	    except Exception,error:raise StandardError,"Skin nose plate| error: %s"%(error)	
-	    
-	    #>>> Connect build dict ==================================================================
-	    d_build = {'noseMove':{},
-	               'noseTop':{},
-	               'noseUnder':{}}
-	    
-	    try:#>> Connect rig joints to handles ====================================================
-		mi_go = self._go#Rig Go instance link
-		
-		self.progressBar_setMaxStepValue(len(d_build.keys()))
-		for str_tag in d_build.iterkeys():
-		    try:
-			self.progressBar_iter(status = ("Connecting : '%s'"%str_tag))
-			try:#Get ----------------------------------------------------
-			    mi_handle = self.md_rigList[str_tag+'Handle'][0]
-			    mi_rigJoint = self.md_rigList[str_tag+'Rig'][0]
-			except Exception,error:raise StandardError,"Query | error: %s"%(error)			
-			
-			try:#Connect the control loc to the center handle
-			    mi_controlLoc = self.md_attachReturns[mi_rigJoint]['controlLoc']
-			    mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
-			except Exception,error:raise StandardError,"Control loc connect | error: %s"%(error)			
-		    
-			try:#Setup the offset to push handle rotation to the rig joint control
-			    #Create offsetgroup for the mid
-			    mi_offsetGroup = cgmMeta.cgmObject( mi_rigJoint.doGroup(True),setClass=True)	 
-			    mi_offsetGroup.doStore('cgmName',mi_rigJoint.mNode)
-			    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
-			    mi_offsetGroup.doName()
-			    mi_rigJoint.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
-			    
-			    cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
-			except Exception,error:raise StandardError,"Offset group | error: %s"%(error)
-			
-		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)
-		    
-	    except Exception,error:  raise StandardError,"Connect rig>handle | %s"%(error)	
-			
+
 	def _buildUprCheek_(self):
 	    try:#>> Attach uprCheek rig joints =======================================================================================
 		mi_go = self._go#Rig Go instance link
@@ -1815,6 +1750,78 @@ def build_rig(*args, **kws):
 		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)			    
 	    except Exception,error:  raise StandardError,"attach_fromDict | %s"%(error)	
 	    
+	def connect_fromDict(self,d_build):
+	    '''
+	    handler for connecting stuff to handles,curves,surfaces or whatever
+	    Modes:
+	    rigToHandle -- given a nameRig kw, it looks through the data sets to find the handle and connect. One to one connection type
+	    
+	    '''
+	    try:#>> Connect  =======================================================================================
+		mi_go = self._go#Rig Go instance link
+		str_skullPlate = self.str_skullPlate
+		f_offsetOfUpLoc = self.f_offsetOfUpLoc
+		
+		for str_tag in d_build.iterkeys():
+		    try:
+			md_buffer = {}
+			ml_buffer = []
+			buffer = self.md_rigList[str_tag]
+			if type(buffer) == dict:
+			    for str_side in ['left','right','center']:
+				bfr_side = buffer.get(str_side)
+				if bfr_side:
+				    md_buffer[str_side] = bfr_side
+			else:
+			    md_buffer['reg'] = buffer
+		
+			for str_key in md_buffer.iterkeys():
+			    
+			    if d_build[str_tag].get(str_key):#if we have special instructions for a direction key...
+				d_buffer = d_build[str_tag][str_key]
+			    else:
+				d_buffer = d_build[str_tag]	
+			    ml_buffer = md_buffer[str_key]
+			
+			    self.progressBar_setMaxStepValue(len(ml_buffer))
+			    for i,mObj in enumerate(ml_buffer):
+				self.progressBar_iter(status = ("Connecting : '%s' %s > '%s'"%(str_tag,str_key,mObj.p_nameShort)))	
+				
+				try:#Gather data ----------------------------------------------------------------------
+				    #_attachTo = d_buffer.get('attachTo')
+				    #if _attachTo == None:_attachTo = str_skullPlate
+				    #_parentTo = d_buffer.get('parentTo') or False
+				    str_mode = d_buffer.get('mode') or 'rigToHandle'				
+				    log.info("%s | mObj: %s | mode: %s | "%(str_tag,mObj.p_nameShort,str_mode))
+				except Exception,error:raise StandardError,"!Data gather!| %s"%(error)
+			
+				if str_mode == 'rigToHandle':
+				    try:#See if we have a handle return
+					ml_handles = self.md_rigList[str_tag.replace('Rig','Handle')][str_key]
+					if len(ml_handles) != len(ml_buffer):raise StandardError,"len of toConnect(%s) != len handles(%s)"%(len(ml_handles),len(ml_buffer))
+					mi_handle = ml_handles[0]
+				    except Exception,error:raise StandardError,"Query | error: %s"%(error)
+				    
+				    try:#Connect the control loc to the center handle
+					mi_controlLoc = self.md_attachReturns[mObj]['controlLoc']
+					mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
+				    except Exception,error:raise StandardError,"Control loc connect | error: %s"%(error)
+				    
+				    try:#Setup the offset to push handle rotation to the rig joint control
+					#Create offsetgroup for the mid
+					mi_offsetGroup = cgmMeta.cgmObject( mObj.doGroup(True),setClass=True)	 
+					mi_offsetGroup.doStore('cgmName',mObj.mNode)
+					mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
+					mi_offsetGroup.doName()
+					mObj.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
+					
+					cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
+				    except Exception,error:raise StandardError,"Offset group | error: %s"%(error)
+				else:
+				    raise NotImplementedError,"mode: %s"%str_mode
+		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)			    
+	    except Exception,error:  raise StandardError,"connect_fromDict | %s"%(error)	
+	    
 	def skin_fromDict(self,d_build):
 	    try:#>> skin  =======================================================================================
 		mi_go = self._go#Rig Go instance link
@@ -1822,9 +1829,10 @@ def build_rig(*args, **kws):
 		
 		for str_tag in d_build.iterkeys():
 		    try:
+			self.progressBar_iter(status = ("Skinning : '%s'"%str_tag))									
 			try:#Build list
-			    __target = d_build['target']
-			    __bindJoints = d_build['bindJoints']
+			    __target = d_build[str_tag]['target']
+			    __bindJoints = d_build[str_tag]['bindJoints']
 			    
 			except Exception,error:raise StandardError,"get data | %s"%(error)
 			
@@ -1929,6 +1937,7 @@ def build_rig(*args, **kws):
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)	
 		    self.log_infoNestedDict('d_buffer')		    
 	    except Exception,error:raise StandardError,"create_plateFromDict | %s"%(error)
+	    
 	def create_ribbonsFromDict(self,md_ribbonBuilds):
 	    try:#Ribbons -----------------------------------------------------------------------------	
 		mi_go = self._go#Rig Go instance link		
@@ -1983,6 +1992,7 @@ def build_rig(*args, **kws):
 			self.log_infoNestedDict('d_buffer')
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)
 	    except Exception,error:raise StandardError,"create_ribbonsFromDict | %s"%(error)	
+	    
     return fncWrap(*args, **kws).go()
     
 #----------------------------------------------------------------------------------------------
