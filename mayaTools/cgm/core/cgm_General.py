@@ -9,6 +9,47 @@ Website : http://www.cgmonks.com
 
 This is the Core of the MetaNode implementation of the systems.
 It is uses Mark Jackson (Red 9)'s as a base.
+
+
+Sample cgmFuncCls
+from cgm.core import cgm_General as cgmGeneral
+reload(cgmGeneral)
+def testFunc(*args, **kws):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+    	def __init__(self,*args, **kws):
+    	    super(fncWrap, self).__init__(*args, **kws)
+    	    self._str_funcName = 'testFunc'	
+    	    #self._b_autoProgressBar = 1
+    	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'stringTest',"default":None}]	    
+    	    self.__dataBind__(*args, **kws)
+    	    self.l_funcSteps = [{'step':'Our first step','call':self.testSubFunc},
+    	                        {'step':'Pass two','call':self.testSubFunc2},
+    	                        {'step':'Pass progressBar set','call':self.testProgressBarSet},
+    	                        {'step':'Pass progressBar iter','call':self.testProgressBarIter}]
+    	def testSubFunc(self):
+    	    self.log_info(self.d_kws['stringTest'])
+    	    self.d_test = {"maya":"yay!"}
+    	    for i in range(50):
+    	        self.log_warning(i)
+    	def testSubFunc2(self):
+    	    self.log_infoNestedDict('d_test')
+    	    #raise StandardError, "Sopped"
+    	def testProgressBarSet(self):
+    	   int_test = 10000
+    	   for i in range(int_test):
+    	       self.progressBar_set(status = ("Getting: '%s'"%i),progress = i, maxValue = int_test)
+    	def testProgressBarIter(self):
+    	   int_test = 10000
+    	   self.progressBar_setMaxStepValue(int_test)
+    	   for i in range(int_test):
+    	       self.progressBar_iter(status = ("Getting: '%s'"%i))
+    return fncWrap(*args, **kws).go()
+  
+testFunc()
+testFunc(printHelp = True)
+testFunc(reportTimes = True)
+testFunc(reportShow = True)
+testFunc(autoProgressBar = True)
 ================================================================
 """
 import maya.cmds as mc
@@ -54,6 +95,7 @@ class cgmFuncCls(object):
 	self._str_progressBar = None
         self._str_funcDebug = None
 	self._b_WIP = False
+	self._b_autoProgressBar = False
 	self._l_ARGS_KWS_DEFAULTS = []
 	self.d_kws  = {}
 	self.l_funcSteps = []
@@ -70,7 +112,7 @@ class cgmFuncCls(object):
 	                    '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
 	
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
-	self._l_kwMask = ['reportTimes','reportShow']
+	self._l_kwMask = ['reportTimes','reportShow','autoProgressBar']
 	     
     def __dataBind__(self,*args,**kws):
 	try:self._l_funcArgs = args
@@ -99,7 +141,8 @@ class cgmFuncCls(object):
 	    except Exception,error:raise StandardError,"%s failed to store kw: %s | value: %s | error: %s"%(self._str_reportStart,kw,kws[kw],error)
 	if self._b_WIP or self.d_kws.get('reportShow'):
 	    self.report()
-	    
+	if self.d_kws.get('autoProgressBar'):
+	    self._b_autoProgressBar = True
     def __func__(self,*args,**kws):
 	raise StandardError,"%s No function set"%self._str_reportStart
         
@@ -108,8 +151,7 @@ class cgmFuncCls(object):
 	"""
 	if self.d_kws.get('printHelp'):
 	    self.printHelpBlock()
-	    return True
-	    
+	    return   
 	t_start = time.clock()
 	try:
 	    if not self.l_funcSteps: self.l_funcSteps = [{'call':self.__func__}]
@@ -119,15 +161,16 @@ class cgmFuncCls(object):
 	    raise StandardError, ">"*3 + " %s >!FAILURE!> go start | Error: %s"%(self._str_funcCombined,error)
 	
 	mc.undoInfo(openChunk=True)
+	int_lenSteps = len(self.l_funcSteps)
 	for i,d_step in enumerate(self.l_funcSteps):
 	    t1 = time.clock()	    
 	    try:	
 		_str_step = d_step.get('step') or False
-		
 		if _str_step:
 		    self._str_progressBarReportStart = self._str_funcCombined + " %s "%_str_step
-
 		else: _str_step = self._str_funcName
+		
+		if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
 		
 		res = d_step['call'](*args,**kws)
 		if res is not None:
@@ -177,7 +220,6 @@ class cgmFuncCls(object):
 	    _str_time = "%0.3f seconds"%(t2-t1)
 	    self._d_stepTimes[_str_step] = _str_time
 	    if int_max != 0 and self.d_kws.get('reportTimes'): log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)))		
-	
 	self.progressBar_end()
 	mc.undoInfo(closeChunk=True)	
 	
@@ -246,8 +288,9 @@ class cgmFuncCls(object):
 		log.info(" | ".join(l_build))
     
     def printHelpBlock(self):
+	self.getModuleData()		
 	print("#" + ">"*3 + " %s "%self._str_funcCombined + "="*50)
-	print("Python Module: %s "%self._str_modPath)	    		    	
+	print("Python Module: %s "%self._str_modPath)	 
 	if self._l_ARGS_KWS_DEFAULTS:
 	    print("@kws")	  	    	    
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
