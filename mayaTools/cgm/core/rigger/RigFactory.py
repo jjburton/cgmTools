@@ -163,6 +163,7 @@ class go(object):
 	    
 	    #Mirror stuff
 	    self._str_mirrorDirection = self._i_module.get_mirrorSideAsString()
+	    self._f_skinOffset = self._i_puppet.getAttr('skinDepth') or 1 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<		
 
 	    #Joints ------------------------------------------------------------------
 	    self._ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True,cull = True)
