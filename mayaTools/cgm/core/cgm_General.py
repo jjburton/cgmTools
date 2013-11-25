@@ -127,9 +127,6 @@ class cgmFuncCls(object):
 	self._str_reportStart = " %s >> "%(self._str_funcName)
 	
 	#KW/ARG handling
-	self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'reportShow',"default":False,'help':"(BUILTIN) - show report at start of log","argType":"bool"},
-	                                 {'kw':'reportTimes',"default":False,'help':"(BUILTIN) - show step times in log","argType":"bool"},
-	                                 {'kw':'autoProgressBar',"default":False,'help':"(BUILTIN) - show generated progress bar by steps","argType":"bool"}])
 	#Built our data sets
 	if self._l_ARGS_KWS_DEFAULTS:
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
@@ -142,6 +139,11 @@ class cgmFuncCls(object):
 	    try:
 		if kw not in l_storedKeys:self.d_kws[kw] = kws[kw]
 	    except Exception,error:raise StandardError,"%s failed to store kw: %s | value: %s | error: %s"%(self._str_reportStart,kw,kws[kw],error)
+	
+	self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'reportShow',"default":False,'help':"(BUILTIN) - show report at start of log","argType":"bool"},
+                                         {'kw':'reportTimes',"default":False,'help':"(BUILTIN) - show step times in log","argType":"bool"},
+                                         {'kw':'autoProgressBar',"default":False,'help':"(BUILTIN) - show generated progress bar by steps","argType":"bool"}])
+	    
 	if self._b_WIP or self.d_kws.get('reportShow'):
 	    self.report()
 	if self.d_kws.get('autoProgressBar'):
