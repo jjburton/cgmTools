@@ -13,12 +13,12 @@ It is uses Mark Jackson (Red 9)'s as a base.
 
 Sample cgmFuncCls
 from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
 def testFunc(*args, **kws):
     class fncWrap(cgmGeneral.cgmFuncCls):
     	def __init__(self,*args, **kws):
     	    super(fncWrap, self).__init__(*args, **kws)
     	    self._str_funcName = 'testFunc'	
+    	    self.int_test = 10000
     	    #self._b_autoProgressBar = 1
     	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'stringTest',"default":None}]	    
     	    self.__dataBind__(*args, **kws)
@@ -35,21 +35,19 @@ def testFunc(*args, **kws):
     	    self.log_infoNestedDict('d_test')
     	    #raise StandardError, "Sopped"
     	def testProgressBarSet(self):
-    	   int_test = 10000
-    	   for i in range(int_test):
-    	       self.progressBar_set(status = ("Getting: '%s'"%i),progress = i, maxValue = int_test)
+    	   for i in range(self.int_test):
+    	       self.progressBar_set(status = ("Getting: '%s'"%i), progress = i, maxValue = self.int_test)
     	def testProgressBarIter(self):
-    	   int_test = 10000
-    	   self.progressBar_setMaxStepValue(int_test)
-    	   for i in range(int_test):
+    	   self.progressBar_setMaxStepValue(self.int_test)
+    	   for i in range(self.int_test):
     	       self.progressBar_iter(status = ("Getting: '%s'"%i))
     return fncWrap(*args, **kws).go()
-  
+reload(cgmGeneral)
 testFunc()
-testFunc(printHelp = True)
-testFunc(reportTimes = True)
-testFunc(reportShow = True)
-testFunc(autoProgressBar = True)
+testFunc(printHelp = True)#Let's you see a break down of the arg/kws of a function
+testFunc(reportTimes = True)#Show times for steps of functions
+testFunc(reportShow = True)#Show a report of a function before running it
+testFunc(autoProgressBar = True)#automatically generate a progress bar of the steps of a function
 ================================================================
 """
 import maya.cmds as mc
@@ -79,7 +77,6 @@ log.setLevel(logging.INFO)
 class cgmFuncCls(object):  
     """
     Examples:
-    
     self._l_ARGS_KWS_DEFAULTS = [{'kw':'kwString',"default":None,'help':"FillINToHelp","argType":"mObject"}
 				 {'kw':'targetSurface',"default":None},
 				 {'kw':"createControlLoc","default":True},
@@ -87,6 +84,7 @@ class cgmFuncCls(object):
 				 {'kw':"parentToFollowGroup","default":False},	                  
 				 {'kw':'f_offset',"default":1.0},
 				 {'kw':'orientation',"default":'zyx'}]
+				 
     """
     def __init__(self,*args, **kws):
         self._str_funcClass = None
@@ -110,10 +108,9 @@ class cgmFuncCls(object):
 	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                    '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
 	                    '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
-	
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
 	self._l_kwMask = ['reportTimes','reportShow','autoProgressBar']
-	     
+	
     def __dataBind__(self,*args,**kws):
 	try:self._l_funcArgs = args
 	except:self._l_funcArgs = []
@@ -128,6 +125,12 @@ class cgmFuncCls(object):
 	except:pass
 	self._str_progressBarReportStart = self._str_funcCombined
 	self._str_reportStart = " %s >> "%(self._str_funcName)
+	
+	#KW/ARG handling
+	self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'reportShow',"default":False,'help':"(BUILTIN) - show report at start of log","argType":"bool"},
+	                                 {'kw':'reportTimes',"default":False,'help':"(BUILTIN) - show step times in log","argType":"bool"},
+	                                 {'kw':'autoProgressBar',"default":False,'help':"(BUILTIN) - show generated progress bar by steps","argType":"bool"}])
+	#Built our data sets
 	if self._l_ARGS_KWS_DEFAULTS:
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
 		try:self.d_kws[d_buffer['kw']] = args[ i ]#First we try the arg index
@@ -143,6 +146,7 @@ class cgmFuncCls(object):
 	    self.report()
 	if self.d_kws.get('autoProgressBar'):
 	    self._b_autoProgressBar = True
+	    
     def __func__(self,*args,**kws):
 	raise StandardError,"%s No function set"%self._str_reportStart
         
@@ -204,13 +208,7 @@ class cgmFuncCls(object):
 			    log.info(">"*1 + " '%s' : %s "%(k,self.__dict__[k]))
 		if self._b_WIP:
 		    log.info(">"*40 + " WIP CODE " + "<"*40)
-		    
-		log.info("/"*3 + " Enviornment Info " + "="*75)	
-		log.info("/"*3 + " Python Module: %s "%self._str_modPath)
-		try:log.info("/"*3 + " Python Module Version: %s "%self.mod.__version__)
-		except:pass
-		log.info("/"*3 + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
-		log.info("/"*3 + " Platform: %s "%(' | ').join(platform.uname()))	
+		self.reportEnviornment()
 		log.error("/"*3 + " Error >>> %s "%_str_fail)			
 		log.error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))	
 		self.progressBar_end()
@@ -237,7 +235,7 @@ class cgmFuncCls(object):
     
     def report(self):
 	self.getModuleData()
-	log.info(">"*3 + " %s "%self._str_funcCombined + "="*75)
+	log.info(">"*3 + " %s "%self._str_funcCombined + "/"*3 + "="*75)
 	log.info("Python Module: %s "%self._str_modPath)	
 	if self.l_funcSteps:log.info(">"*3 + " l_funcSteps: %s "%self.l_funcSteps)	
 	self.reportArgsKwsDefaults()	
@@ -268,10 +266,22 @@ class cgmFuncCls(object):
 	    for i,d in enumerate(self.l_funcSteps):
 		try:log.info("'%s' : %s "%(i,d.get('step')))
 		except:pass
-			
+	self.reportEnviornment()
 	if self._b_WIP:
 	    log.info(">"*40 + " WIP Function " + "<"*40)	  	    
 	log.info("#" + "-" *100)
+    
+    def reportEnviornment(self):
+	log.info("/"*3 + " Enviornment Info " + "/"*3 + "-"*75)	
+	log.info(">" + " Python Module: %s "%self._str_modPath)
+	try:log.info(">" + " Python Module Version: %s "%self.mod.__version__)
+	except:pass
+	#log.info("/"*3 + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
+	for kw in ['cutIdentifier','version','apiVersion','file','product','date',
+                   'application','buildDirectory','environmentFile','operatingSystem',
+                   'operatingSystemVersion','codeset']:
+	    try:log.info(">" + " Maya %s : %s "%(kw, mel.eval( 'about -%s'%kw )))	
+	    except Exception,error:self.log_error("%s | %s"%(kw,error))	
 	
     def reportArgsKwsDefaults(self):
 	if self._l_ARGS_KWS_DEFAULTS:
