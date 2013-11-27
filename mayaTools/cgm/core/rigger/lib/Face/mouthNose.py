@@ -592,8 +592,8 @@ def build_rig(*args, **kws):
 	    self._str_funcName = 'build_rig(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-	                        #{'step':'Lip build','call':self._buildLips_},
-	                        #{'step':'NoseBuild','call':self._buildNose_},
+	                        {'step':'Lip build','call':self._buildLips_},
+	                        {'step':'NoseBuild','call':self._buildNose_},
 	                        {'step':'Cheek build','call':self._buildCheeks_},
 	                        #{'step':'Lock N hide','call':self._lockNHide_},
 	                        
@@ -973,7 +973,6 @@ def build_rig(*args, **kws):
 		           'noseTopRig':{},
 		           'noseTopHandle':{'mode':'handleAttach'}
 		           }	
-		
 		self.attach_fromDict(d_build)
 	    except Exception,error:raise StandardError,"Attach | %s"%(error)
 	    
@@ -1409,6 +1408,7 @@ def build_rig(*args, **kws):
 		'''
 		d_build = {'mouthMove':{'mode':'handleAttach'},
 		           'mouthMoveTrackLoc':{},
+		           'chin':{'mode':'handleAttach'},		           
 		           'lipUprRig':{'mode':'handleAttach','attachTo':str_uprLipFollowPlate},
 		           'lipOverRig':{'mode':'handleAttach','attachTo':str_uprLipPlate},		           
 		           'lipUprHandle':{'mode':'handleAttach', 'attachTo':str_uprLipRibbon,
@@ -1504,8 +1504,8 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"Curve duplication | %s"%(error)   	    
 	    
 	    try:#Build Curves ===================================================================================================
-		md_curvesBuilds = {'cheekFollowLeft':{'pointTargets':self.md_rigList['uprCheekRig']['left'] + [self.md_rigList['smileLineRig']['left'][0]]},
-		                   'cheekFollowRight':{'pointTargets':self.md_rigList['uprCheekRig']['right'] + [self.md_rigList['smileLineRig']['right'][0]]}}	
+		md_curvesBuilds = {'uprCheekFollowLeft':{'pointTargets':self.md_rigList['uprCheekRig']['left'] + [self.md_rigList['smileLineRig']['left'][0]]},
+		                   'uprCheekFollowRight':{'pointTargets':self.md_rigList['uprCheekRig']['right'] + [self.md_rigList['smileLineRig']['right'][0]]}}	
 		self.create_curvesFromDict(md_curvesBuilds)
 	    except Exception,error:raise StandardError,"!Build Curves! | %s"%(error)
 	    
@@ -1537,67 +1537,76 @@ def build_rig(*args, **kws):
 		str_cheekRightPlate = self.mi_cheekRightPlate.p_nameShort
 		#str_smileLeftRibbon = self.mi_smileLeftRibbon.p_nameShort
 		#str_smileRightRibbon = self.mi_smileRightRibbon.p_nameShort
-		str_cheekFollowLeftCrv = self.mi_cheekFollowLeftCrv.p_nameShort
-		str_cheekFollowRightCrv = self.mi_cheekFollowRightCrv.p_nameShort
+		str_uprCheekFollowLeftCrv = self.mi_uprCheekFollowLeftCrv.p_nameShort
+		str_uprCheekFollowRightCrv = self.mi_uprCheekFollowRightCrv.p_nameShort
 		
-		'''		    		
-		uprCheekHandle
-		'''
-		#Need to add a cheek handle
+				
 		d_build = {'smileLineRig':{},
-		           'sneerHandle':{'mode':'handleAttach'},
+		           #'sneerHandle':{'mode':'handleAttach'},
+		           'sneerHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0].masterGroup.p_nameShort},
 		           'smileHandle':{},#Rig attach so that we can drive it's position via the left lip corner
 		           'smileBaseHandle':{'mode':'handleAttach'},
 		           'jawAnchor':{'mode':'handleAttach'},
-		           'cheekRig':{},
+		           'cheekRig':{'mode':'handleAttach',
+		                       'left':{'attachTo':str_cheekLeftPlate},
+		                       'right':{'attachTo':str_cheekRightPlate}},
 		           'uprCheekRig':{},
-		           'jawLine':{},
+		           'uprCheekHandles':{'left':{0:{'mode':'handleAttach'},
+		                                      1:{}},
+		                              'right':{0:{'mode':'handleAttach'},
+		                                       1:{}}},		           	                         		           	           
+		           'jawLine':{'mode':'handleAttach'},
 		           }
+		"""
+		d_build = {'smileHandle':{}}
+		"""
 		self.attach_fromDict(d_build)
 	    except Exception,error:raise StandardError,"!Attach! | %s"%(error)
 	    
 	    #self.log_infoNestedDict('md_attachReturns')
-	    return
+	    
 	    try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
 		d_build = {'smileLeft':{'target':self.mi_smileFollowLeftCrv,
 		                        'bindJoints':[self.md_rigList['sneerHandle']['left'][0],
 		                                      self.md_rigList['smileHandle']['left'][0],
 		                                      self.md_rigList['smileBaseHandle']['left'][0]]},
-		           'cheekFollowLeft':{'target':self.mi_cheekFollowLeftCrv,
+		           'cheekFollowLeft':{'target':self.mi_uprCheekFollowLeftCrv,
 		                              'bindJoints':[self.md_rigList['sneerHandle']['left'][0],
 		                                            self.md_rigList['uprCheekHandles']['left'][0]]},		           
 		           'cheekLeft':{'target':self.mi_cheekLeftPlate,
-		                        'bindJoints':self.md_rigList['smileLineRig']['left'] + self.md_rigList['jawAnchor']['left'] + self.md_rigList['uprCheekHandles']['left']}}
-		'''
-		d_build = {'uprLipTop':{'target':self.mi_mouthTopTraceCrv,
-		                        'bindJoints':[self.md_rigList['smileLineRig']['left'][0],
-		                                      self.md_rigList['noseUnderRig'][0],
-		                                      self.md_rigList['smileLineRig']['right'][0]]},
-		           'uprLipPlate':{'target':self.mi_uprLipPlate,
-		                          'bindJoints':ml_uprLipRigJoints + self.md_rigList['noseUnderRig']},		           
-
-		          'uprLipRibbon':{'target':self.mi_uprLipRibbon,
-		                           'bindJoints':[self.md_rigList['lipCornerRig']['left'][0],
-		                                         self.md_rigList['lipUprHandle']['center'][0],
-		                                         self.md_rigList['lipCornerRig']['right'][0]]},
-		          'lwrLipRibbon':{'target':self.mi_lwrLipRibbon,
-		                           'bindJoints':[self.md_rigList['lipCornerRig']['left'][0],
-		                                         self.md_rigList['lipLwrHandle']['center'][0],
-		                                         self.md_rigList['lipCornerRig']['right'][0]]},		          
-		          'lwrLipPlate':{'target':self.mi_lwrLipPlate,
-		                         'bindJoints':ml_lwrLipRigJoints + self.md_rigList['lipCornerRig']['left'] + self.md_rigList['lipCornerRig']['right'] + [self.md_rigList['smileLineRig']['left'][-1],
-		                                       self.md_rigList['chin'][0],		                                       
-		                                       self.md_rigList['smileLineRig']['right'][-1]]},		           
-		           'lwrLipBase':{'target':self.mi_mouthBaseTraceCrv,
-		                         'bindJoints':[self.md_rigList['smileLineRig']['left'][-1],
-		                                       self.md_rigList['chin'][0],		                                       
-		                                       self.md_rigList['smileLineRig']['right'][-1]]},}'''
+		                        'bindJoints':self.md_rigList['jawLine']['left'] + self.md_rigList['smileLineRig']['left'] + self.md_rigList['jawAnchor']['left'] + self.md_rigList['uprCheekHandles']['left']}}
 		self.skin_fromDict(d_build)
 	    except Exception,error:raise StandardError,"!Skinning! | %s"%(error)	
-
+	    
 	    try:#>>> Connect rig joints to handles ==================================================================
-		d_build = {'lipCornerRig':{},
+		'''
+		{'lipCornerRig':{},
 		           'mouthMoveTrackLoc':{'driver':self.md_rigList['mouthMove']}}
+		self.md_rigList['mouthMoveTrackLoc']   
+		'''
+		"""
+		'jawLine':{'mode':'rigToFollow',
+		                      'skip':['center'],
+		                      'left':{'attachTo':self.mi_cheekLeftPlate},
+		                      'right':{'attachTo':self.mi_cheekRightPlate}}
+		d_build = {'smileHandle':{'mode':'pointBlend',
+		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]},
+		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]}}}		
+		"""
+		d_build = {'smileHandle':{'mode':'pointBlend',
+		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]},
+		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]}},
+		           'smileLineRig':{'mode':'rigToFollow',
+		                           'left':{'attachTo':self.mi_smileFollowLeftCrv},
+		                           'right':{'attachTo':self.mi_smileFollowRightCrv}},
+		           'uprCheekRig':{'mode':'rigToFollow',
+		                          'left':{'attachTo':self.mi_cheekLeftPlate},
+		                          'right':{'attachTo':self.mi_cheekRightPlate}},
+		           'uprCheekHandles':{'mode':'rigToFollow',
+		                              'index':1,#Only use one index
+		                              'left':{'attachTo':self.mi_uprCheekFollowLeftCrv},
+		                              'right':{'attachTo':self.mi_uprCheekFollowRightCrv}}}
+		                      
 		self.connect_fromDict(d_build)
 	    except Exception,error:raise StandardError,"!Connect! | %s"%(error)	
 	    return
@@ -1839,6 +1848,7 @@ def build_rig(*args, **kws):
 			for str_key in md_buffer.iterkeys():
 			    ml_buffer = md_buffer[str_key]
 			    int_len = len(ml_buffer)
+			    
 			    if d_build[str_tag].get(str_key):#if we have special instructions for a direction key...
 				d_buffer = d_build[str_tag][str_key]
 			    else:
@@ -1847,11 +1857,19 @@ def build_rig(*args, **kws):
 			    for ii,mObj in enumerate(ml_buffer):
 				self.progressBar_set(status = ("Attaching : %s %s > '%s'"%(str_tag,str_key,mObj.p_nameShort)),progress = ii, maxValue= int_len)
 				try:
-				    _attachTo = d_buffer.get('attachTo')
+				    if d_buffer.get(ii):#if we have special instructions for a index key...
+					log.info("%s | %s > Utilizing index key"%(str_tag,str_key))
+					d_use = d_buffer[ii]
+					self.d_buffer = d_use
+					self.log_infoNestedDict('d_buffer')
+				    else:d_use = d_buffer
+				    
+				    _attachTo = d_use.get('attachTo')
 				    if _attachTo == None:_attachTo = str_skullPlate
-				    _parentTo = d_buffer.get('parentTo') or False
-				    str_mode = d_buffer.get('mode') or 'rigAttach'				
-				    log.info("%s | mObj: %s | mode: %s | _attachTo: %s | parentTo: %s "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo))
+				    _parentTo = d_use.get('parentTo') or False
+				    str_mode = d_use.get('mode') or 'rigAttach'
+				    
+				    log.info("Attach : %s | mObj: %s | mode: %s | _attachTo: %s | parentTo: %s "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo))
 				    
 				    if str_mode == 'rigAttach' and _attachTo:
 					try:#Attach
@@ -1885,8 +1903,7 @@ def build_rig(*args, **kws):
 					#log.info("%s mode attached : %s"%(str_mode,mObj.p_nameShort))				
 				    
 				    elif str_mode == 'parentOnly':
-					try:
-					    mObj.masterGroup.parent = _parentTo
+					try:mObj.masterGroup.parent = _parentTo
 					except Exception,error:raise StandardError,"parentTo. | error : %s"%(error)		    
 					#log.info("%s parented : %s"%(str_mode,mObj.p_nameShort))
 				    else:
@@ -1900,7 +1917,11 @@ def build_rig(*args, **kws):
 	    handler for connecting stuff to handles,curves,surfaces or whatever
 	    Modes:
 	    rigToHandle -- given a nameRig kw, it looks through the data sets to find the handle and connect. One to one connection type
+	    rigToFollow --
 	    
+	    Flags
+	    'index'(int) -- root dict flag to specify only using a certain index of a list
+	    'skip'(string) -- skip one of the side flags - 'left','right','center'
 	    '''
 	    try:#>> Connect  =======================================================================================
 		mi_go = self._go#Rig Go instance link
@@ -1914,115 +1935,152 @@ def build_rig(*args, **kws):
 			buffer = self.md_rigList[str_tag]
 			if type(buffer) == dict:
 			    for str_side in ['left','right','center']:
-				bfr_side = buffer.get(str_side)
-				if bfr_side:
-				    md_buffer[str_side] = bfr_side
+				    bfr_side = buffer.get(str_side)
+				    if bfr_side:
+					md_buffer[str_side] = bfr_side
 			else:
 			    md_buffer['reg'] = buffer
-		
-			for str_key in md_buffer.iterkeys():
 			    
-			    if d_build[str_tag].get(str_key):#if we have special instructions for a direction key...
-				d_buffer = d_build[str_tag][str_key]
+			l_skip = d_build[str_tag].get('skip') or []
+			for str_key in md_buffer.iterkeys():
+			    if str_key in l_skip:
+				log.info("%s Skipping connect: %s"%(str_tag,str_key))
 			    else:
-				d_buffer = d_build[str_tag]	
-			    ml_buffer = md_buffer[str_key]
-			    int_len = len(ml_buffer)
-			    for i,mObj in enumerate(ml_buffer):
-				str_mObj = mObj.p_nameShort
-				self.progressBar_set(status = ("Connecting : '%s' %s > '%s'"%(str_tag,str_key,str_mObj)),progress = i, maValue = int_len)	
-				
-				try:#Gather data ----------------------------------------------------------------------
-				    #_attachTo = d_buffer.get('attachTo')
-				    #if _attachTo == None:_attachTo = str_skullPlate
-				    #_parentTo = d_buffer.get('parentTo') or False
-				    str_mode = d_buffer.get('mode') or 'rigToHandle'		
-				    ml_driver = d_buffer.get('driver') or False
-				    log.info("%s | mObj: %s | mode: %s | "%(str_tag,str_mObj,str_mode))
-				except Exception,error:raise StandardError,"!Data gather!| %s"%(error)
-			
-				if str_mode == 'rigToHandle':
-				    try:
-					try:#See if we have a handle return
-					    if ml_driver: ml_handles = ml_driver
-					    else:					
-						ml_handles = self.md_rigList[str_tag.replace('Rig','Handle')][str_key]
-					    if len(ml_handles) != len(ml_buffer):raise StandardError,"len of toConnect(%s) != len handles(%s)"%(len(ml_handles),len(ml_buffer))
-					    mi_handle = ml_handles[0]
-					except Exception,error:raise StandardError,"!Query! |  %s"%(error)
-    
-					try:#Connect the control loc to the center handle
-					    mi_controlLoc = self.md_attachReturns[mObj]['controlLoc']
-					    mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
-					except Exception,error:raise StandardError,"!Control loc connect! | error: %s"%(error)
-					
-					try:#Setup the offset to push handle rotation to the rig joint control
-					    #Create offsetgroup for the mid
-					    mi_offsetGroup = cgmMeta.cgmObject( mObj.doGroup(True),setClass=True)	 
-					    mi_offsetGroup.doStore('cgmName',mObj.mNode)
-					    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
-					    mi_offsetGroup.doName()
-					    mObj.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
-					    
-					    cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
-					except Exception,error:raise StandardError,"!Offset group! | %s"%(error)
-				    except Exception,error:raise StandardError,"!rigToHandle! | %s"%(error)
-				elif str_mode == 'rigToFollow':
-				    try:
-					try:#See if we have a handle return
-					    if not ml_driver: raise StandardError,"Must have driver kw"
-					    d_current = self.md_attachReturns[mObj]
-					    mi_followLoc = d_current['followLoc']
-					    mi_controlLoc = d_current['controlLoc']					    
-					except Exception,error:raise StandardError,"!Query! |  %s"%(error)
-					
-					
-					'''
-					try:#>> Attach  loc to curve --------------------------------------------------------------------------------------
-					    mi_crvLoc = d_current['crvLoc']
-					    mi_controlLoc = d_current['controlLoc']
-					    crvUtils.attachObjToCurve(mi_crvLoc.mNode,mi_crv.mNode)
-					    mc.pointConstraint(mi_crvLoc.mNode,mi_controlLoc.mNode,maintainOffset = True)
-					    
-					except Exception,error:raise StandardError,"Failed to attach to crv. | error : %s"%(error)
-					try:#>> Aim the offset group  ------------------------------------------------------------------------------------------
-					    if obj_idx != int_lastIndex:
-						str_upLoc = d_current['upLoc'].mNode
-						str_offsetGroup = d_current['offsetGroup'].mNode				    
-						if obj_idx == 0:
-						    #If it's the interior brow, we need to aim forward and back on the chain
-						    #We need to make a couple of locs
-						    d_tomake = {'aimIn':{'target':str_centerBrowRigJoint,
-								         'aimVector':cgmMath.multiplyLists([v_aim,[-1,-1,-1]])},
-								'aimOut':{'target':ml_rigJoints[1].mNode,
-								          'aimVector':v_aim}}
-						    for d in d_tomake.keys():
-							d_sub = d_tomake[d]
-							str_target = d_sub['target']
-							mi_loc = mObj.doLoc()
-							mi_loc.addAttr('cgmTypeModifier',d,lock=True)
-							mi_loc.doName()
-							mi_loc.parent = d_current['zeroGroup']
-							d_sub['aimLoc'] = mi_loc
-							v_aimVector = d_sub['aimVector']
-							if str_side == 'right':
-							    v_aimVector = cgmMath.multiplyLists([v_aimVector,[-1,-1,-1]])
-							mc.aimConstraint(str_target,mi_loc.mNode,
-								         maintainOffset = True,
-								         weight = 1,
-								         aimVector = v_aimVector, upVector = v_up,
-								         worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )
-						    mc.orientConstraint([d_tomake['aimIn']['aimLoc'].mNode, d_tomake['aimOut']['aimLoc'].mNode],str_offsetGroup,maintainOffset = True)					
-						else:
-						    ml_targets = [ml_rigJoints[obj_idx+1]]	
-						    mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup,
-								     maintainOffset = True, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )				    
-					except Exception,error:raise StandardError,"Loc setup. | error : %s"%(error)
-					'''
-				    except Exception,error:raise StandardError,"!rigToFollow! | %s"%(error)
-				    
+				if d_build[str_tag].get(str_key):#if we have special instructions for a direction key...
+				    d_buffer = d_build[str_tag][str_key]
 				else:
-				    raise NotImplementedError,"mode: %s"%str_mode
+				    d_buffer = d_build[str_tag]	
+				ml_buffer = md_buffer[str_key]
+				try:
+				    int_indexBuffer = d_build[str_tag].get('index') or False
+				    if int_indexBuffer is not False:
+					log.info("%s | %s > Utilizing index call"%(str_tag,str_key))					
+					ml_buffer = [ml_buffer[int_indexBuffer]]
+				except Exception,error:raise StandardError,"!Index call(%s)!| %s"%(error)
+				
+				int_len = len(ml_buffer)
+				for i,mObj in enumerate(ml_buffer):
+				    str_mObj = mObj.p_nameShort
+				    self.progressBar_set(status = ("Connecting : '%s' %s > '%s'"%(str_tag,str_key,str_mObj)),progress = i, maxValue = int_len)	
+				    
+				    try:#Gather data ----------------------------------------------------------------------
+					#_attachTo = d_buffer.get('attachTo')
+					#if _attachTo == None:_attachTo = str_skullPlate
+					#_parentTo = d_buffer.get('parentTo') or False
+					str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'rigToHandle'		
+					ml_driver = d_buffer.get('driver') or False
+					#log.info("%s | mObj: %s | mode: %s | "%(str_tag,str_mObj,str_mode))
+				    except Exception,error:raise StandardError,"!Data gather!| %s"%(error)
+			    
+				    if str_mode == 'rigToHandle':
+					try:
+					    try:#See if we have a handle return
+						if ml_driver: ml_handles = ml_driver
+						else:					
+						    ml_handles = self.md_rigList[str_tag.replace('Rig','Handle')][str_key]
+						if len(ml_handles) != len(ml_buffer):raise StandardError,"len of toConnect(%s) != len handles(%s)"%(len(ml_handles),len(ml_buffer))
+						mi_handle = ml_handles[0]
+					    except Exception,error:raise StandardError,"!Query! |  %s"%(error)
+	
+					    try:#Connect the control loc to the center handle
+						mi_controlLoc = self.md_attachReturns[mObj]['controlLoc']
+						mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
+					    except Exception,error:raise StandardError,"!Control loc connect! | error: %s"%(error)
+					    
+					    try:#Setup the offset to push handle rotation to the rig joint control
+						#Create offsetgroup for the mid
+						mi_offsetGroup = cgmMeta.cgmObject( mObj.doGroup(True),setClass=True)	 
+						mi_offsetGroup.doStore('cgmName',mObj.mNode)
+						mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
+						mi_offsetGroup.doName()
+						mObj.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
+						
+						cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
+					    except Exception,error:raise StandardError,"!Offset group! | %s"%(error)
+					except Exception,error:raise StandardError,"!%s! | %s"%(str_mode,error)					    
+				    elif str_mode == 'rigToFollow':
+					try:
+					    try:#See if we have a handle return
+						mi_attachTo = d_buffer['attachTo']
+						d_current = self.md_attachReturns[mObj]
+						mi_followLoc = d_current['followLoc']
+						mi_controlLoc = d_current['controlLoc']					    
+					    except Exception,error:raise StandardError,"!Query '%s'! |  %s"%(str_key,error)
+					    
+					    try:#>> Attach  loc  --------------------------------------------------------------------------------------
+						if mi_attachTo.getMayaType() == 'nurbsCurve':
+						    crvUtils.attachObjToCurve(mi_followLoc.mNode,mi_attachTo.mNode)
+						else:
+						    surfUtils.attachObjToSurface(objToAttach = mi_followLoc,
+						                                 targetSurface = mi_attachTo.mNode,
+						                                 createControlLoc = False,
+						                                 createUpLoc = True,	
+						                                 parentToFollowGroup = False,
+						                                 orientation = mi_go._jointOrientation)	
+						mc.pointConstraint(mi_followLoc.mNode,mi_controlLoc.mNode,maintainOffset = True)
+						
+					    except Exception,error:raise StandardError,"Failed to attach to crv. | error : %s"%(error)					    
+					    
+					    
+					    '''
+					    try:#>> Attach  loc to curve --------------------------------------------------------------------------------------
+						mi_crvLoc = d_current['crvLoc']
+						mi_controlLoc = d_current['controlLoc']
+						crvUtils.attachObjToCurve(mi_crvLoc.mNode,mi_crv.mNode)
+						mc.pointConstraint(mi_crvLoc.mNode,mi_controlLoc.mNode,maintainOffset = True)
+						
+					    except Exception,error:raise StandardError,"Failed to attach to crv. | error : %s"%(error)
+					    try:#>> Aim the offset group  ------------------------------------------------------------------------------------------
+						if obj_idx != int_lastIndex:
+						    str_upLoc = d_current['upLoc'].mNode
+						    str_offsetGroup = d_current['offsetGroup'].mNode				    
+						    if obj_idx == 0:
+							#If it's the interior brow, we need to aim forward and back on the chain
+							#We need to make a couple of locs
+							d_tomake = {'aimIn':{'target':str_centerBrowRigJoint,
+									     'aimVector':cgmMath.multiplyLists([v_aim,[-1,-1,-1]])},
+								    'aimOut':{'target':ml_rigJoints[1].mNode,
+									      'aimVector':v_aim}}
+							for d in d_tomake.keys():
+							    d_sub = d_tomake[d]
+							    str_target = d_sub['target']
+							    mi_loc = mObj.doLoc()
+							    mi_loc.addAttr('cgmTypeModifier',d,lock=True)
+							    mi_loc.doName()
+							    mi_loc.parent = d_current['zeroGroup']
+							    d_sub['aimLoc'] = mi_loc
+							    v_aimVector = d_sub['aimVector']
+							    if str_side == 'right':
+								v_aimVector = cgmMath.multiplyLists([v_aimVector,[-1,-1,-1]])
+							    mc.aimConstraint(str_target,mi_loc.mNode,
+									     maintainOffset = True,
+									     weight = 1,
+									     aimVector = v_aimVector, upVector = v_up,
+									     worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )
+							mc.orientConstraint([d_tomake['aimIn']['aimLoc'].mNode, d_tomake['aimOut']['aimLoc'].mNode],str_offsetGroup,maintainOffset = True)					
+						    else:
+							ml_targets = [ml_rigJoints[obj_idx+1]]	
+							mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup,
+									 maintainOffset = True, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )				    
+					    except Exception,error:raise StandardError,"Loc setup. | error : %s"%(error)
+					    '''
+					except Exception,error:raise StandardError,"!%s! | %s"%(str_mode,error)					    
+					    
+				    elif str_mode == 'pointBlend':
+					try:
+					    try:#See if we have a handle return
+						ml_targets = d_buffer['targets']
+						d_current = self.md_attachReturns[mObj]
+						#mi_followLoc = d_current['followLoc']
+						mi_controlLoc = d_current['controlLoc']					    
+					    except Exception,error:raise StandardError,"!Query '%s'! |  %s"%(str_key,error)
+					    
+					    try:#>> Attach  loc  --------------------------------------------------------------------------------------
+						mc.pointConstraint([mObj.mNode for mObj in ml_targets],mi_controlLoc.mNode,maintainOffset = True)
+					    except Exception,error:raise StandardError,"Failed to attach to crv. | error : %s"%(error)	
+					except Exception,error:raise StandardError,"!%s! | %s"%(str_mode,error)					    
+				    else:
+					raise NotImplementedError,"mode: %s"%str_mode
 		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)			    
 	    except Exception,error:  raise StandardError,"connect_fromDict | %s"%(error)	
 	    
@@ -2224,7 +2282,7 @@ def build_rig(*args, **kws):
 			    mi_obj.doName()
 			    mi_go._i_rigNull.connectChildNode(mi_obj,"%sCrv"%str_name,'module')			    
 			except Exception,error:raise StandardError,"Naming | %s"%(error)
-			self.log_infoNestedDict('d_buffer')
+			#self.log_infoNestedDict('d_buffer')
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)
 	    except Exception,error:raise StandardError,"create_curvesFromDict | %s"%(error)
 	    
