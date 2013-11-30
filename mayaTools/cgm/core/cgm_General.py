@@ -20,6 +20,7 @@ def testFunc(*args, **kws):
     	    self._str_funcName = 'testFunc'	
     	    self.int_test = 10000
     	    #self._b_autoProgressBar = 1
+	    #self._b_reportTimes = 1
     	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'stringTest',"default":None}]	    
     	    self.__dataBind__(*args, **kws)
     	    self.l_funcSteps = [{'step':'Our first step','call':self.testSubFunc},
@@ -45,6 +46,7 @@ def testFunc(*args, **kws):
 reload(cgmGeneral)
 testFunc()
 testFunc(printHelp = True)#Let's you see a break down of the arg/kws of a function
+testFunc(reportTimes = True,reportEnv = True)#Here we wanna see the enviornment report as well
 testFunc(reportTimes = True)#Show times for steps of functions
 testFunc(reportShow = True)#Show a report of a function before running it
 testFunc(autoProgressBar = True)#automatically generate a progress bar of the steps of a function
@@ -94,16 +96,17 @@ class cgmFuncCls(object):
         self._str_funcDebug = None
 	self._b_WIP = False
 	self._b_autoProgressBar = False
+	self._b_reportTimes = False
 	self._l_ARGS_KWS_DEFAULTS = []
 	self.d_kws  = {}
 	self.l_funcSteps = []
 	self.d_return = {}
 	self._str_modPath = None
 	self._str_mod = None	
-	self._d_stepTimes = {}
+	self._l_funcTimes = []
 	#These are our mask so that the fail report ignores them
 	self._l_reportMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
-	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_d_stepTimes','_l_ARGS_KWS_DEFAULTS',
+	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                     '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
 	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                    '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
@@ -142,13 +145,13 @@ class cgmFuncCls(object):
 	
 	self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'reportShow',"default":False,'help':"(BUILTIN) - show report at start of log","argType":"bool"},
                                          {'kw':'reportTimes',"default":False,'help':"(BUILTIN) - show step times in log","argType":"bool"},
+	                                 {'kw':'reportEnv',"default":False,'help':"(BUILTIN) - Override. Just get maya env info","argType":"bool"},
+	                                 {'kw':'printHelp',"default":False,'help':"(BUILTIN) - Override.  Get help block for func","argType":"bool"},
                                          {'kw':'autoProgressBar',"default":False,'help':"(BUILTIN) - show generated progress bar by steps","argType":"bool"}])
 	    
-	if self._b_WIP or self.d_kws.get('reportShow'):
-	    self.report()
-	if self.d_kws.get('autoProgressBar'):
-	    self._b_autoProgressBar = True
-	    
+	if self.d_kws.get('autoProgressBar'):self._b_autoProgressBar = True
+	if self.d_kws.get('reportTimes'):self._b_reportTimes = True
+		
     def __func__(self,*args,**kws):
 	raise StandardError,"%s No function set"%self._str_reportStart
         
@@ -205,9 +208,9 @@ class cgmFuncCls(object):
 			    l_bufferKeys = buffer.keys()
 			    l_bufferKeys.sort()
 			    for k2 in buffer.keys():
-				log.info("-"*2 + " '%s' : %s "%(k2,buffer[k2]))			
+				log.info(" -- " + " '%s' : %s "%(k2,buffer[k2]))			
 			else:
-			    log.info(">"*1 + " '%s' : %s "%(k,self.__dict__[k]))
+			    log.info(" - " + " '%s' : %s "%(k,self.__dict__[k]))
 		if self._b_WIP:
 		    log.info(">"*40 + " WIP CODE " + "<"*40)
 		self.reportEnviornment()
@@ -218,21 +221,26 @@ class cgmFuncCls(object):
 		raise StandardError, "%s >!FAILURE!> %s"%(self._str_funcCombined,_str_fail)
 	    t2 = time.clock()
 	    _str_time = "%0.3f seconds"%(t2-t1)
-	    self._d_stepTimes[_str_step] = _str_time
-	    if int_max != 0 and self.d_kws.get('reportTimes'): log.info("%s | '%s' >> Time >> = %0.3f seconds " % (self._str_funcCombined,_str_step,(t2-t1)))		
+	    self._l_funcTimes.append([_str_step,_str_time])	
 	self.progressBar_end()
 	mc.undoInfo(closeChunk=True)	
-	
-	if self.d_kws.get('reportTimes'):
-	    log.info("%s >> Complete Time >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)))		
+	#Reporting and closing out =========================================================================
+	if self._b_WIP or self.d_kws.get('reportShow'):
+	    self.report()	
+	if int_max != 0 and self._b_reportTimes:
+	    log.info("%s Step Times >> "%self._str_funcCombined + '-'*70)			    
+	    for pair in self._l_funcTimes:
+		log.info(" - '%s' >>  %s " % (pair[0],pair[1]))				 
+	    log.info("Total >> = %0.3f seconds " % ((time.clock()-t_start)))		
 	if int_max == 0:#If it's a one step, return, return the single return
 	    try:return self.d_return[self.d_return.keys()[0]]
 	    except:pass
+	if self.d_kws.get('reportEnv') and not self.d_kws.get('reportShow'):
+	    self.reportEnviornment()   	
 	for k in self.d_return.keys():#Otherise we return the first one with actual data
 	    buffer = self.d_return.get(k)
 	    if buffer:
 		return buffer
-	    
 	return self.d_return
     
     def report(self):
@@ -268,21 +276,20 @@ class cgmFuncCls(object):
 	    for i,d in enumerate(self.l_funcSteps):
 		try:log.info("'%s' : %s "%(i,d.get('step')))
 		except:pass
-	self.reportEnviornment()
 	if self._b_WIP:
 	    log.info(">"*40 + " WIP Function " + "<"*40)	  	    
 	log.info("#" + "-" *100)
     
     def reportEnviornment(self):
 	log.info("/"*3 + " Enviornment Info " + "/"*3 + "-"*75)	
-	log.info(">" + " Python Module: %s "%self._str_modPath)
-	try:log.info(">" + " Python Module Version: %s "%self.mod.__version__)
+	log.info("--" + " Python Module: %s "%self._str_modPath)
+	try:log.info("--" + " Python Module Version: %s "%self.mod.__version__)
 	except:pass
 	#log.info("/"*3 + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
 	for kw in ['cutIdentifier','version','apiVersion','file','product','date',
                    'application','buildDirectory','environmentFile','operatingSystem',
                    'operatingSystemVersion','codeset']:
-	    try:log.info(">" + " Maya %s : %s "%(kw, mel.eval( 'about -%s'%kw )))	
+	    try:log.info("--" + " Maya %s : %s "%(kw, mel.eval( 'about -%s'%kw )))	
 	    except Exception,error:self.log_error("%s | %s"%(kw,error))	
 	
     def reportArgsKwsDefaults(self):
@@ -342,7 +349,7 @@ class cgmFuncCls(object):
     def log_warning(self,arg):
 	try:
 	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
-	except:pass
+	except:pass	
 	
     #>>> Progress bar stuff =====================================================================
     def progressBar_start(self,stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = False):
@@ -404,17 +411,23 @@ class cgmFuncCls(object):
 		    log.warning("Key not found or not dict: %s | %s"%(atr,error))
 	except:pass
 	
-class cgmFunctionClass2(object):
-    """Simple class for use with TimerSimple"""
-    def __init__(self,*args, **kws):
-        self._str_funcClass = 'Default cgmFunctionClass'	
-        self._str_funcName = 'Default func'
-        self._str_funcStep = 'Default sub'
-        self._str_funcDebug = 'Default debug'
-	try:self._str_funcArgs = "%s"%args
-	except:self._str_funcArgs = None
-	try:self._str_funcKWs = "%s"%kws
-	except:self._str_funcKWs = None
+#>>> Sub funcs ==============================================================================
+def subTimer(func):
+    '''
+    Simple timer decorator 
+    -- Taken from red9 and modified. Orignal props to our pal Mark Jackson
+    '''
+    def wrapper( *args, **kws):
+	t1 = time.time()
+	res=func(*args,**kws) 
+	t2 = time.time()
+	log.info("here!")
+	functionTrace=func.__name__ 
+	_str_time = "%0.3f seconds"%(t2-t1)
+	self._l_funcTimes.append([functionTrace,_str_time])	
+	return res
+    return wrapper  
+
 
 """
 example subFunctionClass(object)
@@ -422,8 +435,7 @@ class sampleClass(cgmFunctionClass):
     def __init__(self,*args, **kws):
         super(sampleClass, self).__init__(*args, **kws)
 """
-        
-        
+         
 def funcClassWrap(funcClass):
     '''
     Simple timer decorator 
