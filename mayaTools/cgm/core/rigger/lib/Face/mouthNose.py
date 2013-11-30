@@ -590,8 +590,10 @@ def build_rig(*args, **kws):
 	def __init__(self,*args, **kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = 'build_rig(%s)'%self.d_kws['goInstance']._strShortName	
+	    self._b_reportTimes = True
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
+	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	                        	                        
 	                        {'step':'Lip build','call':self._buildLips_},
 	                        {'step':'NoseBuild','call':self._buildNose_},
 	                        {'step':'Cheek build','call':self._buildCheeks_},
@@ -670,7 +672,8 @@ def build_rig(*args, **kws):
 		#>> Jaw --------------------------------------------------------------------------------------------------
 		b_buildJawLine = True	    
 		d_jawBuild = {'jawAnchor':{"left":{},"right":{},'check':ml_handleJoints},
-		              'jaw':{'check':ml_handleJoints},
+		              'jawHandle':{'check':ml_handleJoints,'tag':'jaw'},
+		              'jawRig':{'check':ml_rigJoints,'tag':'jaw'},		              
 		              'jawLine':{"left":{},"right":{},"center":{},'check':ml_rigJoints,'checkToggle':b_buildJawLine}}
 		_l_buildDicts.append(d_jawBuild)
 		    
@@ -756,6 +759,140 @@ def build_rig(*args, **kws):
 
 	    return True
 	
+	def _buildSkullDeformation_(self):
+	    """
+	    Plan of attack
+	    1) See if we have stretch setup stuff
+	    2) Build simple head def if not
+	    """	    
+	    try:#>> Get some data =======================================================================================
+		mi_go = self._go#Rig Go instance link
+		str_skullPlate = self.str_skullPlate
+		f_offsetOfUpLoc = self.f_offsetOfUpLoc
+		mi_helper = self.mi_helper
+	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
+	    
+	    try:#>> Simple def=======================================================================================
+		self._buildSimpleSkullDeformation_()
+	    except Exception,error:raise StandardError,"!_buildSimpleSkullDeformation_! | %s"%(error)	
+	    
+	def _buildSimpleSkullDeformation_(self):
+	    """
+	    Plan of attack
+	    1) See if we have stretch setup stuff
+	    2) Build simple head def if not
+	    """	    
+	    try:#>> Get some data =======================================================================================
+		mi_go = self._go#Rig Go instance link
+		str_skullPlate = self.str_skullPlate
+		f_offsetOfUpLoc = self.f_offsetOfUpLoc
+		mi_helper = self.mi_helper
+		
+		self.d_buffer = {}
+		d_ = self.d_buffer
+		mi_jawPivotCrv = self.mi_jawPivotCrv
+		mi_squashStartCrv = self.mi_squashStartCrv
+		mi_jawHandle = self.md_rigList['jawHandle'][0]
+		mi_jawRig = self.md_rigList['jawRig'][0]	
+		mi_chinHandle = self.md_rigList['chin'][0]		
+		
+		f_lenJawLine = distance.returnCurveLength(self.mi_jawLineCrv.mNode)
+		d_['f_lenJawLine'] = f_lenJawLine
+		d_['mi_jawHandle'] = mi_jawHandle
+		d_['mi_jawRig'] = mi_jawRig
+		
+	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
+	    
+	    try:#>> Simple def=======================================================================================	
+		try:#Dups
+		    f_halfLen = f_lenJawLine/2
+		    f_quarterLen = f_lenJawLine/4		    
+		    d_jointsToCreate = {'faceBaseDef':{'toDup':mi_squashStartCrv,'parent' : False,
+		                                       'offsetChildren':[[f_quarterLen,0,-f_quarterLen],[-f_quarterLen,0,-f_quarterLen],
+		                                                         [0,-f_quarterLen,-f_quarterLen]]},
+		                        'stableJaw':{'toDup':mi_jawRig,'parent' : False,'skin':False,
+		                                     'offsetChildren':[[0,0,f_quarterLen]]},		                        
+		                        'uprHeadDef':{'toDup':mi_squashStartCrv,'parent' : False,
+		                                      'offsetChildren':[[0,f_halfLen,0],[0,0,-f_halfLen],
+		                                                        [f_quarterLen,f_quarterLen,-f_quarterLen],[-f_quarterLen,f_quarterLen,-f_quarterLen],
+		                                                        [f_quarterLen,0,0],[-f_quarterLen,0,0]]},		                        
+		                        'jawDef':{'toUse':mi_jawRig,
+		                                  'offsetChildren':[[f_quarterLen,0,0],[-f_quarterLen,0,0],
+		                                                    [0,-f_quarterLen,f_quarterLen]]},		                        
+		                        'chinDef':{'toDup':mi_chinHandle,'parent': mi_jawRig}}
+		    ml_skinJoints = []
+		    for k_tag in d_jointsToCreate.iterkeys():
+			try:#Query
+			    d_sub = d_jointsToCreate[k_tag]
+			    _d = {}
+			    self.d_buffer = _d
+			    str_tmp = "mi_%s"%k_tag
+			    _d['str_tmp'] = str_tmp
+			    _skin = d_sub.get('skin')
+			    if _skin is None: _skin = True
+			    _d['_skin'] = _skin
+			except Exception,error:raise StandardError,"!Query! | %s"%(error)
+			
+			if d_sub.get('toDup'):
+			    mJoint = cgmMeta.cgmObject(mc.joint(p = d_sub['toDup'].getPosition()),setClass=True)
+			    mJoint.addAttr('cgmName',d_sub.get('name') or k_tag,lock=True)			
+			    if _skin:mJoint.doStore('cgmTypeModifier','skullDef',True)
+			    mJoint.doName()
+			    mJoint = mJoint
+			    mJoint.parent = d_sub.get('parent') or False
+			    self.md_rigList[k_tag] = [mJoint]#Push back to rigList by tag
+			    if _skin:ml_skinJoints.append(mJoint)
+			    d_[str_tmp] = mJoint
+			    mc.select(cl=True)
+			elif d_sub.get('toUse'):
+			    mJoint = d_sub.get('toUse')
+			    d_[str_tmp] = mJoint
+			    
+			l_offsets = d_sub.get('offsetChildren') or []
+			
+			if l_offsets:
+			    mi_loc =  mJoint.doLoc()
+			    mi_loc.doGroup()
+			    ml_children = []
+			    
+			    for i,pos in enumerate(l_offsets):
+				log.info(pos) 
+				mi_loc.translate = pos
+				mObj = cgmMeta.cgmObject(mc.joint(p = mi_loc.getPosition()),setClass=True)
+				mObj.parent = mJoint
+				ml_children.append(mObj)
+				mObj.doName()
+				if _skin:ml_skinJoints.append(mObj)
+			    mc.delete(mi_loc.parent)
+			self.log_infoNestedDict('d_buffer')
+		    try:
+			self.md_rigList['uprHeadDef'][0].parent = self.md_rigList['faceBaseDef'][0]
+			self.md_rigList['stableJaw'][0].parent = self.md_rigList['faceBaseDef'][0]			
+			mi_jawRig.parent = self.md_rigList['faceBaseDef'][0]	
+		    except Exception,error:raise StandardError,"!post parenting! | %s"%(error)
+			
+		except Exception,error:raise StandardError,"!def duplication! | %s"%(error)	
+		
+		self.log_infoNestedDict('d_buffer')
+	    except Exception,error:raise StandardError,"!Get Joints! | %s"%(error)	
+	    
+	    try:#>> Skin  =======================================================================================
+		d_build = {'lwrLipBase':{'target':self.mi_skullPlate,'mi':10,'dr':6,
+		                         'bindJoints':ml_skinJoints + [mi_jawRig]}}
+		self.skin_fromDict(d_build)
+		
+	    except Exception,error:raise StandardError,"!Skin skull! | error: %s"%(error)	
+	    
+	    try:#>> Connect  =======================================================================================
+		mc.parentConstraint(mi_jawHandle.mNode,mi_jawRig.mNode)
+		mc.scaleConstraint(mi_jawHandle.mNode,mi_jawRig.mNode)
+	    except Exception,error:raise StandardError,"!Connect! | error: %s"%(error)
+	    
+	    try:#>> StableJaw  =======================================================================================
+		mc.orientConstraint(mi_jawRig.mNode,self.md_rigList['stableJaw'][0].mNode,skip = ["%s"%mi_go._jointOrientation[2]])
+		self.md_rigList['stableJaw'][0].rotateOrder = mi_go._jointOrientation
+	    except Exception,error:raise StandardError,"!Stable! | error: %s"%(error)
+	    
 	def _buildAttachSurfaces_(self):
 	    #>> Get some data =======================================================================================
 	    """
@@ -948,23 +1085,52 @@ def build_rig(*args, **kws):
 		md_ribbonBuilds = {'nostril':{'extrudeCrv':self.mi_noseBaseCastCrv,
 		                              'joints':self.md_rigList['sneerHandle']['left'] + self.md_rigList['sneerHandle']['right']}}	
 		self.create_ribbonsFromDict(md_ribbonBuilds)
-	    except Exception,error:raise StandardError,"Ribbons | %s"%(error)
+	    except Exception,error:raise StandardError,"!Ribbons! | %s"%(error)
 		
 	    try:#Build plates --------------------------------------------------------------------------------------
 		md_plateBuilds = {'nose':{'crvs':[self.mi_noseTopCastCrv,self.mi_noseMidCastCrv,self.mi_noseBaseCastCrv,self.mi_mouthTopCastCrv]}}
 		self.create_plateFromDict(md_plateBuilds)
-	    except Exception,error:raise StandardError,"Plates | %s"%(error)
-
+	    except Exception,error:raise StandardError,"!Plates! | %s"%(error)
+	    """
+	    try:#Build Tracklocs ===================================================================================================
+		str_base = 'noseMove'
+		d_trackLocs = {'target':self.md_rigList['noseMoveHandle'][0],
+	                       'tags':['stable','def']}
+		for str_tag in d_trackLocs['tags']:
+		    try:
+			mi_loc = d_trackLocs['target'].doLoc()
+			mi_loc.addAttr('cgmTypeModifier',str_tag)
+			mi_loc.doName()
+			str_tmp = '%s%sLoc'%(str_base,str_tag.capitalize())
+			
+			try:
+			    i_masterGroup = (cgmMeta.cgmObject(mi_loc.doGroup(True),setClass=True))
+			    i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
+			    i_masterGroup.doName()
+			    mi_loc.connectChildNode(i_masterGroup,'masterGroup','groupChild')			
+			except Exception,error:raise StandardError,"!masterGroup! | %s"%(error)
+			
+			self.log_info("'%s' created"%str_tmp)
+			
+			self.md_rigList[str_tmp] = [mi_loc]
+			self.__dict__['mi_%s'%str_tmp] = mi_loc
+			d_trackLocs['target'].connectChildNode(mi_loc,'%sLoc'%str_tag,'owner')
+		    except Exception,error:raise StandardError,";%s' !loc setup! | %s"%(str_tag,error)
+		    
+	    except Exception,error:raise StandardError,"!Track locs! | %s"%(error)
+	    """
+	    
 	    try:#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
 		str_nosePlate = self.mi_nosePlate.p_nameShort
 		str_nostrilRibbon = self.mi_nostrilRibbon.p_nameShort	    
 		try:str_noseMoveMasterGroup = self.md_rigList['noseMoveRig'][0].masterGroup.p_nameShort
 		except Exception,error:raise StandardError,"NoseMove master group find fail | %s"%(error)
 		#'nostrilHandle':{'attachTo':str_nosePlate,'mode':'handleAttach'}
-		
 		d_build = {'nostrilRig':{'attachTo':str_nosePlate},
 		           'nostrilHandle':{'attachTo':str_nostrilRibbon,'mode':'handleAttach'},
-		           'noseMoveHandle':{'mode':'handleAttach'},
+		           'noseMoveHandle':{'mode':'blendAttach','defaultValue':.1,'followSuffix':'Jaw'},
+		           #'noseMoveStableLoc':{'mode':'stableAttach'},
+		           #'noseMoveDefLoc':{'mode':'handleAttach'},		           
 		           'noseMoveRig':{},	               
 		           'noseTipRig':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseTipHandle'][0]},
 		           'noseTipHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0]},
@@ -972,10 +1138,9 @@ def build_rig(*args, **kws):
 		           'noseUnderHandle':{'mode':'parentOnly','attachTo':None,'parentTo':str_noseMoveMasterGroup},
 		           'noseTopRig':{},
 		           'noseTopHandle':{'mode':'handleAttach'}
-		           }	
+		           }
 		self.attach_fromDict(d_build)
-	    except Exception,error:raise StandardError,"Attach | %s"%(error)
-	    
+	    except Exception,error:raise StandardError,"!Attach! | %s"%(error)
 	    
 	    #self.log_infoNestedDict('md_attachReturns')
 	    try:#>> Skin nose  =======================================================================================
@@ -997,7 +1162,7 @@ def build_rig(*args, **kws):
 		i_cluster.doStore('cgmName',str_nosePlate)
 		i_cluster.doName()
 		
-	    except Exception,error:raise StandardError,"Skin nose plate| error: %s"%(error)		
+	    except Exception,error:raise StandardError,"!Skin nose plate| %s"%(error)		
 	    
 	    try:#>> Skin nostril Move =======================================================================================
 		try:#Build list
@@ -1016,7 +1181,7 @@ def build_rig(*args, **kws):
 		i_cluster.doStore('cgmName',str_nostrilRibbon)
 		i_cluster.doName()
 		
-	    except Exception,error:raise StandardError,"Skin nose plate| error: %s"%(error)	
+	    except Exception,error:raise StandardError,"!Skin nostril plate! | %s"%(error)	
 	    
 	    #>>> Connect build dict ==================================================================
 	    d_build = {'noseMove':{},
@@ -1053,7 +1218,7 @@ def build_rig(*args, **kws):
 			
 		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)
 		    
-	    except Exception,error:  raise StandardError,"Connect rig>handle | %s"%(error)	
+	    except Exception,error:  raise StandardError,"!Connect rig>handle! | %s"%(error)	
 			
 	    try:#>> Nose Move =======================================================================================
 		self.progressBar_set(status = "Setting up nose move")
@@ -1078,6 +1243,48 @@ def build_rig(*args, **kws):
 		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)
 		
 		'''
+		try:#Blend move handle
+		    #Query
+		    mi_handle = self.md_rigList['noseMoveHandle'][0]		    
+		    mi_stableLoc = self.md_rigList['noseMoveStableLoc'][0]
+		    mi_defLoc = self.md_rigList['noseMoveDefLoc'][0]
+		    mi_faceDef = self.md_rigList['faceBaseDef'][0]
+		    
+		    self.d_buffer['mi_handle'] = mi_handle		    
+		    self.d_buffer['mi_stableLoc'] = mi_stableLoc
+		    self.d_buffer['mi_defLoc'] = mi_defLoc
+		    self.d_buffer['mi_faceDef'] = mi_faceDef
+		    
+		    try:#Constrain the stable loc to the face
+			mi_controlLoc = self.md_attachReturns[mi_stableLoc]['controlLoc']
+			mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
+		    except Exception,error:raise StandardError,"!Stable loc controlLoc! | %s"%(error)
+		    
+		    try:#Create constrain the handle master Group
+			str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
+			                                           maintainOffset = True)[0]
+		    except Exception,error:raise StandardError,"!Parent Constraint! | %s"%(error)
+		    
+		    try:
+			#EndBlend
+			d_blendFollowReturn = NodeF.createSingleBlendNetwork([mi_handle.mNode,'followDeformation'],
+			                                                     [mi_handle.mNode,'resultStableFollow'],
+			                                                     [mi_handle.mNode,'resultDefFollow'],
+			                                                     keyable=True)
+			l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
+			#Connect                                  
+			d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
+			d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
+			d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
+			d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True			
+		    except Exception,error:raise StandardError,"!Blend setup! | %s"%(error)
+		    
+		except Exception,error:
+		    self.log_infoNestedDict('d_buffer')
+		    raise StandardError,"!Setup follow loc blend!| : %s"%(error)'''		
+		
+		
+		'''
 		try:#Create the brow up loc and parent it to the 
 		    mi_browFrontUpLoc = mi_offsetGroup.doLoc()
 		    mi_browFrontUpLoc.parent = mi_offsetGroup.parent
@@ -1086,7 +1293,7 @@ def build_rig(*args, **kws):
 		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)
 		'''
 	    except Exception,error:
-		raise StandardError,"Center Nose | %s"%(error)
+		raise StandardError,"!Center Nose! | %s"%(error)
 	    
 	def _buildLips_(self):
 	    #>> Get some data =======================================================================================
@@ -1406,7 +1613,7 @@ def build_rig(*args, **kws):
 		'mouthMove':{'check':ml_handleJoints},	 
 		}
 		'''
-		d_build = {'mouthMove':{'mode':'handleAttach'},
+		d_build = {'mouthMove':{'mode':'blendAttach','defaultValue':.3,'followSuffix':'Jaw'},
 		           'mouthMoveTrackLoc':{},
 		           'chin':{'mode':'handleAttach'},		           
 		           'lipUprRig':{'mode':'handleAttach','attachTo':str_uprLipFollowPlate},
@@ -1822,6 +2029,13 @@ def build_rig(*args, **kws):
 	    return mc.rebuildCurve (crv.mNode, ch=0, rpo=rpo, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_spans, d=3, tol=0.001)[0]		
 
 	def attach_fromDict(self,d_build):
+	    """
+	    modes
+	    rigAttach -- attaches follicle with control loc attached
+	    handleAttach -- no control loc, just attach driver with constraint
+	    blendAttach -- creates two attach points and a blend between the two -- mainly for the main movers (mouth, nose, eyes)
+	    slideAttach -- control loc unattached, 
+	    """
 	    try:#>> Attach  =======================================================================================
 		mi_go = self._go#Rig Go instance link
 		str_skullPlate = self.str_skullPlate
@@ -1899,9 +2113,106 @@ def build_rig(*args, **kws):
 						                                    parentToFollowGroup = False,
 						                                    orientation = mi_go._jointOrientation)
 					    self.md_attachReturns[mObj] = d_return					
-					except Exception,error:raise StandardError,"Handle attach. | error : %s"%(error)		    
-					#log.info("%s mode attached : %s"%(str_mode,mObj.p_nameShort))				
-				    
+					except Exception,error:raise StandardError,"Handle attach. | error : %s"%(error)
+					
+				    elif str_mode == 'blendAttach' and _attachTo:
+					try:#Blend attach ==================================================================================
+					    try:#Query ---------------------------------------------------------------------------------------
+						_d = {'handle':mObj,
+						      'stableJaw':self.md_rigList['stableJaw'][0]}
+						self.d_buffer = _d
+						_defaultValue = d_use.get('defaultValue') or None
+						_suffix = d_use.get('followSuffix') or 'Deformation'
+					    except Exception,error:raise StandardError,"!Query! | %s"%(error)	
+						
+					    try:#Build Tracklocs -----------------------------------------------------------------------------
+						str_base = mObj.getAttr('cgmName') or 'NONAMETAG'
+						d_trackLocs = {'stable':{'attachControlLoc':False,'parentToFollowGroup':False},
+						               'def':{'attachControlLoc':True,'parentToFollowGroup':True}}
+						for str_tag in d_trackLocs.iterkeys():
+						    try:
+							d_sub = d_trackLocs[str_tag]
+							mi_loc = mObj.doLoc()
+							mi_loc.addAttr('cgmTypeModifier',str_tag)
+							mi_loc.doName()
+							str_tmp = '%s%sLoc'%(str_base,str_tag.capitalize())
+							_d['%sLoc'%str_tag] = mi_loc
+							'''
+							try:
+							    i_masterGroup = (cgmMeta.cgmObject(mi_loc.doGroup(True),setClass=True))
+							    i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
+							    i_masterGroup.doName()
+							    mi_loc.connectChildNode(i_masterGroup,'masterGroup','groupChild')			
+							except Exception,error:raise StandardError,"!masterGroup! | %s"%(error)
+							'''
+							try:#Attach
+							    d_return = surfUtils.attachObjToSurface(objToAttach = mi_loc,
+								                                    targetSurface = _attachTo,
+								                                    createControlLoc = True,
+								                                    createUpLoc = False,	
+								                                    attachControlLoc = d_sub.get('attachControlLoc'),
+								                                    parentToFollowGroup = d_sub.get('parentToFollowGroup'),
+								                                    orientation = mi_go._jointOrientation)
+							    self.md_attachReturns[mi_loc] = d_return								
+							except Exception,error:raise StandardError,"!Attach! | %s"%(error)
+							
+							self.log_info("'%s' created"%str_tmp)
+							
+							self.md_rigList[str_tmp] = [mi_loc]
+							self.__dict__['mi_%s'%str_tmp] = mi_loc
+							mObj.connectChildNode(mi_loc,'%sLoc'%str_tag,'owner')
+						    except Exception,error:raise StandardError,"!'%s' loc setup! | %s"%(str_tag.error)				
+					    except Exception,error:raise StandardError,"!Track locs! | %s"%(error)	
+					    try:#Blend Setup -----------------------------------------------------------------------------
+						#Query
+						mi_handle = _d['handle']		    
+						mi_stableLoc = _d['stableLoc']
+						mi_defLoc = _d['defLoc']
+						mi_stableDef = _d['stableJaw']
+
+						try:#Constrain the stable loc to the face
+						    mi_controlLoc = self.md_attachReturns[mi_stableLoc]['controlLoc']
+						    #mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
+						    mi_controlLoc.parent = mi_stableDef
+						except Exception,error:raise StandardError,"!Stable loc controlLoc! | %s"%(error)
+						
+						try:#Create constrain the handle master Group
+						    str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
+							                                       maintainOffset = True)[0]
+						except Exception,error:raise StandardError,"!Parent Constraint! | %s"%(error)
+						
+						try:
+						    #EndBlend
+						    d_blendFollowReturn = NodeF.createSingleBlendNetwork([mi_handle.mNode,'follow%s'%_suffix.capitalize()],
+							                                                 [mi_handle.mNode,'resultStableFollow'],
+							                                                 [mi_handle.mNode,'resultDefFollow'],
+							                                                 keyable=True)
+						    l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
+						    #Connect                                  
+						    d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
+						    d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
+						    d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
+						    d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True	
+						    if _defaultValue is not None:
+							d_blendFollowReturn['d_driver']['mi_plug'].p_defaultValue = _defaultValue
+							d_blendFollowReturn['d_driver']['mi_plug'].value = _defaultValue
+						except Exception,error:raise StandardError,"!Blend! | %s"%(error)
+						
+					    except Exception,error:
+						self.log_infoNestedDict('d_buffer')
+						raise StandardError,"!Setup follow loc blend!| : %s"%(error)
+					except Exception,error:raise StandardError,"!Blend Attach Mode! | %s"%(error)	
+				    elif str_mode == 'slideAttach' and _attachTo:
+					try:
+					    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+					                                            targetSurface = _attachTo,
+					                                            createControlLoc = True,
+					                                            createUpLoc = True,	
+					                                            attachControlLoc = False,
+					                                            parentToFollowGroup = False,
+					                                            orientation = mi_go._jointOrientation)
+					    self.md_attachReturns[mObj] = d_return					
+					except Exception,error:raise StandardError,"Handle attach. | error : %s"%(error)	
 				    elif str_mode == 'parentOnly':
 					try:mObj.masterGroup.parent = _parentTo
 					except Exception,error:raise StandardError,"parentTo. | error : %s"%(error)		    
@@ -2095,11 +2406,12 @@ def build_rig(*args, **kws):
 			try:#Build list
 			    __target = d_build[str_tag]['target']
 			    __bindJoints = d_build[str_tag]['bindJoints']
-			    
+			    __mi = d_build[str_tag].get('mi') or 5
+			    __dr = d_build[str_tag].get('dr') or 7
 			except Exception,error:raise StandardError,"get data | %s"%(error)
 			
 			try:#Cluster
-			    ret_cluster = mc.skinCluster([mObj.mNode for mObj in [__target] + __bindJoints], tsb = True, normalizeWeights = True, mi = 4, dr = 5)
+			    ret_cluster = mc.skinCluster([mObj.mNode for mObj in [__target] + __bindJoints], tsb = True, normalizeWeights = True, mi = __mi, dr = __dr)
 			    i_cluster = cgmMeta.cgmNode(ret_cluster[0],setClass=True)
 			    i_cluster.doStore('cgmName',__target.mNode)
 			    i_cluster.doName()		
