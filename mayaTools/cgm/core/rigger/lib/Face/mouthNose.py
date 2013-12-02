@@ -595,8 +595,8 @@ def build_rig(*args, **kws):
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	                        	                        
 	                        {'step':'Lip build','call':self._buildLips_},
-	                        {'step':'NoseBuild','call':self._buildNose_},
-	                        {'step':'Cheek build','call':self._buildCheeks_},
+	                        #{'step':'NoseBuild','call':self._buildNose_},
+	                        #{'step':'Cheek build','call':self._buildCheeks_},
 	                        #{'step':'Lock N hide','call':self._lockNHide_},
 	                        
 	                        ]	
@@ -1625,7 +1625,8 @@ def build_rig(*args, **kws):
 		           'lipLwrRig':{'mode':'handleAttach','attachTo':str_lwrLipFollowPlate},
 		           'lipUnderRig':{'mode':'handleAttach','attachTo':str_lwrLipPlate},		           
 		           'lipLwrHandle':{'mode':'handleAttach', 'attachTo':str_lwrLipRibbon,
-		                           'center':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode}},
+		                           'center':{'mode':'blendAttach','defaultValue':.9,
+		                                     'followSuffix':'Jaw','target0':mi_mouthMoveTrackLoc}},
 		           }		
 		'''
 		d_build = {'nostrilRig':{'attachTo':str_nosePlate},
@@ -1642,6 +1643,18 @@ def build_rig(*args, **kws):
 		'''
 		self.attach_fromDict(d_build)
 	    except Exception,error:raise StandardError,"!Attach! | %s"%(error)
+	    
+	    try:#>> UprLip Center follow  =======================================================================================
+		mObj = self.md_rigList['lipUprHandle']['center'][0]
+		mi_offsetGroup = mObj.duplicateTransform()
+		mi_offsetGroup.doStore('cgmName',mObj.mNode)
+		mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
+		mi_offsetGroup.doName()
+		mObj.connectChildNode(mi_offsetGroup,"offsetGroup","childObject")
+		
+		mc.pointConstraint([self.md_rigList['lipCornerHandle']['left'][0].mNode,self.md_rigList['lipCornerHandle']['right'][0].mNode],
+		                   mi_offsetGroup.mNode,skip = ["%s"%str_axis for str_axis in mi_go._jointOrientation[0,2]])
+	    except Exception,error:raise StandardError,"!Center upr lip offsetgroup! | %s"%(error)
 	    
 	    #self.log_infoNestedDict('md_attachReturns')
 
@@ -2118,8 +2131,9 @@ def build_rig(*args, **kws):
 				    elif str_mode == 'blendAttach' and _attachTo:
 					try:#Blend attach ==================================================================================
 					    try:#Query ---------------------------------------------------------------------------------------
+						_target0 = d_use.get('target0') or self.md_rigList['stableJaw'][0]
 						_d = {'handle':mObj,
-						      'stableJaw':self.md_rigList['stableJaw'][0]}
+						      'target0':_target0}
 						self.d_buffer = _d
 						_defaultValue = d_use.get('defaultValue') or None
 						_suffix = d_use.get('followSuffix') or 'Deformation'
@@ -2129,14 +2143,14 @@ def build_rig(*args, **kws):
 						str_base = mObj.getAttr('cgmName') or 'NONAMETAG'
 						d_trackLocs = {'stable':{'attachControlLoc':False,'parentToFollowGroup':False},
 						               'def':{'attachControlLoc':True,'parentToFollowGroup':True}}
-						for str_tag in d_trackLocs.iterkeys():
+						for str_t in d_trackLocs.iterkeys():
 						    try:
-							d_sub = d_trackLocs[str_tag]
+							d_sub = d_trackLocs[str_t]
 							mi_loc = mObj.doLoc()
-							mi_loc.addAttr('cgmTypeModifier',str_tag)
+							mi_loc.addAttr('cgmTypeModifier',str_t)
 							mi_loc.doName()
-							str_tmp = '%s%sLoc'%(str_base,str_tag.capitalize())
-							_d['%sLoc'%str_tag] = mi_loc
+							str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
+							_d['%sLoc'%str_t] = mi_loc
 							'''
 							try:
 							    i_masterGroup = (cgmMeta.cgmObject(mi_loc.doGroup(True),setClass=True))
@@ -2161,14 +2175,14 @@ def build_rig(*args, **kws):
 							self.md_rigList[str_tmp] = [mi_loc]
 							self.__dict__['mi_%s'%str_tmp] = mi_loc
 							mObj.connectChildNode(mi_loc,'%sLoc'%str_tag,'owner')
-						    except Exception,error:raise StandardError,"!'%s' loc setup! | %s"%(str_tag.error)				
+						    except Exception,error:raise StandardError,"!'%s' loc setup! | %s"%(str_t,error)				
 					    except Exception,error:raise StandardError,"!Track locs! | %s"%(error)	
 					    try:#Blend Setup -----------------------------------------------------------------------------
 						#Query
 						mi_handle = _d['handle']		    
 						mi_stableLoc = _d['stableLoc']
 						mi_defLoc = _d['defLoc']
-						mi_stableDef = _d['stableJaw']
+						mi_stableDef = _d['target0']
 
 						try:#Constrain the stable loc to the face
 						    mi_controlLoc = self.md_attachReturns[mi_stableLoc]['controlLoc']
@@ -2219,8 +2233,8 @@ def build_rig(*args, **kws):
 					#log.info("%s parented : %s"%(str_mode,mObj.p_nameShort))
 				    else:
 					raise NotImplementedError,"mode: %s "%str_mode
-				except Exception,error:  raise StandardError,"%s | %s"%(mObj,error)				
-		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)			    
+				except Exception,error:  raise StandardError,"attaching: %s | %s"%(mObj,error)				
+		    except Exception,error:  raise StandardError,"'%s' | %s"%(str_tag,error)			    
 	    except Exception,error:  raise StandardError,"attach_fromDict | %s"%(error)	
 	    
 	def connect_fromDict(self,d_build):
