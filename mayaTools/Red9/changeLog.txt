@@ -99,6 +99,6 @@ Mod - Red9_Anim - MirrorSetup now has a new checkbox which allows it to remove a
 New - Red9_Anim - SnapTransforms - 'Priority as SnapList' in the hierarchy tab can now be used to say exactly what nodes get snapped during snapTransform. Issue previously is that EVERY node found was snapped making it really slow
 Fix - Red9_Pose - When using the PosePointCloud with a given ref mesh, I now manage the overrides on that geo so it can always be selected in the viewport
 NEW - Red9_Pose - Now respects the 'Priority as SnapList' checkbox. This forces the relative code to ONLY use those nodes in the Node Priority lists when managing in the relative space compensations, everything else is left as the pose data loaded. Gets over a ton of issues on complex rigs!
-
+Fix - Red9_Core - Offset Anim code was failing on animCurves that were part of an animLayer which was muted. These are now caught correctly
 
 

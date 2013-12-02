@@ -23,7 +23,9 @@ import maya.cmds as cmds
 import os
 
 import Red9.core.Red9_Meta as r9Meta
+
 import Red9.startup.setup as r9Setup
+r9Setup.start(Menu=False)
 
 class Test_MetaRegistryCalls():
     
@@ -37,14 +39,15 @@ class Test_MetaRegistryCalls():
          
         #register transforms to the NodeTypes
         r9Meta.registerMClassNodeMapping(nodeTypes='transform')
-        assert r9Meta.getMClassNodeTypes()==['network', 'transform']
+        print r9Meta.getMClassNodeTypes()
+        assert r9Meta.getMClassNodeTypes()==sorted(['network', 'objectSet', 'transform'])
         new=r9Meta.MetaClass(name='newTransformMetaNode', nodeType='transform')
         assert [cmds.nodeType(n.mNode) for n in r9Meta.getMetaNodes()]==['network','transform']  
         
         #reset the NodeTypes
         r9Meta.resetMClassNodeTypes()
         print r9Meta.getMClassNodeTypes()
-        assert r9Meta.getMClassNodeTypes()==['network','objectSet']
+        assert r9Meta.getMClassNodeTypes()==['network','objectSet']#,'HIKCharacterNode']
         assert [cmds.nodeType(n.mNode) for n in r9Meta.getMetaNodes()]==['network'] 
         
     

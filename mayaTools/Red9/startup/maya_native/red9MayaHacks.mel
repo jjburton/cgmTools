@@ -23,7 +23,7 @@ global proc red9HackChannelBox(string $parent)
 	 //hack the ChannelBox RMB popup menu
 	
 	 menuItem -p $parent -d true;
-	 menuItem -label ("Red9 HUD")
+	 menuItem -label ("Red9 : HUD")
 	 	-subMenu true 
 	 	-tearOff true
 	 	-p $parent red9HUDsubmenu;

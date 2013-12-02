@@ -35,28 +35,29 @@ log.setLevel(logging.INFO)
 # Generic Utility Functions ---
 #---------------------------------------------------------------------------------
 
-def forceToString(text):    
+def forceToString(text):
     '''
     simple function to ensure that data can be passed correctly into
     textFields for the UI (ensuring lists are converted)
-    '''       
-    if issubclass(type(text),list):
+    '''
+    if issubclass(type(text), list):
         return ','.join(text)
     else:
         return text
     
 
-def itersubclasses(cls,_seen=None):
+def itersubclasses(cls, _seen=None):
     """
     itersubclasses(cls)
     http://code.activestate.com/recipes/576949-find-all-subclasses-of-a-given-class/
     Iterator to yield full inheritance from a given class, including subclasses. This
     is used in the MetaClass to build the RED9_META_REGISTERY inheritance dict
     """
-    if _seen is None: _seen = set()
+    if _seen is None:
+        _seen = set()
     try:
         subs = cls.__subclasses__()
-    except TypeError: # fails only when cls is type
+    except TypeError:  # fails only when cls is type
         subs = cls.__subclasses__(cls)
     for sub in subs:
         if sub not in _seen:
@@ -70,7 +71,7 @@ def inspectFunctionSource(value):
     '''
     This is a neat little wrapper over the mel "whatIs" and Pythons inspect
     module that finds the given functions source filePath, either Mel or Python
-    and opens the original file in the default program. 
+    and opens the original file in the default program.
     Great for developers
     Supports all Mel functions, and Python Class / functions
     '''
@@ -86,7 +87,7 @@ def inspectFunctionSource(value):
             #if path:
                 #sourceType='mel'
         elif path=="Command":
-            cmds.warning('%s : is a Command not a script' % value )
+            cmds.warning('%s : is a Command not a script' % value)
             return False
     except StandardError, error:
         log.info(error)
@@ -94,12 +95,12 @@ def inspectFunctionSource(value):
     if not path or not os.path.exists(path):
         log.info('This is not a known Mel command, inspecting Python libs for : %s' % value)
         try:
-            log.debug( 'value :  %s' % value)
-            log.debug ('value isString : ', isinstance(value,str))
-            log.debug ('value callable: ', callable(value))
-            log.debug ('value is module : ', inspect.ismodule(value))
-            log.debug ('value is method : ', inspect.ismethod(value))
-            if isinstance(value,str):
+            log.debug('value :  %s' % value)
+            log.debug('value isString : ', isinstance(value, str))
+            log.debug('value callable: ', callable(value))
+            log.debug('value is module : ', inspect.ismodule(value))
+            log.debug('value is method : ', inspect.ismethod(value))
+            if isinstance(value, str):
             #if not callable(value):
                 value=eval(value)
             path=inspect.getsourcefile(value)
@@ -109,7 +110,7 @@ def inspectFunctionSource(value):
         except StandardError, error:
             log.exception(error)
             
-    #Open the file with the default editor 
+    #Open the file with the default editor
     #FIXME: If Python and you're a dev then the .py file may be set to open in the default
     #Python runtime/editor and won't open as expected. Need to look at this.
     if path and os.path.exists(path):
@@ -134,9 +135,9 @@ def getScriptEditorSelection():
         func=""
         if control==executer:
             func=cmds.cmdScrollFieldExecuter(control, q=True, selectedText=True)
-        elif control==reporter:
-            cmds.cmdScrollFieldReporter(reporter,e=True,copySelection=True)
-            #func=Clipboard.getText()  
+        elif control == reporter:
+            cmds.cmdScrollFieldReporter(reporter, e=True, copySelection=True)
+            #func=Clipboard.getText()
             #pyperclip.py : IN TESTING : Platform independant clipboard support
             func=pyperclip.paste()
         log.info('command caught: %s ' % func)
@@ -149,12 +150,12 @@ def getScriptEditorSelection():
 
 def Timer(func):
     '''
-    Simple timer decorator    
+    Simple timer decorator
     '''
 
-    def wrapper( *args, **kws):
+    def wrapper(*args, **kws):
         t1 = time.time()
-        res=func(*args,**kws) 
+        res=func(*args, **kws)
         t2 = time.time()
 
         functionTrace=''
@@ -170,11 +171,11 @@ def Timer(func):
             functionTrace+='%s.' % args[0].__class__.__name__
         except:
             log.debug('function class inspect failure')
-        functionTrace+=func.__name__ 
-        log.debug('TIMER : %s: took %0.3f ms' % (functionTrace,(t2-t1)*1000.0))
+        functionTrace += func.__name__
+        log.debug('TIMER : %s: took %0.3f ms' % (functionTrace, (t2 - t1) * 1000.0))
         #log.info('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
-    return wrapper  
+    return wrapper
 
 
 def runProfile(func):
@@ -190,7 +191,7 @@ def runProfile(func):
         dumpFileName = 'c:/%s(%s).profile' % (func.__name__, currentTime)
         def command():
             func(*args, **kwargs)
-        profile = cProfile.runctx("command()",globals(),locals(),dumpFileName)
+        profile = cProfile.runctx("command()", globals(), locals(), dumpFileName)
         return profile
     return wrapper
     
@@ -204,13 +205,13 @@ class AnimationContext(object):
         self.timeStore=None
         
     def __enter__(self):
-        self.autoKeyState=cmds.autoKeyframe(query=True,state=True)
+        self.autoKeyState=cmds.autoKeyframe(query=True, state=True)
         self.timeStore=cmds.currentTime(q=True)
         cmds.undoInfo(openChunk=True)
 
     def __exit__(self, exc_type, exc_value, traceback):
         # Close the undo chunk, warn if any exceptions were caught:
-        cmds.autoKeyframe(state=self.autoKeyState)  
+        cmds.autoKeyframe(state=self.autoKeyState)
         cmds.currentTime(self.timeStore)
         log.info('autoKeyState restored: %s' % self.autoKeyState)
         log.info('currentTime restored: %f' % self.timeStore)
@@ -218,13 +219,13 @@ class AnimationContext(object):
         if exc_type:
             log.exception('%s : %s'%(exc_type, exc_value))
         # If this was false, it would re-raise the exception when complete
-        return True 
+        return True
     
 
 class undoContext(object):
     """
     Simple Context Manager for chunking the undoState
-    """        
+    """
     def __enter__(self):
         cmds.undoInfo(openChunk=True)
 
@@ -233,7 +234,7 @@ class undoContext(object):
         if exc_type:
             log.exception('%s : %s'%(exc_type, exc_value))
         # If this was false, it would re-raise the exception when complete
-        return True 
+        return True
     
 
 class ProgressBarContext(object):
@@ -245,7 +246,7 @@ class ProgressBarContext(object):
         progressBar=r9General.ProgressBarContext(1000)
         progressBar.setStep(step)
         count=0
-        with progressBar:            
+        with progressBar:
             for i in range(1:1000):
             
                 if progressBar.isCanceled():
@@ -276,13 +277,13 @@ class ProgressBarContext(object):
         cmds.progressBar(self._gMainProgressBar, edit=True, step=int(value))
     
     def setProgress(self, value):
-        cmds.progressBar(self._gMainProgressBar, edit=True, progress=int(value))  
+        cmds.progressBar(self._gMainProgressBar, edit=True, progress=int(value))
         
     def reset(self):
         self.setMaxValue(self._maxValue)
         self.setText("")
 
-    def __enter__( self ): 
+    def __enter__(self):
         cmds.progressBar(self._gMainProgressBar,
                           edit=True,
                           beginProgress=True,
@@ -292,9 +293,9 @@ class ProgressBarContext(object):
     def __exit__(self, exc_type, exc_value, traceback):
         cmds.progressBar(self._gMainProgressBar, edit=True, endProgress=True)
         if exc_type:
-            log.exception('%s : %s'%(exc_type, exc_value))  
-        del(self)  
-        return False #False so that the exceptiopn gets re-raised 
+            log.exception('%s : %s'%(exc_type, exc_value))
+        del(self)
+        return False  # False so that the exceptiopn gets re-raised
     
        
 class HIKContext(object):
@@ -302,7 +303,7 @@ class HIKContext(object):
     Simple Context Manager for restoring HIK Animation settings and managing HIK callbacks
     """
     def __init__(self, NodeList):
-        self.objs=cmds.ls(sl=True,l=True)
+        self.objs=cmds.ls(sl=True, l=True)
         self.NodeList=NodeList
         self.managedHIK = False
 
@@ -319,7 +320,7 @@ class HIKContext(object):
                 cmds.keyingGroup(fil="NoKeyingGroups")
                 log.info('Processing HIK Mode >> using HIKContext Manager:')
                 cmds.select(self.NodeList)
-                mel.eval("hikManipStart 1 1")  
+                mel.eval("hikManipStart 1 1")
         except:
             self.managedHIK = False
 
@@ -333,7 +334,7 @@ class HIKContext(object):
             log.exception('%s : %s'%(exc_type, exc_value))
         if self.objs:
             cmds.select(self.objs)
-        return True 
+        return True
                 
     
 class SceneRestoreContext(object):
@@ -361,50 +362,50 @@ class SceneRestoreContext(object):
         '''
         main work function, store all UI settings
         '''
-        self.dataStore['autoKey']=cmds.autoKeyframe(query=True,state=True)
+        self.dataStore['autoKey'] = cmds.autoKeyframe(query=True, state=True)
         
-        #timeline management
-        self.dataStore['currentTime']=cmds.currentTime(q=True)
-        self.dataStore['minTime'] = cmds.playbackOptions(q=True,min=True)
-        self.dataStore['maxTime'] = cmds.playbackOptions(q=True,max=True)
-        self.dataStore['startTime']=cmds.playbackOptions(q=True,ast=True)
-        self.dataStore['endTime'] = cmds.playbackOptions(q=True,aet=True)    
-        self.dataStore['playSpeed']=cmds.playbackOptions(query=True, playbackSpeed=True) 
+        # timeline management
+        self.dataStore['currentTime'] = cmds.currentTime(q=True)
+        self.dataStore['minTime'] = cmds.playbackOptions(q=True, min=True)
+        self.dataStore['maxTime'] = cmds.playbackOptions(q=True, max=True)
+        self.dataStore['startTime'] = cmds.playbackOptions(q=True, ast=True)
+        self.dataStore['endTime'] = cmds.playbackOptions(q=True, aet=True)
+        self.dataStore['playSpeed'] = cmds.playbackOptions(query=True, playbackSpeed=True)
         
-        #unit management       
+        # unit management
         self.dataStore['timeUnit'] = cmds.currentUnit(q=True, fullName=True, time=True)
-        self.dataStore['sceneUnits']=cmds.currentUnit(q=True, fullName=True, linear=True)     
-        self.dataStore['upAxis'] = cmds.upAxis( q=True, axis=True )
+        self.dataStore['sceneUnits'] = cmds.currentUnit(q=True, fullName=True, linear=True)
+        self.dataStore['upAxis'] = cmds.upAxis(q=True, axis=True)
         
         #panel management
-        self.dataStore['panelStore']={}
-        for panel in ['modelPanel1','modelPanel2','modelPanel3','modelPanel4']:
-            if not cmds.modelPanel(panel,q=True,exists=True):
+        self.dataStore['panelStore'] = {}
+        for panel in ['modelPanel1', 'modelPanel2', 'modelPanel3', 'modelPanel4']:
+            if not cmds.modelPanel(panel, q=True, exists=True):
                 continue
-            self.dataStore['panelStore'][panel]={}
-            self.dataStore['panelStore'][panel]['settings']=cmds.modelEditor(panel, q=True, sts=True)
-            activeCam=cmds.modelPanel(panel, q=True, camera=True)
-            if not cmds.nodeType(activeCam)=='camera': 
-                activeCam=cmds.listRelatives(activeCam)[0]
-            self.dataStore['panelStore'][panel]['activeCam']=activeCam
+            self.dataStore['panelStore'][panel] = {}
+            self.dataStore['panelStore'][panel]['settings'] = cmds.modelEditor(panel, q=True, sts=True)
+            activeCam = cmds.modelPanel(panel, q=True, camera=True)
+            if not cmds.nodeType(activeCam) == 'camera':
+                activeCam = cmds.listRelatives(activeCam)[0]
+            self.dataStore['panelStore'][panel]['activeCam'] = activeCam
                         
         #camera management
         #TODO : store the camera field of view etc also
         self.dataStore['cameraTransforms']={}
-        for cam in ['persp','top','side','front']:
-            self.dataStore['cameraTransforms'][cam]=[cmds.getAttr('%s.translate' % cam),
+        for cam in ['persp', 'top', 'side', 'front']:
+            self.dataStore['cameraTransforms'][cam] = [cmds.getAttr('%s.translate' % cam),
                                                      cmds.getAttr('%s.rotate' % cam),
                                                      cmds.getAttr('%s.scale' % cam)]
             
         #sound management
-        self.dataStore['activeSound']  = cmds.timeControl(self.gPlayBackSlider, q=True, s=1)
+        self.dataStore['activeSound'] = cmds.timeControl(self.gPlayBackSlider, q=True, s=1)
         self.dataStore['displaySound'] = cmds.timeControl(self.gPlayBackSlider, q=True, ds=1)
     
     def restoreSettings(self):
         '''
         restore all UI settings
         '''
-        cmds.autoKeyframe(state=self.dataStore['autoKey'])  
+        cmds.autoKeyframe(state=self.dataStore['autoKey'])
         
         #timeline management
         cmds.currentTime(self.dataStore['currentTime'])
@@ -412,7 +413,7 @@ class SceneRestoreContext(object):
         cmds.playbackOptions(max=self.dataStore['maxTime'])
         cmds.playbackOptions(ast=self.dataStore['startTime'])
         cmds.playbackOptions(aet=self.dataStore['endTime'])
-        cmds.playbackOptions(ps=self.dataStore['playSpeed']) 
+        cmds.playbackOptions(ps=self.dataStore['playSpeed'])
         
         #unit management
         cmds.currentUnit(time=self.dataStore['timeUnit'])
@@ -422,19 +423,19 @@ class SceneRestoreContext(object):
         log.info('Restored PlayBack / Timeline setup')
         
         #panel management
-        for panel,data in self.dataStore['panelStore'].items():
-            cmdString=data['settings'].replace('$editorName',panel)
+        for panel, data in self.dataStore['panelStore'].items():
+            cmdString = data['settings'].replace('$editorName', panel)
             mel.eval(cmdString)
-            log.info( "Restored Panel Settings Data >> %s" % panel)
-            mel.eval('lookThroughModelPanel("%s","%s")' % (data['activeCam'],panel))
-            log.info( "Restored Panel Active Camera Data >> %s >> cam : %s" % (panel,data['activeCam']))
+            log.info("Restored Panel Settings Data >> %s" % panel)
+            mel.eval('lookThroughModelPanel("%s","%s")' % (data['activeCam'], panel))
+            log.info("Restored Panel Active Camera Data >> %s >> cam : %s" % (panel, data['activeCam']))
             
-        #camera management
-        for cam,settings in self.dataStore['cameraTransforms'].items():       
+        # camera management
+        for cam, settings in self.dataStore['cameraTransforms'].items():
             cmds.setAttr('%s.translate' % cam, settings[0][0][0], settings[0][0][1], settings[0][0][2])
-            cmds.setAttr('%s.rotate' % cam, settings[1][0][0], settings[1][0][1], settings[1][0][2])            
-            cmds.setAttr('%s.scale' % cam, settings[2][0][0], settings[2][0][1], settings[2][0][2])     
-            log.info('Restored Default Camera Transform Data : % s' % cam)         
+            cmds.setAttr('%s.rotate' % cam, settings[1][0][0], settings[1][0][1], settings[1][0][2])
+            cmds.setAttr('%s.scale' % cam, settings[2][0][0], settings[2][0][1], settings[2][0][2])
+            log.info('Restored Default Camera Transform Data : % s' % cam)
 
         #sound management
         if self.dataStore['displaySound']:
@@ -448,43 +449,43 @@ class SceneRestoreContext(object):
 # General ---
 #---------------------------------------------------------------------------------
 
-def thumbNailScreen(filepath,width,height,mode='api'):
-    path='%s.bmp' % os.path.splitext(filepath)[0]  
+def thumbNailScreen(filepath, width, height, mode='api'):
+    path='%s.bmp' % os.path.splitext(filepath)[0]
     if mode=='api':
-        thumbnailApiFromView(path,width,height)
+        thumbnailApiFromView(path, width, height)
         log.debug('API Thumb > path : %s' % path)
     else:
-        thumbnailFromPlayBlast(path,width,height)
+        thumbnailFromPlayBlast(path, width, height)
         log.debug('Playblast Thumb > path : %s' % path)
     
 
-def thumbnailFromPlayBlast(filepath,width,height):
+def thumbnailFromPlayBlast(filepath, width, height):
     '''
     Generate a ThumbNail of the screen
     Note: 'cf' flag is broken in 2012
     @param filepath: path to Thumbnail
     @param width: width of capture
-    @param height: height of capture   
+    @param height: height of capture
     '''
     filepath=os.path.splitext(filepath)[0]
     filename=os.path.basename(filepath)
     filedir=os.path.dirname(filepath)
     
     #get modelPanel and camera
-    win=cmds.playblast(activeEditor=True).split('|')[-1]
-    cam=cmds.modelPanel(win,q=True,camera=True)
-    if not cmds.nodeType(cam)=='camera': 
-        cam=cmds.listRelatives(cam)[0]
+    win = cmds.playblast(activeEditor=True).split('|')[-1]
+    cam = cmds.modelPanel(win, q=True, camera=True)
+    if not cmds.nodeType(cam) == 'camera':
+        cam = cmds.listRelatives(cam)[0]
     
     storedformat = cmds.getAttr('defaultRenderGlobals.imageFormat')
-    storedResolutionGate=cmds.getAttr('%s.filmFit' % cam)
+    storedResolutionGate = cmds.getAttr('%s.filmFit' % cam)
     
     cmds.setAttr('defaultRenderGlobals.imageFormat', 20)
-    cmds.setAttr('%s.filmFit' % cam, 2) #set to Vertical so we don't get so much overscan
+    cmds.setAttr('%s.filmFit' % cam, 2)  # set to Vertical so we don't get so much overscan
     
-    cmds.playblast( frame=cmds.currentTime(q=True),# startTime=cmds.currentTime(q=True),
-                          #endTime=cmds.currentTime(q=True),
-                          format="image", 
+    cmds.playblast(frame=cmds.currentTime(q=True),  # startTime=cmds.currentTime(q=True),
+                          # endTime=cmds.currentTime(q=True),
+                          format="image",
                           filename=filepath,
                           width=width,
                           height=height,
@@ -494,18 +495,18 @@ def thumbnailFromPlayBlast(filepath,width,height):
                           framePadding=0,
                           showOrnaments=False,
                           compression="BMP",
-                          viewer=False ) 
-    cmds.setAttr('defaultRenderGlobals.imageFormat' ,storedformat)
+                          viewer=False)
+    cmds.setAttr('defaultRenderGlobals.imageFormat', storedformat)
     cmds.setAttr('%s.filmFit' % cam, storedResolutionGate)
     #Why do this rename? In Maya2012 the 'cf' flag fails which means you have to use
     #the 'f' flag and that adds framePadding, crap I know! So we strip it and rename
     #the file after it's made.
     try:
-        newfile=[f for f in os.listdir(filedir) 
+        newfile=[f for f in os.listdir(filedir)
                  if f.split('.bmp')[0].split('.')[0] == filename and not
                  '.pose' in f]
         log.debug('Original Playblast file : %s' % newfile)
-        os.rename(os.path.join(filedir,newfile[0]),'%s.bmp' % filepath)
+        os.rename(os.path.join(filedir, newfile[0]), '%s.bmp' % filepath)
         log.debug('Thumbnail Renamed : %s' % ('%s.bmp' % filepath))
         return '%s.bmp' % filepath
     except:
@@ -514,7 +515,7 @@ def thumbnailFromPlayBlast(filepath,width,height):
 def thumbnailApiFromView(filename, width, height, compression='bmp', modelPanel='modelPanel4'):
     '''
     grab the thumbnail direct from the buffer?
-    TODO: not yet figured out how you crop the data here? 
+    TODO: not yet figured out how you crop the data here?
     '''
     import maya.OpenMaya as OpenMaya
     import maya.OpenMayaUI as OpenMayaUI
@@ -544,10 +545,14 @@ def getModifier():
     return the modifier key pressed
     '''
     mods = cmds.getModifiers()
-    if (mods & 1) > 0: return 'Shift'
-    if (mods & 2) > 0: return 'CapsLock'
-    if (mods & 4) > 0: return 'Ctrl'
-    if (mods & 8) > 0: return 'Alt'
+    if (mods & 1) > 0:
+        return 'Shift'
+    if (mods & 2) > 0:
+        return 'CapsLock'
+    if (mods & 4) > 0:
+        return 'Ctrl'
+    if (mods & 8) > 0:
+        return 'Alt'
     else:
         return False
 
@@ -557,7 +562,7 @@ def getModifier():
 
 class Clipboard:
     '''
-    Get or Set data to the Windows clipboard...Used in the inspect code to grab the 
+    Get or Set data to the Windows clipboard...Used in the inspect code to grab the
     ScriptEditor's selected history
     CURRENTLY NOT BEING CALLED - switched to pyperclip.py module
     '''
@@ -586,7 +591,7 @@ class Clipboard:
         if isinstance(value, str):
             return value
         elif hasattr(value, 'decode'):
-            return value.decode(sys.getfilesystemencoding())        
+            return value.decode(sys.getfilesystemencoding())
         else:
             return ''
 
@@ -633,9 +638,9 @@ def os_OpenFileDirectory(path):
     path=os.path.abspath(path)
     if sys.platform == 'win32':
         subprocess.Popen('explorer /select, "%s"' % path)
-    elif sys.platform == 'darwin': #macOS
+    elif sys.platform == 'darwin':  # macOS
         subprocess.Popen(['open', path])
-    else: #linux
+    else:  # linux
         try:
             subprocess.Popen(['xdg-open', path])
         except OSError:
@@ -651,9 +656,9 @@ def os_OpenFile(filePath):
     #log.debug('abspath : %s' % filePath)
     if sys.platform == 'win32':
         os.startfile(filePath)
-    elif sys.platform == 'darwin': #macOS
+    elif sys.platform == 'darwin':  # macOS
         subprocess.Popen(['open', filePath])
-    else: #linux
+    else:  # linux
         try:
             subprocess.Popen(['xdg-open', filePath])
         except OSError:
@@ -664,8 +669,8 @@ def getCurrentFPS():
     '''
     returns the current frames per second as a number, rather than a useless string
     '''
-    fpsDict = {"game" : 15.0, "film" : 24.0, "pal" : 25.0, "ntsc" : 30.0, "show" : 48.0, "palf" : 50.0, "ntscf" : 60.0}
-    return fpsDict[cmds.currentUnit(q=True, fullName=True, time=True)]       
+    fpsDict = {"game":15.0, "film":24.0, "pal":25.0, "ntsc":30.0, "show":48.0, "palf":50.0, "ntscf":60.0}
+    return fpsDict[cmds.currentUnit(q=True, fullName=True, time=True)]
 
 
 class AudioHandler():
@@ -676,13 +681,14 @@ class AudioHandler():
         self.audioNodes = audioNodes
         if not self.audioNodes:
             self.audioNodes=self.audioSelected()
-        if not type(self.audioNodes)==list:self.audioNodes=[self.audioNodes]
+        if not type(self.audioNodes)==list:
+            self.audioNodes=[self.audioNodes]
     
-    def __repr__(self): 
+    def __repr__(self):
         if self.audioNodes:
-            return "%s(AudioHandler InternalAudioNodes: '%s')"  % (self.__class__, ','.join([self.audioNodes]))
+            return "%s(AudioHandler InternalAudioNodes: '%s')" % (self.__class__, ','.join([self.audioNodes]))
         else:
-            return "%s(AudioHandler NO AudioNodes: )"  % self.__class__
+            return "%s(AudioHandler NO AudioNodes: )" % self.__class__
            
     def audioSelected(self):
         return cmds.ls(sl=True,type='audio')
@@ -698,12 +704,12 @@ class AudioHandler():
     def setActiveAudio(self):
         if self.audioNodes:
             gPlayBackSlider=mel.eval("string $temp=$gPlayBackSlider")
-            cmds.timeControl(gPlayBackSlider, e=True, ds=1, sound=self.audioNodes[0]) 
+            cmds.timeControl(gPlayBackSlider, e=True, ds=1, sound=self.audioNodes[0])
 
     def getLengthFromWav(self):
         '''
         This uses the wav itself bypassing the Maya handling, why?
-        In maya.standalone the audio isn't loaded correctly and always is of length 1! 
+        In maya.standalone the audio isn't loaded correctly and always is of length 1!
         '''
         import wave
         import contextlib
@@ -714,25 +720,27 @@ class AudioHandler():
             return (duration)*getCurrentFPS()
                 
     def setTimelineToAudio(self):
-        maxV=cmds.getAttr('%s.offset' % self.audioNodes[0])   #initialize backwards
-        minV=cmds.getAttr('%s.endFrame' % self.audioNodes[0]) #initialize backwards
+        maxV = cmds.getAttr('%s.offset' % self.audioNodes[0])  # initialize backwards
+        minV = cmds.getAttr('%s.endFrame' % self.audioNodes[0])  # initialize backwards
         if self.audioNodes:
             for a in self.audioNodes:
                 if not cmds.about(batch=True):
                     audioOffset=cmds.getAttr('%s.offset' % a)
-                    audioEnd=cmds.getAttr('%s.endFrame' % a)  #why the hell does this always come back 1 frame over??
+                    audioEnd=cmds.getAttr('%s.endFrame' % a)  # why the hell does this always come back 1 frame over??
                 else:
                     audioOffset=cmds.getAttr('%s.offset' % a)
                     audioEnd=self.getLengthFromWav()+audioOffset
-                if audioOffset<minV:minV=audioOffset
-                if audioEnd>maxV:maxV=audioEnd
+                if audioOffset<minV:
+                    minV=audioOffset
+                if audioEnd>maxV:
+                    maxV=audioEnd
             print 'min : ', minV
             print 'max : ', maxV
-            cmds.playbackOptions(min=int(minV),max=int(maxV))   
+            cmds.playbackOptions(min=int(minV),max=int(maxV))
         else:
-            raise StandardError('no audioNodes passed in')     
+            raise StandardError('no audioNodes passed in')
 
-    def muteSelected(self, state=True):        
+    def muteSelected(self, state=True):
         if self.audioNodes:
             for a in self.audioNodes:
                 cmds.setAttr('%s.mute' % a, state)
@@ -745,5 +753,3 @@ class AudioHandler():
             if path and os.path.exists(path):
                 os_OpenFileDirectory(path)
                 
-  
-        
