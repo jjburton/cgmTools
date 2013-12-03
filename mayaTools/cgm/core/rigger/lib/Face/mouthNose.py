@@ -795,31 +795,39 @@ def build_rig(*args, **kws):
 		mi_jawHandle = self.md_rigList['jawHandle'][0]
 		mi_jawRig = self.md_rigList['jawRig'][0]	
 		mi_chinHandle = self.md_rigList['chin'][0]		
+		mi_noseMoveHandle = self.md_rigList['noseMoveHandle'][0]
+		mi_mouthMove = self.md_rigList['mouthMove'][0]
 		
 		f_lenJawLine = distance.returnCurveLength(self.mi_jawLineCrv.mNode)
 		d_['f_lenJawLine'] = f_lenJawLine
 		d_['mi_jawHandle'] = mi_jawHandle
 		d_['mi_jawRig'] = mi_jawRig
+		d_['mi_noseMoveHandle'] = mi_noseMoveHandle
+		d_['mi_mouthMove'] = mi_mouthMove
 		
 	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
 	    
 	    try:#>> Simple def=======================================================================================	
 		try:#Dups
 		    f_halfLen = f_lenJawLine/2
-		    f_quarterLen = f_lenJawLine/4		    
+		    f_quarterLen = f_lenJawLine/4
+		    f_eightLen = f_lenJawLine/8		    
+		    #[f_quarterLen,0,0],[-f_quarterLen,0,0]
 		    d_jointsToCreate = {'faceBaseDef':{'toDup':mi_squashStartCrv,'parent' : False,
-		                                       'offsetChildren':[[f_quarterLen,0,-f_quarterLen],[-f_quarterLen,0,-f_quarterLen],
-		                                                         [0,-f_quarterLen,-f_quarterLen]]},
+		                                       'offsetChildren':[[0,-f_quarterLen,-f_quarterLen]]},
 		                        'stableJaw':{'toDup':mi_jawRig,'parent' : False,'skin':False,
 		                                     'offsetChildren':[[0,0,f_quarterLen]]},		                        
 		                        'uprHeadDef':{'toDup':mi_squashStartCrv,'parent' : False,
 		                                      'offsetChildren':[[0,f_halfLen,0],[0,0,-f_halfLen],
+		                                                        [f_quarterLen,0,-f_quarterLen],[-f_quarterLen,0,-f_quarterLen],
 		                                                        [f_quarterLen,f_quarterLen,-f_quarterLen],[-f_quarterLen,f_quarterLen,-f_quarterLen],
-		                                                        [f_quarterLen,0,0],[-f_quarterLen,0,0]]},		                        
+		                                                        [f_quarterLen,f_eightLen,0],[-f_quarterLen,f_eightLen,0]]},		                        
 		                        'jawDef':{'toUse':mi_jawRig,
 		                                  'offsetChildren':[[f_quarterLen,0,0],[-f_quarterLen,0,0],
 		                                                    [0,-f_quarterLen,f_quarterLen]]},		                        
-		                        'chinDef':{'toDup':mi_chinHandle,'parent': mi_jawRig}}
+		                        #'chinDef':{'toDup':mi_chinHandle,'parent': mi_jawRig},
+		                        'noseMoveDef':{'toDup':mi_noseMoveHandle,'parent': False},
+		                        'mouthMoveDef':{'toDup':mi_mouthMove,'parent': mi_jawRig}}
 		    ml_skinJoints = []
 		    for k_tag in d_jointsToCreate.iterkeys():
 			try:#Query
@@ -847,6 +855,7 @@ def build_rig(*args, **kws):
 			elif d_sub.get('toUse'):
 			    mJoint = d_sub.get('toUse')
 			    d_[str_tmp] = mJoint
+			    self.md_rigList[k_tag] = [mJoint]#Push back to rigList by tag
 			    
 			l_offsets = d_sub.get('offsetChildren') or []
 			
@@ -867,7 +876,9 @@ def build_rig(*args, **kws):
 			self.log_infoNestedDict('d_buffer')
 		    try:
 			self.md_rigList['uprHeadDef'][0].parent = self.md_rigList['faceBaseDef'][0]
-			self.md_rigList['stableJaw'][0].parent = self.md_rigList['faceBaseDef'][0]			
+			self.md_rigList['stableJaw'][0].parent = self.md_rigList['faceBaseDef'][0]
+			self.md_rigList['noseMoveDef'][0].parent = self.md_rigList['faceBaseDef'][0]			
+			
 			mi_jawRig.parent = self.md_rigList['faceBaseDef'][0]	
 		    except Exception,error:raise StandardError,"!post parenting! | %s"%(error)
 			
@@ -877,7 +888,7 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"!Get Joints! | %s"%(error)	
 	    
 	    try:#>> Skin  =======================================================================================
-		d_build = {'lwrLipBase':{'target':self.mi_skullPlate,'mi':10,'dr':6,
+		d_build = {'lwrLipBase':{'target':self.mi_skullPlate,'mi':5,'dr':9,
 		                         'bindJoints':ml_skinJoints + [mi_jawRig]}}
 		self.skin_fromDict(d_build)
 		
@@ -890,6 +901,7 @@ def build_rig(*args, **kws):
 	    
 	    try:#>> StableJaw  =======================================================================================
 		mc.orientConstraint(mi_jawRig.mNode,self.md_rigList['stableJaw'][0].mNode,skip = ["%s"%mi_go._jointOrientation[2]])
+		mc.pointConstraint(mi_jawRig.mNode,self.md_rigList['stableJaw'][0].mNode,skip = ["%s"%str_axis for str_axis in [mi_go._jointOrientation[0],mi_go._jointOrientation[1]]])		
 		self.md_rigList['stableJaw'][0].rotateOrder = mi_go._jointOrientation
 	    except Exception,error:raise StandardError,"!Stable! | error: %s"%(error)
 	    
@@ -1646,14 +1658,15 @@ def build_rig(*args, **kws):
 	    
 	    try:#>> UprLip Center follow  =======================================================================================
 		mObj = self.md_rigList['lipUprHandle']['center'][0]
-		mi_offsetGroup = mObj.duplicateTransform()
+		mi_offsetGroup = cgmMeta.cgmObject(mObj.doGroup(True),setClass=True)
 		mi_offsetGroup.doStore('cgmName',mObj.mNode)
 		mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		mi_offsetGroup.doName()
 		mObj.connectChildNode(mi_offsetGroup,"offsetGroup","childObject")
 		
 		mc.pointConstraint([self.md_rigList['lipCornerHandle']['left'][0].mNode,self.md_rigList['lipCornerHandle']['right'][0].mNode],
-		                   mi_offsetGroup.mNode,skip = ["%s"%str_axis for str_axis in mi_go._jointOrientation[0,2]])
+		                   mi_offsetGroup.mNode,skip = ["%s"%str_axis for str_axis in [mi_go._jointOrientation[0],mi_go._jointOrientation[2]]],
+		                   maintainOffset = True)
 	    except Exception,error:raise StandardError,"!Center upr lip offsetgroup! | %s"%(error)
 	    
 	    #self.log_infoNestedDict('md_attachReturns')
@@ -1696,6 +1709,19 @@ def build_rig(*args, **kws):
 		           'mouthMoveTrackLoc':{'driver':self.md_rigList['mouthMove']}}
 		self.connect_fromDict(d_build)
 	    except Exception,error:raise StandardError,"!Connect! | %s"%(error)	
+	    
+	    try:#>>> Aim some stuff =================================================================================
+		mi_mouthMoveUpLoc = self.md_attachReturns[mi_mouthMoveTrackLoc]['upLoc']
+		mi_mouthMoveUpLoc.mNode
+		'''
+		str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'lipLineBlend'
+		mi_upLoc = d_buffer.get('upLoc') or d_build[str_tag].get('upLoc') or d_current.get('upLoc')
+		str_baseKey = d_buffer.get('baseKey') or d_build[str_tag].get('baseKey') or 'uprLipRig'	
+		'''
+		d_build = {'lipUprRig':{'mode':'lipLineBlend','upLoc':mi_mouthMoveUpLoc}}
+		self.aim_fromDict(d_build)
+	    except Exception,error:raise StandardError,"!Aim! | %s"%(error)	
+	    
 	    return
 	
 	def _buildCheeks_(self):
@@ -2174,7 +2200,7 @@ def build_rig(*args, **kws):
 							
 							self.md_rigList[str_tmp] = [mi_loc]
 							self.__dict__['mi_%s'%str_tmp] = mi_loc
-							mObj.connectChildNode(mi_loc,'%sLoc'%str_tag,'owner')
+							mObj.connectChildNode(mi_loc,'%sLoc'%str_t,'owner')
 						    except Exception,error:raise StandardError,"!'%s' loc setup! | %s"%(str_t,error)				
 					    except Exception,error:raise StandardError,"!Track locs! | %s"%(error)	
 					    try:#Blend Setup -----------------------------------------------------------------------------
@@ -2408,7 +2434,160 @@ def build_rig(*args, **kws):
 					raise NotImplementedError,"mode: %s"%str_mode
 		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)			    
 	    except Exception,error:  raise StandardError,"connect_fromDict | %s"%(error)	
+	def aim_fromDict(self,d_build):
+	    '''
+	    handler for aiming stuff to handles,curves,surfaces or whatever
 	    
+	    Modes:
+	    rigToHandle -- given a nameRig kw, it looks through the data sets to find the handle and connect. One to one connection type
+	    rigToFollow --
+	    
+	    Flags
+	    'index'(int) -- root dict flag to specify only using a certain index of a list
+	    'skip'(string) -- skip one of the side flags - 'left','right','center'
+	    '''
+	    try:#>> Aim  =======================================================================================
+		mi_go = self._go#Rig Go instance link
+		str_skullPlate = self.str_skullPlate
+		
+		for str_tag in d_build.iterkeys():
+		    try:
+			md_buffer = {}
+			ml_buffer = []
+			buffer = self.md_rigList[str_tag]
+			if type(buffer) == dict:
+			    for str_side in ['left','right','center']:
+				    bfr_side = buffer.get(str_side)
+				    if bfr_side:
+					md_buffer[str_side] = bfr_side
+			else:
+			    md_buffer['reg'] = buffer
+			    
+			l_skip = d_build[str_tag].get('skip') or []
+			for str_side in md_buffer.iterkeys():
+			    if str_side in l_skip:
+				log.info("%s Skipping connect: %s"%(str_tag,str_side))
+			    else:
+				try:
+				    if d_build[str_tag].get(str_side):#if we have special instructions for a direction key...
+					d_buffer = d_build[str_tag][str_side]
+				    else:
+					d_buffer = d_build[str_tag]	
+				    ml_buffer = md_buffer[str_side]
+				    try:
+					int_indexBuffer = d_build[str_tag].get('index') or False
+					if int_indexBuffer is not False:
+					    log.info("%s | %s > Utilizing index call"%(str_tag,str_side))					
+					    ml_buffer = [ml_buffer[int_indexBuffer]]
+				    except Exception,error:raise StandardError,"!Index call(%s)!| %s"%(error)
+				    
+				    int_len = len(ml_buffer)
+				    _d = {}
+				    self.d_buffer = _d
+				    int_last = len(ml_buffer)-1	
+				    
+				    try:#Vectors
+					if str_side == 'right':
+					    v_aimIn = mi_go._vectorOut
+					    v_aimOut = mi_go._vectorOutNegative	
+					    ml_buffer = copy.copy(ml_buffer)
+					    ml_buffer.reverse()
+					    v_up = mi_go._vectorAimNegative
+					    
+					else:
+					    v_aimIn = mi_go._vectorOutNegative
+					    v_aimOut = mi_go._vectorOut	
+					    v_up = mi_go._vectorAim
+					    
+					
+					_d['v_aimIn'] = v_aimIn
+					_d['v_aimOut'] = v_aimOut
+					_d['v_up'] = v_up										
+				    except Exception,error:raise StandardError,"!Vector query!| %s"%(error)
+					
+				except Exception,error:raise StandardError,"!Side data query! | %s"%(error)
+				
+	
+				for idx,mObj in enumerate(ml_buffer):
+				    str_mObj = mObj.p_nameShort
+				    self.progressBar_set(status = ("Aiming : '%s' %s > '%s'"%(str_tag,str_side,str_mObj)),progress = idx, maxValue = int_len)	
+				    try:#Gather data ----------------------------------------------------------------------
+					try:d_current = self.md_attachReturns[mObj]
+					except:raise Exception,"No attachReturn found"
+					str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'lipLineBlend'
+					mi_upLoc = d_buffer.get('upLoc') or d_build[str_tag].get('upLoc') or d_current.get('upLoc')
+					str_baseKey = d_buffer.get('baseKey') or d_build[str_tag].get('baseKey') or str_tag
+					if not str_baseKey:raise Exception,"No baseKey found!"					
+					mi_masterGroup = mObj.masterGroup
+					if not mi_upLoc:raise Exception,"No upLoc found!"
+					_d['str_mode'] = str_mode
+					_d['upLoc'] = mi_upLoc	
+					_d['baseKey'] = str_baseKey					
+				    except Exception,error:raise StandardError,"!Gather Data!| %s"%(error)
+				    
+				    try:#Offset group ----------------------------------------------------------------------
+					try: mi_offsetGroup = d_current['offsetGroup']#See if we have an offset group	
+					except:
+					    mi_offsetGroup = cgmMeta.cgmObject(mObj.doGroup(True),setClass=True)
+					    mi_offsetGroup.doStore('cgmName',mObj.mNode)
+					    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
+					    mi_offsetGroup.doName()
+					    mObj.connectChildNode(mi_offsetGroup,"offsetGroup","childObject")					    
+				    except Exception,error:raise StandardError,"!Offset group!| %s"%(error)
+				    
+				    if str_mode == 'lipLineBlend':#This is pretty much just for the lip rig line for now
+					try:
+					    if str_side != 'center':					
+						#Get objects
+						if idx == 0:
+						    mi_aimOut = self.md_rigList['lipCornerRig'][str_side][0].masterGroup
+						    mi_aimIn = ml_buffer[idx+1].masterGroup
+						elif idx == int_last:
+						    mi_aimOut = ml_buffer[idx-1].masterGroup
+						    mi_aimIn = md_buffer['center'][0].masterGroup			    
+						else:
+						    mi_aimOut = ml_buffer[idx-1].masterGroup
+						    mi_aimIn = ml_buffer[idx+1].masterGroup
+					    else:
+						mi_aimOut = self.md_rigList[str_baseKey]['left'][-1].masterGroup
+						mi_aimIn = self.md_rigList[str_baseKey]['right'][-1].masterGroup	
+					    _d['aimIn'] = mi_aimIn.mNode
+					    _d['aimOut'] = mi_aimOut.mNode
+					except Exception,error:raise StandardError,"!Get aim targets!| %s"%(error)
+					
+					log.info("Side: %s | idx: %s | Aiming :'%s' | in:'%s' | out:'%s' | up:'%s' "%(str_side,idx,str_mObj,mi_aimIn.p_nameShort,mi_aimOut.p_nameShort,mi_upLoc.p_nameShort))
+					
+					#up loc ------------------------------------------------------------------------
+					'''
+					mi_upLoc = mi_jnt.doLoc()
+					mi_upLoc.parent = mi_jnt
+					mi_upLoc.__setattr__("t%s"%self.str_orientation[1],10)
+					mi_upLoc.parent = False
+					'''
+					try:
+					    mi_locIn = mObj.doLoc()
+					    mi_locOut = mObj.doLoc()
+					    
+					    mi_locIn.parent = mi_masterGroup
+					    mi_locOut.parent = mi_masterGroup
+					except Exception,error:raise StandardError,"!Aim loc creation!| %s"%(error)
+					try:
+					    mc.aimConstraint(mi_aimIn.mNode, mi_locIn.mNode,
+						             weight = 1, aimVector = v_aimIn, upVector = v_up,
+					                     maintainOffset = True,
+						             worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
+					    mc.aimConstraint(mi_aimOut.mNode, mi_locOut.mNode,
+						             weight = 1, aimVector = v_aimOut, upVector = v_up,
+					                     maintainOffset = True,					                     
+						             worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
+					    mc.orientConstraint([mi_locIn.mNode,mi_locOut.mNode], mi_offsetGroup.mNode,
+					                        maintainOffset = True,					                        
+						                weight = 1) 
+					except Exception,error:raise StandardError,"!Constraints setup!| %s"%(error)
+				    else:
+					raise NotImplementedError,"Mode not implemented : '%s'"%str_mode
+		    except Exception,error:  raise Exception,"'%s' | %s"%(str_tag,error)			    
+	    except Exception,error:  raise Exception,"aim_fromDict | %s"%(error)
 	def skin_fromDict(self,d_build):
 	    try:#>> skin  =======================================================================================
 		mi_go = self._go#Rig Go instance link
