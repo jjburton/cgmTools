@@ -1261,9 +1261,9 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         if len(jointList)<3:
             raise StandardError,"createCGMSegment>>> needs at least three joints"
         
-        ml_influenceJoints = cgmMeta.validateObjListArg(influenceJoints,cgmMeta.cgmObject,noneValid=False,mayaType=['joint'])
+        ml_influenceJoints = cgmMeta.validateObjListArg(influenceJoints,cgmMeta.cgmObject,noneValid=False,mayaType=['nurbsCurve','joint'])
         
-        try:ml_jointList = cgmMeta.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False,mayaType=['joint'])
+        try:ml_jointList = cgmMeta.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False,mayaType=['nurbsCurve','joint'])
         except Exception,error:
             raise StandardError,"%s >>Joint metaclassing | error : %s"%(_str_funcName,error)
         
