@@ -71,7 +71,8 @@ def attachObjToSurface(*args,**kws):
 	                                 {'kw':'targetSurface',"default":None},
 	                                 {'kw':"createControlLoc","default":True},
 	                                 {'kw':"createUpLoc","default":False},
-	                                 {'kw':"parentToFollowGroup","default":False},	                  
+	                                 {'kw':"parentToFollowGroup","default":False,'help':"Parent the main object to the follow group"},	                  
+	                                 {'kw':"attachControlLoc","default":True,'help':"Whether to setup a controlLoc attach setup"},	                  	                                 
 	                                 {'kw':'f_offset',"default":1.0},
 	                                 {'kw':'orientation',"default":'zyx'}]
 	    self.__dataBind__(*args,**kws)
@@ -95,6 +96,7 @@ def attachObjToSurface(*args,**kws):
 	    self.b_createControlLoc = cgmValid.boolArg(self.d_kws['createControlLoc'],calledFrom=self._str_funcCombined)
 	    self.b_createUpLoc = cgmValid.boolArg(self.d_kws['createUpLoc'],calledFrom=self._str_funcCombined)
 	    self.b_parentToFollowGroup = cgmValid.boolArg(self.d_kws['parentToFollowGroup'],calledFrom=self._str_funcCombined)
+	    self.b_attachControlLoc = cgmValid.boolArg(self.d_kws['attachControlLoc'],calledFrom=self._str_funcCombined)
 	    
 	    self.f_offset = cgmValid.valueArg(self.d_kws['f_offset'], calledFrom=self._str_funcCombined)
 	    #Get info ============================================================================
@@ -107,85 +109,89 @@ def attachObjToSurface(*args,**kws):
 	    #>> Quick links ============================================================================ 
 	    d_closestInfo = self.d_closestInfo
 	    
-	    #>>> Follicle ============================================================================	    
-	    l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
-	    mi_follicleAttachTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
-	    mi_follicleAttachShape = cgmMeta.cgmNode(l_follicleInfo[0])	    
-	    
-	    #> Name ----------------------------------------------------------------------------------
-	    mi_follicleAttachTrans.doStore('cgmName',self.mi_obj.mNode)
-	    mi_follicleAttachTrans.addAttr('cgmTypeModifier','attach',lock=True)
-	    mi_follicleAttachTrans.doName()
-	    
-	    #>Set follicle value ---------------------------------------------------------------------
-	    mi_follicleAttachShape.parameterU = d_closestInfo['normalizedU']
-	    mi_follicleAttachShape.parameterV = d_closestInfo['normalizedV']
-            
-	    self.mi_follicleAttachTrans = mi_follicleAttachTrans#link
-	    self.mi_follicleAttachShape = mi_follicleAttachShape#link
-	    self.mi_obj.connectChildNode(mi_follicleAttachTrans,"follicleAttach","targetObject")
-	    self.md_return["follicleAttach"] = mi_follicleAttachTrans
-	    self.md_return["follicleAttachShape"] = mi_follicleAttachShape
+	    if self.b_attachControlLoc or not self.b_createControlLoc:
+		try:#>>> Follicle ============================================================================	    
+		    l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
+		    mi_follicleAttachTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
+		    mi_follicleAttachShape = cgmMeta.cgmNode(l_follicleInfo[0])	    
+		    
+		    #> Name ----------------------------------------------------------------------------------
+		    mi_follicleAttachTrans.doStore('cgmName',self.mi_obj.mNode)
+		    mi_follicleAttachTrans.addAttr('cgmTypeModifier','attach',lock=True)
+		    mi_follicleAttachTrans.doName()
+		    
+		    #>Set follicle value ---------------------------------------------------------------------
+		    mi_follicleAttachShape.parameterU = d_closestInfo['normalizedU']
+		    mi_follicleAttachShape.parameterV = d_closestInfo['normalizedV']
+		    
+		    self.mi_follicleAttachTrans = mi_follicleAttachTrans#link
+		    self.mi_follicleAttachShape = mi_follicleAttachShape#link
+		    self.mi_obj.connectChildNode(mi_follicleAttachTrans,"follicleAttach","targetObject")
+		    self.md_return["follicleAttach"] = mi_follicleAttachTrans
+		    self.md_return["follicleAttachShape"] = mi_follicleAttachShape
+		except Exception,error:raise StandardError,"!Attach Follicle! | %s"%(error)
 	    
 	    if not self.b_createControlLoc:#If we don't have a control loc setup, we're just attaching to the surface
-		#Groups =======================================================================================
-		mi_followGroup = self.mi_obj.doDuplicateTransform(True)
-		mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
-		mi_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
-		mi_followGroup.doName()	    
-		mi_followGroup.parent = mi_follicleAttachTrans
-		
-		if self.b_parentToFollowGroup:
-		    #raise StandardError,"shouldn't be here"		    
-		    self.mi_obj.parent = mi_followGroup	
-		    self.md_return["followGroup"] = mi_followGroup
-		else:
-		    #Driver loc -----------------------------------------------------------------------
-		    mi_driverLoc = self.mi_obj.doLoc()
-		    mi_driverLoc.doStore('cgmName',self.mi_obj.mNode)
-		    mi_driverLoc.addAttr('cgmTypeModifier','driver',lock=True)
-		    mi_driverLoc.doName()
-		    self.mi_driverLoc = mi_driverLoc
-		    mi_driverLoc.parent = mi_followGroup
-		    mi_driverLoc.visibility = False
-		
-		    self.md_return["driverLoc"] = mi_driverLoc
-		    #Constrain =====================================================================
-		    mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
-		    mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)  		    
+		try:#Groups =======================================================================================
+		    mi_followGroup = self.mi_obj.doDuplicateTransform(True)
+		    mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
+		    mi_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
+		    mi_followGroup.doName()	    
+		    mi_followGroup.parent = mi_follicleAttachTrans
+		    
+		    if self.b_parentToFollowGroup:
+			#raise StandardError,"shouldn't be here"		    
+			self.mi_obj.parent = mi_followGroup	
+			self.md_return["followGroup"] = mi_followGroup
+		    else:
+			#Driver loc -----------------------------------------------------------------------
+			mi_driverLoc = self.mi_obj.doLoc()
+			mi_driverLoc.doStore('cgmName',self.mi_obj.mNode)
+			mi_driverLoc.addAttr('cgmTypeModifier','driver',lock=True)
+			mi_driverLoc.doName()
+			self.mi_driverLoc = mi_driverLoc
+			mi_driverLoc.parent = mi_followGroup
+			mi_driverLoc.visibility = False
+		    
+			self.md_return["driverLoc"] = mi_driverLoc
+			#Constrain =====================================================================
+			mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
+			mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)  		    
+		except Exception,error:raise StandardError,"!Groups - no control Loc setup! | %s"%(error)
 		
 	    else:#Setup control loc stuff
-		#raise StandardError,"nope"
-		#>>> Follicle ============================================================================
-		l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
-		mi_follicleFollowTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
-		mi_follicleFollowShape = cgmMeta.cgmNode(l_follicleInfo[0])
-		
-		#> Name ----------------------------------------------------------------------------------
-		mi_follicleFollowTrans.doStore('cgmName',self.mi_obj.mNode)
-		mi_follicleFollowTrans.addAttr('cgmTypeModifier','follow',lock=True)
-		mi_follicleFollowTrans.doName()
-		
-		#>Set follicle value ---------------------------------------------------------------------
-		mi_follicleFollowShape.parameterU = d_closestInfo['normalizedU']
-		mi_follicleFollowShape.parameterV = d_closestInfo['normalizedV']
-		
-		self.mi_follicleFollowTrans = mi_follicleFollowTrans#link
-		self.mi_follicleFollowShape = mi_follicleFollowShape#link
-		self.md_return["follicleFollow"] = mi_follicleFollowTrans
-		self.md_return["follicleFollowShape"] = mi_follicleFollowShape
-		
-		self.mi_obj.connectChildNode(mi_follicleFollowTrans,"follicleFollow")
-	
-		#Groups =======================================================================================
-		mi_followGroup = mi_follicleFollowTrans.duplicateTransform()
-		mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
-		mi_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
-		mi_followGroup.doName()
-		self.mi_followGroup = mi_followGroup
-		self.mi_followGroup.parent = mi_follicleFollowTrans
-		self.md_return["followGroup"] = mi_followGroup
-		
+		try:#>>> Follicle ============================================================================
+		    l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
+		    mi_follicleFollowTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
+		    mi_follicleFollowShape = cgmMeta.cgmNode(l_follicleInfo[0])
+		    
+		    #> Name ----------------------------------------------------------------------------------
+		    mi_follicleFollowTrans.doStore('cgmName',self.mi_obj.mNode)
+		    mi_follicleFollowTrans.addAttr('cgmTypeModifier','follow',lock=True)
+		    mi_follicleFollowTrans.doName()
+		    
+		    #>Set follicle value ---------------------------------------------------------------------
+		    mi_follicleFollowShape.parameterU = d_closestInfo['normalizedU']
+		    mi_follicleFollowShape.parameterV = d_closestInfo['normalizedV']
+		    
+		    self.mi_follicleFollowTrans = mi_follicleFollowTrans#link
+		    self.mi_follicleFollowShape = mi_follicleFollowShape#link
+		    self.md_return["follicleFollow"] = mi_follicleFollowTrans
+		    self.md_return["follicleFollowShape"] = mi_follicleFollowShape
+		    
+		    self.mi_obj.connectChildNode(mi_follicleFollowTrans,"follicleFollow")
+		    
+		    #Groups =======================================================================================
+		    mi_followGroup = mi_follicleFollowTrans.duplicateTransform()
+		    mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
+		    mi_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
+		    mi_followGroup.doName()
+		    self.mi_followGroup = mi_followGroup
+		    self.mi_followGroup.parent = mi_follicleFollowTrans
+		    self.md_return["followGroup"] = mi_followGroup	
+		    
+		except Exception,error:raise StandardError,"!Follicle - attach Loc setup! | %s"%(error)
+		    
 		mi_offsetGroup = self.mi_obj.duplicateTransform()
 		mi_offsetGroup.doStore('cgmName',self.mi_obj.mNode)
 		mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
@@ -193,16 +199,16 @@ def attachObjToSurface(*args,**kws):
 		mi_offsetGroup.parent = mi_followGroup
 		self.mi_offsetGroup = mi_offsetGroup 
 		self.md_return["offsetGroup"] = mi_offsetGroup
-		mi_follicleFollowTrans.connectChildNode(mi_offsetGroup,"followOffsetGroup","follicle")
-		
+		if self.b_attachControlLoc:mi_follicleFollowTrans.connectChildNode(mi_offsetGroup,"followOffsetGroup","follicle")
+	
 		mi_zeroGroup = cgmMeta.cgmObject( mi_offsetGroup.doGroup(True),setClass=True)	 
 		mi_zeroGroup.doStore('cgmName',self.mi_obj.mNode)
 		mi_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
 		mi_zeroGroup.doName()	    
 		mi_zeroGroup.parent = mi_followGroup
 		self.mi_zeroGroup = mi_zeroGroup
-		self.md_return["zeroGroup"] = mi_zeroGroup
-				
+		self.md_return["zeroGroup"] = mi_zeroGroup	
+		    
 		#Driver loc -----------------------------------------------------------------------
 		mi_driverLoc = self.mi_obj.doLoc()
 		mi_driverLoc.doStore('cgmName',self.mi_obj.mNode)
@@ -222,9 +228,10 @@ def attachObjToSurface(*args,**kws):
 		self.mi_controlLoc = mi_controlLoc
 		self.md_return["controlLoc"] = mi_controlLoc
 		
-		mi_group = cgmMeta.cgmObject( mi_controlLoc.doGroup(),setClass=True )
-		mi_group.parent = mi_follicleAttachTrans
-		
+		if self.b_attachControlLoc:
+		    mi_group = cgmMeta.cgmObject( mi_controlLoc.doGroup(),setClass=True )
+		    mi_group.parent = mi_follicleAttachTrans
+		    
 		#Create decompose node --------------------------------------------------------------
 		mi_worldTranslate = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
 		mi_worldTranslate.doStore('cgmName',self.mi_obj.mNode)
@@ -246,8 +253,9 @@ def attachObjToSurface(*args,**kws):
 		mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)    
 		
 		#mc.orientConstraint(self.mi_controlLoc.mNode, self.mi_driverLoc.mNode, maintainOffset = True) 
-		for attr in self.mi_orientation.p_string[0]:
-		    attributes.doConnectAttr  ((mi_controlLoc.mNode+'.t%s'%attr),(mi_offsetGroup.mNode+'.t%s'%attr))
+		if self.b_attachControlLoc:
+		    for attr in self.mi_orientation.p_string[0]:
+			attributes.doConnectAttr  ((mi_controlLoc.mNode+'.t%s'%attr),(mi_offsetGroup.mNode+'.t%s'%attr))
 		    
 		if self.b_createUpLoc:#Make our up loc =============================================================
 		    mi_upLoc = mi_zeroGroup.doLoc()
@@ -284,13 +292,12 @@ def create_radialCurveLoft(*args,**kws):
 	    self._str_funcName = 'create_radialCurveLoft'
 	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'crvToLoft',"default":None,
 	                                  'help':"Curve which will be lofted"},
-	                                 {'kw':'aimPointOrObject',"default":None,
-	                                  'help':"Point or object from which to loft"},
+	                                 {'kw':'aimPointObject',"default":None,
+	                                  'help':"Point object from which to loft"},
 	                                 {'kw':'f_offset',"default":-.5,
 	                                  'help':"Width of this new surface"},
 	                                 ]
 	    self.__dataBind__(*args,**kws)
-	    
 	    self.l_funcSteps = [{'step':'Validate','call':self._validate},
 		                {'step':'Create','call':self._create}
 	                        ]
@@ -300,7 +307,9 @@ def create_radialCurveLoft(*args,**kws):
 	def _validate(self):
 	    #>> validate ============================================================================
 	    self.mi_crv = cgmMeta.validateObjArg(self.d_kws['crvToLoft'],cgmMeta.cgmObject,noneValid=False,mayaType = ['nurbsCurve'])
-	    self.mi_target = cgmMeta.validateObjArg(self.d_kws['aimPointOrObject'],cgmMeta.cgmObject,noneValid=False,mayaType = 'nurbsCurve')
+	    try:self.mi_target = cgmMeta.validateObjArg(self.d_kws['aimPointObject'],cgmMeta.cgmObject,noneValid=False)
+	    except:
+		cgmValid.valueArg
 	    #self._str_funcCombined = self._str_funcCombined + "(%s,%s)"%(self.mi_obj.p_nameShort,self.mi_targetSurface.p_nameShort)	    
 	    self.f_offset = cgmValid.valueArg(self.d_kws['f_offset'], calledFrom=self._str_funcCombined)
 	    self.d_info = {'l_eps':self.mi_crv.getComponents('ep'),
