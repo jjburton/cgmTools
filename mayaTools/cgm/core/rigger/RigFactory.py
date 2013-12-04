@@ -219,16 +219,17 @@ class go(object):
 	    raise StandardError,"%s >>> error : %s"%(_str_funcName,error) 
 	
 	try:#>>> FACE MODULES If face module we need a couple of data points
-	    if self._partType in __l_faceModules__:
+	    if self._partType.lower() in __l_faceModules__:
+		log.info("FACE MODULE")
 		self.verify_faceModuleAttachJoint()
 		self.verify_faceSkullPlate()
+		self.verify_faceDeformNull()#make sure we have a face deform null		
 	except Exception,error:
 	    raise StandardError,"%s >>> error : %s"%(_str_funcName,error) 	
 	
 	try:#>>> Deform group for the module =====================================================
 	    if not self._i_module.getMessage('deformNull'):
 		if self._partType in __l_faceModules__:
-		    self.verify_faceDeformNull()#make sure we have a face deform null
 		    
 		    #Make it and link it ------------------------------------------------------
 		    buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
@@ -369,6 +370,7 @@ class go(object):
 	    raise StandardError,"%s >> Must have a module parent"%_str_funcName
 	try:
 	    mi_end = self._i_module.moduleParent.rigNull.msgList_get('moduleJoints')[-1]
+	    self.mi_parentHeadHandle = self._i_module.moduleParent.rigNull.handleIK	    
 	    buffer =  mi_end.getMessage('scaleJoint')
 	    if buffer:
 		buffer2 =  mi_end.scaleJoint.getMessage('rigJoint')
@@ -403,8 +405,8 @@ class go(object):
 		raise StandardError, "%s >> error: %s"%(_str_funcName,error)
 	
 	#>> Deform Null ==========================================================    
-	if self._i_module.getMessage('deformNull'):
-	    return True
+	#if self._i_module.getMessage('deformNull'):
+	    #return True
 	
 	#Check if we have a face deformNull on a parent --------------------------	    
 	buffer = self._mi_moduleParent.getMessage('faceDeformNull')
@@ -947,6 +949,8 @@ def fnc_verify_faceSkullPlate(*args,**kws):
 	    buffer = mParentRigNull.getMessage('skullPlate')
 	    if buffer:
 		mi_go._mi_skullPlate = cgmMeta.validateObjArg(mParentRigNull.getMessage('skullPlate'),cgmMeta.cgmObject,noneValid=True)
+		mi_go._mi_skullPlate.parent = False
+		
 		return True
 	    
 	    #See if we have a helper
@@ -957,6 +961,7 @@ def fnc_verify_faceSkullPlate(*args,**kws):
 		    log.info("%s '%s' connected to module parent"%(self._str_reportStart,mi_skullPlate.p_nameShort))
 		    mParentRigNull.connectChildNode(mi_skullPlate,'skullPlate','module')
 		    mi_go._mi_skullPlate = mi_skullPlate
+		    mi_skullPlate.parent = False
 		    return True
 	    return False
     return fncWrap(*args,**kws).go()
