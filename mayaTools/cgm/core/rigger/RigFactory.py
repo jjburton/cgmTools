@@ -223,7 +223,8 @@ class go(object):
 		log.info("FACE MODULE")
 		self.verify_faceModuleAttachJoint()
 		self.verify_faceSkullPlate()
-		self.verify_faceDeformNull()#make sure we have a face deform null		
+		self.verify_faceDeformNull()#make sure we have a face deform null
+		self.verify_faceScaleDriver()#scale driver
 	except Exception,error:
 	    raise StandardError,"%s >>> error : %s"%(_str_funcName,error) 	
 	
@@ -428,6 +429,27 @@ class go(object):
 	
 	return True
     
+    def verify_faceScaleDriver(self):
+	try:
+	    mi_parentHeadHandle = self._i_module.moduleParent.rigNull.handleIK
+	    mi_parentBlendPlug = cgmMeta.cgmAttr(self.mi_parentHeadHandle,'scale')
+	    mi_faceDeformNull = self._i_faceDeformNull
+	    #connect blend joint scale to the finger blend joints
+	    '''
+	    for i_jnt in ml_blendJoints:
+		mi_parentBlendPlug.doConnectOut("%s.scale"%i_jnt.mNode)
+	    '''	
+	    
+	    #intercept world scale and add in head scale
+	    mPlug_headMasterScale = cgmMeta.cgmAttr(mi_parentHeadHandle,'out_masterScale',value = 1.0,defaultValue=1.0,lock = True)
+	    mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+	    mPlug_globalScale.doConnectOut(mPlug_headMasterScale)
+	    NodeF.argsToNodes("%s = %s * %s.sy"%(mPlug_headMasterScale.p_combinedShortName,
+						 mPlug_globalScale.p_combinedShortName,
+						 mi_parentHeadHandle.p_nameShort)).doBuild()
+	    self.mPlug_headMasterScale = mPlug_headMasterScale
+	except Exception,error:raise StandardError,"!verify_faceScaleDriver! | %s"%(error)	
+	
     def verify_faceSettings(self):
 	"""
 	Return if a module is rig skeletonized or not
