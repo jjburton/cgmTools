@@ -71,7 +71,7 @@ def createNormalizedClosestPointNode(objToAttach = None, targetSurface = None, *
 	    self.mi_targetSurface = cgmMeta.validateObjArg(self.d_kws['targetSurface'],mayaType='nurbsSurface',noneValid=False)
 	    self.l_shapes = mc.listRelatives(self.mi_targetSurface.mNode,shapes=True)
 	    if len(self.l_shapes)>1:
-		log.warning( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(self.mi_targetSurface.p_nameShort,self.l_shapes) )
+		log.debug( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(self.mi_targetSurface.p_nameShort,self.l_shapes) )
 	    self.mi_shape = cgmMeta.validateObjArg(self.l_shapes[0],cgmMeta.cgmNode,noneValid=False)
 	    
 	    #>> Create node ============================================================================
@@ -318,7 +318,7 @@ def createSingleBlendNetwork(driver, result1, result2, maxValue = 1,minValue = 0
     i_pma.addAttr('cgmTypeModifier','blend',lock=True)
     i_pma.doName()   
     
-    return {'d_result1':d_result1,'d_result2':d_result2}
+    return {'d_result1':d_result1,'d_result2':d_result2,'d_driver':d_driver}
     
    
     
