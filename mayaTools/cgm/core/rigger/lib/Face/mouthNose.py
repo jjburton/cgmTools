@@ -778,13 +778,15 @@ def build_rig(*args, **kws):
 	    
 	    try:#>> Simple def=======================================================================================
 		self._buildSimpleSkullDeformation_()
-	    except Exception,error:raise StandardError,"!_buildSimpleSkullDeformation_! | %s"%(error)	
-	    
+	    except Exception,error:raise StandardError,"!setup simple def! | %s"%(error)	
+
 	    try:#>> Constrain  head stuff =======================================================================================
 		mc.parentConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
+		#for attr in list('xzy'):
+		    #mi_go.mPlug_headMasterScale.doConnectOut("%s.s%s"%(mi_constrainNull.mNode,attr))
 		mc.scaleConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
 		
-	    except Exception,error:raise StandardError,"!_buildSimpleSkullDeformation_! | %s"%(error)	
+	    except Exception,error:raise StandardError,"!constrain stuff to the head! | %s"%(error)	
 	    
 	def _buildSimpleSkullDeformation_(self):
 	    """
@@ -1115,6 +1117,7 @@ def build_rig(*args, **kws):
 		ml_tongueRig = self.md_rigList['tongueRig']
 		mi_jawRig = self.md_rigList['jawRig'][0]
 		mi_jawHandle = self.md_rigList['jawHandle'][0]
+		mPlug_headMasterScale = mi_go.mPlug_headMasterScale
 		
 		str_capAim = mi_go._jointOrientation[0].capitalize()
 		str_partName = mi_go._partName
@@ -1124,6 +1127,7 @@ def build_rig(*args, **kws):
 		self.d_buffer['str_capAim'] = str_capAim
 		self.d_buffer['mi_jawRig'] = mi_jawRig
 		self.d_buffer['mi_jawHandle'] = mi_jawHandle
+		self.d_buffer['mPlug_headMasterScale'] = mPlug_headMasterScale
 		
 		self.log_infoNestedDict('d_buffer')
 	    except Exception,error:raise StandardError,"!Info Gather! | %s"%(error)
@@ -1151,7 +1155,6 @@ def build_rig(*args, **kws):
 		except Exception,error:raise StandardError,"!post segment query! | %s"%(error)
 		
 		try:#post segmentparent
-		    
 		    mi_curve.segmentGroup.parent = mi_go._i_rigNull.mNode
 		    for attr in 'translate','scale','rotate':
 			cgmMeta.cgmAttr(mi_curve,attr).p_locked = False
@@ -1164,6 +1167,7 @@ def build_rig(*args, **kws):
 		
 		self.d_buffer = d_segReturn
 		self.log_infoNestedDict('d_buffer')
+				
 		'''
 		midReturn = rUtils.addCGMSegmentSubControl(ml_influenceJoints[1].mNode,
 		                                           segmentCurve = i_curve,
@@ -1176,6 +1180,28 @@ def build_rig(*args, **kws):
 		for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
 		    i_grp.parent = mi_cog.mNode	 '''   
 	    except Exception,error:raise StandardError,"!cgmSegment creation! | %s"%(error)
+	    
+	    try:#>>>Connect master scale
+		mi_distanceBuffer = mi_curve.scaleBuffer		
+		cgmMeta.cgmAttr(mi_distanceBuffer,'masterScale',lock=True).doConnectIn(mPlug_headMasterScale.p_combinedShortName)    
+	    except Exception,error:raise StandardError,"!segment scale connect! | %s"%(error)
+	    
+	    try:#Do a few attribute connections
+		#Push squash and stretch multipliers to cog
+		try:
+		    for k in mi_distanceBuffer.d_indexToAttr.keys():
+			attrName = 'scaleMult_%s'%k
+			cgmMeta.cgmAttr(mi_distanceBuffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_tongueTip.mNode,attrName,connectSourceToTarget = True)
+			cgmMeta.cgmAttr(mi_tongueTip.mNode,attrName,defaultValue = 1)
+			cgmMeta.cgmAttr('cog_anim',attrName, keyable =True, lock = False)    
+		except Exception,error:raise StandardError,"!scaleMult transfer! | %s"%(error)
+		
+		cgmMeta.cgmAttr(mi_curve,'twistType').doCopyTo(mi_tongueTip.mNode,connectSourceToTarget=True)
+		cgmMeta.cgmAttr(mi_curve,'twistExtendToEnd').doCopyTo(mi_tongueTip.mNode,connectSourceToTarget=True)
+		cgmMeta.cgmAttr(mi_curve,'scaleMidUp').doCopyTo(mi_tongueTip.mNode,connectSourceToTarget=True)
+		cgmMeta.cgmAttr(mi_curve,'scaleMidOut').doCopyTo(mi_tongueTip.mNode,connectSourceToTarget=True)
+		
+	    except Exception,error:raise StandardError,"!segment attribute transfer! | %s"%(error)
 
 	    
 	    return
