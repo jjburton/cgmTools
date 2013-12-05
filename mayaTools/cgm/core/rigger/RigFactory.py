@@ -147,6 +147,7 @@ class go(object):
 	try:#>>> Gather info =========================================================================
 	    #Master control ---------------------------------------------------------
 	    self._i_masterControl = self._i_module.modulePuppet.masterControl
+	    self.mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')	    
 	    self._i_masterSettings = self._i_masterControl.controlSettings
 	    self._i_masterDeformGroup = self._i_module.modulePuppet.masterNull.deformGroup	    
 	    self._l_moduleColors = self._i_module.getModuleColors()
@@ -441,13 +442,14 @@ class go(object):
 	    '''	
 	    
 	    #intercept world scale and add in head scale
-	    mPlug_headMasterScale = cgmMeta.cgmAttr(mi_parentHeadHandle,'out_masterScale',value = 1.0,defaultValue=1.0,lock = True)
+	    mPlug_multpHeadScale = cgmMeta.cgmAttr(mi_faceDeformNull,'out_multpHeadScale',value = 1.0,defaultValue=1.0,lock = True)
+	    
 	    mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
-	    mPlug_globalScale.doConnectOut(mPlug_headMasterScale)
-	    NodeF.argsToNodes("%s = %s * %s.sy"%(mPlug_headMasterScale.p_combinedShortName,
+	    mPlug_globalScale.doConnectOut(mPlug_multpHeadScale)
+	    NodeF.argsToNodes("%s = %s * %s.sy"%(mPlug_multpHeadScale.p_combinedShortName,
 						 mPlug_globalScale.p_combinedShortName,
 						 mi_parentHeadHandle.p_nameShort)).doBuild()
-	    self.mPlug_headMasterScale = mPlug_headMasterScale
+	    self.mPlug_multpHeadScale = mPlug_multpHeadScale
 	except Exception,error:raise StandardError,"!verify_faceScaleDriver! | %s"%(error)	
 	
     def verify_faceSettings(self):
