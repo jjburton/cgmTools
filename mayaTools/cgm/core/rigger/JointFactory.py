@@ -465,6 +465,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 	    """	
 	    super(fncWrap, self).__init__(goInstance)
 	    self._str_funcName = 'doSkeletonizeEyebrow(%s)'%self.mi_module.p_nameShort
+	    self._b_autoProgressBar = True
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build brow','call':self._buildBrow_},
@@ -766,6 +767,8 @@ def doSkeletonizeEyebrow(goInstance = None):
 	
 	def _connect_(self): 
 	    self.mi_go._mi_rigNull.msgList_connect(self.ml_moduleJoints,'moduleJoints','rigNull')
+	    self.mi_go._mi_rigNull.msgList_connect(self.ml_moduleJoints,'skinJoints')
+	    
 	    return True
  	    	
     #We wrap it so that it autoruns and returns
@@ -778,6 +781,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = 'doSkeletonizeMouthNose(%s)'%self.mi_module.p_nameShort
+	    self._b_autoProgressBar = True
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Nose','call':self._buildNose_},
@@ -1114,9 +1118,17 @@ def doSkeletonizeMouthNose(*args,**kws):
 		mi_crv = self.mi_noseBaseCastCrv
 		l_components = mi_crv.getComponents('cv')
 		tag = 'noseBase'
-		try:#Create an name -------------------------------------------------------------------------
-		    pos = distance.returnAveragePointPosition([distance.returnWorldSpacePosition(l_components[0]),
-			                                       distance.returnWorldSpacePosition(l_components[-1])])
+		try:#Create our root -------------------------------------------------------------------------
+		    l_checkPos = [{'direction':'left','minU':.05,'maxU':.4, 'reverse':False},
+		                  {'direction':'right','minU':.05,'maxU':.4, 'reverse':True}]
+		    
+		    l_pos = []
+		    for d in l_checkPos:
+			l_pos.extend( crvUtils.returnSplitCurveList(mi_crv.mNode,
+			                                            1, minU = .05, maxU = .4,
+			                                            reverseCurve = d['reverse'], rebuildForSplit=True))		    
+		       
+		    pos = distance.returnAveragePointPosition(l_pos)
 		    
 		    mi_root = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
 		    mi_root.addAttr('cgmName',tag,lock=True)		    			
@@ -1476,6 +1488,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    #for mi_jnt in self.ml_moduleJoints:
 		#log.info("'%s'"%(mi_jnt.p_nameShort))
 	    self.mi_go._mi_rigNull.msgList_connect(self.ml_moduleJoints,'moduleJoints','rigNull')
+	    self.mi_go._mi_rigNull.msgList_connect(self.ml_moduleJoints,'skinJoints')	    
 	    return True
  	    	
     #We wrap it so that it autoruns and returns
