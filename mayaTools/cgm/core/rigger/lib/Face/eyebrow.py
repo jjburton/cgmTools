@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyebrow rig builder
 ================================================================
 """
-__version__ = 0.10112013
+__version__ = 1.12052013
 
 # From Python =============================================================
 import copy
@@ -96,6 +96,7 @@ def build_rigSkeleton(*args, **kws):
 	def __init__(self,*args, **kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kws['goInstance']._strShortName	
+	    self._b_autoProgressBar = True
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self.gatherInfo},
 	                        {'step':'Rig Joints','call':self.build_rigJoints},
@@ -276,7 +277,8 @@ def build_controls(*args, **kws):
     class fncWrap(modUtils.rigStep):
 	def __init__(self,*args, **kws):
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName = 'build_controls(%s)'%self.d_kws['goInstance']._strShortName	
+	    self._str_funcName = 'build_controls(%s)'%self.d_kws['goInstance']._strShortName
+	    self._b_autoProgressBar = True	    
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Settings','call':self._buildSettings_},	                        
@@ -334,9 +336,12 @@ def build_controls(*args, **kws):
 		    try:
 			mObj.parent = mi_go._i_deformNull
 			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
+			str_cgmDirection = mObj.getAttr('cgmDirection')			
+			_addForwardBack = "t%s"%mi_go._jointOrientation[0]			
+			if str_cgmDirection == 'center' and ii == 0:_addForwardBack = False#other center controls			
 			#Register 
 			try:
-			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addForwardBack = "t%s"%mi_go._jointOrientation[0],
+			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addForwardBack = _addForwardBack,
 				                                       mirrorSide = str_mirrorSide, mirrorAxis="translateZ,rotateX,rotateY",		                                           
 				                                       makeAimable=False, typeModifier=l_strTypeModifiers[ii]) 	    
 			except Exception,error:
@@ -387,6 +392,7 @@ def build_rig(*args, **kws):
 	def __init__(self,*args, **kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = 'build_rig(%s)'%self.d_kws['goInstance']._strShortName	
+	    self._b_autoProgressBar = True	    
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Special Locs','call':self._buildSpecialLocs_},	                        
@@ -395,7 +401,6 @@ def build_rig(*args, **kws):
 	                        {'step':'Rig Temple','call':self._buildTemple_},
 	                        {'step':'Attach Squash','call':self._attachSquash_},
 	                        {'step':'Lock N hide','call':self._lockNHide_},
-	                        
 	                        ]	
 	    #=================================================================
 	
@@ -531,6 +536,7 @@ def build_rig(*args, **kws):
 		except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
 		self.md_attachReturns[mi_browUpLoc] = d_return		
 		mc.delete(str_grp)
+		mi_go.connect_toRigGutsVis(mi_browUpLoc,vis = True)#connect to guts vis switches
 		
 	    except Exception,error:raise StandardError,"Brow up setup. | error : %s"%(error)
 
@@ -614,6 +620,7 @@ def build_rig(*args, **kws):
 		    mi_browFrontUpLoc.parent = mi_offsetGroup.parent
 		    mi_browFrontUpLoc.tz = f_offsetOfUpLoc
 		    self.mi_browFrontUpLoc = mi_browFrontUpLoc
+		    mi_go.connect_toRigGutsVis(mi_browFrontUpLoc,vis = True)#connect to guts vis switches		    
 		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)			
 		
 	    except Exception,error:
@@ -750,6 +757,10 @@ def build_rig(*args, **kws):
 	
 	def _buildUprCheek_(self):
 	    try:#>> Attach uprCheek rig joints =======================================================================================
+		if not self.mi_helper.buildUprCheek:
+		    log.info("%s >>> Build cheek toggle: off"%(self._str_reportStart))
+		    return True	
+		
 		mi_go = self._go#Rig Go instance link
 		str_skullPlate = self.str_skullPlate
 		d_section = self.md_rigList['uprCheek']
@@ -931,6 +942,8 @@ def build_rig(*args, **kws):
 		raise StandardError,"Setup handle | %s"%(error)
 	
 	def _lockNHide_(self):
+	    mi_go = self._go#Rig Go instance link
+	    
 	    #Lock and hide all 
 	    for mHandle in self.ml_handlesJoints:
 		cgmMeta.cgmAttr(mHandle,'scale',lock = True, hidden = True)
@@ -939,9 +952,14 @@ def build_rig(*args, **kws):
 		
 	    for mJoint in self.ml_rigJoints:
 		mJoint._setControlGroupLocks()	
+		mi_masterGroup = mJoint.masterGroup
 		cgmMeta.cgmAttr(mJoint,'v',lock = True, hidden = True)		
-
-	    mi_go = self._go#Rig Go instance link
+		#for attr in 'xyz':
+		    #mi_go.mPlug_globalScale.doConnectOut("%s.s%s"%(mi_masterGroup.mNode,attr))
+		#for attr in 'XYZ':
+		    #mi_go.mPlug_multpHeadScale.doConnectOut("%s.inverseScale%s"%(mJoint.mNode,attr))	
+		    #mi_go.mPlug_globalScale.doConnectOut("%s.inverseScale%s"%(mJoint.mNode,attr))	
+		    
 	    try:#parent folicles to rignull
 		for k in self.md_attachReturns.keys():# we wanna parent 
 		    d_buffer = self.md_attachReturns[k]
