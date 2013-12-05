@@ -530,6 +530,7 @@ def build_controls(*args, **kws):
 		
 	    l_strTypeModifiers = ['direct',None]
 	    for ii,ml_list in enumerate( [ml_rigJoints,ml_handleJoints] ):
+		str_typeModifier = l_strTypeModifiers[ii]
 		for i,mObj in enumerate(ml_list):
 		    str_mirrorSide = False
 		    try:
@@ -537,13 +538,17 @@ def build_controls(*args, **kws):
 			mObj.parent = mi_go._i_deformNull
 			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
 			_addForwardBack = "t%s"%mi_go._jointOrientation[0]
-			if mObj.cgmName in ['tongueBase','tongueTip','jaw']:_addForwardBack = False
+			str_cgmNameTag = mObj.getAttr('cgmName')
+			str_cgmDirection = mObj.getAttr('cgmDirection')
+			if str_cgmNameTag in ['tongueBase','tongueTip','jaw','noseTip']:_addForwardBack = False
+			elif ii == 0 and str_cgmNameTag in ['noseTop','noseUnder','noseBase']:_addForwardBack = False#nose controls
+			elif str_cgmDirection == 'center' and ii == 0:_addForwardBack = False#other center controls
 
 			#Register 
 			try:
 			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addForwardBack = _addForwardBack,
 				                                       mirrorSide = str_mirrorSide, mirrorAxis="translateZ,rotateX,rotateY",		                                           
-				                                       makeAimable=False, typeModifier=l_strTypeModifiers[ii]) 	    
+				                                       makeAimable=False, typeModifier=str_typeModifier) 	    
 			except Exception,error:
 			    log.error("mObj: %s"%mObj.p_nameShort)
 			    log.error("useShape: %s"%mObj.getMessage('controlShape'))
@@ -594,8 +599,8 @@ def build_rig(*args, **kws):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
-	                        {'step':'Tongue build','call':self._buildTongue_},	                        
-	                        #{'step':'Lip build','call':self._buildLips_},
+	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
+	                        {'step':'Lip build','call':self._buildLips_},
 	                        #{'step':'NoseBuild','call':self._buildNose_},
 	                        #{'step':'Cheek build','call':self._buildCheeks_},
 	                        #{'step':'Lock N hide','call':self._lockNHide_},
@@ -782,8 +787,8 @@ def build_rig(*args, **kws):
 
 	    try:#>> Constrain  head stuff =======================================================================================
 		mc.parentConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
-		#for attr in list('xzy'):
-		    #mi_go.mPlug_headMasterScale.doConnectOut("%s.s%s"%(mi_constrainNull.mNode,attr))
+		#for attr in 'xzy':
+		    #mi_go.mPlug_multpHeadScale.doConnectOut("%s.s%s"%(mi_constrainNull.mNode,attr))
 		mc.scaleConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
 		
 	    except Exception,error:raise StandardError,"!constrain stuff to the head! | %s"%(error)	
@@ -1117,7 +1122,7 @@ def build_rig(*args, **kws):
 		ml_tongueRig = self.md_rigList['tongueRig']
 		mi_jawRig = self.md_rigList['jawRig'][0]
 		mi_jawHandle = self.md_rigList['jawHandle'][0]
-		mPlug_headMasterScale = mi_go.mPlug_headMasterScale
+		mPlug_multpHeadScale = mi_go.mPlug_multpHeadScale
 		
 		str_capAim = mi_go._jointOrientation[0].capitalize()
 		str_partName = mi_go._partName
@@ -1127,7 +1132,7 @@ def build_rig(*args, **kws):
 		self.d_buffer['str_capAim'] = str_capAim
 		self.d_buffer['mi_jawRig'] = mi_jawRig
 		self.d_buffer['mi_jawHandle'] = mi_jawHandle
-		self.d_buffer['mPlug_headMasterScale'] = mPlug_headMasterScale
+		self.d_buffer['mPlug_multpHeadScale'] = mPlug_multpHeadScale
 		
 		self.log_infoNestedDict('d_buffer')
 	    except Exception,error:raise StandardError,"!Info Gather! | %s"%(error)
@@ -1183,7 +1188,7 @@ def build_rig(*args, **kws):
 	    
 	    try:#>>>Connect master scale
 		mi_distanceBuffer = mi_curve.scaleBuffer		
-		cgmMeta.cgmAttr(mi_distanceBuffer,'masterScale',lock=True).doConnectIn(mPlug_headMasterScale.p_combinedShortName)    
+		cgmMeta.cgmAttr(mi_distanceBuffer,'masterScale',lock=True).doConnectIn(mPlug_multpHeadScale.p_combinedShortName)    
 	    except Exception,error:raise StandardError,"!segment scale connect! | %s"%(error)
 	    
 	    try:#Do a few attribute connections
@@ -1996,7 +2001,9 @@ def build_rig(*args, **kws):
 		mi_offsetGroup.doName()
 		mObj.connectChildNode(mi_offsetGroup,"offsetGroup","childObject")
 		
-		mc.pointConstraint([self.md_rigList['lipCornerHandle']['left'][0].mNode,self.md_rigList['lipCornerHandle']['right'][0].mNode],
+		mc.pointConstraint([self.md_rigList['lipCornerHandle']['left'][0].mNode,
+		                    self.md_rigList['mouthMove'][0].mNode,
+		                    self.md_rigList['lipCornerHandle']['right'][0].mNode],
 		                   mi_offsetGroup.mNode,skip = ["%s"%str_axis for str_axis in [mi_go._jointOrientation[0],mi_go._jointOrientation[2]]],
 		                   maintainOffset = True)
 	    except Exception,error:raise StandardError,"!Center upr lip offsetgroup! | %s"%(error)
