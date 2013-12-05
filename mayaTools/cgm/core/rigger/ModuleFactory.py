@@ -584,18 +584,29 @@ def rigConnect(*args,**kws):
 	    i_rigNull = mi_module.rigNull
 	    ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
 	    ml_skinJoints = mRig.get_skinJoints(mi_module,asMeta=True)
-	
+	    
+	    if mi_module.moduleType in __l_faceModules__:
+		_b_faceState = True
+		mi_faceDeformNull = mi_module.faceDeformNull
+	    else:_b_faceState = False
+
 	    if len(ml_skinJoints)!=len(ml_rigJoints):
 		raise StandardError,"Rig/Skin joint chain lengths don't match"
 	    
 	    for i,i_jnt in enumerate(ml_skinJoints):
 		try:
-		    log.debug("'%s'>>drives>>'%s'"%(ml_rigJoints[i].getShortName(),i_jnt.getShortName()))
-		    pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
-		    orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
-		    attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
-		except:
-		    raise StandardError,"Joint failed: %s"%i_jnt.getShortName()
+		    log.debug("'%s'>>drives>>'%s'"%(ml_rigJoints[i].getShortName(),i_jnt.getShortName()))       
+		    if _b_faceState:
+			pntConstBuffer = mc.parentConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        			
+			scConstBuffer = mc.scaleConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 
+			for str_a in 'xyz':
+			    attributes.doConnectAttr('%s.s%s'%(mi_faceDeformNull.mNode,str_a),'%s.offset%s'%(scConstBuffer[0],str_a.capitalize()))
+		    else:
+			pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
+			orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 			
+			attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+		except Exception,error:
+		    raise StandardError,"Joint failed: %s | %s"%(i_jnt.getShortName(),error)
 	    return True
     return fncWrap(*args,**kws).go()
 
@@ -615,11 +626,14 @@ def rigDisconnect(*args,**kws):
 	    """
 	    """
 	    mi_module = self.mi_module
-	    
+	    """
 	    if not isRigged(mi_module):
 		raise StandardError,"Module not rigged"
 	    if not isRigConnected(mi_module):
 		raise StandardError,"Module not connected"
+	    """
+	    if mi_module.moduleType in __l_faceModules__:_b_faceState = True
+	    else:_b_faceState = False
 	    
 	    mc.select(cl=True)
 	    mc.select(mi_module.rigNull.msgList_getMessage('controlsAll'))
@@ -628,11 +642,12 @@ def rigDisconnect(*args,**kws):
 	    i_rigNull = mi_module.rigNull
 	    l_rigJoints = i_rigNull.getMessage('rigJoints') or False
 	    l_skinJoints = i_rigNull.getMessage('skinJoints') or False
+	    if not l_skinJoints:raise Exception,"No skin joints found"	    
 	    l_constraints = []
 	    for i,i_jnt in enumerate(i_rigNull.skinJoints):
 		try:
 		    l_constraints.extend( i_jnt.getConstraintsTo() )
-		    attributes.doBreakConnection("%s.scale"%i_jnt.mNode)
+		    if not _b_faceState:attributes.doBreakConnection("%s.scale"%i_jnt.mNode)
 		except Exception,error:
 		    log.error(error)
 		    raise StandardError,"Joint failed: %s"%(i_jnt.getShortName())
