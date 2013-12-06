@@ -43,6 +43,110 @@ log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def findSurfaceIntersection(surface, raySource, rayDir, maxDistance = 1000):
+    """
+    Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
+
+    Return the closest point on a surface from a raySource and rayDir
+
+    Arguments
+    mesh(string) -- currently poly surface only
+    raySource(double3) -- point in world space
+    rayDir(double3) -- world space vector
+
+    returns hitpoint(double3)
+    """    
+    try:
+        _str_funcName = 'findSurfaceIntersection'
+        log.debug(">>> %s >> "%_str_funcName + "="*75)           
+        if len(mc.ls(surface))>1:
+            raise StandardError,"findSurfaceIntersection>>> More than one surface named: %s"%surface    
+    
+        #Create an empty selection list.
+        selectionList = om.MSelectionList()
+    
+        #Put the surface's name on the selection list.
+        selectionList.add(surface)
+    
+        #Create an empty MDagPath object.
+        meshPath = om.MDagPath()
+    
+        #Get the first item on the selection list (which will be our mesh)
+        #as an MDagPath.
+        selectionList.getDagPath(0, meshPath)
+    
+        #Create an MFnMesh functionset to operate on the node pointed to by
+        #the dag path.
+        nurbsFn = om.MFnNurbsSurface(meshPath)
+    
+        #Convert the 'raySource' parameter into an MFloatPoint.
+        raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
+    
+        #Convert the 'rayDir' parameter into an MVector.`
+        rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
+    
+        #Create an empty MFloatPoint to receive the hit point from the call.
+        hitPoint = om.MFloatPoint()
+        
+        #Create empty doubles
+        uPoint = om.MFloatVector()
+        vPoint = om.MFloatVector()
+        pDistance = om.MFloatPoint()
+        
+        log.debug("maxDistance: %s"%maxDistance)
+    
+        #Set up a variable for each remaining parameter in the
+        #MFnMesh::closestIntersection call. We could have supplied these as
+        #literal values in the call, but this makes the example more readable.
+        sortIds = False
+        maxDist = maxDistance#om.MDistance.internalToUI(1000000)# This needs work    
+        #maxDist = om.MDistance.internalToUI(maxDistance) # This needs work
+        bothDirections = False
+        noFaceIds = None
+        noTriangleIds = None
+        noAccelerator = None
+        noHitParam = None
+        noHitFace = None
+        noHitTriangle = None
+        noHitBary1 = None
+        noHitBary2 = None
+        b_calculateDistance = False
+        f_tolerance = 1.0e-3
+        b_calculateExactHit = False
+        b_wasExactHit = False
+        #Get the closest intersection.
+        gotHit = nurbsFn.intersect(raySource, rayDirection,#Ins
+                                   uPoint,vPoint,hitPoint,
+                                   f_tolerance, om.MSpace.kWorld,
+                                   b_calculateDistance,pDistance,
+                                   b_calculateExactHit,b_wasExactHit)
+    
+        #Return the intersection as a Pthon list.
+        if gotHit:
+            return gotHit
+            #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
+            hitMPoint = om.MPoint(hitPoint) # Thank you Capper on Tech-artists.org          
+            pArray = [0.0,0.0]
+            x1 = om.MScriptUtil()
+            x1.createFromList( pArray, 2 )
+            uvPoint = x1.asFloat2Ptr()
+            uvSet = None
+            closestPolygon=None
+            uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
+    
+            uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
+            vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+            log.debug("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
+            if uValue and vValue:
+                return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z],'uv':[uValue,vValue]}                
+            else:
+                return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z],'uv':False}
+        else:
+            return None    
+    except StandardError,error:
+        log.error(">>> %s >> mesh: %s | raysource: %s | rayDir %s | error: %s"%(_str_funcName,surface,raySource,rayDir,error))
+        return None
+    
 def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D

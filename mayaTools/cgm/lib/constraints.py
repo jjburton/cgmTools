@@ -150,6 +150,7 @@ def returnConstraintTargets(constraint):
     constaintCmdDict = {'parentConstraint':mc.parentConstraint,
                         'orientConstraint':mc.orientConstraint,
                         'pointConstraint':mc.pointConstraint,
+                        'scaleConstraint':mc.scaleConstraint,
                         'aimConstraint':mc.aimConstraint}
     
     if objType in constaintCmdDict.keys():
