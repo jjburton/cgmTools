@@ -282,7 +282,6 @@ def doSkeletonizeEyeball(self):
     for i,j in enumerate(l_initialJoints):
 	i_j = cgmMeta.cgmObject(j,setClass=True)
 	i_j.doCopyNameTagsFromObject( ml_buildObjects[i].mNode,ignore=['cgmTypeModifier','cgmType'] )#copy Tags
-	i_j.doName()
 	i_j.parent = False
 	ml_moduleJoints.append(i_j)
 	self._mi_rigNull.connectChildNode(i_j,'%sJoint'%i_j.cgmName)
@@ -303,13 +302,12 @@ def doSkeletonizeEyeball(self):
 	#Copy eyeball orient to children
 	if len(ml_moduleJoints)>1:
 	    for o in ml_moduleJoints[1:]:
-		o.parent = ml_moduleJoints[0]#Parent back	
+		o.parent = ml_moduleJoints[0]#Parent back
 	    joints.doCopyJointOrient(ml_moduleJoints[0].mNode,[jnt.mNode for jnt in ml_moduleJoints[1:]])
 	    
 	try:#Create eye orb joint
 	    i_dupJnt = ml_moduleJoints[0].doDuplicate()#Duplicate
 	    i_dupJnt.addAttr('cgmName','eyeOrb')#Tag
-	    i_dupJnt.doName()#Rename
 	    ml_moduleJoints[0].parent = i_dupJnt#Parent
 	    ml_moduleJoints.insert(0,i_dupJnt)
 	except:
@@ -324,6 +322,8 @@ def doSkeletonizeEyeball(self):
     #>>> Flag our handle joints
     #===========================
     try:
+	for mJnt in ml_moduleJoints:
+	    mJnt.doName()
 	self._mi_rigNull.msgList_connect(ml_moduleJoints,'handleJoints') 
 	self._mi_rigNull.msgList_connect(ml_moduleJoints,'skinJoints') 
     except Exception,error:

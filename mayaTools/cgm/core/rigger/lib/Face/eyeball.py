@@ -35,6 +35,7 @@ from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.rigger.lib import module_Utils as modUtils
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
@@ -56,7 +57,6 @@ from cgm.lib import (attributes,
 #>>> Skeleton
 #=========================================================================================================
 __l_jointAttrs__ = ['rigJoints']   
-@cgmGeneral.Timer
 def __bindSkeletonSetup__(self):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
@@ -82,8 +82,41 @@ def __bindSkeletonSetup__(self):
 	log.error("build_eyeball>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
     
-@cgmGeneral.Timer
-def build_rigSkeleton(self):
+def build_rigSkeleton(*args, **kws):
+    class fncWrap(modUtils.rigStep):
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kws['goInstance']._strShortName	
+	    self._b_autoProgressBar = True
+	    self.__dataBind__()
+	    self.l_funcSteps = [{'step':'Gather Info','call':self.gatherInfo},
+	                        {'step':'Rig Joints','call':self.build_rigJoints},
+	                        {'step':'Connections','call':self.build_connections}
+	                        ]	
+	    #=================================================================
+	
+	def gatherInfo(self):
+	    mi_go = self._go#Rig Go instance link
+	    self.mi_skullPlate = mi_go._mi_skullPlate
+	    
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    if not self.mi_helper:raise StandardError,"No suitable helper found"
+	    		    
+	def build_rigJoints(self):
+	    #We'll have a rig joint for every joint
+	    mi_go = self._go#Rig Go instance link
+	    ml_rigJoints = mi_go.build_rigChain()	
+	    ml_rigJoints[0].parent = False
+	    self.ml_rigJoints = ml_rigJoints
+	    
+	def build_connections(self):    
+	    #ml_jointsToConnect = []
+	    #ml_jointsToConnect.extend(self.ml_rigJoints)   
+	    mi_go = self._go#Rig Go instance link	    
+	    mi_go.connect_toRigGutsVis(self.ml_rigJoints)
+    return fncWrap(*args, **kws).go()    
+    
+def build_rigSkeleton2(self):
     """
     """
     try:#===================================================
@@ -100,6 +133,7 @@ def build_rigSkeleton(self):
     #>>>Create joint chains
     try:#>>Rig chain =====================================================================
 	ml_rigJoints = self.build_rigChain()	
+	ml_rigJoints[0].parent = False
     except StandardError,error:
 	raise StandardError,"%s>>Build rig joints fail! | error: %s"%(_str_funcName,error)   
 
@@ -119,7 +153,7 @@ def build_rigSkeleton(self):
 #>>> Shapes
 #===================================================================
 __d_controlShapes__ = {'shape':['eyeballFK','eyeballIK','settings']}
-@cgmGeneral.Timer
+
 def build_shapes(self):
     """
     """ 
@@ -144,8 +178,8 @@ def build_shapes(self):
     #=============================================================
     try:
 	#Rest of it
-	l_toBuild = ['eyeballIK','eyeballFK','eyeballSettings']
-	mShapeCast.go(self._i_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
+	#l_toBuild = ['eyeballIK','eyeballFK','eyeballSettings']
+	mShapeCast.go(self._i_module,['eyeball'], storageInstance=self)#This will store controls to a dict called    
 	#self._i_rigNull.connectChildNode(self._md_controlShapes['eyeball'],'shape_eyeball',"rigNull")
 	
     except StandardError,error:
@@ -155,7 +189,6 @@ def build_shapes(self):
     
 #>>> Controls
 #===================================================================
-@cgmGeneral.Timer
 def build_controls(self):
     """
     """    

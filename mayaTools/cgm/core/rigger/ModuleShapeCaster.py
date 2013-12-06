@@ -69,6 +69,7 @@ class go(object):
 	                                'cap':self.build_moduleCap,
 	                                'hand':self.build_handShape,
 	                                'clavicle':self.build_clavicle,
+	                                'eyeball':shapeCast_eyeball,
 	                                'eyeballFK':self.build_eyeballFK,
 	                                'eyeballIK':self.build_eyeballIK,
 	                                'eyelids':self.build_eyelids,
@@ -112,9 +113,7 @@ class go(object):
 	    self.str_partName = self._mi_module.getPartNameBase()
 	    self.str_partType = self._mi_module.moduleType or False
 	    
-	    self._direction = None
-	    if self._mi_module.hasAttr('cgmDirection'):
-		self._direction = self._mi_module.cgmDirection or None
+	    self._direction = self._mi_module.getAttr('cgmDirection') or None
 		   
 	    #>>> Instances and joint stuff
 	    self.str_jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   
@@ -1926,6 +1925,7 @@ def shapeCast_eyebrow(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = 'shapeCast_eyebrow(%s)'%self.mi_module.p_nameShort
+	    self._b_autoProgressBar = 1	    
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Brow Shapes','call':self._browShapes_},
@@ -2255,6 +2255,7 @@ def shapeCast_mouthNose(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = 'shapeCast_mouthNose(%s)'%self.mi_module.p_nameShort
+	    self._b_autoProgressBar = 1	    
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Jaw Shapes','call':self._jawShapes_},	                        
@@ -2700,6 +2701,115 @@ def shapeCast_mouthNose(*args,**kws):
 	    self._mi_rigNull.msgList_connect(self.ml_pinHandles,'shape_pinCurves','owner')
 	    
 	    return True
+	
+    #We wrap it so that it autoruns and returns
+    return fncWrap(*args,**kws).go()  
+
+def shapeCast_eyeball(*args,**kws):
+    class fncWrap(ShapeCasterFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = 'shapeCast_eyeball(%s)'%self.mi_module.p_nameShort
+	    self._b_autoProgressBar = 1
+	    self._b_reportTimes = 1
+	    self.__dataBind__(*args,**kws)
+	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
+	                        {'step':'Build FK','call':self._buildFK_}
+	                        ]
+	    assert self.mi_module.mClass == 'cgmEyeball',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(self._str_funcName,self.mi_module.mClass)
+	    
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def _gatherInfo_(self): 
+	    self.str_orientation = self.mi_go.str_jointOrientation #Link
+	    self.str_partName = self.mi_go.str_partName		    
+	    self.str_direction = self.mi_go._direction
+	    self.d_colors = {'left':metaUtils.getSettingsColors('left'),
+	                     'right':metaUtils.getSettingsColors('right'),
+	                     'center':metaUtils.getSettingsColors('center')}
+	    
+	    #Orient info ------------------------------------------------------------------------------------------------
+	    self.v_aimNegative = cgmValid.simpleAxis(self.str_orientation[0]+"-").p_vector
+	    self.v_aim = cgmValid.simpleAxis(self.str_orientation[0]).p_vector	
+	    self.v_up = cgmValid.simpleAxis(self.str_orientation[1]).p_vector	
+	    
+	    #Find our helpers -------------------------------------------------------------------------------------------
+	    self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
+	    if not self.mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
+
+	    #>> Find our joint lists ===================================================================
+	    ml_rigJoints = self.mi_module.rigNull.msgList_get('rigJoints')	    
+	    
+	    #>> calculate ------------------------------------------------------------------------
+	    self.f_baseDistance = distance.returnDistanceBetweenObjects(self.mi_helper.mNode,
+	                                                                self.mi_helper.pupilHelper.mNode)	    
+	    #>> Running lists --------------------------------------------------------------------
+	    self.ml_handles = []	    
+	    return True
+	
+	def _buildFK_(self):
+	    try:#query ===========================================================
+		mi_helper = self.mi_helper
+		_baseDistance = self.f_baseDistance  
+	    except Exception,error: raise Exception,"!Query! | %s"%error
+	    
+	    try:#Curve creation ===========================================================
+		mi_crvBase = cgmMeta.cgmObject( curves.createControlCurve('circle',
+		                                                          direction = 'z+',
+		                                                          size = _baseDistance * .75,
+		                                                          absoluteSize=False),setClass=True)
+		Snap.go(mi_crvBase,mi_helper.mNode)
+		mi_tmpGroup = cgmMeta.cgmObject( mi_crvBase.doGroup())
+		mi_crvBase.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 2)
+		mi_crvBase.parent = False
+		mi_tmpGroup.delete()
+		
+		#Make a trace curve
+		_str_trace = mc.curve (d=1, ep = [mi_helper.getPosition(),mi_crvBase.getPosition()], os=True)#build curves as we go to see what's up
+		log.info(_str_trace)
+		l_curvesToCombine = [_str_trace,mi_crvBase.mNode]
+		
+		#>>>Combine the curves
+		try:newCurve = curves.combineCurves(l_curvesToCombine) 
+		except Exception,error:raise StandardError,"!Failed to combine! | %s"%error
+		
+		mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_helper.mNode,False) )
+		
+		try:curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
+		except Exception,error:raise StandardError,"Parent shape in place fail | error: %s"%error
+		
+		mc.delete(_str_trace)
+	    except Exception,error: raise Exception,"!Curve create! | %s"%error
+	    
+	    try:#Tag,name, color ===========================================================
+		mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
+		mi_crv.addAttr('cgmType',attrType='string',value = 'eyeball_FK',lock=True)
+		mi_crv.doName()          	    
+    
+		#Color
+		curves.setCurveColorByName(mi_crv.mNode,self.d_colors[self.str_direction][0]) 
+	    except Exception,error: raise Exception,"!Tag,name,color! | %s"%error
+	    
+	    try:#connect ===========================================================
+		self.mi_go.d_returnControls['eyeballFK'] = mi_crv.mNode
+		self.mi_go.md_ReturnControls['eyeballFK'] = mi_crv
+		self.mi_go._mi_rigNull.connectChildNode(mi_crv,'shape_eyeballFK','owner')
+	    except Exception,error: raise Exception,"!Connect! | %s"%error
+	    
+    def _connect_(self): 
+	self.mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
+	self.mi_go.md_ReturnControls['ml_handleCurves'] = self.ml_handles
+	self._mi_rigNull.msgList_connect(self.ml_handleCrvs,'shape_handleCurves','owner')
+	
+	self.mi_go.d_returnControls['l_pinCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
+	self.mi_go.md_ReturnControls['ml_pinCurves'] = self.ml_handles
+	self._mi_rigNull.msgList_connect(self.ml_pinHandles,'shape_pinCurves','owner')
+	
+	return True
 	
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()  
