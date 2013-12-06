@@ -785,13 +785,6 @@ def build_rig(*args, **kws):
 		self._buildSimpleSkullDeformation_()
 	    except Exception,error:raise StandardError,"!setup simple def! | %s"%(error)	
 
-	    try:#>> Constrain  head stuff =======================================================================================
-		mc.parentConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
-		#for attr in 'xzy':
-		    #mi_go.mPlug_multpHeadScale.doConnectOut("%s.s%s"%(mi_constrainNull.mNode,attr))
-		mc.scaleConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
-		
-	    except Exception,error:raise StandardError,"!constrain stuff to the head! | %s"%(error)	
 	    
 	def _buildSimpleSkullDeformation_(self):
 	    """

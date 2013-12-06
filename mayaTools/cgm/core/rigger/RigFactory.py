@@ -226,6 +226,20 @@ class go(object):
 		self.verify_faceSkullPlate()
 		self.verify_faceDeformNull()#make sure we have a face deform null
 		self.verify_faceScaleDriver()#scale driver
+	
+		try:#>> Constrain  head stuff =======================================================================================
+		    mi_parentHeadHandle = self.mi_parentHeadHandle
+		    mi_constrainNull =  self._i_faceDeformNull
+		    log.info(mi_parentHeadHandle)
+		    log.info(mi_constrainNull)		    
+		    try:
+			if not mi_constrainNull.isConstrainedBy(mi_parentHeadHandle.mNode):
+			    mc.parentConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
+			    #for attr in 'xzy':
+				#mi_go.mPlug_multpHeadScale.doConnectOut("%s.s%s"%(mi_constrainNull.mNode,attr))
+			    mc.scaleConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
+		    except Exception,error:raise Exception,"Failed to constrain | %s"%error
+		except Exception,error:raise StandardError,"!constrain stuff to the head! | %s"%(error)			
 	except Exception,error:
 	    raise StandardError,"%s >>> error : %s"%(_str_funcName,error) 	
 	
