@@ -2284,7 +2284,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
 	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
 	
 	#First see if we have a module
-	if not self.getMessage('mi_module'):
+	if not self.getMessage('moduleTarget'):
 	    #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> No module found. Building... "%(_str_funcName))
 	    self.__buildModule__()
 	return True
@@ -2464,15 +2464,19 @@ class cgmEyeballBlock(cgmRigBlock):
 	_str_funcName = "cgmEyeballBlock.__buildMirror__(%s)"%self.p_nameShort   
 	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
 	try:
-	    try:#Mirror curves =====================================================================
+	    try:#Mirror Block =====================================================================
 		if not self.getMessage('blockMirror'):
 		    mi_dup = self.doDuplicate(False)
 		    l_pivot = mc.xform(self.mNode,q=True, sp = True,ws=True)
 		    for a in ['lwrLid','uprLid']:
 			mc.scale( -1,1,1,self.getMessageInstance("%sHelper"%a).getComponents('cv'),pivot = l_pivot ,  r=True)
 		self.connectChildNode(mi_dup,"blockMirror","blockMirror")
+		str_direction = self.getEnumValueString('direction') 
+		if str_direction == 'left':_str_useDirection = 'right'
+		elif str_direction == 'right':_str_useDirection = 'left'
+		else:_str_useDirection = 'none'
 		
-		mi_dup.direction = not self.direction
+		mi_dup.direction = _str_useDirection
 		mi_dup.cgmDirection = mi_dup.getEnumValueString('direction')
 		mi_dup.doName()
 			
@@ -2510,9 +2514,10 @@ class cgmEyeballBlock(cgmRigBlock):
 	    
 	    mi_mirror.tx = -self.tx
 	    mi_mirror.ty = self.ty
-	    mi_mirror.sy = self.sy
-	    
+	    mi_mirror.sy = self.sy 
 	except Exception,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
+	#try:#Push mirror stuff to the   
+	#except Exception,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
  
 	
     def __buildModule__(self):
@@ -2566,7 +2571,6 @@ class cgmEyeballBlock(cgmRigBlock):
 			mi_mirror.connectChildNode(i_eyelidsModuleMirror,"moduleEyelids","helper")
 		    except Exception,error:raise StandardError,"Failed to mirror eyelids module | error: %s "%(error)
 	    except Exception,error:raise StandardError,"failed to mirror | error: %s "%(error)
-	    
 	    self.__storeNames__()
 	    
 	    #Size it
@@ -2600,7 +2604,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	if not self.getMessage('moduleTarget'):
 	    raise StandardError,">>> %s >>> No module found "%(_str_funcName)
 	
-	i_module = self.mi_module#Lilnk
+	i_module = self.moduleTarget#Lilnk
 	l_pos = [self.getPosition()]
 	d_helpercheck = cgmEyeballBlock.d_helperSettings#Link
 	
@@ -2829,7 +2833,7 @@ class cgmEyebrowBlock(cgmRigBlock):
 	if not self.getMessage('moduleTarget'):
 	    raise StandardError,">>> %s >>> No module found "%(_str_funcName)
 	
-	i_module = self.mi_module#Lilnk
+	i_module = self.moduleTarget#Lilnk
 	l_pos = [self.getPosition()]
 	d_helpercheck = cgmEyeballBlock.d_helperSettings#Link
 	
