@@ -80,6 +80,8 @@ a = cgmPM.cgmMouthNose()
 
 p = cgmMeta.cgmNode('Morphy_puppetNetwork')
 p.mClass
+p.gatherModules()
+
 m1.mNode
 
 a = r9Meta.MetaClass('mouthNose_part')

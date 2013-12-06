@@ -94,6 +94,8 @@ a = cgmPM.cgmEyeballBlock(direction = 'left')
 a = r9Meta.MetaClass('l_eye_rigHelper')
 a.mNode
 a.pupilHelper
+a.__mirrorBuild__()
+a.__mirrorPush__()
 a.__verifyModule__()
 a.__updateSizeData__()
 p=a.__buildSimplePuppet__()
@@ -103,7 +105,13 @@ a.__rebuildShapes__()
 a.doName(nameChildren=True)
 b = cgmPM.cgmEyeball(name = 'eye',direction = 'left')
 cgmPM.cgmModule(name = 'eye',direction = 'left')
+
 m1 = cgmPM.cgmModule('l_eye_part')
+m1.doSetParentModule('neck_part')
+p = cgmMeta.cgmNode('Morphy_puppetNetwork')
+p.mClass
+p.gatherModules()
+
 m1 = cgmPM.cgmModule('l_eyelid_part')
 m1.getNameAlias()
 m1.getAllModuleChildren()

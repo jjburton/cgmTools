@@ -19,6 +19,10 @@ caster = 'curve1'
 geo = 'Morphy_Body_GEO'
 axis = ['z+']
 mShapeCast.returnBaseControlSize(caster,geo,axis)#Get size
+reload(mShapeCast)
+mi_go = mShapeCast.go(m1)
+m1.isTemplated()
+mShapeCast.shapeCast_mouthNose(mi_go,reportTimes = True)
 
 obj = mc.ls(sl=True)[0] or False
 obj = ''
@@ -28,6 +32,7 @@ objList = []
 rotateBank = -10
 mShapeCast.createMeshSliceCurve('Morphy_Body_GEO1',l_targetObjects[0],curveDegree=3,posOffset = [0,0,2.5],points=8,returnDict = True,latheAxis='z',aimAxis='y-')
 info = mShapeCast.createMeshSliceCurve('Morphy_Body_GEO1',l_targetObjects[0],maxDistance=12,curveDegree=3,rotateBank = rotateBank,posOffset = [0,0,2.5],points=8,returnDict = True,latheAxis='z',aimAxis='y-')
+ShapeCast.createMeshSliceCurve('Morphy_Body_GEO','noseTip_rig_jnt_loc',rotateBank = -10,curveDegree=3,posOffset = [0,0,.5],points=8,returnDict = True,latheAxis='z',aimAxis='y-')
 
 minRotate = 0
 maxRotate = 360

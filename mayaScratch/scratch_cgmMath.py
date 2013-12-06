@@ -24,9 +24,16 @@ for jnt in mc.ls(sl=True):
     surfUtils.attachObjToSurface(jnt,surface,False)
 #>>> Split value list
 #=======================================================
-minU = 0
+reload(cgmMath)
+minU = .1
 maxU = 1
 points = 5
+startSplitFactor = .3
+insetSplitFactor = .3
+cullStartEnd = True
 cgmMath.returnSplitValueList(minU,maxU,points)
+cgmMath.returnSplitValueList(minU,maxU,points,startSplitFactor = startSplitFactor,insetSplitFactor = None)
+cgmMath.returnSplitValueList(minU,maxU,points,startSplitFactor = None,insetSplitFactor = insetSplitFactor)
+cgmMath.returnSplitValueList(minU,maxU,points,cullStartEnd = cullStartEnd)
 
 crvUtils.returnSplitCurveList(crv,5,reverseCurve = False, maxU = .35, markPoints=True,rebuildForSplit=True)

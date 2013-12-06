@@ -10,6 +10,8 @@ from cgm.lib import distance
 from cgm.lib import joints
 reload(distance)
 from cgm.core.rigger.lib import rig_Utils as rUtils
+from cgm.core.lib import curve_Utils as crvUtils
+
 from cgm.core.lib import surface_Utils as surfUtils
 reload(surfUtils)
 from cgm.core.rigger.lib import joint_Utils as jUtils
@@ -26,14 +28,35 @@ cgmMeta.cgmObject(obj).createTransformFromObj()
 reload(surfUtils)
 surface = 'loftedSurface1'
 surface = 'skullPlate'
-surface = 'lwrPlate'
+surface = 'uprLipFollow_plate_surf'
+surface = 'skullPlate_v02'
 obj = 'center_browUpr_jnt'
 surfUtils.attachObjToSurface(obj,surface,True)
-
 for jnt in mc.ls(sl=True):
     surfUtils.attachObjToSurface(jnt,surface,True)
     
 for jnt in mc.ls(sl=True):
+    surfUtils.attachObjToSurface(jnt,surface,True,attachControlLoc = False)
+    
+for jnt in mc.ls(sl=True):
     surfUtils.attachObjToSurface(jnt,surface,False)
-#>>> Split curve list
+    
+#>>> loft curve - radial
+# create_curveLoft
 #=======================================================
+reload(surfUtils)
+curve = 'smileLeft_2_rigHelper'
+posObj = 'mouthMove_handle_anim'
+posObj = [0,0,0]
+surfUtils.create_radialCurveLoft(curve,posObj)
+surfUtils.create_radialCurveLoft(curve,aimPointObject = posObj,reportShow = 1)
+surfUtils.create_radialCurveLoft(printHelp = 1)
+self._l_ARGS_KWS_DEFAULTS = [{'kw':'crvToLoft',"default":None,
+                              'help':"Curve which will be lofted"},
+                             {'kw':'aimPointObject',"default":None,
+                              'help':"Point object from which to loft"},
+                             {'kw':'f_offset',"default":-.5,
+                              'help':"Width of this new surface"},
+                             
+                             
+convertCurve
