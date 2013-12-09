@@ -1934,7 +1934,7 @@ def shapeCast_eyebrow(*args,**kws):
 	                        {'step':'Face Pins','call':self._facePins_},
 	                        ]
 	    
-	    assert self.mi_module.mClass == 'cgmEyebrow',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(self._str_funcName,self.mi_module.mClass)
+	    assert self.mi_module.mClass == 'cgmEyebrow',"%s >>> Module is not type: 'cgmEyebrow' | type is: '%s'"%(self._str_funcName,self.mi_module.mClass)
 	    
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
@@ -2716,10 +2716,12 @@ def shapeCast_eyeball(*args,**kws):
 	    self._b_reportTimes = 1
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-	                        {'step':'Build FK','call':self._buildFK_}
+	                        {'step':'Build FK','call':self._buildFK_},
+	                        {'step':'Build IK','call':self._buildIK_},
+	                        {'step':'Build Settings','call':self._buildSettings_},
+	                        {'step':'Build Eye Move','call':self._buildEyeMove_},	                        	                        
 	                        ]
 	    assert self.mi_module.mClass == 'cgmEyeball',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(self._str_funcName,self.mi_module.mClass)
-	    
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    if log.getEffectiveLevel() == 10:self.report()#If debug
@@ -2758,16 +2760,16 @@ def shapeCast_eyeball(*args,**kws):
 	    except Exception,error: raise Exception,"!Query! | %s"%error
 	    
 	    try:#Curve creation ===========================================================
-		mi_crvBase = cgmMeta.cgmObject( curves.createControlCurve('circle',
+		mi_crv = cgmMeta.cgmObject( curves.createControlCurve('circle',
 		                                                          direction = 'z+',
 		                                                          size = _baseDistance * .75,
 		                                                          absoluteSize=False),setClass=True)
-		Snap.go(mi_crvBase,mi_helper.mNode)
-		mi_tmpGroup = cgmMeta.cgmObject( mi_crvBase.doGroup())
-		mi_crvBase.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 2)
-		mi_crvBase.parent = False
+		Snap.go(mi_crv,mi_helper.mNode)
+		mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
+		mi_crv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 2)
+		mi_crv.parent = False
 		mi_tmpGroup.delete()
-		
+		'''
 		#Make a trace curve
 		_str_trace = mc.curve (d=1, ep = [mi_helper.getPosition(),mi_crvBase.getPosition()], os=True)#build curves as we go to see what's up
 		log.info(_str_trace)
@@ -2782,7 +2784,7 @@ def shapeCast_eyeball(*args,**kws):
 		try:curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
 		except Exception,error:raise StandardError,"Parent shape in place fail | error: %s"%error
 		
-		mc.delete(_str_trace)
+		mc.delete(_str_trace)'''
 	    except Exception,error: raise Exception,"!Curve create! | %s"%error
 	    
 	    try:#Tag,name, color ===========================================================
@@ -2800,16 +2802,130 @@ def shapeCast_eyeball(*args,**kws):
 		self.mi_go._mi_rigNull.connectChildNode(mi_crv,'shape_eyeballFK','owner')
 	    except Exception,error: raise Exception,"!Connect! | %s"%error
 	    
-    def _connect_(self): 
-	self.mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
-	self.mi_go.md_ReturnControls['ml_handleCurves'] = self.ml_handles
-	self._mi_rigNull.msgList_connect(self.ml_handleCrvs,'shape_handleCurves','owner')
-	
-	self.mi_go.d_returnControls['l_pinCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
-	self.mi_go.md_ReturnControls['ml_pinCurves'] = self.ml_handles
-	self._mi_rigNull.msgList_connect(self.ml_pinHandles,'shape_pinCurves','owner')
-	
-	return True
-	
+	def _buildIK_(self):
+	    try:#query ===========================================================
+		mi_helper = self.mi_helper
+		f_baseDistance = self.f_baseDistance  
+	    except Exception,error: raise Exception,"!Query! | %s"%error
+	    
+	    try:#Curve creation ===========================================================
+		mi_crv = cgmMeta.cgmObject( curves.createControlCurve('fatCross',
+	                                                              direction = 'z+',
+	                                                              size = f_baseDistance*.75,
+	                                                              absoluteSize=False),
+	                                        setClass=True)
+		Snap.go(mi_crv,mi_helper.mNode)
+		mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
+		mi_crv.__setattr__('t%s'%self.str_orientation[0],f_baseDistance * 6)
+		mi_crv.parent = False
+		mi_tmpGroup.delete()
+				   
+	    except Exception,error: raise Exception,"!Curve create! | %s"%error
+	    
+	    try:#Tag,name, color ===========================================================
+		mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
+		mi_crv.addAttr('cgmType',attrType='string',value = 'eyeball_IK',lock=True)
+		mi_crv.doName()          	    
+    
+		#Color
+		curves.setCurveColorByName(mi_crv.mNode,self.d_colors[self.str_direction][0]) 
+	    except Exception,error: raise Exception,"!Tag,name,color! | %s"%error
+	    
+	    try:#connect ===========================================================
+		self.mi_go.d_returnControls['eyeballIK'] = mi_crv.mNode
+		self.mi_go.md_ReturnControls['eyeballIK'] = mi_crv
+		self.mi_go._mi_rigNull.connectChildNode(mi_crv,'shape_eyeballIK','owner')
+	    except Exception,error: raise Exception,"!Connect! | %s"%error
+	    
+	def _buildSettings_(self):
+	    try:#query ===========================================================
+		mi_helper = self.mi_helper
+		f_baseDistance = self.f_baseDistance  
+	    except Exception,error: raise Exception,"!Query! | %s"%error
+	    
+	    try:#Curve creation ===========================================================		
+		mi_crv = cgmMeta.cgmObject( curves.createControlCurve('gear',
+	                                                              direction = 'z+',
+	                                                              size = f_baseDistance*.5,
+	                                                              absoluteSize=False),setClass=True)
+		Snap.go(mi_crv,mi_helper.mNode)
+		mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
+		mi_crv.__setattr__('t%s'%self.str_orientation[0],f_baseDistance * 2)
+		mi_crv.parent = False
+		mi_tmpGroup.delete()
+				    	    
+	    except Exception,error: raise Exception,"!Curve create! | %s"%error
+	    
+	    try:#Tag,name, color ===========================================================
+		mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
+		mi_crv.addAttr('cgmType',attrType='string',value = 'settings',lock=True)
+		mi_crv.doName()          	    
+    
+		#Color
+		curves.setCurveColorByName(mi_crv.mNode,self.d_colors[self.str_direction][1]) 
+	    except Exception,error: raise Exception,"!Tag,name,color! | %s"%error
+	    
+	    try:#connect ===========================================================
+		self.mi_go.d_returnControls['settings'] = mi_crv.mNode
+		self.mi_go.md_ReturnControls['settings'] = mi_crv
+		self.mi_go._mi_rigNull.connectChildNode(mi_crv,'shape_settings','owner')
+	    except Exception,error: raise Exception,"!Connect! | %s"%error
+	    
+	def _buildEyeMove_(self):
+	    try:#query ===========================================================
+		mi_helper = self.mi_helper
+		f_baseDistance = self.f_baseDistance  
+		f_size = distance.returnBoundingBoxSizeToAverage(mi_helper.irisHelper.mNode)
+	    except Exception,error: raise Exception,"!Query! | %s"%error
+	    
+	    try:#Curve creation ===========================================================
+		'''
+		f_castDistance = distance.returnBoundingBoxSizeToAverage(mi_helper.mNode)
+		str_crv = ShapeCast.createMeshSliceCurve(self.mi_go._targetMesh[0],mi_helper.mNode,
+		                                          rotateBank = 30,curveDegree=3,posOffset = [0,0,self.mi_go.f_skinOffset/2],
+		                                          maxDistance=f_castDistance,
+		                                          points=8,returnDict = False,latheAxis=self.str_orientation[0],
+		                                          aimAxis=self.str_orientation[0]+'+')
+		mi_crv =  cgmMeta.cgmObject(str_crv,setClass=True)'''	
+		#mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('squareRounded',size = f_size * .5,direction=self.str_orientation[0]+'+'),setClass=True)	
+		
+		mi_loc = mi_helper.doLoc()
+		mi_tmpGroup = cgmMeta.cgmObject( mi_loc.doGroup())
+		mi_loc.__setattr__('t%s'%self.str_orientation[0],f_baseDistance * 1.5)
+		
+		#Make a trace curve
+		_str_trace = mc.curve (d=1, ep = [mi_helper.getPosition(),mi_loc.getPosition()], os=True)#build curves as we go to see what's up
+		log.info(_str_trace)
+		#l_curvesToCombine = [_str_trace,mi_crvBase.mNode]
+		
+		#>>>Combine the curves
+		'''
+		try:newCurve = curves.combineCurves(l_curvesToCombine) 
+		except Exception,error:raise StandardError,"!Failed to combine! | %s"%error
+		'''
+		mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_helper.mNode,False) )
+		
+		try:curves.parentShapeInPlace(mi_crv.mNode,_str_trace)#Parent shape
+		except Exception,error:raise StandardError,"Parent shape in place fail | %s"%error
+		
+		mc.delete(_str_trace,mi_tmpGroup.mNode)		
+    	    
+	    except Exception,error: raise Exception,"!Curve create! | %s"%error
+	    
+	    try:#Tag,name, color ===========================================================
+		mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
+		mi_crv.addAttr('cgmType',attrType='string',value = 'eyeMove',lock=True)
+		mi_crv.doName()          	    
+    
+		#Color
+		curves.setCurveColorByName(mi_crv.mNode,self.d_colors[self.str_direction][1]) 
+	    except Exception,error: raise Exception,"!Tag,name,color! | %s"%error
+	    
+	    try:#connect ===========================================================
+		self.mi_go.d_returnControls['eyeMove'] = mi_crv.mNode
+		self.mi_go.md_ReturnControls['eyeMove'] = mi_crv
+		self.mi_go._mi_rigNull.connectChildNode(mi_crv,'shape_eyeMove','owner')
+	    except Exception,error: raise Exception,"!Connect! | %s"%error
+    
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()  

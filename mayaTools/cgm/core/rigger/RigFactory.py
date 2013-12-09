@@ -245,8 +245,7 @@ class go(object):
 	
 	try:#>>> Deform group for the module =====================================================
 	    if not self._i_module.getMessage('deformNull'):
-		if self._partType in __l_faceModules__:
-		    
+		if self._partType in ['eyebrow', 'mouthnose']:
 		    #Make it and link it ------------------------------------------------------
 		    buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
 		    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
@@ -267,7 +266,8 @@ class go(object):
 		    i_grp.doName()
 		    i_grp.parent = self._i_masterDeformGroup.mNode
 		    self._i_module.connectChildNode(i_grp,'deformNull','module')
-		
+		    if self._partType in ['eyeball', 'eyelids']:
+			self._i_module.connectChildNode(i_grp,'constrainNull','module')		
 	    self._i_deformNull = self._i_module.deformNull
 	except Exception,error:
 	    raise StandardError,"%s  >> Deform Null fail! | %s"%(self._strShortName,error)	
@@ -420,9 +420,6 @@ class go(object):
 	    except Exception,error:
 		raise StandardError, "%s >> error: %s"%(_str_funcName,error)
 	
-	#>> Deform Null ==========================================================    
-	#if self._i_module.getMessage('deformNull'):
-	    #return True
 	
 	#Check if we have a face deformNull on a parent --------------------------	    
 	buffer = self._mi_moduleParent.getMessage('faceDeformNull')
@@ -441,7 +438,6 @@ class go(object):
 	self._i_module.connectChildNode(i_grp,'faceDeformNull')	
 	self._mi_moduleParent.connectChildNode(i_grp,'faceDeformNull','module')
 	self._i_faceDeformNull = i_grp#link
-	
 	return True
     
     def verify_faceScaleDriver(self):
