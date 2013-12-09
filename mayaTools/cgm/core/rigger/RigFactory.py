@@ -1639,31 +1639,49 @@ def get_eyeLook(self):
     except Exception,error:
 	raise StandardError,"%s >>> Failed to find eyeLook! | error: %s"%(_str_funcName,error)
     
-def verify_eyeLook(self):
-    try:
-	self.isModule()
-    except Exception,error:
-	raise StandardError,"verify_eyeLook >> self: %s | error: %s"%(self,error)
-    
-    try:#Get our segment joints
-	_str_funcName = "%s.verify_eyeLook"%self.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75) 
-	start = time.clock()        		
+#Module Rig Functions ===================================================================================================    
+#!! Duplicated from ModuleFactory due to importing loop 
+class ModuleFunc(cgmGeneral.cgmFuncCls):
+    def __init__(self,*args,**kws):
+	"""
+	"""	
+	try:
+	    try:moduleInstance = kws['moduleInstance']
+	    except:moduleInstance = args[0]
+	    try:
+		assert moduleInstance.isModule()
+	    except Exception,error:raise StandardError,"Not a module instance : %s"%error	
+	except Exception,error:raise StandardError,"ModuleFunc failed to initialize | %s"%error
+	self._str_funcName= "testFModuleFuncunc"		
+	super(ModuleFunc, self).__init__(*args, **kws)
+
+	self.mi_module = moduleInstance	
+	self._l_ARGS_KWS_DEFAULTS = [{'kw':'moduleInstance',"default":None}]	
+	#=================================================================
 	
-	try:#Gather data
-	    #We need a module type, find a head etc
-	    if self.moduleType != 'eyeball':
-		raise StandardError, "Don't know how to build from non eyeball type yet"
-	    else:
-		mi_buildModule = self
-		mi_rigNull = self.rigNull
-		mi_puppet = self.modulePuppet
-	    #First see if we have one connected
+def verify_eyeLook(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "verify_eyeLook(%s)"%self.mi_module.p_nameShort	
+	    self._b_reportTimes = True
+	    self.__dataBind__(*args,**kws)	
+	    self.l_funcSteps = [{'step':'Get Data','call':self._gatherInfo_},
+	                        {'step':'Build','call':self._build_}]
 	    
-	except Exception,error:
-	    raise StandardError,"Gather data | %s"%(error)
-	
-	try:#Build ====================================================================
+	    #=================================================================
+	def _gatherInfo_(self):
+	    #We need a module type, find a head etc
+	    if self.mi_module.moduleType != 'eyeball':
+		raise StandardError, "Don't know how to build from non eyeball type yet"
+
+	def _build_(self):
+	    mi_buildModule = self.mi_module
+	    mi_rigNull = self.mi_module.rigNull
+	    mi_puppet = self.mi_module.modulePuppet
+	    
 	    try:mShapeCast.go(mi_buildModule,['eyeLook'])
 	    except Exception,error:raise StandardError,"shapeCast | %s"%(error)	    
 	    try:mi_eyeLookShape = mi_rigNull.shape_eyeLook
@@ -1681,7 +1699,7 @@ def verify_eyeLook(self):
 		if mi_eyeLookShape.msgList_getMessage('spacePivots'):
 		    ml_dynParentsToAdd.extend(mi_eyeLookShape.msgList_get('spacePivots',asMeta = True))	
 		
-		log.debug("%s >>> Dynamic parents to add: %s"%(_str_funcName,[i_obj.getShortName() for i_obj in ml_dynParentsToAdd]))
+		self.log_info(">>> Dynamic parents to add: %s"%([i_obj.getShortName() for i_obj in ml_dynParentsToAdd]))
 		#Add our parents
 		mi_dynGroup = mi_eyeLookShape.dynParentGroup
 		mi_dynGroup.dynMode = 0
@@ -1702,14 +1720,4 @@ def verify_eyeLook(self):
 	    except Exception,error:raise StandardError,"dynSwitch | %s"%(error)	
 		
 	    mi_eyeLookShape._setControlGroupLocks(True)
-	
-	except Exception,error:
-	    raise StandardError,"Build | %s"%(error)	
-	
-	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
-	
-    except Exception,error:
-	raise StandardError,"%s >>> failed | error: %s"%(_str_funcName,error)
-    
-
-
+    return fncWrap(*args,**kws).go()
