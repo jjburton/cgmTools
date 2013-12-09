@@ -201,9 +201,7 @@ def build_controls(*args, **kws):
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Groups','call':self._buildGroups_},
 	                        {'step':'Build Controls','call':self._buildControls_},	                        
-	                        #{'step':'Settings','call':self._buildSettings_},	                        
-	                        #{'step':'Direct Controls','call':self._buildControls_},
-	                        #{'step':'Build Connections','call':self._buildConnections_}	                        
+	                        {'step':'Build Connections','call':self._buildConnections_}	                        
 	                        ]	
 	    #=================================================================
 	
@@ -218,7 +216,7 @@ def build_controls(*args, **kws):
 		raise StandardError,"Needs shapes to build controls"
 	    if not mi_go.isRigSkeletonized():
 		raise StandardError,"Needs shapes to build controls"
-	
+	    
 	    self.md_rigList['fk_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_eyeballFK'),cgmMeta.cgmObject) 
 	    self.md_rigList['ik_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_eyeballIK'),cgmMeta.cgmObject) 
 	    self.md_rigList['settings_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
@@ -271,8 +269,9 @@ def build_controls(*args, **kws):
 		mi_fkShape = self.md_rigList['fk_shape']
 		mi_ikShape = self.md_rigList['ik_shape']
 		mi_settingsShape = self.md_rigList['settings_shape']
-		mi_eyeMove = self.md_rigList['eyeMove_shape']
-
+		mi_eyeMoveShape = self.md_rigList['eyeMove_shape']
+		
+		str_mirrorSide = mi_go._direction
 	    except Exception,error:raise Exception,"!Query! | %s"%error	
 	    self.log_infoNestedDict('md_rigList')
 	    
@@ -280,6 +279,7 @@ def build_controls(*args, **kws):
 		mi_fkShape.parent = mi_go._i_constrainNull.controlsFKNull.mNode
 		i_obj = mi_fkShape
 		d_buffer = mControlFactory.registerControl(i_obj,copyTransform = ml_rigJoints[0],
+		                                           mirrorSide = str_mirrorSide, mirrorAxis="",
 			                                   makeAimable=True,setRotateOrder ='zxy',typeModifier='fk',) 	    
 		mi_controlFK = d_buffer['instance']
 		mi_controlFK.axisAim = "%s+"%mi_go._jointOrientation[0]
@@ -296,7 +296,9 @@ def build_controls(*args, **kws):
 	    try:#>>>> IK 
 		#==================================================================	
 		mi_ikShape.parent = mi_go._i_constrainNull.controlsIKNull.mNode	
-		d_buffer = mControlFactory.registerControl(mi_ikShape,typeModifier='ik',addDynParentGroup=True) 	    
+		d_buffer = mControlFactory.registerControl(mi_ikShape,
+		                                           mirrorSide = str_mirrorSide, mirrorAxis="",		                                           
+		                                           typeModifier='ik',addDynParentGroup=True) 	    
 		mi_ikControl = d_buffer['instance']	
 		
 		mi_go._i_rigNull.connectChildNode(mi_ikControl,'controlIK',"rigNull")
@@ -314,6 +316,10 @@ def build_controls(*args, **kws):
 		    mi_settings = d_buffer['instance']
 		    mi_go._i_rigNull.connectChildNode(mi_settings,'settings','rigNull')
 		    self.ml_controlsAll.append(mi_settings)
+		    
+		    #>>> Verify out vis controls	    
+		    self.mPlug_result_moduleFaceSubDriver = mi_go.build_visSubFace()		    
+
 		except StandardError,error:raise StandardError,"registration | %s"%error	
 		
 		try:#Set up some attributes
@@ -323,60 +329,43 @@ def build_controls(*args, **kws):
 		except StandardError,error:raise StandardError,"attribute setup | %s"%error	
 		
 	    except Exception,error:raise Exception,"!Build Settings fail! | %s"%(error)
-  	    
-	    '''
-	    l_strTypeModifiers = ['direct',None]
-	    for ii,ml_list in enumerate( [ml_rigJoints,ml_handleJoints] ):
-		for i,mObj in enumerate(ml_list):
-		    str_mirrorSide = False
-		    try:
-			mObj.parent = mi_go._i_deformNull
-			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
-			str_cgmDirection = mObj.getAttr('cgmDirection')			
-			_addForwardBack = "t%s"%mi_go._jointOrientation[0]			
-			if str_cgmDirection == 'center' and ii == 0:_addForwardBack = False#other center controls			
-			#Register 
-			try:
-			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addForwardBack = _addForwardBack,
-				                                       mirrorSide = str_mirrorSide, mirrorAxis="translateZ,rotateX,rotateY",		                                           
-				                                       makeAimable=False, typeModifier=l_strTypeModifiers[ii]) 	    
-			except Exception,error:
-			    log.error("mObj: %s"%mObj.p_nameShort)
-			    log.error("useShape: %s"%mObj.getMessage('controlShape'))
-			    log.error("mirrorSide: %s"%str_mirrorSide)			
-			    raise StandardError,"Register fail : %s"%error
-			
-			#Vis sub connect
-			if ii == 0:
-			    self.mPlug_result_moduleFaceSubDriver.doConnectOut("%s.visibility"%mObj.mNode)
-			
-			#
-			mc.delete(mObj.getMessage('controlShape'))
-			mObj.doRemove('controlShape')
-			self.md_directionControls[str_mirrorSide].append(mObj)
-			
-			#i_obj.drawStyle = 6#Stick joint draw style
-			cgmMeta.cgmAttr(mObj,'radius',value=.01, hidden=True)
-			self.ml_directControls.append(mObj)
-			
-		    except Exception, error:
-			raise StandardError,"Iterative fail item: %s | obj: %s | mirror side: %s | error: %s"%(i,mObj.p_nameShort,str_mirrorSide,error)
-		 '''   
+	    
+	    try:#>>>> eyeMove #==================================================================	
+		mi_eyeMoveShape.parent = mi_go._i_constrainNull.mNode
+		
+		try:#Register the control
+		    d_buffer = mControlFactory.registerControl(mi_eyeMoveShape,addForwardBack = "t%s"%mi_go._jointOrientation[0],
+		                                               mirrorSide = str_mirrorSide, mirrorAxis="",		                                               
+		                                               makeAimable=False,typeModifier='eyeMove') 
+		    mObj = d_buffer['instance']
+		    mi_go._i_rigNull.connectChildNode(mObj,'eyeMove','rigNull')
+		    self.ml_controlsAll.append(mObj)
+		except Exception,error:raise Exception,"!registration! | %s"%(error)
+		
+		try:#Set up some attributes
+		    attributes.doSetLockHideKeyableAttr(mObj.mNode)
+		    mPlug_FKIK = cgmMeta.cgmAttr(mObj.mNode,'blend_FKIK',attrType='float',lock=False,keyable=True,
+			                         minValue=0,maxValue=1.0)
+		except Exception,error:raise Exception,"!Attribute setup! | %s"%(error)
+		
+		try:#Vis Connect
+		    self.mPlug_result_moduleFaceSubDriver.doConnectOut("%s.visibility"%mObj.mNode)
+		except Exception,error:raise Exception,"!subVisConnect! | %s"%(error)
+		    
+		
+	    except Exception,error:raise Exception,"!Build Settings fail! | %s"%(error)
 	    
 	def _buildConnections_(self):
 	    #Register our mirror indices ---------------------------------------------------------------------------------------
 	    mi_go = self._go#Rig Go instance link	    
-	    for str_direction in self.md_directionControls.keys():
-		int_start = self._go._i_puppet.get_nextMirrorIndex( self._go._str_mirrorDirection )
-		for i,mCtrl in enumerate(self.md_directionControls[str_direction]):
-		    try:
-			mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
-		    except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
-
+	    int_start = self._go._i_puppet.get_nextMirrorIndex( mi_go._direction )
+	    for i,mCtrl in enumerate(self.ml_controlsAll):
+		try:mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
+		except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 	    try:self._go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll')
-	    except Exception,error: raise StandardError,"Controls all connect| %s"%error	    
+	    except Exception,error: raise StandardError,"!Controls all connect!| %s"%error	    
 	    try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
-	    except Exception,error: raise StandardError,"Failed to set module objectSet | %s"%error
+	    except Exception,error: raise StandardError,"!Failed to set module objectSet! | %s"%error
 	    
     return fncWrap(*args, **kws).go()
 
@@ -475,6 +464,7 @@ def build_controls2(self):
     self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')
     
     return True
+
 
 def build_rig(self):
     """
