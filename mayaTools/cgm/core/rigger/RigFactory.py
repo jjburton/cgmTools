@@ -1719,7 +1719,7 @@ def verify_eyeLook(*args,**kws):
 	    except Exception,error:raise StandardError,"grabShape | %s"%(error)	    
 	    mi_rigNull.doRemove('shape_eyeLook')
 	    try:d_buffer = mControlFactory.registerControl(mi_eyeLookShape.mNode,addDynParentGroup=True,
-	                                                   mirrorSide = 'center', mirrorAxis="",		                                               	                                                   
+	                                                   mirrorSide = 'center', mirrorAxis="translateX,rotateY,rotateZ",		                                               	                                                   
 	                                                   addSpacePivots=2)
 	    except Exception,error:raise StandardError,"register Control | %s"%(error)
 	    mi_eyeLookShape = d_buffer['instance']
@@ -1772,7 +1772,7 @@ def verify_eyeLook(*args,**kws):
 		mi_puppet.msgList_append(mi_eyeLookShape,'eyeLook','puppet')
 		mi_buildModule.connectChildNode(mi_eyeLookShape,'eyeLook')	
 		if mi_moduleParent:
-		    mi_moduleParent.connectChildNode(mi_eyeLookShape,'eyeLook')			    
+		    mi_parentRigNull.connectChildNode(mi_eyeLookShape,'eyeLook','rigNull')
 	    except Exception,error:raise StandardError,"!Connections! | %s"%(error)		    
 
 	    try:#DynSwitch ======================================================
@@ -1784,7 +1784,7 @@ def verify_eyeLook(*args,**kws):
 	    except Exception,error:raise StandardError,"!set group Locks! | %s"%(error)	
 	    
 	    try:#Set mirror =======================================================
-		int_start = mi_puppet.get_nextMirrorIndex( 'center')
+		int_start = mi_puppet.get_nextMirrorIndex('centre')#"Centre"...really, Mark? :)
 		for i,mCtrl in enumerate(self.ml_controlsAll):
 		    try:mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
 		    except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
