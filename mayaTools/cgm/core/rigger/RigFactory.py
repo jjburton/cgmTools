@@ -1607,38 +1607,6 @@ def get_report(self):
     log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
     #except Exception,error:
 	#raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
-
-def get_eyeLook(self):
-    try:
-	self.isModule()
-    except Exception,error:
-	raise StandardError,"get_eyeLook >> self: %s | error: %s"%(self,error)
-    
-    try:#Get our segment joints
-	_str_funcName = "%s.verify_eyeLook"%self.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75) 	
-	#We need a module type, find a head etc
-	if self.moduleType != 'eyeball':
-	    raise StandardError, "Don't know how to build from non eyeball type yet"
-	else:
-	    mi_module = self
-	    mi_rigNull = self.rigNull
-	    mi_puppet = self.modulePuppet
-	    
-	    try:
-		buffer = mi_module.eyeLook
-		if buffer:return buffer
-	    except:pass
-	    
-	    ml_puppetEyelooks = mi_puppet.msgList_get('eyeLook')
-	    if ml_puppetEyelooks:
-		if len(ml_puppetEyelooks) == 1 and ml_puppetEyelooks[0]:
-		    return ml_puppetEyelooks[0]
-		else:
-		    raise StandardError,"More than one puppet eye look"
-	    raise StandardError,"The end."
-    except Exception,error:
-	raise StandardError,"%s >>> Failed to find eyeLook! | error: %s"%(_str_funcName,error)
     
 #Module Rig Functions ===================================================================================================    
 #!! Duplicated from ModuleFactory due to importing loop 
@@ -1660,6 +1628,45 @@ class ModuleFunc(cgmGeneral.cgmFuncCls):
 	self._l_ARGS_KWS_DEFAULTS = [{'kw':'moduleInstance',"default":None}]	
 	#=================================================================
 	
+def get_eyeLook(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "get_eyeLook(%s)"%self.mi_module.p_nameShort	
+	    self.__dataBind__(*args,**kws)	
+	    self.l_funcSteps = [{'step':'Find','call':self.__func__}]
+	    
+	    #=================================================================
+	def __func__(self):
+	    #We need a module type, find a head etc
+	    if self.mi_module.moduleType != 'eyeball':
+		raise StandardError, "Don't know how to build from non eyeball type yet"
+	    
+	    try:#Query ======================================================
+		mi_module = self.mi_module
+		mi_rigNull = self.mi_module.rigNull
+		mi_puppet = self.mi_module.modulePuppet
+		
+		
+		try:return mi_module.eyeLook
+		except:pass
+		
+		try:return mi_module.moduleParent.eyeLook
+		except:pass
+		
+		ml_puppetEyelooks = mi_puppet.msgList_get('eyeLook')
+		if ml_puppetEyelooks:
+		    if len(ml_puppetEyelooks) == 1 and ml_puppetEyelooks[0]:
+			return ml_puppetEyelooks[0]
+		    else:
+			raise StandardError,"More than one puppet eye look"
+		raise StandardError,"Failed to find eyeLook."		
+
+	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
+    return fncWrap(*args,**kws).go()
+	
 def verify_eyeLook(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
@@ -1669,41 +1676,42 @@ def verify_eyeLook(*args,**kws):
 	    self._str_funcName= "verify_eyeLook(%s)"%self.mi_module.p_nameShort	
 	    self._b_reportTimes = True
 	    self.__dataBind__(*args,**kws)	
-	    self.l_funcSteps = [{'step':'Get Data','call':self._gatherInfo_},
+	    self.l_funcSteps = [{'step':'Verify','call':self._verify_},
 	                        {'step':'Build','call':self._build_}]
 	    
 	    #=================================================================
-	def _gatherInfo_(self):
+	def _verify_(self):
 	    #We need a module type, find a head etc
 	    if self.mi_module.moduleType != 'eyeball':
 		raise StandardError, "Don't know how to build from non eyeball type yet"
 	    
-	    self.ml_dynParentsToAdd = []
-	    mi_puppet = self.mi_module.modulePuppet
-	    #Need to find the head and shoulders -- need to do this better TODO
+	    try:#Query ======================================================
+		mi_buildModule = self.mi_module
+		mi_rigNull = self.mi_module.rigNull
+		mi_puppet = self.mi_module.modulePuppet
+		
+		try:self._mi_moduleParent = mi_buildModule.moduleParent
+		except:self._mi_moduleParent = False		
 
-	    try:mi_moduleParent = self.mi_module.moduleParent
-	    except:mi_moduleParent = False
-	    if mi_moduleParent:
-		mi_parentRigNull = mi_moduleParent.rigNull
-		if mi_parentRigNull.getMessage('handleIK'):
-		    self.ml_dynParentsToAdd.append( mi_parentRigNull.handleIK )
-		    
-		try:mi_moduleParentsParent = mi_moduleParent.moduleParent
-		except:mi_moduleParentsParent = False		
-		if mi_moduleParentsParent:  
-		    mi_parentsParentRigNull = mi_moduleParentsParent.rigNull
-		    if mi_parentsParentRigNull.getMessage('handleIK'):
-			self.ml_dynParentsToAdd.append( mi_parentsParentRigNull.handleIK )		    
-		    if mi_parentsParentRigNull.getMessage('cog'):
-			self.ml_dynParentsToAdd.append( mi_parentsParentRigNull.cog )	    
+	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
 	    
-	    self.ml_dynParentsToAdd.append(mi_puppet.masterControl)
-
+	    self._ml_puppetEyeLook = mi_puppet.msgList_get('eyeLook')
+	    try:self._mi_moduleEyeLook = mi_buildModule.eyeLook
+	    except:self._mi_moduleEyeLook = False
+	    
+	    #Running lists
+	    self.ml_controlsAll = []
+	    
 	def _build_(self):
-	    mi_buildModule = self.mi_module
-	    mi_rigNull = self.mi_module.rigNull
-	    mi_puppet = self.mi_module.modulePuppet
+	    if self._ml_puppetEyeLook and self._mi_moduleEyeLook:
+		self.log_info("Found eye look already...")
+		return
+	    
+	    try:#Query ======================================================
+		mi_buildModule = self.mi_module
+		mi_rigNull = self.mi_module.rigNull
+		mi_puppet = self.mi_module.modulePuppet
+	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
 	    
 	    try:mShapeCast.go(mi_buildModule,['eyeLook'])
 	    except Exception,error:raise StandardError,"shapeCast | %s"%(error)	    
@@ -1711,18 +1719,47 @@ def verify_eyeLook(*args,**kws):
 	    except Exception,error:raise StandardError,"grabShape | %s"%(error)	    
 	    mi_rigNull.doRemove('shape_eyeLook')
 	    try:d_buffer = mControlFactory.registerControl(mi_eyeLookShape.mNode,addDynParentGroup=True,
+	                                                   mirrorSide = 'center', mirrorAxis="",		                                               	                                                   
 	                                                   addSpacePivots=2)
 	    except Exception,error:raise StandardError,"register Control | %s"%(error)
 	    mi_eyeLookShape = d_buffer['instance']
 	    mi_eyeLookShape.masterGroup.parent = mi_puppet.masterControl
+	    self.mi_eyeLookShape = mi_eyeLookShape
+	    self.ml_controlsAll.append(mi_eyeLookShape)
 	    
-	    try:#Setup dynamic parent -------------------------------------------
+	    try:#Gather Parent Space Targets ======================================================
+		self.ml_dynParentsToAdd = []
+		mi_puppet = self.mi_module.modulePuppet
+		#Need to find the head and shoulders -- need to do this better TODO
+    
+		mi_moduleParent = self._mi_moduleParent
+		mi_parentRigNull = False#holder
+		if mi_moduleParent:
+		    mi_parentRigNull = mi_moduleParent.rigNull
+		    if mi_parentRigNull.getMessage('handleIK'):
+			self.ml_dynParentsToAdd.append( mi_parentRigNull.handleIK )
+			
+		    try:mi_moduleParentsParent = mi_moduleParent.moduleParent
+		    except:mi_moduleParentsParent = False		
+		    if mi_moduleParentsParent:  
+			mi_parentsParentRigNull = mi_moduleParentsParent.rigNull
+			if mi_parentsParentRigNull.getMessage('handleIK'):
+			    self.ml_dynParentsToAdd.append( mi_parentsParentRigNull.handleIK )		    
+			if mi_parentsParentRigNull.getMessage('cog'):
+			    self.ml_dynParentsToAdd.append( mi_parentsParentRigNull.cog )	    
+		
+		self.ml_dynParentsToAdd.append(mi_puppet.masterControl)		
+	    except Exception,error:raise StandardError,"!Gather parent space targets! | %s"%(error)
+
+	    try:#Setup dynamic parent ======================================================
 		#Add our parents
 		mi_dynGroup = mi_eyeLookShape.dynParentGroup
 		mi_dynGroup.dynMode = 0
-		
+		ml_spacePivots = False
 		if mi_eyeLookShape.msgList_getMessage('spacePivots'):
-		    self.ml_dynParentsToAdd.extend(mi_eyeLookShape.msgList_get('spacePivots',asMeta = True))		    
+		    ml_spacePivots = mi_eyeLookShape.msgList_get('spacePivots',asMeta = True)
+		    self.ml_dynParentsToAdd.extend(ml_spacePivots)		    
+		    self.ml_controlsAll.extend(ml_spacePivots)
 		
 		self.log_info(">>> Dynamic parents to add: %s"%([i_obj.getShortName() for i_obj in self.ml_dynParentsToAdd]))
 		
@@ -1731,15 +1768,41 @@ def verify_eyeLook(*args,**kws):
 		mi_dynGroup.rebuild()	    
 	    except Exception,error:raise StandardError,"dynParent setup | %s"%(error)	
 	    
-	    try:#Setup dynamic parent -------------------------------------------
+	    try:#Connections ======================================================
 		mi_puppet.msgList_append(mi_eyeLookShape,'eyeLook','puppet')
-		mi_buildModule.connectChildNode(mi_eyeLookShape,'eyeLook')
-		#need to add connection to face or whatever
-	    except Exception,error:raise StandardError,"connect | %s"%(error)	
-	    
-	    try:#DynSwitch ------------------------------------------------------
+		mi_buildModule.connectChildNode(mi_eyeLookShape,'eyeLook')	
+		if mi_moduleParent:
+		    mi_moduleParent.connectChildNode(mi_eyeLookShape,'eyeLook')			    
+	    except Exception,error:raise StandardError,"!Connections! | %s"%(error)		    
+
+	    try:#DynSwitch ======================================================
 		mi_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=mi_eyeLookShape.mNode)
-	    except Exception,error:raise StandardError,"dynSwitch | %s"%(error)	
+	    except Exception,error:raise StandardError,"!dynSwitch! | %s"%(error)	
+	    
+	    try:#Set locks ======================================================
+		mi_eyeLookShape._setControlGroupLocks(True)
+	    except Exception,error:raise StandardError,"!set group Locks! | %s"%(error)	
+	    
+	    try:#Set mirror =======================================================
+		int_start = mi_puppet.get_nextMirrorIndex( 'center')
+		for i,mCtrl in enumerate(self.ml_controlsAll):
+		    try:mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
+		    except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 		
-	    mi_eyeLookShape._setControlGroupLocks(True)
+		#try:mi_go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll')
+		#except Exception,error: raise StandardError,"!Controls all connect!| %s"%error	    
+		#try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
+		#except Exception,error: raise StandardError,"!Failed to set module objectSet! | %s"%error
+	    except Exception,error:raise StandardError,"!Mirror Setup! | %s"%(error)	
+	    
+	    try:#moduleParent Stuff =======================================================
+		if mi_moduleParent:
+		    try:
+			for mCtrl in self.ml_controlsAll:
+			    mi_parentRigNull.msgList_append(mCtrl,'controlsAll')
+		    except Exception,error: raise StandardError,"!Controls all connect!| %s"%error	    
+		    try:mi_parentRigNull.moduleSet.extend(self.ml_controlsAll)
+		    except Exception,error: raise StandardError,"!Failed to set module objectSet! | %s"%error
+	    except Exception,error:raise StandardError,"!Module Parent registration! | %s"%(error)	
+	    
     return fncWrap(*args,**kws).go()
