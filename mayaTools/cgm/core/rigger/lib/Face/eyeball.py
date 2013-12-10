@@ -68,7 +68,7 @@ def __bindSkeletonSetup__(self):
 	    log.error("Not a JointFactory.go instance: '%s'"%self)
 	    raise StandardError
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("eyeball.__bindSkeletonSetup__>>bad self!")
 	raise StandardError,error
     
@@ -79,7 +79,7 @@ def __bindSkeletonSetup__(self):
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     try:
 	self._i_module.rig_getReport()#report	
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_eyeball>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
     
@@ -124,7 +124,7 @@ def build_rigSkeleton2(self):
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s.build_rigSkeleton>>bad self!"%self._strShortName)
 	raise StandardError,error
     _str_funcName = "build_rigSkeleton(%s)"%self._strShortName
@@ -135,7 +135,7 @@ def build_rigSkeleton2(self):
     try:#>>Rig chain =====================================================================
 	ml_rigJoints = self.build_rigChain()	
 	ml_rigJoints[0].parent = False
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s>>Build rig joints fail! | error: %s"%(_str_funcName,error)   
 
     try:#>>> Store em all to our instance
@@ -147,7 +147,7 @@ def build_rigSkeleton2(self):
 	    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideVisibility'))
 	    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_jnt.mNode,'overrideDisplayType'))    
 	    
-    except StandardError,error:
+    except Exception,error:
 	raise StandardError,"%s>> Store joints fail! | error: %s"%(_str_funcName,error)   
     return True
 	
@@ -162,7 +162,7 @@ def build_shapes(self):
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
 	    raise StandardError
-    except StandardError,error:
+    except Exception,error:
 	log.error("eyeball.build_rig>>bad self!")
 	raise StandardError,error
     
@@ -183,7 +183,7 @@ def build_shapes(self):
 	mShapeCast.go(self._i_module,['eyeball'], storageInstance=self)#This will store controls to a dict called    
 	#self._i_rigNull.connectChildNode(self._md_controlShapes['eyeball'],'shape_eyeball',"rigNull")
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_eyeball>>Build shapes fail!")
 	raise StandardError,error 
     return True
@@ -221,12 +221,9 @@ def build_controls(*args, **kws):
 	    self.md_rigList['ik_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_eyeballIK'),cgmMeta.cgmObject) 
 	    self.md_rigList['settings_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
 	    self.md_rigList['eyeMove_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_eyeMove'),cgmMeta.cgmObject)     
-	    
-	    self.ml_rigJoints = cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_getMessage('rigJoints'),cgmMeta.cgmObject)
-	    
+	    	    
 	    #>> Find our joint lists ===================================================================
 	    self.md_jointLists = {}	    
-	    self.ml_handleJoints = mi_go._i_module.rigNull.msgList_get('handleJoints')
 	    self.ml_rigJoints = mi_go._i_module.rigNull.msgList_get('rigJoints')
 	    
 	    self.md_rigList['eyeOrb'] = metaUtils.get_matchedListFromAttrDict(self.ml_rigJoints,
@@ -264,7 +261,6 @@ def build_controls(*args, **kws):
 	    
 	    try:#Query ====================================================================================
 		ml_rigJoints = self.ml_rigJoints
-		ml_handleJoints = self.ml_handleJoints
 		
 		mi_fkShape = self.md_rigList['fk_shape']
 		mi_ikShape = self.md_rigList['ik_shape']
@@ -273,7 +269,6 @@ def build_controls(*args, **kws):
 		
 		str_mirrorSide = mi_go._direction
 	    except Exception,error:raise Exception,"!Query! | %s"%error	
-	    self.log_infoNestedDict('md_rigList')
 	    
 	    try:#>>>> FK #==================================================================	
 		mi_fkShape.parent = mi_go._i_constrainNull.controlsFKNull.mNode
@@ -290,6 +285,8 @@ def build_controls(*args, **kws):
 		cgmMeta.cgmAttr(mi_controlFK,'r%s'%mi_go._jointOrientation[0], keyable = False, lock=True,hidden=True)
 		mi_go._i_rigNull.connectChildNode(mi_controlFK,'controlFK',"rigNull")
 		self.ml_controlsAll.append(mi_controlFK)	
+		
+		attributes.doSetLockHideKeyableAttr(mi_controlFK.mNode,channels=['sx','sy','sz','v'])				
 	    
 	    except Exception,error:raise Exception,"!Build fk fail! | %s"%(error)
 	    
@@ -302,7 +299,8 @@ def build_controls(*args, **kws):
 		mi_ikControl = d_buffer['instance']	
 		
 		mi_go._i_rigNull.connectChildNode(mi_ikControl,'controlIK',"rigNull")
-		self.ml_controlsAll.append(mi_ikControl)	
+		self.ml_controlsAll.append(mi_ikControl)
+		attributes.doSetLockHideKeyableAttr(mi_ikControl.mNode,channels=['sx','sy','sz','v'])				
 	    
 	    except Exception,error:raise Exception,"!Build ik fail! | %s"%(error)
 
@@ -320,13 +318,13 @@ def build_controls(*args, **kws):
 		    #>>> Verify out vis controls	    
 		    self.mPlug_result_moduleFaceSubDriver = mi_go.build_visSubFace()		    
 
-		except StandardError,error:raise StandardError,"registration | %s"%error	
+		except Exception,error:raise StandardError,"registration | %s"%error	
 		
 		try:#Set up some attributes
 		    attributes.doSetLockHideKeyableAttr(mi_settings.mNode)
 		    mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK',attrType='float',lock=False,keyable=True,
 			                         minValue=0,maxValue=1.0)
-		except StandardError,error:raise StandardError,"attribute setup | %s"%error	
+		except Exception,error:raise StandardError,"attribute setup | %s"%error	
 		
 	    except Exception,error:raise Exception,"!Build Settings fail! | %s"%(error)
 	    
@@ -343,7 +341,7 @@ def build_controls(*args, **kws):
 		except Exception,error:raise Exception,"!registration! | %s"%(error)
 		
 		try:#Set up some attributes
-		    attributes.doSetLockHideKeyableAttr(mObj.mNode)
+		    attributes.doSetLockHideKeyableAttr(mObj.mNode,channels = ['v'])
 		    mPlug_FKIK = cgmMeta.cgmAttr(mObj.mNode,'blend_FKIK',attrType='float',lock=False,keyable=True,
 			                         minValue=0,maxValue=1.0)
 		except Exception,error:raise Exception,"!Attribute setup! | %s"%(error)
@@ -369,345 +367,285 @@ def build_controls(*args, **kws):
 	    
     return fncWrap(*args, **kws).go()
 
-def build_controls2(self):
-    """
-    """    
-    try:
-	if not self._cgmClass == 'RigFactory.go':
-	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
-	log.error("eyeball.build_rig>>bad self!")
-	raise StandardError,error
-    
-    _str_funcName = "build_controls(%s)"%self._strShortName
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75)   
-    
-    if not self.isShaped():
-	raise StandardError,"%s >>> needs shapes to build controls"%_str_funcName
-    if not self.isRigSkeletonized():
-	raise StandardError,"%s >>> needs shapes to build controls"%_str_funcName
-
-    mi_fkShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_eyeballFK'),cgmMeta.cgmObject) 
-    mi_ikShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_eyeballIK'),cgmMeta.cgmObject) 
-    mi_settingsShape = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)     
-    ml_rigJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('rigJoints'),cgmMeta.cgmObject)
-    l_controlsAll = []
-    
-    try:#Group setup
-	#>>>Make a few extra groups for storing controls and what not to in the deform group
-	for grp in ['controlsFKNull','controlsIKNull']:
-	    i_dup = self._i_constrainNull.doDuplicateTransform(True)
-	    i_dup.parent = self._i_constrainNull.mNode
-	    i_dup.addAttr('cgmTypeModifier',grp,lock=True)
-	    i_dup.doName()
-	    self._i_constrainNull.connectChildNode(i_dup,grp,'owner')
-    except StandardError,error:	
-	raise StandardError,"%s >>> Build groups fail! | error: %s"%(_str_funcName,error)
-    
-    try:#>>>> FK 
-	#==================================================================	
-	if not mi_fkShape:
-	    raise StandardError,"%s >>> Must have at least one fk control"%_str_funcName    
+def build_rig(*args, **kws):
+    class fncWrap(modUtils.rigStep):
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'build_rig(%s)'%self.d_kws['goInstance']._strShortName
+	    self._b_autoProgressBar = True	
+	    self._b_reportTimes = True	    	    
+	    self.__dataBind__()
+	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
+	                        {'step':'Setup Eye','call':self._setupEye_},
+	                        {'step':'Setup DynParent Group','call':self._dynParentGroup_},	                        
+	                        ]	
+	    #=================================================================
 	
-	mi_fkShape.parent = self._i_constrainNull.controlsFKNull.mNode
-	i_obj = mi_fkShape
-	
-	d_buffer = mControlFactory.registerControl(i_obj,copyTransform = ml_rigJoints[0],
-                                                   makeAimable=True,setRotateOrder ='zxy',typeModifier='fk',) 	    
-	mi_controlFK = d_buffer['instance']
-	mi_controlFK.axisAim = "%s+"%self._jointOrientation[0]
-	mi_controlFK.axisUp= "%s+"%self._jointOrientation[1]	
-	mi_controlFK.axisOut= "%s+"%self._jointOrientation[2]
-	
-	#We're gonna lock the aim rot
-	cgmMeta.cgmAttr(mi_controlFK,'r%s'%self._jointOrientation[0], keyable = False, lock=True,hidden=True)
-	self._i_rigNull.connectChildNode(mi_controlFK,'controlFK',"rigNull")
-	l_controlsAll.append(mi_controlFK)	
-    
-    except StandardError,error:	
-	raise StandardError,"%s >>> Build fk fail! | error: %s"%(_str_funcName,error)
-    
-    try:#>>>> IK 
-	#==================================================================	
-	mi_ikShape.parent = self._i_constrainNull.controlsIKNull.mNode	
-	d_buffer = mControlFactory.registerControl(mi_ikShape,typeModifier='ik',addDynParentGroup=True) 	    
-	mi_ikControl = d_buffer['instance']	
-	self._i_rigNull.connectChildNode(mi_ikControl,'controlIK',"rigNull")
-	l_controlsAll.append(mi_ikControl)	
-    
-    except StandardError,error:	
-	raise StandardError,"%s >>> Build ik fail! | error: %s"%(_str_funcName,error)    
-   
-    try:#>>>> Settings
-	#==================================================================	
-	mi_settingsShape.parent = self._i_constrainNull.mNode
-	
-	try:#Register the control
-	    d_buffer = mControlFactory.registerControl(mi_settingsShape,makeAimable=True,typeModifier='settings') 
-	    mi_settings = d_buffer['instance']
-	    self._i_rigNull.connectChildNode(mi_settings,'settings','rigNull')
-	    l_controlsAll.append(mi_settings)
-	except StandardError,error:raise StandardError,"registration | %s"%error	
-	
-	try:#Set up some attributes
-	    attributes.doSetLockHideKeyableAttr(mi_settings.mNode)
-	    mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK',attrType='float',lock=False,keyable=True,
-		                         minValue=0,maxValue=1.0)
-	except StandardError,error:raise StandardError,"attribute setup | %s"%error	
-	
-    except StandardError,error:	
-	raise StandardError,"%s >>> Build settings! | error: %s"%(_str_funcName,error)    
-
-    #==================================================================   
-    #Connect all controls
-    self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')
-    
-    return True
-
-
-def build_rig(self):
-    """
-    """    
-    try:
-	if not self._cgmClass == 'RigFactory.go':
-	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
-	log.error("%s.build_rig>>bad self!"%self._strShortName)
-	raise StandardError,error
-    
-    _str_funcName = "build_rig(%s)"%self._strShortName
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
-    
-    try:#>>>Get data
-	_str_orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
-	
-	try:mi_eyeLook = self._get_eyeLook()
-	except StandardError,error:raise StandardError,"eyeLook fail! | %s"%(error)	    
-	try:mi_controlIK = self._i_rigNull.controlIK
-	except StandardError,error:raise StandardError,"controlIK fail! | %s"%(error)
-	try:mi_controlFK = self._i_rigNull.controlFK
-	except StandardError,error:raise StandardError,"controlFK fail! | %s"%(error)
-	try:ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
-	except StandardError,error:raise StandardError,"rigJoints fail! | %s"%(error)
-	try:mi_helper = self._i_module.helper
-	except StandardError,error:raise StandardError,"helper fail! | %s"%(error)
-	try:mi_settings = self._i_rigNull.settings
-	except StandardError,error:raise StandardError,"controlIK fail! | %s"%(error)
-	log.info("ml_controlsFK: %s"%mi_controlFK.p_nameShort)
-	log.info("mi_controlIK: %s"%mi_controlIK.p_nameShort)		
-	log.info("ml_rigJoints: %s"%[o.getShortName() for o in ml_rigJoints])
-	log.info("mi_helper: %s"%mi_helper)		
-		
-	v_aim = cgmValid.simpleAxis("%s+"%self._jointOrientation[0]).p_vector
-	v_up = cgmValid.simpleAxis("%s+"%self._jointOrientation[1]).p_vector
-	
-	#Settings
-	mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK')
-	
-    except StandardError,error:
-	raise StandardError,"%s >> Gather data fail! | error: %s"%(_str_funcName,error)
-    #Setup eye rig
-    #====================================================================================
-    try:#Base eye setup
-	d_return = rUtils.createEyeballRig(mi_helper,ballJoint = ml_rigJoints[1],
-	                                   ikControl = mi_controlIK,fkControl = mi_controlFK,
-	                                   buildIK=True, driverAttr=mPlug_FKIK,
-	                                   setupVisBlend = True,
-	                                   moduleInstance = self._i_module)
-	d_return['mi_rigGroup'].parent = self._i_constrainNull.mNode#parent rig group to constrain null
-	mi_fkLoc = d_return['md_locs']['fk']#Grab the fk loc
-	self._i_rigNull.connectChildNode(mi_fkLoc,'locFK','rigNull')
-	log.info("%s >> fkLoc: %s "%(_str_funcName,mi_fkLoc.p_nameShort)) 
-	
-	mi_blendLoc = d_return['md_locs']['blend']#Grab the blend loc	
-	self._i_rigNull.connectChildNode(mi_blendLoc,'locBlend','rigNull')
-	log.info("%s >> blendLoc: %s "%(_str_funcName,mi_blendLoc.p_nameShort)) 
-	
-    except StandardError,error:
-	raise StandardError,"%s >> base rig setup fail! | error: %s"%(_str_funcName,error)   
-    
-    try:#Connect vis blend between fk/ik
-	#>>> Setup a vis blend result
-	mPlug_FKon = d_return['mPlug_fkVis']
-	mPlug_IKon = d_return['mPlug_ikVis']
-	log.info("%s >> mPlug_FKon: %s "%(_str_funcName,mPlug_FKon.p_combinedShortName)) 
-	log.info("%s >> mPlug_IKon: %s "%(_str_funcName,mPlug_IKon.p_combinedShortName)) 
-	
-	mPlug_FKon.doConnectOut("%s.visibility"%self._i_constrainNull.controlsFKNull.mNode)
-	mPlug_IKon.doConnectOut("%s.visibility"%self._i_constrainNull.controlsIKNull.mNode)
-	
-	try:#Setup constain loc
-	    mi_settingsFKLoc = mi_settings.doLoc()
-	    mi_settingsFKLoc.parent = mi_controlFK
-	    self.connect_toRigGutsVis(mi_settingsFKLoc)
-	    _str_const = mc.parentConstraint([mi_settingsFKLoc.mNode,mi_controlIK.mNode],mi_settings.masterGroup.mNode,maintainOffset = False)[0]
-	    l_weightTargets = mc.parentConstraint(_str_const,q=True,weightAliasList = True)
+	def _gatherInfo_(self):
+	    mi_go = self._go#Rig Go instance link
+	    self.md_rigList = {}
 	    
-	    mPlug_FKon.doConnectOut("%s.%s"%(_str_const,l_weightTargets[0]))
-	    mPlug_IKon.doConnectOut("%s.%s"%(_str_const,l_weightTargets[1])) 
-	        
-	except StandardError,error:raise StandardError,"constrain loc | %s"%error	
-	
-    except StandardError,error:
-	raise StandardError,"%s >> fk/ik blend setup fail! | error: %s"%(_str_funcName,error)       
-    
-    #Setup pupil and iris
-    #=====================================================================================
-    #The gist of what we'll do is setup identical attributes on both fk and ik controls
-    #and then blend between the two to drive what is actually influencing the joints
-    #scale = (fk_result * fk_pupil) + (ik_result *ik_pupil)
-    try:#pupil   mPlug_FKIK
-	l_extraSetups = ['pupil','iris']
-	for i,n in enumerate(l_extraSetups):
-	    buffer = self._i_rigNull.getMessage('%sJoint'%n)
-	    if buffer:    
-		log.info("%s >> Seting up %s"%(_str_funcName,n)) 
-		mi_tmpJoint = cgmMeta.cgmObject(buffer[0])
-		mi_rigJoint = mi_tmpJoint.rigJoint
-		mPlug_tmp = cgmMeta.cgmAttr(mi_settings,'%s'%n,attrType='float',initialValue=1,keyable=True, defaultValue=1)
-		for a in self._jointOrientation[1:]:
-		    mPlug_tmp.doConnectOut("%s.s%s"%(mi_rigJoint.mNode,a))		
-		"""
-		mPlug_FK_in = cgmMeta.cgmAttr(ml_controlsFKNull[0],'%s'%n,attrType='float',initialValue=1,keyable=True, defaultValue=1)
-		mPlug_FK_out = cgmMeta.cgmAttr(ml_controlsFKNull[0],'%s_fkResult'%n,attrType='float',hidden=False,lock=True)	    
-		mPlug_IK_in = cgmMeta.cgmAttr(mi_controlIK,'%s'%n,attrType='float',initialValue=1,keyable=True,defaultValue=1)
-		mPlug_IK_out = cgmMeta.cgmAttr(mi_controlIK,'%s_ikResult'%n,attrType='float',hidden=False,lock=True)	    
-		mPlug_Blend_out = cgmMeta.cgmAttr(mi_tmpJoint,'%s_blendResult'%n,attrType='float',hidden=False,lock=True)	    
-		NodeF.argsToNodes("%s = %s * %s"%(mPlug_FK_out.p_combinedShortName,
-		                                  mPlug_FKon.p_combinedShortName,
-		                                  mPlug_FK_in.p_combinedShortName)).doBuild()
-		NodeF.argsToNodes("%s = %s * %s"%(mPlug_IK_out.p_combinedShortName,
-		                                  mPlug_IKon.p_combinedShortName,
-		                                  mPlug_IK_in.p_combinedShortName)).doBuild()	 
-		NodeF.argsToNodes("%s = %s + %s"%(mPlug_Blend_out.p_combinedShortName,
-		                                  mPlug_FK_out.p_combinedShortName,
-		                                  mPlug_IK_out.p_combinedShortName)).doBuild()	
-		for a in self._jointOrientation[1:]:
-		    mPlug_Blend_out.doConnectOut("%s.s%s"%(mi_tmpJoint.mNode,a))
-		"""
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    if not self.mi_helper:raise StandardError,"No suitable helper found"
+	    
+	    try:#verify eye look
+		mi_go._verify_eyeLook()
+	    except Exception,error: raise StandardError,"!Faied to verify eye look! | %s"%error
 		
-    except StandardError,error:
-	raise StandardError,"%s >> pupil setup fail! | error: %s"%(_str_funcName,error)   
-	
-    #Dynamic parent groups
-    #====================================================================================
-    try:#>>>> eye
-	ml_eyeDynParents = [mi_eyeLook]
-	if self._mi_moduleParent:
-	    ml_eyeDynParents.append(self._mi_moduleParent.rigNull.rigJoints[0])	    
-	ml_eyeDynParents.append(self._i_masterControl)
+	    
+	    #>> Find our joint lists ===================================================================
+	    self.md_jointLists = {}	    
+	    self.ml_rigJoints = mi_go._i_module.rigNull.msgList_get('rigJoints')
+	    
+	    self.md_rigList['eyeOrbJoint'] = metaUtils.get_matchedListFromAttrDict(self.ml_rigJoints,
+	                                                                      cgmName = 'eyeOrb')[0]    
+	    self.md_rigList['pupilJoint'] = metaUtils.get_matchedListFromAttrDict(self.ml_rigJoints,
+	                                                                     cgmName = 'pupil')[0]	 
+	    self.md_rigList['irisJoint'] = metaUtils.get_matchedListFromAttrDict(self.ml_rigJoints,
+	                                                                    cgmName = 'iris')[0]
+	    self.md_rigList['eyeJoint'] = metaUtils.get_matchedListFromAttrDict(self.ml_rigJoints,
+	                                                                   cgmName = 'eye')[0]	  
+	                                                                   
+	    #>> Running lists ===========================================================================	    
+	    try:self.md_rigList['eyeLook'] = mi_go._get_eyeLook()
+	    except Exception,error:raise StandardError,"!eyeLook fail! | %s"%(error)	    
+	    try:self.md_rigList['controlIK'] = mi_go._i_rigNull.controlIK
+	    except Exception,error:raise StandardError,"controlIK fail! | %s"%(error)
+	    try:self.md_rigList['controlFK'] = mi_go._i_rigNull.controlFK
+	    except Exception,error:raise StandardError,"controlFK fail! | %s"%(error)
+	    try:self.md_rigList['settings'] = mi_go._i_rigNull.settings
+	    except Exception,error:raise StandardError,"controlIK fail! | %s"%(error)	
+	    try:self.md_rigList['eyeMove'] = mi_go._i_rigNull.eyeMove
+	    except Exception,error:raise StandardError,"eyeMove fail! | %s"%(error)
+	    
+	    #Settings
+	    self.mPlug_FKIK = cgmMeta.cgmAttr(self.md_rigList['settings'].mNode,'blend_FKIK')
+	    
+	    self.log_infoNestedDict('md_rigList')
+	    
+	def _dynParentGroup_(self):
+	    try:#Query ====================================================================================
+		mi_go = self._go#Rig Go instance link
 		
-	#Add our parents
-	i_dynGroup = mi_controlIK.dynParentGroup
-	log.info("Dyn group at setup: %s"%i_dynGroup)
-	i_dynGroup.dynMode = 0
-	
-	for o in ml_eyeDynParents:
-	    i_dynGroup.addDynParent(o)
-	i_dynGroup.rebuild()
-	
-    except StandardError,error:
-	raise StandardError,"%s >> ik dynamic parent setup fail! | error: %s"%(_str_funcName,error)   
+		mi_controlIK = self.md_rigList['controlIK']
+		mi_eyeLook = self.md_rigList['eyeLook']
+	    except Exception,error:raise Exception,"!Query! | %s"%error	
+	    
+	    ml_eyeDynParents = [mi_eyeLook]
+	    #if mi_go._mi_moduleParent:
+		#ml_eyeDynParents.append(mi_go._mi_moduleParent.rigNull.rigJoints[0])	    
+	    ml_eyeDynParents.append(mi_go._i_masterControl)
+		    
+	    #Add our parents
+	    i_dynGroup = mi_controlIK.dynParentGroup
+	    log.info("Dyn group at setup: %s"%i_dynGroup)
+	    i_dynGroup.dynMode = 0
+	    
+	    for o in ml_eyeDynParents:
+		i_dynGroup.addDynParent(o)
+	    i_dynGroup.rebuild()	
+	    
+	def _setupEye_(self):
+	    try:#Query ====================================================================================
+		mi_go = self._go#Rig Go instance link
+		
+		mi_controlFK = self.md_rigList['controlFK']
+		mi_controlIK = self.md_rigList['controlIK']
+		mi_eyeJoint = self.md_rigList['eyeJoint']
+		mi_eyeMove = self.md_rigList['eyeMove']		
+		mi_eyeLook = self.md_rigList['eyeLook']
+		mi_eyeOrbJoint = self.md_rigList['eyeOrbJoint']
+		mi_irisJoint = self.md_rigList['irisJoint']
+		mi_pupilJoint = self.md_rigList['pupilJoint']
+		mi_settings = self.md_rigList['settings']
+		mi_helper = self.mi_helper
+		mPlug_FKIK = self.mPlug_FKIK
+		str_mirrorSide = mi_go._direction
+		
+		ml_rigJoints = self.ml_rigJoints
+		v_aim = mi_go._vectorAim
+		v_up = mi_go._vectorUp
+	    except Exception,error:raise Exception,"!Query! | %s"%error	
+	    
+	    try:#Base eye setup ==============================================================================
+		d_return = rUtils.createEyeballRig(mi_helper,ballJoint = mi_eyeJoint,
+			                           ikControl = mi_controlIK, fkControl = mi_controlFK,
+			                           buildIK=True, driverAttr=mPlug_FKIK,
+			                           setupVisBlend = True,
+			                           moduleInstance = mi_go._i_module)
+		
+		d_return['mi_rigGroup'].parent = mi_go._i_constrainNull.mNode#parent rig group to constrain null
+		mi_fkLoc = d_return['md_locs']['fk']#Grab the fk loc
+		mi_go._i_rigNull.connectChildNode(mi_fkLoc,'locFK','rigNull')
+		self.log_info(">> fkLoc: %s "%(mi_fkLoc.p_nameShort)) 
+		
+		mi_blendLoc = d_return['md_locs']['blend']#Grab the blend loc	
+		mi_go._i_rigNull.connectChildNode(mi_blendLoc,'locBlend','rigNull')
+		self.log_info(">> blendLoc: %s "%(mi_blendLoc.p_nameShort)) 
+	    except Exception,error:raise Exception,"!Base eye setup! | %s"%(error)
+	    
+	    try:#Connect vis blend between fk/ik ==============================================================
+		#>>> Setup a vis blend result
+		mPlug_FKon = d_return['mPlug_fkVis']
+		mPlug_IKon = d_return['mPlug_ikVis']
+		self.log_info(" >> mPlug_FKon: %s "%(mPlug_FKon.p_combinedShortName)) 
+		self.log_info(" >> mPlug_IKon: %s "%(mPlug_IKon.p_combinedShortName)) 
+		
+		mPlug_FKon.doConnectOut("%s.visibility"%mi_go._i_constrainNull.controlsFKNull.mNode)
+		mPlug_IKon.doConnectOut("%s.visibility"%mi_go._i_constrainNull.controlsIKNull.mNode)
+		
+		try:#Setup constain loc
+		    mi_settingsFKLoc = mi_settings.doLoc()
+		    mi_settingsFKLoc.parent = mi_controlFK
+		    mi_go.connect_toRigGutsVis(mi_settingsFKLoc)
+		    _str_const = mc.parentConstraint([mi_settingsFKLoc.mNode,mi_controlIK.mNode],mi_settings.masterGroup.mNode,maintainOffset = False)[0]
+		    l_weightTargets = mc.parentConstraint(_str_const,q=True,weightAliasList = True)
+		    
+		    mPlug_FKon.doConnectOut("%s.%s"%(_str_const,l_weightTargets[0]))
+		    mPlug_IKon.doConnectOut("%s.%s"%(_str_const,l_weightTargets[1])) 
+			
+		except Exception,error:raise StandardError,"constrain loc | %s"%error	
+	    except Exception,error:raise Exception,"!fk/ik blend setup fail! | %s"%(error)
 
-    #Parent and constraining bits
-    #====================================================================================
-    try:#Constrain to parent module
-	ml_rigJoints[0].parent = self._i_constrainNull.mNode
-	if self._mi_moduleParent:
-	    mc.parentConstraint(self._mi_moduleParent.rig_getSkinJoints()[-1].mNode,self._i_constrainNull.mNode,maintainOffset = True)
-    except StandardError,error:
-	raise StandardError,"%s >> Connect to parent fail! | error: %s"%(_str_funcName,error)
-    
-    try:#Lock Groups ======================================================================
-	for mi_ctrl in [mi_controlFK,mi_controlIK,mi_settings]:
-	    mi_ctrl._setControlGroupLocks(True)
-    except StandardError,error:
-	raise StandardError,"%s >> lock groups fail! | error: %s"%(_str_funcName,error)
-    
-    #Final stuff
-    self._set_versionToCurrent()
-    return True 
-    
-@cgmGeneral.Timer
-def build_matchSystem(self):
-    try:
-	if not self._cgmClass == 'RigFactory.go':
-	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
-	log.error("eye.build_deformationRig>>bad self!")
-	raise StandardError,error
-    _str_funcName = "build_rig(%s)"%self._strShortName
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
-    
-    try:#Gather Data    
-	try:
-	    mi_eyeLook = self._get_eyeLook()
-	    mi_eyeLookDynSwitch = mi_eyeLook.dynSwitch
-	except StandardError,error:raise StandardError,"eyeLook fail! | %s"%(error)	
+	   
+	    try:#Setup pupil and iris #==================================================================	
+		#The gist of what we'll do is setup identical attributes on both fk and ik controls
+		#and then blend between the two to drive what is actually influencing the joints
+		#scale = (fk_result * fk_pupil) + (ik_result *ik_pupil)
+		l_extraSetups = ['pupil','iris']
+		for i,n in enumerate(l_extraSetups):
+		    buffer = mi_go._i_rigNull.getMessage('%sJoint'%n)
+		    if buffer:    
+			self.log_info(" >> Seting up %s"%(n)) 
+			mi_tmpJoint = cgmMeta.cgmObject(buffer[0])
+			mi_rigJoint = mi_tmpJoint.rigJoint
+			mPlug_tmp = cgmMeta.cgmAttr(mi_settings,'%s'%n,attrType='float',initialValue=1,keyable=True, defaultValue=1)
+			for a in mi_go._jointOrientation[1:]:
+			    mPlug_tmp.doConnectOut("%s.s%s"%(mi_rigJoint.mNode,a))		
+			"""
+			mPlug_FK_in = cgmMeta.cgmAttr(ml_controlsFKNull[0],'%s'%n,attrType='float',initialValue=1,keyable=True, defaultValue=1)
+			mPlug_FK_out = cgmMeta.cgmAttr(ml_controlsFKNull[0],'%s_fkResult'%n,attrType='float',hidden=False,lock=True)	    
+			mPlug_IK_in = cgmMeta.cgmAttr(mi_controlIK,'%s'%n,attrType='float',initialValue=1,keyable=True,defaultValue=1)
+			mPlug_IK_out = cgmMeta.cgmAttr(mi_controlIK,'%s_ikResult'%n,attrType='float',hidden=False,lock=True)	    
+			mPlug_Blend_out = cgmMeta.cgmAttr(mi_tmpJoint,'%s_blendResult'%n,attrType='float',hidden=False,lock=True)	    
+			NodeF.argsToNodes("%s = %s * %s"%(mPlug_FK_out.p_combinedShortName,
+							  mPlug_FKon.p_combinedShortName,
+							  mPlug_FK_in.p_combinedShortName)).doBuild()
+			NodeF.argsToNodes("%s = %s * %s"%(mPlug_IK_out.p_combinedShortName,
+							  mPlug_IKon.p_combinedShortName,
+							  mPlug_IK_in.p_combinedShortName)).doBuild()	 
+			NodeF.argsToNodes("%s = %s + %s"%(mPlug_Blend_out.p_combinedShortName,
+							  mPlug_FK_out.p_combinedShortName,
+							  mPlug_IK_out.p_combinedShortName)).doBuild()	
+			for a in self._jointOrientation[1:]:
+			    mPlug_Blend_out.doConnectOut("%s.s%s"%(mi_tmpJoint.mNode,a))
+			"""
+	    except Exception,error:raise Exception,"!pupil setup fail! | %s"%(error)
+	    
+	    try:#Parent and constraining bits ==================================================================
+		#mi_eyeMove.masterGroup.parent = mi_eye
+		mi_eyeOrbJoint.parent = mi_eyeMove
+		mi_eyeMove.masterGroup.parent = mi_go._i_faceDeformNull
+		mc.parentConstraint(mi_eyeMove.mNode,
+	                            mi_go._i_constrainNull.mNode,maintainOffset = True)		
+		mc.scaleConstraint(mi_eyeMove.mNode,
+		                   mi_go._i_constrainNull.mNode,maintainOffset = True)			
+		'''
+		try:#Constrain to parent module
+		    ml_rigJoints[0].parent = mi_go._i_constrainNull.mNode
+		    if mi_go._mi_moduleParent:
+			mc.parentConstraint(mi_go._mi_moduleParent.rig_getSkinJoints()[-1].mNode,
+			                    mi_go._i_constrainNull.mNode,maintainOffset = True)
+		except Exception,error:
+		    raise StandardError,"!Connect to parent fail! | %s"%(error)
+		'''
+		try:#Lock Groups ======================================================================
+		    for mi_ctrl in [mi_controlFK,mi_controlIK,mi_settings]:
+			mi_ctrl._setControlGroupLocks(True)
+		except Exception,error:
+		    raise StandardError,"!Lock N Hide groups! | error: %s"%(error)
+		
+		#Final stuff
+		mi_go._set_versionToCurrent()
+	    except Exception,error:raise Exception,"!Parent and constraining bits ! | %s"%(error) 
+    return fncWrap(*args, **kws).go()
+
+def build_matchSystem(*args, **kws):
+    class fncWrap(modUtils.rigStep):
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'build_matchSystem(%s)'%self.d_kws['goInstance']._strShortName
+	    self._b_autoProgressBar = True	
+	    self._b_reportTimes = True	    	    
+	    self.__dataBind__()
+	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
+	                        {'step':'Build','call':self._build_}     ]	
+	    #=================================================================
 	
-	try:mi_controlIK = self._i_rigNull.controlIK
-	except StandardError,error:raise StandardError,"controlIK fail! | %s"%(error)
-	
-	try:mi_controlFK=  self._i_rigNull.controlFK 
-	except StandardError,error:raise StandardError,"controlFK fail! | %s"%(error)
-	
-	try:ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')
-	except StandardError,error:raise StandardError,"rigJoints fail! | %s"%(error)
-	
-	try:mi_settings = self._i_rigNull.settings
-	except StandardError,error:raise StandardError,"settings fail! | %s"%(error)
-	
-	try:mi_locBlend= self._i_rigNull.locBlend
-	except StandardError,error:raise StandardError,"mi_locBlend fail! | %s"%(error)
-	
-	try:mi_locFK= self._i_rigNull.locFK
-	except StandardError,error:raise StandardError,"mi_locFK fail! | %s"%(error)	
-	
-	ml_fkJoints = self._i_rigNull.msgList_get('fkJoints')
-	ml_ikJoints = self._i_rigNull.msgList_get('ikJoints')
-	
-	try:mi_dynSwitch = self._i_dynSwitch
-	except StandardError,error:raise StandardError,"dynSwitch fail! | %s"%(error)
-	
-    except StandardError,error:
-	raise StandardError,"%s >> Gather data fail! | error: %s"%(_str_funcName,error)        
-    try:#>>> First IK to FK
-	i_ikMatch = cgmRigMeta.cgmDynamicMatch(dynObject=mi_controlIK,
-	                                       dynPrefix = "FKtoIK",
-	                                       dynMatchTargets=mi_locBlend)
-    except StandardError,error:
-	raise StandardError,"%s >> ik to fk fail! | error: %s"%(_str_funcName,error)       
-    try:#>>> FK to IK
-	#============================================================================
-	i_fkMatch = cgmRigMeta.cgmDynamicMatch(dynObject = mi_controlFK,
-	                                       dynPrefix = "IKtoFK",
-	                                       dynMatchTargets=mi_locBlend)
-    except StandardError,error:
-	raise StandardError,"%s >> fk to ik fail! | error: %s"%(_str_funcName,error)   
-        
-    #>>> Register the switches
-    try:
-	mi_dynSwitch.addSwitch('snapToFK',[mi_settings.mNode,'blend_FKIK'],
-	                       0,
-	                       [i_fkMatch])
-    
-	mi_dynSwitch.addSwitch('snapToIK',[mi_settings.mNode,'blend_FKIK'],
-	                       1,
-	                       [i_ikMatch])
-	
-	mi_eyeLookDynSwitch.addSwitch('snapToFK',[mi_settings.mNode,'blend_FKIK'],
-	                              0,
-	                              [i_fkMatch])
-	mi_eyeLookDynSwitch.addSwitch('snapToIK',[mi_settings.mNode,'blend_FKIK'],
-	                              1,
-	                              [i_ikMatch])	
-    except StandardError,error:
-	raise StandardError,"%s >> switch setup fail! | error: %s"%(_str_funcName,error)   
-    return True
-    
+	def _gatherInfo_(self):
+	    mi_go = self._go#Rig Go instance link
+	    try:
+		self.mi_eyeLook = mi_go._get_eyeLook()
+		self.mi_eyeLookDynSwitch = self.mi_eyeLook.dynSwitch
+	    except Exception,error:raise StandardError,"eyeLook fail! | %s"%(error)	
+	    
+	    try:self.mi_controlIK = mi_go._i_rigNull.controlIK
+	    except Exception,error:raise StandardError,"controlIK fail! | %s"%(error)
+	    
+	    try:self.mi_controlFK=  mi_go._i_rigNull.controlFK 
+	    except Exception,error:raise StandardError,"controlFK fail! | %s"%(error)
+	    
+	    try:self.ml_rigJoints = mi_go._i_rigNull.msgList_get('rigJoints')
+	    except Exception,error:raise StandardError,"rigJoints fail! | %s"%(error)
+	    
+	    try:self.mi_settings = mi_go._i_rigNull.settings
+	    except Exception,error:raise StandardError,"settings fail! | %s"%(error)
+	    
+	    try:self.mi_locBlend= mi_go._i_rigNull.locBlend
+	    except Exception,error:raise StandardError,"mi_locBlend fail! | %s"%(error)
+	    
+	    try:self.mi_locFK= mi_go._i_rigNull.locFK
+	    except Exception,error:raise StandardError,"mi_locFK fail! | %s"%(error)	
+	    
+	    self.ml_fkJoints = mi_go._i_rigNull.msgList_get('fkJoints')
+	    self.ml_ikJoints = mi_go._i_rigNull.msgList_get('ikJoints')
+	    
+	    try:self.mi_dynSwitch = mi_go._i_dynSwitch
+	    except Exception,error:raise StandardError,"dynSwitch fail! | %s"%(error)
+		
+	def _build_(self):
+	    try:#>>> First IK to FK
+		i_ikMatch = cgmRigMeta.cgmDynamicMatch(dynObject=self.mi_controlIK,
+			                               dynPrefix = "FKtoIK",
+			                               dynMatchTargets=self.mi_locBlend)
+	    except Exception,error:raise StandardError,"!ik to fk fail! | %s"%(error)  
+	    
+	    try:#>>> FK to IK
+		#============================================================================
+		i_fkMatch = cgmRigMeta.cgmDynamicMatch(dynObject = self.mi_controlFK,
+			                               dynPrefix = "IKtoFK",
+			                               dynMatchTargets=self.mi_locBlend)
+	    except Exception,error:raise StandardError,"!fk to ik fail! | error: %s"%(error)   
+		
+	    #>>> Register the switches
+	    try:
+		self.mi_dynSwitch.addSwitch('snapToFK',[self.mi_settings.mNode,'blend_FKIK'],
+		                            0,
+		                            [i_fkMatch])
+		 
+		self.mi_dynSwitch.addSwitch('snapToIK',[self.mi_settings.mNode,'blend_FKIK'],
+		                            1,
+		                            [i_ikMatch])
+		     
+		self.mi_eyeLookDynSwitch.addSwitch('snapToFK',[self.mi_settings.mNode,'blend_FKIK'],
+		                                   0,
+		                                   [i_fkMatch])
+		self.mi_eyeLookDynSwitch.addSwitch('snapToIK',[self.mi_settings.mNode,'blend_FKIK'],
+		                                   1,
+		                                   [i_ikMatch])	
+	    except Exception,error:raise StandardError,"!switch setup fail! | %s"%(error)   
+    return fncWrap(*args, **kws).go()
+
 #----------------------------------------------------------------------------------------------
 # Important info ==============================================================================
 __d_buildOrder__ = {0:{'name':'skeleton','function':build_rigSkeleton},
