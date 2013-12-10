@@ -267,7 +267,8 @@ class go(object):
 		    i_grp.parent = self._i_masterDeformGroup.mNode
 		    self._i_module.connectChildNode(i_grp,'deformNull','module')
 		    if self._partType in ['eyeball', 'eyelids']:
-			self._i_module.connectChildNode(i_grp,'constrainNull','module')		
+			self._i_module.connectChildNode(i_grp,'constrainNull','module')	
+			i_grp.parent = self._i_faceDeformNull				
 	    self._i_deformNull = self._i_module.deformNull
 	except Exception,error:
 	    raise StandardError,"%s  >> Deform Null fail! | %s"%(self._strShortName,error)	
@@ -1676,6 +1677,28 @@ def verify_eyeLook(*args,**kws):
 	    #We need a module type, find a head etc
 	    if self.mi_module.moduleType != 'eyeball':
 		raise StandardError, "Don't know how to build from non eyeball type yet"
+	    
+	    self.ml_dynParentsToAdd = []
+	    mi_puppet = self.mi_module.modulePuppet
+	    #Need to find the head and shoulders -- need to do this better TODO
+
+	    try:mi_moduleParent = self.mi_module.moduleParent
+	    except:mi_moduleParent = False
+	    if mi_moduleParent:
+		mi_parentRigNull = mi_moduleParent.rigNull
+		if mi_parentRigNull.getMessage('handleIK'):
+		    self.ml_dynParentsToAdd.append( mi_parentRigNull.handleIK )
+		    
+		try:mi_moduleParentsParent = mi_moduleParent.moduleParent
+		except:mi_moduleParentsParent = False		
+		if mi_moduleParentsParent:  
+		    mi_parentsParentRigNull = mi_moduleParentsParent.rigNull
+		    if mi_parentsParentRigNull.getMessage('handleIK'):
+			self.ml_dynParentsToAdd.append( mi_parentsParentRigNull.handleIK )		    
+		    if mi_parentsParentRigNull.getMessage('cog'):
+			self.ml_dynParentsToAdd.append( mi_parentsParentRigNull.cog )	    
+	    
+	    self.ml_dynParentsToAdd.append(mi_puppet.masterControl)
 
 	def _build_(self):
 	    mi_buildModule = self.mi_module
@@ -1694,17 +1717,16 @@ def verify_eyeLook(*args,**kws):
 	    mi_eyeLookShape.masterGroup.parent = mi_puppet.masterControl
 	    
 	    try:#Setup dynamic parent -------------------------------------------
-		ml_dynParentsToAdd = []
-		ml_dynParentsToAdd.append(mi_puppet.masterControl)
-		if mi_eyeLookShape.msgList_getMessage('spacePivots'):
-		    ml_dynParentsToAdd.extend(mi_eyeLookShape.msgList_get('spacePivots',asMeta = True))	
-		
-		self.log_info(">>> Dynamic parents to add: %s"%([i_obj.getShortName() for i_obj in ml_dynParentsToAdd]))
 		#Add our parents
 		mi_dynGroup = mi_eyeLookShape.dynParentGroup
 		mi_dynGroup.dynMode = 0
 		
-		for o in ml_dynParentsToAdd:
+		if mi_eyeLookShape.msgList_getMessage('spacePivots'):
+		    self.ml_dynParentsToAdd.extend(mi_eyeLookShape.msgList_get('spacePivots',asMeta = True))		    
+		
+		self.log_info(">>> Dynamic parents to add: %s"%([i_obj.getShortName() for i_obj in self.ml_dynParentsToAdd]))
+		
+		for o in self.ml_dynParentsToAdd:
 		    mi_dynGroup.addDynParent(o)
 		mi_dynGroup.rebuild()	    
 	    except Exception,error:raise StandardError,"dynParent setup | %s"%(error)	
