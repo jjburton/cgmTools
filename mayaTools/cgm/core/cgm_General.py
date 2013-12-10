@@ -11,7 +11,7 @@ This is the Core of the MetaNode implementation of the systems.
 It is uses Mark Jackson (Red 9)'s as a base.
 
 
-Sample cgmFuncCls
+#Sample cgmFuncCls
 from cgm.core import cgm_General as cgmGeneral
 def testFunc(*args, **kws):
     class fncWrap(cgmGeneral.cgmFuncCls):
@@ -50,6 +50,14 @@ testFunc(reportTimes = True,reportEnv = True)#Here we wanna see the enviornment 
 testFunc(reportTimes = True)#Show times for steps of functions
 testFunc(reportShow = True)#Show a report of a function before running it
 testFunc(autoProgressBar = True)#automatically generate a progress bar of the steps of a function
+
+#Example code
+'''
+try:#Name ===============================================================================
+    try:#Sub ===============================================================================		
+    except Exception,error:raise StandardError, "%s | %s"%('a',error)
+except Exception,error:raise StandardError, "[Name]{%s}"%(error)
+'''
 ================================================================
 """
 import maya.cmds as mc
@@ -196,7 +204,7 @@ class cgmFuncCls(object):
 		if self.d_kws:
 		    for k in self.d_kws.keys():
 			log.info("---" + " '%s' : %s "%(k,self.d_kws[k]))		
-		_str_fail = "Step: '%s' | Error: %s"%(_str_step,error)
+		_str_fail = "[Step: '%s'] > %s"%(_str_step,error)
 		log.info("/"*3 + " Self Stored " + "-"*75)
 		l_keys = self.__dict__.keys()
 		l_keys.sort()
@@ -218,7 +226,7 @@ class cgmFuncCls(object):
 		log.error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))	
 		self.progressBar_end()
 		mc.undoInfo(closeChunk=True)			
-		raise StandardError, "%s >!FAILURE!> %s"%(self._str_funcCombined,_str_fail)
+		raise StandardError, "%s !!ERROR!! %s"%(self._str_funcCombined,_str_fail)
 	    t2 = time.clock()
 	    _str_time = "%0.3f seconds"%(t2-t1)
 	    self._l_funcTimes.append([_str_step,_str_time])	
@@ -227,10 +235,11 @@ class cgmFuncCls(object):
 	#Reporting and closing out =========================================================================
 	if self._b_WIP or self.d_kws.get('reportShow'):
 	    self.report()	
-	if int_max != 0 and self._b_reportTimes:
-	    log.info("%s Step Times >> "%self._str_funcCombined + '-'*70)			    
-	    for pair in self._l_funcTimes:
-		log.info(" - '%s' >>  %s " % (pair[0],pair[1]))				 
+	if self._b_reportTimes:
+	    log.info("%s Step Times >> "%self._str_funcCombined + '-'*70)			    	    
+	    if int_max != 0:
+		for pair in self._l_funcTimes:
+		    log.info(" - '%s' >>  %s " % (pair[0],pair[1]))				 
 	    log.info("Total >> = %0.3f seconds " % ((time.clock()-t_start)))		
 	if int_max == 0:#If it's a one step, return, return the single return
 	    try:return self.d_return[self.d_return.keys()[0]]
