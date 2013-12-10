@@ -72,7 +72,7 @@ class go(object):
 	                                'eyeball':shapeCast_eyeball,
 	                                'eyeballFK':self.build_eyeballFK,
 	                                'eyeballIK':self.build_eyeballIK,
-	                                'eyelids':self.build_eyelids,
+	                                'eyelids':shapeCast_eyelids,#self.build_eyelids,
 	                                'eyeLook':self.build_eyeLook,
 	                                'eyebrow':shapeCast_eyebrow,
 	                                'mouthNose':shapeCast_mouthNose,	                                
@@ -128,7 +128,7 @@ class go(object):
 	    self._baseModuleDistance = self._returnBaseThickness()
 	    
 	except Exception,error:
-	    raise StandardError,"%s >> Module data gather fail! | %s"%(self._strShortName,error)	
+	    raise StandardError,"%s >> [Module data gather fail] error: %s"%(self._strShortName,error)	
 	
         #>>> We need to figure out which control to make
 	#===================================================================================
@@ -2944,5 +2944,108 @@ def shapeCast_eyeball(*args,**kws):
 		self.mi_go._mi_rigNull.connectChildNode(mi_crv,'shape_eyeMove','owner')
 	    except Exception,error: raise Exception,"!Connect! | %s"%error
     
+    #We wrap it so that it autoruns and returns
+    return fncWrap(*args,**kws).go()
+
+def shapeCast_eyelids(*args,**kws):
+    class fncWrap(ShapeCasterFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = 'shapeCast_eyelids(%s)'%self.mi_module.p_nameShort
+	    self._b_autoProgressBar = 1
+	    self._b_reportTimes = 1
+	    self.__dataBind__(*args,**kws)
+	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},	
+	                        {'step':'Build Shapes','call':self._buildShapes_},
+	                        ]
+	    assert self.mi_module.mClass == 'cgmEyelids',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(self._str_funcName,self.mi_module.mClass)
+	    #The idea is to register the functions needed to be called
+	    #=================================================================
+	    if log.getEffectiveLevel() == 10:self.report()#If debug
+	    
+	def _gatherInfo_(self): 
+	    '''	    
+	    try:ml_uprLidHandles = self._mi_rigNull.msgList_get('handleJoints_upr')
+	    except Exception,error:raise StandardError,"Missing uprlid handleJoints | error: %s "%(error)
+	    try:ml_lwrLidHandles = self._mi_rigNull.msgList_getMessage('handleJoints_lwr')
+	    except Exception,error:raise StandardError,"Missing lwrlid handleJoints | error: %s "%(error)  
+	    log.info("%s >>> ml_uprLidHandles : %s "%(_str_funcName,[mObj.mNode for mObj in ml_uprLidHandles]))	
+	    log.info("%s >>> ml_lwrLidHandles : %s"%(_str_funcName,[mObj.mNode for mObj in ml_lwrLidHandles]))		
+	    
+	    __baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_uprLidHandles]) /2 
+	    log.info("%s >>> baseDistance : %s"%(_str_funcName,__baseDistance))	
+	    '''
+	    '''
+	    self.str_orientation = self.mi_go.str_jointOrientation #Link
+	    self.str_partName = self.mi_go.str_partName		    
+	    self.str_direction = self.mi_go._direction
+	    self.d_colors = {'left':metaUtils.getSettingsColors('left'),
+	                     'right':metaUtils.getSettingsColors('right'),
+	                     'center':metaUtils.getSettingsColors('center')}
+
+	    #Orient info ------------------------------------------------------------------------------------------------
+	    self.v_aimNegative = cgmValid.simpleAxis(self.str_orientation[0]+"-").p_vector
+	    self.v_aim = cgmValid.simpleAxis(self.str_orientation[0]).p_vector	
+	    self.v_up = cgmValid.simpleAxis(self.str_orientation[1]).p_vector	
+	    '''
+	    #Find our helpers -------------------------------------------------------------------------------------------
+	    self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
+	    if not self.mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
+	    
+	    #>> Find our joint lists ===================================================================
+	    try:self.ml_uprLidHandles = self.mi_go._mi_rigNull.msgList_get('handleJoints_upr')
+	    except Exception,error:raise StandardError,"Missing uprlid handleJoints | %s "%(error)
+	    try:self.ml_lwrLidHandles = self.mi_go._mi_rigNull.msgList_get('handleJoints_lwr')
+	    except Exception,error:raise StandardError,"Missing lwrlid handleJoints | %s "%(error)  
+	    
+	    #>> calculate ------------------------------------------------------------------------
+	    self.f_baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in self.ml_uprLidHandles]) /2 
+	
+	def _buildShapes_(self):
+	    try:#query ===========================================================
+		mi_go = self.mi_go
+		mi_helper = self.mi_helper
+		__baseDistance = self.f_baseDistance 
+		ml_uprLidHandles = self.ml_uprLidHandles 
+		ml_lwrLidHandles = self.ml_lwrLidHandles
+	    except Exception,error: raise Exception,"!Query! | %s"%error
+	
+	    try:#Curve creation ===========================================================
+		ml_handleCrvs = []
+		for mObj in ml_uprLidHandles + ml_lwrLidHandles:
+		    try:
+			if mObj.getAttr('isSubControl') or mObj in [ml_uprLidHandles[0],ml_uprLidHandles[-1]]:
+			    _size = __baseDistance * .6
+			else:_size = __baseDistance
+			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=mi_go.str_jointOrientation[0]+'+'),setClass=True)	
+			Snap.go(mi_crv,mObj.mNode,move=True,orient=False)
+			str_grp = mi_crv.doGroup()
+			mi_crv.__setattr__("t%s"%mi_go.str_jointOrientation[0],__baseDistance)
+			mi_crv.parent = False
+			mc.delete(str_grp)
+			
+			#>>Color curve		    		    
+			if mObj.getAttr('isSubControl'):
+			    curves.setCurveColorByName(mi_crv.mNode,mi_go.l_moduleColors[1])  
+			else:curves.setCurveColorByName(mi_crv.mNode,mi_go.l_moduleColors[0])  
+			#>>Copy tags and name		    
+			mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+			mi_crv.doName()
+			mi_crv.connectChildNode(mObj,'handleJoint','controlCurve')
+			ml_handleCrvs.append(mi_crv)
+			#>>Copy pivot
+			mi_crv.doCopyPivot(mObj.mNode)
+		    except Exception,error:
+			raise StandardError,"(handle: '%s' | error: %s )"%(mObj.p_nameShort,error)  
+	    except Exception,error: raise Exception,"[Curve create] > %s"%error
+	    
+	    try:#connect ===========================================================
+		mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in ml_handleCrvs]
+		mi_go.md_ReturnControls['ml_handleCurves'] = ml_handleCrvs
+		mi_go._mi_rigNull.msgList_connect(ml_handleCrvs,'handleCurves','owner')
+	    except Exception,error: raise Exception,"[Connect] error: %s"%error
+	    
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()  
