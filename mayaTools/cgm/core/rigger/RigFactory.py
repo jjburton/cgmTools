@@ -221,14 +221,16 @@ class go(object):
 	
 	try:#>>> FACE MODULES If face module we need a couple of data points
 	    if self._partType.lower() in __l_faceModules__:
-		log.info("FACE MODULE")
+		self._i_headModule = False
+		self._i_headHandle = False
+		self.verify_headModule()
 		self.verify_faceModuleAttachJoint()
 		self.verify_faceSkullPlate()
 		self.verify_faceDeformNull()#make sure we have a face deform null
 		self.verify_faceScaleDriver()#scale driver
 	
 		try:#>> Constrain  head stuff =======================================================================================
-		    mi_parentHeadHandle = self.mi_parentHeadHandle
+		    mi_parentHeadHandle = self._i_headHandle
 		    mi_constrainNull =  self._i_faceDeformNull
 		    log.info(mi_parentHeadHandle)
 		    log.info(mi_constrainNull)		    
@@ -383,11 +385,10 @@ class go(object):
 	
 	#Find our head attach joint ------------------------------------------------------------------------------------------------
 	self.str_faceAttachJoint = False
-	if not self._i_module.getMessage('moduleParent'):
-	    raise StandardError,"%s >> Must have a module parent"%_str_funcName
+	if not self._i_headModule:
+	    raise StandardError,"%s >> Must have a head module"%_str_funcName
 	try:
-	    mi_end = self._i_module.moduleParent.rigNull.msgList_get('moduleJoints')[-1]
-	    self.mi_parentHeadHandle = self._i_module.moduleParent.rigNull.handleIK	    
+	    mi_end = self._i_headModule.rigNull.msgList_get('moduleJoints')[-1]
 	    buffer =  mi_end.getMessage('scaleJoint')
 	    if buffer:
 		buffer2 =  mi_end.scaleJoint.getMessage('rigJoint')
@@ -441,10 +442,23 @@ class go(object):
 	self._i_faceDeformNull = i_grp#link
 	return True
     
+    def verify_headModule(self):
+	if self._partType not in __l_faceModules__:
+	    log.info("Not a face module, not gonna find a head from here")
+	    return False
+	
+	if self._partType == 'eyelids':
+	    self._i_headModule = self._i_module.moduleParent.moduleParent
+	else:
+	    self._i_headModule = self._i_module.moduleParent
+	    
+	self._i_headHandle = self._i_headModule.rigNull.handleIK	    
+	return self._i_headModule
+	    
     def verify_faceScaleDriver(self):
 	try:
-	    mi_parentHeadHandle = self._i_module.moduleParent.rigNull.handleIK
-	    mi_parentBlendPlug = cgmMeta.cgmAttr(self.mi_parentHeadHandle,'scale')
+	    mi_parentHeadHandle = self._i_headHandle
+	    mi_parentBlendPlug = cgmMeta.cgmAttr(mi_parentHeadHandle,'scale')
 	    mi_faceDeformNull = self._i_faceDeformNull
 	    #connect blend joint scale to the finger blend joints
 	    '''
@@ -477,7 +491,7 @@ class go(object):
 	    return True
 	
 	#Check if we have a settings control on parent module --------------------------	    
-	buffer = self._mi_moduleParent.rigNull.getMessage('settings')
+	buffer = self._i_headModule.rigNull.getMessage('settings')
 	if buffer:
 	    self._i_rigNull.connectChildNode(buffer[0],'settings')		    
 	    return True
