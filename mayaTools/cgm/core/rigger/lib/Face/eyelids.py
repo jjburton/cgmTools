@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyelids rig builder
 ================================================================
 """
-__version__ = 1.12102013
+__version__ = 1.12112013
 
 # From Python =============================================================
 import copy
@@ -202,6 +202,7 @@ def build_rigSkeleton(*args, **kws):
 					
 		    except Exception,error:raise StandardError,"[Naming fail]{%s}"%(error)       
 		    mi_go._i_rigNull.msgList_connect(ml_handles,'handleJoints_%s'%k,'rigNull')
+		    mi_go.connect_toRigGutsVis(ml_handles)				    
 		mi_upLoc.delete()
 	    except Exception,error:raise StandardError, "[HandleJoints]{%s}"%(error)
  
@@ -284,6 +285,8 @@ def build_controls(*args, **kws):
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
+	    self.mi_parentSettings = self.mi_helper.moduleTarget.rigNull.settings
+	    
 	    if not mi_go.isShaped():
 		raise StandardError,"Needs shapes to build controls"
 	    if not mi_go.isRigSkeletonized():
@@ -303,12 +306,13 @@ def build_controls(*args, **kws):
 		ml_uprLidHandles = self.ml_uprLidHandles
 		ml_lwrLidHandles = self.ml_lwrLidHandles
 		
-		str_mirrorSide = mi_go._direction
+		str_mirrorSide = mi_go.verify_mirrorSideArg(mi_go._direction)#Get the mirror side, shakes fist @ "Centre"
 		
 		ml_controlsAll = []
 		self.ml_controlsAll = ml_controlsAll
 		md_controls = {'upr':[],'lwr':[]}	
-		md_subControls = {'upr':[],'lwr':[]}		
+		md_subControls = {'upr':[],'lwr':[]}	
+		
 	    except Exception,error:raise Exception,"[Query]{%s}"%error	
 	    
 	    try:#>>>> Handles 
@@ -325,7 +329,7 @@ def build_controls(*args, **kws):
 				if mi_handle.getAttr('isSubControl'):
 				    md_subControls[_str_key].append(mi_crv)
 				d_buffer = mControlFactory.registerControl(mi_crv,addConstraintGroup=True,
-					                                   mirrorSide = str_mirrorSide)
+					                                   mirrorSide = str_mirrorSide,mirrorAxis="translateX,rotateY")
 			    except Exception,error:raise StandardError,"register fail build : %s"%error
 			    md_controls[_str_key].append(mi_crv)#append
 			    if mi_handle.getAttr('cgmTypeModifier') == 'main':
@@ -360,8 +364,13 @@ def build_controls(*args, **kws):
 	    except Exception,error:raise Exception,"[Constrain subs]{%s}"%error	
 
 	def _buildConnections_(self):
+	    mi_go = self._go#Rig Go instance link	    	    
+	    try:#Setttings append 
+		mi_parentSettings  = self.mi_parentSettings 		
+		mi_go._i_rigNull.connectChildNode(mi_parentSettings,'settings')
+		self.ml_controlsAll.append(mi_parentSettings)
+	    except Exception,error: raise StandardError,"[Settings connect]{%s}"%error
 	    #Register our mirror indices ---------------------------------------------------------------------------------------
-	    mi_go = self._go#Rig Go instance link	    
 	    int_start = self._go._i_puppet.get_nextMirrorIndex( mi_go._direction )
 	    for i,mCtrl in enumerate(self.ml_controlsAll):
 		try:mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
@@ -381,7 +390,7 @@ def build_rig(*args, **kws):
 	    self._b_autoProgressBar = True
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self.gatherInfo},
-	                        {'step':'Rig','call':self._buildRig_},
+	                        {'step':'Rigomatic','call':self._buildRig_},
 	                        ]	
 	    #=================================================================
 	def gatherInfo(self):
@@ -734,9 +743,15 @@ def build_rig(*args, **kws):
 		    mc.connectAttr("%s.outputR"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenUprLoc.mNode,_str_orientation[2]))
 		except Exception,error:raise StandardError, "[uprLid up]{%s}"%(error)
 		try:#uprLid out -------------------------------------------------------------------
-		    mPlug_driverSide = cgmMeta.cgmAttr(mi_blendLoc.mNode,"r%s"%_str_orientation[1])
-		    mPlug_leftLimit = cgmMeta.cgmAttr(mi_settings,"uprLeftLimit",value=20,attrType='float',keyable=False,hidden=False)
-		    mPlug_rightLimit = cgmMeta.cgmAttr(mi_settings,"uprRightLimit",value=-20,attrType='float',keyable=False,hidden=False)
+		    mPlug_driverSide = cgmMeta.cgmAttr(mi_blendLoc.mNode,"r%s"%_str_orientation[1])		    
+		    mPlug_leftLimit = cgmMeta.cgmAttr(mi_settings,"uprLeftLimit",value=20,defaultValue=20,attrType='float',keyable=False,hidden=False)
+		    mPlug_rightLimit = cgmMeta.cgmAttr(mi_settings,"uprRightLimit",value=-20,defaultValue=-20,attrType='float',keyable=False,hidden=False)
+		    '''		    
+		    if mi_go._direction.lower() != "left":
+			mPlug_leftLimit.p_defaultValue = -20
+			mPlug_leftLimit.value = -20
+			mPlug_rightLimit.p_defaultValue = 20
+			mPlug_rightLimit.value = 20	'''		
 		    mPlug_driverSide.doConnectOut("%s.inputG"%mi_clampUpr.mNode)
 		    mPlug_leftLimit.doConnectOut("%s.maxG"%mi_clampUpr.mNode)
 		    mPlug_rightLimit.doConnectOut("%s.minG"%mi_clampUpr.mNode)
@@ -792,7 +807,7 @@ def build_rig(*args, **kws):
 		mi_go.connect_toRigGutsVis(ml_toVisConnect)#visConnect
 	    except Exception,error:raise StandardError, "[Control Setup]{%s}"%(error)
 
-	    	    
+	    '''	    
 	    try:#Settings vis sub setup ============================================================
 		#Add our attrs
 		mPlug_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub', value = 0, defaultValue = 0, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
@@ -812,7 +827,7 @@ def build_rig(*args, **kws):
 		
 	    except Exception,error:raise StandardError, "[Vis sub setup]{%s}"%(error)
 
-	    '''
+	    
 	    try:#Parent and constraining bits ============================================================
 		for mi_obj in (ml_uprLidHandles + ml_lwrLidHandles):
 		    mi_obj.parent = mi_go._i_constrainNull
@@ -828,24 +843,27 @@ def build_rig(*args, **kws):
 	    #sub vis,control groups
 	    #====================================================================================
 	    try:#Constrain to parent module
+		mPlug_result_moduleFaceSubDriver = mi_go.build_visSubFace()	
 		for mCtrl in (ml_lwrLidControls + ml_uprLidControls):
-		    l_attrLockMap = ['scale']
+		    l_attrLockMap = ['scale','v']
 		    mCtrl._setControlGroupLocks(constraintGroup = True)	    
 		    if mCtrl.handleJoint.getAttr('isSubControl'):
-			mPlug_result_moduleSubDriver.doConnectOut([mCtrl,'v'])
-			l_attrLockMap.append('rotate')
+			mPlug_result_moduleFaceSubDriver.doConnectOut([mCtrl,'v'])
+			l_attrLockMap.extend(['rotate','v'])
 		    for a in l_attrLockMap:
 			cgmMeta.cgmAttr(mCtrl,a,lock=True,hidden=True,keyable=False)
 	    except Exception,error:raise StandardError, "[sub vis/lock control groups]{%s}"%(error)
 
- 
 	    try:#attr hides
 		for attr in ['result_ikOn','result_fkOn','blinkHeight_upr','blinkHeight_lwr']:
 		    cgmMeta.cgmAttr(mi_settings,attr,hidden=True)
 	    except Exception,error:raise StandardError, "[Attr hides]{%s}"%(error)
 
 	    try:#Parent constrain null
-		mi_go._i_constrainNull.parent = mi_go._mi_moduleParent.rigNull.eyeMove
+		#mi_go._i_constrainNull.parent = mi_go._mi_moduleParent.rigNull.eyeMove
+		mi_eyeMove = mi_go._mi_moduleParent.rigNull.eyeMove
+		mc.parentConstraint(mi_eyeMove.mNode, mi_go._i_constrainNull.mNode)
+		mc.scaleConstraint(mi_eyeMove.mNode, mi_go._i_constrainNull.mNode)		
 	    except Exception,error:raise StandardError, "[Parent constrain null]{%s}"%(error)
 	    
 	    #Final stuff

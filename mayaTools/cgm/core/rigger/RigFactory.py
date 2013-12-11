@@ -52,7 +52,7 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 reload(rigging)
-l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball']
+l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball','eyelids']
 __l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthnose']
 #l_modulesDone = []
 #>>> Register rig functions
@@ -78,7 +78,7 @@ __l_moduleJointMsgListHooks__ = ['helperJoints']
 #>>> Main class function
 #=====================================================================
 class go(object):
-    def __init__(self,moduleInstance,forceNew = True,autoBuild = True, ignoreRigCheck = False): 
+    def __init__(self,moduleInstance,forceNew = True,autoBuild = True, ignoreRigCheck = False,**kws): 
         """
         To do:
         Add rotation order settting
