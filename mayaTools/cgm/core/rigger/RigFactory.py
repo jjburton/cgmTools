@@ -78,7 +78,7 @@ __l_moduleJointMsgListHooks__ = ['helperJoints']
 #>>> Main class function
 #=====================================================================
 class go(object):
-    def __init__(self,moduleInstance,forceNew = True,autoBuild = True, ignoreRigCheck = False, **kws): 
+    def __init__(self,moduleInstance,forceNew = True,autoBuild = True, ignoreRigCheck = False): 
         """
         To do:
         Add rotation order settting
