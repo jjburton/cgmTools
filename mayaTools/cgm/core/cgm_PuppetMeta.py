@@ -2228,7 +2228,6 @@ class cgmRigBlock(cgmMeta.cgmObject):
 		return
 	#if log.getEffectiveLevel() == 10:log.debug("'%s' Checks out!"%self.getShortName())
 	
-    ##@r9General.Timer
     def __verify__(self,**kws):
 	""""""
 	""" 
@@ -2459,47 +2458,51 @@ class cgmEyeballBlock(cgmRigBlock):
 	    cgmMeta.cgmAttr(self,a,keyable=False,lock=True,hidden=True)
 	
 	#attributes.doSetLockHideKeyableAttr(self.mNode,lock=True,visible=False,keyable=False,channels=['tx','ty','rx','ry','rz','sx','sz','v'])
+    
     def __mirrorBuild__(self):
-	cgmRigBlock.__buildModule__(self)
 	_str_funcName = "cgmEyeballBlock.__buildMirror__(%s)"%self.p_nameShort   
-	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+	#if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+	
 	try:
 	    try:#Mirror Block =====================================================================
 		if not self.getMessage('blockMirror'):
 		    mi_dup = self.doDuplicate(False)
 		    l_pivot = mc.xform(self.mNode,q=True, sp = True,ws=True)
-		    for a in ['lwrLid','uprLid']:
-			mc.scale( -1,1,1,self.getMessageInstance("%sHelper"%a).getComponents('cv'),pivot = l_pivot ,  r=True)
-		self.connectChildNode(mi_dup,"blockMirror","blockMirror")
+		    self.connectChildNode(mi_dup,"blockMirror","blockMirror")
+		    attributes.doBreakConnection(mi_dup.mNode,'moduleTarget')
+		mi_mirror = self.blockMirror  
 		str_direction = self.getEnumValueString('direction') 
 		if str_direction == 'left':_str_useDirection = 'right'
 		elif str_direction == 'right':_str_useDirection = 'left'
 		else:_str_useDirection = 'none'
-		
-		mi_dup.direction = _str_useDirection
-		mi_dup.cgmDirection = mi_dup.getEnumValueString('direction')
-		mi_dup.doName()
-			
+		mi_mirror.direction = _str_useDirection
+		mi_mirror.cgmDirection = mi_mirror.getEnumValueString('direction')
+		mi_mirror.doName()
+			    
 	    except Exception,error:raise StandardError,"Failed to mirror mirror shapes | error: %s "%(error)
 	    try:#Find our shapes =====================================================================
 		l_shapes = ['iris','pupil','uprLid','lwrLid']
-		ml_crvs = [mi_dup]
-		l_children = mi_dup.getAllChildren(True)
+		ml_crvs = [mi_mirror]
+		l_children = mi_mirror.getAllChildren(True)
 		for c in l_children:
 		    i_c = cgmMeta.cgmNode(c)
 		    for shape in l_shapes:
 			if i_c.getAttr('cgmName') == shape:
-			    mi_dup.connectChildNode(i_c,'%sHelper'%shape,'mi_block')
+			    mi_mirror.connectChildNode(i_c,'%sHelper'%shape,'mi_block')
 			    ml_crvs.append(i_c)
+			    if shape in ['uprLid','lwrLid']:#mirror
+				mc.scale( -1,1,1,i_c.getComponents('cv'),pivot = l_pivot ,r=True)		
+			    
+		#for a in ['lwrLid','uprLid']:
+		    #mc.scale( -1,1,1,mi_mirror.getMessageInstance("%sHelper"%a).getComponents('cv'),pivot = l_pivot ,  r=True)		
 	    except Exception,error:raise StandardError,"Failed to mirror mirror shapes | error: %s "%(error)
 	    try:#Color =====================================================================
-		__color = getSettingsColors( mi_dup.getAttr('cgmDirection') )
+		__color = getSettingsColors( mi_mirror.getAttr('cgmDirection') )
 		for mCrv in ml_crvs:
 		    curves.setCurveColorByName(mCrv.mNode,__color[0])#Set the color	    
 	    except Exception,error:raise StandardError,"Color mirror| error: %s "%(error)
-	    
 	    self.__mirrorPush__()
-	    return mi_dup
+	    return mi_mirror
 	except Exception,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
 	
     def __mirrorPush__(self):
