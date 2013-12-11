@@ -357,8 +357,57 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		return False
 	    
     #Connection stuff =========================================================================
-    #@cgmGeneral.TimerDebug
-    def connectChildNode(self, node, attr, connectBack = None, srcAttr=None, force=True):
+    def connectChildNode(self,*args,**kws):
+	'''
+	Wip rewrite of connectChildNode
+	'''
+	_mNodeSelf = self#>> MUST BE IN PLACE FOR METACLASS SUB CGMFUNCLS
+	class fncWrap(cgmMetaFunc):
+	    def __init__(self,*args,**kws):
+		"""
+		"""    
+		#args.insert(0,_mNodeSelf)
+		super(fncWrap, self).__init__(*args,**kws)
+		self.mi_mNode = _mNodeSelf
+		self._str_funcName= "%s.connectChildNode"%_mNodeSelf.p_nameShort	
+		self._l_ARGS_KWS_DEFAULTS = [{'kw':'node',"default":None,'help':"Node to connect","argType":"mObject/maya object"},
+			                     {'kw':'attr',"default":None,'help':"Attribute to connect to","argType":"string"},
+			                     {'kw':"connectBack","default":None,'help':"Attribute to connect back to on the source object","argType":"string"},
+			                     {'kw':"srcAttr","default":None,'help':"Node to connect","argType":"mObject/maya object"},
+			                     {'kw':"force","default":False}]		
+		self.__dataBind__(*args,**kws)#>> MUST BE IN PLACE FOR METACLASS SUB CGMFUNCLS
+		self.l_funcSteps = [{'step':'Gather Info','call':self._process_},
+		                    {'step':'Action','call':self._act_},
+		                    ]			
+	    def _process_(self):
+		"""
+		"""
+		try:#Query ========================================================================
+		    _self = _mNodeSelf
+		    self._node = self.d_kws['node']
+		    self._attr = self.d_kws['attr']
+		    self._connectBack = self.d_kws['connectBack']
+		    self._srcAttr = self.d_kws['srcAttr']
+		    self._force = self.d_kws['force']
+		    
+		    #if issubclass(type(self._node),r9Meta.MetaClass):
+		    try:self._node = self._node.mNode 
+		    except:pass
+		    if not self._srcAttr:          
+			self._srcAttr = _mNodeSelf.message  #attr on the nodes source side for the child connection   		    
+		except Exception,error:raise StandardError, "[Query]{%s}"%(error)
+		
+	    def _act_(self):
+		try:attributes.storeObjectToMessage(self._node, _mNodeSelf.mNode, self._attr)
+		except Exception,error:raise StandardError, "[Connect]{%s}"%(error)
+		
+		if self._connectBack is not None:
+		    try:attributes.storeObjectToMessage(_mNodeSelf.mNode,self._node,self._connectBack)
+		    except Exception,error:raise StandardError, "[ConnectBack]{%s}"%(error)
+		return True
+	return fncWrap(*args,**kws).go()
+    
+    def connectChildNode2(self, node, attr, connectBack = None, srcAttr=None, force=True):
         """
         Fast method of connecting a node to the mNode via a message attr link. This call
         generates a NONE-MULTI message on both sides of the connection and is designed 
