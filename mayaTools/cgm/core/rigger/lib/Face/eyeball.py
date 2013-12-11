@@ -266,8 +266,7 @@ def build_controls(*args, **kws):
 		mi_ikShape = self.md_rigList['ik_shape']
 		mi_settingsShape = self.md_rigList['settings_shape']
 		mi_eyeMoveShape = self.md_rigList['eyeMove_shape']
-		
-		str_mirrorSide = mi_go._direction
+		str_mirrorSide = mi_go.verify_mirrorSideArg(mi_go._direction)#Get the mirror side, shakes fist @ "Centre"
 	    except Exception,error:raise Exception,"!Query! | %s"%error	
 	    
 	    try:#>>>> FK #==================================================================	
@@ -310,7 +309,9 @@ def build_controls(*args, **kws):
 		mi_settingsShape.parent = mi_go._i_constrainNull.mNode
 		
 		try:#Register the control
-		    d_buffer = mControlFactory.registerControl(mi_settingsShape,makeAimable=True,typeModifier='settings') 
+		    d_buffer = mControlFactory.registerControl(mi_settingsShape,
+		                                               mirrorSide = str_mirrorSide, mirrorAxis="",		                                           		                                               
+		                                               makeAimable=False,typeModifier='settings') 
 		    mi_settings = d_buffer['instance']
 		    mi_go._i_rigNull.connectChildNode(mi_settings,'settings','rigNull')
 		    self.ml_controlsAll.append(mi_settings)
