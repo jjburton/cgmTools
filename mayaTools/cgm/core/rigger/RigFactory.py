@@ -258,17 +258,20 @@ class go(object):
 		    self._i_module.connectChildNode(i_grp,'deformNull','module')
 		    self._i_module.connectChildNode(i_grp,'constrainNull','module')
 		    self._i_deformNull = i_grp#link
-		    
 		else:
 		    #Make it and link it
-		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
+		    if self._partType in ['eyelids']:
+			buffer = rigging.groupMeObject(self._mi_moduleParent.deformNull.mNode,False)			
+		    else:
+			buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
+			
 		    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
 		    i_grp.addAttr('cgmName',self._partName,lock=True)
 		    i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
 		    i_grp.doName()
 		    i_grp.parent = self._i_masterDeformGroup.mNode
 		    self._i_module.connectChildNode(i_grp,'deformNull','module')
-		    if self._partType in ['eyeball', 'eyelids']:
+		    if self._partType in ['eyeball']:
 			self._i_module.connectChildNode(i_grp,'constrainNull','module')	
 			i_grp.parent = self._i_faceDeformNull				
 	    self._i_deformNull = self._i_module.deformNull
@@ -277,16 +280,15 @@ class go(object):
 	
 	try:#>>> Constrain Deform group for the module ==========================================
 	    if not self._i_module.getMessage('constrainNull'):
-		if self._partType not in __l_faceModules__:
+		if self._partType not in __l_faceModules__ or self._partType in ['eyelids']:
 		    #Make it and link it
-		    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
+		    buffer = rigging.groupMeObject(self._i_deformNull.mNode,False)
 		    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
 		    i_grp.addAttr('cgmName',self._partName,lock=True)
 		    i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
 		    i_grp.doName()
 		    i_grp.parent = self._i_deformNull.mNode
 		    self._i_module.connectChildNode(i_grp,'constrainNull','module')
-		
 	    self._i_constrainNull = self._i_module.constrainNull
 	except Exception,error:
 	    raise StandardError,"%s  >> Constrain Null fail! | %s"%(self._strShortName,error)	

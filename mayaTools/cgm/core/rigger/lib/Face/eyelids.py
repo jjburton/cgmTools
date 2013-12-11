@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyelids rig builder
 ================================================================
 """
-__version__ = 0.08112013
+__version__ = 1.12102013
 
 # From Python =============================================================
 import copy
@@ -98,6 +98,7 @@ def build_rigSkeleton(*args, **kws):
 	                        {'step':'Create','call':self.build_rigJoints},
 	                        ]	
 	    #=================================================================
+	    
 	def gatherInfo(self):
 	    mi_go = self._go#Rig Go instance link
 	    #self.mi_skullPlate = mi_go._mi_skullPlate
@@ -224,6 +225,8 @@ def build_rigSkeleton(*args, **kws):
 		    jntUtils.metaFreezeJointOrientation([mi_root])
 		    mObj.connectChildNode(mi_root,'root')#Connect
 		    ml_rootJoints.append(mi_root)
+		mi_go.connect_toRigGutsVis(ml_rootJoints)		
+		
 	    except Exception,error:raise StandardError, "[Root joints]{%s}"%(error)
     return fncWrap(*args, **kws).go()    
  
@@ -541,7 +544,10 @@ def build_rig(*args, **kws):
 		except Exception,error:raise StandardError,"[smartBlink curve]{%s}"%(error)  	
 		
 		for mi_crv in ml_curves:#Parent to rig null
-		    mi_crv.parent = mi_go._i_rigNull
+		    mi_crv.parent = mi_go._i_deformNull
+		    
+		#for mi_crv in [mi_lwrDriverCrv,mi_uprDriverCrv]:#Parent to rig null
+		    #mi_crv.parent = mi_go._i_rigNull
 		
 		ml_toVisConnect.extend(ml_curves)
 	    except Exception,error:raise StandardError, "[Curve creation]{%s}"%(error)
@@ -591,7 +597,6 @@ def build_rig(*args, **kws):
 		    
 	    except Exception,error:raise StandardError, "[Locators/aiming]{%s}"%(error)
 	    
-	    
 	    try:#Lid setup ===================================================================
 		try:#Wire deformers -------------------------------------------------------------
 		    _l_return = mc.wire(mi_uprDrivenCrv.mNode, w = mi_uprDriverCrv.mNode, gw = False, en = 1, ce = 0, li =0)
@@ -602,7 +607,9 @@ def build_rig(*args, **kws):
 		    mi_lwrWire = cgmMeta.cgmNode(_l_return[0])
 		    mi_lwrWire.doStore('cgmName',mi_lwrDrivenCrv.mNode)
 		    mi_lwrWire.doName()
-	
+		    mi_uprDriverCrv.parent = mi_go._i_rigNull
+		    mi_lwrDriverCrv.parent = mi_go._i_rigNull
+		    
 		except Exception,error:raise StandardError,">> wire deformer : %s"%(error)  	    
 		
 		try:#Skin driver curve ---------------------------------------------------------
@@ -781,6 +788,7 @@ def build_rig(*args, **kws):
 		    log.info("On %s | '%s' >> '%s'"%(i,mi_handle.p_nameShort,mi_crv.p_nameShort))
 		    try:mc.parentConstraint([mi_crv.mNode],mi_handle.mNode,maintainOffset = True)
 		    except Exception,error:raise StandardError,"constraint | ctrl: '%s' | target: '%s' | %s"%(mi_crv.p_nameShort,mi_handle.p_nameShort,error)
+		    mi_handle.parent = mi_go._i_constrainNull
 		mi_go.connect_toRigGutsVis(ml_toVisConnect)#visConnect
 	    except Exception,error:raise StandardError, "[Control Setup]{%s}"%(error)
 
@@ -843,450 +851,6 @@ def build_rig(*args, **kws):
 	    mi_go._set_versionToCurrent()
 	    return True 
     return fncWrap(*args, **kws).go()    
-
-def build_rig2(self):
-    """
-    """    
-    try:
-	if not self._cgmClass == 'RigFactory.go':
-	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except Exception,error:
-	log.error("%s.build_rig>>bad self!"%self._strShortName)
-	raise StandardError,error
-    
-    _str_funcName = "build_rig(%s)"%self._strShortName
-    log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
-    
-    try:#>>>Get data ==============================================================================================
-	_str_orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
-	v_aim = cgmValid.simpleAxis("%s+"%_str_orientation[0]).p_vector
-	v_up = cgmValid.simpleAxis("%s+"%_str_orientation[1]).p_vector
-	ml_toVisConnect = []
-	
-	mi_moduleParent = False
-	if self._i_module.getMessage('moduleParent'):
-	    mi_moduleParent = self._i_module.moduleParent
-	    
-	mi_helper = cgmMeta.validateObjArg(self._i_module.getMessage('helper'),noneValid=True)
-	if not mi_helper:raise StandardError,"No suitable helper found"    
-	mi_settings = self._i_module.getSettingsControl()
-	
-	try:ml_moduleUprLidJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('moduleJoints_upr'),noneValid=False)
-	except Exception,error:raise StandardError,"Missing uprlid moduleJoints | error: %s "%(error)
-	try:ml_moduleLwrLidJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('moduleJoints_lwr'),noneValid=False)
-	except Exception,error:raise StandardError,"Missing lwrlid moduleJoints | error: %s "%(error)  	    
-	log.info("%s >>> ml_moduleUprLidJoints : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_moduleUprLidJoints]))	
-	log.info("%s >>> ml_moduleLwrLidJoints : %s"%(_str_funcName,[mObj.p_nameShort for mObj in ml_moduleLwrLidJoints]))
-	
-	try:mi_mainUprCtrl = self._i_rigNull.uprMain
-	except Exception,error:raise StandardError,"mi_mainUprCtrl | %s"%(error)	
-	
-	try:mi_mainLwrCtrl = self._i_rigNull.lwrMain
-	except Exception,error:raise StandardError,"mi_mainLwrCtrl | %s"%(error)	
-	
-	try:#Need to get our rig joints from the module joints -------------------------------------------
-	    ml_rigUprLidJoints = []
-	    for i,mi_jnt in enumerate(ml_moduleUprLidJoints):
-		try:ml_rigUprLidJoints.append( cgmMeta.validateObjArg(mi_jnt.getMessage('rigJoint'),cgmMeta.cgmObject) )
-		except Exception,error:raise StandardError,"'%s' failed to find rigJoint | error: %s"%(mi_jnt.p_nameShort,error)
-	    log.info("%s >>> ml_rigUprLidJoints : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_rigUprLidJoints]))	
-	    ml_rigLwrLidJoints = []
-	    for i,mi_jnt in enumerate(ml_moduleLwrLidJoints):
-		try:ml_rigLwrLidJoints.append( cgmMeta.validateObjArg(mi_jnt.getMessage('rigJoint'),cgmMeta.cgmObject) )
-		except Exception,error:raise StandardError,"'%s' failed to find rigJoint | error: %s"%(mi_jnt.p_nameShort,error)
-	    log.info("%s >>> ml_rigLwrLidJoints : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_rigLwrLidJoints]))	
-	except Exception,error:raise StandardError,"Find rig joint fail | error: %s"%(error)
-	try:ml_uprLidHandles = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('handleJoints_upr'),noneValid=False)
-	except Exception,error:raise StandardError,"Missing uprlid handleJoints | error: %s "%(error)
-	try:ml_lwrLidHandles = cgmMeta.validateObjListArg(self._i_rigNull.msgList_getMessage('handleJoints_lwr'),noneValid=False)
-	except Exception,error:raise StandardError,"Missing lwrlid handleJoints | error: %s "%(error)  
-	log.info("%s >>> ml_uprLidHandles : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_uprLidHandles]))	
-	log.info("%s >>> ml_lwrLidHandles : %s"%(_str_funcName,[mObj.p_nameShort for mObj in ml_lwrLidHandles]))		
-	
-	try:#Need to get our curves from our handle joints
-	    ml_uprLidControls = []
-	    for i,mi_jnt in enumerate(ml_uprLidHandles):
-		try:ml_uprLidControls.append( cgmMeta.validateObjArg(mi_jnt.getMessage('controlCurve'),cgmMeta.cgmObject) )
-		except Exception,error:raise StandardError,"'%s' failed to find handleJoint | error: %s"%(mi_jnt.p_nameShort,error)
-	    log.info("%s >>> ml_uprLidControls : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_uprLidControls]))	
-	    ml_lwrLidControls = []
-	    for i,mi_jnt in enumerate(ml_lwrLidHandles):
-		try:ml_lwrLidControls.append( cgmMeta.validateObjArg(mi_jnt.getMessage('controlCurve'),cgmMeta.cgmObject) )
-		except Exception,error:raise StandardError,"'%s' failed to find handleJoint | error: %s"%(mi_jnt.p_nameShort,error)
-	    log.info("%s >>> ml_lwrLidControls : %s "%(_str_funcName,[mObj.p_nameShort for mObj in ml_lwrLidControls]))	
-	except Exception,error:raise StandardError,"Find control curve fail | error: %s"%(error)
-	
-	#Size info
-	__baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_rigUprLidJoints]) /2 
-
-    except Exception,error:
-	raise StandardError,"%s >> Gather data fail! | error: %s"%(_str_funcName,error)
-            
-    #>>> Setup Lids
-    try:#Build our Curves ===================================================================
-	ml_curves = []
-	try:#Upr driven curve
-	    _str_uprDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in ml_rigUprLidJoints],os =True)
-	    mi_uprDrivenCrv = cgmMeta.cgmObject(_str_uprDrivenCurve,setClass=True)
-	    mi_uprDrivenCrv.doCopyNameTagsFromObject(self._i_module.mNode,ignore=['cgmType'])
-	    mi_uprDrivenCrv.addAttr('cgmName','uprLid',lock=True)
-	    mi_uprDrivenCrv.addAttr('cgmTypeModifier','driven',lock=True)
-	    mi_uprDrivenCrv.doName()
-	    ml_curves.append(mi_uprDrivenCrv)
-	    
-	    mi_uprBlinkCrv = mi_uprDrivenCrv.doDuplicate(False)
-	    mi_uprBlinkCrv.addAttr('cgmTypeModifier','blink',lock=True)
-	    mi_uprBlinkCrv.doName()
-	    ml_curves.append(mi_uprBlinkCrv)
-	except Exception,error:raise StandardError,"upper driven curve : %s"%(error)  	    
-	
-	try:#Upper driver curve
-	    _str_uprDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_uprLidHandles],os =True)
-	    mi_uprDriverCrv = cgmMeta.cgmObject(_str_uprDriverCurve,setClass=True)
-	    mi_uprDriverCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode,ignore=['cgmTypeModifier'])
-	    mi_uprDriverCrv.addAttr('cgmTypeModifier','driver',lock=True)
-	    mi_uprDriverCrv.doName()
-	    ml_curves.append(mi_uprDriverCrv)	    
-	except Exception,error:raise StandardError,"upper driver curve : %s"%(error)  	    
-	
-	try:#Lwr driven curve
-	    _str_lwrDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in [ml_rigUprLidJoints[0]] + ml_rigLwrLidJoints + [ml_rigUprLidJoints[-1]]],os =True)
-	    mi_lwrDrivenCrv = cgmMeta.cgmObject(_str_lwrDrivenCurve,setClass=True)
-	    mi_lwrDrivenCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode)
-	    mi_lwrDrivenCrv.addAttr('cgmName','lwrLid',lock=True)	    
-	    mi_lwrDrivenCrv.doName()
-	    ml_curves.append(mi_lwrDrivenCrv)	
-	    
-	    mi_lwrBlinkCrv = mi_lwrDrivenCrv.doDuplicate(False)
-	    mi_lwrBlinkCrv.addAttr('cgmTypeModifier','blink',lock=True)
-	    mi_lwrBlinkCrv.doName()
-	    ml_curves.append(mi_lwrBlinkCrv)
-	except Exception,error:raise StandardError,"upper driven curve : %s"%(error)  	    
-	
-	try:#Lwr driver curve
-	    _str_lwrDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in [ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]],os =True)
-	    mi_lwrDriverCrv = cgmMeta.cgmObject(_str_lwrDriverCurve,setClass=True)
-	    mi_lwrDriverCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
-	    mi_lwrDriverCrv.addAttr('cgmName','lwrLid',lock=True)	    
-	    mi_lwrDriverCrv.doName()
-	    ml_curves.append(mi_lwrDriverCrv)	    	    	    
-	except Exception,error:raise StandardError,"upper driver curve : %s"%(error)  	    
-	
-	try:#SmartBlink curve
-	    _str_smartBlinkCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in [ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]],os =True)
-	    mi_smartBlinkCrv = cgmMeta.cgmObject(_str_smartBlinkCurve,setClass=True)
-	    mi_smartBlinkCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
-	    mi_smartBlinkCrv.addAttr('cgmName','smartBlink',lock=True)	    
-	    mi_smartBlinkCrv.doName()
-	    ml_curves.append(mi_smartBlinkCrv)	    	    	    
-	except Exception,error:raise StandardError,"smartBlink curve : %s"%(error)  	
-	
-	for mi_crv in ml_curves:#Parent to rig null
-	    mi_crv.parent = self._i_rigNull
-	
-	ml_toVisConnect.extend(ml_curves)
-    except Exception,error:raise StandardError,"%s >> Curve creation fail! | error: %s"%(_str_funcName,error)   
-    
-    try:#Locators and aiming ================================================================
-	try:#Create up loc -------------------------------------------------------------
-	    _str_upLoc = locators.locMeCvFromCvIndex(mi_helper.getShapes()[0],2)  
-	    mi_upLoc = cgmMeta.cgmObject(_str_upLoc)
-	    mi_locShape = cgmMeta.cgmNode(mi_upLoc.getShapes()[0])
-	    mi_locShape.localScaleX = __baseDistance
-	    mi_locShape.localScaleY = __baseDistance
-	    mi_locShape.localScaleZ = __baseDistance	
-	    mi_upLoc.parent = self._i_constrainNull.mNode
-	    ml_toVisConnect.append(mi_upLoc)
-	except Exception,error:raise StandardError,"up loc : %s"%(error)  	    
-	
-	#Make a loc group
-	mi_locGroup = cgmMeta.cgmObject(mc.group(em=True))
-	mi_locGroup.parent = self._i_constrainNull
-	mi_locGroup.addAttr('cgmTypeModifier','locGroup')
-	mi_locGroup.doName()
-	mi_locGroup.parent = self._i_rigNull
-	ml_toVisConnect.append(mi_locGroup)
-	
-	ml_locs = []
-	for i,mi_obj in enumerate(ml_rigUprLidJoints + ml_rigLwrLidJoints):
-	    try:
-		try:#Loc creation -----------------------------------------------------------
-		    mi_loc = mi_obj.doLoc()
-		    ml_locs.append(mi_loc)
-		    mi_locShape = cgmMeta.cgmNode(mi_loc.getShapes()[0])
-		    mi_locShape.localScaleX = __baseDistance
-		    mi_locShape.localScaleY = __baseDistance
-		    mi_locShape.localScaleZ = __baseDistance
-		    mi_loc.parent = mi_locGroup
-		except Exception,error:raise StandardError,"loc creation : %s"%(error)  	    
-		#> Aim constraint
-		mi_root = mi_obj.root
-		mi_root.parent = self._i_constrainNull
-		try:mc.aimConstraint(mi_loc.mNode,mi_root.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
-		except Exception,error:raise StandardError,"aim constraint : %s"%(error)  	    
-		#Attach to curve
-		if i < len(ml_rigUprLidJoints):mi_crv = mi_uprDrivenCrv
-		else:mi_crv = mi_lwrDrivenCrv
-		crvUtils.attachObjToCurve(mi_loc.mNode,mi_crv.mNode)
-	    except Exception,error:raise StandardError,"%s | '%s' failed | error: %s "%(i,mi_obj.p_nameShort,error)  	    
-	    
-    except Exception,error:
-	raise StandardError,"%s >> locator/aim setup fail! | error: %s"%(_str_funcName,error)   
-    
-    try:#Lid setup ===================================================================
-	try:#Wire deformers -------------------------------------------------------------
-	    _l_return = mc.wire(mi_uprDrivenCrv.mNode, w = mi_uprDriverCrv.mNode, gw = False, en = 1, ce = 0, li =0)
-	    mi_uprWire = cgmMeta.cgmNode(_l_return[0])
-	    mi_uprWire.doStore('cgmName',mi_uprDrivenCrv.mNode)
-	    mi_uprWire.doName()
-	    _l_return = mc.wire(mi_lwrDrivenCrv.mNode, w = mi_lwrDriverCrv.mNode, gw = False, en = 1, ce = 0, li =0)
-	    mi_lwrWire = cgmMeta.cgmNode(_l_return[0])
-	    mi_lwrWire.doStore('cgmName',mi_lwrDrivenCrv.mNode)
-	    mi_lwrWire.doName()
-
-	except Exception,error:raise StandardError,">> wire deformer : %s"%(error)  	    
-	
-	try:#Skin driver curve ---------------------------------------------------------
-	    ml_uprSkinJoints = ml_uprLidHandles
-	    ml_lwrSkinJoints = [ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]
-	    md_skinSetup = {'upr':{'ml_joints':ml_uprSkinJoints,'mi_crv':mi_uprDriverCrv},
-	                    'lwr':{'ml_joints':ml_lwrSkinJoints,'mi_crv':mi_lwrDriverCrv}}
-	    for k in md_skinSetup.keys():
-		d_crv = md_skinSetup[k]
-		str_crv = d_crv['mi_crv'].p_nameShort
-		l_joints = [mi_obj.p_nameShort for mi_obj in d_crv['ml_joints']]
-		log.info(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
-		try:
-		    mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mi_obj.mNode for mi_obj in d_crv['ml_joints']],
-		                                                  d_crv['mi_crv'].mNode,
-		                                                  tsb=True,
-		                                                  maximumInfluences = 3,
-		                                                  normalizeWeights = 1,dropoffRate=2.5)[0])
-		except Exception,error:raise StandardError,"skinCluster : %s"%(error)  	    
-		d_crv['mi_skinNode'] = mi_skinNode
-	except Exception,error:raise StandardError,"skinning driver : %s"%(error)  	    
-	
-	try:#Blendshape the smart blink curve ---------------------------------------------
-	    _str_bsNode = mc.blendShape([mi_uprDriverCrv.mNode,mi_lwrDriverCrv.mNode],mi_smartBlinkCrv.mNode)[0]
-	    mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
-	    mi_bsNode.doStore('cgmName',mi_smartBlinkCrv.mNode)
-	    mi_bsNode.doName()
-	    
-	    mPlug_height = cgmMeta.cgmAttr(mi_settings,'blinkHeight',attrType = 'float', defaultValue=.1, minValue = 0, maxValue = 1)
-	    l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
-	    log.info(l_bsAttrs)
-	    d_return = NodeF.createSingleBlendNetwork([mi_settings.mNode,'blinkHeight'],
-	                                              [mi_settings.mNode,'blinkHeight_upr'],
-	                                              [mi_settings.mNode,'blinkHeight_lwr'],
-	                                              keyable=True)	
-	    #Connect                                  
-	    d_return['d_result1']['mi_plug'].doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))
-	    d_return['d_result2']['mi_plug'].doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[1]))
-	except Exception,error:raise StandardError,"smartBlink bsNode : %s"%(error)  	
-	
-	try:#Wire deform the uper and lwr blink lids ---------------------------------------------------------
-	    #Build our blink match wire deformers
-	    mPlug_height.value = 0	    
-	    _l_return = mc.wire(mi_lwrBlinkCrv.mNode, w = mi_smartBlinkCrv.mNode, gw = False, en = 1, ce = 0, li =0)
-	    mi_lwrBlinkWire = cgmMeta.cgmNode(_l_return[0])
-	    mi_lwrBlinkWire.doStore('cgmName',mi_lwrDrivenCrv.mNode)
-	    mi_lwrBlinkWire.addAttr('cgmTypeModifier','blink')	    
-	    mi_lwrBlinkWire.doName()
-	    mc.setAttr("%s.scale[0]"%mi_lwrBlinkWire.mNode,0)
-	    
-	    mPlug_height.value = 1
-	    _l_return = mc.wire(mi_uprBlinkCrv.mNode, w = mi_smartBlinkCrv.mNode, gw = False, en = 1, ce = 0, li =0)
-	    mi_uprBlinkWire = cgmMeta.cgmNode(_l_return[0])
-	    mi_uprBlinkWire.doStore('cgmName',mi_uprDrivenCrv.mNode)
-	    mi_uprBlinkWire.addAttr('cgmTypeModifier','blink')	    
-	    mi_uprBlinkWire.doName()
-	    mc.setAttr("%s.scale[0]"%mi_uprBlinkWire.mNode,0)
-	    
-	    mPlug_height.value = .1#back to default
-	except Exception,error:raise StandardError,"blink target wires : %s"%(error)  	
-
-	try:#Blendshape the upr and lwr curves to smart blink targets------------------------------------
-	    mPlug_blink = cgmMeta.cgmAttr(mi_settings,'blink',attrType = 'float', keyable=True, minValue=0, maxValue=1, defaultValue=0)
-	    d_blendshapeBlink = {'upr':{'mi_target':mi_uprBlinkCrv,'mi_driven':mi_uprDrivenCrv},
-	                         'lwr':{'mi_target':mi_lwrBlinkCrv,'mi_driven':mi_lwrDrivenCrv}}
-	    for k in d_blendshapeBlink.keys():
-		d_buffer = d_blendshapeBlink[k]
-		mi_target = d_buffer['mi_target']
-		mi_driven = d_buffer['mi_driven']
-		_str_bsNode = mc.blendShape(mi_target.mNode,mi_driven.mNode)[0]
-		mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
-		mi_bsNode.doStore('cgmName',mi_uprDrivenCrv.mNode)
-		mi_bsNode.doName()
-		l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
-		mPlug_blink.doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))
-	except Exception,error:raise StandardError,"blink setup : %s"%(error)  	
-
-    except Exception,error:
-	raise StandardError,"%s >> Lids setup fail! | error: %s"%(_str_funcName,error)   
-    try:#Lid follow ======================================================================
-	try:#Initial setup----------------------------------------------------------------
-	    mPlug_autoFollow = cgmMeta.cgmAttr(mi_settings,"autoFollow",attrType = 'float', value = 1.0, hidden = False,keyable=True,maxValue=1.0,minValue=0)	    
-	    mi_blendLoc = self._mi_moduleParent.rigNull.locBlend
-	    
-	    mi_zeroLoc = mi_blendLoc.doLoc()
-	    mi_zeroLoc.addAttr('cgmName','zero')
-	    mi_zeroLoc.doName()
-	    	    
-	    mi_drivenUprLoc = mi_blendLoc.doLoc()
-	    mi_drivenUprLoc.addAttr('cgmName','uprDriven')
-	    mi_drivenUprLoc.doName()
-	    
-	    mi_drivenLwrLoc = mi_blendLoc.doLoc()
-	    mi_drivenLwrLoc.addAttr('cgmName','lwrDriven')
-	    mi_drivenLwrLoc.doName()	    
-	    for mLoc in [mi_zeroLoc,mi_drivenUprLoc,mi_drivenLwrLoc]:
-		mLoc.parent = self._i_constrainNull
-	    
-	    ml_toVisConnect.extend([mi_drivenLwrLoc,mi_drivenUprLoc,mi_zeroLoc])
-	    
-	    mi_clampUpr = cgmMeta.cgmNode(nodeType='clamp')
-	    mi_clampUpr.doStore('cgmName',self._i_module.mNode)
-	    mi_clampUpr.addAttr('cgmTypeModifier','upr')
-	    mi_clampUpr.doName()
-	    
-	    mi_clampLwr = cgmMeta.cgmNode(nodeType='clamp')
-	    mi_clampLwr.doStore('cgmName',self._i_module.mNode)
-	    mi_clampLwr.addAttr('cgmTypeModifier','lwr')	    
-	    mi_clampLwr.doName()
-	    
-	    mi_remapLwr = cgmMeta.cgmNode(nodeType='remapValue')
-	    mi_remapLwr.doStore('cgmName',self._i_module.mNode)
-	    mi_remapLwr.addAttr('cgmTypeModifier','lwr')	    
-	    mi_remapLwr.doName()	    
-	except Exception,error:raise StandardError,"initial setup : %s"%(error) 
-	try:#uprLid up -------------------------------------------------------------------
-	    mPlug_driverUp = cgmMeta.cgmAttr(mi_blendLoc.mNode,"r%s"%_str_orientation[2])
-	    mPlug_uprUpLimit = cgmMeta.cgmAttr(mi_settings,"uprUpLimit",attrType='float',value=-60,keyable=False,hidden=False)
-	    mPlug_uprDnLimit = cgmMeta.cgmAttr(mi_settings,"uprDnLimit",attrType='float',value=50,keyable=False,hidden=False)
-	    mPlug_driverUp.doConnectOut("%s.inputR"%mi_clampUpr.mNode)
-	    mPlug_uprDnLimit.doConnectOut("%s.maxR"%mi_clampUpr.mNode)
-	    mPlug_uprUpLimit.doConnectOut("%s.minR"%mi_clampUpr.mNode)
-	    mc.connectAttr("%s.outputR"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenUprLoc.mNode,_str_orientation[2]))
-	except Exception,error:raise StandardError,"uprLid up | %s"%(error) 	
-	try:#uprLid out -------------------------------------------------------------------
-	    mPlug_driverSide = cgmMeta.cgmAttr(mi_blendLoc.mNode,"r%s"%_str_orientation[1])
-	    mPlug_leftLimit = cgmMeta.cgmAttr(mi_settings,"uprLeftLimit",value=20,attrType='float',keyable=False,hidden=False)
-	    mPlug_rightLimit = cgmMeta.cgmAttr(mi_settings,"uprRightLimit",value=-20,attrType='float',keyable=False,hidden=False)
-	    mPlug_driverSide.doConnectOut("%s.inputG"%mi_clampUpr.mNode)
-	    mPlug_leftLimit.doConnectOut("%s.maxG"%mi_clampUpr.mNode)
-	    mPlug_rightLimit.doConnectOut("%s.minG"%mi_clampUpr.mNode)
-	    mc.connectAttr("%s.outputG"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenUprLoc.mNode,_str_orientation[1]))
-	except Exception,error:raise StandardError,"uprLid out | %s"%(error) 		
-	try:#lwrLid -----------------------------------------------------------------------    
-	    mPlug_lwrUpLimit = cgmMeta.cgmAttr(mi_settings,"lwrUpLimit",attrType='float',value=-26,keyable=False,hidden=False)
-	    mPlug_lwrDnLimit = cgmMeta.cgmAttr(mi_settings,"lwrDnLimit",attrType='float',value=35,keyable=False,hidden=False)
-	    mPlug_lwrDnStart = cgmMeta.cgmAttr(mi_settings,"lwrDnStart",attrType='float',value=5,keyable=False,hidden=False)    
-	    mPlug_driverUp.doConnectOut("%s.inputValue"%mi_remapLwr.mNode)
-	    mPlug_lwrDnStart.doConnectOut("%s.inputMin"%mi_remapLwr.mNode)
-	    
-	    mi_remapLwr.inputMax = 50
-	    mPlug_lwrDnLimit.doConnectOut("%s.outputLimit"%mi_remapLwr.mNode)
-	    mPlug_lwrDnLimit.doConnectOut("%s.inputMax"%mi_remapLwr.mNode)
-	    mPlug_lwrDnLimit.doConnectOut("%s.outputMax"%mi_remapLwr.mNode)
-	    
-	    attributes.doConnectAttr("%s.outValue"%mi_remapLwr.mNode,"%s.inputR"%mi_clampLwr.mNode)
-	    
-	    mPlug_lwrDnLimit.doConnectOut("%s.maxR"%mi_clampLwr.mNode)
-	    mPlug_lwrUpLimit.doConnectOut("%s.minR"%mi_clampLwr.mNode)
-	    attributes.doConnectAttr("%s.outputR"%mi_clampLwr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,_str_orientation[2]))
-	    attributes.doConnectAttr("%s.outputG"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,_str_orientation[1]))
-	    
-	except Exception,error:raise StandardError,"lwr lid | %s"%(error) 		
-	try:#Constraint and autolid follow on /off -----------------------------------------------------------
-	    _str_constUpr = mc.parentConstraint([mi_zeroLoc.mNode,mi_drivenUprLoc.mNode],mi_mainUprCtrl.constraintGroup.mNode, maintainOffset = True)[0]
-	    _str_constLwr = mc.parentConstraint([mi_zeroLoc.mNode,mi_drivenLwrLoc.mNode],mi_mainLwrCtrl.constraintGroup.mNode, maintainOffset = True)[0]
-            
-            d_autolidBlend = NodeF.createSingleBlendNetwork(mPlug_autoFollow,
-	                                                    [mi_settings.mNode,'resultAutoFollowOff'],
-	                                                    [mi_settings.mNode,'resultAutoFollowOn'],
-	                                                    hidden = True,keyable=False)
-
-            #Connect                                  
-
-	    for sConst in [_str_constLwr,_str_constUpr]:
-		l_weightTargets = mc.parentConstraint(sConst,q=True,weightAliasList = True)
-		d_autolidBlend['d_result1']['mi_plug'].doConnectOut('%s.%s' % (sConst,l_weightTargets[1]))
-		d_autolidBlend['d_result2']['mi_plug'].doConnectOut('%s.%s' % (sConst,l_weightTargets[0]))
-	
-	    
-	    
-	except Exception,error:raise StandardError,"constraints | %s"%(error) 		
-	    
-    except Exception,error:
-	raise StandardError,"%s >>Lid Follow fail! | error: %s"%(_str_funcName,error)  
-    
-    try:#Control setup ===================================================================
-	for i,mi_handle in enumerate(ml_uprLidHandles + ml_lwrLidHandles):
-	    mi_crv = mi_handle.controlCurve
-	    log.info("On %s | '%s' >> '%s'"%(i,mi_handle.p_nameShort,mi_crv.p_nameShort))
-	    try:mc.parentConstraint([mi_crv.mNode],mi_handle.mNode,maintainOffset = True)
-	    except Exception,error:raise StandardError,"constraint | ctrl: '%s' | target: '%s' | %s"%(mi_crv.p_nameShort,mi_handle.p_nameShort,error)
-	self.connect_toRigGutsVis(ml_toVisConnect)#visConnect
-    except Exception,error:
-	raise StandardError,"%s >>control setup fail! | error: %s"%(_str_funcName,error)   
-    
-    self.connect_toRigGutsVis(ml_toVisConnect)
-    
-    try:#Settings vis sub setup ============================================================
-	#Add our attrs
-	mPlug_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub', value = 0, defaultValue = 0, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
-	mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub_out', attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = True,lock=True)
-	
-	#Get one of the drivers
-	if self._i_module.getAttr('cgmDirection') and self._i_module.cgmDirection.lower() in ['left','right']:
-	    str_mainSubDriver = "%s.%sSubControls_out"%(self._i_masterControl.controlVis.getShortName(),
-                                                        self._i_module.cgmDirection)
-	else:
-	    str_mainSubDriver = "%s.subControls_out"%(self._i_masterControl.controlVis.getShortName())
-
-	iVis = self._i_masterControl.controlVis
-	visArg = [{'result':[mPlug_result_moduleSubDriver.obj.mNode,mPlug_result_moduleSubDriver.attr],
-                   'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubDriver.attr]]}]
-	NodeF.build_mdNetwork(visArg)	
-	
-    except Exception,error:
-	raise StandardError,"%s >> vis sub setup! | error: %s"%(_str_funcName,error)    
-    
-    try:#Parent and constraining bits ============================================================
-	for mi_obj in (ml_uprLidHandles + ml_lwrLidHandles):
-	    mi_obj.parent = self._i_constrainNull
-	    
-	for i,mi_obj in enumerate(ml_rigUprLidJoints + ml_rigLwrLidJoints):
-	    mi_skinJoint = mi_obj.skinJoint
-	    log.info(" '%s' >> '%s'"%(mi_obj.p_nameShort,mi_skinJoint.p_nameShort))
-	    mc.pointConstraint(mi_obj.p_nameShort,mi_skinJoint.p_nameShort,maintainOffset = True)
-	    mc.orientConstraint(mi_obj.p_nameShort,mi_skinJoint.p_nameShort,maintainOffset = True)
-    except Exception,error:
-	raise StandardError,"%s >>constrain skin joints | error: %s"%(_str_funcName,error) 
-    
-    #sub vis,control groups
-    #====================================================================================
-    try:#Constrain to parent module
-	for mCtrl in (ml_lwrLidControls + ml_uprLidControls):
-	    l_attrLockMap = ['scale']
-	    mCtrl._setControlGroupLocks(constraintGroup = True)	    
-	    if mCtrl.handleJoint.getAttr('isSubControl'):
-		mPlug_result_moduleSubDriver.doConnectOut([mCtrl,'v'])
-		l_attrLockMap.append('rotate')
-	    for a in l_attrLockMap:
-		cgmMeta.cgmAttr(mCtrl,a,lock=True,hidden=True,keyable=False)
-    except Exception,error:
-	raise StandardError,"%s >>sub vis/lock control groups | error: %s"%(_str_funcName,error)   
-    try:#attr hides
-	for attr in ['result_ikOn','result_fkOn','blinkHeight_upr','blinkHeight_lwr']:
-	    cgmMeta.cgmAttr(mi_settings,attr,hidden=True)
-    except Exception,error:
-	raise StandardError,"%s >> attr hides | error: %s"%(_str_funcName,error)  
-    
-    #Final stuff
-    self._set_versionToCurrent()
-    return True 
         
 #----------------------------------------------------------------------------------------------
 # Important info ==============================================================================
