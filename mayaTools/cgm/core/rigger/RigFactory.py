@@ -1664,21 +1664,20 @@ def get_eyeLook(*args,**kws):
 		mi_module = self.mi_module
 		mi_rigNull = self.mi_module.rigNull
 		mi_puppet = self.mi_module.modulePuppet
-		
-		
+
 		try:return mi_module.eyeLook
 		except:pass
 		
 		try:return mi_module.moduleParent.eyeLook
 		except:pass
-		
 		ml_puppetEyelooks = mi_puppet.msgList_get('eyeLook')
 		if ml_puppetEyelooks:
 		    if len(ml_puppetEyelooks) == 1 and ml_puppetEyelooks[0]:
 			return ml_puppetEyelooks[0]
 		    else:
 			raise StandardError,"More than one puppet eye look"
-		raise StandardError,"Failed to find eyeLook."		
+		self.log_info("Failed to find eyeLook.")
+		return False
 
 	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
     return fncWrap(*args,**kws).go()
@@ -1711,17 +1710,19 @@ def verify_eyeLook(*args,**kws):
 
 	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
 	    
-	    self._ml_puppetEyeLook = mi_puppet.msgList_get('eyeLook')
-	    try:self._mi_moduleEyeLook = mi_buildModule.eyeLook
-	    except:self._mi_moduleEyeLook = False
+	    #self._ml_puppetEyeLook = mi_puppet.msgList_get('eyeLook')
+	    #try:self._mi_moduleEyeLook = mi_buildModule.eyeLook
+	    #except:self._mi_moduleEyeLook = False
 	    
 	    #Running lists
 	    self.ml_controlsAll = []
 	    
 	def _build_(self):
-	    if self._ml_puppetEyeLook and self._mi_moduleEyeLook:
+	    #self check
+	    _eyeLook = get_eyeLook(self.mi_module)
+	    if _eyeLook:
 		self.log_info("Found eye look already...")
-		return
+		return _eyeLook
 	    
 	    try:#Query ======================================================
 		mi_buildModule = self.mi_module
