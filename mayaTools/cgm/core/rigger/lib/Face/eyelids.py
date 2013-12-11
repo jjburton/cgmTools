@@ -792,9 +792,7 @@ def build_rig(*args, **kws):
 		mi_go.connect_toRigGutsVis(ml_toVisConnect)#visConnect
 	    except Exception,error:raise StandardError, "[Control Setup]{%s}"%(error)
 
-	    
-	    mi_go.connect_toRigGutsVis(ml_toVisConnect)
-	    
+	    	    
 	    try:#Settings vis sub setup ============================================================
 		#Add our attrs
 		mPlug_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub', value = 0, defaultValue = 0, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
@@ -846,6 +844,9 @@ def build_rig(*args, **kws):
 		    cgmMeta.cgmAttr(mi_settings,attr,hidden=True)
 	    except Exception,error:raise StandardError, "[Attr hides]{%s}"%(error)
 
+	    try:#Parent constrain null
+		mi_go._i_constrainNull.parent = mi_go._mi_moduleParent.rigNull.eyeMove
+	    except Exception,error:raise StandardError, "[Parent constrain null]{%s}"%(error)
 	    
 	    #Final stuff
 	    mi_go._set_versionToCurrent()
