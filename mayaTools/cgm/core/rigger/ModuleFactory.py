@@ -43,14 +43,15 @@ class ModuleFunc(cgmGeneral.cgmFuncCls):
 	"""	
 	try:
 	    try:moduleInstance = kws['moduleInstance']
-	    except:moduleInstance = args[0]
+	    except:
+		try:moduleInstance = args[0]
+		except:pass
 	    try:
 		assert isModule(moduleInstance)
 	    except Exception,error:raise StandardError,"Not a module instance : %s"%error	
 	except Exception,error:raise StandardError,"ModuleFunc failed to initialize | %s"%error
 	self._str_funcName= "testFModuleFuncunc"		
 	super(ModuleFunc, self).__init__(*args, **kws)
-
 	self.mi_module = moduleInstance	
 	self._l_ARGS_KWS_DEFAULTS = [{'kw':'moduleInstance',"default":None}]	
 	#=================================================================
@@ -74,7 +75,7 @@ def SampleFunc(*args,**kws):
 	    """
 	    mi_module = self.mi_module
 	    kws = self.d_kws
-	    
+	    self.report()
     return fncWrap(*args,**kws).go()
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
@@ -124,8 +125,151 @@ def deleteSizeInfo(self,*args,**kws):
     log.debug(">>> %s.deleteSizeInfo() >> "%(self.p_nameShort) + "="*75) 		                                	                            
     self.templateNull.__setattr__('templateStarterData','',lock=True)
     
+
+def doSize(*args,**kws):
+    """ 
+    Size a module
+    1) Determine what points we need to gather
+    2) Initiate draggerContextFactory
+    3) Prompt user per point
+    4) at the end of the day have a pos list the length of the handle list
     
-def doSize(self,sizeMode='normal',geo = [],posList = [],*args,**kws):
+    @ sizeMode
+    'all' - pick every handle position
+    'normal' - first/last, if child, will use last position of parent as first
+    'manual' - provide a pos list to size from
+    
+    TODO:
+    Add option for other modes
+    Add geo argument that can be passed for speed
+    Add clamp on value
+    Add a way to pull size info from a mirror module
+    """    
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "doSize(%s)"%self.mi_module.p_nameShort	
+	    
+	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'sizeMode',"default":'normal','help':"What way we're gonna size","argType":"int/string"},
+	                                       {'kw':'geo',"default":[],'help':"List of geo to use","argType":"list"},
+	                                       {'kw':'posList',"default":[],'help':"Position list for manual mode ","argType":"list"}] )		
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
+	    
+	def __func__(self,*args,**kws):
+	    """
+	    """
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    sizeMode = kws['sizeMode']
+	    geo = kws['geo']
+	    posList = kws['posList']
+	    clickMode = {"heel":"surface"}    
+	    i_coreNames = mi_module.coreNames
+	    
+	    #Gather info
+	    #==============      
+	    handles = mi_module.templateNull.handles
+	    if len(i_coreNames.value) == handles:
+		names = i_coreNames.value
+	    else:
+		log.warning("Not enough names. Generating")
+		names = getGeneratedCoreNames(mi_module)
+	    if not geo and not mi_module.getMessage('helper'):
+		geo = mi_module.modulePuppet.getGeo()
+	    log.debug("Handles: %s"%handles)
+	    log.debug("Names: %s"%names)
+	    log.debug("Puppet: %s"%mi_module.getMessage('modulePuppet'))
+	    log.debug("Geo: %s"%geo)
+	    log.debug("sizeMode: %s"%sizeMode)
+	    
+	    i_module = mi_module #Bridge holder for our module class to go into our sizer class
+	    
+	    #Variables
+	    #============== 
+	    if sizeMode == 'manual':#To allow for a pos list to be input
+		if not posList:
+		    log.error("Must have posList arg with 'manual' sizeMode!")
+		    return False
+		
+		if len(posList) < handles:
+		    log.warning("Creating curve to get enough points")                
+		    curve = curves.curveFromPosList(posList)
+		    mc.rebuildCurve (curve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0,s=(handles-1), d=1, tol=0.001)
+		    posList = curves.returnCVsPosList(curve)#Get the pos of the cv's
+		    mc.delete(curve) 
+		    
+		mi_module.templateNull.__setattr__('templateStarterData',posList,lock=True)
+		log.debug("'%s' manually sized!"%mi_module.getShortName())
+		return True
+		    
+	    elif sizeMode == 'normal':
+		if len(names) > 1:
+		    namesToCreate = names[0],names[-1]
+		else:
+		    namesToCreate = names
+		log.debug("Names: %s"%names)
+	    else:
+		namesToCreate = names        
+		sizeMode = 'all'
+	    
+	    class moduleSizer(dragFactory.clickMesh):
+		"""Sublass to get the functs we need in there"""
+		def __init__(self,i_module = mi_module,**kws):
+		    log.debug(">>> moduleSizer.__init__")    
+		    if kws:log.info("kws: %s"%str(kws))
+		    
+		    super(moduleSizer, self).__init__(**kws)
+		    self.i_module = i_module
+		    self.toCreate = namesToCreate
+		    log.info("Please place '%s'"%self.toCreate[0])
+		    
+		def release(self):
+		    if len(self.l_return)< len(self.toCreate)-1:#If we have a prompt left
+			log.info("Please place '%s'"%self.toCreate[len(self.l_return)+1])            
+		    dragFactory.clickMesh.release(self)
+	
+		    
+		def finalize(self):
+		    log.debug("returnList: %s"% self.l_return)
+		    log.debug("createdList: %s"% self.l_created)   
+		    buffer = [] #self.i_module.templateNull.templateStarterData
+		    log.debug("starting data: %s"% buffer)
+		    
+		    #Make sure we have enough points
+		    #==============  
+		    handles = self.i_module.templateNull.handles
+		    if len(self.l_return) < handles:
+			log.warning("Creating curve to get enough points")                
+			curve = curves.curveFromPosList(self.l_return)
+			mc.rebuildCurve (curve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0,s=(handles-1), d=1, tol=0.001)
+			self.l_return = curves.returnCVsPosList(curve)#Get the pos of the cv's
+			mc.delete(curve)
+	
+		    #Store info
+		    #==============                  
+		    for i,p in enumerate(self.l_return):
+			buffer.append(p)#need to ensure it's storing properly
+			#log.info('[%s,%s]'%(buffer[i],p))
+			
+		    #Store locs
+		    #==============  
+		    log.debug("finish data: %s"% buffer)
+		    self.i_module.templateNull.__setattr__('templateStarterData',buffer,lock=True)
+		    #self.i_module.templateNull.templateStarterData = buffer#store it
+		    log.info("'%s' sized!"%self.i_module.getShortName())
+		    dragFactory.clickMesh.finalize(self)
+		
+	    #Start up our sizer    
+	    return moduleSizer(mode = 'midPoint',
+	                       mesh = geo,
+	                       create = 'locator',
+	                       toCreate = namesToCreate)
+    return fncWrap(*args,**kws).go() 
+    
+def doSizeOLD(self,sizeMode='normal',geo = [],posList = [],**kws):
     """
     Size a module
     1) Determine what points we need to gather
@@ -400,12 +544,13 @@ def doRig(*args,**kws):
 		log.warning("%s Parent module is not rigged: '%s'"%(self._str_reportStart,mi_module.moduleParent.getShortName()))
 		return False 
 	    
-	    mRig.go(*args,**kws)      
-	    if not isRigged(*args,**kws):
+	    kws.pop('moduleInstance')
+	    mRig.go(mi_module,**kws)      
+	    if not isRigged(mi_module,*args,**kws):
 		log.warning("%s Failed To Rig"%self._str_reportStart)
 		return False
 	    
-	    rigConnect(*args,**kws)
+	    rigConnect(mi_module,*args,**kws)
 	    
     return fncWrap(*args,**kws).go()
 
@@ -848,8 +993,8 @@ def doTemplate(*args,**kws):
 		return True
 	    if not isSized(*args,**kws):
 		log.warning("%s: Not sized"%self._str_reportStart)
-		return False      
-	    tFactory.go(*args,**kws)      
+		return False    
+	    tFactory.go(mi_module,*args,**kws)      
 	    if not isTemplated(*args,**kws):
 		log.warning("%s Template failed"%self._str_reportStart)
 		return False
@@ -966,7 +1111,9 @@ def doSkeletonize(*args,**kws):
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "doSkeletonize(%s)"%self.mi_module.p_nameShort	
-	    self.__dataBind__(*args,**kws)		    
+	    self.log_info("here")
+	    self.__dataBind__(*args,**kws)	
+	    self.log_info("here")	    
 	    #=================================================================
 	def __func__(self,*args,**kws):
 	    mi_module = self.mi_module
@@ -994,9 +1141,8 @@ def deleteSkeleton(*args,**kws):
 	def __func__(self,*args,**kws):
 	    mi_module = self.mi_module
 	    kws = self.d_kws
-	    
 	    if isSkeletonized(*args,**kws):
-		jFactory.deleteSkeleton(*args,**kws)
+		jFactory.deleteSkeleton(mi_module, *args,**kws)
 	    return True
     return fncWrap(*args,**kws).go()
        
@@ -1088,12 +1234,14 @@ def validateStateArg(*args,**kws):
 	    
     return fncWrap(*args,**kws).go()    
 
-def isModule(self,*args,**kws):
+def isModule(self):
     """
     Simple module check
     """
-    _str_funcName = "isModule(%s)"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)        
+    _str_funcName = "isModule()"  
+    log.debug(">>> %s "%(_str_funcName) + "="*75)   
+    try:self.mNode
+    except:raise StandardError,"NOT AN INSTANCE | self: %s "%(self)
     if not self.hasAttr('mClass'):
         log.warning("Has no 'mClass', not a module: '%s'"%self.getShortName())
         return False
@@ -1144,7 +1292,7 @@ def getState(*args,**kws):
 			goodState = l_moduleStates.index(state)
 			break
 		else:
-		    log.warning("Need test for: '%s'"%state)
+		    goodState = 0
 	    log.debug("'%s' state: %s | '%s'"%(mi_module.getShortName(),goodState,l_moduleStates[goodState]))
 	    return goodState
     return fncWrap(*args,**kws).go()
@@ -1201,7 +1349,7 @@ def setState(*args,**kws):
 		rebuildArgs = validateStateArg(rebuildFrom,**kws)
 		if rebuildArgs:
 		    log.debug("'%s' rebuilding from: '%s'"%(mi_module.getShortName(),rebuildArgs[1]))
-		    changeState(rebuildArgs[1],**kws)
+		    changeState(self.mi_module,rebuildArgs[1],**kws)
 	    changeState(*args,**kws)	
 	    return True
     return fncWrap(*args,**kws).go()
@@ -1314,7 +1462,7 @@ def changeState(*args,**kws):
 		log.debug("doStates: %s"%doStates)        
 		for doState in doStates:
 		    if doState in d_upStateFunctions.keys():
-			if not d_upStateFunctions[doState](*args,**kws):return False
+			if not d_upStateFunctions[doState](self.mi_module,*args,**kws):return False
 			else:
 			    log.debug("'%s' completed: %s"%(mi_module.getShortName(),doState))
 		    else:
@@ -1335,14 +1483,14 @@ def changeState(*args,**kws):
 		for doState in doStates:
 		    log.debug("doState: %s"%doState)
 		    if doState in d_downStateFunctions.keys():
-			if not d_downStateFunctions[doState](*args,**kws):return False
+			if not d_downStateFunctions[doState](self.mi_module,*args,**kws):return False
 			else:log.debug("'%s': %s"%(mi_module.getShortName(),doState))
 		    else:
 			log.warning("No down state function for: %s"%doState)  
 	    else:
 		log.debug('Forcing recreate')
 		if stateName in d_upStateFunctions.keys():
-		    if not d_upStateFunctions[stateName](*args,**kws):return False
+		    if not d_upStateFunctions[stateName](self.mi_module,*args,**kws):return False
 		    return True
 		    
     return fncWrap(*args,**kws).go()
