@@ -49,6 +49,8 @@ p.setState('skeleton',forceNew = True)
 p.setState('template',forceNew = True)
 p.setState('size',forceNew = True)
 morphyF.verifyMorpheusNodeStructure(p.mPuppet)
+morphyF.setState(p,2)
+reload(morphyF)
 p.mNode
 p.mNode
 morphyF.verify_customizationData(p)['neck']

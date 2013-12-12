@@ -21,7 +21,8 @@ reload(pFactory)
 reload(mFactory)
 reload(tFactory)
 reload(jFactory)
-
+p1 = cgmPM.cgmPuppet(name = 'bob')
+p1.connectModule(leg)
 pFactory.animSetAttr(m1.modulePuppet,'visSub',1,True)
 #>>> Morphy Puppet
 #=======================================================

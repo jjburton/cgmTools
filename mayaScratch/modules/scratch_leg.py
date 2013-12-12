@@ -21,7 +21,9 @@ i_rig._i_rigNull.pivot_ball.select()
 leg.rigConnect()
 leg.rigDelete()
 spine.isRigged()
-
+leg = cgmPM.cgmLimb(mType = 'leg', direction = 'left')
+leg.doSize( sizeMode = 'manual', posList = [[0,1,0],[0,.5,0],[0,.01,0],[0,0.01,.02]])
+leg.isSized()
 cgmMeta.cgmObject('l_hip_blend_jnt').r
 leg.rigDisconnect()
 i_rig.get_report()

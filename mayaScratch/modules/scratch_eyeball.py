@@ -79,6 +79,16 @@ m1.setState('skeleton',forceNew=True)
 m1.skeletonDelete()
 m1.doRig()
 
+#>>>Rig Block - left eye
+a = cgmPM.cgmEyeballBlock(direction = 'left')
+a = r9Meta.MetaClass('l_eye_rigHelper')
+m = a.__mirrorBuild__()
+a.__mirrorPush__()
+a.__verifyModule__()
+a.__updateSizeData__()
+p=a.__buildSimplePuppet__()
+m.__verifyModule__()
+m.moduleTarget.doSetParentModule('neck_part')
 
 #>>> Rig Block - eye
 #=======================================================
