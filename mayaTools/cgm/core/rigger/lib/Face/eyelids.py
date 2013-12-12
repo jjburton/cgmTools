@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyelids rig builder
 ================================================================
 """
-__version__ = 1.12112013
+__version__ = 1.12122013
 
 # From Python =============================================================
 import copy
@@ -391,6 +391,7 @@ def build_rig(*args, **kws):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self.gatherInfo},
 	                        {'step':'Rigomatic','call':self._buildRig_},
+	                        {'step':'Setup Defaults','call':self._setupDefaults_},	                        
 	                        ]	
 	    #=================================================================
 	def gatherInfo(self):
@@ -700,6 +701,8 @@ def build_rig(*args, **kws):
 	    try:#Lid follow ======================================================================
 		try:#Initial setup----------------------------------------------------------------
 		    mPlug_autoFollow = cgmMeta.cgmAttr(mi_settings,"autoFollow",attrType = 'float', value = 1.0, hidden = False,keyable=True,maxValue=1.0,minValue=0)	    
+		    self.mPlug_autoFollow = mPlug_autoFollow
+		    
 		    mi_blendLoc = mi_go._mi_moduleParent.rigNull.locBlend
 		    
 		    mi_zeroLoc = mi_blendLoc.doLoc()
@@ -741,6 +744,9 @@ def build_rig(*args, **kws):
 		    mPlug_uprDnLimit.doConnectOut("%s.maxR"%mi_clampUpr.mNode)
 		    mPlug_uprUpLimit.doConnectOut("%s.minR"%mi_clampUpr.mNode)
 		    mc.connectAttr("%s.outputR"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenUprLoc.mNode,_str_orientation[2]))
+		    
+		    self.mPlug_uprUpLimit = mPlug_uprUpLimit#store
+		    self.mPlug_uprDnLimit = mPlug_uprDnLimit#store		    
 		except Exception,error:raise StandardError, "[uprLid up]{%s}"%(error)
 		try:#uprLid out -------------------------------------------------------------------
 		    mPlug_driverSide = cgmMeta.cgmAttr(mi_blendLoc.mNode,"r%s"%_str_orientation[1])		    
@@ -756,6 +762,9 @@ def build_rig(*args, **kws):
 		    mPlug_leftLimit.doConnectOut("%s.maxG"%mi_clampUpr.mNode)
 		    mPlug_rightLimit.doConnectOut("%s.minG"%mi_clampUpr.mNode)
 		    mc.connectAttr("%s.outputG"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenUprLoc.mNode,_str_orientation[1]))
+		    
+		    self.mPlug_leftLimit = mPlug_leftLimit#store
+		    self.mPlug_rightLimit = mPlug_rightLimit#store		    
 		except Exception,error:raise StandardError, "[uprLid out]{%s}"%(error)
 		try:#lwrLid -----------------------------------------------------------------------    
 		    mPlug_lwrUpLimit = cgmMeta.cgmAttr(mi_settings,"lwrUpLimit",attrType='float',value=-26,keyable=False,hidden=False)
@@ -775,6 +784,10 @@ def build_rig(*args, **kws):
 		    mPlug_lwrUpLimit.doConnectOut("%s.minR"%mi_clampLwr.mNode)
 		    attributes.doConnectAttr("%s.outputR"%mi_clampLwr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,_str_orientation[2]))
 		    attributes.doConnectAttr("%s.outputG"%mi_clampUpr.mNode,"%s.r%s"%(mi_drivenLwrLoc.mNode,_str_orientation[1]))
+		    
+		    self.mPlug_lwrUpLimit = mPlug_lwrUpLimit#store
+		    self.mPlug_lwrDnLimit = mPlug_lwrDnLimit#store
+		    self.mPlug_lwrDnStart = mPlug_lwrDnStart#store
 		    
 		except Exception,error:raise StandardError, "[Lwr Lid]{%s}"%(error)
 		try:#Constraint and autolid follow on /off -----------------------------------------------------------
@@ -869,6 +882,33 @@ def build_rig(*args, **kws):
 	    #Final stuff
 	    mi_go._set_versionToCurrent()
 	    return True 
+	
+	def _setupDefaults_(self):
+	    try:#Query ====================================================================================
+		mi_go = self._go#Rig Go instance link
+		
+		mPlug_autoFollow = self.mPlug_autoFollow
+		mPlug_leftLimit = self.mPlug_leftLimit#store
+		mPlug_rightLimit = self.mPlug_rightLimit#store
+		mPlug_uprUpLimit = self.mPlug_uprUpLimit#store
+		mPlug_uprDnLimit = self.mPlug_uprDnLimit#store	
+		mPlug_lwrUpLimit = self.mPlug_lwrUpLimit#store
+		mPlug_lwrDnLimit = self.mPlug_lwrDnLimit#store
+		mPlug_lwrDnStart = self.mPlug_lwrDnStart#store		
+	    except Exception,error:raise Exception,"[Query]{%s}"%error	
+
+	    _l_defaults = [{"plug":mPlug_autoFollow,'setting':1},
+	                   {"plug":mPlug_uprUpLimit,'setting':-30},
+	                   {"plug":mPlug_lwrDnLimit,'setting':15}]
+	    
+	    for d in _l_defaults:
+		try:
+		    _value = d['setting'] 
+		    d['plug'].p_defaultValue = _value
+		    d['plug'].value = _value
+		except Exception,error:raise Exception,"[Set default: %s]{%s}"%(d,error)	
+
+	    
     return fncWrap(*args, **kws).go()    
         
 #----------------------------------------------------------------------------------------------
