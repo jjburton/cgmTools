@@ -52,7 +52,7 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 reload(rigging)
-l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball','eyelids']
+l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball','eyelids','eyebrow']
 __l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthnose']
 #l_modulesDone = []
 #>>> Register rig functions
@@ -429,6 +429,7 @@ class go(object):
 	buffer = self._mi_moduleParent.getMessage('faceDeformNull')
 	if buffer:
 	    self._i_module.connectChildNode(buffer[0],'faceDeformNull')
+	    self._i_rigNull.connectChildNode(buffer[0],'faceDeformNull')
 	    self._i_faceDeformNull = self._mi_moduleParent.faceDeformNull
 	    return True
 	
@@ -1728,6 +1729,7 @@ def verify_eyeLook(*args,**kws):
 		mi_buildModule = self.mi_module
 		mi_rigNull = self.mi_module.rigNull
 		mi_puppet = self.mi_module.modulePuppet
+		mi_faceDeformNull = self.mi_module.rigNull.faceDeformNull
 	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
 	    
 	    try:mShapeCast.go(mi_buildModule,['eyeLook'])
@@ -1740,7 +1742,7 @@ def verify_eyeLook(*args,**kws):
 	                                                   addSpacePivots=2)
 	    except Exception,error:raise StandardError,"register Control | %s"%(error)
 	    mi_eyeLookShape = d_buffer['instance']
-	    mi_eyeLookShape.masterGroup.parent = mi_puppet.masterControl
+	    mi_eyeLookShape.masterGroup.parent = mi_faceDeformNull
 	    self.mi_eyeLookShape = mi_eyeLookShape
 	    self.ml_controlsAll.append(mi_eyeLookShape)
 	    
