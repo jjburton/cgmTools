@@ -36,47 +36,34 @@ from cgm.lib.ml import (ml_breakdownDragger,
 l_moduleStates = ['define','size','template','skeleton','rig']
 __l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow','cgmMouthNose']
 __l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthNose']
-
+_d_moduleKWARG = {'kw':'mModule',"default":None,'help':"cgmModule mNode or str name","argType":"cgmModule"}
+'''
+ml_modules = getModules(self.mi_puppet)
+int_lenModules = len(ml_modules)  
+_str_module = mModule.p_nameShort	 				
+self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)
+	    
+'''
 class ModuleFunc(cgmGeneral.cgmFuncCls):
     def __init__(self,*args,**kws):
 	"""
 	"""	
 	try:
-	    try:moduleInstance = kws['moduleInstance']
+	    try:mModule = kws['mModule']
 	    except:
-		try:moduleInstance = args[0]
+		try:mModule = args[0]
 		except:pass
 	    try:
-		assert isModule(moduleInstance)
-	    except Exception,error:raise StandardError,"Not a module instance : %s"%error	
+		assert isModule(mModule)
+	    except Exception,error:raise StandardError,"[mModule: %s]{Not a module instance : %s}"%(mModule,error)	
 	except Exception,error:raise StandardError,"ModuleFunc failed to initialize | %s"%error
 	self._str_funcName= "testFModuleFuncunc"		
 	super(ModuleFunc, self).__init__(*args, **kws)
-	self.mi_module = moduleInstance	
-	self._l_ARGS_KWS_DEFAULTS = [{'kw':'moduleInstance',"default":None}]	
+	self.mi_module = mModule	
+	self._str_moduleName = mModule.p_nameShort	
+	self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG]	
 	#=================================================================
 
-def SampleFunc(*args,**kws):
-    class fncWrap(ModuleFunc):
-	def __init__(self,*args,**kws):
-	    """
-	    """
-	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "testFunc(%s)"%self.mi_module.p_nameShort	
-	    
-	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
-	    self.__dataBind__(*args,**kws)	
-	    self.l_funcSteps = [{'step':'Get Data','call':self.__func__}]
-	    
-	    #=================================================================
-	    
-	def __func__(self,*args,**kws):
-	    """
-	    """
-	    mi_module = self.mi_module
-	    kws = self.d_kws
-	    self.report()
-    return fncWrap(*args,**kws).go()
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -86,25 +73,27 @@ def isSized(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = 'isSized(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "isSized('%s')"%self._str_moduleName
 	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	def __func__(self): 
 	    mi_module = self.mi_module
+	    try:
+		if mi_module.moduleType in __l_faceModules__:
+		    if mi_module.getMessage('helper'):
+			log.debug("%s has size helper, good to go."%self._str_reportStart)	    
+			return True
+		    else:
+			log.debug("%s No size helper found."%self._str_reportStart)	
+	    except Exception,error:raise StandardError,"[Face check]{%s}"%error
 	    
-	    if mi_module.moduleType in __l_faceModules__:
-		if mi_module.getMessage('helper'):
-		    log.debug("%s has size helper, good to go."%self._str_reportStart)	    
-		    return True
-		else:
-		    log.debug("%s No size helper found."%self._str_reportStart)	    		    
 	    handles = mi_module.templateNull.handles
 	    i_coreNames = mi_module.coreNames
 	    if len(i_coreNames.value) < handles:
-		log.debug("%s Not enough names for handles"%self._str_reportStart)
+		#log.debug("%s Not enough names for handles"%self._str_reportStart)
 		return False
 	    if len(i_coreNames.value) > handles:
-		log.debug("%s Not enough handles for names"%self._str_reportStart)	
+		#log.debug("%s Not enough handles for names"%self._str_reportStart)	
 		return False
 	    if mi_module.templateNull.templateStarterData:
 		if len(mi_module.templateNull.templateStarterData) == handles:
@@ -114,17 +103,29 @@ def isSized(*args,**kws):
 			    return False
 		    return True
 		else:
-		    log.debug("%s %i is not == %i handles necessary"%(self._str_reportStart,len(mi_module.templateNull.templateStarterData),handles))			    	    
+		    #log.debug("%s %i is not == %i handles necessary"%(self._str_reportStart,len(mi_module.templateNull.templateStarterData),handles))			    	    
 		    return False
 	    else:
-		log.debug("%s No template starter data found"%self._str_reportStart)	
+		pass
+		#log.debug("%s No template starter data found"%self._str_reportStart)	
 	    return False	 
     return fncWrap(*args,**kws).go() 
 
-def deleteSizeInfo(self,*args,**kws):
-    log.debug(">>> %s.deleteSizeInfo() >> "%(self.p_nameShort) + "="*75) 		                                	                            
-    self.templateNull.__setattr__('templateStarterData','',lock=True)
-    
+def deleteSizeInfo(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = "deleteSizeInfo('%s')"%self._str_moduleName
+	    self.__dataBind__(*args,**kws)
+	    #=================================================================
+	def __func__(self): 
+	    mi_module = self.mi_module
+	    mi_module.templateNull.__setattr__('templateStarterData','',lock=True)
+	    return True
+    return fncWrap(*args,**kws).go() 
+
 
 def doSize(*args,**kws):
     """ 
@@ -150,8 +151,7 @@ def doSize(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "doSize(%s)"%self.mi_module.p_nameShort	
-	    
+	    self._str_funcName= "doSize('%s')"%self._str_moduleName	
 	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'sizeMode',"default":'normal','help':"What way we're gonna size","argType":"int/string"},
 	                                       {'kw':'geo',"default":[],'help':"List of geo to use","argType":"list"},
 	                                       {'kw':'posList',"default":[],'help':"Position list for manual mode ","argType":"list"}] )		
@@ -222,7 +222,7 @@ def doSize(*args,**kws):
 		    if kws:log.info("kws: %s"%str(kws))
 		    
 		    super(moduleSizer, self).__init__(**kws)
-		    self.i_module = i_module
+		    self.mi_module = i_module
 		    self.toCreate = namesToCreate
 		    log.info("Please place '%s'"%self.toCreate[0])
 		    
@@ -235,12 +235,12 @@ def doSize(*args,**kws):
 		def finalize(self):
 		    log.debug("returnList: %s"% self.l_return)
 		    log.debug("createdList: %s"% self.l_created)   
-		    buffer = [] #self.i_module.templateNull.templateStarterData
+		    buffer = [] #self.mi_module.templateNull.templateStarterData
 		    log.debug("starting data: %s"% buffer)
 		    
 		    #Make sure we have enough points
 		    #==============  
-		    handles = self.i_module.templateNull.handles
+		    handles = self.mi_module.templateNull.handles
 		    if len(self.l_return) < handles:
 			log.warning("Creating curve to get enough points")                
 			curve = curves.curveFromPosList(self.l_return)
@@ -257,9 +257,9 @@ def doSize(*args,**kws):
 		    #Store locs
 		    #==============  
 		    log.debug("finish data: %s"% buffer)
-		    self.i_module.templateNull.__setattr__('templateStarterData',buffer,lock=True)
-		    #self.i_module.templateNull.templateStarterData = buffer#store it
-		    log.info("'%s' sized!"%self.i_module.getShortName())
+		    self.mi_module.templateNull.__setattr__('templateStarterData',buffer,lock=True)
+		    #self.mi_module.templateNull.templateStarterData = buffer#store it
+		    log.info("'%s' sized!"%self._str_moduleName)
 		    dragFactory.clickMesh.finalize(self)
 		
 	    #Start up our sizer    
@@ -269,137 +269,16 @@ def doSize(*args,**kws):
 	                       toCreate = namesToCreate)
     return fncWrap(*args,**kws).go() 
     
-def doSizeOLD(self,sizeMode='normal',geo = [],posList = [],**kws):
-    """
-    Size a module
-    1) Determine what points we need to gather
-    2) Initiate draggerContextFactory
-    3) Prompt user per point
-    4) at the end of the day have a pos list the length of the handle list
-    
-    @ sizeMode
-    'all' - pick every handle position
-    'normal' - first/last, if child, will use last position of parent as first
-    'manual' - provide a pos list to size from
-    
-    TODO:
-    Add option for other modes
-    Add geo argument that can be passed for speed
-    Add clamp on value
-    Add a way to pull size info from a mirror module
-    """
-    _str_funcName = "doSize(%s)"%self.p_nameShort   
-    log.debug(">>> %s.doSize(sizeMode = %s, geo = %s, posList = %s) >> "%(self.p_nameShort,sizeMode,geo,posList) + "="*75) 		                                	                                    
-    clickMode = {"heel":"surface"}    
-    i_coreNames = self.coreNames
-    #Gather info
-    #==============      
-    handles = self.templateNull.handles
-    if len(i_coreNames.value) == handles:
-        names = i_coreNames.value
-    else:
-        log.warning("Not enough names. Generating")
-        names = getGeneratedCoreNames(self)
-    if not geo and not self.getMessage('helper'):
-        geo = self.modulePuppet.getGeo()
-    log.debug("Handles: %s"%handles)
-    log.debug("Names: %s"%names)
-    log.debug("Puppet: %s"%self.getMessage('modulePuppet'))
-    log.debug("Geo: %s"%geo)
-    log.debug("sizeMode: %s"%sizeMode)
-    
-    i_module = self #Bridge holder for our module class to go into our sizer class
-    
-    #Variables
-    #============== 
-    if sizeMode == 'manual':#To allow for a pos list to be input
-        if not posList:
-            log.error("Must have posList arg with 'manual' sizeMode!")
-            return False
-        
-        if len(posList) < handles:
-            log.warning("Creating curve to get enough points")                
-            curve = curves.curveFromPosList(posList)
-            mc.rebuildCurve (curve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0,s=(handles-1), d=1, tol=0.001)
-            posList = curves.returnCVsPosList(curve)#Get the pos of the cv's
-            mc.delete(curve) 
-            
-        self.templateNull.__setattr__('templateStarterData',posList,lock=True)
-        log.debug("'%s' manually sized!"%self.getShortName())
-        return True
-            
-    elif sizeMode == 'normal':
-        if len(names) > 1:
-            namesToCreate = names[0],names[-1]
-        else:
-            namesToCreate = names
-        log.debug("Names: %s"%names)
-    else:
-        namesToCreate = names        
-        sizeMode = 'all'
-       
-    class moduleSizer(dragFactory.clickMesh):
-        """Sublass to get the functs we need in there"""
-        def __init__(self,i_module = i_module,**kws):
-            log.debug(">>> moduleSizer.__init__")    
-            if kws:log.info("kws: %s"%str(kws))
-            
-            super(moduleSizer, self).__init__(**kws)
-            self.i_module = i_module
-	    self.toCreate = namesToCreate
-            log.info("Please place '%s'"%self.toCreate[0])
-            
-        def release(self):
-            if len(self.l_return)< len(self.toCreate)-1:#If we have a prompt left
-                log.info("Please place '%s'"%self.toCreate[len(self.l_return)+1])            
-            dragFactory.clickMesh.release(self)
 
-            
-        def finalize(self):
-            log.debug("returnList: %s"% self.l_return)
-            log.debug("createdList: %s"% self.l_created)   
-            buffer = [] #self.i_module.templateNull.templateStarterData
-            log.debug("starting data: %s"% buffer)
-            
-            #Make sure we have enough points
-            #==============  
-            handles = self.i_module.templateNull.handles
-            if len(self.l_return) < handles:
-                log.warning("Creating curve to get enough points")                
-                curve = curves.curveFromPosList(self.l_return)
-                mc.rebuildCurve (curve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0,s=(handles-1), d=1, tol=0.001)
-                self.l_return = curves.returnCVsPosList(curve)#Get the pos of the cv's
-                mc.delete(curve)
-
-            #Store info
-            #==============                  
-            for i,p in enumerate(self.l_return):
-                buffer.append(p)#need to ensure it's storing properly
-                #log.info('[%s,%s]'%(buffer[i],p))
-                
-            #Store locs
-            #==============  
-            log.debug("finish data: %s"% buffer)
-            self.i_module.templateNull.__setattr__('templateStarterData',buffer,lock=True)
-            #self.i_module.templateNull.templateStarterData = buffer#store it
-            log.info("'%s' sized!"%self.i_module.getShortName())
-            dragFactory.clickMesh.finalize(self)
-        
-    #Start up our sizer    
-    return moduleSizer(mode = 'midPoint',
-                       mesh = geo,
-                       create = 'locator',
-                       toCreate = namesToCreate)
-    
 def doSetParentModule(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = 'doSetParentModule(%s)'%self.mi_module.p_nameShort
-	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'moduleParent',"default":None,'help':"Module parent target","argType":"cgmModule"},
-	                                       {'kw':'force',"default":False,'help':"Whether to force things","argType":"bool"}] )			    
+	    self._str_funcName = "doSetParentModule('%s')"%self._str_moduleName
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'moduleParent',"default":None,'help':"Module parent target","argType":"cgmModule"},
+	                                 {'kw':'force',"default":False,'help':"Whether to force things","argType":"bool"}] 			    
 	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	def __func__(self): 
@@ -422,30 +301,84 @@ def doSetParentModule(*args,**kws):
 		return False
 	
 	    if moduleParent.mClass not in __l_modulesClasses__:
-		log.warning("'%s' is not a recognized module type"%moduleParent.mClass)
+		self.log_warning("'%s' is not a recognized module type"%moduleParent.mClass)
 		return False
 	
 	    if not moduleParent.hasAttr('moduleChildren'):#Quick check
-		log.warning("'%s'doesn't have 'moduleChildren' attr"%moduleParent.getShortName())#if it doesn't initialize, nothing is there		
+		self.log_warning("'%s'doesn't have 'moduleChildren' attr"%moduleParent.getShortName())#if it doesn't initialize, nothing is there		
 		return False	
-	
-	    buffer = copy.copy(moduleParent.getMessage('moduleChildren')) or []#Buffer till we have have append functionality	
-	
-	    if mi_module.mNode in buffer:
-		log.warning("'%s' already connnected to '%s'"%(mi_module.mNode,moduleParent.getShortName()))
-		return False
-	
-	    else:#Connect ==========================================================================================
-		log.debug("Adding '%s'!"%mi_module.getShortName())    
-		buffer.append(mi_module.mNode) #Revist when children has proper add/remove handling
-		moduleParent.moduleChildren = buffer
-		mi_module.moduleParent = moduleParent.mNode
+	    buffer = copy.copy(moduleParent.getMessage('moduleChildren',False)) or []#Buffer till we have have append functionality	
+	    ml_moduleChildren = moduleParent.moduleChildren
+
+	    if mi_module in ml_moduleChildren:
+		self.log_warning("already connnected to '%s'"%(moduleParent.getShortName()))
+		return
+	    else:
+		try:#Connect ==========================================================================================
+		    buffer.append(mi_module.mNode) #Revist when children has proper add/remove handling
+		    moduleParent.moduleChildren = buffer
+		    mi_module.moduleParent = moduleParent.mNode
+		    self.log_info("parent set to: '%s'!"%moduleParent.getShortName())    
+		except Exception,error:raise StandardError,"[Connection]{%s}"%(error)	
 	    mi_module.parent = moduleParent.parent
 	    return True	 
-	
     return fncWrap(*args,**kws).go() 
 
-def getGeneratedCoreNames(self):
+def getGeneratedCoreNames(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = "getGeneratedCoreNames('%s')"%self._str_moduleName			    
+	    self.__dataBind__(*args,**kws)
+	    #=================================================================
+	def __func__(self): 
+	    mi_module = self.mi_module
+	    kws = self.d_kws
+	    mi_coreNamesBuffer = mi_module.coreNames
+		
+	    ### check the settings first ###
+	    partType = mi_module.moduleType
+	    log.debug("%s partType is %s"%(mi_module.getShortName(),partType))
+	    settingsCoreNames = modules.returncgmTemplateCoreNames(partType)
+	    int_handles = mi_module.templateNull.handles
+	    partName = nameTools.returnRawGeneratedName(mi_module.mNode,ignore=['cgmType','cgmTypeModifier'])
+	
+	    ### if there are no names settings, genearate them from name of the limb module###
+	    l_generatedNames = []
+	    if settingsCoreNames == False: 
+		if mi_module.moduleType.lower() == 'eyeball':
+		    l_generatedNames.append('%s' % (partName))	    
+		else:
+		    cnt = 1
+		    for handle in range(int_handles):
+			l_generatedNames.append('%s%s%i' % (partName,'_',cnt))
+			cnt+=1
+	    elif int(int_handles) > (len(settingsCoreNames)):
+		log.debug(" We need to make sure that there are enough core names for handles")       
+		cntNeeded = int_handles  - len(settingsCoreNames) +1
+		nonSplitEnd = settingsCoreNames[len(settingsCoreNames)-2:]
+		toIterate = settingsCoreNames[1]
+		iterated = []
+		for i in range(cntNeeded):
+		    iterated.append('%s%s%i' % (toIterate,'_',(i+1)))
+		l_generatedNames.append(settingsCoreNames[0])
+		for name in iterated:
+		    l_generatedNames.append(name)
+		for name in nonSplitEnd:
+		    l_generatedNames.append(name) 
+	    else:
+		l_generatedNames = settingsCoreNames[:self.templateNull.handles]
+	    
+		#figure out what to do with the names
+		mi_coreNamesBuffer.value = l_generatedNames
+		    
+	    return l_generatedNames
+    return fncWrap(*args,**kws).go() 
+
+'''
+def getGeneratedCoreNamesBAK(self):
     """ 
     Generate core names for a module and return them
 
@@ -457,7 +390,7 @@ def getGeneratedCoreNames(self):
     TODO:
     Where to store names?
     """
-    _str_funcName = "getGeneratedCoreNames(%s)"%self.p_nameShort   
+    _str_funcName = "getGeneratedCoreNames('%s')"%self.p_nameShort   
     log.info(">>> %s "%(_str_funcName) + "="*75)    
     try:
 	i_coreNames = self.coreNames
@@ -513,7 +446,7 @@ def getGeneratedCoreNames(self):
 	return generatedNames
     except Exception,error:
 	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-    
+    '''
 #=====================================================================================================
 #>>> Rig
 #=====================================================================================================
@@ -523,12 +456,9 @@ def doRig(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "doRig(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "doRig('%s')"%self._str_moduleName	
 	    
-	    #self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
-	    self.__dataBind__(*args,**kws)	
-	    self.l_funcSteps = [{'step':'Get Data','call':self.__func__}]
-	    
+	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
 	    
 	def __func__(self):
@@ -544,13 +474,13 @@ def doRig(*args,**kws):
 		log.warning("%s Parent module is not rigged: '%s'"%(self._str_reportStart,mi_module.moduleParent.getShortName()))
 		return False 
 	    
-	    kws.pop('moduleInstance')
-	    mRig.go(mi_module,**kws)      
-	    if not isRigged(mi_module,*args,**kws):
+	    kws.pop('mModule')
+	    mRig.go(**kws)      
+	    if not isRigged(**kws):
 		log.warning("%s Failed To Rig"%self._str_reportStart)
 		return False
 	    
-	    rigConnect(mi_module,*args,**kws)
+	    rigConnect(**kws)
 	    
     return fncWrap(*args,**kws).go()
 
@@ -564,32 +494,33 @@ def isRigged(*args,**kws):
 	    """
 	    """    
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "isRigged(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "isRigged('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)	
 	    #=================================================================
 	    
-	def __func__(self,*args,**kws):
+	def __func__(self):
 	    kws = self.d_kws
+	    mi_module = self.mi_module
 	    
-	    if not isSkeletonized(*args,**kws):
+	    if not isSkeletonized(**kws):
 		log.debug("%s Not skeletonized"%self._str_reportStart)
 		return False   
 		
-	    i_rigNull = self.mi_module.rigNull
-	    str_shortName = self.mi_module.getShortName()
+	    mi_rigNull = mi_module.rigNull
+	    str_shortName = self._str_moduleName
 	    
-	    ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
+	    ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
 	    l_rigJoints = [i_j.p_nameShort for i_j in ml_rigJoints] or []
-	    l_skinJoints = mRig.get_skinJoints(self.mi_module,asMeta=False)
+	    l_skinJoints = mRig.get_skinJoints(mi_module,asMeta=False)
 	    
 	    if not ml_rigJoints:
 		log.debug("%s>>>> No rig joints"%self._str_reportStart)
-		i_rigNull.version = ''#clear the version	
+		mi_rigNull.version = ''#clear the version	
 		return False
 	    
 	    #See if we can find any constraints on the rig Joints
-	    if self.mi_module.moduleType.lower() in __l_faceModules__:
-		log.warning("%s Need to find a better face rig joint test rather than constraints"%(self._str_reportStart))	    
+	    if mi_module.moduleType.lower() in __l_faceModules__:
+		self.log_warning("Need to find a better face rig joint test rather than constraints")	    
 	    else:
 		b_foundConstraint = False
 		for i,mJoint in enumerate(ml_rigJoints):
@@ -600,14 +531,14 @@ def isRigged(*args,**kws):
 			return False
 		
 	    if len( l_skinJoints ) < len( ml_rigJoints ):
-		log.warning("%s %s != %s. Not enough rig joints"%(str_shortName,len(l_skinJoints),len(l_rigJoints)))
-		i_rigNull.version = ''#clear the version        
+		self.log_warning(" %s != %s. Not enough rig joints"%(len(l_skinJoints),len(l_rigJoints)))
+		mi_rigNull.version = ''#clear the version        
 		return False
 	    
 	    for attr in ['controlsAll']:
-		if not i_rigNull.msgList_get(attr,asMeta = False):
-		    log.debug("moduleFactory.isRigged('%s')>>>> No data found on '%s'"%(str_shortName,attr))
-		    i_rigNull.version = ''#clear the version            
+		if not mi_rigNull.msgList_get(attr,asMeta = False):
+		    self.log_warning("No data found on '%s'"%(attr))
+		    mi_rigNull.version = ''#clear the version            
 		    return False    
 	    return True	     
     return fncWrap(*args,**kws).go()
@@ -622,18 +553,17 @@ def rigDelete(*args,**kws):
 	    """
 	    """    
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "rigDelete(%s)"%self.mi_module.p_nameShort	
-	    
-	    #EXTEND our args and defaults
-	    #self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'cat',"default":None}])
+	    self._str_funcName= "rigDelete('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)	
 	    #=================================================================
 	    
 	def __func__(self):
+	    kws = self.d_kws
+	    
 	    #if not isRigged(self):
 		#raise StandardError,"moduleFactory.rigDelete('%s')>>>> Module not rigged"%(str_shortName)
-	    if isRigConnected(self.mi_module):
-		rigDisconnect(self.mi_module)#Disconnect
+	    if isRigConnected(self.mi_module,**kws):
+		rigDisconnect(self.mi_module,**kws)#Disconnect
 	    """
 	    try:
 		objList = returnTemplateObjects(self)
@@ -644,12 +574,12 @@ def rigDelete(*args,**kws):
 		return True
 	    except Exception,error:
 		log.warning(error)"""
-	    i_rigNull = self.mi_module.rigNull
-	    rigNullStuff = i_rigNull.getAllChildren()
+	    mi_rigNull = self.mi_module.rigNull
+	    l_rigNullStuff = mi_rigNull.getAllChildren()
 	    
 	    #Build a control master group List
 	    l_masterGroups = []
-	    for i_obj in i_rigNull.msgList_get('controlsAll'):
+	    for i_obj in mi_rigNull.msgList_get('controlsAll'):
 		if i_obj.hasAttr('masterGroup'):
 		    l_masterGroups.append(i_obj.getMessage('masterGroup',False)[0])
 		    
@@ -661,9 +591,8 @@ def rigDelete(*args,**kws):
 	    if self.mi_module.getMessage('deformNull'):
 		mc.delete(self.mi_module.getMessage('deformNull'))
 		
-	    mc.delete(self.mi_module.rigNull.getChildren())
-	    
-	    i_rigNull.version = ''#clear the version
+	    mc.delete(mi_rigNull.getChildren())
+	    mi_rigNull.version = ''#clear the version
 	    
 	    return True   
     return fncWrap(*args,**kws).go()
@@ -674,7 +603,7 @@ def isRigConnected(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "isRigConnected(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "isRigConnected('%s')"%self._str_moduleName	
 	    
 	    #self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
 	    self.__dataBind__(*args,**kws)		    
@@ -684,12 +613,12 @@ def isRigConnected(*args,**kws):
 	    """
 	    """
 	    mi_module = self.mi_module
-	    #str_shortName = mi_module.getShortName()
+	    #str_shortName = self._str_moduleName
 	    if not isRigged(mi_module):
 		log.debug("%s Module not rigged"%(self._str_reportStart))
 		return False
-	    i_rigNull = mi_module.rigNull
-	    ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
+	    mi_rigNull = mi_module.rigNull
+	    ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
 	    ml_skinJoints = mRig.get_skinJoints(mi_module,asMeta=True)
 	    
 	    for i,i_jnt in enumerate(ml_skinJoints):
@@ -709,7 +638,7 @@ def rigConnect(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "rigConnect(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "rigConnect('%s')"%self._str_moduleName	
 	    
 	    #self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
 	    self.__dataBind__(*args,**kws)		    
@@ -719,15 +648,15 @@ def rigConnect(*args,**kws):
 	    """
 	    """
 	    mi_module = self.mi_module
-	    str_shortName = mi_module.getShortName()
+	    str_shortName = self._str_moduleName
 	    
 	    if not isRigged(mi_module):
 		raise StandardError,"Module not rigged"
 	    if isRigConnected(mi_module):
 		raise StandardError,"Module already connected"
 	    
-	    i_rigNull = mi_module.rigNull
-	    ml_rigJoints = i_rigNull.msgList_get('rigJoints',asMeta = True)
+	    mi_rigNull = mi_module.rigNull
+	    ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
 	    ml_skinJoints = mRig.get_skinJoints(mi_module,asMeta=True)
 	    
 	    if mi_module.moduleType in __l_faceModules__:
@@ -762,7 +691,7 @@ def rigDisconnect(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "rigDisconnect(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "rigDisconnect('%s')"%self._str_moduleName	
 	    
 	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
 	    self.__dataBind__(*args,**kws)	    
@@ -785,12 +714,12 @@ def rigDisconnect(*args,**kws):
 	    mc.select(mi_module.rigNull.msgList_getMessage('controlsAll'))
 	    ml_resetChannels.main(transformsOnly = False)
 	    
-	    i_rigNull = mi_module.rigNull
-	    l_rigJoints = i_rigNull.getMessage('rigJoints') or False
-	    l_skinJoints = i_rigNull.getMessage('skinJoints') or False
+	    mi_rigNull = mi_module.rigNull
+	    l_rigJoints = mi_rigNull.getMessage('rigJoints') or False
+	    l_skinJoints = mi_rigNull.getMessage('skinJoints') or False
 	    if not l_skinJoints:raise Exception,"No skin joints found"	    
 	    l_constraints = []
-	    for i,i_jnt in enumerate(i_rigNull.skinJoints):
+	    for i,i_jnt in enumerate(mi_rigNull.skinJoints):
 		try:
 		    l_constraints.extend( i_jnt.getConstraintsTo() )
 		    if not _b_faceState:attributes.doBreakConnection("%s.scale"%i_jnt.mNode)
@@ -820,7 +749,7 @@ def rig_getHandleJoints(self,asMeta = True):
     """
     Find the module handle joints
     """
-    _str_funcName = "rig_getHandleJoints(%s)"%self.p_nameShort   
+    _str_funcName = "rig_getHandleJoints('%s')"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)  	    
     try:
 	return mRig.get_handleJoints(self,asMeta)
@@ -848,7 +777,7 @@ def isTemplated(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "isTemplated(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "isTemplated('%s')"%self._str_moduleName	
 	    
 	    self.__dataBind__(*args,**kws)	
 	    #=================================================================
@@ -914,7 +843,7 @@ def isTemplated(self):
     """
     Return if a module is templated or not
     """
-    _str_funcName = "isTemplated(%s)"%self.p_nameShort   
+    _str_funcName = "isTemplated('%s')"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)    
     try:
 	if self.mClass in ['cgmEyelids','cgmEyeball','cgmEyebrow']:
@@ -981,7 +910,7 @@ def doTemplate(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "doTemplate(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "doTemplate('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)	
 	    #=================================================================
 	    
@@ -1007,7 +936,7 @@ def deleteTemplate(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "deleteTemplate(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "deleteTemplate('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
 	def __func__(self,*args,**kws):
@@ -1028,7 +957,7 @@ def returnTemplateObjects(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "returnTemplateObjects(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "returnTemplateObjects('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
 	def __func__(self,*args,**kws):
@@ -1051,7 +980,7 @@ def get_rollJointCountList(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "get_rollJointCountList(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "get_rollJointCountList('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
 	def __func__(self,*args,**kws):
@@ -1083,7 +1012,7 @@ def isSkeletonized(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "isSkeletonized(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "isSkeletonized('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
 	def __func__(self,*args,**kws):
@@ -1110,7 +1039,7 @@ def doSkeletonize(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "doSkeletonize(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "doSkeletonize('%s')"%self._str_moduleName	
 	    self.log_info("here")
 	    self.__dataBind__(*args,**kws)	
 	    self.log_info("here")	    
@@ -1135,7 +1064,7 @@ def deleteSkeleton(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "deleteSkeleton(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "deleteSkeleton('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
 	def __func__(self,*args,**kws):
@@ -1156,7 +1085,7 @@ def returnExpectedJointCount(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "returnExpectedJointCount(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "returnExpectedJointCount('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
 	def __func__(self,*args,**kws):
@@ -1234,22 +1163,33 @@ def validateStateArg(*args,**kws):
 	    
     return fncWrap(*args,**kws).go()    
 
-def isModule(self):
-    """
-    Simple module check
-    """
-    _str_funcName = "isModule()"  
-    log.debug(">>> %s "%(_str_funcName) + "="*75)   
-    try:self.mNode
-    except:raise StandardError,"NOT AN INSTANCE | self: %s "%(self)
-    if not self.hasAttr('mClass'):
-        log.warning("Has no 'mClass', not a module: '%s'"%self.getShortName())
-        return False
-    if self.mClass not in __l_modulesClasses__:
-        log.warning("Class not a known module type: '%s'"%self.mClass)
-        return False  
-    log.debug("Is a module: : '%s'"%self.getShortName())
-    return True
+def isModule(*args,**kws):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args,**kws):
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcHelp = "Simple module check"	
+	    self._str_funcName = "isModule"
+	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG]	    
+	    self.__dataBind__(*args,**kws)
+	    self.l_funcSteps = [{'step':'Gather Info','call':self._query_},
+	                        {'step':'process','call':self._process_}]
+
+	def _query_(self):
+	    try:self._str_moduleName = self.d_kws['mModule'].p_nameShort	
+	    except:raise StandardError,"[mi_module : %s]{Not an cgmNode, can't be a module!} "%(self.d_kws['mModule'])
+	    self._str_funcName = "isModule('%s')"%self._str_moduleName	
+	    self.__updateFuncStrings__()
+	    
+	def _process_(self):
+	    mi_module = self.d_kws['mModule']
+	    if not mi_module.hasAttr('mClass'):
+		self.log_error("Has no 'mClass'")
+		return False
+	    if mi_module.mClass not in __l_modulesClasses__:
+		self.log_error("Class not a known module type: '%s'"%mi_module.mClass)
+		return False  
+	    return True
+    return fncWrap(*args,**kws).go()
 
 def getState(*args,**kws):
     """ 
@@ -1270,7 +1210,7 @@ def getState(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "getState(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "getState('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
 	def __func__(self,*args,**kws):
@@ -1303,7 +1243,7 @@ def SampleFunc(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "testFunc(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "testFunc('%s')"%self._str_moduleName	
 	    
 	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] )		
 	    self.__dataBind__(*args,**kws)	
@@ -1332,7 +1272,7 @@ def setState(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "setState(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "setState('%s')"%self._str_moduleName	
 	    
 	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
 	                                       {'kw':'rebuildFrom',"default":None,'help':"State to rebuild from","argType":"int/string"}] )		
@@ -1367,7 +1307,7 @@ def checkState(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "checkState(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "checkState('%s')"%self._str_moduleName	
 	    
 	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
 	                                       ] )		
@@ -1403,7 +1343,7 @@ def changeState(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "changeState(%s)"%self.mi_module.p_nameShort	
+	    self._str_funcName= "changeState('%s')"%self._str_moduleName	
 	    
 	    self._l_ARGS_KWS_DEFAULTS.extend( [{'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
 	                                       {'kw':'rebuildFrom',"default":None,'help':"State to rebuild from","argType":"int/string"},
@@ -1502,7 +1442,7 @@ def storePose_templateSettings(self):
     exampleDict = {'root':{'test':[0,1,0]},
                 'controlObjects':{0:[1,1,1]}}
     """  
-    _str_funcName = "storePose_templateSettings(%s)"%self.p_nameShort  
+    _str_funcName = "storePose_templateSettings('%s')"%self.p_nameShort  
     log.info(">>> %s "%(_str_funcName) + "="*75)   
     
     if self.getMessage('helper'):
@@ -1550,7 +1490,7 @@ def readPose_templateSettings(self):
     exampleDict = {'root':{'test':[0,1,0]},
                 'controlObjects':{0:[1,1,1]}}
     """   
-    _str_funcName = "getState(%s)"%self.p_nameShort   
+    _str_funcName = "getState('%s')"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)       
     try:
 	i_templateNull = self.templateNull    
@@ -1607,7 +1547,7 @@ def get_mirror(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = 'get_mirror(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "get_mirror('%s')"%self._str_moduleName
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
@@ -1642,7 +1582,7 @@ def mirrorPush(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = 'mirrorPush(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "mirrorPush('%s')"%self._str_moduleName
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #=================================================================
@@ -1668,7 +1608,7 @@ def mirrorPull(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = 'mirrorPull(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "mirrorPull('%s')"%self._str_moduleName
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
@@ -1696,7 +1636,7 @@ def mirrorMe(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = 'mirrorMe(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "mirrorMe('%s')"%self._str_moduleName
 	    self.__dataBind__(*args,**kws)
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
@@ -1721,7 +1661,7 @@ def mirrorSymLeft(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = 'mirrorSymLeft(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "mirrorSymLeft('%s')"%self._str_moduleName
 	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	def __func__(self): 
@@ -1739,7 +1679,7 @@ def mirrorSymRight(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = 'mirrorSymRight(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "mirrorSymRight('%s')"%self._str_moduleName
 	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	def __func__(self): 
@@ -1760,7 +1700,7 @@ def mirrorMe_siblings(moduleInstance = None, excludeSelf = True):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'mirrorMe_siblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "mirrorMe_siblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
@@ -1805,7 +1745,7 @@ def animReset_siblings(moduleInstance = None, transformsOnly = True, excludeSelf
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'animReset_siblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "animReset_siblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['excludeSelf'] = excludeSelf	  
 	    self.d_kws['transformsOnly'] = transformsOnly	    	    	    
@@ -1847,7 +1787,7 @@ def animReset_children(moduleInstance = None, transformsOnly = True, excludeSelf
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'animReset_siblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "animReset_siblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['excludeSelf'] = excludeSelf	  
 	    self.d_kws['transformsOnly'] = transformsOnly	    	    	    
@@ -1888,7 +1828,7 @@ def mirrorPush_siblings(moduleInstance = None, excludeSelf = True):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'mirrorPush_siblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "mirrorPush_siblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
@@ -1924,7 +1864,7 @@ def mirrorPull_siblings(moduleInstance = None, excludeSelf = True):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'mirrorPull_siblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "mirrorPull_siblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
@@ -1963,7 +1903,7 @@ def getSiblings(moduleInstance = None, excludeSelf = True):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'getSiblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "getSiblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
@@ -1994,7 +1934,7 @@ def getAllModuleChildren(moduleInstance = None,excludeSelf = True):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'getAllModuleChildren(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "getAllModuleChildren('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
@@ -2034,7 +1974,7 @@ def animKey_children(self,**kws):
     """
     Key module and all module children controls
     """   
-    _str_funcName = "animKey_children(%s)"%self.p_nameShort   
+    _str_funcName = "animKey_children('%s')"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)         
     try:
 	l_controls = self.rigNull.msgList_getMessage('controlsAll') or []
@@ -2064,7 +2004,7 @@ def animKey_siblings(moduleInstance = None, excludeSelf = True,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'animKey_siblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "animKey_siblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
@@ -2079,7 +2019,7 @@ def animKey_siblings(moduleInstance = None, excludeSelf = True,**kws):
 		for i,i_c in enumerate(ml_buffer):
 		    log.info(i_c.p_nameShort)
 		    try:
-			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self.mi_module.p_nameShort,i_c.p_nameShort), progress=i)    				        			
+			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self._str_moduleName,i_c.p_nameShort), progress=i)    				        			
 			l_controls.extend(i_c.rigNull.moduleSet.getList())
 		    except Exception,error:
 			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
@@ -2102,7 +2042,7 @@ def animSelect_children(self,**kws):
     """
     Select module and all module children controls
     """     
-    _str_funcName = "animSelect_children(%s)"%self.p_nameShort   
+    _str_funcName = "animSelect_children('%s')"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)        
     try:
 	l_controls = self.rigNull.msgList_getMessage('controlsAll') or []
@@ -2131,7 +2071,7 @@ def animSelect_siblings(moduleInstance = None, excludeSelf = True):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'animSelect_siblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "animSelect_siblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
@@ -2170,7 +2110,7 @@ def animPushPose_siblings(moduleInstance = None,):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'animPushPose_siblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "animPushPose_siblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
@@ -2212,7 +2152,7 @@ def dynSwitch_children(self,arg):
     """
     Key module and all module children
     """  
-    _str_funcName = "dynSwitch_children(%s)"%self.p_nameShort   
+    _str_funcName = "dynSwitch_children('%s')"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)   
     try:
 	try:
@@ -2239,7 +2179,7 @@ def dynSwitch_siblings(moduleInstance = None, arg = None, excludeSelf = True):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'dynSwitch_siblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "dynSwitch_siblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['arg'] = arg	    	    	    
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    
@@ -2253,7 +2193,7 @@ def dynSwitch_siblings(moduleInstance = None, arg = None, excludeSelf = True):
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))    
 		for i,i_c in enumerate(ml_buffer):
 		    try:
-			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self.mi_module.p_nameShort,i_c.p_nameShort), progress=i)    				        			
+			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self._str_moduleName,i_c.p_nameShort), progress=i)    				        			
 			i_c.rigNull.dynSwitch.go(self.d_kws['arg'])
 		    except Exception,error:
 			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
@@ -2268,7 +2208,7 @@ def dynSwitch_siblings(moduleInstance = None, arg = None, excludeSelf = True):
     return fncWrap(moduleInstance,arg,excludeSelf).go()
   
 def get_mirrorSideAsString(self):
-    _str_funcName = "get_mirrorSideAsString(%s)"%self.p_nameShort   
+    _str_funcName = "get_mirrorSideAsString('%s')"%self.p_nameShort   
     log.debug(">>> %s "%(_str_funcName) + "="*75)   
     try:
 	_str_direction = self.getAttr('cgmDirection') 
@@ -2285,7 +2225,7 @@ def toggle_subVis(moduleInstance = None):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'toggle_subVis(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "toggle_subVis('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
@@ -2312,7 +2252,7 @@ def animSetAttr_children(moduleInstance = None, attr = None, value = None, setti
 	    """
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = 'animReset_siblings(%s)'%self.mi_module.p_nameShort
+	    self._str_funcName = "animReset_siblings('%s')"%self._str_moduleName
 	    self.__dataBind__()
 	    self.d_kws['excludeSelf'] = excludeSelf	
 	    self.d_kws['attr'] = attr	  
@@ -2331,9 +2271,9 @@ def animSetAttr_children(moduleInstance = None, attr = None, value = None, setti
 		    try:
 			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,mModule.p_nameShort), progress=i)    				        			
 			if self.d_kws['settingsOnly']:
-			    mi_rigNull = mModule.rigNull
-			    if mi_rigNull.getMessage('settings'):
-				mi_rigNull.settings.__setattr__(self.d_kws['attr'],self.d_kws['value'])
+			    mmi_rigNull = mModule.rigNull
+			    if mmi_rigNull.getMessage('settings'):
+				mmi_rigNull.settings.__setattr__(self.d_kws['attr'],self.d_kws['value'])
 			else:
 			    for o in mModule.rigNull.moduleSet.getList():
 				attributes.doSetAttr(o,self.d_kws['attr'],self.d_kws['value'])
