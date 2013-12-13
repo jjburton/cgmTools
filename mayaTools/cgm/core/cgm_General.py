@@ -95,6 +95,8 @@ class cgmFuncCls(object):
 				 {'kw':'f_offset',"default":1.0},
 				 {'kw':'orientation',"default":'zyx'}]
 				 
+    Don't:
+    -- append to self._l_ARGS_KWS_DEFAULTS -- causes pass through issues with *args
     """
     def __init__(self,*args, **kws):
         self._str_funcClass = None
@@ -124,6 +126,12 @@ class cgmFuncCls(object):
 	                     '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
 	self._l_kwMask = ['reportTimes','reportShow','autoProgressBar']
+    def __updateFuncStrings__(self):
+	self._str_funcCombined = self._str_funcName
+	try:self._str_funcName = "%s - from %s"%(self._str_funcName,kws['calledFrom'])
+	except:pass
+	self._str_progressBarReportStart = self._str_funcCombined
+	self._str_reportStart = " %s >> "%(self._str_funcName)
 	
     def __dataBind__(self,*args,**kws):
 	try:self._l_funcArgs = args
@@ -134,20 +142,26 @@ class cgmFuncCls(object):
 	except:self._str_funcArgs = None
 	try:self._str_funcKWs = str(kws)
 	except:self._str_funcKWs = None
-	self._str_funcCombined = self._str_funcName
-	try:self._str_funcName = "%s - from %s"%(self._str_funcName,kws['calledFrom'])
-	except:pass
-	self._str_progressBarReportStart = self._str_funcCombined
-	self._str_reportStart = " %s >> "%(self._str_funcName)
 	
+	self.__updateFuncStrings__()
+		
 	#KW/ARG handling
 	#Built our data sets
 	if self._l_ARGS_KWS_DEFAULTS:
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
-		try:self.d_kws[d_buffer['kw']] = args[ i ]#First we try the arg index
-		except:
-		    try:self.d_kws[d_buffer['kw']] = kws[d_buffer['kw']]#Then we try a kw call
-		    except:self.d_kws[d_buffer['kw']] = d_buffer.get("default")#Lastly, we use the default value	
+		str_kw = d_buffer['kw']		
+		#self.log_info("Checking: [%s]"%(str_kw))		
+		if not self.d_kws.has_key(str_kw):
+		    #First check kws
+		    try:self.d_kws[str_kw] = kws[str_kw]#Then we try a kw call
+		    except:
+			try:
+			    self.d_kws[d_buffer['kw']] = args[ i ]#First we try the arg index			
+			except:
+			    #self.log_info("Using default [%s] = %s"%(str_kw,d_buffer.get("default")))
+			    self.d_kws[str_kw] = d_buffer.get("default")#Lastly, we use the default value	
+		else:
+		    self.log_info("Has key [%s] = %s"%(str_kw,self.d_kws[str_kw]))
 	l_storedKeys = self.d_kws.keys()
 	for kw in kws:
 	    try:
@@ -170,8 +184,8 @@ class cgmFuncCls(object):
 	"""
 	"""
 	if self.d_kws.get('printHelp'):
-	    self.printHelpBlock()
-	    return   
+	    self.printHelp()
+	    return   		
 	t_start = time.clock()
 	try:
 	    if not self.l_funcSteps: self.l_funcSteps = [{'call':self.__func__}]
@@ -253,7 +267,7 @@ class cgmFuncCls(object):
 	    buffer = self.d_return.get(k)
 	    if buffer:
 		return buffer
-	return self.d_return
+	if self.d_return:return self.d_return
     
     def report(self):
 	self.getModuleData()
@@ -318,7 +332,7 @@ class cgmFuncCls(object):
 		l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
 		log.info(" | ".join(l_build))
     
-    def printHelpBlock(self):
+    def printHelp(self):
 	self.getModuleData()		
 	print("#" + ">"*3 + " %s "%self._str_funcCombined + "="*50)
 	print("Python Module: %s "%self._str_modPath)	 
