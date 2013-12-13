@@ -363,45 +363,54 @@ class cgmPuppet(cgmMeta.cgmNode):
 
         return True
     
-    def getGeo(self):
-        return pFactory.getGeo(self)
-    def getUnifiedGeo(self):
-        return pFactory.getUnifiedGeo(self)
+    def getGeo(self,*args,**kws):
+	kws['puppet'] = self
+        return pFactory.getGeo(*args,**kws)
+    
+    def getUnifiedGeo(self,*args,**kws):
+	kws['puppet'] = self	
+        return pFactory.getUnifiedGeo(*args,**kws)
     
     def getModuleFromDict(self,*args,**kws):
 	"""
 	Pass a check dict of attributes and arguments. If that module is found, it returns it.
 	checkDict = {'moduleType':'torso',etc}
 	"""
-	return pFactory.getModuleFromDict(self,*args,**kws)
+	kws['puppet'] = self	
+	return pFactory.getModuleFromDict(*args,**kws)
     
-    def getModules(self):
+    def getModules(self,*args,**kws):
 	"""
 	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
 	"""
-	return pFactory.getModules(self)
+	kws['puppet'] = self	
+	return pFactory.getModules(*args,**kws)   
     
-    def getOrderedModules(self):
+    def getOrderedModules(self,*args,**kws):
 	"""
 	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
 	"""
-	return pFactory.getOrderedModules(self)
+	kws['puppet'] = self		
+	return pFactory.getOrderedModules(*args,**kws)
     
-    def get_mirrorIndexDict(self):
+    def get_mirrorIndexDict(self,*args,**kws):
 	"""
 	"""
-	return pFactory.get_mirrorIndexDict(self)
+	kws['puppet'] = self			
+	return pFactory.get_mirrorIndexDict(*args,**kws)
     
     def get_nextMirrorIndex(self,side = None):
 	"""
 	"""
 	return pFactory.get_nextMirrorIndex(self,side)    
     
-    def gatherModules(self):
+    def gatherModules(self,*args,**kws):
 	"""
 	Gathers all connected module children to the puppet
 	"""
-	return pFactory.gatherModules(self)
+	kws['puppet'] = self
+	return pFactory.gatherModules(*args,**kws)    
+    
     def getState(self):
 	"""
 	Returns puppet state. That is the minimum state of it's modules
@@ -436,11 +445,13 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
 	    return False
 	
-    def mirrorMe(self):
-	return pFactory.mirrorMe(self).go()
-
-    def anim_reset(self,transformsOnly = True):
-	return pFactory.animReset(self,transformsOnly = transformsOnly).go()
+    def mirrorMe(self,*args,**kws):
+	kws['puppet'] = self			
+	return pFactory.mirrorMe(*args,**kws)
+    
+    def anim_reset(self,*args,**kws):
+	kws['puppet'] = self			
+	return pFactory.animReset(*args,**kws)
     
     def anim_select(self):
 	_str_funcName = "%s.anim_select()"%self.p_nameShort  
