@@ -271,7 +271,6 @@ class cgmPuppet(cgmMeta.cgmNode):
 	if self.isReferenced():
 	    log.error("'%s' is referenced. Cannot change name"%self.mNode)
 	    return False
-	
 	mc.rename(self.mNode,nameTools.returnCombinedNameFromDict(self.getNameDict()))
 	    
     def delete(self):
@@ -364,11 +363,11 @@ class cgmPuppet(cgmMeta.cgmNode):
         return True
     
     def getGeo(self,*args,**kws):
-	kws['puppet'] = self
+	kws['mPuppet'] = self
         return pFactory.getGeo(*args,**kws)
     
     def getUnifiedGeo(self,*args,**kws):
-	kws['puppet'] = self	
+	kws['mPuppet'] = self	
         return pFactory.getUnifiedGeo(*args,**kws)
     
     def getModuleFromDict(self,*args,**kws):
@@ -376,51 +375,56 @@ class cgmPuppet(cgmMeta.cgmNode):
 	Pass a check dict of attributes and arguments. If that module is found, it returns it.
 	checkDict = {'moduleType':'torso',etc}
 	"""
-	kws['puppet'] = self	
+	kws['mPuppet'] = self	
 	return pFactory.getModuleFromDict(*args,**kws)
     
     def getModules(self,*args,**kws):
 	"""
 	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
 	"""
-	kws['puppet'] = self	
+	kws['mPuppet'] = self	
 	return pFactory.getModules(*args,**kws)   
     
     def getOrderedModules(self,*args,**kws):
 	"""
 	Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
 	"""
-	kws['puppet'] = self		
+	kws['mPuppet'] = self		
 	return pFactory.getOrderedModules(*args,**kws)
     
     def get_mirrorIndexDict(self,*args,**kws):
 	"""
 	"""
-	kws['puppet'] = self			
+	kws['mPuppet'] = self			
 	return pFactory.get_mirrorIndexDict(*args,**kws)
     
-    def get_nextMirrorIndex(self,side = None):
+    def get_nextMirrorIndex(self,*args,**kws):
 	"""
 	"""
-	return pFactory.get_nextMirrorIndex(self,side)    
+	kws['mPuppet'] = self			
+	return pFactory.get_nextMirrorIndex(*args,**kws) 
     
     def gatherModules(self,*args,**kws):
 	"""
 	Gathers all connected module children to the puppet
 	"""
-	kws['puppet'] = self
+	kws['mPuppet'] = self
 	return pFactory.gatherModules(*args,**kws)    
     
-    def getState(self):
+    def getState(self,*args,**kws):
 	"""
 	Returns puppet state. That is the minimum state of it's modules
 	"""
-	return pFactory.getState(self) 
+	kws['mPuppet'] = self	
+	return pFactory.getState(*args,**kws) 
     
     #>>> Animation
     #========================================================================
-    def animSetAttr(self,attr = None, value = None, settingsOnly = False):
-	return pFactory.animSetAttr(self,attr, value, settingsOnly)
+    def animSetAttr(self,*args,**kws):
+	kws['mPuppet'] = self
+	return pFactory.animSetAttr(*args,**kws) 
+    
+	#return pFactory.animSetAttr(self,attr, value, settingsOnly)
     
     def toggle_subVis(self):
 	try:
@@ -446,11 +450,11 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    return False
 	
     def mirrorMe(self,*args,**kws):
-	kws['puppet'] = self			
+	kws['mPuppet'] = self			
 	return pFactory.mirrorMe(*args,**kws)
     
     def anim_reset(self,*args,**kws):
-	kws['puppet'] = self			
+	kws['mPuppet'] = self			
 	return pFactory.animReset(*args,**kws)
     
     def anim_select(self):
@@ -583,8 +587,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	i_geoGroup.overrideEnabled = 1		
 	cgmMeta.cgmAttr(i_settings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(i_settings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))    
-	
-	
+
 	return True
     
 class cgmMorpheusPuppet(cgmPuppet):
