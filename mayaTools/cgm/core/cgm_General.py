@@ -100,6 +100,7 @@ class cgmFuncCls(object):
         self._str_funcClass = None
 	self._str_funcCombined = None
         self._str_funcName = None
+        self._str_funcHelp = None	
 	self._str_progressBar = None
         self._str_funcDebug = None
 	self._b_WIP = False
@@ -114,11 +115,13 @@ class cgmFuncCls(object):
 	self._l_funcTimes = []
 	#These are our mask so that the fail report ignores them
 	self._l_reportMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
-	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
-	                     '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
+	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar',
+	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
+	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
 	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
-	                    '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
-	                    '_str_mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
+	                     '_b_autoProgressBar','_b_reportTimes','_str_progressBar',	                     
+	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
+	                     '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
 	self._l_kwMask = ['reportTimes','reportShow','autoProgressBar']
 	
@@ -319,6 +322,7 @@ class cgmFuncCls(object):
 	self.getModuleData()		
 	print("#" + ">"*3 + " %s "%self._str_funcCombined + "="*50)
 	print("Python Module: %s "%self._str_modPath)	 
+	if self._str_funcHelp is not None:print("%s "%self._str_funcHelp)	 
 	if self._l_ARGS_KWS_DEFAULTS:
 	    print("@kws")	  	    	    
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
@@ -420,6 +424,44 @@ class cgmFuncCls(object):
 		    log.warning("Key not found or not dict: %s | %s"%(atr,error))
 	except:pass
 	
+    def get_cleanKWS(self):
+	"""
+	Fuction to return the _d_funcKWS cleaned of all registered arg 'kws'. Useful for using kws as a pass through for other things
+	"""
+	try:
+	    d_kws = copy.copy(self._d_funcKWs)
+	    for arg in self._l_ARGS_KWS_DEFAULTS:
+		str_key = arg['kw']
+		if str_key in d_kws.keys():d_kws.pop(str_key)
+	    self.log_info("Clean kws : %s" %d_kws)
+	    return d_kws
+	except Exception, error:
+	    log.error("[%s | func: get_cleanKWS]{%s}"%(self._str_funcName,error))
+	    return {}
+	
+def verify_mirrorSideArg(*args,**kws):
+    class fncWrap(cgmFuncCls):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = 'cgmGeneral.verify_mirrorSideArg'
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'str_side',"default":None,'help':"The side to validate","argType":"str"}] 	    
+	    self.__dataBind__(*args,**kws)
+	def __func__(self):
+	    arg = self.d_kws['str_side']
+	    if arg is None:
+		self.log_error("str_side cannot be None")
+		return False
+	    try:
+		if arg.lower() in ['right','left']:
+		    return arg.capitalize()
+		elif arg.lower() in ['center','centre']:
+		    return 'Centre'
+		else:raise StandardError,"Failed to find match"
+	    except Exception,error:raise StandardError,"[ str_side: %s]{%s}"%(arg,error)	
+    return fncWrap(*args,**kws).go()	
+
 #>>> Sub funcs ==============================================================================
 def subTimer(func):
     '''
