@@ -253,11 +253,13 @@ class cgmFuncCls(object):
 	if self._b_WIP or self.d_kws.get('reportShow'):
 	    self.report()	
 	if self._b_reportTimes:
-	    log.info("%s Step Times >> "%self._str_funcCombined + '-'*70)			    	    
-	    if int_max != 0:
-		for pair in self._l_funcTimes:
-		    log.info(" - '%s' >>  %s " % (pair[0],pair[1]))				 
-	    log.info("Total >> = %0.3f seconds " % ((time.clock()-t_start)))		
+	    if int_lenSteps > 1:
+		log.info("%s Step Times >> "%self._str_funcCombined + '-'*70)			    	    
+		if int_max != 0:
+		    for pair in self._l_funcTimes:
+			log.info(" - '%s' >>  %s " % (pair[0],pair[1]))				 
+		log.info("Total >> = %0.3f seconds " % ((time.clock()-t_start)))
+	    else:log.info("%s Total >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)))
 	if int_max == 0:#If it's a one step, return, return the single return
 	    try:return self.d_return[self.d_return.keys()[0]]
 	    except:pass
@@ -371,13 +373,16 @@ class cgmFuncCls(object):
 	except:pass	
     def log_error(self,arg):
 	try:
-	    log.error("%s%s"%(self._str_reportStart,str(arg)))
+	    log.error("[ERROR]%s%s"%(self._str_reportStart,str(arg)))
 	except:pass
     def log_warning(self,arg):
 	try:
-	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
+	    log.warning("[WARNING]%s%s"%(self._str_reportStart,str(arg)))
 	except:pass	
-	
+    def log_debug(self,arg):
+	try:
+	    log.debug("[DEBUG]%s%s"%(self._str_reportStart,str(arg)))
+	except:pass	
     #>>> Progress bar stuff =====================================================================
     def progressBar_start(self,stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = False):
 	str_bfr = statusMessage
