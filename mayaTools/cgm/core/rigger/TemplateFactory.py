@@ -49,7 +49,7 @@ reload(mShapeCast)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
     #@r9General.Timer
-    def __init__(self,module,forceNew = True,loadTemplatePose = True,tryTemplateUpdate = False, geo = None, **kws): 
+    def __init__(self,mModule = None,forceNew = True,loadTemplatePose = True,tryTemplateUpdate = False, geo = None, **kws): 
         """
         To do:
         Add rotation order settting
@@ -60,8 +60,8 @@ class go(object):
         # Get our base info
         #==============	        
         #>>> module null data 
-        assert module.isModule(),"Not a module"
-        self.m = module# Link for shortness	
+        assert mModule.isModule(),"Not a module"
+        self.m = mModule# Link for shortness	
 	_str_funcName = "go.__init__(%s)"%self.m.p_nameShort  
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
 	
@@ -82,8 +82,8 @@ class go(object):
 	try:#Geo -------------------------------------------------------------------------------------------
 	    if geo is None:
 		try:
-		    if not module.modulePuppet.getUnifiedGeo():raise StandardError, "go>>> Module puppet missing geo"
-		    else:geo = module.modulePuppet.getUnifiedGeo()[0]
+		    if not mModule.modulePuppet.getUnifiedGeo():raise StandardError, "go>>> Module puppet missing geo"
+		    else:geo = mModule.modulePuppet.getUnifiedGeo()[0]
 		except StandardError,error:log.warning("geo failed to find: %s"%(error) + "="*75)  
 	    cgmValid.objString(geo,noneValid=True)
 	except StandardError,error:log.warning(">>> %s.go >> geo failed : %s"%(self.m.p_nameShort,error))  
@@ -98,11 +98,11 @@ class go(object):
                     self.m.loadTemplatePose()                
                 return
         
-        if module.isTemplated():
+        if mModule.isTemplated():
             if forceNew:
-                module.deleteTemplate()
+                mModule.deleteTemplate()
             else:
-                log.warning("'%s' has already been templated"%module.getShortName())
+                log.warning("'%s' has already been templated"%mModule.getShortName())
                 return
         
         self.cls = "TemplateFactory.go"
@@ -125,7 +125,7 @@ class go(object):
         self.partName = self.m.getPartNameBase()
         self.partType = self.m.moduleType or False
         self._partName = self.m.getPartNameBase()
-        self._strShortName = self._i_module.getShortName() or False    
+        self._strShortName = self.m.getShortName() or False    
 	
         self.direction = None
         if self.m.hasAttr('cgmDirection'):
