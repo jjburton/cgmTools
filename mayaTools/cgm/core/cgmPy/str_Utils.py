@@ -40,7 +40,6 @@ d_functionStringSwaps = {'.':'_attr_', ' ':'',',':'_',
                          '==':'_isEqualTo_','!=':'_isNotEqualTo_','>':'_isGreaterThan_','>=':'_isGreaterOrEqualTo_','<':'_isLessThan_','<=':'_isLessThanOrEqualTo_',#condition
                          '*':'_multBy_','/':'_divBy_','^':'_pow_',}#md
 
-@cgmGeneral.TimerDebug
 def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?><., """,
                       functionSwap = True, replaceChar = '', cleanDoubles = True, stripTailing=True):
 	"""
