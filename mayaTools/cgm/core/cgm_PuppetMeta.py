@@ -1667,20 +1667,22 @@ class cgmModule(cgmMeta.cgmObject):
 
         module(string)
         """
-        mFactory.doSetParentModule(self,*args,**kws)
+	kws['mModule'] = self
+        mFactory.doSetParentModule(*args,**kws)
 
     def getGeneratedCoreNames(self,*args,**kws):
         return mFactory.getGeneratedCoreNames(self,*args,**kws)
     
-    def isModule(self,*args,**kws):
+    def isModule(self,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isModule)
         """
-        return mFactory.isModule(self,*args,**kws)
+        return mFactory.isModule(self,**kws)
     
     def get_mirrorSideAsString(self,*args,**kws):
-        return mFactory.get_mirrorSideAsString(self,*args,**kws)    
+	kws['mModule'] = self	
+        return mFactory.get_mirrorSideAsString(*args,**kws)    
     
     #>>> States
     #===========================================================
@@ -1689,21 +1691,24 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.getState)
         """
-        return mFactory.getState(self,*args,**kws)
+	kws['mModule'] = self	
+        return mFactory.getState(*args,**kws)
     
     def setState(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.setState)
         """
-        return mFactory.setState(self,*args,**kws)
+	kws['mModule'] = self	
+        return mFactory.setState(*args,**kws)
     
     def stateCheck(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.checkState)
         """
-        return mFactory.checkState(self,*args,**kws)	
+	kws['mModule'] = self	
+        return mFactory.checkState(*args,**kws)	
     
     #>>> Sizing
     #===========================================================
@@ -1712,13 +1717,15 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.doSize)
         """
-        return mFactory.doSize(self,*args,**kws)
+	kws['mModule'] = self	
+        return mFactory.doSize(*args,**kws)
     def isSized(self,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isSized)
         """
-        return mFactory.isSized(self,**kws)  
+	kws['mModule'] = self	
+        return mFactory.isSized(**kws)  
     
     #>>> Templates
     #===========================================================    
@@ -1727,35 +1734,40 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isTemplated)
         """
-        return mFactory.isTemplated(self,*args,**kws)
+	kws['mModule'] = self	
+        return mFactory.isTemplated(*args,**kws)
     
     def doTemplate(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.doTemplate)
         """
-        return mFactory.doTemplate(self,*args,**kws)
+	kws['mModule'] = self	
+        return mFactory.doTemplate(*args,**kws)
     
     def deleteTemplate(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.deleteTemplate)
         """
-        return mFactory.deleteTemplate(self,*args,**kws) 
+	kws['mModule'] = self	
+        return mFactory.deleteTemplate(*args,**kws) 
     
     def storeTemplatePose(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.storePose_templateSettings)
         """
-        return mFactory.storePose_templateSettings(self,*args,**kws)   
+	kws['mModule'] = self	
+        return mFactory.storePose_templateSettings(*args,**kws)   
     
     def loadTemplatePose(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.readPose_templateSettings)
         """
-        return mFactory.readPose_templateSettings(self,*args,**kws)   
+	kws['mModule'] = self	
+        return mFactory.readPose_templateSettings(*args,**kws)   
     
     #>>> Skeletonize
     #===========================================================  
@@ -1764,7 +1776,8 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isSkeletonized)
         """
-        return mFactory.isSkeletonized(self,*args,**kws)
+	kws['mModule'] = self	
+        return mFactory.isSkeletonized(*args,**kws)
     
     def doSkeletonize(self,*args,**kws):
         """
@@ -1777,7 +1790,8 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.deleteSkeleton)
         """
-        return mFactory.deleteSkeleton(self,*args,**kws)
+	kws['mModule'] = self	
+        return mFactory.deleteSkeleton(*args,**kws)
     
     #>>> Rig
     #===========================================================
@@ -1786,42 +1800,48 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.doRig)
         """
-        return mFactory.doRig(self,*args,**kws)
+	kws['mModule'] = self	
+        return mFactory.doRig(*args,**kws)
     
     def isRigged(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isRigged)
         """
-        return mFactory.isRigged(self,*args,**kws)  
+	kws['mModule'] = self	
+        return mFactory.isRigged(*args,**kws)  
     
     def isRigConnected(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.isRigConnected)
         """
-        return mFactory.isRigConnected(self,*args,**kws)  
+	kws['mModule'] = self	
+        return mFactory.isRigConnected(*args,**kws)  
     
     def rigConnect(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rigConnect)
         """
-        return mFactory.rigConnect(self,*args,**kws) 
+	kws['mModule'] = self	
+        return mFactory.rigConnect(*args,**kws) 
     
     def rigDisconnect(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rigDisconnect)
         """
-        return mFactory.rigDisconnect(self,*args,**kws)  
+	kws['mModule'] = self	
+        return mFactory.rigDisconnect(*args,**kws)  
     
     def rigDelete(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rigDisconnect)
         """
-        return mFactory.rigDelete(self,*args,**kws)     
+	kws['mModule'] = self	
+        return mFactory.rigDelete(*args,**kws)     
     
     def rig_getReport(self):
         """
@@ -1835,28 +1855,32 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rig_getSkinJoints)
         """
-        return mFactory.rig_getSkinJoints(self,*args,**kws)  
+	kws['mModule'] = self	
+        return mFactory.rig_getSkinJoints(*args,**kws)  
     
     def rig_getHandleJoints(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rig_getHandleJoints)
         """
-        return mFactory.rig_getHandleJoints(self,*args,**kws)
+	kws['mModule'] = self	
+        return mFactory.rig_getHandleJoints(*args,**kws)
     
     def rig_getRigHandleJoints(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.rig_getRigHandleJoints)
         """
-        return mFactory.rig_getRigHandleJoints(self,*args,**kws)      
+	kws['mModule'] = self	
+        return mFactory.rig_getRigHandleJoints(*args,**kws)      
     
     def get_rollJointCountList(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.get_rollJointCountList)
         """
-        return mFactory.get_rollJointCountList(self,*args,**kws)     
+	kws['mModule'] = self	
+        return mFactory.get_rollJointCountList(*args,**kws)     
     
     #>>> Animation
     #========================================================================
@@ -1883,54 +1907,77 @@ class cgmModule(cgmMeta.cgmObject):
 	    log.error("%s.animSelect>> animSelect fail | %s"%(self.getBaseName(),error))
 	    return False
 
-    def animReset(self,transformsOnly = True):
-	return mFactory.animReset(self,transformsOnly = transformsOnly)
-    def mirrorMe(self,**kws):
-	return mFactory.mirrorMe(self,**kws)
+    def animReset(self,*args, **kws):
+	kws['mModule'] = self		
+	return mFactory.animReset(self,*args, **kws)
+    def mirrorMe(self,*args,**kws):
+	kws['mModule'] = self	
+	return mFactory.mirrorMe(self,*args, **kws)
+    
     def mirrorPush(self,**kws):
-	return mFactory.mirrorPush(self,**kws)
+	kws['mModule'] = self	
+	return mFactory.mirrorPush(**kws)
     def mirrorPull(self,**kws):
-	return mFactory.mirrorPull(self,**kws)
+	kws['mModule'] = self	
+	return mFactory.mirrorPull(**kws)
     def getMirror(self,**kws):
-	return mFactory.get_mirror(self,**kws)
+	kws['mModule'] = self	
+	return mFactory.get_mirror(**kws)
     def mirrorLeft(self,**kws):
-	return mFactory.mirrorSymLeft(self,**kws)
+	kws['mModule'] = self	
+	return mFactory.mirrorSymLeft(**kws)
     def mirrorRight(self,**kws):
-	return mFactory.mirrorSymRight(self,**kws)    
+	kws['mModule'] = self	
+	return mFactory.mirrorSymRight(**kws)    
     #>>> Module Children
     #========================================================================
-    def getAllModuleChildren(self):
-	return mFactory.getAllModuleChildren(self)  
+    def getAllModuleChildren(self,*args, **kws):
+	kws['mModule'] = self	
+	return mFactory.getAllModuleChildren(self,*args,**kws)  
     def animReset_children(self,transformsOnly = False, excludeSelf = False,**kws):
-	return mFactory.animReset_children(self,transformsOnly,excludeSelf,**kws)   
+	kws['mModule'] = self		
+	return mFactory.animReset_children(transformsOnly,excludeSelf,**kws)   
     def animKey_children(self,**kws):
-	return mFactory.animKey_children(self,**kws)
+	kws['mModule'] = self		
+	return mFactory.animKey_children(**kws)
     def animSelect_children(self,**kws):
-	return mFactory.animSelect_children(self,**kws)
+	kws['mModule'] = self		
+	return mFactory.animSelect_children(**kws)
 
-    def dynSwitch_children(self,arg):
-	return mFactory.dynSwitch_children(self,arg)
+    def dynSwitch_children(self,arg,**kws):
+	kws['mModule'] = self		
+	return mFactory.dynSwitch_children(self,arg,**kws)
     def animSetAttr_children(self,attr = None, value = None, settingsOnly = False, excludeSelf = True):
+	#kws['mModule'] = self			
 	return mFactory.animSetAttr_children(self,attr, value, settingsOnly, excludeSelf)
     #>>> Module Siblings
     #========================================================================  
-    def getModuleSiblings(self):
-	return mFactory.getSiblings(self)    
+    def getModuleSiblings(self,*args,**kws):
+	kws['mModule'] = self			
+	return mFactory.getSiblings(*args,**kws)    
     def animReset_siblings(self,transformsOnly = False, excludeSelf = False,**kws):
-	return mFactory.animReset_siblings(self,transformsOnly,excludeSelf,**kws)     
+	kws['mModule'] = self				
+	return mFactory.animReset_siblings(transformsOnly,excludeSelf,**kws)     
     def mirrorMe_siblings(self,excludeSelf = False,**kws):
-	return mFactory.mirrorMe_siblings(self,excludeSelf,**kws) 
+	kws['mModule'] = self				
+	return mFactory.mirrorMe_siblings(excludeSelf,**kws) 
     def mirrorPull_siblings(self,excludeSelf = False,**kws):
-	return mFactory.mirrorPull_siblings(self,excludeSelf,**kws) 
+	kws['mModule'] = self				
+	return mFactory.mirrorPull_siblings(excludeSelf,**kws) 
     def mirrorPush_siblings(self,excludeSelf = False,**kws):
-	return mFactory.mirrorPush_siblings(self,excludeSelf,**kws) 
+	kws['mModule'] = self				
+	return mFactory.mirrorPush_siblings(excludeSelf,**kws) 
     def animPushPose_siblings(self,**kws):
-	return mFactory.animPushPose_siblings(self,**kws)   
+	kws['mModule'] = self				
+	return mFactory.animPushPose_siblings(**kws)   
     def animKey_siblings(self,excludeSelf = False,**kws):
-	return mFactory.animKey_siblings(self,excludeSelf,**kws)    
+	kws['mModule'] = self				
+	return mFactory.animKey_siblings(excludeSelf,**kws)    
     def animSelect_siblings(self,excludeSelf = False, **kws):
-	return mFactory.animSelect_siblings(self,excludeSelf,**kws)    
+	kws['mModule'] = self				
+	return mFactory.animSelect_siblings(excludeSelf,**kws)    
     def dynSwitch_siblings(self,arg,excludeSelf = True):
+	#kws['mModule'] = self				
 	return mFactory.dynSwitch_siblings(self,arg,excludeSelf)
 	
     #>>> Toggles
