@@ -221,9 +221,9 @@ def getModuleFromDict(*args,**kws):
 		for key in checkDict.keys():
 		    if i_m.hasAttr(key) and attributes.doGetAttr(i_m.mNode,key) in checkDict.get(key):
 			matchBuffer +=1
-			log.debug("Match: %s"%i_m.getShortName())
+			self.log_debug("Match: %s"%i_m.getShortName())
 		if matchBuffer == len(checkDict.keys()):
-		    log.debug("Found Module: '%s'"%i_m.getShortName())
+		    self.log_debug("Found Module: '%s'"%i_m.getShortName())
 		    return i_m
 	    return False
     return fncWrap(*args,**kws).go()
@@ -292,8 +292,8 @@ def getOrderedModules(*args,**kws):
 	       
 	    try:#Find the roots 
 		for i_m in self.mi_puppet.moduleChildren:
-		    #log.debug("%s.moduleParent: %s"%(i_m.getShortName(),i_m.getMessage('moduleParent')))
-		    #log.debug("%s.modulePuppet: %s"%(i_m.getShortName(),i_m.getMessage('modulePuppet')))        
+		    #self.log_debug("%s.moduleParent: %s"%(i_m.getShortName(),i_m.getMessage('moduleParent')))
+		    #self.log_debug("%s.modulePuppet: %s"%(i_m.getShortName(),i_m.getMessage('modulePuppet')))        
 		    if i_m.getMessage('modulePuppet') == [self.mi_puppet.mNode] and not i_m.getMessage('moduleParent'):
 			log.info("Root found: %s"%(i_m.getShortName()))
 			moduleRoots.append(i_m) 
@@ -359,8 +359,8 @@ def getOrderedParentModules(self):
        
     #Find the roots 
     for i_m in self.moduleChildren:
-        log.debug("%s.moduleParent: %s"%(i_m.getShortName(),i_m.getMessage('moduleParent')))
-        log.debug("%s.modulePuppet: %s"%(i_m.getShortName(),i_m.getMessage('modulePuppet')))        
+        self.log_debug("%s.moduleParent: %s"%(i_m.getShortName(),i_m.getMessage('moduleParent')))
+        self.log_debug("%s.modulePuppet: %s"%(i_m.getShortName(),i_m.getMessage('modulePuppet')))        
         if i_m.getMessage('modulePuppet') and not i_m.getMessage('moduleParent'):
             log.info("Root found: %s"%(i_m.getShortName()))
             moduleRoots.append(i_m)
@@ -392,7 +392,7 @@ def getOrderedParentModules(self):
             log.error('max count')
         for i_Parent in l_orderedParentModules:
             for i_child in l_childrenList:#for each ordered parent module we've found (starting with root)
-                log.debug("i_child: %s"%i_Parent.getShortName())
+                self.log_debug("i_child: %s"%i_Parent.getShortName())
                 cnt+=1
                 if i_child.moduleParent == [i_Parent]:
                     log.info('Match found!')
@@ -405,9 +405,9 @@ def getOrderedParentModules(self):
         if cnt == 99:
             log.error('max count')
         for i_Parent in l_orderedParentModules:#for each ordered parent module we've found (starting with root)
-            log.debug("i_Parent: %s"%i_Parent.getShortName())
+            self.log_debug("i_Parent: %s"%i_Parent.getShortName())
             for i_checkParent in d_moduleChildrenCull.keys():#for each module with children
-                log.debug("i_checkParent: %s"%i_Parent.getShortName())                
+                self.log_debug("i_checkParent: %s"%i_Parent.getShortName())                
                 cnt +=1
                 #if the check parent has a parent and the parent of the check parent is the ordered parent, store it and pop
                 log.info("i_Parent: %s"%i_Parent.getShortName())                
@@ -475,7 +475,7 @@ def mirrorMe(*args,**kws):
 '''	
 def mirrorMe(self,**kws):
     _str_funcName = "%s.mirrorMe()"%self.p_nameShort  
-    log.debug(">>> %s "%(_str_funcName) + "="*75)  	
+    self.log_debug(">>> %s "%(_str_funcName) + "="*75)  	
     try:
 	l_controls = self.puppetSet.getList()
 	#for mModule in getModules(self):
@@ -527,7 +527,7 @@ def get_mirrorIndexDict(*args,**kws):
 			    d_return[int_side] = []
 			    
 			if int_idx in d_return[int_side]:
-			    log.debug("%s mod: %s | side: %s | idx :%s already stored"%(self._str_reportStart,_str_module, str_side,int_idx))
+			    self.log_debug("%s mod: %s | side: %s | idx :%s already stored"%(self._str_reportStart,_str_module, str_side,int_idx))
 			else:
 			    d_return[int_side].append(int_idx)
 	    return d_return
@@ -567,7 +567,7 @@ def get_mirrorIndexDictFromSide(*args,**kws):
 			if not d_return.get(int_side):
 			    d_return[int_side] = []
 			if int_idx in d_return[int_side]:
-			    log.debug("mod: %s | side: %s | idx :%s already stored"%(mod.p_nameShort, str_side,int_idx))
+			    self.log_debug("mod: %s | side: %s | idx :%s already stored"%(mod.p_nameShort, str_side,int_idx))
 			else:
 			    d_return[int_side].append(int_idx)
 	    return d_return
