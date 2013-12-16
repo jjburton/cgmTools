@@ -75,10 +75,10 @@ def __bindSkeletonSetup__(self):
     #>>> Re parent joints
     #=============================================================  
     #ml_skinJoints = self.rig_getSkinJoints() or []
-    if not self._i_module.isSkeletonized():
+    if not self._mi_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     try:
-	self._i_module.rig_getReport()#report	
+	self._mi_module.rig_getReport()#report	
     except Exception,error:
 	log.error("build_eyeball>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
@@ -100,7 +100,7 @@ def build_rigSkeleton(*args, **kws):
 	    mi_go = self._go#Rig Go instance link
 	    self.mi_skullPlate = mi_go._mi_skullPlate
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    		    
 	def build_rigJoints(self):
@@ -146,7 +146,7 @@ def build_shapes(self):
     try:
 	#Rest of it
 	#l_toBuild = ['eyeballIK','eyeballFK','eyeballSettings']
-	mShapeCast.go(self._i_module,['eyeball'], storageInstance=self)#This will store controls to a dict called    
+	mShapeCast.go(self._mi_module,['eyeball'], storageInstance=self)#This will store controls to a dict called    
 	#self._i_rigNull.connectChildNode(self._md_controlShapes['eyeball'],'shape_eyeball',"rigNull")
 	
     except Exception,error:
@@ -175,7 +175,7 @@ def build_controls(*args, **kws):
 	    mi_go = self._go#Rig Go instance link
 	    self.md_rigList = {}
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    if not mi_go.isShaped():
@@ -190,7 +190,7 @@ def build_controls(*args, **kws):
 	    	    
 	    #>> Find our joint lists ===================================================================
 	    self.md_jointLists = {}	    
-	    self.ml_rigJoints = mi_go._i_module.rigNull.msgList_get('rigJoints')
+	    self.ml_rigJoints = mi_go._mi_module.rigNull.msgList_get('rigJoints')
 	    
 	    self.md_rigList['eyeOrb'] = metaUtils.get_matchedListFromAttrDict(self.ml_rigJoints,
 	                                                                      cgmName = 'eyeOrb')[0]    
@@ -353,7 +353,7 @@ def build_rig(*args, **kws):
 	    mi_go = self._go#Rig Go instance link
 	    self.md_rigList = {}
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    try:#verify eye look
@@ -363,7 +363,7 @@ def build_rig(*args, **kws):
 	    
 	    #>> Find our joint lists ===================================================================
 	    self.md_jointLists = {}	    
-	    self.ml_rigJoints = mi_go._i_module.rigNull.msgList_get('rigJoints')
+	    self.ml_rigJoints = mi_go._mi_module.rigNull.msgList_get('rigJoints')
 	    
 	    self.md_rigList['eyeOrbJoint'] = metaUtils.get_matchedListFromAttrDict(self.ml_rigJoints,
 	                                                                      cgmName = 'eyeOrb')[0]    
@@ -448,7 +448,7 @@ def build_rig(*args, **kws):
 			                           ikControl = mi_controlIK, fkControl = mi_controlFK,
 			                           buildIK=True, driverAttr=mPlug_FKIK,
 			                           setupVisBlend = True,
-			                           moduleInstance = mi_go._i_module)
+			                           moduleInstance = mi_go._mi_module)
 		
 		d_return['mi_rigGroup'].parent = mi_go._i_constrainNull.mNode#parent rig group to constrain null
 		mi_fkLoc = d_return['md_locs']['fk']#Grab the fk loc

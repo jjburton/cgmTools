@@ -89,7 +89,7 @@ class go(object):
 	except StandardError,error:log.warning(">>> %s.go >> geo failed : %s"%(self.m.p_nameShort,error))  
 	
         log.info("loadTemplatePose: %s"%loadTemplatePose)     
-	self._i_module = self.m
+	self._mi_module = self.m
         if tryTemplateUpdate:
             log.info("Trying template update...")
             if updateTemplate(module,**kws):
@@ -132,12 +132,12 @@ class go(object):
             self.direction = self.m.cgmDirection or None
 	    
 	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
-	if not self._i_module.modulePuppet._verifyMasterControl():
+	if not self._mi_module.modulePuppet._verifyMasterControl():
 	    raise StandardError,"TemplateFactory.go.__init__ >>> masterControl failed to verify"
 	
-	self._i_masterControl = self._i_module.modulePuppet.masterControl
+	self._i_masterControl = self._mi_module.modulePuppet.masterControl
 	self._i_masterSettings = self._i_masterControl.controlSettings
-	self._i_deformGroup = self._i_module.modulePuppet.masterNull.deformGroup        
+	self._i_deformGroup = self._mi_module.modulePuppet.masterNull.deformGroup        
 
         #>>> template null 
         self.templateNullData = attributes.returnUserAttrsToDict(self.templateNull)
@@ -166,7 +166,7 @@ class go(object):
 		
 		if 'ball' in self.l_coreNames and 'ankle' in self.l_coreNames:
 		    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,'Cast Pivots'), progress=1)    					    		    
-		    doCastPivots(self._i_module)
+		    doCastPivots(self._mi_module)
 		    
 	    elif self.m.mClass == 'cgmEyeball':
 		log.info("mode: cgmEyeball")

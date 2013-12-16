@@ -78,10 +78,10 @@ def __bindSkeletonSetup__(self):
     #>>> Re parent joints
     #=============================================================  
     try:#Reparent joints		
-	ml_moduleJoints = self._i_module.rigNull.msgList_get('moduleJoints') #Get the module joints
+	ml_moduleJoints = self._mi_module.rigNull.msgList_get('moduleJoints') #Get the module joints
 	ml_skinJoints = []
 	
-	ml_handleJoints = self._i_module.rig_getHandleJoints()
+	ml_handleJoints = self._mi_module.rig_getHandleJoints()
 	
 	for i,i_jnt in enumerate(ml_moduleJoints):
 	    ml_skinJoints.append(i_jnt)		
@@ -100,7 +100,7 @@ def __bindSkeletonSetup__(self):
 	for i,i_jnt in enumerate(ml_handleJoints[1:]):
 	    i_jnt.parent = ml_handleJoints[i].mNode	
 	    
-	self._i_module.rigNull.msgList_connect(ml_skinJoints,'skinJoints')    	
+	self._mi_module.rigNull.msgList_connect(ml_skinJoints,'skinJoints')    	
 	    
 	log.info("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
 	log.info("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))			
@@ -141,7 +141,7 @@ def build_rigSkeleton(self):
 	#=====================================================================	
 	ml_rigJoints = self.build_rigChain()
 	l_rigJoints = [i_jnt.mNode for i_jnt in ml_rigJoints]
-	ml_handleJoints = self._i_module.rig_getRigHandleJoints()
+	ml_handleJoints = self._mi_module.rig_getRigHandleJoints()
 	
 	ml_handleJoints[0].parent = False#Parent to world
 	ml_handleJoints[-1].parent = False#Parent to world
@@ -287,7 +287,7 @@ def build_shapes(self):
     try:
 	l_toBuild = ['segmentFK_Loli','segmentIK']
 	
-	mShapeCast.go(self._i_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
+	mShapeCast.go(self._mi_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
     except StandardError,error:
 	log.error("build_neckHead>>Build shapes fail!")
@@ -522,7 +522,7 @@ def build_deformation(self):
 	                                             baseName=self._partName,
 	                                             additiveScaleSetup=True,
 	                                             connectAdditiveScale=True,	                                             
-	                                             moduleInstance=self._i_module)
+	                                             moduleInstance=self._mi_module)
 	
 	i_curve = curveSegmentReturn['mi_segmentCurve']
 	i_curve.parent = self._i_rigNull.mNode
@@ -559,7 +559,7 @@ def build_deformation(self):
 	self.connect_toRigGutsVis( mi_loc )
 	
 	mNode_decomposeMatrix = cgmMeta.cgmNode(nodeType='decomposeMatrix')
-	mNode_decomposeMatrix.doStore('cgmName',self._i_module.mNode)
+	mNode_decomposeMatrix.doStore('cgmName',self._mi_module.mNode)
 	mNode_decomposeMatrix.addAttr('cgmType','headTwistEnd',attrType='string',lock=True)
 	mNode_decomposeMatrix.doName()
 	
@@ -661,15 +661,15 @@ def build_rig(self):
 	mi_segmentAttachEnd = mi_segmentCurve.attachEnd 
 	mi_distanceBuffer = mi_segmentCurve.scaleBuffer
 	mi_moduleParent = False
-	if self._i_module.getMessage('moduleParent'):
-	    mi_moduleParent = self._i_module.moduleParent
+	if self._mi_module.getMessage('moduleParent'):
+	    mi_moduleParent = self._mi_module.moduleParent
     	
 	ml_influenceJoints = self._i_rigNull.msgList_get('influenceJoints')
 	ml_segmentSplineJoints = mi_segmentCurve.msgList_get('driverJoints',asMeta = True)
 	
 	ml_anchorJoints = self._i_rigNull.msgList_get('anchorJoints')
 	ml_rigJoints = self._i_rigNull.msgList_get('rigJoints')    
-	ml_rigHandleJoints = self._i_module.rig_getRigHandleJoints()
+	ml_rigHandleJoints = self._mi_module.rig_getRigHandleJoints()
 	
 	ml_segmentJoints = self._i_rigNull.msgList_get('segmentJoints')	
 	ml_segmentHandles = self._i_rigNull.msgList_get('segmentHandles')
@@ -730,7 +730,7 @@ def build_rig(self):
 	time_sub = time.clock() 
 	log.info(">>> %s..."%_str_subFunc)  
 	
-	parentAttach = self._i_module.moduleParent.rig_getSkinJoints()[-1].mNode
+	parentAttach = self._mi_module.moduleParent.rig_getSkinJoints()[-1].mNode
 	mc.parentConstraint(parentAttach,self._i_deformNull.mNode,maintainOffset=True)#constrain
 	mc.scaleConstraint(parentAttach,self._i_deformNull.mNode,maintainOffset=True)#Constrain
 	

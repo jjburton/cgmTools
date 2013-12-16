@@ -84,7 +84,7 @@ def __bindSkeletonSetup__(self):
     #>>> Re parent joints
     #=============================================================  
     #ml_skinJoints = self.rig_getSkinJoints() or []
-    if not self._i_module.isSkeletonized():
+    if not self._mi_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     
     try:#Reparent joints
@@ -96,9 +96,9 @@ def __bindSkeletonSetup__(self):
 		if last_i_jnt:i_jnt.parent = last_i_jnt.mNode
 		last_i_jnt = i_jnt"""
 		
-	ml_moduleJoints = self._i_module.rigNull.msgList_get('moduleJoints') #Get the module joints
+	ml_moduleJoints = self._mi_module.rigNull.msgList_get('moduleJoints') #Get the module joints
 	ml_skinJoints = []
-	ml_handleJoints = self._i_module.rig_getHandleJoints()
+	ml_handleJoints = self._mi_module.rig_getHandleJoints()
 	
 	for i,i_jnt in enumerate(ml_moduleJoints):
 	    ml_skinJoints.append(i_jnt)		
@@ -121,7 +121,7 @@ def __bindSkeletonSetup__(self):
 	#self._i_rigNull.msgList_connect(ml_moduleJoints,'moduleJoints','module')
 	#self._i_rigNull.msgList_connect(ml_skinJoints,'skinJoints','module')
 	
-	self._i_module.rig_getReport()#report
+	self._mi_module.rig_getReport()#report
 
     except StandardError,error:
 	log.error("build_arm>>__bindSkeletonSetup__ fail!")
@@ -259,7 +259,7 @@ def build_shapes(goInstance = None):
 	    try:
 		ml_segmentIKShapes = []
 		for i,ml_chain in enumerate(ml_influenceChains):
-		    mShapeCast.go(self._go._i_module,['segmentIK'],targetObjects = [i_jnt.mNode for i_jnt in ml_chain] , storageInstance=self._go)#This will store controls to a dict called    
+		    mShapeCast.go(self._go._mi_module,['segmentIK'],targetObjects = [i_jnt.mNode for i_jnt in ml_chain] , storageInstance=self._go)#This will store controls to a dict called    
 		    log.debug("%s.build_shapes>>> segmentIK chain %s: %s"%(self._go._strShortName,i,self._go._md_controlShapes))
 		    ml_segmentIKShapes.extend(self._go._md_controlShapes['segmentIK'])
 		    
@@ -270,7 +270,7 @@ def build_shapes(goInstance = None):
 	    
 	    #Rest of it
 	    l_toBuild = ['segmentFK_Loli','settings','midIK','hand']
-	    mShapeCast.go(self._go._i_module,l_toBuild, storageInstance=self._go)#This will store controls to a dict called    
+	    mShapeCast.go(self._go._mi_module,l_toBuild, storageInstance=self._go)#This will store controls to a dict called    
 	    self._go._i_rigNull.msgList_connect(self._go._md_controlShapes['segmentFK_Loli'],'shape_controlsFK',"rigNull")	
 	    self._go._i_rigNull.connectChildNode(self._go._md_controlShapes['midIK'],'shape_midIK',"rigNull")
 	    self._go._i_rigNull.connectChildNode(self._go._md_controlShapes['settings'],'shape_settings',"rigNull")		
@@ -434,7 +434,7 @@ def build_controls(goInstance = None):
 		    #Need to do a few special things for our main segment handle
 		    i_mainHandle = chain[0]
 		    self._go._i_rigNull.connectChildNode(i_mainHandle,'mainSegmentHandle',"rigNull")
-		    curves.setCurveColorByName(i_mainHandle.mNode,self._go._i_module.getModuleColors()[0])    
+		    curves.setCurveColorByName(i_mainHandle.mNode,self._go._mi_module.getModuleColors()[0])    
 		    attributes.doBreakConnection(i_mainHandle.mNode,'visibility')
 	    
 	def build_attributes(self):
@@ -725,7 +725,7 @@ def build_FKIK(goInstance = None):
 	    d_anklePVReturn = rUtils.IKHandle_create(self.ml_ikJoints[0].mNode,self.ml_ikJoints[-1].mNode,nameSuffix = 'PV',
 		                                     rpHandle=True, controlObject=self.mi_controlIK, addLengthMulti=True,
 		                                     globalScaleAttr=self.mPlug_globalScale.p_combinedName, stretch='translate',
-		                                     moduleInstance=self._go._i_module)	
+		                                     moduleInstance=self._go._mi_module)	
 	    
 	    self.mi_ankleIKHandlePV = d_anklePVReturn['mi_handle']
 	    self.ml_distHandlesPV = d_anklePVReturn['ml_distHandles']
@@ -739,7 +739,7 @@ def build_FKIK(goInstance = None):
 	    self.mi_rpHandlePV.parent = self.mi_controlMidIK
 	  
 	    #RP handle	
-	    self.mi_rpHandlePV.doCopyNameTagsFromObject(self._go._i_module.mNode, ignore = ['cgmName','cgmType'])
+	    self.mi_rpHandlePV.doCopyNameTagsFromObject(self._go._mi_module.mNode, ignore = ['cgmName','cgmType'])
 	    self.mi_rpHandlePV.addAttr('cgmName','elbowPoleVector',attrType = 'string')
 	    self.mi_rpHandlePV.doName()
 	    
@@ -902,7 +902,7 @@ def build_deformation(goInstance = None):
 	                                                     additiveScaleSetup=True,
 	                                                     connectAdditiveScale=True,                                                 
 	                                                     baseName = str_baseName,
-	                                                     moduleInstance=self._go._i_module)
+	                                                     moduleInstance=self._go._mi_module)
 		
 		ml_segmentReturns.append(curveSegmentReturn)
 		
@@ -919,7 +919,7 @@ def build_deformation(goInstance = None):
 	                                                   baseName = str_baseName,
 	                                                   orientation = self._go._jointOrientation,
 	                                                   controlTwistAxis =  'r'+self._go._jointOrientation[0],	                                               
-	                                                   moduleInstance=self._go._i_module)
+	                                                   moduleInstance=self._go._mi_module)
 		
 		for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
 		    i_grp.parent = self._go._i_constrainNull.mNode
@@ -1182,7 +1182,7 @@ def build_deformationOLD(self):
 	                                                 additiveScaleSetup=True,
 	                                                 connectAdditiveScale=True,                                                 
 		                                         baseName = str_baseName,
-	                                                 moduleInstance=self._i_module)
+	                                                 moduleInstance=self._mi_module)
 	    
 	    ml_segmentReturns.append(curveSegmentReturn)
 	    
@@ -1199,7 +1199,7 @@ def build_deformationOLD(self):
 						       baseName = str_baseName,
 						       orientation = self._jointOrientation,
 	                                               controlTwistAxis =  'r'+self._jointOrientation[0],	                                               
-	                                               moduleInstance=self._i_module)
+	                                               moduleInstance=self._mi_module)
 	    
 	    for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
 		i_grp.parent = self._i_constrainNull.mNode
@@ -1405,8 +1405,8 @@ def build_rig(goInstance = None):
 	def verify(self):      
 	    self.orientation = self._go._jointOrientation or modules.returnSettingsData('jointOrientation')
 	    self.mi_moduleParent = False
-	    if self._go._i_module.getMessage('moduleParent'):
-		self.mi_moduleParent = self._go._i_module.moduleParent
+	    if self._go._mi_module.getMessage('moduleParent'):
+		self.mi_moduleParent = self._go._mi_module.moduleParent
 		
 	    self.mi_controlIK = self._go._i_rigNull.controlIK
 	    self.mi_controlMidIK = self._go._i_rigNull.midIK 
@@ -1449,7 +1449,7 @@ def build_rig(goInstance = None):
 	    try:#>>>> Hand
 		ml_handDynParents = []
 		#Build our dynamic groups
-		mi_spine = self._go._i_module.modulePuppet.getModuleFromDict(moduleType= ['torso','spine'])
+		mi_spine = self._go._mi_module.modulePuppet.getModuleFromDict(moduleType= ['torso','spine'])
 		log.info("spine found: %s"%mi_spine)
 		if mi_spine:
 		    mi_spineRigNull = mi_spine.rigNull
@@ -1699,7 +1699,7 @@ def build_twistDriver_shoulder(goInstance = None):
 	    except StandardError,error:
 		raise StandardError,"failed to setup start attr | %s"%error	
 	    try:
-		mi_parentRigNull = self._go._i_module.moduleParent.rigNull
+		mi_parentRigNull = self._go._mi_module.moduleParent.rigNull
 		i_target = mi_parentRigNull.msgList_get('moduleJoints')[0]	
 	    except StandardError,error:
 		raise StandardError,"failed to find target | %s"%(error)	
@@ -1708,7 +1708,7 @@ def build_twistDriver_shoulder(goInstance = None):
 		outVector = self._go._vectorOut
 		upVector = self._go._vectorUp      
 		ml_blendJoints = self._go._i_rigNull.msgList_get('blendJoints')
-		ml_handleJoints = self._go._i_module.rig_getHandleJoints()
+		ml_handleJoints = self._go._mi_module.rig_getHandleJoints()
 		mi_mainSegmentHandle = self._go._i_rigNull.mainSegmentHandle
 		
 		#Create joints -------------------------------------------------------------------
@@ -1797,7 +1797,7 @@ def build_twistDriver_shoulder(goInstance = None):
 	    try:
 		#>>> Connect in
 		mc.orientConstraint(i_startRoot.mNode,i_driver.mNode,maintainOffset = True, skip = [self._go._jointOrientation[1],self._go._jointOrientation[2]])
-		cgmMeta.cgmAttr(self._go._i_module.rigNull.settings,'in_worldIKStart').doConnectIn("%s.r%s"%(i_driver.mNode,self._go._jointOrientation[0]))
+		cgmMeta.cgmAttr(self._go._mi_module.rigNull.settings,'in_worldIKStart').doConnectIn("%s.r%s"%(i_driver.mNode,self._go._jointOrientation[0]))
 		self._go.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
 	    except StandardError,error:
 		raise StandardError,"finish failed| %s"%(error)
@@ -1916,7 +1916,7 @@ def build_twistDriver_wrist(goInstance = None):
 	    #>>> Control	
 	    try:
 		#>>> Connect in
-		cgmMeta.cgmAttr(self._go._i_module.rigNull.settings,'in_worldIKEnd').doConnectIn("%s.r%s"%(i_startRoot.mNode,self._go._jointOrientation[0]))
+		cgmMeta.cgmAttr(self._go._mi_module.rigNull.settings,'in_worldIKEnd').doConnectIn("%s.r%s"%(i_startRoot.mNode,self._go._jointOrientation[0]))
 		self._go.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
 	    except StandardError,error:
 		raise StandardError,"finish failed| %s"%(error)
@@ -1937,8 +1937,8 @@ def build_matchSystem(goInstance = None):
 	def verify(self):      
 	    #Base info
 	    mi_moduleParent = False
-	    if self._go._i_module.getMessage('moduleParent'):
-		mi_moduleParent = self._go._i_module.moduleParent
+	    if self._go._mi_module.getMessage('moduleParent'):
+		mi_moduleParent = self._go._mi_module.moduleParent
 		
 	    mi_controlIK = self._go._i_rigNull.controlIK
 	    mi_controlMidIK = self._go._i_rigNull.midIK 

@@ -77,7 +77,7 @@ def __bindSkeletonSetup__(self):
     #>>> Re parent joints
     #=============================================================  
     #ml_skinJoints = self.rig_getSkinJoints() or []
-    if not self._i_module.isSkeletonized():
+    if not self._mi_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     try:pass
     except StandardError,error:
@@ -113,7 +113,7 @@ def build_rigSkeleton(goInstance = None):
 	    ml_fkJoints = []
 	    for i,i_ctrl in enumerate(self._go._i_templateNull.msgList_get('controlObjects')):
 		if not i_ctrl.getMessage('handleJoint'):
-		    raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._go._i_module.getShortName(),i_ctrl.getShortName())
+		    raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._go._mi_module.getShortName(),i_ctrl.getShortName())
 		i_new = cgmMeta.cgmObject((i_ctrl.getMessage('handleJoint')[0])).doDuplicate()
 		i_new.addAttr('cgmTypeModifier','fk',attrType='string',lock=True)
 		i_new.doName()
@@ -180,7 +180,7 @@ def build_shapes(goInstance = None):
    
 	def build_shapes(self):
 	    l_toBuild = ['clavicle']
-	    mShapeCast.go(self._go._i_module,l_toBuild, storageInstance= self._go )#This will store controls to a dict called    
+	    mShapeCast.go(self._go._mi_module,l_toBuild, storageInstance= self._go )#This will store controls to a dict called    
 	
     return fncWrap(goInstance).go()
     
@@ -281,8 +281,8 @@ def build_rig(goInstance = None):
 	    orientation = self._go._jointOrientation
 	    
 	    self.mi_moduleParent = False
-	    if self._go._i_module.getMessage('moduleParent'):
-		self.mi_moduleParent = self._go._i_module.moduleParent
+	    if self._go._mi_module.getMessage('moduleParent'):
+		self.mi_moduleParent = self._go._mi_module.moduleParent
 		
 	    self.ml_controlsFK = self._go._i_rigNull.msgList_get('controlsFK')	
 	    self.ml_rigJoints = self._go._i_rigNull.msgList_get('rigJoints')

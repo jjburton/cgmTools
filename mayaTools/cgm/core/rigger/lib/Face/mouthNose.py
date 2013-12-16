@@ -84,10 +84,10 @@ def __bindSkeletonSetup__(self):
     #>>> Re parent joints
     #=============================================================  
     #ml_skinJoints = self.rig_getSkinJoints() or []
-    if not self._i_module.isSkeletonized():
+    if not self._mi_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     try:
-	self._i_module.rig_getReport()#report	
+	self._mi_module.rig_getReport()#report	
     except Exception,error:
 	log.error("build_mouthNose>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
@@ -109,7 +109,7 @@ def build_rigSkeleton(*args, **kws):
 	    mi_go = self._go#Rig Go instance link
 	    self.mi_skullPlate = mi_go._mi_skullPlate
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    for attr in self.mi_helper.getAttrs(userDefined = True):#Get allof our Helpers
@@ -458,7 +458,7 @@ def build_shapes(*args, **kws):
 	
 	def buildShapes(self):
 	    mi_go = self._go#Rig Go instance link
-	    mShapeCast.go(mi_go._i_module,['mouthNose'], storageInstance=mi_go)#This will store controls to a dict called    
+	    mShapeCast.go(mi_go._mi_module,['mouthNose'], storageInstance=mi_go)#This will store controls to a dict called    
 	    
     return fncWrap(*args, **kws).go()
 
@@ -480,7 +480,7 @@ def build_controls(*args, **kws):
 	def _gatherInfo_(self):
 	    mi_go = self._go#Rig Go instance link
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    #>> Find our joint lists ===================================================================
@@ -583,9 +583,9 @@ def build_controls(*args, **kws):
 		    except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 
 	    try:self._go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll')
-	    except Exception,error: raise StandardError,"Controls all connect| %s"%error	    
+	    except Exception,error: raise StandardError,"[Controls all connect]{%s}"%error	    
 	    try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
-	    except Exception,error: raise StandardError,"Failed to set module objectSet | %s"%error
+	    except Exception,error: raise StandardError,"[Failed to set module objectSet]{%s}"%error
 	    
     return fncWrap(*args, **kws).go()
 	    
@@ -610,7 +610,7 @@ def build_rig(*args, **kws):
 	def _gatherInfo_(self):
 	    mi_go = self._go#Rig Go instance link
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    self.mi_skullPlate = mi_go._mi_skullPlate
@@ -1142,7 +1142,7 @@ def build_rig(*args, **kws):
 		                                      baseName = 'tongue',
 		                                      additiveScaleSetup = True,
 		                                      connectAdditiveScale = True,
-		                                      moduleInstance = mi_go._i_module)
+		                                      moduleInstance = mi_go._mi_module)
 		
 		try:#post create segmenet process
 		    mi_curve = d_segReturn['mi_segmentCurve']
@@ -1914,7 +1914,6 @@ def build_rig(*args, **kws):
 		                  'uprLipFollow':{'crvs':[self.mi_mouthTopTraceCrv,mi_uprDrivenCrv],'mode':'liveSurface'},
 		                  'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]},
 		                  'lwrLipFollow':{'crvs':[mi_lwrDrivenCrv,self.mi_mouthBaseTraceCrv],'mode':'liveSurface'}}
-		
 		self.create_plateFromDict(md_plateBuilds)
 	    except Exception,error:raise StandardError,"Plates | %s"%(error)
 	    

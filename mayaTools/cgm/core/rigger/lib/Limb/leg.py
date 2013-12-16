@@ -100,7 +100,7 @@ def build_shapes(self):
 	#Segment IK
 	ml_segmentIKShapes = []
 	for i,ml_chain in enumerate(ml_influenceChains):
-	    mShapeCast.go(self._i_module,['segmentIK'],targetObjects = [i_jnt.mNode for i_jnt in ml_chain] , storageInstance=self)#This will store controls to a dict called    
+	    mShapeCast.go(self._mi_module,['segmentIK'],targetObjects = [i_jnt.mNode for i_jnt in ml_chain] , storageInstance=self)#This will store controls to a dict called    
 	    log.info("%s.build_shapes>>> segmentIK chain %s: %s"%(self._strShortName,i,self._md_controlShapes))
 	    ml_segmentIKShapes.extend(self._md_controlShapes['segmentIK'])
 	    
@@ -110,7 +110,7 @@ def build_shapes(self):
 	
 	#Rest of it
 	l_toBuild = ['segmentFK_Loli','settings','midIK','foot']
-	mShapeCast.go(self._i_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
+	mShapeCast.go(self._mi_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
 	log.info(self._md_controlShapes)
 	log.info(self._md_controlPivots)
 	self._i_rigNull.msgList_connect(self._md_controlShapes['segmentFK_Loli'],'shape_controlsFK',"rigNull")	
@@ -151,7 +151,7 @@ def __bindSkeletonSetup__(self):
     #>>> Re parent joints
     #=============================================================  
     #ml_skinJoints = self._ml_skinJoints or []
-    if not self._i_module.isSkeletonized():
+    if not self._mi_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     
     try:#Reparent joints
@@ -163,10 +163,10 @@ def __bindSkeletonSetup__(self):
 		if last_i_jnt:i_jnt.parent = last_i_jnt.mNode
 		last_i_jnt = i_jnt"""
 		
-	ml_moduleJoints = self._i_module.rigNull.msgList_get('moduleJoints') #Get the module joints
+	ml_moduleJoints = self._mi_module.rigNull.msgList_get('moduleJoints') #Get the module joints
 	ml_skinJoints = []
 	
-	ml_handleJoints = self._i_module.rig_getHandleJoints()
+	ml_handleJoints = self._mi_module.rig_getHandleJoints()
 	
 	for i,i_jnt in enumerate(ml_moduleJoints):
 	    ml_skinJoints.append(i_jnt)		
@@ -189,7 +189,7 @@ def __bindSkeletonSetup__(self):
 	#self._i_rigNull.msgList_connect(ml_moduleJoints,'moduleJoints','module')
 	#self._i_rigNull.msgList_connect(ml_skinJoints,'skinJoints','module')
 	
-	self._i_module.rig_getReport()#report
+	self._mi_module.rig_getReport()#report
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
 
     except Exception,error:
@@ -388,7 +388,7 @@ def build_rigSkeleton(self):
 	ml_segmentHandleJoints = d_influenceChainReturns['ml_segmentHandleJoints']
 	
 	if len(ml_segmentHandleJoints)!=3:
-	    raise StandardError,"%s.build_rigSkeleton>>> don't have 3 influence joints: '%s'"%(self._i_module.getShortName(),l_segmentHandleJoints)
+	    raise StandardError,"%s.build_rigSkeleton>>> don't have 3 influence joints: '%s'"%(self._mi_module.getShortName(),l_segmentHandleJoints)
 	
 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:
@@ -671,7 +671,7 @@ def build_foot(self):
 	time_sub = time.clock() 
 	log.info(">>> %s >> %s "%(_str_funcName,_str_subFunc) + "="*50)  
 	
-	if self._i_module.getAttr('cgmDirection') and self._i_module.cgmDirection.lower() in ['right']:
+	if self._mi_module.getAttr('cgmDirection') and self._mi_module.cgmDirection.lower() in ['right']:
 	    str_leanDriver = "%s.r%s = -%s"%(mi_pivBallJoint.mNode,self._jointOrientation[0].lower(),
 	                                     mPlug_lean.p_combinedShortName)
 	    NodeF.argsToNodes(str_leanDriver).doBuild()
@@ -691,7 +691,7 @@ def build_foot(self):
 	time_sub = time.clock() 
 	log.info(">>> %s >> %s "%(_str_funcName,_str_subFunc) + "="*50)  
 	
-	if self._i_module.getAttr('cgmDirection') and self._i_module.cgmDirection.lower() in ['right']:
+	if self._mi_module.getAttr('cgmDirection') and self._mi_module.cgmDirection.lower() in ['right']:
 	    str_leanDriver = "%s.r%s = -%s"%(mi_pivToe.mNode,self._jointOrientation[1].lower(),
 	                                     mPlug_toeSpin.p_combinedShortName)
 	    NodeF.argsToNodes(str_leanDriver).doBuild()
@@ -820,7 +820,7 @@ def build_FKIK(self):
 	#Create no flip leg IK
 	d_ankleNoFlipReturn = rUtils.IKHandle_create(ml_ikNoFlipJoints[0].mNode,ml_ikNoFlipJoints[-1].mNode, nameSuffix = 'noFlip',
 	                                             rpHandle=True,controlObject=mi_controlIK,addLengthMulti=True,
-	                                             globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._i_module)
+	                                             globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._mi_module)
 	
 	mi_ankleIKHandleNF = d_ankleNoFlipReturn['mi_handle']
 	ml_distHandlesNF = d_ankleNoFlipReturn['ml_distHandles']
@@ -832,7 +832,7 @@ def build_FKIK(self):
 	Snap.go(mi_rpHandleNF,i_tmpLoc.mNode,True)#Snape to foot control, then move it out...
 	i_tmpLoc.delete()
 	
-	mi_rpHandleNF.doCopyNameTagsFromObject(self._i_module.mNode, ignore = ['cgmName','cgmType'])
+	mi_rpHandleNF.doCopyNameTagsFromObject(self._mi_module.mNode, ignore = ['cgmName','cgmType'])
 	mi_rpHandleNF.addAttr('cgmName','kneePoleVector',attrType = 'string')
 	mi_rpHandleNF.addAttr('cgmTypeModifier','noFlip')
 	mi_rpHandleNF.doName()
@@ -841,7 +841,7 @@ def build_FKIK(self):
 	#=========================================================================================
 	#Make a spin group
 	i_spinGroup = mi_controlIK.doDuplicateTransform()
-	i_spinGroup.doCopyNameTagsFromObject(self._i_module.mNode, ignore = ['cgmName','cgmType'])	
+	i_spinGroup.doCopyNameTagsFromObject(self._mi_module.mNode, ignore = ['cgmName','cgmType'])	
 	i_spinGroup.addAttr('cgmName','noFlipKneeSpin')
 	i_spinGroup.doName()
 	
@@ -856,7 +856,7 @@ def build_FKIK(self):
 	NodeF.argsToNodes("%s.rz = -%s.rz"%(i_spinGroup.p_nameShort,
 	                                    mi_controlIK.p_nameShort)).doBuild()		
 	#Spin groups rotate
-	if self._i_module.getAttr('cgmDirection') and self._i_module.cgmDirection.lower() in ['right']:
+	if self._mi_module.getAttr('cgmDirection') and self._mi_module.cgmDirection.lower() in ['right']:
 	    str_spinDriver = "%s.ry = -%s"%(i_spinGroup.mNode,
 	                                    mPlug_kneeSpin.p_combinedShortName)
 	    NodeF.argsToNodes(str_spinDriver).doBuild()
@@ -886,7 +886,7 @@ def build_FKIK(self):
 	
 	d_anklePVReturn = rUtils.IKHandle_create(ml_ikPVJoints[0].mNode,ml_ikPVJoints[-1].mNode,nameSuffix = 'PV',
 	                                         rpHandle=ml_distHandlesNF[1],controlObject=mi_controlIK,
-	                                         moduleInstance=self._i_module)
+	                                         moduleInstance=self._mi_module)
     
 	mi_ankleIKHandlePV = d_anklePVReturn['mi_handle']
 	mi_rpHandlePV = d_anklePVReturn['mi_rpHandle']
@@ -898,7 +898,7 @@ def build_FKIK(self):
 	    d_driverPlug['mi_plug'].doConnectOut("%s.t%s"%(i_j.mNode,self._jointOrientation[0].lower()))#Connect the plug to our joint
 	
 	#RP handle	
-	mi_rpHandlePV.doCopyNameTagsFromObject(self._i_module.mNode, ignore = ['cgmName','cgmType'])
+	mi_rpHandlePV.doCopyNameTagsFromObject(self._mi_module.mNode, ignore = ['cgmName','cgmType'])
 	mi_rpHandlePV.addAttr('cgmName','kneePoleVector',attrType = 'string')
 	mi_rpHandlePV.doName()
 	
@@ -947,12 +947,12 @@ def build_FKIK(self):
 	
 	#Create foot IK
 	d_ballReturn = rUtils.IKHandle_create(ml_ikJoints[2].mNode,ml_ikJoints[3].mNode,solverType='ikSCsolver',
-	                                      baseName=ml_ikJoints[3].cgmName,moduleInstance=self._i_module)
+	                                      baseName=ml_ikJoints[3].cgmName,moduleInstance=self._mi_module)
 	mi_ballIKHandle = d_ballReturn['mi_handle']
 	
 	#Create toe IK
 	d_toeReturn = rUtils.IKHandle_create(ml_ikJoints[3].mNode,ml_ikJoints[4].mNode,solverType='ikSCsolver',
-	                                     baseName=ml_ikJoints[4].cgmName,moduleInstance=self._i_module)
+	                                     baseName=ml_ikJoints[4].cgmName,moduleInstance=self._mi_module)
 	mi_toeIKHandle = d_toeReturn['mi_handle']
     
 	#return {'mi_handle':i_ik_handle,'mi_effector':i_ik_effector,'mi_solver':i_ikSolver}
@@ -1223,7 +1223,7 @@ def build_controls(self):
 		#Need to do a few special things for our main segment handle
 		i_mainHandle = chain[0]
 		self._i_rigNull.connectChildNode(i_mainHandle,'mainSegmentHandle',"rigNull")
-		curves.setCurveColorByName(i_mainHandle.mNode,self._i_module.getModuleColors()[0])    
+		curves.setCurveColorByName(i_mainHandle.mNode,self._mi_module.getModuleColors()[0])    
 		attributes.doBreakConnection(i_mainHandle.mNode,'visibility')
 	
 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
@@ -1389,7 +1389,7 @@ def build_deformation(self):
 	                                                 additiveScaleSetup=True,
 	                                                 connectAdditiveScale=True,                                                 
 		                                         baseName = str_baseName,
-	                                                 moduleInstance=self._i_module)
+	                                                 moduleInstance=self._mi_module)
 	    
 	    ml_segmentReturns.append(curveSegmentReturn)
 	    
@@ -1406,7 +1406,7 @@ def build_deformation(self):
 						       baseName = str_baseName,
 						       orientation = self._jointOrientation,
 	                                               controlTwistAxis =  'r'+self._jointOrientation[0],	                                               
-	                                               moduleInstance=self._i_module)
+	                                               moduleInstance=self._mi_module)
 	    
 	    for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
 		i_grp.parent = ml_blendJoints[i].mNode
@@ -1657,8 +1657,8 @@ def build_rig(self):
 	
 	orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
 	mi_moduleParent = False
-	if self._i_module.getMessage('moduleParent'):
-	    mi_moduleParent = self._i_module.moduleParent
+	if self._mi_module.getMessage('moduleParent'):
+	    mi_moduleParent = self._mi_module.moduleParent
 	    
 	mi_controlIK = self._i_rigNull.controlIK
 	mi_controlMidIK = self._i_rigNull.midIK 
@@ -1953,7 +1953,7 @@ def build_twistDriver_hip(self):
 	time_sub = time.clock() 
 	log.info(">>> %s >> %s "%(_str_funcName,_str_subFunc) + "="*50)  
 	
-	mi_parentRigNull = self._i_module.moduleParent.rigNull
+	mi_parentRigNull = self._mi_module.moduleParent.rigNull
 	mi_hips = mi_parentRigNull.hips	
 	
 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
@@ -2058,7 +2058,7 @@ def build_twistDriver_hip(self):
 	time_sub = time.clock() 
 	log.info(">>> %s >> %s "%(_str_funcName,_str_subFunc) + "="*50)  
 	
-	cgmMeta.cgmAttr(self._i_module.rigNull.settings,'in_worldIKStart').doConnectIn("%s.r%s"%(i_startRoot.mNode,self._jointOrientation[0]))
+	cgmMeta.cgmAttr(self._mi_module.rigNull.settings,'in_worldIKStart').doConnectIn("%s.r%s"%(i_startRoot.mNode,self._jointOrientation[0]))
 	self.connect_toRigGutsVis(ml_twistObjects)#connect to guts vis switches
 	
 	log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
@@ -2227,8 +2227,8 @@ def build_matchSystem(self):
 	log.info(">>> %s >> %s "%(_str_funcName,_str_subFunc) + "="*50)  
 	
 	mi_moduleParent = False
-	if self._i_module.getMessage('moduleParent'):
-	    mi_moduleParent = self._i_module.moduleParent
+	if self._mi_module.getMessage('moduleParent'):
+	    mi_moduleParent = self._mi_module.moduleParent
 	    
 	mi_controlIK = self._i_rigNull.controlIK
 	mi_controlMidIK = self._i_rigNull.midIK 

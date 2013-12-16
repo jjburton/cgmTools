@@ -76,7 +76,7 @@ def __bindSkeletonSetup__(self,addHelpers = True):
     #>>> Re parent joints
     #=============================================================  
     #ml_skinJoints = self.rig_getSkinJoints() or []
-    if not self._i_module.isSkeletonized():
+    if not self._mi_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     
     try:#Reparent joints
@@ -88,9 +88,9 @@ def __bindSkeletonSetup__(self,addHelpers = True):
 		if last_i_jnt:i_jnt.parent = last_i_jnt.mNode
 		last_i_jnt = i_jnt"""
 		
-	ml_moduleJoints = self._i_module.rigNull.msgList_get('moduleJoints') #Get the module joints
+	ml_moduleJoints = self._mi_module.rigNull.msgList_get('moduleJoints') #Get the module joints
 	ml_skinJoints = []
-	ml_handleJoints = self._i_module.rig_getHandleJoints()
+	ml_handleJoints = self._mi_module.rig_getHandleJoints()
 	
 	if addHelpers:
 	    ml_pairs = lists.parseListToPairs(ml_moduleJoints)
@@ -98,9 +98,9 @@ def __bindSkeletonSetup__(self,addHelpers = True):
 	    for ml_pair in ml_pairs:
 		jUtils.add_defHelpJoint(ml_pair[0],ml_pair[1],helperType = 'halfPush',orientation=self.jointOrientation)
 
-	#ml_moduleJoints = self._i_module.rigNull.msgList_get('moduleJoints')
+	#ml_moduleJoints = self._mi_module.rigNull.msgList_get('moduleJoints')
 	#self._i_rigNull.msgList_connect(ml_moduleJoints,'skinJoints','module')	
-	self._i_module.rig_getReport()#report
+	self._mi_module.rig_getReport()#report
 	
     except StandardError,error:
 	log.error("build_arm>>__bindSkeletonSetup__ fail!")
@@ -141,7 +141,7 @@ def build_rigSkeleton(goInstance = None):
 		ml_fkJoints = []
 		for i,i_ctrl in enumerate(self._go._i_templateNull.msgList_get('controlObjects')):
 		    if not i_ctrl.getMessage('handleJoint'):
-			raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._go._i_module.getShortName(),i_ctrl.getShortName())
+			raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._go._mi_module.getShortName(),i_ctrl.getShortName())
 		    i_new = cgmMeta.cgmObject(mc.duplicate(i_ctrl.getMessage('handleJoint')[0],po=True,ic=True)[0])
 		    i_new.addAttr('cgmTypeModifier','fk',attrType='string',lock=True)
 		    i_new.doName()
@@ -264,7 +264,7 @@ def build_rigSkeleton2(self):
 	ml_fkJoints = []
 	for i,i_ctrl in enumerate(self._i_templateNull.msgList_get('controlObjects')):
 	    if not i_ctrl.getMessage('handleJoint'):
-		raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._i_module.getShortName(),i_ctrl.getShortName())
+		raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._mi_module.getShortName(),i_ctrl.getShortName())
 	    i_new = cgmMeta.cgmObject(mc.duplicate(i_ctrl.getMessage('handleJoint')[0],po=True,ic=True)[0])
 	    i_new.addAttr('cgmTypeModifier','fk',attrType='string',lock=True)
 	    i_new.doName()
@@ -386,7 +386,7 @@ def build_shapes(goInstance = None):
 		"""
 		ml_segmentIKShapes = []
 		for i,ml_chain in enumerate(ml_influenceChains):
-		    mShapeCast.go(self._go._i_module,['segmentIK'],targetObjects = [i_jnt.mNode for i_jnt in ml_chain] , storageInstance=self)#This will store controls to a dict called    
+		    mShapeCast.go(self._go._mi_module,['segmentIK'],targetObjects = [i_jnt.mNode for i_jnt in ml_chain] , storageInstance=self)#This will store controls to a dict called    
 		    log.info("%s.build_shapes>>> segmentIK chain %s: %s"%(self._go._strShortName,i,self._go._md_controlShapes))
 		    ml_segmentIKShapes.extend(self._go._md_controlShapes['segmentIK'])
 		    
@@ -396,7 +396,7 @@ def build_shapes(goInstance = None):
 		"""
 		#Rest of it
 		l_toBuild = __d_controlShapes__['shape']
-		mShapeCast.go(self._go._i_module,l_toBuild, storageInstance=self._go)#This will store controls to a dict called    
+		mShapeCast.go(self._go._mi_module,l_toBuild, storageInstance=self._go)#This will store controls to a dict called    
 		log.info(self._go._md_controlShapes)
 		log.info(self._go._md_controlPivots)
 		self._go._i_rigNull.msgList_connect(self._go._md_controlShapes['segmentFK'],'shape_controlsFK',"rigNull")	
@@ -446,7 +446,7 @@ def build_shapes2(self):
 	"""
 	ml_segmentIKShapes = []
 	for i,ml_chain in enumerate(ml_influenceChains):
-	    mShapeCast.go(self._i_module,['segmentIK'],targetObjects = [i_jnt.mNode for i_jnt in ml_chain] , storageInstance=self)#This will store controls to a dict called    
+	    mShapeCast.go(self._mi_module,['segmentIK'],targetObjects = [i_jnt.mNode for i_jnt in ml_chain] , storageInstance=self)#This will store controls to a dict called    
 	    log.info("%s.build_shapes>>> segmentIK chain %s: %s"%(self._strShortName,i,self._md_controlShapes))
 	    ml_segmentIKShapes.extend(self._md_controlShapes['segmentIK'])
 	    
@@ -456,7 +456,7 @@ def build_shapes2(self):
 	"""
 	#Rest of it
 	l_toBuild = __d_controlShapes__['shape']
-	mShapeCast.go(self._i_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
+	mShapeCast.go(self._mi_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
 	log.info(self._md_controlShapes)
 	log.info(self._md_controlPivots)
 	self._i_rigNull.msgList_connect(self._md_controlShapes['segmentFK'],'shape_controlsFK',"rigNull")	
@@ -773,9 +773,9 @@ def build_controls2(self):
 	mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub_out', defaultValue = 1, attrType = 'bool', keyable = False,hidden = True,lock=True)
 	
 	#Get one of the drivers
-	if self._i_module.getAttr('cgmDirection') and self._i_module.cgmDirection.lower() in ['left','right']:
+	if self._mi_module.getAttr('cgmDirection') and self._mi_module.cgmDirection.lower() in ['left','right']:
 	    str_mainSubDriver = "%s.%sSubControls_out"%(self._i_masterControl.controlVis.getShortName(),
-	                                                self._i_module.cgmDirection)
+	                                                self._mi_module.cgmDirection)
 	else:
 	    str_mainSubDriver = "%s.subControls_out"%(self._i_masterControl.controlVis.getShortName())
 
@@ -807,7 +807,7 @@ def build_controls2(self):
 		#Need to do a few special things for our main segment handle
 		i_mainHandle = chain[0]
 		self._i_rigNull.connectChildNode(i_mainHandle,'mainSegmentHandle',"rigNull")
-		curves.setCurveColorByName(i_mainHandle.mNode,self._i_module.getModuleColors()[0])    
+		curves.setCurveColorByName(i_mainHandle.mNode,self._mi_module.getModuleColors()[0])    
 		attributes.doBreakConnection(i_mainHandle.mNode,'visibility')
 	
     except StandardError,error:
@@ -944,7 +944,7 @@ def build_FKIK(goInstance = None):
 		#Create no flip thumb IK
 		d_ankleNoFlipReturn = rUtils.IKHandle_create(ml_ikNoFlipJoints[1].mNode,ml_ikNoFlipJoints[-2].mNode,lockMid=False,
 	                                                     nameSuffix = 'noFlip',rpHandle=True,controlObject=mi_controlIK,addLengthMulti=True,
-	                                                     globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._go._i_module)
+	                                                     globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._go._mi_module)
 		
 		mi_fingerIKHandleNF = d_ankleNoFlipReturn['mi_handle']
 		ml_distHandlesNF = d_ankleNoFlipReturn['ml_distHandles']
@@ -955,7 +955,7 @@ def build_FKIK(goInstance = None):
 		Snap.go(mi_rpHandleNF,i_tmpLoc.mNode,True)#Snape to hand control, then move it out...
 		i_tmpLoc.delete()
 		
-		mi_rpHandleNF.doCopyNameTagsFromObject(self._go._i_module.mNode, ignore = ['cgmName','cgmType'])
+		mi_rpHandleNF.doCopyNameTagsFromObject(self._go._mi_module.mNode, ignore = ['cgmName','cgmType'])
 		mi_rpHandleNF.addAttr('cgmName','%sPoleVector'%self._go._partName, attrType = 'string')
 		mi_rpHandleNF.addAttr('cgmTypeModifier','noFlip')
 		mi_rpHandleNF.doName()
@@ -964,7 +964,7 @@ def build_FKIK(goInstance = None):
 		#=========================================================================================
 		#Make a spin group
 		i_spinGroup = cgmMeta.cgmObject(str_twistGroup)
-		i_spinGroup.doCopyNameTagsFromObject(self._go._i_module.mNode, ignore = ['cgmName','cgmType'])	
+		i_spinGroup.doCopyNameTagsFromObject(self._go._mi_module.mNode, ignore = ['cgmName','cgmType'])	
 		i_spinGroup.addAttr('cgmName','%sNoFlipSpin'%self._go._partName)
 		i_spinGroup.doName()
 		
@@ -1037,7 +1037,7 @@ def build_FKIK(goInstance = None):
 		
 	    except StandardError,error:
 		raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._go._strShortName,error)
-	    log.info("%s.build_FKIK complete!"%self._go._i_module.getShortName())
+	    log.info("%s.build_FKIK complete!"%self._go._mi_module.getShortName())
 	    return True
     return fncWrap(goInstance).go()
     
@@ -1143,7 +1143,7 @@ def build_FKIK2(self):
 	#Create no flip thumb IK
 	d_ankleNoFlipReturn = rUtils.IKHandle_create(ml_ikNoFlipJoints[1].mNode,ml_ikNoFlipJoints[-2].mNode,lockMid=False,
 	                                             nameSuffix = 'noFlip',rpHandle=True,controlObject=mi_controlIK,addLengthMulti=True,
-	                                             globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._i_module)
+	                                             globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',moduleInstance=self._mi_module)
 	
 	mi_fingerIKHandleNF = d_ankleNoFlipReturn['mi_handle']
 	ml_distHandlesNF = d_ankleNoFlipReturn['ml_distHandles']
@@ -1154,7 +1154,7 @@ def build_FKIK2(self):
 	Snap.go(mi_rpHandleNF,i_tmpLoc.mNode,True)#Snape to hand control, then move it out...
 	i_tmpLoc.delete()
 	
-	mi_rpHandleNF.doCopyNameTagsFromObject(self._i_module.mNode, ignore = ['cgmName','cgmType'])
+	mi_rpHandleNF.doCopyNameTagsFromObject(self._mi_module.mNode, ignore = ['cgmName','cgmType'])
 	mi_rpHandleNF.addAttr('cgmName','%sPoleVector'%self._partName, attrType = 'string')
 	mi_rpHandleNF.addAttr('cgmTypeModifier','noFlip')
 	mi_rpHandleNF.doName()
@@ -1163,7 +1163,7 @@ def build_FKIK2(self):
 	#=========================================================================================
 	#Make a spin group
 	i_spinGroup = cgmMeta.cgmObject(str_twistGroup)
-	i_spinGroup.doCopyNameTagsFromObject(self._i_module.mNode, ignore = ['cgmName','cgmType'])	
+	i_spinGroup.doCopyNameTagsFromObject(self._mi_module.mNode, ignore = ['cgmName','cgmType'])	
 	i_spinGroup.addAttr('cgmName','%sNoFlipSpin'%self._partName)
 	i_spinGroup.doName()
 	
@@ -1225,7 +1225,7 @@ def build_FKIK2(self):
 	
     except StandardError,error:
 	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
-    log.info("%s.build_FKIK complete!"%self._i_module.getShortName())
+    log.info("%s.build_FKIK complete!"%self._mi_module.getShortName())
     return True
 
 def build_rig(goInstance = None):
@@ -1242,8 +1242,8 @@ def build_rig(goInstance = None):
 	    try:#>>>Get data
 		orientation = self._go._jointOrientation or modules.returnSettingsData('jointOrientation')
 		mi_moduleParent = False
-		if self._go._i_module.getMessage('moduleParent'):
-		    mi_moduleParent = self._go._i_module.moduleParent
+		if self._go._mi_module.getMessage('moduleParent'):
+		    mi_moduleParent = self._go._mi_module.moduleParent
 		    
 		mi_controlIK = self._go._i_rigNull.controlIK
 		ml_controlsFK =  self._go._i_rigNull.msgList_get('controlsFK')    
@@ -1311,7 +1311,7 @@ def build_rig(goInstance = None):
 			
 		ml_fingerDynParents.append( ml_controlsFK[0])	
 			
-		mi_spine = self._go._i_module.modulePuppet.getModuleFromDict(moduleType= ['torso','spine'])
+		mi_spine = self._go._mi_module.modulePuppet.getModuleFromDict(moduleType= ['torso','spine'])
 		if mi_spine:
 		    log.info("spine found: %s"%mi_spine)	    
 		    mi_spineRigNull = mi_spine.rigNull
@@ -1419,8 +1419,8 @@ def build_rig2(self):
     try:#>>>Get data
 	orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
 	mi_moduleParent = False
-	if self._i_module.getMessage('moduleParent'):
-	    mi_moduleParent = self._i_module.moduleParent
+	if self._mi_module.getMessage('moduleParent'):
+	    mi_moduleParent = self._mi_module.moduleParent
 	    
 	mi_controlIK = self._i_rigNull.controlIK
 	ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    
@@ -1478,7 +1478,7 @@ def build_rig2(self):
 		
 	ml_fingerDynParents.append( ml_controlsFK[0])	
 		
-	mi_spine = self._i_module.modulePuppet.getModuleFromDict(moduleType= ['torso','spine'])
+	mi_spine = self._mi_module.modulePuppet.getModuleFromDict(moduleType= ['torso','spine'])
 	if mi_spine:
 	    log.info("spine found: %s"%mi_spine)	    
 	    mi_spineRigNull = mi_spine.rigNull
@@ -1554,8 +1554,8 @@ def build_matchSystem(goInstance = None):
 		
 	    #Base info
 	    mi_moduleParent = False
-	    if self._go._i_module.getMessage('moduleParent'):
-		mi_moduleParent = self._go._i_module.moduleParent
+	    if self._go._mi_module.getMessage('moduleParent'):
+		mi_moduleParent = self._go._mi_module.moduleParent
 		
 	    mi_controlIK = self._go._i_rigNull.controlIK
 	    ml_controlsFK =  self._go._i_rigNull.msgList_get('controlsFK')    
@@ -1690,8 +1690,8 @@ def build_matchSystem2(self):
     
     #Base info
     mi_moduleParent = False
-    if self._i_module.getMessage('moduleParent'):
-	mi_moduleParent = self._i_module.moduleParent
+    if self._mi_module.getMessage('moduleParent'):
+	mi_moduleParent = self._mi_module.moduleParent
 	
     mi_controlIK = self._i_rigNull.controlIK
     ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')    

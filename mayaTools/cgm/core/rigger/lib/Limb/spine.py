@@ -85,11 +85,11 @@ def __bindSkeletonSetup__(self):
     
     #>>> Re parent joints
     #=============================================================  
-    if not self._i_module.isSkeletonized():
+    if not self._mi_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     
     try:#Reparent joints
-	ml_moduleJoints = self._i_module.rigNull.msgList_get('moduleJoints',asMeta = True)  #Get the module joints
+	ml_moduleJoints = self._mi_module.rigNull.msgList_get('moduleJoints',asMeta = True)  #Get the module joints
 	ml_skinJoints = []
 	
 	for i,i_jnt in enumerate(ml_moduleJoints):
@@ -111,7 +111,7 @@ def __bindSkeletonSetup__(self):
 		    ml_skinJoints.append(i_dupJnt)#Append
 		    log.debug("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
 	
-	self._i_module.rigNull.msgList_connect(ml_skinJoints,'skinJoints')    	
+	self._mi_module.rigNull.msgList_connect(ml_skinJoints,'skinJoints')    	
 	log.debug("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
 	log.debug("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))
 	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
@@ -306,7 +306,7 @@ def build_shapes(self):
     start = time.clock()
     
     try:#>>>Build our Shapes =============================================================
-	mShapeCast.go(self._i_module,['cog','hips','torsoIK','segmentFK'],storageInstance=self)#This will store controls to a dict called    
+	mShapeCast.go(self._mi_module,['cog','hips','torsoIK','segmentFK'],storageInstance=self)#This will store controls to a dict called    
 	log.debug(self._md_controlShapes)
     except StandardError,error:
 	raise StandardError,"%s >>> build shapes | error : %s"%(_str_funcName,error) 
@@ -587,7 +587,7 @@ def build_deformation(self):
 	                                             baseName=self._partName,
 	                                             additiveScaleSetup=True,
 	                                             connectAdditiveScale=True,
-	                                             moduleInstance=self._i_module)
+	                                             moduleInstance=self._mi_module)
 	
 	i_curve = curveSegmentReturn['mi_segmentCurve']
 	self._i_rigNull.msgList_connect([i_curve],'segmentCurves','rigNull')	
@@ -1283,7 +1283,7 @@ def build_deformationOLDSurface(self):
 	d_constraintSurfaceReturn = rUtils.createConstraintSurfaceSegment(l_influenceJoints[1:],
 	                                                                  self._jointOrientation,
 	                                                                  self._partName+'_constraint',
-	                                                                  moduleInstance=self._i_module)    
+	                                                                  moduleInstance=self._mi_module)    
 	for i_jnt in ml_influenceJoints:
 	    i_jnt.parent = False#Parent to world
 	    
@@ -1315,9 +1315,9 @@ def build_deformationOLDSurface(self):
 	surfaceReturn = rUtils.createControlSurfaceSegment([i_jnt.mNode for i_jnt in ml_segmentJoints],
 	                                                   self._jointOrientation,
 	                                                   self._partName,
-	                                                   moduleInstance=self._i_module)
+	                                                   moduleInstance=self._mi_module)
 	#Add squash
-	rUtils.addSquashAndStretchToControlSurfaceSetup(surfaceReturn['surfaceScaleBuffer'],[i_jnt.mNode for i_jnt in ml_segmentJoints],moduleInstance=self._i_module)
+	rUtils.addSquashAndStretchToControlSurfaceSetup(surfaceReturn['surfaceScaleBuffer'],[i_jnt.mNode for i_jnt in ml_segmentJoints],moduleInstance=self._mi_module)
 	#Twist
 	log.debug(self._jointOrientation)
 	capAim = self._jointOrientation[0].capitalize()

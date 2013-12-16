@@ -83,10 +83,10 @@ def __bindSkeletonSetup__(self):
     #>>> Re parent joints
     #=============================================================  
     #ml_skinJoints = self.rig_getSkinJoints() or []
-    if not self._i_module.isSkeletonized():
+    if not self._mi_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     try:
-	self._i_module.rig_getReport()#report	
+	self._mi_module.rig_getReport()#report	
     except Exception,error:
 	log.error("build_eyebrow>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
@@ -109,7 +109,7 @@ def build_rigSkeleton(*args, **kws):
 	    mi_go = self._go#Rig Go instance link
 	    self.mi_skullPlate = mi_go._mi_skullPlate
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    self.mi_leftBrowCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftBrowHelper'),noneValid=False)
@@ -267,7 +267,7 @@ def build_shapes(*args, **kws):
 	
 	def buildShapes(self):
 	    mi_go = self._go#Rig Go instance link
-	    mShapeCast.go(mi_go._i_module,['eyebrow'], storageInstance=mi_go)#This will store controls to a dict called    
+	    mShapeCast.go(mi_go._mi_module,['eyebrow'], storageInstance=mi_go)#This will store controls to a dict called    
 	    
     return fncWrap(*args, **kws).go()
 
@@ -290,14 +290,14 @@ def build_controls(*args, **kws):
 	def _gatherInfo_(self):
 	    mi_go = self._go#Rig Go instance link
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    #>> Find our joint lists ===================================================================
 	    ''' We need left and right direction splits for mirror indexing at their color sorting '''
 	    self.md_jointLists = {}	    
-	    self.ml_handleJoints = mi_go._i_module.rigNull.msgList_get('handleJoints')
-	    self.ml_rigJoints = mi_go._i_module.rigNull.msgList_get('rigJoints')
+	    self.ml_handleJoints = mi_go._mi_module.rigNull.msgList_get('handleJoints')
+	    self.ml_rigJoints = mi_go._mi_module.rigNull.msgList_get('rigJoints')
 	    
 	    l_missingCurves = []
 	    for mJnt in self.ml_handleJoints + self.ml_rigJoints:
@@ -407,7 +407,7 @@ def build_rig(*args, **kws):
 	def _gatherInfo_(self):
 	    mi_go = self._go#Rig Go instance link
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    self.mi_skullPlate = mi_go._mi_skullPlate
@@ -421,8 +421,8 @@ def build_rig(*args, **kws):
 	    We need lists of handle and a rig joints for each segment - brow, upr cheek temple
 	    md_joints = {'leftBrow:{'ml_handleJoints':[],'ml_rigJoints':[],'mi_crv'}}
 	    '''
-	    ml_handleJoints = mi_go._i_module.rigNull.msgList_get('handleJoints')
-	    ml_rigJoints = mi_go._i_module.rigNull.msgList_get('rigJoints')
+	    ml_handleJoints = mi_go._mi_module.rigNull.msgList_get('handleJoints')
+	    ml_rigJoints = mi_go._mi_module.rigNull.msgList_get('rigJoints')
 	    self.md_rigList = {"brow":{"left":{},"right":{},"center":{}},
 	                       "uprCheek":{"left":{},"right":{}},
 	                       "squash":{},

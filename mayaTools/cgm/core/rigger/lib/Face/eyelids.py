@@ -80,7 +80,7 @@ def __bindSkeletonSetup__(self):
     #>>> Re parent joints
     #=============================================================  
     #ml_skinJoints = self.rig_getSkinJoints() or []
-    if not self._i_module.isSkeletonized():
+    if not self._mi_module.isSkeletonized():
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     try:pass
     except Exception,error:
@@ -103,7 +103,7 @@ def build_rigSkeleton(*args, **kws):
 	    mi_go = self._go#Rig Go instance link
 	    #self.mi_skullPlate = mi_go._mi_skullPlate
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    
@@ -159,7 +159,7 @@ def build_rigSkeleton(*args, **kws):
 			    mi_end = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
 			    mi_end.parent = False
 			    ml_buffer = [mi_end]
-			    mi_end.doCopyNameTagsFromObject( mi_go._i_module.mNode,ignore=['cgmTypeModifier','cgmType','cgmIterator'] )#copy Tags
+			    mi_end.doCopyNameTagsFromObject( mi_go._mi_module.mNode,ignore=['cgmTypeModifier','cgmType','cgmIterator'] )#copy Tags
 			    mi_end.addAttr('cgmName',"%s_lid"%(k),lock=True)		    		    
 			    mi_end.addAttr('cgmType','handleJoint',lock=True)
 			    ml_handles.append(mi_end)
@@ -256,7 +256,7 @@ def build_shapes(self):
     #=============================================================
     try:
 	#Rest of it
-	mShapeCast.go(self._i_module,['eyelids'], storageInstance=self)#This will store controls to a dict called    
+	mShapeCast.go(self._mi_module,['eyelids'], storageInstance=self)#This will store controls to a dict called    
 	
     except Exception,error:
 	log.error("build_eyelids>>Build shapes fail!")
@@ -282,7 +282,7 @@ def build_controls(*args, **kws):
 	def _gatherInfo_(self):
 	    mi_go = self._go#Rig Go instance link
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    self.mi_parentSettings = self.mi_helper.moduleTarget.rigNull.settings
@@ -397,7 +397,7 @@ def build_rig(*args, **kws):
 	def gatherInfo(self):
 	    mi_go = self._go#Rig Go instance link
 	    
-	    self.mi_helper = cgmMeta.validateObjArg(mi_go._i_module.getMessage('helper'),noneValid=True)
+	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    '''    
@@ -476,8 +476,8 @@ def build_rig(*args, **kws):
 	def _buildRig_(self):
 	    try:#Query ===============================================================================
 		mi_go = self._go#Rig Go instance link		
-		mi_moduleParent = mi_go._i_module.moduleParent
-		mi_settings = mi_go._i_module.getSettingsControl()		
+		mi_moduleParent = mi_go._mi_module.moduleParent
+		mi_settings = mi_go._mi_module.getSettingsControl()		
 		mi_mainUprCtrl = self.mi_mainUprCtrl
 		mi_mainLwrCtrl = self.mi_mainLwrCtrl
 		ml_rigUprLidJoints = self.ml_rigUprLidJoints
@@ -500,7 +500,7 @@ def build_rig(*args, **kws):
 		try:#Upr driven curve
 		    _str_uprDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in ml_rigUprLidJoints],os =True)
 		    mi_uprDrivenCrv = cgmMeta.cgmObject(_str_uprDrivenCurve,setClass=True)
-		    mi_uprDrivenCrv.doCopyNameTagsFromObject(mi_go._i_module.mNode,ignore=['cgmType'])
+		    mi_uprDrivenCrv.doCopyNameTagsFromObject(mi_go._mi_module.mNode,ignore=['cgmType'])
 		    mi_uprDrivenCrv.addAttr('cgmName','uprLid',lock=True)
 		    mi_uprDrivenCrv.addAttr('cgmTypeModifier','driven',lock=True)
 		    mi_uprDrivenCrv.doName()
@@ -722,17 +722,17 @@ def build_rig(*args, **kws):
 		    ml_toVisConnect.extend([mi_drivenLwrLoc,mi_drivenUprLoc,mi_zeroLoc])
 		    
 		    mi_clampUpr = cgmMeta.cgmNode(nodeType='clamp')
-		    mi_clampUpr.doStore('cgmName',mi_go._i_module.mNode)
+		    mi_clampUpr.doStore('cgmName',mi_go._mi_module.mNode)
 		    mi_clampUpr.addAttr('cgmTypeModifier','upr')
 		    mi_clampUpr.doName()
 		    
 		    mi_clampLwr = cgmMeta.cgmNode(nodeType='clamp')
-		    mi_clampLwr.doStore('cgmName',mi_go._i_module.mNode)
+		    mi_clampLwr.doStore('cgmName',mi_go._mi_module.mNode)
 		    mi_clampLwr.addAttr('cgmTypeModifier','lwr')	    
 		    mi_clampLwr.doName()
 		    
 		    mi_remapLwr = cgmMeta.cgmNode(nodeType='remapValue')
-		    mi_remapLwr.doStore('cgmName',mi_go._i_module.mNode)
+		    mi_remapLwr.doStore('cgmName',mi_go._mi_module.mNode)
 		    mi_remapLwr.addAttr('cgmTypeModifier','lwr')	    
 		    mi_remapLwr.doName()	    
 		except Exception,error:raise StandardError, "[Initial setup]{%s}"%(error)
@@ -827,9 +827,9 @@ def build_rig(*args, **kws):
 		mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub_out', attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = True,lock=True)
 		
 		#Get one of the drivers
-		if mi_go._i_module.getAttr('cgmDirection') and mi_go._i_module.cgmDirection.lower() in ['left','right']:
+		if mi_go._mi_module.getAttr('cgmDirection') and mi_go._mi_module.cgmDirection.lower() in ['left','right']:
 		    str_mainSubDriver = "%s.%sSubControls_out"%(mi_go._i_masterControl.controlVis.getShortName(),
-		                                                mi_go._i_module.cgmDirection)
+		                                                mi_go._mi_module.cgmDirection)
 		else:
 		    str_mainSubDriver = "%s.subControls_out"%(mi_go._i_masterControl.controlVis.getShortName())
 	
