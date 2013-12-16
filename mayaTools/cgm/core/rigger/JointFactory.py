@@ -68,7 +68,7 @@ settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictio
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 class go(object):
-    def __init__(self,moduleInstance,forceNew = True,saveTemplatePose = True,**kws): 
+    def __init__(self,mModule,forceNew = True,saveTemplatePose = True,**kws): 
         """
         To do:
         Add rotation order settting
@@ -79,22 +79,22 @@ class go(object):
         # Get our base info
         #==============	        
         #>>> module null data 
-        #assert moduleInstance.mClass in ['cgmModule','cgmLimb'],"Not a module"
-        assert moduleInstance.isTemplated(),"Module is not templated"
+        #assert mModule.mClass in ['cgmModule','cgmLimb'],"Not a module"
+        assert mModule.isTemplated(),"Module is not templated"
 	mc.select(cl=1)#Clear our selection because we're gonna be making joints
         #assert object is templated
         #assert ...	
 	self.cls = "JointFactory.go"
 	self._cgmClass = "JointFactory.go"
-        self._mi_module = moduleInstance# Link for shortness
+        self._mi_module = mModule# Link for shortness
 	_str_funcName = "go.__init__(%s)"%self._mi_module.p_nameShort  
 	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
 	
-        if moduleInstance.isSkeletonized():
+        if mModule.isSkeletonized():
             if forceNew:
-                deleteSkeleton(moduleInstance)
+                deleteSkeleton(mModule)
             else:
-                log.warning("'%s' has already been skeletonized"%moduleInstance.getShortName())
+                log.warning("'%s' has already been skeletonized"%mModule.getShortName())
                 return        
         
         #>>> store template settings
@@ -1904,8 +1904,7 @@ def doOrientSegment(self):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Module tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-#@r9General.Timer
-def deleteSkeleton(self,*args,**kws):  
+def deleteSkeletonOLD(self,*args,**kws):  
     #MUST BE A MODULE
     if not self.isSkeletonized():
         log.warning("Not skeletonized. Cannot delete skeleton: '%s'"%self.getShortName())
@@ -1941,7 +1940,6 @@ def deleteSkeleton(self,*args,**kws):
     
     return True
 
-@cgmGeneral.Timer
 def connectToParentModule(self):
     """
     Pass a module class. Constrains template root to parent's closest template object

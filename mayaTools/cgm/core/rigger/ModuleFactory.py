@@ -59,7 +59,7 @@ class ModuleFunc(cgmGeneral.cgmFuncCls):
 	except Exception,error:raise StandardError,"ModuleFunc failed to initialize | %s"%error
 	self._str_funcName= "testFModuleFuncunc"		
 	super(ModuleFunc, self).__init__(*args, **kws)
-	self.mi_module = mModule	
+	self._mi_module = mModule	
 	self._str_moduleName = mModule.p_nameShort	
 	self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG]	
 	#=================================================================
@@ -80,7 +80,7 @@ def exampleWrap(*args,**kws):
 	    
 	def __func__(self):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    '''
@@ -101,7 +101,7 @@ def isSized(*args,**kws):
 	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	def __func__(self): 
-	    mi_module = self.mi_module
+	    mi_module = self._mi_module
 	    try:
 		if mi_module.moduleType in __l_faceModules__:
 		    if mi_module.getMessage('helper'):
@@ -145,7 +145,7 @@ def deleteSizeInfo(*args,**kws):
 	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	def __func__(self): 
-	    mi_module = self.mi_module
+	    mi_module = self._mi_module
 	    mi_module.templateNull.__setattr__('templateStarterData','',lock=True)
 	    return True
     return fncWrap(*args,**kws).go() 
@@ -185,7 +185,7 @@ def doSize(*args,**kws):
 	def __func__(self,*args,**kws):
 	    """
 	    """
-	    mi_module = self.mi_module
+	    mi_module = self._mi_module
 	    kws = self.d_kws
 	    sizeMode = kws['sizeMode']
 	    geo = kws['geo']
@@ -245,7 +245,7 @@ def doSize(*args,**kws):
 		    if kws:log.info("kws: %s"%str(kws))
 		    
 		    super(moduleSizer, self).__init__(**kws)
-		    self.mi_module = i_module
+		    self._mi_module = i_module
 		    self.toCreate = namesToCreate
 		    log.info("Please place '%s'"%self.toCreate[0])
 		    
@@ -258,12 +258,12 @@ def doSize(*args,**kws):
 		def finalize(self):
 		    log.info("returnList: %s"% self.l_return)
 		    log.info("createdList: %s"% self.l_created)   
-		    buffer = [] #self.mi_module.templateNull.templateStarterData
+		    buffer = [] #self._mi_module.templateNull.templateStarterData
 		    log.info("starting data: %s"% buffer)
 		    
 		    #Make sure we have enough points
 		    #==============  
-		    handles = self.mi_module.templateNull.handles
+		    handles = self._mi_module.templateNull.handles
 		    if len(self.l_return) < handles:
 			self.log_warning("Creating curve to get enough points")                
 			curve = curves.curveFromPosList(self.l_return)
@@ -280,8 +280,8 @@ def doSize(*args,**kws):
 		    #Store locs
 		    #==============  
 		    log.info("finish data: %s"% buffer)
-		    self.mi_module.templateNull.__setattr__('templateStarterData',buffer,lock=True)
-		    #self.mi_module.templateNull.templateStarterData = buffer#store it
+		    self._mi_module.templateNull.__setattr__('templateStarterData',buffer,lock=True)
+		    #self._mi_module.templateNull.templateStarterData = buffer#store it
 		    log.info("'%s' sized!"%self._str_moduleName)
 		    dragFactory.clickMesh.finalize(self)
 		
@@ -305,7 +305,7 @@ def doSetParentModule(*args,**kws):
 	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	def __func__(self): 
-	    mi_module = self.mi_module
+	    mi_module = self._mi_module
 	    kws = self.d_kws
 	    moduleParent = self.d_kws['moduleParent']
 	    try:
@@ -357,7 +357,7 @@ def getGeneratedCoreNames(*args,**kws):
 	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	def __func__(self): 
-	    mi_module = self.mi_module
+	    mi_module = self._mi_module
 	    kws = self.d_kws
 	    mi_coreNamesBuffer = mi_module.coreNames
 		
@@ -486,7 +486,7 @@ def doRig(*args,**kws):
 	    """
 	    """
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -521,7 +521,7 @@ def isRigged(*args,**kws):
 	    
 	def __func__(self):
 	    kws = self.d_kws
-	    mi_module = self.mi_module
+	    mi_module = self._mi_module
 	    
 	    if not isSkeletonized(**kws):
 		self.log_debug("%s Not skeletonized"%self._str_reportStart)
@@ -578,13 +578,16 @@ def exampleWrap(*args,**kws):
 	    """
 	    """
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    '''
 	    int_lenMax = len(LIST)
 	    self.progressBar_set(status = "Remaining to process... ", progress = len(LIST) or i, maxValue = int_lenMax)		    				    		    
 	    '''
+	    try:
+		pass
+	    except Exception,error:raise StandardError,"[Posr store]{%s}"%(error)   	    
     return fncWrap(*args,**kws).go()
 def rigDelete(*args,**kws):
     """
@@ -601,7 +604,7 @@ def rigDelete(*args,**kws):
 	    
 	def __func__(self):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -619,7 +622,7 @@ def rigDelete(*args,**kws):
 		return True
 	    except Exception,error:
 		self.log_warning(error)"""
-	    mi_rigNull = self.mi_module.rigNull
+	    mi_rigNull = self._mi_module.rigNull
 	    l_rigNullStuff = mi_rigNull.getAllChildren()
 	    
 	    #Build a control master group List
@@ -633,8 +636,8 @@ def rigDelete(*args,**kws):
 		if mc.objExists(obj):
 		    mc.delete(obj)
 		    
-	    if self.mi_module.getMessage('deformNull'):
-		mc.delete(self.mi_module.getMessage('deformNull'))
+	    if self._mi_module.getMessage('deformNull'):
+		mc.delete(self._mi_module.getMessage('deformNull'))
 		
 	    mc.delete(mi_rigNull.getChildren())
 	    mi_rigNull.version = ''#clear the version
@@ -658,7 +661,7 @@ def isRigConnected(*args,**kws):
 	    """
 	    """
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws
 		mi_rigNull = mi_module.rigNull
 		ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
@@ -695,7 +698,7 @@ def rigConnect(*args,**kws):
 	def __func__(self):
 	    """
 	    """
-	    mi_module = self.mi_module
+	    mi_module = self._mi_module
 	    str_shortName = self._str_moduleName
 	    
 	    if not isRigged(mi_module):
@@ -751,7 +754,7 @@ def rigDisconnect(*args,**kws):
 	    
 	def __func__(self):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error	    
 	    """
@@ -831,7 +834,7 @@ def isTemplated(*args,**kws):
 	    """
 	    """
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -899,7 +902,7 @@ def doTemplate(*args,**kws):
 	    
 	def __func__(self,**kws):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -926,7 +929,7 @@ def deleteTemplate(*args,**kws):
 	    #=================================================================
 	def __func__(self,**kws):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -949,7 +952,7 @@ def returnTemplateObjects(*args,**kws):
 	    #=================================================================
 	def __func__(self,*args,**kws):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
 	    templateNull = mi_module.templateNull.getShortName()
@@ -973,7 +976,7 @@ def get_rollJointCountList(*args,**kws):
 	    #=================================================================
 	def __func__(self,*args,**kws):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -1007,7 +1010,7 @@ def isSkeletonized(*args,**kws):
 	    #=================================================================
 	def __func__(self,*args,**kws):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -1036,7 +1039,7 @@ def doSkeletonize(*args,**kws):
 	    #=================================================================
 	def __func__(self,**kws):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -1061,14 +1064,47 @@ def deleteSkeleton(*args,**kws):
 	    #=================================================================
 	def __func__(self):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
-	    if isSkeletonized(**kws):
+	    if not isSkeletonized(**kws):
+		self.log_warning("Not skeletonized. Cannot delete skeleton")		
+		return False
 		jFactory.deleteSkeleton(**kws)
 	    return True
     return fncWrap(*args,**kws).go()
 
+def deleteSkeleton2(self,*args,**kws):  
+    #MUST BE A MODULE
+    if not self.isSkeletonized():
+	log.warning("Not skeletonized. Cannot delete skeleton: '%s'"%self.getShortName())
+	return False
+    log.debug(">>> %s.deleteSkeleton >> "%self.p_nameShort + "="*75)            
+    
+    ml_skinJoints = self.rig_getSkinJoints(asMeta = True)
+    l_skinJoints = [i_j.p_nameLong for i_j in ml_skinJoints if i_j ]  
+    
+    #We need to see if any of or moduleJoints have children
+    l_strayChildren = []
+    for i_jnt in ml_skinJoints:
+	buffer = i_jnt.getChildren(True)
+	for c in buffer:
+	    if c not in l_skinJoints:
+		try:
+		    i_c = cgmMeta.cgmObject(c)
+		    i_c.parent = False
+		    l_strayChildren.append(i_c.mNode)
+		except Exception,error:
+		    log.warning(error)     
+		    
+    log.debug("l_strayChildren: %s"%l_strayChildren)    
+    self.msgList_purge('skinJoints')
+    self.msgList_purge('moduleJoints')
+    self.msgList_purge('handleJoints')
+    
+    if l_skinJoints:
+	mc.delete(l_skinJoints)
+    else:return False
 
 def returnExpectedJointCount(*args,**kws):
     """
@@ -1084,7 +1120,7 @@ def returnExpectedJointCount(*args,**kws):
 	    #=================================================================
 	def __func__(self,*args,**kws):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -1216,7 +1252,7 @@ def getState(*args,**kws):
 	    #=================================================================
 	def __func__(self):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    d_CheckList = {'size':isSized,
@@ -1264,7 +1300,7 @@ def setState(*args,**kws):
 	    """
 	    self.log_warning("<<<<<<<< This module needs to be updated")
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws
 		rebuildFrom = kws['rebuildFrom']		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
@@ -1273,7 +1309,7 @@ def setState(*args,**kws):
 		rebuildArgs = validateStateArg(rebuildFrom,**kws)
 		if rebuildArgs:
 		    self.log_info("'%s' rebuilding from: '%s'"%(self._str_moduleName,rebuildArgs[1]))
-		    changeState(self.mi_module,rebuildArgs[1],**kws)
+		    changeState(self._mi_module,rebuildArgs[1],**kws)
 	    changeState(**kws)	
 	    return True
     return fncWrap(*args,**kws).go()
@@ -1292,7 +1328,7 @@ def checkState(*args,**kws):
 	    """
 	    """
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    stateArg = kws['stateArg']
@@ -1333,7 +1369,7 @@ def changeState(*args,**kws):
 	    """
 	    """
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    stateArg = kws['stateArg']
@@ -1382,7 +1418,7 @@ def changeState(*args,**kws):
 		self.log_debug("doStates: %s"%doStates)        
 		for doState in doStates:
 		    if doState in d_upStateFunctions.keys():
-			if not d_upStateFunctions[doState](self.mi_module,*args,**kws):return False
+			if not d_upStateFunctions[doState](self._mi_module,*args,**kws):return False
 			else:
 			    self.log_debug("'%s' completed: %s"%(self._str_moduleName,doState))
 		    else:
@@ -1403,122 +1439,139 @@ def changeState(*args,**kws):
 		for doState in doStates:
 		    self.log_debug("doState: %s"%doState)
 		    if doState in d_downStateFunctions.keys():
-			if not d_downStateFunctions[doState](self.mi_module,*args,**kws):return False
+			if not d_downStateFunctions[doState](self._mi_module,*args,**kws):return False
 			else:self.log_debug("'%s': %s"%(self._str_moduleName,doState))
 		    else:
 			self.log_warning("No down state function for: %s"%doState)  
 	    else:
 		self.log_debug('Forcing recreate')
 		if stateName in d_upStateFunctions.keys():
-		    if not d_upStateFunctions[stateName](self.mi_module,*args,**kws):return False
+		    if not d_upStateFunctions[stateName](self._mi_module,*args,**kws):return False
 		    return True
 		    
     return fncWrap(*args,**kws).go()
 
-def storePose_templateSettings(self):
-    """
-    Builds a template's data settings for reconstruction.
-    
-    exampleDict = {'root':{'test':[0,1,0]},
-                'controlObjects':{0:[1,1,1]}}
-    """  
-    _str_funcName = "storePose_templateSettings('%s')"%self.p_nameShort  
-    log.info(">>> %s "%(_str_funcName) + "="*75)   
-    log.warning("<<<<<<<< This module needs to be updated")
-    
-    if self.getMessage('helper'):
-	self.log_warning("Error: Cannot currently store pose with rigBlocks")
-	return False
-    def buildDict_AnimAttrsOfObject(node,ignore = ['visibility']):
-        attrDict = {}
-        attrs = r9Anim.getSettableChannels(node,incStatics=True)
-        if attrs:
-            for attr in attrs:
-                if attr not in ignore:
-                    try:attrDict[attr]=mc.getAttr('%s.%s' % (node,attr))
-                    except:self.log_debug('%s : attr is invalid in this instance' % attr)
-        return attrDict
-        
-    exampleDict = {'root':{'test':[0,1,0]},
-                   'orientRootHelper':{'test':[0,1,0]},
-                   'controlObjects':{0:[1,1,1]},
-                   'helperObjects':{0:[]}}    
-    try:
-	poseDict = {}
-	i_templateNull = self.templateNull
-	i_templateNull.addAttr('controlObjectTemplatePose',attrType = 'string')#make sure attr exists
-	#>>> Get the root
-	poseDict['root'] = buildDict_AnimAttrsOfObject(i_templateNull.getMessage('root')[0])
-	poseDict['orientRootHelper'] = buildDict_AnimAttrsOfObject(i_templateNull.getMessage('orientRootHelper')[0])
-	poseDict['controlObjects'] = {}
-	poseDict['helperObjects'] = {}
+def storePose_templateSettings(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcHelp = "Builds a template's data settings for reconstruction./nexampleDict = {'root':{'test':[0,1,0]},/n'controlObjects':{0:[1,1,1]}}"
+	    self._str_funcName= "storePose_templateSettings('%s')"%self._str_moduleName	
+	    #self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},	
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
+	def buildDict_AnimAttrsOfObject(self, node,ignore = ['visibility']):
+	    attrDict = {}
+	    attrs = r9Anim.getSettableChannels(node,incStatics=True)
+	    if attrs:
+		for attr in attrs:
+		    if attr not in ignore:
+			try:attrDict[attr]=mc.getAttr('%s.%s' % (node,attr))
+			except:mi_module.log_debug('%s : attr is invalid in this instance' % attr)
+	    return attrDict
 	
-	for i,i_node in enumerate(i_templateNull.controlObjects):
-	    poseDict['controlObjects'][str(i)] = buildDict_AnimAttrsOfObject(i_node.mNode)
-	    if i_node.getMessage('helper'):
-		poseDict['helperObjects'][str(i)] = buildDict_AnimAttrsOfObject(i_node.helper.mNode)
-	
-	#Store it        
-	i_templateNull.controlObjectTemplatePose = poseDict
-	return poseDict
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)    
+	def __func__(self):
+	    """
+	    """
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    if mi_module.getMessage('helper'):
+		self.log_warning("Cannot currently store pose with rigBlocks")
+		return False
 
-def readPose_templateSettings(self):
-    """
-    Builds a template's data settings for reconstruction.
-    
-    exampleDict = {'root':{'test':[0,1,0]},
-                'controlObjects':{0:[1,1,1]}}
-    """   
-    _str_funcName = "getState('%s')"%self.p_nameShort   
-    self.log_debug(">>> %s "%(_str_funcName) + "="*75)
-    log.warning("<<<<<<<< This module needs to be updated")    
-    try:
-	i_templateNull = self.templateNull    
-	poseDict = i_templateNull.controlObjectTemplatePose
-	if type(poseDict) is not dict:
-	    return False
+	    exampleDict = {'root':{'test':[0,1,0]},
+		           'orientRootHelper':{'test':[0,1,0]},
+		           'controlObjects':{0:[1,1,1]},
+		           'helperObjects':{0:[]}}    
+	    try:
+		poseDict = {}
+		mi_templateNull = mi_module.templateNull
+		mi_templateNull.addAttr('controlObjectTemplatePose',attrType = 'string')#make sure attr exists
+		#>>> Get the root
+		poseDict['root'] = self.buildDict_AnimAttrsOfObject(mi_templateNull.getMessage('root')[0])
+		poseDict['orientRootHelper'] = self.buildDict_AnimAttrsOfObject(mi_templateNull.getMessage('orientRootHelper')[0])
+		poseDict['controlObjects'] = {}
+		poseDict['helperObjects'] = {}
+		
+		for i,i_node in enumerate(mi_templateNull.controlObjects):
+		    poseDict['controlObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(i_node.mNode)
+		    if i_node.getMessage('helper'):
+			poseDict['helperObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(i_node.helper.mNode)
+		
+		#Store it        
+		mi_templateNull.controlObjectTemplatePose = poseDict
+		return poseDict
+	    except Exception,error:raise StandardError,"[Posr store]{%s}"%(error)   
+	    
+    return fncWrap(*args,**kws).go()
+
+def readPose_templateSettings(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcHelp = "Reads and applies template settings pose data"
+	    self._str_funcName= "readPose_templateSettings('%s')"%self._str_moduleName	
+	    #self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},	
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
 	
-	#>>> Get the root
-	for key in ['root','orientRootHelper']:
-	    if poseDict[key]:
-		for attr, val in poseDict[key].items():
+	def __func__(self):
+	    """
+	    """
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws
+		mi_templateNull = mi_module.templateNull   
+		d_pose = mi_templateNull.controlObjectTemplatePose
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    
+	    if type(d_pose) is not dict:
+		return False
+	    
+	    #>>> Get the root
+	    for key in ['root','orientRootHelper']:
+		if d_pose[key]:
+		    for attr, val in d_pose[key].items():
+			try:
+			    val=eval(val)
+			except:pass      
+			try:
+			    mc.setAttr('%s.%s' % (mi_templateNull.getMessage(key)[0],attr), val)
+			except Exception,err:
+			    self.log_error(err)   
+			    
+	    for key in d_pose['controlObjects']:
+		for attr, val in d_pose['controlObjects'][key].items():
+		    try:
+			val=eval(val)
+		    except:pass      
+		
+		    try:
+			mc.setAttr('%s.%s' % (mi_templateNull.getMessage('controlObjects')[int(key)], attr), val)
+		    except Exception,err:
+			self.log_error(err) 
+			
+	    for key in d_pose['helperObjects']:
+		for attr, val in d_pose['helperObjects'][key].items():
 		    try:
 			val=eval(val)
 		    except:pass      
 		    try:
-			mc.setAttr('%s.%s' % (i_templateNull.getMessage(key)[0],attr), val)
+			if mi_templateNull.controlObjects[int(key)].getMessage('helper'):
+			    mi_module.log_debug(mi_templateNull.controlObjects[int(key)].getMessage('helper')[0])
+			    mc.setAttr('%s.%s' % (mi_templateNull.controlObjects[int(key)].getMessage('helper')[0], attr), val)
 		    except Exception,err:
-			log.error(err)   
-			
-	for key in poseDict['controlObjects']:
-	    for attr, val in poseDict['controlObjects'][key].items():
-		try:
-		    val=eval(val)
-		except:pass      
-	    
-		try:
-		    mc.setAttr('%s.%s' % (i_templateNull.getMessage('controlObjects')[int(key)], attr), val)
-		except Exception,err:
-		    log.error(err) 
-		    
-	for key in poseDict['helperObjects']:
-	    for attr, val in poseDict['helperObjects'][key].items():
-		try:
-		    val=eval(val)
-		except:pass      
-	    
-		try:
-		    if i_templateNull.controlObjects[int(key)].getMessage('helper'):
-			self.log_debug(i_templateNull.controlObjects[int(key)].getMessage('helper')[0])
-			mc.setAttr('%s.%s' % (i_templateNull.controlObjects[int(key)].getMessage('helper')[0], attr), val)
-		except Exception,err:
-		    log.error(err)    
-		    
-	return True
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
+			self.log_error(err)    
+	    return True
+    return fncWrap(*args,**kws).go()
+  
     
 #=====================================================================================================
 #>>> Anim functions functions
@@ -1536,7 +1589,7 @@ def get_mirror(*args,**kws):
 	    #=================================================================
 	def __func__(self): 
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    l_direction = ['left','right']
@@ -1562,7 +1615,7 @@ def animReset(*args,**kws):
 	    self.__dataBind__(*args,**kws)	    	    
 	def __func__(self):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    mi_module.rigNull.moduleSet.select()
@@ -1584,7 +1637,7 @@ def mirrorPush(*args,**kws):
 	    #=================================================================
 	def __func__(self): 
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    l_buffer = mi_module.rigNull.moduleSet.getList()
@@ -1615,7 +1668,7 @@ def mirrorPull(*args,**kws):
 	    
 	def __func__(self): 
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -1645,7 +1698,7 @@ def mirrorMe(*args,**kws):
 	    #=================================================================
 	def __func__(self): 
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -1673,7 +1726,7 @@ def mirrorSymLeft(*args,**kws):
 	    #=================================================================
 	def __func__(self): 
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -1695,7 +1748,7 @@ def mirrorSymRight(*args,**kws):
 	    #=================================================================
 	def __func__(self): 
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -1724,7 +1777,7 @@ def mirrorMe_siblings(moduleInstance = None, excludeSelf = True):
 	    
 	def __func__(self): 
 	    try:
-		mi_moduleParent = self.mi_module.moduleParent
+		mi_moduleParent = self._mi_module.moduleParent
 		mi_parentMirror = get_mirror(mi_moduleParent)
 		if not mi_moduleParent and mi_parentMirror:
 		    raise StandardError,"Must have module parent and mirror"
@@ -1770,7 +1823,7 @@ def animReset_siblings(moduleInstance = None, transformsOnly = True, excludeSelf
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kws['excludeSelf'])
+		ml_buffer = getSiblings(self._mi_module,self.d_kws['excludeSelf'])
 		
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
@@ -1809,7 +1862,7 @@ def animReset_children(*args,**kws):
 	    
 	def __func__(self): 
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws
 		
 		ml_buffer = getAllModuleChildren(**kws)
@@ -1849,7 +1902,7 @@ def mirrorPush_siblings(moduleInstance = None, excludeSelf = True):
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kws.get('excludeSelf'))
+		ml_buffer = getSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
 		for i,i_c in enumerate(ml_buffer):
@@ -1885,7 +1938,7 @@ def mirrorPull_siblings(moduleInstance = None, excludeSelf = True):
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kws.get('excludeSelf'))
+		ml_buffer = getSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
 		for i,i_c in enumerate(ml_buffer):
@@ -1921,7 +1974,7 @@ def getSiblings(*args,**kws):
 	    
 	def __func__(self):
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
@@ -1936,8 +1989,8 @@ def getSiblings(*args,**kws):
 		    if kws['excludeSelf'] != True:
 			self.log_debug("Including self")
 			ml_return.append(mi_module)
-		elif self.mi_module.moduleType == mModule.moduleType or mi_module.moduleType in l_sibblingIgnoreCheck:
-		    if self.mi_module.getAttr('cgmDirection') and mi_module.getAttr('cgmDirection') == mModule.getAttr('cgmDirection'):
+		elif self._mi_module.moduleType == mModule.moduleType or mi_module.moduleType in l_sibblingIgnoreCheck:
+		    if self._mi_module.getAttr('cgmDirection') and mi_module.getAttr('cgmDirection') == mModule.getAttr('cgmDirection'):
 			self.log_debug("Appending: %s"%mModule)
 			ml_return.append(mModule)
 	    if len(ml_return)>1: return ml_return
@@ -1961,7 +2014,7 @@ def getAllModuleChildren(*args,**kws):
 	    
 	def __func__(self): 
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error		
 
@@ -1981,7 +2034,7 @@ def getAllModuleChildren(*args,**kws):
 			ml_childrenCull.append(i_subChild)
 		    ml_childrenCull.remove(i_child) 
 	    if not self.d_kws['excludeSelf']:
-		ml_children.append(self.mi_module)		
+		ml_children.append(self._mi_module)		
 	    return ml_children
 
     #We wrap it so that it autoruns and returns
@@ -2032,7 +2085,7 @@ def animKey_siblings(moduleInstance = None, excludeSelf = True,**kws):
 	    #=================================================================
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kws.get('excludeSelf'))
+		ml_buffer = getSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
 		for i,i_c in enumerate(ml_buffer):
@@ -2101,7 +2154,7 @@ def animSelect_siblings(moduleInstance = None, excludeSelf = True):
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kws.get('excludeSelf'))
+		ml_buffer = getSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
 		for i,i_c in enumerate(ml_buffer):
@@ -2140,9 +2193,9 @@ def animPushPose_siblings(moduleInstance = None,):
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module)
+		ml_buffer = getSiblings(self._mi_module)
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer)) 
-		l_moduleControls = self.mi_module.rigNull.msgList_getMessage('controlsAll')
+		l_moduleControls = self._mi_module.rigNull.msgList_getMessage('controlsAll')
 		l_controls = []
 		for i,i_c in enumerate(ml_buffer):
 		    log.info(i_c.p_nameShort)
@@ -2214,7 +2267,7 @@ def dynSwitch_siblings(moduleInstance = None, arg = None, excludeSelf = True):
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self.mi_module,self.d_kws['excludeSelf'])
+		ml_buffer = getSiblings(self._mi_module,self.d_kws['excludeSelf'])
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))    
 		for i,i_c in enumerate(ml_buffer):
 		    try:
@@ -2255,7 +2308,7 @@ def toggle_subVis(moduleInstance = None):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	def __func__(self): 
-	    mi_module = self.mi_module
+	    mi_module = self._mi_module
 	    try:
 		if mi_module.moduleType in __l_faceModules__:
 		    mi_module.rigNull.settings.visSubFace = not mi_module.rigNull.settings.visSubFace		    
@@ -2286,7 +2339,7 @@ def animSetAttr_children(*args,**kws):
 
 	def __func__(self): 
 	    try:#Query ========================================================
-		mi_module = self.mi_module
+		mi_module = self._mi_module
 		kws = self.d_kws	
 		
 		ml_buffer = getAllModuleChildren(**kws)
