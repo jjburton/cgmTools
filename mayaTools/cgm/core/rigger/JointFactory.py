@@ -1904,7 +1904,54 @@ def doOrientSegment(self):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Module tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-def deleteSkeletonOLD(self,*args,**kws):  
+def deleteSkeleton(*args,**kws):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    try:mModule = kws['mModule']
+	    except:
+		try:mModule = args[0]
+		except:pass	    
+		
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._mi_module = mModule
+	    self._str_moduleName = mModule.p_nameShort
+	    self._str_funcName= "deleteSkeleton('%s')"%self._str_moduleName	
+	    self.__dataBind__(*args,**kws)		    	    	    
+	    #=================================================================
+	def __func__(self):
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws		
+		ml_skinJoints = mi_module.rig_getSkinJoints(asMeta = True)
+		l_skinJoints = [i_j.p_nameLong for i_j in ml_skinJoints if i_j ]  		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    #We need to see if any of or moduleJoints have children
+	    l_strayChildren = []
+	    for i_jnt in ml_skinJoints:
+		buffer = i_jnt.getChildren(True)
+		for c in buffer:
+		    if c not in l_skinJoints:
+			try:
+			    i_c = cgmMeta.cgmObject(c)
+			    i_c.parent = False
+			    l_strayChildren.append(i_c.mNode)
+			except Exception,error:
+			    self.log_warning(error)     
+			    
+	    self.log_info("l_strayChildren: %s"%l_strayChildren)    
+	    mi_module.msgList_purge('skinJoints')
+	    mi_module.msgList_purge('moduleJoints')
+	    mi_module.msgList_purge('handleJoints')
+	    if l_skinJoints:
+		mc.delete(l_skinJoints)
+	    else:return False	    
+	    return True
+    return fncWrap(*args,**kws).go()
+
+def deleteSkeleton2(self,*args,**kws):  
     #MUST BE A MODULE
     if not self.isSkeletonized():
         log.warning("Not skeletonized. Cannot delete skeleton: '%s'"%self.getShortName())
