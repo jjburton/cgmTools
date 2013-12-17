@@ -98,6 +98,7 @@ def build_rigSkeleton(*args, **kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = 'build_rigSkeleton(%s)'%self.d_kws['goInstance']._strShortName	
 	    self.__dataBind__()
+	    self._b_reportTimes = True
 	    self.l_funcSteps = [{'step':'Gather Info','call':self.gatherInfo},
 	                        {'step':'Rig Joints','call':self.build_rigJoints},
 	                        {'step':'Handle Joints','call':self.build_handleJoints},
@@ -147,7 +148,9 @@ def build_rigSkeleton(*args, **kws):
 	                           "nostrilRight":'right_nostrilJoint',	                         
 	                           "tongue":'tongueJoint'}
 	    
-	    for k in d_jointListBuldTags.iterkeys():
+	    int_lenMax = len(d_jointListBuldTags.keys())
+	    for i,k in enumerate(d_jointListBuldTags.iterkeys()):
+		self.progressBar_set(status = "Gathering joint data: %s... "%(k), progress = i, maxValue = int_lenMax)		    				    		    		    		
 		try:self.md_jointList[k] = cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get(d_jointListBuldTags[k]),noneValid = False)
 		except Exception,error:raise StandardError,"Failed to find key:'%s'|msgList attr:'%s'|%s"%(k,d_jointListBuldTags[k],error)
 	    #Build our handle build info stuff...
@@ -216,8 +219,9 @@ def build_rigSkeleton(*args, **kws):
 		mJoint.doName()
 		
 	    ml_rightRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints , cgmDirection = 'right')
-	    for mJoint in ml_rightRigJoints:
-		log.info(mJoint.p_nameShort)
+	    int_lenMax = len(ml_rightRigJoints)
+	    for i,mJoint in enumerate(ml_rightRigJoints):
+		self.progressBar_set(status = "Flipping right joints: %s... "%(mJoint.p_nameShort), progress = i, maxValue = int_lenMax)		    				    		    		    		
 		mJoint.__setattr__("r%s"%mi_go._jointOrientation[1],180)
 		jntUtils.freezeJointOrientation(mJoint)
 	    self.ml_rigJoints = ml_rigJoints#pass to wrapper
@@ -225,18 +229,21 @@ def build_rigSkeleton(*args, **kws):
 	def build_handleJoints(self):
 	    mi_go = self._go#Rig Go instance link	    
 	    ml_moduleHandleJoints = []
-	    for k_name in self.md_handleBuildInfo.keys():#For each name...
+	    l_keys = self.md_handleBuildInfo.keys()
+	    int_lenMax = len(l_keys)
+	    for i,k_name in enumerate(l_keys):#For each name...
 		d_nameBuffer = self.md_handleBuildInfo[k_name]
 		for k_direction in ['left','right','center']:#for each direction....
+		    self.progressBar_set(status = "Building handles: %s %s... "%(k_direction,k_name), progress = i, maxValue = int_lenMax)		    				    		    		    
 		    try:
 			d_buffer = d_nameBuffer.get(k_direction)
 			l_tags = d_nameBuffer.get('tags') or False
-			if l_tags:log.info(l_tags)
+			#if l_tags:log.info(l_tags)
 			l_tagsPosition = d_nameBuffer.get('tagsPosition') or False			
 			str_mode = d_nameBuffer.get('mode') or 'regularMid'
 			#if not d_buffer:raise StandardError,"%s %s fail"%(k_name,k_direction)
 			if d_buffer:
-			    log.info("Building '%s' | '%s' handle joints | mode: %s"%(k_name,k_direction,str_mode))
+			    #log.info("Building '%s' | '%s' handle joints | mode: %s"%(k_name,k_direction,str_mode))
 			    try:ml_skinJoints = self.md_jointList[d_buffer['skinKey']]
 			    except:ml_skinJoints = []
 			    ml_handleJoints = []
@@ -264,16 +271,16 @@ def build_rigSkeleton(*args, **kws):
 				mi_rightCrv = self.mi_smileRightCrv
 				#Get our u Values
 				str_bufferULeft = mc.ls("%s.u[*]"%mi_leftCrv.mNode)[0]
-				log.info("Left >> u list : %s"%(str_bufferULeft))       
+				#log.info("Left >> u list : %s"%(str_bufferULeft))       
 				f_maxULeft= float(str_bufferULeft.split(':')[-1].split(']')[0])	
 				str_bufferURight = mc.ls("%s.u[*]"%mi_rightCrv.mNode)[0]
-				log.info("Right >> u list : %s"%(str_bufferURight))       
+				#log.info("Right >> u list : %s"%(str_bufferURight))       
 				f_maxURight= float(str_bufferURight.split(':')[-1].split(']')[0])	
 				
 				pos_left = distance.returnWorldSpacePosition("%s.u[%s]"%(mi_leftCrv.mNode,f_maxULeft ))
 				pos_right = distance.returnWorldSpacePosition("%s.u[%s]"%(mi_rightCrv.mNode,f_maxURight ))
 				pos = distance.returnAveragePointPosition([pos_left,pos_right])
-				log.info("pos >> %s"%pos)
+				#log.info("pos >> %s"%pos)
 				
 				mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
 				mi_jnt.parent = False
@@ -289,7 +296,7 @@ def build_rigSkeleton(*args, **kws):
 				try:
 				    pos = distance.returnAveragePointPosition([self.md_jointList['cornerLipLeft'][0].getPosition(),
 				                                               self.md_jointList['cornerLipRight'][0].getPosition()])
-				except Exception,error:raise StandardError,"mouthMove pos fail: %s"%error
+				except Exception,error:raise StandardError,"[mouthMove pos fail]{%s}"%error
 				
 				mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
 				mi_jnt.parent = False
@@ -322,7 +329,7 @@ def build_rigSkeleton(*args, **kws):
 				    mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)				    
 				    mi_jnt.doName()
 				    ml_handleJoints.append(mi_jnt)				
-				except Exception,error:raise StandardError,"Simple aim build fail: %s"%error
+				except Exception,error:raise StandardError,"[Simple aim build fail]{%s}"%error
 				try:#Orient
 				    if str_mode == 'midSimpleAim':
 					try:
@@ -349,16 +356,16 @@ def build_rigSkeleton(*args, **kws):
 					    mc.delete( mc.orientConstraint([mi_locIn.mNode,mi_locOut.mNode], mi_jnt.mNode,
 						                           weight = 1) )
 					    mc.delete([mi_locIn.mNode,mi_locOut.mNode])
-					except Exception,error:raise StandardError,"midAimBlend aim fail: %s"%error
+					except Exception,error:raise StandardError,"[midAimBlend aim fail]{%s}"%error
 					
 				    jntUtils.metaFreezeJointOrientation(mi_jnt)				
-				except Exception,error:raise StandardError,"mid fail: %s"%error
+				except Exception,error:raise StandardError,"[mid fail]{%s}"%error
 			    else:
 				for i,mJnt in enumerate(self.l_build):
 				    if mJnt == 'mid':
 					mi_crv = d_buffer.get('crv')
 					if not mi_crv:
-					    raise StandardError,"Step: '%s' '%s' | failed to find use curve"%(k_name,k_direction)
+					    raise StandardError,"[Step: '%s' '%s' | failed to find use curve]"%(k_name,k_direction)
 					if str_mode == 'midSmileLinePoint':
 					    try:
 						mi_target = d_buffer['mi_closeTarget']
@@ -373,7 +380,7 @@ def build_rigSkeleton(*args, **kws):
 						    mi_loc.__setattr__("t%s"%mi_go._jointOrientation[2],-f_dist)						
 						pos = distance.returnClosestUPosition(mi_loc.mNode,mi_crv.mNode)
 						mi_loc.delete()
-					    except Exception,error:raise StandardError,"midClosestCurvePoint failed: %s"%error    
+					    except Exception,error:raise StandardError,"[midClosestCurvePoint failed]{%s}"%error    
 					else:
 					    pos = crvUtils.getMidPoint(mi_crv)
 					mc.select(cl=True)
@@ -425,7 +432,7 @@ def build_rigSkeleton(*args, **kws):
 				#log.info("%s flipping"% mJoint.p_nameShort)
 				mJoint.__setattr__("r%s"% mi_go._jointOrientation[1],180)
 				jntUtils.freezeJointOrientation(mJoint)			
-		    except Exception,error:raise StandardError,"%s | %s failed: %s"%(k_name,k_direction,error)    
+		    except Exception,error:raise StandardError,"[%s | %s failed]{%s}"%(k_name,k_direction,error)    
 				
 	    mi_go._i_rigNull.msgList_connect(ml_moduleHandleJoints,'handleJoints',"rigNull")
 	    self.ml_moduleHandleJoints = ml_moduleHandleJoints
@@ -481,7 +488,7 @@ def build_controls(*args, **kws):
 	    mi_go = self._go#Rig Go instance link
 	    
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
-	    if not self.mi_helper:raise StandardError,"No suitable helper found"
+	    if not self.mi_helper:raise StandardError,"[No suitable helper found]"
 	    
 	    #>> Find our joint lists ===================================================================
 	    ''' We need left and right direction splits for mirror indexing at their color sorting '''
@@ -531,10 +538,12 @@ def build_controls(*args, **kws):
 	    l_strTypeModifiers = ['direct',None]
 	    for ii,ml_list in enumerate( [ml_rigJoints,ml_handleJoints] ):
 		str_typeModifier = l_strTypeModifiers[ii]
+		int_lenMax = len(ml_list)		
 		for i,mObj in enumerate(ml_list):
 		    str_mirrorSide = False
 		    try:
-			log.info("%s On '%s'..."%(self._str_reportStart,mObj.p_nameShort))
+			self.progressBar_set(status = "Setting up: '%s'"%mObj.p_nameShort, progress =  i, maxValue = int_lenMax)		    				    		    			
+			#log.info("%s On '%s'..."%(self._str_reportStart,mObj.p_nameShort))
 			mObj.parent = mi_go._i_deformNull
 			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
 			_addForwardBack = "t%s"%mi_go._jointOrientation[0]
@@ -568,7 +577,7 @@ def build_controls(*args, **kws):
 			cgmMeta.cgmAttr(mObj,'radius',value=.01, hidden=True)
 			self.ml_directControls.append(mObj)
 		    except Exception, error:
-			raise StandardError,"Iterative fail item: %s | obj: %s | mirror side: %s | error: %s"%(i,mObj.p_nameShort,str_mirrorSide,error)
+			raise StandardError,"[Iterative fail item: %s | obj: %s | mirror side: %s]{%s}"%(i,mObj.p_nameShort,str_mirrorSide,error)
 		    
 	    self._go._i_rigNull.msgList_connect(self.ml_directControls ,'controlsDirect', 'rigNull')	    
 	    self.ml_controlsAll.extend(self.ml_directControls)#append	
@@ -578,7 +587,10 @@ def build_controls(*args, **kws):
 	    mi_go = self._go#Rig Go instance link	    
 	    for str_direction in self.md_directionControls.keys():
 		int_start = self._go._i_puppet.get_nextMirrorIndex( self._go._str_mirrorDirection )
-		for i,mCtrl in enumerate(self.md_directionControls[str_direction]):
+		ml_list = self.md_directionControls[str_direction]
+		int_lenMax = len(ml_list)				
+		for i,mCtrl in enumerate(ml_list):
+		    self.progressBar_set(status = "Setting mirror index: '%s'"%mCtrl.p_nameShort, progress =  i, maxValue = int_lenMax)		    				    		    					    
 		    try:mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
 		    except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 
@@ -725,7 +737,7 @@ def build_rig(*args, **kws):
 		    if d_tag.get('checkToggle') in [True,None]:
 			self.md_rigList[k_tag] = {}
 			ml_checkBase = d_tag.get('check')
-			if not ml_checkBase:raise StandardError,"No check key for %s"%k_tag
+			if not ml_checkBase:raise StandardError,"No check key data for %s | Possibly not rig skeletonized"%k_tag
 			else:
 			    ml_checkSub = metaUtils.get_matchedListFromAttrDict(ml_checkBase, cgmName = str_tag)
 			    #log.info("%s %s ml_checkSub: %s"%(self._str_reportStart,str_tag,ml_checkSub))
@@ -777,7 +789,7 @@ def build_rig(*args, **kws):
 		str_skullPlate = self.str_skullPlate
 		f_offsetOfUpLoc = self.f_offsetOfUpLoc
 		mi_helper = self.mi_helper
-		mi_parentHeadHandle = mi_go.mi_parentHeadHandle
+		mi_parentHeadHandle = mi_go._mi_parentHeadHandle		
 		mi_constrainNull =  mi_go._i_faceDeformNull
 	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
 	    
