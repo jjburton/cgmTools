@@ -116,12 +116,12 @@ class cgmFuncCls(object):
 	self._str_mod = None	
 	self._l_funcTimes = []
 	#These are our mask so that the fail report ignores them
-	self._l_reportMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
-	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar',
+	self._l_reportMask = ['_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
-	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
-	                     '_b_autoProgressBar','_b_reportTimes','_str_progressBar',	                     
+	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	                     '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',                     
 	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
 	                     '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
@@ -147,21 +147,29 @@ class cgmFuncCls(object):
 		
 	#KW/ARG handling
 	#Built our data sets
+	#self.log_infoNestedDict('d_kws')
 	if self._l_ARGS_KWS_DEFAULTS:
+	    l_argCull = copy.copy(list(args))
+	    int_argIdx = 0	    
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
 		str_kw = d_buffer['kw']		
-		#self.log_info("Checking: [%s]"%(str_kw))		
-		if not self.d_kws.has_key(str_kw):
-		    #First check kws
-		    try:self.d_kws[str_kw] = kws[str_kw]#Then we try a kw call
+		#self.log_info("Checking: [%s] | args: %s | l_argsCull: %s"%(str_kw,args,l_argCull))
+		l_argCull = copy.copy(list(args))
+		if not self._d_funcKWs.has_key(str_kw):
+		    try:
+			self.d_kws[str_kw] = kws[str_kw]#Then we try a kw call
 		    except:
 			try:
-			    self.d_kws[d_buffer['kw']] = args[ i ]#First we try the arg index			
+			    self.d_kws[d_buffer['kw']] = args[ int_argIdx ]#First we try the arg index			
 			except:
 			    #self.log_info("Using default [%s] = %s"%(str_kw,d_buffer.get("default")))
-			    self.d_kws[str_kw] = d_buffer.get("default")#Lastly, we use the default value	
+			    self.d_kws[str_kw] = d_buffer.get("default")#Lastly, we use the default value
 		else:
-		    self.log_info("Has key [%s] = %s"%(str_kw,self.d_kws[str_kw]))
+		    self.d_kws[str_kw] = self._d_funcKWs[str_kw]
+		    int_argIdx -=1 #We'll be keep pushing down the arg start as we find kws
+		    #self.log_info("Has key [%s] = %s | New argIdx: %s "%(str_kw,self._d_funcKWs[str_kw],int_argIdx +1))
+		int_argIdx +=1
+		
 	l_storedKeys = self.d_kws.keys()
 	for kw in kws:
 	    try:
@@ -273,10 +281,11 @@ class cgmFuncCls(object):
     
     def report(self):
 	self.getModuleData()
+	log.info("="*100)	
 	log.info(">"*3 + " %s "%self._str_funcCombined + "/"*3 + "="*75)
+	log.info("="*100)		
 	log.info("Python Module: %s "%self._str_modPath)	
 	if self.l_funcSteps:log.info(">"*3 + " l_funcSteps: %s "%self.l_funcSteps)	
-	self.reportArgsKwsDefaults()	
 	#if self._str_funcArgs:log.info(">"*3 + " Args: %s "%self._str_funcArgs)
 	#if self._str_funcKWs:log.info(">"*3 + " KWs: %s "%self._str_funcKWs)	  
 	if self.d_kws:
@@ -556,7 +565,8 @@ def Timer(func):
             #log.debug("mod: %s"%mod)            
             functionTrace+='%s >> ' % mod.__name__.split('.')[-1]
         except:
-            log.debug('function module inspect failure')
+	    pass
+            #log.debug('function module inspect failure')
         try:
             #class function is part of, if found
             cls = args[0].__class__
@@ -598,15 +608,17 @@ def TimerDebug(func):
             mod = inspect.getmodule(args[0])
             functionTrace+='%s >>' % mod.__name__.split('.')[-1]
         except:
-            log.debug('function module inspect failure')
+	    pass
+            #log.debug('function module inspect failure')
         try:
             #class function is part of, if found
             cls = args[0].__class__
             functionTrace+='%s.' % args[0].__class__.__name__
         except:
-            log.debug('function class inspect failure')
+	    pass
+            #log.debug('function class inspect failure')
         functionTrace+=func.__name__ 
-        log.debug('DEBUG TIMER : %s: %0.4f sec' % (functionTrace,(t2-t1)))
+        #log.debug('DEBUG TIMER : %s: %0.4f sec' % (functionTrace,(t2-t1)))
         #log.debug('%s: took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
         return res
     return wrapper
