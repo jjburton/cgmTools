@@ -37,7 +37,9 @@ from cgm.lib.ml import (ml_breakdownDragger,
 _l_moduleStates = ['define','size','template','skeleton','rig']
 __l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow','cgmMouthNose']
 __l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthNose']
-_d_moduleKWARG = {'kw':'mModule',"default":None,'help':"cgmModule mNode or str name","argType":"cgmModule"}
+_d_KWARG_mModule = {'kw':'mModule',"default":None,'help':"cgmModule mNode or str name","argType":"cgmModule"}
+_d_KWARG_force= {'kw':'force',"default":False,'help':"Whether to force the given function or not","argType":"bool"}
+
 '''
 ml_modules = getModules(self.mi_puppet)
 int_lenModules = len(ml_modules)  
@@ -62,7 +64,7 @@ class ModuleFunc(cgmGeneral.cgmFuncCls):
 	super(ModuleFunc, self).__init__(*args, **kws)
 	self._mi_module = mModule	
 	self._str_moduleName = mModule.p_nameShort	
-	self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG]	
+	self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule]	
 	#=================================================================
 	
 def exampleWrap(*args,**kws):
@@ -75,7 +77,7 @@ def exampleWrap(*args,**kws):
 	    self._str_funcHelp = "Fill in this help/nNew line!"
 	    #self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	    #self._l_ARGS_KWS_DEFAULTS =  [{'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"}]			    
-	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
 	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
 
@@ -180,7 +182,7 @@ def doSize(*args,**kws):
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "doSize('%s')"%self._str_moduleName	
-	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'sizeMode',"default":'normal','help':"What way we're gonna size","argType":"int/string"},
 	                                 {'kw':'geo',"default":[],'help':"List of geo to use","argType":"list"},
 	                                 {'kw':'posList',"default":[],'help':"Position list for manual mode ","argType":"list"}]		
@@ -305,7 +307,7 @@ def doSetParentModule(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = "doSetParentModule('%s')"%self._str_moduleName
-	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'moduleParent',"default":None,'help':"Module parent target","argType":"cgmModule"},
 	                                 {'kw':'force',"default":False,'help':"Whether to force things","argType":"bool"}] 			    
 	    self.__dataBind__(*args,**kws)
@@ -668,22 +670,32 @@ def rigConnect(*args,**kws):
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "rigConnect('%s')"%self._str_moduleName	
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 _d_KWARG_force]
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
 	def __func__(self):
 	    """
 	    """
-	    mi_module = self._mi_module
-	    str_shortName = self._str_moduleName
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws
+		str_shortName = self._str_moduleName
+		b_force = kws['force']
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error	    
 	    
-	    if not isRigged(mi_module):
-		raise StandardError,"Module not rigged"
+	    if not isRigged(mi_module) and b_force !=True:
+		self.log_error("Module not rigged")
+		return False
 	    if isRigConnected(mi_module):
-		raise StandardError,"Module already connected"
+		self.log_warning("Module already connected")
+		return True
 	    
-	    mi_rigNull = mi_module.rigNull
-	    ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
-	    ml_skinJoints = mRig.get_skinJoints(mi_module,asMeta=True)
+	    try:#Query ========================================================
+		mi_rigNull = mi_module.rigNull
+		ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
+		ml_skinJoints = mRig.get_skinJoints(mi_module,asMeta=True)
+	    except Exception,error:raise StandardError,"[Gather joint lists]{%s}"%error	    
 	    
 	    if mi_module.moduleType in __l_faceModules__:
 		_b_faceState = True
@@ -723,7 +735,7 @@ def rigDisconnect(*args,**kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "rigDisconnect('%s')"%self._str_moduleName	
 	    
-	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'FILLIN',"default":None,'help':"FILLIN","argType":"FILLIN"}] 	
 	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
@@ -778,7 +790,7 @@ def rig_getSkinJoints(*args,**kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "rig_getSkinJoints('%s')"%self._str_moduleName
 	    self._str_funcHelp = "Get the skin joints of a module"
-	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'asMeta',"default":True,'help':"Whether to return as meta or not","argType":"bool"}]			    
 
 	    self.__dataBind__(*args,**kws)	    
@@ -1066,7 +1078,7 @@ def deleteSkeleton(*args,**kws):
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "deleteSkeleton('%s')"%self._str_moduleName
-	    self._l_ARGS_KWS_DEFAULTS =  [_d_moduleKWARG]			    	    
+	    self._l_ARGS_KWS_DEFAULTS =  [_d_KWARG_mModule]			    	    
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
 	def __func__(self):
@@ -1214,7 +1226,7 @@ def isModule(*args,**kws):
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcHelp = "Simple module check"	
 	    self._str_funcName = "isModule"
-	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG]	    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule]	    
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._query_},
 	                        {'step':'process','call':self._process_}]
@@ -1299,7 +1311,7 @@ def setState(*args,**kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "setState('%s')"%self._str_moduleName	
 	    
-	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
 	                                 {'kw':'rebuildFrom',"default":None,'help':"State to rebuild from","argType":"int/string"}] 		
 	    self.__dataBind__(*args,**kws)		    
@@ -1330,7 +1342,7 @@ def checkState(*args,**kws):
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "checkState('%s')"%self._str_moduleName	
-	    self._l_ARGS_KWS_DEFAULTS =  [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS =  [_d_KWARG_mModule,
 	                                  {'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"}]		
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================    
@@ -1368,7 +1380,7 @@ def changeState(*args,**kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "changeState('%s')"%self._str_moduleName	
 	    
-	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
 	                                 {'kw':'rebuildFrom',"default":None,'help':"State to rebuild from","argType":"int/string"},
 	                                 {'kw':'forceNew',"default":False,'help':"typical kw ","argType":"bool"}]		
@@ -1622,7 +1634,7 @@ def animReset(*args,**kws):
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "animReset('%s')"%self._str_moduleName	
-	    self._l_ARGS_KWS_DEFAULTS =  [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS =  [_d_KWARG_mModule,
 	                                  {'kw':'transformsOnly',"default":True,'help':"Whether to only reset transforms","argType":"bool"}]			    
 	    self.__dataBind__(*args,**kws)	    	    
 	def __func__(self):
@@ -1868,7 +1880,7 @@ def animReset_children(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = "animReset_siblings('%s')"%self._str_moduleName
-	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'transformsOnly',"default":True,'help':"Whether to only reset transforms","argType":"bool"},
 	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]
 	    self.__dataBind__(*args,**kws)    	    
@@ -2353,7 +2365,7 @@ def animSetAttr_children(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = "animReset_siblings('%s')"%self._str_moduleName
-	    self._l_ARGS_KWS_DEFAULTS = [_d_moduleKWARG,
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'attr',"default":None,'help':"Attribute to look for","argType":"string"},
 	                                 {'kw':'value',"default":None,'help':"Value to set","argType":"variable"},
 	                                 {'kw':'settingsOnly',"default":False,'help':"Only check settings controls","argType":"bool"},
