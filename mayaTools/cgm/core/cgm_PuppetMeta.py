@@ -1784,7 +1784,9 @@ class cgmModule(cgmMeta.cgmObject):
         from cgm.core.rigger import ModuleFactory as mFactory
         help(mFactory.doSkeletonize)
         """
-        return mFactory.doSkeletonize(self,*args,**kws)
+	kws['mModule'] = self		
+        return mFactory.doSkeletonize(*args,**kws)
+    
     def skeletonDelete(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
