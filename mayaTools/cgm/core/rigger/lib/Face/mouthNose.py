@@ -542,7 +542,7 @@ def build_controls(*args, **kws):
 		for i,mObj in enumerate(ml_list):
 		    str_mirrorSide = False
 		    try:
-			self.progressBar_set(status = "Setting up: '%s'"%mObj.p_nameShort, progress =  i, maxValue = int_lenMax)		    				    		    			
+			self.progressBar_set(status = "Registering: '%s'"%mObj.p_nameShort, progress =  i, maxValue = int_lenMax)		    				    		    			
 			#log.info("%s On '%s'..."%(self._str_reportStart,mObj.p_nameShort))
 			mObj.parent = mi_go._i_deformNull
 			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
@@ -612,10 +612,10 @@ def build_rig(*args, **kws):
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
-	                        {'step':'Lip build','call':self._buildLips_},
-	                        #{'step':'NoseBuild','call':self._buildNose_},
+	                        #{'step':'Lip build','call':self._buildLips_},
+	                        {'step':'NoseBuild','call':self._buildNose_},
 	                        #{'step':'Cheek build','call':self._buildCheeks_},
-	                        #{'step':'Lock N hide','call':self._lockNHide_},
+	                        {'step':'Lock N hide','call':self._lockNHide_},
 	                        
 	                        ]	
 	    #=================================================================
@@ -769,7 +769,6 @@ def build_rig(*args, **kws):
 	    '''
 	    self.f_offsetOfUpLoc = distance.returnDistanceBetweenObjects(self.md_rigList['brow']['left']['ml_rigJoints'][0].mNode,
 	                                                                 self.md_rigList['brow']['left']['ml_rigJoints'][-1].mNode)
-	    
 	    '''
 	    #>> Running lists ==========================================================================
 	    self.ml_toVisConnect = []
@@ -916,7 +915,7 @@ def build_rig(*args, **kws):
 		                         'bindJoints':ml_skinJoints + [mi_jawRig]}}
 		self.skin_fromDict(d_build)
 		
-	    except Exception,error:raise StandardError,"!Skin skull! | error: %s"%(error)	
+	    except Exception,error:raise StandardError,"[Skin skull!]{%s}"%(error)	
 	    
 	    try:#>> Connect  =======================================================================================
 		mc.parentConstraint(mi_jawHandle.mNode,mi_jawRig.mNode)
@@ -925,13 +924,13 @@ def build_rig(*args, **kws):
 		#ConnectVis
 		mi_go.connect_toRigGutsVis(self.md_rigList['faceBaseDef'],vis = True)#connect to guts vis switches
 		
-	    except Exception,error:raise StandardError,"!Connect! | error: %s"%(error)
+	    except Exception,error:raise StandardError,"[Connect!]{%s}"%(error)
 	    
 	    try:#>> StableJaw  =======================================================================================
 		mc.orientConstraint(mi_jawRig.mNode,self.md_rigList['stableJaw'][0].mNode,skip = ["%s"%mi_go._jointOrientation[2]])
 		mc.pointConstraint(mi_jawRig.mNode,self.md_rigList['stableJaw'][0].mNode,skip = ["%s"%str_axis for str_axis in [mi_go._jointOrientation[0],mi_go._jointOrientation[1]]])		
 		self.md_rigList['stableJaw'][0].rotateOrder = mi_go._jointOrientation
-	    except Exception,error:raise StandardError,"!Stable! | error: %s"%(error)
+	    except Exception,error:raise StandardError,"[Stable!]{%s}"%(error)
 	    
 	def _buildAttachSurfaces_(self):
 	    #>> Get some data =======================================================================================
@@ -1331,12 +1330,12 @@ def build_rig(*args, **kws):
 			try:#Get ----------------------------------------------------
 			    mi_handle = self.md_rigList[str_tag+'Handle'][0]
 			    mi_rigJoint = self.md_rigList[str_tag+'Rig'][0]
-			except Exception,error:raise StandardError,"Query | error: %s"%(error)			
+			except Exception,error:raise StandardError,"[Quer]{ %s}"%(error)			
 			
 			try:#Connect the control loc to the center handle
 			    mi_controlLoc = self.md_attachReturns[mi_rigJoint]['controlLoc']
 			    mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
-			except Exception,error:raise StandardError,"Control loc connect | error: %s"%(error)			
+			except Exception,error:raise StandardError,"[Control loc connec]{ %s}"%(error)			
 		    
 			try:#Setup the offset to push handle rotation to the rig joint control
 			    #Create offsetgroup for the mid
@@ -1347,11 +1346,11 @@ def build_rig(*args, **kws):
 			    mi_rigJoint.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
 			    
 			    cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
-			except Exception,error:raise StandardError,"Offset group | error: %s"%(error)
+			except Exception,error:raise StandardError,"[Offset grou]{%s}"%(error)
 			
 		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)
 		    
-	    except Exception,error:  raise StandardError,"!Connect rig>handle! | %s"%(error)	
+	    except Exception,error:  raise StandardError,"[Connect rig>handle!]{%s}"%(error)	
 			
 	    try:#>> Nose Move =======================================================================================
 		self.progressBar_set(status = "Setting up nose move")
@@ -1362,7 +1361,7 @@ def build_rig(*args, **kws):
 		try:#Connect the control loc to the center handle
 		    mi_controlLoc = self.md_attachReturns[mi_rigJoint]['controlLoc']
 		    mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
-		except Exception,error:raise StandardError,"Control loc connect | error: %s"%(error)	
+		except Exception,error:raise StandardError,"[Control loc connect]{%s}"%(error)	
 		
 		try:#Setup the offset to push handle rotation to the rig joint control
 		    #Create offsetgroup for the mid
@@ -1373,7 +1372,7 @@ def build_rig(*args, **kws):
 		    mi_rigJoint.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
 		    
 		    cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
-		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)
+		except Exception,error:raise StandardError,"[Offset grou]{ %s}"%(error)
 		
 		'''
 		try:#Blend move handle
@@ -1423,7 +1422,7 @@ def build_rig(*args, **kws):
 		    mi_browFrontUpLoc.parent = mi_offsetGroup.parent
 		    mi_browFrontUpLoc.tz = f_offsetOfUpLoc
 		    self.mi_browFrontUpLoc = mi_browFrontUpLoc
-		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)
+		except Exception,error:raise StandardError,"[Offset grou]{ %s}"%(error)
 		'''
 	    except Exception,error:
 		raise StandardError,"!Center Nose! | %s"%(error)
@@ -1434,6 +1433,10 @@ def build_rig(*args, **kws):
 	    Stuff to setup...
 	    1) attach base to skull plate
 	    2) What should
+	    TODO:
+	    1) Nose aiming -under, top
+	    2) Nostril joints orienting -- feels off
+
 	    """	    
 	    try:#Build Ribbons --------------------------------------------------------------------------------------
 		md_ribbonBuilds = {'nostril':{'extrudeCrv':self.mi_noseBaseCastCrv,
@@ -1445,34 +1448,6 @@ def build_rig(*args, **kws):
 		md_plateBuilds = {'nose':{'crvs':[self.mi_noseTopCastCrv,self.mi_noseMidCastCrv,self.mi_noseBaseCastCrv,self.mi_mouthTopCastCrv]}}
 		self.create_plateFromDict(md_plateBuilds)
 	    except Exception,error:raise StandardError,"!Plates! | %s"%(error)
-	    """
-	    try:#Build Tracklocs ===================================================================================================
-		str_base = 'noseMove'
-		d_trackLocs = {'target':self.md_rigList['noseMoveHandle'][0],
-	                       'tags':['stable','def']}
-		for str_tag in d_trackLocs['tags']:
-		    try:
-			mi_loc = d_trackLocs['target'].doLoc()
-			mi_loc.addAttr('cgmTypeModifier',str_tag)
-			mi_loc.doName()
-			str_tmp = '%s%sLoc'%(str_base,str_tag.capitalize())
-			
-			try:
-			    i_masterGroup = (cgmMeta.cgmObject(mi_loc.doGroup(True),setClass=True))
-			    i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
-			    i_masterGroup.doName()
-			    mi_loc.connectChildNode(i_masterGroup,'masterGroup','groupChild')			
-			except Exception,error:raise StandardError,"!masterGroup! | %s"%(error)
-			
-			self.log_info("'%s' created"%str_tmp)
-			
-			self.md_rigList[str_tmp] = [mi_loc]
-			self.__dict__['mi_%s'%str_tmp] = mi_loc
-			d_trackLocs['target'].connectChildNode(mi_loc,'%sLoc'%str_tag,'owner')
-		    except Exception,error:raise StandardError,";%s' !loc setup! | %s"%(str_tag,error)
-		    
-	    except Exception,error:raise StandardError,"!Track locs! | %s"%(error)
-	    """
 	    
 	    try:#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
 		str_nosePlate = self.mi_nosePlate.p_nameShort
@@ -1482,9 +1457,7 @@ def build_rig(*args, **kws):
 		#'nostrilHandle':{'attachTo':str_nosePlate,'mode':'handleAttach'}
 		d_build = {'nostrilRig':{'attachTo':str_nosePlate},
 		           'nostrilHandle':{'attachTo':str_nostrilRibbon,'mode':'handleAttach'},
-		           'noseMoveHandle':{'mode':'blendAttach','defaultValue':.1,'followSuffix':'Jaw'},
-		           #'noseMoveStableLoc':{'mode':'stableAttach'},
-		           #'noseMoveDefLoc':{'mode':'handleAttach'},		           
+		           'noseMoveHandle':{'mode':'blendAttach','defaultValue':.1,'followSuffix':'Jaw'},	           
 		           'noseMoveRig':{},	               
 		           'noseTipRig':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseTipHandle'][0]},
 		           'noseTipHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0]},
@@ -1501,7 +1474,6 @@ def build_rig(*args, **kws):
 		self.progressBar_setMaxStepValue(4)		
 		try:#Build list
 		    self.progressBar_set(status = "Skinning Nose", step = 1)
-		    
 		    l_toBind = [str_nosePlate]	
 		    'noseMoveHandle','noseUnderHandle'
 		    for tag in ['noseTipRig','noseTopRig','noseMoveHandle','noseUnderRig']:
@@ -1520,7 +1492,7 @@ def build_rig(*args, **kws):
 	    
 	    try:#>> Skin nostril Move =======================================================================================
 		try:#Build list
-		    self.progressBar_set(status = "Skinning Nostril", step = 3)
+		    self.progressBar_set(status = "Skinning Nostril", step = 2)
 		    
 		    l_toBind = [str_nostrilRibbon]	
 		    for tag in ['noseTipRig','noseMoveHandle','noseUnderRig']:
@@ -1548,16 +1520,16 @@ def build_rig(*args, **kws):
 		self.progressBar_setMaxStepValue(len(d_build.keys()))
 		for str_tag in d_build.iterkeys():
 		    try:
-			self.progressBar_iter(status = ("Connecting : '%s'"%str_tag))
+			self.progressBar_iter(status = "Connecting: '%s'"%str_tag)			
 			try:#Get ----------------------------------------------------
 			    mi_handle = self.md_rigList[str_tag+'Handle'][0]
 			    mi_rigJoint = self.md_rigList[str_tag+'Rig'][0]
-			except Exception,error:raise StandardError,"Query | error: %s"%(error)			
+			except Exception,error:raise StandardError,"[Quer]{ %s}"%(error)			
 			
 			try:#Connect the control loc to the center handle
 			    mi_controlLoc = self.md_attachReturns[mi_rigJoint]['controlLoc']
 			    mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
-			except Exception,error:raise StandardError,"Control loc connect | error: %s"%(error)			
+			except Exception,error:raise StandardError,"[Control loc connec]{%s}"%(error)			
 		    
 			try:#Setup the offset to push handle rotation to the rig joint control
 			    #Create offsetgroup for the mid
@@ -1568,8 +1540,7 @@ def build_rig(*args, **kws):
 			    mi_rigJoint.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
 			    
 			    cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
-			except Exception,error:raise StandardError,"Offset group | error: %s"%(error)
-			
+			except Exception,error:raise StandardError,"[Offset group]{%s}"%(error)
 		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)
 		    
 	    except Exception,error:  raise StandardError,"!Connect rig>handle! | %s"%(error)	
@@ -1583,7 +1554,7 @@ def build_rig(*args, **kws):
 		try:#Connect the control loc to the center handle
 		    mi_controlLoc = self.md_attachReturns[mi_rigJoint]['controlLoc']
 		    mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
-		except Exception,error:raise StandardError,"Control loc connect | error: %s"%(error)	
+		except Exception,error:raise StandardError,"[Control loc connec]{ %s}"%(error)	
 		
 		try:#Setup the offset to push handle rotation to the rig joint control
 		    #Create offsetgroup for the mid
@@ -1592,63 +1563,45 @@ def build_rig(*args, **kws):
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
 		    mi_rigJoint.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
-		    
 		    cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
-		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)
-		
-		'''
-		try:#Blend move handle
-		    #Query
-		    mi_handle = self.md_rigList['noseMoveHandle'][0]		    
-		    mi_stableLoc = self.md_rigList['noseMoveStableLoc'][0]
-		    mi_defLoc = self.md_rigList['noseMoveDefLoc'][0]
-		    mi_faceDef = self.md_rigList['faceBaseDef'][0]
-		    
-		    self.d_buffer['mi_handle'] = mi_handle		    
-		    self.d_buffer['mi_stableLoc'] = mi_stableLoc
-		    self.d_buffer['mi_defLoc'] = mi_defLoc
-		    self.d_buffer['mi_faceDef'] = mi_faceDef
-		    
-		    try:#Constrain the stable loc to the face
-			mi_controlLoc = self.md_attachReturns[mi_stableLoc]['controlLoc']
-			mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
-		    except Exception,error:raise StandardError,"!Stable loc controlLoc! | %s"%(error)
-		    
-		    try:#Create constrain the handle master Group
-			str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
-			                                           maintainOffset = True)[0]
-		    except Exception,error:raise StandardError,"!Parent Constraint! | %s"%(error)
-		    
-		    try:
-			#EndBlend
-			d_blendFollowReturn = NodeF.createSingleBlendNetwork([mi_handle.mNode,'followDeformation'],
-			                                                     [mi_handle.mNode,'resultStableFollow'],
-			                                                     [mi_handle.mNode,'resultDefFollow'],
-			                                                     keyable=True)
-			l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
-			#Connect                                  
-			d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
-			d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
-			d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
-			d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True			
-		    except Exception,error:raise StandardError,"!Blend setup! | %s"%(error)
-		    
-		except Exception,error:
-		    self.log_infoNestedDict('d_buffer')
-		    raise StandardError,"!Setup follow loc blend!| : %s"%(error)'''		
-		
-		
-		'''
-		try:#Create the brow up loc and parent it to the 
-		    mi_browFrontUpLoc = mi_offsetGroup.doLoc()
-		    mi_browFrontUpLoc.parent = mi_offsetGroup.parent
-		    mi_browFrontUpLoc.tz = f_offsetOfUpLoc
-		    self.mi_browFrontUpLoc = mi_browFrontUpLoc
-		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)
-		'''
-	    except Exception,error:
-		raise StandardError,"!Center Nose! | %s"%(error)
+		except Exception,error:raise StandardError,"[Offset grou]{ %s}"%(error)
+	    except Exception,error:raise StandardError,"[Nose Move setup]{%s}"%(error)
 	    
+	    try:#>> Nose Move Up Loc =======================================================================================
+		self.progressBar_set(status = "Setting up nose move up loc")
+		mi_noseMove = self.md_rigList['noseMoveHandle'][0]
+		mi_noseMoveUpLoc = mi_noseMove.doLoc()
+		mi_noseMoveUpLoc.parent = mi_noseMove.masterGroup
+		self.md_rigList['noseMoveUpLoc'] = [mi_noseMoveUpLoc]
+		mi_noseMove.connectChildNode(mi_noseMoveUpLoc,'handleUpLoc','owner')
+		mi_noseMoveUpLoc.__setattr__("t%s"%mi_go._jointOrientation[0],self.f_offsetOfUpLoc)
+		mi_go.connect_toRigGutsVis(mi_noseMoveUpLoc,vis = True)#connect to guts vis switches
+		
+	    except Exception,error:raise StandardError,"[Nose Move Up Loc]{%s}"%(error)
+	    
+	    try:#>>> Aim some stuff =================================================================================
+		try:mi_noseUnderTarget = self.md_rigList.get('lipOverRig').get('center')[0]
+		except Exception,error:
+		    self.log_error("[First nose under target fail. Using alternate]{%s}"%error)
+		    mi_noseUnderTarget = self.md_rigList['lipRig']['center'][0]
+		
+		d_build = {'noseUnderRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
+		                           'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseUnderTarget},
+		           'noseTopRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
+		                      'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseMove}}		           
+		self.d_buffer = d_build
+		self.log_infoNestedDict('d_buffer')
+		self.aim_fromDict(d_build)
+	    except Exception,error:raise StandardError,"[Aim Setup]{%s}"%(error)
+	    
+	    '''
+	    try:#Create the brow up loc and parent it to the 
+		mi_browFrontUpLoc = mi_offsetGroup.doLoc()
+		mi_browFrontUpLoc.parent = mi_offsetGroup.parent
+		mi_browFrontUpLoc.tz = f_offsetOfUpLoc
+		self.mi_browFrontUpLoc = mi_browFrontUpLoc
+	    except Exception,error:raise StandardError,"[Offset group]{%s}"%(error)
+	    '''
 	def _buildLips_(self):
 	    #>> Get some data =======================================================================================
 	    """
@@ -1887,7 +1840,7 @@ def build_rig(*args, **kws):
 		except Exception,error:
 		    raise StandardError,"lip setup | %s"%(error)   	        
 	    except Exception,error:
-		raise StandardError,"Smart Seal setup fail! | error: %s"%(error)   		    
+		raise StandardError,"[Smart Seal setup fail]{ %s}"%(error)   		    
 	    
 	    #Now we need to create a duplicate of our nasil curve and chin curve for our lip follow surface tracker
 	    try:#Template Curve duplication ====================================================================================
@@ -2379,22 +2332,25 @@ def build_rig(*args, **kws):
 			mi_controlLoc = self.md_attachReturns[ml_rigJoints[i]]['controlLoc']
 			mc.pointConstraint(mObj.mNode,mi_controlLoc.mNode,maintainOffset = True)
 			#cgmMeta.cgmAttr(mi_controlLoc,"translate").doConnectIn("%s.translate"%mi_centerHandle.mNode)
-		    except Exception,error:raise StandardError,"Control loc connect | error: %s"%(error)			
+		    except Exception,error:raise StandardError,"[Control loc connec]{ %s}"%(error)			
 				
 	    except Exception,error:
-		raise StandardError,"Setup handle | %s"%(error)
+		raise StandardError,"[Setup handle]{%s}"%(error)
 	
 	def _lockNHide_(self):
 	    #Lock and hide all 
 	    for mHandle in self.ml_handlesJoints:
-		cgmMeta.cgmAttr(mHandle,'scale',lock = True, hidden = True)
-		cgmMeta.cgmAttr(mHandle,'v',lock = True, hidden = True)		
-		mHandle._setControlGroupLocks()	
+		try:
+		    cgmMeta.cgmAttr(mHandle,'scale',lock = True, hidden = True)
+		    cgmMeta.cgmAttr(mHandle,'v',lock = True, hidden = True)		
+		    mHandle._setControlGroupLocks()	
+		except Exception,error:self.log_error("[mHandle: '%s']{%s}"%(mJoint.p_nameShort,error))
 		
 	    for mJoint in self.ml_rigJoints:
-		mJoint._setControlGroupLocks()	
-		cgmMeta.cgmAttr(mJoint,'v',lock = True, hidden = True)		
-
+		try:
+		    mJoint._setControlGroupLocks()	
+		    cgmMeta.cgmAttr(mJoint,'v',lock = True, hidden = True)		
+		except Exception,error:self.log_error("[mJoint: '%s']{%s}"%(mJoint.p_nameShort,error))
 	    mi_go = self._go#Rig Go instance link
 	    try:#parent folicles to rignull
 		for k in self.md_attachReturns.keys():# we wanna parent 
@@ -2521,6 +2477,8 @@ def build_rig(*args, **kws):
 							mi_loc.doName()
 							str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
 							_d['%sLoc'%str_t] = mi_loc
+							mi_loc.parent = mi_go._i_rigNull#parent to rigNull			    
+							
 							'''
 							try:
 							    i_masterGroup = (cgmMeta.cgmObject(mi_loc.doGroup(True),setClass=True))
@@ -2680,7 +2638,7 @@ def build_rig(*args, **kws):
 					    try:#Connect the control loc to the center handle
 						mi_controlLoc = self.md_attachReturns[mObj]['controlLoc']
 						mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
-					    except Exception,error:raise StandardError,"!Control loc connect! | error: %s"%(error)
+					    except Exception,error:raise StandardError,"[Control loc connect!]{%s"%(error)
 					    
 					    try:#Setup the offset to push handle rotation to the rig joint control
 						#Create offsetgroup for the mid
@@ -2783,8 +2741,8 @@ def build_rig(*args, **kws):
 	    handler for aiming stuff to handles,curves,surfaces or whatever
 	    
 	    Modes:
-	    rigToHandle -- given a nameRig kw, it looks through the data sets to find the handle and connect. One to one connection type
-	    rigToFollow --
+	    lipLineBlend -- special lip line mode
+	    singleTarget -- aims at a single target
 	    
 	    Flags
 	    'index'(int) -- root dict flag to specify only using a certain index of a list
@@ -2837,13 +2795,11 @@ def build_rig(*args, **kws):
 					    ml_buffer = copy.copy(ml_buffer)
 					    ml_buffer.reverse()
 					    v_up = mi_go._vectorAimNegative
-					    
 					else:
 					    v_aimIn = mi_go._vectorOutNegative
 					    v_aimOut = mi_go._vectorOut	
 					    v_up = mi_go._vectorAim
 					    
-					
 					_d['v_aimIn'] = v_aimIn
 					_d['v_aimOut'] = v_aimOut
 					_d['v_up'] = v_up										
@@ -2860,26 +2816,39 @@ def build_rig(*args, **kws):
 					except:raise Exception,"No attachReturn found"
 					str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'lipLineBlend'
 					mi_upLoc = d_buffer.get('upLoc') or d_build[str_tag].get('upLoc') or d_current.get('upLoc')
-					str_baseKey = d_buffer.get('baseKey') or d_build[str_tag].get('baseKey') or str_tag
-					if not str_baseKey:raise Exception,"No baseKey found!"					
 					mi_masterGroup = mObj.masterGroup
 					if not mi_upLoc:raise Exception,"No upLoc found!"
 					_d['str_mode'] = str_mode
 					_d['upLoc'] = mi_upLoc	
-					_d['baseKey'] = str_baseKey					
-				    except Exception,error:raise StandardError,"!Gather Data!| %s"%(error)
+				    except Exception,error:raise StandardError,"[Gather Data]{%s}"%(error)
 				    
-				    try:#Offset group ----------------------------------------------------------------------
-					try: mi_offsetGroup = d_current['offsetGroup']#See if we have an offset group	
+				    try:#Aim Offset group ----------------------------------------------------------------------
+					'''
+					We need to first find our target which be a child to our aimOffset group. Sometimes that's the basic offset group
+					'''
+					try: mi_offsetTarget = d_current['offsetGroup']#See if we have an offset group
 					except:
-					    mi_offsetGroup = cgmMeta.cgmObject(mObj.doGroup(True),setClass=True)
-					    mi_offsetGroup.doStore('cgmName',mObj.mNode)
-					    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
-					    mi_offsetGroup.doName()
-					    mObj.connectChildNode(mi_offsetGroup,"offsetGroup","childObject")					    
-				    except Exception,error:raise StandardError,"!Offset group!| %s"%(error)
+					    self.log_warning("No offset group in build dict. Checking object")
+					    try:
+						mi_offsetTarget = mObj.offsetGroup
+					    except:
+						self.log_warning("No offset group found. Using object")					
+						mi_offsetTarget = mObj
+			
+					mi_aimOffsetGroup = cgmMeta.cgmObject(mi_offsetTarget.doGroup(True),setClass=True)
+					mi_aimOffsetGroup.doStore('cgmName',mObj.mNode)
+					mi_aimOffsetGroup.addAttr('cgmTypeModifier','AimOffset',lock=True)
+					mi_aimOffsetGroup.doName()
+					mObj.connectChildNode(mi_aimOffsetGroup,"aimOffsetGroup","childObject")					    
+				    except Exception,error:raise StandardError,"[AimOffset group]{%s}"%(error)
 				    
 				    if str_mode == 'lipLineBlend':#This is pretty much just for the lip rig line for now
+					try:
+					    str_baseKey = d_buffer.get('baseKey') or d_build[str_tag].get('baseKey') or str_tag
+					    if not str_baseKey:raise Exception,"No baseKey found!"					
+					    _d['baseKey'] = str_baseKey										    
+					except Exception,error:raise StandardError,"[%s query]{%s}"%(str_mode,error)					
+					    
 					try:
 					    if str_side != 'center':					
 						#Get objects
@@ -2899,7 +2868,7 @@ def build_rig(*args, **kws):
 					    _d['aimOut'] = mi_aimOut.mNode
 					except Exception,error:raise StandardError,"!Get aim targets!| %s"%(error)
 					
-					log.info("Side: %s | idx: %s | Aiming :'%s' | in:'%s' | out:'%s' | up:'%s' "%(str_side,idx,str_mObj,mi_aimIn.p_nameShort,mi_aimOut.p_nameShort,mi_upLoc.p_nameShort))
+					self.log_info("Side: '%s' | idx: %s | Aiming :'%s' | in:'%s' | out:'%s' | up:'%s' "%(str_side,idx,str_mObj,mi_aimIn.p_nameShort,mi_aimOut.p_nameShort,mi_upLoc.p_nameShort))
 					
 					#up loc ------------------------------------------------------------------------
 					'''
@@ -2914,7 +2883,7 @@ def build_rig(*args, **kws):
 					    
 					    mi_locIn.parent = mi_masterGroup
 					    mi_locOut.parent = mi_masterGroup
-					except Exception,error:raise StandardError,"!Aim loc creation!| %s"%(error)
+					except Exception,error:raise StandardError,"[Aim loc creation!]{%s}"%(error)
 					try:
 					    mc.aimConstraint(mi_aimIn.mNode, mi_locIn.mNode,
 						             weight = 1, aimVector = v_aimIn, upVector = v_up,
@@ -2924,15 +2893,38 @@ def build_rig(*args, **kws):
 						             weight = 1, aimVector = v_aimOut, upVector = v_up,
 					                     maintainOffset = True,					                     
 						             worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
-					    mi_contraint = cgmMeta.cgmNode(mc.orientConstraint([mi_locIn.mNode,mi_locOut.mNode], mi_offsetGroup.mNode,
+					    mi_contraint = cgmMeta.cgmNode(mc.orientConstraint([mi_locIn.mNode,mi_locOut.mNode], mi_aimOffsetGroup.mNode,
 					                                                       maintainOffset = True,					                        
 					                                                       weight = 1)[0]) 
 					    mi_contraint.interpType = 0
-					except Exception,error:raise StandardError,"!Constraints setup!| %s"%(error)
+					except Exception,error:raise StandardError,"[Constraints setup!]{%s}"%(error)
+				    elif str_mode == 'singleTarget':
+					try:				
+					    '''
+					d_build = {'noseUnderRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
+		                           'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseUnderTarget}}
+					    '''
+					    mi_aimTo = d_buffer['aimTarget']
+					    v_up = d_buffer['upVector']
+					    v_aim = d_buffer['aimVector']
+					    _d['mi_aimTo'] = mi_aimTo
+					    _d['v_up'] = v_up
+					    _d['v_aim'] = v_aim
+					except Exception,error:raise StandardError,"[%s query]{%s}"%(str_mode,error)
+					self.log_info("Side: '%s' | idx: %s | Aiming :'%s' | to:'%s' | up:'%s' "%(str_side,idx,str_mObj,mi_aimTo.p_nameShort,mi_upLoc.p_nameShort))					
+					try:
+					    mc.aimConstraint(mi_aimTo.mNode, mi_aimOffsetGroup.mNode,
+						             weight = 1, aimVector = v_aimIn, upVector = v_up,
+					                     maintainOffset = True,
+						             worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
+					except Exception,error:raise StandardError,"[Constraints setup!]{%s}"%(error)					    
 				    else:
 					raise NotImplementedError,"Mode not implemented : '%s'"%str_mode
-		    except Exception,error:  raise Exception,"'%s' | %s"%(str_tag,error)			    
-	    except Exception,error:  raise Exception,"aim_fromDict | %s"%(error)
+		    except Exception,error:
+			try:self.log_infoNestedDict('d_buffer')
+			except:pass
+			raise Exception,"[tag: '%s']{%s}"%(str_tag,error)			    
+	    except Exception,error:  raise Exception,"[aim_fromDict]{%s}"%(error)
 	def skin_fromDict(self,d_build):
 	    try:#>> skin  =======================================================================================
 		mi_go = self._go#Rig Go instance link
@@ -3037,6 +3029,7 @@ def build_rig(*args, **kws):
 			
 			try:#tag, name, store
 			    mi_obj = cgmMeta.cgmObject(str_loft)
+			    mi_obj.parent = mi_go._i_rigNull#parent to rigNull
 			    self.__dict__['mi_%sPlate'%(str_name)] = mi_obj
 			    mi_obj.addAttr('cgmName',d_buffer.get('name') or str_name,lock=True)
 			    try:mi_obj.addAttr('cgmDirection',str_direction ,lock=True)
@@ -3094,6 +3087,7 @@ def build_rig(*args, **kws):
 			    except Exception,error:raise StandardError,"Regular loft | %s"%(error)
 			try:
 			    self.__dict__['mi_%sRibbon'%(str_name)] = mi_obj
+			    mi_obj.parent = mi_go._i_rigNull#parent to rigNull			    
 			    mi_obj.addAttr('cgmName',str_name,lock=True)
 			    mi_obj.addAttr('cgmTypeModifier','ribbon',lock=True)			    
 			    try:mi_obj.addAttr('cgmDirection',d_buffer['direction'] ,lock=True)
@@ -3130,7 +3124,8 @@ def build_rig(*args, **kws):
 			    try:mi_obj.addAttr('cgmDirection',d_buffer['direction'] ,lock=True)
 			    except:pass
 			    mi_obj.doName()
-			    mi_go._i_rigNull.connectChildNode(mi_obj,"%sCrv"%str_name,'module')			    
+			    mi_go._i_rigNull.connectChildNode(mi_obj,"%sCrv"%str_name,'module')	
+			    mi_obj.parent = mi_go._i_rigNull#parent to rigNull			    			    
 			except Exception,error:raise StandardError,"Naming | %s"%(error)
 			#self.log_infoNestedDict('d_buffer')
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)
