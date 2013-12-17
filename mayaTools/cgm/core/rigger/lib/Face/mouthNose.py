@@ -612,9 +612,9 @@ def build_rig(*args, **kws):
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
-	                        #{'step':'Lip build','call':self._buildLips_},
+	                        {'step':'Lip build','call':self._buildLips_},
 	                        {'step':'NoseBuild','call':self._buildNose_},
-	                        #{'step':'Cheek build','call':self._buildCheeks_},
+	                        {'step':'Cheek build','call':self._buildCheeks_},
 	                        {'step':'Lock N hide','call':self._lockNHide_},
 	                        
 	                        ]	
@@ -1580,11 +1580,13 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"[Nose Move Up Loc]{%s}"%(error)
 	    
 	    try:#>>> Aim some stuff =================================================================================
+		'''
 		try:mi_noseUnderTarget = self.md_rigList.get('lipOverRig').get('center')[0]
 		except Exception,error:
 		    self.log_error("[First nose under target fail. Using alternate]{%s}"%error)
-		    mi_noseUnderTarget = self.md_rigList['lipRig']['center'][0]
+		    mi_noseUnderTarget = self.md_rigList['lipRig']['center'][0]'''
 		
+		mi_noseUnderTarget = self.md_rigList.get('lipUprHandle').get('center')[0]
 		d_build = {'noseUnderRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
 		                           'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseUnderTarget},
 		           'noseTopRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
@@ -2044,13 +2046,13 @@ def build_rig(*args, **kws):
 		    mi_crv.parent = mi_go._i_rigNull
 		self.ml_toVisConnect.extend(ml_curves)
 		'''
-	    except Exception,error:raise StandardError,"Curve duplication | %s"%(error)   	    
+	    except Exception,error:raise StandardError,"[Curve duplication]{%s}"%(error)   	    
 	    
 	    try:#Build Curves ===================================================================================================
 		md_curvesBuilds = {'uprCheekFollowLeft':{'pointTargets':self.md_rigList['uprCheekRig']['left'] + [self.md_rigList['smileLineRig']['left'][0]]},
 		                   'uprCheekFollowRight':{'pointTargets':self.md_rigList['uprCheekRig']['right'] + [self.md_rigList['smileLineRig']['right'][0]]}}	
 		self.create_curvesFromDict(md_curvesBuilds)
-	    except Exception,error:raise StandardError,"!Build Curves! | %s"%(error)
+	    except Exception,error:raise StandardError,"[Build Curves!]{%s}"%(error)
 	    
 	    '''
 	    try:#Build Ribbons ===================================================================================================
@@ -2069,7 +2071,7 @@ def build_rig(*args, **kws):
 		                                'smileCrv':self.mi_smileRightCrv}}
 		
 		self.create_plateFromDict(md_plateBuilds)
-	    except Exception,error:raise StandardError,"!Plates! | %s"%(error)
+	    except Exception,error:raise StandardError,"[Plates!]{%s}"%(error)
 	    
 	    
 	    try:#Attach stuff to surfaces ====================================================================================
@@ -2104,7 +2106,7 @@ def build_rig(*args, **kws):
 		d_build = {'smileHandle':{}}
 		"""
 		self.attach_fromDict(d_build)
-	    except Exception,error:raise StandardError,"!Attach! | %s"%(error)
+	    except Exception,error:raise StandardError,"[Attach!]{%s}"%(error)
 	    
 	    #self.log_infoNestedDict('md_attachReturns')
 	    
@@ -2137,8 +2139,8 @@ def build_rig(*args, **kws):
 		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]}}}		
 		"""
 		d_build = {'smileHandle':{'mode':'pointBlend',
-		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]},
-		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]}},
+		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup]},
+		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup]}},
 		           'smileLineRig':{'mode':'rigToFollow',
 		                           'left':{'attachTo':self.mi_smileFollowLeftCrv},
 		                           'right':{'attachTo':self.mi_smileFollowRightCrv}},
@@ -2151,7 +2153,7 @@ def build_rig(*args, **kws):
 		                              'right':{'attachTo':self.mi_uprCheekFollowRightCrv}}}
 		                      
 		self.connect_fromDict(d_build)
-	    except Exception,error:raise StandardError,"!Connect! | %s"%(error)	
+	    except Exception,error:raise StandardError,"[Connect!]{%s}"%(error)	
 	    return
 	
 	    pass
@@ -2615,7 +2617,6 @@ def build_rig(*args, **kws):
 				for i,mObj in enumerate(ml_buffer):
 				    str_mObj = mObj.p_nameShort
 				    self.progressBar_set(status = ("Connecting : '%s' %s > '%s'"%(str_tag,str_key,str_mObj)),progress = i, maxValue = int_len)	
-				    
 				    try:#Gather data ----------------------------------------------------------------------
 					#_attachTo = d_buffer.get('attachTo')
 					#if _attachTo == None:_attachTo = str_skullPlate
@@ -2623,7 +2624,9 @@ def build_rig(*args, **kws):
 					str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'rigToHandle'		
 					ml_driver = d_buffer.get('driver') or False
 					#log.info("%s | mObj: %s | mode: %s | "%(str_tag,str_mObj,str_mode))
-				    except Exception,error:raise StandardError,"!Data gather!| %s"%(error)
+				    except Exception,error:raise StandardError,"[Data gather!]{%s}"%(error)
+				    
+				    self.log_info("Connecting : '%s' %s > '%s' | mode: %s"%(str_tag,str_key,str_mObj,str_mode))
 			    
 				    if str_mode == 'rigToHandle':
 					try:
@@ -2633,7 +2636,7 @@ def build_rig(*args, **kws):
 						    ml_handles = self.md_rigList[str_tag.replace('Rig','Handle')][str_key]
 						if len(ml_handles) != len(ml_buffer):raise StandardError,"len of toConnect(%s) != len handles(%s)"%(len(ml_handles),len(ml_buffer))
 						mi_handle = ml_handles[0]
-					    except Exception,error:raise StandardError,"!Query! |  %s"%(error)
+					    except Exception,error:raise StandardError,"[Query!]{%s}"%(error)
 	
 					    try:#Connect the control loc to the center handle
 						mi_controlLoc = self.md_attachReturns[mObj]['controlLoc']
@@ -2649,8 +2652,8 @@ def build_rig(*args, **kws):
 						mObj.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
 						
 						cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
-					    except Exception,error:raise StandardError,"!Offset group! | %s"%(error)
-					except Exception,error:raise StandardError,"!%s! | %s"%(str_mode,error)					    
+					    except Exception,error:raise StandardError,"[Offset group!]{%s}"%(error)
+					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					    
 				    elif str_mode == 'rigToFollow':
 					try:
 					    try:#See if we have a handle return
@@ -2658,7 +2661,7 @@ def build_rig(*args, **kws):
 						d_current = self.md_attachReturns[mObj]
 						mi_followLoc = d_current['followLoc']
 						mi_controlLoc = d_current['controlLoc']					    
-					    except Exception,error:raise StandardError,"!Query '%s'! |  %s"%(str_key,error)
+					    except Exception,error:raise StandardError,"[Query '%s'!]{%s}"%(str_key,error)
 					    
 					    try:#>> Attach  loc  --------------------------------------------------------------------------------------
 						if mi_attachTo.getMayaType() == 'nurbsCurve':
@@ -2672,7 +2675,7 @@ def build_rig(*args, **kws):
 						                                 orientation = mi_go._jointOrientation)	
 						mc.pointConstraint(mi_followLoc.mNode,mi_controlLoc.mNode,maintainOffset = True)
 						
-					    except Exception,error:raise StandardError,"Failed to attach to crv. | error : %s"%(error)					    
+					    except Exception,error:raise StandardError,"[Failed to attach to crv.]{%s}"%(error)					    
 					    
 					    
 					    '''
@@ -2717,7 +2720,7 @@ def build_rig(*args, **kws):
 									 maintainOffset = True, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )				    
 					    except Exception,error:raise StandardError,"Loc setup. | error : %s"%(error)
 					    '''
-					except Exception,error:raise StandardError,"!%s! | %s"%(str_mode,error)					    
+					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					    
 					    
 				    elif str_mode == 'pointBlend':
 					try:
@@ -2726,16 +2729,16 @@ def build_rig(*args, **kws):
 						d_current = self.md_attachReturns[mObj]
 						#mi_followLoc = d_current['followLoc']
 						mi_controlLoc = d_current['controlLoc']					    
-					    except Exception,error:raise StandardError,"!Query '%s'! |  %s"%(str_key,error)
+					    except Exception,error:raise StandardError,"[Query '%s'!]{%s}"%(str_key,error)
 					    
 					    try:#>> Attach  loc  --------------------------------------------------------------------------------------
 						mc.pointConstraint([mObj.mNode for mObj in ml_targets],mi_controlLoc.mNode,maintainOffset = True)
 					    except Exception,error:raise StandardError,"Failed to attach to crv. | error : %s"%(error)	
-					except Exception,error:raise StandardError,"!%s! | %s"%(str_mode,error)					    
+					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					    
 				    else:
-					raise NotImplementedError,"mode: %s"%str_mode
-		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)			    
-	    except Exception,error:  raise StandardError,"connect_fromDict | %s"%(error)	
+					raise NotImplementedError,"not implemented : mode: %s"%str_mode
+		    except Exception,error:  raise StandardError,"[%s]{%s}"%(str_tag,error)			    
+	    except Exception,error:  raise StandardError,"[connect_fromDict]{%s}"%(error)	
 	def aim_fromDict(self,d_build):
 	    '''
 	    handler for aiming stuff to handles,curves,surfaces or whatever
