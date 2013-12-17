@@ -78,7 +78,7 @@ __l_moduleJointMsgListHooks__ = ['helperJoints']
 #>>> Main class function
 #=====================================================================
 class go(object):
-    def __init__(self,moduleInstance,forceNew = True,autoBuild = True, ignoreRigCheck = False,**kws): 
+    def __init__(self,mModule = None,forceNew = True,autoBuild = True, ignoreRigCheck = False,**kws): 
         """
         To do:
         Add rotation order settting
@@ -90,7 +90,7 @@ class go(object):
         #==============	        
         #>>> module null data
 	"""
-	try:moduleInstance
+	try:mModule
 	except Exception,error:
 	    log.error("RigFactory.go.__init__>>module instance isn't working!")
 	    raise StandardError,error    
@@ -98,22 +98,22 @@ class go(object):
 	#>>> Intial stuff
 	i_module = False
 	try:
-	    if moduleInstance.isModule():
-		i_module = moduleInstance
+	    if mModule.isModule():
+		i_module = mModule
 	except Exception,error:
 	    raise StandardError,"RigFactory.go.init. Module call failure. Probably not a module: '%s'"%error	    
 	if not i_module:
-	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%moduleInstance
+	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%mModule
 	
 	_str_funcName = "go.__init__(%s)"%i_module.p_nameShort  
 	log.info(">>> %s "%(_str_funcName) + "="*100)
 	start = time.clock()
 	
 	#Some basic assertions
-        assert moduleInstance.isSkeletonized(),"Module is not skeletonized: '%s'"%moduleInstance.getShortName()
+        assert mModule.isSkeletonized(),"Module is not skeletonized: '%s'"%mModule.getShortName()
         
         log.debug(">>> forceNew: %s"%forceNew)	
-        self._mi_module = moduleInstance# Link for shortness
+        self._mi_module = mModule# Link for shortness
 	self._mi_module.__verify__()
 	self._cgmClass = 'RigFactory.go'
 	
@@ -222,7 +222,7 @@ class go(object):
 	try:#>>> FACE MODULES If face module we need a couple of data points
 	    if self._partType.lower() in __l_faceModules__:
 		self._i_headModule = False
-		self._i_headHandle = False
+		self._mi_parentHeadHandle = False
 		self.verify_headModule()
 		self.verify_faceModuleAttachJoint()
 		self.verify_faceSkullPlate()
@@ -230,7 +230,7 @@ class go(object):
 		self.verify_faceScaleDriver()#scale driver
 	
 		try:#>> Constrain  head stuff =======================================================================================
-		    mi_parentHeadHandle = self._i_headHandle
+		    mi_parentHeadHandle = self._mi_parentHeadHandle
 		    mi_constrainNull =  self._i_faceDeformNull
 		    log.info(mi_parentHeadHandle)
 		    log.info(mi_constrainNull)		    
@@ -455,12 +455,12 @@ class go(object):
 	else:
 	    self._i_headModule = self._mi_module.moduleParent
 	    
-	self._i_headHandle = self._i_headModule.rigNull.handleIK	    
+	self._mi_parentHeadHandle = self._i_headModule.rigNull.handleIK	    
 	return self._i_headModule
 	    
     def verify_faceScaleDriver(self):
 	try:
-	    mi_parentHeadHandle = self._i_headHandle
+	    mi_parentHeadHandle = self._mi_parentHeadHandle
 	    mi_parentBlendPlug = cgmMeta.cgmAttr(mi_parentHeadHandle,'scale')
 	    mi_faceDeformNull = self._i_faceDeformNull
 	    #connect blend joint scale to the finger blend joints
@@ -1168,7 +1168,7 @@ def bindJoints_connectToBlend(goInstance):
 You should only pass modules into these 
 """
 
-def get_skinJoints(self, asMeta = True):
+def get_skinJointsOLD(self, asMeta = True):
     try:
 	_str_funcName = "%s.get_skinJoints"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
@@ -1632,17 +1632,17 @@ class ModuleFunc(cgmGeneral.cgmFuncCls):
 	"""
 	"""	
 	try:
-	    try:moduleInstance = kws['moduleInstance']
-	    except:moduleInstance = args[0]
+	    try:mModule = kws['mModule']
+	    except:mModule = args[0]
 	    try:
-		assert moduleInstance.isModule()
+		assert mModule.isModule()
 	    except Exception,error:raise StandardError,"Not a module instance : %s"%error	
 	except Exception,error:raise StandardError,"ModuleFunc failed to initialize | %s"%error
 	self._str_funcName= "testFModuleFuncunc"		
 	super(ModuleFunc, self).__init__(*args, **kws)
 
-	self.mi_module = moduleInstance	
-	self._l_ARGS_KWS_DEFAULTS = [{'kw':'moduleInstance',"default":None}]	
+	self.mi_module = mModule	
+	self._l_ARGS_KWS_DEFAULTS = [{'kw':'mModule',"default":None}]	
 	#=================================================================
 	
 def get_eyeLook(*args,**kws):
