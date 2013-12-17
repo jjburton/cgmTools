@@ -2590,11 +2590,12 @@ def shapeCast_mouthNose(*args,**kws):
 	               {'key':'uprCheekOuterLeft'},{'key':'uprCheekInnerLeft','isSub':True},{'key':'uprCheekInnerRight','isSub':True},{'key':'uprCheekOuterRight'},	               
 	               {'key':'noseTop','isSub':True},{'key':'noseTip','isSub':True},{'key':'noseUnder','isSub':True},{'key':'nostrilLeft','isSub':True},{'key':'nostrilRight','isSub':True}]
 	    ml_handleCrvs = []
-	    
+	    int_lenMax = len(l_build)	    
 	    for i,d in enumerate(l_build):
 		try:#For each key ================================================================================
 		    try:#Get info --------------------------------------------------------------------------------
 			mObj = self.md_handles[d['key']]
+			_str_mObj = mObj.p_nameShort
 			try:str_direction = mObj.cgmDirection.lower()
 			except:str_direction = 'center'
 			l_colors = self.d_colors[str_direction]
@@ -2610,6 +2611,8 @@ def shapeCast_mouthNose(*args,**kws):
 			else:
 			    _color = l_colors[0]
 			    _shape = 'squareRounded'
+			    
+			self.progressBar_set(status = "On: '%s'"%_str_mObj, progress = i, maxValue = int_lenMax)		    				    		    
     
 		    except Exception,error:
 			raise StandardError,"%s info fail | %s"%(i,error)
@@ -2657,10 +2660,13 @@ def shapeCast_mouthNose(*args,**kws):
 		    str_cast = self.str_orientation[0]+'-'	
 		else:
 		    str_cast = self.str_orientation[0]+'+'	
+	
+		int_lenMax = len(ml_jointList)		
+		for i,mObj in enumerate(ml_jointList):
+		    _str_obj = mObj.p_nameShort
+		    self.progressBar_set(status = "'%s' | '%s'"%(str_direction,_str_obj), progress = i, maxValue = int_lenMax)		    				    		    
 		    
-		for mObj in ml_jointList:
 		    if mObj not in self.ml_rigCull:
-			log.info("Facepin : %s"%mObj.p_nameShort)
 			try:
 			    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('semiSphere',size = _size,direction=str_cast),setClass=True)	
 			    try:
@@ -2688,7 +2694,7 @@ def shapeCast_mouthNose(*args,**kws):
 			    #>>Copy pivot ---------------------------------------------------------------------------------
 			    #mi_crv.doCopyPivot(mObj.mNode)
 			except Exception,error:
-			    raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)  
+			    raise StandardError,"[Curve create fail! handle: '%s']{%s}"%(_str_obj,error)  
 		self.ml_pinHandles.extend(ml_handleCrvs)	
 	    
 	def _connect_(self): 
