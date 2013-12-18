@@ -271,10 +271,10 @@ def build_rigSkeleton(*args, **kws):
 				mi_rightCrv = self.mi_smileRightCrv
 				#Get our u Values
 				str_bufferULeft = mc.ls("%s.u[*]"%mi_leftCrv.mNode)[0]
-				#log.info("Left >> u list : %s"%(str_bufferULeft))       
+				#log.info("Left >> u list!]{%s}"%(str_bufferULeft))       
 				f_maxULeft= float(str_bufferULeft.split(':')[-1].split(']')[0])	
 				str_bufferURight = mc.ls("%s.u[*]"%mi_rightCrv.mNode)[0]
-				#log.info("Right >> u list : %s"%(str_bufferURight))       
+				#log.info("Right >> u list!]{%s}"%(str_bufferURight))       
 				f_maxURight= float(str_bufferURight.split(':')[-1].split(']')[0])	
 				
 				pos_left = distance.returnWorldSpacePosition("%s.u[%s]"%(mi_leftCrv.mNode,f_maxULeft ))
@@ -563,7 +563,7 @@ def build_controls(*args, **kws):
 			    log.error("useShape: %s"%mObj.getMessage('controlShape'))
 			    log.error("mirrorSide: %s"%str_mirrorSide)		
 			    log.error("forwardBack flag: %s"%_addForwardBack)						    
-			    raise StandardError,"Register fail : %s"%error
+			    raise StandardError,"Register fail!]{%s}"%error
 			
 			#Vis sub connect
 			if ii == 0:
@@ -613,9 +613,9 @@ def build_rig(*args, **kws):
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
 	                        {'step':'Lip build','call':self._buildLips_},
-	                        #{'step':'NoseBuild','call':self._buildNose_},
+	                        {'step':'NoseBuild','call':self._buildNose_},
 	                        #{'step':'Cheek build','call':self._buildCheeks_},
-	                        #{'step':'Lock N hide','call':self._lockNHide_},
+	                        {'step':'Lock N hide','call':self._lockNHide_},
 	                        
 	                        ]	
 	    #=================================================================
@@ -749,11 +749,11 @@ def build_rig(*args, **kws):
 				buffer = metaUtils.get_matchedListFromAttrDict(ml_checkSub,cgmDirection = k_direction)
 				if not buffer:raise StandardError,"Failed to find %s %s data"%(str_tag,k_direction)
 				self.md_rigList[k_tag][k_direction] = buffer
-				#log.info("%s - %s : %s"%(k_tag,k_direction,buffer))
+				#log.info("%s - %s!]{%s}"%(k_tag,k_direction,buffer))
 			if not _b_directionChecked:
 			    self.md_rigList[k_tag] = ml_checkSub
 			    if self.md_rigList[k_tag]:_b_directionChecked = True
-			    #log.info("%s : %s"%(k_tag,self.md_rigList[k_tag]))			    
+			    #log.info("%s!]{%s}"%(k_tag,self.md_rigList[k_tag]))			    
 			if not _b_directionChecked:
 			    log.error("%s nothing checked"%(k_tag))
 		    else:
@@ -1413,7 +1413,7 @@ def build_rig(*args, **kws):
 		    
 		except Exception,error:
 		    self.log_infoNestedDict('d_buffer')
-		    raise StandardError,"!Setup follow loc blend!| : %s"%(error)'''		
+		    raise StandardError,"!Setup follow loc blend!|!]{%s}"%(error)'''		
 		
 		
 		'''
@@ -1654,7 +1654,7 @@ def build_rig(*args, **kws):
 			mi_uprLipSealCrv.addAttr('cgmTypeModifier','lipSeal',lock=True)
 			mi_uprLipSealCrv.doName()
 			ml_curves.append(mi_uprLipSealCrv)
-		    except Exception,error:raise StandardError,"upper driven curve : %s"%(error)  	    
+		    except Exception,error:raise StandardError,"upper driven curve!]{%s}"%(error)  	    
 		    
 		    try:#Upper driver curve
 			_str_uprDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_uprLipHandles],os =True)
@@ -1663,7 +1663,7 @@ def build_rig(*args, **kws):
 			mi_uprDriverCrv.addAttr('cgmTypeModifier','driver',lock=True)
 			mi_uprDriverCrv.doName()
 			ml_curves.append(mi_uprDriverCrv)	    
-		    except Exception,error:raise StandardError,"upper driver curve : %s"%(error)  	    
+		    except Exception,error:raise StandardError,"upper driver curve!]{%s}"%(error)  	    
 		    
 		    try:#Lwr driven curve
 			_str_lwrDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in self.md_rigList['lipCornerRig']['left'] + ml_lwrLipRigJoints + self.md_rigList['lipCornerRig']['right']],os =True)
@@ -1677,7 +1677,7 @@ def build_rig(*args, **kws):
 			mi_lwrLipSealCrv.addAttr('cgmTypeModifier','lipSeal',lock=True)
 			mi_lwrLipSealCrv.doName()
 			ml_curves.append(mi_lwrLipSealCrv)
-		    except Exception,error:raise StandardError,"upper driven curve : %s"%(error)  	    
+		    except Exception,error:raise StandardError,"upper driven curve!]{%s}"%(error)  	    
 		    
 		    try:#Lwr driver curve
 			_str_lwrDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_lwrLipHandles],os =True)
@@ -1686,7 +1686,7 @@ def build_rig(*args, **kws):
 			mi_lwrDriverCrv.addAttr('cgmName','lwrLip',lock=True)	    
 			mi_lwrDriverCrv.doName()
 			ml_curves.append(mi_lwrDriverCrv)	    	    	    
-		    except Exception,error:raise StandardError,"upper driver curve : %s"%(error)  	    
+		    except Exception,error:raise StandardError,"upper driver curve!]{%s}"%(error)  	    
 		    
 		    try:#SmartLipSeal curve
 			_str_smartLipSealCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_lwrLipHandles],os =True)
@@ -1695,13 +1695,18 @@ def build_rig(*args, **kws):
 			mi_smartLipSealCrv.addAttr('cgmName','smartLipSeal',lock=True)	    
 			mi_smartLipSealCrv.doName()
 			ml_curves.append(mi_smartLipSealCrv)	    	    	    
-		    except Exception,error:raise StandardError,"smartLipSeal curve : %s"%(error)  	
-		    '''
-		    for mi_crv in ml_curves:#Parent to rig null
-			mi_crv.parent = mi_go._i_rigNull
-		    self.ml_toVisConnect.extend(ml_curves)
-		    '''
-		except Exception,error:raise StandardError,"Curve creation | %s"%(error)   
+		    except Exception,error:raise StandardError,"[smartLipSeal curve]{%s}"%(error)  
+		    
+		    try:
+			for mi_crv in ml_curves:#Parent to rig null
+			    mi_crv.parent = mi_go._i_deformNull
+			    
+			for mi_crv in [mi_smartLipSealCrv,mi_lwrLipSealCrv,mi_uprLipSealCrv]:
+			    mi_crv.parent = mi_go._i_rigNull
+			    
+		    except Exception,error:raise StandardError,"[Curve parenting]{%s}"%(error)  
+		except Exception,error:raise StandardError,"[Curve creation]{%s}"%(error)   
+		    
 		'''	
 		try:#Locators and aiming -------------------------------------------------------
 		    self.progressBar_set(status = 'Locator creation!')
@@ -1729,12 +1734,12 @@ def build_rig(*args, **kws):
 				mi_locShape.localScaleY = mi_go._f_skinOffset
 				mi_locShape.localScaleZ = mi_go._f_skinOffset
 				mi_loc.parent = mi_locGroup
-			    except Exception,error:raise StandardError,"loc creation : %s"%(error)  	    
+			    except Exception,error:raise StandardError,"[loc creation]{%s}"%(error)  	    
 			    #> Aim constraint
 			    #mi_root = mi_obj.root
 			    #mi_root.parent = self._i_constrainNull
 			    #try:mc.aimConstraint(mi_loc.mNode,mi_root.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
-			    #except Exception,error:raise StandardError,"aim constraint : %s"%(error)  	    
+			    #except Exception,error:raise StandardError,"[aim constrai]{%s}%s"%(error)  	    
 			    #Attach to curve
 			    if i < len(ml_uprLipRigJoints):mi_crv = mi_uprDrivenCrv
 			    else:mi_crv = mi_lwrDrivenCrv
@@ -1757,7 +1762,10 @@ def build_rig(*args, **kws):
 			mi_lwrWire = cgmMeta.cgmNode(_l_return[0])
 			mi_lwrWire.doStore('cgmName',mi_lwrDrivenCrv.mNode)
 			mi_lwrWire.doName()
-		    except Exception,error:raise StandardError,">> wire deformer : %s"%(error)  	    
+			
+			mi_uprDriverCrv.parent = mi_go._i_rigNull
+			mi_lwrDriverCrv.parent = mi_go._i_rigNull			
+		    except Exception,error:raise StandardError,"[wire deformer!]{%s}"%(error)  	    
 		    
 		    try:#Skin driver curve ---------------------------------------------------------
 			self.progressBar_set(status = 'Smart Seal - Skin lip curves...')
@@ -1770,16 +1778,16 @@ def build_rig(*args, **kws):
 			    d_crv = md_skinSetup[k]
 			    str_crv = d_crv['mi_crv'].p_nameShort
 			    l_joints = [mi_obj.p_nameShort for mi_obj in d_crv['ml_joints']]
-			    log.info(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
+			    log.info(" %s | crv]{%s} | joints: %s"%(k,str_crv,l_joints))
 			    try:
 				mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mi_obj.mNode for mi_obj in d_crv['ml_joints']],
 				                                              d_crv['mi_crv'].mNode,
 				                                              tsb=True,
 				                                              maximumInfluences = 3,
 				                                              normalizeWeights = 1,dropoffRate=2.5)[0])
-			    except Exception,error:raise StandardError,"skinCluster : %s"%(error)  	    
+			    except Exception,error:raise StandardError,"skinCluster]{%s}"%(error)  	    
 			    d_crv['mi_skinNode'] = mi_skinNode
-		    except Exception,error:raise StandardError,"skinning driver : %s"%(error)  	    
+		    except Exception,error:raise StandardError,"[skinning drive]{%s}s"%(error)  	    
 		    
 		    try:#Blendshape the smart lipSeal curve ---------------------------------------------
 			self.progressBar_set(status = 'Smart Seal - Blendshape...')
@@ -1799,7 +1807,7 @@ def build_rig(*args, **kws):
 			#Connect                                  
 			d_return['d_result1']['mi_plug'].doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))
 			d_return['d_result2']['mi_plug'].doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[1]))
-		    except Exception,error:raise StandardError,"smartLipSeal bsNode : %s"%(error)  	
+		    except Exception,error:raise StandardError,"[smartLipSeal bsNod]{%s}s"%(error)  	
 		    
 		    try:#Wire deform the uper and lwr lipSeal lids ---------------------------------------------------------
 			self.progressBar_set(status = 'Smart Seal - wire deform setup...')		    
@@ -1821,7 +1829,7 @@ def build_rig(*args, **kws):
 			mc.setAttr("%s.scale[0]"%mi_uprLipSealWire.mNode,0)
 			
 			mPlug_height.value = .5#back to default
-		    except Exception,error:raise StandardError,"lipSeal target wires : %s"%(error)  	
+		    except Exception,error:raise StandardError,"[lipSeal target wire]{%s}s"%(error)  	
 		    
 		    try:#Blendshape the upr and lwr curves to smart lipSeal targets------------------------------------
 			mPlug_lipSeal = cgmMeta.cgmAttr(mi_sealAttrHolder,'lipSeal',attrType = 'float', keyable=True, minValue=0, maxValue=1, defaultValue=0)
@@ -1837,7 +1845,7 @@ def build_rig(*args, **kws):
 			    mi_bsNode.doName()
 			    l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
 			    mPlug_lipSeal.doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))
-		    except Exception,error:raise StandardError,"lipSeal setup : %s"%(error)  	
+		    except Exception,error:raise StandardError,"[lipSeal setu!]{%s}s"%(error)  	
 	    
 		except Exception,error:
 		    raise StandardError,"lip setup | %s"%(error)   	        
@@ -1857,7 +1865,7 @@ def build_rig(*args, **kws):
 		    cgmMeta.cgmAttr(mi_dup,'translate',lock = False, keyable = True)
 		    cgmMeta.cgmAttr(mi_dup,'rotate',lock = False, keyable = True)
 		    cgmMeta.cgmAttr(mi_dup,'scale',lock = False, keyable = True)
-		    mi_dup.parent = False
+		    mi_dup.parent = mi_go._i_rigNull
 		    
 		    ml_curves.append(mi_dup)
 		    self.__dict__["mi_%sCrv"%str_k] = mi_dup
@@ -1903,6 +1911,7 @@ def build_rig(*args, **kws):
 		    i_masterGroup.doName()
 		    mi_mouthMoveTrackLoc.connectChildNode(i_masterGroup,'masterGroup','groupChild')
 		    self.md_rigList['mouthMoveTrackLoc'] = [mi_mouthMoveTrackLoc]
+		    i_masterGroup.parent = mi_go._i_deformNull
 		except Exception,error:raise StandardError,"MouthMove master group find fail | %s"%(error)
 		    		
 		try:str_mouthMoveTrackerMasterGroup = self.md_rigList['mouthMoveTrackLoc'][0].masterGroup.p_nameShort
@@ -1988,9 +1997,7 @@ def build_rig(*args, **kws):
 		           'uprLipPlate':{'target':self.mi_uprLipPlate,
 		                          'bindJoints':ml_uprLipRigJoints + self.md_rigList['noseUnderRig']},		           	          
 		          'lwrLipPlate':{'target':self.mi_lwrLipPlate,
-		                         'bindJoints':ml_lwrLipRigJoints + self.md_rigList['lipCornerRig']['left'] + self.md_rigList['lipCornerRig']['right'] + [self.md_rigList['smileLineRig']['left'][-1],
-		                                       self.md_rigList['chin'][0],		                                       
-		                                       self.md_rigList['smileLineRig']['right'][-1]]},		           
+		                         'bindJoints':ml_lwrLipRigJoints + self.md_rigList['lipCornerRig']['left'] + self.md_rigList['lipCornerRig']['right'] +self.md_rigList['chin']},#+ [self.md_rigList['smileLineRig']['left'][-1],		           
 		           'lwrLipBase':{'target':self.mi_mouthBaseTraceCrv,
 		                         'bindJoints':[self.md_rigList['smileLineRig']['left'][-1],
 		                                       self.md_rigList['chin'][0],		                                       
@@ -2013,13 +2020,26 @@ def build_rig(*args, **kws):
 	    try:#>>> Aim some stuff =================================================================================
 		mi_mouthMoveUpLoc = self.md_attachReturns[mi_mouthMoveTrackLoc]['upLoc']
 		mi_mouthMoveUpLoc.mNode
+		mi_noseUnder = self.md_rigList['noseUnderHandle'][0]
+		mi_chin = self.md_rigList['chin'][0]
+		mi_noseMove = self.md_rigList['noseMoveHandle'][0]
+		
 		'''
 		str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'lipLineBlend'
 		mi_upLoc = d_buffer.get('upLoc') or d_build[str_tag].get('upLoc') or d_current.get('upLoc')
 		str_baseKey = d_buffer.get('baseKey') or d_build[str_tag].get('baseKey') or 'uprLipRig'	
 		'''
-		d_build = {'lipUprRig':{'mode':'lipLineBlend','upLoc':mi_mouthMoveUpLoc},
-		           'lipLwrRig':{'mode':'lipLineBlend','upLoc':mi_mouthMoveUpLoc}}
+		'''
+		d_build = {'noseUnderRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
+			   'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseUnderTarget},
+	       'noseTopRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
+			  'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseMove}}
+		'''
+		#'lipLwrRig':{'mode':'lipLineBlend','upLoc':mi_mouthMoveUpLoc}
+		d_build = {'mouthMoveTrackLoc':{'mode':'singleTarget','aimVector':mi_go._vectorUp,'upVector':mi_go._vectorUp,
+		                                'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_noseMove},
+		           'lipUprRig':{'mode':'lipLineBlend','upLoc':mi_noseUnder,'v_up':mi_go._vectorUp},
+		           'lipLwrRig':{'mode':'lipLineBlend','upLoc':mi_chin,'v_up':mi_go._vectorUpNegative}}
 		self.aim_fromDict(d_build)
 	    except Exception,error:raise StandardError,"!Aim! | %s"%(error)	
 	    
@@ -2054,14 +2074,16 @@ def build_rig(*args, **kws):
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
 		    mObj.connectChildNode(mi_offsetGroup,"offsetGroup","childObject")
+		    l_consts = []
 		    if str_mode == 'pointOrient':
-			mc.pointConstraint([mObj.mNode for mObj in ml_targets],mi_offsetGroup.mNode, maintainOffset = 1)
-			mc.orientConstraint([mObj.mNode for mObj in ml_targets],mi_offsetGroup.mNode, maintainOffset = 1)
+			l_consts.extend(mc.pointConstraint([mObj.mNode for mObj in ml_targets],mi_offsetGroup.mNode, maintainOffset = 1))
+			l_consts.extend(mc.orientConstraint([mObj.mNode for mObj in ml_targets],mi_offsetGroup.mNode, maintainOffset = 1))
 		    else:
-			mc.parentConstraint([mObj.mNode for mObj in ml_targets],mi_offsetGroup.mNode, maintainOffset = 1)
-	    except Exception,error:
-		self.log_infoNestedDict('d_buffer')
-		raise StandardError,"[constrain mids!]{%s}"%(error)	    
+			l_consts.extend(mc.parentConstraint([mObj.mNode for mObj in ml_targets],mi_offsetGroup.mNode, maintainOffset = 1))
+		    for str_const in l_consts:
+			try:cgmMeta.cgmNode(str_const).interpType = 0
+			except Exception,error:self.log_error("Failed to set interp type: '%s']{%s}"%(str_const,error))	    			
+	    except Exception,error:raise StandardError,"[constrain mids!]{%s}"%(error)	    
 	    
 	    
 	    return
@@ -2218,7 +2240,7 @@ def build_rig(*args, **kws):
 				                                    createUpLoc = True,
 				                                    f_offset = f_offsetOfUpLoc,
 				                                    orientation = mi_go._jointOrientation)
-			except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+			except Exception,error:raise StandardError,"[Failed to attach!]{%s}"%(error)
 			try:#>> Setup curve locs ------------------------------------------------------------------------------------------
 			    mi_controlLoc = d_return['controlLoc']
 			    mi_crvLoc = mi_controlLoc.doDuplicate(parentOnly=False)
@@ -2226,11 +2248,11 @@ def build_rig(*args, **kws):
 			    mi_crvLoc.doName()
 			    mi_crvLoc.parent = mi_go._i_rigNull#parent to rigNull
 			    d_return['crvLoc'] = mi_crvLoc #Add the curve loc
-			except Exception,error:raise StandardError,"Loc setup. | error : %s"%(error)
+			except Exception,error:raise StandardError,"Loc setup. | ]{%s}"%(error)
     
 			self.md_attachReturns[mObj] = d_return
 		    except Exception,error:
-			raise StandardError,"Attach rig joint loop. obj: %s | error : %s"%(mObj.p_nameShort,error)	    
+			raise StandardError,"[Attach rig joint loop. obj: '%s']!]{%s}"%(mObj.p_nameShort,error)	    
 		    
 		for mObj in ml_handles:
 		    try:
@@ -2241,10 +2263,10 @@ def build_rig(*args, **kws):
 				                                    createUpLoc = True,	
 			                                            parentToFollowGroup = False,
 				                                    orientation = mi_go._jointOrientation)
-			except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+			except Exception,error:raise StandardError,"[Failed to attach!]{%s}"%(error)
 			self.md_attachReturns[mObj] = d_return
 		    except Exception,error:
-			raise StandardError,"Attach handle. obj: %s | error : %s"%(mObj.p_nameShort,error)	  
+			raise StandardError,"Attach handle. obj: %s | error !]{%s}"(mObj.p_nameShort,error)	  
 	    except Exception,error:
 		raise StandardError,"Attach | %s"%(error)
 	    	    
@@ -2272,7 +2294,7 @@ def build_rig(*args, **kws):
 		    mi_crv.parent = mi_go._i_rigNull#parent to rigNull
 		    self.ml_toVisConnect.append(mi_crv)	
 		    d_uprCheekSide['mi_crv'] = mi_crv
-		except Exception,error:raise StandardError,"Failed to build crv. step: %s | error : %s"%(i,error) 
+		except Exception,error:raise StandardError,"[Failed to build crv. step: '%s'!]{%s}"%(i,error) 
 		
 		try:# Setup rig joints ------------------------------------------------------------------------------------
 		    int_lastIndex = len(ml_rigJoints) - 1
@@ -2285,7 +2307,7 @@ def build_rig(*args, **kws):
 				crvUtils.attachObjToCurve(mi_crvLoc.mNode,mi_crv.mNode)
 				mc.pointConstraint(mi_crvLoc.mNode,mi_controlLoc.mNode,maintainOffset = True)
 				
-			    except Exception,error:raise StandardError,"Failed to attach to crv. | error : %s"%(error)
+			    except Exception,error:raise StandardError,"Failed to attach to crv. | ]{%s}"%(error)
 			    try:#>> Aim the offset group  ------------------------------------------------------------------------------------------
 				if obj_idx != int_lastIndex:
 				    str_upLoc = d_current['upLoc'].mNode
@@ -2293,12 +2315,12 @@ def build_rig(*args, **kws):
 				    ml_targets = [ml_rigJoints[obj_idx+1]]	
 				    mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup,
 				                     maintainOffset = True, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )				    
-			    except Exception,error:raise StandardError,"Loc setup. | error : %s"%(error)
+			    except Exception,error:raise StandardError,"Loc setup. | ]{%s}"%(error)
 	
 			    self.md_attachReturns[mObj] = d_current#push back
 			except Exception,error:
-			    raise StandardError,"Rig joint setup fail. obj: %s | error : %s"%(mObj.p_nameShort,error)	    
-		except Exception,error:raise StandardError,"Rig joint setup fail. step: %s | error : %s"%(i,error) 
+			    raise StandardError,"Rig joint setup fail. obj: %s | ]{%s}"%(mObj.p_nameShort,error)	    
+		except Exception,error:raise StandardError,"Rig joint setup fail. step: %s | ]{%s}"%(i,error) 
 		
 		try:#Skin -------------------------------------------------------------------------------------------------
 		    mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mObj.mNode for mObj in ml_handles],
@@ -2309,7 +2331,7 @@ def build_rig(*args, **kws):
 		    mi_skinNode.doCopyNameTagsFromObject(mi_crv.mNode,ignore=['cgmType'])
 		    mi_skinNode.doName()
 		    d_uprCheekSide['mi_skinNode'] = mi_skinNode
-		except Exception,error:raise StandardError,"Failed to skinCluster crv. step: %s | error : %s"%(i,error) 
+		except Exception,error:raise StandardError,"Failed to skinCluster crv. step: %s | ]{%s}"%(i,error) 
 		    
 	    return True
 	    
@@ -2326,10 +2348,10 @@ def build_rig(*args, **kws):
 		                                                createControlLoc = False,
 		                                                createUpLoc = False,
 		                                                orientation = mi_go._jointOrientation)
-		    except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+		    except Exception,error:raise StandardError,"Failed to attach. | ]{%s}"%(error)
 		    self.md_attachReturns[mObj] = d_return
 		except Exception,error:
-		    raise StandardError,"Attach rig joint loop. obj: %s | error : %s"%(mObj.p_nameShort,error)	
+		    raise StandardError,"Attach rig joint loop. obj: %s | ]{%s}"%(mObj.p_nameShort,error)	
 		
 	    return True
 		
@@ -2350,10 +2372,10 @@ def build_rig(*args, **kws):
 				                                    createUpLoc = True,
 				                                    f_offset = self.f_offsetOfUpLoc,
 				                                    orientation = mi_go._jointOrientation)
-			except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+			except Exception,error:raise StandardError,"Failed to attach. | ]{%s}"%(error)
 			self.md_attachReturns[mObj] = d_return
 		    except Exception,error:
-			raise StandardError,"Attach rig joint loop. obj: %s | error : %s"%(mObj.p_nameShort,error)	    
+			raise StandardError,"Attach rig joint loop. obj: %s | ]{%s}"%(mObj.p_nameShort,error)	    
 		    
 		for mObj in ml_handles:
 		    try:
@@ -2364,10 +2386,10 @@ def build_rig(*args, **kws):
 				                                    createUpLoc = True,	
 				                                    parentToFollowGroup = False,
 				                                    orientation = mi_go._jointOrientation)
-			except Exception,error:raise StandardError,"Failed to attach. | error : %s"%(error)
+			except Exception,error:raise StandardError,"Failed to attach. | ]{%s}"%(error)
 			self.md_attachReturns[mObj] = d_return
 		    except Exception,error:
-			raise StandardError,"Attach handle. obj: %s | error : %s"%(mObj.p_nameShort,error)	  
+			raise StandardError,"Attach handle. obj: %s | ]{%s}"%(mObj.p_nameShort,error)	  
 	    except Exception,error:
 		raise StandardError,"Attach | %s"%(error)		
 	    
@@ -2404,7 +2426,7 @@ def build_rig(*args, **kws):
 		    except:pass
 		    try:d_buffer['follicleAttach'].parent = mi_go._i_rigNull
 		    except:pass				
-	    except Exception,error:raise StandardError,"Parent follicles. | error : %s"%(error)
+	    except Exception,error:raise StandardError,"Parent follicles. | ]{%s}"%(error)
 	    
 	def returnRebuiltCurveString(self,crv, int_spans = 5, rpo = 0):
 	    try:crv.mNode
@@ -2486,7 +2508,7 @@ def build_rig(*args, **kws):
 					    d_return['followLoc'] = mi_crvLoc #Add the curve loc
 					    self.md_attachReturns[mObj] = d_return										
 					except Exception,error:raise StandardError,"Loc setup. | %s"%(error)
-					#log.info("%s mode attached : %s"%(str_mode,mObj.p_nameShort))
+					#log.info("%s mode attached!]{%s}"%(str_mode,mObj.p_nameShort))
 				    elif str_mode == 'handleAttach' and _attachTo:
 					try:
 					    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
@@ -2496,7 +2518,7 @@ def build_rig(*args, **kws):
 						                                    parentToFollowGroup = False,
 						                                    orientation = mi_go._jointOrientation)
 					    self.md_attachReturns[mObj] = d_return					
-					except Exception,error:raise StandardError,"Handle attach. | error : %s"%(error)
+					except Exception,error:raise StandardError,"Handle attach. | ]{%s}"%(error)
 					
 				    elif str_mode == 'blendAttach' and _attachTo:
 					try:#Blend attach ==================================================================================
@@ -2586,7 +2608,7 @@ def build_rig(*args, **kws):
 						
 					    except Exception,error:
 						self.log_infoNestedDict('d_buffer')
-						raise StandardError,"!Setup follow loc blend!| : %s"%(error)
+						raise StandardError,"!Setup follow loc blend!|!]{%s}"%(error)
 					except Exception,error:raise StandardError,"!Blend Attach Mode! | %s"%(error)	
 				    elif str_mode == 'slideAttach' and _attachTo:
 					try:
@@ -2598,11 +2620,11 @@ def build_rig(*args, **kws):
 					                                            parentToFollowGroup = False,
 					                                            orientation = mi_go._jointOrientation)
 					    self.md_attachReturns[mObj] = d_return					
-					except Exception,error:raise StandardError,"Handle attach. | error : %s"%(error)	
+					except Exception,error:raise StandardError,"Handle attach. | ]{%s}"%(error)	
 				    elif str_mode == 'parentOnly':
 					try:mObj.masterGroup.parent = _parentTo
-					except Exception,error:raise StandardError,"parentTo. | error : %s"%(error)		    
-					#log.info("%s parented : %s"%(str_mode,mObj.p_nameShort))
+					except Exception,error:raise StandardError,"parentTo. | ]{%s}"%(error)		    
+					#log.info("%s parented!]{%s}"%(str_mode,mObj.p_nameShort))
 				    else:
 					raise NotImplementedError,"mode: %s "%str_mode
 				except Exception,error:  raise StandardError,"attaching: %s | %s"%(mObj,error)				
@@ -2727,7 +2749,7 @@ def build_rig(*args, **kws):
 						crvUtils.attachObjToCurve(mi_crvLoc.mNode,mi_crv.mNode)
 						mc.pointConstraint(mi_crvLoc.mNode,mi_controlLoc.mNode,maintainOffset = True)
 						
-					    except Exception,error:raise StandardError,"Failed to attach to crv. | error : %s"%(error)
+					    except Exception,error:raise StandardError,"Failed to attach to crv. | ]{%s}"%(error)
 					    try:#>> Aim the offset group  ------------------------------------------------------------------------------------------
 						if obj_idx != int_lastIndex:
 						    str_upLoc = d_current['upLoc'].mNode
@@ -2760,7 +2782,7 @@ def build_rig(*args, **kws):
 							ml_targets = [ml_rigJoints[obj_idx+1]]	
 							mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup,
 									 maintainOffset = True, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )				    
-					    except Exception,error:raise StandardError,"Loc setup. | error : %s"%(error)
+					    except Exception,error:raise StandardError,"Loc setup. | ]{%s}"%(error)
 					    '''
 					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					    
 					    
@@ -2775,7 +2797,7 @@ def build_rig(*args, **kws):
 					    
 					    try:#>> Attach  loc  --------------------------------------------------------------------------------------
 						mc.pointConstraint([mObj.mNode for mObj in ml_targets],mi_controlLoc.mNode,maintainOffset = True)
-					    except Exception,error:raise StandardError,"Failed to attach to crv. | error : %s"%(error)	
+					    except Exception,error:raise StandardError,"Failed to attach to crv. | ]{%s}"%(error)	
 					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					    
 				    else:
 					raise NotImplementedError,"not implemented : mode: %s"%str_mode
@@ -2891,14 +2913,32 @@ def build_rig(*args, **kws):
 					try:
 					    str_baseKey = d_buffer.get('baseKey') or d_build[str_tag].get('baseKey') or str_tag
 					    if not str_baseKey:raise Exception,"No baseKey found!"					
-					    _d['baseKey'] = str_baseKey										    
+					    _d['baseKey'] = str_baseKey		
+					    
+					    try:#Vectors
+						v_up = _d.get('v_up') or mi_go.vectorUp
+						
+						if str_side == 'right':
+						    v_aimIn = mi_go._vectorOut
+						    v_aimOut = mi_go._vectorOutNegative	
+						    ml_buffer = copy.copy(ml_buffer)
+						    ml_buffer.reverse()
+						else:
+						    v_aimIn = mi_go._vectorOutNegative
+						    v_aimOut = mi_go._vectorOut	
+						    
+						_d['v_aimIn'] = v_aimIn
+						_d['v_aimOut'] = v_aimOut
+						_d['v_up'] = v_up										
+					    except Exception,error:raise StandardError,"!Vector query!| %s"%(error)					    
+					    
 					except Exception,error:raise StandardError,"[%s query]{%s}"%(str_mode,error)					
 					    
 					try:
 					    if str_side != 'center':					
 						#Get objects
 						if idx == 0:
-						    mi_aimOut = self.md_rigList['lipCornerRig'][str_side][0].masterGroup
+						    mi_aimOut = self.md_rigList['lipCornerRig'][str_side][0]
 						    mi_aimIn = ml_buffer[idx+1].masterGroup
 						elif idx == int_last:
 						    mi_aimOut = ml_buffer[idx-1].masterGroup
@@ -2924,7 +2964,12 @@ def build_rig(*args, **kws):
 					'''
 					try:
 					    mi_locIn = mObj.doLoc()
+					    mi_locIn.addAttr('cgmTypeModifier','aimIn',lock=True)
+					    mi_locIn.doName()					    
+					    
 					    mi_locOut = mObj.doLoc()
+					    mi_locOut.addAttr('cgmTypeModifier','aimOut',lock=True)
+					    mi_locOut.doName()	
 					    
 					    mi_locIn.parent = mi_masterGroup
 					    mi_locOut.parent = mi_masterGroup
@@ -2932,11 +2977,11 @@ def build_rig(*args, **kws):
 					try:
 					    mc.aimConstraint(mi_aimIn.mNode, mi_locIn.mNode,
 						             weight = 1, aimVector = v_aimIn, upVector = v_up,
-					                     maintainOffset = True,
+					                     maintainOffset = 1,
 						             worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
 					    mc.aimConstraint(mi_aimOut.mNode, mi_locOut.mNode,
 						             weight = 1, aimVector = v_aimOut, upVector = v_up,
-					                     maintainOffset = True,					                     
+					                     maintainOffset = 1,					                     
 						             worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
 					    mi_contraint = cgmMeta.cgmNode(mc.orientConstraint([mi_locIn.mNode,mi_locOut.mNode], mi_aimOffsetGroup.mNode,
 					                                                       maintainOffset = True,					                        
