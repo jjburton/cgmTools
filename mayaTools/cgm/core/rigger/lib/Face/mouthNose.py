@@ -1586,11 +1586,12 @@ def build_rig(*args, **kws):
 		    self.log_error("[First nose under target fail. Using alternate]{%s}"%error)
 		    mi_noseUnderTarget = self.md_rigList['lipRig']['center'][0]'''
 		
-		mi_noseUnderTarget = self.md_rigList.get('lipUprHandle').get('center')[0]
-		d_build = {'noseUnderRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
+		#mi_noseUnderTarget = self.md_rigList.get('lipUprHandle').get('center')[0]
+		mi_noseUnderTarget = self.md_rigList.get('mouthMove')[0]		
+		d_build = {'noseUnderRig':{'mode':'singleTarget','v_aim':mi_go._vectorUpNegative,'v_up':mi_go._vectorAim,
 		                           'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseUnderTarget},
-		           'noseTopRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
-		                      'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseMove}}		           
+		           'noseTopRig':{'mode':'singleTarget','v_aim':mi_go._vectorUpNegative,'v_up':mi_go._vectorAim,
+		                         'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseMove}}		           
 		self.d_buffer = d_build
 		self.log_infoNestedDict('d_buffer')
 		self.aim_fromDict(d_build)
@@ -1834,7 +1835,7 @@ def build_rig(*args, **kws):
 		    try:#Blendshape the upr and lwr curves to smart lipSeal targets------------------------------------
 			mPlug_lipSeal = cgmMeta.cgmAttr(mi_sealAttrHolder,'lipSeal',attrType = 'float', keyable=True, minValue=0, maxValue=1, defaultValue=0)
 			d_blendshapeLipSeal = {'upr':{'mi_target':mi_uprLipSealCrv,'mi_driven':mi_uprDrivenCrv},
-			                     'lwr':{'mi_target':mi_lwrLipSealCrv,'mi_driven':mi_lwrDrivenCrv}}
+			                       'lwr':{'mi_target':mi_lwrLipSealCrv,'mi_driven':mi_lwrDrivenCrv}}
 			for k in d_blendshapeLipSeal.keys():
 			    d_buffer = d_blendshapeLipSeal[k]
 			    mi_target = d_buffer['mi_target']
@@ -2023,7 +2024,8 @@ def build_rig(*args, **kws):
 		mi_noseUnder = self.md_rigList['noseUnderHandle'][0]
 		mi_chin = self.md_rigList['chin'][0]
 		mi_noseMove = self.md_rigList['noseMoveHandle'][0]
-		
+		mi_mouthMove = self.md_rigList.get('mouthMove')[0]		
+		lipLwrHandle
 		'''
 		str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'lipLineBlend'
 		mi_upLoc = d_buffer.get('upLoc') or d_build[str_tag].get('upLoc') or d_current.get('upLoc')
@@ -2036,8 +2038,11 @@ def build_rig(*args, **kws):
 			  'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseMove}}
 		'''
 		#'lipLwrRig':{'mode':'lipLineBlend','upLoc':mi_mouthMoveUpLoc}
-		d_build = {'mouthMoveTrackLoc':{'mode':'singleTarget','aimVector':mi_go._vectorUp,'upVector':mi_go._vectorUp,
+		
+		d_build = {'mouthMoveTrackLoc':{'mode':'singleTarget','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
 		                                'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_noseMove},
+		           'chin':{'mode':'singleTarget','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
+		                   'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_mouthMove},
 		           'lipUprRig':{'mode':'lipLineBlend','upLoc':mi_noseUnder,'v_up':mi_go._vectorUp},
 		           'lipLwrRig':{'mode':'lipLineBlend','upLoc':mi_chin,'v_up':mi_go._vectorUpNegative}}
 		self.aim_fromDict(d_build)
@@ -2861,11 +2866,11 @@ def build_rig(*args, **kws):
 					    v_aimOut = mi_go._vectorOutNegative	
 					    ml_buffer = copy.copy(ml_buffer)
 					    ml_buffer.reverse()
-					    v_up = mi_go._vectorAimNegative
+					    v_up = mi_go._vectorUp
 					else:
 					    v_aimIn = mi_go._vectorOutNegative
 					    v_aimOut = mi_go._vectorOut	
-					    v_up = mi_go._vectorAim
+					    v_up = mi_go._vectorUp
 					    
 					_d['v_aimIn'] = v_aimIn
 					_d['v_aimOut'] = v_aimOut
@@ -2995,8 +3000,8 @@ def build_rig(*args, **kws):
 		                           'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseUnderTarget}}
 					    '''
 					    mi_aimTo = d_buffer['aimTarget']
-					    v_up = d_buffer['upVector']
-					    v_aim = d_buffer['aimVector']
+					    v_up = d_buffer['v_up']
+					    v_aim = d_buffer['v_aim']
 					    _d['mi_aimTo'] = mi_aimTo
 					    _d['v_up'] = v_up
 					    _d['v_aim'] = v_aim
