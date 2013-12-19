@@ -1911,10 +1911,10 @@ class cgmModule(cgmMeta.cgmObject):
 
     def animReset(self,*args, **kws):
 	kws['mModule'] = self		
-	return mFactory.animReset(self,*args, **kws)
+	return mFactory.animReset(*args, **kws)
     def mirrorMe(self,*args,**kws):
 	kws['mModule'] = self	
-	return mFactory.mirrorMe(self,*args, **kws)
+	return mFactory.mirrorMe(*args, **kws)
     
     def mirrorPush(self,**kws):
 	kws['mModule'] = self	
