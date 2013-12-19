@@ -557,7 +557,7 @@ def build_controls(*args, **kws):
 			try:
 			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addForwardBack = _addForwardBack,
 				                                       mirrorSide = str_mirrorSide, mirrorAxis="translateZ,rotateX,rotateY",		                                           
-				                                       makeAimable=False, typeModifier=str_typeModifier) 	    
+				                                       makeAimable=False, typeModifier=str_typeModifier) 	#translateZ,rotateX,rotateY    
 			except Exception,error:
 			    log.error("mObj: %s"%mObj.p_nameShort)
 			    log.error("useShape: %s"%mObj.getMessage('controlShape'))
@@ -611,11 +611,11 @@ def build_rig(*args, **kws):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
-	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
+	                        {'step':'Tongue build','call':self._buildTongue_},	                        
 	                        {'step':'Lip build','call':self._buildLips_},
-	                        #{'step':'NoseBuild','call':self._buildNose_},
+	                        {'step':'NoseBuild','call':self._buildNose_},
 	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        
-	                        #{'step':'Cheek build','call':self._buildCheeks_},
+	                        {'step':'Cheek build','call':self._buildCheeks_},
 	                        {'step':'Lock N hide','call':self._lockNHide_},
 	                        
 	                        ]	
@@ -1458,7 +1458,7 @@ def build_rig(*args, **kws):
 		#'nostrilHandle':{'attachTo':str_nosePlate,'mode':'handleAttach'}
 		d_build = {'nostrilRig':{'attachTo':str_nosePlate},
 		           'nostrilHandle':{'attachTo':str_nostrilRibbon,'mode':'handleAttach'},
-		           'noseMoveHandle':{'mode':'blendAttach','defaultValue':.1,'followSuffix':'Jaw'},	           
+		           'noseMoveHandle':{'mode':'blendAttach','defaultValue':.9,'followSuffix':'Jaw'},	           
 		           'noseMoveRig':{},	               
 		           'noseTipRig':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseTipHandle'][0]},
 		           'noseTipHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0]},
@@ -1629,6 +1629,7 @@ def build_rig(*args, **kws):
 			
 		    ml_uprLipHandles = self.md_rigList['lipUprHandle']['left'] + self.md_rigList['lipUprHandle']['center'] + self.md_rigList['lipUprHandle']['right']
 		    ml_lwrLipHandles = self.md_rigList['lipLwrHandle']['left'] + self.md_rigList['lipLwrHandle']['center'] + self.md_rigList['lipLwrHandle']['right']
+		    
 		    for ml in ml_uprLipHandles,ml_lwrLipHandles:
 			ml.insert(0,self.md_rigList['lipCornerRig']['left'][0])
 			ml.append(self.md_rigList['lipCornerRig']['right'][0])
@@ -1964,7 +1965,7 @@ def build_rig(*args, **kws):
 		           'lipLwrRig':{'mode':'handleAttach','attachTo':str_lwrLipFollowPlate},
 		           'lipUnderRig':{'mode':'handleAttach','attachTo':str_lwrLipPlate},		           
 		           'lipLwrHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,
-		                           'center':{'mode':'blendAttach','defaultValue':.9,
+		                           'center':{'mode':'blendAttach','defaultValue':.6,
 		                                     'followSuffix':'Jaw','target0':mi_mouthMoveTrackLoc}},
 		           }		
 		'''
@@ -2191,45 +2192,13 @@ def build_rig(*args, **kws):
 	    return	
 	
 	def _buildCheeks_(self):
-	    mi_go = self._go#Rig Go instance link
-	    
-	    try:#Template Curve duplication ====================================================================================
-		self.progressBar_set(status = 'Template Curve duplication')  
-		d_toDup = {'smileFollowLeft':self.mi_smileLeftCrv,
-		           'smileFollowRight':self.mi_smileRightCrv}
-		for str_k in d_toDup.iterkeys():
-		    mi_dup = cgmMeta.cgmObject( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],setClass=True )
-		    mi_dup.cgmType = 'traceCrv'
-		    mi_dup.cgmName = mi_dup.cgmName.replace('Cast','')
-		    mi_dup.doName()
-		    cgmMeta.cgmAttr(mi_dup,'translate',lock = False, keyable = True)
-		    cgmMeta.cgmAttr(mi_dup,'rotate',lock = False, keyable = True)
-		    cgmMeta.cgmAttr(mi_dup,'scale',lock = False, keyable = True)
-		    mi_dup.parent = False
-		    
-		    self.__dict__["mi_%sCrv"%str_k] = mi_dup
-		'''
-		for mi_crv in ml_curves:#Parent to rig null
-		    mi_crv.parent = mi_go._i_rigNull
-		self.ml_toVisConnect.extend(ml_curves)
-		'''
-	    except Exception,error:raise StandardError,"[Curve duplication]{%s}"%(error)   	    
+	    mi_go = self._go#Rig Go instance link    
 	    
 	    try:#Build Curves ===================================================================================================
 		md_curvesBuilds = {'uprCheekFollowLeft':{'pointTargets':self.md_rigList['uprCheekRig']['left'] + [self.md_rigList['smileLineRig']['left'][0]]},
 		                   'uprCheekFollowRight':{'pointTargets':self.md_rigList['uprCheekRig']['right'] + [self.md_rigList['smileLineRig']['right'][0]]}}	
 		self.create_curvesFromDict(md_curvesBuilds)
 	    except Exception,error:raise StandardError,"[Build Curves!]{%s}"%(error)
-	    
-	    '''
-	    try:#Build Ribbons ===================================================================================================
-		md_ribbonBuilds = {'smileLeft':{'extrudeCrv':self.mi_smileLeftCrv,'mode':'radialLoft','direction':'left',
-		                                'aimObj':self.md_rigList['mouthMove'][0]},
-		                   'smileRight':{'extrudeCrv':self.mi_smileRightCrv,'mode':'radialLoft','direction':'right',
-		                                 'aimObj':self.md_rigList['mouthMove'][0]}}	
-		self.create_ribbonsFromDict(md_ribbonBuilds)
-	    except Exception,error:raise StandardError,"Ribbons | %s"%(error)
-	    '''
 	    
 	    try:#Build plates ===================================================================================================
 		md_plateBuilds = {'cheekLeft':{'mode':'cheekLoft','direction':'left','name':'cheek',
@@ -2240,26 +2209,18 @@ def build_rig(*args, **kws):
 		self.create_plateFromDict(md_plateBuilds)
 	    except Exception,error:raise StandardError,"[Plates!]{%s}"%(error)
 	    
-	    
 	    try:#Attach stuff to surfaces ====================================================================================
 		#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
 		str_skullPlate = self.str_skullPlate
 		
 		str_cheekLeftPlate = self.mi_cheekLeftPlate.p_nameShort
 		str_cheekRightPlate = self.mi_cheekRightPlate.p_nameShort
-		#str_smileLeftRibbon = self.mi_smileLeftRibbon.p_nameShort
-		#str_smileRightRibbon = self.mi_smileRightRibbon.p_nameShort
 		str_uprCheekFollowLeftCrv = self.mi_uprCheekFollowLeftCrv.p_nameShort
 		str_uprCheekFollowRightCrv = self.mi_uprCheekFollowRightCrv.p_nameShort
-		
-				
-		d_build = {'smileLineRig':{},
-		           #'sneerHandle':{'mode':'handleAttach'},
-		           'sneerHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0].masterGroup.p_nameShort},
-		           'smileHandle':{},#Rig attach so that we can drive it's position via the left lip corner
-		           'smileBaseHandle':{'mode':'handleAttach'},
+			
+		d_build = {'sneerHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0].masterGroup.p_nameShort},
 		           'jawAnchor':{'mode':'handleAttach'},
-		           'cheekRig':{'mode':'handleAttach',
+		           'cheekRig':{'mode':'rigAttach',
 		                       'left':{'attachTo':str_cheekLeftPlate},
 		                       'right':{'attachTo':str_cheekRightPlate}},
 		           'uprCheekRig':{},
@@ -2278,13 +2239,17 @@ def build_rig(*args, **kws):
 	    #self.log_infoNestedDict('md_attachReturns')
 	    
 	    try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
-		d_build = {'smileLeft':{'target':self.mi_smileFollowLeftCrv,
-		                        'bindJoints':[self.md_rigList['sneerHandle']['left'][0],
-		                                      self.md_rigList['smileHandle']['left'][0],
-		                                      self.md_rigList['smileBaseHandle']['left'][0]]},
-		           'cheekFollowLeft':{'target':self.mi_uprCheekFollowLeftCrv,
-		                              'bindJoints':[self.md_rigList['sneerHandle']['left'][0],
-		                                            self.md_rigList['uprCheekHandles']['left'][0]]},		           
+		mi_noseMove = self.md_rigList['noseMoveHandle'][0]		
+		d_build = {'cheekFollowLeft':{'target':self.mi_uprCheekFollowLeftCrv,
+		                              'bindJoints':[mi_noseMove,
+		                                            self.md_rigList['smileLineRig']['left'][1],
+		                                            self.md_rigList['uprCheekHandles']['left'][0]]},
+		           'cheekFollowRight':{'target':self.mi_uprCheekFollowRightCrv,
+		                              'bindJoints':[mi_noseMove,
+		                                            self.md_rigList['smileLineRig']['right'][1],
+		                                            self.md_rigList['uprCheekHandles']['right'][0]]},
+		           'cheekRight':{'target':self.mi_cheekRightPlate,
+		                        'bindJoints':self.md_rigList['jawLine']['right'] + self.md_rigList['smileLineRig']['right'] + self.md_rigList['jawAnchor']['right'] + self.md_rigList['uprCheekHandles']['right']},		           
 		           'cheekLeft':{'target':self.mi_cheekLeftPlate,
 		                        'bindJoints':self.md_rigList['jawLine']['left'] + self.md_rigList['smileLineRig']['left'] + self.md_rigList['jawAnchor']['left'] + self.md_rigList['uprCheekHandles']['left']}}
 		self.skin_fromDict(d_build)
@@ -2305,13 +2270,7 @@ def build_rig(*args, **kws):
 		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]},
 		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]}}}		
 		"""
-		d_build = {'smileHandle':{'mode':'pointBlend',
-		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup]},
-		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup]}},
-		           'smileLineRig':{'mode':'rigToFollow',
-		                           'left':{'attachTo':self.mi_smileFollowLeftCrv},
-		                           'right':{'attachTo':self.mi_smileFollowRightCrv}},
-		           'uprCheekRig':{'mode':'rigToFollow',
+		d_build = {'uprCheekRig':{'mode':'rigToFollow',
 		                          'left':{'attachTo':self.mi_cheekLeftPlate},
 		                          'right':{'attachTo':self.mi_cheekRightPlate}},
 		           'uprCheekHandles':{'mode':'rigToFollow',
@@ -2588,7 +2547,7 @@ def build_rig(*args, **kws):
 				    _parentTo = d_use.get('parentTo') or False
 				    str_mode = d_use.get('mode') or 'rigAttach'
 				    
-				    self.log_info("Attach : %s | mObj: %s | mode: %s | _attachTo: %s | parentTo: %s "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo))
+				    self.log_info("Attach : '%s' | mObj: '%s' | mode: '%s' | _attachTo: '%s' | parentTo: '%s' "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo))
 				    self.progressBar_set(status = ("Attaching : %s %s > '%s' | mode: %s"%(str_tag,str_key,mObj.p_nameShort,str_mode)),progress = ii, maxValue= int_len)
 				    
 				    if str_mode == 'rigAttach' and _attachTo:
