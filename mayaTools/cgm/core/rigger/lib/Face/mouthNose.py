@@ -71,7 +71,7 @@ def __bindSkeletonSetup__(self):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
     """
-    log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "-"*75)            
+    self.log_info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "-"*75)            
     try:
 	if not self._cgmClass == 'JointFactory.go':
 	    log.error("Not a JointFactory.go instance: '%s'"%self)
@@ -238,12 +238,12 @@ def build_rigSkeleton(*args, **kws):
 		    try:
 			d_buffer = d_nameBuffer.get(k_direction)
 			l_tags = d_nameBuffer.get('tags') or False
-			#if l_tags:log.info(l_tags)
+			#if l_tags:self.log_info(l_tags)
 			l_tagsPosition = d_nameBuffer.get('tagsPosition') or False			
 			str_mode = d_nameBuffer.get('mode') or 'regularMid'
 			#if not d_buffer:raise StandardError,"%s %s fail"%(k_name,k_direction)
 			if d_buffer:
-			    #log.info("Building '%s' | '%s' handle joints | mode: %s"%(k_name,k_direction,str_mode))
+			    #self.log_info("Building '%s' | '%s' handle joints | mode: %s"%(k_name,k_direction,str_mode))
 			    try:ml_skinJoints = self.md_jointList[d_buffer['skinKey']]
 			    except:ml_skinJoints = []
 			    ml_handleJoints = []
@@ -271,16 +271,16 @@ def build_rigSkeleton(*args, **kws):
 				mi_rightCrv = self.mi_smileRightCrv
 				#Get our u Values
 				str_bufferULeft = mc.ls("%s.u[*]"%mi_leftCrv.mNode)[0]
-				#log.info("Left >> u list!]{%s}"%(str_bufferULeft))       
+				#self.log_info("Left >> u list!]{%s}"%(str_bufferULeft))       
 				f_maxULeft= float(str_bufferULeft.split(':')[-1].split(']')[0])	
 				str_bufferURight = mc.ls("%s.u[*]"%mi_rightCrv.mNode)[0]
-				#log.info("Right >> u list!]{%s}"%(str_bufferURight))       
+				#self.log_info("Right >> u list!]{%s}"%(str_bufferURight))       
 				f_maxURight= float(str_bufferURight.split(':')[-1].split(']')[0])	
 				
 				pos_left = distance.returnWorldSpacePosition("%s.u[%s]"%(mi_leftCrv.mNode,f_maxULeft ))
 				pos_right = distance.returnWorldSpacePosition("%s.u[%s]"%(mi_rightCrv.mNode,f_maxURight ))
 				pos = distance.returnAveragePointPosition([pos_left,pos_right])
-				#log.info("pos >> %s"%pos)
+				#self.log_info("pos >> %s"%pos)
 				
 				mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
 				mi_jnt.parent = False
@@ -429,7 +429,7 @@ def build_rigSkeleton(*args, **kws):
 			    
 			    ml_rightHandles = metaUtils.get_matchedListFromAttrDict(ml_handleJoints , cgmDirection = 'right')
 			    for mJoint in ml_rightHandles:
-				#log.info("%s flipping"% mJoint.p_nameShort)
+				#self.log_info("%s flipping"% mJoint.p_nameShort)
 				mJoint.__setattr__("r%s"% mi_go._jointOrientation[1],180)
 				jntUtils.freezeJointOrientation(mJoint)			
 		    except Exception,error:raise StandardError,"[%s | %s failed]{%s}"%(k_name,k_direction,error)    
@@ -509,12 +509,12 @@ def build_controls(*args, **kws):
 		    log.error(">"*5 + " %s"%obj)
 		raise StandardError,"Some joints missing controlShape curves"
 	    '''
-	    log.info("#"*100)
+	    self.log_info("#"*100)
 	    for ii,ml_list in enumerate( [self.ml_rigJointsToSetup,self.ml_handleJoints] ):
-		log.info("-"*100)		
+		self.log_info("-"*100)		
 		for i,mObj in enumerate(ml_list):
 		    print mObj
-	    log.info("#"*100)
+	    self.log_info("#"*100)
 	    '''
 	    #>> Running lists ===========================================================================
 	    self.md_directionControls = {"Left":[],"Right":[],"Centre":[]}
@@ -543,7 +543,7 @@ def build_controls(*args, **kws):
 		    str_mirrorSide = False
 		    try:
 			self.progressBar_set(status = "Registering: '%s'"%mObj.p_nameShort, progress =  i, maxValue = int_lenMax)		    				    		    			
-			#log.info("%s On '%s'..."%(self._str_reportStart,mObj.p_nameShort))
+			#self.log_info("%s On '%s'..."%(self._str_reportStart,mObj.p_nameShort))
 			mObj.parent = mi_go._i_deformNull
 			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
 			_addForwardBack = "t%s"%mi_go._jointOrientation[0]
@@ -613,7 +613,8 @@ def build_rig(*args, **kws):
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
 	                        {'step':'Lip build','call':self._buildLips_},
-	                        {'step':'NoseBuild','call':self._buildNose_},
+	                        #{'step':'NoseBuild','call':self._buildNose_},
+	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        
 	                        #{'step':'Cheek build','call':self._buildCheeks_},
 	                        {'step':'Lock N hide','call':self._lockNHide_},
 	                        
@@ -740,7 +741,7 @@ def build_rig(*args, **kws):
 			if not ml_checkBase:raise StandardError,"No check key data for %s | Possibly not rig skeletonized"%k_tag
 			else:
 			    ml_checkSub = metaUtils.get_matchedListFromAttrDict(ml_checkBase, cgmName = str_tag)
-			    #log.info("%s %s ml_checkSub: %s"%(self._str_reportStart,str_tag,ml_checkSub))
+			    #self.log_info("%s %s ml_checkSub: %s"%(self._str_reportStart,str_tag,ml_checkSub))
 			#Check our directions for data --------------------------------------------------------
 			_b_directionChecked = False
 			for k_direction in _l_directions:
@@ -749,11 +750,11 @@ def build_rig(*args, **kws):
 				buffer = metaUtils.get_matchedListFromAttrDict(ml_checkSub,cgmDirection = k_direction)
 				if not buffer:raise StandardError,"Failed to find %s %s data"%(str_tag,k_direction)
 				self.md_rigList[k_tag][k_direction] = buffer
-				#log.info("%s - %s!]{%s}"%(k_tag,k_direction,buffer))
+				#self.log_info("%s - %s!]{%s}"%(k_tag,k_direction,buffer))
 			if not _b_directionChecked:
 			    self.md_rigList[k_tag] = ml_checkSub
 			    if self.md_rigList[k_tag]:_b_directionChecked = True
-			    #log.info("%s!]{%s}"%(k_tag,self.md_rigList[k_tag]))			    
+			    #self.log_info("%s!]{%s}"%(k_tag,self.md_rigList[k_tag]))			    
 			if not _b_directionChecked:
 			    log.error("%s nothing checked"%(k_tag))
 		    else:
@@ -888,7 +889,7 @@ def build_rig(*args, **kws):
 			    ml_children = []
 			    
 			    for i,pos in enumerate(l_offsets):
-				log.info(pos) 
+				self.log_info(pos) 
 				mi_loc.translate = pos
 				mObj = cgmMeta.cgmObject(mc.joint(p = mi_loc.getPosition()),setClass=True)
 				mObj.parent = mJoint
@@ -1056,9 +1057,9 @@ def build_rig(*args, **kws):
 				    
 				    ml_startRailObjs = [d_buffer['sneerHandle']] + ml_uprCheekRev
 				    ml_endRailObjs = [d_buffer['smileBaseHandle']] + ml_jawLineRev
-				    log.info("startRailObjs: %s"%[mObj.p_nameShort for mObj in ml_startRailObjs])
-				    log.info("endRailObjs: %s"%[mObj.p_nameShort for mObj in ml_endRailObjs])
-				    log.info("cheekJoints: %s"%[mObj.p_nameShort for mObj in d_buffer['cheekJoints']])
+				    self.log_info("startRailObjs: %s"%[mObj.p_nameShort for mObj in ml_startRailObjs])
+				    self.log_info("endRailObjs: %s"%[mObj.p_nameShort for mObj in ml_endRailObjs])
+				    self.log_info("cheekJoints: %s"%[mObj.p_nameShort for mObj in d_buffer['cheekJoints']])
 				    
 				    str_startRailCrv = mc.curve(d = 3,ep = [mObj.getPosition() for mObj in ml_startRailObjs], os = True)
 				    str_endRailCrv = mc.curve(d = 3,ep = [mObj.getPosition() for mObj in ml_endRailObjs], os = True)
@@ -1072,7 +1073,7 @@ def build_rig(*args, **kws):
 				
 				try:				    
 				    ml_endProfileObjs = [ml_startRailObjs[-1],d_buffer['cheekJoints'][0], ml_endRailObjs[-1]]
-				    log.info("endProfileObjs: %s"%[mObj.p_nameShort for mObj in ml_endProfileObjs])
+				    self.log_info("endProfileObjs: %s"%[mObj.p_nameShort for mObj in ml_endProfileObjs])
 				    str_endProfileCrv = mc.curve(d = 3,ep = [mObj.getPosition() for mObj in ml_endProfileObjs], os = True)
 				    str_startProfileCrv = mc.rebuildCurve (mi_smileCrv.mNode, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=5, d=3, tol=0.001)[0]		
 				    str_endProfileCrvRebuilt = mc.rebuildCurve (str_endProfileCrv, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=5, d=3, tol=0.001)[0]
@@ -1638,9 +1639,9 @@ def build_rig(*args, **kws):
 			      'lwrLipHandle':ml_lwrLipHandles,
 			      }
 		    for k in d_logs.iterkeys():
-			log.info("%s..."%k)
+			self.log_info("%s..."%k)
 			for mObj in d_logs[k]:
-			    log.info("--> %s "%mObj.p_nameShort)		
+			    self.log_info("--> %s "%mObj.p_nameShort)		
 		    ml_curves = []
 		    
 		    try:#Upr driven curve
@@ -1779,7 +1780,7 @@ def build_rig(*args, **kws):
 			    d_crv = md_skinSetup[k]
 			    str_crv = d_crv['mi_crv'].p_nameShort
 			    l_joints = [mi_obj.p_nameShort for mi_obj in d_crv['ml_joints']]
-			    log.info(" %s | crv]{%s} | joints: %s"%(k,str_crv,l_joints))
+			    self.log_info(" %s | crv]{%s} | joints: %s"%(k,str_crv,l_joints))
 			    try:
 				mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mi_obj.mNode for mi_obj in d_crv['ml_joints']],
 				                                              d_crv['mi_crv'].mNode,
@@ -1893,6 +1894,38 @@ def build_rig(*args, **kws):
 		self.create_plateFromDict(md_plateBuilds)
 	    except Exception,error:raise StandardError,"Plates | %s"%(error)
 	    
+	    try:#Special Locs ====================================================================================
+		try:#Make a mouthMove track loc
+		    mi_mouthMoveTrackLoc = self.md_rigList['mouthMove'][0].doLoc()
+		    i_masterGroup = (cgmMeta.cgmObject(mi_mouthMoveTrackLoc.doGroup(True),setClass=True))
+		    i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
+		    i_masterGroup.doName()
+		    mi_mouthMoveTrackLoc.connectChildNode(i_masterGroup,'masterGroup','groupChild')
+		    self.md_rigList['mouthMoveTrackLoc'] = [mi_mouthMoveTrackLoc]
+		    mi_go.connect_toRigGutsVis(mi_mouthMoveTrackLoc,vis = 1, doShapes = True)#connect to guts vis switches
+		    
+		    i_masterGroup.parent = mi_go._i_deformNull
+		except Exception,error:raise StandardError,"MouthMove master group find fail | %s"%(error)
+		    		
+		try:str_mouthMoveTrackerMasterGroup = self.md_rigList['mouthMoveTrackLoc'][0].masterGroup.p_nameShort
+		except Exception,error:raise StandardError,"MouthMoveTrack master group find fail | %s"%(error)
+		
+		try:#Make a chin track loc
+		    mi_chinTrackLoc = self.md_rigList['chin'][0].doLoc()
+		    i_masterGroup = (cgmMeta.cgmObject(mi_chinTrackLoc.doGroup(True),setClass=True))
+		    i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
+		    i_masterGroup.doName()
+		    mi_chinTrackLoc.connectChildNode(i_masterGroup,'masterGroup','groupChild')
+		    self.md_rigList['chinTrackLoc'] = [mi_chinTrackLoc]
+		    
+		    mi_go.connect_toRigGutsVis(mi_chinTrackLoc,vis = True)#connect to guts vis switches
+		    i_masterGroup.parent = mi_go._i_deformNull
+		except Exception,error:raise StandardError,"ChinTrack master group find fail | %s"%(error)
+		    		
+		try:str_chinTrackerMasterGroup = self.md_rigList['chinTrackLoc'][0].masterGroup.p_nameShort
+		except Exception,error:raise StandardError,"ChinTrack master group find fail | %s"%(error)			
+	    except Exception,error:raise StandardError,"[Spcial Locs!]{%s}"%(error)
+		
 	    try:#Attach stuff to surfaces ====================================================================================
 		#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
 		str_skullPlate = self.str_skullPlate
@@ -1904,20 +1937,7 @@ def build_rig(*args, **kws):
 		str_lwrLipPlate = self.mi_lwrLipPlate.p_nameShort
 		str_lwrLipFollowPlate = self.mi_lwrLipFollowPlate.p_nameShort				
 		#str_lwrLipRibbon = self.mi_lwrLipRibbon.p_nameShort
-		
-		try:#Make a mouthMove track loc
-		    mi_mouthMoveTrackLoc = self.md_rigList['mouthMove'][0].doLoc()
-		    i_masterGroup = (cgmMeta.cgmObject(mi_mouthMoveTrackLoc.doGroup(True),setClass=True))
-		    i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
-		    i_masterGroup.doName()
-		    mi_mouthMoveTrackLoc.connectChildNode(i_masterGroup,'masterGroup','groupChild')
-		    self.md_rigList['mouthMoveTrackLoc'] = [mi_mouthMoveTrackLoc]
-		    i_masterGroup.parent = mi_go._i_deformNull
-		except Exception,error:raise StandardError,"MouthMove master group find fail | %s"%(error)
-		    		
-		try:str_mouthMoveTrackerMasterGroup = self.md_rigList['mouthMoveTrackLoc'][0].masterGroup.p_nameShort
-		except Exception,error:raise StandardError,"MouthMoveTrack master group find fail | %s"%(error)
-		
+			
 		'''
 		{'lipUprHandle':{"left":{},"right":{},'center':{},'check':ml_handleJoints,'tag':'lipUpr'},
 		'lipLwrHandle':{"left":{},"right":{},'center':{},'check':ml_handleJoints,'tag':'lipLwr'},
@@ -1933,6 +1953,7 @@ def build_rig(*args, **kws):
 		'''
 		d_build = {'mouthMove':{'mode':'blendAttach','defaultValue':.1,'followSuffix':'Jaw'},
 		           'mouthMoveTrackLoc':{},
+		           'chinTrackLoc':{},		           
 		           'chin':{'mode':'handleAttach'},		           
 		           'lipUprRig':{'mode':'handleAttach','attachTo':str_uprLipFollowPlate},
 		           'lipOverRig':{'mode':'handleAttach','attachTo':str_uprLipPlate},		           
@@ -2014,6 +2035,7 @@ def build_rig(*args, **kws):
 	        
 	    try:#>>> Connect rig joints to handles ==================================================================
 		d_build = {'lipCornerRig':{},
+		           'chinTrackLoc':{'driver':self.md_rigList['chin']},		           
 		           'mouthMoveTrackLoc':{'driver':self.md_rigList['mouthMove']}}
 		self.connect_fromDict(d_build)
 	    except Exception,error:raise StandardError,"!Connect! | %s"%(error)	
@@ -2025,7 +2047,7 @@ def build_rig(*args, **kws):
 		mi_chin = self.md_rigList['chin'][0]
 		mi_noseMove = self.md_rigList['noseMoveHandle'][0]
 		mi_mouthMove = self.md_rigList.get('mouthMove')[0]		
-		lipLwrHandle
+		
 		'''
 		str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'lipLineBlend'
 		mi_upLoc = d_buffer.get('upLoc') or d_build[str_tag].get('upLoc') or d_current.get('upLoc')
@@ -2092,6 +2114,81 @@ def build_rig(*args, **kws):
 	    
 	    
 	    return
+	
+	def _buildSmileLines_(self):
+	    mi_go = self._go#Rig Go instance link
+	    try:#Template Curve duplication ====================================================================================
+		self.progressBar_set(status = 'Template Curve duplication')  
+		d_toDup = {'smileFollowLeft':self.mi_smileLeftCrv,
+		           'smileFollowRight':self.mi_smileRightCrv}
+		
+		int_lenMax = len(d_toDup.keys())
+		for i,str_k in enumerate(d_toDup.iterkeys()):
+		    self.progressBar_set(status = "Curve duplication : '%s'"%str_k, progress =  i, maxValue = int_lenMax)		    				    		    		    
+		    mi_dup = cgmMeta.cgmObject( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],setClass=True )
+		    mi_dup.cgmType = 'traceCrv'
+		    mi_dup.cgmName = mi_dup.cgmName.replace('Cast','')
+		    mi_dup.doName()
+		    cgmMeta.cgmAttr(mi_dup,'translate',lock = False, keyable = True)
+		    cgmMeta.cgmAttr(mi_dup,'rotate',lock = False, keyable = True)
+		    cgmMeta.cgmAttr(mi_dup,'scale',lock = False, keyable = True)
+		    mi_dup.parent = False
+		    
+		    self.__dict__["mi_%sCrv"%str_k] = mi_dup
+		'''
+		for mi_crv in ml_curves:#Parent to rig null
+		    mi_crv.parent = mi_go._i_rigNull
+		self.ml_toVisConnect.extend(ml_curves)
+		'''
+	    except Exception,error:raise StandardError,"[Curve duplication]{%s}"%(error)   	    
+	    
+	    '''
+	    try:#Build Ribbons ===================================================================================================
+		md_ribbonBuilds = {'smileLeft':{'extrudeCrv':self.mi_smileLeftCrv,'mode':'radialLoft','direction':'left',
+		                                'aimObj':self.md_rigList['mouthMove'][0]},
+		                   'smileRight':{'extrudeCrv':self.mi_smileRightCrv,'mode':'radialLoft','direction':'right',
+		                                 'aimObj':self.md_rigList['mouthMove'][0]}}	
+		self.create_ribbonsFromDict(md_ribbonBuilds)
+	    except Exception,error:raise StandardError,"Ribbons | %s"%(error)
+	    '''	    
+	    """'smileHandle':{'mode':'parentOnly','attachTo':None,
+			   'left':{'parentTo':self.md_rigList['lipCornerHandle']['left'][0].p_nameShort},
+			   'right':{'parentTo':self.md_rigList['lipCornerHandle']['right'][0].p_nameShort}},"""	    
+	    try:#Attach stuff to surfaces ====================================================================================
+		str_skullPlate = self.str_skullPlate	
+		d_build = {'smileLineRig':{},
+		           #'sneerHandle':{'mode':'handleAttach'},
+		           'sneerHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0].masterGroup.p_nameShort},
+		           'smileHandle':{},#Rig attach so that we can drive it's position via the left lip corner		           
+		           'smileBaseHandle':{},#Rig attach so that we can drive it's position via the chin           	                         		           	           
+		           }
+		self.attach_fromDict(d_build)
+	    except Exception,error:raise StandardError,"[Attach!]{%s}"%(error)
+	    	    
+	    try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
+		d_build = {'smileLeft':{'target':self.mi_smileFollowLeftCrv,
+		                        'bindJoints':[self.md_rigList['sneerHandle']['left'][0],
+		                                      self.md_rigList['smileHandle']['left'][0],
+		                                      self.md_rigList['smileBaseHandle']['left'][0]]},
+		           'smileRight':{'target':self.mi_smileFollowRightCrv,
+		                        'bindJoints':[self.md_rigList['sneerHandle']['right'][0],
+		                                      self.md_rigList['smileHandle']['right'][0],
+		                                      self.md_rigList['smileBaseHandle']['right'][0]]}}
+		self.skin_fromDict(d_build)
+	    except Exception,error:raise StandardError,"[Skinning!]{%s}"%(error)	
+	    
+	    try:#>>> Connect rig joints to handles ==================================================================
+		d_build = {'smileHandle':{'mode':'parentConstraint',
+		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup]},
+		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup]}},
+		           'smileLineRig':{'mode':'rigToFollow',
+		                           'left':{'attachTo':self.mi_smileFollowLeftCrv},
+		                           'right':{'attachTo':self.mi_smileFollowRightCrv}},   
+		           'smileBaseHandle':{'mode':'parentConstraint',
+		                              'targets':[self.md_rigList['chinTrackLoc'][0]]}}
+		self.connect_fromDict(d_build)
+	    except Exception,error:raise StandardError,"[Connect!]{%s}"%(error)	
+	    return	
 	
 	def _buildCheeks_(self):
 	    mi_go = self._go#Rig Go instance link
@@ -2226,7 +2323,6 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"[Connect!]{%s}"%(error)	
 	    return
 	
-	    pass
 	def _buildUprCheek_(self):
 	    try:#>> Attach uprCheek rig joints =======================================================================================
 		mi_go = self._go#Rig Go instance link
@@ -2461,7 +2557,7 @@ def build_rig(*args, **kws):
 			    for str_side in ['left','right','center']:
 				bfr_side = buffer.get(str_side)
 				if bfr_side:
-				    #log.info("%s:%s:%s"%(str_tag,str_side,bfr_side))
+				    #self.log_info("%s:%s:%s"%(str_tag,str_side,bfr_side))
 				    #ml_buffer.extend(bfr_side)
 				    md_buffer[str_side] = bfr_side
 			else:
@@ -2480,7 +2576,7 @@ def build_rig(*args, **kws):
 			    for ii,mObj in enumerate(ml_buffer):
 				try:
 				    if d_buffer.get(ii):#if we have special instructions for a index key...
-					log.info("%s | %s > Utilizing index key"%(str_tag,str_key))
+					self.log_info("%s | %s > Utilizing index key"%(str_tag,str_key))
 					d_use = d_buffer[ii]
 					self.d_buffer = d_use
 					self.log_infoNestedDict('d_buffer')
@@ -2492,7 +2588,7 @@ def build_rig(*args, **kws):
 				    _parentTo = d_use.get('parentTo') or False
 				    str_mode = d_use.get('mode') or 'rigAttach'
 				    
-				    log.info("Attach : %s | mObj: %s | mode: %s | _attachTo: %s | parentTo: %s "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo))
+				    self.log_info("Attach : %s | mObj: %s | mode: %s | _attachTo: %s | parentTo: %s "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo))
 				    self.progressBar_set(status = ("Attaching : %s %s > '%s' | mode: %s"%(str_tag,str_key,mObj.p_nameShort,str_mode)),progress = ii, maxValue= int_len)
 				    
 				    if str_mode == 'rigAttach' and _attachTo:
@@ -2513,7 +2609,7 @@ def build_rig(*args, **kws):
 					    d_return['followLoc'] = mi_crvLoc #Add the curve loc
 					    self.md_attachReturns[mObj] = d_return										
 					except Exception,error:raise StandardError,"Loc setup. | %s"%(error)
-					#log.info("%s mode attached!]{%s}"%(str_mode,mObj.p_nameShort))
+					#self.log_info("%s mode attached!]{%s}"%(str_mode,mObj.p_nameShort))
 				    elif str_mode == 'handleAttach' and _attachTo:
 					try:
 					    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
@@ -2629,7 +2725,7 @@ def build_rig(*args, **kws):
 				    elif str_mode == 'parentOnly':
 					try:mObj.masterGroup.parent = _parentTo
 					except Exception,error:raise StandardError,"parentTo. | ]{%s}"%(error)		    
-					#log.info("%s parented!]{%s}"%(str_mode,mObj.p_nameShort))
+					#self.log_info("%s parented!]{%s}"%(str_mode,mObj.p_nameShort))
 				    else:
 					raise NotImplementedError,"mode: %s "%str_mode
 				except Exception,error:  raise StandardError,"attaching: %s | %s"%(mObj,error)				
@@ -2642,6 +2738,7 @@ def build_rig(*args, **kws):
 	    Modes:
 	    rigToHandle -- given a nameRig kw, it looks through the data sets to find the handle and connect. One to one connection type
 	    rigToFollow --
+	    pointBlend -- 
 	    
 	    Flags
 	    'index'(int) -- root dict flag to specify only using a certain index of a list
@@ -2668,7 +2765,7 @@ def build_rig(*args, **kws):
 			l_skip = d_build[str_tag].get('skip') or []
 			for str_key in md_buffer.iterkeys():
 			    if str_key in l_skip:
-				log.info("%s Skipping connect: %s"%(str_tag,str_key))
+				self.log_info("%s Skipping connect: %s"%(str_tag,str_key))
 			    else:
 				if d_build[str_tag].get(str_key):#if we have special instructions for a direction key...
 				    d_buffer = d_build[str_tag][str_key]
@@ -2678,7 +2775,7 @@ def build_rig(*args, **kws):
 				try:
 				    int_indexBuffer = d_build[str_tag].get('index') or False
 				    if int_indexBuffer is not False:
-					log.info("%s | %s > Utilizing index call"%(str_tag,str_key))					
+					self.log_info("%s | %s > Utilizing index call"%(str_tag,str_key))					
 					ml_buffer = [ml_buffer[int_indexBuffer]]
 				except Exception,error:raise StandardError,"!Index call(%s)!| %s"%(error)
 				
@@ -2692,7 +2789,7 @@ def build_rig(*args, **kws):
 					#_parentTo = d_buffer.get('parentTo') or False
 					str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'rigToHandle'		
 					ml_driver = d_buffer.get('driver') or False
-					#log.info("%s | mObj: %s | mode: %s | "%(str_tag,str_mObj,str_mode))
+					#self.log_info("%s | mObj: %s | mode: %s | "%(str_tag,str_mObj,str_mode))
 				    except Exception,error:raise StandardError,"[Data gather!]{%s}"%(error)
 				    
 				    self.log_info("Connecting : '%s' %s > '%s' | mode: %s"%(str_tag,str_key,str_mObj,str_mode))
@@ -2804,6 +2901,19 @@ def build_rig(*args, **kws):
 						mc.pointConstraint([mObj.mNode for mObj in ml_targets],mi_controlLoc.mNode,maintainOffset = True)
 					    except Exception,error:raise StandardError,"Failed to attach to crv. | ]{%s}"%(error)	
 					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					    
+				    elif str_mode == 'parentConstraint':
+					try:
+					    try:#See if we have a handle return
+						ml_targets = d_buffer['targets']
+						d_current = self.md_attachReturns[mObj]
+						#mi_followLoc = d_current['followLoc']
+						mi_controlLoc = d_current['controlLoc']					    
+					    except Exception,error:raise StandardError,"[Query '%s'!]{%s}"%(str_key,error)
+					    
+					    try:#>> Attach  loc  --------------------------------------------------------------------------------------
+						mc.parentConstraint([mObj.mNode for mObj in ml_targets],mi_controlLoc.mNode,maintainOffset = True)
+					    except Exception,error:raise StandardError,"Failed to attach to crv. | ]{%s}"%(error)	
+					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)	
 				    else:
 					raise NotImplementedError,"not implemented : mode: %s"%str_mode
 		    except Exception,error:  raise StandardError,"[%s]{%s}"%(str_tag,error)			    
@@ -2840,7 +2950,7 @@ def build_rig(*args, **kws):
 			l_skip = d_build[str_tag].get('skip') or []
 			for str_side in md_buffer.iterkeys():
 			    if str_side in l_skip:
-				log.info("%s Skipping connect: %s"%(str_tag,str_side))
+				self.log_info("%s Skipping connect: %s"%(str_tag,str_side))
 			    else:
 				try:
 				    if d_build[str_tag].get(str_side):#if we have special instructions for a direction key...
@@ -2851,7 +2961,7 @@ def build_rig(*args, **kws):
 				    try:
 					int_indexBuffer = d_build[str_tag].get('index') or False
 					if int_indexBuffer is not False:
-					    log.info("%s | %s > Utilizing index call"%(str_tag,str_side))					
+					    self.log_info("%s | %s > Utilizing index call"%(str_tag,str_side))					
 					    ml_buffer = [ml_buffer[int_indexBuffer]]
 				    except Exception,error:raise StandardError,"!Index call(%s)!| %s"%(error)
 				    
@@ -2976,6 +3086,8 @@ def build_rig(*args, **kws):
 					    mi_locOut.addAttr('cgmTypeModifier','aimOut',lock=True)
 					    mi_locOut.doName()	
 					    
+					    mi_go.connect_toRigGutsVis([mi_locIn,mi_locOut],vis = 1, doShapes = True)#connect to guts vis switches
+					    
 					    mi_locIn.parent = mi_masterGroup
 					    mi_locOut.parent = mi_masterGroup
 					except Exception,error:raise StandardError,"[Aim loc creation!]{%s}"%(error)
@@ -3077,9 +3189,9 @@ def build_rig(*args, **kws):
 				    
 				    ml_startRailObjs = [d_buffer['sneerHandle']] + ml_uprCheekRev
 				    ml_endRailObjs = [d_buffer['smileBaseHandle']] + ml_jawLineRev
-				    #log.info("startRailObjs: %s"%[mObj.p_nameShort for mObj in ml_startRailObjs])
-				    #log.info("endRailObjs: %s"%[mObj.p_nameShort for mObj in ml_endRailObjs])
-				    #log.info("cheekJoints: %s"%[mObj.p_nameShort for mObj in d_buffer['cheekJoints']])
+				    #self.log_info("startRailObjs: %s"%[mObj.p_nameShort for mObj in ml_startRailObjs])
+				    #self.log_info("endRailObjs: %s"%[mObj.p_nameShort for mObj in ml_endRailObjs])
+				    #self.log_info("cheekJoints: %s"%[mObj.p_nameShort for mObj in d_buffer['cheekJoints']])
 				    
 				    str_startRailCrv = mc.curve(d = 3,ep = [mObj.getPosition() for mObj in ml_startRailObjs], os = True)
 				    str_endRailCrv = mc.curve(d = 3,ep = [mObj.getPosition() for mObj in ml_endRailObjs], os = True)
@@ -3093,7 +3205,7 @@ def build_rig(*args, **kws):
 				
 				try:				    
 				    ml_endProfileObjs = [ml_startRailObjs[-1],d_buffer['cheekJoints'][0], ml_endRailObjs[-1]]
-				    #log.info("endProfileObjs: %s"%[mObj.p_nameShort for mObj in ml_endProfileObjs])
+				    #self.log_info("endProfileObjs: %s"%[mObj.p_nameShort for mObj in ml_endProfileObjs])
 				    str_endProfileCrv = mc.curve(d = 3,ep = [mObj.getPosition() for mObj in ml_endProfileObjs], os = True)
 				    str_startProfileCrv = mc.rebuildCurve (mi_smileCrv.mNode, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=5, d=3, tol=0.001)[0]		
 				    str_endProfileCrvRebuilt = mc.rebuildCurve (str_endProfileCrv, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=5, d=3, tol=0.001)[0]

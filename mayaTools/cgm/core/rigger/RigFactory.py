@@ -546,7 +546,7 @@ class go(object):
 	
     #>> Connections
     #=====================================================================
-    def connect_toRigGutsVis(self, ml_objects, vis = True):
+    def connect_toRigGutsVis(self, ml_objects, vis = True, doShapes = False):
 	try:
 	    _str_funcName = "go.connect_toRigGutsVis(%s)"%self._mi_module.p_nameShort  
 	    log.debug(">>> %s "%(_str_funcName) + "="*75)
@@ -554,9 +554,16 @@ class go(object):
 	    
 	    if type(ml_objects) not in [list,tuple]:ml_objects = [ml_objects]
 	    for i_obj in ml_objects:
-		i_obj.overrideEnabled = 1		
-		if vis: cgmMeta.cgmAttr(self._mi_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
-		cgmMeta.cgmAttr(self._mi_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
+		if doShapes:
+		    for shp in i_obj.getShapes():
+			mShp = cgmMeta.cgmNode(shp)
+			mShp.overrideEnabled = 1		
+			if vis: cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mShp.mNode,'overrideVisibility'))
+			cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mShp.mNode,'overrideDisplayType'))    
+		else:
+		    i_obj.overrideEnabled = 1		
+		    if vis: cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
+		    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
 	    
 	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	
