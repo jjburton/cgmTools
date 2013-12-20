@@ -611,7 +611,7 @@ def build_rig(*args, **kws):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
-	                        {'step':'Tongue build','call':self._buildTongue_},	                        
+	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
 	                        {'step':'Lip build','call':self._buildLips_},
 	                        {'step':'NoseBuild','call':self._buildNose_},
 	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        
@@ -897,7 +897,7 @@ def build_rig(*args, **kws):
 				mObj.doName()
 				if _skin:ml_skinJoints.append(mObj)
 			    mc.delete(mi_loc.parent)
-			self.log_infoNestedDict('d_buffer')
+			#self.log_infoNestedDict('d_buffer')
 		    try:
 			self.md_rigList['uprHeadDef'][0].parent = self.md_rigList['faceBaseDef'][0]
 			self.md_rigList['stableJaw'][0].parent = self.md_rigList['faceBaseDef'][0]
@@ -908,7 +908,7 @@ def build_rig(*args, **kws):
 			
 		except Exception,error:raise StandardError,"!def duplication! | %s"%(error)	
 		
-		self.log_infoNestedDict('d_buffer')
+		#self.log_infoNestedDict('d_buffer')
 	    except Exception,error:raise StandardError,"!Get Joints! | %s"%(error)	
 	    
 	    try:#>> Skin  =======================================================================================
@@ -1012,7 +1012,7 @@ def build_rig(*args, **kws):
 			    mi_obj.doName()
 			    mi_go._i_rigNull.connectChildNode(mi_obj,"%sRibbon"%str_name,'module')			    
 			except Exception,error:raise StandardError,"Naming | %s"%(error)
-			self.log_infoNestedDict('d_buffer')
+			#self.log_infoNestedDict('d_buffer')
 			
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)
 	    except Exception,error:raise StandardError,"Ribbons | %s"%(error)
@@ -1110,7 +1110,7 @@ def build_rig(*args, **kws):
 			except Exception,error:raise StandardError,"Tag/Name/Store | %s"%(error)	
 			
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)	
-		    self.log_infoNestedDict('d_buffer')		    
+		    #self.log_infoNestedDict('d_buffer')		    
 	    except Exception,error:raise StandardError,"Plate | %s"%(error)
 	    
 		
@@ -1139,7 +1139,7 @@ def build_rig(*args, **kws):
 		self.d_buffer['mi_jawHandle'] = mi_jawHandle
 		self.d_buffer['mPlug_multpHeadScale'] = mPlug_multpHeadScale
 		
-		self.log_infoNestedDict('d_buffer')
+		#self.log_infoNestedDict('d_buffer')
 	    except Exception,error:raise StandardError,"!Info Gather! | %s"%(error)
 	    
 	    try:#>> Build segment =======================================================================================
@@ -1176,7 +1176,7 @@ def build_rig(*args, **kws):
 		except Exception,error:raise StandardError,"!post segment parent! | %s"%(error)
 		
 		self.d_buffer = d_segReturn
-		self.log_infoNestedDict('d_buffer')
+		#self.log_infoNestedDict('d_buffer')
 				
 		'''
 		midReturn = rUtils.addCGMSegmentSubControl(ml_influenceJoints[1].mNode,
@@ -1594,7 +1594,7 @@ def build_rig(*args, **kws):
 		           'noseTopRig':{'mode':'singleTarget','v_aim':mi_go._vectorUpNegative,'v_up':mi_go._vectorAim,
 		                         'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseMove}}		           
 		self.d_buffer = d_build
-		self.log_infoNestedDict('d_buffer')
+		#self.log_infoNestedDict('d_buffer')
 		self.aim_fromDict(d_build)
 	    except Exception,error:raise StandardError,"[Aim Setup]{%s}"%(error)
 	    
@@ -1639,10 +1639,12 @@ def build_rig(*args, **kws):
 			      'uprLipHandle':ml_uprLipHandles,
 			      'lwrLipHandle':ml_lwrLipHandles,
 			      }
+		    '''
 		    for k in d_logs.iterkeys():
 			self.log_info("%s..."%k)
 			for mObj in d_logs[k]:
-			    self.log_info("--> %s "%mObj.p_nameShort)		
+			    self.log_info("--> %s "%mObj.p_nameShort)	
+			    '''
 		    ml_curves = []
 		    
 		    try:#Upr driven curve
@@ -2035,7 +2037,7 @@ def build_rig(*args, **kws):
 	    
 	        
 	    try:#>>> Connect rig joints to handles ==================================================================
-		d_build = {'lipCornerRig':{},
+		d_build = {'lipCornerRig':{'rewireFollicleOffset':True},
 		           'chinTrackLoc':{'driver':self.md_rigList['chin']},		           
 		           'mouthMoveTrackLoc':{'driver':self.md_rigList['mouthMove']}}
 		self.connect_fromDict(d_build)
@@ -2179,9 +2181,11 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"[Skinning!]{%s}"%(error)	
 	    
 	    try:#>>> Connect rig joints to handles ==================================================================
-		d_build = {'smileHandle':{'mode':'parentConstraint',
-		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup]},
-		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup]}},
+		d_build = {'smileHandle':{'mode':'parentConstraint','rewireFollicleOffset':True,
+		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup],
+		                                  'rewireHandle':self.md_rigList['lipCornerHandle']['left'][0]},
+		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup],
+		                                   'rewireHandle':self.md_rigList['lipCornerHandle']['right'][0]}},
 		           'smileLineRig':{'mode':'rigToFollow',
 		                           'left':{'attachTo':self.mi_smileFollowLeftCrv},
 		                           'right':{'attachTo':self.mi_smileFollowRightCrv}},   
@@ -2468,7 +2472,8 @@ def build_rig(*args, **kws):
 	    #Lock and hide all 
 	    for mHandle in self.ml_handlesJoints:
 		try:
-		    cgmMeta.cgmAttr(mHandle,'scale',lock = True, hidden = True)
+		    if 'jaw' not in mHandle.getAttr('cgmName'):
+			cgmMeta.cgmAttr(mHandle,'scale',lock = True, hidden = True)
 		    cgmMeta.cgmAttr(mHandle,'v',lock = True, hidden = True)		
 		    mHandle._setControlGroupLocks()	
 		except Exception,error:self.log_error("[mHandle: '%s']{%s}"%(mJoint.p_nameShort,error))
@@ -2538,7 +2543,7 @@ def build_rig(*args, **kws):
 					self.log_info("%s | %s > Utilizing index key"%(str_tag,str_key))
 					d_use = d_buffer[ii]
 					self.d_buffer = d_use
-					self.log_infoNestedDict('d_buffer')
+					#self.log_infoNestedDict('d_buffer')
 				    else:d_use = d_buffer
 				    
 				    
@@ -2667,7 +2672,7 @@ def build_rig(*args, **kws):
 						except Exception,error:raise StandardError,"!Blend! | %s"%(error)
 						
 					    except Exception,error:
-						self.log_infoNestedDict('d_buffer')
+						#self.log_infoNestedDict('d_buffer')
 						raise StandardError,"!Setup follow loc blend!|!]{%s}"%(error)
 					except Exception,error:raise StandardError,"!Blend Attach Mode! | %s"%(error)	
 				    elif str_mode == 'slideAttach' and _attachTo:
@@ -2741,17 +2746,14 @@ def build_rig(*args, **kws):
 				int_len = len(ml_buffer)
 				for i,mObj in enumerate(ml_buffer):
 				    str_mObj = mObj.p_nameShort
-				    self.progressBar_set(status = ("Connecting : '%s' %s > '%s'"%(str_tag,str_key,str_mObj)),progress = i, maxValue = int_len)	
 				    try:#Gather data ----------------------------------------------------------------------
-					#_attachTo = d_buffer.get('attachTo')
-					#if _attachTo == None:_attachTo = str_skullPlate
-					#_parentTo = d_buffer.get('parentTo') or False
-					str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'rigToHandle'		
+					str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'rigToHandle'
+					b_rewireFollicleOffset = d_buffer.get('rewireFollicleOffset') or d_build[str_tag].get('rewireFollicleOffset') or False 
 					ml_driver = d_buffer.get('driver') or False
-					#self.log_info("%s | mObj: %s | mode: %s | "%(str_tag,str_mObj,str_mode))
 				    except Exception,error:raise StandardError,"[Data gather!]{%s}"%(error)
 				    
-				    self.log_info("Connecting : '%s' %s > '%s' | mode: %s"%(str_tag,str_key,str_mObj,str_mode))
+				    self.log_info("Connecting : '%s' %s > '%s' | mode: '%s' | rewireFollicleOffset: %s"%(str_tag,str_key,str_mObj,str_mode,b_rewireFollicleOffset))
+				    self.progressBar_set(status = ("Connecting : '%s' %s > '%s' | mode: '%s' | rewireFollicleOffset: %s"%(str_tag,str_key,str_mObj,str_mode,b_rewireFollicleOffset)),progress = i, maxValue = int_len)	
 			    
 				    if str_mode == 'rigToHandle':
 					try:
@@ -2778,6 +2780,16 @@ def build_rig(*args, **kws):
 						
 						cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
 					    except Exception,error:raise StandardError,"[Offset group!]{%s}"%(error)
+					    
+					    try:#rewireFollicleOffset
+						if b_rewireFollicleOffset:
+						    mi_rewireHandle = d_buffer.get('rewireHandle') or d_build[str_tag].get('rewireHandle') or mi_handle
+						    mi_follicleOffsetGroup = self.md_attachReturns[mObj]['offsetGroup']
+						    for attr in mi_go._jointOrientation[0]:
+							attributes.doConnectAttr ((mi_rewireHandle.mNode+'.t%s'%attr),(mi_follicleOffsetGroup.mNode+'.t%s'%attr))						    
+						    
+					    except Exception,error:raise StandardError,"[rewire Follicle Offset!]{%s"%(error)
+					    
 					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					    
 				    elif str_mode == 'rigToFollow':
 					try:
@@ -3087,8 +3099,8 @@ def build_rig(*args, **kws):
 				    else:
 					raise NotImplementedError,"Mode not implemented : '%s'"%str_mode
 		    except Exception,error:
-			try:self.log_infoNestedDict('d_buffer')
-			except:pass
+			#try:self.log_infoNestedDict('d_buffer')
+			#except:pass
 			raise Exception,"[tag: '%s']{%s}"%(str_tag,error)			    
 	    except Exception,error:  raise Exception,"[aim_fromDict]{%s}"%(error)
 	def skin_fromDict(self,d_build):
@@ -3206,7 +3218,7 @@ def build_rig(*args, **kws):
 			except Exception,error:raise StandardError,"Tag/Name/Store | %s"%(error)	
 			
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)	
-		    self.log_infoNestedDict('d_buffer')		    
+		    #self.log_infoNestedDict('d_buffer')		    
 	    except Exception,error:raise StandardError,"create_plateFromDict | %s"%(error)
 	    
 	def create_ribbonsFromDict(self,md_ribbonBuilds):
@@ -3261,7 +3273,7 @@ def build_rig(*args, **kws):
 			    mi_obj.doName()
 			    mi_go._i_rigNull.connectChildNode(mi_obj,"%sRibbon"%str_name,'module')			    
 			except Exception,error:raise StandardError,"Naming | %s"%(error)
-			self.log_infoNestedDict('d_buffer')
+			#self.log_infoNestedDict('d_buffer')
 		    except Exception,error:raise StandardError,"%s | %s"%(str_name,error)
 	    except Exception,error:raise StandardError,"create_ribbonsFromDict | %s"%(error)
 	    
