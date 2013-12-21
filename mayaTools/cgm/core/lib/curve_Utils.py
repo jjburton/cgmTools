@@ -557,7 +557,7 @@ def mirrorCurve(*args, **kws):
 	    orienation(str) -- joint orientation
     
 	    """	
-	    super(fncWrap, self).__init__(baseCurve = None, targetCurve = None, mirrorThreshold = .5, mirrorAcross = 'x',**kws)
+	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = 'mirrorCurve'
 	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'baseCurve',"default":None},
 	                                 {'kw':'targetCurve',"default":None},
