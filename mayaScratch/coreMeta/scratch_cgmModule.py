@@ -9,7 +9,7 @@ reload(nameF)
 
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
-
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.rigger import JointFactory as jFactory
