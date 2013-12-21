@@ -170,7 +170,7 @@ class go(object):
 	    self._ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True,cull = True)
 	    if not self._ml_moduleJoints:raise StandardError, "No module joints found!"
 	    self._l_moduleJoints = [j.p_nameShort for j in self._ml_moduleJoints]
-	    self._ml_skinJoints = get_skinJoints(self._mi_module,asMeta=True)
+	    self._ml_skinJoints = self._mi_module.rig_getSkinJoints()
 	    if not self._ml_skinJoints:raise StandardError,"No Skin joints found"
 	    if not self._ml_moduleJoints:raise StandardError, "No module joints found!"        
 	    self._l_skinJoints = [j.p_nameShort for j in self._ml_skinJoints]
@@ -1611,7 +1611,7 @@ def get_report(self):
 	log.error("%s.get_report >> Not skeletonized. Wrong report."%(self.p_nameShort))
 	return False
     l_moduleJoints = self.rigNull.msgList_get('moduleJoints',False) or []
-    l_skinJoints = get_skinJoints(self,False)
+    l_skinJoints =self._mi_module.rig_getSkinJoints(False)
     ml_handleJoints = get_handleJoints(self) or []
     l_rigJoints = self.rigNull.msgList_get('rigJoints',False) or []
     ml_rigHandleJoints = get_rigHandleJoints(self) or []

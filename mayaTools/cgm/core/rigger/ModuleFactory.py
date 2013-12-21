@@ -540,7 +540,7 @@ def isRigged(*args,**kws):
 	    
 	    ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
 	    l_rigJoints = [i_j.p_nameShort for i_j in ml_rigJoints] or []
-	    l_skinJoints = mRig.get_skinJoints(mi_module,asMeta=False)
+	    l_skinJoints = rig_getSkinJoints(mi_module,asMeta=False)
 	    
 	    if not ml_rigJoints:
 		mi_rigNull.version = ''#clear the version	
@@ -645,7 +645,7 @@ def isRigConnected(*args,**kws):
 		kws = self.d_kws
 		mi_rigNull = mi_module.rigNull
 		ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
-		ml_skinJoints = mRig.get_skinJoints(mi_module,asMeta=True)		
+		ml_skinJoints = rig_getSkinJoints(mi_module,asMeta=True)		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
 	    if not isRigged(**kws):
@@ -694,7 +694,7 @@ def rigConnect(*args,**kws):
 	    try:#Query ========================================================
 		mi_rigNull = mi_module.rigNull
 		ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
-		ml_skinJoints = mRig.get_skinJoints(mi_module,asMeta=True)
+		ml_skinJoints = rig_getSkinJoints(mi_module,asMeta=True)
 	    except Exception,error:raise StandardError,"[Gather joint lists]{%s}"%error	    
 	    
 	    if mi_module.moduleType in __l_faceModules__:
