@@ -74,11 +74,11 @@ def __bindSkeletonSetup__(self):
     self.log_info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "-"*75)            
     try:
 	if not self._cgmClass == 'JointFactory.go':
-	    log.error("Not a JointFactory.go instance: '%s'"%self)
+	    self.log_error("Not a JointFactory.go instance: '%s'"%self)
 	    raise StandardError
 	
     except Exception,error:
-	log.error("mouthNose.__bindSkeletonSetup__>>bad self!")
+	self.log_error("mouthNose.__bindSkeletonSetup__>>bad self!")
 	raise StandardError,error
     
     #>>> Re parent joints
@@ -89,7 +89,7 @@ def __bindSkeletonSetup__(self):
     try:
 	self._mi_module.rig_getReport()#report	
     except Exception,error:
-	log.error("build_mouthNose>>__bindSkeletonSetup__ fail!")
+	self.log_error("build_mouthNose>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
     
 def build_rigSkeleton(*args, **kws):
@@ -504,9 +504,9 @@ def build_controls(*args, **kws):
 		if mJnt.getMessage('controlShape'):self.ml_rigJointsToSetup.append(mJnt)	
 		
 	    if l_missingCurves:
-		log.error("Following joints missing curves: ")
+		self.log_error("Following joints missing curves: ")
 		for obj in l_missingCurves:
-		    log.error(">"*5 + " %s"%obj)
+		    self.log_error(">"*5 + " %s"%obj)
 		raise StandardError,"Some joints missing controlShape curves"
 	    '''
 	    self.log_info("#"*100)
@@ -553,27 +553,36 @@ def build_controls(*args, **kws):
 			elif ii == 0 and str_cgmNameTag in ['noseTop','noseUnder','noseBase']:_addForwardBack = False#nose controls
 			elif str_cgmDirection == 'center' and ii == 0:_addForwardBack = False#other center controls
 
+			if str_cgmNameTag in ['jaw','noseMove','mouthMove','noseTop','noseUnder','noseTip','tongueTip','tongueBase']:_str_mirrorAxis = 'translateX,rotateY,rotateZ'
+			else:_str_mirrorAxis = 'translateZ,rotateX,rotateY'
+
 			#Register 
 			try:
 			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addForwardBack = _addForwardBack,
-				                                       mirrorSide = str_mirrorSide, mirrorAxis="translateZ,rotateX,rotateY",		                                           
+				                                       mirrorSide = str_mirrorSide, mirrorAxis=_str_mirrorAxis,		                                           
 				                                       makeAimable=False, typeModifier=str_typeModifier) 	#translateZ,rotateX,rotateY    
 			except Exception,error:
-			    log.error("mObj: %s"%mObj.p_nameShort)
-			    log.error("useShape: %s"%mObj.getMessage('controlShape'))
-			    log.error("mirrorSide: %s"%str_mirrorSide)		
-			    log.error("forwardBack flag: %s"%_addForwardBack)						    
+			    self.log_error("mObj: %s"%mObj.p_nameShort)
+			    self.log_error("useShape: %s"%mObj.getMessage('controlShape'))
+			    self.log_error("mirrorSide: %s"%str_mirrorSide)	
+			    self.log_error("_str_mirrorAxis: %s"%_str_mirrorAxis)					    
+			    self.log_error("forwardBack flag: %s"%_addForwardBack)						    
 			    raise StandardError,"Register fail!]{%s}"%error
 			
 			#Vis sub connect
 			if ii == 0:
-			    self.mPlug_result_moduleFaceSubDriver.doConnectOut("%s.visibility"%mObj.mNode)
+			    if mObj.cgmName != 'noseBase':#<<<<<<<<<<<<<<<<<<<<<<<<<<<< NEW TMP
+				self.mPlug_result_moduleFaceSubDriver.doConnectOut("%s.visibility"%mObj.mNode)
+			    else:#<<<<<<<<<<<<<<<<<<<<<<<<<<<< certain controls need the vis fed to override vis, more connections, so use sparingly
+				for shp in mObj.getShapes():
+				    mShp = cgmMeta.cgmNode(shp)
+				    mShp.overrideEnabled = 1		
+				    self.mPlug_result_moduleFaceSubDriver.doConnectOut("%s.overrideVisibility"%mShp.mNode)
 
 			mc.delete(mObj.getMessage('controlShape'))
 			mObj.doRemove('controlShape')
 			self.md_directionControls[str_mirrorSide].append(mObj)
 			
-			#i_obj.drawStyle = 6#Stick joint draw style
 			cgmMeta.cgmAttr(mObj,'radius',value=.01, hidden=True)
 			self.ml_directControls.append(mObj)
 		    except Exception, error:
@@ -611,7 +620,7 @@ def build_rig(*args, **kws):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
-	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
+	                        {'step':'Tongue build','call':self._buildTongue_},	                        
 	                        {'step':'Lip build','call':self._buildLips_},
 	                        {'step':'NoseBuild','call':self._buildNose_},
 	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        
@@ -756,9 +765,9 @@ def build_rig(*args, **kws):
 			    if self.md_rigList[k_tag]:_b_directionChecked = True
 			    #self.log_info("%s!]{%s}"%(k_tag,self.md_rigList[k_tag]))			    
 			if not _b_directionChecked:
-			    log.error("%s nothing checked"%(k_tag))
+			    self.log_error("%s nothing checked"%(k_tag))
 		    else:
-			log.error("%s | Check toggle off"%(k_tag))
+			self.log_error("%s | Check toggle off"%(k_tag))
 		except Exception,error:raise StandardError,"%s loop | %s"%(k_tag,error)
 	    #self.log_infoNestedDict('md_rigList')
 		
@@ -886,7 +895,7 @@ def build_rig(*args, **kws):
 			if l_offsets:
 			    mi_loc =  mJoint.doLoc()
 			    mi_loc.doGroup()
-			    ml_children = []
+			    ml_children = [] 
 			    
 			    for i,pos in enumerate(l_offsets):
 				self.log_info(pos) 
@@ -1954,7 +1963,7 @@ def build_rig(*args, **kws):
 		'mouthMove':{'check':ml_handleJoints},	 
 		}
 		'''
-		d_build = {'mouthMove':{'mode':'blendAttach','defaultValue':.1,'followSuffix':'Jaw'},
+		d_build = {'mouthMove':{'mode':'blendAttach','defaultValue':.25,'followSuffix':'Jaw'},
 		           'mouthMoveTrackLoc':{},
 		           'chinTrackLoc':{},		           
 		           'chin':{'mode':'handleAttach'},		           
@@ -2050,7 +2059,7 @@ def build_rig(*args, **kws):
 		mi_chin = self.md_rigList['chin'][0]
 		mi_noseMove = self.md_rigList['noseMoveHandle'][0]
 		mi_mouthMove = self.md_rigList.get('mouthMove')[0]		
-		
+		mi_lwrCenterHandle = self.md_rigList['lipLwrHandle']['center'][0]
 		'''
 		str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'lipLineBlend'
 		mi_upLoc = d_buffer.get('upLoc') or d_build[str_tag].get('upLoc') or d_current.get('upLoc')
@@ -2064,10 +2073,10 @@ def build_rig(*args, **kws):
 		'''
 		#'lipLwrRig':{'mode':'lipLineBlend','upLoc':mi_mouthMoveUpLoc}
 		
-		d_build = {'mouthMoveTrackLoc':{'mode':'singleTarget','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
-		                                'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_noseMove},
+		d_build = {'mouthMoveTrackLoc':{'mode':'singleVectorAim','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
+		                                'upLoc':mi_mouthMoveUpLoc,'aimTargets':[mi_noseMove,mi_noseMove.masterGroup,mi_noseMove.masterGroup]},
 		           'chin':{'mode':'singleTarget','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
-		                   'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_mouthMove},
+		                   'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_lwrCenterHandle.masterGroup},
 		           'lipUprRig':{'mode':'lipLineBlend','upLoc':mi_noseUnder,'v_up':mi_go._vectorUp},
 		           'lipLwrRig':{'mode':'lipLineBlend','upLoc':mi_chin,'v_up':mi_go._vectorUpNegative}}
 		self.aim_fromDict(d_build)
@@ -2135,7 +2144,7 @@ def build_rig(*args, **kws):
 		    cgmMeta.cgmAttr(mi_dup,'translate',lock = False, keyable = True)
 		    cgmMeta.cgmAttr(mi_dup,'rotate',lock = False, keyable = True)
 		    cgmMeta.cgmAttr(mi_dup,'scale',lock = False, keyable = True)
-		    mi_dup.parent = False
+		    mi_dup.parent = mi_go._i_rigNull
 		    
 		    self.__dict__["mi_%sCrv"%str_k] = mi_dup
 		'''
@@ -2246,10 +2255,12 @@ def build_rig(*args, **kws):
 		mi_noseMove = self.md_rigList['noseMoveHandle'][0]		
 		d_build = {'cheekFollowLeft':{'target':self.mi_uprCheekFollowLeftCrv,
 		                              'bindJoints':[mi_noseMove,
+		                                            self.md_rigList['smileLineRig']['left'][0],		                                            
 		                                            self.md_rigList['smileLineRig']['left'][1],
 		                                            self.md_rigList['uprCheekHandles']['left'][0]]},
 		           'cheekFollowRight':{'target':self.mi_uprCheekFollowRightCrv,
 		                              'bindJoints':[mi_noseMove,
+		                                            self.md_rigList['smileLineRig']['right'][0],		                                            
 		                                            self.md_rigList['smileLineRig']['right'][1],
 		                                            self.md_rigList['uprCheekHandles']['right'][0]]},
 		           'cheekRight':{'target':self.mi_cheekRightPlate,
@@ -2804,12 +2815,13 @@ def build_rig(*args, **kws):
 						if mi_attachTo.getMayaType() == 'nurbsCurve':
 						    crvUtils.attachObjToCurve(mi_followLoc.mNode,mi_attachTo.mNode)
 						else:
-						    surfUtils.attachObjToSurface(objToAttach = mi_followLoc,
-						                                 targetSurface = mi_attachTo.mNode,
-						                                 createControlLoc = False,
-						                                 createUpLoc = True,	
-						                                 parentToFollowGroup = False,
-						                                 orientation = mi_go._jointOrientation)	
+						    d_return = surfUtils.attachObjToSurface(objToAttach = mi_followLoc,
+						                                            targetSurface = mi_attachTo.mNode,
+						                                            createControlLoc = False,
+						                                            createUpLoc = True,	
+						                                            parentToFollowGroup = False,
+						                                            orientation = mi_go._jointOrientation)
+						    self.md_attachReturns[mi_followLoc] = d_return
 						mc.pointConstraint(mi_followLoc.mNode,mi_controlLoc.mNode,maintainOffset = True)
 						
 					    except Exception,error:raise StandardError,"[Failed to attach to crv.]{%s}"%(error)					    
@@ -3095,7 +3107,26 @@ def build_rig(*args, **kws):
 						             weight = 1, aimVector = v_aimIn, upVector = v_up,
 					                     maintainOffset = True,
 						             worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
-					except Exception,error:raise StandardError,"[Constraints setup!]{%s}"%(error)					    
+					except Exception,error:raise StandardError,"[Constraints setup!]{%s}"%(error)	
+				    elif str_mode == 'singleVectorAim':
+					try:				
+					    ml_aimTo = d_buffer['aimTargets']
+					    if type(ml_aimTo) not in [list,tuple]:ml_aimTo = [ml_aimTo]
+					    v_up = d_buffer['v_up']
+					    v_aim = d_buffer['v_aim']
+					    _d['ml_aimTo'] = ml_aimTo
+					    _d['v_up'] = v_up
+					    _d['v_aim'] = v_aim
+					except Exception,error:raise StandardError,"[%s query]{%s}"%(str_mode,error)
+					self.log_info("Side: '%s' | idx: %s | Aiming :'%s' | to:'%s' | up:'%s' "%(str_side,idx,str_mObj,[mTarget.mNode for mTarget in ml_aimTo],mi_upLoc.p_nameShort))					
+					try:
+					    mc.aimConstraint([mTarget.mNode for mTarget in ml_aimTo], mi_aimOffsetGroup.mNode,
+					                     weight = 1, aimVector = v_aimIn, upVector = v_up,
+					                     maintainOffset = True,
+					                     worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
+					except Exception,error:raise StandardError,"[singleVectorAim setup!]{%s}"%(error)						
+					
+					
 				    else:
 					raise NotImplementedError,"Mode not implemented : '%s'"%str_mode
 		    except Exception,error:
