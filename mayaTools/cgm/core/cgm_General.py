@@ -15,10 +15,10 @@ def testFunc(*args, **kws):
     	def __init__(self,*args, **kws):
     	    super(fncWrap, self).__init__(*args, **kws)
     	    self._str_funcName = 'testFunc'	
+    	    self.int_test = 10000
     	    #self._b_autoProgressBar = 1
 	    #self._b_reportTimes = 1
-    	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'int_test',"default":1000},
-    	                                 {'kw':'stringTest',"default":None}]	    
+    	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'stringTest',"default":None}]	    
     	    self.__dataBind__(*args, **kws)
     	    self.l_funcSteps = [{'step':'Our first step','call':self.testSubFunc},
     	                        {'step':'Pass two','call':self.testSubFunc2},
@@ -27,29 +27,26 @@ def testFunc(*args, **kws):
     	def testSubFunc(self):
     	    self.log_info(self.d_kws['stringTest'])
     	    self.d_test = {"maya":"yay!"}
-    	    self._str_test = 'asdasdfasdfasdf'
-    	    for i in range(self.d_kws['int_test']):
+    	    for i in range(50):
     	        self.log_warning(i)
-    	    #raise StandardError,'asdf'
     	def testSubFunc2(self):
     	    self.log_infoNestedDict('d_test')
+    	    #raise StandardError, "Sopped"
     	def testProgressBarSet(self):
-    	   for i in range(self.d_kws['int_test']):
-    	       self.progressBar_set(status = ("Getting: '%s'"%i), progress = i, maxValue = self.d_kws['int_test'])
+    	   for i in range(self.int_test):
+    	       self.progressBar_set(status = ("Getting: '%s'"%i), progress = i, maxValue = self.int_test)
     	def testProgressBarIter(self):
-    	   self.progressBar_setMaxStepValue(self.d_kws['int_test'])
-    	   for i in range(self.d_kws['int_test']):
+    	   self.progressBar_setMaxStepValue(self.int_test)
+    	   for i in range(self.int_test):
     	       self.progressBar_iter(status = ("Getting: '%s'"%i))
     return fncWrap(*args, **kws).go()
-    
 reload(cgmGeneral)
-testFunc(50)
+testFunc()
 testFunc(printHelp = True)#Let's you see a break down of the arg/kws of a function
-testFunc(50,reportTimes = True,reportEnv = True)#Here we wanna see the enviornment report as well
-testFunc(100,reportTimes = True)#Show times for steps of functions
-testFunc(100,reportShow = True)#Show a report of a function before running it
-testFunc(100,autoProgressBar = True)#automatically generate a progress bar of the steps of a function
-
+testFunc(reportTimes = True,reportEnv = True)#Here we wanna see the enviornment report as well
+testFunc(reportTimes = True)#Show times for steps of functions
+testFunc(reportShow = True)#Show a report of a function before running it
+testFunc(autoProgressBar = True)#automatically generate a progress bar of the steps of a function
 
 #Example code
 '''
@@ -237,7 +234,7 @@ class cgmFuncCls(object):
 		self.log_error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))	
 		self.progressBar_end()
 		mc.undoInfo(closeChunk=True)			
-		raise StandardError, "%s !!ERROR!! %s"%(self._str_funcCombined,_str_fail)
+		raise StandardError, "%s !!ERROR!! %s"%(self._str_funcCombined,_str_fail)		
 	    t2 = time.clock()
 	    _str_time = "%0.3f seconds"%(t2-t1)
 	    self._l_funcTimes.append([_str_step,_str_time])	
