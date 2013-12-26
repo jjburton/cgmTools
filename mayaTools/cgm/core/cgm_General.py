@@ -1,15 +1,12 @@
 """
 ------------------------------------------
-cgm_Meta: cgm.core
+cgm_General: cgm.core
 Author: Josh Burton
 email: jjburton@cgmonks.com
-
 Website : http://www.cgmonks.com
 ------------------------------------------
 
-This is the Core of the MetaNode implementation of the systems.
-It is uses Mark Jackson (Red 9)'s as a base.
-
+This is for general purpose python code. The most important of which is cgmFuncCls - the core function class of the cgm created toolkit
 
 #Sample cgmFuncCls
 from cgm.core import cgm_General as cgmGeneral
@@ -18,10 +15,10 @@ def testFunc(*args, **kws):
     	def __init__(self,*args, **kws):
     	    super(fncWrap, self).__init__(*args, **kws)
     	    self._str_funcName = 'testFunc'	
-    	    self.int_test = 10000
     	    #self._b_autoProgressBar = 1
 	    #self._b_reportTimes = 1
-    	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'stringTest',"default":None}]	    
+    	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'int_test',"default":1000},
+    	                                 {'kw':'stringTest',"default":None}]	    
     	    self.__dataBind__(*args, **kws)
     	    self.l_funcSteps = [{'step':'Our first step','call':self.testSubFunc},
     	                        {'step':'Pass two','call':self.testSubFunc2},
@@ -30,26 +27,29 @@ def testFunc(*args, **kws):
     	def testSubFunc(self):
     	    self.log_info(self.d_kws['stringTest'])
     	    self.d_test = {"maya":"yay!"}
-    	    for i in range(50):
+    	    self._str_test = 'asdasdfasdfasdf'
+    	    for i in range(self.d_kws['int_test']):
     	        self.log_warning(i)
+    	    #raise StandardError,'asdf'
     	def testSubFunc2(self):
     	    self.log_infoNestedDict('d_test')
-    	    #raise StandardError, "Sopped"
     	def testProgressBarSet(self):
-    	   for i in range(self.int_test):
-    	       self.progressBar_set(status = ("Getting: '%s'"%i), progress = i, maxValue = self.int_test)
+    	   for i in range(self.d_kws['int_test']):
+    	       self.progressBar_set(status = ("Getting: '%s'"%i), progress = i, maxValue = self.d_kws['int_test'])
     	def testProgressBarIter(self):
-    	   self.progressBar_setMaxStepValue(self.int_test)
-    	   for i in range(self.int_test):
+    	   self.progressBar_setMaxStepValue(self.d_kws['int_test'])
+    	   for i in range(self.d_kws['int_test']):
     	       self.progressBar_iter(status = ("Getting: '%s'"%i))
     return fncWrap(*args, **kws).go()
+    
 reload(cgmGeneral)
-testFunc()
+testFunc(50)
 testFunc(printHelp = True)#Let's you see a break down of the arg/kws of a function
-testFunc(reportTimes = True,reportEnv = True)#Here we wanna see the enviornment report as well
-testFunc(reportTimes = True)#Show times for steps of functions
-testFunc(reportShow = True)#Show a report of a function before running it
-testFunc(autoProgressBar = True)#automatically generate a progress bar of the steps of a function
+testFunc(50,reportTimes = True,reportEnv = True)#Here we wanna see the enviornment report as well
+testFunc(100,reportTimes = True)#Show times for steps of functions
+testFunc(100,reportShow = True)#Show a report of a function before running it
+testFunc(100,autoProgressBar = True)#automatically generate a progress bar of the steps of a function
+
 
 #Example code
 '''
@@ -84,6 +84,11 @@ log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #========================================================================= 
+_str_subLine = '-'*75
+_str_hardLine = '='*75
+_str_hardBreak = '=' * 100
+_str_headerDiv = '///'
+_str_baseStart = "--"
 class cgmFuncCls(object):  
     """
     Examples:
@@ -119,13 +124,14 @@ class cgmFuncCls(object):
 	self._l_reportMask = ['_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
-	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart']  
+	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
 	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
-	                     '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',                     
+	                     '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart','_b_WIP','_l_funcTimes',                     
 	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
 	                     '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
 	self._l_kwMask = ['reportTimes','reportShow','autoProgressBar']
+	
     def __updateFuncStrings__(self):
 	self._str_funcCombined = self._str_funcName
 	try:self._str_funcName = "%s - from %s"%(self._str_funcName,kws['calledFrom'])
@@ -222,33 +228,13 @@ class cgmFuncCls(object):
 		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
 		    break"""
 	    except Exception,error:
-		self.getModuleData()
-		log.info("/"*6 + " %s "%self._str_funcCombined + "="*75)
-		if self._str_funcArgs:log.info("/"*3 + " Args: %s "%self._str_funcArgs)
-		if self._str_funcKWs:log.info("/"*3 + " KWs: %s "%self._str_funcKWs)	 
-		if self.d_kws:
-		    for k in self.d_kws.keys():
-			log.info("---" + " '%s' : %s "%(k,self.d_kws[k]))		
-		_str_fail = "[Step: '%s'] > %s"%(_str_step,error)
-		log.info("/"*3 + " Self Stored " + "-"*75)
-		l_keys = self.__dict__.keys()
-		l_keys.sort()
-		for k in l_keys:
-		    if k not in self._l_errorMask:
-			buffer = self.__dict__[k]
-			if type(buffer) is dict:
-			    log.info(">" + " Nested Dict: %s "%k + "-"*75)
-			    l_bufferKeys = buffer.keys()
-			    l_bufferKeys.sort()
-			    for k2 in buffer.keys():
-				log.info(" -- " + " '%s' : %s "%(k2,buffer[k2]))			
-			else:
-			    log.info(" - " + " '%s' : %s "%(k,self.__dict__[k]))
-		if self._b_WIP:
-		    log.info(">"*40 + " WIP CODE " + "<"*40)
-		self.reportEnviornment()
-		log.error("/"*3 + " Error >>> %s "%_str_fail)			
-		log.error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))	
+		_str_fail = "[Step: '%s'] > %s"%(_str_step,error)#stored the failed step string
+		
+		self.report_base()
+		self.report_selfStored()		
+		self.report_enviornment()
+		self.log_error(_str_headerDiv + " Error >>> %s "%_str_fail)			
+		self.log_error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))	
 		self.progressBar_end()
 		mc.undoInfo(closeChunk=True)			
 		raise StandardError, "%s !!ERROR!! %s"%(self._str_funcCombined,_str_fail)
@@ -262,7 +248,7 @@ class cgmFuncCls(object):
 	    self.report()	
 	if self._b_reportTimes:
 	    if int_lenSteps > 1:
-		log.info("%s Step Times >> "%self._str_funcCombined + '-'*70)			    	    
+		log.info("%s Step Times >> "%self._str_funcCombined + _str_subLine)			    	    
 		if int_max != 0:
 		    for pair in self._l_funcTimes:
 			log.info(" - '%s' >>  %s " % (pair[0],pair[1]))				 
@@ -272,7 +258,7 @@ class cgmFuncCls(object):
 	    try:return self.d_return[self.d_return.keys()[0]]
 	    except:pass
 	if self.d_kws.get('reportEnv') and not self.d_kws.get('reportShow'):
-	    self.reportEnviornment()   	
+	    self.report_enviornment()   	
 	for k in self.d_return.keys():#Otherise we return the first one with actual data
 	    buffer = self.d_return.get(k)
 	    if buffer:
@@ -280,58 +266,66 @@ class cgmFuncCls(object):
 	if self.d_return:return self.d_return
     
     def report(self):
-	self.getModuleData()
+	self.get_moduleData()
+	self.report_base()
+	self.report_selfStored()
+	self.report_steps()
+		
+    def report_base(self):
+	self.get_moduleData()
 	log.info("="*100)	
-	log.info(">"*3 + " %s "%self._str_funcCombined + "/"*3 + "="*75)
+	log.info(_str_headerDiv + " %s "%self._str_funcCombined + _str_headerDiv + _str_hardLine)
 	log.info("="*100)		
-	log.info("Python Module: %s "%self._str_modPath)	
-	if self.l_funcSteps:log.info(">"*3 + " l_funcSteps: %s "%self.l_funcSteps)	
-	#if self._str_funcArgs:log.info(">"*3 + " Args: %s "%self._str_funcArgs)
-	#if self._str_funcKWs:log.info(">"*3 + " KWs: %s "%self._str_funcKWs)	  
+	log.info(" Python Module: %s "%self._str_modPath)	
+	log.info(_str_headerDiv  + " ArgsKws " + _str_headerDiv + _str_subLine)		
+	if self._str_funcArgs:log.info(" Args: %s"%self._str_funcArgs)
+	if self._str_funcKWs:log.info(" KWs: %s"%self._str_funcKWs)	  
 	if self.d_kws:
-	    log.info(">"*3 + " KWs Defined " + "-"*75)	
+	    log.info(" Active Dict: ")							    
 	    l_keys = self.d_kws.keys()
 	    l_keys.sort()	    
 	    for k in l_keys:
-		log.info("'%s' : %s "%(k,self.d_kws[k]))
-	log.info(">"*3 + " Self Stored " + "-"*75)	
+		log.info(_str_baseStart *2 + "['%s'] = %s "%(k,self.d_kws[k]))
+		
+    def report_selfStored(self):
 	l_keys = self.__dict__.keys()
 	l_keys.sort()
-	for k in l_keys:
-	    if k not in self._l_reportMask:
-		buffer = self.__dict__[k]
-		if type(buffer) is dict:
-		    log.info(">"*6 + " Nested Dict: %s "%k + "-"*75)
-		    l_bufferKeys = buffer.keys()
-		    l_bufferKeys.sort()
-		    for k2 in l_bufferKeys:
-			log.info(">"*6 + " '%s' : %s "%(k2,buffer[k2]))			
-		else:
-		    log.info(">"*3 + " '%s' : %s "%(k,self.__dict__[k]))
+	if l_keys:
+	    log.info(_str_headerDiv + " Self Stored " + _str_headerDiv + _str_subLine)
+	    for k in l_keys:
+		if k not in self._l_errorMask:
+		    buffer = self.__dict__[k]
+		    if type(buffer) is dict:
+			log.info("{'%s'}(nested) "%k)
+			l_bufferKeys = buffer.keys()
+			l_bufferKeys.sort()
+			for k2 in buffer.keys():
+			    log.info(_str_baseStart * 2 + "[%s] = %s "%(k2,buffer[k2]))			
+		    else:
+			log.info("['%s'] = %s "%(k,self.__dict__[k]))
+		    
+    def report_steps(self):	    
 	if self.l_funcSteps:
-	    log.info(">"*3 + " Steps " + "-"*75)	  	    
+	    log.info(_str_headerDiv + " Steps " + _str_headerDiv + _str_subLine)	  	    
 	    for i,d in enumerate(self.l_funcSteps):
 		try:log.info("'%s' : %s "%(i,d.get('step')))
 		except:pass
-	if self._b_WIP:
-	    log.info(">"*40 + " WIP Function " + "<"*40)	  	    
-	log.info("#" + "-" *100)
     
-    def reportEnviornment(self):
-	log.info("/"*3 + " Enviornment Info " + "/"*3 + "-"*75)	
-	log.info("--" + " Python Module: %s "%self._str_modPath)
-	try:log.info("--" + " Python Module Version: %s "%self.mod.__version__)
+    def report_enviornment(self):
+	log.info(_str_headerDiv + " Enviornment Info " + _str_headerDiv + _str_subLine)	
+	log.info(_str_baseStart + " Python Module: %s "%self._str_modPath)
+	try:log.info(_str_baseStart + " Python Module Version: %s "%self.mod.__version__)
 	except:pass
-	#log.info("/"*3 + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
+	#log.info(_str_headerDiv + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
 	for kw in ['cutIdentifier','version','apiVersion','file','product','date',
                    'application','buildDirectory','environmentFile','operatingSystem',
                    'operatingSystemVersion','codeset']:
-	    try:log.info("--" + " Maya %s : %s "%(kw, mel.eval( 'about -%s'%kw )))	
+	    try:log.info(_str_baseStart + " Maya %s : %s "%(kw, mel.eval( 'about -%s'%kw )))	
 	    except Exception,error:self.log_error("%s | %s"%(kw,error))	
 	
-    def reportArgsKwsDefaults(self):
+    def report_argsKwsDefaults(self):
 	if self._l_ARGS_KWS_DEFAULTS:
-	    log.info(">"*3 + " Args/KWs/Defaults " + "-"*75)	  	    	    
+	    log.info(">"*3 + " Args/KWs/Defaults " + _str_subLine)	  	    	    
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
 		l_tmp = [['Arg',i,]]
 		try:l_tmp.append(['kw',"'%s'"%d_buffer.get('kw')])
@@ -344,12 +338,12 @@ class cgmFuncCls(object):
 		log.info(" | ".join(l_build))
     
     def printHelp(self):
-	self.getModuleData()		
+	self.get_moduleData()		
 	print("#" + ">"*3 + " %s "%self._str_funcCombined + "="*50)
 	print("Python Module: %s "%self._str_modPath)	 
 	if self._str_funcHelp is not None:print("%s "%self._str_funcHelp)	 
 	if self._l_ARGS_KWS_DEFAULTS:
-	    print("@kws")	  	    	    
+	    print("@kws -- [index - argKW(argType - default) -- info]")	
 	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
 		l_tmp = ['%i - '%i]
 		try:l_tmp.append("'%s'"%d_buffer['kw'])
@@ -368,14 +362,7 @@ class cgmFuncCls(object):
 		#l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
 		print("".join(l_tmp))	
 		
-    def getModuleData(self):
-	try:
-	    self.mod = inspect.getmodule(self)
-	    self._str_modPath = str(self.mod)
-	    self._str_mod = '%s' % self.mod.__name__.split('.')[-1]
-	    self._str_funcCombined = "%s.%s"%(self._str_mod,self._str_funcName)
-	except:self._str_funcCombined = self._str_funcName	
-	
+
     def log_info(self,arg):
 	try:
 	    log.info("%s%s"%(self._str_reportStart,str(arg)))
@@ -434,14 +421,14 @@ class cgmFuncCls(object):
 	    for atr in arg:
 		try:
 		    l_keys = self.__dict__[atr].keys()
-		    log.info('%s'%self._str_funcCombined +" Self Stored: '%s' "%atr + "-"*75)			    
+		    log.info('%s'%self._str_funcCombined +" Self Stored: '%s' "%atr + _str_subLine)			    
 		    l_keys.sort()
 		    for k in l_keys:
 			try:str_key = k.p_nameShort
 			except:str_key = k
 			buffer = self.__dict__[atr][k]
 			if type(buffer) is dict:
-			    log.info('%s '%self._str_funcCombined + ">" + " Nested Dict: '%s' "%(str_key) + "-"*75)
+			    log.info('%s '%self._str_funcCombined + ">" + " Nested Dict: '%s' "%(str_key) + _str_subLine)
 			    l_bufferKeys = buffer.keys()
 			    l_bufferKeys.sort()
 			    for k2 in l_bufferKeys:
@@ -466,6 +453,13 @@ class cgmFuncCls(object):
 	except Exception, error:
 	    log.error("[%s | func: get_cleanKWS]{%s}"%(self._str_funcName,error))
 	    return {}
+    def get_moduleData(self):
+	try:
+	    self.mod = inspect.getmodule(self)
+	    self._str_modPath = str(self.mod)
+	    self._str_mod = '%s' % self.mod.__name__.split('.')[-1]
+	    self._str_funcCombined = "%s.%s"%(self._str_mod,self._str_funcName)
+	except:self._str_funcCombined = self._str_funcName	
 	
 def verify_mirrorSideArg(*args,**kws):
     class fncWrap(cgmFuncCls):
@@ -529,20 +523,20 @@ def funcClassWrap(funcClass):
         t1 = time.clock()
         try:res=funcClass(*args,**kws) 
         except Exception,error:
-	    log.info(">"*3 + " %s "%_str_funcName + "="*75)	    
+	    log.info(">"*3 + " %s "%_str_funcName + _str_hardLine)	    
 	    log.error(">"*3 + " Step: %s "%args[0]._str_funcStep)	    
 	    log.error(">"*3 + " Args: %s "%args[0]._str_funcArgs)
 	    log.error(">"*3 + " KWs: %s "%args[0]._str_funcKWs)	    
-	    log.info("%s >> Time to Fail >> = %0.3f seconds " % (_str_funcName,(time.clock()-t1)) + "-"*75)			    
+	    log.info("%s >> Time to Fail >> = %0.3f seconds " % (_str_funcName,(time.clock()-t1)) + _str_subLine)			    
 	    raise error            
         t2 = time.clock()
 	
 	#Initial print
-	log.info(">"*3 + " %s "%_str_funcName + "="*75)
+	log.info(">"*3 + " %s "%_str_funcName + _str_hardLine)
 	log.info(">"*3 + " Args: %s "%args[0]._str_funcArgs)
 	log.info(">"*3 + " KWs: %s "%args[0]._str_funcKWs)		
 		    
-	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(t2-t1)) + "-"*75)		
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(t2-t1)) + _str_subLine)		
         return res
     return wrapper  
 
