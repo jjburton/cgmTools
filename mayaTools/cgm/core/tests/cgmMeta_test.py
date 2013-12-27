@@ -205,31 +205,31 @@ def cgmMeta_Test(*args, **kws):
 	    except Exception,error:raise StandardError,"[creation]{%s}"%error
 	    
 	    try:cgmMeta.validateObjArg()
-	    except:log.info("Empty arg should have failed and did")
+	    except:self.log_info("Empty arg should have failed and did")
 	    else:
 		raise StandardError,"Empty arg should have failed and did NOT"
 	    
 	    assert i_obj == cgmMeta.validateObjArg(i_obj.mNode),"string arg failed"
-	    log.info("String arg passed!")
+	    self.log_info("String arg passed!")
 	    assert i_obj == cgmMeta.validateObjArg(i_obj),"instance arg failed"
-	    log.info("instance arg passed!")
+	    self.log_info("instance arg passed!")
 	    
 	    i_returnObj = cgmMeta.validateObjArg(i_obj.mNode,cgmMeta.cgmObject)
 	    assert issubclass(type(i_returnObj),cgmMeta.cgmObject),"String + mType arg failed!"
-	    log.info("String + mType arg passed!")
+	    self.log_info("String + mType arg passed!")
 	    
 	    assert i_obj == cgmMeta.validateObjArg(i_obj,cgmMeta.cgmObject),"Instance + mType arg failed!"
-	    log.info("Instance + mType arg passed!")
+	    self.log_info("Instance + mType arg passed!")
 	    
 	    try:validateObjArg(i_node.mNode,cgmMeta.cgmObject)
-	    except:log.info("Validate cgmNode as cgmObject should have failed and did")
+	    except:self.log_info("Validate cgmNode as cgmObject should have failed and did")
 	    
 	    assert issubclass(type(cgmMeta.validateObjArg(null)),cgmMeta.cgmNode),"Null string failed!"
-	    log.info("Null string passed!")
+	    self.log_info("Null string passed!")
 	    
 	    i_null = cgmMeta.validateObjArg(null,cgmMeta.cgmObject)
 	    assert issubclass(type(i_null),cgmMeta.cgmObject),"Null as cgmObject failed!"
-	    log.info("Null as cgmObjectpassed!")
+	    self.log_info("Null as cgmObjectpassed!")
 	    
 	    i_null.delete()
 	    i_node.delete()
@@ -291,7 +291,7 @@ def cgmMeta_Test(*args, **kws):
 		assert self.cgmIntAttr.isWritable()
 	
 		#mins, defaults, maxes
-		log.info('>'*3 + " Int test --max,min,range...")        
+		self.log_info('>'*3 + " Int test --max,min,range...")        
 		self.cgmIntAttr.p_defaultValue = 5
 		assert self.cgmIntAttr.p_defaultValue == 5,self.cgmIntAttr.p_defaultValue
 		self.cgmIntAttr.p_minValue = 1
@@ -301,7 +301,7 @@ def cgmMeta_Test(*args, **kws):
 		assert self.cgmIntAttr.p_maxValue == 6
 		assert self.cgmIntAttr.getRange() == [1,6],self.cgmIntAttr.getRange()
 	
-		log.info('>'*3 + " Int test -- conversion to float and back...")                
+		self.log_info('>'*3 + " Int test -- conversion to float and back...")                
 		self.cgmIntAttr.doConvert('float')#Convert to a float
 		assert self.cgmIntAttr.attrType == 'double', self.cgmIntAttr.attrType          
 		assert self.cgmIntAttr.intTest == 6.0
@@ -370,7 +370,7 @@ def cgmMeta_Test(*args, **kws):
 	
 	    try:#Enum test
 		#---------------- 
-		log.info('>'*3 + " Enum test and connection to float...")
+		self.log_info('>'*3 + " Enum test and connection to float...")
 		self.cgmEnumAttr = cgmMeta.cgmAttr(node,'enumTest',value = 3, enum = '1:2:3:red:4:5:6')
 		assert node.hasAttr('enumTest')                                        
 		assert self.cgmEnumAttr.value == 3
@@ -380,13 +380,13 @@ def cgmMeta_Test(*args, **kws):
 	
 		#Double3 test
 		#---------------- 
-		log.info('>'*3 + " Double3 and connection from float...")        
+		self.log_info('>'*3 + " Double3 and connection from float...")        
 		self.cgmVectorAttr = cgmMeta.cgmAttr(node,'vecTest',value = [3,1,2])
 		self.cgmVectorXAttr = cgmMeta.cgmAttr(node,'vecTestX')                
 		assert node.hasAttr('vecTest')  
 		assert node.hasAttr('vecTestX')
 		assert self.cgmVectorAttr.value == [3.0,1.0,2.0],self.cgmVectorAttr.value
-		log.info(self.cgmVectorXAttr.value)
+		self.log_info(self.cgmVectorXAttr.value)
 		assert self.cgmVectorXAttr.value == self.cgmVectorAttr.value[0],self.cgmVectorXAttr.value
 		self.cgmVectorAttr.value = [1,44,7]#Don't currently support () args
 		assert self.cgmVectorAttr.value == [1.0,44.0,7.0],self.cgmVectorAttr.value
@@ -645,7 +645,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Assert some info
 		#---------------- 
-		log.info('>'*3 + " Checking object Set States...")
+		self.log_info('>'*3 + " Checking object Set States...")
 		assert self.MayaDefaultSet.mayaSetState == True
 		assert self.ObjectSet.mayaSetState == False
 	
@@ -661,7 +661,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Adding and removing
 		#-------------------
-		log.info('>'*3 + " Adding and removing by property...")
+		self.log_info('>'*3 + " Adding and removing by property...")
 		assert not self.ObjectSet.getList()
 	
 		self.ObjectSet.value = [self.pCube.mNode, self.nCube.mNode,(self.pCube.mNode+'.tx')] # Add an attribute
@@ -676,7 +676,7 @@ def cgmMeta_Test(*args, **kws):
 	
 	    try:#Adding and removing
 		#-------------------
-		log.info('>'*3 + " Adding and removing...")
+		self.log_info('>'*3 + " Adding and removing...")
 		assert not self.ObjectSet.getList()
 	
 		self.ObjectSet.addObj(self.pCube.mNode)
@@ -689,7 +689,7 @@ def cgmMeta_Test(*args, **kws):
 	
 		self.ObjectSet.removeObj(self.pCube.mNode)
 		self.ObjectSet.removeObj(self.nCube.mNode)
-		log.info("%s"%self.pCube.getShortName() )
+		self.log_info("%s"%self.pCube.getShortName() )
 	
 		assert not self.ObjectSet.doesContain(self.pCube.mNode),"%s"%self.ObjectSet.getList()
 		assert not self.ObjectSet.doesContain(self.nCube.mNode),"%s"%self.ObjectSet.getList()
@@ -697,7 +697,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Selecting/purging/copying
 		#-------------------------
-		log.info('>'*3 + " Selecting, purging, copying...") 
+		self.log_info('>'*3 + " Selecting, purging, copying...") 
 	
 		mc.select(cl=True)
 		self.ObjectSet.select()#Select set
@@ -721,7 +721,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Keying, deleting keys, reseting
 		#------------------------------- 
-		log.info('>'*3 + " Keying, deleting keys, reseting...")        
+		self.log_info('>'*3 + " Keying, deleting keys, reseting...")        
 	
 		self.pCube.tx = 2
 	
@@ -821,11 +821,11 @@ def cgmMeta_Test(*args, **kws):
 		assert self.OptionVarFloat.value == 1
 	
 		self.OptionVarFloat.append(2)
-		log.info(self.OptionVarFloat.value)                
+		self.log_info(self.OptionVarFloat.value)                
 		assert self.OptionVarFloat.value[1] == 2.0
 	
 		self.OptionVarFloat.varType = 'int' #Convert to int
-		log.info(self.OptionVarFloat.value)                
+		self.log_info(self.OptionVarFloat.value)                
 	    except Exception,error:raise StandardError,"[Float]{%s}"%error
 	
     
@@ -841,7 +841,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:# Float varType test and initValue Test
 		#-------------------------
-		log.info('>'*3 + " String varType test and initValue Test...")   
+		self.log_info('>'*3 + " String varType test and initValue Test...")   
 		self.OptionVarString = cgmMeta.cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
 	    except Exception,error:raise StandardError,"[float init value]{%s}"%error
 	def _cgmBufferNodeCalls_(self):
@@ -926,7 +926,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Assertions on the masterNull
 		#----------------------------------------------------------
-		log.info('>'*3 + " Assertions on the masterNull...")
+		self.log_info('>'*3 + " Assertions on the masterNull...")
 		assert Puppet.masterNull.getShortName() == Puppet.cgmName
 		assert Puppet.masterNull.puppet.mNode == Puppet.mNode,Puppet.masterNull.puppet
 		
@@ -960,7 +960,7 @@ def cgmMeta_Test(*args, **kws):
 	
 	    try:#Assertions on the masterNull
 		#----------------------------------------------------------
-		log.info('>'*3 + " Assertions on the masterNull on IOPuppet...")
+		self.log_info('>'*3 + " Assertions on the masterNull on IOPuppet...")
 		assert Puppet.masterNull.getShortName() == Puppet2.masterNull.getShortName()
 		assert Puppet.masterNull.puppet == Puppet2.masterNull.puppet
 		
@@ -985,7 +985,7 @@ def cgmMeta_Test(*args, **kws):
 	    
 	    try:#Assertions on the module null
 		#----------------------------------------------------------
-		log.info('>'*3 + " Assertions on the module null...")    
+		self.log_info('>'*3 + " Assertions on the module null...")    
 		assert Module1.cgmType == 'module',str(Module1.cgmType)
 		assert Module1.mClass == 'cgmModule'
 		assert Module1.cgmName == 'arm'
@@ -1001,7 +1001,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Assertions on the rig null
 		#----------------------------------------------------------
-		log.info('>'*3 + " Assertions on the rig null...")   
+		self.log_info('>'*3 + " Assertions on the rig null...")   
 		assert Module1.i_rigNull.hasAttr('cgmType')
 		log.debug(Module1.i_rigNull.cgmType)
 	
@@ -1014,7 +1014,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Assertions on the template null
 		#----------------------------------------------------------
-		log.info('>'*3 + " Assertions on the template null...")   
+		self.log_info('>'*3 + " Assertions on the template null...")   
 		assert Module1.i_rigNull.hasAttr('cgmType')
 		log.debug(Module1.i_templateNull.cgmType)
 		assert Module1.i_templateNull.mNode == Module1.templateNull.mNode
@@ -1023,13 +1023,13 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Assertions on the coreNames bufferNode
 		#----------------------------------------------------------
-		log.info('>'*3 + " Assertions on the coreNames bufferNode...") 
+		self.log_info('>'*3 + " Assertions on the coreNames bufferNode...") 
 		assert Module1.coreNames.mClass == 'cgmModuleBufferNode'
 	    except Exception,error:raise StandardError,"[coreNames]{%s}"%error
     
 	    try:#Connect Modules
 		#----------------------------------------------------------
-		log.info('>'*3 + " Connect Modules...")   
+		self.log_info('>'*3 + " Connect Modules...")   
 		self.Puppet.connectModule(Module1)
 		
 		assert Module1.modulePuppet.mNode == self.Puppet.mNode
@@ -1038,15 +1038,15 @@ def cgmMeta_Test(*args, **kws):
 	     
 	
 	    try:
-		log.info('>'*3 + " Creating Limb module with moduleParent Flag...")           
+		self.log_info('>'*3 + " Creating Limb module with moduleParent Flag...")           
 		Module2 = cgmPM.cgmLimb(name = 'hand',moduleParent = Module1)
 		#assert Module2.getMessage('moduleParent')[0] == Module1.mNode #connection via flag isn't working yet
 	    except Exception,error:raise StandardError,"[Creating with moduleParent]{%s}"%error
     
 	    try:
-		log.info("Connecting '%s' to '%s'"%(Module2.getShortName(),Module1.getShortName()))
-		log.info(Module1.mClass)
-		log.info(Module2.mClass)        
+		self.log_info("Connecting '%s' to '%s'"%(Module2.getShortName(),Module1.getShortName()))
+		self.log_info(Module1.mClass)
+		self.log_info(Module2.mClass)        
 		Module2.doSetParentModule(Module1)
 		assert Module2.getMessage('moduleParent') == [Module1.mNode]
 	    except Exception,error:raise StandardError,"[doSetParentModule]{%s}"%error    
@@ -1093,7 +1093,7 @@ def cgmPuppet_tests(*args, **kws):
     
 	    try:#Assertions on the masterNull
 		#----------------------------------------------------------
-		#log.info('>'*3 + " Assertions on the masterNull...")
+		#self.log_info('>'*3 + " Assertions on the masterNull...")
 		assert Puppet.masterNull.getShortName() == Puppet.cgmName
 		assert Puppet.masterNull.puppet.mNode == Puppet.mNode,Puppet.masterNull.puppet
 		
@@ -1126,7 +1126,7 @@ def cgmPuppet_tests(*args, **kws):
 	
 	    try:#Assertions on the masterNull
 		#----------------------------------------------------------
-		#log.info('>'*3 + " Assertions on the masterNull on IOPuppet...")
+		#self.log_info('>'*3 + " Assertions on the masterNull on IOPuppet...")
 		assert Puppet.masterNull.getShortName() == Puppet2.masterNull.getShortName()
 		assert Puppet.masterNull.puppet == Puppet2.masterNull.puppet
 		
@@ -1151,7 +1151,7 @@ def cgmPuppet_tests(*args, **kws):
 	    
 	    try:#Assertions on the module null
 		#----------------------------------------------------------
-		#log.info('>'*3 + " Assertions on the module null...")    
+		#self.log_info('>'*3 + " Assertions on the module null...")    
 		assert Module1.cgmType == 'module',str(Module1.cgmType)
 		assert Module1.mClass == 'cgmModule'
 		assert Module1.cgmName == 'arm'
@@ -1167,9 +1167,8 @@ def cgmPuppet_tests(*args, **kws):
     
 	    try:#Assertions on the rig null
 		#----------------------------------------------------------
-		#log.info('>'*3 + " Assertions on the rig null...")   
+		#self.log_info('>'*3 + " Assertions on the rig null...")   
 		assert Module1.i_rigNull.hasAttr('cgmType')
-		log.debug(Module1.i_rigNull.cgmType)
 	
 		assert Module1.i_rigNull.cgmType == 'rigNull','%s'%Module1.i_rigNull.cgmType
 		assert Module1.i_rigNull.ik == False
@@ -1180,22 +1179,21 @@ def cgmPuppet_tests(*args, **kws):
     
 	    try:#Assertions on the template null
 		#----------------------------------------------------------
-		log.info('>'*3 + " Assertions on the template null...")   
+		self.log_info(" Assertions on the template null...")   
 		assert Module1.i_rigNull.hasAttr('cgmType')
-		log.debug(Module1.i_templateNull.cgmType)
 		assert Module1.i_templateNull.mNode == Module1.templateNull.mNode
 		assert Module1.i_templateNull.handles == 3,'%s'%Module1.i_templateNull.handles
 	    except Exception,error:raise StandardError,"[templateNull]{%s}"%error
     
 	    try:#Assertions on the coreNames bufferNode
 		#----------------------------------------------------------
-		log.info('>'*3 + " Assertions on the coreNames bufferNode...") 
+		#self.log_info('>'*3 + " Assertions on the coreNames bufferNode...") 
 		assert Module1.coreNames.mClass == 'cgmModuleBufferNode'
 	    except Exception,error:raise StandardError,"[coreNames]{%s}"%error
     
 	    try:#Connect Modules
 		#----------------------------------------------------------
-		log.info('>'*3 + " Connect Modules...")   
+		#self.log_info('>'*3 + " Connect Modules...")   
 		self.Puppet.connectModule(Module1)
 		
 		assert Module1.modulePuppet.mNode == self.Puppet.mNode
@@ -1204,15 +1202,15 @@ def cgmPuppet_tests(*args, **kws):
 	     
 	
 	    try:
-		log.info('>'*3 + " Creating Limb module with moduleParent Flag...")           
+		#self.log_info('>'*3 + " Creating Limb module with moduleParent Flag...")           
 		Module2 = cgmPM.cgmLimb(name = 'hand',moduleParent = Module1)
 		#assert Module2.getMessage('moduleParent')[0] == Module1.mNode #connection via flag isn't working yet
 	    except Exception,error:raise StandardError,"[Creating with moduleParent]{%s}"%error
     
 	    try:
-		log.info("Connecting '%s' to '%s'"%(Module2.getShortName(),Module1.getShortName()))
-		log.info(Module1.mClass)
-		log.info(Module2.mClass)        
+		#self.log_info("Connecting '%s' to '%s'"%(Module2.getShortName(),Module1.getShortName()))
+		#self.log_info(Module1.mClass)
+		#self.log_info(Module2.mClass)        
 		Module2.doSetParentModule(Module1)
 		assert Module2.getMessage('moduleParent') == [Module1.mNode]
 	    except Exception,error:raise StandardError,"[doSetParentModule]{%s}"%error
