@@ -31,7 +31,7 @@ def TestAllTheThings():
     """"
     Catch all test for meta stuff
     """
-    cgmMeta_Test()
+    ut_cgmMeta()
 
 class MorpheusBase_Test():
     def __init__(self):
@@ -71,11 +71,27 @@ class MorpheusBase_Test():
         spine.getGeneratedCoreNames()
         spine.doSize()
         
-def cgmMeta_Test(*args, **kws):
+
+def ut_cgmCore(*args, **kws):
     class fncWrap(cgmGeneral.cgmFuncCls):
 	def __init__(self,*args, **kws):
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName = 'cgmMeta_Test'	
+	    self._str_funcName = 'ut_cgmCore'	
+	    self._b_autoProgressBar = 1
+	    self._b_reportTimes = 1
+		
+	    self.__dataBind__(*args, **kws)
+	    self.l_funcSteps = [{'step':'cgmMeta','call':ut_cgmMeta},	                        
+	                        {'step':'cgmPuppet/Module','call':ut_cgmPuppet},
+	                        ]                       
+    return fncWrap(*args, **kws).go()
+
+
+def ut_cgmMeta(*args, **kws):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'ut_cgmMeta'	
 	    self._b_autoProgressBar = 1
 	    self._b_reportTimes = 1
 	        
@@ -92,7 +108,7 @@ def cgmMeta_Test(*args, **kws):
 	                        {'step':'cgmOptionVar calls','call':self._cgmOptionVarCalls_},
 	                        {'step':'cgmBufferNode calls','call':self._cgmBufferNodeCalls_},
 	                        {'step':'NameFactory','call':self._nameFactory_},
-	                        {'step':'Puppet tests','call':cgmPuppet_tests},	                        
+	                        {'step':'msgList tests','call':ut_msgList},	                        	                        
 	                        ]
 	def _setup_(self):
 	    '''
@@ -210,26 +226,26 @@ def cgmMeta_Test(*args, **kws):
 		raise StandardError,"Empty arg should have failed and did NOT"
 	    
 	    assert i_obj == cgmMeta.validateObjArg(i_obj.mNode),"string arg failed"
-	    self.log_info("String arg passed!")
+	    #self.log_info("String arg passed!")
 	    assert i_obj == cgmMeta.validateObjArg(i_obj),"instance arg failed"
-	    self.log_info("instance arg passed!")
+	    #self.log_info("instance arg passed!")
 	    
 	    i_returnObj = cgmMeta.validateObjArg(i_obj.mNode,cgmMeta.cgmObject)
 	    assert issubclass(type(i_returnObj),cgmMeta.cgmObject),"String + mType arg failed!"
-	    self.log_info("String + mType arg passed!")
+	    #self.log_info("String + mType arg passed!")
 	    
 	    assert i_obj == cgmMeta.validateObjArg(i_obj,cgmMeta.cgmObject),"Instance + mType arg failed!"
-	    self.log_info("Instance + mType arg passed!")
+	    #self.log_info("Instance + mType arg passed!")
 	    
 	    try:validateObjArg(i_node.mNode,cgmMeta.cgmObject)
 	    except:self.log_info("Validate cgmNode as cgmObject should have failed and did")
 	    
 	    assert issubclass(type(cgmMeta.validateObjArg(null)),cgmMeta.cgmNode),"Null string failed!"
-	    self.log_info("Null string passed!")
+	    #self.log_info("Null string passed!")
 	    
 	    i_null = cgmMeta.validateObjArg(null,cgmMeta.cgmObject)
 	    assert issubclass(type(i_null),cgmMeta.cgmObject),"Null as cgmObject failed!"
-	    self.log_info("Null as cgmObjectpassed!")
+	    #self.log_info("Null as cgmObjectpassed!")
 	    
 	    i_null.delete()
 	    i_node.delete()
@@ -291,7 +307,7 @@ def cgmMeta_Test(*args, **kws):
 		assert self.cgmIntAttr.isWritable()
 	
 		#mins, defaults, maxes
-		self.log_info('>'*3 + " Int test --max,min,range...")        
+		#self.log_info('>'*3 + " Int test --max,min,range...")        
 		self.cgmIntAttr.p_defaultValue = 5
 		assert self.cgmIntAttr.p_defaultValue == 5,self.cgmIntAttr.p_defaultValue
 		self.cgmIntAttr.p_minValue = 1
@@ -301,7 +317,7 @@ def cgmMeta_Test(*args, **kws):
 		assert self.cgmIntAttr.p_maxValue == 6
 		assert self.cgmIntAttr.getRange() == [1,6],self.cgmIntAttr.getRange()
 	
-		self.log_info('>'*3 + " Int test -- conversion to float and back...")                
+		#self.log_info('>'*3 + " Int test -- conversion to float and back...")                
 		self.cgmIntAttr.doConvert('float')#Convert to a float
 		assert self.cgmIntAttr.attrType == 'double', self.cgmIntAttr.attrType          
 		assert self.cgmIntAttr.intTest == 6.0
@@ -370,7 +386,7 @@ def cgmMeta_Test(*args, **kws):
 	
 	    try:#Enum test
 		#---------------- 
-		self.log_info('>'*3 + " Enum test and connection to float...")
+		#self.log_info('>'*3 + " Enum test and connection to float...")
 		self.cgmEnumAttr = cgmMeta.cgmAttr(node,'enumTest',value = 3, enum = '1:2:3:red:4:5:6')
 		assert node.hasAttr('enumTest')                                        
 		assert self.cgmEnumAttr.value == 3
@@ -380,13 +396,13 @@ def cgmMeta_Test(*args, **kws):
 	
 		#Double3 test
 		#---------------- 
-		self.log_info('>'*3 + " Double3 and connection from float...")        
+		#self.log_info('>'*3 + " Double3 and connection from float...")        
 		self.cgmVectorAttr = cgmMeta.cgmAttr(node,'vecTest',value = [3,1,2])
 		self.cgmVectorXAttr = cgmMeta.cgmAttr(node,'vecTestX')                
 		assert node.hasAttr('vecTest')  
 		assert node.hasAttr('vecTestX')
 		assert self.cgmVectorAttr.value == [3.0,1.0,2.0],self.cgmVectorAttr.value
-		self.log_info(self.cgmVectorXAttr.value)
+		#self.log_info(self.cgmVectorXAttr.value)
 		assert self.cgmVectorXAttr.value == self.cgmVectorAttr.value[0],self.cgmVectorXAttr.value
 		self.cgmVectorAttr.value = [1,44,7]#Don't currently support () args
 		assert self.cgmVectorAttr.value == [1.0,44.0,7.0],self.cgmVectorAttr.value
@@ -645,7 +661,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Assert some info
 		#---------------- 
-		self.log_info('>'*3 + " Checking object Set States...")
+		#self.log_info('>'*3 + " Checking object Set States...")
 		assert self.MayaDefaultSet.mayaSetState == True
 		assert self.ObjectSet.mayaSetState == False
 	
@@ -661,7 +677,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Adding and removing
 		#-------------------
-		self.log_info('>'*3 + " Adding and removing by property...")
+		#self.log_info('>'*3 + " Adding and removing by property...")
 		assert not self.ObjectSet.getList()
 	
 		self.ObjectSet.value = [self.pCube.mNode, self.nCube.mNode,(self.pCube.mNode+'.tx')] # Add an attribute
@@ -676,7 +692,7 @@ def cgmMeta_Test(*args, **kws):
 	
 	    try:#Adding and removing
 		#-------------------
-		self.log_info('>'*3 + " Adding and removing...")
+		#self.log_info('>'*3 + " Adding and removing...")
 		assert not self.ObjectSet.getList()
 	
 		self.ObjectSet.addObj(self.pCube.mNode)
@@ -689,7 +705,7 @@ def cgmMeta_Test(*args, **kws):
 	
 		self.ObjectSet.removeObj(self.pCube.mNode)
 		self.ObjectSet.removeObj(self.nCube.mNode)
-		self.log_info("%s"%self.pCube.getShortName() )
+		#self.log_info("%s"%self.pCube.getShortName() )
 	
 		assert not self.ObjectSet.doesContain(self.pCube.mNode),"%s"%self.ObjectSet.getList()
 		assert not self.ObjectSet.doesContain(self.nCube.mNode),"%s"%self.ObjectSet.getList()
@@ -697,7 +713,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Selecting/purging/copying
 		#-------------------------
-		self.log_info('>'*3 + " Selecting, purging, copying...") 
+		#self.log_info('>'*3 + " Selecting, purging, copying...") 
 	
 		mc.select(cl=True)
 		self.ObjectSet.select()#Select set
@@ -721,7 +737,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:#Keying, deleting keys, reseting
 		#------------------------------- 
-		self.log_info('>'*3 + " Keying, deleting keys, reseting...")        
+		#self.log_info('>'*3 + " Keying, deleting keys, reseting...")        
 	
 		self.pCube.tx = 2
 	
@@ -821,11 +837,11 @@ def cgmMeta_Test(*args, **kws):
 		assert self.OptionVarFloat.value == 1
 	
 		self.OptionVarFloat.append(2)
-		self.log_info(self.OptionVarFloat.value)                
+		#self.log_info(self.OptionVarFloat.value)                
 		assert self.OptionVarFloat.value[1] == 2.0
 	
 		self.OptionVarFloat.varType = 'int' #Convert to int
-		self.log_info(self.OptionVarFloat.value)                
+		#self.log_info(self.OptionVarFloat.value)                
 	    except Exception,error:raise StandardError,"[Float]{%s}"%error
 	
     
@@ -841,7 +857,7 @@ def cgmMeta_Test(*args, **kws):
     
 	    try:# Float varType test and initValue Test
 		#-------------------------
-		self.log_info('>'*3 + " String varType test and initValue Test...")   
+		#self.log_info('>'*3 + " String varType test and initValue Test...")   
 		self.OptionVarString = cgmMeta.cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
 	    except Exception,error:raise StandardError,"[float init value]{%s}"%error
 	def _cgmBufferNodeCalls_(self):
@@ -898,165 +914,193 @@ def cgmMeta_Test(*args, **kws):
 	    for i_n in [i_net1,i_net2,i_trans1a,i_trans1b,i_parent]:
 		assert issubclass(type(i_n),cgmMeta.cgmNode),"%s not a cgmNode"%i_n
 		
-	def _puppetTests_(self):    
-	    self.Puppet = cgmPM.cgmPuppet(name = 'Kermit')
-	    Puppet = self.Puppet
-    
-	    try:#Assertions on the network null
-		#----------------------------------------------------------
-		assert mc.nodeType(Puppet.mNode) == 'network'
-	
-		puppetDefaultValues = {'cgmName':['string','Kermit'],
-		                       'cgmType':['string','puppetNetwork'],
-		                       'mClass':['string','cgmPuppet'],
-		                       'version':['double',1.0],
-		                       'masterNull':['message'],
-		                       'font':['string','Arial'],
-		                       'axisAim':['enum',2],
-		                       'axisUp':['enum',1],
-		                       'axisOut':['enum',0]}                                   
-	
-		for attr in puppetDefaultValues.keys():
-		    assert Puppet.hasAttr(attr),("'%s' missing attr:%s"%(self.Puppet.mNode,attr))
-		    assert mc.getAttr('%s.%s'%(Puppet.mNode,attr), type=True) == puppetDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.mNode,attr), type=True))
-		    if len(puppetDefaultValues.get(attr)) > 1:#assert that value
-			log.debug("%s"% attributes.doGetAttr(Puppet.mNode,attr))                
-			assert attributes.doGetAttr(Puppet.mNode,attr) == puppetDefaultValues.get(attr)[1],"%s is not %s"%(attributes.doGetAttr(Puppet.mNode,attr),puppetDefaultValues.get(attr)[1])
-	    except Exception,error:raise StandardError,"[network null]{%s}"%error
-    
-	    try:#Assertions on the masterNull
-		#----------------------------------------------------------
-		self.log_info('>'*3 + " Assertions on the masterNull...")
-		assert Puppet.masterNull.getShortName() == Puppet.cgmName
-		assert Puppet.masterNull.puppet.mNode == Puppet.mNode,Puppet.masterNull.puppet
-		
-	
-		masterDefaultValues = {'cgmType':['string','ignore'],
-		                       'cgmModuleType':['string','master']}       
-	
-		for attr in masterDefaultValues.keys():
-		    assert Puppet.masterNull.hasAttr(attr),("'%s' missing attr:%s"%(Puppet.masterNull.mNode,attr))
-		    assert mc.getAttr('%s.%s'%(Puppet.masterNull.mNode,attr), type=True) == masterDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.masterNull.mNode,attr), type=True))
-		    if len(masterDefaultValues.get(attr)) > 1:#assert that value
-			log.debug("%s"% attributes.doGetAttr(Puppet.masterNull.mNode,attr))
-			assert attributes.doGetAttr(Puppet.masterNull.mNode,attr) == masterDefaultValues.get(attr)[1]
-	    except Exception,error:raise StandardError,"[masterNull]{%s}"%error
-	
-    
-	    try:#Initializing only mode to compare
-		#----------------------------------------------------------
-	
-		self.PuppetIO = cgmPM.cgmPuppet(name = 'Kermit',initializeOnly=True)#Initializatoin only method of the the same puppet         
-		Puppet2 = self.PuppetIO
-	
-		for attr in puppetDefaultValues.keys():
-		    assert Puppet2.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
-		    assert attributes.doGetAttr(Puppet2.mNode,attr) == attributes.doGetAttr(Puppet.mNode,attr)
-	
-		for attr in masterDefaultValues.keys():
-		    assert Puppet2.masterNull.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
-		    assert attributes.doGetAttr(Puppet2.masterNull.mNode,attr) == attributes.doGetAttr(Puppet.masterNull.mNode,attr)
-	    except Exception,error:raise StandardError,"[Fast initialize]{%s}"%error
-	
-	    try:#Assertions on the masterNull
-		#----------------------------------------------------------
-		self.log_info('>'*3 + " Assertions on the masterNull on IOPuppet...")
-		assert Puppet.masterNull.getShortName() == Puppet2.masterNull.getShortName()
-		assert Puppet.masterNull.puppet == Puppet2.masterNull.puppet
-		
-		try:
-		    Puppet2.__verify__()
-		except StandardError,error:
-			log.error("test_cgmPuppet>>Puppet2.__verify() Failed!  %s"%error)
-			raise StandardError,error 
-	    except Exception,error:raise StandardError,"[compare]{%s}"%error
-                       	    
-	def _cgmModuleTests_(self):
-	    try:
-		self.Puppet
-	    except:
-		self.Puppet = cgmPM.cgmPuppet(name = 'Kermit')
-	    Puppet = self.Puppet
-    
-	    try:
-		Module1 = cgmPM.cgmModule(name = 'arm',position = 'front',direction = 'right', handles = 3)
-		Module1IO = cgmPM.cgmModule(Module1.mNode,initializeOnly = True) #Should equal that of the reg process
-	    except Exception,error:raise StandardError,"[creation]{%s}"%error
-	    
-	    try:#Assertions on the module null
-		#----------------------------------------------------------
-		self.log_info('>'*3 + " Assertions on the module null...")    
-		assert Module1.cgmType == 'module',str(Module1.cgmType)
-		assert Module1.mClass == 'cgmModule'
-		assert Module1.cgmName == 'arm'
-		assert Module1.cgmPosition == 'front'
-		assert Module1.cgmDirection == 'right'
-	
-		assert Module1.cgmType == Module1IO.cgmType
-		assert Module1.mClass == Module1IO.mClass
-		assert Module1.cgmType == Module1IO.cgmType
-		assert Module1.cgmPosition == Module1IO.cgmPosition
-		assert Module1.cgmDirection == Module1IO.cgmDirection       
-	    except Exception,error:raise StandardError,"[Module null and compare]{%s}"%error
-    
-	    try:#Assertions on the rig null
-		#----------------------------------------------------------
-		self.log_info('>'*3 + " Assertions on the rig null...")   
-		assert Module1.i_rigNull.hasAttr('cgmType')
-		log.debug(Module1.i_rigNull.cgmType)
-	
-		assert Module1.i_rigNull.cgmType == 'rigNull','%s'%Module1.i_rigNull.cgmType
-		assert Module1.i_rigNull.ik == False
-		assert Module1.i_rigNull.fk == False
-	
-		assert Module1.i_rigNull.mNode == Module1.rigNull.mNode
-	    except Exception,error:raise StandardError,"[rigNull and compare]{%s}"%error
-    
-	    try:#Assertions on the template null
-		#----------------------------------------------------------
-		self.log_info('>'*3 + " Assertions on the template null...")   
-		assert Module1.i_rigNull.hasAttr('cgmType')
-		log.debug(Module1.i_templateNull.cgmType)
-		assert Module1.i_templateNull.mNode == Module1.templateNull.mNode
-		assert Module1.i_templateNull.handles == 3,'%s'%Module1.i_templateNull.handles
-	    except Exception,error:raise StandardError,"[templateNull]{%s}"%error
-    
-	    try:#Assertions on the coreNames bufferNode
-		#----------------------------------------------------------
-		self.log_info('>'*3 + " Assertions on the coreNames bufferNode...") 
-		assert Module1.coreNames.mClass == 'cgmModuleBufferNode'
-	    except Exception,error:raise StandardError,"[coreNames]{%s}"%error
-    
-	    try:#Connect Modules
-		#----------------------------------------------------------
-		self.log_info('>'*3 + " Connect Modules...")   
-		self.Puppet.connectModule(Module1)
-		
-		assert Module1.modulePuppet.mNode == self.Puppet.mNode
-		assert Module1.getMessage('modulePuppet') == [self.Puppet.mNode],"'%s' != '%s'"%(Module1.getMessage('modulePuppet'),self.Puppet.mNode)
-	    except Exception,error:raise StandardError,"[connect]{%s}"%error
-	     
-	
-	    try:
-		self.log_info('>'*3 + " Creating Limb module with moduleParent Flag...")           
-		Module2 = cgmPM.cgmLimb(name = 'hand',moduleParent = Module1)
-		#assert Module2.getMessage('moduleParent')[0] == Module1.mNode #connection via flag isn't working yet
-	    except Exception,error:raise StandardError,"[Creating with moduleParent]{%s}"%error
-    
-	    try:
-		self.log_info("Connecting '%s' to '%s'"%(Module2.getShortName(),Module1.getShortName()))
-		self.log_info(Module1.mClass)
-		self.log_info(Module2.mClass)        
-		Module2.doSetParentModule(Module1)
-		assert Module2.getMessage('moduleParent') == [Module1.mNode]
-	    except Exception,error:raise StandardError,"[doSetParentModule]{%s}"%error    
     return fncWrap(*args, **kws).go()
 
-def cgmPuppet_tests(*args, **kws):
+
+def ut_msgList(*args, **kws):
     class fncWrap(cgmGeneral.cgmFuncCls):
 	def __init__(self,*args, **kws):
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName = 'cgmPuppet_tests'	
+	    self._str_funcName = 'ut_msgList'	
+	    self._b_autoProgressBar = 1
+	    self._b_reportTimes = 1
+	    self.__dataBind__(*args, **kws)
+	    self.l_funcSteps = [{'step':'Setup','call':self._setup_},
+	                        {'step':'Connect','call':self._connect_},	
+	                        {'step':'Get','call':self._get_},	
+	                        {'step':'Append','call':self._append_},	
+	                        {'step':'Index','call':self._index_},	
+	                        {'step':'Remove','call':self._remove_},		
+	                        {'step':'Purge','call':self._purge_},	
+	                        {'step':'Clean','call':self._clean_},		                        	                        	                        	                        
+	                        ]
+	def _setup_(self):
+	    try:#Create msgList objects
+		try:self.mi_catcherObj = cgmMeta.cgmObject('catcherObj')
+		except:self.mi_catcherObj = cgmMeta.cgmObject(name = 'catcherObj')
+		
+		self.md_msgListObjs = {}
+		self.l_strLong = []
+		self.l_strShort = []
+		self.ml_objs = []
+		for i in range(5):
+		    try:mObj = cgmMeta.cgmObject('msgListObj_%i'%i)
+		    except:mObj= cgmMeta.cgmObject(name = 'msgListObj_%i'%i)
+		    self.md_msgListObjs[i] = mObj
+		    self.l_strLong.append(mObj.mNode)
+		    self.l_strShort.append(mObj.p_nameShort)
+		    self.ml_objs.append(mObj)
+	    except Exception,error:raise StandardError,"[Create msgList objects]{%s}"%error
+	    
+	def _connect_(self):
+	    mi_catcher = self.mi_catcherObj
+	    try:#connect
+		md_objs = self.md_msgListObjs
+		self.mi_catcherObj.msgList_connect([md_objs[0],md_objs[1].mNode],'msgAttr','connectBack')
+	    except Exception,error:raise StandardError,"[Connect]{%s}"%error    
+	    
+	    try:#check connections
+		assert self.mi_catcherObj.msgAttr_0 == md_objs[0],"[0 Failed]{%s}"%self.mi_catcherObj.msgAttr_0
+		assert self.mi_catcherObj.msgAttr_1.mNode == md_objs[1].mNode,"[1 Failed]{%s}"%self.mi_catcherObj.msgAttr_1
+		assert md_objs[0].connectBack == self.mi_catcherObj,"[0 connectBack failed!]{%s}"%self.mi_catcherObj.msgAttr_0
+	    except Exception,error:raise StandardError,"[check connections]{%s}"%error   
+	    
+	def _get_(self):
+	    mi_catcher = self.mi_catcherObj
+	    md_objs = self.md_msgListObjs
+	    
+	    try:assert self.mi_catcherObj.msgList_exists('msgAttr'),"[msgList exists check fail]"
+	    except Exception,error:raise StandardError,"[msgList exists]{%s}"%error   
+	    
+	    try:assert self.mi_catcherObj.msgList_get('msgAttr') == [self.ml_objs[0],self.ml_objs[1]],"[get != self.mlObjs]"
+	    except Exception,error:
+		self.log_error("result : %s"%self.mi_catcherObj.msgList_get('msgAttr'))
+		self.log_error("expected : %s"%self.ml_objs[:2])		
+		raise StandardError,"[msgList_get check 1 -- asMeta 0]{%s}"%error   
+	    
+	    try:assert self.mi_catcherObj.msgList_get('msgAttr',asMeta = False) == [mObj.p_nameShort for mObj in self.ml_objs[:2]],"[get != self.mlObjs]"
+	    except Exception,error:
+		self.log_error("result : %s"%self.mi_catcherObj.msgList_get('msgAttr',asMeta = False))
+		self.log_error("expected : %s"%[mObj.p_nameShort for mObj in self.ml_objs[:2]])		
+		raise StandardError,"[msgList_get -- asMeta 1]{%s}"%error  
+	    
+	    try:assert self.mi_catcherObj.msgList_getMessage('msgAttr',longNames = True) == [mObj.mNode for mObj in self.ml_objs[:2]],"[getMessage fail!]"
+	    except Exception,error:
+		self.log_error("result : %s"%mi_catcher.msgList_getMessage('msgAttr',longNames = True))
+		self.log_error("expected : %s"%[mObj.mNode for mObj in self.ml_objs[:2]])		
+		raise StandardError,"[msgList_getMessage -- longNames True]{%s}"%error  
+	    
+	    try:assert self.mi_catcherObj.msgList_getMessage('msgAttr',longNames = False) == [mObj.p_nameShort for mObj in self.ml_objs[:2]],"[getMessage fail!]"
+	    except Exception,error:
+		self.log_error("result : %s"%mi_catcher.msgList_getMessage('msgAttr',longNames = False))
+		self.log_error("expected : %s"%[mObj.p_nameShort for mObj in self.ml_objs[:2]])		
+		raise StandardError,"[msgList_getMessage -- longNames False]{%s}"%error  
+	    
+	def _append_(self):
+	    mi_catcher = self.mi_catcherObj
+	    md_objs = self.md_msgListObjs
+	    
+	    try:
+		mi_catcher.msgList_append(md_objs[2],'msgAttr','connectBack')
+	    except Exception,error:raise StandardError,"[append connect]{%s}"%error    
+	    
+	    try:#check connections
+		assert mi_catcher.msgAttr_2 == md_objs[2],"[append failed]{%s}"%mi_catcher.msgAttr_2
+		assert md_objs[2].connectBack == mi_catcher,"[append -- connectBack failed!]{%s}"%md_objs[2].connectBack 
+	    except Exception,error:raise StandardError,"[check connections]{%s}"%error   
+	    
+	    try:
+		ml_buffer = self.mi_catcherObj.msgList_get('msgAttr')
+		assert ml_buffer == self.ml_objs[:3],"[get != self.mlObjs]"
+		assert len(ml_buffer) == 3,"[len != 3]"		
+	    except Exception,error:
+		self.log_error("result : %s"%self.mi_catcherObj.msgList_get('msgAttr'))
+		self.log_error("expected : %s"%self.ml_objs[:3])		
+		raise StandardError,"[msgList_get check 1 -- asMeta 0]{%s}"%error 
+	    
+	def _index_(self):
+	    mi_catcher = self.mi_catcherObj
+	    md_objs = self.md_msgListObjs
+	    
+	    assert mi_catcher.msgList_index(md_objs[0],attr = 'msgAttr') == 0,"[index 0]{%s}"%mi_catcher.msgList_index(md_objs[0],attr = 'msgAttr')
+	    assert mi_catcher.msgList_index(md_objs[1],attr = 'msgAttr') == 1,"[index 1]{%s}"%mi_catcher.msgList_index(md_objs[1],attr = 'msgAttr')
+	    assert mi_catcher.msgList_index(md_objs[2],attr = 'msgAttr') == 2,"[index 2]{%s}"%mi_catcher.msgList_index(md_objs[2],attr = 'msgAttr')
+	    
+	def _remove_(self):
+	    mi_catcher = self.mi_catcherObj
+	    md_objs = self.md_msgListObjs
+	    
+	    try:
+		mi_catcher.msgList_remove(md_objs[2],attr = 'msgAttr')
+	    except Exception,error:raise StandardError,"[remove]{%s}"%error    
+	    	    
+	    try:
+		ml_buffer = self.mi_catcherObj.msgList_get('msgAttr')
+		assert ml_buffer == self.ml_objs[:2],"[get != self.mlObjs]"
+		assert len(ml_buffer) == 2,"[len != 2]"		
+	    except Exception,error:
+		self.log_error("result : %s"%self.mi_catcherObj.msgList_get('msgAttr'))
+		self.log_error("expected : %s"%self.ml_objs[:2])		
+		raise StandardError,"[msgList_get check]{%s}"%error 
+	    
+	def _purge_(self):
+	    mi_catcher = self.mi_catcherObj
+	    md_objs = self.md_msgListObjs
+	    
+	    try:
+		mi_catcher.msgList_purge(attr = 'msgAttr')
+	    except Exception,error:raise StandardError,"[purge]{%s}"%error    
+	    	    
+	    try:
+		ml_buffer = self.mi_catcherObj.msgList_get('msgAttr')
+		assert ml_buffer == [],"[Buffer should be empty | %s]"%ml_buffer
+		assert len(ml_buffer) == 0,"[len != 0]"		
+	    except Exception,error:
+		self.log_error("result : %s"%self.mi_catcherObj.msgList_get('msgAttr'))
+		self.log_error("expected : %s"%[])		
+		raise StandardError,"[msgList_get check]{%s}"%error 
+	    
+	def _clean_(self):
+	    mi_catcher = self.mi_catcherObj
+	    md_objs = self.md_msgListObjs
+	    ml_objs = self.ml_objs
+	    
+	    try:
+		mi_catcher.msgList_connect(ml_objs, 'msgAttr', 'connectBack')
+		attributes.doBreakConnection(mi_catcher.mNode, 'msgAttr_2')#Break it
+	    except Exception,error:raise StandardError,"[connecting all]{%s}"%error  
+	    
+	    try:
+		ml_buffer = self.mi_catcherObj.msgList_get('msgAttr', cull = True)
+		assert len(ml_buffer) == 4,"[len != 4]"		
+	    except Exception,error:
+		self.log_error("result : %s"%ml_buffer)
+		self.log_error("expected : %s"%4)		
+		raise StandardError,"[msgList_get with cull check]{%s}"%error 
+	    
+	    try:
+		mi_catcher.msgList_clean('msgAttr')
+	    except Exception,error:raise StandardError,"[clean]{%s}"%error  	
+	    
+	    try:
+		ml_buffer2 = self.mi_catcherObj.msgList_get('msgAttr')
+		assert ml_buffer2 == ml_buffer,"Buffers not the same"				
+		assert len(ml_buffer2) == 4,"[len != 4]"		
+	    except Exception,error:
+		self.log_error("ml_buffer : %s"%ml_buffer)		
+		self.log_error("result : %s"%ml_buffer2)
+		raise StandardError,"[clean check]{%s}"%error 
+	    
+    return fncWrap(*args, **kws).go()
+	    
+
+
+
+def ut_cgmPuppet(*args, **kws):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'ut_cgmPuppet'	
 	    self._b_autoProgressBar = 1
 	    self._b_reportTimes = 1
 	        
@@ -1066,8 +1110,8 @@ def cgmPuppet_tests(*args, **kws):
 	                        ]
 	
 	def _puppetTests_(self):    
-	    self.Puppet = cgmPM.cgmPuppet(name = 'Kermit')
-	    Puppet = self.Puppet
+	    self.mi_puppet = cgmPM.cgmPuppet(name = 'Kermit')
+	    Puppet = self.mi_puppet
     
 	    try:#Assertions on the network null
 		#----------------------------------------------------------
@@ -1084,7 +1128,7 @@ def cgmPuppet_tests(*args, **kws):
 		                       'axisOut':['enum',0]}                                   
 	
 		for attr in puppetDefaultValues.keys():
-		    assert Puppet.hasAttr(attr),("'%s' missing attr:%s"%(self.Puppet.mNode,attr))
+		    assert Puppet.hasAttr(attr),("'%s' missing attr:%s"%(self.mi_puppet.mNode,attr))
 		    assert mc.getAttr('%s.%s'%(Puppet.mNode,attr), type=True) == puppetDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.mNode,attr), type=True))
 		    if len(puppetDefaultValues.get(attr)) > 1:#assert that value
 			log.debug("%s"% attributes.doGetAttr(Puppet.mNode,attr))                
@@ -1112,15 +1156,15 @@ def cgmPuppet_tests(*args, **kws):
     
 	    try:#Initializing only mode to compare
 		#----------------------------------------------------------
-		self.PuppetIO = cgmPM.cgmPuppet(name = 'Kermit',initializeOnly=True)#Initializatoin only method of the the same puppet         
-		Puppet2 = self.PuppetIO
+		self.mi_puppetIO = cgmPM.cgmPuppet(name = 'Kermit',initializeOnly=True)#Initializatoin only method of the the same puppet         
+		Puppet2 = self.mi_puppetIO
 	
 		for attr in puppetDefaultValues.keys():
-		    assert Puppet2.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
+		    assert Puppet2.hasAttr(attr),("'%s' missing attr:%s"%(self.mi_puppetIO.mNode,attr))
 		    assert attributes.doGetAttr(Puppet2.mNode,attr) == attributes.doGetAttr(Puppet.mNode,attr)
 	
 		for attr in masterDefaultValues.keys():
-		    assert Puppet2.masterNull.hasAttr(attr),("'%s' missing attr:%s"%(self.PuppetIO.mNode,attr))
+		    assert Puppet2.masterNull.hasAttr(attr),("'%s' missing attr:%s"%(self.mi_puppetIO.mNode,attr))
 		    assert attributes.doGetAttr(Puppet2.masterNull.mNode,attr) == attributes.doGetAttr(Puppet.masterNull.mNode,attr)
 	    except Exception,error:raise StandardError,"[Fast initialize]{%s}"%error
 	
@@ -1139,10 +1183,10 @@ def cgmPuppet_tests(*args, **kws):
                        	    
 	def _cgmModuleTests_(self):
 	    try:
-		self.Puppet
+		self.mi_puppet
 	    except:
-		self.Puppet = cgmPM.cgmPuppet(name = 'Kermit')
-	    Puppet = self.Puppet
+		self.mi_puppet = cgmPM.cgmPuppet(name = 'Kermit')
+	    Puppet = self.mi_puppet
     
 	    try:
 		Module1 = cgmPM.cgmModule(name = 'arm',position = 'front',direction = 'right', handles = 3)
@@ -1179,7 +1223,7 @@ def cgmPuppet_tests(*args, **kws):
     
 	    try:#Assertions on the template null
 		#----------------------------------------------------------
-		self.log_info(" Assertions on the template null...")   
+		#self.log_info(" Assertions on the template null...")   
 		assert Module1.i_rigNull.hasAttr('cgmType')
 		assert Module1.i_templateNull.mNode == Module1.templateNull.mNode
 		assert Module1.i_templateNull.handles == 3,'%s'%Module1.i_templateNull.handles
@@ -1194,10 +1238,10 @@ def cgmPuppet_tests(*args, **kws):
 	    try:#Connect Modules
 		#----------------------------------------------------------
 		#self.log_info('>'*3 + " Connect Modules...")   
-		self.Puppet.connectModule(Module1)
+		self.mi_puppet.connectModule(Module1)
 		
-		assert Module1.modulePuppet.mNode == self.Puppet.mNode
-		assert Module1.getMessage('modulePuppet') == [self.Puppet.mNode],"'%s' != '%s'"%(Module1.getMessage('modulePuppet'),self.Puppet.mNode)
+		assert Module1.modulePuppet.mNode == self.mi_puppet.mNode
+		assert Module1.getMessage('modulePuppet') == [self.mi_puppet.mNode],"'%s' != '%s'"%(Module1.getMessage('modulePuppet'),self.mi_puppet.mNode)
 	    except Exception,error:raise StandardError,"[connect]{%s}"%error
 	     
 	
