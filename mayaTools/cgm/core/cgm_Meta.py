@@ -357,6 +357,31 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		return False
 	    
     #Connection stuff =========================================================================
+    def exampleWrapFunc(self,*args,**kws):
+	'''
+	Wip rewrite of connectChildNode
+	'''
+	_mNodeSelf = self#>> MUST BE IN PLACE FOR METACLASS SUB CGMFUNCLS
+	class fncWrap(cgmMetaFunc):
+	    def __init__(self,*args,**kws):
+		"""
+		"""    
+		#args.insert(0,_mNodeSelf)
+		super(fncWrap, self).__init__(*args,**kws)
+		self.mi_mNode = _mNodeSelf
+		self._str_funcHelp = "Fill in this help/nNew line!"		
+		self._str_funcName= "%s.exampleWrapFunc"%_mNodeSelf.p_nameShort	
+		self._l_ARGS_KWS_DEFAULTS = [{'kw':'node',"default":None,'help':"Node to connect","argType":"mObject/maya object"},
+			                     {'kw':'attr',"default":None,'help':"Attribute to connect to","argType":"string"},
+			                     {'kw':"connectBack","default":None,'help':"Attribute to connect back to on the source object","argType":"string"},
+			                     {'kw':"srcAttr","default":None,'help':"Node to connect","argType":"mObject/maya object"},
+			                     {'kw':"force","default":False}]		
+		self.__dataBind__(*args,**kws)#>> MUST BE IN PLACE FOR METACLASS SUB CGMFUNCLS
+		self.l_funcSteps = [{'step':'Gather Info','call':self.__func__}]	
+	    def __func__(self):
+		self.report()
+	return fncWrap(*args,**kws).go()   
+    
     def connectChildNode(self,*args,**kws):
 	'''
 	Wip rewrite of connectChildNode
@@ -4374,12 +4399,12 @@ def validateObjArg(*args,**kws):
 		    arg = None
 		else:raise StandardError,"arg cannot be list or tuple: %s"%arg	
 	    if not noneValid:
-		if arg in [None,False]:raise StandardError,"arg cannot be None"
+		if arg in [None,False]:
+		    raise StandardError,"arg cannot be None"
 	    else:
 		if arg in [None,False]:
 		    if arg not in [None,False]:log.warning("%s arg fail: %s"%(self._str_reportStart,arg))
 		    return False
-	    
 	    if issubclass(argType,r9Meta.MetaClass):#we have an instance already
 		i_arg = arg
 	    elif not mc.objExists(arg):
