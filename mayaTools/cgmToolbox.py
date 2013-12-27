@@ -324,7 +324,7 @@ def connectToWingIDE( *a ):
 def testCGMCore( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
-    testCGM.TestAllTheThings()
+    testCGM.ut_cgmCore()
     
 def testMorpheus( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
@@ -428,12 +428,10 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
 
               ('dev', (('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",
                         purgeCGMOptionVars),
-                       ('Connect to Wing IDE', " Attempts to connect to Wing IDE",
-                                               connectToWingIDE), 
+                       #('Connect to Wing IDE', " Attempts to connect to Wing IDE",
+                        #                       connectToWingIDE), 
                        ('Start Wing Server', " Opens a command port for Wing IDE",
                                                startWingServer),                          
-                       ('cgm.PuppetBox', " WIP - Modular Rigger",
-                        loadPuppetBox),
                        ('Debug cgm.core', " WARNING - Opens new file...Unit test cgm.core",
                         testCGMCore),
                        ('Simple cgmGUI', " Base cgmGUI",
@@ -441,9 +439,7 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                        ('cgm.MorpheusMaker', " Morpheus maker tool",
                         loadMorpheusMaker),
                         ('zooToolbox', " Open zooToolbox Window",
-                        loadZooToolbox),     
-                        ('This is for Josh. It will not work for you', " WARNING - Opens new file...Unit test base morpheus stuff",
-                         testMorpheus),                          
+                        loadZooToolbox),                           
                        ))
 
               )
