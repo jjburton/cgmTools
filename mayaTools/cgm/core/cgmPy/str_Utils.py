@@ -49,7 +49,6 @@ def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?>
 	returns l_pos
 	"""
 	_str_funcName = 'stripInvalidChars'
-	log.debug(">>> %s >> "%_str_funcName + "="*75) 
 	try:
 		str_Clean = cgmValid.stringArg(arg,False,_str_funcName)
 		
