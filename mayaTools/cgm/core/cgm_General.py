@@ -66,6 +66,7 @@ import inspect
 import platform
 import sys
 import traceback
+import linecache
 
 # Shared Defaults ========================================================
 
@@ -116,7 +117,7 @@ class cgmFuncCls(object):
 	self._str_mod = None	
 	self._l_funcTimes = []
 	#These are our mask so that the fail report ignores them
-	self._l_reportMask = ['int_max','_str_fail','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	self._l_reportMask = ['int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
@@ -192,28 +193,41 @@ class cgmFuncCls(object):
         
     def _ExceptionHook_(self, etype, value, tb, detail=2):
 	# do something here...
-	try:
-	    if detail == 2:	    
-		self.report_base()
-		self.log_info(_str_headerDiv + " Exception " + _str_headerDiv + _str_subLine)		
-		self.log_info("Exception Type: %s"%etype)
-		self.log_info("Exception value: %s"%value)
-		self.log_info("Traceback Obj: %s"%tb)
-		self.log_info("Detail: %s"%detail)		
-		self.report_selfStored()
-		report_enviornment()
-	    self.log_error(self._str_fail)			
-	    self.progressBar_end()
-	    mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload		    
-	    #return mUtils._formatGuiException(etype, value, tb, detail)
-	except Exception,error:
-	    print("[%s._ExceptionHook_ Exception]{%s}"%(self._str_funcCombined,error))
+	#try:
+	if detail == 2:	    
+	    db_file = tb.tb_frame.f_code.co_filename
+	    
+	    self.report_base()
+	    self.log_info(_str_headerDiv + " Exception " + _str_headerDiv + _str_subLine)		
+	    self.log_info("Step: '%s'"%self._str_failStep)
+	    self.log_info("Time: %s sec"%self._str_failTime)
+	    if db_file != "<maya console>":
+		linecache.clearcache()		
+		lineno = tb.tb_lineno
+		line = linecache.getline(db_file, lineno)
+		self.log_info("Traceback File: %s"%db_file)
+		self.log_info("Line#: %d"%lineno)
+		self.log_info("Line: %s"%line)		
+	    self.log_info("Exception Type: %s"%etype)
+	    self.log_info("Exception value: %s"%value)
+	    #self.log_info("Traceback Obj: %s"%tb)
+	    #self.log_info("Detail: %s"%detail)		
+	    self.report_selfStored()
+	else:self.log_error("[Step: '%s' | time: %s]{%s}"%(self._str_failStep,self._str_failTime,self._ExceptionError))
+	if detail == 2:self.log_info(_str_hardBreak)
+	self.progressBar_end()
+	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
+	return cgmExceptCB(etype,value,tb,detail,True)
+	#return mUtils._formatGuiException(etype, value, tb, detail)	
+	#raise self._Exception,self._ExceptionError
+	#except Exception,error:
+	    #print("[%s._ExceptionHook_ Exception]{%s}"%(self._str_funcCombined,error))
 	        
     def go(self,*args,**kws):
 	"""
 	"""
-	_Exception  = None
-	_error = None
+	self._Exception  = None
+	self._ExceptionError = None
 	
 	if self.d_kws.get('printHelp'):
 	    self.printHelp()
@@ -246,9 +260,11 @@ class cgmFuncCls(object):
 		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
 		    break"""
 	    except Exception,error:
-		self._str_fail = "[Step: '%s' | time: %0.3f] > %s"%(_str_step,(time.clock()-t1),error)#stored the failed step string		
-		_Exception = Exception
-		_error = error
+		#self._str_fail = "[Step: '%s' | time: %0.3f] > %s"%(_str_step,(time.clock()-t1),error)#stored the failed step string		
+		self._str_failStep = _str_step
+		self._str_failTime = "%0.3f"%(time.clock()-t1)
+		self._Exception = Exception
+		self._ExceptionError = error
 		break
 	    
 	    t2 = time.clock()
@@ -259,7 +275,13 @@ class cgmFuncCls(object):
 	
 	#Reporting and closing out =========================================================================
 	if self._b_WIP or self.d_kws.get('reportShow'):
-	    self.report()	
+	    self.report()
+	    
+	if self.d_kws.get('reportEnv'):
+	    report_enviornment()   
+	if self._Exception is not None:
+	    raise self._Exception,self._ExceptionError
+	
 	if self._b_reportTimes:
 	    f_total = (time.clock()-t_start)	    
 	    if int_lenSteps > 1:
@@ -270,10 +292,6 @@ class cgmFuncCls(object):
 		self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
 	    else:self.log_warning("[Total = %0.3f sec] " % (f_total))
 	    	    
-	if self.d_kws.get('reportEnv'):
-	    report_enviornment()   
-	if _Exception is not None:
-	    raise _Exception,_error
 	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload	
 	return self._return_()
 	
@@ -384,8 +402,8 @@ class cgmFuncCls(object):
 	except:pass	
     def log_error(self,arg):
 	try:
-	    #log.error("[ERROR]%s%s"%(self._str_reportStart,str(arg)))
-	    print("[ERROR]%s%s"%(self._str_reportStart,str(arg)))	    
+	    log.error("%s%s"%(self._str_reportStart,str(arg)))
+	    #print("[ERROR]%s%s"%(self._str_reportStart,str(arg)))	    
 	except:pass
     def log_warning(self,arg):
 	try:
@@ -528,21 +546,38 @@ def subTimer(func):
 	return res
     return wrapper  
 
-def cgmExceptCB(etype, value, tb, detail=2):
-    # do something here...
+def cgmExceptCB(etype, value, tb, detail=2, processed = False):
+    # @param processed -- whether this exception has already been processed
     try:
-	if detail == 2:
-	    log.info("Exception encountered..")
-	    log.info("etype: %s"%etype)
-	    log.info("value: %s"%value)
-	    log.info("tb: %s"%tb)
-	    log.info("detail: %s"%detail)	    
-	    report_enviornment()		
-	return mUtils._formatGuiException(etype, value, tb, detail)
+	db_file = tb.tb_frame.f_code.co_filename
+	#print("-- db_file: %s"%db_file)	
+	#db_names = tb.tb_frame.f_code.co_names	
+	#print("-- db_names: %s"%db_names)	
+	
+	if detail == 2:	    
+	    if not processed:
+		if db_file != "<maya console>":
+		    lineno = tb.tb_lineno
+		    line = linecache.getline(db_file, lineno)
+		    print("-- Traceback File: %s"%db_file)
+		    print("-- Traceback Line #: %d"%lineno)
+		    print("-- Traceback Line: %s"%line)		
+		print(_str_headerDiv + "Exception encountered..." + _str_headerDiv + _str_hardLine)	    		
+		print("-- Coming from cgmExceptCB")		
+		print("-- etype: %s"%etype)
+		print("-- value: %s"%value)
+		#print("-- tb: %s"%tb)
+		#print("-- detail: %s"%detail)
+	    print ""
+	    report_enviornment()
+	return value
+	#return mUtils._formatGuiException(etype, value, tb, detail)
     except Exception,error:
 	log.info("Exception Exception....{%s}"%error)
 mUtils.formatGuiException = cgmExceptCB
 
+def reset_mayaException():
+    reload(mUtils)    
 """
 example subFunctionClass(object)
 class sampleClass(cgmFunctionClass):
