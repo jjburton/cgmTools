@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 from cgm.core import cgm_General as cgmGeneral
+reload(cgmGeneral)
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import NodeFactory as NodeF
@@ -932,7 +933,7 @@ def ut_msgList(*args, **kws):
 	                        {'step':'Index','call':self._index_},	
 	                        {'step':'Remove','call':self._remove_},		
 	                        {'step':'Purge','call':self._purge_},	
-	                        {'step':'Clean','call':self._clean_},		                        	                        	                        	                        
+	                        #{'step':'Clean','call':self._clean_},		                        	                        	                        	                        
 	                        ]
 	def _setup_(self):
 	    try:#Create msgList objects

@@ -59,16 +59,14 @@ except Exception,error:raise StandardError, "[Name]{%s}"%(error)
 """
 import maya.cmds as mc
 import maya.mel as mel
+import maya.utils as mUtils
 import copy
 import time
 import inspect
 import platform
 import sys
+import traceback
 
-# From Red9 =============================================================
-
-# From cgm ==============================================================
-#from cgm.lib import search
 # Shared Defaults ========================================================
 
 #=========================================================================
@@ -118,14 +116,15 @@ class cgmFuncCls(object):
 	self._str_mod = None	
 	self._l_funcTimes = []
 	#These are our mask so that the fail report ignores them
-	self._l_reportMask = ['_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	self._l_reportMask = ['_str_fail','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
+	'''
 	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                     '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart','_b_WIP','_l_funcTimes',                     
 	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
-	                     '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart']
+	                     '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart']'''
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
 	self._l_kwMask = ['reportTimes','reportShow','autoProgressBar']
 	
@@ -190,20 +189,41 @@ class cgmFuncCls(object):
 		
     def __func__(self,*args,**kws):
 	raise StandardError,"%s No function set"%self._str_reportStart
-    
-    class ExceptionMinor(Exception):pass
-    
+        
+    def _ExceptionHook_(self, etype, value, tb, detail=2):
+	# do something here...
+	try:
+	    if detail == 2:	    
+		self.report_base()
+		self.log_info(_str_headerDiv + " Exception " + _str_headerDiv + _str_subLine)		
+		self.log_info("Exception Type: %s"%etype)
+		self.log_info("Exception value: %s"%value)
+		self.log_info("Traceback Obj: %s"%tb)
+		self.log_info("Detail: %s"%detail)		
+		self.report_selfStored()
+		report_enviornment()
+	    self.log_error(self._str_fail)			
+	    self.progressBar_end()
+	    mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload		    
+	    #return mUtils._formatGuiException(etype, value, tb, detail)
+	except Exception,error:
+	    print("[%s._ExceptionHook_ Exception]{%s}"%(self._str_funcCombined,error))
+	        
     def go(self,*args,**kws):
 	"""
 	"""
+	_Exception  = None
+	_error = None
+	
 	if self.d_kws.get('printHelp'):
 	    self.printHelp()
 	    return   		
 	t_start = time.clock()
+	mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   	
 	try:
 	    if not self.l_funcSteps: self.l_funcSteps = [{'call':self.__func__}]
 	    int_keys = range(0,len(self.l_funcSteps)-1)
-	    int_max = len(self.l_funcSteps)-1
+	    self.int_max = len(self.l_funcSteps)-1
 	except Exception,error:
 	    raise StandardError, ">"*3 + " %s[FAILURE go start]{%s}"%(self._str_funcCombined,error)
 	
@@ -212,37 +232,27 @@ class cgmFuncCls(object):
 	for i,d_step in enumerate(self.l_funcSteps):
 	    t1 = time.clock()	    
 	    try:
-		try:
-		    _str_step = d_step.get('step') or False
-		    if _str_step:
-			self._str_progressBarReportStart = self._str_funcCombined + " %s "%_str_step
-		    else: _str_step = 'process'
-		    if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
-		    
-		    res = d_step['call'](*args,**kws)
-		    if res is not None:
-			self.d_return[_str_step] = res
-		    """
-		    if goTo.lower() == str_name:
-			log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
-			break"""
-		except self.ExceptionMinor,error:
-		    #_str_fail = "[Step: '%s'] > %s"%(_str_step,error)#stored the failed step string
-		    self.log_error("[Exception | step: %s]{%s} "%(_str_step,error))					
-		    #raise "%s !!MINOR ERROR!! %s"%(self._str_funcCombined,_str_fail)	
-		    break
+		_str_step = d_step.get('step') or False
+		if _str_step:
+		    self._str_progressBarReportStart = self._str_funcCombined + " %s "%_str_step
+		else: _str_step = 'process'
+		if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
+		
+		res = d_step['call'](*args,**kws)
+		if res is not None:
+		    self.d_return[_str_step] = res
+		"""
+		if goTo.lower() == str_name:
+		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
+		    break"""
 	    except Exception,error:
-		_str_fail = "[Step: '%s'] > %s"%(_str_step,error)#stored the failed step string		
-		self.report_base()
-		self.report_selfStored()		
-		self.report_enviornment()
-		self.log_error(_str_headerDiv + " Error >>> %s "%_str_fail)			
-		self.log_error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))	
-		self.progressBar_end()
-		mc.undoInfo(closeChunk=True)			
-		raise Exception, "%s [ERROR]{%s}"%(self._str_funcCombined,_str_fail)		
+		self._str_fail = "[Step: '%s' | time: %0.3f] > %s"%(_str_step,(time.clock()-t1),error)#stored the failed step string		
+		_Exception = Exception
+		_error = error
+		break
+	    
 	    t2 = time.clock()
-	    _str_time = "%0.3f seconds"%(t2-t1)
+	    _str_time = "%0.3f"%(t2-t1)
 	    self._l_funcTimes.append([_str_step,_str_time])	
 	self.progressBar_end()
 	mc.undoInfo(closeChunk=True)	
@@ -252,23 +262,26 @@ class cgmFuncCls(object):
 	    self.report()	
 	if self._b_reportTimes:
 	    if int_lenSteps > 1:
-		log.info("%s Step Times >> "%self._str_funcCombined + _str_subLine)			    	    
-		if int_max != 0:
+		self.log_info(_str_headerDiv + " Times (seconds) | Total : %0.3f"%((time.clock()-t_start)) + _str_headerDiv + _str_subLine)			    	    
+		if self.int_max != 0:
 		    for pair in self._l_funcTimes:
-			log.info(" - '%s' >>  %s " % (pair[0],pair[1]))				 
-		log.info("Total >> = %0.3f seconds " % ((time.clock()-t_start)))
-	    else:log.info("%s Total >> = %0.3f seconds " % (self._str_funcCombined,(time.clock()-t_start)))
-	if int_max == 0:#If it's a one step, return, return the single return
-	    try:return self.d_return[self.d_return.keys()[0]]
-	    except:pass
-	    
-	if self.d_kws.get('reportEnv') and not self.d_kws.get('reportShow'):
-	    self.report_enviornment()   
-	    
+			self.log_info(" -- '%s' >>  %s " % (pair[0],pair[1]))				 
+		#print("[ Total = %0.3f ] " % ((time.clock()-t_start)))
+	    else:self.log_info("[ Total = %0.3f ] " % ((time.clock()-t_start)))
+	    	    
+	if self.d_kws.get('reportEnv'):
+	    report_enviornment()   
+	if _Exception is not None:
+	    raise _Exception,_error
+	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload	
 	return self._return_()
 	
     def _return_(self):
 	'''overloadable for special return'''
+	if self.int_max == 0:#If it's a one step, return, return the single return
+	    try:return self.d_return[self.d_return.keys()[0]]
+	    except:pass
+	    
 	for k in self.d_return.keys():#Otherise we return the first one with actual data
 	    buffer = self.d_return.get(k)
 	    if buffer:
@@ -283,56 +296,46 @@ class cgmFuncCls(object):
 		
     def report_base(self):
 	self.get_moduleData()
-	log.info("="*100)	
-	log.info(_str_headerDiv + " %s "%self._str_funcCombined + _str_headerDiv + _str_hardLine)
-	log.info("="*100)		
-	log.info(" Python Module: %s "%self._str_modPath)	
-	log.info(_str_headerDiv  + " ArgsKws " + _str_headerDiv + _str_subLine)		
-	if self._str_funcArgs:log.info(" Args: %s"%self._str_funcArgs)
-	if self._str_funcKWs:log.info(" KWs: %s"%self._str_funcKWs)	  
+	self.log_info("="*100)	
+	self.log_info(_str_headerDiv + " %s "%self._str_funcCombined + _str_headerDiv + _str_hardLine)
+	self.log_info("="*100)
+	self.log_info(" Python Module: %s "%self._str_modPath)
+	try:self.log_info(_str_baseStart + " Python Module Version: %s "%self.mod.__version__)
+	except:pass		
+	self.log_info(_str_headerDiv  + " ArgsKws " + _str_headerDiv + _str_subLine)		
+	if self._str_funcArgs:self.log_info(" Args: %s"%self._str_funcArgs)
+	if self._str_funcKWs:self.log_info(" KWs: %s"%self._str_funcKWs)	  
 	if self.d_kws:
-	    log.info(" Active Dict: ")							    
+	    self.log_info(" Active Dict: ")							    
 	    l_keys = self.d_kws.keys()
 	    l_keys.sort()	    
 	    for k in l_keys:
-		log.info(_str_baseStart *2 + "['%s'] = %s "%(k,self.d_kws[k]))
+		self.log_info(_str_baseStart *2 + "['%s'] = %s "%(k,self.d_kws[k]))
 		
     def report_selfStored(self):
 	l_keys = self.__dict__.keys()
 	l_keys.sort()
 	if l_keys:
-	    log.info(_str_headerDiv + " Self Stored " + _str_headerDiv + _str_subLine)
+	    self.log_info(_str_headerDiv + " Self Stored " + _str_headerDiv + _str_subLine)
 	    for k in l_keys:
-		if k not in self._l_errorMask:
+		if k not in self._l_reportMask:
 		    buffer = self.__dict__[k]
 		    if type(buffer) is dict:
-			log.info("{'%s'}(nested) "%k)
+			self.log_info("{'%s'}(nested) "%k)
 			l_bufferKeys = buffer.keys()
 			l_bufferKeys.sort()
 			for k2 in buffer.keys():
-			    log.info(_str_baseStart * 2 + "[%s] = %s "%(k2,buffer[k2]))			
+			    self.log_info(_str_baseStart * 2 + "[%s] = %s "%(k2,buffer[k2]))			
 		    else:
-			log.info("['%s'] = %s "%(k,self.__dict__[k]))
+			self.log_info("['%s'] = %s "%(k,self.__dict__[k]))
 		    
     def report_steps(self):	    
 	if self.l_funcSteps:
-	    log.info(_str_headerDiv + " Steps " + _str_headerDiv + _str_subLine)	  	    
+	    self.log_info(_str_headerDiv + " Steps " + _str_headerDiv + _str_subLine)	  	    
 	    for i,d in enumerate(self.l_funcSteps):
-		try:log.info("'%s' : %s "%(i,d.get('step')))
+		try:self.log_info("'%s' : %s "%(i,d.get('step')))
 		except:pass
     
-    def report_enviornment(self):
-	log.info(_str_headerDiv + " Enviornment Info " + _str_headerDiv + _str_subLine)	
-	log.info(_str_baseStart + " Python Module: %s "%self._str_modPath)
-	try:log.info(_str_baseStart + " Python Module Version: %s "%self.mod.__version__)
-	except:pass
-	#log.info(_str_headerDiv + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
-	for kw in ['cutIdentifier','version','apiVersion','file','product','date',
-                   'application','buildDirectory','environmentFile','operatingSystem',
-                   'operatingSystemVersion','codeset']:
-	    try:log.info(_str_baseStart + " Maya %s : %s "%(kw, mel.eval( 'about -%s'%kw )))	
-	    except Exception,error:self.log_error("%s | %s"%(kw,error))	
-	
     def report_argsKwsDefaults(self):
 	if self._l_ARGS_KWS_DEFAULTS:
 	    log.info(">"*3 + " Args/KWs/Defaults " + _str_subLine)	  	    	    
@@ -375,15 +378,18 @@ class cgmFuncCls(object):
 
     def log_info(self,arg):
 	try:
-	    log.info("%s%s"%(self._str_reportStart,str(arg)))
+	    #log.info("%s%s"%(self._str_reportStart,str(arg)))
+	    print("%s%s"%(self._str_reportStart,str(arg)))
 	except:pass	
     def log_error(self,arg):
 	try:
-	    log.error("[ERROR]%s%s"%(self._str_reportStart,str(arg)))
+	    #log.error("[ERROR]%s%s"%(self._str_reportStart,str(arg)))
+	    print("[ERROR]%s%s"%(self._str_reportStart,str(arg)))	    
 	except:pass
     def log_warning(self,arg):
 	try:
-	    log.warning("[WARNING]%s%s"%(self._str_reportStart,str(arg)))
+	    #log.warning("[WARNING]%s%s"%(self._str_reportStart,str(arg)))
+	    print("[WARNING]%s%s"%(self._str_reportStart,str(arg)))	    
 	except:pass	
     def log_debug(self,arg):
 	try:
@@ -438,13 +444,13 @@ class cgmFuncCls(object):
 			except:str_key = k
 			buffer = self.__dict__[atr][k]
 			if type(buffer) is dict:
-			    log.info('%s '%self._str_funcCombined + ">" + " Nested Dict: '%s' "%(str_key) + _str_subLine)
+			    self.log_info('%s '%self._str_funcCombined + ">" + " Nested Dict: '%s' "%(str_key) + _str_subLine)
 			    l_bufferKeys = buffer.keys()
 			    l_bufferKeys.sort()
 			    for k2 in l_bufferKeys:
-				log.info('%s '%self._str_funcCombined + "-"*2 +'>' + " '%s' : %s "%(k2,buffer[k2]))			
+				self.log_info("-"*2 +'>' + " '%s' : %s "%(k2,buffer[k2]))			
 			else:
-			    log.info('%s '%self._str_funcCombined + ">" + " '%s' : %s "%(str_key,self.__dict__[atr][k]))		    
+			    self.log_info(">" + " '%s' : %s "%(str_key,self.__dict__[atr][k]))		    
 		except Exception,error:
 		    log.warning("Key not found or not dict: %s | %s"%(atr,error))
 	except:pass
@@ -494,6 +500,16 @@ def verify_mirrorSideArg(*args,**kws):
 	    except Exception,error:raise StandardError,"[ str_side: %s]{%s}"%(arg,error)	
     return fncWrap(*args,**kws).go()	
 
+
+def report_enviornment():
+    print(_str_headerDiv + " Enviornment Info " + _str_headerDiv + _str_subLine)	
+    #print(_str_headerDiv + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
+    for kw in ['cutIdentifier','version','apiVersion','file','product','date',
+               'application','buildDirectory','environmentFile','operatingSystem',
+               'operatingSystemVersion']:#'codeset'
+	try:print(_str_baseStart + " Maya %s : %s "%(kw, mel.eval( 'about -%s'%kw )))	
+	except Exception,error:log.error("%s | %s"%(kw,error))	
+
 #>>> Sub funcs ==============================================================================
 def subTimer(func):
     '''
@@ -511,6 +527,20 @@ def subTimer(func):
 	return res
     return wrapper  
 
+def cgmExceptCB(etype, value, tb, detail=2):
+    # do something here...
+    try:
+	if detail == 2:
+	    log.info("Exception encountered..")
+	    log.info("etype: %s"%etype)
+	    log.info("value: %s"%value)
+	    log.info("tb: %s"%tb)
+	    log.info("detail: %s"%detail)	    
+	    report_enviornment()		
+	return mUtils._formatGuiException(etype, value, tb, detail)
+    except Exception,error:
+	log.info("Exception Exception....{%s}"%error)
+mUtils.formatGuiException = cgmExceptCB
 
 """
 example subFunctionClass(object)
