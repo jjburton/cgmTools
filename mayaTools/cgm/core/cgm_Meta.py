@@ -369,7 +369,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		#args.insert(0,_mNodeSelf)
 		super(fncWrap, self).__init__(*args,**kws)
 		self.mi_mNode = _mNodeSelf
-		self._str_funcHelp = "Fill in this help/nNew line!"		
+		self._str_funcHelp = "Fill in this help \nNew line!"		
 		self._str_funcName= "%s.exampleWrapFunc"%_mNodeSelf.p_nameShort	
 		self._l_ARGS_KWS_DEFAULTS = [{'kw':'node',"default":None,'help':"Node to connect","argType":"mObject/maya object"},
 			                     {'kw':'attr',"default":None,'help':"Attribute to connect to","argType":"string"},
@@ -676,7 +676,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	if not i_node:
 	    raise StandardError, " %s.msgList_index >> invalid node: %s"%(self.p_nameShort,node)
 	if not self.msgList_exists(attr):
-	    raise StandardError, " %s.msgList_append >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
+	    raise StandardError, " %s.msgList_index >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
 	#log.debug(">>> %s.msgList_index(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
 	ml_nodes = self.msgList_get(attr,asMeta=True)	
 	if i_node in ml_nodes:
@@ -4390,56 +4390,56 @@ def validateObjArg(*args,**kws):
 	    default_mType = self.d_kws['default_mType']
 	    mayaType = self.d_kws['mayaType']		
 	    #------------------------------------------------------------------------------------
-	    i_arg = False
+	    self.mi_arg = False
 	    argType = type(arg)
 	    if argType in [list,tuple]:#make sure it's not a list
 		if len(arg) ==1:
 		    arg = arg[0]
 		elif arg == []:
 		    arg = None
-		else:raise StandardError,"arg cannot be list or tuple: %s"%arg	
+		else:raise  self.ExceptionMinor,"arg cannot be list or tuple: %s"%arg	
 	    if not noneValid:
 		if arg in [None,False]:
-		    raise StandardError,"arg cannot be None"
+		    raise self.ExceptionMinor,"arg cannot be None"
 	    else:
 		if arg in [None,False]:
 		    if arg not in [None,False]:log.warning("%s arg fail: %s"%(self._str_reportStart,arg))
 		    return False
-	    if issubclass(argType,r9Meta.MetaClass):#we have an instance already
-		i_arg = arg
+	    if issubclass(argType,cgmNode):#we have an instance already
+		self.mi_arg = arg
 	    elif not mc.objExists(arg):
 		if noneValid: return False
-		else:raise StandardError,"Doesn't exist: %s"%arg   
+		else:raise self.ExceptionMinor,"Obj doesn't exist: '%s'"%arg   
 	    elif mType is not None:
 		#log.debug("validateObjArg>>> mType arg: '%s'"%mType)
-		if i_arg: i_autoInstance = i_arg
-		else: i_autoInstance = r9Meta.MetaClass(arg)
+		if self.mi_arg: self.mi_autoInstance = self.mi_arg
+		else: self.mi_autoInstance = cgmNode(arg)
 		if type(mType) in [unicode,str]:
 		    #log.debug("validateObjArg>>> string mType: '%s'"%mType)
-		    if i_autoInstance.getAttr('mClass') == mType:
-			i_arg = i_autoInstance
+		    self.str_foundClass = str(self.mi_autoInstance).split("'>")[0].split(".")[-1]
+		    if self.mi_autoInstance.getAttr('mClass') == mType:
+			self.mi_arg = self.mi_autoInstance
+		    elif self.str_foundClass == mType:
+			self.mi_arg = self.mi_autoInstance			
 		    else:
-			raise StandardError,"'%s' Not correct mType: mType:%s != %s"%(i_autoInstance.p_nameShort,i_autoInstance.mClass,mType)			    
+			raise StandardError,"['%s' Not correct mType. Called from string mType]{mType Seeking: %s | mClass : %s | Found Type: %s}"%(self.mi_autoInstance.p_nameShort,mType,self.mi_autoInstance.getAttr('mClass'),self.str_foundClass)			    
 		else:
-		    #log.debug("validateObjArg>>> class mType: '%s'"%mType)		
-		    if issubclass(type(i_autoInstance),mType):#if it's a subclass of our mType, good to go
-			i_arg = i_autoInstance
-		#log.debug("validateObjArg>>> Initializing as mType: %s"%mType)	
-		i_arg =  mType(arg)
+		    if issubclass(type(self.mi_autoInstance),mType):#if it's a subclass of our mType, good to go
+			self.mi_arg = self.mi_autoInstance
+		    else:self.mi_arg = mType(arg)
 	    else:
 		#log.debug("validateObjArg>>> Initializing as defaultType: %s"%default_mType)
-		i_arg = default_mType(arg)
-		
+		self.mi_arg = default_mType(arg)
 	    if mayaType is not None and len(mayaType):
 		if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
 		else: l_mayaTypes = mayaType
-		str_type = search.returnObjectType(i_arg.getComponent())
+		str_type = search.returnObjectType(self.mi_arg.getComponent())
 		if str_type not in l_mayaTypes:
 		    if noneValid:
-			log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(self._str_reportStart,i_arg.p_nameShort,str_type,l_mayaTypes))
+			log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(self._str_reportStart,self.mi_arg.p_nameShort,str_type,l_mayaTypes))
 			return False
-		    raise StandardError,"'%s' mayaType: '%s' not in: '%s'"%(i_arg.p_nameShort,str_type,l_mayaTypes)			    	
-	    return i_arg	    
+		    raise StandardError,"'%s' mayaType: '%s' not in: '%s'"%(self.mi_arg.p_nameShort,str_type,l_mayaTypes)			    	
+	    return self.mi_arg	    
     return fncWrap(*args,**kws).go()
  
 def validateObjListArg(*args,**kws):

@@ -190,7 +190,9 @@ class cgmFuncCls(object):
 		
     def __func__(self,*args,**kws):
 	raise StandardError,"%s No function set"%self._str_reportStart
-        
+    
+    class ExceptionMinor(Exception):pass
+    
     def go(self,*args,**kws):
 	"""
 	"""
@@ -203,30 +205,34 @@ class cgmFuncCls(object):
 	    int_keys = range(0,len(self.l_funcSteps)-1)
 	    int_max = len(self.l_funcSteps)-1
 	except Exception,error:
-	    raise StandardError, ">"*3 + " %s >!FAILURE!> go start | Error: %s"%(self._str_funcCombined,error)
+	    raise StandardError, ">"*3 + " %s[FAILURE go start]{%s}"%(self._str_funcCombined,error)
 	
 	mc.undoInfo(openChunk=True)
 	int_lenSteps = len(self.l_funcSteps)
 	for i,d_step in enumerate(self.l_funcSteps):
 	    t1 = time.clock()	    
-	    try:	
-		_str_step = d_step.get('step') or False
-		if _str_step:
-		    self._str_progressBarReportStart = self._str_funcCombined + " %s "%_str_step
-		else: _str_step = self._str_funcName
-		
-		if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
-		
-		res = d_step['call'](*args,**kws)
-		if res is not None:
-		    self.d_return[_str_step] = res
-		"""
-		if goTo.lower() == str_name:
-		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
-		    break"""
+	    try:
+		try:
+		    _str_step = d_step.get('step') or False
+		    if _str_step:
+			self._str_progressBarReportStart = self._str_funcCombined + " %s "%_str_step
+		    else: _str_step = 'process'
+		    if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
+		    
+		    res = d_step['call'](*args,**kws)
+		    if res is not None:
+			self.d_return[_str_step] = res
+		    """
+		    if goTo.lower() == str_name:
+			log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
+			break"""
+		except self.ExceptionMinor,error:
+		    #_str_fail = "[Step: '%s'] > %s"%(_str_step,error)#stored the failed step string
+		    self.log_error("[Exception | step: %s]{%s} "%(_str_step,error))					
+		    #raise "%s !!MINOR ERROR!! %s"%(self._str_funcCombined,_str_fail)	
+		    break
 	    except Exception,error:
-		_str_fail = "[Step: '%s'] > %s"%(_str_step,error)#stored the failed step string
-		
+		_str_fail = "[Step: '%s'] > %s"%(_str_step,error)#stored the failed step string		
 		self.report_base()
 		self.report_selfStored()		
 		self.report_enviornment()
@@ -234,12 +240,13 @@ class cgmFuncCls(object):
 		self.log_error("Fail Time >> = %0.3f seconds " % ((time.clock()-t1)))	
 		self.progressBar_end()
 		mc.undoInfo(closeChunk=True)			
-		raise StandardError, "%s !!ERROR!! %s"%(self._str_funcCombined,_str_fail)		
+		raise Exception, "%s [ERROR]{%s}"%(self._str_funcCombined,_str_fail)		
 	    t2 = time.clock()
 	    _str_time = "%0.3f seconds"%(t2-t1)
 	    self._l_funcTimes.append([_str_step,_str_time])	
 	self.progressBar_end()
 	mc.undoInfo(closeChunk=True)	
+	
 	#Reporting and closing out =========================================================================
 	if self._b_WIP or self.d_kws.get('reportShow'):
 	    self.report()	
@@ -254,14 +261,20 @@ class cgmFuncCls(object):
 	if int_max == 0:#If it's a one step, return, return the single return
 	    try:return self.d_return[self.d_return.keys()[0]]
 	    except:pass
+	    
 	if self.d_kws.get('reportEnv') and not self.d_kws.get('reportShow'):
-	    self.report_enviornment()   	
+	    self.report_enviornment()   
+	    
+	return self._return_()
+	
+    def _return_(self):
+	'''overloadable for special return'''
 	for k in self.d_return.keys():#Otherise we return the first one with actual data
 	    buffer = self.d_return.get(k)
 	    if buffer:
 		return buffer
 	if self.d_return:return self.d_return
-    
+	
     def report(self):
 	self.get_moduleData()
 	self.report_base()
