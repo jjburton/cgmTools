@@ -73,11 +73,11 @@ class MorpheusBase_Test():
         spine.doSize()
         
 
-def ut_cgmCore(*args, **kws):
+def ut_AllTheThings(*args, **kws):
     class fncWrap(cgmGeneral.cgmFuncCls):
 	def __init__(self,*args, **kws):
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName = 'ut_cgmCore'	
+	    self._str_funcName = 'ut_AllTheThings'	
 	    self._b_autoProgressBar = 1
 	    self._b_reportTimes = 1
 		
@@ -1110,7 +1110,10 @@ def ut_cgmPuppet(*args, **kws):
 	                        {'step':'cgmModule calls','call':self._cgmModuleTests_},
 	                        ]
 	
-	def _puppetTests_(self):    
+	def _puppetTests_(self):   
+	    try:mc.file(new=True,f=True)
+	    except Exception,error:raise StandardError,"[File Open]{%s}"%error
+	    
 	    self.mi_puppet = cgmPM.cgmPuppet(name = 'Kermit')
 	    Puppet = self.mi_puppet
     

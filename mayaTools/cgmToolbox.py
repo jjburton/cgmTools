@@ -10,6 +10,8 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+from cgm.core import cgm_General as cgmGeneral
+
 try:
     #try to connect to wing - otherwise don't worry
     import wingdbstub
@@ -320,12 +322,7 @@ def connectToWingIDE( *a ):
     except:
         from cgm.lib import cgmDeveloperLib
     cgmDeveloperLib.connectToWing()
-    
-def testCGMCore( *a ):
-    from cgm.core.tests import cgmMeta_test as testCGM
-    reload(testCGM)
-    testCGM.ut_cgmCore()
-    
+        
 def testMorpheus( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
@@ -340,8 +337,59 @@ def loadMorpheusMaker( *a ):
     
     reload(mMaker)    
     mMaker.go()
+
+#Unittest =====================================================================
+def unittest_All( *a ):
+    from cgm.core.tests import cgmMeta_test as testCGM
+    reload(testCGM)
+    testCGM.ut_AllTheThings()
     
-#Zoo stuff
+def unittest_cgmMeta( *a ):
+    from cgm.core.tests import cgmMeta_test as testCGM
+    reload(testCGM)
+    testCGM.ut_cgmMeta()
+    
+def unittest_cgmPuppet( *a ):
+    from cgm.core.tests import cgmMeta_test as testCGM
+    reload(testCGM)
+    testCGM.ut_cgmPuppet()    
+
+#Help stuff =====================================================================
+def goTo_keyframeCoop( *a ):
+    try:
+	import webbrowser
+	webbrowser.open("http://keyframeco-op.com/")
+    except Exception,error:
+	log.warning("[Failed to load Keyframe Co-op]{%s}"%error)
+	
+def goTo_cgmVimeo( *a ):
+    try:
+	import webbrowser
+	webbrowser.open("http://vimeo.com/cgmonks")
+    except Exception,error:
+	log.warning("[Failed to load cgm vimeo]{%s}"%error)
+	
+def goTo_red9Vimeo( *a ):
+    try:
+	import webbrowser
+	webbrowser.open("http://vimeo.com/user9491246")
+    except Exception,error:
+	log.warning("[Failed to load red9 vimeo]{%s}"%error)
+	
+def goTo_stackOverflow( *a ):
+    try:
+	import webbrowser
+	webbrowser.open("http://stackoverflow.com")
+    except Exception,error:
+	log.warning("[Failed to load stackOverflow]{%s}"%error)
+	
+def get_enviornmentInfo( *a ):
+    try:
+	cgmGeneral.report_enviornment()
+    except Exception,error:
+	log.warning("[Failed to report enviornment]{%s}"%error)
+	
+#Zoo stuff =====================================================================
 def loadZooToolbox( *a ):
     import zooToolbox
     zooToolbox.ToolboxWindow()
@@ -432,16 +480,30 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                         #                       connectToWingIDE), 
                        ('Start Wing Server', " Opens a command port for Wing IDE",
                                                startWingServer),                          
-                       ('Debug cgm.core', " WARNING - Opens new file...Unit test cgm.core",
-                        testCGMCore),
                        ('Simple cgmGUI', " Base cgmGUI",
                         loadCGMSimpleGUI),
                        ('cgm.MorpheusMaker', " Morpheus maker tool",
                         loadMorpheusMaker),
                         ('zooToolbox', " Open zooToolbox Window",
-                        loadZooToolbox),                           
+                        loadZooToolbox),        
+                        ('unitTest - cgm', " WARNING - Opens new file...Unit test cgm.core",
+                         unittest_All),  
+                        ('unitTest - cgmMeta', " WARNING - Opens new file...Unit test cgm.core",
+                         unittest_cgmMeta),   
+                        ('unitTest - cgmPuppet', " WARNING - Opens new file...Unit test cgm.core",
+                         unittest_cgmPuppet),                           
+                       )),
+              ('help', (('Keyframe Co-op', " Community Support ",
+                        goTo_keyframeCoop),  
+                        ('CG Monks Vimeo', " Tutorials and more ",
+                          goTo_cgmVimeo), 
+                        ('Red9 Vimeo', " Tutorials and more ",
+                          goTo_red9Vimeo),   
+                        ('Stack Overflow', " This is where we go when code-stumped... ",
+                          goTo_stackOverflow),                          
+                        ('Enviornment Info', " What's your maya enviornment? ",
+                          get_enviornmentInfo),                           
                        ))
-
               )
 
 
