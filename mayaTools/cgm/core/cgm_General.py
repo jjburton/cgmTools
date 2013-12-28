@@ -116,7 +116,7 @@ class cgmFuncCls(object):
 	self._str_mod = None	
 	self._l_funcTimes = []
 	#These are our mask so that the fail report ignores them
-	self._l_reportMask = ['_str_fail','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	self._l_reportMask = ['int_max','_str_fail','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
@@ -261,13 +261,14 @@ class cgmFuncCls(object):
 	if self._b_WIP or self.d_kws.get('reportShow'):
 	    self.report()	
 	if self._b_reportTimes:
+	    f_total = (time.clock()-t_start)	    
 	    if int_lenSteps > 1:
-		self.log_info(_str_headerDiv + " Times (seconds) | Total : %0.3f"%((time.clock()-t_start)) + _str_headerDiv + _str_subLine)			    	    
+		self.log_info(_str_headerDiv + " Times " + _str_headerDiv + _str_subLine)			    	    
 		if self.int_max != 0:
 		    for pair in self._l_funcTimes:
 			self.log_info(" -- '%s' >>  %s " % (pair[0],pair[1]))				 
-		#print("[ Total = %0.3f ] " % ((time.clock()-t_start)))
-	    else:self.log_info("[ Total = %0.3f ] " % ((time.clock()-t_start)))
+		self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
+	    else:self.log_warning("[Total = %0.3f sec] " % (f_total))
 	    	    
 	if self.d_kws.get('reportEnv'):
 	    report_enviornment()   
@@ -388,8 +389,8 @@ class cgmFuncCls(object):
 	except:pass
     def log_warning(self,arg):
 	try:
-	    #log.warning("[WARNING]%s%s"%(self._str_reportStart,str(arg)))
-	    print("[WARNING]%s%s"%(self._str_reportStart,str(arg)))	    
+	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
+	    #print("[WARNING]%s%s"%(self._str_reportStart,str(arg)))	    
 	except:pass	
     def log_debug(self,arg):
 	try:
@@ -509,7 +510,7 @@ def report_enviornment():
                'operatingSystemVersion']:#'codeset'
 	try:print(_str_baseStart + " Maya %s : %s "%(kw, mel.eval( 'about -%s'%kw )))	
 	except Exception,error:log.error("%s | %s"%(kw,error))	
-
+	
 #>>> Sub funcs ==============================================================================
 def subTimer(func):
     '''
