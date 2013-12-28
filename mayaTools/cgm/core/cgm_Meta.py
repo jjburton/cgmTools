@@ -4397,10 +4397,10 @@ def validateObjArg(*args,**kws):
 		    arg = arg[0]
 		elif arg == []:
 		    arg = None
-		else:raise Exception,"arg cannot be list or tuple: %s"%arg	
+		else:raise ValueError,"arg cannot be list or tuple: %s"%arg	
 	    if not noneValid:
 		if arg in [None,False]:
-		    raise Exception,"arg cannot be None"
+		    raise ValueError,"arg cannot be None"
 	    else:
 		if arg in [None,False]:
 		    if arg not in [None,False]:log.warning("%s arg fail: %s"%(self._str_reportStart,arg))
@@ -4409,7 +4409,7 @@ def validateObjArg(*args,**kws):
 		self.mi_arg = arg
 	    elif not mc.objExists(arg):
 		if noneValid: return False
-		else:raise Exception,"Obj doesn't exist: '%s'"%arg   
+		else:raise ValueError,"Obj doesn't exist: '%s'"%arg   
 	    elif mType is not None:
 		#log.debug("validateObjArg>>> mType arg: '%s'"%mType)
 		if self.mi_arg: self.mi_autoInstance = self.mi_arg
