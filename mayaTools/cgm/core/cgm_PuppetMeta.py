@@ -20,9 +20,7 @@ import time
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_AnimationUtils as r9Anim
-from cgm.core import cgm_General as cgmGeneral
 
-from cgm.core.lib import curve_Utils as crvUtils
 
 #========================================================================
 import logging
@@ -32,14 +30,12 @@ log.setLevel(logging.INFO)
 #========================================================================
 
 # From cgm ==============================================================
-#from cgm.lib.classes import NameFactory
-#from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_General as cgmGeneral
+from cgm.core.lib import curve_Utils as crvUtils
 import cgm_Meta as cgmMeta
 from cgm.core.lib import nameTools
 from cgm.core.rigger import ModuleFactory as mFactory
-reload(mFactory)
 from cgm.core.rigger import PuppetFactory as pFactory
-reload(pFactory)
 from cgm.core.rigger import MorpheusFactory as morphyF
 
 from cgm.core.classes import NodeFactory as nodeF

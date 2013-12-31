@@ -28,11 +28,8 @@ from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.lib import meta_Utils as metaUtils
-reload(metaUtils)
 from cgm.core.lib import shapeCaster as ShapeCast
-reload(ShapeCast)
-reload(RayCast)
-reload(Snap)
+
 from cgm.lib import (cgmMath,
                      locators,
                      modules,

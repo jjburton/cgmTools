@@ -1184,7 +1184,7 @@ def ut_cgmPuppet(*args, **kws):
 		try:
 		    Puppet2.__verify__()
 		except StandardError,error:
-			log.error("test_cgmPuppet>>Puppet2.__verify() Failed!  %s"%error)
+			self.log_error("Puppet2.__verify() Failed!  %s"%error)
 			raise StandardError,error 
 	    except Exception,error:raise StandardError,"[compare]{%s}"%error
                        	    
@@ -1435,6 +1435,10 @@ def ut_cgmLimb(*args, **kws):
 	    #try:#Template pose-----------------------------------------------------
 	    self.log_todo("Need to add template pose tests")
 	    #except Exception,error:raise StandardError,"[state check]{%s}"%(error)
+	    
+	    #self.log_warning("Test warning")
+	    #self.log_error("Test error")
+	    #raise StandardError,"Stop"
 	    
 	def _skeleton_(self):
 	    try:#Query -------------------------------------------------------------

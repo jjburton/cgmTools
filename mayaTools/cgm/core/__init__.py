@@ -23,10 +23,20 @@ import cgm_General
 import cgm_Meta
 import cgm_PuppetMeta
 import cgm_RigMeta
+import cgmPy.validateArgs
 import rigger.ModuleFactory
 import rigger.TemplateFactory
 import rigger.JointFactory
 import rigger.PuppetFactory
+import rigger.RigFactory
+import rigger.ModuleShapeCaster
+import rigger.ModuleControlFactory
+
+import classes.DraggerContextFactory
+import classes.SnapFactory
+import lib.rayCaster
+import lib.meta_Utils
+import lib.shapeCaster
 
 import os
 from cgm.core.lib.zoo.path import Path
@@ -40,10 +50,20 @@ def _reload():
     reload(cgm_Meta)
     reload(cgm_PuppetMeta)
     reload(cgm_RigMeta)
+    reload(cgmPy.validateArgs)
     reload(rigger.ModuleFactory)
     reload(rigger.JointFactory)
     reload(rigger.TemplateFactory)
     reload(rigger.PuppetFactory)
+    reload(rigger.RigFactory)
+    reload(rigger.ModuleShapeCaster)
+    reload(rigger.ModuleControlFactory)
+    
+    reload(classes.DraggerContextFactory)
+    reload(classes.SnapFactory)
+    reload(lib.rayCaster)
+    reload(lib.meta_Utils)
+    reload(lib.shapeCaster)
     
     
     #Red9_Meta.registerMClassInheritanceMapping()#shouldn't be necessary as they do this per mdodule

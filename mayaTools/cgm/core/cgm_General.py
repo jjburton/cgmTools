@@ -117,8 +117,10 @@ class cgmFuncCls(object):
 	self._str_mod = None	
 	self._l_funcTimes = []
 	self._l_toDo = []
+	self._l_errors = []
+	self._l_warnings = [] 
 	#These are our mask so that the fail report ignores them
-	self._l_reportMask = ['_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	self._l_reportMask = ['_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
@@ -215,6 +217,8 @@ class cgmFuncCls(object):
 		#self.log_info("Traceback Obj: %s"%tb)
 		#self.log_info("Detail: %s"%detail)		
 		self.report_selfStored()
+		self.report_warnings()		
+		self.report_errors()
 	    else:self.log_error("[Step: '%s' | time: %s]{%s}"%(self._str_failStep,self._str_failTime,self._ExceptionError))
 	    if detail == 2:self.log_info(_str_hardBreak)
 	    self.progressBar_end()
@@ -325,7 +329,7 @@ class cgmFuncCls(object):
 	self.update_moduleData()
 	self.report_base()
 	self.report_selfStored()
-	self.report_steps()
+	if not self._b_reportTimes:self.report_steps()
 		
     def report_base(self):
 	self.update_moduleData()
@@ -373,6 +377,20 @@ class cgmFuncCls(object):
 	if self._l_toDo:
 	    self.log_info(_str_headerDiv + " To Do: " + _str_headerDiv + _str_subLine)	  	    
 	    for i,d in enumerate(self._l_toDo):
+		try:self.log_info(" -- %s : %s "%(i,d))
+		except:pass    
+		
+    def report_errors(self):	    
+	if self._l_errors:
+	    self.log_info(_str_headerDiv + " Errors : " + _str_headerDiv + _str_subLine)	  	    
+	    for i,d in enumerate(self._l_errors):
+		try:self.log_info(" -- %s : %s "%(i,d))
+		except:pass   
+		
+    def report_warnings(self):	    
+	if self._l_warnings:
+	    self.log_info(_str_headerDiv + " Warnings : " + _str_headerDiv + _str_subLine)	  	    
+	    for i,d in enumerate(self._l_warnings):
 		try:self.log_info(" -- %s : %s "%(i,d))
 		except:pass    
 		
@@ -443,12 +461,16 @@ class cgmFuncCls(object):
 	
     def log_error(self,arg):
 	try:
+	    try:self._l_errors.append("%s | %s"%(self._str_step,str(arg)))
+	    except:self._l_errors.append("%s"%(str(arg)))	    
 	    log.error("%s%s"%(self._str_reportStart,str(arg)))
 	    #print("[ERROR]%s%s"%(self._str_reportStart,str(arg)))	    
 	except:pass
 	
     def log_warning(self,arg):
 	try:
+	    try:self._l_warnings.append("%s | %s"%(self._str_step,str(arg)))
+	    except:self._l_warnings.append("%s"%(str(arg)))	    
 	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
 	    #print("[WARNING]%s%s"%(self._str_reportStart,str(arg)))	    
 	except:pass	
@@ -561,7 +583,6 @@ def verify_mirrorSideArg(*args,**kws):
 		else:raise StandardError,"Failed to find match"
 	    except Exception,error:raise StandardError,"[ str_side: %s]{%s}"%(arg,error)	
     return fncWrap(*args,**kws).go()	
-
 
 def report_enviornment():
     print(_str_headerDiv + " Enviornment Info " + _str_headerDiv + _str_subLine)	
