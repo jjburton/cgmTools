@@ -1028,7 +1028,9 @@ def fnc_verify_faceSkullPlate(*args,**kws):
 def isBuildable(goInstance):
     self = goInstance
     _str_funcName = "%s.isBuildable"%self._strShortName
-    log.debug(">>> %s "%(_str_funcName) + "="*75)    
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  
+    log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
+    
     try:
 	if not issubclass(type(goInstance),go):
 	    log.error("Not a RigFactory.go instance: '%s'"%goInstance)
@@ -1084,7 +1086,9 @@ def verify_moduleRigToggles(goInstance):
     self = goInstance
     _str_funcName = "%s.verify_moduleRigToggles"%self._strShortName
     log.debug(">>> %s "%(_str_funcName) + "="*75)   
-    start = time.clock()    
+    start = time.clock()   
+    log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
+    
     try:
 	str_settings = str(self._i_masterSettings.getShortName())
 	str_partBase = str(self._partName + '_rig')
@@ -1114,6 +1118,8 @@ def bindJoints_connect(goInstance):
 	raise StandardError
     self = goInstance
     start = time.clock()    
+    log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
+    
     try:
 	_str_funcName = "%s.bindJoints_connect"%self._strShortName  
 	log.debug(">>> %s "%(_str_funcName) + "="*75)      
@@ -1148,7 +1154,9 @@ def bindJoints_connectToBlend(goInstance):
 	raise StandardError
     self = goInstance
     _str_funcName = "%s.verify_moduleRigToggles"%self._strShortName
-    log.debug(">>> %s "%(_str_funcName) + "="*75)   
+    log.debug(">>> %s "%(_str_funcName) + "="*75)  
+    log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
+    
     start = time.clock()        
     try:
 	l_rigJoints = self._i_rigNull.msgList_get('blendJoints',False) or False
@@ -1179,7 +1187,9 @@ def get_skinJointsOLD(self, asMeta = True):
     try:
 	_str_funcName = "%s.get_skinJoints"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
-	start = time.clock()        	
+	start = time.clock()       
+	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
+	
 	"""
 	if not self.isSkeletonized():
 	    raise StandardError,"%s.get_skinJoints >> not skeletonized."%(self.p_nameShort)"""
@@ -1206,7 +1216,9 @@ def get_rigHandleJoints(self, asMeta = True):
     try:
 	_str_funcName = "%s.get_rigHandleJoints"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
-	start = time.clock()        		
+	start = time.clock()     
+	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
+	
 	"""
 	if not self.isSkeletonized():
 	    raise StandardError,"%s.get_rigHandleJoints >> not skeletonized."%(self.p_nameShort)"""	
@@ -1232,6 +1244,7 @@ def get_rigDeformationJoints(self,asMeta = True):
 	_str_funcName = "%s.get_rigHandleJoints"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 	
 	start = time.clock()        		
+	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
 	
 	ml_rigJoints = self.rigNull.msgList_get('rigJoints')
 	if not ml_rigJoints:
@@ -1257,6 +1270,8 @@ def get_handleJoints(self,asMeta = True):
     try:
 	_str_funcName = "%s.get_handleJoints"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
+	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
+	
 	return self.rigNull.msgList_get('handleJoints',asMeta = asMeta, cull = True)
 	"""
 	ml_handleJoints = []
@@ -1279,6 +1294,7 @@ def get_segmentHandleTargets(self):
 	_str_funcName = "%s.get_segmentHandleTargets"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
 	start = time.clock()        		
+	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
 	
 	ml_handleJoints = self.rig_getHandleJoints()
 	log.debug(ml_handleJoints)
@@ -1314,6 +1330,7 @@ def get_influenceChains(self):
 	_str_funcName = "%s.get_influenceChains"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 	
 	start = time.clock()        		
+	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
 	
 	l_influenceChains = []
 	ml_influenceChains = []
@@ -1337,6 +1354,7 @@ def get_segmentHandleChains(self):
 	_str_funcName = "%s.get_segmentHandleChains"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 	
 	start = time.clock()        		
+	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
 	
 	l_segmentHandleChains = []
 	ml_segmentHandleChains = []
@@ -1359,6 +1377,7 @@ def get_segmentChains(self):
 	_str_funcName = "%s.get_segmentChains"%self.p_nameShort  
 	log.debug(">>> %s "%(_str_funcName) + "="*75) 
 	start = time.clock()        		
+	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
 	
 	l_segmentChains = []
 	ml_segmentChains = []
@@ -1383,6 +1402,7 @@ def get_rigJointDriversDict(self,printReport = True):
     _str_funcName = "%s.get_rigJointDriversDict"%self.p_nameShort  
     log.debug(">>> %s "%(_str_funcName) + "="*75)   
     start = time.clock()        		
+    log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
     
     def __findDefJointFromRigJoint(i_jnt):	    
 	if i_jnt.getMessage('rigJoint'):
@@ -1508,7 +1528,8 @@ def get_simpleRigJointDriverDict(self,printReport = True):
     Figure out what drives skin joints. BLend joints should have the priority, then segment joints
     """
     _str_funcName = "%s.get_simpleRigJointDriverDict"%self.p_nameShort  
-    log.debug(">>> %s "%(_str_funcName) + "="*75)    
+    log.debug(">>> %s "%(_str_funcName) + "="*75)   
+    log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)    
     start = time.clock()        		    
     #>>>Initial checks
     ml_blendJoints = []
@@ -1603,34 +1624,35 @@ def get_simpleRigJointDriverDict(self,printReport = True):
 	#raise StandardError,"get_rigJointDriversDict >> self: %s | error: %s"%(self,error)
 
 def get_report(self):
-    #try:
-    _str_funcName = "%s.get_report"%self.p_nameShort  
-    log.debug(">>> %s "%(_str_funcName) + "="*75)  
-    start = time.clock()        		    
-    if not self.isSkeletonized():
-	log.error("%s.get_report >> Not skeletonized. Wrong report."%(self.p_nameShort))
-	return False
-    l_moduleJoints = self.rigNull.msgList_get('moduleJoints',False) or []
-    l_skinJoints =self._mi_module.rig_getSkinJoints(False)
-    ml_handleJoints = get_handleJoints(self) or []
-    l_rigJoints = self.rigNull.msgList_get('rigJoints',False) or []
-    ml_rigHandleJoints = get_rigHandleJoints(self) or []
-    ml_rigDefJoints = get_rigDeformationJoints(self) or []
-    ml_segmentHandleTargets = get_segmentHandleTargets(self) or []
-    
-    log.info("%s.get_report >> "%self.getShortName() + "="*50)
-    log.info("moduleJoints: len - %s | %s"%(len(l_moduleJoints),l_moduleJoints))	
-    log.info("skinJoints: len - %s | %s"%(len(l_skinJoints),l_skinJoints))	
-    log.info("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
-    log.info("rigJoints: len - %s | %s"%(len(l_rigJoints),l_rigJoints))	
-    log.info("rigHandleJoints: len - %s | %s"%(len(ml_rigHandleJoints),[i_jnt.getShortName() for i_jnt in ml_rigHandleJoints]))	
-    log.info("rigDeformationJoints: len - %s | %s"%(len(ml_rigDefJoints),[i_jnt.getShortName() for i_jnt in ml_rigDefJoints]))	
-    log.info("segmentHandleTargets: len - %s | %s"%(len(ml_segmentHandleTargets),[i_jnt.getShortName() for i_jnt in ml_segmentHandleTargets]))	
-    
-    log.info("="*75)
-    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
-    #except Exception,error:
-	#raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
+    try:
+	_str_funcName = "%s.get_report"%self.p_nameShort  
+	log.debug(">>> %s "%(_str_funcName) + "="*75)  
+	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
+	start = time.clock()        		    
+	if not self.isSkeletonized():
+	    log.error("%s.get_report >> Not skeletonized. Wrong report."%(self.p_nameShort))
+	    return False
+	l_moduleJoints = self.rigNull.msgList_get('moduleJoints',False) or []
+	l_skinJoints =self.rig_getSkinJoints(False)
+	ml_handleJoints = get_handleJoints(self) or []
+	l_rigJoints = self.rigNull.msgList_get('rigJoints',False) or []
+	ml_rigHandleJoints = get_rigHandleJoints(self) or []
+	ml_rigDefJoints = get_rigDeformationJoints(self) or []
+	ml_segmentHandleTargets = get_segmentHandleTargets(self) or []
+	
+	log.info("%s.get_report >> "%self.getShortName() + "="*50)
+	log.info("moduleJoints: len - %s | %s"%(len(l_moduleJoints),l_moduleJoints))	
+	log.info("skinJoints: len - %s | %s"%(len(l_skinJoints),l_skinJoints))	
+	log.info("handleJoints: len - %s | %s"%(len(ml_handleJoints),[i_jnt.getShortName() for i_jnt in ml_handleJoints]))	
+	log.info("rigJoints: len - %s | %s"%(len(l_rigJoints),l_rigJoints))	
+	log.info("rigHandleJoints: len - %s | %s"%(len(ml_rigHandleJoints),[i_jnt.getShortName() for i_jnt in ml_rigHandleJoints]))	
+	log.info("rigDeformationJoints: len - %s | %s"%(len(ml_rigDefJoints),[i_jnt.getShortName() for i_jnt in ml_rigDefJoints]))	
+	log.info("segmentHandleTargets: len - %s | %s"%(len(ml_segmentHandleTargets),[i_jnt.getShortName() for i_jnt in ml_segmentHandleTargets]))	
+	
+	log.info("="*75)
+	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)		
+    except Exception,error:
+	raise StandardError,"get_report >> self: %s | error: %s"%(self,error)	
     
 #Module Rig Functions ===================================================================================================    
 #!! Duplicated from ModuleFactory due to importing loop 
