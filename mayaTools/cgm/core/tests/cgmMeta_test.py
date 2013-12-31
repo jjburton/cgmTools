@@ -253,6 +253,7 @@ def ut_cgmMeta(*args, **kws):
 	    i_null.delete()
 	    i_node.delete()
 	    i_obj.delete()    
+	    
 	def _cgmAttr_(self):    
 	    self.cgmAttrNull = cgmMeta.cgmObject(name = 'cgmAttrNull',nodeType = 'transform')
 	    node=self.cgmAttrNull
@@ -1281,13 +1282,11 @@ def ut_cgmLimb(*args, **kws):
 	    self._b_reportTimes = 1
 	    self.__dataBind__(*args, **kws)
 	    self.l_funcSteps = [{'step':'File clear, import!','call':self._initial_},
-	                        {'step':'Define!','call':self._define_},
-	                        {'step':'Size!','call':self._size_},
-	                        {'step':'Template!','call':self._template_},
-	                        {'step':'Skeletonize!','call':self._skeleton_},
-	                        {'step':'Rig!','call':self._rig_},	                        	                        
-	                        #{'step':'File, get mesh','call':self._initial_},
-	                        
+	                        {'step':'Define checks...','call':self._define_},
+	                        {'step':'Size checks...','call':self._size_},
+	                        {'step':'Template checks...','call':self._template_},
+	                        {'step':'Skeletonize checks...','call':self._skeleton_},
+	                        {'step':'Rig checks...','call':self._rig_},	                        	                        	                        
 	                        ]
 	def _initial_(self):
 	    try:
@@ -1346,7 +1345,7 @@ def ut_cgmLimb(*args, **kws):
 		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)
 	    
 	    except Exception,error:raise StandardError,"[module creation]{%s}"%(error)
-		
+	    
 	    try:#State check -----------------------------------------------------
 		for str_tag in self.md_modules:
 		    try:
@@ -1373,20 +1372,42 @@ def ut_cgmLimb(*args, **kws):
 		    mModule = self.md_modules[str_tag]		    
 		    l_sizeData = d_limbSizeData[str_tag]
 		    try:
-			mModule.doSize(sizeMode = 'manual',posList = l_sizeData)
+			#mModule.doSize(sizeMode = 'manual',posList = l_sizeData)
+			mFactory.checkState(mModule,1,sizeMode = 'manual',posList = l_sizeData)
 		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)    
-	    except Exception,error:raise StandardError,"[module size call]{%s}"%(error)   
+	    except Exception,error:raise StandardError,"[module size by checkState]{%s}"%(error)   
 	    
 	    try:#State check -----------------------------------------------------
 		for str_tag in self.md_modules:
 		    try:
 			mModule = self.md_modules[str_tag]
-			assert mModule.getState() == 1,"%s state is not 1 | state: %s"%(str_tag,mModule.getState())
+			int_mState = mModule.getState()
+			assert int_mState == 1,"%s state is not 1 | state: %s"%(str_tag,int_mState)
 		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)
 		int_puppetState = mPuppet.getState() 
 		assert int_puppetState == 1,"Puppet state is not 1 | state: %s"%(int_puppetState)	    
 	    except Exception,error:raise StandardError,"[state check]{%s}"%(error)
-	
+	    
+	    try:#Change to define -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    mModule = self.md_modules[str_tag]
+		    try:
+			#mModule.doSize(sizeMode = 'manual',posList = l_sizeData)
+			mFactory.setState(mModule,0)
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)  
+		    int_mState = mModule.getState()
+		    assert int_mState == 0,"%s state is not 0 now | state: %s"%(str_tag,int_mState)	    
+	    except Exception,error:raise StandardError,"[module down state to define]{%s}"%(error)      
+	    
+	    try:#Size -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    mModule = self.md_modules[str_tag]		    
+		    l_sizeData = d_limbSizeData[str_tag]
+		    try:
+			mModule.doSize(sizeMode = 'manual',posList = l_sizeData)
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)    
+	    except Exception,error:raise StandardError,"[module size by doSize]{%s}"%(error)   
+	    
 	def _template_(self):
 	    try:#Query -------------------------------------------------------------
 		mPuppet = self.mi_puppet
@@ -1410,6 +1431,10 @@ def ut_cgmLimb(*args, **kws):
 		int_puppetState = mPuppet.getState() 
 		assert int_puppetState == 2,"Puppet state is not 2 | state: %s"%(int_puppetState)		    
 	    except Exception,error:raise StandardError,"[state check]{%s}"%(error)
+	    
+	    #try:#Template pose-----------------------------------------------------
+	    self.log_todo("Need to add template pose tests")
+	    #except Exception,error:raise StandardError,"[state check]{%s}"%(error)
 	    
 	def _skeleton_(self):
 	    try:#Query -------------------------------------------------------------
@@ -1472,6 +1497,10 @@ def ut_cgmLimb(*args, **kws):
 			except Exception,error:raise StandardError,"Rig Report"%(error)				
 		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)		    
 	    except Exception,error:raise StandardError,"[Rig state]{%s}"%(error)
+	    
+	    self.log_todo("Need to add mirror checks")
+	    self.log_todo("Need to add pose space stuff")
+	    self.log_todo("Need to add fk/ik switch testing")
 	    
     return fncWrap(*args, **kws).go()
 	    
