@@ -1349,7 +1349,8 @@ def checkState(*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "checkState('%s')"%self._str_moduleName	
+	    self._str_funcName = "checkState('%s')"%self._str_moduleName	
+	    self._str_funcHelp = "Checks if a module has the arg state.\nIf not, it goes to it. If so, it returns True"		    
 	    self._l_ARGS_KWS_DEFAULTS =  [_d_KWARG_mModule,
 	                                  {'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"}]		
 	    self.__dataBind__(*args,**kws)		    
@@ -1366,9 +1367,11 @@ def checkState(*args,**kws):
 	    l_stateArg = validateStateArg(stateArg)
 	    if not l_stateArg:raise StandardError,"Couldn't find valid state"
 	    
-	    if getState(*args,**kws) > l_stateArg[0]:
+	    if getState(*args,**kws) >= l_stateArg[0]:
+		self.log_debug("State is good")
 		return True
-		
+	    
+	    self.log_debug("Have to change state")
 	    changeState(stateArg,*args,**kws)
 	    return False
     return fncWrap(*args,**kws).go()
@@ -1459,14 +1462,12 @@ def changeState(*args,**kws):
 		l_reverseModuleStates = copy.copy(_l_moduleStates)
 		l_reverseModuleStates.reverse()
 		startState = currentState      
-		self.log_debug(' up stating...')     
-		self.log_debug("l_reverseModuleStates: %s"%l_reverseModuleStates)
+		#self.log_debug("l_reverseModuleStates: %s"%l_reverseModuleStates)
 		self.log_debug("Starting downState: '%s'"%_l_moduleStates[startState])
 		rev_start = l_reverseModuleStates.index( _l_moduleStates[startState] )+1
 		rev_end = l_reverseModuleStates.index( _l_moduleStates[stateIndex] )+1
 		doStates = l_reverseModuleStates[rev_start:rev_end]
 		self.log_debug("toDo: %s"%doStates)
-		
 		for doState in doStates:
 		    self.log_debug("doState: %s"%doState)
 		    if doState in d_downStateFunctions.keys():
