@@ -24,9 +24,12 @@ reload(cgmGeneral)
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import NodeFactory as NodeF
-reload(NodeF)
+from cgm.core.rigger import ModuleFactory as mFactory
+from cgm.core.rigger import PuppetFactory as pFactory
 
 import maya.cmds as mc
+
+DIR_SEPARATOR = '/' 
 
 def TestAllTheThings():
     """"
@@ -95,7 +98,6 @@ def ut_cgmMeta(*args, **kws):
 	    self._str_funcName = 'ut_cgmMeta'	
 	    self._b_autoProgressBar = 1
 	    self._b_reportTimes = 1
-	        
 	    self.__dataBind__(*args, **kws)
 	    self.l_funcSteps = [{'step':'Setup','call':self._setup_},	                        
 	                        {'step':'cgmNode function calls','call':self._cgmNodeCalls_},
@@ -116,7 +118,7 @@ def ut_cgmMeta(*args, **kws):
 	    Tests proper creation of objects from flag calls
 	    '''    
 	    try:mc.file(new=True,f=True)
-	    except Exception,error:raise StandardError,"[File Open]{%s}"%error
+	    except Exception,error:raise StandardError,"[File New]{%s}"%error
 	    
 	    try:#Simple Node creation ==================================================================
 		try:#Test name and node argument passing
@@ -1264,3 +1266,215 @@ def ut_cgmPuppet(*args, **kws):
 	    except Exception,error:raise StandardError,"[doSetParentModule]{%s}"%error
 	    
     return fncWrap(*args, **kws).go()
+
+#Modular rigger test stuff
+l_limbOrder = ['torso']
+d_limbTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':1} }      
+d_limbSizeData = {'torso':[[0.0, 86.503683037698877, 5.2647104334244403], [0.0, 97.642385920241935, 4.8370099120891705], [0.0, 108.78108880278479, 4.4093093907539123], [0.0, 119.91979168532802, 3.981608869418638], [0.0, 131.05849456787089, 3.5539083480833749]],
+                  }
+def ut_cgmLimb(*args, **kws):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'ut_cgmLimb'	
+	    self._b_autoProgressBar = 1
+	    self._b_reportTimes = 1
+	    self.__dataBind__(*args, **kws)
+	    self.l_funcSteps = [{'step':'File clear, import!','call':self._initial_},
+	                        {'step':'Define!','call':self._define_},
+	                        {'step':'Size!','call':self._size_},
+	                        {'step':'Template!','call':self._template_},
+	                        {'step':'Skeletonize!','call':self._skeleton_},
+	                        {'step':'Rig!','call':self._rig_},	                        	                        
+	                        #{'step':'File, get mesh','call':self._initial_},
+	                        
+	                        ]
+	def _initial_(self):
+	    try:
+		_str_fileName = 'morphyTestTorso.ma'
+		self._str_geo = 'Morphy_Body_GEO'
+		import cgm.core.tests as fldr_cgmTests
+		reload(fldr_cgmTests)		
+		l_mayaTestFiles = fldr_cgmTests.returnMayaFilesFromFolder()
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+
+	    try:mc.file(new=True,f=True)
+	    except Exception,error:raise StandardError,"[File New]{%s}"%error
+	    
+	    try:
+		mFile = DIR_SEPARATOR.join([fldr_cgmTests.__pathHere__,_str_fileName])
+		mc.file(mFile, i = True, pr = True, force = True,prompt = False) 		
+
+	    except Exception,error:
+		self.log_error("Found: %s"%l_mayaTestFiles)
+		raise StandardError,"[Import Mesh]{%s}"%error	
+	    
+	def _define_(self):
+	    try:#Puppet creation
+		self.mi_puppet = cgmPM.cgmPuppet(name =  'Charlie')
+		mPuppet = self.mi_puppet
+		self.md_modules = {}
+	    except Exception,error:raise StandardError,"[module creation]{%s}"%(error)
+	
+	    try:#Module Creation -----------------------------------------------------
+		for str_tag in l_limbOrder:
+		    try:
+			if str_tag in d_limbTemplateSettings.keys():#Make sure we have settings
+			    _d = d_limbTemplateSettings[str_tag]          
+			else:
+			    log.info("Missing limb info for: '%s'"%str_tag)
+			    return False			
+
+			_d = d_limbTemplateSettings[str_tag]
+			self._d_buffer = _d
+			kw_mType = _d.get('moduleType') or str_tag
+			kw_direction = _d.get('cgmDirection') or False
+			kw_name = _d.get('cgmName') or False 		
+			mModule = mPuppet.addModule(mClass = 'cgmLimb',mType = kw_mType,name = kw_name, direction = kw_direction)
+			self.md_modules[str_tag] = mModule#store back
+		    
+			try:
+			    for key in _d.keys():
+				i_templateNull = mModule.templateNull
+				if i_templateNull.hasAttr(key):
+				    self.log_debug("%s '%s': %s"%(str_tag,key,_d.get(key)))  
+				    try:i_templateNull.__setattr__(key,_d.get(key)) 
+				    except:log.warning("attr failed: %s"%key)	
+			except Exception,error:raise StandardError,"[Setting default settings]{%s}"%(error)
+			
+		    
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)
+	    
+	    except Exception,error:raise StandardError,"[module creation]{%s}"%(error)
+		
+	    try:#State check -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    try:
+			mModule = self.md_modules[str_tag]
+			assert mModule.getState() == 0,"%s state is not 0 | state: %s"%(str_tag,mModule.getState())
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)
+		int_puppetState = mPuppet.getState() 
+		assert int_puppetState == 0,"Puppet state is not 0 | state: %s"%(int_puppetState)
+	    except Exception,error:raise StandardError,"[state check]{%s}"%(error)
+		 
+	    try:#Add geo
+		self.mi_geo = cgmMeta.cgmObject(self._str_geo)
+		self.mi_geo.parent = mPuppet.masterNull.geoGroup
+		mPuppet.connectChildNode(self.mi_geo,'unifiedGeo')
+	    except Exception,error:raise StandardError,"[Add geo]{%s}"%(error)
+	
+	def _size_(self):
+	    try:#Query -------------------------------------------------------------
+		mPuppet = self.mi_puppet
+	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)
+	    
+	    try:#Size -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    mModule = self.md_modules[str_tag]		    
+		    l_sizeData = d_limbSizeData[str_tag]
+		    try:
+			mModule.doSize(sizeMode = 'manual',posList = l_sizeData)
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)    
+	    except Exception,error:raise StandardError,"[module size call]{%s}"%(error)   
+	    
+	    try:#State check -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    try:
+			mModule = self.md_modules[str_tag]
+			assert mModule.getState() == 1,"%s state is not 1 | state: %s"%(str_tag,mModule.getState())
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)
+		int_puppetState = mPuppet.getState() 
+		assert int_puppetState == 1,"Puppet state is not 1 | state: %s"%(int_puppetState)	    
+	    except Exception,error:raise StandardError,"[state check]{%s}"%(error)
+	
+	def _template_(self):
+	    try:#Query -------------------------------------------------------------
+		mPuppet = self.mi_puppet
+	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)
+	    
+	    try:#Template -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    mModule = self.md_modules[str_tag]		    
+		    l_sizeData = d_limbSizeData[str_tag]
+		    try:
+			mModule.doTemplate()
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)    
+	    except Exception,error:raise StandardError,"[module template call]{%s}"%(error)   
+	    
+	    try:#State check -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    try:
+			mModule = self.md_modules[str_tag]
+			assert mModule.getState() == 2,"%s state is not 1 | state: %s"%(str_tag,mModule.getState())
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)
+		int_puppetState = mPuppet.getState() 
+		assert int_puppetState == 2,"Puppet state is not 2 | state: %s"%(int_puppetState)		    
+	    except Exception,error:raise StandardError,"[state check]{%s}"%(error)
+	    
+	def _skeleton_(self):
+	    try:#Query -------------------------------------------------------------
+		mPuppet = self.mi_puppet
+	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)
+	    
+	    try:#skeleton -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    mModule = self.md_modules[str_tag]		    
+		    l_sizeData = d_limbSizeData[str_tag]
+		    try:
+			mModule.setState(3)
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)    
+	    except Exception,error:raise StandardError,"[module setState to skeleton call]{%s}"%(error)   
+	    
+	    try:#State check -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    try:
+			mModule = self.md_modules[str_tag]
+			assert mModule.getState() == 3,"%s state is not 1 | state: %s"%(str_tag,mModule.getState())
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)
+		int_puppetState = mPuppet.getState() 
+		assert int_puppetState == 3,"Puppet state is not 3 | state: %s"%(int_puppetState)		    
+	    except Exception,error:raise StandardError,"[state check]{%s}"%(error)
+	    
+	def _rig_(self):
+	    try:#Query -------------------------------------------------------------
+		mPuppet = self.mi_puppet
+	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)
+	    
+	    try:#skeleton -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    mModule = self.md_modules[str_tag]		    
+		    l_sizeData = d_limbSizeData[str_tag]
+		    try:
+			mModule.setState(4)
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)    
+	    except Exception,error:raise StandardError,"[module setState to rig call]{%s}"%(error)   
+	    
+	    try:#State check -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    try:
+			mModule = self.md_modules[str_tag]
+			assert mModule.getState() == 4,"%s state is not 1 | state: %s"%(str_tag,mModule.getState())
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)
+		int_puppetState = mPuppet.getState() 
+		assert int_puppetState == 4,"Puppet state is not 3 | state: %s"%(int_puppetState)		    
+	    except Exception,error:raise StandardError,"[state check]{%s}"%(error)
+	    
+	    try:#Rig state checks -----------------------------------------------------
+		for str_tag in self.md_modules:
+		    try:
+			mModule = self.md_modules[str_tag]
+			assert mModule.isRigConnected() == True,"Not connected"
+			try:mModule.rigDisconnect()
+			except Exception,error:raise StandardError,"Rig disconnect fail"%(error)		    
+			try:mModule.rigConnect()
+			except Exception,error:raise StandardError,"Rig reconnect fail"%(error)	
+			try:mFactory.rig_getReport(mModule)
+			except Exception,error:raise StandardError,"Rig Report"%(error)				
+		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)		    
+	    except Exception,error:raise StandardError,"[Rig state]{%s}"%(error)
+	    
+    return fncWrap(*args, **kws).go()
+	    
+
+
+	    
