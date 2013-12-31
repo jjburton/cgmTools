@@ -193,35 +193,34 @@ class cgmFuncCls(object):
         
     def _ExceptionHook_(self, etype, value, tb, detail=2):
 	# do something here...
-	#try:
-	if detail == 2:	    
-	    db_file = tb.tb_frame.f_code.co_filename
-	    
-	    self.report_base()
-	    self.log_info(_str_headerDiv + " Exception " + _str_headerDiv + _str_subLine)		
-	    self.log_info("Step: '%s'"%self._str_failStep)
-	    self.log_info("Time: %s sec"%self._str_failTime)
-	    if db_file != "<maya console>":
-		linecache.clearcache()		
-		lineno = tb.tb_lineno
-		line = linecache.getline(db_file, lineno)
-		self.log_info("Traceback File: %s"%db_file)
-		self.log_info("Line#: %d"%lineno)
-		self.log_info("Line: %s"%line)		
-	    self.log_info("Exception Type: %s"%etype)
-	    self.log_info("Exception value: %s"%value)
-	    #self.log_info("Traceback Obj: %s"%tb)
-	    #self.log_info("Detail: %s"%detail)		
-	    self.report_selfStored()
-	else:self.log_error("[Step: '%s' | time: %s]{%s}"%(self._str_failStep,self._str_failTime,self._ExceptionError))
-	if detail == 2:self.log_info(_str_hardBreak)
-	self.progressBar_end()
-	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
-	return cgmExceptCB(etype,value,tb,detail,True)
-	#return mUtils._formatGuiException(etype, value, tb, detail)	
-	#raise self._Exception,self._ExceptionError
-	#except Exception,error:
-	    #print("[%s._ExceptionHook_ Exception]{%s}"%(self._str_funcCombined,error))
+	try:
+	    if detail == 2:	    
+		db_file = tb.tb_frame.f_code.co_filename
+		self.report_base()
+		self.log_info(_str_headerDiv + " Exception " + _str_headerDiv + _str_subLine)		
+		self.log_info("Step: '%s'"%self._str_failStep)
+		self.log_info("Time: %s sec"%self._str_failTime)
+		if db_file != "<maya console>":
+		    linecache.clearcache()		
+		    lineno = tb.tb_lineno
+		    line = linecache.getline(db_file, lineno)
+		    self.log_info("Traceback File: %s"%db_file)
+		    self.log_info("Line#: %d"%lineno)
+		    self.log_info("Line: %s"%line)		
+		self.log_info("Exception Type: %s"%etype)
+		self.log_info("Exception value: %s"%value)
+		#self.log_info("Traceback Obj: %s"%tb)
+		#self.log_info("Detail: %s"%detail)		
+		self.report_selfStored()
+	    else:self.log_error("[Step: '%s' | time: %s]{%s}"%(self._str_failStep,self._str_failTime,self._ExceptionError))
+	    if detail == 2:self.log_info(_str_hardBreak)
+	    self.progressBar_end()
+	    mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
+	    return cgmExceptCB(etype,value,tb,detail,True)
+	    #return mUtils._formatGuiException(etype, value, tb, detail)	
+	    #raise self._Exception,self._ExceptionError
+	except Exception,error:
+	    print("[%s._ExceptionHook_ Exception]{%s}"%(self._str_funcCombined,error))
 	        
     def go(self,*args,**kws):
 	"""
@@ -231,9 +230,12 @@ class cgmFuncCls(object):
 	
 	if self.d_kws.get('printHelp'):
 	    self.printHelp()
-	    return   		
+	    return   	
+	
+	if self.d_kws.get('setLogLevel'):
+	    self.set_logging(self.d_kws.get('setLogLevel'))
+	    
 	t_start = time.clock()
-	mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   	
 	try:
 	    if not self.l_funcSteps: self.l_funcSteps = [{'call':self.__func__}]
 	    int_keys = range(0,len(self.l_funcSteps)-1)
@@ -279,8 +281,12 @@ class cgmFuncCls(object):
 	    
 	if self.d_kws.get('reportEnv'):
 	    report_enviornment()   
+	    
 	if self._Exception is not None:
-	    raise self._Exception,self._ExceptionError
+	    log.info("EXCEPTION send")	
+	    mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   	
+	    self.update_moduleData()	    
+	    raise self._Exception,"%s >> %s"%(self._str_funcCombined,str(self._ExceptionError))
 	
 	if self._b_reportTimes:
 	    f_total = (time.clock()-t_start)	    
@@ -292,7 +298,7 @@ class cgmFuncCls(object):
 		self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
 	    else:self.log_warning("[Total = %0.3f sec] " % (f_total))
 	    	    
-	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload	
+	#mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload	
 	return self._return_()
 	
     def _return_(self):
@@ -308,13 +314,13 @@ class cgmFuncCls(object):
 	if self.d_return:return self.d_return
 	
     def report(self):
-	self.get_moduleData()
+	self.update_moduleData()
 	self.report_base()
 	self.report_selfStored()
 	self.report_steps()
 		
     def report_base(self):
-	self.get_moduleData()
+	self.update_moduleData()
 	self.log_info("="*100)	
 	self.log_info(_str_headerDiv + " %s "%self._str_funcCombined + _str_headerDiv + _str_hardLine)
 	self.log_info("="*100)
@@ -370,7 +376,7 @@ class cgmFuncCls(object):
 		log.info(" | ".join(l_build))
     
     def printHelp(self):
-	self.get_moduleData()		
+	self.update_moduleData()		
 	print("#" + ">"*3 + " %s "%self._str_funcCombined + "="*50)
 	print("Python Module: %s "%self._str_modPath)	 
 	if self._str_funcHelp is not None:print("%s "%self._str_funcHelp)	 
@@ -394,12 +400,24 @@ class cgmFuncCls(object):
 		#l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
 		print("".join(l_tmp))	
 		
-
+    def set_logging(self,arg):
+	try:
+	    d_logging = {'info':logging.INFO,
+	                 'debug':logging.DEBUG}	    
+	    str_key = str(arg).lower()
+	    if str_key in d_logging.keys():
+		log.setLevel(d_logging.get(str_key))
+	    else:
+		self.log_warning("Logging arg not understood : %s"%arg)
+	except Exception,error:
+	    self.log_warning("set_logging Exception: %s"%error)
+	
     def log_info(self,arg):
 	try:
 	    #log.info("%s%s"%(self._str_reportStart,str(arg)))
 	    print("%s%s"%(self._str_reportStart,str(arg)))
 	except:pass	
+	
     def log_error(self,arg):
 	try:
 	    log.error("%s%s"%(self._str_reportStart,str(arg)))
@@ -488,7 +506,8 @@ class cgmFuncCls(object):
 	except Exception, error:
 	    log.error("[%s | func: get_cleanKWS]{%s}"%(self._str_funcName,error))
 	    return {}
-    def get_moduleData(self):
+	
+    def update_moduleData(self):
 	try:
 	    self.mod = inspect.getmodule(self)
 	    self._str_modPath = str(self.mod)
