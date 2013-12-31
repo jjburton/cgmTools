@@ -116,8 +116,9 @@ class cgmFuncCls(object):
 	self._str_modPath = None
 	self._str_mod = None	
 	self._l_funcTimes = []
+	self._l_toDo = []
 	#These are our mask so that the fail report ignores them
-	self._l_reportMask = ['int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	self._l_reportMask = ['_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
@@ -182,7 +183,9 @@ class cgmFuncCls(object):
 	self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'reportShow',"default":False,'help':"(BUILTIN) - show report at start of log","argType":"bool"},
                                          {'kw':'reportTimes',"default":False,'help':"(BUILTIN) - show step times in log","argType":"bool"},
 	                                 {'kw':'reportEnv',"default":False,'help':"(BUILTIN) - Override. Just get maya env info","argType":"bool"},
+	                                 {'kw':'reportToDo',"default":False,'help':"(BUILTIN) - Override. Get to do list for func","argType":"bool"},	                                 
 	                                 {'kw':'printHelp',"default":False,'help':"(BUILTIN) - Override.  Get help block for func","argType":"bool"},
+	                                 {'kw':'setLogLevel',"default":None,'help':"(BUILTIN) - Set the debug level on call","argType":"str"},
                                          {'kw':'autoProgressBar',"default":False,'help':"(BUILTIN) - show generated progress bar by steps","argType":"bool"}])
 	    
 	if self.d_kws.get('autoProgressBar'):self._b_autoProgressBar = True
@@ -254,6 +257,8 @@ class cgmFuncCls(object):
 		else: _str_step = 'process'
 		if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
 		
+		self._str_step = _str_step
+		
 		res = d_step['call'](*args,**kws)
 		if res is not None:
 		    self.d_return[_str_step] = res
@@ -279,6 +284,9 @@ class cgmFuncCls(object):
 	if self._b_WIP or self.d_kws.get('reportShow'):
 	    self.report()
 	    
+	if self.d_kws.get('reportToDo'):
+	    self.report_toDo() 
+		
 	if self.d_kws.get('reportEnv'):
 	    report_enviornment()   
 	    
@@ -360,7 +368,14 @@ class cgmFuncCls(object):
 	    for i,d in enumerate(self.l_funcSteps):
 		try:self.log_info("'%s' : %s "%(i,d.get('step')))
 		except:pass
-    
+		
+    def report_toDo(self):	    
+	if self._l_toDo:
+	    self.log_info(_str_headerDiv + " To Do: " + _str_headerDiv + _str_subLine)	  	    
+	    for i,d in enumerate(self._l_toDo):
+		try:self.log_info(" -- %s : %s "%(i,d))
+		except:pass    
+		
     def report_argsKwsDefaults(self):
 	if self._l_ARGS_KWS_DEFAULTS:
 	    log.info(">"*3 + " Args/KWs/Defaults " + _str_subLine)	  	    	    
@@ -418,11 +433,20 @@ class cgmFuncCls(object):
 	    print("%s%s"%(self._str_reportStart,str(arg)))
 	except:pass	
 	
+    def log_todo(self,arg):
+	try:
+	    try:self._l_toDo.append("%s | %s"%(self._str_step,str(arg)))
+	    except:self._l_toDo.append("%s"%(str(arg)))
+	    #log.info("[TODO]%s%s"%(self._str_reportStart,str(arg)))
+	    #print("[ERROR]%s%s"%(self._str_reportStart,str(arg)))	    
+	except:pass
+	
     def log_error(self,arg):
 	try:
 	    log.error("%s%s"%(self._str_reportStart,str(arg)))
 	    #print("[ERROR]%s%s"%(self._str_reportStart,str(arg)))	    
 	except:pass
+	
     def log_warning(self,arg):
 	try:
 	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
