@@ -21,6 +21,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.rigger import RigFactory as mRig
+reload(mRig)
 from cgm.lib import (modules,curves,distance,attributes)
 from cgm.lib.ml import ml_resetChannels
 
@@ -133,7 +134,7 @@ def isSized(*args,**kws):
 			    return False
 		    return True
 		else:
-		    #self.log_debug("%s %i is not == %i handles necessary"%(self._str_reportStart,len(mi_module.templateNull.templateStarterData),handles))			    	    
+		    self.log_debug("%s %i is not == %i handles necessary"%(self._str_reportStart,len(mi_module.templateNull.templateStarterData),handles))			    	    
 		    return False
 	    else:
 		pass
@@ -192,6 +193,13 @@ def doSize(*args,**kws):
 	def __func__(self,*args,**kws):
 	    """
 	    """
+	    def updateNames():
+		if len(i_coreNames.value) == handles:
+		    names = i_coreNames.value
+		else:
+		    self.log_warning("Not enough names. Generating")
+		    names = getGeneratedCoreNames(**kws)
+		    
 	    mi_module = self._mi_module
 	    kws = self.d_kws
 	    sizeMode = kws['sizeMode']
@@ -203,16 +211,9 @@ def doSize(*args,**kws):
 	    #Gather info
 	    #==============      
 	    handles = mi_module.templateNull.handles
-	    if len(i_coreNames.value) == handles:
-		names = i_coreNames.value
-	    else:
-		self.log_warning("Not enough names. Generating")
-		names = getGeneratedCoreNames(**kws)
 	    if not geo and not mi_module.getMessage('helper'):
-		geo = mi_module.modulePuppet.getGeo()
+		geo = mi_module.modulePuppet.getGeo()	    
 	    self.log_debug("Handles: %s"%handles)
-	    self.log_debug("Names: %s"%names)
-	    self.log_debug("Puppet: %s"%mi_module.getMessage('modulePuppet'))
 	    self.log_debug("Geo: %s"%geo)
 	    self.log_debug("sizeMode: %s"%sizeMode)
 	    
@@ -224,19 +225,26 @@ def doSize(*args,**kws):
 		if not posList:
 		    log.error("Must have posList arg with 'manual' sizeMode!")
 		    return False
-		
-		if len(posList) < handles:
+		int_posList = len(posList)
+		if int_posList < handles:
 		    self.log_warning("Creating curve to get enough points")                
 		    curve = curves.curveFromPosList(posList)
 		    mc.rebuildCurve (curve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0,s=(handles-1), d=1, tol=0.001)
 		    posList = curves.returnCVsPosList(curve)#Get the pos of the cv's
 		    mc.delete(curve) 
-		    
+		elif int_posList > handles:
+		    self.log_warning("Not enough handles for positions. Changing to : %s"%int_posList)
+		    handles = int_posList
+		    mi_module.templateNull.handles = int_posList
+		updateNames()
 		mi_module.templateNull.__setattr__('templateStarterData',posList,lock=True)
 		self.log_debug("'%s' manually sized!"%self._str_moduleName)
 		return True
+	    
 		    
 	    elif sizeMode == 'normal':
+		updateNames()
+		
 		if len(names) > 1:
 		    namesToCreate = names[0],names[-1]
 		else:
@@ -400,7 +408,7 @@ def getGeneratedCoreNames(*args,**kws):
 		for name in nonSplitEnd:
 		    l_generatedNames.append(name) 
 	    else:
-		l_generatedNames = settingsCoreNames[:self.templateNull.handles]
+		l_generatedNames = settingsCoreNames[:mi_module.templateNull.handles]
 	    
 	    #figure out what to do with the names
 	    mi_coreNamesBuffer.value = l_generatedNames
@@ -505,7 +513,7 @@ def doRig(*args,**kws):
 		self.log_warning("Parent module is not rigged: '%s'"%(mi_module.moduleParent.getShortName()))
 		return False 
 	    
-	    kws.pop('mModule')
+	    #kws.pop('mModule')
 	    mRig.go(**kws)      
 	    if not isRigged(**kws):
 		self.log_warning("Failed To Rig")
