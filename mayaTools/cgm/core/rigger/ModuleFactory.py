@@ -421,6 +421,47 @@ def getGeneratedCoreNames(*args,**kws):
 #=====================================================================================================
 #>>> Rig
 #=====================================================================================================
+def puppetSettings_setAttr(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "settings_toggleTemplateVis('%s')"%self._str_moduleName	
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 cgmMeta._d_KWARG_attr,cgmMeta._d_KWARG_value] 			    
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
+	def __func__(self):
+	    """
+	    """
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		_str_basePart = mi_module.getPartNameBase()
+		kws = self.d_kws
+		_value = self.d_kws['value']
+		_attr = self.d_kws['attr']
+		mi_masterSettings = mi_module.modulePuppet.masterControl.controlSettings		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    try:#Set
+		if mi_masterSettings.hasAttr(_attr):    
+		    attributes.doSetAttr(mi_masterSettings.mNode,_attr,_value)
+		else:
+		    self.log_error("[Attr not found on masterSettings | attr: %s| value: %s]"%(_attr,_value))		    
+		    return False
+	    except Exception,error:
+		self.log_error("[Set attr: %s| value: %s]{%s}"%(_attr,_value,error))
+		return False
+	    return True
+	    
+
+    return fncWrap(*args,**kws).go()
+
+
+#=====================================================================================================
+#>>> Rig
+#=====================================================================================================
 def doRig(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):

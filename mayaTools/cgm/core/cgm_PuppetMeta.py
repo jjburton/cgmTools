@@ -421,6 +421,9 @@ class cgmPuppet(cgmMeta.cgmNode):
 	return pFactory.animSetAttr(*args,**kws) 
     
 	#return pFactory.animSetAttr(self,attr, value, settingsOnly)
+    def controlSettings_setModuleAttrs(self,*args,**kws):
+	kws['mPuppet'] = self
+	return pFactory.controlSettings_setModuleAttrs(*args,**kws)     
     
     def toggle_subVis(self):
 	try:
@@ -1882,7 +1885,11 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.get_rollJointCountList)
         """
 	kws['mModule'] = self	
-        return mFactory.get_rollJointCountList(*args,**kws)     
+        return mFactory.get_rollJointCountList(*args,**kws)    
+    
+    def puppetSettings_setAttr(self,*args,**kws):
+	kws['mModule'] = self			
+	return mFactory.puppetSettings_setAttr(*args,**kws)
     
     #>>> Animation
     #========================================================================
@@ -1930,7 +1937,8 @@ class cgmModule(cgmMeta.cgmObject):
 	return mFactory.mirrorSymLeft(**kws)
     def mirrorRight(self,**kws):
 	kws['mModule'] = self	
-	return mFactory.mirrorSymRight(**kws)    
+	return mFactory.mirrorSymRight(**kws)  
+    
     #>>> Module Children
     #========================================================================
     def get_allModuleChildren(self,*args,**kws):
@@ -1956,6 +1964,7 @@ class cgmModule(cgmMeta.cgmObject):
     def animSetAttr_children(self,*args,**kws):
 	kws['mModule'] = self			
 	return mFactory.animSetAttr_children(*args,**kws)
+    
     #>>> Module Siblings
     #========================================================================  
     def getModuleSiblings(self,*args,**kws):

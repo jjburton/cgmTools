@@ -13,22 +13,17 @@ from Red9.core import Red9_General as r9General
 from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
+from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (search,attributes)
 from cgm.core import cgm_General as cgmGeneral
 from cgm.lib.ml import ml_resetChannels
 
-reload(cgmGeneral)
 #Shared Settings
 #========================= 
 geoTypes = 'nurbsSurface','mesh','poly','subdiv'
-_d_puppetKWARG = {'kw':'mPuppet',"default":None,'help':"cgmPuppet mNode or str name","argType":"cgmPuppet"}
-'''
-ml_modules = getModules(self.mi_puppet)
-int_lenModules = len(ml_modules)  
-_str_module = mModule.p_nameShort	 				
-self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)
-	    
-'''
+_d_KWARG_mPuppet = {'kw':'mPuppet',"default":None,'help':"cgmPuppet mNode or str name","argType":"cgmPuppet"}
+_d_KWARG_moduleStateArg = {'kw':'moduleStateArg',"default":0,'help':"What state to check for","argType":"module state"}
+_d_KWARG_mirrorSideArg = {'kw':'mirrorSideArg',"default":None,'help':"Which side arg","argType":"string"}
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Puppet Wrapper
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -46,8 +41,8 @@ class PuppetFunc(cgmGeneral.cgmFuncCls):
 	except Exception,error:raise StandardError,"PuppetFunc failed to initialize | %s"%error
 	self._str_funcName= "testPuppetFunc"		
 	super(PuppetFunc, self).__init__(*args, **kws)
-	self.mi_puppet = puppet	
-	self._l_ARGS_KWS_DEFAULTS = [_d_puppetKWARG]	
+	self._mi_puppet = puppet	
+	self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet]	
 	#=================================================================
 		
 def exampleWrap(*args,**kws):
@@ -56,8 +51,8 @@ def exampleWrap(*args,**kws):
 	    """
 	    """	
 	    super(clsPuppetFunc, self).__init__(*args,**kws)
-	    self._str_funcName = "example('%s')"%self.mi_puppet.cgmName	
-	    self.__dataBind__()
+	    self._str_funcName = "example('%s')"%self._mi_puppet.cgmName	
+	    self.__dataBind__(*args,**kws)
 	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	    
 	    #The idea is to register the functions needed to be called
@@ -77,9 +72,11 @@ def stateCheck(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "stateCheck('%s')"%self.mi_puppet.cgmName	
-	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'arg',"default":0,'help':"What puppet state to check for","argType":"module state"}] 
-	    
+	    self._str_funcName = "stateCheck('%s')"%self._mi_puppet.cgmName
+	    self._str_funcHelp = "Check to"
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+	                                 _d_KWARG_moduleStateArg]
+	                                 
 	    self.__dataBind__(*args,**kws)
 	    raise NotImplementedError, "Not sure this is needed"
 	    #=================================================================
@@ -87,7 +84,7 @@ def stateCheck(*args,**kws):
 	def __func__(self):
 	    """
 	    """
-	    ml_orderedModules = getOrderedModules(self.mi_puppet)
+	    ml_orderedModules = getOrderedModules(self._mi_puppet)
 	    int_lenModules = len(ml_orderedModules)  
 	    for i,mModule in enumerate(ml_orderedModules):
 		_str_module = mModule.p_nameShort
@@ -117,10 +114,10 @@ def getUnifiedGeo(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getUnifiedGeo('%s')"%self.mi_puppet.cgmName	
+	    self._str_funcName = "puppetFactory.getUnifiedGeo('%s')"%self._mi_puppet.cgmName	
 	    self.__dataBind__(*args,**kws)
 	def __func__(self):
-	    buffer = self.mi_puppet.getMessage('unifiedGeo')
+	    buffer = self._mi_puppet.getMessage('unifiedGeo')
 	    if buffer and len(buffer) == 1 and search.returnObjectType(buffer[0]) in geoTypes:
 		return buffer[0]
 	    return False
@@ -132,12 +129,13 @@ def getGeo(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getGeo('%s')"%self.mi_puppet.cgmName	
+	    self._str_funcName = "puppetFactory.getGeo('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcHelp = "Get all the geo in our geo groups"	    
 	    self.__dataBind__(*args,**kws)
 	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
 	def __func__(self):
 	    geo = []
-	    for o in self.mi_puppet.masterNull.geoGroup.getAllChildren(True):
+	    for o in self._mi_puppet.masterNull.geoGroup.getAllChildren(True):
 		if search.returnObjectType(o) in geoTypes:
 		    buff = mc.ls(o,long=True)
 		    geo.append(buff[0])
@@ -150,10 +148,11 @@ def getModules(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getModules('%s')"%self.mi_puppet.cgmName	
+	    self._str_funcName = "puppetFactory.getModules('%s')"%self._mi_puppet.cgmName
+	    self._str_funcHelp = "Get the modules of a puppet"	    
 	    self.__dataBind__(*args,**kws)
 	def __func__(self):
-	    try:ml_initialModules = self.mi_puppet.moduleChildren
+	    try:ml_initialModules = self._mi_puppet.moduleChildren
 	    except:ml_initialModules = []
 	    int_lenModules = len(ml_initialModules)  
 
@@ -174,16 +173,17 @@ def gatherModules(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.gatherModules('%s')"%self.mi_puppet.cgmName	
+	    self._str_funcName = "puppetFactory.gatherModules('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcHelp = "Collect all modules where they should be in the heirarchy"	    	    
 	    self.__dataBind__(*args,**kws)
 	def __func__(self):
-	    ml_modules = getModules(self.mi_puppet)
+	    ml_modules = getModules(self._mi_puppet)
 	    int_lenModules = len(ml_modules)
 	    
 	    for i,mModule in enumerate(ml_modules):
 		_str_module = mModule.p_nameShort
 		self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)		    				    				
-		try:self.mi_puppet.connectModule(mModule,**kws)
+		try:self._mi_puppet.connectModule(mModule,**kws)
 		except Exception,error:raise StandardError,"[mModule : %s]{%s}"%(_str_module,error)	
     return fncWrap(*args,**kws).go()
 
@@ -197,7 +197,8 @@ def getModuleFromDict(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getModuleFromDict('%s')"%self.mi_puppet.cgmName	
+	    self._str_funcName = "puppetFactory.getModuleFromDict('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcHelp = "Search the modues of a puppet for a module by attribute/value kws"	    	    
 	    self.__dataBind__(*args,**kws)
 	def __func__(self):
 	    args = self._l_funcArgs
@@ -216,7 +217,7 @@ def getModuleFromDict(*args,**kws):
 		    checkDict = self.get_cleanKWS()
 		except Exception,error:raise StandardError,"[kws cleaning]{%s}"%(error)	
 	    assert type(checkDict) is dict,"Arg must be dictionary"
-	    for i_m in self.mi_puppet.moduleChildren:
+	    for i_m in self._mi_puppet.moduleChildren:
 		matchBuffer = 0
 		for key in checkDict.keys():
 		    if i_m.hasAttr(key) and attributes.doGetAttr(i_m.mNode,key) in checkDict.get(key):
@@ -234,13 +235,14 @@ def getState(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getState('%s')"%self.mi_puppet.cgmName	
+	    self._str_funcName = "puppetFactory.getState('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcHelp = "Get a pupppet's state"	    	    
 	    self.__dataBind__(*args,**kws)
 	    
 	def __func__(self):
 	    """
 	    """
-	    ml_modules = getModules(self.mi_puppet)
+	    ml_modules = getModules(self._mi_puppet)
 	    int_lenModules = len(ml_modules)  
 	    
 	    if not ml_modules:
@@ -281,7 +283,7 @@ def getOrderedModules(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getOrderedModules('%s')"%self.mi_puppet.cgmName
+	    self._str_funcName = "puppetFactory.getOrderedModules('%s')"%self._mi_puppet.cgmName
 	    self._str_funcHelp = "Returns ordered modules of a character\nBy processing the various modules by parent into a logic list"
 	    self.__dataBind__(*args,**kws)
 	    #self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
@@ -291,15 +293,15 @@ def getOrderedModules(*args,**kws):
 	    moduleRoots = []
 	       
 	    try:#Find the roots 
-		for i_m in self.mi_puppet.moduleChildren:
+		for i_m in self._mi_puppet.moduleChildren:
 		    #self.log_debug("%s.moduleParent: %s"%(i_m.getShortName(),i_m.getMessage('moduleParent')))
 		    #self.log_debug("%s.modulePuppet: %s"%(i_m.getShortName(),i_m.getMessage('modulePuppet')))        
-		    if i_m.getMessage('modulePuppet') == [self.mi_puppet.mNode] and not i_m.getMessage('moduleParent'):
+		    if i_m.getMessage('modulePuppet') == [self._mi_puppet.mNode] and not i_m.getMessage('moduleParent'):
 			log.info("Root found: %s"%(i_m.getShortName()))
 			moduleRoots.append(i_m) 
 	    except Exception,error:raise StandardError,"[Finding roots]{'%s'}"%(error)	
 
-	    l_childrenList = copy.copy(self.mi_puppet.moduleChildren)
+	    l_childrenList = copy.copy(self._mi_puppet.moduleChildren)
 	    
 	    if not moduleRoots:
 		log.critical("No module root found!")
@@ -330,96 +332,12 @@ def getOrderedModules(*args,**kws):
 
 	    return l_orderedParentModules	    
 	
-	    
-	    
-	    for mModule in getModules(self.mi_puppet,**kws):
-		try:self.mi_puppet.connectModule(mModule,**kws)
+	    for mModule in getModules(self._mi_puppet,**kws):
+		try:self._mi_puppet.connectModule(mModule,**kws)
 		except Exception,error:raise StandardError,"[mModule : %s]{%s}"%(mModule.p_nameShort,error)	
     return fncWrap(*args,**kws).go()
 
-'''
-def getOrderedParentModules(self):
-    """ 
-    Returns ordered list of parent modules of a character
-    
-    Stores:
-    self.moduleChildren(dict)
-    self.orderedParentModules(list)       
-    self.rootModules(list)
-    
-    Returns:
-    self.orderedParentModules(list)
-    
-    THIS IS STILL NOT DOING ANYTHING NECESSARY
-    """    
-    d_moduleParents = {}
-    l_orderedParentModules = []
-    moduleRoots = []
-    d_moduleChildren = {}
-       
-    #Find the roots 
-    for i_m in self.moduleChildren:
-        self.log_debug("%s.moduleParent: %s"%(i_m.getShortName(),i_m.getMessage('moduleParent')))
-        self.log_debug("%s.modulePuppet: %s"%(i_m.getShortName(),i_m.getMessage('modulePuppet')))        
-        if i_m.getMessage('modulePuppet') and not i_m.getMessage('moduleParent'):
-            log.info("Root found: %s"%(i_m.getShortName()))
-            moduleRoots.append(i_m)
-            l_orderedParentModules.append(i_m)
-            
-        if i_m.getMessage('moduleChildren'):
-            log.info("Parent found: %s"%(i_m.getShortName()))
-            d_moduleChildren[i_m] = i_m.moduleChildren
-        if i_m.getMessage('moduleParent'):
-            d_moduleParents[i_m] = i_m.moduleParent
-            
-    l_childrenList = copy.copy(self.moduleChildren)
-    
-    if not moduleRoots:
-        log.critical("No module root found!")
-        return False
-    for i_m in moduleRoots:
-        l_childrenList.remove(i_m)
-        
-    #log.info("d_moduleParents: %s"%d_moduleParents)
-    #log.info("d_moduleChildren: %s"%d_moduleChildren)
-    #log.info("l_orderedParentModules: %s"%l_orderedParentModules)
-    log.info("l_childrenList: %s"%l_childrenList)
-        
-    cnt = 0
-    #Process the childdren looking for parents as children and so on and so forth, appending them as it finds them
-    while len(l_childrenList)>0 and cnt < 100:#While we still have a cull list
-        if cnt == 99:
-            log.error('max count')
-        for i_Parent in l_orderedParentModules:
-            for i_child in l_childrenList:#for each ordered parent module we've found (starting with root)
-                self.log_debug("i_child: %s"%i_Parent.getShortName())
-                cnt+=1
-                if i_child.moduleParent == [i_Parent]:
-                    log.info('Match found!')
-                    l_orderedParentModules.append(i_child)
-                    l_childrenList.remove(i_child)            
-    
-    """
-    #Process the childdren looking for parents as children and so on and so forth, appending them as it finds them
-    while len(d_moduleChildrenCull)>0 and cnt < 100:#While we still have a cull list
-        if cnt == 99:
-            log.error('max count')
-        for i_Parent in l_orderedParentModules:#for each ordered parent module we've found (starting with root)
-            self.log_debug("i_Parent: %s"%i_Parent.getShortName())
-            for i_checkParent in d_moduleChildrenCull.keys():#for each module with children
-                self.log_debug("i_checkParent: %s"%i_Parent.getShortName())                
-                cnt +=1
-                #if the check parent has a parent and the parent of the check parent is the ordered parent, store it and pop
-                log.info("i_Parent: %s"%i_Parent.getShortName())                
-                log.info(i_checkParent.moduleParent)
-                if i_checkParent in d_moduleParents.keys() and i_checkParent.moduleParent == [i_Parent]:
-                    log.info('Match found!')
-                    l_orderedParentModules.append(i_checkParent)
-                    d_moduleChildrenCull.pop(i_checkParent)
-                    """
-                    
-    return l_orderedParentModules
-'''
+
 #=====================================================================================================
 #>>> Anim functions functions
 #=====================================================================================================
@@ -429,15 +347,16 @@ def animReset(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "animReset.getModules('%s')"%self.mi_puppet.cgmName	
+	    self._str_funcName = "animReset.getModules('%s')"%self._mi_puppet.cgmName
+	    self._str_funcHelp = "Reset all the connected controls"	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self._process}]	
-	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'transformsOnly',"default":True,'help':"Only reset transforms","argType":"bool"}] 
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,cgmMeta._d_KWARG_transformsOnly] 
 	    self.__dataBind__(*args,**kws)
 	    
 	def _process(self):
 	    """
 	    """
-	    self.mi_puppet.puppetSet.select()
+	    self._mi_puppet.puppetSet.select()
 	    try:
 		if mc.ls(sl=True):
 		    ml_resetChannels.main(transformsOnly = self._d_funcKWs.get('transformsOnly'))		    
@@ -454,14 +373,15 @@ def mirrorMe(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getModules('%s')"%self.mi_puppet.cgmName	
+	    self._str_funcName = "puppetFactory.getModules('%s')"%self._mi_puppet.cgmName
+	    self._str_funcHelp = "Mirror all puppets modules"	    	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self._process}]	
 	    self.__dataBind__(*args,**kws)
 	    
 	def _process(self):
 	    """
 	    """
-	    self.mi_puppet.puppetSet.select()
+	    self._mi_puppet.puppetSet.select()
 	    l_controls = mc.ls(sl=True)
 	    log.info(l_controls)
 	    if l_controls:
@@ -501,14 +421,15 @@ def get_mirrorIndexDict(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.get_mirrorIndexDict('%s')"%self.mi_puppet.cgmName	
+	    self._str_funcName = "puppetFactory.get_mirrorIndexDict('%s')"%self._mi_puppet.cgmName
+	    self._str_funcHelp = "Get the mirror index dict"	    	    	    	    
 	    self.__dataBind__(*args,**kws)	
 	    
 	def __func__(self):
 	    """
 	    """
 	    d_return = {}
-	    ml_modules = getModules(self.mi_puppet)
+	    ml_modules = getModules(self._mi_puppet)
 	    int_lenModules = len(ml_modules)
 	    
 	    for i,mod in enumerate(ml_modules):
@@ -539,7 +460,7 @@ def get_mirrorIndexDictFromSide(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getModules('%s')"%self.mi_puppet.cgmName	
+	    self._str_funcName = "puppetFactory.getModules('%s')"%self._mi_puppet.cgmName	
 	    self._l_ARGS_KWS_DEFAULTS.append({'kw':'str_side',"default":None,'help':"Which side arg","argType":"string"}) 
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Query','call':self._verifyData},
@@ -555,7 +476,7 @@ def get_mirrorIndexDictFromSide(*args,**kws):
 	    """
 	    """
 	    d_return = {}
-	    for mod in getModules(self.mi_puppet):
+	    for mod in getModules(self._mi_puppet):
 		try:mi_moduleSet = mod.rigNull.moduleSet.getMetaList()
 		except:mi_moduleSet = []
 		for mObj in mi_moduleSet:
@@ -585,7 +506,8 @@ def get_nextMirrorIndex(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = 'puppetFactory.get_nextMirrorIndex'
-	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'str_side',"default":None,'help':"Which side arg","argType":"string"}]
+	    self._str_funcHelp = "Get the next available mirror index by side"	    	    	    	    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,_d_KWARG_mirrorSideArg]
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Query','call':self._verifyData},
 	                        {'step':'Process','call':self._process}]	
@@ -599,7 +521,7 @@ def get_nextMirrorIndex(*args,**kws):
 	    """
 	    """
 	    l_return = []
-	    ml_modules = getModules(self.mi_puppet)
+	    ml_modules = getModules(self._mi_puppet)
 	    int_lenModules = len(ml_modules)
 	    for i,mModule in enumerate(ml_modules):
 		#self.log_info("Checking: '%s'"%mModule.p_nameShort)
@@ -624,10 +546,6 @@ def get_nextMirrorIndex(*args,**kws):
     return fncWrap(*args,**kws).go()
 
 def animSetAttr(*args,**kws):
-    '''
-    pFactory.get_nextMirrorIndex('Center',puppet = m1.modulePuppet)
-    m1.modulePuppet.get_nextMirrorIndex('center',reportTimes = 1)
-    '''
     class fncWrap(PuppetFunc):
 	def __init__(self,*args,**kws):
 	    """
@@ -635,16 +553,14 @@ def animSetAttr(*args,**kws):
 	    #attr = None, value = None, settingsOnly = False
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = 'puppetFactory.animSetAttr'
-	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'attr',"default":None,'help':"Attribute to look for","argType":"string"},
-	                                 {'kw':'value',"default":None,'help':"Value to set","argType":"variable"},
+	    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,cgmMeta._d_KWARG_attr,cgmMeta._d_KWARG_value,
 	                                 {'kw':'settingsOnly',"default":False,'help':"Only check settings controls","argType":"bool"}]
-	    self.__dataBind__(*args,**kws)
-	    #self.l_funcSteps = [{'step':'Gather info','call':self._gatherInfo_}]	
-	    	    
+	    self.__dataBind__(*args,**kws)	    	    
 	def __func__(self):
 	    """
 	    """
-	    ml_buffer = self.mi_puppet.moduleChildren
+	    ml_buffer = self._mi_puppet.moduleChildren
 	    log.info("here")
 	    int_lenModules = len(ml_buffer)
 	    for i,mModule in enumerate(ml_buffer):
@@ -662,4 +578,50 @@ def animSetAttr(*args,**kws):
 		   self.log_error("[Module: %s ]{%s}"%(_str_module,error))
     return fncWrap(*args,**kws).go()
 
-
+def controlSettings_setModuleAttrs(*args,**kws):
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "controlSettings_setModuleAttrs('%s')"%self._mi_puppet.cgmName
+	    self._str_funcHelp = "Looks for match attributes combining module part names and the arg and pushes values"
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+	                                 cgmMeta._d_KWARG_attr,
+	                                 cgmMeta._d_KWARG_value] 			    
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
+	def __func__(self):
+	    """
+	    """
+	    try:#Query ========================================================
+		mi_puppet = self._mi_puppet
+		kws = self.d_kws
+		_value = self.d_kws['value']
+		_attr = self.d_kws['attr']
+		mi_masterSettings = mi_puppet.masterControl.controlSettings		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	
+	    try:#Process ========================================================	    
+		ml_modules = getModules(**kws)
+		int_lenMax = len(ml_modules)
+		
+		for i,mModule in enumerate(ml_modules):
+		    try:
+			self.progressBar_set(status = "%s step:'%s' "%(self._str_funcName,mModule.p_nameShort), progress = i, maxValue = int_lenMax)		    				    		    
+			_str_basePart = mModule.getPartNameBase()
+			_str_attrToFind = "%s%s"%(_str_basePart,_attr)
+			if mi_masterSettings.hasAttr(_str_attrToFind):
+			    try:
+				attributes.doSetAttr(mi_masterSettings.mNode,_str_attrToFind,_value)
+			    except Exception,error:
+				self.log_error("[Set attr: '%s'| value: %s]{%s}"%(_str_attrToFind,_value,error))				
+			else:
+			    self.log_error("[Attr not found on masterSettings | attr: '%s'| value: %s]"%(_str_attrToFind,_value))	
+		    except Exception,error:
+			self.log_error(" mModule: '%s' | %s"%(mModule.getShortName(),error))
+		return True
+	    except Exception,error:
+		self.log_error(error)  
+		return False	    	
+    return fncWrap(*args,**kws).go()

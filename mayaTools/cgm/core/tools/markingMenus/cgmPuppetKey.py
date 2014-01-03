@@ -134,6 +134,15 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    try:i_m.rigNull.dynSwitch.go(arg)
 		    except Exception,error:log.error(error)
 	    killUI()	
+	def func_setPuppetControlSetting(mPuppet,attr,arg):
+	    """
+	    execute a command and let the menu know not do do the default button action but just kill the ui
+	    """		
+	    try:
+		mPuppet.controlSettings_setModuleAttrs(attr,arg)
+	    except Exception,error:
+		log.error("[func_setPuppetControlSetting fail!]{%s}"%error)
+	    killUI()	
 	def func_multiReset():
 	    """
 	    execute a command and let the menu know not do do the default button action but just kill the ui
@@ -356,7 +365,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			elif attrs:
 			    log.debug(attrs)
 			    for a in attrs:
-				if a  in l_commonAttrs:
+				if a in l_commonAttrs:
 				    for option in d_commonOptions[a]:			
 					if option not in attrOptions[a]:
 					    d_commonOptions[a].remove(option)
@@ -581,13 +590,51 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    MelMenuItem( use_parent, l="Reset",
 		                 c = Callback(i_puppet.anim_reset,self.ResetModeOptionVar.value))
 		    MelMenuItem( use_parent, l="Mirror",
-		                 c = Callback(i_puppet.mirrorMe))	
-		    MelMenuItem( use_parent, l="visSub Show",
-		                 c = Callback(i_puppet.animSetAttr,'visSub',1,True))				
-		    MelMenuItem( use_parent, l="visSub Hide",
-		                 c = Callback(i_puppet.animSetAttr,'visSub',0,True))			    
+		                 c = Callback(i_puppet.mirrorMe))	    		    
 		except StandardError,error:
-		    log.info("Failed to build basic puppet menu for: %s | %s"%(i_o.getShortName(),error))									
+		    log.info("Failed to build basic puppet menu for: %s | %s"%(i_o.getShortName(),error))
+		    
+		try:#puppet settings ===========================================================================
+		    mi_puppetSettingsMenu = MelMenuItem( parent, l='Settings', subMenu=True)
+		    mi_puppetControlSettings = i_puppet.masterControl.controlSettings 
+		    l_settingsUserAttrs = mi_puppetControlSettings.getUserAttrs()
+		    
+		    MelMenuItem( mi_puppetSettingsMenu, l="visSub Show",
+		                 c = Callback(i_puppet.animSetAttr,'visSub',1,True))				
+		    MelMenuItem( mi_puppetSettingsMenu, l="visSub Hide",
+		                 c = Callback(i_puppet.animSetAttr,'visSub',0,True))		    
+		    
+		    for attr in ['skeleton','geo','geoType']:
+			try:#Skeleton
+			    if mi_puppetControlSettings.hasAttr(attr):
+				mi_tmpMenu = MelMenuItem( mi_puppetSettingsMenu, l=attr, subMenu=True)			    
+				mi_collectionMenu = MelRadioMenuCollection()#build our collection instance			    
+				mi_attr = cgmMeta.cgmAttr(mi_puppetControlSettings,attr)
+				l_options = mi_attr.getEnum()
+				for i,str_option in enumerate(l_options):
+				    if i == mi_attr.value:b_state = True
+				    else:b_state = False
+				    mi_collectionMenu.createButton(mi_tmpMenu,l=' %s '%str_option,
+					                           c = Callback(mc.setAttr,"%s"%mi_attr.p_combinedName,i),
+					                           rb = b_state )					
+			except StandardError,error:
+			    log.info("option failed: %s | %s"%(attr,error))	
+			    
+		    _d_moduleSettings = {'templates':{'options':['off','on'],'attr':'_tmpl'},
+		                         'rigGuts':{'options':['off','lock','on'],'attr':'_rig'}}
+		    for attr in _d_moduleSettings.keys():
+			try:#Skeleton
+			    _l_options = _d_moduleSettings[attr]['options']
+			    _attr = _d_moduleSettings[attr]['attr']
+			    mi_tmpMenu = MelMenuItem( mi_puppetSettingsMenu, l=attr, subMenu=True)			    
+			    for i,str_option in enumerate(_l_options):
+				MelMenuItem( mi_tmpMenu, l=str_option,
+				             c = Callback(func_setPuppetControlSetting,i_puppet,_attr,i))				
+			except StandardError,error:
+			    log.info("option failed: %s | %s"%(attr,error))
+		except StandardError,error:
+		    log.info("Failed to build puppet settings menu for: %s | %s"%(i_o.getShortName(),error))	
+
 
 		MelMenuItemDiv(parent)						
 	log.info(">"*10  + ' Puppet options build =  %0.3f seconds  ' % (time.clock()-timeStart_PuppetStuff) + '<'*10)  		
