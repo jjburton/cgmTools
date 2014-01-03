@@ -37,9 +37,12 @@ from cgm.lib.ml import (ml_breakdownDragger,
 _l_moduleStates = ['define','size','template','skeleton','rig']
 __l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow','cgmMouthNose']
 __l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthNose']
+
+#KWS ================================================================================================================
 _d_KWARG_mModule = {'kw':'mModule',"default":None,'help':"cgmModule mNode or str name","argType":"cgmModule"}
 _d_KWARG_force = {'kw':'force',"default":False,'help':"Whether to force the given function or not","argType":"bool"}
 _d_KWARG_excludeSelf = {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in action","argType":"bool"}   
+_d_KWARG_dynSwitchArg = {'kw':'dynSwitchArg',"default":None,'help':"Arg to pass to the dynSwitch ","argType":"int"}   
 
 '''
 ml_modules = getModules(self.mi_puppet)
@@ -415,76 +418,6 @@ def getGeneratedCoreNames(*args,**kws):
 	    return l_generatedNames
     return fncWrap(*args,**kws).go() 
 
-'''
-def getGeneratedCoreNamesBAK(self):
-    """ 
-    Generate core names for a module and return them
-
-    self MUST be cgmModule
-
-    RETURNS:
-    generatedNames(list)
-    
-    TODO:
-    Where to store names?
-    """
-    _str_funcName = "getGeneratedCoreNames('%s')"%self.p_nameShort   
-    log.info(">>> %s "%(_str_funcName) + "="*75)    
-    try:
-	i_coreNames = self.coreNames
-    
-	### check the settings first ###
-	partType = self.moduleType
-	self.log_debug("%s partType is %s"%(self.getShortName(),partType))
-	settingsCoreNames = modules.returncgmTemplateCoreNames(partType)
-	handles = self.templateNull.handles
-	partName = nameTools.returnRawGeneratedName(self.mNode,ignore=['cgmType','cgmTypeModifier'])
-    
-	### if there are no names settings, genearate them from name of the limb module###
-	generatedNames = []
-	if settingsCoreNames == False: 
-	    if self.moduleType.lower() == 'eyeball':
-		generatedNames.append('%s' % (partName))	    
-	    else:
-		cnt = 1
-		for handle in range(handles):
-		    generatedNames.append('%s%s%i' % (partName,'_',cnt))
-		    cnt+=1
-	elif int(self.templateNull.handles) > (len(settingsCoreNames)):
-	    self.log_debug(" We need to make sure that there are enough core names for handles")       
-	    cntNeeded = self.templateNull.handles  - len(settingsCoreNames) +1
-	    nonSplitEnd = settingsCoreNames[len(settingsCoreNames)-2:]
-	    toIterate = settingsCoreNames[1]
-	    iterated = []
-	    for i in range(cntNeeded):
-		iterated.append('%s%s%i' % (toIterate,'_',(i+1)))
-	    generatedNames.append(settingsCoreNames[0])
-	    for name in iterated:
-		generatedNames.append(name)
-	    for name in nonSplitEnd:
-		generatedNames.append(name) 
-    
-	else:
-	    self.log_debug(" Culling from settingsCoreNames")        
-	    generatedNames = settingsCoreNames[:self.templateNull.handles]
-    
-	#figure out what to do with the names
-	i_coreNames.value = generatedNames
-	"""
-	if not self.templateNull.templateStarterData:
-	    buffer = []
-	    for n in generatedNames:
-		buffer.append([str(n),[]])
-	    self.templateNull.templateStarterData = buffer
-	else:
-	    for i,pair in enumerate(self.templateNull.templateStarterData):
-		pair[0] = generatedNames[i]    
-	"""
-	    
-	return generatedNames
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-    '''
 #=====================================================================================================
 #>>> Rig
 #=====================================================================================================
@@ -497,7 +430,6 @@ def doRig(*args,**kws):
 	    self._str_funcName= "doRig('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)		    
 	    #=================================================================
-	    
 	def __func__(self):
 	    """
 	    """
@@ -519,7 +451,6 @@ def doRig(*args,**kws):
 		self.log_warning("Failed To Rig")
 		return False
 	    rigConnect(**kws)
-	    
     return fncWrap(*args,**kws).go()
 
 def isRigged(*args,**kws):
@@ -533,8 +464,6 @@ def isRigged(*args,**kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "isRigged('%s')"%self._str_moduleName	
 	    self.__dataBind__(*args,**kws)	
-	    #=================================================================
-	    
 	def __func__(self):
 	    kws = self.d_kws
 	    mi_module = self._mi_module
@@ -631,7 +560,6 @@ def rigDelete(*args,**kws):
 		
 	    mc.delete(mi_rigNull.getChildren())
 	    mi_rigNull.version = ''#clear the version
-	    
 	    return True   
     return fncWrap(*args,**kws).go()
 
@@ -642,12 +570,8 @@ def isRigConnected(*args,**kws):
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "isRigConnected('%s')"%self._str_moduleName	
-	    self.__dataBind__(*args,**kws)		    
-	    #=================================================================
-	    
+	    self.__dataBind__(*args,**kws)		    	    
 	def __func__(self):
-	    """
-	    """
 	    try:#Query ========================================================
 		mi_module = self._mi_module
 		kws = self.d_kws
@@ -789,7 +713,7 @@ def rigDisconnect(*args,**kws):
 def rig_getReport(self,*args,**kws):    
     mRig.get_report(self,*args,**kws)      
     return True
-	  
+
 def rig_getSkinJoints(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
@@ -799,7 +723,7 @@ def rig_getSkinJoints(*args,**kws):
 	    self._str_funcName= "rig_getSkinJoints('%s')"%self._str_moduleName
 	    self._str_funcHelp = "Get the skin joints of a module"
 	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
-	                                 {'kw':'asMeta',"default":True,'help':"Whether to return as meta or not","argType":"bool"}]			    
+	                                 cgmMeta._d_KWARG_asMeta]			    
 
 	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
@@ -810,7 +734,6 @@ def rig_getSkinJoints(*args,**kws):
 		kws = self.d_kws	
 		b_asMeta = self.d_kws['asMeta']
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
-
 	    ml_skinJoints = []
 	    ml_moduleJoints = mi_module.rigNull.msgList_get('moduleJoints',asMeta = True, cull = True)
 	    int_lenMax = len(ml_moduleJoints)	    
@@ -822,24 +745,65 @@ def rig_getSkinJoints(*args,**kws):
 		    if str_attrBuffer:ml_skinJoints.append( cgmMeta.validateObjArg(str_attrBuffer) )
 		for attr in mRig.__l_moduleJointMsgListHooks__:
 		    l_buffer = i_j.msgList_get(attr,asMeta = b_asMeta,cull = True)
-		    
 	    if b_asMeta:return ml_skinJoints
 	    if ml_skinJoints:
 		return [obj.p_nameShort for obj in ml_skinJoints]	    
     return fncWrap(*args,**kws).go()
-	
-def rig_getHandleJoints(self,asMeta = True):
-    """
-    Find the module handle joints
-    """
-    return mRig.get_handleJoints(self,asMeta)
 
-    
-def rig_getRigHandleJoints(self,asMeta = True):
-    """
-    Find the module handle joints
-    """
-    return mRig.get_rigHandleJoints(self,asMeta)
+def rig_getHandleJoints(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "rig_getHandleJoints('%s')"%self._str_moduleName
+	    self._str_funcHelp = "Get handle joints of a module - ex. shoulder/elbow/wrist - no rolls"
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 cgmMeta._d_KWARG_asMeta]			    
+
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
+	    
+	def __func__(self):
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws	
+		b_asMeta = self.d_kws['asMeta']
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    return mi_module.rigNull.msgList_get('handleJoints',asMeta = b_asMeta, cull = True)    
+    return fncWrap(*args,**kws).go()
+
+def rig_getRigHandleJoints(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "rig_getRigHandleJoints('%s')"%self._str_moduleName
+	    self._str_funcHelp = "Get rig handle joints of a module - ex. shoulder/elbow/wrist - no rolls"
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 cgmMeta._d_KWARG_asMeta]			    
+
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
+	    
+	def __func__(self):
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws	
+		b_asMeta = self.d_kws['asMeta']
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    
+	    l_rigHandleJoints = []
+	    for i_j in mi_module.rigNull.msgList_get('handleJoints'):
+		str_attrBuffer = i_j.getMessage('rigJoint')
+		if str_attrBuffer:
+		    l_rigHandleJoints.append(str_attrBuffer)
+		    
+	    if b_asMeta:return cgmMeta.validateObjListArg(l_rigHandleJoints,noneValid=True)	    
+	    return l_rigHandleJoints	    	    
+    return fncWrap(*args,**kws).go()
     
 #=====================================================================================================
 #>>> Template
@@ -1101,39 +1065,6 @@ def deleteSkeleton(*args,**kws):
 	    return True
     return fncWrap(*args,**kws).go()
 
-'''
-def deleteSkeleton2(self,*args,**kws):  
-    #MUST BE A MODULE
-    if not self.isSkeletonized():
-	log.warning("Not skeletonized. Cannot delete skeleton: '%s'"%self.getShortName())
-	return False
-    log.debug(">>> %s.deleteSkeleton >> "%self.p_nameShort + "="*75)            
-    
-    ml_skinJoints = self.rig_getSkinJoints(asMeta = True)
-    l_skinJoints = [i_j.p_nameLong for i_j in ml_skinJoints if i_j ]  
-    
-    #We need to see if any of or moduleJoints have children
-    l_strayChildren = []
-    for i_jnt in ml_skinJoints:
-	buffer = i_jnt.getChildren(True)
-	for c in buffer:
-	    if c not in l_skinJoints:
-		try:
-		    i_c = cgmMeta.cgmObject(c)
-		    i_c.parent = False
-		    l_strayChildren.append(i_c.mNode)
-		except Exception,error:
-		    log.warning(error)     
-		    
-    log.debug("l_strayChildren: %s"%l_strayChildren)    
-    self.msgList_purge('skinJoints')
-    self.msgList_purge('moduleJoints')
-    self.msgList_purge('handleJoints')
-    
-    if l_skinJoints:
-	mc.delete(l_skinJoints)
-    else:return False
-'''
 def returnExpectedJointCount(*args,**kws):
     """
     Function to figure out how many joints we should have on a module for the purpose of isSkeletonized check
@@ -1394,7 +1325,7 @@ def changeState(*args,**kws):
 	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
 	                                 {'kw':'rebuildFrom',"default":None,'help':"State to rebuild from","argType":"int/string"},
-	                                 {'kw':'forceNew',"default":False,'help':"typical kw ","argType":"bool"}]		
+	                                 cgmMeta._d_KWARG_forceNew]		
 	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
 	    self.log_warning("<<<<<<<< This module needs to be updated")
@@ -1479,8 +1410,7 @@ def changeState(*args,**kws):
 		self.log_debug('Forcing recreate')
 		if stateName in d_upStateFunctions.keys():
 		    if not d_upStateFunctions[stateName](self._mi_module,*args,**kws):return False
-		    return True
-		    
+		    return True	    
     return fncWrap(*args,**kws).go()
 
 def storePose_templateSettings(*args,**kws):
@@ -1634,8 +1564,6 @@ def get_mirror(*args,**kws):
 	    return mi_module.modulePuppet.getModuleFromDict(checkDict = d,**kws)	 
     return fncWrap(*args,**kws).go()  
 
-
-#self._l_ARGS_KWS_DEFAULTS =  [{'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
 def animReset(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
@@ -1697,9 +1625,7 @@ def mirrorPull(*args,**kws):
 	    self._str_funcName = "mirrorPull('%s')"%self._str_moduleName
 	    self._l_ARGS_KWS_DEFAULTS =  [_d_KWARG_mModule]
 	    self.__dataBind__(*args,**kws)
-	    #The idea is to register the functions needed to be called
-	    #=================================================================
-	    
+
 	def __func__(self): 
 	    try:#Query ========================================================
 		mi_module = self._mi_module
@@ -1717,7 +1643,6 @@ def mirrorPull(*args,**kws):
 		mc.select(l_buffer)
 		return True
 	    return False	 
-	
     return fncWrap(*args,**kws).go()
      
 def mirrorMe(*args,**kws):
@@ -1728,8 +1653,6 @@ def mirrorMe(*args,**kws):
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = "mirrorMe('%s')"%self._str_moduleName
 	    self.__dataBind__(*args,**kws)
-	    #The idea is to register the functions needed to be called
-	    #=================================================================
 	def __func__(self): 
 	    try:#Query ========================================================
 		mi_module = self._mi_module
@@ -1771,6 +1694,7 @@ def mirrorSymLeft(*args,**kws):
 		return True
 	    return False	 
     return fncWrap(*args,**kws).go() 
+
 def mirrorSymRight(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
@@ -1793,54 +1717,54 @@ def mirrorSymRight(*args,**kws):
 		return True
 	    return False	 
     return fncWrap(*args,**kws).go() 
+
 #=====================================================================================================
 #>>> Sibling functions
 #=====================================================================================================  
-def mirrorMe_siblings(moduleInstance = None, excludeSelf = True):
+def mirrorMe_siblings(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None, excludeSelf = True):
+	def __init__(self,*args,**kws):
 	    """
 	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
+	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = "mirrorMe_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()#THIS IS WRONG
-	    self.d_kws['excludeSelf'] = excludeSelf	    	    
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
-	    #The idea is to register the functions needed to be called
-	    #=================================================================
-	    
-	def __func__(self): 
-	    try:
-		mi_moduleParent = self._mi_module.moduleParent
-		mi_parentMirror = get_mirror(mi_moduleParent)
-		if not mi_moduleParent and mi_parentMirror:
-		    raise StandardError,"Must have module parent and mirror"
-		ml_buffer = get_allModuleChildren(mi_moduleParent)
-		ml_buffer.extend(get_allModuleChildren(mi_parentMirror))
-		
-		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
-		l_controls = []
-		for i,mModule in enumerate(ml_buffer):
-		    try:
-			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,mModule.p_nameShort), progress=i)    				        			
-			l_controls.extend(mModule.rigNull.moduleSet.getList())			
-		    except Exception,error:
-			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
-		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
-		if l_controls:
-		    r9Anim.MirrorHierarchy(l_controls).mirrorData(mode = '')		    
-		    mc.select(l_controls)
-		
-	    except Exception,error:
-		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-		except:
-		    raise StandardError,error
-		
-	    return False  
-	
-    #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance,excludeSelf).go()
+	    self._str_funcHelp = "Basic mirror me function"
+	    self._l_ARGS_KWS_DEFAULTS =  [_d_KWARG_mModule,
+	                                  _d_KWARG_excludeSelf]
+	    self.__dataBind__(*args,**kws)
 
+	def __func__(self): 
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    mi_moduleParent = mi_module.moduleParent
+	    kws_parent = copy.copy(kws)
+	    kws['mModule'] = mi_moduleParent
+	    mi_parentMirror = get_mirror(**kws_parent)
+	    if not mi_moduleParent and mi_parentMirror:
+		raise StandardError,"Must have module parent and mirror"
+	    ml_buffer = get_allModuleChildren(**kws_parent)
+	    ml_buffer.extend(get_allModuleChildren(**kws_parent))
+	    
+	    int_lenMax = len(ml_buffer)  
+	    l_controls = []
+
+	    for i,mModule in enumerate(ml_buffer):
+		try:
+		    self.progressBar_set( status = "%s >> step:'%s' "%(self._str_reportStart,mModule.p_nameShort), progress = i, maxValue = int_lenMax)		    				    		    		    
+		    l_controls.extend(mModule.rigNull.moduleSet.getList())			
+		except Exception,error:
+		    self.log_error("[child: %s]{%s}"%(mModule.getShortName(),error))
+		    
+	    if l_controls:
+		r9Anim.MirrorHierarchy(l_controls).mirrorData(mode = '')		    
+		mc.select(l_controls) 
+		return True
+	    return False
+    return fncWrap(*args,**kws).go()
+     
 def animReset_siblings(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
@@ -1850,7 +1774,7 @@ def animReset_siblings(*args,**kws):
 	    self._str_funcName = "animReset_siblings('%s')"%self._str_moduleName
 	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
 	                                 {'kw':'transformsOnly',"default":True,'help':"Whether to only reset transforms","argType":"bool"},
-	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]
+	                                 _d_KWARG_excludeSelf]
 	    self.__dataBind__(*args,**kws)    	    
 	    
 	def __func__(self): 
@@ -1959,43 +1883,46 @@ def mirrorPush_siblings(*args,**kws):
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()
 
-def mirrorPull_siblings(moduleInstance = None, excludeSelf = True):
+def mirrorPull_siblings(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None, excludeSelf = True):
+	def __init__(self,*args,**kws):
 	    """
 	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
+	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = "mirrorPull_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()#THIS IS WRONG
-	    self.d_kws['excludeSelf'] = excludeSelf	    	    
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
-	    #The idea is to register the functions needed to be called
-	    #=================================================================
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]
+	    
+	    self.__dataBind__(*args,**kws)    	    
 	    
 	def __func__(self): 
-	    try:
-		ml_buffer = get_moduleSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
-		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
-		l_controls = []
-		for i,i_c in enumerate(ml_buffer):
-		    try:
-			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,i_c.p_nameShort), progress=i)    				        			
-			mirrorPull(i_c)
-			l_controls.extend(i_c.rigNull.moduleSet.getList())
-		    except Exception,error:
-			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
-		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
-		
-		if l_controls:mc.select(l_controls)
-		
-	    except Exception,error:
-		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-		except:
-		    raise StandardError,error
-	    return False  
-	
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws
+		ml_buffer = get_moduleSiblings(**kws)
+		int_lenMax = len(ml_buffer)		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error	    
+	    
+	    l_controls = []
+	    for i,mModule in enumerate(ml_buffer):
+		_str_module = mModule.p_nameShort
+		self.progressBar_set(status = "On: %s "%_str_module, progress = i, maxValue = int_lenMax)		    				    		    
+		try:
+		    l_controls.extend(mModule.rigNull.moduleSet.getList())
+		    kws = self.get_cleanKWS()#We use this to get non registered kws -- maya one's more than like
+		    kws['mModule'] = i_c
+		    mirrorPull(**kws)		    
+		except Exception,error:
+		    self.log_error("child: %s | %s"%(_str_module,error))
+		    
+	    if l_controls:
+		mc.select(l_controls)
+		return True
+	    return False
+
     #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance,excludeSelf).go()  
+    return fncWrap(*args,**kws).go()
+
 
 def get_moduleSiblings(*args,**kws):
     l_sibblingIgnoreCheck = ['finger','thumb']
@@ -2050,7 +1977,7 @@ def get_allModuleChildren(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = "get_allModuleChildren('%s')"%self._str_moduleName
-	    self._l_ARGS_KWS_DEFAULTS =  [{'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
+	    self._l_ARGS_KWS_DEFAULTS =  [_d_KWARG_mModule,_d_KWARG_excludeSelf]
 	    self.__dataBind__(*args,**kws)
 	    
 	def __func__(self): 
@@ -2090,8 +2017,8 @@ def animKey_children(*args,**kws):
 	    self._str_funcName= "animKey_children('%s')"%self._str_moduleName
 	    self._str_funcHelp = "    Key module and all module children controls"			    
 	    self.__dataBind__(*args,**kws)	
-	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
-	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,_d_KWARG_excludeSelf]
+	    
 	def __func__(self): 
 	    try:#Query ========================================================
 		mi_module = self._mi_module
@@ -2125,8 +2052,7 @@ def animKey_siblings(*args,**kws):
 	    self._str_funcName= "animSelect_children('%s')"%self._str_moduleName
 	    self._str_funcHelp = "Selects controls of a module's children"			    
 	    self.__dataBind__(*args,**kws)	
-	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
-	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,_d_KWARG_excludeSelf]
 	
 	def __func__(self): 
 	    try:#Query ========================================================
@@ -2161,8 +2087,7 @@ def animSelect_children(*args,**kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "animSelect_children('%s')"%self._str_moduleName
 	    self._str_funcHelp = "Selects controls of a module's children"			    
-	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
-	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,_d_KWARG_excludeSelf]
 	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
 	    
@@ -2195,8 +2120,7 @@ def animSelect_siblings(*args,**kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName= "animSelect_siblings('%s')"%self._str_moduleName
 	    self._str_funcHelp = "Selects controls of module siblings"			    
-	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
-	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,_d_KWARG_excludeSelf]
 	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
 	    
@@ -2206,7 +2130,6 @@ def animSelect_siblings(*args,**kws):
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 
-	    #ml_buffer = get_moduleSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
 	    ml_buffer = get_moduleSiblings(**kws)
 	    
 	    l_controls = []
@@ -2230,14 +2153,13 @@ def animPushPose_siblings(*args,**kws):
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = "animPushPose_siblings('%s')"%self._str_moduleName
-	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule]	    
+	    #self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule]	    
 	    self.__dataBind__(*args,**kws)
 	    
 	def __func__(self): 
 	    try:#Query ========================================================
 		mi_module = self._mi_module
 		kws = self.d_kws	
-		self.log_infoNestedDict('d_kws')
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
 	    ml_buffer = get_moduleSiblings(**kws)
@@ -2261,68 +2183,80 @@ def animPushPose_siblings(*args,**kws):
 	    return True  
     return fncWrap(*args,**kws).go()
 
-def dynSwitch_children(self,arg):
-    """
-    Key module and all module children
-    """  
-    _str_funcName = "dynSwitch_children('%s')"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)  
-    log.warning("<<<<<<<< This module needs to be updated")        
-    
-    try:
-	try:
-	    ml_children = get_allModuleChildren(self)
-	    mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_children))    
-	    for i,i_c in enumerate(ml_children):
-		try:
-		    mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self.p_nameShort,i_c.p_nameShort), progress=i)    				        			
-		    i_c.rigNull.dynSwitch.go(arg)
-		except Exception,error:
-		    log.error("%s.dynSwitch_children>>  child: %s | %s"%(self.getBaseName(),i_c.getShortName(),error))
-	    cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-	except Exception,error:
-	    try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-	    except:pass
-	    log.error("%s.dynSwitch_children>> fail | %s"%(self.getBaseName(),error))
-	    return False  
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error) 
-    
-def dynSwitch_siblings(moduleInstance = None, arg = None, excludeSelf = True):
+
+#Dyn Switch =====================================================================================================
+def dynSwitch_children(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None, arg = None, excludeSelf = True):
+	def __init__(self,*args,**kws):
 	    """
-	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = "dynSwitch_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()#THIS IS WRONG#THIS IS WRONG
-	    self.d_kws['arg'] = arg	    	    	    
-	    self.d_kws['excludeSelf'] = excludeSelf	    	    
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
-	    self.log_warning("<<<<<<<< This module needs to be updated")        	    
-	    #The idea is to register the functions needed to be called
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "dynSwitch_children('%s')"%self._str_moduleName
+	    self._str_funcHelp = "Activate dynSwtich on children"			    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 _d_KWARG_dynSwitchArg
+	                                 ]
+	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
 	    
-	def __func__(self): 
-	    try:
-		ml_buffer = get_moduleSiblings(self._mi_module,self.d_kws['excludeSelf'])
-		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))    
+	def __func__(self):
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		_dynSwitchArg = self.d_kws['dynSwitchArg']
+		kws = self.d_kws		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    try:#Process ========================================================	    
+		ml_children = get_allModuleChildren(**kws)
+		int_lenMax = len(ml_children)
+		
+		for i,i_c in enumerate(ml_children):
+		    try:
+			self.progressBar_set(status = "%s step:'%s' "%(self._str_funcName,i_c.p_nameShort), progress = i, maxValue = int_lenMax)		    				    		    
+			i_c.rigNull.dynSwitch.go(_dynSwitchArg)
+		    except Exception,error:
+			self.log_error(" child: %s | %s"%(i_c.getShortName(),error))
+		return True
+	    except Exception,error:
+		self.log_error(error)  
+		return False	    
+    return fncWrap(*args,**kws).go()
+
+def dynSwitch_siblings(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "dynSwitch_siblings('%s')"%self._str_moduleName
+	    self._str_funcHelp = "Activate dynSwtich on siblings"			    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,_d_KWARG_dynSwitchArg,_d_KWARG_excludeSelf]
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
+	    
+	def __func__(self):
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		_dynSwitchArg = self.d_kws['dynSwitchArg']
+		kws = self.d_kws		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    try:#Process ========================================================	    
+		ml_buffer = get_moduleSiblings(**kws)
+		int_lenMax = len(ml_buffer)
+		
 		for i,i_c in enumerate(ml_buffer):
 		    try:
-			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self._str_moduleName,i_c.p_nameShort), progress=i)    				        			
-			i_c.rigNull.dynSwitch.go(self.d_kws['arg'])
+			self.progressBar_set(status = "%s step:'%s' "%(self._str_funcName,i_c.p_nameShort), progress = i, maxValue = int_lenMax)		    				    		    
+			i_c.rigNull.dynSwitch.go(_dynSwitchArg)
 		    except Exception,error:
-			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
-		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
+			self.log_error(" child: %s | %s"%(i_c.getShortName(),error))
+		return True
 	    except Exception,error:
-		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-		except:
-		    raise StandardError,error
-		
-	    return False  
-    #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance,arg,excludeSelf).go()
-      
+		self.log_error(error)  
+		return False	    
+    return fncWrap(*args,**kws).go()
+          
 def get_mirrorSideAsString(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
@@ -2345,15 +2279,14 @@ def get_mirrorSideAsString(*args,**kws):
 	    else:return 'Centre'	    
     return fncWrap(*args,**kws).go()
 
-def toggle_subVis(moduleInstance = None):
+def toggle_subVis(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,moduleInstance):
+	def __init__(self,*args,**kws):
 	    """
 	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
+	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = "toggle_subVis('%s')"%self._str_moduleName
-	    self.__dataBind__()#THIS IS WRONG#THIS IS WRONG
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
+	    self.__dataBind__(*args,**kws)	    
 	def __func__(self): 
 	    mi_module = self._mi_module
 	    try:
@@ -2369,7 +2302,7 @@ def toggle_subVis(moduleInstance = None):
 	    return False  
 	
     #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance).go()
+    return fncWrap(*args,**kws).go()
 
 def animSetAttr_children(*args,**kws):
     class fncWrap(ModuleFunc):
@@ -2377,12 +2310,11 @@ def animSetAttr_children(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcHelp = "Function to set an attribute value on all controls of a module's children"
 	    self._str_funcName = "animReset_siblings('%s')"%self._str_moduleName
-	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
-	                                 {'kw':'attr',"default":None,'help':"Attribute to look for","argType":"string"},
-	                                 {'kw':'value',"default":None,'help':"Value to set","argType":"variable"},
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule, cgmMeta._d_KWARG_attr, cgmMeta._d_KWARG_value,
 	                                 {'kw':'settingsOnly',"default":False,'help':"Only check settings controls","argType":"bool"},
-	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]
+	                                 _d_KWARG_excludeSelf]
 	    self.__dataBind__(*args,**kws)
 
 	def __func__(self): 

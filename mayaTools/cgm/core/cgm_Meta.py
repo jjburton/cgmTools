@@ -50,7 +50,11 @@ drawingOverrideAttrsDict = {'overrideEnabled':0,
                             'overrideVisibility':1}
 l_componentTypes = ['polyVertex','curveCV','surfaceCV','polyEdge','editPoint','isoparm','polyFace','polyUV','curvePoint','surfacePatch','nurbsUV']
 l_cgmNameTags = ['cgmName','cgmNameModifier','cgmPosition','cgmDirection','cgmDirectionModifier','cgmIterator','cgmType','cgmTypeModifier']
-
+#KWS ================================================================================================================
+_d_KWARG_asMeta = {'kw':'asMeta',"default":True, 'help':"Whether to return as meta or not", "argType":"bool"}
+_d_KWARG_attr = {'kw':'attr',"default":None, 'help':"Attribute name to look for", "argType":"string"}
+_d_KWARG_value = {'kw':'value',"default":None, 'help':"Value to set", "argType":"variable"}
+_d_KWARG_forceNew = {'kw':'forceNew',"default":False, 'help':"typical kw to force a new one of whatever", "argType":"bool"}
 #=========================================================================
 import logging
 logging.basicConfig()

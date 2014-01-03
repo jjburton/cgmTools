@@ -435,7 +435,9 @@ class cgmFuncCls(object):
 	self.update_moduleData()		
 	print("#" + ">"*3 + " %s "%self._str_funcCombined + "="*50)
 	print("Python Module: %s "%self._str_modPath)	 
-	if self._str_funcHelp is not None:print("%s "%self._str_funcHelp)	 
+	print(_str_subLine * 2)		
+	if self._str_funcHelp is not None:print("%s "%self._str_funcHelp)
+	print(_str_subLine * 2)	
 	print("@kws -- [index - argKW(argType - default) -- info]")
 	for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS + self._l_ARGS_KWS_BUILTINS):
 	    l_tmp = ['%i - '%i]

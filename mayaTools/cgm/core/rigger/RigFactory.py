@@ -531,7 +531,7 @@ class go(object):
 	return get_rigDeformationJoints(self._mi_module)
 	
     def _get_handleJoints(self):
-	return get_rigHandleJoints(self._mi_module)
+	return self._mi_module.rig_getRigHandleJoints(asMeta = True)
     
     def _get_simpleRigJointDriverDict(self):
 	return get_simpleRigJointDriverDict(self._mi_module)
@@ -1209,35 +1209,7 @@ def get_skinJointsOLD(self, asMeta = True):
 	    return [obj.p_nameShort for obj in ml_skinJoints]
     except Exception,error:
 	raise StandardError, "%s >> %s"(_str_funcName,error)	
-    
-    
-def get_rigHandleJoints(self, asMeta = True):
-    #Get our rig handle joints
-    try:
-	_str_funcName = "%s.get_rigHandleJoints"%self.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75) 
-	start = time.clock()     
-	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
-	
-	"""
-	if not self.isSkeletonized():
-	    raise StandardError,"%s.get_rigHandleJoints >> not skeletonized."%(self.p_nameShort)"""	
-	#ml_rigJoints = self.rigNull.msgList_get('rigJoints')
-	#if not ml_rigJoints:
-	    #log.error("%s.get_rigHandleJoints >> no rig joints found"%self.getShortName())
-	    #return []	
-	l_rigHandleJoints = []
-	for i_j in self.rigNull.msgList_get('handleJoints'):
-	    str_attrBuffer = i_j.getMessage('rigJoint')
-	    if str_attrBuffer:
-		l_rigHandleJoints.append(str_attrBuffer)
-	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	
-	if asMeta:return cgmMeta.validateObjListArg(l_rigHandleJoints,noneValid=True)	    
-	return l_rigHandleJoints
-    except Exception,error:
-	raise StandardError,"%s >> Probably isn't skeletonized | error: %s"%(_str_funcName,error)
-    
-    
+        
 def get_rigDeformationJoints(self,asMeta = True):
     #Get our joints that segment joints will connect to
     try:
@@ -1263,28 +1235,7 @@ def get_rigDeformationJoints(self,asMeta = True):
     
     except Exception,error:
 	raise StandardError,"get_rigDeformationJoints >> self: %s | error: %s"%(self,error)
-    
-    
-def get_handleJoints(self,asMeta = True):
-    #Get our segment joints
-    try:
-	_str_funcName = "%s.get_handleJoints"%self.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75) 
-	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
-	
-	return self.rigNull.msgList_get('handleJoints',asMeta = asMeta, cull = True)
-	"""
-	ml_handleJoints = []
-	for i_obj in self.templateNull.controlObjects:
-	    buffer = i_obj.handleJoint
-	    if not buffer:
-		log.error("%s.get_handleJoints >> '%s' missing handle joint"%(self.p_nameShort,i_obj.p_nameShort))
-		return False
-	    ml_handleJoints.append( buffer )
-	return ml_handleJoints"""
-    except Exception,error:
-	raise StandardError,"get_handleJoints >> self: %s | error: %s"%(self,error)
-    
+        
 
 def get_segmentHandleTargets(self):
     """
@@ -1634,9 +1585,9 @@ def get_report(self):
 	    return False
 	l_moduleJoints = self.rigNull.msgList_get('moduleJoints',False) or []
 	l_skinJoints =self.rig_getSkinJoints(False)
-	ml_handleJoints = get_handleJoints(self) or []
+	ml_handleJoints = self.rig_getHandleJoints() or []
 	l_rigJoints = self.rigNull.msgList_get('rigJoints',False) or []
-	ml_rigHandleJoints = get_rigHandleJoints(self) or []
+	ml_rigHandleJoints = self.rig_getRigHandleJoints() or []
 	ml_rigDefJoints = get_rigDeformationJoints(self) or []
 	ml_segmentHandleTargets = get_segmentHandleTargets(self) or []
 	

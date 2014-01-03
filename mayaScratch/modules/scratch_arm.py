@@ -51,7 +51,6 @@ i_rig.buildModule.build_twistDriver_shoulder(i_rig)
 i_rig.buildModule.build_twistDriver_wrist(i_rig)
 reload(Rig)
 i_rig._get_handleJoints()
-Rig.get_handleJoints(m1)
 cgmMeta.cgmObject('l_ankle_ik_anim').scalePivotY = 0
 i_rig.build(i_rig)
 i_rig._i_deformNull.controlsIK

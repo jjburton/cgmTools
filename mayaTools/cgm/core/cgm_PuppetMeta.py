@@ -1952,9 +1952,10 @@ class cgmModule(cgmMeta.cgmObject):
     def dynSwitch_children(self,*args,**kws):
 	kws['mModule'] = self		
 	return mFactory.dynSwitch_children(*args,**kws)
-    def animSetAttr_children(self,attr = None, value = None, settingsOnly = False, excludeSelf = True):
-	#kws['mModule'] = self			
-	return mFactory.animSetAttr_children(self,attr, value, settingsOnly, excludeSelf)
+    
+    def animSetAttr_children(self,*args,**kws):
+	kws['mModule'] = self			
+	return mFactory.animSetAttr_children(*args,**kws)
     #>>> Module Siblings
     #========================================================================  
     def getModuleSiblings(self,*args,**kws):
