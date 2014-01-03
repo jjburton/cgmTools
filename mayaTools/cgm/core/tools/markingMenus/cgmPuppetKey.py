@@ -186,7 +186,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    except StandardError,error:
 		log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,module.p_nameShort,error))	    
 
-	    for mMod in module.getAllModuleChildren():
+	    for mMod in module.get_allModuleChildren():
 		try:mMod.mirrorMe()
 		except StandardError,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))
@@ -197,7 +197,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    except StandardError,error:
 		log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,module.p_nameShort,error))
 		
-	    for mMod in module.getAllModuleChildren():
+	    for mMod in module.get_allModuleChildren():
 		try:mMod.mirrorPush()
 		except StandardError,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))
@@ -209,7 +209,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    except StandardError,error:
 		log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,module.p_nameShort,error))
 		
-	    for mMod in module.getAllModuleChildren():
+	    for mMod in module.get_allModuleChildren():
 		try:mMod.mirrorPull()
 		except StandardError,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))

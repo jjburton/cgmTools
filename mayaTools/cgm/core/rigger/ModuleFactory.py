@@ -38,7 +38,8 @@ _l_moduleStates = ['define','size','template','skeleton','rig']
 __l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow','cgmMouthNose']
 __l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthNose']
 _d_KWARG_mModule = {'kw':'mModule',"default":None,'help':"cgmModule mNode or str name","argType":"cgmModule"}
-_d_KWARG_force= {'kw':'force',"default":False,'help':"Whether to force the given function or not","argType":"bool"}
+_d_KWARG_force = {'kw':'force',"default":False,'help':"Whether to force the given function or not","argType":"bool"}
+_d_KWARG_excludeSelf = {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in action","argType":"bool"}   
 
 '''
 ml_modules = getModules(self.mi_puppet)
@@ -1664,8 +1665,9 @@ def mirrorPush(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = "mirrorPush('%s')"%self._str_moduleName
+	    self._l_ARGS_KWS_DEFAULTS =  [_d_KWARG_mModule]
+	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]	    
 	    self.__dataBind__(*args,**kws)
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #=================================================================
 	def __func__(self): 
 	    try:#Query ========================================================
@@ -1693,8 +1695,8 @@ def mirrorPull(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = "mirrorPull('%s')"%self._str_moduleName
+	    self._l_ARGS_KWS_DEFAULTS =  [_d_KWARG_mModule]
 	    self.__dataBind__(*args,**kws)
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
 	    #=================================================================
 	    
@@ -1801,7 +1803,7 @@ def mirrorMe_siblings(moduleInstance = None, excludeSelf = True):
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = "mirrorMe_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()
+	    self.__dataBind__()#THIS IS WRONG
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
@@ -1813,8 +1815,8 @@ def mirrorMe_siblings(moduleInstance = None, excludeSelf = True):
 		mi_parentMirror = get_mirror(mi_moduleParent)
 		if not mi_moduleParent and mi_parentMirror:
 		    raise StandardError,"Must have module parent and mirror"
-		ml_buffer = getAllModuleChildren(mi_moduleParent)
-		ml_buffer.extend(getAllModuleChildren(mi_parentMirror))
+		ml_buffer = get_allModuleChildren(mi_moduleParent)
+		ml_buffer.extend(get_allModuleChildren(mi_parentMirror))
 		
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
@@ -1839,49 +1841,7 @@ def mirrorMe_siblings(moduleInstance = None, excludeSelf = True):
     #We wrap it so that it autoruns and returns
     return fncWrap(moduleInstance,excludeSelf).go()
 
-def animReset_siblings(moduleInstance = None, transformsOnly = True, excludeSelf = True):
-    class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None,  transformsOnly = True, excludeSelf = True):
-	    """
-	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = "animReset_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()
-	    self.d_kws['excludeSelf'] = excludeSelf	  
-	    self.d_kws['transformsOnly'] = transformsOnly	    	    	    
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
-	    #The idea is to register the functions needed to be called
-	    #=================================================================
-	    
-	def __func__(self): 
-	    try:
-		ml_buffer = getSiblings(self._mi_module,self.d_kws['excludeSelf'])
-		
-		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
-		l_controls = []
-		for i,mModule in enumerate(ml_buffer):
-		    try:
-			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,mModule.p_nameShort), progress=i)    				        			
-			l_controls.extend(mModule.rigNull.moduleSet.getList())			
-		    except Exception,error:
-			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
-		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
-		if l_controls:
-		    mc.select(l_controls)
-		    ml_resetChannels.main(transformsOnly = self.d_kws['transformsOnly'])
-		    return True
-		return False
-		
-	    except Exception,error:
-		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-		except:
-		    raise StandardError,error
-	    return False  
-	
-    #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance,transformsOnly,excludeSelf).go()
-
-def animReset_children(*args,**kws):
+def animReset_siblings(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
 	    """
@@ -1898,7 +1858,7 @@ def animReset_children(*args,**kws):
 		mi_module = self._mi_module
 		kws = self.d_kws
 		
-		ml_buffer = getAllModuleChildren(**kws)
+		ml_buffer = get_moduleSiblings(**kws)
 		int_lenMax = len(ml_buffer)		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error	    
 	    
@@ -1920,41 +1880,84 @@ def animReset_children(*args,**kws):
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()
 
-def mirrorPush_siblings(moduleInstance = None, excludeSelf = True):
+def animReset_children(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None, excludeSelf = True):
+	def __init__(self,*args,**kws):
 	    """
 	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = "mirrorPush_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()
-	    self.d_kws['excludeSelf'] = excludeSelf	    	    
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
-	    #The idea is to register the functions needed to be called
-	    #=================================================================
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = "animReset_children('%s')"%self._str_moduleName
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 {'kw':'transformsOnly',"default":True,'help':"Whether to only reset transforms","argType":"bool"},
+	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]
+	    self.__dataBind__(*args,**kws)    	    
 	    
 	def __func__(self): 
-	    try:
-		ml_buffer = getSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
-		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
-		l_controls = []
-		for i,i_c in enumerate(ml_buffer):
-		    try:
-			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,i_c.p_nameShort), progress=i)    				        			
-			mirrorPush(i_c)
-			l_controls.extend(i_c.rigNull.moduleSet.getList())			
-		    except Exception,error:
-			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
-		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
-		if l_controls:mc.select(l_controls)
-	    except Exception,error:
-		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-		except:
-		    raise StandardError,error
-	    return False  
-	
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws
+		
+		ml_buffer = get_allModuleChildren(**kws)
+		int_lenMax = len(ml_buffer)		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error	    
+	    
+	    l_controls = []
+	    for i,mModule in enumerate(ml_buffer):
+		_str_module = mModule.p_nameShort
+		self.progressBar_set(status = "On: %s "%_str_module, progress = i, maxValue = int_lenMax)		    				    		    
+		try:
+		    l_controls.extend(mModule.rigNull.moduleSet.getList())			
+		except Exception,error:
+		    self.log_error("child: %s | %s"%(_str_module,error))
+		    
+	    if l_controls:
+		mc.select(l_controls)
+		ml_resetChannels.main(transformsOnly = self.d_kws['transformsOnly'])
+		return True
+	    return False
+
     #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance,excludeSelf).go()   
+    return fncWrap(*args,**kws).go()
+
+def mirrorPush_siblings(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = "mirrorPush_siblings('%s')"%self._str_moduleName
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]
+	    
+	    self.__dataBind__(*args,**kws)    	    
+	    
+	def __func__(self): 
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws
+		ml_buffer = get_moduleSiblings(**kws)
+		int_lenMax = len(ml_buffer)		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error	    
+	    
+	    l_controls = []
+	    for i,mModule in enumerate(ml_buffer):
+		_str_module = mModule.p_nameShort
+		self.progressBar_set(status = "On: %s "%_str_module, progress = i, maxValue = int_lenMax)		    				    		    
+		try:
+		    l_controls.extend(mModule.rigNull.moduleSet.getList())
+		    kws = self.get_cleanKWS()#We use this to get non registered kws -- maya one's more than like
+		    kws['mModule'] = i_c
+		    mirrorPush(**kws)		    
+		except Exception,error:
+		    self.log_error("child: %s | %s"%(_str_module,error))
+		    
+	    if l_controls:
+		mc.select(l_controls)
+		return True
+	    return False
+
+    #We wrap it so that it autoruns and returns
+    return fncWrap(*args,**kws).go()
 
 def mirrorPull_siblings(moduleInstance = None, excludeSelf = True):
     class fncWrap(ModuleFunc):
@@ -1963,7 +1966,7 @@ def mirrorPull_siblings(moduleInstance = None, excludeSelf = True):
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = "mirrorPull_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()
+	    self.__dataBind__()#THIS IS WRONG
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	    #The idea is to register the functions needed to be called
@@ -1971,7 +1974,7 @@ def mirrorPull_siblings(moduleInstance = None, excludeSelf = True):
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
+		ml_buffer = get_moduleSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
 		l_controls = []
 		for i,i_c in enumerate(ml_buffer):
@@ -1994,40 +1997,45 @@ def mirrorPull_siblings(moduleInstance = None, excludeSelf = True):
     #We wrap it so that it autoruns and returns
     return fncWrap(moduleInstance,excludeSelf).go()  
 
-def getSiblings(*args,**kws):
+def get_moduleSiblings(*args,**kws):
     l_sibblingIgnoreCheck = ['finger','thumb']
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "getSiblings('%s')"%self._str_moduleName
-	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
+	    self._str_funcName = "get_moduleSiblings('%s')"%self._str_moduleName
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,_d_KWARG_excludeSelf]	    
 	    self.__dataBind__(*args,**kws)
 	    
 	def __func__(self):
 	    try:#Query ========================================================
 		mi_module = self._mi_module
+		mi_modParent = self._mi_module.moduleParent
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
+	    if not mi_modParent:
+		self.log_info("No module parent found. No siblings possible")
+		return []
+	    
 	    ml_buffer = copy.copy(mi_module.moduleParent.moduleChildren)
+	    #self.log_debug("Possible siblings: %s"%ml_buffer)
 	    
 	    ml_return = []
 	    int_lenMax = len(ml_buffer)
 	    for i,mModule in enumerate(ml_buffer):
 		self.progressBar_set(status = "Remaining to process... ", progress = i, maxValue = int_lenMax)	
 		if mModule.mNode == mi_module.mNode:
-		    self.log_debug("Match | excludeSelf : %s"%kws['excludeSelf'])
+		    self.log_debug("Self Match! | excludeSelf : %s"%kws['excludeSelf'])
 		    if kws['excludeSelf'] != True:
-			self.log_debug("Including self")
 			ml_return.append(mi_module)
-		elif self._mi_module.moduleType == mModule.moduleType or mi_module.moduleType in l_sibblingIgnoreCheck:
-		    if self._mi_module.getAttr('cgmDirection') and mi_module.getAttr('cgmDirection') == mModule.getAttr('cgmDirection'):
+		elif mi_module.moduleType == mModule.moduleType or mi_module.moduleType in l_sibblingIgnoreCheck:
+		    self.log_debug("Type match match : %s"%mModule)		    
+		    if mi_module.getAttr('cgmDirection') != mModule.getAttr('cgmDirection') or mi_module.moduleType in l_sibblingIgnoreCheck:
 			self.log_debug("Appending: %s"%mModule)
 			ml_return.append(mModule)
-	    if len(ml_return)>1: return ml_return
-	    return []
+	    return ml_return
 
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()
@@ -2035,13 +2043,13 @@ def getSiblings(*args,**kws):
 #=====================================================================================================
 #>>> Children functions
 #=====================================================================================================  
-def getAllModuleChildren(*args,**kws):
+def get_allModuleChildren(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "getAllModuleChildren('%s')"%self._str_moduleName
+	    self._str_funcName = "get_allModuleChildren('%s')"%self._str_moduleName
 	    self._l_ARGS_KWS_DEFAULTS =  [{'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
 	    self.__dataBind__(*args,**kws)
 	    
@@ -2073,188 +2081,185 @@ def getAllModuleChildren(*args,**kws):
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()   
 
-def animKey_children(self,**kws):
-    """
-    Key module and all module children controls
-    """   
-    _str_funcName = "animKey_children('%s')"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)   
-    log.warning("<<<<<<<< This module needs to be updated")    
-    try:
-	l_controls = self.rigNull.msgList_getMessage('controlsAll') or []
-	ml_children = getAllModuleChildren(self)
-	if ml_children:mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_children)) 
-	for i,i_c in enumerate(ml_children):
-	    mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.animKey_children>> gathering controls:'%s' "%(self.p_nameShort,i_c.p_nameShort), progress=i)    				        				    
-	    buffer = i_c.rigNull.msgList_getMessage('controlsAll')
-	    if buffer:
-		l_controls.extend(buffer)
-		
-	if ml_children:
-	    try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-	    except:pass	   
-	    
-	if l_controls:
-	    mc.select(l_controls)
-	    mc.setKeyframe(**kws)
-	    return True
-	return False
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)   
-
-def animKey_siblings(moduleInstance = None, excludeSelf = True,**kws):
+def animKey_children(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None, excludeSelf = True,**kws):
+	def __init__(self,*args,**kws):
 	    """
-	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = "animKey_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()
-	    self.d_kws['excludeSelf'] = excludeSelf	    	    
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
-	    self.log_warning("<<<<<<<< This module needs to be updated")        
-	    
-	    #The idea is to register the functions needed to be called
-	    #=================================================================
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "animKey_children('%s')"%self._str_moduleName
+	    self._str_funcHelp = "    Key module and all module children controls"			    
+	    self.__dataBind__(*args,**kws)	
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
 	def __func__(self): 
-	    try:
-		ml_buffer = getSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
-		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
-		l_controls = []
-		for i,i_c in enumerate(ml_buffer):
-		    log.info(i_c.p_nameShort)
-		    try:
-			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.dynSwitch_children>> step:'%s' "%(self._str_moduleName,i_c.p_nameShort), progress=i)    				        			
-			l_controls.extend(i_c.rigNull.moduleSet.getList())
-		    except Exception,error:
-			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
-		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
-		if l_controls:
-		    mc.select(l_controls)
-		    kws = self._d_funcKWs
-		    mc.setKeyframe(**kws)
-		
-	    except Exception,error:
-		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-		except:
-		    raise StandardError,error
-		
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self._d_funcKWs
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    ml_buffer = get_allModuleChildren(**kws)
+	    int_lenMax = len(ml_buffer)		
+	    l_controls = []
+	    for i,i_c in enumerate(ml_buffer):
+		log.info(i_c.p_nameShort)
+		try:
+		    self.progressBar_set(status = "Remaining to process... ", progress = i, maxValue = int_lenMax)		    				    		    
+		    l_controls.extend(i_c.rigNull.moduleSet.getList())
+		except Exception,error:
+		    log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
+	    if l_controls:
+		mc.select(l_controls)
+		kws = self.get_cleanKWS()#We use this to get non registered kws -- maya one's more than likely
+		mc.setKeyframe(**kws)
+		return True
 	    return False  
-    #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance,excludeSelf,**kws).go() 
+    return fncWrap(*args,**kws).go()
 
-def animSelect_children(self,**kws):
-    """
-    Select module and all module children controls
-    """     
-    _str_funcName = "animSelect_children('%s')"%self.p_nameShort   
-    log.debug(">>> %s "%(_str_funcName) + "="*75)     
-    log.warning("<<<<<<<< This module needs to be updated")            
-    try:
-	l_controls = self.rigNull.msgList_getMessage('controlsAll') or []
-	ml_children = getAllModuleChildren(self)
-	if ml_children:mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_children)) 
-	for i,i_c in enumerate(ml_children):
-	    mc.progressBar(mayaMainProgressBar, edit=True, status = "%s.animSelect_children>> gathering controls:'%s' "%(self.p_nameShort,i_c.p_nameShort), progress=i)    				        				    
-	    buffer = i_c.rigNull.msgList_getMessage('controlsAll')
-	    if buffer:
-		l_controls.extend(buffer)
-		
-	if ml_children:
-	    try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-	    except:pass	   
+def animKey_siblings(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "animSelect_children('%s')"%self._str_moduleName
+	    self._str_funcHelp = "Selects controls of a module's children"			    
+	    self.__dataBind__(*args,**kws)	
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
 	
-	if l_controls:
-	    mc.select(l_controls)
-	    return True
-	return False
-    except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error) 
+	def __func__(self): 
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self._d_funcKWs
+		self.log_info(kws)
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    ml_buffer = get_moduleSiblings(**kws)
+	    int_lenMax = len(ml_buffer)		
+	    l_controls = []
+	    for i,i_c in enumerate(ml_buffer):
+		log.info(i_c.p_nameShort)
+		try:
+		    self.progressBar_set(status = "Remaining to process... ", progress = i, maxValue = int_lenMax)		    				    		    
+		    l_controls.extend(i_c.rigNull.moduleSet.getList())
+		except Exception,error:
+		    log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
+	    if l_controls:
+		mc.select(l_controls)
+		kws = self.get_cleanKWS()#We use this to get non registered kws -- maya one's more than like
+		mc.setKeyframe(**kws)
+		return True
+	    return False  
+    return fncWrap(*args,**kws).go()
     
-def animSelect_siblings(moduleInstance = None, excludeSelf = True):
+def animSelect_children(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None, excludeSelf = True):
+	def __init__(self,*args,**kws):
 	    """
-	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = "animSelect_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()
-	    self.d_kws['excludeSelf'] = excludeSelf	    	    
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
-	    self.log_warning("<<<<<<<< This module needs to be updated")        	    
-	    #The idea is to register the functions needed to be called
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "animSelect_children('%s')"%self._str_moduleName
+	    self._str_funcHelp = "Selects controls of a module's children"			    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
+	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
 	    
-	def __func__(self): 
-	    try:
-		ml_buffer = getSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
-		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))  
-		l_controls = []
-		for i,i_c in enumerate(ml_buffer):
-		    try:
-			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,i_c.p_nameShort), progress=i)    				        			
-			l_controls.extend(i_c.rigNull.moduleSet.getList())
-		    except Exception,error:
-			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
-		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
-		
-		if l_controls:
-		    mc.select(l_controls)
-		    return True	
-		
-	    except Exception,error:
-		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-		except:
-		    raise StandardError,error
-		
-	    return False  
-    #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance,excludeSelf).go()
+	def __func__(self):
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 
-def animPushPose_siblings(moduleInstance = None,):
+	    l_controls = mi_module.rigNull.msgList_getMessage('controlsAll') or []
+	    ml_children = get_allModuleChildren(**kws)
+	    int_lenMax = len(ml_children)
+	    for i,i_c in enumerate(ml_children):
+		self.progressBar_set(status = "Remaining to process... ", progress = i, maxValue = int_lenMax)		    				    		    
+		buffer = i_c.rigNull.msgList_getMessage('controlsAll')
+		if buffer:
+		    l_controls.extend(buffer)
+		       
+	    if l_controls:
+		mc.select(l_controls)
+		return True
+	    return False	    
+    return fncWrap(*args,**kws).go()
+    
+def animSelect_siblings(*args,**kws):
     class fncWrap(ModuleFunc):
-	def __init__(self,goInstance = None):
+	def __init__(self,*args,**kws):
 	    """
-	    """	
-	    super(fncWrap, self).__init__(moduleInstance)
-	    self._str_funcName = "animPushPose_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()
-	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
-	    self.log_warning("<<<<<<<< This module needs to be updated")        	    
-	    #The idea is to register the functions needed to be called
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "animSelect_siblings('%s')"%self._str_moduleName
+	    self._str_funcHelp = "Selects controls of module siblings"			    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+	                                 {'kw':'excludeSelf',"default":True,'help':"Whether to exclude self in return","argType":"bool"}]			    
+	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
 	    
+	def __func__(self):
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+
+	    #ml_buffer = get_moduleSiblings(self._mi_module,self.d_kws.get('excludeSelf'))
+	    ml_buffer = get_moduleSiblings(**kws)
+	    
+	    l_controls = []
+	    int_lenMax = len(ml_buffer)
+	    for i,mModule in enumerate(ml_buffer):
+		try:
+		    self.progressBar_set(status = "Remaining to process... ", progress = i, maxValue = int_lenMax)		    				    		    
+		    l_controls.extend(mModule.rigNull.moduleSet.getList())
+		except Exception,error:
+		    self.log_error("%s  Sibbling: %s | %s"%(self._str_reportStart,mModule.getShortName(),error))
+	    if l_controls:
+		mc.select(l_controls)
+		return True	
+	    return False  	    
+    return fncWrap(*args,**kws).go()
+    
+def animPushPose_siblings(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = "animPushPose_siblings('%s')"%self._str_moduleName
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule]	    
+	    self.__dataBind__(*args,**kws)
+	    
 	def __func__(self): 
-	    try:
-		ml_buffer = getSiblings(self._mi_module)
-		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer)) 
-		l_moduleControls = self._mi_module.rigNull.msgList_getMessage('controlsAll')
-		l_controls = []
-		for i,i_c in enumerate(ml_buffer):
-		    log.info(i_c.p_nameShort)
-		    try:
-			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >> step:'%s' "%(self._str_reportStart,i_c.p_nameShort), progress=i)    				        			
-			l_siblingControls = i_c.rigNull.msgList_getMessage('controlsAll')
-			for i,c in enumerate(l_siblingControls):
-			    log.info("%s %s >> %s"%(self._str_reportStart,l_moduleControls[i],c))
-			    r9Anim.AnimFunctions().copyAttributes(nodes=[l_moduleControls[i],c])
-			l_controls.extend(l_siblingControls)
-		    except Exception,error:
-			log.error("%s  child: %s | %s"%(self._str_reportStart,i_c.getShortName(),error))
-		cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar 
-		
-		if l_controls:
-		    mc.select(l_controls)
-		    return True	
-		
-	    except Exception,error:
-		try:cgmGeneral.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        	
-		except:
-		    raise StandardError,error
-		
-	    return False  
-    #We wrap it so that it autoruns and returns
-    return fncWrap(moduleInstance).go()
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws	
+		self.log_infoNestedDict('d_kws')
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    ml_buffer = get_moduleSiblings(**kws)
+	    l_moduleControls = self._mi_module.rigNull.msgList_getMessage('controlsAll')
+	    int_lenMax = len(ml_buffer)		
+	    l_controls = []
+	    for i,i_c in enumerate(ml_buffer):
+		try:		    
+		    _str_child = i_c.p_nameShort
+		    self.progressBar_set(status = "%s >> step:'%s' "%(self._str_reportStart,_str_child), progress = i, maxValue = int_lenMax)		    				    		    			
+		    l_siblingControls = i_c.rigNull.msgList_getMessage('controlsAll')
+		    for i,c in enumerate(l_siblingControls):
+			#log.info("%s %s >> %s"%(self._str_reportStart,l_moduleControls[i],c))
+			r9Anim.AnimFunctions().copyAttributes(nodes=[l_moduleControls[i],c])
+		    l_controls.extend(l_siblingControls)
+		except Exception,error:
+		    log.error("%s  child: %s | %s"%(self._str_reportStart,_str_child,error))	    
+	    if l_controls:
+		mc.select(l_controls)
+		    
+	    return True  
+    return fncWrap(*args,**kws).go()
 
 def dynSwitch_children(self,arg):
     """
@@ -2266,7 +2271,7 @@ def dynSwitch_children(self,arg):
     
     try:
 	try:
-	    ml_children = getAllModuleChildren(self)
+	    ml_children = get_allModuleChildren(self)
 	    mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_children))    
 	    for i,i_c in enumerate(ml_children):
 		try:
@@ -2290,7 +2295,7 @@ def dynSwitch_siblings(moduleInstance = None, arg = None, excludeSelf = True):
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = "dynSwitch_siblings('%s')"%self._str_moduleName
-	    self.__dataBind__()
+	    self.__dataBind__()#THIS IS WRONG#THIS IS WRONG
 	    self.d_kws['arg'] = arg	    	    	    
 	    self.d_kws['excludeSelf'] = excludeSelf	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
@@ -2300,7 +2305,7 @@ def dynSwitch_siblings(moduleInstance = None, arg = None, excludeSelf = True):
 	    
 	def __func__(self): 
 	    try:
-		ml_buffer = getSiblings(self._mi_module,self.d_kws['excludeSelf'])
+		ml_buffer = get_moduleSiblings(self._mi_module,self.d_kws['excludeSelf'])
 		mayaMainProgressBar = cgmGeneral.doStartMayaProgressBar(len(ml_buffer))    
 		for i,i_c in enumerate(ml_buffer):
 		    try:
@@ -2347,7 +2352,7 @@ def toggle_subVis(moduleInstance = None):
 	    """	
 	    super(fncWrap, self).__init__(moduleInstance)
 	    self._str_funcName = "toggle_subVis('%s')"%self._str_moduleName
-	    self.__dataBind__()
+	    self.__dataBind__()#THIS IS WRONG#THIS IS WRONG
 	    self.l_funcSteps = [{'step':'Process','call':self.__func__}]
 	def __func__(self): 
 	    mi_module = self._mi_module
@@ -2385,7 +2390,7 @@ def animSetAttr_children(*args,**kws):
 		mi_module = self._mi_module
 		kws = self.d_kws	
 		
-		ml_buffer = getAllModuleChildren(**kws)
+		ml_buffer = get_allModuleChildren(**kws)
 		int_lenMax = len(ml_buffer)		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    

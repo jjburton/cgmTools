@@ -109,7 +109,15 @@ class cgmFuncCls(object):
 	self._b_WIP = False
 	self._b_autoProgressBar = False
 	self._b_reportTimes = False
+	self._b_pushCleanKWs = False
 	self._l_ARGS_KWS_DEFAULTS = []
+	self._l_ARGS_KWS_BUILTINS = [{'kw':'reportShow',"default":False,'help':"show report at start of log","argType":"bool"},
+	                             {'kw':'reportTimes',"default":False,'help':"show step times in log","argType":"bool"},
+	                             {'kw':'reportEnv',"default":False,'help':"Override. Just get maya env info","argType":"bool"},
+	                             {'kw':'reportToDo',"default":False,'help':"Override. Get to do list for func","argType":"bool"},	                                 
+	                             {'kw':'printHelp',"default":False,'help':"Override.  Get help block for func","argType":"bool"},
+	                             {'kw':'setLogLevel',"default":None,'help':"Set the debug level on call","argType":"str"},
+	                             {'kw':'autoProgressBar',"default":False,'help':"Show generated progress bar by steps","argType":"bool"}]	
 	self.d_kws  = {}
 	self.l_funcSteps = []
 	self.d_return = {}
@@ -118,19 +126,15 @@ class cgmFuncCls(object):
 	self._l_funcTimes = []
 	self._l_toDo = []
 	self._l_errors = []
-	self._l_warnings = [] 
+	self._l_warnings = []
 	#These are our mask so that the fail report ignores them
-	self._l_reportMask = ['_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	self._l_reportMask = ['_b_pushCleanKWs','_l_ARGS_KWS_BUILTINS','_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
-	'''
-	self._l_errorMask = ['_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
-	                     '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart','_b_WIP','_l_funcTimes',                     
-	                     '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_kwMask','_l_funcArgs','_l_ARGS_KWS_DEFAULTS',
-	                     '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart']'''
+
 	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
-	self._l_kwMask = ['reportTimes','reportShow','autoProgressBar']
+	#self._l_kwMask = ['reportTimes','reportShow','autoProgressBar']
 	
     def __updateFuncStrings__(self):
 	self._str_funcCombined = self._str_funcName
@@ -157,7 +161,7 @@ class cgmFuncCls(object):
 	if self._l_ARGS_KWS_DEFAULTS:
 	    l_argCull = copy.copy(list(args))
 	    int_argIdx = 0	    
-	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
+	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS + self._l_ARGS_KWS_BUILTINS):
 		str_kw = d_buffer['kw']		
 		#self.log_info("Checking: [%s] | args: %s | l_argsCull: %s"%(str_kw,args,l_argCull))
 		l_argCull = copy.copy(list(args))
@@ -181,15 +185,15 @@ class cgmFuncCls(object):
 	    try:
 		if kw not in l_storedKeys:self.d_kws[kw] = kws[kw]
 	    except Exception,error:raise StandardError,"%s failed to store kw: %s | value: %s | error: %s"%(self._str_reportStart,kw,kws[kw],error)
-	
-	self._l_ARGS_KWS_DEFAULTS.extend([{'kw':'reportShow',"default":False,'help':"(BUILTIN) - show report at start of log","argType":"bool"},
-                                         {'kw':'reportTimes',"default":False,'help':"(BUILTIN) - show step times in log","argType":"bool"},
-	                                 {'kw':'reportEnv',"default":False,'help':"(BUILTIN) - Override. Just get maya env info","argType":"bool"},
-	                                 {'kw':'reportToDo',"default":False,'help':"(BUILTIN) - Override. Get to do list for func","argType":"bool"},	                                 
-	                                 {'kw':'printHelp',"default":False,'help':"(BUILTIN) - Override.  Get help block for func","argType":"bool"},
-	                                 {'kw':'setLogLevel',"default":None,'help':"(BUILTIN) - Set the debug level on call","argType":"str"},
-                                         {'kw':'autoProgressBar',"default":False,'help':"(BUILTIN) - show generated progress bar by steps","argType":"bool"}])
-	    
+	'''
+	self._l_ARGS_KWS_BUILTINS = [{'kw':'reportShow',"default":False,'help':"(BUILTIN) - show report at start of log","argType":"bool"},
+	                             {'kw':'reportTimes',"default":False,'help':"(BUILTIN) - show step times in log","argType":"bool"},
+	                             {'kw':'reportEnv',"default":False,'help':"(BUILTIN) - Override. Just get maya env info","argType":"bool"},
+	                             {'kw':'reportToDo',"default":False,'help':"(BUILTIN) - Override. Get to do list for func","argType":"bool"},	                                 
+	                             {'kw':'printHelp',"default":False,'help':"(BUILTIN) - Override.  Get help block for func","argType":"bool"},
+	                             {'kw':'setLogLevel',"default":None,'help':"(BUILTIN) - Set the debug level on call","argType":"str"},
+	                             {'kw':'autoProgressBar',"default":False,'help':"(BUILTIN) - show generated progress bar by steps","argType":"bool"}]
+	'''    
 	if self.d_kws.get('autoProgressBar'):self._b_autoProgressBar = True
 	if self.d_kws.get('reportTimes'):self._b_reportTimes = True
 		
@@ -252,6 +256,14 @@ class cgmFuncCls(object):
 	
 	mc.undoInfo(openChunk=True)
 	int_lenSteps = len(self.l_funcSteps)
+	
+	if self._b_pushCleanKWs:
+	    log.debug("Pushing cleanKWs")
+	    _d_cleanKWS = self.get_cleanKWS()
+	    if kws:
+		for k in _d_cleanKWS:kws[k] = _d_cleanKWS[k]
+	    else:kws = _d_cleanKWS	
+	    
 	for i,d_step in enumerate(self.l_funcSteps):
 	    t1 = time.clock()	    
 	    try:
@@ -261,8 +273,8 @@ class cgmFuncCls(object):
 		else: _str_step = 'process'
 		if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
 		
-		self._str_step = _str_step
-		
+		self._str_step = _str_step	
+
 		res = d_step['call'](*args,**kws)
 		if res is not None:
 		    self.d_return[_str_step] = res
@@ -295,7 +307,6 @@ class cgmFuncCls(object):
 	    report_enviornment()   
 	    
 	if self._Exception is not None:
-	    log.info("EXCEPTION send")	
 	    mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   	
 	    self.update_moduleData()	    
 	    raise self._Exception,"%s >> %s"%(self._str_funcCombined,str(self._ExceptionError))
@@ -343,7 +354,7 @@ class cgmFuncCls(object):
 	if self._str_funcArgs:self.log_info(" Args: %s"%self._str_funcArgs)
 	if self._str_funcKWs:self.log_info(" KWs: %s"%self._str_funcKWs)	  
 	if self.d_kws:
-	    self.log_info(" Active Dict: ")							    
+	    self.log_info(" Active Dict: "+_str_subLine)							    
 	    l_keys = self.d_kws.keys()
 	    l_keys.sort()	    
 	    for k in l_keys:
@@ -407,31 +418,44 @@ class cgmFuncCls(object):
 		except:pass		
 		l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
 		log.info(" | ".join(l_build))
+	
+	log.info(">"*3 + " Args/KWs/Defaults BUILTINS" + _str_subLine)	  	    	    
+	for i,d_buffer in enumerate(self._l_ARGS_KWS_BUILTINS):
+	    l_tmp = [['Arg',i,]]
+	    try:l_tmp.append(['kw',"'%s'"%d_buffer.get('kw')])
+	    except:pass
+	    try:l_tmp.append(['default',d_buffer.get('default')])
+	    except:pass	
+	    try:l_tmp.append(['argType',d_buffer.get('argType')])
+	    except:pass		
+	    l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
+	    log.info(" | ".join(l_build))	
     
     def printHelp(self):
 	self.update_moduleData()		
 	print("#" + ">"*3 + " %s "%self._str_funcCombined + "="*50)
 	print("Python Module: %s "%self._str_modPath)	 
 	if self._str_funcHelp is not None:print("%s "%self._str_funcHelp)	 
-	if self._l_ARGS_KWS_DEFAULTS:
-	    print("@kws -- [index - argKW(argType - default) -- info]")	
-	    for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS):
-		l_tmp = ['%i - '%i]
-		try:l_tmp.append("'%s'"%d_buffer['kw'])
-		except:pass
-		#arg default/type -------------------------------
-		l_buffer = ["("]
-		try:l_buffer.append("%s - "%(d_buffer['argType']))
-		except:pass			
-		try:l_buffer.append("%s"%(d_buffer['default']))
-		except:pass	
-		l_buffer.append(")")
-		l_tmp.append("".join(l_buffer))
-		#-------------------------------------------------
-		try:l_tmp.append(" -- %s"%d_buffer['help'])
-		except:pass		
-		#l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
-		print("".join(l_tmp))	
+	print("@kws -- [index - argKW(argType - default) -- info]")
+	for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS + self._l_ARGS_KWS_BUILTINS):
+	    l_tmp = ['%i - '%i]
+	    if d_buffer in self._l_ARGS_KWS_BUILTINS:
+		l_tmp.append("(BUILTIN) - ")
+	    try:l_tmp.append("'%s'"%d_buffer['kw'])
+	    except:pass
+	    #arg default/type -------------------------------
+	    l_buffer = ["("]
+	    try:l_buffer.append("%s - "%(d_buffer['argType']))
+	    except:pass			
+	    try:l_buffer.append("%s"%(d_buffer['default']))
+	    except:pass	
+	    l_buffer.append(")")
+	    l_tmp.append("".join(l_buffer))
+	    #-------------------------------------------------
+	    try:l_tmp.append(" -- %s"%d_buffer['help'])
+	    except:pass		
+	    #l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
+	    print("".join(l_tmp))	
 		
     def set_logging(self,arg):
 	try:
@@ -544,10 +568,10 @@ class cgmFuncCls(object):
 	"""
 	try:
 	    d_kws = copy.copy(self._d_funcKWs)
-	    for arg in self._l_ARGS_KWS_DEFAULTS:
+	    for arg in self._l_ARGS_KWS_DEFAULTS + self._l_ARGS_KWS_BUILTINS:
 		str_key = arg['kw']
 		if str_key in d_kws.keys():d_kws.pop(str_key)
-	    self.log_info("Clean kws : %s" %d_kws)
+	    self.log_debug("Clean kws : %s" %d_kws)
 	    return d_kws
 	except Exception, error:
 	    log.error("[%s | func: get_cleanKWS]{%s}"%(self._str_funcName,error))

@@ -38,7 +38,7 @@ def TestAllTheThings():
     ut_cgmMeta()
 
 class MorpheusBase_Test():
-    def __init__(self):
+    def __init__(self,**kws):
         function = 'Morpheus_Test'    
         log.info(">"*20  + "  Testing '%s' "%function + "<"*20 )         
         start = time.clock()
@@ -46,7 +46,7 @@ class MorpheusBase_Test():
         self.getMesh()
         self.sizeTest()        
 
-    def setup(self):
+    def setup(self,**kws):
         '''
         Tests proper creation of objects from flag calls
         '''        
@@ -61,11 +61,11 @@ class MorpheusBase_Test():
         self.Morpheus = cgmPM.cgmPuppet(name = 'Morpheus')
         self.Morpheus.addModule(mClass = 'cgmLimb',mType = 'torso',handles = 4)
 
-    def getMesh(self):
+    def getMesh(self,**kws):
         mFile = 'J:/Dropbox/MRv2Dev/Assets/Morphy/maya/scenes/Morphy_JoshTesting.ma'
         mc.file(mFile, i = True, pr = True, force = True,prompt = False) # prompt means no error message
         
-    def sizeTest(self):
+    def sizeTest(self,**kws):
         spine = cgmPM.cgmLimb(self.Morpheus.getMessage('moduleChildren')[0],handles = 4)
         spine.templateNull.curveDegree = 2
         log.info(self.Morpheus.i_geoGroup.mNode)
@@ -83,7 +83,7 @@ def ut_AllTheThings(*args, **kws):
 	    self._str_funcName = 'ut_AllTheThings'	
 	    self._b_autoProgressBar = 1
 	    self._b_reportTimes = 1
-		
+	    self._b_pushCleanKWs = 1
 	    self.__dataBind__(*args, **kws)
 	    self.l_funcSteps = [{'step':'cgmMeta','call':ut_cgmMeta},	                        
 	                        {'step':'cgmPuppet/Module','call':ut_cgmPuppet},
@@ -99,6 +99,7 @@ def ut_cgmMeta(*args, **kws):
 	    self._b_autoProgressBar = 1
 	    self._b_reportTimes = 1
 	    self.__dataBind__(*args, **kws)
+	    self._b_pushCleanKWs = 1	    
 	    self.l_funcSteps = [{'step':'Setup','call':self._setup_},	                        
 	                        {'step':'cgmNode function calls','call':self._cgmNodeCalls_},
 	                        {'step':'Attribute Handling','call':self._attributeHandling_},
@@ -113,7 +114,7 @@ def ut_cgmMeta(*args, **kws):
 	                        {'step':'NameFactory','call':self._nameFactory_},
 	                        {'step':'msgList tests','call':ut_msgList},	                        	                        
 	                        ]
-	def _setup_(self):
+	def _setup_(self,**kws):
 	    '''
 	    Tests proper creation of objects from flag calls
 	    '''    
@@ -168,7 +169,7 @@ def ut_cgmMeta(*args, **kws):
 		self.nCube = cgmMeta.cgmMetaFactory(nurbsCubeCatch[0],name = 'nCube')
 	    except Exception,error:raise StandardError,"[Create nurbs/poly cubes]{%s}"%error
 	
-	def _cgmNodeCalls_(self): 
+	def _cgmNodeCalls_(self,**kws): 
 	    #select
 	    _str_name = self.MetaInstance.getShortName()
 	    assert mc.objExists(_str_name)
@@ -216,7 +217,7 @@ def ut_cgmMeta(*args, **kws):
     
 	    self.MetaNode.doRemove('stored')
 	    assert self.MetaNode.hasAttr('stored') is False	    
-	def _validateObjArg_(self):
+	def _validateObjArg_(self,**kws):
 	    try:
 		null = mc.group(em=True)    
 		i_node = cgmMeta.cgmNode(nodeType='transform')
@@ -254,7 +255,7 @@ def ut_cgmMeta(*args, **kws):
 	    i_node.delete()
 	    i_obj.delete()    
 	    
-	def _cgmAttr_(self):    
+	def _cgmAttr_(self,**kws):    
 	    self.cgmAttrNull = cgmMeta.cgmObject(name = 'cgmAttrNull',nodeType = 'transform')
 	    node=self.cgmAttrNull
     
@@ -414,9 +415,9 @@ def ut_cgmMeta(*args, **kws):
 		assert self.cgmVectorXAttr.getDriver() == self.cgmFloatAttr.p_combinedName," %s not equal to [%s]"%(self.cgmVectorXAttr.getDriver(), self.cgmFloatAttr.p_combinedName)#This should be what's connected
 	    except Exception,error:raise StandardError,"[enum]{%s}"%error
 	    #node.select()	    
-	def _NodeFactory_(self):
+	def _NodeFactory_(self,**kws):
 	    NodeF.test_argsToNodes()	
-	def _attributeHandling_(self):
+	def _attributeHandling_(self,**kws):
 	    '''
 	    Modified from Mark Jackson's testing for Red9
 	    This tests the standard attribute handing in the MetaClass.__setattr__ 
@@ -540,7 +541,7 @@ def ut_cgmMeta(*args, **kws):
 		assert not mc.attributeQuery('boolTest',node=node.mNode,exists=True)
 	    except Exception,error:raise StandardError,"[json handling]{%s}"%error
 	    
-	def _messageAttrHandling_(self):
+	def _messageAttrHandling_(self,**kws):
 	    '''
 	    test the messageLink handling in the __setattr__ block
 	    '''
@@ -583,7 +584,7 @@ def ut_cgmMeta(*args, **kws):
 	
                      
         	    
-	def _cgmObjectCalls_(self):
+	def _cgmObjectCalls_(self,**kws):
     	    #Let's move our test objects around and and see what we get
 	    #----------------------------------------------------------  
 	    self.MetaObject.rotateOrder = 0 #To have  base to check from
@@ -651,7 +652,7 @@ def ut_cgmMeta(*args, **kws):
 		self.MetaObject.doCopyPivot(self.pCube.mNode)
 	    except Exception,error:raise StandardError,"[copy pivot]{%s}"%error
                         
-	def _cgmObjectSetCalls_(self):
+	def _cgmObjectSetCalls_(self,**kws):
 	    try:
 		self.ObjectSet = cgmMeta.cgmMetaFactory(name = 'cgmObjectAnimationSet',nodeType = 'objectSet',setType = 'animation', qssState = True)
 		self.MayaDefaultSet = cgmMeta.cgmMetaFactory(node = 'defaultObjectSet')   
@@ -755,7 +756,7 @@ def ut_cgmMeta(*args, **kws):
 		self.ObjectSet.reset()
 		assert self.pCube.tx == 0
 	    except Exception,error:raise StandardError,"[Keying, deleting keys, reseting]{%s}"%error
-	def _cgmOptionVarCalls_(self):
+	def _cgmOptionVarCalls_(self,**kws):
 	    try:#Purge the optionVars
 		for var in 'cgmVar_intTest','cgmVar_stringTest','cgmVar_floatTest':
 		    if mc.optionVar(exists = var):
@@ -864,7 +865,7 @@ def ut_cgmMeta(*args, **kws):
 		#self.log_info('>'*3 + " String varType test and initValue Test...")   
 		self.OptionVarString = cgmMeta.cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
 	    except Exception,error:raise StandardError,"[float init value]{%s}"%error
-	def _cgmBufferNodeCalls_(self):
+	def _cgmBufferNodeCalls_(self,**kws):
 	    self.BufferNode = cgmMeta.cgmBufferNode(name = 'testBuffer',value = ['test1','test2'],overideMessageCheck = True)#No arg should default to int
     
 	    assert self.BufferNode.value == ['test1','test2'],"Value should be ['test1','test2'], is %s"%self.BufferNode.value
@@ -875,7 +876,7 @@ def ut_cgmMeta(*args, **kws):
 	    self.BufferNode.store(self.BufferNode.mNode)
 	    assert self.BufferNode.value[2]==self.BufferNode.mNode
 	       
-	def _nameFactory_(self):	    
+	def _nameFactory_(self,**kws):	    
 	    nf = cgmMeta.NameFactory
 	    #>>> Create some nodes
 	    i_net1 = cgmMeta.cgmNode(name = 'net',nodeType = 'network')        
@@ -938,7 +939,7 @@ def ut_msgList(*args, **kws):
 	                        {'step':'Purge','call':self._purge_},	
 	                        #{'step':'Clean','call':self._clean_},		                        	                        	                        	                        
 	                        ]
-	def _setup_(self):
+	def _setup_(self,**kws):
 	    try:#Create msgList objects
 		try:self.mi_catcherObj = cgmMeta.cgmObject('catcherObj')
 		except:self.mi_catcherObj = cgmMeta.cgmObject(name = 'catcherObj')
@@ -956,7 +957,7 @@ def ut_msgList(*args, **kws):
 		    self.ml_objs.append(mObj)
 	    except Exception,error:raise StandardError,"[Create msgList objects]{%s}"%error
 	    
-	def _connect_(self):
+	def _connect_(self,**kws):
 	    mi_catcher = self.mi_catcherObj
 	    try:#connect
 		md_objs = self.md_msgListObjs
@@ -969,7 +970,7 @@ def ut_msgList(*args, **kws):
 		assert md_objs[0].connectBack == self.mi_catcherObj,"[0 connectBack failed!]{%s}"%self.mi_catcherObj.msgAttr_0
 	    except Exception,error:raise StandardError,"[check connections]{%s}"%error   
 	    
-	def _get_(self):
+	def _get_(self,**kws):
 	    mi_catcher = self.mi_catcherObj
 	    md_objs = self.md_msgListObjs
 	    
@@ -1000,7 +1001,7 @@ def ut_msgList(*args, **kws):
 		self.log_error("expected : %s"%[mObj.p_nameShort for mObj in self.ml_objs[:2]])		
 		raise StandardError,"[msgList_getMessage -- longNames False]{%s}"%error  
 	    
-	def _append_(self):
+	def _append_(self,**kws):
 	    mi_catcher = self.mi_catcherObj
 	    md_objs = self.md_msgListObjs
 	    
@@ -1022,7 +1023,7 @@ def ut_msgList(*args, **kws):
 		self.log_error("expected : %s"%self.ml_objs[:3])		
 		raise StandardError,"[msgList_get check 1 -- asMeta 0]{%s}"%error 
 	    
-	def _index_(self):
+	def _index_(self,**kws):
 	    mi_catcher = self.mi_catcherObj
 	    md_objs = self.md_msgListObjs
 	    
@@ -1030,7 +1031,7 @@ def ut_msgList(*args, **kws):
 	    assert mi_catcher.msgList_index(md_objs[1],attr = 'msgAttr') == 1,"[index 1]{%s}"%mi_catcher.msgList_index(md_objs[1],attr = 'msgAttr')
 	    assert mi_catcher.msgList_index(md_objs[2],attr = 'msgAttr') == 2,"[index 2]{%s}"%mi_catcher.msgList_index(md_objs[2],attr = 'msgAttr')
 	    
-	def _remove_(self):
+	def _remove_(self,**kws):
 	    mi_catcher = self.mi_catcherObj
 	    md_objs = self.md_msgListObjs
 	    
@@ -1047,7 +1048,7 @@ def ut_msgList(*args, **kws):
 		self.log_error("expected : %s"%self.ml_objs[:2])		
 		raise StandardError,"[msgList_get check]{%s}"%error 
 	    
-	def _purge_(self):
+	def _purge_(self,**kws):
 	    mi_catcher = self.mi_catcherObj
 	    md_objs = self.md_msgListObjs
 	    
@@ -1064,7 +1065,7 @@ def ut_msgList(*args, **kws):
 		self.log_error("expected : %s"%[])		
 		raise StandardError,"[msgList_get check]{%s}"%error 
 	    
-	def _clean_(self):
+	def _clean_(self,**kws):
 	    mi_catcher = self.mi_catcherObj
 	    md_objs = self.md_msgListObjs
 	    ml_objs = self.ml_objs
@@ -1113,7 +1114,7 @@ def ut_cgmPuppet(*args, **kws):
 	                        {'step':'cgmModule calls','call':self._cgmModuleTests_},
 	                        ]
 	
-	def _puppetTests_(self):   
+	def _puppetTests_(self,**kws):   
 	    try:mc.file(new=True,f=True)
 	    except Exception,error:raise StandardError,"[File Open]{%s}"%error
 	    
@@ -1188,7 +1189,7 @@ def ut_cgmPuppet(*args, **kws):
 			raise StandardError,error 
 	    except Exception,error:raise StandardError,"[compare]{%s}"%error
                        	    
-	def _cgmModuleTests_(self):
+	def _cgmModuleTests_(self,**kws):
 	    try:
 		self.mi_puppet
 	    except:
@@ -1288,7 +1289,7 @@ def ut_cgmLimb(*args, **kws):
 	                        {'step':'Skeletonize checks...','call':self._skeleton_},
 	                        {'step':'Rig checks...','call':self._rig_},	                        	                        	                        
 	                        ]
-	def _initial_(self):
+	def _initial_(self,**kws):
 	    try:
 		_str_fileName = 'morphyTestTorso.ma'
 		self._str_geo = 'Morphy_Body_GEO'
@@ -1308,7 +1309,7 @@ def ut_cgmLimb(*args, **kws):
 		self.log_error("Found: %s"%l_mayaTestFiles)
 		raise StandardError,"[Import Mesh]{%s}"%error	
 	    
-	def _define_(self):
+	def _define_(self,**kws):
 	    try:#Puppet creation
 		self.mi_puppet = cgmPM.cgmPuppet(name =  'Charlie')
 		mPuppet = self.mi_puppet
@@ -1362,7 +1363,7 @@ def ut_cgmLimb(*args, **kws):
 		mPuppet.connectChildNode(self.mi_geo,'unifiedGeo')
 	    except Exception,error:raise StandardError,"[Add geo]{%s}"%(error)
 	
-	def _size_(self):
+	def _size_(self,**kws):
 	    try:#Query -------------------------------------------------------------
 		mPuppet = self.mi_puppet
 	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)
@@ -1408,7 +1409,7 @@ def ut_cgmLimb(*args, **kws):
 		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)    
 	    except Exception,error:raise StandardError,"[module size by doSize]{%s}"%(error)   
 	    
-	def _template_(self):
+	def _template_(self,**kws):
 	    try:#Query -------------------------------------------------------------
 		mPuppet = self.mi_puppet
 	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)
@@ -1440,7 +1441,7 @@ def ut_cgmLimb(*args, **kws):
 	    #self.log_error("Test error")
 	    #raise StandardError,"Stop"
 	    
-	def _skeleton_(self):
+	def _skeleton_(self,**kws):
 	    try:#Query -------------------------------------------------------------
 		mPuppet = self.mi_puppet
 	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)
@@ -1464,7 +1465,7 @@ def ut_cgmLimb(*args, **kws):
 		assert int_puppetState == 3,"Puppet state is not 3 | state: %s"%(int_puppetState)		    
 	    except Exception,error:raise StandardError,"[state check]{%s}"%(error)
 	    
-	def _rig_(self):
+	def _rig_(self,**kws):
 	    try:#Query -------------------------------------------------------------
 		mPuppet = self.mi_puppet
 	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)

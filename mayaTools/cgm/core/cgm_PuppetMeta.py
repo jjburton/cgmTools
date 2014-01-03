@@ -1678,7 +1678,11 @@ class cgmModule(cgmMeta.cgmObject):
     
     def get_mirrorSideAsString(self,*args,**kws):
 	kws['mModule'] = self	
-        return mFactory.get_mirrorSideAsString(*args,**kws)    
+        return mFactory.get_mirrorSideAsString(*args,**kws) 
+    
+    def get_moduleSiblings(self,*args,**kws):
+	kws['mModule'] = self	
+        return mFactory.get_moduleSiblings(*args,**kws)   
     
     #>>> States
     #===========================================================
@@ -1929,22 +1933,25 @@ class cgmModule(cgmMeta.cgmObject):
 	return mFactory.mirrorSymRight(**kws)    
     #>>> Module Children
     #========================================================================
-    def getAllModuleChildren(self,*args, **kws):
+    def get_allModuleChildren(self,*args,**kws):
 	kws['mModule'] = self	
-	return mFactory.getAllModuleChildren(self,*args,**kws)  
-    def animReset_children(self,transformsOnly = False, excludeSelf = False,**kws):
+	return mFactory.get_allModuleChildren(*args,**kws) 
+    
+    def animReset_children(self,*args,**kws):
 	kws['mModule'] = self		
-	return mFactory.animReset_children(transformsOnly,excludeSelf,**kws)   
+	return mFactory.animReset_children(*args,**kws) 
+    
     def animKey_children(self,**kws):
 	kws['mModule'] = self		
-	return mFactory.animKey_children(**kws)
-    def animSelect_children(self,**kws):
+	return mFactory.animKey_children(*args,**kws)
+    
+    def animSelect_children(self,*args,**kws):
 	kws['mModule'] = self		
-	return mFactory.animSelect_children(**kws)
+	return mFactory.animSelect_children(*args,**kws)
 
-    def dynSwitch_children(self,arg,**kws):
+    def dynSwitch_children(self,*args,**kws):
 	kws['mModule'] = self		
-	return mFactory.dynSwitch_children(self,arg,**kws)
+	return mFactory.dynSwitch_children(*args,**kws)
     def animSetAttr_children(self,attr = None, value = None, settingsOnly = False, excludeSelf = True):
 	#kws['mModule'] = self			
 	return mFactory.animSetAttr_children(self,attr, value, settingsOnly, excludeSelf)
@@ -1952,36 +1959,45 @@ class cgmModule(cgmMeta.cgmObject):
     #========================================================================  
     def getModuleSiblings(self,*args,**kws):
 	kws['mModule'] = self			
-	return mFactory.getSiblings(*args,**kws)    
-    def animReset_siblings(self,transformsOnly = False, excludeSelf = False,**kws):
+	return mFactory.get_moduleSiblings(*args,**kws) 
+    
+    def animReset_siblings(self,*args,**kws):
 	kws['mModule'] = self				
-	return mFactory.animReset_siblings(transformsOnly,excludeSelf,**kws)     
-    def mirrorMe_siblings(self,excludeSelf = False,**kws):
+	return mFactory.animReset_siblings(*args,**kws)  
+    
+    def mirrorMe_siblings(self,*args,**kws):
 	kws['mModule'] = self				
-	return mFactory.mirrorMe_siblings(excludeSelf,**kws) 
-    def mirrorPull_siblings(self,excludeSelf = False,**kws):
+	return mFactory.mirrorMe_siblings(*args,**kws)
+    
+    def mirrorPull_siblings(self,*args,**kws):
 	kws['mModule'] = self				
-	return mFactory.mirrorPull_siblings(excludeSelf,**kws) 
-    def mirrorPush_siblings(self,excludeSelf = False,**kws):
+	return mFactory.mirrorPull_siblings(*args,**kws)
+    
+    def mirrorPush_siblings(self,*args,**kws):
 	kws['mModule'] = self				
-	return mFactory.mirrorPush_siblings(excludeSelf,**kws) 
-    def animPushPose_siblings(self,**kws):
+	return mFactory.mirrorPush_siblings(*args,**kws) 
+    
+    def animPushPose_siblings(self,*args,**kws):
 	kws['mModule'] = self				
-	return mFactory.animPushPose_siblings(**kws)   
-    def animKey_siblings(self,excludeSelf = False,**kws):
+	return mFactory.animPushPose_siblings(*args,**kws) 
+    
+    def animKey_siblings(self,*args,**kws):
 	kws['mModule'] = self				
-	return mFactory.animKey_siblings(excludeSelf,**kws)    
-    def animSelect_siblings(self,excludeSelf = False, **kws):
+	return mFactory.animKey_siblings(*args,**kws)  
+    
+    def animSelect_siblings(self,*args,**kws):
 	kws['mModule'] = self				
-	return mFactory.animSelect_siblings(excludeSelf,**kws)    
-    def dynSwitch_siblings(self,arg,excludeSelf = True):
-	#kws['mModule'] = self				
-	return mFactory.dynSwitch_siblings(self,arg,excludeSelf)
+	return mFactory.animSelect_siblings(*args,**kws)  
+    
+    def dynSwitch_siblings(self,*args,**kws):
+	kws['mModule'] = self				
+	return mFactory.dynSwitch_siblings(*args,**kws)
 	
     #>>> Toggles
     #========================================================================  
-    def toggle_subVis(self,**kws):
-	return mFactory.toggle_subVis(self,**kws)   
+    def toggle_subVis(self,*args,**kws):
+	kws['mModule'] = self					
+	return mFactory.toggle_subVis(*args,**kws)   
     
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Limb stuff

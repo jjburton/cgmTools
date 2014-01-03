@@ -184,10 +184,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		self._str_funcName= "testFunc(%s)"%self.mi_mNode.p_nameShort	
 		
 		#EXTEND our args and defaults
-		#self._l_ARGS_KWS_DEFAULTS = [{'kw':'cat',"default":None}]
 		self.__dataBind__(*args,**kws)	
 		self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
-		
 		#=================================================================
 		
 	    def _getData(self):
@@ -213,30 +211,11 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         return r9Meta.MetaClass(pBuffer)
 				
     parent = property(getParent)
-    
-    def __getattributeBACK__(self, attr, longNames = True, ignoreOverload = True):
-	"""Overload just on message attributes
-	longnames currently only for my overload.
-	"""
-	try:
-	    mNode=object.__getattribute__(self, "mNode")
-	    if mc.objExists(mNode):
-		if self.msgList_exists(attr):
-		    return self.msgList_get(attr)
-		else:
-		    return r9Meta.MetaClass.__getattribute__(self,attr)
-	    return object.__getattribute__(self, attr)
-	except StandardError,error:
-	    raise StandardError(error)
-	    
+    	    
     def __setMessageAttr__(self,attr,value, force = True, ignoreOverload = False,**kws):
-	"""Overload for our own purposes to allow multiple connections"""
-	#log.debug("In cgmNode.__setMessageAttr__...")
 	if ignoreOverload:#just use Mark's
-	    #log.debug("sending cgmNode.__setMessageAttr__ to MetaClass...")
 	    r9Meta.MetaClass.__setMessageAttr__(self,attr,value,**kws)
 	elif type(value) is list:
-	    #log.debug("Multi message mode from cgmNode: '%s.%s"%(self.getShortName(),attr))
 	    attributes.storeObjectsToMessage(value,self.mNode,attr)
 	else:
 	    attributes.storeObjectToMessage(value,self.mNode,attr)
@@ -380,6 +359,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		self.l_funcSteps = [{'step':'Gather Info','call':self.__func__}]	
 	    def __func__(self):
 		self.report()
+		self.log_info("cleanKws: %s"%self.get_cleanKWS())
 	return fncWrap(*args,**kws).go()   
     
     def connectChildNode(self,*args,**kws):
@@ -432,66 +412,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		return True
 	return fncWrap(*args,**kws).go()
     
-    def connectChildNode2(self, node, attr, connectBack = None, srcAttr=None, force=True):
-        """
-        Fast method of connecting a node to the mNode via a message attr link. This call
-        generates a NONE-MULTI message on both sides of the connection and is designed 
-        for simple parent child relationships.
-        
-        NOTE: this call by default manages the attr to only ONE CHILD to
-        avoid this use cleanCurrent=False
-        @param node: Maya node to connect to this mNode
-        @param attr: Name for the message attribute  
-        @param srcAttr: If given this becomes the attr on the child node which connects it 
-                        to self.mNode. If NOT given this attr is set to self.mNodeID
-        @param cleanCurrent: Disconnect and clean any currently connected nodes to this attr.
-                        Note this is operating on the mNode side of the connection, removing
-                        any currently connected nodes to this attr prior to making the new ones
-        @param force: Maya's default connectAttr 'force' flag, if the srcAttr is already connected 
-                        to another node force the connection to the new attr
-        TODO: do we move the cleanCurrent to the end so that if the connect fails you're not left 
-        with a half run setup?
-	
-	Usage Example:
-        from cgm.core import cgm_Meta as cgmMeta
-	cgmO = cgmObject()
-	cgm02 = cgmObject()
-	cgmO.connectChildNode(cgm02.mNode,'childNode','parentNode')
-        """
-        #make sure we have the attr on the mNode, if we already have a MULIT-message
-        #should we throw a warning here???
-        #self.addAttr(attr, attrType='messageSimple')
-        try:
-	    if issubclass(type(node), r9Meta.MetaClass):
-		node=node.mNode    	    
-            if not srcAttr:          
-                srcAttr=self.message  #attr on the nodes source side for the child connection         
-	    """
-            if r9Meta.isMetaNode(node):
-                if not issubclass(type(node), r9Meta.MetaClass): #allows you to pass in an metaClass
-                    r9Meta.MetaClass(node).addAttr(srcAttr,attrType='messageSimple')
-                else:
-                    node.addAttr(srcAttr,attrType='messageSimple')
-                    node=node.mNode 
-            elif not mc.attributeQuery(srcAttr, exists=True, node=node):
-                mc.addAttr(node,longName=srcAttr, at='message', m=False)  
-		"""
-            #if not self.isChildNode(node, attr, srcAttr): 
-	    try:attributes.storeObjectToMessage(node,self.mNode,attr)
-	    #try:cgmAttr(self,attr,attrType='message').doConnectIn("%s.msg"%node)
-	    except StandardError,error:raise StandardError,"connect Fail | %s"%error
-	    
-	    if connectBack is not None:
-		try:attributes.storeObjectToMessage(self.mNode,node,connectBack)
-		#try:cgmAttr(node,connectBack,attrType='message').doConnectIn("%s.msg"%self.mNode)
-		except StandardError,error:raise StandardError,"connectBack Fail | %s"%error
-	    
-	    #attributes.storeObjectToMessage(node,self.mNode,attr)
-	    #if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
-        except StandardError,error:
-            log.warning("connectChildNode: %s"%error)
-	    raise StandardError,error
-	    
+
     def connectParentNode(self, node, attr, connectBack = None, srcAttr=None):
         """
 	Replacing Mark's connect Parent with our own which connects to .message connections.
@@ -553,7 +474,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		log.warning("connectChildrenNodes: %s"%error)
 		
     #msgList Functions =====================================================================
-    #@cgmGeneral.TimerDebug
     def msgList_connect(self, nodes, attr = None, connectBack = None):
         """
         Because multimessage data can't be counted on for important sequential connections we have
@@ -584,7 +504,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	except StandardError,error:
 	    raise StandardError, "%s.msgList_connect >>[Error]<< : %s"(self.p_nameShort,error)	
     
-    #@cgmGeneral.TimerDebug
     def msgList_get(self,attr = None, asMeta = True, cull = True):
 	"""
         @param attr: Base name for the message attribute sequence. It WILL be appended with '_' as in 'attr_0'
@@ -706,7 +625,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	#log.debug("-"*100)            	               	
 	return False
     
-    #@cgmGeneral.TimerDebug
     def msgList_purge(self,attr):
 	"""
 	Purge all the attributes of a msgList
@@ -737,7 +655,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	except StandardError,error:
 	    raise StandardError, "%s.msgList_clean >>[Error]<< : %s"(self.p_nameShort,error)
     
-    #@cgmGeneral.TimerDebug
     def msgList_exists(self,attr):
 	"""
 	Fast check to see if we have data on this attr chain
@@ -775,9 +692,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		    
 	#log.debug("-"*100)            	               	
 	return d_attrList	
-	    
-	    
-	    
+
     #Attr stuff =========================================================================
     def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
 	#log.debug(">>> %s.addAttr(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)            		        
@@ -1010,7 +925,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		log.warning("'%s.%s'couldn't query"%(self.mNode,a))
 	return True
 	    
-    #@r9General.Timer
     def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,**kws):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
@@ -1098,7 +1012,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	"""Overload to push a conflicting command to a name we want as getChildren is used for cgmObjects to get dag children"""
 	return r9Meta.MetaClass.getChildren(self, walk, mAttrs)
     
-    #@r9General.Timer
     def getSiblings(self):
 	"""Function to get siblings of an object"""
 	l_siblings = []

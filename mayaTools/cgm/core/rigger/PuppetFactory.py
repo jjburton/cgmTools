@@ -161,7 +161,7 @@ def getModules(*args,**kws):
 	    for i,m in enumerate(ml_initialModules):
 		_str_module = m.p_nameShort	 				
 		self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)
-		for m in m.getAllModuleChildren():
+		for m in m.get_allModuleChildren():
 		    if m not in ml_allModules:
 			ml_allModules.append(m)
 	    #self.i_modules = ml_allModules

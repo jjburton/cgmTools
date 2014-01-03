@@ -38,9 +38,7 @@ reload(attributes)
 reload(constraints)
 from cgm.core.lib import nameTools
 from cgm.core.classes import NodeFactory as NodeF
-reload(NodeF)
 from cgm.core.classes import DraggerContextFactory as dragFactory
-reload(dragFactory)
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 reload(mShapeCast)
 
