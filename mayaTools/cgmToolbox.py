@@ -352,7 +352,13 @@ def unittest_cgmMeta( *a ):
 def unittest_cgmPuppet( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
-    testCGM.ut_cgmPuppet()    
+    testCGM.ut_cgmPuppet()  
+    
+def unittest_cgmLimb( *a ):
+    from cgm.core.tests import cgmMeta_test as testCGM
+    reload(testCGM)
+    testCGM.ut_cgmLimb()  
+        
 
 #Help stuff =====================================================================
 def goTo_keyframeCoop( *a ):
@@ -491,7 +497,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                         ('unitTest - cgmMeta', " WARNING - Opens new file...Unit test cgm.core",
                          unittest_cgmMeta),   
                         ('unitTest - cgmPuppet', " WARNING - Opens new file...Unit test cgm.core",
-                         unittest_cgmPuppet),                           
+                         unittest_cgmPuppet),   
+                        ('unitTest - cgmLimb', " WARNING - Opens new file...Unit test cgm.core",
+                         unittest_cgmLimb),                           
                        )),
               ('help', (('Keyframe Co-op', " Community Support ",
                         goTo_keyframeCoop),  
