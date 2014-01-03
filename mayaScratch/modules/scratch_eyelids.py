@@ -17,7 +17,7 @@ m1.getState()
 
 m1 = cgmPM.cgmModule('l_eyelids_part')
 m1.getNameAlias()
-m1.getAllModuleChildren()
+m1.get_allModuleChildren()
 m1.isSized()
 m1.doTemplate()
 m1.isTemplated()

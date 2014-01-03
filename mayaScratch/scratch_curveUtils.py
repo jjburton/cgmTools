@@ -48,6 +48,8 @@ baseCrv = 'curve18'
 crvUtils.mirrorCurve(baseCrv)
 crvUtils.mirrorCurve(baseCrv,mirrorAcross='y')
 
+crvUtils.mirrorCurve(mc.ls(sl=True)[0],mc.ls(sl=True)[1],mirrorAcross='y')
+
 #>>> Split curve list
 #=======================================================
 reload(crvUtils)
