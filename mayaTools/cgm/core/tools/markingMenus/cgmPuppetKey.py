@@ -325,7 +325,8 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		if self.BuildModuleOptionVar.value or self.BuildPuppetOptionVar.value:
 		    if i_o.getMessage('rigNull'):
 			_mi_rigNull = i_o.rigNull			
-			_mi_module = _mi_rigNull.module
+			try:_mi_module = _mi_rigNull.module
+			except StandardError:_mi_module = False
 			
 			if self.BuildModuleOptionVar.value:
 			    try:
@@ -334,12 +335,18 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 				log.info("Failed to append module for: %s | %s"%(i_o.getShortName(),error))
 		    if self.BuildPuppetOptionVar.value:
 			try:
-			    buffer = _mi_module.getMessage('modulePuppet')
+			    if _mi_module:
+				buffer = _mi_module.getMessage('modulePuppet')
+				if buffer:
+				    self.l_puppets.append(buffer[0])
+			except StandardError,error:
+			    log.info("Failed to append puppet for: %s | %s"%(i_o.getShortName(),error))
+			try:
+			    buffer = i_o.getMessage('puppet')
 			    if buffer:
 				self.l_puppets.append(buffer[0])
 			except StandardError,error:
-			    log.info("Failed to append puppet for: %s | %s"%(i_o.getShortName(),error))
-			
+			    log.info("Failed to append puppet for: %s | %s"%(i_o.getShortName(),error))			
 	    log.info(">"*10  + ' Object list build =  %0.3f seconds  ' % (time.clock()-timeStart_objectList) + '<'*10)  
 	    for k in self.d_objectsInfo.keys():
 		log.debug("%s: %s"%(k.getShortName(),self.d_objectsInfo.get(k)))
@@ -393,7 +400,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			for i,o in enumerate(d_commonOptions.get(atr)):
 			    MelMenuItem(tmpMenu,l = "%s"%o,
 			                c = Callback(func_multiChangeDynParent,atr,o))
-	    # Individual
+	    # Individual ----------------------------------------------------------------------------
 	    log.debug("%s"%[k.getShortName() for k in self.d_objectsInfo.keys()])
 	    for i_o in self.d_objectsInfo.keys():
 		d_buffer = self.d_objectsInfo.get(i_o) or False
@@ -441,12 +448,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		MelMenuItem( parent, l="toIK",
 	                     c = Callback(func_multiDynSwitch,1))
 		MelMenuItem( parent, l="Reset",
-	                     c = Callback(func_multiReset))		
-		"""
-		MelMenuItem( parent, l="Key Below",
-			     c = Callback(i_module.animKey_children))							
-		MelMenuItem( parent, l="Select Below",
-			     c = Callback(i_module.animSelect_children))"""		
+	                     c = Callback(func_multiReset))			
 		
 	    for i_module in self.ml_modules:
 		if state_multiModule:
