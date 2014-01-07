@@ -705,7 +705,6 @@ class go(object):
 	    for i,mJnt in enumerate(ml_rigJoints):
 		#log.info(mJnt.p_nameShort)		
 		mJnt.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
-		mJnt.doName()
 		l_rigJoints[i] = mJnt.mNode
 		mJnt.connectChildNode(self._l_skinJoints[i],'skinJoint','rigJoint')#Connect	    
 		if mJnt.hasAttr('scaleJoint'):
@@ -714,6 +713,10 @@ class go(object):
 			mJnt.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
 		if mJnt.hasAttr('rigJoint'):mJnt.doRemove('rigJoint')
 	    
+	    #Name loop
+	    ml_rigJoints[0].parent = False
+	    for mJnt in ml_rigJoints:
+		mJnt.doName()		
 	    self._ml_rigJoints = ml_rigJoints
 	    self._l_rigJoints = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]
 	    self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
