@@ -37,7 +37,7 @@ from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.rigger.lib import module_Utils as modUtils
 from cgm.core.lib import meta_Utils as metaUtils
-
+reload(metaUtils)
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
@@ -144,10 +144,7 @@ def build_shapes(self):
     #>>>Build our Shapes
     #=============================================================
     try:
-	#Rest of it
-	#l_toBuild = ['eyeballIK','eyeballFK','eyeballSettings']
 	mShapeCast.go(self._mi_module,['eyeball'], storageInstance=self)#This will store controls to a dict called    
-	#self._i_rigNull.connectChildNode(self._md_controlShapes['eyeball'],'shape_eyeball',"rigNull")
 	
     except Exception,error:
 	log.error("build_eyeball>>Build shapes fail!")
@@ -166,7 +163,8 @@ def build_controls(*args, **kws):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Groups','call':self._buildGroups_},
-	                        {'step':'Build Controls','call':self._buildControls_},	                        
+	                        {'step':'Build Controls','call':self._buildControls_},
+	                        {'step':'Build Pupil/Iris','call':self._buildPupilIris_},	                        
 	                        {'step':'Build Connections','call':self._buildConnections_}	                        
 	                        ]	
 	    #=================================================================
@@ -174,7 +172,8 @@ def build_controls(*args, **kws):
 	def _gatherInfo_(self):
 	    mi_go = self._go#Rig Go instance link
 	    self.md_rigList = {}
-	    
+	    self.str_mirrorSide = mi_go.verify_mirrorSideArg(mi_go._direction)#Get the mirror side, shakes fist @ "Centre"
+
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
@@ -187,6 +186,8 @@ def build_controls(*args, **kws):
 	    self.md_rigList['ik_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_eyeballIK'),cgmMeta.cgmObject) 
 	    self.md_rigList['settings_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
 	    self.md_rigList['eyeMove_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_eyeMove'),cgmMeta.cgmObject)     
+	    self.md_rigList['pupil_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_pupil'),cgmMeta.cgmObject)     
+	    self.md_rigList['iris_shape'] = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_iris'),cgmMeta.cgmObject)     
 	    	    
 	    #>> Find our joint lists ===================================================================
 	    self.md_jointLists = {}	    
@@ -208,7 +209,7 @@ def build_controls(*args, **kws):
 	def _buildGroups_(self):
 	    mi_go = self._go#Rig Go instance link
 	    
-	    for grp in ['controlsFKNull','controlsIKNull']:
+	    for grp in ['controlsFKNull','controlsIKNull','eyeTrackNull']:
 		i_dup = mi_go._i_constrainNull.doDuplicateTransform(True)
 		i_dup.parent = mi_go._i_constrainNull.mNode
 		i_dup.addAttr('cgmTypeModifier',grp,lock=True)
@@ -216,11 +217,44 @@ def build_controls(*args, **kws):
 		mi_go._i_constrainNull.connectChildNode(i_dup,grp,'owner')
 		self.md_rigList[grp] = i_dup
 		
-	def _buildPupil_(self):
+	def _buildPupilIris_(self):
 	    mi_go = self._go#Rig Go instance link
-	    if not self.mi_helper.buildPupil:
-		log.info("%s >>> Build pupil toggle: off"%(self._str_reportStart))
-		return True	
+	    str_mirrorSide = self.str_mirrorSide
+
+	    try:#>>>> Iris pupil #==================================================================	
+		try:
+		    _l_build = [{'tag':'iris','buildCheck':self.mi_helper.buildIris,'shape':self.md_rigList['iris_shape'],'joint':self.md_rigList['iris'],'parent':self.md_rigList['eye']},
+			        {'tag':'pupil','buildCheck':self.mi_helper.buildPupil,'shape':self.md_rigList['pupil_shape'],'joint':self.md_rigList['pupil'],'parent':self.md_rigList['iris']}]
+		except Exception,error:raise Exception,"[build dict]{%s}"%(error)
+		    
+		for _d in _l_build:
+		    try:
+			self._d_buffer = _d
+			self.log_infoNestedDict('_d_buffer')
+			_tag = _d['tag']
+			_shape = _d['shape']
+			_joint = _d['joint']
+			_b_buildCheck = _d['buildCheck']
+			
+			if not _b_buildCheck:
+			   self.log_info("Build %s toggle: off"%(_tag))
+			    
+			else:
+			    _joint.parent =  mi_go._i_constrainNull.eyeTrackNull.mNode
+			    d_buffer = mControlFactory.registerControl(_joint,useShape = _shape,
+				                                       mirrorSide = str_mirrorSide, mirrorAxis="",
+				                                       makeAimable=True,setRotateOrder ='zxy') 	    
+	
+			    mi_control = d_buffer['instance']
+			    attributes.doSetAttr(mi_control.mNode,'overrideEnabled',0)
+			    attributes.doSetAttr(mi_control.mNode,'overrideDisplayType',0)
+			    cgmMeta.cgmAttr(mi_control,'radius',.0001,hidden=True)
+			    mi_go._i_rigNull.connectChildNode(mi_control,'control%s'%_tag.capitalize(),"rigNull")
+			    self.ml_controlsAll.append(mi_control)	
+			    attributes.doSetLockHideKeyableAttr(mi_control.mNode,channels=['tx','ty','tz','rx','ry','rz','v','s%s'%mi_go._jointOrientation[0]])				
+		    except Exception,error:raise Exception,"[%s]{%s}"%(_tag,error)
+	    except Exception,error:raise Exception,"[Build iris/pupil fail]{%s}"%(error)
+	    
 	    
 	def _buildControls_(self):
 	    mi_go = self._go#Rig Go instance link
@@ -232,8 +266,9 @@ def build_controls(*args, **kws):
 		mi_ikShape = self.md_rigList['ik_shape']
 		mi_settingsShape = self.md_rigList['settings_shape']
 		mi_eyeMoveShape = self.md_rigList['eyeMove_shape']
-		str_mirrorSide = mi_go.verify_mirrorSideArg(mi_go._direction)#Get the mirror side, shakes fist @ "Centre"
+		str_mirrorSide = self.str_mirrorSide
 	    except Exception,error:raise Exception,"[Query]{%s}"%error	
+	    
 	    
 	    try:#>>>> FK #==================================================================	
 		mi_fkShape.parent = mi_go._i_constrainNull.controlsFKNull.mNode
@@ -327,6 +362,7 @@ def build_controls(*args, **kws):
 	    for i,mCtrl in enumerate(self.ml_controlsAll):
 		try:mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
 		except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
+	    
 	    try:self._go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll')
 	    except Exception,error: raise StandardError,"[Controls all connect]{%s}"%error	    
 	    try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
@@ -385,11 +421,14 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"controlIK fail]{%s}"%(error)	
 	    try:self.md_rigList['eyeMove'] = mi_go._i_rigNull.eyeMove
 	    except Exception,error:raise StandardError,"eyeMove fail]{%s}"%(error)
+	    try:self.md_rigList['controlPupil'] = mi_go._i_rigNull.controlPupil
+	    except Exception,error:raise StandardError,"eyeMove fail]{%s}"%(error)
+	    try:self.md_rigList['controlIris'] = mi_go._i_rigNull.controlIris
+	    except Exception,error:raise StandardError,"eyeMove fail]{%s}"%(error)
 	    
 	    #Settings
 	    self.mPlug_FKIK = cgmMeta.cgmAttr(self.md_rigList['settings'].mNode,'blend_FKIK')
-	    
-	    self.log_infoNestedDict('md_rigList')
+	    #self.log_infoNestedDict('md_rigList')
 	    
 	def _setupDefaults_(self):
 	    try:#Query ====================================================================================
@@ -408,9 +447,12 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise Exception,"[Query]{%s}"%error	
 	    
 	    ml_eyeDynParents = [mi_eyeLook]
+	    for mObj in mi_eyeLook.dynParentGroup.msgList_get('dynParents'):
+		ml_eyeDynParents.append(mObj)
+		
 	    #if mi_go._mi_moduleParent:
 		#ml_eyeDynParents.append(mi_go._mi_moduleParent.rigNull.rigJoints[0])	    
-	    ml_eyeDynParents.append(mi_go._i_masterControl)
+	    #ml_eyeDynParents.append(mi_go._i_masterControl)
 		    
 	    #Add our parents
 	    i_dynGroup = mi_controlIK.dynParentGroup
@@ -427,6 +469,9 @@ def build_rig(*args, **kws):
 		
 		mi_controlFK = self.md_rigList['controlFK']
 		mi_controlIK = self.md_rigList['controlIK']
+		mi_controlIris = self.md_rigList['controlIris']
+		mi_controlPupil = self.md_rigList['controlPupil']
+		
 		mi_eyeJoint = self.md_rigList['eyeJoint']
 		mi_eyeMove = self.md_rigList['eyeMove']		
 		mi_eyeLook = self.md_rigList['eyeLook']
@@ -485,9 +530,11 @@ def build_rig(*args, **kws):
 
 	   
 	    try:#Setup pupil and iris #==================================================================	
-		#The gist of what we'll do is setup identical attributes on both fk and ik controls
+		#OLD SETUP ----The gist of what we'll do is setup identical attributes on both fk and ik controls
 		#and then blend between the two to drive what is actually influencing the joints
 		#scale = (fk_result * fk_pupil) + (ik_result *ik_pupil)
+		pass
+		'''
 		l_extraSetups = ['pupil','iris']
 		for i,n in enumerate(l_extraSetups):
 		    buffer = mi_go._i_rigNull.getMessage('%sJoint'%n)
@@ -516,6 +563,7 @@ def build_rig(*args, **kws):
 			for a in self._jointOrientation[1:]:
 			    mPlug_Blend_out.doConnectOut("%s.s%s"%(mi_tmpJoint.mNode,a))
 			"""
+			'''
 	    except Exception,error:raise Exception,"[pupil setup fail]{%s}"%(error)
 	    
 	    try:#Parent and constraining bits ==================================================================
