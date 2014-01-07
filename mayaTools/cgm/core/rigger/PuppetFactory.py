@@ -507,7 +507,8 @@ def get_nextMirrorIndex(*args,**kws):
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._str_funcName = 'puppetFactory.get_nextMirrorIndex'
 	    self._str_funcHelp = "Get the next available mirror index by side"	    	    	    	    
-	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,_d_KWARG_mirrorSideArg]
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+	                                 _d_KWARG_mirrorSideArg]
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Query','call':self._verifyData},
 	                        {'step':'Process','call':self._process}]	
@@ -515,7 +516,7 @@ def get_nextMirrorIndex(*args,**kws):
 	    """
 	    """
 	    #self.d_kws['str_side'],
-	    self.str_side = cgmGeneral.verify_mirrorSideArg(self.d_kws['str_side'],**kws)	
+	    self.str_side = cgmGeneral.verify_mirrorSideArg(self.d_kws['mirrorSideArg'],**kws)	
 		
 	def _process(self):
 	    """
