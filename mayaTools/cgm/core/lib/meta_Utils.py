@@ -133,7 +133,7 @@ def get_matchedListFromAttrDict(*args,**kws):
 	    else:
 		d_kws = {}
 		for kw in kws:
-		    if kw not in self._l_kwMask:
+		    if kw not in self._l_reportMask:
 			d_kws[kw] = kws[kw]
 		self.d_check = d_kws
 	       
