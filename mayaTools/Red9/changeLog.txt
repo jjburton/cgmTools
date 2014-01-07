@@ -101,4 +101,16 @@ Fix - Red9_Pose - When using the PosePointCloud with a given ref mesh, I now man
 NEW - Red9_Pose - Now respects the 'Priority as SnapList' checkbox. This forces the relative code to ONLY use those nodes in the Node Priority lists when managing in the relative space compensations, everything else is left as the pose data loaded. Gets over a ton of issues on complex rigs!
 Fix - Red9_Core - Offset Anim code was failing on animCurves that were part of an animLayer which was muted. These are now caught correctly
 
-
+v1.41:
+------
+Mod - Red9_Anim - RED9_ANIMATION_UI - added a global instance of the AnimUI so that external tools can communicate with it
+New - Red9_Anim - RED_ANIMATION_UI_OPENCALLBACK  - added a global that gets called as the AnimUI is opened, we're using it internally to Sync our internal poseLibrary with Perforce as the UI is opened
+New - Red9_Core - added new time offset options to the timeLine RMB menu for adding or collapsing time globally
+New - Red9_Core - offsets now accept timeRange for all type, animCurves, clips, audio
+New - Red9_Meta - added saveAttrMap/loadAttrMap which serialize an attrMap to an attr on the metaNode internally. Means that any metaRig can carry with them a map of all channel lock/keyable/hidden states - see vimeo channel for explaination
+New - Red9_Meta - added storeZeroPose/loadZeroPose which serialize a pose internally to an attr on the metaNode - means a rig can carry with it an internal zeroPose than can be easily called by any ui -- very useful!
+Mod - Red9_General - AudioNode and AudioHandler separated so AudioNode is a class that just operates on a single audio node in Maya, Handler operates on multiple audioNodes
+New - Red9_Audio - new audio handling module, separated from the r9General which was where all audio code used to be located
+New - Red9_Audio - new "COMPILE AUDIO" setup which allows you to mix existing audio inside Maya into a single wav track - great for playblasting! - integrates the pydub module.
+New - Red9_Meta - added a new function 'getMirror_oppositeSet' to MetaRig which uses the MirrorIndexes to return an opposite set of nodes to those passed in... ie, you pass in nodes with mirrorIndexes Left[1],Left[4],Right[3],Centre[5] and get back Right[1],Right[4],Left[3],Centre[5] nodes
+New - Red9_Pose - added the ability to load a percentage of a pose via a blend slider in the UI (on the RMB PoseBlender). This basically mixes in x percent of the selected pose. No support for relative poses yet

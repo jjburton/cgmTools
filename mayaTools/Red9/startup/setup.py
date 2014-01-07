@@ -196,7 +196,8 @@ def menuSetup():
                   echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Pose')")
     cmds.menuItem(l="Debug : r9General",ann="Turn all the logging to Debug",
                   echoCommand=True, c="Red9.core._setlogginglevel_debug('r9General')")
-    
+    cmds.menuItem(l="Debug : r9Audio",ann="Turn all the logging to Debug",
+                  echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Audio')")
     cmds.menuItem(l='Individual INFO',sm=True,p='redNineDebuggerItem')
     cmds.menuItem(l="Info : r9Core",ann="Turn all the logging to Info only",
                   echoCommand=True, c="Red9.core._setlogginglevel_info('r9Core')")
@@ -210,6 +211,8 @@ def menuSetup():
                   echoCommand=True, c="Red9.core._setlogginglevel_info('r9Pose')")
     cmds.menuItem(l="Info : r9General",ann="Turn all the logging to Info only",
                   echoCommand=True, c="Red9.core._setlogginglevel_info('r9General')")
+    cmds.menuItem(l="Info : r9Audio",ann="Turn all the logging to Info only",
+                  echoCommand=True, c="Red9.core._setlogginglevel_info('r9Audio')")
     cmds.menuItem(divider=True,p='redNineDebuggerItem')
     cmds.menuItem('redNineReloadItem',l="systems: reload()", p='redNineDebuggerItem',
                   ann="Force a complete reload on the core of Red9",

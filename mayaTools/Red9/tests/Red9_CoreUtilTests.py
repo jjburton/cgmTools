@@ -16,6 +16,8 @@ example of what's expected and what the systems can do on simple data
 
 
 import pymel.core as pm
+#import maya.standalone
+#maya.standalone.initialize(name='python')
 
 import maya.cmds as cmds
 import os
@@ -394,3 +396,15 @@ class Test_Matching_CoreFuncs(object):
     def test_MatchedNodeInputs(self):
         #TODO: Fill Test
         pass#          
+    
+    
+class Test_Timeoffset(object):
+    
+    def test_fromSelected(self):
+        pass
+    def test_fullScene(self):
+        pass
+    def test_animCurves(self):
+        pass
+    def test_sound(self):
+        pass

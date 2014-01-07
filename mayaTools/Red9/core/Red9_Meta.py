@@ -285,7 +285,7 @@ def isMetaNodeInherited(node, mInstances=[]):
     return False
                  
 @r9General.Timer
-def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass', **kws):
+def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass', nTypes=None, **kws):
     '''
     Get all mClass nodes in scene and return as mClass objects if possible
     @param mTypes: only return meta nodes of a given type
@@ -297,8 +297,13 @@ def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass', **kws
                 the correct class object. If not then return the Maya node itself
     '''
     mNodes=[]
+    if not nTypes:
+        nodes = cmds.ls(type=getMClassNodeTypes(), l=True)
+    else:
+        nodes = cmds.ls(type=nTypes, l=True)
     #if mTypes and not type(mTypes)==list:mTypes=[mTypes]
-    for node in cmds.ls(type=getMClassNodeTypes(),l=True):
+    for node in nodes:
+    #for node in cmds.ls(type=getMClassNodeTypes(), l=True):
         if not mInstances:
             if isMetaNode(node, mTypes=mTypes):
                 mNodes.append(node)
@@ -317,8 +322,8 @@ def getMetaNodes(mTypes=[], mInstances=[], mAttrs=None, dataType='mClass', **kws
         return mNodes
  
 @r9General.Timer
-def getConnectedMetaNodes(nodes, source=True, destination=True, mTypes=[], mInstances=[], mAttrs=None, \
-                          dataType='mClass', **kws):
+def getConnectedMetaNodes(nodes, source=True, destination=True, mTypes=[], mInstances=[], \
+                          mAttrs=None, dataType='mClass', nTypes=None, **kws):
     '''
     From a given set of Maya Nodes return all connected mNodes
     Default return is mClass objects
@@ -335,12 +340,17 @@ def getConnectedMetaNodes(nodes, source=True, destination=True, mTypes=[], mInst
     '''
     mNodes=[]
     connections=[]
-    for nType in getMClassNodeTypes():
-        cons=cmds.listConnections(nodes,type=nType,s=source,d=destination,c=True)
+    
+    if not nTypes:
+        nTypes = getMClassNodeTypes()
+    #if mTypes and not type(mTypes)==list:mTypes=[mTypes]
+    for nType in nTypes:
+    #for nType in getMClassNodeTypes():
+        cons = cmds.listConnections(nodes, type=nType, s=source, d=destination, c=True)
         if cons:
-            #NOTE we're only interested in connected nodes via message linked attrs
-            for plug, node in zip(cons[::2],cons[1::2]):
-                if cmds.getAttr(plug,type=True)=='message':
+            # NOTE we're only interested in connected nodes via message linked attrs
+            for plug, node in zip(cons[::2], cons[1::2]):
+                if cmds.getAttr(plug, type=True) == 'message':
                     if not node in connections:
                         connections.append(node)
                         log.debug(node)
@@ -989,6 +999,10 @@ class MetaClass(object):
         Overload the method to always return the MayaNode
         attribute if it's been serialized to the MayaNode
         '''
+        #if callable(object.__getattribute__(self, attr)):
+        #    log.debug("callable attr, bypassing tests : %s" % attr)
+        #    return object.__getattribute__(self, attr)
+
         if callable(attr):
             log.debug("callable attr, bypassing tests : %s" % attr)
             return attr
@@ -1825,6 +1839,10 @@ class MetaRig(MetaClass):
         return self.getChildren(walk, mAttrs)
         
     def getChildren(self, walk=False, mAttrs=None, cAttrs=None):
+        '''
+        Massively important big of code, this is used by most bits of code
+        to find the child controllers linked to this metaRig instance.
+        '''
         if not cAttrs:
             cAttrs=['RigCtrls', '%s_*' % self.CTRL_Prefix]
         return super(MetaRig, self).getChildren(walk=walk, mAttrs=mAttrs, cAttrs=cAttrs)
@@ -1970,6 +1988,28 @@ class MetaRig(MetaClass):
             raise IOError('Given MirrorMap file not found : %s' % mirrorMap)
         r9Anim.MirrorHierarchy(self.getChildren()).loadMirrorSetups(mirrorMap)
     
+    def getMirror_opposites(self, nodes):
+        '''
+        from the given nodes return a map of the opposite pairs of controllers
+        so if you pass in a right controller of mirrorIndex 4 you get back the
+        left[4] mirror node and visa versa. Centre controllers pass straight through
+        '''
+        self.getMirrorData()
+        self.MirrorClass.getMirrorSets()
+        oppositeNodes=[]
+        
+        for node in nodes:
+            side=self.MirrorClass.getMirrorSide(node)
+            if not side:
+                continue
+            if side=='Left':
+                oppositeNodes.append(self.MirrorClass.mirrorDict['Right'][str(self.MirrorClass.getMirrorIndex(node))]['node'])
+            if side=='Right':
+                oppositeNodes.append(self.MirrorClass.mirrorDict['Left'][str(self.MirrorClass.getMirrorIndex(node))]['node'])
+            if side=='Centre':
+                oppositeNodes.append(node)
+        return oppositeNodes
+    
     @nodeLockManager
     def poseCacheStore(self, attr=None, filepath=None, *args, **kws):
         '''
@@ -2037,6 +2077,43 @@ class MetaRig(MetaClass):
                                cancelButton='Close',
                                dismissString='Close')
         return compare
+    
+    @nodeLockManager
+    def saveAttrMap(self):
+        '''
+        store AttrMap to the metaRig, saving the chBox state of ALL attrs for ALL nodes in the hierarchy
+        '''
+        import Red9_CoreUtils as r9Core
+        chn = r9Core.LockChannels()
+        chn.saveChannelMap(filepath=None,
+                           nodes=getattr(self,'%s_Main' % self.CTRL_Prefix),
+                           hierarchy=True,
+                           serializeNode=self.mNode)
+        
+    def loadAttrMap(self):
+        '''
+        load AttrMap from the metaRig, returning the chBox state of ALL attrs for ALL nodes in the hierarchy
+        '''
+        import Red9_CoreUtils as r9Core
+        chn = r9Core.LockChannels()
+        chn.loadChannelMap(filepath=None,
+                           nodes=getattr(self,'%s_Main' % self.CTRL_Prefix),
+                           hierarchy=True,
+                           serializeNode=self.mNode)
+    
+    @nodeLockManager
+    def storeZeroPose(self):
+        '''
+        serialize the r9Pose file to the node itself
+        '''
+        self.poseCacheStore(attr='zeroPose')
+
+    def loadZeroPose(self, nodes=None):
+        '''
+        load the zeroPose form the internal dict
+        @param nodes: optional, load at subSystem level for given nodes
+        '''
+        self.poseCacheLoad(nodes=nodes, attr='zeroPose')
     
     
 class MetaRigSubSystem(MetaRig):

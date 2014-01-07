@@ -165,12 +165,19 @@ class Test_PoseData():
         assert r9Pose.PoseCompare(self.mRig.poseCache, os.path.join(self.poseFolder,'jump_f9_absolute29.pose'),
                                   compareDict='poseDict').compare()
          
+
+    def test_poseLoad_maintainParentSwitches(self):
+        pass
+    
     def test_matchNodesOnIndex(self):
         pass
     
     def test_getNodesFromFolderConfig(self):
         pass
-        
+    
+    def test_getMaintainedAttrs(self):
+        pass
+    
     def test_blendShapeSupport(self):
         pass
     

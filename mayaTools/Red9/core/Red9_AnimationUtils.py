@@ -80,6 +80,16 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+#global var so that the animUI is exposed to anything as a global object
+global RED_ANIMATION_UI
+
+'''
+Callback global so you can fire a command prior to the UI opening,
+we use this internally to fire an asset sync call on our project pose library
+'''
+global RED_ANIMATION_UI_OPENCALLBACK
+RED_ANIMATION_UI_OPENCALLBACK=None
+
 
 
 #===========================================================================
@@ -302,10 +312,19 @@ class AnimationUI(object):
 
     @classmethod
     def show(cls):
+        global RED_ANIMATION_UI
+        global RED_ANIMATION_UI_OPENCALLBACK
         animUI=cls()
         if r9General.getModifier()=='Ctrl':
             animUI.dock=False
         animUI._showUI()
+        RED_ANIMATION_UI=animUI
+        if callable(RED_ANIMATION_UI_OPENCALLBACK):
+            try:
+                log.debug('calling RED_ANIMATION_UI_OPENCALLBACK')
+                RED_ANIMATION_UI_OPENCALLBACK()
+            except:
+                log.warning('RED_ANIMATION_UI_OPENCALLBACK failed')
            
     def _showUI(self):
         try:
@@ -642,7 +661,10 @@ class AnimationUI(object):
         cmds.separator(h=10, style='none')
         cmds.setParent(self.FilterLayout)
         cmds.separator('filterInfoTop', style='in', vis=False)
-        cmds.text('filterSettingsInfo', label='', ww=True)
+        try:
+            cmds.text('filterSettingsInfo', label='', ww=True)
+        except:
+            cmds.text('filterSettingsInfo', label='')
         cmds.separator('filterInfoBase', style='in', vis=False)
         cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 140), (2, 162)])
         self.uicbIncRoots = cmds.checkBox('uicbIncRoots',
@@ -988,7 +1010,6 @@ class AnimationUI(object):
             self.filterSettings.printSettings()
             path=os.path.join(self.presetDir, '%s.cfg' % cmds.promptDialog(query=True, text=True))
             self.filterSettings.write(path)
-            #self.filterSettings.write('%s\%s.cfg' % (self.presetDir, cmds.promptDialog(query=True, text=True)))
             self.__uiPresetsUpdate()
     
     def __uiPresetDelete(self, *args):
@@ -1006,7 +1027,7 @@ class AnimationUI(object):
       
     def __uiPresetSelection(self, Read=True):
         '''
-        Fill the UI from on config preset file select in the UI
+        Fill the UI from on config preset file selected in the UI
         '''
         if Read:
             preset = cmds.textScrollList(self.uitslPresets, q=True, si=True)[0]
@@ -1032,28 +1053,32 @@ class AnimationUI(object):
                               append=self.filterSettings.filterPriority)
         if self.filterSettings.infoBlock:
             cmds.separator('filterInfoTop', e=True, vis=True)
-            cmds.text('filterSettingsInfo', edit=True, 
+            cmds.text('filterSettingsInfo', edit=True,
                       label='  %s  ' % self.filterSettings.infoBlock)
             cmds.separator('filterInfoBase', e=True, vis=True)
         cmds.checkBox(self.uicbMetaRig, e=True, v=self.filterSettings.metaRig)
         cmds.checkBox(self.uicbIncRoots, e=True, v=self.filterSettings.incRoots)
         
-        if 'snapPriority' in self.filterSettings.rigData \
-                and r9Core.decodeString(self.filterSettings.rigData['snapPriority']):
-            cmds.checkBox(self.uicbSnapPriorityOnly, e=True, v=True)
+        #rigData block specific
+        if hasattr(self.filterSettings, 'rigData'):
+            if 'snapPriority' in self.filterSettings.rigData \
+                    and r9Core.decodeString(self.filterSettings.rigData['snapPriority']):
+                cmds.checkBox(self.uicbSnapPriorityOnly, e=True, v=True)
 
         #need to run the callback on the PoseRootUI setup
-        self.__uiCB_managePoseRootMethod()  # WRONG this resets the filter!!!
+        self.__uiCB_managePoseRootMethod()
         self.filterSettings.printSettings()
         self.__uiCache_storeUIElements()
 
     def __uiPresetFillFilter(self):
         '''
         Fill the internal filterSettings Object for the AnimationUI class calls
+        Note we reset but leave the rigData cached as it's not all represented
+        by the UI, some is cached only when the filter is read in
         '''
-        self.filterSettings.resetFilters()
+        self.filterSettings.resetFilters(rigData=False)
         self.filterSettings.transformClamp = True
-        
+
         if cmds.textFieldGrp('uitfgSpecificNodeTypes', q=True, text=True):
             self.filterSettings.nodeTypes = (cmds.textFieldGrp('uitfgSpecificNodeTypes', q=True, text=True)).split(',')
         if cmds.textFieldGrp('uitfgSpecificAttrs', q=True, text=True):
@@ -1062,14 +1087,14 @@ class AnimationUI(object):
             self.filterSettings.searchPattern = (cmds.textFieldGrp('uitfgSpecificPattern', q=True, text=True)).split(',')
         if cmds.textScrollList('uitslFilterPriority', q=True, ai=True):
             self.filterSettings.filterPriority = cmds.textScrollList('uitslFilterPriority', q=True, ai=True)
-       
+
         self.filterSettings.metaRig = cmds.checkBox(self.uicbMetaRig, q=True, v=True)
         self.filterSettings.incRoots = cmds.checkBox(self.uicbIncRoots, q=True, v=True)
         # If the above filters are blank, then the code switches to full hierarchy mode
         if not self.filterSettings.filterIsActive():
             self.filterSettings.hierarchy = True
             
-        #this is kind of against the filterSettings Idea, shoe horned in here 
+        #this is kind of against the filterSettings Idea, shoe horned in here
         #as it makes sense from the UI standpoint
         self.filterSettings.rigData['snapPriority'] = cmds.checkBox(self.uicbSnapPriorityOnly, q=True, v=True)
         
@@ -1402,7 +1427,9 @@ class AnimationUI(object):
         else:
             parent=self.posePopupText
             cmds.popupMenu(self.posePopupText, e=True, deleteAllItems=True)
-            
+        
+        cmds.menuItem(label='PoseBlender', p=parent, command=partial(self.__uiCall, 'PoseBlender'))
+        cmds.menuItem(divider=True, p=parent)
         cmds.menuItem(label='Delete Pose', en=enableState, p=parent, command=partial(self.__uiPoseDelete))
         cmds.menuItem(label='Rename Pose', en=enableState, p=parent, command=partial(self.__uiPoseRename))
         cmds.menuItem(label='Select IntenalPose Objects', p=parent, command=partial(self.__uiPoseSelectObjects))
@@ -1572,7 +1599,6 @@ class AnimationUI(object):
         else:
             self.poseRootMode='RootNode'
             cmds.textFieldButtonGrp('uitfgPoseRootNode', e=True, bl='SetRoot')
-        #self.__uiCache_addCheckbox('uicbMetaRig')
         self.__uiCache_storeUIElements()
         
     def __uiCB_getPoseInputNodes(self):
@@ -1973,9 +1999,10 @@ class AnimationUI(object):
             self.kws['flocking']= cmds.checkBox(self.uicbTimeOffsetFlocking, q=True, v=True)
             self.kws['randomize'] = cmds.checkBox(self.uicbTimeOffsetRandom, q=True, v=True)
             if cmds.checkBox(self.uicbTimeOffsetRange, q=True, v=True):
-                self.kws['time'] = timeLineRangeGet()
+                self.kws['timerange'] = timeLineRangeGet()
                 #self.kws['option'] = "insert" #, "segmentOver"
             if cmds.checkBox(self.uicbTimeOffsetHierarchy, q=True, v=True):
+                print self.kws
                 r9Core.TimeOffset.fromSelected(offset, filterSettings=self.filterSettings, **self.kws)
             else:
                 r9Core.TimeOffset.fromSelected(offset, **self.kws)
@@ -2064,7 +2091,33 @@ class AnimationUI(object):
                             defaultButton='Close',
                             cancelButton='Close',
                             dismissString='Close')
+    
+    def __PoseBlend(self):
+        '''
+        TODO: allow this ui and implementation to blend multiple poses at the same time
+        basically we'd add a new poseObject per pose and bind each one top the slider
+        but with a consistent poseCurrentCache via the _cacheCurrentNodeStates() call
+        '''
+        poseNode=r9Pose.PoseData(self.filterSettings)
+        poseNode.filepath=self.getPosePath()
+        poseNode._poseLoad_buildcache(self.__uiCB_getPoseInputNodes())
         
+        def blendPose(*args):
+            poseNode._applyPose(percent=cmds.floatSliderGrp('poseBlender', q=True, v=True))
+            
+        if cmds.window('poseBlender', exists=True):
+            cmds.deleteUI('poseBlender')
+        cmds.window('poseBlender')
+        cmds.columnLayout()
+        cmds.floatSliderGrp('poseBlender',
+                            label='Blend Pose:  "%s"  ' % self.getPoseSelected(),
+                            field=True,
+                            minValue=0.0,
+                            maxValue=100.0,
+                            value=0,
+                            dc=blendPose)
+        cmds.showWindow()
+            
     def __PosePointCloud(self, func):
         '''
         Note: this is dependant on EITHER a wire from the root of the pose to a GEO
@@ -2190,6 +2243,8 @@ class AnimationUI(object):
                 self.__PosePointCloud('snap')
             elif func == 'PosePC_Update':
                 self.__PosePointCloud('update')
+            elif func == 'PoseBlender':
+                self.__PoseBlend()
             elif func =='MirrorAnim':
                 self.__MirrorPoseAnim(func)
             elif func =='MirrorPose':
@@ -3283,30 +3338,30 @@ class MirrorHierarchy(object):
         @param filterSettings: filterSettings object to process hierarchies
         '''
         
-        self.nodes=nodes
-        if not type(self.nodes)==list:
-            self.nodes=[self.nodes]
+        self.nodes = nodes
+        if not type(self.nodes) == list:
+            self.nodes = [self.nodes]
         
-        #default Attributes used to define the system
-        self.defaultMirrorAxis=['translateX', 'rotateY', 'rotateZ']
-        self.mirrorSide='mirrorSide'
-        self.mirrorIndex='mirrorIndex'
-        self.mirrorAxis='mirrorAxis'
+        # default Attributes used to define the system
+        self.defaultMirrorAxis = ['translateX', 'rotateY', 'rotateZ']
+        self.mirrorSide = 'mirrorSide'
+        self.mirrorIndex = 'mirrorIndex'
+        self.mirrorAxis = 'mirrorAxis'
         self.mirrorDict = {'Centre': {}, 'Left': {}, 'Right': {}}
-        self.kws=kws  # allows us to pass kws into the copyKey and copyAttr call if needed, ie, pasteMethod!
+        self.kws = kws  # allows us to pass kws into the copyKey and copyAttr call if needed, ie, pasteMethod!
         print 'kws in Mirror call : ', self.kws
         
         # make sure we have a settings object
         if filterSettings:
             if issubclass(type(filterSettings), r9Core.FilterNode_Settings):
-                self.settings=filterSettings
+                self.settings = filterSettings
             else:
                 raise StandardError('filterSettings param requires an r9Core.FilterNode_Settings object')
         else:
-            self.settings=r9Core.FilterNode_Settings()
+            self.settings = r9Core.FilterNode_Settings()
             
-        #ensure we use the mirrorSide attr search ensuring all nodes
-        #returned are part of the Mirror system
+        # ensure we use the mirrorSide attr search ensuring all nodes
+        # returned are part of the Mirror system
         self.settings.searchAttrs.append(self.mirrorSide)
     
     def _validateMirrorEnum(self, side):
@@ -3315,7 +3370,7 @@ class MirrorHierarchy(object):
         '''
         if not side:
             return False
-        if type(side)==int:
+        if type(side) == int:
             if not side in range(0, 3):
                 raise ValueError('given mirror side is not a valid int entry: 0, 1 or 2')
             else:
@@ -3338,9 +3393,9 @@ class MirrorHierarchy(object):
             passed in blank when needed
         NOTE: slot index can't be ZERO
         '''
-        #Note using the MetaClass as all the type checking
-        #and attribute handling is done for us
-        mClass=r9Meta.MetaClass(node)
+        # Note using the MetaClass as all the type checking
+        # and attribute handling is done for us
+        mClass = r9Meta.MetaClass(node)
         if self._validateMirrorEnum(side):
             mClass.addAttr(self.mirrorSide, attrType='enum', enumName='Centre:Left:Right', hidden=True)
             mClass.__setattr__(self.mirrorSide, side)
@@ -3348,7 +3403,7 @@ class MirrorHierarchy(object):
             mClass.addAttr(self.mirrorIndex, slot, hidden=True)
             mClass.__setattr__(self.mirrorIndex, slot)
         if axis:
-            if axis=='None':
+            if axis == 'None':
                 mClass.addAttr(self.mirrorAxis, attrType='string')
             else:
                 mClass.addAttr(self.mirrorAxis, axis)
@@ -3359,7 +3414,7 @@ class MirrorHierarchy(object):
         '''
         Remove the given node from the MirrorSystems
         '''
-        mClass=r9Meta.MetaClass(node)
+        mClass = r9Meta.MetaClass(node)
         try:
             mClass.__delattr__(self.mirrorSide)
         except:
@@ -3384,14 +3439,20 @@ class MirrorHierarchy(object):
         '''
         This is an enum Attr to denote the Side of the controller in the Mirror system
         '''
-        return cmds.getAttr('%s.%s' % (node, self.mirrorSide), asString=True)
-
+        try:
+            return cmds.getAttr('%s.%s' % (node, self.mirrorSide), asString=True)
+        except:
+            log.debug('%s node has no "mirrorSide" attr' % r9Core.nodeNameStrip(node))
+            
     def getMirrorIndex(self, node):
         '''
         get the mirrorIndex, these slots are used to denote matching pairs
         such that Left and Right Controllers to switch will have the same index
         '''
-        return int(cmds.getAttr('%s.%s' % (node, self.mirrorIndex)))
+        try:
+            return int(cmds.getAttr('%s.%s' % (node, self.mirrorIndex)))
+        except:
+            log.debug('%s node has no "mirrorIndex" attr' % r9Core.nodeNameStrip(node))
    
     def getMirrorAxis(self, node):
         '''
@@ -3402,7 +3463,7 @@ class MirrorHierarchy(object):
         default inverse axis will be used
         '''
         if cmds.attributeQuery(self.mirrorAxis, node=node, exists=True):
-            axis=cmds.getAttr('%s.%s' %(node, self.mirrorAxis))
+            axis = cmds.getAttr('%s.%s' % (node, self.mirrorAxis))
             if not axis:
                 return []
             else:
@@ -3415,29 +3476,38 @@ class MirrorHierarchy(object):
         Filter the given nodes into the mirrorDict
         such that {'Centre':{id:node,},'Left':{id:node,},'Right':{id:node,}}
         '''
-        #reset the current Dict prior to rescanning
-        self.mirrorDict={'Centre': {}, 'Left': {}, 'Right': {}}
+        # reset the current Dict prior to rescanning
+        self.mirrorDict = {'Centre': {}, 'Left': {}, 'Right': {}}
+        self.unresolved = {'Centre': {}, 'Left': {}, 'Right': {}}
         if not nodes:
-            nodes=self.getNodes()
+            nodes = self.getNodes()
         if not nodes:
             raise StandardError('no mirrorMarkers found in node list/hierarchy')
         for node in nodes:
             try:
-                side=self.getMirrorSide(node)
-                index=self.getMirrorIndex(node)
-                axis=self.getMirrorAxis(node)
+                side = self.getMirrorSide(node)
+                index = self.getMirrorIndex(node)
+                axis = self.getMirrorAxis(node)
                 log.debug('Side : %s Index : %s>> node %s' % \
                           (side, index, r9Core.nodeNameStrip(node)))
-                #self.mirrorDict[side][str(index)]=node #NOTE index is cast to string!
+                # self.mirrorDict[side][str(index)]=node #NOTE index is cast to string!
                 if str(index) in self.mirrorDict[side]:
-                    log.warning('Mirror index %i already assigned to %s' % (index, self.mirrorDict[side][str(index)]['node']))
-                self.mirrorDict[side][str(index)]={}
-                self.mirrorDict[side][str(index)]['node']=node
-                self.mirrorDict[side][str(index)]['axis']=axis
+                    log.warning('Mirror index ( %s : %i ) already assigned : currently node : %s,  duplicate node : %s' %
+                                    (side, index,
+                                     r9Core.nodeNameStrip(self.mirrorDict[side][str(index)]['node']),
+                                     r9Core.nodeNameStrip(node)))
+                    if not str(index) in self.unresolved[side]:
+                        self.unresolved[side][str(index)] = [self.mirrorDict[side][str(index)]['node']]
+                    self.unresolved[side][str(index)].append(node)
+                    continue
+                
+                self.mirrorDict[side][str(index)] = {}
+                self.mirrorDict[side][str(index)]['node'] = node
+                self.mirrorDict[side][str(index)]['axis'] = axis
                 if cmds.attributeQuery(self.mirrorAxis, node=node, exists=True):
-                    self.mirrorDict[side][str(index)]['axisAttr']=True
+                    self.mirrorDict[side][str(index)]['axisAttr'] = True
                 else:
-                    self.mirrorDict[side][str(index)]['axisAttr']=False
+                    self.mirrorDict[side][str(index)]['axisAttr'] = False
                 
             except StandardError, error:
                 log.debug(error)
@@ -3468,6 +3538,13 @@ class MirrorHierarchy(object):
             print '\nLeft MirrorLists ======================================================='
             for i in r9Core.sortNumerically(self.mirrorDict['Left'].keys()):
                 print '%s > %s' % (i, r9Core.nodeNameStrip(self.mirrorDict['Left'][i]['node']))
+        if self.unresolved:
+            for key, val in self.unresolved.items():
+                if val:
+                    print '\CLASHING %s Mirror Indexes =====================================================' % key
+                    for i in r9Core.sortNumerically(val):
+                        print 'clashing Index : %s : %s : %s' % \
+                        (key, i, ', '.join([r9Core.nodeNameStrip(n) for n in val[i]]))
                           
     def switchPairData(self, objA, objB, mode='Anim'):
         '''
@@ -3475,16 +3552,16 @@ class MirrorHierarchy(object):
         or poseData across between them
 
         '''
-        objs=cmds.ls(sl=True, l=True)
-        if mode=='Anim':
-            transferCall= AnimFunctions().copyKeys
+        objs = cmds.ls(sl=True, l=True)
+        if mode == 'Anim':
+            transferCall = AnimFunctions().copyKeys
         else:
-            transferCall= AnimFunctions().copyAttributes
+            transferCall = AnimFunctions().copyAttributes
         
-        #switch the anim data over via temp
+        # switch the anim data over via temp
         cmds.select(objA)
         cmds.duplicate(name='DELETE_ME_TEMP')
-        temp=cmds.ls(sl=True, l=True)[0]
+        temp = cmds.ls(sl=True, l=True)[0]
         log.debug('temp %s:' % temp)
         transferCall([objA, temp], **self.kws)
         transferCall([objB, objA], **self.kws)
@@ -3502,18 +3579,18 @@ class MirrorHierarchy(object):
         Really useful for facial setups!
         '''
         self.getMirrorSets(nodes)
-        if mode=='Anim':
-            transferCall= AnimFunctions().copyKeys
+        if mode == 'Anim':
+            transferCall = AnimFunctions().copyKeys
             inverseCall = AnimFunctions.inverseAnimChannels
         else:
-            transferCall= AnimFunctions().copyAttributes
+            transferCall = AnimFunctions().copyAttributes
             inverseCall = AnimFunctions.inverseAttributes
             
-        if primeAxis=='Left':
-            masterAxis='Left'
+        if primeAxis == 'Left':
+            masterAxis = 'Left'
             slaveAxis = 'Right'
         else:
-            masterAxis='Right'
+            masterAxis = 'Right'
             slaveAxis = 'Left'
                
         for index, masterSide in self.mirrorDict[masterAxis].items():
@@ -3521,8 +3598,8 @@ class MirrorHierarchy(object):
                 log.warning('No matching Index Key found for %s mirrorIndex : %s >> %s' % \
                             (masterAxis, index, r9Core.nodeNameStrip(masterSide['node'])))
             else:
-                slaveData=self.mirrorDict[slaveAxis][index]
-                log.debug('SymmetricalPairs : %s >> %s' % (r9Core.nodeNameStrip(masterSide['node']),\
+                slaveData = self.mirrorDict[slaveAxis][index]
+                log.debug('SymmetricalPairs : %s >> %s' % (r9Core.nodeNameStrip(masterSide['node']), \
                                      r9Core.nodeNameStrip(slaveData['node'])))
                 transferCall([masterSide['node'], slaveData['node']], **self.kws)
                 
@@ -3539,18 +3616,18 @@ class MirrorHierarchy(object):
         '''
         self.getMirrorSets(nodes)
         
-        if mode=='Anim':
+        if mode == 'Anim':
             inverseCall = AnimFunctions.inverseAnimChannels
         else:
             inverseCall = AnimFunctions.inverseAttributes
-        #with r9General.HIKContext(nodes):
-        #Switch Pairs on the Left and Right and inverse the channels
+        # with r9General.HIKContext(nodes):
+        # Switch Pairs on the Left and Right and inverse the channels
         for index, leftData in self.mirrorDict['Left'].items():
             if not index in self.mirrorDict['Right'].keys():
                 log.warning('No matching Index Key found for Left mirrorIndex : %s >> %s' % (index, r9Core.nodeNameStrip(leftData['node'])))
             else:
-                rightData=self.mirrorDict['Right'][index]
-                log.debug('SwitchingPairs : %s >> %s' % (r9Core.nodeNameStrip(leftData['node']),\
+                rightData = self.mirrorDict['Right'][index]
+                log.debug('SwitchingPairs : %s >> %s' % (r9Core.nodeNameStrip(leftData['node']), \
                                      r9Core.nodeNameStrip(rightData['node'])))
                 self.switchPairData(leftData['node'], rightData['node'], mode=mode)
                 
@@ -3561,7 +3638,7 @@ class MirrorHierarchy(object):
                 if rightData['axis']:
                     inverseCall(rightData['node'], rightData['axis'])
                 
-        #Inverse the Centre Nodes
+        # Inverse the Centre Nodes
         for data in self.mirrorDict['Centre'].values():
             inverseCall(data['node'], data['axis'])
      
@@ -3576,7 +3653,7 @@ class MirrorHierarchy(object):
         ConfigObj.filename = filepath
         ConfigObj.write()
         
-    def loadMirrorSetups(self, filepath, nodes=None, clearCurrent=True):
+    def loadMirrorSetups(self, filepath, nodes=None, clearCurrent=True, matchMethod='base'):
         if not os.path.exists(filepath):
             raise IOError('invalid filepath given')
         self.mirrorDict = configobj.ConfigObj(filepath)['mirror']
@@ -3596,32 +3673,32 @@ class MirrorHierarchy(object):
                 if progressBar.isCanceled():
                     break
                 
-                found=False
+                found = False
                 if clearCurrent:
                     self.deleteMirrorIDs(node)
                 for index, leftData in self.mirrorDict['Left'].items():
-                    #print node, leftData['node']
-                    if r9Core.matchNodeLists([node], [leftData['node']]):
+                    # print node, leftData['node']
+                    if r9Core.matchNodeLists([node], [leftData['node']], matchMethod=matchMethod):
                         log.debug('NodeMatched: %s, Side=Left, index=%i, axis=%s' % (node, int(index), leftData['axis']))
                         if r9Core.decodeString(leftData['axisAttr']):
                             self.setMirrorIDs(node, side='Left', slot=int(index), axis=','.join(leftData['axis']))
                         else:
                             self.setMirrorIDs(node, side='Left', slot=int(index))
-                        found=True
+                        found = True
                         break
                 if not found:
                     for index, rightData in self.mirrorDict['Right'].items():
-                        if r9Core.matchNodeLists([node], [rightData['node']]):
+                        if r9Core.matchNodeLists([node], [rightData['node']], matchMethod=matchMethod):
                             log.debug('NodeMatched: %s, Side=Right, index=%i, axis=%s' % (node, int(index), rightData['axis']))
                             if r9Core.decodeString(rightData['axisAttr']):
                                 self.setMirrorIDs(node, side='Right', slot=int(index), axis=','.join(rightData['axis']))
                             else:
                                 self.setMirrorIDs(node, side='Right', slot=int(index))
-                            found=True
+                            found = True
                             break
                 if not found:
                     for index, centreData in self.mirrorDict['Centre'].items():
-                        if r9Core.matchNodeLists([node], [centreData['node']]):
+                        if r9Core.matchNodeLists([node], [centreData['node']], matchMethod=matchMethod):
                             log.debug('NodeMatched: %s, Side=Centre, index=%i, axis=%s' % (node, int(index), centreData['axis']))
                             if r9Core.decodeString(centreData['axisAttr']):
                                 self.setMirrorIDs(node, side='Centre', slot=int(index), axis=','.join(centreData['axis']))
@@ -3630,7 +3707,7 @@ class MirrorHierarchy(object):
                             break
    
                 progressBar.setProgress(count)
-                count+=1
+                count += 1
                    
 class MirrorSetup(object):
 
@@ -3996,13 +4073,13 @@ def reConnectReferencedAnimData():
     
     cSet, nodetype = objs
     refNode = cSet.referenceFile().refNode
-    
+
     if not nodetype == 'character':
         raise StandardError('You must select a CharacterSet to reconnect')
     if not refNode:
         raise StandardError('Given characterSet is not from a referenced file')
     
-    animCurves = refNode.listConnections(nodetype='animCurve', s=True)
+    animCurves = refNode.listConnections(type='animCurve', s=True)
     cSetPlugs = pm.aliasAttr(cSet, q=True)
     
     for plug in cSetPlugs[::2]:

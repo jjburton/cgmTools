@@ -95,6 +95,7 @@ class PoseData(object):
         self.filepath=''
         self.mayaUpAxis=r9Setup.mayaUpAxis()
         self.thumbnailRes=[128,128]
+        self.poseCurrentCache={}  # cached dict storing the current state of the objects prior to applying the pose
         
         self.__metaPose=False
         self.metaRig=None  # filled by the code as we process
@@ -165,7 +166,7 @@ class PoseData(object):
 
         return nodes
                     
-    def getNodes(self, nodes):  # useFilter=True):
+    def getNodes(self, nodes):
         '''
         get the nodes to process
         This is designed to allow for specific hooks to be used from user
@@ -182,7 +183,7 @@ class PoseData(object):
             return nodes
         
                       
-    # Build the poseDict data ---------------------------------------------
+    # Save Block Build the poseDict data ---------------------------------------------
        
     def _buildInfoBlock(self):
         '''
@@ -336,24 +337,49 @@ class PoseData(object):
                 raise StandardError('Given filepath doesnt not exist : %s' % filename)
         else:
             raise StandardError('No FilePath given to read the pose from')
-      
+    
+    def _cacheCurrentNodeStates(self):
+        '''
+        this is purely for the _applyPose with percent and optimization for the UI's
+        '''
+        log.info('updating the currentCache')
+        self.poseCurrentCache={}
+        for key, dest in self.matchedPairs:
+            log.debug('caching current node data : %s' % key)
+            self.poseCurrentCache[key]={}
+            for attr, _ in self.poseDict[key]['attrs'].items():
+                self.poseCurrentCache[key][attr]=cmds.getAttr('%s.%s' % (dest, attr))
+                
     @r9General.Timer
-    def _applyPose(self, matchedPairs):
+    #def _applyPose(self, matchedPairs, percent=None):
+    def _applyPose(self, percent=None):
         '''
         @param matchedPairs: pre-matched tuples of (poseDict[key], node in scene)
         '''
-        for key, dest in matchedPairs:
+        mix_percent=False  # gets over float values of zero from failing
+        if percent or type(percent)==float:
+            mix_percent=True
+            if not self.poseCurrentCache:
+                self._cacheCurrentNodeStates()
+            
+        for key, dest in self.matchedPairs:
             log.debug('Applying Key Block : %s' % key)
             try:
                 for attr, val in self.poseDict[key]['attrs'].items():
                     try:
-                        val=eval(val)
+                        val = eval(val)
                     except:
                         pass
-                    log.debug('node : %s : attr : %s : val %s' % (dest,attr,val))
+                    log.debug('node : %s : attr : %s : val %s' % (dest, attr, val))
                     try:
-                        cmds.setAttr('%s.%s' % (dest, attr), val)
-                    except StandardError,err:
+                        if not mix_percent:
+                            cmds.setAttr('%s.%s' % (dest, attr), val)
+                        else:
+                            current = self.poseCurrentCache[key][attr]
+                            blendVal = ((val - current) / 100) * percent
+                            # print 'loading at percent : %s (current=%s , stored=%s' % (percent,current,current+blendVal)
+                            cmds.setAttr('%s.%s' % (dest, attr), current + blendVal)
+                    except StandardError, err:
                         log.debug(err)
             except:
                 log.debug('Pose Object Key : %s : has no Attr block data' % key)
@@ -431,6 +457,48 @@ class PoseData(object):
                     log.debug('parentAttrCache : %s > %s' % (child,attr))
         return parentSwitches
     
+    def _poseLoad_buildcache(self, nodes):
+        '''
+        pre loader function that processes all the nodes and data prior to
+        actually calling the load... why? this is for the poseMixer for speed
+        '''
+        if not type(nodes)==list:
+            nodes=[nodes]  # cast to list for consistency
+            
+        if self.metaPose:
+            self.setMetaRig(nodes[0])
+            
+        if self.filepath and not os.path.exists(self.filepath):
+            raise StandardError('Given Path does not Exist')
+                
+        if self.filepath and self.hasFolderOverload():  # and useFilter:
+            nodesToLoad = self.getNodesFromFolderConfig(nodes, mode='load')
+        else:
+            nodesToLoad=self.getNodes(nodes)
+        if not nodesToLoad:
+            raise StandardError('Nothing selected or returned by the filter to load the pose onto')
+        
+        if self.filepath:
+            self._readPose(self.filepath)
+            log.info('Pose Read Successfully from : %s' % self.filepath)
+
+        if self.metaPose:
+            if 'metaPose' in self.infoDict and self.metaRig:
+                try:
+                    if eval(self.infoDict['metaPose']):
+                        self.matchMethod = 'metaData'
+                except:
+                    self.matchMethod = 'metaData'
+            else:
+                log.debug('Warning, trying to load a NON metaPose to a MRig - switching to NameMatching')
+                
+        #Build the master list of matched nodes that we're going to apply data to
+        #Note: this is built up from matching keys in the poseDict to the given nodes
+        self.matchedPairs = self._matchNodesToPoseData(nodesToLoad)
+        
+        return nodesToLoad
+        
+
     #Main Calls ----------------------------------------
   
     @r9General.Timer
@@ -462,8 +530,8 @@ class PoseData(object):
         
         
     @r9General.Timer
-    def poseLoad(self, nodes, filepath=None, useFilter=True, relativePose=False, relativeRots='projected',relativeTrans='projected',
-                 maintainSpaces=False):
+    def poseLoad(self, nodes, filepath=None, useFilter=True, relativePose=False, relativeRots='projected',
+                 relativeTrans='projected', maintainSpaces=False, percent=None):
         '''
         Entry point for the generic PoseLoad
         @param nodes:  if given load the data to only these. If given and filter=True this is the rootNode for the filter
@@ -482,48 +550,19 @@ class PoseData(object):
             raise StandardError('Nothing selected to align Relative Pose too')
         if not type(nodes)==list:
             nodes=[nodes]  # cast to list for consistency
-        rootNode=nodes[0]
         
         #push args to object - means that any poseHandler.py file has access to them
         self.relativePose = relativePose
         self.relativeRots = relativeRots
         self.relativeTrans = relativeTrans
-        self.PosePointCloud=None
+        self.PosePointCloud = None
         self.filepath = filepath
         self.useFilter = useFilter  # used in the getNodes call
         self.maintainSpaces = maintainSpaces
         
-        if self.filepath and not os.path.exists(self.filepath):
-            raise StandardError('Given Path does not Exist')
+        nodesToLoad = self._poseLoad_buildcache(nodes)
         
-        if self.metaPose:
-            self.setMetaRig(rootNode)
-                
-        if self.filepath and self.hasFolderOverload():  # and useFilter:
-            nodesToLoad=self.getNodesFromFolderConfig(nodes,mode='load')
-        else:
-            nodesToLoad=self.getNodes(nodes)
-        if not nodesToLoad:
-            raise StandardError('Nothing selected or returned by the filter to load the pose onto')
-        
-        if self.filepath:
-            self._readPose(self.filepath)
-
-        if self.metaPose:
-            if 'metaPose' in self.infoDict and self.metaRig:
-                try:
-                    if eval(self.infoDict['metaPose']):
-                        self.matchMethod = 'metaData'
-                except:
-                    self.matchMethod = 'metaData'
-            else:
-                log.debug('Warning, trying to load a NON metaPose to a MRig - switching to NameMatching')
-                 
-        #Build the master list of matched nodes that we're going to apply data to
-        #Note: this is built up from matching keys in the poseDict to the given nodes
-        matchedPairs=self._matchNodesToPoseData(nodesToLoad)
-        
-        if not matchedPairs:
+        if not self.matchedPairs:
             raise StandardError('No Matching Nodes found in the PoseFile!')
         else:
             if self.relativePose:
@@ -545,8 +584,7 @@ class PoseData(object):
                     elif 'parentSpaces' in self.settings.rigData:
                         parentSpaceCache=self.getMaintainedAttrs(nodesToLoad, self.settings.rigData['parentSpaces'])
     
-            self._applyPose(matchedPairs)
-            log.info('Pose Read Successfully from : %s' % filepath)
+            self._applyPose(percent)
 
             if self.relativePose:
                 #snap the poseCloud to the new xform of the referenced node, snap the cloud
@@ -599,15 +637,22 @@ class PoseData(object):
                 self.PosePointCloud.delete()
                 cmds.select(reference)
 
-
-
+#     def poseMix(self, nodes, filepath, percent, useFilter=True):
+#         self.filepath = filepath
+#         self.useFilter = useFilter 
+#         
+#         nodesToLoad = self._poseLoad_buildcache(nodes)
+#         #cacheNodeValues
+#         self._applyPose(percent)
+        
+    
 class PosePointCloud(object):
     '''
     PosePointCloud is the technique inside the PoseSaver used to snap the pose into
     relative space. It's been added as a tool in it's own right as it's sometimes
     useful to be able to shift poses in global space.
     '''
-    def __init__(self,nodes,filterSettings=None,mesh=None):
+    def __init__(self, nodes, filterSettings=None, mesh=None):
         '''
         @param rootReference: the object to be used as the PPT's pivot reference
         @param nodes: feed the nodes to process in as a list, if a filter is given
@@ -632,7 +677,7 @@ class PosePointCloud(object):
             elif filterSettings.filterIsActive():
                 self.settings=filterSettings
     
-    def buildOffsetCloud(self,rootReference=None,raw=False):
+    def buildOffsetCloud(self, rootReference=None, raw=False):
         '''
         Build a point cloud up for each node in nodes
         @param nodes: list of objects to be in the cloud
@@ -890,7 +935,7 @@ def batchPatchPoses(posedir, config, poseroot, load=True, save=True, patchfunc=N
     for f in files:
         if f.lower().endswith('.pose'):
             if load:
-                mPose.PoseLoad(poseroot, os.path.join(posedir,f),
+                mPose.poseLoad(poseroot, os.path.join(posedir,f),
                                useFilter=True,
                                relativePose=relativePose,
                                relativeRots=relativeRots,
@@ -898,6 +943,6 @@ def batchPatchPoses(posedir, config, poseroot, load=True, save=True, patchfunc=N
             if patchfunc:
                 patchfunc(f)
             if save:
-                mPose.PoseSave(poseroot, os.path.join(posedir,f), useFilter=True, storeThumbnail=False)
+                mPose.poseSave(poseroot, os.path.join(posedir,f), useFilter=True, storeThumbnail=False)
             log.info('Processed Pose File :  %s' % f)
 

@@ -132,7 +132,7 @@ def posePopupAdditions(parent):
 	popUp and extend it's functionality as we need at a folder level!
 	'''
 	cmds.menuItem(divider=True)
-	cmds.menuItem(parent=parent,label='Test Facial Menu 1!', command="print('Added Test Menu 1')")
-	cmds.menuItem(parent=parent,label='Test Facial Menu 2!', command="print('Added Test Menu 2')")
+	cmds.menuItem(parent=parent,label='Test Finger Menu 1!', command="print('Added Test Menu 1')")
+	cmds.menuItem(parent=parent,label='Test Finger Menu 2!', command="print('Added Test Menu 2')")
 
 

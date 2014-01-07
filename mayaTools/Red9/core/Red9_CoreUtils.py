@@ -27,6 +27,7 @@ import Red9.packages.configobj as configobj
 import Red9.startup.setup as r9Setup
 
 import Red9_General as r9General
+import Red9_Audio as r9Audio
 import Red9_AnimationUtils as r9Anim
 import Red9_Meta as r9Meta
 
@@ -94,6 +95,21 @@ def sortNumerically(data):
     return sorted(data, key=alphanum_key)
 
 
+def stringReplace(text, replace_dict):
+    '''
+    Replace words in a text that match a key in replace_dict
+    with the associated value, return the modified text.
+    Only whole words are replaced.
+    Note that replacement is case sensitive, but attached
+    quotes and punctuation marks are neutral.
+    '''
+    rc = re.compile(r"[A-Za-z_]\w*")
+    def translate(match):
+        word = match.group(0)
+        return replace_dict.get(word, word)
+    return rc.sub(translate, text)
+
+
 def decodeString(val):
     '''
     From configObj the return is a string, we want to encode
@@ -149,14 +165,16 @@ def floatIsEqual(a, b, tolerance=0.01, allowGimbal=True):
     TODO: still giving us issues, look into other ways to do this confirm for gimbal!
     '''
     if abs(a-b)<tolerance:
-        return 1
+        return True
     else:
         if allowGimbal:
-            if abs(a-b)%180<tolerance:
-                return 1
-            if abs(a-b)%360<tolerance:
-                return 1
-    return 0
+            if abs(a - b) % 180 < tolerance:
+                return True
+            elif abs(a - b) % 360 < tolerance:
+                return True
+            elif abs(a - b) % 90 < tolerance:
+                return True
+    return False
 
 def valueToMappedRange(value, currentMin, currentMax, givenMin, givenMax):
     '''
@@ -255,9 +273,11 @@ class FilterNode_Settings(object):
         log.info('FilterNode Settings : rigData : %s :   %s' %
                  (self.rigData, type(self.rigData)))
         
-    def resetFilters(self):
+    def resetFilters(self, rigData=True):
         '''
         reset the MAIN filter args only
+        @param rigData: this is a cached attr and not fully handled 
+        by the UI hence the option NOT to reset, used by the UI presetFill calls
         '''
         self.nodeTypes=[]
         self.searchAttrs=[]
@@ -268,7 +288,8 @@ class FilterNode_Settings(object):
         self.metaRig=False
         self.transformClamp=True
         self.infoBlock=""
-        self.rigData={}
+        if rigData:
+            self.rigData={}
         
 #    def write(self,filepath):
 #        '''
@@ -312,8 +333,6 @@ class FilterNode_Settings(object):
         '''
         ConfigObj = configobj.ConfigObj(indent_type='\t')
         ConfigObj['filterNode_settings']=self.__dict__
-        #for key, val in self.__dict__.items():
-        #    ConfigObj['filterNode_settings'][key]=val
         ConfigObj.filename = filepath
         ConfigObj.write()
         
@@ -1208,14 +1227,14 @@ class FilterNode(object):
                                          transformClamp=self.settings.transformClamp)
                 addToIntersection(nodes)
                 if not nodes:
-                    return
+                    return []
             
             # MetaClass Filter ------------------------------
             if self.settings.metaRig:
                 nodes = self.lsMetaRigControllers(incMain=self.settings.incRoots)
                 addToIntersection(nodes)
                 if not nodes:
-                    return
+                    return []
                 
             # NodeTypes Filter -------------------------------
             if self.settings.nodeTypes:
@@ -1225,7 +1244,7 @@ class FilterNode(object):
                                                transformClamp=self.settings.transformClamp)
                 addToIntersection(nodes)
                 if not nodes:
-                    return
+                    return []
                
             # Attribute Filter -------------------------------
             if self.settings.searchAttrs:
@@ -1234,7 +1253,7 @@ class FilterNode(object):
                                                 incRoots=self.settings.incRoots)
                 addToIntersection(nodes)
                 if not nodes:
-                    return
+                    return []
                   
             # NodeName Filter --------------------------------
             if self.settings.searchPattern:
@@ -1243,7 +1262,7 @@ class FilterNode(object):
                                                  incRoots=self.settings.incRoots)
                 addToIntersection(nodes)
                 if not nodes:
-                    return
+                    return []
                 
             # use the prioritizeNodeList call to order the list based on a given set of priority's
             if self.settings.filterPriority:
@@ -1736,11 +1755,11 @@ class LockChannels(object):
             key=nodeNameStrip(node)
             if key in self.statusDict:
                 
-                #managed node so first hide all current CBattrs
+                #managed node so first hide and lock all current CBattrs
                 currentAttrs=r9Anim.getChannelBoxAttrs(node, asDict=False)
                 for attr in currentAttrs:
                     try:
-                        cmds.setAttr('%s.%s' %(node, attr), keyable=False, channelBox=False)
+                        cmds.setAttr('%s.%s' %(node, attr), keyable=False, lock=True, channelBox=False)
                     except:
                         log.info('%s : failed to set initial state' % attr)
                         
@@ -1832,7 +1851,7 @@ def timeOffset_addPadding(pad=None, padfrom=None, scene=False):
     @param pad: amount of padding frames to add
     @param padfrom: frame to pad from
     '''
-    nodes=None
+    nodes = None
     if not pad:
         result = cmds.promptDialog(
                     title='Add Padding Frames',
@@ -1844,24 +1863,31 @@ def timeOffset_addPadding(pad=None, padfrom=None, scene=False):
         if result == 'OK':
             pad = float(cmds.promptDialog(query=True, text=True))
     if not padfrom:
-        padfrom=cmds.currentTime(q=True)
+        padfrom = cmds.currentTime(q=True)
     if not scene:
-        nodes=cmds.ls(sl=True,l=True)
-        
-    TimeOffset.animCurves(pad, nodes=nodes, time=(padfrom, 1000000))
+        nodes = cmds.ls(sl=True, l=True)
+        TimeOffset.fromSelected(pad, nodes=nodes, timerange=(padfrom, 1000000))
+    else:
+        TimeOffset.fullScene(pad, timerange=(padfrom, 1000000))
+    # TimeOffset.animCurves(pad, nodes=nodes, time=(padfrom, 1000000))
    
 def timeOffset_collapse(scene=False):
     '''
     simple wrap of the timeoffset that given a selected range in the timeline will
     collapse the keys within that range and shift forward keys back to close the gap
+    @param scene: whether to process the entire scene or selected nodes
     '''
-    nodes=None
-    timeRange=r9Anim.timeLineRangeGet(always=False)
+    nodes = None
+    timeRange = r9Anim.timeLineRangeGet(always=False)
     if not timeRange:
         raise StandardError('No timeRange selected to Compress')
+    offset = -(timeRange[1] - timeRange[0])
     if not scene:
-        nodes=cmds.ls(sl=True,l=True)
-    TimeOffset.animCurves(-(timeRange[1]-timeRange[0]), nodes=nodes, time=(timeRange[1], 10000000))
+        nodes = cmds.ls(sl=True, l=True)
+        TimeOffset.fromSelected(offset, nodes=nodes, timerange=(timeRange[1], 10000000))
+    else:
+        TimeOffset.fullScene(offset, timerange=(timeRange[1], 10000000))
+    # TimeOffset.animCurves(-(timeRange[1]-timeRange[0]), nodes=nodes, time=(timeRange[1], 10000000))
     
     cmds.currentTime(timeRange[0], e=True)
    
@@ -1877,24 +1903,29 @@ class TimeOffset(object):
 
     '''
     @classmethod
-    def fullScene(cls, offset, Timelines=False):
+    def fullScene(cls, offset, timelines=False, timerange=None):
         '''
         Process the entire scene and time offset all suitable nodes
         '''
-        log.debug('TimeOffset Scene : offset=%s,Timelines=%i' % \
-                  (offset, Timelines))
-        cls.animCurves(offset)
-        cls.sound(offset, 'Scene')
-        cls.animClips(offset, 'Scene')
-        if Timelines:
+        log.debug('TimeOffset Scene : offset=%s, timelines=%s' % \
+                  (offset, str(timelines)))
+        cls.animCurves(offset, timerange=timerange)
+        cls.sound(offset, mode='Scene', timerange=timerange)
+        cls.animClips(offset, mode='Scene', timerange=timerange)
+        if timelines:
             cls.timelines(offset)
         print('Scene Offset Successfully')
         
     @classmethod
-    def fromSelected(cls, offset, filterSettings=None, flocking=False, randomize=False, **kws):
+    def fromSelected(cls, offset, nodes=None, filterSettings=None, flocking=False,
+                     randomize=False, timerange=None):
         '''
         Process the current selection list and offset as appropriate
-        @param flocking: From selected nodes offset the animation data incrementally per node
+        @param offset: number of frames to offset
+        @param nodes: nodes to offset (or root of the filterSettings)
+        @param flocking: wether to sucessively increment nodes during offset
+        @param randomize: whether to add a ramdon factor to each succesive nodes offset
+        @param timerange: only offset times within a given timerange
         @param filterSettings: This is a FilterSettings_Node object used to pass all the
         filter types into the FilterNode code. Internally the following is true:
 
@@ -1905,21 +1936,20 @@ class TimeOffset(object):
             @param settings.incRoots: bool - include the original root nodes in the filter
             
         '''
-        mode = 'Selected'
-        log.debug('TimeOffset from Selected : offset=%s,flocking=%i,randomize=%i' % \
-                  (offset, flocking, randomize))
-        log.debug('TimeOffset additional kws : %s' % str(kws))
-                  
-        selectedNodes = cmds.ls(sl=True, l=True)
+        log.debug('TimeOffset from Selected : offset=%s, flocking=%i, randomize=%i, timerange=%s' % \
+                  (offset, flocking, randomize, str(timerange)))
+        if not nodes:
+            nodes=cmds.ls(sl=True, l=True)
+
         if filterSettings:
-            selectedNodes = FilterNode(selectedNodes, filterSettings).ProcessFilter()
+            nodes = FilterNode(nodes, filterSettings).ProcessFilter()
             # selectedNodes.extend(FilterNode(selectedNodes,filterSettings).ProcessFilter())
             # selectedNodes=sortNumerically(selectedNodes)
-        if selectedNodes:
+        if nodes:
             if flocking or randomize:
                 cachedOffset = 0  # Cached last flocking value
                 increment = 0
-                for node in selectedNodes:
+                for node in nodes:
                     if randomize and not flocking:
                         increment = random.uniform(0, offset)
                     if flocking and not randomize:
@@ -1932,20 +1962,28 @@ class TimeOffset(object):
                     cls.animCurves(increment, node)
                     log.debug('animData randon/flock modified offset : %f on node: %s' % (increment, nodeNameStrip(node)))
             else:
-                cls.animCurves(offset, selectedNodes, **kws)
-            if not 'time' in kws:
-                cls.sound(offset, mode, FilterNode().lsSearchNodeTypes('audio', selectedNodes))
-                cls.animClips(offset, mode, FilterNode().lsSearchNodeTypes('animClip', selectedNodes))
+                cls.animCurves(offset, nodes=nodes, timerange=timerange)
+                cls.sound(offset, mode='Selected',
+                          audioNodes=FilterNode().lsSearchNodeTypes('audio', nodes),
+                          timerange=timerange)
+                cls.animClips(offset, mode='Selected',
+                              clips=FilterNode().lsSearchNodeTypes('animClip', nodes),
+                              timerange=timerange)
             log.info('Selected Nodes Offset Successfully')
         else:
             raise StandardError('Nothing selected or returned from the Hierarchy filter to offset')
 
     @staticmethod
     @r9General.Timer
-    def animCurves(offset, nodes=None, **kws):
+    def animCurves(offset, nodes=None, timerange=None):
         '''
         Shift Animation curves. If nodes are fed in to process then we do
         a number of aggressive searches to find all linked animation data
+        @param offset: amount to offset the curves
+        @param nodes: nodes to offset if given
+        @param timerange: if timerange given [start,end] then we cut the keys in that 
+        range before shifting associated keys. Now we could just use the 
+        keyframe(option='insert') BUT this has a MAJOR crash bug!
         '''
         safeCurves=FilterNode.lsAnimCurves(nodes, safe=True)
         
@@ -1953,21 +1991,25 @@ class TimeOffset(object):
             log.debug('AnimCurve Offset = %s ============================' % offset)
             #log.debug(''.join([('offset: %s\n' % curve) for curve in safeCurves]))
             moved=0
-            if 'time' in kws:
+            if timerange:
                 if offset>0:
-                    cutTimeBlock=(kws['time'][1] + 0.1, kws['time'][1] + offset)
+                    #if moving positive in time, cutchunk is from the upper timerange + offset
+                    cutTimeBlock=(timerange[1] + 0.1, timerange[1] + offset)
                 else:
-                    cutTimeBlock=(kws['time'][0] + 0.1, kws['time'][0] - abs(offset + 1))
+                    #else it's from the lower timerange - offset
+                    cutTimeBlock=(timerange[0] + 0.1, timerange[0] - abs(offset + 1))
             for curve in safeCurves:
                 try:
-                    if 'time' in kws:
+                    if timerange:
                         try:
-                            log.debug('cutting moveRange: %f > %f  : %s' % (cutTimeBlock[0],cutTimeBlock[1],curve))
+                            log.debug('cutting moveRange: %f > %f  : %s' % (cutTimeBlock[0], cutTimeBlock[1], curve))
                             cmds.cutKey(curve, time=cutTimeBlock)
                         except:
                             log.debug('unable to cut keys')
+                        cmds.keyframe(curve, edit=True, r=True, timeChange=offset, time=timerange)
+                    else:
+                        cmds.keyframe(curve, edit=True, r=True, timeChange=offset)
                     log.debug('offsetting: %s' % curve)
-                    cmds.keyframe(curve, edit=True, r=True, timeChange=offset, **kws)
                     moved += 1
                 except:
                     log.info('Failed to offset curves fully : %s' % curve)
@@ -1985,31 +2027,40 @@ class TimeOffset(object):
                              max=cmds.playbackOptions(q=True, max=True) + offset)
         
     @staticmethod
-    def sound(offset, mode='Scene', audioNodes=None):
+    def sound(offset, mode='Scene', audioNodes=None, timerange=None):
         '''
-        Shift any Audio nodes. Need to fix and test this for 2012 (offset only attr)
+        Offset Audio nodes.
+        @param offset: amount to offset the sounds nodes by
+        @param mode: either process entire scene or selected
+        @param audioNodes: optional, given nodes to process
+        @param timerange: optional timerange to process (outer bounds only)
         '''
         if mode=='Scene':
             audioNodes=cmds.ls(type='audio')
         if audioNodes:
+            nodesOffset=0
             log.debug('AudioNodes Offset ============================')
             for sound in audioNodes:
                 try:
-                    if r9Setup.mayaVersion() == 2011:
-                        #Autodesk fucked up in 2011 and we need to manage both these attrs
-                        cmds.setAttr('%s.offset' % sound, cmds.getAttr('%s.offset' % sound)+offset)
-                        cmds.setAttr('%s.endFrame' % sound, cmds.getAttr('%s.endFrame' % sound)+offset)
-                    else:
-                        cmds.setAttr('%s.offset' % sound, cmds.getAttr('%s.offset' % sound)+offset)
+                    audioNode=r9Audio.AudioNode(sound)
+                    if timerange and not audioNode.startFrame>timerange[0]:
+                        log.info('Skipping Sound : %s > sound starts before the timerange begins' % sound)
+                        continue
+                    audioNode.offsetTime(offset)
+                    nodesOffset+=1
                     log.debug('offset : %s' % sound)
                 except:
                     pass
-            log.info('%i : SoundNodes were offset' % len(audioNodes))
+            log.info('%i : SoundNodes were offset' % nodesOffset)
                 
     @staticmethod
-    def animClips(offset, mode='Scene', clips=None):
+    def animClips(offset, mode='Scene', clips=None, timerange=None):
         '''
-        Shift any Trax Clip Animation
+        Offset Trax Clips
+        @param offset: amount to offset the sounds nodes by
+        @param mode: either process entire scene or selected
+        @param clips: optional, given clips to offset
+        @param timerange: optional timerange to process (outer bounds only)
         '''
         if mode=='Scene':
             clips=cmds.ls(type='animClip')
@@ -2017,7 +2068,11 @@ class TimeOffset(object):
             log.debug('Clips Offset ============================')
             for clip in clips:
                 try:
-                    cmds.setAttr('%s.startFrame' % clip, cmds.getAttr('%s.startFrame' % clip)+offset)
+                    startFrame = cmds.getAttr('%s.startFrame' % clip)
+                    if timerange and not startFrame>timerange[0]:
+                        log.info('Skipping Clip : %s > clip starts before the timerange begins' % clip)
+                        continue
+                    cmds.setAttr('%s.startFrame' % clip, startFrame + offset)
                     log.debug('offset : %s' % clip)
                 except:
                     pass
