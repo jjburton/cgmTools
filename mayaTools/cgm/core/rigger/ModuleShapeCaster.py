@@ -27,6 +27,7 @@ from cgm.core.cgmPy import validateArgs as cgmValid
 
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
+from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.lib import meta_Utils as metaUtils
 from cgm.core.lib import shapeCaster as ShapeCast
 
@@ -2719,10 +2720,13 @@ def shapeCast_eyeball(*args,**kws):
 	    self._b_reportTimes = 1
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
+	                        {'step':'Build Iris','call':self._buildIris_},
+	                        {'step':'Build Pupil','call':self._buildPupil_},	                        
 	                        {'step':'Build FK','call':self._buildFK_},
 	                        {'step':'Build IK','call':self._buildIK_},
 	                        {'step':'Build Settings','call':self._buildSettings_},
-	                        {'step':'Build Eye Move','call':self._buildEyeMove_},	                        	                        
+	                        {'step':'Build Eye Move','call':self._buildEyeMove_},
+	                        {'step':'Clean up','call':self._cleanUp_},
 	                        ]
 	    assert self.mi_module.mClass == 'cgmEyeball',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(self._str_funcName,self.mi_module.mClass)
 	    #The idea is to register the functions needed to be called
@@ -2732,11 +2736,13 @@ def shapeCast_eyeball(*args,**kws):
 	def _gatherInfo_(self): 
 	    self.str_orientation = self.mi_go.str_jointOrientation #Link
 	    self.str_partName = self.mi_go.str_partName		    
-	    self.str_direction = self.mi_go._direction
+	    self.str_direction = self.mi_go._direction	    
 	    self.d_colors = {'left':metaUtils.getSettingsColors('left'),
 	                     'right':metaUtils.getSettingsColors('right'),
 	                     'center':metaUtils.getSettingsColors('center')}
 
+	    self._f_midMulti = 2.5
+	    
 	    #Orient info ------------------------------------------------------------------------------------------------
 	    self.v_aimNegative = cgmValid.simpleAxis(self.str_orientation[0]+"-").p_vector
 	    self.v_aim = cgmValid.simpleAxis(self.str_orientation[0]).p_vector	
@@ -2752,13 +2758,29 @@ def shapeCast_eyeball(*args,**kws):
 		    try:self.__dict__["mi_%s"%attr.replace('Helper','Crv')] = cgmMeta.validateObjArg(self.mi_helper.getMessage(attr),noneValid=False)
 		    except Exception,error:raise StandardError, " Failed to find '%s' | %s"%(attr,error)
 		
+	    self._b_buildIris = self.mi_helper.buildIris
+	    self._b_buildPupil = self.mi_helper.buildPupil	    
+	    
 	    #>> Find our joint lists ===================================================================
 	    ml_rigJoints = self.mi_module.rigNull.msgList_get('rigJoints')	    
 	    
 	    #>> calculate ------------------------------------------------------------------------
 	    self.f_baseDistance = distance.returnDistanceBetweenObjects(self.mi_helper.mNode,
 	                                                                self.mi_helper.pupilHelper.mNode)
-	    self.f_irisSize = distance.returnBoundingBoxSizeToAverage(self.mi_irisCrv.mNode)
+	    _tmpScale = distance.returnBoundingBoxSize(self.mi_irisCrv.mNode)
+	    self.f_irisSize = (_tmpScale[0]+_tmpScale[1])/2
+	    
+	    _tmpScale = distance.returnBoundingBoxSize(self.mi_pupilCrv.mNode)
+	    self.f_pupilSize = (_tmpScale[0]+_tmpScale[1])/2
+	    
+	    #>> Get the iris/pupil base position
+	    mi_loc = cgmMeta.cgmNode("%s|curveShape2.ep[3]"%self.mi_helper.mNode).doLoc()
+	    mi_loc.parent = self.mi_helper
+	    mi_loc.tz *= -1
+	    self._baseIrisPos = mi_loc.getPosition()
+	    self.mi_irisPosLoc = mi_loc
+	    
+	    #distance.returnBoundingBoxSizeToAverage(self.mi_irisCrv.mNode)
 	    #>> Running lists --------------------------------------------------------------------
 	    self.ml_handles = []	    
 	    return True
@@ -2774,18 +2796,25 @@ def shapeCast_eyeball(*args,**kws):
 		ml_curvesToCombine = []
 		mi_tmpCrv = cgmMeta.cgmObject( curves.createControlCurve('circle',
 		                                                      direction = 'z+',
-		                                                      size = _irisSize * 1.2,
+		                                                      size = _irisSize * .75,
 		                                                      absoluteSize=False),setClass=True)
 		Snap.go(mi_tmpCrv,mi_helper.mNode)
 		mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
-		mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 2.01)
+		mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * self._f_midMulti)
 		ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
 		ml_curvesToCombine[-1].parent = False
 		
-		mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 1.99)
+		#Snap.go(mi_tmpGroup.mNode,self.mi_irisPosLoc.mNode)
+		mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 1.25)
+		mi_tmpCrv.scale = [.75,.75,.75]
 		ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
 		ml_curvesToCombine[-1].parent = False
-				
+					
+		l_trace = ShapeCast.joinCurves(ml_curvesToCombine)
+		mi_last = ml_curvesToCombine.pop(-1)
+		mi_last.delete()
+		
+		ml_curvesToCombine.extend([cgmMeta.cgmNode(crv) for crv in l_trace])
 		mi_tmpGroup.delete()
 		'''
 		#Make a trace curve
@@ -2830,7 +2859,7 @@ def shapeCast_eyeball(*args,**kws):
 	    try:#Curve creation ===========================================================
 		mi_crv = cgmMeta.cgmObject( curves.createControlCurve('fatCross',
 	                                                              direction = 'z+',
-	                                                              size = _irisSize * 1.5,
+	                                                              size = _irisSize * 1,
 	                                                              absoluteSize=False),
 	                                        setClass=True)
 		Snap.go(mi_crv,mi_helper.mNode)
@@ -2868,11 +2897,11 @@ def shapeCast_eyeball(*args,**kws):
 	    try:#Curve creation ===========================================================		
 		mi_crv = cgmMeta.cgmObject( curves.createControlCurve('gear',
 	                                                              direction = 'z+',
-	                                                              size = _irisSize*.6,
+	                                                              size = _irisSize*.5,
 	                                                              absoluteSize=False),setClass=True)
 		Snap.go(mi_crv,mi_helper.mNode)
 		mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
-		mi_crv.__setattr__('t%s'%self.str_orientation[0],f_baseDistance * 2)
+		mi_crv.__setattr__('t%s'%self.str_orientation[0],f_baseDistance * self._f_midMulti)
 		mi_crv.parent = False
 		mi_tmpGroup.delete()
 				    	    
@@ -2948,7 +2977,120 @@ def shapeCast_eyeball(*args,**kws):
 		self.mi_go.md_ReturnControls['eyeMove'] = mi_crv
 		self.mi_go._mi_rigNull.connectChildNode(mi_crv,'shape_eyeMove','owner')
 	    except Exception,error: raise Exception,"!Connect]{%s}"%error
+	    
+	def _buildIris_(self):
+	    try:#query ===========================================================
+		mi_helper = self.mi_helper
+		mi_irisCrv = self.mi_irisCrv
+		_irisSize = self.f_irisSize
+		_baseDistance = self.f_baseDistance  
+		_baseIrisPos = self._baseIrisPos
+	    except Exception,error: raise Exception,"!Query]{%s}"%error
+	    
+	    try:#Curve creation ===========================================================
+		ml_curvesToCombine = []
+		mi_tmpCrv = cgmMeta.cgmObject( curves.createControlCurve('circle',
+	                                                              direction = 'z+',
+	                                                              size = _irisSize,
+	                                                              absoluteSize=False),setClass=True)
+		Snap.go(mi_tmpCrv,mi_irisCrv.mNode)
+		mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
+		mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
+		mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0], .01)
+		ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
+		ml_curvesToCombine[-1].parent = False
+		
+		mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],-.01)
+		ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
+		ml_curvesToCombine[-1].parent = False
+				
+		mi_tmpGroup.delete()
+
+		#>>>Combine the curves
+		try:newCurve = curves.combineCurves([mObj.mNode for mObj in ml_curvesToCombine]) 
+		except Exception,error:raise StandardError,"!Failed to combine]{%s}"%error
+		
+		#mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_irisCrv.mNode,False) )
+		
+		#try:curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
+		#except Exception,error:raise StandardError,"Parent shape in place fail | error: %s"%error
+		
+		#mc.delete(newCurve)
+		mi_crv = cgmMeta.cgmObject(newCurve)
+	    except Exception,error: raise Exception,"!Curve create]{%s}"%error
+	    
+	    try:#Tag,name, color ===========================================================
+		mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
+		mi_crv.addAttr('cgmType',attrType='string',value = 'iris',lock=True)
+		mi_crv.doName()          	    
     
+		#Color
+		curves.setCurveColorByName(mi_crv.mNode,self.d_colors[self.str_direction][0]) 
+	    except Exception,error: raise Exception,"!Tag,name,color]{%s}"%error
+	    
+	    try:#connect ===========================================================
+		self.mi_go.d_returnControls['iris'] = mi_crv.mNode
+		self.mi_go.md_ReturnControls['iris'] = mi_crv
+		self.mi_go._mi_rigNull.connectChildNode(mi_crv,'shape_iris','owner')
+	    except Exception,error: raise Exception,"!Connect]{%s}"%error
+	    
+	def _buildPupil_(self):
+	    try:#query ===========================================================
+		mi_helper = self.mi_helper
+		mi_pupilCrv = self.mi_pupilCrv
+		_pupilSize = self.f_pupilSize
+		_baseDistance = self.f_baseDistance  
+		_baseIrisPos = self._baseIrisPos
+	    except Exception,error: raise Exception,"!Query]{%s}"%error
+	    
+	    try:#Curve creation ===========================================================
+		ml_curvesToCombine = []
+		mi_tmpCrv = cgmMeta.cgmObject( curves.createControlCurve('circle',
+	                                                              direction = 'z+',
+	                                                              size = _pupilSize,
+	                                                              absoluteSize=False),setClass=True)
+		Snap.go(mi_tmpCrv,mi_pupilCrv.mNode)
+		mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
+		mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
+		mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0], .01)
+		ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
+		ml_curvesToCombine[-1].parent = False
+		
+		mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],-.01)
+		ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
+		ml_curvesToCombine[-1].parent = False
+				
+		mi_tmpGroup.delete()
+
+		#>>>Combine the curves
+		try:newCurve = curves.combineCurves([mObj.mNode for mObj in ml_curvesToCombine]) 
+		except Exception,error:raise StandardError,"!Failed to combine]{%s}"%error
+		
+		#mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_pupilCrv.mNode,False) )
+		
+		#try:curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
+		#except Exception,error:raise StandardError,"Parent shape in place fail | error: %s"%error
+		
+		#mc.delete(newCurve)
+		mi_crv = cgmMeta.cgmObject(newCurve)
+	    except Exception,error: raise Exception,"!Curve create]{%s}"%error
+	    
+	    try:#Tag,name, color ===========================================================
+		mi_crv.doCopyNameTagsFromObject(mi_helper.mNode,ignore = ['cgmType','cgmTypeModifier'])
+		mi_crv.addAttr('cgmType',attrType='string',value = 'pupil',lock=True)
+		mi_crv.doName()          	    
+    
+		#Color
+		curves.setCurveColorByName(mi_crv.mNode,self.d_colors[self.str_direction][0]) 
+	    except Exception,error: raise Exception,"!Tag,name,color]{%s}"%error
+	    
+	    try:#connect ===========================================================
+		self.mi_go.d_returnControls['pupil'] = mi_crv.mNode
+		self.mi_go.md_ReturnControls['pupil'] = mi_crv
+		self.mi_go._mi_rigNull.connectChildNode(mi_crv,'shape_pupil','owner')
+	    except Exception,error: raise Exception,"!Connect]{%s}"%error
+	def _cleanUp_(self):
+	    self.mi_irisPosLoc.delete()
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()
 
