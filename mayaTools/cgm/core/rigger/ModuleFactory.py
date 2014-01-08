@@ -686,7 +686,9 @@ def rigConnect(*args,**kws):
 		    self.progressBar_set(status = "Connecting : %s"%_str_joint, progress = i, maxValue = int_lenMax)
 		    self.log_debug("'%s'>>drives>>'%s'"%(ml_rigJoints[i].getShortName(),_str_joint))       
 		    if _b_faceState:
-			pntConstBuffer = mc.parentConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        			
+			#pntConstBuffer = mc.parentConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)  
+			pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
+			orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 			
 			scConstBuffer = mc.scaleConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 
 			for str_a in 'xyz':
 			    attributes.doConnectAttr('%s.s%s'%(i_jnt.parent,str_a),'%s.offset%s'%(scConstBuffer[0],str_a.capitalize()))			    
@@ -1729,6 +1731,10 @@ def mirrorSymLeft(*args,**kws):
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
 	    l_buffer = mi_module.rigNull.moduleSet.getList()
+	    try:mi_mirror = get_mirror(**kws)
+	    except Exception,error:raise StandardError,"get_mirror | %s"%error
+	    if mi_mirror:
+		l_buffer.extend(mi_mirror.rigNull.moduleSet.getList())    
 	    if l_buffer:
 		r9Anim.MirrorHierarchy(l_buffer).makeSymmetrical(mode = '',primeAxis = "Left" )
 		mc.select(l_buffer)
@@ -1752,6 +1758,10 @@ def mirrorSymRight(*args,**kws):
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
 	    l_buffer = mi_module.rigNull.moduleSet.getList()
+	    try:mi_mirror = get_mirror(**kws)
+	    except Exception,error:raise StandardError,"get_mirror | %s"%error
+	    if mi_mirror:
+		l_buffer.extend(mi_mirror.rigNull.moduleSet.getList())    	    
 	    if l_buffer:
 		r9Anim.MirrorHierarchy(l_buffer).makeSymmetrical(mode = '',primeAxis = "Right" )
 		mc.select(l_buffer)
