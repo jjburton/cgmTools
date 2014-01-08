@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyeball rig builder
 ================================================================
 """
-__version__ = 1.12112013
+__version__ = 'faceAlpha2.010814'
 
 # From Python =============================================================
 import copy
@@ -246,6 +246,8 @@ def build_controls(*args, **kws):
 				                                       makeAimable=True,setRotateOrder ='zxy') 	    
 	
 			    mi_control = d_buffer['instance']
+			    _shape.delete()
+			    
 			    attributes.doSetAttr(mi_control.mNode,'overrideEnabled',0)
 			    attributes.doSetAttr(mi_control.mNode,'overrideDisplayType',0)
 			    cgmMeta.cgmAttr(mi_control,'radius',.0001,hidden=True)
@@ -274,7 +276,7 @@ def build_controls(*args, **kws):
 		mi_fkShape.parent = mi_go._i_constrainNull.controlsFKNull.mNode
 		i_obj = mi_fkShape
 		d_buffer = mControlFactory.registerControl(i_obj,copyTransform = ml_rigJoints[0],
-		                                           mirrorSide = str_mirrorSide, mirrorAxis="",
+		                                           mirrorSide = str_mirrorSide, mirrorAxis="rotateY,rotateZ",
 			                                   makeAimable=True,setRotateOrder ='zxy',typeModifier='fk') 	    
 		mi_controlFK = d_buffer['instance']
 		mi_controlFK.axisAim = "%s+"%mi_go._jointOrientation[0]
@@ -334,7 +336,10 @@ def build_controls(*args, **kws):
 		mi_eyeMoveShape.parent = mi_go._i_constrainNull.mNode
 		
 		try:#Register the control
-		    d_buffer = mControlFactory.registerControl(mi_eyeMoveShape,addForwardBack = "t%s"%mi_go._jointOrientation[0],
+		    d_buffer = mControlFactory.registerControl(mi_eyeMoveShape,
+		                                               addMirrorAttributeBridges = [["mirrorIn","t%s"%mi_go._jointOrientation[2]],
+		                                                                            ["mirrorBank","r%s"%mi_go._jointOrientation[0]],
+		                                                                            ["mirrorAim","r%s"%mi_go._jointOrientation[1]]],
 		                                               mirrorSide = str_mirrorSide, mirrorAxis="",		                                               
 		                                               makeAimable=False,typeModifier='eyeMove') 
 		    mObj = d_buffer['instance']
@@ -469,8 +474,8 @@ def build_rig(*args, **kws):
 		
 		mi_controlFK = self.md_rigList['controlFK']
 		mi_controlIK = self.md_rigList['controlIK']
-		mi_controlIris = self.md_rigList['controlIris']
-		mi_controlPupil = self.md_rigList['controlPupil']
+		mi_irisControl = self.md_rigList['controlIris']
+		mi_pupilControl = self.md_rigList['controlPupil']
 		
 		mi_eyeJoint = self.md_rigList['eyeJoint']
 		mi_eyeMove = self.md_rigList['eyeMove']		
@@ -533,7 +538,13 @@ def build_rig(*args, **kws):
 		#OLD SETUP ----The gist of what we'll do is setup identical attributes on both fk and ik controls
 		#and then blend between the two to drive what is actually influencing the joints
 		#scale = (fk_result * fk_pupil) + (ik_result *ik_pupil)
-		pass
+		
+		mc.parentConstraint(mi_eyeJoint.mNode, mi_go._i_constrainNull.eyeTrackNull.mNode,maintainOffset = 1)
+		#attributes.doConnectAttr("%s.s"%mi_irisControl.mNode,"%s.s"%mi_irisJoint.mNode)
+		#attributes.doConnectAttr("%s.s"%mi_irisControl.mNode,"%s.s"%mi_irisJoint.mNode)
+		#mc.scaleConstraint(mi_irisControl.mNode,mi_irisJoint.mNode)
+		#mc.scaleConstraint(mi_pupilControl.mNode,mi_pupilJoint.mNode)
+		
 		'''
 		l_extraSetups = ['pupil','iris']
 		for i,n in enumerate(l_extraSetups):

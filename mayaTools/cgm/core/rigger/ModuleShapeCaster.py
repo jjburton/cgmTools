@@ -2805,7 +2805,7 @@ def shapeCast_eyeball(*args,**kws):
 		ml_curvesToCombine[-1].parent = False
 		
 		#Snap.go(mi_tmpGroup.mNode,self.mi_irisPosLoc.mNode)
-		mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 1.25)
+		mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 1.75)
 		mi_tmpCrv.scale = [.75,.75,.75]
 		ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
 		ml_curvesToCombine[-1].parent = False
@@ -2955,7 +2955,11 @@ def shapeCast_eyeball(*args,**kws):
 		except Exception,error:raise StandardError,"!Failed to combine]{%s}"%error
 		'''
 		mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_helper.mNode,False) )
-		
+		'''
+		if mi_helper.getEnumValueString('direction') == 'right':#mirror control setup
+		    self.log_info("mirroring EyeMove")
+		    mi_crv.__setattr__("r%s"%self.str_orientation[2],180)'''
+		    
 		try:curves.parentShapeInPlace(mi_crv.mNode,_str_trace)#Parent shape
 		except Exception,error:raise StandardError,"Parent shape in place fail | %s"%error
 		
