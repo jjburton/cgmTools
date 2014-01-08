@@ -337,7 +337,9 @@ def loadMorpheusMaker( *a ):
     
     reload(mMaker)    
     mMaker.go()
-
+    
+def loadLocalCGMPythonSetup( *a ):
+    evalMel('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_General as cgmGeneral;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;")')
 #Unittest =====================================================================
 def unittest_All( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
@@ -485,7 +487,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                        #('Connect to Wing IDE', " Attempts to connect to Wing IDE",
                         #                       connectToWingIDE), 
                        ('Start Wing Server', " Opens a command port for Wing IDE",
-                                               startWingServer),                          
+                                               startWingServer),   
+                       ('Load Local CGM Python', " Sets up standard cgm ptyhon imports for use in the script editor",
+                                               loadLocalCGMPythonSetup),                        
                        ('Simple cgmGUI', " Base cgmGUI",
                         loadCGMSimpleGUI),
                        ('cgm.MorpheusMaker', " Morpheus maker tool",
