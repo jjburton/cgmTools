@@ -102,6 +102,7 @@ def registerControl(*args,**kws):
 	                                 {'kw':'controlType',"default":None,'help':"Tag for cgmType","argType":"string"},
 	                                 {'kw':'typeModifier', "default":None, 'help':"Tag for cgmTypeModifier for naming", "argType":"string"},	                                 
 	                                 {'kw':'addForwardBack',"default":None,'help':"Forward Back driver setup. Looking for an attribute to drive","argType":"mAttr"},	                                 
+	                                 {'kw':'addMirrorAttributeBridges',"default":None,'help':"Attribute to drive the same channel on mirrored objects. Looking for an nested list [[attrName,attr],...]","argType":"nested list"},	                                 	                                 
 	                                 {'kw':'aim',"default":None,'help':"aim axis to use","argType":"string/int"},
 	                                 {'kw':'up',"default":None,'help':"up axis to use","argType":"string/int"},
 	                                 {'kw':'out',"default":None,'help':"out axis to use","argType":"string/int"},
@@ -121,7 +122,7 @@ def registerControl(*args,**kws):
 	                        {'step':'Groups Setup','call':self._groupsSetup},
 	                        {'step':'Space Pivot','call':self._spacePivots},
 	                        {'step':'Freeze','call':self._freeze},
-	                        {'step':'Forward Back Setup','call':self._forwardBack},	                        
+	                        {'step':'Mirror Attribute Bridges','call':self._mirrorAttributeBridges_},	                        
 	                        {'step':'lock N Hide','call':self._lockNHide},
 	                        {'step':'Return build','call':self._returnBuild}]
 	    
@@ -137,6 +138,11 @@ def registerControl(*args,**kws):
 		self.str_mirrorSide = cgmValid.stringArg(self.d_kws['mirrorSide'],calledFrom = self._str_funcCombined)
 		self.b_makeMirrorable = cgmValid.boolArg(self.d_kws['makeMirrorable'],calledFrom = self._str_funcCombined)
 		
+		self._addMirrorAttributeBridges = self.d_kws.get('addMirrorAttributeBridges') or False
+		if self._addMirrorAttributeBridges :
+		    if type(self._addMirrorAttributeBridges ) not in [list,tuple]:raise StandardError,"[Bad addMirrorAttributeBridge arg]{arg: %s}"%self._addMirrorAttributeBridge 
+		    for i,l in enumerate(self._addMirrorAttributeBridges):
+			if type(l) not in [list,tuple]:raise StandardError,"[Bad addMirrorAttributeBridge arg: %s]{arg: %s}"%(i,l) 			
 		# Running lists ------------------------------------------------------------------------------------------
 		self.ml_groups = []#Holder for groups
 		self.ml_constraintGroups = []
@@ -263,7 +269,7 @@ def registerControl(*args,**kws):
 	    addConstraintGroup = self.d_kws['addConstraintGroup']
 	    
 	    try:
-		if addDynParentGroup or addSpacePivots or self.mi_control.cgmName.lower() == 'cog':
+		if addDynParentGroup or addSpacePivots or self.mi_control.cgmName.lower() == 'cog' or self._addMirrorAttributeBridges:
 		    self.mi_control.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
 	    except Exception,error:
 		raise StandardError,"spacer | %s"%(error)       
@@ -334,8 +340,9 @@ def registerControl(*args,**kws):
 		    else:
 			mc.makeIdentity(self.mi_control.mNode, apply=True,t=1,r=0,s=1,n=0)
 		else:
-		    mc.makeIdentity(self.mi_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
-	def _forwardBack(self):	    		
+		    mc.makeIdentity(self.mi_control.mNode, apply=True,t=1,r=1,s=1,n=0)
+		    
+	def _mirrorAttributeBridges_(self):	    		
 	    addForwardBack = self.d_kws['addForwardBack']
 	    
 	    if addForwardBack:
@@ -356,6 +363,30 @@ def registerControl(*args,**kws):
 		mPlug_forwardBackDriven.p_keyable = False		
 		NodeF.argsToNodes(arg_forwardBack).doBuild()
 		
+	    if self._addMirrorAttributeBridges:
+		for l_bridge in self._addMirrorAttributeBridges:
+		    _attrName = cgmValid.stringArg(l_bridge[0])
+		    _attrToBridge = cgmValid.stringArg(l_bridge[1])
+		    if not self.mi_control.hasAttr(_attrToBridge):
+			raise StandardError,"['%s' lacks the bridge attr '%s']"%(self.mi_control.p_nameShort,_attrToBridge)
+		    
+		    mPlug_attrBridgeDriver = cgmMeta.cgmAttr(self.mi_control,_attrName,attrType = 'float',keyable=True)
+		    try:
+			mPlug_attrBridgeDriven = cgmMeta.validateAttrArg([self.mi_control,_attrToBridge])['mi_plug']
+		    except Exception,error:raise StandardError,"[validate control attribute bridge attr]{%s}"%(error)
+		    
+		    if self.str_mirrorSide.lower() == 'right':
+			arg_attributeBridge = "%s = -%s"%(mPlug_attrBridgeDriven.p_combinedShortName,
+			                                  mPlug_attrBridgeDriver.p_combinedShortName)		    
+		    else:
+			arg_attributeBridge = "%s = %s"%(mPlug_attrBridgeDriven.p_combinedShortName,
+			                                 mPlug_attrBridgeDriver.p_combinedShortName)
+			
+		    mPlug_attrBridgeDriven.p_locked = True
+		    mPlug_attrBridgeDriven.p_hidden = True
+		    mPlug_attrBridgeDriven.p_keyable = False		
+		    NodeF.argsToNodes(arg_attributeBridge).doBuild()
+		    
 	def _lockNHide(self):	
 	    autoLockNHide = self.d_kws['autoLockNHide']	    
 	    if autoLockNHide:
