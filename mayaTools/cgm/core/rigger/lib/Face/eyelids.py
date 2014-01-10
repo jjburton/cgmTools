@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyelids rig builder
 ================================================================
 """
-__version__ = 1.12122013
+__version__ = 'faceAlpha2.01092014'
 
 # From Python =============================================================
 import copy
@@ -388,9 +388,11 @@ def build_rig(*args, **kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = ' build_rig(%s)'%self.d_kws['goInstance']._strShortName	
 	    self._b_autoProgressBar = True
+	    self._b_reportTimes = True	    
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self.gatherInfo},
 	                        {'step':'Rigomatic','call':self._buildRig_},
+	                        {'step':'Setup Aim','call':self._setUpAim_},
 	                        {'step':'Setup Defaults','call':self._setupDefaults_},	                        
 	                        ]	
 	    #=================================================================
@@ -472,7 +474,130 @@ def build_rig(*args, **kws):
 	    #Running lists
 	    self.ml_toVisConnect = []	    
 	    
-	    	    
+	def _setUpAim_(self):
+	    try:#Query ===============================================================================
+		mi_go = self._go#Rig Go instance link		
+		ml_rigUprLidJoints = self.ml_rigUprLidJoints
+		ml_rigLwrLidJoints = self.ml_rigLwrLidJoints			
+		_str_orientation = mi_go._jointOrientation #Link
+		f_baseDistance = self.f_baseDistance
+	    except Exception,error:raise StandardError, "[Query]{%s}"%(error)
+
+	    try:#Get aim targets ==========================================================
+		md_aimData = {}
+		
+		int_last = len(ml_rigUprLidJoints)-1
+		for idx,mObj in enumerate(ml_rigUprLidJoints):
+		    md_aimData[mObj] = {}
+		    _d = md_aimData[mObj]
+		    if idx == 0:
+			pass
+		    elif idx == 1:
+			_d['aimPos'] = ml_rigUprLidJoints[idx+1]
+		    elif idx == int_last-1:
+			_d['aimNeg'] = ml_rigUprLidJoints[idx-1]		    
+		    elif idx == int_last:
+			pass
+			#_d['aimNeg'] = ml_rigUprLidJoints[int_last-1]
+		    else:
+			_d['aimPos'] = ml_rigUprLidJoints[idx+1]
+			_d['aimNeg'] = ml_rigUprLidJoints[idx-1]
+		    
+		    try:_strPos = _d.get('aimPos').p_nameShort
+		    except: _strPos =  None
+		    try:_strNeg = _d.get('aimNeg').p_nameShort
+		    except: _strNeg =  None
+		    
+		    self.log_info("%s <-- %s --> %s"%(_strNeg, mObj.p_nameShort, _strPos))
+		
+		#Get our lower aim targets
+		int_last = len(ml_rigLwrLidJoints)-1
+		for idx,mObj in enumerate(ml_rigLwrLidJoints):
+		    md_aimData[mObj] = {}
+		    _d = md_aimData[mObj]
+		    if idx == 0:
+			_d['aimPos'] = ml_rigLwrLidJoints[idx+1]			
+			#_d['aimPos'] = ml_rigUprLidJoints[0]
+		    elif idx == int_last:
+			_d['aimNeg'] = ml_rigLwrLidJoints[idx-1]			
+			#_d['aimNeg'] = ml_rigUprLidJoints[-1]
+		    else:
+			_d['aimPos'] = ml_rigLwrLidJoints[idx+1]
+			_d['aimNeg'] = ml_rigLwrLidJoints[idx-1]
+			
+		    try:_strPos = _d.get('aimPos').p_nameShort
+		    except: _strPos =  None
+		    try:_strNeg = _d.get('aimNeg').p_nameShort
+		    except: _strNeg =  None
+		    self.log_info("%s <-- %s --> %s"%(_strNeg, mObj.p_nameShort, _strPos))
+	    except Exception,error:raise StandardError, "[Get aim targets]{%s}"%(error)
+		    
+	    try:#Vectors
+		v_up = mi_go._vectorUp
+		
+		#if mi_go._str_mirrorDirection == 'Right':
+		    #v_aimIn = mi_go._vectorOutNegative	
+		    #v_aimOut = mi_go._vectorOut
+		    #ml_buffer = copy.copy(ml_buffer)
+		    #ml_buffer.reverse()
+		#else:
+		v_aimIn = mi_go._vectorOut
+		v_aimOut = mi_go._vectorOutNegative	
+		    	
+		log.info("v_aimIn: %s"%v_aimIn)
+		log.info("v_aimOut: %s"%v_aimOut)
+		log.info("v_up: %s"%v_up)
+	    except Exception,error:raise StandardError,"!Vector query!| %s"%(error)
+	    
+
+	    for mObj in md_aimData.keys():
+		_d = md_aimData[mObj]
+		try:
+		    try:# Group creation --------------------------------------------------------
+			_strGroup = mObj.doGroup(True)
+			mi_group = cgmMeta.cgmObject(_strGroup)
+
+		    except Exception,error:raise StandardError,"[group creation]{%s}"%(error)		    
+		    try:#Loc creation --------------------------------------------------------
+			mi_upLoc = mObj.doLoc()
+			mi_upLoc.addAttr('cgmTypeModifier','upLoc',lock=True)
+			mi_upLoc.doName()
+			mi_upLoc.parent = mi_group
+			mi_upLoc.__setattr__("t%s"%mi_go._jointOrientation[1],f_baseDistance)
+			
+			mi_locIn = mObj.doLoc()
+			mi_locIn.addAttr('cgmTypeModifier','aimIn',lock=True)
+			mi_locIn.doName()					    
+			mi_locIn.parent = mi_group
+
+			mi_locOut = mObj.doLoc()
+			mi_locOut.addAttr('cgmTypeModifier','aimOut',lock=True)
+			mi_locOut.doName()	
+			mi_locOut.parent = mi_group
+
+			mi_go.connect_toRigGutsVis([mi_upLoc,mi_locIn,mi_locOut],vis = 1, doShapes = True)#connect to guts vis switches
+			
+		    except Exception,error:raise StandardError,"[loc creation!]{%s}"%(error)
+		    
+		    try:
+			if _d.get('aimPos'):
+			    mc.aimConstraint(_d.get('aimPos').mNode, mi_locIn.mNode,
+				             weight = 1, aimVector = v_aimIn, upVector = v_up,
+				             maintainOffset = 1,
+				             worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
+			if _d.get('aimNeg'):
+			    mc.aimConstraint(_d.get('aimNeg').mNode, mi_locOut.mNode,
+				             weight = 1, aimVector = v_aimOut, upVector = v_up,
+				             maintainOffset = 1,					                     
+				             worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
+			mi_contraint = cgmMeta.cgmNode(mc.orientConstraint([mi_locIn.mNode,mi_locOut.mNode], mObj.mNode,
+			                                                   maintainOffset = True,					                        
+			                                                   weight = 1)[0]) 
+			mi_contraint.interpType = 0
+		    except Exception,error:raise StandardError,"[Constraints setup!]{%s}"%(error)
+		    
+		except Exception,error:raise StandardError,"['%s' failed!]{%s}"%(mObj.p_nameShort,error)
+	    
 	def _buildRig_(self):
 	    try:#Query ===============================================================================
 		mi_go = self._go#Rig Go instance link		
@@ -556,7 +681,7 @@ def build_rig(*args, **kws):
 		for mi_crv in ml_curves:#Parent to rig null
 		    mi_crv.parent = mi_go._i_deformNull
 		    
-		#for mi_crv in [mi_lwrDriverCrv,mi_uprDriverCrv]:#Parent to rig null
+		#for mi_crv in [mi_smartBlinkCrv]:#Parent to rig null
 		    #mi_crv.parent = mi_go._i_rigNull
 		
 		ml_toVisConnect.extend(ml_curves)
@@ -679,6 +804,9 @@ def build_rig(*args, **kws):
 		    mc.setAttr("%s.scale[0]"%mi_uprBlinkWire.mNode,0)
 		    
 		    mPlug_height.value = .1#back to default
+		    
+		    mi_smartBlinkCrv.parent = mi_go._i_rigNull#Parent back after setup so the wires are where we want them
+		    
 		except Exception,error:raise StandardError, "[Blink target wire deformers]{%s}"%(error)
 	
 		try:#Blendshape the upr and lwr curves to smart blink targets------------------------------------
@@ -819,39 +947,6 @@ def build_rig(*args, **kws):
 		    mi_handle.parent = mi_go._i_constrainNull
 		mi_go.connect_toRigGutsVis(ml_toVisConnect)#visConnect
 	    except Exception,error:raise StandardError, "[Control Setup]{%s}"%(error)
-
-	    '''	    
-	    try:#Settings vis sub setup ============================================================
-		#Add our attrs
-		mPlug_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub', value = 0, defaultValue = 0, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
-		mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub_out', attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = True,lock=True)
-		
-		#Get one of the drivers
-		if mi_go._mi_module.getAttr('cgmDirection') and mi_go._mi_module.cgmDirection.lower() in ['left','right']:
-		    str_mainSubDriver = "%s.%sSubControls_out"%(mi_go._i_masterControl.controlVis.getShortName(),
-		                                                mi_go._mi_module.cgmDirection)
-		else:
-		    str_mainSubDriver = "%s.subControls_out"%(mi_go._i_masterControl.controlVis.getShortName())
-	
-		iVis = mi_go._i_masterControl.controlVis
-		visArg = [{'result':[mPlug_result_moduleSubDriver.obj.mNode,mPlug_result_moduleSubDriver.attr],
-	                   'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubDriver.attr]]}]
-		NodeF.build_mdNetwork(visArg)	
-		
-	    except Exception,error:raise StandardError, "[Vis sub setup]{%s}"%(error)
-
-	    
-	    try:#Parent and constraining bits ============================================================
-		for mi_obj in (ml_uprLidHandles + ml_lwrLidHandles):
-		    mi_obj.parent = mi_go._i_constrainNull
-		    
-		for i,mi_obj in enumerate(ml_rigUprLidJoints + ml_rigLwrLidJoints):
-		    mi_skinJoint = mi_obj.skinJoint
-		    log.info(" '%s' >> '%s'"%(mi_obj.p_nameShort,mi_skinJoint.p_nameShort))
-		    mc.pointConstraint(mi_obj.p_nameShort,mi_skinJoint.p_nameShort,maintainOffset = True)
-		    mc.orientConstraint(mi_obj.p_nameShort,mi_skinJoint.p_nameShort,maintainOffset = True)
-	    except Exception,error:raise StandardError, "[Constrain skin joints]{%s}"%(error)
-	    '''
 	    
 	    #sub vis,control groups
 	    #====================================================================================
@@ -873,10 +968,10 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError, "[Attr hides]{%s}"%(error)
 
 	    try:#Parent constrain null
-		#mi_go._i_constrainNull.parent = mi_go._mi_moduleParent.rigNull.eyeMove
 		mi_eyeMove = mi_go._mi_moduleParent.rigNull.eyeMove
-		mc.parentConstraint(mi_eyeMove.mNode, mi_go._i_constrainNull.mNode)
-		mc.scaleConstraint(mi_eyeMove.mNode, mi_go._i_constrainNull.mNode)		
+		mi_go._i_constrainNull.parent = mi_eyeMove
+		#mc.parentConstraint(mi_eyeMove.mNode, mi_go._i_constrainNull.mNode)
+		#mc.scaleConstraint(mi_eyeMove.mNode, mi_go._i_constrainNull.mNode)		
 	    except Exception,error:raise StandardError, "[Parent constrain null]{%s}"%(error)
 	    
 	    #Final stuff
