@@ -338,8 +338,7 @@ def build_controls(*args, **kws):
 		try:#Register the control
 		    d_buffer = mControlFactory.registerControl(mi_eyeMoveShape,
 		                                               addMirrorAttributeBridges = [["mirrorIn","t%s"%mi_go._jointOrientation[2]],
-		                                                                            ["mirrorBank","r%s"%mi_go._jointOrientation[0]],
-		                                                                            ["mirrorAim","r%s"%mi_go._jointOrientation[1]]],
+		                                                                            ["mirrorBank","r%s"%mi_go._jointOrientation[0]]],
 		                                               mirrorSide = str_mirrorSide, mirrorAxis="",		                                               
 		                                               makeAimable=False,typeModifier='eyeMove') 
 		    mObj = d_buffer['instance']
@@ -348,7 +347,7 @@ def build_controls(*args, **kws):
 		except Exception,error:raise Exception,"[registration]{%s}"%(error)
 		
 		try:#Set up some attributes
-		    attributes.doSetLockHideKeyableAttr(mObj.mNode,channels = ['v'])
+		    attributes.doSetLockHideKeyableAttr(mObj.mNode,channels = ["r%s"%mi_go._jointOrientation[1],'v'])
 		except Exception,error:raise Exception,"[Attribute setup]{%s}"%(error)
 		
 		try:#Vis Connect
