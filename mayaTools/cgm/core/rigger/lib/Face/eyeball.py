@@ -349,12 +349,13 @@ def build_controls(*args, **kws):
 		
 		try:#Set up some attributes
 		    attributes.doSetLockHideKeyableAttr(mObj.mNode,channels = ['v'])
-		    mPlug_FKIK = cgmMeta.cgmAttr(mObj.mNode,'blend_FKIK',attrType='float',lock=False,keyable=True,
-			                         minValue=0,maxValue=1.0)
 		except Exception,error:raise Exception,"[Attribute setup]{%s}"%(error)
 		
 		try:#Vis Connect
-		    self.mPlug_result_moduleFaceSubDriver.doConnectOut("%s.visibility"%mObj.mNode)
+		    for shp in mObj.getShapes():
+			mShp = cgmMeta.cgmNode(shp)
+			mShp.overrideEnabled = 1    
+			self.mPlug_result_moduleFaceSubDriver.doConnectOut("%s.overrideVisibility"%mShp.mNode)
 		except Exception,error:raise Exception,"[subVisConnect]{%s}"%(error)
 		    
 		
