@@ -679,7 +679,8 @@ def build_rig(*args, **kws):
 		except Exception,error:raise StandardError,"[smartBlink curve]{%s}"%(error)  	
 		
 		for mi_crv in ml_curves:#Parent to rig null
-		    mi_crv.parent = mi_go._i_deformNull
+		    #mi_crv.parent = mi_go._i_deformNull
+		    mi_crv.parent = mi_go._i_constrainNull
 		    
 		#for mi_crv in [mi_smartBlinkCrv]:#Parent to rig null
 		    #mi_crv.parent = mi_go._i_rigNull
@@ -996,6 +997,12 @@ def build_rig(*args, **kws):
 	                   {"plug":mPlug_uprUpLimit,'setting':-30},
 	                   {"plug":mPlug_lwrDnLimit,'setting':15}]
 	    
+	    if mi_go._str_mirrorDirection == 'Right':
+		_l_defaults.extend([{"plug":mPlug_rightLimit,'setting':-30},
+		                    {"plug":mPlug_leftLimit,'setting':10}])
+	    else:
+		_l_defaults.extend([{"plug":mPlug_rightLimit,'setting':-10},
+	                            {"plug":mPlug_leftLimit,'setting':30}])
 	    for d in _l_defaults:
 		try:
 		    _value = d['setting'] 
