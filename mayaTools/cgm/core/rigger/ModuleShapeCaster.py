@@ -2041,15 +2041,19 @@ def shapeCast_eyebrow(*args,**kws):
 		except:
 		    __baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_jointList]) /4 		
 		"""
-		    
-		for mObj in ml_jointList:
+		int_lenMax = len(ml_jointList)    
+		for i,mObj in enumerate(ml_jointList):
+		    self.progressBar_set(status = "shaping : '%s'... "%mObj.p_nameShort, progress = i, maxValue = int_lenMax)		    				    		    		    		    
 		    try:
 			if mObj.getAttr('isSubControl') or len(ml_jointList) >1 and mObj in [ml_jointList[1]]:
 			    _size = __baseDistance * .8
 			    _color = l_colors[1]
 			else:
-			    _size = __baseDistance * 1.5
+			    _size = __baseDistance * 1.1
 			    _color = l_colors[0]
+			    
+			if str_direction == 'center':
+			    _size = __baseDistance * .8			    
 			    
 			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
 			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
@@ -2153,7 +2157,7 @@ def shapeCast_eyebrow(*args,**kws):
 			    _size = __baseDistance * .8
 			    _color = l_colors[1]
 			else:
-			    _size = __baseDistance * 1.5
+			    _size = __baseDistance * 1.1
 			    _color = l_colors[0]
 			    
 			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
@@ -2201,7 +2205,9 @@ def shapeCast_eyebrow(*args,**kws):
 		else:
 		    str_cast = self.str_orientation[0]+'+'	
 		    
-		for mObj in ml_jointList:
+		int_lenMax = len(ml_jointList)
+		for i,mObj in enumerate(ml_jointList):
+		    self.progressBar_set(status = "shaping : '%s'... "%mObj.p_nameShort, progress = i, maxValue = int_lenMax)		    				    		    		    
 		    try:
 			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('semiSphere',size = _size,direction=str_cast),setClass=True)	
 			try:
