@@ -124,7 +124,7 @@ class go(object):
 	
 	#Then we want to see if we have a moduleParent to see if it's rigged yet
 	b_rigged = self._mi_module.isRigged()
-	if b_rigged and forceNew is not True and ignoreRigCheck is not True:
+	if b_rigged and forceNew is not True and ignoreRigCheck not in [1,True]:
 	    raise StandardError,"%s >>> '%s' already rigged and not forceNew"%(_str_funcName,self._mi_module.getShortName())
 	
 	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
@@ -549,8 +549,8 @@ class go(object):
     def connect_toRigGutsVis(self, ml_objects, vis = True, doShapes = False):
 	try:
 	    _str_funcName = "go.connect_toRigGutsVis(%s)"%self._mi_module.p_nameShort  
-	    log.debug(">>> %s "%(_str_funcName) + "="*75)
-	    start = time.clock()	
+	    #log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    #start = time.clock()	
 	    
 	    if type(ml_objects) not in [list,tuple]:ml_objects = [ml_objects]
 	    for i_obj in ml_objects:
@@ -565,10 +565,29 @@ class go(object):
 		    if vis: cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
 		    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
 	    
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+	    #log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
 	
 	except Exception,error:
 	    raise StandardError,"%s >> %s"%(_str_funcName,error)
+    
+    def connect_pushOverridesToShapes(self,ml_objects):
+	for mObj in ml_objects:
+	    _overrideEnabled = mObj.overrideEnabled
+	    _overrideVisibilityDriver = attributes.returnDrivenAttribute("%s.overrideVisibility"%mObj.mNode)
+	    _overrideDisplayTypeDriver = attributes.returnDrivenAttribute("%s.overrideDisplayType"%mObj.mNode)
+	    
+	    if _overrideEnabled:
+		for shp in i_obj.getShapes():
+		    mShp = cgmMeta.cgmNode(shp)
+		    mShp.overrideEnabled = 1
+		    if _overrideVisibilityDriver: attributes.doConnectAttr(_overrideVisibilityDriver,"%s.overrideVisibility"%mObj.mNode)
+		    if _overrideDisplayTypeDriver: attributes.doConnectAttr(_overrideDisplayTypeDriver,"%s.overrideDisplayType"%mObj.mNode)
+		attributes.doSetAttr(mObj.mNode, "overrideEnabled", 0)
+		attributes.doSetAttr(mObj.mNode, "overrideVisibility", 1)
+		attributes.doSetAttr(mObj.mNode, "overrideDisplayType", 0)
+	    else:
+		log.info("%s : no override enabled!"%mObj.p_nameShort)
+		
     
     def connect_restoreJointLists(self):
 	raise DeprecationWarning, "Please remove this instance of 'connect_restoreJointLists'"
