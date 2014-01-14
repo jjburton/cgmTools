@@ -2059,9 +2059,9 @@ def shapeCast_eyebrow(*args,**kws):
 			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
 			str_grp = mi_crv.doGroup()
 			if str_direction == 'right':
-			    mi_crv.__setattr__("t%s"%self.str_orientation[0],-__baseDistance)
+			    mi_crv.__setattr__("t%s"%self.str_orientation[0],-__baseDistance*2)
 			else:
-			    mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance)			    
+			    mi_crv.__setattr__("t%s"%self.str_orientation[0],__baseDistance*2)			    
 			mi_crv.parent = False
 			mc.delete(str_grp)
 			
