@@ -48,6 +48,7 @@ from cgm.lib import (distance,
                      joints,
                      cgmMath)
 reload(distance)
+
 #>>> Eyeball
 #===================================================================
 def createEyeballRig(eyeballObject = None, ballJoint = None,
@@ -271,6 +272,78 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
 
 #>>> Utilities
 #===================================================================
+def create_distanceMeasure(*args, **kws):
+    """
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args, **kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(curve = None)
+	    self._str_funcName = 'create_measureDist'	
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'startObj',"default":None, 'argType':'maya Object',
+	                                  'help':"Start object. If none, loc will be created"},
+	                                 {'kw':'endObj',"default":None,'argType':'maya Object',
+	                                  'help':"end object. If none, loc will be created"},
+	                                 {'kw':'baseName',"default":'measure','argType':'string',
+	                                  'help':"String test to be used for parts of the setup."},
+	                                  cgmMeta._d_KWARG_asMeta] 	                                 
+	    self.__dataBind__(*args, **kws)
+	    self.l_funcSteps = [{'step':'Validate','call':self._validate_},
+	                        {'step':'Build','call':self._build_}]
+	                        
+	def _validate_(self):
+	    self._str_baseName = cgmValid.stringArg(self.d_kws['baseName'])
+	    self._b_asMeta = cgmValid.boolArg(self.d_kws['asMeta'])
+	    
+	    _d_check = {'start':{'key':'startObj'},
+	                'end':{'key':'endObj'}}
+	    for str_key in _d_check.keys():
+		try:
+		    mi_buffer = cgmMeta.validateObjArg(self.d_kws[_d_check[str_key]['key']], mType = cgmMeta.cgmObject, noneValid = True)
+		    if not mi_buffer:
+			mi_buffer = cgmMeta.cgmObject(mc.spaceLocator()[0],setClass=1)
+			mi_buffer.addAttr('cgmName',"%s_%s"%(self._str_baseName,str_key))
+			mi_buffer.doName()
+			
+		    self.__dict__["mi_%s"%str_key ]= mi_buffer
+		except Exception,error:raise StandardError,"[%s fail]{%s}"%(str_key,error)	    
+		
+	def _build_(self):
+	    try:#Create distance ---------------------------------------------------------
+		self.mi_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
+		self.mi_distanceObject = cgmMeta.cgmObject( self.mi_distanceShape.getTransform() )
+		if self.d_kws['baseName']:
+		    self.mi_distanceObject.addAttr('cgmName', self._str_baseName,lock = True)
+		    self.mi_distanceObject.doName()
+		self.mi_distanceObject.connectChildNode(self.mi_distanceShape,'shape')
+	    
+	    except Exception,error:raise StandardError,"[Create distance fail]{%s}"%(error)
+	    
+	    try:#Connect  ---------------------------------------------------------
+		_d_check = {'start':{'mObj':self.mi_start},
+		            'end':{'mObj':self.mi_end}}	
+		for str_key in _d_check.keys():
+		    try:
+			_d = _d_check[str_key]
+			buffer = _d['mObj'].returnPositionOutPlug()
+			if not buffer:
+			    raise StandardError,"{Failed to find out plug for}"
+			mc.connectAttr (buffer,
+		                        (self.mi_distanceShape.mNode+'.%sPoint'%str_key))
+			
+			self.mi_distanceObject.connectChildNode(_d['mObj'],str_key)
+		    except Exception,error:raise StandardError,"[%s fail]{%s}"%(str_key,error)	    
+	    except Exception,error:raise StandardError,"[Create distance fail]{%s}"%(error)	    
+	    
+	    if self._b_asMeta:
+		return {'mi_shape':self.mi_distanceShape , 'mi_object':self.mi_distanceObject,
+		        'mi_start':self.mi_start, 'mi_end':self.mi_end}
+	    return {'shape':self.mi_distanceShape.mNode , 'object':self.mi_distanceObject.mNode ,
+	            'start':self.mi_start.mNode , 'end':self.mi_end.mNode }	    
+    return fncWrap(*args, **kws).go()
+
+
 def addCGMDynamicGroup(target = None, parentTargets = None,
                        mode = None):
 
@@ -2902,43 +2975,6 @@ def create_traceCurve(control,targetObject,parentTo = False, lock = True):
 
 
     return {'mi_curve':i_crv,'curve':i_crv.mNode,'ml_locs':ml_locs,'l_locs':[i_loc.mNode for i_loc in ml_locs]}
-
-
-
-
-
-
-
-
-
-
-def create_distanceMeasure(start = None, end = None, baseName = None):
-    mi_start = cgmMeta.validateObjArg(start, cgmMeta.cgmObject, noneValid=True)
-    mi_end = cgmMeta.validateObjArg(end, cgmMeta.cgmObject, noneValid=True)
-
-    i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
-    i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
-
-    #Connect things
-    if mi_start:
-        buffer = mi_start.returnPositionOutPlug()
-        if buffer:
-            mc.connectAttr (buffer,
-                            (i_distanceShape.mNode+'.startPoint'))    
-    if mi_end:  
-        buffer = mi_end.returnPositionOutPlug()
-        if buffer:
-            mc.connectAttr (buffer,
-                            (i_distanceShape.mNode+'.endPoint'))  
-
-    if not baseName and mi_start and mi_end:
-        baseName = "%s_to_%s"%(mi_start.getBaseName(),mi_end.getBaseName())
-    if baseName:
-        i_distanceObject.addAttr('cgmName', baseName,lock = True)
-    i_distanceObject.addAttr('cgmType','measureNode',lock = True)
-    i_distanceObject.doName(nameShapes = True)
-
-    return {'mi_shape':i_distanceShape , 'mi_object':i_distanceObject}
 
 
 def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, drivenAttr = None, driverAttr = None, 
