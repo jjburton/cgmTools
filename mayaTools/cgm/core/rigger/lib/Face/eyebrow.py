@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyebrow rig builder
 ================================================================
 """
-__version__ = 1.12052013
+__version__ = 'faceAlpha2.01132014'
 
 # From Python =============================================================
 import copy
@@ -221,7 +221,9 @@ def build_rigSkeleton(*args, **kws):
 				    mi_dup.doName()
 				    mi_jnt.connectChildNode(mi_dup,'influenceJoint','sourceJoint')
 				    
-				    mi_dup.parent = mi_go._i_deformNull
+				    mi_dup.parent = mi_go._i_deformNull	
+				    mi_go.connect_toRigGutsVis(mi_dup,vis = True)#connect to guts vis switches
+
 				except Exception,error:raise StandardError,"[mid influence joint for '%s']{%s}"%(mJnt.p_nameShort,error)
 			    else:
 				i_j = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
@@ -380,14 +382,9 @@ def build_controls(*args, **kws):
 			
 			if str_cgmDirection == 'center' and ii != 0:#Register our settings control to brow center handle
 			    mi_go._i_rigNull.connectChildNode(mObj,'browSettings','rigNull')
-			    mObj.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)			    
-			    mObj.addAttr('browDownOffset',1.0 ,keyable = False)
-			    mObj.addAttr('innerDownMax', -1.0, keyable = False)
-			    mObj.addAttr('result_innerDownLeft', 0.0, keyable = False)			    
-			    mObj.addAttr('result_innerDownRight', 0.0, keyable = False)			    
-			    
+			    mObj.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)			    			    
 			if ii == 1:
-			    for a in ['rx','ry','rz','scale','v']:
+			    for a in ['rotate','scale','v']:
 				cgmMeta.cgmAttr(mObj,a,lock=True,hidden=True,keyable=False)
 				
 			mc.delete(mObj.getMessage('controlShape'))
@@ -751,8 +748,8 @@ def build_rig(*args, **kws):
 				                         worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )
 				    mc.orientConstraint([d_tomake['aimIn']['aimLoc'].mNode, d_tomake['aimOut']['aimLoc'].mNode],str_offsetGroup,maintainOffset = True)					
 				    '''
-				    #ml_targets = [ml_rigJoints[obj_idx+1]]
-				    ml_targets = [ ml_handles[1].influenceJoint ]
+				    ml_targets = [ml_rigJoints[obj_idx+1]]
+				    #ml_targets = [ ml_handles[1].influenceJoint ]
 				    
 				    str_offsetGroup = d_current['offsetGroup'].mNode		    
 				    str_upLoc = d_current['upLoc'].mNode				    
@@ -762,7 +759,8 @@ def build_rig(*args, **kws):
 				    
 				elif obj_idx == int_lastIndex:
 				    #ml_targets = [ml_rigJoints[obj_idx-1]]
-				    ml_targets = [ ml_handles[1].influenceJoint ]
+				    #ml_targets = [ ml_handles[1].influenceJoint ]
+				    ml_targets = [ml_rigJoints[obj_idx-1].masterGroup.follicleFollow]
 				    
 				    str_offsetGroup = d_current['offsetGroup'].mNode		    
 				    str_upLoc = d_current['upLoc'].mNode				    
@@ -799,7 +797,8 @@ def build_rig(*args, **kws):
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
 		    mi_midHandle.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')
-		    mc.pointConstraint([ml_handles[0].mNode,ml_handles[-1].mNode], mi_offsetGroup.mNode,maintainOffset = True)
+		    mc.pointConstraint([ml_handles[0].mNode,ml_handles[-1].mNode],mi_offsetGroup.mNode,maintainOffset = True,
+		                        skip = mi_go._jointOrientation[0])
 		    
 		    try:#Influence Joint
 			mi_midHandleInfluence = ml_handles[1].influenceJoint
@@ -816,7 +815,7 @@ def build_rig(*args, **kws):
 			mi_controlLoc = d_return['controlLoc']
 			mc.pointConstraint([ml_handles[1].mNode], mi_controlLoc.mNode,maintainOffset = True)
 			
-			try:#aim ---- mid influence
+			try:#aim ---- mid influence ------------------------------------------------------------------------------------------
 			    if str_side == 'left':
 				v_aim = mi_go._vectorOutNegative
 			    else:
@@ -827,19 +826,30 @@ def build_rig(*args, **kws):
 			    str_upLoc = d_return['upLoc'].mNode				    
 
 			    mc.aimConstraint(ml_handles[0].mNode, str_offsetGroup,
-				             maintainOffset = True, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )
+				             maintainOffset = True, weight = 1, skip = [mi_go._jointOrientation[1],mi_go._jointOrientation[2]],
+			                     aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )
 				     
 			except Exception,error:raise StandardError,"[Aim mid]{%s}"%(error)
+			
+			try:#Connect mid handle to influence ------------------------------------------------------------------------------------------
+			    str_offsetGroup = d_return['offsetGroup'].mNode		    
+			    
+			    #for attr in ['rotate']:
+				#cgmMeta.cgmAttr(str_offsetGroup,attr).doConnectIn("%s.%s"%(ml_handles[1].mNode,attr))
+			    for attr in ['scale']:
+				cgmMeta.cgmAttr(mi_midHandleInfluence,attr).doConnectIn("%s.%s"%(ml_handles[1].mNode,attr))				
+			except Exception,error:raise StandardError,"[Connect mid handle to influence]{%s}"%(error)
 
 		    except Exception,error:raise StandardError,"[Mid Influence]{%s}"%(error) 
 		    
 		    #Create aim offsetgroup for the mid
-		    '''
+		    
 		    mi_aimGroup = cgmMeta.cgmObject( mi_midHandle.doGroup(True),setClass=True)	 
 		    mi_aimGroup.doStore('cgmName',mi_midHandle.mNode)
 		    mi_aimGroup.addAttr('cgmTypeModifier','aim',lock=True)
 		    mi_midHandle.connectChildNode(mi_aimGroup,'aimGroup','groupChild')		    
 		    mi_aimGroup.doName()
+		    str_upLoc = self.mi_browUpLoc.mNode
 		    
 		    if str_side == 'left':
 			v_aim = mi_go._vectorOutNegative
@@ -848,7 +858,7 @@ def build_rig(*args, **kws):
 			
 		    mc.aimConstraint(ml_handles[0].mNode, mi_aimGroup.mNode,
 		                     maintainOffset = True, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )
-		'''     
+		     
 		except Exception,error:raise StandardError,"[Mid failed. step: %s ]{%s}"%(i,error) 
 		
 		try:#Skin -------------------------------------------------------------------------------------------------
@@ -863,35 +873,373 @@ def build_rig(*args, **kws):
 		    d_browSide['mi_skinNode'] = mi_skinNode
 		except Exception,error:raise StandardError,"Failed to skinCluster crv. step: %s | error : %s"%(i,error) 
 		
-		   
-		    
+
 	def _buildBrowVolume_(self):
 	    try:#>> Attach brow rig joints =======================================================================================
 		mi_go = self._go#Rig Go instance link
 		#str_skullPlate = self.str_skullPlate
 		str_skullPlate = 'testSkullOnlyPlate'		
 		d_section = self.md_rigList['brow']
-		ml_handles = d_section['center']['ml_handles'] + d_section['left']['ml_handles'] + d_section['right']['ml_handles']
+		mi_browSettings = mi_go._mi_module.rigNull.browSettings			
 	    except Exception,error:raise Exception,"[Query]{%s}"%error
+
+	    for str_direction in 'left','right':
+		try:
+		    try:#inner/outer fail! ----------------------------------------------------------------------------------
+			ml_handles =  d_section[str_direction]['ml_handles']
+			_d_handles = {ml_handles[0]:{'label':'inner','targetValue':-4.0,'maxOut': 1.5},
+			              ml_handles[-1]:{'label':'outer','targetValue':-2.0,'maxOut': 1.0}}
+			for mi_handle in _d_handles.keys():
+			    try:#Query----------------------------------------------------------------------------------
+				str_label = _d_handles[mi_handle]['label']
+				f_targetValue = _d_handles[mi_handle]['targetValue']
+				f_maxOut = _d_handles[mi_handle]['maxOut']
+			    except Exception,error:raise Exception,"[Query]{%s}"%error	
+			    
+			    try:# Get Plugs ----------------------------------------------------------------------------------
+				mPlug_maxPush = cgmMeta.cgmAttr(mi_browSettings,"%s_maxOut"%(str_label),value=f_maxOut, attrType='float',keyable=0,hidden=False)			    
+				mPlug_targetValue = cgmMeta.cgmAttr(mi_browSettings,"%s_targetValue"%(str_label), value=f_targetValue,attrType='float',keyable=0,hidden=False)			    
+				mPlug_result = cgmMeta.cgmAttr(mi_browSettings,"result_%s%s"%(str_direction,str_label.capitalize()), attrType='float',keyable=0,hidden=False,lock = True)			    
+				mPlug_resultClamp = cgmMeta.cgmAttr(mi_browSettings,"result_%s%sClamp"%(str_direction,str_label.capitalize()),attrType='float',keyable=0,hidden=False,lock = True)			    
+				mPlug_resultDiv = cgmMeta.cgmAttr(mi_browSettings,"result_%s%sDiv"%(str_direction,str_label.capitalize()), attrType='float',keyable=0,hidden=False,lock = True)			    
+			    
+			    except Exception,error:raise Exception,"[Get Plugs]{%s}"%error	
+			    
+			    try:# Offset ----------------------------------------------------------------------------------
+				mi_offsetGroup = cgmMeta.cgmObject( mi_handle.doGroup(True),setClass=True)	 
+				mi_offsetGroup.doStore('cgmName',mi_handle.mNode)
+				mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
+				mi_offsetGroup.doName()
+				mi_handle.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')	
+	
+			    except Exception,error:raise Exception,"[Offset group]{%s}"%error			    
+			    
+			    try:# Nodal Args ----------------------------------------------------------------------------------
+				"""
+				clamp(mPlug_targetValue,0,ty)/mPlug_targetValue) * mPlug_maxValue
+				"""
+				try:#Clamp ----------------------------------------------------------------------------------
+				    arg_clamp = "%s = clamp(%s,0,%s)"%(mPlug_resultClamp.p_combinedShortName,
+					                               mPlug_targetValue.p_combinedShortName,
+					                               "%s.t%s"%(mi_handle.p_nameShort,mi_go._jointOrientation[1]))
+				    #self.log_info(arg_clamp)
+				    NodeF.argsToNodes(arg_clamp).doBuild()
+				except Exception,error:
+				    #self.log_error(arg_clamp)
+				    raise Exception,"[clamp setup]{%s}"%error
+				
+				try:#Div ----------------------------------------------------------------------------------
+				    arg_div = "%s = %s / %s"%(mPlug_resultDiv.p_combinedShortName,
+					                      mPlug_resultClamp.p_combinedShortName,
+					                      mPlug_targetValue.p_combinedShortName)
+				    #self.log_info(arg_div)
+				    NodeF.argsToNodes(arg_div).doBuild()		    
+				except Exception,error:
+				    self.log_error(arg_div)
+				    raise Exception,"[div setup]{%s}"%error
+		
+				try:#Mult ---------------------------------------------------------------------------------- 
+				    arg_mult = "%s = %s * %s"%(mPlug_result.p_combinedShortName,
+					                       mPlug_resultDiv.p_combinedShortName,
+					                       mPlug_maxPush.p_combinedShortName)
+				    #self.log_info(arg_mult)
+				    NodeF.argsToNodes(arg_mult).doBuild()		    
+				except Exception,error:
+				    self.log_error(arg_mult)
+				    raise Exception,"[mult setup]{%s}"%error	
+				
+				try:#Connect ---------------------------------------------------------------------------------- 
+				    if str_direction == 'left':
+					arg_connect = "%s = %s"%("%s.t%s"%(mi_offsetGroup.p_nameShort,mi_go._jointOrientation[0]),
+					                         mPlug_result.p_combinedShortName)
+				    else:
+					arg_connect = "%s = -%s"%("%s.t%s"%(mi_offsetGroup.p_nameShort,mi_go._jointOrientation[0]),
+					                         mPlug_result.p_combinedShortName)				
+				    #self.log_info(arg_mult)
+				    NodeF.argsToNodes(arg_connect).doBuild()		    
+				except Exception,error:
+				    self.log_error(arg_connect)
+				    raise Exception,"[connect setup]{%s}"%error				
+			    except Exception,error:raise Exception,"[Nodal Args ]{%s}"%error
+		    except Exception,error:raise Exception,"[inner/outer fail!]{%s}"%error
+		    
+		    try:#Mid ----------------------------------------------------------------------------------
+			try:#>> Query ----------------------------------------------------------------------------------	
+			    mi_handle = d_section[str_direction]['ml_handles'][1]
+			    mi_midHandleInfluence = mi_handle.influenceJoint	
+			    try:mi_followOffset = mi_midHandleInfluence.follicleFollow.followOffsetGroup
+			    except Exception,error:self.log_error("Failed to find mid return{%s}"%error)
+			except Exception,error:raise Exception,"[Query]{%s}"%error
+			
+			try:# Offset ----------------------------------------------------------------------------------
+			    mi_offsetGroup = cgmMeta.cgmObject( mi_followOffset.doGroup(True),setClass=True)	 
+			    mi_offsetGroup.doStore('cgmName',mi_handle.mNode)
+			    mi_offsetGroup.addAttr('cgmTypeModifier','pushOffset',lock=True)
+			    mi_offsetGroup.doName()
+			    mi_midHandleInfluence.connectChildNode(mi_offsetGroup,'pushOffsetGroup','groupChild')	
+    
+			except Exception,error:raise Exception,"[Offset group]{%s}"%error				
+			
+			try:# Get Plugs ----------------------------------------------------------------------------------
+			    mPlug_maxPush = cgmMeta.cgmAttr(mi_browSettings,"mid_maxOut",value = 2.0, attrType='float',keyable=0,hidden=False)			    
+			    mPlug_targetDist = cgmMeta.cgmAttr(mi_browSettings,"mid_targetDist", value = 3.0,attrType='float',keyable=0,hidden=False)			    
+			    mPlug_result = cgmMeta.cgmAttr(mi_browSettings,"result_%sMidBrow"%(str_direction),attrType='float',lock=1,keyable=0)
+			    mPlug_resultClamp = cgmMeta.cgmAttr(mi_browSettings,"result_%sMidBrow_clamp"%(str_direction),attrType='float',lock=1,hidden = 0)		
+			    mPlug_resultByTargetDist = cgmMeta.cgmAttr(mi_browSettings,"result_%sMidBrow_divDist"%(str_direction),attrType='float',lock=False,hidden = 0)		
+			    mPlug_resultOutValue = cgmMeta.cgmAttr(mi_browSettings,"result_%sMidBrow_outVal"%(str_direction),attrType='float',lock=1,hidden = 0)		
+		       
+			except Exception,error:raise Exception,"[Get Plugs]{%s}"%error
+			
+			try:# Build and setup locs ----------------------------------------------------------------------------------
+			    try:# Track loc ----------------------------------------------------------------------------------
+				mi_trackLoc = mi_handle.doLoc()
+				mi_trackLoc.addAttr('cgmName','%s_track'%'left')
+				mi_trackLoc.doName()
+				mc.pointConstraint(mi_handle.mNode, mi_trackLoc.mNode, maintainOffset = 1)
+				mi_trackLoc.parent = mi_handle.masterGroup
+			    except Exception,error:raise Exception,"[trackLoc fail!]{%s}"%error
+			    
+			    try:# Distance setup ----------------------------------------------------------------------------------
+				_d = {'baseDist':{'start':mi_trackLoc}}
+				
+				try:# Build distance objects ----------------------------------------------------------------------------------
+				    d_traveledDist = rUtils.create_distanceMeasure(baseName = 'traveledDist')
+				    d_baseDist = rUtils.create_distanceMeasure(startObj = mi_trackLoc, baseName = 'baseDist')
+				    
+				except Exception,error:raise Exception,"[Build distance objects!]{%s}"%error
+				
+				try:# Snap locs ----------------------------------------------------------------------------------
+				    for d__ in d_traveledDist,d_baseDist:
+					for k in 'mi_start','mi_end':
+					    try:Snap.go(d__[k],mi_trackLoc.mNode)
+					    except Exception,error:self.log_warning("[Snapping dist loc: '%s']{%s}"%(k,error))
+					    d__[k].parent = mi_handle.masterGroup
+					    mi_go.connect_toRigGutsVis(d__[k],vis = True)#connect to guts vis switches
+					    
+					d__['mi_object'].parent = mi_go._i_rigNull
+					
+				except Exception,error:raise Exception,"[Snap locs!]{%s}"%error		    
+				
+				
+				try:# Base Dist Setup ----------------------------------------------------------------------------------
+				    #ptConst - end to control on x,z, y offset should be enough that it never passes this point
+				    mi_start = d_baseDist['mi_start']
+				    mi_end = d_baseDist['mi_end']
+				    
+				    #mPlug_targetDist.doConnectOut("%s.%s"%(mi_end.mNode,"t%s"%mi_go._jointOrientation[1]))
+				    #mi_end.__setattr__("t%s"%mi_go._jointOrientation[1],-self.f_offsetOfUpLoc)#Offset, then constrain
+				    mc.pointConstraint(mi_handle.mNode, mi_end.mNode, maintainOffset = 1,
+				                       skip = [mi_go._jointOrientation[1]])
+				except Exception,error:raise Exception,"[Base Dist Setup!]{%s}"%error	
+				
+				try:#Travel Dist Setup ----------------------------------------------------------------------------------
+				    mi_start = d_traveledDist['mi_start']
+				    mi_end = d_traveledDist['mi_end']
+				    mc.pointConstraint(mi_handle.mNode, mi_end.mNode, maintainOffset = 1,#ptConst - end to control on x,y
+				                       skip = [mi_go._jointOrientation[0]])
+				    mc.pointConstraint(mi_handle.mNode, mi_start.mNode, maintainOffset = 1,#ptConst - end to control on x,y
+				                       skip = [mi_go._jointOrientation[1]])			
+				except Exception,error:raise Exception,"[Base Dist Setup!]{%s}"%error		    
+			    except Exception,error:raise Exception,"[Distance setup]{%s}"%error	 
+			except Exception,error:raise Exception,"[Build and setup locs/distance]{%s}"%error
+			
+			
+			try:# Nodal Args ----------------------------------------------------------------------------------
+			    try:#baseDist  ----------------------------------------------------------------------------------
+				arg_baseDist = "%s = -%s"%("%s.t%s"%(d_baseDist['mi_end'].p_nameShort,mi_go._jointOrientation[1]),
+				                           mPlug_targetDist.p_combinedShortName)
+				#self.log_info(arg_baseDist)
+				NodeF.argsToNodes(arg_baseDist).doBuild()
+				
+			    except Exception,error:
+				#self.log_error(arg_baseDist)
+				raise Exception,"[base dist setup]{%s}"%error			    
+			    """
+			    if f_maxDistance <= mPlug_maxDistance:
+				mPlug_result = ((clamp(0,f_targetDist,mPlug_actualDist)/f_targetDist) * mPlug_maxValue
+			    else:
+				mPlug_result = 0
+			    """
+			    try:#Clamp ----------------------------------------------------------------------------------
+				arg_clamp = "%s = clamp(0,%s,%s.distance)"%(mPlug_resultClamp.p_combinedShortName,
+			                                                    mPlug_targetDist.p_combinedShortName,
+			                                                    d_traveledDist['mi_shape'].p_nameShort)
+				#self.log_info(arg_clamp)
+				NodeF.argsToNodes(arg_clamp).doBuild()
+				
+			    except Exception,error:
+				self.log_error(arg_clamp)
+				raise Exception,"[clamp setup]{%s}"%error
+			    
+			    try:#Div ----------------------------------------------------------------------------------
+				arg_div = "%s = %s / %s"%(mPlug_resultByTargetDist.p_combinedShortName,
+			                                  mPlug_resultClamp.p_combinedShortName,
+			                                  mPlug_targetDist.p_combinedShortName)
+				#self.log_info(arg_div)
+				NodeF.argsToNodes(arg_div).doBuild()		    
+			    except Exception,error:
+				self.log_error(arg_div)
+				raise Exception,"[div setup]{%s}"%error
+	    
+			    try:#Mult ---------------------------------------------------------------------------------- 
+				arg_mult = "%s = %s * %s"%(mPlug_resultOutValue.p_combinedShortName,
+			                                   mPlug_resultByTargetDist.p_combinedShortName,
+			                                   mPlug_maxPush.p_combinedShortName)
+				#self.log_info(arg_mult)
+				NodeF.argsToNodes(arg_mult).doBuild()		    
+			    except Exception,error:
+				self.log_error(arg_mult)
+				raise Exception,"[mult setup]{%s}"%error
+			    
+			    try:#Cond ---------------------------------------------------------------------------------- 
+				arg_cond= "%s = if %s.distance <= %s:%s else 0"%(mPlug_result.p_combinedShortName,
+			                                                         d_baseDist['mi_shape'].p_nameShort,
+			                                                         self.f_offsetOfUpLoc,
+			                                                         mPlug_resultOutValue.p_combinedShortName)
+				self.log_info(arg_cond)
+				NodeF.argsToNodes(arg_cond).doBuild()		    
+			    except Exception,error:
+				self.log_error(arg_cond)
+				raise Exception,"[cond setup]{%s}"%error
+			    
+			    try:#Connect ---------------------------------------------------------------------------------- 
+				#if str_direction == 'left':
+				arg_connect = "%s = %s"%("%s.t%s"%(mi_offsetGroup.p_nameShort,mi_go._jointOrientation[0]),
+			                                 mPlug_result.p_combinedShortName)
+				#else:
+				    #arg_connect = "%s = -%s"%("%s.t%s"%(mi_offsetGroup.p_nameShort,mi_go._jointOrientation[0]),
+				                             #mPlug_result.p_combinedShortName)				
+				#self.log_info(arg_mult)
+				NodeF.argsToNodes(arg_connect).doBuild()		    
+			    except Exception,error:
+				self.log_error(arg_connect)
+				raise Exception,"[connect setup]{%s}"%error				    
+			except Exception,error:raise Exception,"[Nodal Args ]{%s}"%error
+		    
+		    except Exception,error:raise Exception,"[mid fail!]{%s}"%(error)
+		except Exception,error:raise Exception,"['%s' side fail!]{%s}"%(str_direction,error)
+			
+	
+		    
+	    
+		    
 	    '''
-	    $maxOut = .5;
-	    $maxDownInr = -4.0;
-	    $maxDownOutr = -1.0;
-	    $resultInnerLeft = (clamp($maxDownInr,0, l_start_brow_handle_anim.translateY)/$maxDownInr) * $maxOut;
-	    $resultOuterleft = (clamp($maxDownOutr,0, l_end_brow_handle_anim.translateY)/$maxDownOutr) * $maxOut;
-	    $resultInnerRight = (clamp($maxDownInr,0, r_start_brow_handle_anim.translateY)/$maxDownInr) * $maxOut;
+	    try:# Get Plugs ----------------------------------------------------------------------------------
+		mPlug_maxPush = cgmMeta.cgmAttr(mi_browSettings,"%s_%s_maxOut"%('left',1),value=1.0, attrType='float',keyable=0,hidden=False)			    
+		mPlug_targetDist = cgmMeta.cgmAttr(mi_browSettings,"%s_%s_targetDist"%('left',0),minValue= .01, value= -self.f_offsetOfUpLoc,attrType='float',keyable=0,hidden=False)			    
+		mPlug_result = cgmMeta.cgmAttr(mi_browSettings,"rslt_%sBrow_%s"%('left',1),attrType='float',lock=1,keyable=0)
+		mPlug_resultClamp = cgmMeta.cgmAttr(mi_browSettings,"rslt_%sBrow_%s_clamp"%('left',1),attrType='float',lock=1,hidden = 0)		
+		mPlug_resultByTargetDist = cgmMeta.cgmAttr(mi_browSettings,"rslt_%sBrow_%s_clampDivTargetDist"%('left',1),attrType='float',lock=False,hidden = 0)		
+		mPlug_resultOutValue = cgmMeta.cgmAttr(mi_browSettings,"rslt_%sBrow_%s_outValue"%('left',1),attrType='float',lock=1,hidden = 0)		
+	   
+	    except Exception,error:raise Exception,"[Get Plugs]{%s}"%error
 	    
-	    l_start_brow_handle_anim_grp.translateZ = $resultInnerLeft;
-	    l_end_brow_handle_anim_grp.translateZ = $resultInnerLeft * .25;
-	    l_mid_brow_handle_anim_grp.translateZ = $resultInnerLeft * .5;
+	    try:# Build and setup locs ----------------------------------------------------------------------------------
+		try:# Track loc ----------------------------------------------------------------------------------
+		    mi_trackLoc = mi_handle.doLoc()
+		    mi_trackLoc.addAttr('cgmName','%s_track'%'left')
+		    mi_trackLoc.doName()
+		    mc.pointConstraint(mi_handle.mNode, mi_trackLoc.mNode, maintainOffset = 1)
+		    mi_trackLoc.parent = mi_handle.masterGroup
+		except Exception,error:raise Exception,"[trackLoc fail!]{%s}"%error
+		
+		try:# Distance setup ----------------------------------------------------------------------------------
+		    _d = {'baseDist':{'start':mi_trackLoc}}
+		    
+		    try:# Build distance objects ----------------------------------------------------------------------------------
+			d_traveledDist = rUtils.create_distanceMeasure(baseName = 'traveledDist')
+			d_baseDist = rUtils.create_distanceMeasure(startObj = mi_trackLoc, baseName = 'baseDist')
+		    except Exception,error:raise Exception,"[Build distance objects!]{%s}"%error
+		    
+		    try:# Snap locs ----------------------------------------------------------------------------------
+			for d__ in d_traveledDist,d_baseDist:
+			    for k in 'mi_start','mi_end':
+				try:Snap.go(d__[k],mi_trackLoc.mNode)
+				except Exception,error:self.log_warning("[Snapping dist loc: '%s']{%s}"%(k,error))
+				d__[k].parent = mi_handle.masterGroup
+		    except Exception,error:raise Exception,"[Snap locs!]{%s}"%error		    
+		    
+		    
+		    try:# Base Dist Setup ----------------------------------------------------------------------------------
+			#ptConst - end to control on x,z, y offset should be enough that it never passes this point
+			mi_start = d_baseDist['mi_start']
+			mi_end = d_baseDist['mi_end']
+			
+			mPlug_targetDist.doConnectOut("%s.%s"%(mi_end.mNode,"t%s"%mi_go._jointOrientation[1]))
+			#mi_end.__setattr__("t%s"%mi_go._jointOrientation[1],-self.f_offsetOfUpLoc)#Offset, then constrain
+			mc.pointConstraint(mi_handle.mNode, mi_end.mNode, maintainOffset = 1,
+			                   skip = [mi_go._jointOrientation[1]])
+		    except Exception,error:raise Exception,"[Base Dist Setup!]{%s}"%error	
+		    
+		    try:#Travel Dist Setup ----------------------------------------------------------------------------------
+			mi_start = d_traveledDist['mi_start']
+			mi_end = d_traveledDist['mi_end']
+			mc.pointConstraint(mi_handle.mNode, mi_end.mNode, maintainOffset = 1,#ptConst - end to control on x,y
+			                   skip = [mi_go._jointOrientation[0]])
+			mc.pointConstraint(mi_handle.mNode, mi_start.mNode, maintainOffset = 1,#ptConst - end to control on x,y
+			                   skip = [mi_go._jointOrientation[1]])			
+		    except Exception,error:raise Exception,"[Base Dist Setup!]{%s}"%error		    
+		except Exception,error:raise Exception,"[Distance setup]{%s}"%error	 
+	    except Exception,error:raise Exception,"[Build and setup locs/distance]{%s}"%error
 	    
-	    r_start_brow_handle_anim_grp.translateZ = -$resultInnerRight;
-	    r_end_brow_handle_anim_grp.translateZ = -$resultInnerRight * .25;
-	    r_mid_brow_handle_anim_grp.translateZ = -$resultInnerRight * .5;
-	    mObj.addAttr('browDownOffset',1.0 ,keyable = False)
-	    mObj.addAttr('innerDownMax', -1.0, keyable = False)
-	    mObj.addAttr('result_innerDownLeft', 0.0, keyable = False)			    
-	    mObj.addAttr('result_innerDownRight', 0.0, keyable = False)	
+	    
+	    try:# Nodal Args ----------------------------------------------------------------------------------
+		"""
+		if f_maxDistance <= mPlug_maxDistance:
+		    mPlug_result = ((clamp(0,f_targetDist,mPlug_actualDist)/f_targetDist) * mPlug_maxValue
+		else:
+		    mPlug_result = 0
+		"""
+		try:#Clamp ----------------------------------------------------------------------------------
+		    arg_clamp = "%s = clamp(0,%s,%s.distance)"%(mPlug_resultClamp.p_combinedShortName,
+			                                        mPlug_targetDist.p_combinedShortName,
+			                                        d_traveledDist['mi_shape'].p_nameShort)
+		    #self.log_info(arg_clamp)
+		    NodeF.argsToNodes(arg_clamp).doBuild()
+		    
+		except Exception,error:
+		    self.log_error(arg_clamp)
+		    raise Exception,"[clamp setup]{%s}"%error
+		
+		try:#Div ----------------------------------------------------------------------------------
+		    arg_div = "%s = %s / %s"%(mPlug_resultByTargetDist.p_combinedShortName,
+			                      mPlug_resultClamp.p_combinedShortName,
+			                      mPlug_targetDist.p_combinedShortName)
+		    #self.log_info(arg_div)
+		    NodeF.argsToNodes(arg_div).doBuild()		    
+		except Exception,error:
+		    self.log_error(arg_div)
+		    raise Exception,"[div setup]{%s}"%error
+
+		try:#Mult ---------------------------------------------------------------------------------- 
+		    arg_mult = "%s = %s * %s"%(mPlug_resultOutValue.p_combinedShortName,
+		                               mPlug_resultByTargetDist.p_combinedShortName,
+		                               mPlug_maxPush.p_combinedShortName)
+		    #self.log_info(arg_mult)
+		    NodeF.argsToNodes(arg_mult).doBuild()		    
+		except Exception,error:
+		    self.log_error(arg_mult)
+		    raise Exception,"[mult setup]{%s}"%error
+		
+		try:#Cond ---------------------------------------------------------------------------------- 
+		    arg_cond= "%s = if %s.distance <= %s:%s else 0"%(mPlug_result.p_combinedShortName,
+		                                                     d_baseDist['mi_shape'].p_nameShort,
+		                                                     self.f_offsetOfUpLoc,
+		                                                     mPlug_resultOutValue.p_combinedShortName)
+		    self.log_info(arg_cond)
+		    NodeF.argsToNodes(arg_cond).doBuild()		    
+		except Exception,error:
+		    self.log_error(arg_cond)
+		    raise Exception,"[cond setup]{%s}"%error		
+	    except Exception,error:raise Exception,"[Nodal Args ]{%s}"%error
+	    
+	    try:# Connect offset ----------------------------------------------------------------------------------
+		#mPlug_result.doConnectOut("l_start_brow_handle_anim_grp.tz")
+		#mPlug_result.doConnectOut("%s.tz"%mi_offsetGroup.mNode)
+		
+		#mi_offsetGroup
+		pass
+	    except Exception,error:raise Exception,"[Connect offset]{%s}"%error
 	    '''
 	    
 	def _buildUprCheek_(self):
