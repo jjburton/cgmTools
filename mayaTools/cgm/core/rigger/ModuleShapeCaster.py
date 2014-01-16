@@ -2292,7 +2292,10 @@ def shapeCast_mouthNose(*args,**kws):
 	    #Find our helpers -------------------------------------------------------------------------------------------
 	    self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
-
+	    
+	    self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=False)
+	    self.str_skullPlate = self.mi_skullPlate.mNode
+	    
 	    #>> Find our joint lists ===================================================================
 	    ml_handleJoints = self.mi_module.rigNull.msgList_get('handleJoints')
 	    ml_rigJoints = self.mi_module.rigNull.msgList_get('rigJoints')
@@ -2582,6 +2585,11 @@ def shapeCast_mouthNose(*args,**kws):
 	    mi_crv.doName()
 	    mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
 	    ml_handleCrvs.append(mi_crv)
+	    
+	    #>>Orient 
+	    mc.delete( mc.normalConstraint(self.str_skullPlate,mi_crv.mNode, weight = 1,
+	                                   aimVector = self.v_aim, upVector = self.v_up,
+	                                   worldUpType = 'scene' ))	    
 		    
 	    self.ml_handles.extend(ml_handleCrvs)
 	    

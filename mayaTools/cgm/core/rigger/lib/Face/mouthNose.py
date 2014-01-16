@@ -290,7 +290,8 @@ def build_rigSkeleton(*args, **kws):
 				
 				Snap.go(mi_jnt,self.mi_skullPlate.mNode,snapToSurface=True)					
 				constraintBuffer = mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode, weight = 1, aimVector = mi_go._vectorAim, upVector = mi_go._vectorUp, worldUpType = 'scene' )
-				mc.delete(constraintBuffer)				
+				mc.delete(constraintBuffer)	
+				jntUtils.metaFreezeJointOrientation(mi_jnt)				
 				ml_handleJoints.append(mi_jnt)
 			    elif str_mode == 'mouthMove':
 				try:
@@ -308,6 +309,7 @@ def build_rigSkeleton(*args, **kws):
 				mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode,
 				                               weight = 1, aimVector = mi_go._vectorAim,
 				                               upVector = mi_go._vectorUp, worldUpType = 'scene' ))
+				jntUtils.metaFreezeJointOrientation(mi_jnt)								
 				ml_handleJoints.append(mi_jnt)
 				
 			    elif str_mode in ['midSimpleAim','midAimBlend']:
@@ -542,25 +544,47 @@ def build_controls(*args, **kws):
 		for i,mObj in enumerate(ml_list):
 		    str_mirrorSide = False
 		    try:
-			self.progressBar_set(status = "Registering: '%s'"%mObj.p_nameShort, progress =  i, maxValue = int_lenMax)		    				    		    			
-			#self.log_info("%s On '%s'..."%(self._str_reportStart,mObj.p_nameShort))
-			mObj.parent = mi_go._i_deformNull
-			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
-			_addForwardBack = "t%s"%mi_go._jointOrientation[0]
-			str_cgmNameTag = mObj.getAttr('cgmName')
-			str_cgmDirection = mObj.getAttr('cgmDirection')
-			if str_cgmNameTag in ['tongueBase','tongueTip','jaw','noseTip']:_addForwardBack = False
-			elif ii == 0 and str_cgmNameTag in ['noseTop','noseUnder','noseBase']:_addForwardBack = False#nose controls
-			elif str_cgmDirection == 'center' and ii == 0:_addForwardBack = False#other center controls
-
-			if str_cgmNameTag in ['jaw','noseMove','mouthMove','noseTop','noseUnder','noseTip','tongueTip','tongueBase']:_str_mirrorAxis = 'translateX,rotateY,rotateZ'
-			else:_str_mirrorAxis = 'translateZ,rotateX,rotateY'
-
-			#Register 
+			try:#Query --------------------------------------------------------------------------------------------------
+			    self.progressBar_set(status = "Registering: '%s'"%mObj.p_nameShort, progress =  i, maxValue = int_lenMax)		    				    		    			
+			    #self.log_info("%s On '%s'..."%(self._str_reportStart,mObj.p_nameShort))
+			    mObj.parent = mi_go._i_deformNull
+			    str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
+			    str_cgmNameTag = mObj.getAttr('cgmName')
+			    str_cgmDirection = mObj.getAttr('cgmDirection')
+			    
+			    
+			    _addMirrorAttributeBridges = [["fwdBack","t%s"%mi_go._jointOrientation[0]]]
+			    
+			    if str_cgmDirection in ['center',None]:
+				_addMirrorAttributeBridges = None
+			    elif ii ==1:
+				_addMirrorAttributeBridges = [["fwdBack","t%s"%mi_go._jointOrientation[0]],
+				                              ["mirrorRoll","r%s"%mi_go._jointOrientation[2]],
+				                              ["mirrorTwist","r%s"%mi_go._jointOrientation[1]],
+				                              ]					
+			    '''
+			    if str_cgmNameTag in ['tongueBase','tongueTip','jaw','noseTip']:_addMirrorAttributeBridges = None
+			    elif ii == 0 and str_cgmNameTag in ['noseTop','noseUnder','noseBase']:_addMirrorAttributeBridges = None
+			    elif str_cgmDirection == 'center' and ii == 0:_addMirrorAttributeBridges = None
+			    elif ii == 1 and str_cgmDirection != 'center':
+				_addMirrorAttributeBridges = [["fwdBack","t%s"%mi_go._jointOrientation[0]],
+				                              ["mirrorRoll","r%s"%mi_go._jointOrientation[2]],
+				                              ["mirrorTwist","r%s"%mi_go._jointOrientation[1]],
+				                              ]			    
+							      '''
+    
+			    if str_cgmNameTag in ['jaw','noseMove','mouthMove','noseTop','noseUnder','noseTip','tongueTip','tongueBase']:_str_mirrorAxis = 'translateX,rotateY,rotateZ'
+			    else:_str_mirrorAxis = 'translateZ,rotateX,rotateY'
+			    
+			    if str_cgmNameTag in ['tongueTip']:_addDynParentGroup = True
+			    else:_addDynParentGroup = False
+			except Exception, error:raise StandardError,"[query]{%s}"%(error)
+			
+			#Register  --------------------------------------------------------------------------------------------------
 			try:
-			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addForwardBack = _addForwardBack,
-				                                       mirrorSide = str_mirrorSide, mirrorAxis=_str_mirrorAxis,		                                           
-				                                       makeAimable=False, typeModifier=str_typeModifier) 	#translateZ,rotateX,rotateY    
+			    d_buffer = mControlFactory.registerControl(mObj, useShape = mObj.getMessage('controlShape'),addMirrorAttributeBridges = _addMirrorAttributeBridges,
+				                                       mirrorSide = str_mirrorSide, mirrorAxis=_str_mirrorAxis,	addDynParentGroup = _addDynParentGroup,	                                           
+				                                       makeAimable=False, typeModifier=str_typeModifier)#translateZ,rotateX,rotateY    
 			except Exception,error:
 			    self.log_error("mObj: %s"%mObj.p_nameShort)
 			    self.log_error("useShape: %s"%mObj.getMessage('controlShape'))
@@ -569,7 +593,7 @@ def build_controls(*args, **kws):
 			    self.log_error("forwardBack flag: %s"%_addForwardBack)						    
 			    raise StandardError,"Register fail!]{%s}"%error
 			
-			#Vis sub connect
+			#Vis sub connect --------------------------------------------------------------------------------------------------
 			if ii == 0:
 			    if mObj.cgmName != 'noseBase':#<<<<<<<<<<<<<<<<<<<<<<<<<<<< NEW TMP
 				self.mPlug_result_moduleFaceSubDriver.doConnectOut("%s.visibility"%mObj.mNode)
@@ -621,10 +645,10 @@ def build_rig(*args, **kws):
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        {'step':'Tongue build','call':self._buildTongue_},	                        
-	                        {'step':'Lip build','call':self._buildLips_},
-	                        {'step':'NoseBuild','call':self._buildNose_},
-	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        
-	                        {'step':'Cheek build','call':self._buildCheeks_},
+	                        #{'step':'Lip build','call':self._buildLips_},
+	                        #{'step':'NoseBuild','call':self._buildNose_},
+	                        #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        
+	                        #{'step':'Cheek build','call':self._buildCheeks_},
 	                        {'step':'Lock N hide','call':self._lockNHide_},
 	                        
 	                        ]	
@@ -635,8 +659,9 @@ def build_rig(*args, **kws):
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
-	    self.mi_skullPlate = mi_go._mi_skullPlate
-	    self.str_skullPlate = mi_go._mi_skullPlate.p_nameShort
+	    self.mi_skullPlate = cgmMeta.cgmObject('testJawOnlyPlate')    
+	    #self.mi_skullPlate = mi_go._mi_skullPlate
+	    self.str_skullPlate = self.mi_skullPlate.p_nameShort
 	    
 	    for attr in self.mi_helper.getAttrs(userDefined = True):#Get allof our Helpers
 		if "Helper" in attr:
@@ -859,7 +884,7 @@ def build_rig(*args, **kws):
 		                                  'offsetChildren':[[f_quarterLen,0,0],[-f_quarterLen,0,0],
 		                                                    [0,-f_quarterLen,f_quarterLen]]},		                        
 		                        #'chinDef':{'toDup':mi_chinHandle,'parent': mi_jawRig},
-		                        'noseMoveDef':{'toDup':mi_noseMoveHandle,'parent': False},
+		                        'stableNose':{'toDup':mi_noseMoveHandle,'parent': False},
 		                        'mouthMoveDef':{'toDup':mi_mouthMove,'parent': mi_jawRig}}
 		    ml_skinJoints = []
 		    for k_tag in d_jointsToCreate.iterkeys():
@@ -910,7 +935,7 @@ def build_rig(*args, **kws):
 		    try:
 			self.md_rigList['uprHeadDef'][0].parent = self.md_rigList['faceBaseDef'][0]
 			self.md_rigList['stableJaw'][0].parent = self.md_rigList['faceBaseDef'][0]
-			self.md_rigList['noseMoveDef'][0].parent = self.md_rigList['faceBaseDef'][0]			
+			self.md_rigList['stableNose'][0].parent = self.md_rigList['faceBaseDef'][0]			
 			
 			mi_jawRig.parent = self.md_rigList['faceBaseDef'][0]	
 		    except Exception,error:raise StandardError,"!post parenting! | %s"%(error)
@@ -921,7 +946,7 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"!Get Joints! | %s"%(error)	
 	    
 	    try:#>> Skin  =======================================================================================
-		d_build = {'lwrLipBase':{'target':self.mi_skullPlate,'mi':5,'dr':5,
+		d_build = {'lwrLipBase':{'target':self.mi_skullPlate,'mi':5,'dr':9,
 		                         'bindJoints':ml_skinJoints + [mi_jawRig]}}
 		self.skin_fromDict(d_build)
 		
@@ -1152,7 +1177,12 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"!Info Gather! | %s"%(error)
 	    
 	    try:#>> Build segment =======================================================================================
-		#Create segment
+		#Create segment	
+		mi_tongueBase.masterGroup.parent = mi_jawHandle
+		mi_tongueTip.masterGroup.parent = mi_jawHandle	
+		_str_baseParentBuffer = mi_tongueBase.parent
+		_str_tipParentBuffer = mi_tongueTip.parent
+		
 		d_segReturn = rUtils.createCGMSegment([i_jnt.mNode for i_jnt in ml_tongueRig],
 		                                      addSquashStretch = True,
 		                                      addTwist = True,
@@ -1179,8 +1209,8 @@ def build_rig(*args, **kws):
 			cgmMeta.cgmAttr(mi_curve,attr).p_locked = False
 		    mi_curve.parent = mi_go._i_rigNull
 		    
-		    mi_anchorEnd.parent = mi_jawHandle
-		    mi_anchorStart.parent = mi_jawHandle
+		    mi_anchorEnd.parent = _str_tipParentBuffer
+		    mi_anchorStart.parent = _str_baseParentBuffer
 		
 		except Exception,error:raise StandardError,"!post segment parent! | %s"%(error)
 		
@@ -1223,219 +1253,20 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"!segment attribute transfer! | %s"%(error)
 
 	    
-	    return
-	    try:#Build Ribbons --------------------------------------------------------------------------------------
-		md_ribbonBuilds = {'nostril':{'extrudeCrv':self.mi_noseBaseCastCrv,
-	                                      'joints':self.md_rigList['sneerHandle']['left'] + self.md_rigList['sneerHandle']['right']}}	
-		self.create_ribbonsFromDict(md_ribbonBuilds)
-	    except Exception,error:raise StandardError,"!Ribbons! | %s"%(error)
+	    try:#>>DynParent ====================================================================================
+		ml_tongueDynParents = [mi_jawRig, self.md_rigList['uprHeadDef'][0]]		    
+		self.log_info("Dynamic parents to add: %s"%([i_obj.getShortName() for i_obj in ml_tongueDynParents]))
 		
-	    try:#Build plates --------------------------------------------------------------------------------------
-		md_plateBuilds = {'nose':{'crvs':[self.mi_noseTopCastCrv,self.mi_noseMidCastCrv,self.mi_noseBaseCastCrv,self.mi_mouthTopCastCrv]}}
-		self.create_plateFromDict(md_plateBuilds)
-	    except Exception,error:raise StandardError,"!Plates! | %s"%(error)
-	    """
-	    try:#Build Tracklocs ===================================================================================================
-		str_base = 'noseMove'
-		d_trackLocs = {'target':self.md_rigList['noseMoveHandle'][0],
-			       'tags':['stable','def']}
-		for str_tag in d_trackLocs['tags']:
-		    try:
-			mi_loc = d_trackLocs['target'].doLoc()
-			mi_loc.addAttr('cgmTypeModifier',str_tag)
-			mi_loc.doName()
-			str_tmp = '%s%sLoc'%(str_base,str_tag.capitalize())
-			
-			try:
-			    i_masterGroup = (cgmMeta.cgmObject(mi_loc.doGroup(True),setClass=True))
-			    i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
-			    i_masterGroup.doName()
-			    mi_loc.connectChildNode(i_masterGroup,'masterGroup','groupChild')			
-			except Exception,error:raise StandardError,"!masterGroup! | %s"%(error)
-			
-			self.log_info("'%s' created"%str_tmp)
-			
-			self.md_rigList[str_tmp] = [mi_loc]
-			self.__dict__['mi_%s'%str_tmp] = mi_loc
-			d_trackLocs['target'].connectChildNode(mi_loc,'%sLoc'%str_tag,'owner')
-		    except Exception,error:raise StandardError,";%s' !loc setup! | %s"%(str_tag,error)
-		    
-	    except Exception,error:raise StandardError,"!Track locs! | %s"%(error)
-	    """
-	    
-	    try:#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
-		str_nosePlate = self.mi_nosePlate.p_nameShort
-		str_nostrilRibbon = self.mi_nostrilRibbon.p_nameShort	    
-		try:str_noseMoveMasterGroup = self.md_rigList['noseMoveRig'][0].masterGroup.p_nameShort
-		except Exception,error:raise StandardError,"NoseMove master group find fail | %s"%(error)
-		#'nostrilHandle':{'attachTo':str_nosePlate,'mode':'handleAttach'}
-		d_build = {'nostrilRig':{'attachTo':str_nosePlate},
-	                   'nostrilHandle':{'attachTo':str_nostrilRibbon,'mode':'handleAttach'},
-	                   'noseMoveHandle':{'mode':'blendAttach','defaultValue':.1,'followSuffix':'Jaw'},
-	                   #'noseMoveStableLoc':{'mode':'stableAttach'},
-	                   #'noseMoveDefLoc':{'mode':'handleAttach'},		           
-	                   'noseMoveRig':{},	               
-	                   'noseTipRig':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseTipHandle'][0]},
-	                   'noseTipHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0]},
-	                   'noseUnderRig':{},
-	                   'noseUnderHandle':{'mode':'parentOnly','attachTo':None,'parentTo':str_noseMoveMasterGroup},
-	                   'noseTopRig':{},
-	                   'noseTopHandle':{'mode':'handleAttach'}
-	                   }
-		self.attach_fromDict(d_build)
-	    except Exception,error:raise StandardError,"!Attach! | %s"%(error)
-	    
-	    #self.log_infoNestedDict('md_attachReturns')
-	    try:#>> Skin nose  =======================================================================================
-		self.progressBar_setMaxStepValue(4)		
-		try:#Build list
-		    self.progressBar_set(status = "Skinning Nose", step = 1)
-		    
-		    l_toBind = [str_nosePlate]	
-		    'noseMoveHandle','noseUnderHandle'
-		    for tag in ['noseTipRig','noseTopRig','noseMoveHandle','noseUnderRig']:
-			l_toBind.append(self.md_rigList[tag][0].p_nameShort)
-		    for tag in ['smileLineRig','nostrilHandle']:
-			for str_side in 'left','right':
-			    l_toBind.append(self.md_rigList[tag][str_side][0].p_nameShort)
-		except Exception,error:raise StandardError,"build list | %s"%(error)
+		#Add our parents
+		mi_dynGroup = mi_tongueTip.dynParentGroup
+		mi_dynGroup.dynMode = 0
 		
-		ret_cluster = mc.skinCluster(l_toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
-		i_cluster = cgmMeta.cgmNode(ret_cluster[0],setClass=True)
-		i_cluster.doStore('cgmName',str_nosePlate)
-		i_cluster.doName()
+		for o in ml_tongueDynParents:
+		    mi_dynGroup.addDynParent(o)
+		mi_dynGroup.rebuild()
 		
-	    except Exception,error:raise StandardError,"!Skin nose plate| %s"%(error)		
-	    
-	    try:#>> Skin nostril Move =======================================================================================
-		try:#Build list
-		    self.progressBar_set(status = "Skinning Nostril", step = 3)
-		    
-		    l_toBind = [str_nostrilRibbon]	
-		    for tag in ['noseTipRig','noseMoveHandle','noseUnderRig']:
-			l_toBind.append(self.md_rigList[tag][0].p_nameShort)
-		    for tag in ['smileLineRig']:
-			for str_side in 'left','right':
-			    l_toBind.append(self.md_rigList[tag][str_side][0].p_nameShort)
-		except Exception,error:raise StandardError,"build list | %s"%(error)
-		
-		ret_cluster = mc.skinCluster(l_toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
-		i_cluster = cgmMeta.cgmNode(ret_cluster[0],setClass=True)
-		i_cluster.doStore('cgmName',str_nostrilRibbon)
-		i_cluster.doName()
-		
-	    except Exception,error:raise StandardError,"!Skin nostril plate! | %s"%(error)	
-	    
-	    #>>> Connect build dict ==================================================================
-	    d_build = {'noseMove':{},
-                       'noseTop':{},
-                       'noseUnder':{}}
-	    
-	    try:#>> Connect rig joints to handles ====================================================
-		
-		self.progressBar_setMaxStepValue(len(d_build.keys()))
-		for str_tag in d_build.iterkeys():
-		    try:
-			self.progressBar_iter(status = ("Connecting : '%s'"%str_tag))
-			try:#Get ----------------------------------------------------
-			    mi_handle = self.md_rigList[str_tag+'Handle'][0]
-			    mi_rigJoint = self.md_rigList[str_tag+'Rig'][0]
-			except Exception,error:raise StandardError,"[Quer]{ %s}"%(error)			
-			
-			try:#Connect the control loc to the center handle
-			    mi_controlLoc = self.md_attachReturns[mi_rigJoint]['controlLoc']
-			    mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
-			except Exception,error:raise StandardError,"[Control loc connec]{ %s}"%(error)			
-		    
-			try:#Setup the offset to push handle rotation to the rig joint control
-			    #Create offsetgroup for the mid
-			    mi_offsetGroup = cgmMeta.cgmObject( mi_rigJoint.doGroup(True),setClass=True)	 
-			    mi_offsetGroup.doStore('cgmName',mi_rigJoint.mNode)
-			    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
-			    mi_offsetGroup.doName()
-			    mi_rigJoint.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
-			    
-			    cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
-			except Exception,error:raise StandardError,"[Offset grou]{%s}"%(error)
-			
-		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)
-		    
-	    except Exception,error:  raise StandardError,"[Connect rig>handle!]{%s}"%(error)	
-			
-	    try:#>> Nose Move =======================================================================================
-		self.progressBar_set(status = "Setting up nose move")
-		
-		mi_handle = self.md_rigList['noseMoveHandle'][0]
-		mi_rigJoint = self.md_rigList['noseMoveRig'][0]
-		
-		try:#Connect the control loc to the center handle
-		    mi_controlLoc = self.md_attachReturns[mi_rigJoint]['controlLoc']
-		    mc.pointConstraint(mi_handle.mNode,mi_controlLoc.mNode)
-		except Exception,error:raise StandardError,"[Control loc connect]{%s}"%(error)	
-		
-		try:#Setup the offset to push handle rotation to the rig joint control
-		    #Create offsetgroup for the mid
-		    mi_offsetGroup = cgmMeta.cgmObject( mi_rigJoint.doGroup(True),setClass=True)	 
-		    mi_offsetGroup.doStore('cgmName',mi_rigJoint.mNode)
-		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
-		    mi_offsetGroup.doName()
-		    mi_rigJoint.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
-		    
-		    cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
-		except Exception,error:raise StandardError,"[Offset grou]{ %s}"%(error)
-		
-		'''
-		try:#Blend move handle
-		    #Query
-		    mi_handle = self.md_rigList['noseMoveHandle'][0]		    
-		    mi_stableLoc = self.md_rigList['noseMoveStableLoc'][0]
-		    mi_defLoc = self.md_rigList['noseMoveDefLoc'][0]
-		    mi_faceDef = self.md_rigList['faceBaseDef'][0]
-		    
-		    self.d_buffer['mi_handle'] = mi_handle		    
-		    self.d_buffer['mi_stableLoc'] = mi_stableLoc
-		    self.d_buffer['mi_defLoc'] = mi_defLoc
-		    self.d_buffer['mi_faceDef'] = mi_faceDef
-		    
-		    try:#Constrain the stable loc to the face
-			mi_controlLoc = self.md_attachReturns[mi_stableLoc]['controlLoc']
-			mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
-		    except Exception,error:raise StandardError,"!Stable loc controlLoc! | %s"%(error)
-		    
-		    try:#Create constrain the handle master Group
-			str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
-								   maintainOffset = True)[0]
-		    except Exception,error:raise StandardError,"!Parent Constraint! | %s"%(error)
-		    
-		    try:
-			#EndBlend
-			d_blendFollowReturn = NodeF.createSingleBlendNetwork([mi_handle.mNode,'followDeformation'],
-									     [mi_handle.mNode,'resultStableFollow'],
-									     [mi_handle.mNode,'resultDefFollow'],
-									     keyable=True)
-			l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
-			#Connect                                  
-			d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
-			d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
-			d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
-			d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True			
-		    except Exception,error:raise StandardError,"!Blend setup! | %s"%(error)
-		    
-		except Exception,error:
-		    self.log_infoNestedDict('d_buffer')
-		    raise StandardError,"!Setup follow loc blend!|!]{%s}"%(error)'''		
-		
-		
-		'''
-		try:#Create the brow up loc and parent it to the 
-		    mi_browFrontUpLoc = mi_offsetGroup.doLoc()
-		    mi_browFrontUpLoc.parent = mi_offsetGroup.parent
-		    mi_browFrontUpLoc.tz = f_offsetOfUpLoc
-		    self.mi_browFrontUpLoc = mi_browFrontUpLoc
-		except Exception,error:raise StandardError,"[Offset grou]{ %s}"%(error)
-		'''
-	    except Exception,error:
-		raise StandardError,"!Center Nose! | %s"%(error)
+	    except Exception,error:raise StandardError,"[DynParent fail!]{%s}"%(error)
+	  
     
 	def _buildNose_(self):
 	    #>> Get some data =======================================================================================
@@ -1467,8 +1298,10 @@ def build_rig(*args, **kws):
 		#'nostrilHandle':{'attachTo':str_nosePlate,'mode':'handleAttach'}
 		d_build = {'nostrilRig':{'attachTo':str_nosePlate},
 		           'nostrilHandle':{'attachTo':str_nostrilRibbon,'mode':'handleAttach'},
-		           'noseMoveHandle':{'mode':'blendAttach','defaultValue':.9,'followSuffix':'Jaw'},	           
-		           'noseMoveRig':{},	               
+		           'noseMoveHandle':{'mode':'blendAttachStable','defaultValue':.9,'followSuffix':'Jaw',
+		                             'target0':self.md_rigList['stableNose'][0]},	           
+		           'noseMoveRig':{'mode':'blendAttachStable','defaultValue':.9,'followSuffix':'Jaw','controlObj':self.md_rigList['noseMoveHandle'][0],
+		                          'target0':self.md_rigList['noseMoveHandle'][0]},	               
 		           'noseTipRig':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseTipHandle'][0]},
 		           'noseTipHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0]},
 		           'noseUnderRig':{},
@@ -1480,6 +1313,7 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"!Attach! | %s"%(error)
 	    
 	    #self.log_infoNestedDict('md_attachReturns')
+	    
 	    try:#>> Skin nose  =======================================================================================
 		self.progressBar_setMaxStepValue(4)		
 		try:#Build list
@@ -1520,7 +1354,7 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"!Skin nostril plate! | %s"%(error)	
 	    
 	    #>>> Connect build dict ==================================================================
-	    d_build = {'noseMove':{},
+	    d_build = {#'noseMove':{},
 	               'noseTop':{},
 	               'noseUnder':{}}
 	    
@@ -1554,7 +1388,7 @@ def build_rig(*args, **kws):
 		    except Exception,error:  raise StandardError,"%s | %s"%(str_tag,error)
 		    
 	    except Exception,error:  raise StandardError,"!Connect rig>handle! | %s"%(error)	
-			
+	    '''
 	    try:#>> Nose Move =======================================================================================
 		self.progressBar_set(status = "Setting up nose move")
 		
@@ -1576,7 +1410,7 @@ def build_rig(*args, **kws):
 		    cgmMeta.cgmAttr(mi_offsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_handle.mNode))
 		except Exception,error:raise StandardError,"[Offset grou]{ %s}"%(error)
 	    except Exception,error:raise StandardError,"[Nose Move setup]{%s}"%(error)
-	    
+	    '''
 	    try:#>> Nose Move Up Loc =======================================================================================
 		self.progressBar_set(status = "Setting up nose move up loc")
 		mi_noseMove = self.md_rigList['noseMoveHandle'][0]
@@ -1606,15 +1440,7 @@ def build_rig(*args, **kws):
 		#self.log_infoNestedDict('d_buffer')
 		self.aim_fromDict(d_build)
 	    except Exception,error:raise StandardError,"[Aim Setup]{%s}"%(error)
-	    
-	    '''
-	    try:#Create the brow up loc and parent it to the 
-		mi_browFrontUpLoc = mi_offsetGroup.doLoc()
-		mi_browFrontUpLoc.parent = mi_offsetGroup.parent
-		mi_browFrontUpLoc.tz = f_offsetOfUpLoc
-		self.mi_browFrontUpLoc = mi_browFrontUpLoc
-	    except Exception,error:raise StandardError,"[Offset group]{%s}"%(error)
-	    '''
+
 	def _buildLips_(self):
 	    #>> Get some data =======================================================================================
 	    """
@@ -2620,15 +2446,6 @@ def build_rig(*args, **kws):
 							str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
 							_d['%sLoc'%str_t] = mi_loc
 							mi_loc.parent = mi_go._i_rigNull#parent to rigNull			    
-							
-							'''
-							try:
-							    i_masterGroup = (cgmMeta.cgmObject(mi_loc.doGroup(True),setClass=True))
-							    i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
-							    i_masterGroup.doName()
-							    mi_loc.connectChildNode(i_masterGroup,'masterGroup','groupChild')			
-							except Exception,error:raise StandardError,"!masterGroup! | %s"%(error)
-							'''
 							try:#Attach
 							    d_return = surfUtils.attachObjToSurface(objToAttach = mi_loc,
 								                                    targetSurface = _attachTo,
@@ -2685,7 +2502,91 @@ def build_rig(*args, **kws):
 					    except Exception,error:
 						#self.log_infoNestedDict('d_buffer')
 						raise StandardError,"!Setup follow loc blend!|!]{%s}"%(error)
-					except Exception,error:raise StandardError,"!Blend Attach Mode! | %s"%(error)	
+					except Exception,error:raise StandardError,"!Blend Attach Mode! | %s"%(error)
+				    elif str_mode == 'blendAttachStable' and _attachTo:
+					try:#Blend attach ==================================================================================
+					    try:#Query ---------------------------------------------------------------------------------------
+						_target0 = d_use.get('target0') or self.md_rigList['stableJaw'][0]
+						_mControlObj = d_use.get('controlObj') or mObj
+						_d = {'handle':mObj,
+					              'target0':_target0}
+						self.d_buffer = _d
+						_defaultValue = d_use.get('defaultValue') or None
+						_suffix = d_use.get('followSuffix') or 'Deformation'
+					    except Exception,error:raise StandardError,"!Query! | %s"%(error)	
+						
+					    try:#Build Tracklocs -----------------------------------------------------------------------------
+						str_base = mObj.getAttr('cgmName') or 'NONAMETAG'
+						d_trackLocs = {'stable':{'attachControlLoc':False,'parentToFollowGroup':False},
+					                       'def':{'attachControlLoc':True,'parentToFollowGroup':True}}
+						for i,str_t in enumerate(d_trackLocs.keys()):
+						    try:
+							d_sub = d_trackLocs[str_t]
+							mi_loc = mObj.doLoc()
+							mi_loc.addAttr('cgmTypeModifier',str_t)
+							mi_loc.doName()
+							str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
+							_d['%sLoc'%str_t] = mi_loc
+							if str_t == 'def':
+							    mi_loc.parent = mi_go._i_rigNull#parent to rigNull			    
+							    try:#Attach
+								d_return = surfUtils.attachObjToSurface(objToAttach = mi_loc,
+								                                        targetSurface = _attachTo,
+								                                        createControlLoc = True,
+								                                        createUpLoc = False,	
+								                                        attachControlLoc = d_sub.get('attachControlLoc'),
+								                                        parentToFollowGroup = d_sub.get('parentToFollowGroup'),
+								                                        orientation = mi_go._jointOrientation)
+								self.md_attachReturns[mi_loc] = d_return								
+							    except Exception,error:raise StandardError,"!Attach! | %s"%(error)
+							
+							self.log_info("'%s' created"%str_tmp)
+							
+							self.md_rigList[str_tmp] = [mi_loc]
+							self.__dict__['mi_%s'%str_tmp] = mi_loc
+							mObj.connectChildNode(mi_loc,'%sLoc'%str_t,'owner')
+						    except Exception,error:raise StandardError,"!'%s' loc setup! | %s"%(str_t,error)				
+					    except Exception,error:raise StandardError,"!Track locs! | %s"%(error)	
+					    try:#Blend Setup -----------------------------------------------------------------------------
+						#Query
+						mi_handle = _d['handle']		    
+						mi_stableLoc = _d['stableLoc']
+						mi_defLoc = _d['defLoc']
+						mi_stableDef = _d['target0']
+
+						try:#Constrain the stable loc to the face
+						    #mi_controlLoc = self.md_attachReturns[mi_stableLoc]['controlLoc']
+						    #mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
+						    #mi_controlLoc.parent = mi_stableDef
+						    mi_stableLoc.parent = mi_stableDef
+						except Exception,error:raise StandardError,"!Stable loc controlLoc! | %s"%(error)
+						
+						try:#Create constrain the handle master Group
+						    str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
+						                                               maintainOffset = True)[0]
+						except Exception,error:raise StandardError,"!Parent Constraint! | %s"%(error)
+						
+						try:
+						    #EndBlend
+						    d_blendFollowReturn = NodeF.createSingleBlendNetwork([_mControlObj.mNode,'follow%s'%_suffix.capitalize()],
+						                                                         [_mControlObj.mNode,'resultStableFollow'],
+						                                                         [_mControlObj.mNode,'resultDefFollow'],
+						                                                         keyable=True)
+						    l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
+						    #Connect                                  
+						    d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
+						    d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
+						    d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
+						    d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True	
+						    if _defaultValue is not None:
+							d_blendFollowReturn['d_driver']['mi_plug'].p_defaultValue = _defaultValue
+							d_blendFollowReturn['d_driver']['mi_plug'].value = _defaultValue
+						except Exception,error:raise StandardError,"!Blend! | %s"%(error)
+						
+					    except Exception,error:
+						#self.log_infoNestedDict('d_buffer')
+						raise StandardError,"!Setup follow loc blend!|!]{%s}"%(error)
+					except Exception,error:raise StandardError,"!Blend Attach Mode! | %s"%(error)				    
 				    elif str_mode == 'slideAttach' and _attachTo:
 					try:
 					    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
