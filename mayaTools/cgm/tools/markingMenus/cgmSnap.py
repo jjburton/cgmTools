@@ -14,7 +14,7 @@ from cgm.tools.lib import locinatorLib
 from cgm.lib import locators
 
 import cgmToolbox
-
+reload(cgmToolbox)
 reload(locinatorLib)
 reload(tdToolsLib)
 
@@ -195,7 +195,8 @@ class snapMarkingMenu(BaseMelWindow):
 	                c = lambda *a: buttonAction(cgmToolbox.loadTDTools()))
 		MelMenuItem(parent, l = 'cgm.attrTools',
 	                c = lambda *a: buttonAction(cgmToolbox.loadAttrTools()))
-		
+		MelMenuItem(parent, l = 'reload cgm.core',
+	                c = lambda *a: buttonAction(cgmToolbox.reload_cgmCore()))		
 
 		MelMenuItemDiv(parent)	
 		MelMenuItem(parent, l="Reset",

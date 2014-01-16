@@ -307,6 +307,12 @@ def loadCGMSimpleGUI( *a ):
     reload(uiFactory)
     uiFactory.cgmGUI()
     
+def reload_cgmCore( *a ):
+    try:
+	import cgm.core
+	cgm.core._reload()	
+    except Exception,error:log.warning("[reload_cgmCoreFail]{%s}"%error)
+	
 def loadPolyUniteTool( *a ):
     from cgm.tools import polyUniteTool
     reload(polyUniteTool)
