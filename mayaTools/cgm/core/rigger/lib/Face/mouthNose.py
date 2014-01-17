@@ -63,6 +63,7 @@ from cgm.lib import (attributes,
                      curves,
                      )
 
+
 #>>> Skeleton
 #=========================================================================================================
 __l_jointAttrs__ = ['rigJoints','handleJoints']   
@@ -644,9 +645,9 @@ def build_rig(*args, **kws):
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
-	                        {'step':'Tongue build','call':self._buildTongue_},	                        
-	                        #{'step':'Lip build','call':self._buildLips_},
-	                        #{'step':'NoseBuild','call':self._buildNose_},
+	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
+	                        {'step':'Lip build','call':self._buildLips_},
+	                        {'step':'NoseBuild','call':self._buildNose_},
 	                        #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        
 	                        #{'step':'Cheek build','call':self._buildCheeks_},
 	                        {'step':'Lock N hide','call':self._lockNHide_},
@@ -1298,9 +1299,9 @@ def build_rig(*args, **kws):
 		#'nostrilHandle':{'attachTo':str_nosePlate,'mode':'handleAttach'}
 		d_build = {'nostrilRig':{'attachTo':str_nosePlate},
 		           'nostrilHandle':{'attachTo':str_nostrilRibbon,'mode':'handleAttach'},
-		           'noseMoveHandle':{'mode':'blendAttachStable','defaultValue':.9,'followSuffix':'Jaw',
+		           'noseMoveHandle':{'mode':'blendAttachStable','defaultValue':.1,'followSuffix':'Jaw',
 		                             'target0':self.md_rigList['stableNose'][0]},	           
-		           'noseMoveRig':{'mode':'blendAttachStable','defaultValue':.9,'followSuffix':'Jaw','controlObj':self.md_rigList['noseMoveHandle'][0],
+		           'noseMoveRig':{'mode':'blendAttachStable','defaultValue':.1,'followSuffix':'Jaw','controlObj':self.md_rigList['noseMoveHandle'][0],
 		                          'target0':self.md_rigList['noseMoveHandle'][0]},	               
 		           'noseTipRig':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseTipHandle'][0]},
 		           'noseTipHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0]},
@@ -1884,6 +1885,7 @@ def build_rig(*args, **kws):
 		mi_noseUnder = self.md_rigList['noseUnderHandle'][0]
 		mi_chin = self.md_rigList['chin'][0]
 		mi_noseMove = self.md_rigList['noseMoveHandle'][0]
+		mi_noseTop = self.md_rigList['noseTopHandle'][0]		
 		mi_mouthMove = self.md_rigList.get('mouthMove')[0]		
 		mi_lwrCenterHandle = self.md_rigList['lipLwrHandle']['center'][0]
 		'''
@@ -1898,9 +1900,9 @@ def build_rig(*args, **kws):
 			  'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseMove}}
 		'''
 		#'lipLwrRig':{'mode':'lipLineBlend','upLoc':mi_mouthMoveUpLoc}
-		
+		#mi_noseMove,mi_noseMove.masterGroup,
 		d_build = {'mouthMoveTrackLoc':{'mode':'singleVectorAim','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
-		                                'upLoc':mi_mouthMoveUpLoc,'aimTargets':[mi_noseMove,mi_noseMove.masterGroup,mi_noseMove.masterGroup]},
+		                                'upLoc':mi_mouthMoveUpLoc,'aimTargets':[mi_noseTop]},
 		           'chin':{'mode':'singleTarget','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
 		                   'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_lwrCenterHandle.masterGroup},
 		           'lipUprRig':{'mode':'lipLineBlend','upLoc':mi_noseUnder,'v_up':mi_go._vectorUp},
