@@ -203,8 +203,9 @@ class cgmFuncCls(object):
     def _ExceptionHook_(self, etype, value, tb, detail=2):
 	# do something here...
 	try:
-	    if detail == 2:	    
-		db_file = tb.tb_frame.f_code.co_filename
+	    if detail == 2:	
+		try:db_file = tb.tb_frame.f_code.co_filename
+		except:db_file = "<maya console>"
 		self.report_base()
 		self.log_info(_str_headerDiv + " Exception " + _str_headerDiv + _str_subLine)		
 		self.log_info("Step: '%s'"%self._str_failStep)
