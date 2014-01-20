@@ -90,7 +90,7 @@ def stringArg(arg = None,noneValid = True,calledFrom = None):
     if type(arg) in [str,unicode]:
 	return arg
     elif noneValid:
-	return False
+	return None
     else: raise StandardError, ">>> stringArg >> Arg failed: arg = %s | type: %s"%(arg,type(arg))
 
 def stringListArg(l_args = None, noneValid = False, calledFrom = None):
