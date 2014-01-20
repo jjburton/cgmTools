@@ -1288,19 +1288,23 @@ class cgmObject(cgmNode):
         obj(string)     
         autoCreate(bool) - whether to create a transforum if need be
         """
-        ### input check
-	#if node == None:
-	    #catch = cgmMeta(name = name, nodeType = 'transform')
-	    #node = catch.mNode
-
+	'''
+	_NodeSelf = cgmNode(node = node, name = name,nodeType = 'transform')
+	if _NodeSelf.isTransform():
+	    super(cgmObject, self).__init__(_NodeSelf.mNode)
+	    if setClass:
+		self.addAttr('mClass','cgmObject',lock=True)	
+		
+	log.error("'%s' has no transform"%_NodeSelf.mNode)
+	
+	'''
         super(cgmObject, self).__init__(node = node, name = name,nodeType = 'transform')
-        
         if not self.isTransform():
             log.error("'%s' has no transform"%self.mNode)
-            raise StandardError, "The class was designed to work with objects with transforms"
+            raise Exception, "The class was designed to work with objects with transforms"
 	if setClass:
 	    self.addAttr('mClass','cgmObject',lock=True)
-	    
+    
     def __bindData__(self):pass
         #self.addAttr('test',2)
     
@@ -4324,17 +4328,34 @@ def validateObjArg(*args,**kws):
 		if arg in [None,False]:
 		    if arg not in [None,False]:log.warning("%s arg fail: %s"%(self._str_reportStart,arg))
 		    return False
-	    if issubclass(argType,cgmNode):#we have an instance already
+	    try:
+		arg.mNode
 		self.mi_arg = arg
-	    elif not mc.objExists(arg):
-		if noneValid: return False
-		else:raise ValueError,"Obj doesn't exist: '%s'"%arg   
-	    elif mType is not None:
-		#log.debug("validateObjArg>>> mType arg: '%s'"%mType)
-		if self.mi_arg: self.mi_autoInstance = self.mi_arg
-		else: self.mi_autoInstance = cgmNode(arg)
+		self.log_debug("instance already...")
+	    except:
+		self.mi_arg = False
+	    
+	    self.log_debug("Checking: %s"%arg)	
+	    
+	    if not self.mi_arg:
+		if not mc.objExists(arg):
+		    if noneValid: return False
+		    else:raise ValueError,"Obj doesn't exist: '%s'"%arg  
+		else:
+		    self.mi_autoInstance = cgmNode(arg)  
+	    else:
+		self.log_debug("autoInstance linked to arg...")				    
+		self.mi_autoInstance = self.mi_arg
+		
+	    self.log_debug("mType: %s"%mType)
+	    if mType is None:
+		if not self.mi_arg:
+		    self.log_debug("Initializing as defaultType: %s"%default_mType)
+		    self.mi_arg = default_mType(arg)		
+	    else:
+		self.log_debug("checking mType...")		
 		if type(mType) in [unicode,str]:
-		    #log.debug("validateObjArg>>> string mType: '%s'"%mType)
+		    self.log_debug("string mType: '%s'"%mType)
 		    self.str_foundClass = str(self.mi_autoInstance).split("'>")[0].split(".")[-1]
 		    if self.mi_autoInstance.getAttr('mClass') == mType:
 			self.mi_arg = self.mi_autoInstance
@@ -4343,12 +4364,20 @@ def validateObjArg(*args,**kws):
 		    else:
 			raise StandardError,"['%s' Not correct mType. Called from string mType]{mType Seeking: %s | mClass : %s | Found Type: %s}"%(self.mi_autoInstance.p_nameShort,mType,self.mi_autoInstance.getAttr('mClass'),self.str_foundClass)			    
 		else:
-		    if issubclass(type(self.mi_autoInstance),mType):#if it's a subclass of our mType, good to go
+		    self.log_debug("mType: '%s'"%mType)		    
+		    if issubclass(self.mi_autoInstance.__class__,mType):#if it's a subclass of our mType, good to go
+			self.log_debug("mType good to go")		    						
 			self.mi_arg = self.mi_autoInstance
-		    else:self.mi_arg = mType(arg)
-	    else:
-		#log.debug("validateObjArg>>> Initializing as defaultType: %s"%default_mType)
-		self.mi_arg = default_mType(arg)
+		    elif self.mi_autoInstance.getAttr('mClass'):
+			self.log_warning("This object is already mClass tagged. Cannot change via this call.")		    									
+			return False
+		    else:
+			try:self.mi_arg = mType(self.mi_autoInstance.mNode)
+			except Exception,error:
+			    self.log_debug("obj: %s"%arg)		    
+			    self.log_debug("mType: %s"%mType)
+			    raise StandardError,"[Failed to reinitilize %s to type %s]{%s}"%(self.mi_arg.mNode,mType,error)
+		
 	    if mayaType is not None and len(mayaType):
 		if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
 		else: l_mayaTypes = mayaType
