@@ -225,31 +225,31 @@ def ut_cgmMeta(*args, **kws):
 	    except Exception,error:raise StandardError,"[creation]{%s}"%error
 	    
 	    try:cgmMeta.validateObjArg()
-	    except:self.log_info("Empty arg should have failed and did")
+	    except:self.log_debug("Empty arg should have failed and did")
 	    else:
 		raise StandardError,"Empty arg should have failed and did NOT"
 	    
 	    assert i_obj == cgmMeta.validateObjArg(i_obj.mNode),"string arg failed"
-	    #self.log_info("String arg passed!")
+	    self.log_debug("String arg passed!")
 	    assert i_obj == cgmMeta.validateObjArg(i_obj),"instance arg failed"
-	    #self.log_info("instance arg passed!")
+	    self.log_debug("instance arg passed!")
 	    
 	    i_returnObj = cgmMeta.validateObjArg(i_obj.mNode,cgmMeta.cgmObject)
 	    assert issubclass(type(i_returnObj),cgmMeta.cgmObject),"String + mType arg failed!"
-	    #self.log_info("String + mType arg passed!")
+	    self.log_debug("String + mType arg passed!")
 	    
 	    assert i_obj == cgmMeta.validateObjArg(i_obj,cgmMeta.cgmObject),"Instance + mType arg failed!"
-	    #self.log_info("Instance + mType arg passed!")
+	    self.log_debug("Instance + mType arg passed!")
 	    
 	    try:validateObjArg(i_node.mNode,cgmMeta.cgmObject)
-	    except:self.log_info("Validate cgmNode as cgmObject should have failed and did")
+	    except:self.log_debug("Validate cgmNode as cgmObject should have failed and did")
 	    
 	    assert issubclass(type(cgmMeta.validateObjArg(null)),cgmMeta.cgmNode),"Null string failed!"
-	    #self.log_info("Null string passed!")
+	    self.log_debug("Null string passed!")
 	    
 	    i_null = cgmMeta.validateObjArg(null,cgmMeta.cgmObject)
 	    assert issubclass(type(i_null),cgmMeta.cgmObject),"Null as cgmObject failed!"
-	    #self.log_info("Null as cgmObjectpassed!")
+	    self.log_debug("Null as cgmObjectpassed!")
 	    
 	    i_null.delete()
 	    i_node.delete()
