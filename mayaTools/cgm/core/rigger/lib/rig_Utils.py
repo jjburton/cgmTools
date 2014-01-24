@@ -2245,6 +2245,7 @@ def createSegmentCurve(*args,**kws):
 		    #connect some other data
 		    mi_locRotateGroup.connectChildNode(mi_locRotateGroup.parent,'zeroGroup')
 		    mi_locRotateGroup.connectChildNode(mi_upLoc,'upLoc')
+		    mJnt.connectChildNode(mi_upLoc,'upLoc')
 		    mc.makeIdentity(mi_locRotateGroup.mNode, apply=True,t=1,r=1,s=1,n=0)
 	    
 		    mi_upLoc.parent = mi_locRotateGroup.mNode
@@ -5251,8 +5252,84 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
     return {'i_controlSurface':i_controlSurface,'controlSurface':i_controlSurface.mNode,'surfaceScaleBuffer':i_jntScaleBufferNode.mNode,'i_surfaceScaleBuffer':i_jntScaleBufferNode,'l_joints':jointList,'l_iJoints':ml_jointList}
 
 
+def addRibbonTwistToControlSetupRewrite(*args,**kws):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "addRibbonTwistToControlSetup"
+	    self._b_reportTimes = True
+	    self._b_autoProgressBar = 1
+	    self._str_funcHelp = "This is our general purpose spline IK segment\nIt has lots of features:)"
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'jointList',"default":None,'help':"List or metalist of joints","argType":"joints"},
+	                                 {'kw':'startControlDriver',"default":None,'help':"Start twist attribute","argType":"attribute arg"},
+	                                 {'kw':'endControlDriver',"default":None,'help':"Start twist attribute","argType":"attribute arg"},
+	                                 {'kw':'orientation',"default":'zyx','help':"What is the joints orientation","argType":"string"},
+	                                 {'kw':'rotateGroupAxis',"default":'rotateZ','help':"Axis which rotates the rotate group's twist","argType":"attribute string - most likely rotation"},
+	                                 {'kw':'moduleInstance',"default":None,'help':"cgmModule to use for connecting on build","argType":"cgmModule"}]	                                 
 
-def addRibbonTwistToControlSetup(jointList,
+	    self.__dataBind__(*args,**kws)
+	    self.l_funcSteps = [{'step':'Verify','call':self._verify_}]
+	                        
+	    #=================================================================
+	def _verify_(self):
+	    #THIS IS PLACEHODER TILL WE GET BACK TO IT!
+	    return
+	    try:#Query ===========================================================================================
+		self.ml_joints = cgmMeta.validateObjListArg(self.d_kws['jointList'],mType = cgmMeta.cgmObject, mayaType=['joint'], noneValid = False)
+		self.l_joints = [mJnt.p_nameShort for mJnt in self.ml_joints]
+		self.int_lenJoints = len(self.ml_joints)#because it's called repeatedly
+		self.mi_useCurve = cgmMeta.validateObjArg(self.d_kws['useCurve'],mayaType=['nurbsCurve'],noneValid = True)
+		self.mi_module = cgmMeta.validateObjArg(self.d_kws['moduleInstance'],noneValid = True)
+		try:self.mi_module.isModule()
+		except:self.mi_module = False
+		self.mi_mayaOrientation = cgmValid.simpleOrientation(self.d_kws['orientation'])
+		self.str_orientation = self.mi_mayaOrientation.p_string
+		self.str_secondaryAxis = cgmValid.stringArg(self.d_kws['secondaryAxis'],noneValid=True)
+		self.str_baseName = cgmValid.stringArg(self.d_kws['baseName'],noneValid=True)
+		self.str_connectBy = cgmValid.stringArg(self.d_kws['connectBy'],noneValid=True)		
+		self.b_addMidTwist = cgmValid.boolArg(self.d_kws['addMidTwist'])
+		self.b_advancedTwistSetup = cgmValid.boolArg(self.d_kws['advancedTwistSetup'])
+		self.b_extendTwistToEnd= cgmValid.boolArg(self.d_kws['extendTwistToEnd'])
+	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)  
+	    
+	    try:#Validate =====================================================================================
+		if self.b_addMidTwist and self.int_lenJoints <4:
+		    raise StandardError,"must have at least 3 joints for a mid twist setup"
+		if self.int_lenJoints<3:
+		    raise StandardError,"needs at least three joints"
+		
+		#Good way to verify an instance list? #validate orientation             
+		#> axis -------------------------------------------------------------
+		self.axis_aim = cgmValid.simpleAxis("%s+"%self.str_orientation [0])
+		self.axis_aimNeg = cgmValid.simpleAxis("%s-"%self.str_orientation [0])
+		self.axis_up = cgmValid.simpleAxis("%s+"%self.str_orientation [1])
+		
+		self.v_aim = self.axis_aim.p_vector#aimVector
+		self.v_aimNeg = self.axis_aimNeg.p_vector#aimVectorNegative
+		self.v_up = self.axis_up.p_vector   #upVector
+		
+		self.outChannel = self.str_orientation [2]#outChannel
+		self.upChannel = '%sup'%self.str_orientation [1]#upChannel
+		
+	    except Exception,error:
+		raise StandardError,"[data validation]{%s}"%(error)  
+
+	    try:#>>> Module instance =====================================================================================
+		self.mi_rigNull = False	
+		if self.mi_module:
+		    self.mi_rigNull = self.mi_module.rigNull	
+
+		    if self.str_baseName is None:
+			self.str_baseName = self.mi_module.getPartNameBase()#Get part base name	    
+			log.debug('baseName set to module: %s'%self.str_baseName)	    	    
+		if self.str_baseName is None:self.str_baseName = 'testSegmentCurve'    
+		
+	    except Exception,error:raise StandardError,"[Module checks]{%s}"%(error) 	    
+    return fncWrap(*args,**kws).go()
+
+def addRibbonTwistToControlSetupOld(jointList,
                                  startControlDriver = None, endControlDriver = None,
                                  rotateGroupAxis = 'rotateZ',
                                  orientation = 'zyx', moduleInstance = None):
@@ -5391,35 +5468,37 @@ def addRibbonTwistToControlSetup(jointList,
     d_mi_jointToIndex = {}
     #Make sure all but the last have rotate groups,grab those plugs
     for i,i_jnt in enumerate(ml_jointList):
-        d_mi_jointToIndex[i_jnt]=i
-        if i_jnt == ml_jointList[-1]:#If it's the last
-            d_drivenPlugs[i] = [i_jnt.getShortName(),"rotate%s"%aimChannel]
-        else:   
-            rotateGroupBuffer = i_jnt.getMessage('rotateUpGroup',False)[0]
-            if not rotateGroupBuffer:
-                raise StandardError,"'%s' lacks a connected rotateUpGroup!"%i_jnt.getShortName()
-            if mc.objExists('%s.%s'%(rotateGroupBuffer,rotateGroupAxis)):
-                d_drivenPlugs[i] = [rotateGroupBuffer,rotateGroupAxis]
-                #We need to reparent and point constrain our rotate zero groups
-                if i_jnt.rotateUpGroup.getMessage('zeroGroup') and i_jnt.rotateUpGroup.getMessage('follicle'):
-                    i_zeroGroup = i_jnt.rotateUpGroup.zeroGroup#Get zero
-                    i_follicle = i_jnt.rotateUpGroup.follicle#get follicle
-                    i_zeroGroup.parent = i_follicle.parent#parent zerogroup to follicle
-                    """mc.pointConstraint(i_follicle.mNode,i_zeroGroup.mNode,
-				       maintainOffset=False)"""	
-                    mc.parentConstraint(i_follicle.mNode,i_zeroGroup.mNode,
-                                        maintainOffset=True)
-
-
-            else:
-                raise StandardError,"Rotate group has no axis: %s!"%rotateGroupAxis
+	try:
+	    d_mi_jointToIndex[i_jnt]=i
+	    if i_jnt == ml_jointList[-1]:#If it's the last
+		d_drivenPlugs[i] = [i_jnt.getShortName(),"rotate%s"%aimChannel]
+	    else:   
+		try:rotateGroupBuffer = i_jnt.getMessage('rotateUpGroup',False)[0]
+		except Exception,error: raise Exception,"[No rotateUpGroup found]{%s}"%(error)
+		
+		if not rotateGroupBuffer:
+		    raise StandardError,"'%s' lacks a connected rotateUpGroup!"%i_jnt.getShortName()
+		if mc.objExists('%s.%s'%(rotateGroupBuffer,rotateGroupAxis)):
+		    d_drivenPlugs[i] = [rotateGroupBuffer,rotateGroupAxis]
+		    #We need to reparent and point constrain our rotate zero groups
+		    if i_jnt.rotateUpGroup.getMessage('zeroGroup') and i_jnt.rotateUpGroup.getMessage('follicle'):
+			i_zeroGroup = i_jnt.rotateUpGroup.zeroGroup#Get zero
+			i_follicle = i_jnt.rotateUpGroup.follicle#get follicle
+			i_zeroGroup.parent = i_follicle.parent#parent zerogroup to follicle
+			"""mc.pointConstraint(i_follicle.mNode,i_zeroGroup.mNode,
+					   maintainOffset=False)"""	
+			mc.parentConstraint(i_follicle.mNode,i_zeroGroup.mNode,
+			                    maintainOffset=True)
+		else:
+		    raise StandardError,"Rotate group has no axis: %s!"%rotateGroupAxis
+	except Exception,error: raise Exception,"['%s' gather dataFail]{%s}"%(i_jnt.p_nameShort,error)
 
     #replace our start and end with our drivers
     d_driverPlugs[0] = startControlDriver
     d_driverPlugs[len(ml_jointList)-1] = endControlDriver
 
-    log.debug("drivenPlugs: %s"%d_drivenPlugs)
-    log.debug("driverPlugs: %s"%d_driverPlugs)
+    log.info("drivenPlugs: %s"%d_drivenPlugs)
+    log.info("driverPlugs: %s"%d_driverPlugs)
 
     #>>>Setup
     #Connect first and last
@@ -5460,10 +5539,10 @@ def addRibbonTwistToControlSetup(jointList,
     else:#factor and run
         #Make a factored list
         l_factored = lists.returnFactoredConstraintList(range(len(jointList)),3)
-        log.debug(l_factored)
+        log.info(l_factored)
         try:
             for chunk in l_factored:
-                log.debug("On chunk: %s"%chunk)	    
+                log.info("On chunk: %s"%chunk)	    
                 if len(chunk) == 3:
                     averageNetwork_three(chunk)
                 elif len(chunk) == 4:
@@ -5484,8 +5563,8 @@ def addRibbonTwistToControlSetup(jointList,
 
     #Make our connections
     for i,driver in enumerate([startControlDriver,endControlDriver]):
-        log.debug(i)
-        log.debug(driver)
+        log.info(i)
+        log.info(driver)
         attributes.doConnectAttr('%s.%s'%(driver[0],driver[1]),'%s.input1D[%s]'%(i_pma.mNode,i))
 
     #Last joing arg
