@@ -734,11 +734,10 @@ def build_rig(*args, **kws):
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
 	                        {'step':'Lip build','call':self._buildLips_},
-	                        {'step':'NoseBuild','call':self._buildNose_},
-	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        
-	                        {'step':'Cheek build','call':self._buildCheeks_},
-	                        {'step':'Lock N hide','call':self._lockNHide_},
-	                        
+	                        #{'step':'NoseBuild','call':self._buildNose_},
+	                        #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        
+	                        #{'step':'Cheek build','call':self._buildCheeks_},
+	                        #{'step':'Lock N hide','call':self._lockNHide_},
 	                        ]	
 	    #=================================================================
 	def _gatherInfo_(self):
@@ -1878,28 +1877,67 @@ def build_rig(*args, **kws):
 		           'lwrLipSegment':{'orientation':mi_go._jointOrientation,
 		                            'left':{'mi_curve':mi_lwrDrivenCrv},
 		                            'right':{'mi_curve':self.mi_lwrLipDrivenReverseCrv}}}	
-		#self.md_rigList['uprLipSegment']['left'] = mi_go._i_rigNull.msgList_get('uprLipSegmentLeftJoints')
-		#self.md_rigList['uprLipSegment']['right'] = mi_go._i_rigNull.msgList_get('uprLipSegmentRightJoints')
 		self.create_segmentfromDict(d_build)
-	    except Exception,error:raise StandardError,"[Segments]{%s}"%(error)  	    
+	    except Exception,error:raise StandardError,"[Segments]{%s}"%(error)  
 	    
+	    try:#Build mid lip Up Locs ========================================================================	
+		d_build = {'uprLipSegment':{'left':{'mi_curve':mi_uprDrivenCrv},
+		                            'right':{'mi_curve':self.mi_uprLipDrivenReverseCrv}},
+		           'lwrLipSegment':{'left':{'mi_curve':mi_lwrDrivenCrv},
+		                            'right':{'mi_curve':self.mi_lwrLipDrivenReverseCrv}}}			
+		#So we are gonna grab the upLocs from our segment returns and make our mid roll up locs from that constrainig between the end rolls
+		for i,str_k in enumerate(d_build.keys()):
+		    d_buffer = d_build[str_k]
+		    ml_locs = []
+		    for mi_curve in d_buffer['left']['mi_curve'],d_buffer['right']['mi_curve']:
+			try:d_return = self.md_attachReturns[mi_curve]
+			except Exception,error:
+			    self.log_error(error)
+			    raise Exception,"[Failed to find attachReturn: %s | %s]{%s}"%(str_k,i,error)
+			try:ml_locs.append(d_return['ml_drivenJoints'][-1].upLoc)
+			except Exception,error:
+			    self.log_error(error)			    
+			    raise Exception,"[Failed to find upLoc: %s | %s]{%s}"%(str_k,i,error)	
+		    try:
+			#Dup with connections for maintaining toggles
+			mi_loc = cgmMeta.cgmObject( mc.duplicate(ml_locs[0].mNode,po=False,ic=True,rc=True)[0],setClass=True )
+			mi_loc.parent = mi_go._i_rigNull
+			mi_loc.addAttr('cgmTypeModifier','midLoc')
+			mi_loc.doName()
+		    except Exception,error:
+			self.log_error(error)			
+			raise Exception,"[%s | loc create]{%s}"%(str_k,error)	
+		    mc.pointConstraint([mLoc.mNode for mLoc in ml_locs],mi_loc.mNode,maintainOffset = False)
+		    #self.md_rigList["%sMidUpLoc"%str_k]
+		    self.__dict__["mi_%sMidUpLoc"%str_k] = mi_loc
+		    #d_return['midUpLoc'] = mi_loc#Push to the attachReturn for later pulling
+	    except Exception,error:raise StandardError,"[Build mid lip Up Locs]{%s}"%(error)  
 	    
 	    try:#Setup Lip Roll ========================================================================
 		#Gonna setup our connections for the roll setup
 		d_build = {'uprLipRoll':{'handleKey':'lipUprHandle',
 		                         'mi_crvLeft':mi_uprDrivenCrv,
 		                         'mi_crvRight':self.mi_uprLipDrivenReverseCrv,
-		                         'argLeftStart':'%s = -%s%s',
-		                         'argLeftEnd':'%s = -%s%s - %s%s',
-		                         'argRightStart':'%s = -%s%s',
-		                         'argRightEnd':'%s = -%s%s + %s%s'},
+		                         'argLeftStart':'%s = -%s - %s%s',
+		                         'argLeftEnd':'%s = -%s - %s%s',
+		                         'argRightStart':'%s = %s + %s%s',
+		                         'argRightEnd':'%s = %s + %s%s'},
+		           'lwrLipRoll':{'handleKey':'lipLwrHandle',
+		                         'mi_crvLeft':mi_lwrDrivenCrv,
+		                         'mi_crvRight':self.mi_lwrLipDrivenReverseCrv,
+		                         'argLeftStart':'%s = %s - %s%s',
+		                         'argLeftEnd':'%s = %s - %s%s',
+		                         'argRightStart':'%s = -%s + %s%s',
+		                         'argRightEnd':'%s = -%s + %s%s'}}
+		'''
 		           'lwrLipRoll':{'handleKey':'lipLwrHandle',
 		                         'mi_crvLeft':mi_lwrDrivenCrv,
 		                         'mi_crvRight':self.mi_lwrLipDrivenReverseCrv,
 		                         'argLeftStart':'%s = -%s%s',
 		                         'argLeftEnd':'%s = -%s%s - %s%s',
 		                         'argRightStart':'%s = -%s%s',
-		                         'argRightEnd':'%s = -%s%s + %s%s'}}		
+		                         'argRightEnd':'%s = -%s%s + %s%s'}}
+					 '''		
 		l_keys = d_build.keys()
 		int_lenMax = len(l_keys)
 		for i,str_k in enumerate(l_keys):
@@ -1921,51 +1959,82 @@ def build_rig(*args, **kws):
 			except Exception,error:raise StandardError,"[Query]{%s}"%(error)  
 			
 			try:#>> Progress -----------------------------------------------------------------------
-			    str_message = "Setting up roll : '%s'"%(str_k)
+			    str_message = "'%s' | Setting up roll"%(str_k)
 			    self.log_info(str_message)
-			    self.progressBar_set(status = str_message,progress = i, maxValue = int_lenMax)				    
+			    self.progressBar_set(status = str_message, progress = i, maxValue = int_lenMax)				    
 			except Exception,error:raise StandardError,"[Progress bar]{%s}"%(error)  			    
 
 			try:#>> Get Plugs -----------------------------------------------------------------------
+			    self.log_info("'%s' | Setting up plugs"%(str_k))			    
+			    mPlug_rollLeftDriver =  cgmMeta.cgmAttr(mi_handleCenter,'rollLeft', value= 0.0, attrType='float', defaultValue= 0.0,keyable=True, hidden=False)
+			    mPlug_rollRightDriver =  cgmMeta.cgmAttr(mi_handleCenter,'rollRight', value= 0.0, attrType='float', defaultValue= 0.0,keyable=True, hidden=False)
+			    mPlug_extendTwistDriver =  cgmMeta.cgmAttr(mi_handleCenter,'extendTwistToEnd', value= 1.0, attrType='float', defaultValue= 1.0,keyable=True, hidden=False)
+			    
 			    mPlug_extendTwistToEndLeft = self.md_attachReturns[mi_crvLeft]['mPlug_extendTwist']
 			    mPlug_extendTwistToEndRight = self.md_attachReturns[mi_crvRight]['mPlug_extendTwist']
+			    mPlug_extendTwistToEndLeft.doConnectIn(mPlug_extendTwistDriver.p_combinedShortName)
+			    mPlug_extendTwistToEndRight.doConnectIn(mPlug_extendTwistDriver.p_combinedShortName)
+			    
 			    mPlug_twistStartLeft = cgmMeta.cgmAttr(mi_crvLeft,'twistStart')
 			    mPlug_twistEndLeft = cgmMeta.cgmAttr(mi_crvLeft,'twistEnd')
 			    mPlug_twistStartRight = cgmMeta.cgmAttr(mi_crvRight,'twistStart')
 			    mPlug_twistEndRight = cgmMeta.cgmAttr(mi_crvRight,'twistEnd')			    
-			except Exception,error:raise StandardError,"[Get Plugs]{%s}"%(error)  			    
+			except Exception,error:raise Exception,"[Get Plugs]{%s}"%(error)  			    
 			
 			try:#>> Args to nodes -----------------------------------------------------------------------
-			    #uprLip_driven_splineIKCurve.twistStart= -l_lipUpr_handle_anim.rotateX ;
-			    str_argLeftStart = toFill_leftStart%(mPlug_twistStartLeft.p_combinedShortName,
-			                                         mi_handleLeft.p_nameShort,
-			                                         str_rollAttr)
+			    self.log_info("'%s' | Args to nodes"%(str_k))
+			    #try:#>>Build our dicts --------------------------------------------------------------------
+			    d_argToBuild = {'leftStart':{'arg':toFill_leftStart,
+			                                 'fill':(mPlug_twistStartLeft.p_combinedShortName,
+			                                         mPlug_rollLeftDriver.p_combinedShortName,
+			                                         mi_handleCenter.p_nameShort,str_rollAttr)},
+			                    'leftEnd':{'arg':toFill_leftEnd,
+			                               'fill':(mPlug_twistEndLeft.p_combinedShortName,
+			                                       mPlug_rollLeftDriver.p_combinedShortName,
+			                                       mi_handleCenter.p_nameShort,str_rollAttr)},
+			                    'rightStart':{'arg':toFill_rightStart,
+			                                  'fill':(mPlug_twistStartRight.p_combinedShortName,
+			                                          mPlug_rollRightDriver.p_combinedShortName,
+			                                          mi_handleCenter.p_nameShort,str_rollAttr)},
+			                    'rightEnd':{'arg':toFill_rightEnd,
+			                                'fill':(mPlug_twistEndRight.p_combinedShortName,
+			                                        mPlug_rollRightDriver.p_combinedShortName,
+			                                        mi_handleCenter.p_nameShort,str_rollAttr)}}					     
+			    #except Exception,error:raise Exception,"[Can't even build dict...]{%s}"%(error)  			    
 			    
-			    #'uprLip_driven_splineIKCurve.twistEnd = -l_lipUpr_handle_anim.rotateX - center_lipUpr_handle_anim.rotateX;
-			    str_argLeftEnd= toFill_leftEnd%(mPlug_twistEndLeft.p_combinedShortName,
-			                                    mi_handleLeft.p_nameShort,str_rollAttr,
-			                                    mi_handleCenter.p_nameShort,str_rollAttr)
 			    
-			    #uprLip_driven_splineIKCurve.twistStart= -l_lipUpr_handle_anim.rotateX ;
-			    str_argRightStart = toFill_rightStart%(mPlug_twistStartRight.p_combinedShortName,
-			                                           mi_handleRight.p_nameShort,
-			                                           str_rollAttr)
-			    
-			    #'uprLip_driven_splineIKCurve.twistEnd = -l_lipUpr_handle_anim.rotateX - center_lipUpr_handle_anim.rotateX;
-			    str_argRightEnd= toFill_rightEnd%(mPlug_twistEndRight.p_combinedShortName,
-			                                      mi_handleRight.p_nameShort,str_rollAttr,
-			                                      mi_handleCenter.p_nameShort,str_rollAttr)				    
-			    for arg in str_argLeftStart,str_argLeftEnd,str_argRightStart,str_argRightEnd:
-				self.log_info("argsToNodes: %s"%arg)
-				NodeF.argsToNodes(arg).doBuild()
-			except Exception,error:raise StandardError,"[Args to nodes]{%s}"%(error) 
-			
+			    for str_argK in d_argToBuild.keys():
+				try:
+				    try:
+					self.log_info("'%s' | query"%(str_argK))					
+					str_arg = d_argToBuild[str_argK]['arg']
+					l_buffer = d_argToBuild[str_argK]['fill']
+				    except Exception,error:raise Exception,"[Query]{%s}"%(error)  			    
+				    try:
+					self.log_info("'%s' | build arg from %s"%(str_argK, str_arg))										
+					arg_built = str_arg%l_buffer
+				    except Exception,error:
+					#self.log_info("'%s' | arg: %s"%(str_argK,str_arg))										
+					int_cnt = str_arg.count('%s')	
+					raise StandardError,"['%s' | arg: %s | given fillers: %s | count: %s]{%s}"%(str_argK,str_arg,len(l_buffer),int_cnt,error)
+				    self.log_info("'%s' | argsToNodes..."%(str_argK))									    
+				    self.log_info("building: %s"%(arg_built))
+				    NodeF.argsToNodes(arg_built).doBuild()				
+				except Exception,error:raise Exception,"['%s' fail]{%s}"%(str_argK,error)  			    
+			except Exception,error:raise Exception,"[Args to nodes]{%s}"%(error) 
 			#Process
 		    except Exception,error:raise StandardError,"['%s' fail]{%s}"%(str_k,error)  	    
 
-	    except Exception,error:raise StandardError,"[Lip Roll]{%s}"%(error)  	    
+	    except Exception,error:raise StandardError,"[Lip Roll]{%s}"%(error)  
 	    
 	    '''
+	    #NEW
+	    uprLip_driven_splineIKCurve.twistStart= -center_lipUpr_handle_anim.rollLeft - center_lipUpr_handle_anim.rotateX ;
+	    uprLip_driven_splineIKCurve.twistEnd = -center_lipUpr_handle_anim.rollLeft - center_lipUpr_handle_anim.rotateX - (center_lipUpr_handle_anim.rollRight/3);
+	    uprLip_ReverseDriven_splineIKCurve.twistStart = center_lipUpr_handle_anim.rollRight + center_lipUpr_handle_anim.rotateX;	    
+	    uprLip_ReverseDriven_splineIKCurve.twistEnd = center_lipUpr_handle_anim.rollRight + center_lipUpr_handle_anim.rotateX + (center_lipUpr_handle_anim.rollLeft/3);
+			
+	    
 	    uprLip_driven_splineIKCurve.twistStart= -l_lipUpr_handle_anim.rotateX ;
 	    uprLip_ReverseDriven_splineIKCurve.twistStart = -r_lipUpr_handle_anim.rotateX;
 	    
@@ -2016,7 +2085,7 @@ def build_rig(*args, **kws):
 		    		
 		try:str_chinTrackerMasterGroup = self.md_rigList['chinTrackLoc'][0].masterGroup.p_nameShort
 		except Exception,error:raise StandardError,"ChinTrack master group find fail | %s"%(error)			
-	    except Exception,error:raise StandardError,"[Spcial Locs!]{%s}"%(error)
+	    except Exception,error:raise StandardError,"[Special Locs!]{%s}"%(error)
 	    
 	    try:#Attach stuff to surfaces ====================================================================================
 		#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
@@ -2063,7 +2132,7 @@ def build_rig(*args, **kws):
 		                    self.md_rigList['lipCornerHandle']['right'][0].mNode],
 		                   mi_offsetGroup.mNode,skip = ["%s"%str_axis for str_axis in [mi_go._jointOrientation[0],mi_go._jointOrientation[2]]],
 		                   maintainOffset = True)
-	    except Exception,error:raise StandardError,"!Center upr lip offsetgroup! | %s"%(error)
+	    except Exception,error:raise StandardError,"[Center upr lip offsetgroup!]{%s}"%(error)
 	    
 	    #self.log_infoNestedDict('md_attachReturns')	
 
@@ -2074,7 +2143,7 @@ def build_rig(*args, **kws):
 		           'chinTrackLoc':{'driver':self.md_rigList['chin']},		           
 		           'mouthMoveTrackLoc':{'driver':self.md_rigList['mouthMove']}}
 		self.connect_fromDict(d_build)
-	    except Exception,error:raise StandardError,"!Connect! | %s"%(error)	
+	    except Exception,error:raise StandardError,"[Connect!]{%s}"%(error)	
 	    
 	    try:#>>> Aim some stuff =================================================================================
 		mi_mouthMoveUpLoc = self.md_attachReturns[mi_mouthMoveTrackLoc]['upLoc']
@@ -2101,11 +2170,11 @@ def build_rig(*args, **kws):
 		d_build = {'mouthMoveTrackLoc':{'mode':'singleVectorAim','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
 		                                'upLoc':mi_mouthMoveUpLoc,'aimTargets':[mi_noseTop]},
 		           'chin':{'mode':'singleTarget','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
-		                   'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_lwrCenterHandle.masterGroup},}
-		           #'lipUprRig':{'mode':'lipLineBlend','upLoc':mi_noseUnder,'v_up':mi_go._vectorUp},
-		           #'lipLwrRig':{'mode':'lipLineBlend','upLoc':mi_chin,'v_up':mi_go._vectorUpNegative}}
+		                   'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_lwrCenterHandle.masterGroup},
+		           'lipUprRig':{'mode':'lipLineSegmentBlend','midUpLoc':self.mi_uprLipSegmentMidUpLoc,'v_up':mi_go._vectorUp},
+		           'lipLwrRig':{'mode':'lipLineSegmentBlend','midUpLoc':self.mi_lwrLipSegmentMidUpLoc,'v_up':mi_go._vectorUp}}
 		self.aim_fromDict(d_build)
-	    except Exception,error:raise StandardError,"!Aim! | %s"%(error)	
+	    except Exception,error:raise StandardError,"[Aim!]{%s}"%(error)	
 	    
 	    try:#constrain mids ====================================================================================
 		l_build = [{'obj':self.md_rigList['lipUprHandle']['left'][0],
@@ -2857,7 +2926,7 @@ def build_rig(*args, **kws):
 			    self.progressBar_set(status = (str_message),progress = i, maxValue = int_len)	
 
 			    if str_mode == 'default':
-				d_segReturn = rUtils.createSegmentCurve(ml_buffer, addMidTwist = False,useCurve = mi_curve, moduleInstance = mi_go._mi_module, connectBy = 'scale')
+				d_segReturn = rUtils.createSegmentCurve(ml_buffer, addMidTwist = False,useCurve = mi_curve,  moduleInstance = mi_go._mi_module, connectBy = 'trans')
 			    else:
 				raise NotImplementedError,"not implemented : mode: %s"%_str_mode
 			    
@@ -2878,6 +2947,7 @@ def build_rig(*args, **kws):
 				
 		    except Exception,error:  raise StandardError,"[%s]{%s}"%(str_tag,error)			    
 	    except Exception,error:  raise StandardError,"[create_segmentfromDict]{%s}"%(error)	
+	    
 	def connect_fromDict(self,d_build):
 	    '''
 	    handler for connecting stuff to handles,curves,surfaces or whatever
@@ -2940,7 +3010,8 @@ def build_rig(*args, **kws):
 				    if str_mode == 'rigToSegment':
 					try:
 					    mi_target = mObj.skinJoint.segJoint
-					    mObj.masterGroup.parent = mi_target
+					    mc.pointConstraint(mi_target.mNode,mObj.masterGroup.mNode,maintainOffset = True)
+					    #mObj.masterGroup.parent = mi_target
 					except Exception,error:raise StandardError,"[Failed!]{%s}"%(error)
 				    elif str_mode == 'rigToHandle':
 					try:
@@ -3077,6 +3148,7 @@ def build_rig(*args, **kws):
 					raise NotImplementedError,"not implemented : mode: %s"%str_mode
 		    except Exception,error:  raise StandardError,"[%s]{%s}"%(str_tag,error)			    
 	    except Exception,error:  raise StandardError,"[connect_fromDict]{%s}"%(error)	
+	    
 	def aim_fromDict(self,d_build):
 	    '''
 	    handler for aiming stuff to handles,curves,surfaces or whatever
@@ -3109,7 +3181,7 @@ def build_rig(*args, **kws):
 			l_skip = d_build[str_tag].get('skip') or []
 			for str_side in md_buffer.iterkeys():
 			    if str_side in l_skip:
-				self.log_info("%s Skipping connect: %s"%(str_tag,str_side))
+				self.log_info("%s Skipping aim: %s"%(str_tag,str_side))
 			    else:
 				try:
 				    if d_build[str_tag].get(str_side):#if we have special instructions for a direction key...
@@ -3117,18 +3189,17 @@ def build_rig(*args, **kws):
 				    else:
 					d_buffer = d_build[str_tag]	
 				    ml_buffer = md_buffer[str_side]
+				    
 				    try:
 					int_indexBuffer = d_build[str_tag].get('index') or False
 					if int_indexBuffer is not False:
 					    self.log_info("%s | %s > Utilizing index call"%(str_tag,str_side))					
 					    ml_buffer = [ml_buffer[int_indexBuffer]]
 				    except Exception,error:raise StandardError,"!Index call(%s)!| %s"%(error)
-				    
 				    int_len = len(ml_buffer)
 				    _d = {}
 				    self.d_buffer = _d
 				    int_last = len(ml_buffer)-1	
-				    
 				    try:#Vectors
 					if str_side == 'right':
 					    v_aimIn = mi_go._vectorOut
@@ -3146,7 +3217,7 @@ def build_rig(*args, **kws):
 					_d['v_up'] = v_up										
 				    except Exception,error:raise StandardError,"!Vector query!| %s"%(error)
 					
-				except Exception,error:raise StandardError,"!Side data query! | %s"%(error)
+				except Exception,error:raise Exception,"!Side data query! | %s"%(error)
 				
 	
 				for idx,mObj in enumerate(ml_buffer):
@@ -3154,14 +3225,16 @@ def build_rig(*args, **kws):
 				    self.progressBar_set(status = ("Aiming : '%s' %s > '%s'"%(str_tag,str_side,str_mObj)),progress = idx, maxValue = int_len)	
 				    try:#Gather data ----------------------------------------------------------------------
 					try:d_current = self.md_attachReturns[mObj]
-					except:raise Exception,"No attachReturn found"
+					except:
+					    d_current = {}
+					    self.log_warning("'%s' | no attachReturn"%str_mObj)	
+					    
 					str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'lipLineBlend'
-					mi_upLoc = d_buffer.get('upLoc') or d_build[str_tag].get('upLoc') or d_current.get('upLoc')
+					mi_upLoc = d_buffer.get('upLoc') or d_build[str_tag].get('upLoc') or d_current.get('upLoc') or False
 					mi_masterGroup = mObj.masterGroup
-					if not mi_upLoc:raise Exception,"No upLoc found!"
 					_d['str_mode'] = str_mode
 					_d['upLoc'] = mi_upLoc	
-				    except Exception,error:raise StandardError,"[Gather Data]{%s}"%(error)
+				    except Exception,error:raise Exception,"[Gather Data]{%s}"%(error)
 				    
 				    try:#Aim Offset group ----------------------------------------------------------------------
 					'''
@@ -3169,11 +3242,11 @@ def build_rig(*args, **kws):
 					'''
 					try: mi_offsetTarget = d_current['offsetGroup']#See if we have an offset group
 					except:
-					    self.log_warning("No offset group in build dict. Checking object")
+					    self.log_warning("'%s' |No offset group in build dict. Checking object"%str_mObj)
 					    try:
 						mi_offsetTarget = mObj.offsetGroup
 					    except:
-						self.log_warning("No offset group found. Using object")					
+						self.log_warning("'%s' | No offset group found. Using object"%str_mObj)					
 						mi_offsetTarget = mObj
 			
 					mi_aimOffsetGroup = cgmMeta.cgmObject(mi_offsetTarget.doGroup(True),setClass=True)
@@ -3181,9 +3254,105 @@ def build_rig(*args, **kws):
 					mi_aimOffsetGroup.addAttr('cgmTypeModifier','AimOffset',lock=True)
 					mi_aimOffsetGroup.doName()
 					mObj.connectChildNode(mi_aimOffsetGroup,"aimOffsetGroup","childObject")					    
-				    except Exception,error:raise StandardError,"[AimOffset group]{%s}"%(error)
-				    
-				    if str_mode == 'lipLineBlend':#This is pretty much just for the lip rig line for now
+				    except Exception,error:raise Exception,"[AimOffset group]{%s}"%(error)
+					    
+				    if str_mode == 'lipLineSegmentBlend':#This is pretty much just for the lip rig line for now
+					try:#Getting up loc --------------------------------------------------------------------
+					    self.log_info("'%s' | getting up loc..."%str_mObj)
+					    if str_side == 'center':
+						mi_segmentCurve =  mObj.skinJoint.segJoint.segmentCurve
+						mi_upLoc = d_buffer['midUpLoc']
+					    else:
+						mi_upLoc = mObj.skinJoint.segJoint.upLoc
+					except Exception,error:raise StandardError,"['%s' upLoc!]{%s}"%(str_mObj,error)
+					
+					try:
+					    self.log_info("'%s' | getting baseKey..."%str_mObj)					    
+					    str_baseKey = d_buffer.get('baseKey') or d_build[str_tag].get('baseKey') or str_tag
+					    if not str_baseKey:raise Exception,"No baseKey found!"
+					    
+					    _d['baseKey'] = str_baseKey		
+					    try:#Vectors
+						self.log_info("'%s' | getting vectors..."%str_mObj)					    						
+						v_up = _d.get('v_up') or mi_go.vectorUp
+						
+						if str_side == 'right':
+						    v_aimIn = mi_go._vectorOut
+						    v_aimOut = mi_go._vectorOutNegative	
+						    ml_buffer = copy.copy(ml_buffer)
+						    ml_buffer.reverse()
+						else:
+						    v_aimIn = mi_go._vectorOutNegative
+						    v_aimOut = mi_go._vectorOut	
+						    
+						_d['v_aimIn'] = v_aimIn
+						_d['v_aimOut'] = v_aimOut
+						_d['v_up'] = v_up										
+					    except Exception,error:raise StandardError,"[Vector query!]{%s}"%(error)					    
+					    
+					except Exception,error:raise StandardError,"[%s query]{%s}"%(str_mode,error)					
+					    
+					try:
+					    self.log_info("'%s' | getting targets..."%str_mObj)					    											    
+					    if str_side != 'center':					
+						#Get objects
+						if idx == 0:
+						    mi_aimOut = self.md_rigList['lipCornerRig'][str_side][0]
+						    mi_aimIn = ml_buffer[idx+1].masterGroup
+						elif idx == int_last:
+						    mi_aimOut = ml_buffer[idx-1].masterGroup
+						    mi_aimIn = md_buffer['center'][0].masterGroup			    
+						else:
+						    mi_aimOut = ml_buffer[idx-1].masterGroup
+						    mi_aimIn = ml_buffer[idx+1].masterGroup
+					    else:
+						mi_aimOut = self.md_rigList[str_baseKey]['left'][-1].masterGroup
+						mi_aimIn = self.md_rigList[str_baseKey]['right'][-1].masterGroup	
+					    _d['aimIn'] = mi_aimIn.mNode
+					    _d['aimOut'] = mi_aimOut.mNode
+					except Exception,error:raise StandardError,"[Get aim targets]{%s}"%(error)
+					
+					#self.log_info("Side: '%s' | idx: %s | Aiming :'%s' | in:'%s' | out:'%s' | up:'%s' "%(str_side,idx,str_mObj,mi_aimIn.p_nameShort,mi_aimOut.p_nameShort,mi_upLoc.p_nameShort))
+					
+					#up loc ------------------------------------------------------------------------
+					'''
+					mi_upLoc = mi_jnt.doLoc()
+					mi_upLoc.parent = mi_jnt
+					mi_upLoc.__setattr__("t%s"%self.str_orientation[1],10)
+					mi_upLoc.parent = False
+					'''
+					try:
+					    self.log_info("'%s' | making locs..."%str_mObj)					    											    
+					    mi_locIn = mObj.doLoc()
+					    mi_locIn.addAttr('cgmTypeModifier','aimIn',lock=True)
+					    mi_locIn.doName()					    
+					    
+					    mi_locOut = mObj.doLoc()
+					    mi_locOut.addAttr('cgmTypeModifier','aimOut',lock=True)
+					    mi_locOut.doName()	
+					    
+					    mi_go.connect_toRigGutsVis([mi_locIn,mi_locOut],vis = 1, doShapes = True)#connect to guts vis switches
+					    
+					    mi_locIn.parent = mi_masterGroup
+					    mi_locOut.parent = mi_masterGroup
+					except Exception,error:raise Exception,"[Aim loc creation!]{%s}"%(error)
+					try:
+					    mc.aimConstraint(mi_aimIn.mNode, mi_locIn.mNode,
+					                     weight = 1, aimVector = v_aimIn, upVector = v_up,
+					                     maintainOffset = 1,
+					                     worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
+					    mc.aimConstraint(mi_aimOut.mNode, mi_locOut.mNode,
+					                     weight = 1, aimVector = v_aimOut, upVector = v_up,
+					                     maintainOffset = 1,					                     
+					                     worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
+					    mi_contraint = cgmMeta.cgmNode(mc.orientConstraint([mi_locIn.mNode,mi_locOut.mNode], mi_aimOffsetGroup.mNode,
+					                                                       maintainOffset = True,					                        
+					                                                       weight = 1)[0]) 
+					    mi_contraint.interpType = 0
+					except Exception,error:raise Exception,"[Constraints setup!]{%s}"%(error)
+					
+				    elif str_mode == 'lipLineBlend':#This is pretty much just for the lip rig line for now
+					if not mi_upLoc:raise Exception,"No upLoc found!"					
 					try:
 					    str_baseKey = d_buffer.get('baseKey') or d_build[str_tag].get('baseKey') or str_tag
 					    if not str_baseKey:raise Exception,"No baseKey found!"					
@@ -3306,10 +3475,10 @@ def build_rig(*args, **kws):
 				    else:
 					raise NotImplementedError,"Mode not implemented : '%s'"%str_mode
 		    except Exception,error:
-			#try:self.log_infoNestedDict('d_buffer')
-			#except:pass
+			try:self.log_infoNestedDict('d_buffer')
+			except:pass
 			raise Exception,"[tag: '%s']{%s}"%(str_tag,error)			    
-	    except Exception,error:  raise Exception,"[aim_fromDict]{%s}"%(error)
+	    except Exception,error: raise Exception,"[aim_fromDict]{%s}"%(error)
 	def skin_fromDict(self,d_build):
 	    try:#>> skin  =======================================================================================
 		mi_go = self._go#Rig Go instance link
