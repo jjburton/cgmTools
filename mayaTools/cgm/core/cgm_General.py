@@ -16,6 +16,7 @@ def testFunc(*args, **kws):
     	    super(fncWrap, self).__init__(*args, **kws)
     	    self._str_funcName = 'testFunc'	
     	    self.int_test = 10000
+	    self._str_funcHelp = "This is a sample function"
     	    #self._b_autoProgressBar = 1
 	    #self._b_reportTimes = 1
     	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'stringTest',"default":None}]	    
@@ -110,6 +111,7 @@ class cgmFuncCls(object):
 	self._b_autoProgressBar = False
 	self._b_reportTimes = False
 	self._b_pushCleanKWs = False
+	self._str_lastLog = None
 	self._l_ARGS_KWS_DEFAULTS = []
 	self._l_ARGS_KWS_BUILTINS = [{'kw':'reportShow',"default":False,'help':"show report at start of log","argType":"bool"},
 	                             {'kw':'reportTimes',"default":False,'help':"show step times in log","argType":"bool"},
@@ -203,6 +205,7 @@ class cgmFuncCls(object):
     def _ExceptionHook_(self, etype, value, tb, detail=2):
 	# do something here...
 	try:
+	    str_lastLogBuffer = self._str_lastLog#Buffer this
 	    if detail == 2:	
 		try:db_file = tb.tb_frame.f_code.co_filename
 		except:db_file = "<maya console>"
@@ -224,6 +227,11 @@ class cgmFuncCls(object):
 		self.report_selfStored()
 		self.report_warnings()		
 		self.report_errors()
+		if str_lastLogBuffer:
+		    try:self.log_info("Last log entry: %s"%str_lastLogBuffer)
+		    except Exception, error:
+			log.error("This failed")
+			log.error("Failed to report last log: %s"%error)
 	    else:self.log_error("[Step: '%s' | time: %s]{%s}"%(self._str_failStep,self._str_failTime,self._ExceptionError))
 	    if detail == 2:self.log_info(_str_hardBreak)
 	    self.progressBar_end()
@@ -320,10 +328,10 @@ class cgmFuncCls(object):
 		    for pair in self._l_funcTimes:
 			self.log_info(" -- '%s' >>  %s " % (pair[0],pair[1]))				 
 		self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
-	    else:self.log_warning("[Total = %0.3f sec] " % (f_total))
-	    	    
-	#mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload	
+	    else:self.log_warning("[Total = %0.3f sec] " % (f_total))	    
 	return self._return_()
+
+    
 	
     def _return_(self):
 	'''overloadable for special return'''
@@ -475,6 +483,7 @@ class cgmFuncCls(object):
     def log_info(self,arg):
 	try:
 	    #log.info("%s%s"%(self._str_reportStart,str(arg)))
+	    self._str_lastLog = arg
 	    print("%s%s"%(self._str_reportStart,str(arg)))
 	except:pass	
 	
@@ -491,6 +500,7 @@ class cgmFuncCls(object):
 	    try:self._l_errors.append("%s | %s"%(self._str_step,str(arg)))
 	    except:self._l_errors.append("%s"%(str(arg)))	    
 	    log.error("%s%s"%(self._str_reportStart,str(arg)))
+	    self._str_lastLog = arg	    
 	    #print("[ERROR]%s%s"%(self._str_reportStart,str(arg)))	    
 	except:pass
 	
@@ -499,11 +509,13 @@ class cgmFuncCls(object):
 	    try:self._l_warnings.append("%s | %s"%(self._str_step,str(arg)))
 	    except:self._l_warnings.append("%s"%(str(arg)))	    
 	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
+	    self._str_lastLog = arg	    
 	    #print("[WARNING]%s%s"%(self._str_reportStart,str(arg)))	    
 	except:pass	
     def log_debug(self,arg):
 	try:
 	    log.debug("[DEBUG]%s%s"%(self._str_reportStart,str(arg)))
+	    self._str_lastLog = arg	    
 	except:pass	
     #>>> Progress bar stuff =====================================================================
     def progressBar_start(self,stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = False):
@@ -660,7 +672,7 @@ def cgmExceptCB(etype, value, tb, detail=2, processed = False):
 		#print("-- tb: %s"%tb)
 		#print("-- detail: %s"%detail)
 	    print ""
-	    report_enviornment()
+	    #report_enviornment()
 	return value
 	#return mUtils._formatGuiException(etype, value, tb, detail)
     except Exception,error:
