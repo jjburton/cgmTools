@@ -981,7 +981,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    	    	    
 	    l_build = [{'tag':'lipUpr','crv':self.mi_lipUprCrv, 'minU':None, 'maxU':None, 'count':self.int_lipCount, 'startSplitFactor':.1, 'parent':self.str_rootJoint},
 	               {'tag':'lipLwr','crv':self.mi_lipLwrCrv, 'minU':None, 'maxU':None, 'count':self.int_lipCount, 'startSplitFactor':.1,'parent':self.md_moduleJoints['jaw']},
-	               {'tag':'lipOver','crv':self.mi_lipOverTraceCrv,'minU':.25, 'maxU':.75, 'count':3, 'startSplitFactor': None, 'parent':self.str_rootJoint},
+	               {'tag':'lipOver','crv':self.mi_lipOverTraceCrv,'minU':.1, 'maxU':.9, 'count':3, 'startSplitFactor': None, 'parent':self.str_rootJoint},
 	               {'tag':'lipUnder','crv':self.mi_lipUnderTraceCrv,'minU':.25, 'maxU':.75, 'count':3, 'startSplitFactor': None, 'parent':self.md_moduleJoints['jaw']}]
 	    
 	    md_buffer = {}
