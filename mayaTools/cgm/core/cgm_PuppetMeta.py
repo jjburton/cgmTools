@@ -2579,7 +2579,7 @@ class cgmEyeballBlock(cgmRigBlock):
 				mc.scale( -1,1,1,i_c.getComponents('cv'),pivot = l_pivot ,r=True)		
 			    
 		#for a in ['lwrLid','uprLid']:
-		    #mc.scale( -1,1,1,mi_mirror.getMessageInstance("%sHelper"%a).getComponents('cv'),pivot = l_pivot ,  r=True)		
+		    #mc.scale( -1,1,1,mi_mirror.getMessageAsMeta("%sHelper"%a).getComponents('cv'),pivot = l_pivot ,  r=True)		
 	    except Exception,error:raise StandardError,"Failed to mirror mirror shapes | error: %s "%(error)
 	    try:#Color =====================================================================
 		__color = getSettingsColors( mi_mirror.getAttr('cgmDirection') )
@@ -2700,7 +2700,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	for k in d_helpercheck.keys():
 	    try:
 		if self.getAttr(d_helpercheck[k].get('check')) and self.getMessage(d_helpercheck[k].get('plug')):
-		    l_pos.append(self.getMessageInstance(d_helpercheck[k].get('plug')).getPosition())
+		    l_pos.append(self.getMessageAsMeta(d_helpercheck[k].get('plug')).getPosition())
 	    except Exception,error:
 		log.error(">>> %s >>> helper check failed: %s | error: %s"%(_str_funcName,k,error))	
 	"""

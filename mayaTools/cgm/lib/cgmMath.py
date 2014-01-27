@@ -172,7 +172,7 @@ def mag(v):
     except:
 	raise StandardError,"mag>>> Failure: %s"%v
 
-def test_isFloatEquivalent():
+def ut_isFloatEquivalent():
     assert isFloatEquivalent(-4.11241646134e-07,0.0),"sc>0.0 fail"
     assert isFloatEquivalent(-4.11241646134e-07,0.00001),"sc>0.00001 fail"
     assert isFloatEquivalent(-4.11241646134e-07,-0.0),"sc>0.00001 fail"

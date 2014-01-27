@@ -146,7 +146,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	"""
 	Setup before maya object initialization
 	"""
-	self.referencePrefix = False
+	pass
 	
     def __init__(self,node = None, name = None,nodeType = 'network',setClass = False, *args,**kws):	
         """ 
@@ -207,8 +207,13 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     #parent
     #==============    
-    def getParent(self):
-	return search.returnParentObject(self.mNode) or False
+    def getParent(self,asMeta = False):
+	try:
+	    buffer = search.returnParentObject(self.mNode) or False
+	    if buffer and asMeta:
+		return validateObjArg(buffer,mType = cgmObject)
+	    return buffer
+	except Exception,error:raise Exception,"[%s.getParent(asMeta = %s]{%s}"%(self.p_nameShort,asMeta,error)
     
     def getParent_asMObject(self):
 	pBuffer = search.returnParentObject(self.mNode) or False
@@ -217,7 +222,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         return r9Meta.MetaClass(pBuffer)
 				
     parent = property(getParent)
-    	    
+    p_parent = property(getParent)
+
     def __setMessageAttr__(self,attr,value, force = True, ignoreOverload = False,**kws):
 	if ignoreOverload:#just use Mark's
 	    r9Meta.MetaClass.__setMessageAttr__(self,attr,value,**kws)
@@ -254,11 +260,16 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    return cgmAttr(self,attr).getMessage()
 	return []
     
-    def getMessageInstance(self,attr):
+    def getMessageAsMeta(self,attr):
 	"""
 	This is for when you need to build a attr name in 
 	"""
 	buffer = self.getMessage(attr)
+	if not buffer:
+	    return False
+	if '.' in buffer:
+	    try:return validateAttrArg(buffer)['mi_plug']
+	    except Exception,error:log.error("[%s.getMessageAsAttr(%s) fail]{%s}"%(self.p_nameShort,attr,error))
 	if len(buffer) == 1:
 	    return validateObjArg(self.getMessage(attr)) or False
 	else:
@@ -291,6 +302,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	Returns if attribute is keyed
 	"""	
 	return attributes.isKeyed([self.mNode,attr])
+    
     def isAttrConnected(self,attr):
 	"""
 	Returns if attribute is connected
@@ -417,7 +429,6 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		    except Exception,error:raise StandardError, "[ConnectBack]{%s}"%(error)
 		return True
 	return fncWrap(*args,**kws).go()
-    
 
     def connectParentNode(self, node, attr, connectBack = None, srcAttr=None):
         """
@@ -627,7 +638,9 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		ml_nodes.remove(i_n)
 		#log.debug(">>> %s.msgList_remove >> Node removed: %s "%(self.p_nameShort,i_n.p_nameShort) + "="*75)  				
 		b_removedSomething = True
-	if b_removedSomething:self.msgList_connect(ml_nodes,attr)
+	if b_removedSomething:
+	    self.msgList_connect(ml_nodes,attr)
+	    return True	    
 	#log.debug("-"*100)            	               	
 	return False
     
@@ -793,33 +806,37 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
     def getReferencePrefix(self):
 	return search.returnReferencePrefix(self.mNode)
     
-    referencePrefix = property(getReferencePrefix)
+    p_referencePrefix = property(getReferencePrefix)
     
     #=========================================================================      
     # Get Info
     #========================================================================= 
     def get_nextSequentialAttr(self,attr = None):
-	if attr in [None,False,True]:
-	    log.warning("cgmNode.get_nextAvailableAttr>>> bad attr arg: '%s'"%attr)
-	    return False
-	cnt = self.returnNextAvailableAttrCnt(attr)
-	return "%s%s"%(attr,cnt)
+	try:
+	    if attr in [None,False,True]:
+		log.warning("cgmNode.get_nextAvailableAttr>>> bad attr arg: '%s'"%attr)
+		return False
+	    cnt = self.returnNextAvailableAttrCnt(attr)
+	    return "%s%s"%(attr,cnt)
+	except Exception,error:raise Exception,"[%s.get_nextSequentialAttr(attr = %s]{%s}"%(self.p_nameShort,attr,error)
 	
     def returnNextAvailableAttrCnt(self,attr = None):
-	if attr in [None,False,True]:
-	    log.warning("cgmNode.returnNextAvailableAttrCnt>>> bad attr arg: '%s'"%attr)
+	try:
+	    if attr in [None,False,True]:
+		log.warning("cgmNode.returnNextAvailableAttrCnt>>> bad attr arg: '%s'"%attr)
+		return False
+	    """ Get's the next available item number """        
+	    userAttrs = self.getUserAttrsAsDict()
+	    countList = []
+	    for key in userAttrs.keys():
+		if attr in key:
+		    splitBuffer = key.split(attr)
+		    countList.append(int(splitBuffer[-1]))
+	    for i in range(500):
+		if i not in countList:
+		    return i
 	    return False
-        """ Get's the next available item number """        
-        userAttrs = self.getUserAttrsAsDict()
-        countList = []
-        for key in userAttrs.keys():
-            if attr in key:
-                splitBuffer = key.split(attr)
-                countList.append(int(splitBuffer[-1]))
-	for i in range(500):
-	    if i not in countList:
-		return i
-        return False
+	except Exception,error:raise Exception,"[%s.returnNextAvailableAttrCnt(attr = %s]{%s}"%(self.p_nameShort,attr,error)
     
     def update(self):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
@@ -921,7 +938,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	l_targetAttrs = mc.listAttr(target,**kws)
 	for a in mc.listAttr(self.mNode,**kws):
 	    try:
-		#log.info("Checking %s"%a)
+		log.debug("Checking %s"%a)
 		selfBuffer = attributes.doGetAttr(self.mNode,a)
 		targetBuffer = attributes.doGetAttr(target,a)
 		if a in l_targetAttrs and selfBuffer != targetBuffer:
@@ -965,7 +982,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	    #log.debug("#>>>Tags:")
 	    for tag in d_tags.keys():
 		log.debug("    %s : %s"%(tag,d_tags.get(tag)))
-	    raise StandardError, "%s.doTagAndName >>[Error]<< : %s"(self.p_nameShort,error)	
+	    raise StandardError, "[%s.doTagAndName]{%s}"(self.p_nameShort,error)	
 
     def doNameOLD(self,sceneUnique=False,nameChildren=False,**kws):
         """
@@ -1018,41 +1035,50 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	"""Overload to push a conflicting command to a name we want as getChildren is used for cgmObjects to get dag children"""
 	return r9Meta.MetaClass.getChildren(self, walk, mAttrs)
     
-    def getSiblings(self):
+    def getSiblings(self,asMeta = False):
 	"""Function to get siblings of an object"""
-	l_siblings = []
-	if not self.getTransform():
-	    #See if there are more maya nodes of the same type
-	    objType = mc.objectType(self.mNode)
-	    l_buffer = mc.ls(type = objType)
-	    #log.debug("typeCheck: '%s'"%objType)
-	    #log.debug("l_buffer: %s"%l_buffer)
-	    if l_buffer:
-		for o in l_buffer:
-		    if str(o) != self.getLongName():
-			l_siblings.append(o)
-			#log.debug("Sibling found: '%s'"%o)
+	try:
+	    _str_func = "%s.getSiblings"%self.p_nameShort
+	    l_siblings = []
+	    if not self.getTransform():
+		log.debug('%s | no transform...'%_str_func)
+		#See if there are more maya nodes of the same type
+		objType = mc.objectType(self.mNode)
+		l_buffer = mc.ls(type = objType)
+		#log.debug("typeCheck: '%s'"%objType)
+		#log.debug("l_buffer: %s"%l_buffer)
+		if l_buffer:
+		    for o in l_buffer:
+			if str(o) != self.getLongName():
+			    l_siblings.append(o)
+			    #log.debug("Sibling found: '%s'"%o)
+		    return l_siblings
+	    elif self.getMayaType() == 'shape':
+		log.debug('%s | shape...'%_str_func)		
+		for s in mc.listRelatives(self.parent,shapes = True,fullPath = True):
+		    if str(s) != self.getLongName():#str() for stupid unicode return
+			l_siblings.append(s)
+			#log.debug("Shape Sibling found: '%s'"%s)
 		return l_siblings
-	elif self.getMayaType() == 'shape':
-	    for s in mc.listRelatives(self.parent,shapes = True,fullPath = True):
-		if str(s) != self.getLongName():#str() for stupid unicode return
-		    l_siblings.append(s)
-		    #log.debug("Shape Sibling found: '%s'"%s)
-	    return l_siblings
-	elif self.parent:
-	    #i_p = cgmObject(self.parent)#Initialize the parent
-	    for c in search.returnChildrenObjects(self.parent,True):
-		if c != self.getLongName():
-		    l_siblings.append(c)
-		    #log.debug("Sibling found: '%s'"%c)
-	else:#We have a root transform
-	    l_rootTransforms = search.returnRootTransforms() or []
-	    typeBuffer = self.getMayaType()
-	    for c in l_rootTransforms:
-		if c != self.getShortName() and search.returnObjectType(c) == typeBuffer:
-		    l_siblings.append(c)
-	#log.debug(l_siblings)
-	return l_siblings   
+	    elif self.parent:
+		log.debug('%s | parented...'%_str_func)				
+		#i_p = cgmObject(self.parent)#Initialize the parent
+		for c in search.returnChildrenObjects(self.parent,True):
+		    if c != self.getLongName():
+			l_siblings.append(c)
+			#log.debug("Sibling found: '%s'"%c)
+	    else:#We have a root transform
+		log.debug('%s | root...'%_str_func)				
+		l_rootTransforms = search.returnRootTransforms() or []
+		typeBuffer = self.getMayaType()
+		for c in l_rootTransforms:
+		    if c != self.getShortName() and search.returnObjectType(c) == typeBuffer:
+			l_siblings.append(c)
+	    #log.debug(l_siblings)
+	    if l_siblings and asMeta:
+		return validateObjListArg(l_siblings)
+	    return l_siblings   
+	except Exception,error:raise Exception,"[%s.getSiblings]{%s}"%(self.p_nameShort,error)
     
     #=========================================================================                   
     # Attribute Functions
@@ -1165,9 +1191,8 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		if self.hasAttr(attr):
 		    return "%s.%s"%(self.mNode,d_plugTypes.get(attr))
 	    return False
-	except StandardError,error:
-	    log.error("returnPositionOutPlug>> Failed. error: %s"%error)	    
-	    raise StandardError,error 
+	except Exception,error:raise Exception,"[%s.returnPositionOutPlug]{%s}"%(self.p_nameShort,error)
+
 	
     def getPosition(self,worldSpace = True):
 	try:
@@ -1209,20 +1234,22 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         forceBBCenter(bool) -- whether to force a bounding box center (default False)
 	nameLink(bool) -- whether to copy name tags or link the object to cgmName
         """
-	buffer = False
-	if self.isComponent():
-	    buffer =  locators.locMeObject(self.getComponent(),forceBBCenter = forceBBCenter)
-	elif self.isTransform():
-	    buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)
-	if not buffer:
-	    return False
-	i_loc = cgmObject(buffer,setClass=True)
-	if nameLink:
-	    i_loc.connectChildNode(self,'cgmName')
-	else:
-	    i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
-	i_loc.doName()
-	return i_loc
+	try:
+	    buffer = False
+	    if self.isComponent():
+		buffer =  locators.locMeObject(self.getComponent(),forceBBCenter = forceBBCenter)
+	    elif self.isTransform():
+		buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)
+	    if not buffer:
+		return False
+	    i_loc = cgmObject(buffer,setClass=True)
+	    if nameLink:
+		i_loc.connectChildNode(self,'cgmName')
+	    else:
+		i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
+	    i_loc.doName()
+	    return i_loc
+	except Exception,error:raise Exception,"[%s.doLoc]{%s}"%(self.p_nameShort,error)
     
     def doDuplicate(self,parentOnly = True, incomingConnections = True, breakMessagePlugsOut = False,**kws):
         """
@@ -1232,46 +1259,46 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
         incomingConnections(bool) -- whether to do incoming connections (default True)
 	breakMessagePlugsOut(bool) -- whether to break the outgoing message connections because Maya duplicates regardless of duplicate flags
         """
-	if self.isComponent():
-	    log.warning("doDuplicate fail. Cannot duplicate components")
-	    raise StandardError,"doDuplicate fail. Cannot duplicate component: '%s'"%self.getShortName()
-	
-	buffer = mc.duplicate(self.mNode,po=parentOnly,ic=incomingConnections)[0]
-	#log.debug("doDuplicate>> buffer: %s"%buffer)
-	i_obj = r9Meta.MetaClass(buffer)
-	mc.rename(i_obj.mNode, self.getShortName()+'_DUPLICATE')
-	#log.debug("doDuplicate>> i_obj: %s"%i_obj)
-	
-	if breakMessagePlugsOut:
-	    b_sourceLock = False
-	    b_drivenLock = False
-	    _str_messageCombined = '%s.msg'%i_obj.mNode
+	try:
+	    if self.isComponent():
+		log.warning("doDuplicate fail. Cannot duplicate components")
+		raise StandardError,"doDuplicate fail. Cannot duplicate component: '%s'"%self.getShortName()
 	    
-            if mc.getAttr(_str_messageCombined,lock=True):
-                b_drivenLock = True
-                mc.setAttr(_str_messageCombined,lock=False)
-
-	    for plug in mc.listConnections(_str_messageCombined,plugs =True):
+	    buffer = mc.duplicate(self.mNode,po=parentOnly,ic=incomingConnections)[0]
+	    #log.debug("doDuplicate>> buffer: %s"%buffer)
+	    i_obj = r9Meta.MetaClass(buffer)
+	    mc.rename(i_obj.mNode, self.getShortName()+'_DUPLICATE')
+	    #log.debug("doDuplicate>> i_obj: %s"%i_obj)
+	    
+	    if breakMessagePlugsOut:
 		b_sourceLock = False
-		if '[' in plug:
-		    str_plug = plug.split('[')[0]
-		else:str_plug = plug
-		    
-		if mc.getAttr(str_plug,lock=True):#if locked, unlock
-		    b_sourceLock = True
-		    mc.setAttr(str_plug,lock=False)	
-		    
-		try: mc.setAttr(str_plug,lock=False)
-		except:raise StandardError, "%s.doDuplicate >> can't unlock '%s'"%(self.p_nameShort,str_plug)
-
-		mc.disconnectAttr(_str_messageCombined,plug)
-		if b_sourceLock:
-		    mc.setAttr(str_plug,lock=False)
-	    if b_drivenLock:
-		mc.setAttr(_str_messageCombined,lock=False)
+		b_drivenLock = False
+		_str_messageCombined = '%s.msg'%i_obj.mNode
 		
-		
-	return i_obj
+		if mc.getAttr(_str_messageCombined,lock=True):
+		    b_drivenLock = True
+		    mc.setAttr(_str_messageCombined,lock=False)
+    
+		for plug in mc.listConnections(_str_messageCombined,plugs =True):
+		    b_sourceLock = False
+		    if '[' in plug:
+			str_plug = plug.split('[')[0]
+		    else:str_plug = plug
+			
+		    if mc.getAttr(str_plug,lock=True):#if locked, unlock
+			b_sourceLock = True
+			mc.setAttr(str_plug,lock=False)	
+			
+		    try: mc.setAttr(str_plug,lock=False)
+		    except:raise StandardError, "%s.doDuplicate >> can't unlock '%s'"%(self.p_nameShort,str_plug)
+    
+		    mc.disconnectAttr(_str_messageCombined,plug)
+		    if b_sourceLock:
+			mc.setAttr(str_plug,lock=False)
+		if b_drivenLock:
+		    mc.setAttr(_str_messageCombined,lock=False) 
+	    return i_obj
+	except Exception,error:raise Exception,"[%s.doDuplicate]{%s}"%(self.p_nameShort,error)
     
 	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
@@ -1323,32 +1350,35 @@ class cgmObject(cgmNode):
         Keyword arguments:
         parent(string) -- Target parent
         """
-        if target == self.getParent():
-            return True
-	#log.debug("Parenting '%s' to '%s'"%(self.mNode,target))
-
-        if target: #if we have a target parent
-            try:
-                #If we have an Object Factory instance, link it
-                self.parent = target.mNode
-                #log.debug("Parent is an instance")   		
-            except:
-                #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
-                assert mc.objExists(target) is True, "'%s' - parent object doesn't exist" %target    
-            
-            #log.debug("Parent is '%s'"%target)
-            try: 		
-                mc.parent(self.mNode,target)
-            except:
-                #log.debug("'%s' already has target as parent"%self.mNode)
-                return False
-	
-        else:#If not, do so to world
-            rigging.doParentToWorld(self.mNode)
-            #log.debug("'%s' parented to world"%self.mNode) 
-	
+	try:
+	    if target == self.getParent():
+		return True
+	    #log.debug("Parenting '%s' to '%s'"%(self.mNode,target))
+    
+	    if target: #if we have a target parent
+		try:
+		    #If we have an Object Factory instance, link it
+		    self.parent = target.mNode
+		    #log.debug("Parent is an instance")   		
+		except:
+		    #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+		    assert mc.objExists(target) is True, "'%s' - parent object doesn't exist" %target    
+		
+		#log.debug("Parent is '%s'"%target)
+		try: 		
+		    mc.parent(self.mNode,target)
+		except:
+		    #log.debug("'%s' already has target as parent"%self.mNode)
+		    return False
+	    
+	    else:#If not, do so to world
+		rigging.doParentToWorld(self.mNode)
+		#log.debug("'%s' parented to world"%self.mNode) 
+	except Exception,error:raise Exception,"[%s.doParent(target = %s)]{%s}"%(self.p_nameShort,target,error)
 		
     parent = property(cgmNode.getParent, doParent)
+    p_parent = property(cgmNode.getParent, doParent)
+    
     #=========================================================================      
     # Get Info
     #========================================================================= 	
@@ -1359,22 +1389,43 @@ class cgmObject(cgmNode):
 		self.transformAttrs.append(attr)
 	return self.transformAttrs
     
-    def getFamilyDict(self):
+    def getFamilyDict(self,asMeta = False):
         """ Get the parent, child and shapes of the object."""
-        return {'parent':self.parent,'children':self.children,'shapes':self.shapes} or {}
+        return {'parent':self.getParent(asMeta=asMeta),'children':self.getChildren(asMeta=asMeta),'shapes':self.getShapes(asMeta=asMeta)} or {}
     
-    def getAllParents(self,fullPath = False):
-        return search.returnAllParents(self.mNode,not fullPath) or []
+    def getAllParents(self,fullPath = False,asMeta = False):
+	try:
+	    buffer = search.returnAllParents(self.mNode,not fullPath) or []
+	    if buffer and asMeta:
+		return validateObjListArg(buffer,mType = cgmObject)
+	    return buffer
+	except Exception,error:raise Exception,"[%s.getAllParents(fullPath = %s, asMeta = %s]{%s}"%(self.p_nameShort,fullPath, asMeta,error)
+	
     
-    def getChildren(self,fullPath=False):
-        return search.returnChildrenObjects(self.mNode,fullPath) or []
-    
-    def getAllChildren(self,fullPath = False):
-        return search.returnAllChildrenObjects(self.mNode,fullPath) or []    
-    
-    def getShapes(self):
-        return mc.listRelatives(self.mNode,shapes=True,fullPath=True) or []
-    
+    def getChildren(self,fullPath=False,asMeta = False):
+	try:
+	    buffer = search.returnChildrenObjects(self.mNode,fullPath) or []
+	    if buffer and asMeta:
+		return validateObjListArg(buffer,mType = cgmObject)
+	    return buffer
+	except Exception,error:raise Exception,"[%s.getChildren(fullPath = %s, asMeta = %s]{%s}"%(self.p_nameShort,fullPath, asMeta,error)
+	
+    def getAllChildren(self,fullPath = False,asMeta = False):
+	try:
+	    buffer = search.returnAllChildrenObjects(self.mNode,fullPath) or []  
+	    if buffer and asMeta:
+		return validateObjListArg(buffer,mType = cgmObject)
+	    return buffer
+	except Exception,error:raise Exception,"[%s.getAllChildren(fullPath = %s, asMeta = %s]{%s}"%(self.p_nameShort,fullPath, asMeta,error)
+	    
+    def getShapes(self,fullPath = True, asMeta = False):
+	try:
+	    buffer = mc.listRelatives(self.mNode,shapes=True,fullPath=fullPath) or []
+	    if buffer and asMeta:
+		return validateObjListArg(buffer,mType = cgmNode)
+	    return buffer
+	except Exception,error:raise Exception,"[%s.getShapes(fullPath = %s, asMeta = %s]{%s}"%(self.p_nameShort,fullPath, asMeta,error)
+	
     def isChildOf(self,obj):
 	try:
 	    i_obj = validateObjArg(obj,noneValid=False)
@@ -1496,7 +1547,6 @@ class cgmObject(cgmNode):
         assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
         rigging.copyPivot(self.mNode,sourceObject)
 
-
     def doCopyTransform(self,sourceObject):
         """ Copy the pivot from a source object to the current instanced maya object. """
         try:
@@ -1513,7 +1563,7 @@ class cgmObject(cgmNode):
 	self.doCopyPivot(sourceObject)
 	self.rotateAxis = objRot
 	
-    def doGroup(self,maintain=False):
+    def doGroup(self,maintain=False, asMeta = False):
         """
         Grouping function for a maya instanced object.
 
@@ -1521,7 +1571,12 @@ class cgmObject(cgmNode):
         maintain(bool) -- whether to parent the maya object in place or not (default False)
 
         """
-        return rigging.groupMeObject(self.mNode,True,maintain)   
+	try:
+	    buffer = rigging.groupMeObject(self.mNode,True,maintain)   
+	    if buffer and asMeta:
+		return cgmObject(buffer)
+	    return buffer
+	except Exception,error:raise Exception,"[%s.doGroup(maintain = %s, asMeta = %s]{%s}"%(self.p_nameShort,maintain, asMeta,error)
     
     def doZeroGroup(self,connect=True):
         """
@@ -1630,12 +1685,22 @@ class cgmObject(cgmNode):
                         log.warning("'%s.%s' doesn't exist"%(t,a))      
     #>>> Constraints
     #==============================================================
-    def getConstraintsTo(self):	
-	return constraints.returnObjectConstraints(self.mNode)
+    def getConstraintsTo(self,asMeta = False):	
+	try:
+	    buffer = constraints.returnObjectConstraints(self.mNode)
+	    if asMeta and buffer:
+		return validateObjListArg(buffer, mType = cgmNode)
+	    return buffer
+	except Exception,error:raise Exception,"[%s.getConstraintsTo(asMeta = %s]{%s}"%(self.p_nameShort, asMeta,error)
 
-    def getConstraintsFrom(self):
-	return constraints.returnObjectDrivenConstraints(self.mNode)
-    
+    def getConstraintsFrom(self,asMeta = False):
+	try:
+	    buffer = constraints.returnObjectDrivenConstraints(self.mNode)
+	    if asMeta and buffer:
+		return validateObjListArg(buffer, mType = cgmNode)
+	    return buffer
+	except Exception,error:raise Exception,"[%s.getConstraintsFrom(asMeta = %s]{%s}"%(self.p_nameShort, asMeta,error)
+	    
     def isConstrainedBy(self,obj):
 	l_constraints = self.getConstraintsTo()
 	if not l_constraints:
@@ -1712,7 +1777,7 @@ class cgmControl(cgmObject):
 	    for g in l_groups:
 		try:
 		    if self.getMessage(g):
-			mi_group = self.getMessageInstance(g)
+			mi_group = self.getMessageAsMeta(g)
 			#log.debug("%s >>> found %s | %s"%(_str_funcName,g,mi_group.p_nameShort))						
 			for a in l_attrs:
 			    cgmAttr(mi_group,a,lock=lock)

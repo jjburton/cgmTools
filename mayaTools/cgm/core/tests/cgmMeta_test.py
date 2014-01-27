@@ -202,7 +202,7 @@ def ut_cgmMeta(*args, **kws):
     
 	    #Assert some info
 	    #----------------------------------------------------------   
-	    assert self.MetaNode.referencePrefix is not None
+	    assert self.MetaNode.p_referencePrefix is not None
     
 	    #cgmNode functions
 	    #---------------------------------------------------------- 

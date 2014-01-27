@@ -407,7 +407,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	    if not i_object or not i_null:#1) We need args
 		return False
 	    if i_object.hasAttr(str_dynMatchDriverPlug):#3) the object is already connected
-		if i_object.getMessageInstance(str_dynMatchDriverPlug) != i_null:
+		if i_object.getMessageAsMeta(str_dynMatchDriverPlug) != i_null:
 		    log.warning("cgmDynamicMatch.isNullValidForObject>> Object already has dynMatchDriver: '%s'"%i_object.getMessage(str_dynMatchDriverPlug))
 		    return False
 		else:
@@ -557,7 +557,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	if i_object == self:
 	    raise StandardError, "cgmDynamicMatch.addDynObject>> Cannot add self as dynObject"
 	
-	if i_object.hasAttr(self._str_dynMatchDriverPlug) and i_object.getMessageInstance(self._str_dynMatchDriverPlug) == self:
+	if i_object.hasAttr(self._str_dynMatchDriverPlug) and i_object.getMessageAsMeta(self._str_dynMatchDriverPlug) == self:
 	    log.debug("cgmDynamicMatch.addDynObject>> dynObject already connected: '%s'"%i_object.getShortName())
 	    return True
 	
@@ -1139,7 +1139,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	"""
 	log.debug(">>> %s.doMatch() >> "%(self.p_nameShort) + "-"*75)  				    								
 	#>>>Initial info
-	i_object = self.getMessageInstance('dynObject')
+	i_object = self.getMessageAsMeta('dynObject')
 	log.debug("cgmDynamicMatch.doMatch>> Object : %s"%i_object.getShortName())
 	l_dynMatchTargets = self.msgList_getMessage('dynMatchTargets')
 	l_dynDrivers= self.msgList_getMessage('dynDrivers')
@@ -1186,7 +1186,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	"""
 	log.debug(">>> %s.doSnap() >> "%(self.p_nameShort) + "-"*75)  				    									
 	#>>>Initial info
-	i_object = self.getMessageInstance('dynObject')
+	i_object = self.getMessageAsMeta('dynObject')
 	l_dynDrivers= self.msgList_getMessage('dynSnapTargets')
 	
 	#>>>Figure out our match object
