@@ -652,7 +652,8 @@ def subTimer(func):
 def cgmExceptCB(etype, value, tb, detail=2, processed = False):
     # @param processed -- whether this exception has already been processed
     try:
-	db_file = tb.tb_frame.f_code.co_filename
+	try:db_file = tb.tb_frame.f_code.co_filename
+	except:db_file = "<maya console>"
 	#print("-- db_file: %s"%db_file)	
 	#db_names = tb.tb_frame.f_code.co_names	
 	#print("-- db_names: %s"%db_names)	
@@ -677,6 +678,7 @@ def cgmExceptCB(etype, value, tb, detail=2, processed = False):
 	#return mUtils._formatGuiException(etype, value, tb, detail)
     except Exception,error:
 	log.info("Exception Exception....{%s}"%error)
+	
 mUtils.formatGuiException = cgmExceptCB
 
 def reset_mayaException():
