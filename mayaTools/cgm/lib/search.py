@@ -881,8 +881,11 @@ def returnRootTransforms():
     listOfRoots(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    return [str(o)for o in mc.ls(assemblies=True, dag = True)]
-
+    buffer = [str(o)for o in mc.ls(assemblies=True, dag = True)]#First pass...
+    l_return = []
+    for o in buffer:#Clean it
+	if not returnParentObject(o):l_return.append(o)
+    return l_return
     
 def returnObjectType(obj):
     """
