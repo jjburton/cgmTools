@@ -38,12 +38,13 @@ log.setLevel(logging.INFO)
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #=========================================================================    
 #Values ==================================================================
-def test_isFloatEquivalent():
+def ut_isFloatEquivalent():
     assert isFloatEquivalent(-4.11241646134e-07,0.0),"sc>0.0 fail"
     assert isFloatEquivalent(-4.11241646134e-07,0.00001),"sc>0.00001 fail"
     assert isFloatEquivalent(-4.11241646134e-07,-0.0),"sc>0.00001 fail"
     assert isFloatEquivalent(0.0,-0.0),"0.0>-0.0 fail"
     assert isFloatEquivalent(0.0,0),"0.0>0 fail"
+    return True
 
 def isFloatEquivalent(f1,f2,places=4):
     """
@@ -60,8 +61,8 @@ def isFloatEquivalent(f1,f2,places=4):
     #reg check
     f1_rounded = round(f1,places)
     f2_rounded = round(f2,places)
-    #log.debug(f1_rounded)
-    #log.debug(f2_rounded) 
+    log.debug("f1_rounded: %s"%f1_rounded)
+    log.debug("f2_rounded: %s"%f2_rounded)    
     if f1_rounded == f2_rounded:
 	return True
     return False 
@@ -311,7 +312,8 @@ class simpleOrientation():
     p_ro = property(getRotateOrderIndex)
     p_aimNegative = property(getAimAxisNegative)
     p_upNegative = property(getUpAxisNegative)
-    p_outNegative = property(getOutAxisNegative)    
+    p_outNegative = property(getOutAxisNegative)   
+    
 #>>> Simple Axis ==========================================================================
 l_axisDirectionsByString = ['x+','y+','z+','x-','y-','z-'] #Used for several menus and what not
 
