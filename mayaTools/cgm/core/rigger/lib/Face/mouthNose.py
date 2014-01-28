@@ -781,10 +781,10 @@ def build_rig(*args, **kws):
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
 	                        {'step':'Lip build','call':self._buildLips_},
-	                        {'step':'NoseBuild','call':self._buildNose_},
-	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        
-	                        {'step':'Cheek build','call':self._buildCheeks_},
-	                        {'step':'Lock N hide','call':self._lockNHide_},
+	                        #{'step':'NoseBuild','call':self._buildNose_},
+	                        #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        
+	                        #{'step':'Cheek build','call':self._buildCheeks_},
+	                        #{'step':'Lock N hide','call':self._lockNHide_},
 	                        ]	
 	    #=================================================================
 	def _gatherInfo_(self):
@@ -793,7 +793,7 @@ def build_rig(*args, **kws):
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
-	    self.mi_skullPlate = cgmMeta.cgmObject('testJawOnlyPlate')    
+	    self.mi_skullPlate = cgmMeta.cgmObject('toothSurface')    
 	    #self.mi_skullPlate = mi_go._mi_skullPlate
 	    self.str_skullPlate = self.mi_skullPlate.p_nameShort
 	    
@@ -938,6 +938,15 @@ def build_rig(*args, **kws):
 	    self.md_rigList['lwrLipSegment']['left'] = mi_go._i_rigNull.msgList_get('lwrLipSegmentLeftJoints')
 	    self.md_rigList['lwrLipSegment']['right'] = mi_go._i_rigNull.msgList_get('lwrLipSegmentRightJoints')    
 	    
+	    #>> Lip Tigteners --------------------------------------------------------------------------------------------------
+	    self.md_rigList['uprLipTightener'] = {}
+	    self.md_rigList['lwrLipTightener'] = {}
+	    self.md_rigList['uprLipTightener']['left'] = [self.md_rigList['lipCornerRig']['left'][0].uprDriver]
+	    self.md_rigList['uprLipTightener']['right'] = [self.md_rigList['lipCornerRig']['right'][0].uprDriver]
+	    
+	    self.md_rigList['lwrLipTightener']['left'] = [self.md_rigList['lipCornerRig']['left'][0].lwrDriver]
+	    self.md_rigList['lwrLipTightener']['right'] = [self.md_rigList['lipCornerRig']['right'][0].lwrDriver]
+	       
 	    #>> Calculate ==========================================================================
 	    #Width of the skull plate...trying
 	    self.f_offsetOfUpLoc = distance.returnBoundingBoxSizeToAverage(self.mi_skullPlate.mNode)
@@ -1595,16 +1604,15 @@ def build_rig(*args, **kws):
 		#Gonna setup our connections for the roll setup
 		d_build = {'leftTigthen':{'handle':self.md_rigList['lipCornerHandle']['left'][0],
 		                          'rigJoint':self.md_rigList['lipCornerRig']['left'][0],
-		                          'uprDriver':self.md_rigList['lipCornerRig']['left'][0].uprDriver,
-		                          'lwrDriver':self.md_rigList['lipCornerRig']['left'][0].lwrDriver},
+		                          'uprDriver':self.md_rigList['uprLipTightener']['left'][0],
+		                          'lwrDriver':self.md_rigList['lwrLipTightener']['left'][0]},
 		           'rightTigthen':{'handle':self.md_rigList['lipCornerHandle']['right'][0],
 		                          'rigJoint':self.md_rigList['lipCornerRig']['right'][0],
-		                          'uprDriver':self.md_rigList['lipCornerRig']['right'][0].uprDriver,
-		                          'lwrDriver':self.md_rigList['lipCornerRig']['right'][0].lwrDriver}}
+		                          'uprDriver':self.md_rigList['uprLipTightener']['right'][0],
+		                          'lwrDriver':self.md_rigList['lwrLipTightener']['right'][0]}}
 		
 		l_keys = d_build.keys()
 		int_lenMax = len(l_keys)
-		
 		for i,str_k in enumerate(l_keys):
 		    try:
 			try:#>> Query --------------------------------------------------------------------------
@@ -1613,6 +1621,7 @@ def build_rig(*args, **kws):
 			    str_rollAttr = ".r%s"%mi_go._jointOrientation[2]
 			    mi_uprDriver = d_buffer['uprDriver']
 			    mi_lwrDriver = d_buffer['lwrDriver']
+			    mi_rigJoint = d_buffer['rigJoint']
 			except Exception,error:raise StandardError,"[Query]{%s}"%(error)  
 			
 			try:#>> Progress -----------------------------------------------------------------------
@@ -1621,11 +1630,17 @@ def build_rig(*args, **kws):
 			    self.progressBar_set(status = str_message, progress = i, maxValue = int_lenMax)				    
 			except Exception,error:raise StandardError,"[Progress bar]{%s}"%(error)  			    
 
+			try:#>> Up locs -----------------------------------------------------------------------
+			    mi_upLoc = mi_rigJoint.doLoc()
+			    mi_upLoc.parent = mi_rigJoint
+			    mi_go.connect_toRigGutsVis(mi_upLoc)
+			except Exception,error:raise StandardError,"[Up locs ]{%s}"%(error)  	
+			
 			try:#>> Get Plugs -----------------------------------------------------------------------
 			    self.log_info("'%s' | Setting up plugs"%(str_k))			    
 			    mPlug_tightenUpr =  cgmMeta.cgmAttr(mi_handle,'tightenUpr', value= 0.0, attrType='float', defaultValue= 0.0,keyable=True, hidden=False)
 			    mPlug_tightenLwr =  cgmMeta.cgmAttr(mi_handle,'tightenLwr', value= 0.0, attrType='float', defaultValue= 0.0,keyable=True, hidden=False)
-			except Exception,error:raise StandardError,"[Plugs]{%s}"%(error)  	
+			except Exception,error:raise StandardError,"[Plugs]{%s}"%(error)  
 			
 			try:#>> Args to nodes -----------------------------------------------------------------------
 			    '''
@@ -1644,7 +1659,40 @@ def build_rig(*args, **kws):
 				    NodeF.argsToNodes(str_arg).doBuild()				
 				except Exception,error:raise Exception,"['%s' fail]{%s}"%(str_argK,error)  			    
 			except Exception,error:raise Exception,"[Args to nodes]{%s}"%(error) 
-		    except Exception,error:raise Exception,"['%s']{%s}"%(str_k,error) 
+			
+			try:#>> Setup aim on them -----------------------------------------------------------------------
+			    try:#Vectors
+				v_aim = mi_go._vectorAim
+				if 'left' in str_k:
+				    v_up = mi_go._vectorOut
+				    mi_upLoc.__setattr__("t%s"%mi_go._jointOrientation[0],10)				    
+				else:
+				    v_up = mi_go._vectorOutNegative
+				    mi_upLoc.__setattr__("t%s"%mi_go._jointOrientation[0],-10)				    
+				    									
+			    except Exception,error:raise StandardError,"[Vector query!]{%s}"%(error)
+			    
+			    for i,mDriver in enumerate([mi_uprDriver,mi_lwrDriver]):
+				try:#For loop
+				
+				    if i == 0:
+					mi_target = self.md_rigList['lipUprHandle']['center'][0]
+				    else:
+					mi_target = self.md_rigList['lipLwrHandle']['center'][0]
+					
+				    #Make a group
+				    mi_aimOffsetGroup = cgmMeta.cgmObject(mDriver.doGroup(True),setClass=True)
+				    mi_aimOffsetGroup.doStore('cgmName',mDriver.mNode)
+				    mi_aimOffsetGroup.addAttr('cgmTypeModifier','AimOffset',lock=True)
+				    mi_aimOffsetGroup.doName()
+				    mDriver.connectChildNode(mi_aimOffsetGroup,"aimOffsetGroup","childObject")
+				    
+				    mc.aimConstraint(mi_target.mNode, mi_aimOffsetGroup.mNode,
+					             weight = 1, aimVector = v_aim, upVector = v_up,
+					             maintainOffset = 1, worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
+				except Exception,error:raise StandardError,"[Driver loop : '%s']{%s}"%(mDriver.p_nameShort,error)
+			except Exception,error:raise Exception,"[Aim setup]{%s}"%(error)   
+		    except Exception,error:raise Exception,"[On: '%s']{%s}"%(str_k,error) 
 	    except Exception,error:raise StandardError,"[Lip Tigteners]{%s}"%(error)
 	    
 	    try:#Smart Seal ===================================================================
@@ -1739,9 +1787,8 @@ def build_rig(*args, **kws):
 		    except Exception,error:raise StandardError,"[smartLipSeal curve]{%s}"%(error)  
 		    
 		    try:
-			pass
-			#for mi_crv in ml_curves:#Parent to rig null
-			   # mi_crv.parent = mi_go._i_rigNull#used to be deformNull
+			for mi_crv in ml_curves:#Parent to rig null
+			    mi_crv.parent = mi_go._i_rigNull#used to be deformNull
 			    
 			#for mi_crv in [mi_smartLipSealCrv,mi_lwrLipSealCrv,mi_uprLipSealCrv]:
 			    #mi_crv.parent = mi_go._i_rigNull
@@ -2281,7 +2328,7 @@ def build_rig(*args, **kws):
 	    try:#>>> Connect rig joints to handles ==================================================================
 		d_build = {'lipUprRig':{'mode':'rigToSegment'},
 		           'lipLwrRig':{'mode':'rigToSegment'},
-		           'lipCornerRig':{'rewireFollicleOffset':True},
+		           'lipCornerRig':{},
 		           'chinTrackLoc':{'driver':self.md_rigList['chin']},		           
 		           'mouthMoveTrackLoc':{'driver':self.md_rigList['mouthMove']}}
 		self.connect_fromDict(d_build)
@@ -3054,8 +3101,8 @@ def build_rig(*args, **kws):
 			    else:
 				d_buffer = d_build[str_tag]	
 			    ml_buffer = md_buffer[str_key]
-			    
 			    int_len = len(ml_buffer)
+			    
 			    try:#Gather data ----------------------------------------------------------------------
 				str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'default'
 				str_orientation = d_buffer.get('orientation') or d_build[str_tag].get('orientation') or 'zyx' 
@@ -3063,9 +3110,11 @@ def build_rig(*args, **kws):
 				str_curve = mi_curve.p_nameShort
 			    except Exception,error:raise StandardError,"[Data gather!]{%s}"%(error)	
 			    
-			    str_message = "Create Segment : '%s' %s | curve: '%s' | mode: '%s' "%(str_tag,str_key,str_curve,str_mode)
-			    self.log_info(str_message)
-			    self.progressBar_set(status = (str_message),progress = i, maxValue = int_len)	
+			    try:#Status update ----------------------------------------------------------------------
+				str_message = "Create Segment : '%s' %s | curve: '%s' | mode: '%s' "%(str_tag,str_key,str_curve,str_mode)
+				self.log_info(str_message)
+				self.progressBar_set(status = (str_message),progress = i, maxValue = int_len)	
+			    except Exception,error:raise StandardError,"[Status]{%s}"%(error)	
 
 			    if str_mode == 'default':
 				d_segReturn = rUtils.createSegmentCurve(ml_buffer, addMidTwist = False,useCurve = mi_curve,  moduleInstance = mi_go._mi_module, connectBy = 'trans')
