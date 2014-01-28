@@ -1,20 +1,20 @@
 '''
-------------------------------------------
+
 Red9 Studio Pack: Maya Pipeline Solutions
 Author: Mark Jackson
 email: rednineinfo@gmail.com
 
 Red9 blog : http://red9-consultancy.blogspot.co.uk/
 MarkJ blog: http://markj3d.blogspot.co.uk
-------------------------------------------
+
 
 This is the core of the Animation Toolset Lib, a suite of tools
 designed from production experience to automate an animators life.
 
 Setup : Follow the Install instructions in the Modules package
-================================================================
 
-Code examples: =================================================
+
+Code examples: 
 
 #######################
  ProcessNodes
@@ -1603,19 +1603,21 @@ class AnimationUI(object):
         
     def __uiCB_getPoseInputNodes(self):
         '''
-        Node passed into the PoseCall itself
+        Node passed into the __PoseCalls in the UI
         '''
-        PoseNodes=[]
+        posenodes=[]
+        setRoot=cmds.textFieldButtonGrp('uitfgPoseRootNode', q=True, text=True)
         if cmds.checkBox('uicbPoseHierarchy', q=True, v=True):
             #hierarchy processing so we MUST pass a root in
-            PoseNodes=cmds.textFieldButtonGrp('uitfgPoseRootNode', q=True, text=True)
-            if not PoseNodes or not cmds.objExists(PoseNodes):
+            if not setRoot or not cmds.objExists(setRoot):
                 raise StandardError('RootNode not Set for Hierarchy Processing')
+            else:
+                return setRoot
         else:
-            PoseNodes=cmds.ls(sl=True, l=True)
-        if not PoseNodes:
-                raise StandardError('No Nodes Set or selected for Pose')
-        return PoseNodes
+            posenodes=cmds.ls(sl=True, l=True)
+        if not posenodes:
+            raise StandardError('No Nodes Set or selected for Pose')
+        return posenodes
     
     def __uiCB_enableRelativeSwitches(self, *args):
         '''
@@ -2053,6 +2055,7 @@ class AnimationUI(object):
         maintainSpaces = cmds.checkBox('uicbPoseSpace', q=True, v=True)
         rotRelMethod = cmds.radioCollection(self.uircbPoseRotMethod, q=True, select=True)
         tranRelMethod = cmds.radioCollection(self.uircbPoseTranMethod, q=True, select=True)
+        
         relativeRots='projected'
         relativeTrans='projected'
         if not rotRelMethod=='rotProjected':
@@ -2098,8 +2101,9 @@ class AnimationUI(object):
         basically we'd add a new poseObject per pose and bind each one top the slider
         but with a consistent poseCurrentCache via the _cacheCurrentNodeStates() call
         '''
-        poseNode=r9Pose.PoseData(self.filterSettings)
-        poseNode.filepath=self.getPosePath()
+        poseNode = r9Pose.PoseData(self.filterSettings)
+        poseNode.filepath = self.getPosePath()
+        poseNode.useFilter = cmds.checkBox('uicbPoseHierarchy', q=True, v=True)
         poseNode._poseLoad_buildcache(self.__uiCB_getPoseInputNodes())
         
         def blendPose(*args):
@@ -2321,7 +2325,7 @@ class AnimFunctions(object):
         @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
         
         Generic filters passed into r9Core.MatchedNodeInputs class:
-        -----------------------------------------------------------------
+        #-----------------------------------------------------------------
         @setting.nodeTypes: list[] - search for child nodes of type (wraps cmds.listRelatives types=)
         @setting.searchAttrs: list[] - search for child nodes with Attrs of name
         @setting.searchPattern: list[] - search for nodes with a given nodeName searchPattern
@@ -2331,7 +2335,7 @@ class AnimFunctions(object):
         NOTE: with all the search and hierarchy settings OFF the code performs
         a Dumb copy, no matching and no Hierarchy filtering, copies using
         selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
-        -----------------------------------------------------------------
+
 
         '''
         if not matchMethod:
@@ -2401,7 +2405,7 @@ class AnimFunctions(object):
         @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
         
         Generic filters passed into r9Core.MatchedNodeInputs class:
-        -----------------------------------------------------------------
+        #-----------------------------------------------------------------
         @setting.nodeTypes: list[] - search for child nodes of type (wraps cmds.listRelatives types=)
         @setting.searchAttrs: list[] - search for child nodes with Attrs of name
         @setting.searchPattern: list[] - search for nodes with a given nodeName searchPattern
@@ -2411,7 +2415,7 @@ class AnimFunctions(object):
         NOTE: with all the search and hierarchy settings OFF the code performs
         a Dumb copy, no matching and no Hierarchy filtering, copies using
         selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
-        -----------------------------------------------------------------
+
 
         '''
         if not matchMethod:
@@ -2495,7 +2499,7 @@ class AnimFunctions(object):
         really need to merge layers down first!!
         
         Generic filters passed into r9Core.MatchedNodeInputs class:
-        -----------------------------------------------------------------
+        #-----------------------------------------------------------------
         @setting.nodeTypes: list[] - search for child nodes of type (wraps cmds.listRelatives types=)
         @setting.searchAttrs: list[] - search for child nodes with Attrs of name
         @setting.searchPattern: list[] - search for nodes with a given nodeName searchPattern
@@ -2505,7 +2509,7 @@ class AnimFunctions(object):
         NOTE: with all the search and hierarchy settings OFF the code performs
         a Dumb copy, no matching and no Hierarchy filtering, copies using
         selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
-        -----------------------------------------------------------------
+
         '''
         self.snapCacheData = {}  # TO DO - Cache the data and check after first run data is all valid
         self.nodesToSnap = []
@@ -3349,7 +3353,7 @@ class MirrorHierarchy(object):
         self.mirrorAxis = 'mirrorAxis'
         self.mirrorDict = {'Centre': {}, 'Left': {}, 'Right': {}}
         self.kws = kws  # allows us to pass kws into the copyKey and copyAttr call if needed, ie, pasteMethod!
-        print 'kws in Mirror call : ', self.kws
+        #print 'kws in Mirror call : ', self.kws
         
         # make sure we have a settings object
         if filterSettings:
@@ -3405,6 +3409,7 @@ class MirrorHierarchy(object):
         if axis:
             if axis == 'None':
                 mClass.addAttr(self.mirrorAxis, attrType='string')
+                mClass.mirrorAxis=''
             else:
                 mClass.addAttr(self.mirrorAxis, axis)
                 mClass.__setattr__(self.mirrorAxis, axis)

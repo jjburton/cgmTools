@@ -1,18 +1,18 @@
 '''
-------------------------------------------
+
 Red9 Studio Pack: Maya Pipeline Solutions
 Author: Mark Jackson
 email: rednineinfo@gmail.com
 
 Red9 blog : http://red9-consultancy.blogspot.co.uk/
 MarkJ blog: http://markj3d.blogspot.co.uk
-------------------------------------------
+
 
 Core is the library of Python modules that make the backbone of the Red9 Pack
     
 :Note that the registerMClassInheritanceMapping() call is after all the imports
 so that the global RED9_META_REGISTERY is built up correctly
-===============================================================================
+
 '''
 
 import Red9_General

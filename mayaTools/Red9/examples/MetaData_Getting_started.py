@@ -64,9 +64,10 @@ node.enum   #>>2
 
 
 #dict handling
-data=dict(node.__dict__)        #make a new test dict for this demo
+data={'stringData':'hello','floatData':3.22222,'listData':['a','b','c','d']}        #make a new test dict for this demo
 node.addAttr('jsonTest', data)  #create a string attr with JSON serialized data
-node.jsonTest['stringTest']     #will deserialize the MayaNode jsonTest attr back to a dict and return its key['stringTest']
+node.jsonTest['stringData']  #>>hello    #will deserialize the MayaNode jsonTest attr back to a dict and return its key['stringTest']
+node.jsonTest['listData']  #>>['a','b','c','d']
 
 #double handling
 #adds a double3 attr with subAttrs 'dblA,dblB,dblC', sets them as doubles with min/max vaules, 

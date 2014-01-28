@@ -114,3 +114,4 @@ New - Red9_Audio - new audio handling module, separated from the r9General which
 New - Red9_Audio - new "COMPILE AUDIO" setup which allows you to mix existing audio inside Maya into a single wav track - great for playblasting! - integrates the pydub module.
 New - Red9_Meta - added a new function 'getMirror_oppositeSet' to MetaRig which uses the MirrorIndexes to return an opposite set of nodes to those passed in... ie, you pass in nodes with mirrorIndexes Left[1],Left[4],Right[3],Centre[5] and get back Right[1],Right[4],Left[3],Centre[5] nodes
 New - Red9_Pose - added the ability to load a percentage of a pose via a blend slider in the UI (on the RMB PoseBlender). This basically mixes in x percent of the selected pose. No support for relative poses yet
+Fix - Red9_Anim	- fixed an issue in the MirrorSetup UI. If all channels were left blank and the node had already got custom axis then these weren't getting cleared as they should have been

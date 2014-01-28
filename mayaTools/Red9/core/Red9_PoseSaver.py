@@ -351,7 +351,6 @@ class PoseData(object):
                 self.poseCurrentCache[key][attr]=cmds.getAttr('%s.%s' % (dest, attr))
                 
     @r9General.Timer
-    #def _applyPose(self, matchedPairs, percent=None):
     def _applyPose(self, percent=None):
         '''
         @param matchedPairs: pre-matched tuples of (poseDict[key], node in scene)
@@ -637,15 +636,7 @@ class PoseData(object):
                 self.PosePointCloud.delete()
                 cmds.select(reference)
 
-#     def poseMix(self, nodes, filepath, percent, useFilter=True):
-#         self.filepath = filepath
-#         self.useFilter = useFilter 
-#         
-#         nodesToLoad = self._poseLoad_buildcache(nodes)
-#         #cacheNodeValues
-#         self._applyPose(percent)
-        
-    
+   
 class PosePointCloud(object):
     '''
     PosePointCloud is the technique inside the PoseSaver used to snap the pose into
@@ -725,8 +716,8 @@ class PosePointCloud(object):
         '''
         snap each MAYA node to it's respective pntCloud point
         '''
-        for pnt,node in self.posePointCloudNodes:
-            log.debug('snapping Ctrl : %s' % node)
+        for pnt, node in self.posePointCloudNodes:
+            log.debug('snapping Ctrl : %s > %s : %s' % (r9Core.nodeNameStrip(node), pnt, node))
             r9Anim.AnimFunctions.snap([pnt,node])
             
     def shapeSwapMesh(self):
@@ -806,40 +797,40 @@ class PoseCompare(object):
                     'skeletonDict' = [skeletonDict] block generated if exportSkeletonRoot is connected
                     'infoDict'     = [info] block
         '''
-        self.status=False
-        self.compareDict=compareDict
-        self.angularTolerance=angularTolerance
-        self.angularAttrs=['rotateX','rotateY','rotateZ']
+        self.status = False
+        self.compareDict = compareDict
+        self.angularTolerance = angularTolerance
+        self.angularAttrs = ['rotateX', 'rotateY', 'rotateZ']
         
-        self.linearTolerance=linearTolerance
-        self.linearAttrs=['translateX','translateY','translateZ']
+        self.linearTolerance = linearTolerance
+        self.linearAttrs = ['translateX', 'translateY', 'translateZ']
         
-        if isinstance(currentPose,PoseData):
-            self.currentPose=currentPose
+        if isinstance(currentPose, PoseData):
+            self.currentPose = currentPose
         elif os.path.exists(currentPose):
-            self.currentPose=PoseData()
+            self.currentPose = PoseData()
             self.currentPose._readPose(currentPose)
         elif not os.path.exists(referencePose):
             raise IOError('Given CurrentPose Path is invalid!')
             
-        if isinstance(referencePose,PoseData):
-            self.referencePose=referencePose
+        if isinstance(referencePose, PoseData):
+            self.referencePose = referencePose
         elif os.path.exists(referencePose):
-            self.referencePose=PoseData()
+            self.referencePose = PoseData()
             self.referencePose._readPose(referencePose)
         elif not os.path.exists(referencePose):
             raise IOError('Given ReferencePose Path is invalid!')
 
-    def __addFailedAttr(self,key,attr):
+    def __addFailedAttr(self, key, attr):
         '''
         add failed attrs data to the dict
         '''
         if not 'failedAttrs' in self.fails:
-            self.fails['failedAttrs']={}
+            self.fails['failedAttrs'] = {}
         if not key in self.fails['failedAttrs']:
-            self.fails['failedAttrs'][key]={}
+            self.fails['failedAttrs'][key] = {}
         if not 'attrMismatch' in self.fails['failedAttrs'][key]:
-            self.fails['failedAttrs'][key]['attrMismatch']=[]
+            self.fails['failedAttrs'][key]['attrMismatch'] = []
         self.fails['failedAttrs'][key]['attrMismatch'].append(attr)
        
     def compare(self):
@@ -848,65 +839,65 @@ class PoseCompare(object):
         return a bool. After processing self.fails is a dict holding all the fails
         for processing later if required
         '''
-        self.fails={}
-        logprint='PoseCompare returns : ========================================\n'
+        self.fails = {}
+        logprint = 'PoseCompare returns : ========================================\n'
         currentDic = getattr(self.currentPose, self.compareDict)
-        referenceDic=getattr(self.referencePose, self.compareDict)
+        referenceDic = getattr(self.referencePose, self.compareDict)
         
         if not currentDic or not referenceDic:
             raise StandardError('missing pose section <<%s>> compare aborted' % self.compareDict)
         
         for key, attrBlock in currentDic.items():
             if key in referenceDic:
-                referenceAttrBlock=referenceDic[key]
+                referenceAttrBlock = referenceDic[key]
             else:
-                #log.info('Key Mismatch : %s' % key)
-                logprint+='ERROR: Key Mismatch : %s\n' % key
+                # log.info('Key Mismatch : %s' % key)
+                logprint += 'ERROR: Key Mismatch : %s\n' % key
                 if not 'missingKeys' in self.fails:
-                    self.fails['missingKeys']=[]
+                    self.fails['missingKeys'] = []
                 self.fails['missingKeys'].append(key)
                 continue
 
             for attr, value in attrBlock['attrs'].items():
-                #attr missing completely from the key
+                # attr missing completely from the key
                 if not attr in referenceAttrBlock['attrs']:
                     if not 'failedAttrs' in self.fails:
-                        self.fails['failedAttrs']={}
+                        self.fails['failedAttrs'] = {}
                     if not key in self.fails['failedAttrs']:
-                        self.fails['failedAttrs'][key]={}
+                        self.fails['failedAttrs'][key] = {}
                     if not 'missingAttrs' in self.fails['failedAttrs'][key]:
-                        self.fails['failedAttrs'][key]['missingAttrs']=[]
+                        self.fails['failedAttrs'][key]['missingAttrs'] = []
                     self.fails['failedAttrs'][key]['missingAttrs'].append(attr)
-                    #log.info('missing attribute in data : "%s.%s"' % (key,attr))
-                    logprint+='ERROR: Missing attribute in data : "%s.%s"\n' % (key,attr)
+                    # log.info('missing attribute in data : "%s.%s"' % (key,attr))
+                    logprint += 'ERROR: Missing attribute in data : "%s.%s"\n' % (key, attr)
                     continue
                 
-                #test the attrs value matches
-                value=r9Core.decodeString(value)                                 # decode as this may be a configObj
-                refValue=r9Core.decodeString(referenceAttrBlock['attrs'][attr])  # decode as this may be a configObj
+                # test the attrs value matches
+                value = r9Core.decodeString(value)  # decode as this may be a configObj
+                refValue = r9Core.decodeString(referenceAttrBlock['attrs'][attr])  # decode as this may be a configObj
                 
-                if type(value)==float:
-                    matched=False
+                if type(value) == float:
+                    matched = False
                     if attr in self.angularAttrs:
-                        matched=r9Core.floatIsEqual(value, refValue, self.angularTolerance, allowGimbal=True)
+                        matched = r9Core.floatIsEqual(value, refValue, self.angularTolerance, allowGimbal=True)
                     else:
-                        matched=r9Core.floatIsEqual(value, refValue, self.linearTolerance, allowGimbal=False)
+                        matched = r9Core.floatIsEqual(value, refValue, self.linearTolerance, allowGimbal=False)
                     if not matched:
                         self.__addFailedAttr(key, attr)
-                        #log.info('AttrValue float mismatch : "%s.%s" currentValue=%s >> expectedValue=%s' % (key,attr,value,refValue))
-                        logprint+='ERROR: AttrValue float mismatch : "%s.%s" currentValue=%s >> expectedValue=%s\n' % (key,attr,value,refValue)
+                        # log.info('AttrValue float mismatch : "%s.%s" currentValue=%s >> expectedValue=%s' % (key,attr,value,refValue))
+                        logprint += 'ERROR: AttrValue float mismatch : "%s.%s" currentValue=%s >> expectedValue=%s\n' % (key, attr, value, refValue)
                         continue
-                elif not value==refValue:
+                elif not value == refValue:
                     self.__addFailedAttr(key, attr)
-                    #log.info('AttrValue mismatch : "%s.%s" currentValue=%s >> expectedValue=%s' % (key,attr,value,refValue))
-                    logprint+='ERROR: AttrValue mismatch : "%s.%s" currentValue=%s >> expectedValue=%s\n' % (key,attr,value,refValue)
+                    # log.info('AttrValue mismatch : "%s.%s" currentValue=%s >> expectedValue=%s' % (key,attr,value,refValue))
+                    logprint += 'ERROR: AttrValue mismatch : "%s.%s" currentValue=%s >> expectedValue=%s\n' % (key, attr, value, refValue)
                     continue
                 
         if 'missingKeys' in self.fails or 'failedAttrs' in self.fails:
-            logprint+='PoseCompare returns : ========================================'
+            logprint += 'PoseCompare returns : ========================================'
             print logprint
             return False
-        self.status=True
+        self.status = True
         return True
 
          

@@ -1,12 +1,12 @@
 '''
-------------------------------------------
+
 Red9 Studio Pack: Maya Pipeline Solutions
 Author: Mark Jackson
 email: rednineinfo@gmail.com
 
 Red9 blog : http://red9-consultancy.blogspot.co.uk/
 MarkJ blog: http://markj3d.blogspot.co.uk
-------------------------------------------
+
 
 This is the Core of the MetaNode implementation of the systems.
 
@@ -15,12 +15,8 @@ need to make sure that the registerMClassInheritanceMapping() is called
 such that the global RED9_META_REGISTERY is rebuilt and includes
 your inherited class.
 
-================================================================
 
-
-#===============================================================
-# Basic MetaClass Use:
-#===============================================================
+Basic MetaClass Use:
 
     Now moved to the examples folder for more detailed explanations
     ..\Red9\examples\MetaData_Getting_started.py
@@ -41,7 +37,7 @@ import os
 
 import Red9_General as r9General
 import Red9.startup.setup as r9Setup
-
+from Red9_AnimationUtils import MirrorHierarchy
 
 '''
 #=============================================
@@ -143,13 +139,16 @@ def registerMClassNodeMapping(nodeTypes=None):
     as metaNodes
     @param nodeTypes: allows you to expand metaData and use any nodeType
                     default is always 'network'
-    NOTE:
+                    
+    .. note::
+    
         this now validates 'nodeTypes' against Maya registered nodeTypes before being
         allowed into the registry. Why, well lets say you have a new nodeType from a
         plugin but that plugin isn't currently loaded, this now stops that type being
         generically added by any custom boot sequence.
+        
     '''
-    baseTypes=['network','objectSet','HIKCharacterNode']
+    baseTypes=['network','objectSet','HIKCharacterNode','HIKControlSetNode']
     
     global RED9_META_NODETYPE_REGISTERY
     RED9_META_NODETYPE_REGISTERY = []
@@ -675,11 +674,6 @@ class MetaClass(object):
             mNode=args[0]
             if isMetaNode(mNode):
                 mClass=getMClassDataFromNode(mNode)
-                #try:
-                #    mClass=cmds.getAttr('%s.%s' % (mNode,'mClass'))
-                #except:
-                #    if cmds.nodeType(mNode) =='HIKCharacterNode':
-                #        mClass='MetaHIKCharacter'
         if mClass:
             log.debug("mClass derived from MayaNode Attr : %s" % mClass)
             if mClass in RED9_META_REGISTERY:
@@ -699,20 +693,24 @@ class MetaClass(object):
     #@pymelHandler
     def __init__(self, node=None, name=None, nodeType='network', autofill='all', **kws):
         '''
-        Base Class for Meta support. This manages all the attribute
-        and class management for all subsequent inherited classes
-        @param node: Maya Node - if given we test it for the mClass attribute, if it exists
-                    we initialize a class of that type and return. If not passed in then we
-                    make a new network node for the type given.
-        @param name: only used on create, name to set for the new Maya Node (self.mNode)
-        @param nodeType: allows you to specify a node of type to create as a new mClass node.
-                        default is 'network', not that for any node to show up in the get
-                        calls that type MUST be registered in the RED9_META_NODETYPE_REGISTERY
-        @param autofill: 'str' cast all the MayaNode attrs into the class dict by default.
-                    Updated: modes: 'all' or 'messageOnly'. all casts every attr, messageOnly
-                    fills the node with just message linked attrs (designed for MetaClass work
-                    with HIK characterNode)
-        NOTE: mNode is now a wrap on the MObject so will always be in sync even if the node is renamed/parented
+        Base Class for Meta support. This manages all the attribute and class 
+        management for all subsequent inherited classes.
+        
+        :param node: Maya Node - if given we test it for the mClass attribute, if it exists 
+                we initialize a class of that type and return. If not passed in then we 
+                make a new network node for the type given.
+        :param name: only used on create, name to set for the new Maya Node (self.mNode)
+        :param nodeType: allows you to specify a node of type to create as a new mClass node. 
+                default is 'network', not that for any node to show up in the get 
+                calls that type MUST be registered in the RED9_META_NODETYPE_REGISTERY
+        :param autofill: 'str' cast all the MayaNode attrs into the class dict by default. 
+                Updated: modes: 'all' or 'messageOnly'. all casts every attr, messageOnly 
+                fills the node with just message linked attrs (designed for MetaClass work 
+                with HIK characterNode)
+        
+        .. note::
+        
+            mNode is now a wrap on the MObject so will always be in sync even if the node is renamed/parented
         '''
         #data that will not get pushed to the Maya node
         object.__setattr__(self, '_MObject', '')
@@ -760,14 +758,16 @@ class MetaClass(object):
      
     def __bindData__(self):
         '''
-        This is intended as an entry point to allow you to bind whatever attrs or extras
-        you need at a class level. It's called by the __init__ ...
+        This is intended as an entry point to allow you to bind whatever attrs or extras 
+        you need at a class level. It's called by the __init__ ... 
         Intended to be overloaded as and when needed when inheriting from MetaClass
-        NOTE:
-            #to bind a new attr and serilaize it to the self.mNode (Maya node)
+        
+        ..note::
+        
+            To bind a new attr and serilaize it to the self.mNode (Maya node) 
             self.addAttr('newDefaultAttr',attrType='string')
             
-            #to bind a new attribute to the python object only, not serialized to Maya node
+            To bind a new attribute to the python object only, not serialized to Maya node 
             self.newClassAttr=None  :or:   self.__setattr__('newAttr',None)
         '''
         pass
@@ -880,7 +880,8 @@ class MetaClass(object):
                 return False
         else:
             return False
-        
+    
+    @r9General.Timer
     def __fillAttrCache__(self, level):
         '''
         go through all the attributes on the given node and cast each one of them into
@@ -888,9 +889,12 @@ class MetaClass(object):
         This is ONLY for ease of use when dot complete in Maya, nothing more
         '''
         if level=='messageOnly':
-            attrs=[attr for attr in cmds.listAttr(self.mNode) if cmds.getAttr('%s.%s' % (self.mNode,attr),type=True)=='message']
+            attrs=self.listAttrsOfType(Type='message')
+            #attrs=[attr for attr in cmds.listAttr(self.mNode) if cmds.getAttr('%s.%s' % (self.mNode,attr),type=True)=='message']
         else:
+            #attrs=self.listAttrs()
             attrs=cmds.listAttr(self.mNode)
+
         for attr in attrs:
             try:
                 #we only want to fill the __dict__ we don't want the overhead
@@ -976,10 +980,11 @@ class MetaClass(object):
                         try:
                             cmds.setAttr(attrString, value[0], value[1], value[2])
                         except ValueError, error:
-                            raise ValueError(error)
-                        
-                    elif attrType=='doubleArray':
-                        cmds.setAttr(attrString,value,type='doubleArray')
+                            raise ValueError(error)      
+                    elif attrType == 'doubleArray':
+                        cmds.setAttr(attrString, value, type='doubleArray')
+                    elif attrType == 'matrix':
+                        cmds.setAttr(attrString, value, type='matrix')
                         
                     #elif attrType=='TdataCompound': #ie blendShape weights = multi data or joint.minRotLimitEnable
                     #    pass
@@ -993,7 +998,28 @@ class MetaClass(object):
                     self.attrSetLocked(attr,True)
             else:
                 log.debug('attr : %s doesnt exist on MayaNode > class attr only' % attr)
-             
+    
+    def __getMessageAttr__(self, attr):
+        '''
+        separated func as it's the kind of thing that other classes may want to overload
+        the behaviour of the returns etc
+        '''
+        msgLinks=cmds.listConnections('%s.%s' % (self.mNode,attr),destination=True,source=True)
+        if msgLinks:
+            msgLinks=cmds.ls(msgLinks,l=True)
+            for i,link in enumerate(msgLinks):
+                if isMetaNode(link):
+                    msgLinks[i]=MetaClass(link)
+                    log.debug('%s :  Connected data is an mClass Object, returning the Class' % link)
+            if not cmds.attributeQuery(attr, node=self.mNode, m=True):  # singular message
+                #log.debug('getattr for multi-message attr: connections =[%s]' % ','.join(msgLinks))
+                if isMetaNode(msgLinks[0]):
+                    return msgLinks[0]  # MetaClass(msgLinks[0])
+            return msgLinks
+        else:
+            log.debug('nothing connected to msgLink %s.%s' % (self.mNode,attr))
+            return []
+                        
     def __getattribute__(self, attr):
         '''
         Overload the method to always return the MayaNode
@@ -1021,21 +1047,22 @@ class MetaClass(object):
                     #Message Link handling
                     #=====================
                     if attrType=='message':
-                        msgLinks=cmds.listConnections('%s.%s' % (mNode,attr),destination=True,source=True)
-                        if msgLinks:
-                            msgLinks=cmds.ls(msgLinks,l=True)
-                            for i,link in enumerate(msgLinks):
-                                if isMetaNode(link):
-                                    msgLinks[i]=MetaClass(link)
-                                    log.debug('%s :  Connected data is an mClass Object, returning the Class' % link)
-                            if not cmds.attributeQuery(attr, node=mNode, m=True):  # singular message
-                                #log.debug('getattr for multi-message attr: connections =[%s]' % ','.join(msgLinks))
-                                if isMetaNode(msgLinks[0]):
-                                    return msgLinks[0]  # MetaClass(msgLinks[0])
-                            return msgLinks
-                        else:
-                            log.debug('nothing connected to msgLink %s.%s' % (mNode,attr))
-                            return []
+                        return self.__getMessageAttr__(attr)
+#                        msgLinks=cmds.listConnections('%s.%s' % (mNode,attr),destination=True,source=True)
+#                        if msgLinks:
+#                            msgLinks=cmds.ls(msgLinks,l=True)
+#                            for i,link in enumerate(msgLinks):
+#                                if isMetaNode(link):
+#                                    msgLinks[i]=MetaClass(link)
+#                                    log.debug('%s :  Connected data is an mClass Object, returning the Class' % link)
+#                            if not cmds.attributeQuery(attr, node=mNode, m=True):  # singular message
+#                                #log.debug('getattr for multi-message attr: connections =[%s]' % ','.join(msgLinks))
+#                                if isMetaNode(msgLinks[0]):
+#                                    return msgLinks[0]  # MetaClass(msgLinks[0])
+#                            return msgLinks
+#                        else:
+#                            log.debug('nothing connected to msgLink %s.%s' % (mNode,attr))
+#                            return []
                     #Standard Maya Attr handling
                     #===========================
                     attrVal=cmds.getAttr('%s.%s' % (mNode,attr))
@@ -1057,7 +1084,7 @@ class MetaClass(object):
                 return attrVal
         except StandardError,error:
             raise StandardError(error)
-  
+              
     def __serializeComplex(self, data):
         '''
         Serialize complex data such as dicts to a JSON string
@@ -1113,22 +1140,24 @@ class MetaClass(object):
     @nodeLockManager
     def addAttr(self, attr, value=None, attrType=None, hidden=False, **kws):
         '''
-        Wrapped version of Maya addAttr that manages the basic type flags for you
-        whilst also setting the attr on the MayaNode/class object itself.
-        I now merge in **kws to the dict I pass to the add and set commands here so you
+        Wrapped version of Maya addAttr that manages the basic type flags for you 
+        whilst also setting the attr on the MayaNode/class object itself. 
+        I now merge in **kws to the dict I pass to the add and set commands here so you 
         can specify all standard cmds.addAttr, setAttr flags in the same call.
         ie:/ min, max, l, k, cb,
-        @param attr:  attribute name to add (standard 'longName' flag)
-        @param value: initial value to set, if given the attribute type is automatically set for you
-        @param attrType: specify the exact type of attr to add. By default I try and resolve
+        
+        :param attr:  attribute name to add (standard 'longName' flag)
+        :param value: initial value to set, if given the attribute type is automatically set for you
+        :param attrType: specify the exact type of attr to add. By default I try and resolve 
                     this for you from the type of value passed in.
-        @param hidden: whether the attr is set available in the channelBox (only applies keyable attrs)
+        :param hidden: whether the attr is set available in the channelBox (only applies keyable attrs)
 
-        NOTE: specific attr management for given types below:
+        ..note:: 
+        
+            specific attr management for given types below:
             double3: self.addAttr(attr='attrName', attrType='double3',value=(value1,value2,value3))
             float3:  self.addAttr(attr='attrName', attrType='float3', value=(value1,value2,value3))
             enum:    self.addAttr(attr='attrName', attrType='enum',   value=1, enumName='Centre:Left:Right')
-
         '''
         DataTypeKws = {'string': {'longName':attr, 'dt':'string'}, \
                      'unicode': {'longName':attr, 'dt':'string'}, \
@@ -1214,6 +1243,27 @@ class MetaClass(object):
             except StandardError,error:
                 raise StandardError(error)
      
+    def listAttrsOfType(self, Type='message'):
+        '''
+        this is a fast method to list all attrs of type on the mNode
+        
+        [attr for attr in cmds.listAttr(self.mNode) if cmds.getAttr('%s.%s' % (self.mNode,attr),type=True)=='message']
+        Simply using the above is DOG SLOW upto this
+        TODO: expand the Type support here
+        '''
+        depNodeFn=OpenMaya.MFnDependencyNode(self.mNodeMObject)
+        attrCount = depNodeFn.attributeCount()
+        ret = []
+        for i in range(attrCount):
+            attrObject = depNodeFn.attribute(i)
+            if Type:
+                if Type=='message':
+                    if not attrObject.hasFn(OpenMaya.MFn.kMessageAttribute):
+                        continue
+            mPlug = depNodeFn.findPlug(attrObject)
+            ret.append(mPlug.name().split('.')[1])
+        return ret
+    
     
     # Utity Functions
     #-------------------------------------------------------------------------------------
@@ -1554,10 +1604,11 @@ class MetaClass(object):
     def addChildMetaNode(self, mClass, attr, srcAttr=None, nodeName=None, **kws):
         '''
         Generic call to add a MetaNode as a Child of self
-        @param mClass: mClass to generate, given as a valid key to the RED9_META_REGISTERY ie 'MetaRig'
-                OR a class object, ie r9Meta.MetaRig
-        @param attr: message attribute to wire the new node too
-        @param name: optional name to give the new name
+        
+        :param mClass: mClass to generate, given as a valid key to the 
+            RED9_META_REGISTERY ie 'MetaRig' OR a class object, ie r9Meta.MetaRig
+        :param attr: message attribute to wire the new node too
+        :param name: optional name to give the new name
         '''
         key=mTypesToRegistryKey(mClass)[0]
         if key in RED9_META_REGISTERY:
@@ -1626,8 +1677,10 @@ class MetaClass(object):
         '''
         Find any connected Parent MetaNode to this mNode
         
-        NOTE: Because the **kws are passed directly to the getConnectedMetaNods func, it will
-        also take ALL of that functions kws:
+        .. note::
+        
+            Because the **kws are passed directly to the getConnectedMetaNods func, it will
+            also take ALL of that functions kws:
             source=True, destination=True, mTypes=[], mInstances=[], mAttrs=None, dataType='mClass'
             
         TODO: implement a walk here to go upstream
@@ -1689,10 +1742,15 @@ class MetaClass(object):
         This is a generic wrapper to extract metaData connection info for any given node
         used currently to build the pose dict up, and compare / match the data on load.
         In the base implementation this gives you a dict of mNodeID and attr which the nodes is connected too.
-        @param node: node to inspect and get the connection data back from
-        @return: mNodes={} which is directly pushed into the PoseFile under the [metaData] key
-        NOTE: this is designed to be overloaded so you can craft your own metaData block in the
-        poseFiles, allows you to craft the data you want to store against a node.
+        
+        :param node: node to inspect and get the connection data back from
+        :return mNodes={} which is directly pushed into the PoseFile under the [metaData] key
+        
+        .. note::
+        
+            This is designed to be overloaded so you can craft your own metaData block in the
+            poseFiles, allows you to craft the data you want to store against a node.
+            
         '''
         if type(node)==list:
             raise StandardError("getNodeConnectionMetaDataMap: node must be a single node, not an list")
@@ -1769,7 +1827,7 @@ def deleteEntireMetaRigStructure(searchNode=None):
             if cmds.attributeQuery('mirrorAxis', exists=True, node=child):
                 cmds.deleteAttr('%s.mirrorAxis' % child)
         metaChild.delete()
-    
+
 
 class MetaRig(MetaClass):
     '''
@@ -1785,13 +1843,14 @@ class MetaRig(MetaClass):
         #cmds.lockNode(self.mNode, lock=True) #lock the node to avoid accidental removal
         self.lockState=True
         self.parentSwitchAttr='parent'  # attr used for parentSwitching
+        self.MirrorClass = None
         
     def __bindData__(self):
         self.addAttr('version',1.0)  # ensure these are added by default
         self.addAttr('rigType', '')  # ensure these are added by default
         self.addAttr('renderMeshes', attrType='message')
         self.addAttr('exportSkeletonRoot', attrType='messageSimple')
-           
+                    
     def addGenericCtrls(self, nodes):
         '''
         Pass in a list of objects to become generic, non specific
@@ -1808,17 +1867,19 @@ class MetaRig(MetaClass):
         @param mirrorData: {side:'Left', slot:int, axis:'translateX,rotateY,rotateZ'..}
         @param boundData: {} any additional attrData, set on the given node as attrs
         
-        #NOTE: mirrorData[slot] must NOT == 0 as it'll be handled as not set by the core
-        #NOTE: ctrType >> 'Main' is the equivalent of the RootNode in the FilterNode calls
+        .. note::
+            mirrorData[slot] must NOT == 0 as it'll be handled as not set by the core 
+            
+            ctrType >> 'Main' is the equivalent of the RootNode in the FilterNode calls
         '''
-        import Red9_AnimationUtils as r9Anim  # lazy load to avoid cyclic imports
+        #import Red9_AnimationUtils as r9Anim  # lazy load to avoid cyclic imports
         
         if isinstance(node,list):
             raise StandardError('node must be a single Maya Object')
         
         self.connectChild(node,'%s_%s' % (self.CTRL_Prefix,ctrType))
         if mirrorData:
-            mirror=r9Anim.MirrorHierarchy()
+            mirror = MirrorHierarchy()
             axis=None
             if 'axis' in mirrorData:
                 axis = mirrorData['axis']
@@ -1924,8 +1985,9 @@ class MetaRig(MetaClass):
         subsystems, ie, ikSolvers and construction nodes within the rig
         
         @param attr: Attribute used in the message link. Note this is what you use
-                     to transerve the Dag tree so use something sensible!
+        to transerve the Dag tree so use something sensible!
         @param nodeName: Name of the MetaClass network node created
+        @param mClass: the class to be used for the support node - 'MetaRigSupport' by default
         '''
         if not nodeName:
             nodeName=attr
@@ -1946,25 +2008,25 @@ class MetaRig(MetaClass):
                     log.debug('Adding boundData to node : %s:%s' %(key,value))
                     MetaClass(node).addAttr(key, value=value)
                         
-    def addMetaSubSystem(self, systemType, side, attr=None, nodeName=None):
+    def addMetaSubSystem(self, systemType, side, attr=None, nodeName=None, mClass='MetaRigSubSystem'):
         '''
         Basic design of a MetaRig is that you have sub-systems hanging off an mRig
         node, managing all controllers and data for a particular system, such as an
         Arm system.
         
         @param systemType: Attribute used in the message link. Note this is what you use
-                     to transerve the Dag tree so use something sensible!
+        to transerve the Dag tree so use something sensible!
         @param mirrorSide: Side to designate the system. This is an enum: Centre,Left,Right
         @param nodeName: Name of the MetaClass network node created
+        @param mClass: the class to be used for the support node - 'MetaRigSubSystem' by default
         '''
-        import Red9_AnimationUtils as r9Anim
-        r9Anim.MirrorHierarchy()._validateMirrorEnum(side)  # ??? do we just let the enum __setattr__ handle this?
+        MirrorHierarchy()._validateMirrorEnum(side)  # ??? do we just let the enum __setattr__ handle this?
 
         if not attr:
             attr='%s_%s_System' % (side[0],systemType)
         if not nodeName:
             nodeName=attr
-        subSystem=self.addChildMetaNode('MetaRigSubSystem', attr=attr, nodeName=nodeName)
+        subSystem=self.addChildMetaNode(mClass, attr=attr, nodeName=nodeName)
         
         #set the attrs on the newly created subSystem MetaNode
         subSystem.systemType=systemType
@@ -1973,20 +2035,24 @@ class MetaRig(MetaClass):
                              
     def getMirrorData(self):
         '''
-        Bind the MirrorObject to this instance
+        Bind the MirrorObject to this instance of MetaRig.
+        NOTE: you must run this binding function before using any of
+        the inbuilt mirror functions
         '''
-        import Red9_AnimationUtils as r9Anim
-        self.MirrorClass=r9Anim.MirrorHierarchy(nodes=self.getRigCtrls(walk=True))
+        self.MirrorClass = MirrorHierarchy(nodes=self.getRigCtrls(walk=True))
+        self.MirrorClass.getMirrorSets()
+        log.debug('Filling the MirrorClass attr on demand')
         return self.MirrorClass
     
-    def loadMirrorDataMap(self,mirrorMap):
+    def loadMirrorDataMap(self, mirrorMap):
         '''
         load a mirror setup onto this rig from a stored mirrorMap file
         '''
-        import Red9_AnimationUtils as r9Anim
+        if not self.MirrorClass:
+            self.MirrorClass = self.getMirrorData()
         if not os.path.exists(mirrorMap):
             raise IOError('Given MirrorMap file not found : %s' % mirrorMap)
-        r9Anim.MirrorHierarchy(self.getChildren()).loadMirrorSetups(mirrorMap)
+        MirrorHierarchy(self.getChildren()).loadMirrorSetups(mirrorMap)
     
     def getMirror_opposites(self, nodes):
         '''
@@ -1994,8 +2060,8 @@ class MetaRig(MetaClass):
         so if you pass in a right controller of mirrorIndex 4 you get back the
         left[4] mirror node and visa versa. Centre controllers pass straight through
         '''
-        self.getMirrorData()
-        self.MirrorClass.getMirrorSets()
+        if not self.MirrorClass:
+            self.MirrorClass = self.getMirrorData()
         oppositeNodes=[]
         
         for node in nodes:
@@ -2010,6 +2076,14 @@ class MetaRig(MetaClass):
                 oppositeNodes.append(node)
         return oppositeNodes
     
+    def mirror(self, nodes=None, mode='Anim'):
+        '''
+        direct mapper call to the Mirror functions
+        '''
+        if not self.MirrorClass:
+            self.MirrorClass = self.getMirrorData()
+        self.MirrorClass.mirrorData(nodes, mode)
+    
     @nodeLockManager
     def poseCacheStore(self, attr=None, filepath=None, *args, **kws):
         '''
@@ -2020,7 +2094,7 @@ class MetaRig(MetaClass):
         @param attr: optional - attr to store the cached pose to
         @param filepath: optional - path to store the pose too
         '''
-        import Red9.core.Red9_PoseSaver as r9Pose
+        import Red9.core.Red9_PoseSaver as r9Pose  # lazy loaded
         self.poseCache=r9Pose.PoseData()
         self.poseCache.metaPose=True
         self.poseCache.poseSave(self.mNode, filepath=filepath, useFilter=True, *args, **kws)  # no path so cache against this pose instance
@@ -2041,7 +2115,7 @@ class MetaRig(MetaClass):
         @param filepath: optional - posefile to load back
         TODO: add relative flags so that they can pass through this call
         '''
-        import Red9.core.Red9_PoseSaver as r9Pose
+        import Red9.core.Red9_PoseSaver as r9Pose  # lazy loaded
         if attr or filepath:
             self.poseCache=r9Pose.PoseData()
             self.poseCache.metaPose=True
@@ -2062,7 +2136,7 @@ class MetaRig(MetaClass):
         @param compareDict: what block in the poseFile to compare the data against
         @return: returns a 'PoseCompare' class object with all the compare data in it
         '''
-        import Red9.core.Red9_PoseSaver as r9Pose
+        import Red9.core.Red9_PoseSaver as r9Pose  # lazy loaded
         self.poseCacheStore()
         compare=r9Pose.PoseCompare(self.poseCache,poseFile,compareDict=compareDict)
         if not compare.compare():
@@ -2083,7 +2157,7 @@ class MetaRig(MetaClass):
         '''
         store AttrMap to the metaRig, saving the chBox state of ALL attrs for ALL nodes in the hierarchy
         '''
-        import Red9_CoreUtils as r9Core
+        import Red9_CoreUtils as r9Core  # lazy loaded
         chn = r9Core.LockChannels()
         chn.saveChannelMap(filepath=None,
                            nodes=getattr(self,'%s_Main' % self.CTRL_Prefix),
@@ -2094,7 +2168,7 @@ class MetaRig(MetaClass):
         '''
         load AttrMap from the metaRig, returning the chBox state of ALL attrs for ALL nodes in the hierarchy
         '''
-        import Red9_CoreUtils as r9Core
+        import Red9_CoreUtils as r9Core  # lazy loaded
         chn = r9Core.LockChannels()
         chn.loadChannelMap(filepath=None,
                            nodes=getattr(self,'%s_Main' % self.CTRL_Prefix),
@@ -2102,7 +2176,7 @@ class MetaRig(MetaClass):
                            serializeNode=self.mNode)
     
     @nodeLockManager
-    def storeZeroPose(self):
+    def saveZeroPose(self):
         '''
         serialize the r9Pose file to the node itself
         '''
@@ -2200,17 +2274,67 @@ class MetaFacialRigSupport(MetaClass):
                     MetaClass(node).addAttr(key, value=value)
 
 
-class MetaHIKCharacterNode(MetaClass):
+class MetaHIKCharacterNode(MetaRig):
     '''
-    Testing only : casting HIK directly to a metaClass so it's
-    treated as meta by default. Why the hell not, it's a complex
-    character node that is default in Maya and useful for management
-    in the systems
+    Casting HIK directly to a metaClass so it's treated as meta by default.
+    Why the hell not, it's a complex character node that is default in Maya
+    and useful for management in the systems
+    '''
+    def __init__(self, *args, **kws):
+        #kws.setdefault('autofill','messageOnly')
+        super(MetaHIKCharacterNode, self).__init__(*args,**kws)
+
+    def __getMessageAttr__(self, attr):
+        '''
+        overloaded so that the main message wires return as single nodes
+        '''
+        data = super(MetaHIKCharacterNode,self).__getMessageAttr__(attr)
+        if data:
+            return data[0]
+    
+    def getHIKControlSetNode(self):
+        controlNode=cmds.listConnections(self.mNode,type='HIKControlSetNode')
+        if controlNode:
+            return controlNode[0]
+    
+class MetaHIKControlSetNode(MetaRig):
+    '''
+    Casting HIK directly to a metaClass so it's treated as meta by default.
+    Why the hell not, it's a complex character node that is default in Maya
+    and useful for management in the systems
     '''
     def __init__(self, *args, **kws):
         kws.setdefault('autofill','messageOnly')
-        super(MetaHIKCharacterNode, self).__init__(*args,**kws)
-
+        super(MetaHIKControlSetNode, self).__init__(*args,**kws)
+        self.CTRL_Main = self.Reference
+        
+    def __getMessageAttr__(self, attr):
+        '''
+        overloaded so that the main message wires return as single nodes
+        '''
+        data = super(MetaHIKControlSetNode,self).__getMessageAttr__(attr)
+        if data:
+            return data[0]
+    
+    def getHIKCharacterNode(self):
+        return cmds.listConnections(self.mNode,type='HIKCharacterNode')[0]
+        
+    def getChildren(self, walk=False, mAttrs=None, cAttrs=None):
+        '''
+        Carefully over-loaded for HIK system
+        '''
+        children=[]
+        attrs=cmds.listAttr(self.mNode)
+        if attrs:
+            for attr in attrs:
+                if cmds.getAttr('%s.%s' % (self.mNode,attr),type=True)=='message':
+                    effector=cmds.listConnections('%s.%s' % (self.mNode,attr),destination=False,source=True)
+                    if effector:
+                        for e in effector:
+                            if cmds.nodeType(e) in ['hikIKEffector','hikFKJoint']:
+                                children.extend(cmds.ls(e,l=True))
+        return children
+    
 
 
 # EXPERIMENTAL CALLS ==========================================================

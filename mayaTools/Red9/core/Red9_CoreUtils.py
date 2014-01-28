@@ -1,18 +1,14 @@
 '''
-------------------------------------------
 Red9 Studio Pack: Maya Pipeline Solutions
 Author: Mark Jackson
 email: rednineinfo@gmail.com
 
 Red9 blog : http://red9-consultancy.blogspot.co.uk/
 MarkJ blog: http://markj3d.blogspot.co.uk
-------------------------------------------
 
 This is the Core library of utils used throughout the modules
 
 Setup : Follow the Install instructions in the Modules package
-================================================================
-
 '''
 
 from __future__ import with_statement  # required only for Maya2009/8
@@ -157,11 +153,12 @@ def decodeString(val):
 
 def floatIsEqual(a, b, tolerance=0.01, allowGimbal=True):
     '''
-    compare 2 floats with tolerance
-    @param a: value 1
-    @param b: value 2
-    @param tolerance: compare with this tolerance default=0.001
-    @param allowGimbal: allow values differences to be divisible by 180 compensate for gimbal flips
+    compare 2 floats with tolerance 
+    @param a: value 1 
+    @param b: value 2 
+    @param tolerance: compare with this tolerance default=0.001 
+    @param allowGimbal: allow values differences to be divisible by 180 compensate for gimbal flips 
+    
     TODO: still giving us issues, look into other ways to do this confirm for gimbal!
     '''
     if abs(a-b)<tolerance:
@@ -899,16 +896,16 @@ class FilterNode(object):
         Search for nodes that have a given attr or any attrs from a given list[]
         
         @param searchAttrs: list or string of attributes to search for on all child nodes
-            NOTE: new operators 'NOT:' and '='
+        NOTE: new operators 'NOT:' and '='
         @param nodes: optional - allows you to pass in a list to process if required
         @param returnValues : If found return the Value of the Attrs
-            along with the node - switches return type to tuple. default=False
+        along with the node - switches return type to tuple. default=False
         @param incRoots: Include the given root nodes in the search, default=True
-            Valid only if the Class is in 'Selected' processMode only.
+        Valid only if the Class is in 'Selected' processMode only.
          
         @rtype: list[] or dict{} of nodes whos attributes include any of the given attrs[]
         @return: Nodes that have the search attr/attrs. If returnValue is given as a
-            keyword then it will return a dict in the form {node,attrValue}
+        keyword then it will return a dict in the form {node,attrValue}
         
         NOTE: If the searchAttrs has an entry in the form NOT:searchAttr then this will be forcibly
         excluded from the filter. Also you can now do 'myAttr=2.33' to only pass if the attr is equal
@@ -1330,9 +1327,9 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
 
 def processMatchedNodes(nodes=None, filterSettings=None, toMany=False, matchMethod='stripPrefix'):
     '''
-    =================================================
+    ##=================================================
     HUGELY IMPORTANT CALL FOR ALL ANIMATION FUNCTIONS
-    =================================================
+    ##=================================================
     PreProcess the given 'nodes' and 'filterSettings'(optional)
     via a MatchedNodeInput OBJECT that has an attribute self.MatchedPairs
     We're going to use this throughout the code such that:
@@ -1344,7 +1341,6 @@ def processMatchedNodes(nodes=None, filterSettings=None, toMany=False, matchMeth
     tuple is the first selected node, ie, used to cast data from the first
     node to all subsequent nodes [(ObjA,ObjB),(ObjA,ObjC),(ObjA,ObjD) ....
     @param matchMethod: method used in the name matchProcess
-    
     @return: MatchNodeInputs class object
     '''
     #nodeList = None
