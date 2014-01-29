@@ -781,9 +781,9 @@ def build_rig(*args, **kws):
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
 	                        {'step':'Lip build','call':self._buildLips_},
-	                        #{'step':'NoseBuild','call':self._buildNose_},
-	                        #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        
-	                        #{'step':'Cheek build','call':self._buildCheeks_},
+	                        {'step':'NoseBuild','call':self._buildNose_},
+	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        
+	                        {'step':'Cheek build','call':self._buildCheeks_},
 	                        #{'step':'Lock N hide','call':self._lockNHide_},
 	                        ]	
 	    #=================================================================
@@ -793,7 +793,7 @@ def build_rig(*args, **kws):
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
-	    self.mi_skullPlate = cgmMeta.cgmObject('toothSurface')    
+	    self.mi_skullPlate = cgmMeta.cgmObject('testJawOnlyPlate')    
 	    #self.mi_skullPlate = mi_go._mi_skullPlate
 	    self.str_skullPlate = self.mi_skullPlate.p_nameShort
 	    
@@ -1683,7 +1683,7 @@ def build_rig(*args, **kws):
 				    #Make a group
 				    mi_aimOffsetGroup = cgmMeta.cgmObject(mDriver.doGroup(True),setClass=True)
 				    mi_aimOffsetGroup.doStore('cgmName',mDriver.mNode)
-				    mi_aimOffsetGroup.addAttr('cgmTypeModifier','AimOffset',lock=True)
+				    mi_aimOffsetGroup.addAttr('cgmTypeModifier','aimOffset',lock=True)
 				    mi_aimOffsetGroup.doName()
 				    mDriver.connectChildNode(mi_aimOffsetGroup,"aimOffsetGroup","childObject")
 				    
@@ -1691,7 +1691,24 @@ def build_rig(*args, **kws):
 					             weight = 1, aimVector = v_aim, upVector = v_up,
 					             maintainOffset = 1, worldUpObject = mi_upLoc.mNode, worldUpType = 'object' ) 
 				except Exception,error:raise StandardError,"[Driver loop : '%s']{%s}"%(mDriver.p_nameShort,error)
-			except Exception,error:raise Exception,"[Aim setup]{%s}"%(error)   
+			except Exception,error:raise Exception,"[Aim setup]{%s}"%(error)
+			
+			try:#>> offset rot -----------------------------------------------------------------------
+			    for i,mDriver in enumerate([mi_uprDriver,mi_lwrDriver]):
+				try:#For loop
+				    #Make a group
+				    mi_rotOffsetGroup = cgmMeta.cgmObject(mDriver.doGroup(True),setClass=True)
+				    mi_rotOffsetGroup.doStore('cgmName',mDriver.mNode)
+				    mi_rotOffsetGroup.addAttr('cgmTypeModifier','rotOffset',lock=True)
+				    mi_rotOffsetGroup.doName()
+				    mDriver.connectChildNode(mi_rotOffsetGroup,"rotOffsetGroup","childObject")
+				    
+				    #Connect
+				    cgmMeta.cgmAttr(mi_rotOffsetGroup,'r%s'%mi_go._jointOrientation[2]).doConnectIn("%s.r%s"%(mi_handle.mNode,mi_go._jointOrientation[0]))
+				    
+				except Exception,error:raise StandardError,"[Driver loop : '%s']{%s}"%(mDriver.p_nameShort,error)			    
+			    
+			except Exception,error:raise Exception,"[OffsetRot]{%s}"%(error) 			
 		    except Exception,error:raise Exception,"[On: '%s']{%s}"%(str_k,error) 
 	    except Exception,error:raise StandardError,"[Lip Tigteners]{%s}"%(error)
 	    
@@ -2279,6 +2296,9 @@ def build_rig(*args, **kws):
 	    try:#Attach stuff to surfaces ====================================================================================
 		#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
 		str_skullPlate = self.str_skullPlate
+		mi_uprTeethPlate = cgmMeta.cgmObject('uprTeethPlate')   
+		mi_lwrTeethPlate = cgmMeta.cgmObject('lwrTeethPlate')   
+		
 		
 		str_uprLipPlate = self.mi_uprLipPlate.p_nameShort
 		#str_uprLipFollowPlate = self.mi_uprLipFollowPlate.p_nameShort		
@@ -2288,22 +2308,24 @@ def build_rig(*args, **kws):
 		#str_lwrLipFollowPlate = self.mi_lwrLipFollowPlate.p_nameShort				
 		#str_lwrLipRibbon = self.mi_lwrLipRibbon.p_nameShort
 			
-		d_build = {'mouthMove':{'mode':'blendAttach','defaultValue':.25,'followSuffix':'Jaw'},
-		           'mouthMoveTrackLoc':{},
-		           'chinTrackLoc':{},		           
+		d_build = {'mouthMove':{'mode':'blendAttach','defaultValue':.25,'followSuffix':'Jaw','attachTo':mi_uprTeethPlate.mNode},
+		           'mouthMoveTrackLoc':{'attachTo':mi_uprTeethPlate.mNode},
+		           'chinTrackLoc':{'attachTo':mi_lwrTeethPlate.mNode},		           
 		           'chin':{'mode':'handleAttach'},		           
 		           ##'lipUprRig':{'mode':'handleAttach','attachTo':str_uprLipFollowPlate},
 		           'lipOverRig':{'mode':'handleAttach','attachTo':str_uprLipPlate},		           
 		           'lipUprHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,
 		                           'center':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode}},
-		           'lipCornerRig':{},#reg, will be driven by...
+		           'lipCornerRig':{'attachTo':mi_uprTeethPlate.mNode},#reg, will be driven by...
 		           'lipCornerHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode},
 		           ##'lipLwrRig':{'mode':'handleAttach','attachTo':str_lwrLipFollowPlate},
-		           'lipUnderRig':{'mode':'handleAttach','attachTo':str_lwrLipPlate},		           
+		           'lipUnderRig':{'mode':'handleAttach','attachTo':str_lwrLipPlate},	
 		           'lipLwrHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,
-		                           'center':{'mode':'blendAttach','defaultValue':.6,
-		                                     'followSuffix':'Jaw','target0':mi_mouthMoveTrackLoc}},
-		           }		
+		                           'center':{'mode':'blendAttach','defaultValue':.6,'attachTo':mi_lwrTeethPlate.mNode,
+		                                     'followSuffix':'Jaw','target0':mi_mouthMoveTrackLoc}}}	
+		"""'lipLwrHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,
+				'center':{'mode':'blendAttach','defaultValue':.6,
+					  'followSuffix':'Jaw','target0':mi_mouthMoveTrackLoc}},"""		
 		self.attach_fromDict(d_build)
 		
 	    except Exception,error:raise StandardError,"[Attach!]{%s}"%(error)
@@ -2448,7 +2470,7 @@ def build_rig(*args, **kws):
 	    """'smileHandle':{'mode':'parentOnly','attachTo':None,
 			   'left':{'parentTo':self.md_rigList['lipCornerHandle']['left'][0].p_nameShort},
 			   'right':{'parentTo':self.md_rigList['lipCornerHandle']['right'][0].p_nameShort}},"""	    
-	    try:#Attach stuff to surfaces ====================================================================================
+	    try:#Attach stuff to surfaces ====================================================================================		
 		str_skullPlate = self.str_skullPlate	
 		d_build = {'smileLineRig':{},
 		           #'sneerHandle':{'mode':'handleAttach'},
@@ -2473,9 +2495,9 @@ def build_rig(*args, **kws):
 	    
 	    try:#>>> Connect rig joints to handles ==================================================================
 		d_build = {'smileHandle':{'mode':'parentConstraint','rewireFollicleOffset':True,
-		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup],
+		                          'left':{'targets':[self.md_rigList['lipCornerHandle']['left'][0]],
 		                                  'rewireHandle':self.md_rigList['lipCornerHandle']['left'][0]},
-		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup],
+		                          'right':{'targets':[self.md_rigList['lipCornerHandle']['right'][0]],#was lipCornerRig
 		                                   'rewireHandle':self.md_rigList['lipCornerHandle']['right'][0]}},
 		           'smileLineRig':{'mode':'rigToFollow',
 		                           'left':{'attachTo':self.mi_smileFollowLeftCrv},
@@ -2844,10 +2866,13 @@ def build_rig(*args, **kws):
 				    if _attachTo == None:_attachTo = str_skullPlate
 				    _parentTo = d_use.get('parentTo') or False
 				    str_mode = d_use.get('mode') or 'rigAttach'
-				    str_message = "Attach : '%s' | mObj: '%s' | mode: '%s' | _attachTo: '%s' | parentTo: '%s' "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo)
-				    self.log_info(str_message)
-				    self.progressBar_set(status = str_message,progress = ii, minValue = 0, maxValue= int_len)
 				    
+				    try:#Status update ----------------------------------------------------------------------
+					str_message = "Attach : '%s' | mObj: '%s' | mode: '%s' | _attachTo: '%s' | parentTo: '%s' "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo)
+					self.log_info(str_message)
+					self.progressBar_set(status = str_message,progress = ii, minValue = 0, maxValue= int_len)
+				    except Exception,error:raise StandardError,"[Status Update]{%s}"%(error)					    
+
 				    if str_mode == 'rigAttach' and _attachTo:
 					try:#Attach
 					    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
@@ -3114,7 +3139,7 @@ def build_rig(*args, **kws):
 				str_message = "Create Segment : '%s' %s | curve: '%s' | mode: '%s' "%(str_tag,str_key,str_curve,str_mode)
 				self.log_info(str_message)
 				self.progressBar_set(status = (str_message),progress = i, maxValue = int_len)	
-			    except Exception,error:raise StandardError,"[Status]{%s}"%(error)	
+			    except Exception,error:raise StandardError,"[Status update]{%s}"%(error)	
 
 			    if str_mode == 'default':
 				d_segReturn = rUtils.createSegmentCurve(ml_buffer, addMidTwist = False,useCurve = mi_curve,  moduleInstance = mi_go._mi_module, connectBy = 'trans')
@@ -3194,9 +3219,12 @@ def build_rig(*args, **kws):
 					b_rewireFollicleOffset = d_buffer.get('rewireFollicleOffset') or d_build[str_tag].get('rewireFollicleOffset') or False 
 					ml_driver = d_buffer.get('driver') or False
 				    except Exception,error:raise StandardError,"[Data gather!]{%s}"%(error)
-				    
-				    self.log_info("Connecting : '%s' %s > '%s' | mode: '%s' | rewireFollicleOffset: %s"%(str_tag,str_key,str_mObj,str_mode,b_rewireFollicleOffset))
-				    self.progressBar_set(status = ("Connecting : '%s' %s > '%s' | mode: '%s' | rewireFollicleOffset: %s"%(str_tag,str_key,str_mObj,str_mode,b_rewireFollicleOffset)),progress = i, maxValue = int_len)	
+
+				    try:#Status update ----------------------------------------------------------------------
+					str_message = "Connecting : '%s' %s > '%s' | mode: '%s' | rewireFollicleOffset: %s"%(str_tag,str_key,str_mObj,str_mode,b_rewireFollicleOffset)
+					self.log_info(str_message)
+					self.progressBar_set(status = (str_message),progress = i, maxValue = int_len)	
+				    except Exception,error:raise StandardError,"[Status update]{%s}"%(error)					    
 				    
 				    if str_mode == 'rigToSegment':
 					try:
@@ -3413,7 +3441,13 @@ def build_rig(*args, **kws):
 	
 				for idx,mObj in enumerate(ml_buffer):
 				    str_mObj = mObj.p_nameShort
-				    self.progressBar_set(status = ("Aiming : '%s' %s > '%s'"%(str_tag,str_side,str_mObj)),progress = idx, maxValue = int_len)	
+				    
+				    try:#Status update ----------------------------------------------------------------------
+					str_message = "Aiming : '%s' %s > '%s'"%(str_tag,str_side,str_mObj)
+					self.log_info(str_message)
+					self.progressBar_set(status = (str_message),progress = idx, maxValue = int_len)	
+				    except Exception,error:raise StandardError,"[Status update]{%s}"%(error)	
+				    
 				    try:#Gather data ----------------------------------------------------------------------
 					try:d_current = self.md_attachReturns[mObj]
 					except:
