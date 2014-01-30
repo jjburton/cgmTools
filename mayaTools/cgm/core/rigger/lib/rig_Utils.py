@@ -1571,77 +1571,85 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         raise StandardError,error 
 
     try:#Build segment =====================================================================================
-        d_segmentBuild = createSegmentCurve(jointList,orientation,secondaryAxis, baseName,
-                                            addMidTwist=True, advancedTwistSetup = advancedTwistSetup, moduleInstance = moduleInstance)
+	try:
+	    d_segmentBuild = createSegmentCurve(jointList, orientation = orientation,secondaryAxis = secondaryAxis, baseName = baseName,connectBy = 'scale',
+		                                addMidTwist=True, advancedTwistSetup = advancedTwistSetup, moduleInstance = moduleInstance)
+    
+	    mi_segmentCurve = d_segmentBuild['mi_segmentCurve']
+	    ml_drivenJoints = d_segmentBuild['ml_drivenJoints']
+	    mi_scaleBuffer = d_segmentBuild['mi_scaleBuffer']
+	    mi_segmentGroup = d_segmentBuild['mi_segmentGroup']
+	    mPlug_extendTwist = d_segmentBuild['mPlug_extendTwist']
+	except Exception,error:raise Exception,"[Initial Segment build]{%s}"%error
+	
+	log.info("addSquashStretch: %s"%addSquashStretch)
+        try:#Add squash
+	    if addSquashStretch:
+		log.info("ADD SQUASH")
+		addSquashAndStretchToSegmentCurveSetup(mi_scaleBuffer.mNode,
+		                                       [i_jnt.mNode for i_jnt in ml_jointList],
+		                                       moduleInstance=moduleInstance)
+	except Exception,error:raise Exception,"[Add squash]{%s}"%error
+        
+        try:#Additive Scale 
+	    if additiveScaleSetup:
+		addAdditiveScaleToSegmentCurveSetup(mi_segmentCurve.mNode,orientation=orientation)
+    
+		if connectAdditiveScale:
+		    l_plugs = ['scaleStartUp','scaleStartOut','scaleEndUp','scaleEndOut']
+		    for attr in l_plugs: 
+			if not mi_segmentCurve.hasAttr(attr):
+			    mi_segmentCurve.select()
+			    raise StandardError, "Segment curve missing attr: %s"%attr
+    
+		    l_attrPrefix = ['Start','End']
+		    int_runningTally = 0
+		    for i,i_ctrl in enumerate([i_startControl,i_endControl]):
+			mPlug_outDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%controlOrientation[2])
+			mPlug_upDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%controlOrientation[1])
+			mPlug_scaleOutDriver = cgmMeta.cgmAttr(i_ctrl,"out_scale%sOutNormal"%l_attrPrefix[i],attrType='float')
+			mPlug_scaleUpDriver = cgmMeta.cgmAttr(i_ctrl,"out_scale%sUpNormal"%l_attrPrefix[i],attrType='float')
+			mPlug_out_scaleUp = cgmMeta.cgmAttr(i_ctrl,"out_scale%sOutInv"%l_attrPrefix[i],attrType='float')
+			mPlug_out_scaleOut = cgmMeta.cgmAttr(i_ctrl,"out_scale%sUpInv"%l_attrPrefix[i],attrType='float')	
+			# -1 * (1 - driver)
+			arg_up1 = "%s = 1 - %s"%(mPlug_scaleUpDriver.p_combinedShortName,mPlug_upDriver.p_combinedShortName)
+			arg_out1 = "%s = 1 - %s"%(mPlug_scaleOutDriver.p_combinedShortName,mPlug_outDriver.p_combinedShortName)
+			arg_up2 = "%s = -1 * %s"%(mPlug_out_scaleUp.p_combinedShortName,mPlug_scaleUpDriver.p_combinedShortName)
+			arg_out2 = "%s = -1 * %s"%(mPlug_out_scaleOut.p_combinedShortName,mPlug_scaleOutDriver.p_combinedShortName)
+			for arg in [arg_up1,arg_out1,arg_up2,arg_out2]:
+			    NodeF.argsToNodes(arg).doBuild()
+    
+			mPlug_out_scaleUp.doConnectOut("%s.%s"%(mi_segmentCurve.mNode,l_plugs[int_runningTally]))
+			int_runningTally+=1
+			mPlug_out_scaleOut.doConnectOut("%s.%s"%(mi_segmentCurve.mNode,l_plugs[int_runningTally]))	    
+			int_runningTally+=1
+	except Exception,error:raise Exception,"[Additive scale]{%s}"%error
 
-        mi_segmentCurve = d_segmentBuild['mi_segmentCurve']
-        ml_drivenJoints = d_segmentBuild['ml_drivenJoints']
-        mi_scaleBuffer = d_segmentBuild['mi_scaleBuffer']
-        mi_segmentGroup = d_segmentBuild['mi_segmentGroup']
-        mPlug_extendTwist = d_segmentBuild['mPlug_extendTwist']
-
-        #Add squash
-        if addSquashStretch:
-            addSquashAndStretchToSegmentCurveSetup(mi_scaleBuffer.mNode,
-                                                   [i_jnt.mNode for i_jnt in ml_jointList],
-                                                   moduleInstance=moduleInstance)
-        #Additive Scale 
-        if additiveScaleSetup:
-            addAdditiveScaleToSegmentCurveSetup(mi_segmentCurve.mNode,orientation=orientation)
-
-            if connectAdditiveScale:
-                l_plugs = ['scaleStartUp','scaleStartOut','scaleEndUp','scaleEndOut']
-                for attr in l_plugs: 
-                    if not mi_segmentCurve.hasAttr(attr):
-                        mi_segmentCurve.select()
-                        raise StandardError, "Segment curve missing attr: %s"%attr
-
-                l_attrPrefix = ['Start','End']
-                int_runningTally = 0
-                for i,i_ctrl in enumerate([i_startControl,i_endControl]):
-                    mPlug_outDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%controlOrientation[2])
-                    mPlug_upDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%controlOrientation[1])
-                    mPlug_scaleOutDriver = cgmMeta.cgmAttr(i_ctrl,"out_scale%sOutNormal"%l_attrPrefix[i],attrType='float')
-                    mPlug_scaleUpDriver = cgmMeta.cgmAttr(i_ctrl,"out_scale%sUpNormal"%l_attrPrefix[i],attrType='float')
-                    mPlug_out_scaleUp = cgmMeta.cgmAttr(i_ctrl,"out_scale%sOutInv"%l_attrPrefix[i],attrType='float')
-                    mPlug_out_scaleOut = cgmMeta.cgmAttr(i_ctrl,"out_scale%sUpInv"%l_attrPrefix[i],attrType='float')	
-                    # -1 * (1 - driver)
-                    arg_up1 = "%s = 1 - %s"%(mPlug_scaleUpDriver.p_combinedShortName,mPlug_upDriver.p_combinedShortName)
-                    arg_out1 = "%s = 1 - %s"%(mPlug_scaleOutDriver.p_combinedShortName,mPlug_outDriver.p_combinedShortName)
-                    arg_up2 = "%s = -1 * %s"%(mPlug_out_scaleUp.p_combinedShortName,mPlug_scaleUpDriver.p_combinedShortName)
-                    arg_out2 = "%s = -1 * %s"%(mPlug_out_scaleOut.p_combinedShortName,mPlug_scaleOutDriver.p_combinedShortName)
-                    for arg in [arg_up1,arg_out1,arg_up2,arg_out2]:
-                        NodeF.argsToNodes(arg).doBuild()
-
-                    mPlug_out_scaleUp.doConnectOut("%s.%s"%(mi_segmentCurve.mNode,l_plugs[int_runningTally]))
-                    int_runningTally+=1
-                    mPlug_out_scaleOut.doConnectOut("%s.%s"%(mi_segmentCurve.mNode,l_plugs[int_runningTally]))	    
-                    int_runningTally+=1
-
-        #Twist
-        if addTwist:
-            i_twistStartPlug = cgmMeta.cgmAttr(mi_segmentCurve.mNode,'twistStart',attrType='float',keyable=True) 
-            i_twistEndPlug = cgmMeta.cgmAttr(mi_segmentCurve.mNode,'twistEnd',attrType='float',keyable=True)
-            capAim = orientation[0].capitalize()
-            """
-	    log.debug("capAim: %s"%capAim)
-	    d_twistReturn = addRibbonTwistToControlSetup([i_jnt.mNode for i_jnt in ml_jointList],
-	                                                 [i_twistStartPlug.obj.mNode,i_twistStartPlug.attr],
-	                                                 [i_twistEndPlug.obj.mNode,i_twistEndPlug.attr],moduleInstance=moduleInstance) 
-
-	    #Connect resulting full sum to our last spline IK joint to get it's twist
-	    attributes.doConnectAttr(i_twistEndPlug.p_combinedName,"%s.rotate%s"%(ml_drivenJoints[-1].mNode,capAim))
-	    """	    
-            if i_startControl:
-                if controlOrientation is None:
-                    i_twistStartPlug.doConnectIn("%s.rotate%s"%(i_startControl.mNode,capAim))
-                else:
-                    i_twistStartPlug.doConnectIn("%s.r%s"%(i_startControl.mNode,controlOrientation[0]))
-            if i_endControl:
-                if controlOrientation is None:		
-                    i_twistEndPlug.doConnectIn("%s.rotate%s"%(i_endControl.mNode,capAim))
-                else:
-                    i_twistEndPlug.doConnectIn("%s.r%s"%(i_endControl.mNode,controlOrientation[0]))
+        try:#Twist
+	    if addTwist:
+		i_twistStartPlug = cgmMeta.cgmAttr(mi_segmentCurve.mNode,'twistStart',attrType='float',keyable=True) 
+		i_twistEndPlug = cgmMeta.cgmAttr(mi_segmentCurve.mNode,'twistEnd',attrType='float',keyable=True)
+		capAim = orientation[0].capitalize()
+		"""
+		log.debug("capAim: %s"%capAim)
+		d_twistReturn = addRibbonTwistToControlSetup([i_jnt.mNode for i_jnt in ml_jointList],
+							     [i_twistStartPlug.obj.mNode,i_twistStartPlug.attr],
+							     [i_twistEndPlug.obj.mNode,i_twistEndPlug.attr],moduleInstance=moduleInstance) 
+    
+		#Connect resulting full sum to our last spline IK joint to get it's twist
+		attributes.doConnectAttr(i_twistEndPlug.p_combinedName,"%s.rotate%s"%(ml_drivenJoints[-1].mNode,capAim))
+		"""	    
+		if i_startControl:
+		    if controlOrientation is None:
+			i_twistStartPlug.doConnectIn("%s.rotate%s"%(i_startControl.mNode,capAim))
+		    else:
+			i_twistStartPlug.doConnectIn("%s.r%s"%(i_startControl.mNode,controlOrientation[0]))
+		if i_endControl:
+		    if controlOrientation is None:		
+			i_twistEndPlug.doConnectIn("%s.rotate%s"%(i_endControl.mNode,capAim))
+		    else:
+			i_twistEndPlug.doConnectIn("%s.r%s"%(i_endControl.mNode,controlOrientation[0]))
+	except Exception,error:raise Exception,"[Twist]{%s}"%error
 
 
     except Exception,error:
@@ -3016,7 +3024,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
     return d_return
 
 
-def createSegmentCurve2(jointList,orientation = 'zyx',secondaryAxis = None, 
+def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None, 
                         baseName = None, connectBy = 'trans', moduleInstance = None):
     """
     Stored meta data on completed segment:
