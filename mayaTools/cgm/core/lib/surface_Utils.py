@@ -72,7 +72,8 @@ def attachObjToSurface(*args,**kws):
 	                                 {'kw':"createControlLoc","default":True},
 	                                 {'kw':"createUpLoc","default":False},
 	                                 {'kw':"parentToFollowGroup","default":False,'help':"Parent the main object to the follow group"},	                  
-	                                 {'kw':"attachControlLoc","default":True,'help':"Whether to setup a controlLoc attach setup"},	                  	                                 
+	                                 {'kw':"attachControlLoc","default":True,'help':"Whether to setup a controlLoc attach setup"},	
+	                                 {'kw':"connectOffset","default":True,'help':"Whether to connect the controlLoc fffset",'argType':'bool'},	                  	                                 	                                 
 	                                 {'kw':'f_offset',"default":1.0},
 	                                 {'kw':'orientation',"default":'zyx'}]
 	    self.__dataBind__(*args,**kws)
@@ -97,6 +98,7 @@ def attachObjToSurface(*args,**kws):
 	    self.b_createUpLoc = cgmValid.boolArg(self.d_kws['createUpLoc'],calledFrom=self._str_funcCombined)
 	    self.b_parentToFollowGroup = cgmValid.boolArg(self.d_kws['parentToFollowGroup'],calledFrom=self._str_funcCombined)
 	    self.b_attachControlLoc = cgmValid.boolArg(self.d_kws['attachControlLoc'],calledFrom=self._str_funcCombined)
+	    self.b_connectOffset = cgmValid.boolArg(self.d_kws['connectOffset'],calledFrom=self._str_funcCombined)
 	    
 	    self.f_offset = cgmValid.valueArg(self.d_kws['f_offset'], calledFrom=self._str_funcCombined)
 	    #Get info ============================================================================
@@ -159,6 +161,7 @@ def attachObjToSurface(*args,**kws):
 			mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)  		    
 		except Exception,error:raise StandardError,"!Groups - no control Loc setup! | %s"%(error)
 		
+		
 	    else:#Setup control loc stuff
 		try:#>>> Follicle ============================================================================
 		    l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
@@ -199,6 +202,7 @@ def attachObjToSurface(*args,**kws):
 		mi_offsetGroup.parent = mi_followGroup
 		self.mi_offsetGroup = mi_offsetGroup 
 		self.md_return["offsetGroup"] = mi_offsetGroup
+		
 		if self.b_attachControlLoc:mi_follicleFollowTrans.connectChildNode(mi_offsetGroup,"followOffsetGroup","follicle")
 	
 		mi_zeroGroup = cgmMeta.cgmObject( mi_offsetGroup.doGroup(True),setClass=True)	 
@@ -268,6 +272,9 @@ def attachObjToSurface(*args,**kws):
 		    
 		    #Move it ----------------------------------------------------------------------------------------
 		    mi_upLoc.__setattr__("t%s"%self.mi_orientation.p_string[0],self.f_offset)
+	    
+	    if self.md_return.get("follicleFollow"):
+		mi_follicleFollowTrans.connectChild(mi_driverLoc,"driverLoc","follicle")
 				
 	    return self.md_return
 	
