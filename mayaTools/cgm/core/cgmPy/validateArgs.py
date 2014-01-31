@@ -11,18 +11,17 @@ This is the Core of the MetaNode implementation of the systems.
 It is uses Mark Jackson (Red 9)'s as a base.
 ================================================================
 """
+import sys
+import inspect
+
 import maya.cmds as mc
 import maya.mel as mel
-import copy
-import time
-import inspect
-import sys
 
 # From Red9 =============================================================
 
 # From cgm ==============================================================
 from cgm.lib import search
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General
 reload(cgmGeneral)
 
 # Shared Defaults ========================================================
@@ -33,356 +32,572 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
+ 
+def _returnCallerFunctionName():
+    '''
+    Return the function name two frames back in the stack. This enables
+    exceptions called from one of the validateArgs functions to report
+    the function from which they were called.
+    '''
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-# cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
-#=========================================================================    
-#Values ==================================================================
-def ut_isFloatEquivalent():
-    assert isFloatEquivalent(-4.11241646134e-07,0.0),"sc>0.0 fail"
-    assert isFloatEquivalent(-4.11241646134e-07,0.00001),"sc>0.00001 fail"
-    assert isFloatEquivalent(-4.11241646134e-07,-0.0),"sc>0.00001 fail"
-    assert isFloatEquivalent(0.0,-0.0),"0.0>-0.0 fail"
-    assert isFloatEquivalent(0.0,0),"0.0>0 fail"
-    return True
+    result = '[unknown function]'
 
-def isFloatEquivalent(f1,f2,places=4):
+    try:
+        frame, filename, line_no, func_name, lines, index = \
+            inspect.getouterframes(inspect.currentframe())[2]
+
+        module_name = inspect.getmodule(frame)
+        module_name = "" if module_name is None else module_name.__name__
+
+        result = "{0}.{1}".format(module_name, func_name)
+
+        if func_name == '<module>':
+            func_name = "<Script Editor>"
+
+        if filename == "<maya console>":
+            result = "<Maya>.{0}".format(func_name)
+    except StandardError:
+        log.exception("Failed to inspect functio name")
+
+    return result
+
+def isFloatEquivalent(lhs, rhs, **kwargs):
     """
-    Compare two floats, returns if equivalent
+    Return true if both floats are with E (epsilon) of one another, 
+    where epsilon is the built-in system float point tolerance.
+
+    :parameters:
+        lhs | float
+        rhs | float
+
+    :returns
+        bool
     """ 
-    #zeroCheck
-    l_zeros = [-0.0,0.0]
-    zeroState = False
+    if not isinstance(lhs, (int, float)) or \
+       not isinstance(rhs, (int, float)):
+        raise TypeError("Arguments must be 'int' or 'float'")
 
-    if round(f1,places) in l_zeros and round(f2,places) in l_zeros:
-	log.debug("zero match: %s|%s"%(f1,f2))
-	return True
+    return abs(lhs-rhs) <= sys.float_info.epsilon
 
-    #reg check
-    f1_rounded = round(f1,places)
-    f2_rounded = round(f2,places)
-    log.debug("f1_rounded: %s"%f1_rounded)
-    log.debug("f2_rounded: %s"%f2_rounded)    
-    if f1_rounded == f2_rounded:
-	return True
-    return False 
-
-def isVectorEquivalent(v1,v2,places=7):
+def isVectorEquivalent(lhs, rhs, **kwargs):
     """
-    Compare two vectors, returns if equivalent
-    """ 
-    if type(v1) not in [list,tuple]:return False
-    if type(v2) not in [list,tuple]:return False
-    if len(v1)!= len(v2):return False 
+    Return true if two vectors are of equal length and have equal values.
 
-    for i,n in enumerate(v1):
-	if not isFloatEquivalent(n,v2[i],places):
-	    return False
-    return True
+    :parameters:
+        lhs | list or tuple of int or float
+        rhs | list or tuple of int or float
+
+    :returns
+        bool
+    """  
+    result = False
+
+    if isinstance(lhs, (list, tuple)) and \
+       isinstance(rhs, (list, tuple)) and \
+       len(lhs) == len(rhs):
+        results = [isFloatEquivalent(*values) for values in zip(lhs, rhs)]
+        result = False not in results
+
+    return result
 
 #>>> Basics ============================================================== 
-def stringArg(arg = None,noneValid = True,calledFrom = None):
+def stringArg(arg=None, noneValid=True, **kwargs):
     """
-    Simple string validation
-    """
-    log.debug(">>> stringArg >> arg = %s"%arg + "="*75) 
-    if calledFrom: _str_funcName = "%s.stringArg(%s)"%(calledFrom,arg)    
-    else:_str_funcName = "stringArg(%s)"%arg       
-    if type(arg) in [str,unicode]:
-	return arg
-    elif noneValid:
-	return None
-    else: raise StandardError, ">>> stringArg >> Arg failed: arg = %s | type: %s"%(arg,type(arg))
+    Return 'arg' if 'arg' is a string, else return False if noneValid
+    is True, else raise TypeError
 
-def stringListArg(l_args = None, noneValid = False, calledFrom = None):
-    log.debug(">>> stringArg >> l_args = %s"%l_args + "="*75) 
-    calledFrom = stringArg(calledFrom,noneValid=True)    
-    if calledFrom: _str_funcName = "%s.stringArg"%(calledFrom)
-    else:_str_funcName = "objStringList"    
-    t_start = time.clock()
-    try:
-	if type(l_args) not in [list,tuple]:l_args = [l_args]
-	returnList = []
-	for arg in l_args:
-	    buffer = stringArg(arg,noneValid,calledFrom)
-	    if buffer:returnList.append(buffer)
-	    else:log.warning("%s >> failed: '%s'"%(_str_funcName,arg))
-	return returnList
-    except StandardError,error:
-	log.error("%s >>Failure! l_args: %s "%(_str_funcName,l_args))
-	raise StandardError,error 
-    
-def boolArg(arg = None, calledFrom = None):
+    :parameters:
+        arg | object
+            value to be validated as a string
+        noneValid | bool
+            if True, returns 'None' if arg is not a string. 
+            Otherwise, raises TypeError 
+
+    :returns
+        arg or None
+
+    :raises
+        TypeError | if arg is not a string and noneValid is False
     """
-    Bool validation
+    log.debug("validateArgs.stringArg arg={0} noneValid={1}".format(arg, noneValid))
+
+    _str_funcName = _returnCallerFunctionName()
+
+    result = arg
+
+    if not isinstance(arg, basestring):
+        if noneValid:
+            result = False
+        else:
+            fmt_args = (arg, _str_funcName, type(arg).__name__)
+            s_errorMsg = "Arg {0} from func '{1}' is type '{0}', not 'str'"
+
+            raise TypeError(s_errorMsg.format(*fmt_args))
+
+    return result
+
+def listArg(l_args=None, types=None):
     """
-    log.debug(">>> boolArg >> arg = %s"%arg + "="*75)   
-    calledFrom = stringArg(calledFrom,noneValid=True)
-    if calledFrom: _str_funcName = "%s.boolArg(%s)"%(calledFrom,arg)
-    else:_str_funcName = "boolArg(%s)"%arg
-    if type(arg) is bool:
-	return arg
-    elif type(arg) is int and arg in [0,1]:
-	return bool(arg)
-    else: raise StandardError, ">>> %s >> Arg failed"%(_str_funcName)
-	
-def objString(arg = None, mayaType = None, noneValid = False, isTransform = None, calledFrom = None):
+    Return True if l_args is a list, and all items in that list are 
+    instances of types, else return False. If types is None, then the
+    type of each item is not tested.
+
+    :parameters:
+        l_arg | object
+            value to be validated as a list
+        types | type, class, or list of types and/or classes
+        noneValid | bool
+            if True 
+            if True, returns 'None' if arg is not a string. 
+            Otherwise, raises TypeError 
+
+    :returns
+        bool
+
+    :raises:
+        TypeError | if types is not None and is not a class, type, or list of classes and types
     """
-    validate an objString. Use cgmMeta version for instances
-    
-    arg -- obj or instance
-    mayaType -- maya type to validate to
-    noneValid -- whether none is a valid arg
+
+    result = isinstance(l_args, (tuple, list))
+
+    if result and types is not None:
+        for arg in l_args:
+            if not isinstance(arg, types):
+                result = False
+                break
+
+    return result
+
+def stringListArg(l_args=None, noneValid=False, **kwargs):
     """
-    log.debug(">>> objString >> arg = %s"%arg + "="*75)
+    Return each 'arg' in 'l_arg' if it is a string. Raise an exception if 
+    any arg is not a string and noneValid is False.
+
+    :parameters:
+        l_arg | object
+            value to be validated as a list of strings
+        noneValid | bool
+            if True, returns 'None' if arg is not a string. 
+            Otherwise, raises TypeError 
+
+    :returns
+        list
+
+    :raises
+        TypeError | if l_arg is not a list
+        TypeError | if an arg in l_arg fails to pass stringArg and noneValid is False
+    """
+    log.debug("validateArgs.stringArg arg={0} noneValid={1}".format(str(l_args), noneValid))
     
-    calledFrom = stringArg(calledFrom,noneValid=True)
-    if calledFrom: _str_funcName = "%s.objString(%s)"%(calledFrom,arg)
-    else:_str_funcName = "objString(%s)"%arg
-    t_start = time.clock()
+    _str_funcName = _returnCallerFunctionName()
+
+    result = []
+
+    if isinstance(l_args, (tuple, list)):
+        for arg in l_args:
+            tmp = stringArg(arg, noneValid)
+            if isinstance(tmp, basestring):
+                result.append(tmp)
+            else:
+                log.warning(
+                    "Arg {0} from func '{1}' ".format(arg, _str_funcName) +\
+                    " is type '{2}', not 'str'".format(type(arg).__name__)
+                )
+    else:
+        fmt_args = (str(l_args), _str_funcName, type(l_args).__name__)
+        s_errorMsg = "Args '{0}' from func '{1}' is type '{2}', not 'list'"
+
+        raise TypeError(s_errorMsg.format(*fmt_args))
+
+    return result
     
+def boolArg(arg=None, **kwargs):
+    """
+    Validate that 'arg' is a bool, or an equivalent int (0 or 1), 
+    otherwise return False or raise TypeError
+
+    :parameters:
+        arg | object
+            value to be validated as a bool or equivalent int
+        noneValid | bool
+            if True, returns 'None' if arg is not a string. 
+            Otherwise, raises TypeError 
+
+    :returns
+        arg or None
+
+    :raises
+        TypeError | if arg is not a bool or equivalent int
+    """
+    log.debug("validateArgs.boolArg arg={0}".format(arg))
+
+    _str_funcName = _returnCallerFunctionName()
+
+    result = arg
+
+    if isinstance(arg, int) and arg in [0,1]:
+        result = bool(arg)
+    elif not isinstance(arg, bool):
+        fmt_args = [arg, _str_funcName, type(arg).__name__]
+        s_errorMsg = "Arg {0} from func '{1}' is type '{2}', not 'bool' or 0/1".format(*fmt_args)
+    
+        raise TypeError(s_errorMsg)
+    
+    return result
+
+def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, **kwargs):
+    """
+    Return 'arg' if 'arg' is an existing, uniquely named Maya object, meeting
+    the optional requirements of mayaType and isTransform, otherwise
+    return False if noneValid or raise an exception.
+
+    :parameters:
+        arg | str
+            The name of the Maya object to be validated
+        mayaType | str, list
+            One or more Maya types - arg must be in this list for the test to pass.
+        isTransform | bool
+            Test whether 'arg' is a transform 
+        noneValid | bool
+            Return False if arg does not pass rather than raise an exception
+
+    :returns:
+        'arg' or False
+
+    :raises:
+        TypeError | if 'arg' is not a string
+        NameError | if more than one object name 'arg' exists in the Maya scene
+        NameError | if 'arg' does not exist in the Maya scene
+        TypeError | if the Maya type of 'arg' is in the list 'mayaType' and noneValid is False
+        TypeError | if isTransform is True, 'arg' is not a transform, and noneValid is False
+    """
+    log.debug("validateArgs.objString arg={0}".format(arg))
+
+    _str_funcName = _returnCallerFunctionName()
+
+    result = None 
+
+    if not isinstance(arg, basestring):
+        raise TypeError('arg must be string')
+
     if len(mc.ls(arg)) > 1:
-	raise StandardError,"More than one object named %s"%arg
-    try:
-	argType = type(arg)
-	if argType in [list,tuple]:#make sure it's not a list
-	    if len(arg) ==1:
-		arg = arg[0]
-	    elif arg == []:
-		arg = None
-	    else:
-		raise StandardError,"%s >>> arg cannot be list or tuple"%_str_funcName	
-	if not noneValid:
-	    if arg in [None,False]:
-		raise StandardError,"%s >>> arg cannot be None"%_str_funcName
-	else:
-	    if arg in [None,False]:
-		if arg not in [None,False]:log.warning("%s >>> arg fail"%_str_funcName)
-		return False
-			
-	if not mc.objExists(arg):
-	    if noneValid: return False
-	    else:
-		raise StandardError,"%s>>> Doesn't exist: '%s'"%(_str_funcName,arg)
-			
-	if mayaType is not None and len(mayaType):
-	    if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
-	    else: l_mayaTypes = mayaType	    
-	    str_type = search.returnObjectType(arg)
-	    if str_type not in l_mayaTypes:
-		if noneValid:
-		    log.warning("%s >>> '%s' Not correct mayaType: mayaType: '%s' != currentType: '%s'"%(_str_funcName,arg,str_type,l_mayaTypes))
-		    return False
-		raise StandardError,"%s >>> '%s' Not correct mayaType: mayaType: '%s' != currentType: '%s'"%(_str_funcName,arg,str_type,l_mayaTypes)			    	
-	if isTransform is not None:
-	    if isTransform and not mc.ls(arg,type='transform'):
-		if noneValid:
-		    log.warning("%s >>> '%s' has no transform"%(_str_funcName,arg))		    
-		    return False
-		raise StandardError,"%s >>> '%s' has no transform"%(_str_funcName,arg)	    	
-	return arg
-    
-    except StandardError,error:
-	log.error("%s >>Failure! arg: %s | mayaType: %s"%(_str_funcName,arg,mayaType))
-	raise StandardError,error  
-    
-def objStringList(l_args = None, mayaType = None, noneValid = False,isTransform = None, calledFrom = None):
-    log.debug(">>> objStringList >> l_args = %s"%l_args + "="*75) 
-    calledFrom = stringArg(calledFrom,noneValid=True)    
-    if calledFrom: _str_funcName = "%s.objStringList"%(calledFrom)
-    else:_str_funcName = "objStringList"    
-    t_start = time.clock()
-    try:
-	if type(l_args) not in [list,tuple]:l_args = [l_args]
-	returnList = []
-	for arg in l_args:
-	    buffer = objString(arg,mayaType,noneValid,isTransform,calledFrom)
-	    if buffer:returnList.append(buffer)
-	    else:log.warning("%s >> failed: '%s'"%(_str_funcName,arg))
-	return returnList
-    except StandardError,error:
-	log.error("%s >>Failure! l_args: %s | mayaType: %s"%(_str_funcName,l_args,mayaType))
-	raise StandardError,error 
+        raise NameError("More than one object is named '{0}'".format(arg))
 
-def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = None, isValue = None,
-             noneValid = True, isEquivalent = None, autoClamp = False, calledFrom = None):
-    """
-    @Parameters
-    numberTocheck -- main number arg
-    inRange -- provide a range list to check
-    minValue -- 
-    maxValue --
-    isValue -- 
-    isEquivalent
-    autoClamp -- try to return a number
-    """
-    log.debug(">>> valueArg >> numberToCheck = %s"%numberToCheck + "="*75) 
-    calledFrom = stringArg(calledFrom,noneValid=True)    
-    if calledFrom: _str_funcName = "%s.valueArg"%(calledFrom)
-    else:_str_funcName = "valueArg"  
-    try:
-	if numberToCheck is None:raise StandardError,"numberToCheck cannot be none."
-	if type(numberToCheck) not in [float,int]:
-	    raise StandardError,"%s not a number. Type: %s"%(numberToCheck,type(numberToCheck))
-	if inRange is not None:
-	    try:#Range check
-		if numberToCheck < min(inRange) or numberToCheck > max(inRange):
-		    return False
-	    except StandardError,error:raise StandardError,"Range arg failed. error: %s"%(inRange,error)
-	if type(minValue) in [float,int]:
-	    try:#Min check
-		if not numberToCheck >= minValue:
-		    if autoClamp:
-			return minValue		    
-		    return False
-	    except StandardError,error:raise StandardError,"min value check fail. error: %s"%(error)
-	if type(maxValue) in [float,int]:
-	    try:#Max check
-		if not numberToCheck <= maxValue:
-		    if autoClamp:
-			return maxValue
-		    return False
-	    except StandardError,error:raise StandardError,"max value check fail. error: %s"%(error)		
-	if type(isEquivalent) in [float,int]:
-	    try:#Equivalent check
-		if not isFloatEquivalent(isEquivalent,numberToCheck):
-		    return False
-	    except StandardError,error:raise StandardError,"isEquivalent check fail. error: %s"%(error)	    
-	if type(isValue) in [float,int]:
-	    try:#isValue check
-		if numberToCheck != isValue:
-		    return False
-	    except StandardError,error:raise StandardError,"isValue check fail. error: %s"%(error)	 
-	return numberToCheck
-    except StandardError,error:
-	if noneValid:
-	    return False
-	log.error("%s >>Failure! int: %s | range: %s | min: %s | max: %s | isValue: %s"%(_str_funcName,numberToCheck,inRange,minValue,maxValue,isValue))
-	raise StandardError,error 
+    if result is None and not mc.objExists(arg):
+        if noneValid:
+            result = False
+        else:
+            raise NameError("'{0}' does not exist".format(arg))
     
+    if result != False and mayaType is not None:
+        l_mayaTypes = mayaType
+        if isinstance(mayaType, (basestring)):
+            l_mayaTypes = [mayaType]
+
+        str_argMayaType = search.returnObjectType(arg)
+
+        if not str_argMayaType in l_mayaTypes:
+            if noneValid: 
+                result = False
+            else:
+                str_mayaTypes_formatted = ', '.join(l_mayaTypes)
+                fmt_args = [arg, str_argMayaType, str_mayaTypes_formatted]
+
+                raise TypeError('Arg {0} is type {1}, expected {2}'.format(*fmt_args))
+
+    if result is None and isTransform:
+        if not mc.objectType(arg, isType="transform"):
+            if noneValid:
+                result = False
+            else:
+                str_argMayaType = search.returnObjectType(arg)
+                fmt_args = [arg, str_argMayaType]
+                raise TypeError("'Arg {0}' is type {1}, expected 'transform'").format(*fmt_args)
+
+    if result is None:
+        result = arg
+
+    return result
+
+def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False, **kwargs):
+    """
+    Return each item in l_args if that item is an existing, uniquely named Maya object, 
+    meeting the optional requirements of mayaType and isTransform, otherwise raise an
+    exception if noneValid is False
+
+    :parameters:
+
+    :returns:
+        list
+
+    :raises:
+        TypeError | if 'l_arg' is not a list
+    """
+    log.debug("validateArgs.objString arg={0}".format(arg))
+
+    _str_funcName = _returnCallerFunctionName()
+
+    result = []
+
+    if not isinstance(l_args, (list, tuple)):
+        raise TypeError('l_args must be a list')
+
+    for arg in l_args:
+        tmp = objString(arg, mayaType, noneValid, isTransform)
+        if tmp != False:
+            result.append(tmp)
+        else:
+            str_argMayaType = search.returnObjectType(arg)
+            log.warning(
+                "Arg {0} from func '{1}' ".format(arg, _str_funcName) +\
+                " is Maya type '{2}', not 'str'".format(str_argMayaType)
+            )
+
+    return result
+
+def valueArg(numberToCheck=None, noneValid=True,
+             inRange=None, minValue=None, maxValue=None, autoClamp=False,
+             isValue=None, isEquivalent=None):
+    '''
+    Validate that 'numberToCheck' fits the expected parameters and returns False or
+    raises exceptions in numberToCheck is invalid. 
+
+    Some parameters are mutually exclusive.
+
+    :parameters:
+        numberToCheck | int, float
+        noneValid | bool
+            Will return False if numberToCheck is invalid rather than raising an exception.
+        inRange | list, tuple
+            A pair of values, within which numberToCheck must fall
+        minValue | int, float
+        maxValue | int, float
+        autoClamp | bool
+            If testing inRange, minValue, or maxValue, and numberToCheck 
+            does not pass, return the value clamped to within the expected range.
+        isValue | int
+        isEquivalent | float
+
+    :returns:
+        arg or False
+
+    :raises:
+        TypeError | if numberToCheck is not an int or a float
+        TypeError | if isValue is not an int
+        TypeError | if isEquivalent is not a float
+        ValueError | if inRange is not a list or tuple with two values
+        ArgumentError | if autoClamp is True but neither inRange, minValue, or maxValue is specified
+        ArgumentError | if inRange is specified and either minValue or maxValue
+                        is also specified.
+    '''
+    
+    if not isinstance(numberToCheck, (float, int)):
+        raise TypeError('numberToCheck must be an int or a float')
+
+    result = None
+
+    if result is None and inRange is not None:
+        if not isinstance(inRange, (list, tuple)) or len(inRange) != 2:
+            raise ValueError('inRange must be a list of two numbers')
+
+        if numberToCheck < min(inRange) or numberToCheck > max(inRange):
+            if autoClamp:
+                if numberToCheck < min(inRange):
+                    numberToCheck = min(inRange)
+                elif numberToCheck > max(inRange):
+                    numberToCheck = max(inRange)
+        else:
+            result = numberToCheck
+
+    if result is None and isinstance(minValue, (float, int)):
+        if numberToCheck < minValue:
+            if autoClamp:
+                result = minValue
+        else:
+            result = numberToCheck
+
+    if result is None and isinstance(maxValue, (float, int)):
+        if numberToCheck > maxValue:
+            if autoClamp:
+                result = maxValue
+        else:
+            result = numberToCheck
+
+    if result is None and isinstance(isEquivalent, (float, int)):
+        if isFloatEquivalent(numberToCheck, isEquivalent):
+            result = numberToCheck
+        else:
+            result = False
+
+    if result is None and isinstance(isValue, (float, int)):
+        if numberToCheck == isValue:
+            result = numberToCheck
+        else:
+            result = False
+
+    if result is None and noneValid:
+        result = False
+
+    return result
+   
 #>>> Maya orientation ============================================================================
-d_rotateOrder = {'xyz':0,
-                 'yzx':1,
-                 'zxy':2,
-                 'xzy':3,
-                 'yxz':4,
-                 'zyx':5}   
+
+# TODO - Maya constants should be centrally grouped?
+d_rotateOrder = { 
+    'xyz':0,
+    'yzx':1,
+    'zxy':2,
+    'xzy':3,
+    'yxz':4,
+    'zyx':5
+}   
+
 class simpleOrientation():
     """ 
     """
-    def __init__(self,arg = None, calledFrom = None):
-	calledFrom = stringArg(calledFrom,noneValid=True)
-	
-	if calledFrom: _str_funcName = "%s.simpleOrientation"%(calledFrom)
-	else:_str_funcName = "simpleOrientation"  
-	
-	log.debug(">>> %s(arg = %s)"%(_str_funcName,arg) + "="*75)
-	str_arg = stringArg(arg,noneValid=False,calledFrom = _str_funcName)
-	        
-        if str_arg.lower() in d_rotateOrder.keys():
-            self.str_orientation = str_arg.lower()
-	else:
-            self.str_orientation = False
+    def __init__(self,arg=None, **kwargs):
+        _str_funcName = _returnCallerFunctionName()
+        log.debug('Caller: {0}, arg: {1}'.format(_str_funcName, arg))
 
-	if self.str_orientation is False :
-	    log.info("str_orientation: %s"%self.str_orientation)	    
-            raise StandardError, ">>> %s(arg = %s) Failed to validate as a simple orientation"%(_str_funcName,arg)
-	    
-    def asString(self):
-	return self.str_orientation
+        str_arg = stringArg(arg, noneValid=True)
+
+        if str_arg is False:
+            fmt_args = [str_arg, _str_funcName]
+            error_msg = "Arg '{0}'' from function '{1}' must be a string"
+
+            raise ValueError(error_msg.format(*fmt_args))
+
+        str_arg = str_arg.lower()
+
+        if not d_rotateOrder.has_key(str_arg):
+            fmt_args = [str_arg, 
+                        _str_funcName, 
+                        'xyz, yzx, zxy, xzy, yxz, or zyx']
+            error_msg = 'Arg {0} from function {1} must be a rotation order: {2}'
+
+            raise ValueError(error_msg.format(*fmt_args))
+        
+        self.__s_orientation_enum = str_arg
+        self.__i_orientation_index = d_rotateOrder[str_arg]
+
+        self.__aimAxis = simpleAxis(self.str_orientation[0])
+        self.__upAxis = simpleAxis(self.str_orientation[1])
+        self.__outAxis = simpleAxis(self.str_orientation[2])
+
+        self.__negativeAimAxis = simpleAxis("{0}-".format(self.str_orientation[0]))
+        self.__negativepUpAxis = simpleAxis("{0}-".format(self.str_orientation[1]))
+        self.__negativeOutAxis = simpleAxis("{0}-".format(self.str_orientation[2]))
+
+    def __str__(self):
+        '''Implementation of Python's built-in 'to string' conversion'''
+        return self.__s_orientation_enum
+
+    @property
+    def p_string(self):
+        return self.__str__()
     
-    def getAimAxis(self):
-	return simpleAxis(self.str_orientation[0])
-    def getUpAxis(self):
-	return simpleAxis(self.str_orientation[1])
-    def getOutAxis(self):
-	return simpleAxis(self.str_orientation[2]) 
-    def getAimAxisNegative(self):
-	return simpleAxis(self.str_orientation[0]+"-")
-    def getUpAxisNegative(self):
-	return simpleAxis(self.str_orientation[1]+"-")
-    def getOutAxisNegative(self):
-	return simpleAxis(self.str_orientation[2]+"-")     
-    def getRotateOrderIndex(self):
-	return d_rotateOrder.get(self.str_orientation)     
-    p_string = property(asString)
-    p_aim = property(getAimAxis)
-    p_up = property(getUpAxis)
-    p_out = property(getOutAxis)
-    p_ro = property(getRotateOrderIndex)
-    p_aimNegative = property(getAimAxisNegative)
-    p_upNegative = property(getUpAxisNegative)
-    p_outNegative = property(getOutAxisNegative)   
+    @property
+    def p_aim(self):
+        return self.__aimAxis
+    
+    @property
+    def p_up(self):
+        return self.__upAxis
+    
+    @property
+    def p_out(self):
+        return self.__outAxis
+
+    @property
+    def p_aimNegative(self):
+        return self.__negativeAimAxis
+
+    @property
+    def p_upNegative(self):
+        return self.__negativepUpAxis
+
+    @property
+    def p_outNegative(self):
+        return self.__negativeOutAxis
+
+    def p_ro(self):
+        return self.__i_orientation_index
     
 #>>> Simple Axis ==========================================================================
 l_axisDirectionsByString = ['x+','y+','z+','x-','y-','z-'] #Used for several menus and what not
 
-d_stringToVector = {'x+':[1,0,0],
-                      'x-':[-1,0,0],
-                      'y+':[0,1,0],
-                      'y-':[0,-1,0],
-                      'z+':[0,0,1],
-                      'z-':[0,0,-1]}
+d_stringToVector = {
+    'x+':[1, 0, 0],
+    'x-':[-1, 0, 0],
+    'y+':[0, 1, 0],
+    'y-':[0,-1, 0],
+    'z+':[0, 0, 1],
+    'z-':[0, 0,-1]
+}
 
-d_vectorToString = {'[1,0,0]':'x+',
-                      '[-1,0,0]':'x-',
-                      '[0,1,0]':'y+',
-                      '[0,-1,0]':'y-',
-                      '[0,0,1]':'z+',
-                      '[0,0,-1]':'z-'}
-d_tupleToString = {'(1, 0, 0)':'x+',
-                   '(-1, 0, 0)':'x-',
-                   '(0, 1,  0)':'y+',
-                   '(0,-1,0)':'y-',
-                   '(0, 0, 1)':'z+',
-                   '(0, 0, -1)':'z-'}
-d_shortAxisToLong = {'x':'x+','y':'y+','z':'z+'}
+d_vectorToString = {
+    '[1, 0, 0]' :'x+',
+    '[-1, 0, 0]':'x-',
+    '[0, 1, 0]' :'y+',
+    '[0,-1, 0]':'y-',
+    '[0, 0, 1]' :'z+',
+    '[0, 0,-1]':'z-'
+}
+
+d_tupleToString = {
+    '(1, 0, 0)':'x+',
+    '(-1, 0, 0)':'x-',
+    '(0, 1, 0)':'y+',
+    '(0,-1, 0)':'y-',
+    '(0, 0, 1)':'z+',
+    '(0, 0,-1)':'z-'
+}
+
+d_shortAxisToLong = {
+    'x':'x+',
+    'y':'y+',
+    'z':'z+'
+}
 
 class simpleAxis():
     """ 
     """
     def __init__(self,arg):
-	_str_funcName = "simpleAxis"    
-	log.debug(">>> %s(arg = %s)"%(_str_funcName,arg) + "="*75)
-	t_start = time.clock()
-	
-        self.str_axis = None
-        self.v_axis = None
-        
-        if arg in d_shortAxisToLong.keys():
-            self.str_axis = d_shortAxisToLong.get(arg) or False
-            self.v_axis = d_stringToVector.get(self.str_axis) or False
-            
-        elif arg in d_stringToVector.keys():
-            self.v_axis = d_stringToVector.get(arg) or False
-            self.str_axis = arg
-        
-        elif str(arg) in d_vectorToString.keys():
-            self.str_axis = d_vectorToString.get(str(arg)) or False 
-            self.v_axis = d_stringToVector.get(self.str_axis) or False
-	    
-        elif str(arg) in d_tupleToString.keys():
-            self.str_axis = d_tupleToString.get(str(arg)) or False 
-            self.v_axis = d_stringToVector.get(self.str_axis) or False
-            
-        elif ' ' in list(str(arg)):
-            splitBuffer = str(arg).split(' ')
-            newVectorString =  ''.join(splitBuffer)
-            self.str_axis = d_vectorToString.get(newVectorString) or False
-            self.v_axis = d_stringToVector.get(self.str_axis) or False
-	    
-	if self.str_axis is False or self.v_axis is False:
-	    log.info("v_axis: %s"%self.v_axis)
-	    log.info("str_axis: %s"%self.str_axis)	    
-            raise StandardError, ">>> %s(arg = %s) Failed to validate as a simple maya axis"%(_str_funcName,arg)
-	    
-    def asString(self):
-	return self.str_axis
-    def asVector(self):
-	return self.v_axis
+        _str_funcName = _returnCallerFunctionName()
+        #log.debug('Caller: {0}, arg: {1}'.format(_str_funcName, arg))
     
-    p_vector = property(asVector)
-    p_string = property(asString)
-    
+        self.__str_axis = None
+        self.__v_axis = None
+        
+        str_arg = arg
+        
+        if isinstance(str_arg, basestring) and listArg(arg, types=int):
+            str_arg = str(list[arg])
 
+        str_arg = str_arg.replace(' ','')
 
+        if d_shortAxisToLong.has_key(str_arg):
+            self.__str_axis = d_shortAxisToLong[str_arg]
+            self.__v_axis = d_stringToVector.get(self.__str_axis)
+        elif d_stringToVector.has_key(str_arg):
+            self.__str_axis = str_arg
+            self.__v_axis = d_stringToVector[str_arg]
+        elif d_vectorToString.has_key(str_arg):
+            self.__str_axis = d_vectorToString[str_arg]
+            self.__v_axis = d_stringTovector(self.__str_axis)
+        else:
+            fmt_args = [str_arg, 
+                        _str_funcName]
+            error_msg = 'Arg {0} from function {1} must be an axis or a vector'
+            raise ValueError(error_msg.format(*fmt_args))
+
+    def __str__(self):
+        return self.__str_axis
+
+    @property
+    def p_string(self):
+        return self.__str__()
+
+    @property
+    def p_vector(self):
+        return self.__v_axis
