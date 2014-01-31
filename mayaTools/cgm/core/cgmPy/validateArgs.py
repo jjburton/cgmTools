@@ -21,7 +21,7 @@ import maya.mel as mel
 
 # From cgm ==============================================================
 from cgm.lib import search
-from cgm.core import cgm_General
+from cgm.core import cgm_General as cgmGeneral
 reload(cgmGeneral)
 
 # Shared Defaults ========================================================
@@ -480,13 +480,13 @@ class simpleOrientation():
         self.__s_orientation_enum = str_arg
         self.__i_orientation_index = d_rotateOrder[str_arg]
 
-        self.__aimAxis = simpleAxis(self.str_orientation[0])
-        self.__upAxis = simpleAxis(self.str_orientation[1])
-        self.__outAxis = simpleAxis(self.str_orientation[2])
+        self.__aimAxis = simpleAxis(self.__s_orientation_enum[0])
+        self.__upAxis = simpleAxis(self.__s_orientation_enum[1])
+        self.__outAxis = simpleAxis(self.__s_orientation_enum[2])
 
-        self.__negativeAimAxis = simpleAxis("{0}-".format(self.str_orientation[0]))
-        self.__negativepUpAxis = simpleAxis("{0}-".format(self.str_orientation[1]))
-        self.__negativeOutAxis = simpleAxis("{0}-".format(self.str_orientation[2]))
+        self.__negativeAimAxis = simpleAxis("{0}-".format(self.__s_orientation_enum[0]))
+        self.__negativepUpAxis = simpleAxis("{0}-".format(self.__s_orientation_enum[1]))
+        self.__negativeOutAxis = simpleAxis("{0}-".format(self.__s_orientation_enum[2]))
 
     def __str__(self):
         '''Implementation of Python's built-in 'to string' conversion'''
@@ -571,8 +571,15 @@ class simpleAxis():
         
         str_arg = arg
         
-        if isinstance(str_arg, basestring) and listArg(arg, types=int):
-            str_arg = str(list[arg])
+        if listArg(arg, types=int):
+            str_arg = str(list(arg))
+        elif isinstance(arg, basestring):
+            pass
+        else:
+            fmt_args = [str_arg, 
+                        _str_funcName]
+            error_msg = 'Arg {0} from function {1} must be an axis or a vector'
+            raise ValueError(error_msg.format(*fmt_args))
 
         str_arg = str_arg.replace(' ','')
 
@@ -588,7 +595,7 @@ class simpleAxis():
         else:
             fmt_args = [str_arg, 
                         _str_funcName]
-            error_msg = 'Arg {0} from function {1} must be an axis or a vector'
+            error_msg = 'Arg {0} from function {1} is an invalid axis or vector'
             raise ValueError(error_msg.format(*fmt_args))
 
     def __str__(self):
