@@ -665,17 +665,18 @@ def cgmExceptCB(etype, value, tb, detail=2, processed = False):
 		    line = linecache.getline(db_file, lineno)
 		    print("-- Traceback File: %s"%db_file)
 		    print("-- Traceback Line #: %d"%lineno)
-		    print("-- Traceback Line: %s"%line)		
+		    print("-- Traceback Line: %s"%line)
 		print(_str_headerDiv + "Exception encountered..." + _str_headerDiv + _str_hardLine)	    		
 		print("-- Coming from cgmExceptCB")		
 		print("-- etype: %s"%etype)
 		print("-- value: %s"%value)
 		#print("-- tb: %s"%tb)
 		#print("-- detail: %s"%detail)
+		
 	    print ""
 	    #report_enviornment()
-	return value
-	#return mUtils._formatGuiException(etype, value, tb, detail)
+	#return value
+	return mUtils._formatGuiException(etype, value, tb, detail)
     except Exception,error:
 	log.info("Exception Exception....{%s}"%error)
 	
@@ -689,6 +690,9 @@ class sampleClass(cgmFunctionClass):
     def __init__(self,*args, **kws):
         super(sampleClass, self).__init__(*args, **kws)
 """
+
+def example_throwException():
+    raise Exception,"Exception!"
          
 def funcClassWrap(funcClass):
     '''
