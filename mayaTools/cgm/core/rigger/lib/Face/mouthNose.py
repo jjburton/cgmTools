@@ -836,13 +836,13 @@ def build_rig(*args, **kws):
 	    self._b_reportTimes = True
 	    self.__dataBind__()
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-	                        #{'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
+	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        
-	                        #{'step':'Lip build','call':self._buildLips_},
-	                        #{'step':'NoseBuild','call':self._buildNose_},
-	                        #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        
-	                        #{'step':'Cheek build','call':self._buildCheeks_},
-	                        #{'step':'Lock N hide','call':self._lockNHide_},
+	                        {'step':'Lip build','call':self._buildLips_},
+	                        {'step':'NoseBuild','call':self._buildNose_},
+	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        
+	                        {'step':'Cheek build','call':self._buildCheeks_},
+	                        {'step':'Lock N hide','call':self._lockNHide_},
 	                        ]	
 	    #=================================================================
 	def _gatherInfo_(self):
@@ -852,7 +852,7 @@ def build_rig(*args, **kws):
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    
 	    try:#>> Deformation Plates =======================================================================================
-		self.mi_skullPlate = cgmMeta.cgmObject('testJawOnlyPlate')    
+		self.mi_skullPlate = cgmMeta.cgmObject('jawPlate')    
 		#self.mi_skullPlate = mi_go._mi_skullPlate
 		self.str_skullPlate = self.mi_skullPlate.p_nameShort
 		
@@ -2185,7 +2185,8 @@ def build_rig(*args, **kws):
 		d_build = {'uprLipSegment':{'left':{'mi_curve':mi_uprDrivenCrv},
 		                            'right':{'mi_curve':self.mi_uprLipDrivenReverseCrv}},
 		           'lwrLipSegment':{'left':{'mi_curve':mi_lwrDrivenCrv},
-		                            'right':{'mi_curve':self.mi_lwrLipDrivenReverseCrv}}}			
+		                            'right':{'mi_curve':self.mi_lwrLipDrivenReverseCrv}}}
+		
 		#So we are gonna grab the upLocs from our segment returns and make our mid roll up locs from that constrainig between the end rolls
 		for i,str_k in enumerate(d_build.keys()):
 		    d_buffer = d_build[str_k]
@@ -2424,16 +2425,12 @@ def build_rig(*args, **kws):
 	    try:#Attach stuff to surfaces ====================================================================================
 		#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
 		str_skullPlate = self.str_skullPlate
-		mi_uprTeethPlate = cgmMeta.cgmObject('uprTeethPlate')   
-		mi_lwrTeethPlate = cgmMeta.cgmObject('lwrTeethPlate')   
+		mi_uprTeethPlate = self.mi_uprTeethPlate
+		mi_lwrTeethPlate = self.mi_lwrTeethPlate
 		
 		str_uprLipPlate = self.mi_uprLipPlate.p_nameShort
-		#str_uprLipFollowPlate = self.mi_uprLipFollowPlate.p_nameShort		
-		#str_uprLipRibbon = self.mi_uprLipRibbon.p_nameShort
-		
 		str_lwrLipPlate = self.mi_lwrLipPlate.p_nameShort
-		#str_lwrLipFollowPlate = self.mi_lwrLipFollowPlate.p_nameShort				
-		#str_lwrLipRibbon = self.mi_lwrLipRibbon.p_nameShort
+
 			
 		d_build = {'mouthMove':{'mode':'blendAttach','defaultValue':.25,'followSuffix':'Jaw','attachTo':mi_uprTeethPlate.mNode},
 		           'mouthMoveTrackLoc':{'attachTo':mi_uprTeethPlate.mNode},
@@ -2449,7 +2446,8 @@ def build_rig(*args, **kws):
 		           'lipUnderRig':{'mode':'handleAttach','attachTo':str_lwrLipPlate},	
 		           'lipLwrHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,
 		                           'center':{'mode':'blendAttach','defaultValue':.6,'attachTo':mi_lwrTeethPlate.mNode,
-		                                     'followSuffix':'Jaw','target0':mi_mouthMoveTrackLoc}}}	
+		                                     'followSuffix':'Jaw','target0':mi_mouthMoveTrackLoc}}}
+		
 		"""'lipLwrHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,
 				'center':{'mode':'blendAttach','defaultValue':.6,
 					  'followSuffix':'Jaw','target0':mi_mouthMoveTrackLoc}},"""		
