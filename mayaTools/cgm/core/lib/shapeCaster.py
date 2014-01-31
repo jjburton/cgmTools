@@ -540,11 +540,11 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     log.debug("latheAxis: %s"%latheAxis)
     if rotateBank is not None:#we need a bank  axis
 	l_axisCull = ['x','y','z']
-	l_axisCull.remove(latheAxis)
+	if latheAxis!=aimAxis:l_axisCull.remove(latheAxis)
 	log.debug(latheAxis)
 	if len(aimAxis) == 2: aimCull = aimAxis[0].lower()
 	else: aimCull = aimAxis.lower()
-	l_axisCull.remove(aimCull)
+	if latheAxis!=aimCull:l_axisCull.remove(aimCull)
 	log.debug(aimCull)	
 	log.debug("Bank rotate: %s"%l_axisCull)
 	bankAxis = l_axisCull[0]
