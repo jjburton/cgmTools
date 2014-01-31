@@ -79,9 +79,9 @@ def reorderListInPlace(l, subL, direction = 0):
                         returnList.remove(i)
                         returnList.insert(idx+1,i)
             else:
-                print ("List is already in order. No change.")
+                log.info ("List is already in order. No change.")
         else:
-           print("'%s' not in the target list. Try again..."%i)
+           log.info("'%s' not in the target list. Try again..."%i)
     return returnList 
 
 
