@@ -2377,6 +2377,12 @@ def shapeCast_mouthNose(*args,**kws):
 	    d_['uprCheekInnerRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                                     cgmDirection = 'right',cgmPosition = 'inner',
 	                                                                     cgmName = 'uprCheek')	    
+	    d_['cheekAnchorLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                  cgmDirection = 'left',
+	                                                                  cgmName = 'cheekAnchor')	
+	    d_['cheekAnchorRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                                   cgmDirection = 'right',
+	                                                                   cgmName = 'cheekAnchor')	    
 	    #>> Jaw --------------------------------------------------------------------------	    
 	    d_['jaw'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                      cgmName = 'jaw')
@@ -2425,8 +2431,8 @@ def shapeCast_mouthNose(*args,**kws):
 	    self.ml_rigCull.extend(metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
 	                                                                 cgmName = 'teeth'))	    
 	    log.info("%s cull list:"%self._str_reportStart)
-	    for mJnt in self.ml_rigCull:
-		log.info(">>> " + mJnt.p_nameShort)
+	    #for mJnt in self.ml_rigCull:
+		#log.info(">>> " + mJnt.p_nameShort)
 		
 	    try:#>> calculate ------------------------------------------------------------------------
 		ml_measureJointList = [d_['smileBaseLeft'],d_['smileLeft'],d_['sneerLeft']]
@@ -2599,6 +2605,7 @@ def shapeCast_mouthNose(*args,**kws):
 	               {'key':'lipUprCenter'},{'key':'lipUprLeft','isSub':True},{'key':'lipUprRight','isSub':True},
 	               {'key':'lipLwrCenter'},{'key':'lipLwrLeft','isSub':True},{'key':'lipLwrRight','isSub':True},
 	               {'key':'lipCornerLeft'},{'key':'lipCornerRight'},{'key':'chin'},{'key':'jawAnchorLeft'},{'key':'jawAnchorRight'},
+	               {'key':'cheekAnchorLeft'},{'key':'cheekAnchorRight'},
 	               {'key':'uprCheekOuterLeft'},{'key':'uprCheekInnerLeft','isSub':True},{'key':'uprCheekInnerRight','isSub':True},{'key':'uprCheekOuterRight'},	               
 	               {'key':'noseTop','isSub':True},{'key':'noseTip','isSub':True},{'key':'noseUnder','isSub':True},{'key':'nostrilLeft','isSub':True},{'key':'nostrilRight','isSub':True}]
 	    ml_handleCrvs = []
@@ -2650,7 +2657,8 @@ def shapeCast_mouthNose(*args,**kws):
 		    ml_handleCrvs.append(mi_crv)
 		    
 		except Exception,error:
-		    raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)
+		    try:raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj.p_nameShort,error)
+		    except Exception,error:raise StandardError,"Curve create fail! handle: '%s' | error: %s"%(mObj,error)
 	    self.ml_handles.extend(ml_handleCrvs)	
 	
 	def _facePins_(self): 

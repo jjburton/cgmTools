@@ -6,6 +6,7 @@ from cgm.core import cgm_General as cgmGeneral
 
 import cgm.core
 cgm.core._reload()
+from cgm.core import cgm_Meta as cgmMeta
 
 obj = mc.ls(sl=True)[0] or False
 obj = ''
@@ -21,6 +22,13 @@ cgmMeta.validateObjArg(mi_obj)
 cgmMeta.validateAttrArg([mi_obj,'tx'])
 cgmMeta.validateAttrArg([obj,'tx'])
 cgmMeta.validateAttrArg("%s.tx"%obj)
+
+
+from cgm.core import cgm_Meta as cgmMeta
+n1 = cgmMeta.cgmNode(nodeType='transform')#This will create a cgmNode instance of a new transform node
+
+
+
 
 @cgmGeneral.Timer
 def check(arg):

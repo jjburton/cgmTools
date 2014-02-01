@@ -34,18 +34,22 @@ reload(constraints)
 #======================================================================
 # Processing factory
 #======================================================================
+#l_modulesToDoOrder = ['torso','neckHead']
 #This is the main key for data tracking. It is also the processing order
 #l_modulesToDoOrder = ['torso','neckHead','leg_left']
 #l_modulesToDoOrder = ['torso','clavicle_left','clavicle_right','arm_left','arm_right']
 #l_modulesToDoOrder = ['torso','clavicle_left']
 #l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right']
+'''
 l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
                       'clavicle_left','arm_left',
                       'thumb_left','index_left','middle_left','ring_left','pinky_left',                   
                       'clavicle_right','arm_right',
                       'thumb_right','index_right','middle_right','ring_right','pinky_right',
-                      ]
+                      ]'''
+l_modulesToDoOrder = ['torso']
 """
+
 l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right']
 
 l_modulesToDoOrder = ['torso',
@@ -151,7 +155,6 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
 #=====================================================================================
 #>>> Utilities
 #=====================================================================================
-@r9General.Timer
 def verify_customizationData(i_network, skinDepth = .75):
     """
     Gather info from customization asset
@@ -210,7 +213,6 @@ def verify_customizationData(i_network, skinDepth = .75):
         
     return d_initialData
         
-@r9General.Timer
 def verifyMorpheusNodeStructure(i_Morpheus):
     """"
     Returns a defined Morpheus asset
@@ -310,8 +312,7 @@ def verifyMorpheusNodeStructure(i_Morpheus):
         
     return i_Morpheus
 
-@r9General.Timer
-def setState(i_customizationNetwork,state = False,
+def setState(i_customizationNetwork,state = 0,
              **kws):
     """"
     Returns a defined Morpheus asset
@@ -337,30 +338,32 @@ def setState(i_customizationNetwork,state = False,
     if not d_customizationData:
         return False
     
-    mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
-    
-    for moduleKey in l_modulesToDoOrder:
-        if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
-            break
-        mc.progressBar(mayaMainProgressBar, edit=True, status = "Setting:'%s'..."%(moduleKey), step=1)
+    try:
+        mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
         
-        
-        i_module = i_Morpheus.getModuleFromDict(d_moduleCheck[moduleKey])
-        if not i_module:
-            log.warning("Cannot find Module: '%s'"%moduleKey)
-            return False
-        log.debug("Building: '%s'"%moduleKey)
-        try:
-            i_module.setState(state,
-                              sizeMode = 'manual',
-                              posList = d_customizationData.get(moduleKey),
-                              **kws)
-        except StandardError,error:
-            log.error("Set state fail: '%s'"%i_module.getShortName())
-            raise StandardError,error
-        #i_module.doSize('manual', posList = d_customizationData.get(moduleKey))
-        #i_module.doTemplate()
-    gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+        for moduleKey in l_modulesToDoOrder:
+            if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+                break
+            mc.progressBar(mayaMainProgressBar, edit=True, status = "Setting:'%s'..."%(moduleKey), step=1)
+            i_module = i_Morpheus.getModuleFromDict(d_moduleCheck[moduleKey])
+            if not i_module:
+                log.warning("Cannot find Module: '%s'"%moduleKey)
+                return False
+            log.debug("Building: '%s'"%moduleKey)
+            try:
+                kws['sizeMode'] = 'manual'
+                kws['posList'] = d_customizationData.get(moduleKey)
+                i_module.setState(state,**kws)
+            except StandardError,error:
+                log.error("Set state fail: '%s'"%i_module.getShortName())
+                raise StandardError,error
+            #i_module.doSize('manual', posList = d_customizationData.get(moduleKey))
+            #i_module.doTemplate()
+        gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+    except Exception,error:
+        gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar  
+        log.error(error)
+        return False
         
 @r9General.Timer
 def updateTemplate(i_customizationNetwork,**kws):  

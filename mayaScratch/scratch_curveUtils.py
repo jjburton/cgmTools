@@ -40,6 +40,7 @@ reload(crvUtils)
 baseCrv = 'curve18'
 crvUtils.getMidPoint(mc.ls(sl=True))
 
+crvUtils.convertCurve(mc.ls(sl=True)[0])
 
 #>>> mirror curve curve list
 #=======================================================
@@ -47,8 +48,8 @@ reload(crvUtils)
 baseCrv = 'curve18'
 crvUtils.mirrorCurve(baseCrv)
 crvUtils.mirrorCurve(baseCrv,mirrorAcross='y')
-
-crvUtils.mirrorCurve(mc.ls(sl=True)[0],mc.ls(sl=True)[1],mirrorAcross='y')
+crvUtils.mirrorCurve(mc.ls(sl=True)[0])
+crvUtils.mirrorCurve(mc.ls(sl=True)[0],mc.ls(sl=True)[1],mirrorAcross='x')
 
 #>>> Split curve list
 #=======================================================

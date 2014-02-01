@@ -2847,25 +2847,31 @@ class cgmAttr(object):
                      'enum':['enum','options','e'],
                      'double3':['vector','vec','v','double3','d3']}    
     
-    def __init__(self,objName,attrName,attrType = False,value = None,enum = False,initialValue = None,lock = None,keyable = None, hidden = None, minValue = None, maxValue = None, defaultValue = None,*a, **kw):
-        """ 
-        Asserts object's existance then initializes. If 
+    def __init__(self,objName = None,attrName = None,attrType = False,value = None,enum = None,initialValue = None,lock = None,keyable = None, hidden = None, minValue = None, maxValue = None, defaultValue = None,*a, **kw):
+	"""
+	Asserts attribute's existance then initializes. If 
         an existing attribute name on an object is called and the attribute type is different,it converts it. All functions
         ignore locks on attributes and will act when called regardless of target settings
         
-        
-        Keyword arguments:
-        obj(string) -- must exist in scene or an cgmObject instance
-        attrName(string) -- name for an attribute to initialize
-        attrType(string) -- must be valid attribute type. If AttrFactory is imported, you can type 'print attrTypesDict'
-        enum(string) -- default enum list to set on call or recall
-        value() -- set value on call
-        initialValue() -- only set on creation
-        
-        *a, **kw
-        
-        """
-	
+	:parameters:
+	    obj | string/metaNode
+		Att's object
+	    attrName | string
+	        name for an attribute to initialize
+	    attrType | string
+	        must be valid attribute type
+	    value | variable
+	        set value on call or creation
+	    enum | mayaEnumCommand arg
+	        What enum options to use
+	    initialValue | variable
+	        Only sets on attr creation, not existing
+	    ...most other flags
+	        
+	:returns
+	    cgmAttr instance
+    
+	"""        
         ### input check
         #>>> Initialization ==================   
 	try: 
@@ -2876,11 +2882,12 @@ class cgmAttr(object):
             self.obj = cgmNode(objName)	    
 	
 	if attrType:attrType = attributes.validateRequestedAttrType(attrType)
+	
 	#value/attr type logic check
 	#==============  
-	if enum is not False:
+	if enum is not None:
 	    self.attrType = attrType = 'enum'
-	elif value and attrType is False:
+	elif value and attrType is False and not self.obj.hasAttr(attrName):
 	    if type(value) is list:
 		for o in value:
 		    if mc.objExists(o):
@@ -2934,7 +2941,6 @@ class cgmAttr(object):
                     attributes.addMessageAttributeToObj(self.obj.mNode,attrName,*a, **kw)
                 else:
                     log.error("'%s' is an unknown form to this class"%(self.attrType))
-                
                 initialCreate = True
                 
 	    except StandardError,error:
@@ -2971,13 +2977,13 @@ class cgmAttr(object):
 	    except:
 		log.error("addAttr>>minValue on call Failure! %s"%defaultValue)
 		
-        if type(keyable) is bool:
+        if keyable is not None:
             self.doKeyable(keyable)   
             
-        if type(hidden) is bool:
+        if hidden is not None:
             self.doHidden(hidden)
             
-        if type(lock) is bool:
+        if lock is not None:
             self.doLocked(lock)
 	    
 	#log.debug("'%s' initialized. Value: '%s'"%(self.p_combinedName,self.value))
@@ -2994,26 +3000,31 @@ class cgmAttr(object):
         value(varied)   
         *a, **kw
         """
-	if self.obj.hasAttr(self.attr):
-	    if self.attrType == 'message':
-		self.doStore(value)	    
-	    elif self.getChildren():
-		#log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
-		for i,c in enumerate(self.getChildren()):
-		    try:
-			cInstance = cgmAttr(self.obj.mNode,c)                        
-			if type(value) is list and len(self.getChildren()) == len(value): #if we have the same length of values in our list as we have children, use them
-			    cInstance.value = value[i]
-			else:    
-			    attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value, *a, **kw)
-		    except:
-			log.debug("'%s' failed to set"%c)	
-	    else:
-		attributes.doSetAttr(self.obj.mNode,self.attr, value, *a, **kw)
-		    
-	object.__setattr__(self, self.attr, self.value)
-        
-        
+	try:	
+	    if self.obj.hasAttr(self.attr):
+		if self.attrType == 'message':
+		    self.doStore(value)	    
+		elif self.getChildren():
+		    #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedName,"','".join(self.getChildren())))
+		    for i,c in enumerate(self.getChildren()):
+			try:
+			    cInstance = cgmAttr(self.obj.mNode,c)                        
+			    if type(value) is list and len(self.getChildren()) == len(value): #if we have the same length of values in our list as we have children, use them
+				cInstance.value = value[i]
+			    else:    
+				attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value, *a, **kw)
+			except Exception,error:
+			    fmt_args = [c,error]
+			    s_errorMsg = "On child: {0}| error: {1}".format(*fmt_args)			    
+			    raise Exception,s_errorMsg
+		else:
+		    attributes.doSetAttr(self.obj.mNode,self.attr, value, *a, **kw)	
+	    object.__setattr__(self, self.attr, self.value)
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, value, error]
+	    s_errorMsg = "{0}.{1}.set() | Value: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)        
+	    
     def get(self,*a, **kw):
         """ 
         Get and store attribute value based on attr type
@@ -3042,16 +3053,17 @@ class cgmAttr(object):
             log.error("'%s.%s' failed to delete"%(self.obj.mNode,self.attr))  
 	      
     value = property(get, set, doDelete)#get,set,del
+    p_value = property(get, set, doDelete)#get,set,del
     
     #>>> Property - p_combinedName ==================             
-    def isCombinedName(self):
+    def asCombinedName(self):
 	return '%s.%s'%(self.obj.mNode,self.attr)  
-    p_combinedName = property(isCombinedName)
+    p_combinedName = property(asCombinedName)
     
-    def isCombinedShortName(self):
+    def asCombinedShortName(self):
 	return '%s.%s'%(self.obj.getShortName(),self.attr)  
-    p_combinedShortName = property(isCombinedShortName) 
-    
+    p_combinedShortName = property(asCombinedShortName) 
+
     #>>> Property - p_nameLong ================== 
     def getEnum(self):
 	#attributeQuery(attr, node=self.mNode, listEnum=True)[0].split(':')
@@ -3063,16 +3075,20 @@ class cgmAttr(object):
         Keyword arguments:
         enumCommand(string) -- 'off:on', 'off=0:on=2', etc
         """   
+	fmt_args = [self.obj.p_nameShort, self.p_nameLong, enumCommand]
+	s_baseMsg = "{0}.{1}.setEnum() | enumCommand: {2}".format(*fmt_args)	
         try:
             if self.attrType == 'enum':
-                if self.p_enum != enumCommand:
+                if ":".join(self.p_enum) != cgmValid.stringListArg(enumCommand):
                     mc.addAttr ((self.obj.mNode+'.'+self.attr), e = True, at=  'enum', en = enumCommand)
                     #log.debug("'%s.%s' has been updated!"%(self.obj.mNode,self.attr))
-                
+                else:log.info("%s | already set"%s_baseMsg)
             else:
-                log.warning("'%s.%s' is not an enum. Invalid call"%(self.obj.mNode,self.attr))
-        except:
-            log.error("'%s.%s' failed to change..."%(self.obj.mNode,self.attr))
+                log.warning("%s | not an enum. Invalid call"%(s_baseMsg))
+	except Exception,error:
+	    fmt_args = [s_baseMsg, error]
+	    s_errorMsg = "{0} | error: {1}".format(*fmt_args)	    
+	    log.error(s_errorMsg)     
     
     p_enum = property (getEnum,setEnum)
     
@@ -3090,34 +3106,39 @@ class cgmAttr(object):
         Keyword arguments:
         arg(bool)
         """ 
-        assert type(arg) is bool, "doLocked arg must be a bool!"
-        if arg:
-            if self.getChildren():
-                #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
-                for c in self.getChildren():
-                    cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if not cInstance.p_locked:
-                        mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,lock = True) 
-                        #log.debug("'%s.%s' locked!"%(cInstance.obj.mNode,cInstance.attr))
-                
-            elif not self.p_locked:
-                mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,lock = True) 
-                #log.debug("'%s.%s' locked!"%(self.obj.mNode,self.attr))
-                
-        else:
-            if self.getChildren():
-                #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
-                for c in self.getChildren():
-                    cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if cInstance.p_locked:
-                        mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,lock = False) 
-                        #log.debug("'%s.%s' unlocked!"%(cInstance.obj.mNode,cInstance.attr))
-                
-            elif self.p_locked:
-                mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,lock = False)           
-                #log.debug("'%s.%s' unlocked!"%(self.obj.mNode,self.attr))
-		
+	try:
+	    arg =  cgmValid.boolArg(arg)
+	    if arg:
+		if self.getChildren():
+		    #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
+		    for c in self.getChildren():
+			cInstance = cgmAttr(self.obj.mNode,c)                                            
+			if not cInstance.p_locked:
+			    mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,lock = True) 
+			    #log.debug("'%s.%s' locked!"%(cInstance.obj.mNode,cInstance.attr))
+		    
+		elif not self.p_locked:
+		    mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,lock = True) 
+		    #log.debug("'%s.%s' locked!"%(self.obj.mNode,self.attr))
+		    
+	    else:
+		if self.getChildren():
+		    #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
+		    for c in self.getChildren():
+			cInstance = cgmAttr(self.obj.mNode,c)                                            
+			if cInstance.p_locked:
+			    mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,lock = False) 
+			    #log.debug("'%s.%s' unlocked!"%(cInstance.obj.mNode,cInstance.attr))
+		    
+		elif self.p_locked:
+		    mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,lock = False)           
+		    #log.debug("'%s.%s' unlocked!"%(self.obj.mNode,self.attr))
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg, error]
+	    s_errorMsg = "{0}.{1}.doLocked() | arg: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)   
     p_locked = property (isLocked,doLocked)
+    p_lock = property (isLocked,doLocked)
     
     #>>> Property - p_hidden ================== 
     def isHidden(self):
@@ -3132,37 +3153,41 @@ class cgmAttr(object):
         Keyword arguments:
         arg(bool)
         """ 
-        assert type(arg) is bool, "doHidden arg must be a bool!"        
-        if arg:
-            if self.getChildren():
-                #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
-                for c in self.getChildren():
-                    cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if not cInstance.p_hidden:
-                        if cInstance.p_keyable:
-                            cInstance.doKeyable(False)
-                        mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,channelBox = False) 
-                        #log.debug("'%s.%s' hidden!"%(cInstance.obj.mNode,cInstance.attr))
-                
-            elif not self.p_hidden:
-                if self.p_keyable:
-                    self.doKeyable(False)
-                mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,channelBox = False) 
-                #log.debug("'%s.%s' hidden!"%(self.obj.mNode,self.attr))
-   
-        else:
-            if self.getChildren():
-                #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
-                for c in self.getChildren():
-                    cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if cInstance.p_hidden:
-                        mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,channelBox = True) 
-                        #log.debug("'%s.%s' unhidden!"%(cInstance.obj.mNode,cInstance.attr))
-                
-            elif self.p_hidden:
-                mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,channelBox = True)           
-                #log.debug("'%s.%s' unhidden!"%(self.obj.mNode,self.attr))
-		
+	try:
+	    arg =  cgmValid.boolArg(arg)
+	    if arg:
+		if self.getChildren():
+		    #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
+		    for c in self.getChildren():
+			cInstance = cgmAttr(self.obj.mNode,c)                                            
+			if not cInstance.p_hidden:
+			    if cInstance.p_keyable:
+				cInstance.doKeyable(False)
+			    mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,channelBox = False) 
+			    #log.debug("'%s.%s' hidden!"%(cInstance.obj.mNode,cInstance.attr))
+		    
+		elif not self.p_hidden:
+		    if self.p_keyable:
+			self.doKeyable(False)
+		    mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,channelBox = False) 
+		    #log.debug("'%s.%s' hidden!"%(self.obj.mNode,self.attr))
+       
+	    else:
+		if self.getChildren():
+		    #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
+		    for c in self.getChildren():
+			cInstance = cgmAttr(self.obj.mNode,c)                                            
+			if cInstance.p_hidden:
+			    mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,channelBox = True) 
+			    #log.debug("'%s.%s' unhidden!"%(cInstance.obj.mNode,cInstance.attr))
+		    
+		elif self.p_hidden:
+		    mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,channelBox = True)           
+		    #log.debug("'%s.%s' unhidden!"%(self.obj.mNode,self.attr))
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg, error]
+	    s_errorMsg = "{0}.{1}.doHidden() | arg: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)   	
     p_hidden = property (isHidden,doHidden) 
     
     #>>> Property - p_locked ==================
@@ -3176,44 +3201,49 @@ class cgmAttr(object):
         arg(bool)
         """         
 	KeyableTypes = ['long','float','bool','double','enum','double3','doubleAngle','doubleLinear']  
-        assert type(arg) is bool, "doKeyable arg must be a bool!" 
-	
-	if self.attrType not in KeyableTypes:
-	    #log.debug("'%s' not a keyable attrType"%self.attrType)
-	    return False
-	
-        if arg:
-            if self.getChildren():
-                #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
-                for c in self.getChildren():
-                    cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if not cInstance.p_keyable:
-                        mc.setAttr(cInstance.p_combinedName,e=True,keyable = True) 
-                        #log.debug("'%s.%s' keyable!"%(cInstance.obj.mNode,cInstance.attr))
-                        cInstance.p_hidden = False
-                
-            elif not self.p_keyable:
-                mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,keyable = True) 
-                #log.debug("'%s.%s' keyable!"%(self.obj.mNode,self.attr))
-                self.p_hidden = False
-                    
-                
-        else:
-            if self.getChildren():
-                #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
-                for c in self.getChildren():
-                    cInstance = cgmAttr(self.obj.mNode,c)                                            
-                    if cInstance.p_keyable:
-                        mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,keyable = False) 
-                        #log.debug("'%s.%s' unkeyable!"%(cInstance.obj.mNode,cInstance.attr))
-                        if not mc.getAttr(cInstance.p_combinedName,channelBox=True):
-                            cInstance.doHidden(False)                
-                
-            elif self.p_keyable:
-                mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,keyable = False)           
-                #log.debug("'%s.%s' unkeyable!"%(self.obj.mNode,self.attr))
-                if not mc.getAttr(self.p_combinedName,channelBox=True):
-                    self.doHidden(False)    
+	fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg]
+	s_baseMsg = "{0}.{1}.doKeyable() | arg: {2}".format(*fmt_args)		
+	try:
+	    arg =  cgmValid.boolArg(arg)
+	    
+	    if self.attrType not in KeyableTypes:
+		#log.debug("'%s' not a keyable attrType"%self.attrType)
+		return False
+	    
+	    if arg:
+		if self.getChildren():
+		    #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
+		    for c in self.getChildren():
+			cInstance = cgmAttr(self.obj.mNode,c)                                            
+			if not cInstance.p_keyable:
+			    mc.setAttr(cInstance.p_combinedName,e=True,keyable = True) 
+			    #log.debug("'%s.%s' keyable!"%(cInstance.obj.mNode,cInstance.attr))
+			    cInstance.p_hidden = False
+		    
+		elif not self.p_keyable:
+		    mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,keyable = True) 
+		    #log.debug("'%s.%s' keyable!"%(self.obj.mNode,self.attr))
+		    self.p_hidden = False
+	    else:
+		if self.getChildren():
+		    #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
+		    for c in self.getChildren():
+			cInstance = cgmAttr(self.obj.mNode,c)                                            
+			if cInstance.p_keyable:
+			    mc.setAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,keyable = False) 
+			    #log.debug("'%s.%s' unkeyable!"%(cInstance.obj.mNode,cInstance.attr))
+			    if not mc.getAttr(cInstance.p_combinedName,channelBox=True):
+				cInstance.doHidden(False)                
+		    
+		elif self.p_keyable:
+		    mc.setAttr((self.obj.mNode+'.'+self.attr),e=True,keyable = False)           
+		    #log.debug("'%s.%s' unkeyable!"%(self.obj.mNode,self.attr))
+		    if not mc.getAttr(self.p_combinedName,channelBox=True):
+			self.doHidden(False)  
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg, error]
+	    s_errorMsg = "{0}.{1}.doKeyable() | arg: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)   
     p_keyable = property (isKeyable,doKeyable) 
 
     #==========================================    
@@ -3231,21 +3261,27 @@ class cgmAttr(object):
         
         Keyword arguments:
         arg(string) -- name you want to use as an alias
-        """     
-        assert type(arg) is str or unicode,"Must pass string argument into doAlias"                
-        if arg:
-            try:
-		if arg != self.p_nameAlias:
-		    return mc.aliasAttr(arg,self.p_combinedName)
-		else:log.debug("'%s.%s' already has that alias!"%(self.obj.getShortName(),self.attr))
-            except:
-                log.warning("'%s.%s' failed to set alias of '%s'!"%(self.obj.mNode,self.attr,arg))
-                    
-        else:
-            if self.p_nameAlias:
-                self.attr = self.p_nameLong                
-                mc.aliasAttr(self.p_combinedName,remove=True)
-		
+        """   
+	fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg]
+	s_baseMsg = "{0}.{1}.doAlias() | arg: {2}".format(*fmt_args)		
+	try:
+	    arg = cgmValid.stringArg(arg)
+	    if arg:
+		try:
+		    if arg != self.p_nameAlias:
+			return mc.aliasAttr(arg,self.p_combinedName)
+		    else:log.debug("'%s.%s' already has that alias!"%(self.obj.getShortName(),self.attr))
+		except:
+		    log.warning("'%s.%s' failed to set alias of '%s'!"%(self.obj.mNode,self.attr,arg))
+			
+	    else:
+		if self.p_nameAlias:
+		    self.attr = self.p_nameLong                
+		    mc.aliasAttr(self.p_combinedName,remove=True)
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg, error]
+	    s_errorMsg = "{0}.{1}.doAlias() | arg: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)   
     p_nameAlias = property (getAlias,doAlias)
                 
     #>>> Property - p_nameNice ================== 
@@ -3258,12 +3294,15 @@ class cgmAttr(object):
         Keyword arguments:
         arg(string) -- name you want to use as a nice name
         """    
-        assert type(arg) is str or unicode,"Must pass string argument into doNiceName"        
-        if arg:
-            try:
-                mc.addAttr(self.p_combinedName,edit = True, niceName = arg)
-            except:
-                log.error("'%s.%s' failed to set nice name of '%s'!"%(self.obj.mNode,self.p_nameLong,arg))
+	fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg]
+	s_baseMsg = "{0}.{1}.doNiceName() | arg: {2}".format(*fmt_args)	
+	try:
+	    if arg:
+		mc.addAttr(self.p_combinedName,edit = True, niceName = arg)
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg, error]
+	    s_errorMsg = "{0}.{1}.doNiceName() | arg: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)   
                     
     p_nameNice = property (getNiceName,doNiceName)
     
@@ -3276,19 +3315,20 @@ class cgmAttr(object):
         
         Keyword arguments:
         arg(string) -- name you want to use as a nice name
-        """            
-        assert type(arg) is str or unicode,"Must pass string argument into doRename"
-        if arg:
-            try:
-                if arg != self.p_nameLong:
-                    attributes.doRenameAttr(self.obj.mNode,self.p_nameLong,arg)
-                    self.attr = arg                    
-                else:
-                    log.debug("'%s.%s' already has that nice name!"%(self.obj.mNode,self.attr,arg))
-                    
-            except:
-                log.error("'%s.%s' failed to rename name of '%s'!"%(self.obj.mNode,self.attr,arg))
-    
+        """     
+	fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg]
+	s_baseMsg = "{0}.{1}.doRename() | arg: {2}".format(*fmt_args)		
+	try:
+	    if arg:
+		if arg != self.p_nameLong:
+		    attributes.doRenameAttr(self.obj.mNode,self.p_nameLong,arg)
+		    self.attr = arg                    
+		else:
+		    log.debug("'%s.%s' already has that nice name!"%(self.obj.mNode,self.attr,arg))
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg, error]
+	    s_errorMsg = "{0}.{1}.doRename() | arg: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)      
     p_nameLong = property (getNameLong,doRename)
     
     #================================================    
@@ -3315,23 +3355,29 @@ class cgmAttr(object):
         Keyword arguments:
         value(string) -- value or False to reset
         """   
-        if self.isNumeric(): 
-            if value is not None:
-                if self.getChildren():
-                    #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
-                    for c in self.getChildren():
-                        cInstance = cgmAttr(self.obj.mNode,c)                        
-                        try:
-                            mc.addAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,defaultValue = value)
-                        except:
-                            log.warning("'%s' failed to set a default value"%cInstance.p_combinedName)                
-                
-                else:     
-                    try:
-                        mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,defaultValue = value)
-                    except:
-                        log.error("'%s.%s' failed to set a default value"%(self.obj.mNode,self.attr))     
-			
+	fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	s_baseMsg = "{0}.{1}.doDefault()".format(*fmt_args)		
+	try:
+	    if self.isNumeric(): 
+		if value is not None:
+		    if self.getChildren():
+			#log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
+			for c in self.getChildren():
+			    cInstance = cgmAttr(self.obj.mNode,c)                        
+			    try:
+				mc.addAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,defaultValue = value)
+			    except:
+				log.warning("'%s' failed to set a default value"%cInstance.p_combinedName)                
+		    
+		    else:     
+			try:
+			    mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,defaultValue = value)
+			except:
+			    log.error("'%s.%s' failed to set a default value"%(self.obj.mNode,self.attr))     
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, value, error]
+	    s_errorMsg = "{0}.{1}.doDefault() | value: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)    
     p_defaultValue = property (getDefault,doDefault)
     
     
@@ -3340,7 +3386,6 @@ class cgmAttr(object):
 	if not self.isNumeric():
 	    #log.debug("'%s' is not a numeric attribute"%self.p_combinedName)
 	    return False
-
 	try:
 	    minValue =  mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, minimum=True)	    
 	    if minValue is not False:
@@ -3358,26 +3403,30 @@ class cgmAttr(object):
         Keyword arguments:
         value(string) -- value or False to reset
         """ 
-        if self.isNumeric() and not self.getChildren(): 
-            if value is False or None:
-                try:
-                    mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,hasMinValue = False)
-                    log.warning("'%s.%s' had it's min value cleared"%(self.obj.mNode,self.attr))                     
-                except:
-                    log.error("'%s.%s' failed to clear a min value"%(self.obj.mNode,self.attr))
-            
-            elif value is not None:
-                try:
-                    mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,minValue = value)
-                except:
-                    log.error("'%s.%s' failed to set a default value"%(self.obj.mNode,self.attr))
-	    if self.value < value:
-		self.value = value
-		log.warning("Value changed due to new min. Value is now %s"%value)
-	else:
-	    #log.debug("'%s' is not a numeric attribute"%self.p_combinedName)	    
-	    return False
-		    
+	try:
+	    if self.isNumeric() and not self.getChildren(): 
+		if value is False or None:
+		    try:
+			mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,hasMinValue = False)
+			log.warning("'%s.%s' had it's min value cleared"%(self.obj.mNode,self.attr))                     
+		    except:
+			log.error("'%s.%s' failed to clear a min value"%(self.obj.mNode,self.attr))
+		
+		elif value is not None:
+		    try:
+			mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,minValue = value)
+		    except:
+			log.error("'%s.%s' failed to set a default value"%(self.obj.mNode,self.attr))
+		if self.value < value:
+		    self.value = value
+		    log.warning("Value changed due to new min. Value is now %s"%value)
+	    else:
+		#log.debug("'%s' is not a numeric attribute"%self.p_combinedName)	    
+		return False
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, value, error]
+	    s_errorMsg = "{0}.{1}.doMin() | value: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  		    
     p_minValue = property (getMinValue,doMin)
     
     #>>> Property - p_softMin ==================  
@@ -3400,22 +3449,28 @@ class cgmAttr(object):
         Keyword arguments:
         value(string) -- value or False to reset
         """ 
-        if self.isNumeric() and not self.getChildren(): 
-            if value is False:
-                try:
-                    mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,hasSoftMinValue = 0)
-                    log.warning("'%s.%s' had it's soft max value cleared"%(self.obj.mNode,self.attr))                     
-                except:
-                    log.error("'%s.%s' failed to clear a soft max value"%(self.obj.mNode,self.attr))  
-            elif value is not None:
-                try:
-                    mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,softMinValue = value)
-                except:
-                    log.error("'%s.%s' failed to set a soft max value"%(self.obj.mNode,self.attr))
-	    else:
-		#log.debug("'%s' is not a numeric attribute"%self.p_combinedName)	    
-		return False
+	try:
+	    if self.isNumeric() and not self.getChildren(): 
+		if value is False:
+		    try:
+			mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,hasSoftMinValue = 0)
+			log.warning("'%s.%s' had it's soft max value cleared"%(self.obj.mNode,self.attr))                     
+		    except:
+			log.error("'%s.%s' failed to clear a soft max value"%(self.obj.mNode,self.attr))  
+		elif value is not None:
+		    try:
+			mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,softMinValue = value)
+		    except:
+			log.error("'%s.%s' failed to set a soft max value"%(self.obj.mNode,self.attr))
+		else:
+		    #log.debug("'%s' is not a numeric attribute"%self.p_combinedName)	    
+		    return False
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, value, error]
+	    s_errorMsg = "{0}.{1}.doSoftMin() | value: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  
     p_softMin = property (getSoftMin,doSoftMin)
+    p_softMinValue = property (getSoftMin,doSoftMin)
     
     #>>> Property - p_softMax ==================  
     def getSoftMax(self):
@@ -3437,22 +3492,28 @@ class cgmAttr(object):
         Keyword arguments:
         value(string) -- value or False to reset
         """ 
-        if self.isNumeric() and not self.getChildren(): 
-            if value is False:
-                try:
-                    mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,hasSoftMaxValue = 0)
-                    log.warning("'%s.%s' had it's soft max value cleared"%(self.obj.mNode,self.attr))                     
-                except:
-                    log.error("'%s.%s' failed to clear a soft max value"%(self.obj.mNode,self.attr))  
-            elif value is not None:
-                try:
-                    mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,softMaxValue = value)
-                except:
-                    log.error("'%s.%s' failed to set a soft max value"%(self.obj.mNode,self.attr))
-	    else:
-		#log.debug("'%s' is not a numeric attribute"%self.p_combinedName)	    
-		return False
+	try:
+	    if self.isNumeric() and not self.getChildren(): 
+		if value is False:
+		    try:
+			mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,hasSoftMaxValue = 0)
+			log.warning("'%s.%s' had it's soft max value cleared"%(self.obj.mNode,self.attr))                     
+		    except:
+			log.error("'%s.%s' failed to clear a soft max value"%(self.obj.mNode,self.attr))  
+		elif value is not None:
+		    try:
+			mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,softMaxValue = value)
+		    except:
+			log.error("'%s.%s' failed to set a soft max value"%(self.obj.mNode,self.attr))
+		else:
+		    #log.debug("'%s' is not a numeric attribute"%self.p_combinedName)	    
+		    return False
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, value, error]
+	    s_errorMsg = "{0}.{1}.doSoftMax() | value: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  
     p_softMax = property (getSoftMax,doSoftMax)
+    p_softMaxValue = property (getSoftMax,doSoftMax)
     
     #>>> Property - p_maxValue ==================         
     def getMaxValue(self):
@@ -3475,25 +3536,29 @@ class cgmAttr(object):
         Keyword arguments:
         value(string) -- value or False to reset
         """ 
-        if self.isNumeric() and not self.getChildren(): 
-            if value is False or None:
-                try:
-                    mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,hasMaxValue = False)
-                    log.warning("'%s.%s' had it's max value cleared"%(self.obj.mNode,self.attr))                     
-                except:
-                    log.error("'%s.%s' failed to clear a max value"%(self.obj.mNode,self.attr))
-            elif value is not None:
-                try:
-                    mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,maxValue = value)
-                except:
-                    log.error("'%s.%s' failed to set a default value"%(self.obj.mNode,self.attr))
-	    if self.value > value:
-		self.value = value
-		log.warning("Value changed due to new max. Value is now %s"%value)
-	else:
-	    log.error("'%s' is not a numeric attribute"%self.p_combinedName)	    
-	    return False
-		    
+	try:
+	    if self.isNumeric() and not self.getChildren(): 
+		if value is False or None:
+		    try:
+			mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,hasMaxValue = False)
+			log.warning("'%s.%s' had it's max value cleared"%(self.obj.mNode,self.attr))                     
+		    except:
+			log.error("'%s.%s' failed to clear a max value"%(self.obj.mNode,self.attr))
+		elif value is not None:
+		    try:
+			mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,maxValue = value)
+		    except:
+			log.error("'%s.%s' failed to set a default value"%(self.obj.mNode,self.attr))
+		if self.value > value:
+		    self.value = value
+		    log.warning("Value changed due to new max. Value is now %s"%value)
+	    else:
+		log.error("'%s' is not a numeric attribute"%self.p_combinedName)	    
+		return False
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, value, error]
+	    s_errorMsg = "{0}.{1}.doMax() | value: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  		    
     p_maxValue = property (getMaxValue,doMax)
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -3537,38 +3602,108 @@ class cgmAttr(object):
 	return False
     
     def getRange(self):
-	if not self.isNumeric():
-	    log.warning("'%s' is not a numeric attribute. 'range' not relevant"%self.p_combinedName)	    
-	    return False
-	return mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, range=True) or False    
+	fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	s_funcMsg = "{0}.{1}.getRange()".format(*fmt_args)
+	try:
+	    if not self.isNumeric():
+		log.warning("'%s' is not a numeric attribute. 'range' not relevant"%self.p_combinedName)	    
+		return False
+	    return mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, range=True) or False 
+	except Exception,error:
+	    fmt_args = [s_funcMsg, error]
+	    s_errorMsg = "{0} |  error: {1}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  	
     
     def getSoftRange(self):
-	if not self.isNumeric():
-	    log.warning("'%s' is not a numeric attribute. 'range' not relevant"%self.p_combinedName)	    
-	    return False
-	return mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, softRange=True) or False     
-    
+	try:	
+	    if not self.isNumeric():
+		log.warning("'%s' is not a numeric attribute. 'range' not relevant"%self.p_combinedName)	    
+		return False
+	    return mc.attributeQuery(self.p_nameLong, node = self.obj.mNode, softRange=True) or False     
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	    s_funcMsg = "{0}.{1}.getSoftRange()".format(*fmt_args)	    
+	    fmt_args = [s_funcMsg, error]
+	    s_errorMsg = "{0} |  error: {1}".format(*fmt_args)	    
+	    log.error(s_errorMsg)      
     #>>> Family ==================  
-    def getChildren(self):
-	return mc.attributeQuery(self.attr, node = self.obj.mNode, listChildren=True) or []
-    def getParent(self):
-	return mc.attributeQuery(self.attr, node = self.obj.mNode, listParent=True) or []
-    def getSiblings(self):
-	return mc.attributeQuery(self.attr, node = self.obj.mNode, listSiblings=True) or []
+    def getChildren(self,asMeta = False):
+	try:
+	    asMeta = cgmValid.boolArg(asMeta)
+	    buffer = mc.attributeQuery(self.attr, node = self.obj.mNode, listChildren=True) or []
+	    if asMeta:
+		return [cgmAttr(self.obj.mNode,c) for c in buffer]
+	    return buffer
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	    s_funcMsg = "{0}.{1}.getChildren()".format(*fmt_args)		    
+	    fmt_args = [s_funcMsg, asMeta, error]
+	    s_errorMsg = "{0} |  asMeta: {1}| error: {2}".format(*fmt_args)	    
+	    log.error(s_errorMsg)   
+	    
+    def getParent(self,asMeta = False):
+	try:
+	    asMeta = cgmValid.boolArg(asMeta)
+	    buffer = mc.attributeQuery(self.attr, node = self.obj.mNode, listParent=True) or []
+	    if asMeta:
+		return [cgmAttr(self.obj.mNode,c) for c in buffer]
+	    return buffer
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	    s_funcMsg = "{0}.{1}.getParent()".format(*fmt_args)		    
+	    fmt_args = [s_funcMsg, asMeta, error]
+	    s_errorMsg = "{0} |  asMeta: {1}| error: {2}".format(*fmt_args)	    
+	    log.error(s_errorMsg)   
+	
+    def getSiblings(self,asMeta = False):
+	try:
+	    asMeta = cgmValid.boolArg(asMeta)
+	    buffer = mc.attributeQuery(self.attr, node = self.obj.mNode, listSiblings=True) or []
+	    if asMeta:
+		return [cgmAttr(self.obj.mNode,c) for c in buffer]
+	    return buffer
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	    s_funcMsg = "{0}.{1}.getSiblings()".format(*fmt_args)		    
+	    fmt_args = [s_funcMsg, asMeta, error]
+	    s_errorMsg = "{0} |  asMeta: {1}| error: {2}".format(*fmt_args)	    
+	    log.error(s_errorMsg)   	
     
     #>>> Connections ==================  
-    def getDriven(self,obj=False,skipConversionNodes = False):
-	"""returns attr by default"""
-	if obj:
-	    return attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes)
-	return attributes.returnDrivenAttribute(self.p_combinedName,skipConversionNodes) or None
-    def getDriver(self,obj=False,skipConversionNodes = False):
-	"""returns attr by default"""
-	if obj:
-	    return attributes.returnDriverObject(self.p_combinedName,skipConversionNodes) or None	    
-	return attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes) or None
+    def getDriven(self,obj=False,skipConversionNodes = False,asMeta = False):
+	try:
+	    asMeta = cgmValid.boolArg(asMeta)   
+	    if obj:
+		buffer =  attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes)
+		if asMeta: return validateObjListArg(buffer)
+		return lists.returnListNoDuplicates(buffer)
+	    buffer = attributes.returnDrivenAttribute(self.p_combinedName,skipConversionNodes) or None
+	    if asMeta and buffer: return validateAttrListArg(buffer)['ml_plugs']
+	    return buffer
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	    s_funcMsg = "{0}.{1}.getDriven()".format(*fmt_args)		    
+	    fmt_args = [s_funcMsg, obj, skipConversionNodes, asMeta, error]
+	    s_errorMsg = "{0} |  obj: {1} | skipConversionNodes: {2} | asMeta: {3}| error: {4}".format(*fmt_args)	    
+	    log.error(s_errorMsg)   
+	    
+    def getDriver(self,obj=False,skipConversionNodes = False,asMeta = False):
+	try:
+	    asMeta = cgmValid.boolArg(asMeta)   
+	    if obj:
+		buffer =  attributes.returnDriverObject(self.p_combinedName,skipConversionNodes)
+		if asMeta: return validateObjListArg(buffer)
+		return buffer
+	    buffer = attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes)
+	    if asMeta and buffer: return validateAttrListArg(buffer)['ml_plugs']
+	    return buffer
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	    s_funcMsg = "{0}.{1}.getDriven()".format(*fmt_args)		    
+	    fmt_args = [s_funcMsg, obj, skipConversionNodes, asMeta, error]
+	    s_errorMsg = "{0} |  obj: {1} | skipConversionNodes: {2} | asMeta: {3}| error: {4}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  	
     
-    #@cgmGeneral.TimerDebug
     def doCopySettingsTo(self,attrArg):
         """ 
         Copies settings from one attr to another
@@ -3582,7 +3717,7 @@ class cgmAttr(object):
 	    
 	    if self.isNumeric():
 		if not mPlug_target.isNumeric():
-		    raise StandardError, "doCopySettingsTo >> source is numeric: '%s' | target is not: '%s'"%(self.p_combinedShortName,mPlug_target.p_combinedShortName)
+		    raise StandardError, "source is numeric: '%s' | target is not: '%s'"%(self.p_combinedShortName,mPlug_target.p_combinedShortName)
 		if self.p_defaultValue is not False:mPlug_target.p_defaultValue = self.p_defaultValue
 		if self.p_minValue is not False:mPlug_target.p_minValue = self.p_minValue
 		if self.p_maxValue is not False:mPlug_target.p_maxValue = self.p_maxValue
@@ -3593,54 +3728,62 @@ class cgmAttr(object):
 	    mPlug_target.p_locked = self.p_locked
 	    if mPlug_target.attrType not in ['string','message']:mPlug_target.p_keyable = self.p_keyable
 	    return True
-	except StandardError,error:raise StandardError,"%s.doCopySettingsTo() failure | error: %s"%(self.p_combinedShortName,attrArg,error)
-	
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, attrArg, error]
+	    s_errorMsg = "{0}.{1}.doCopySettingsTo() | attrArg: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  
+	    
     def doConvert(self,attrType):
         """ 
         Converts an attribute type from one to another while preserving as much data as possible.
         
         Keyword arguments:
         attrType(string)        
-        """
-        if self.obj.isReferenced():
-            log.error("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.mNode,self.attr,attrType))                           
-
-        if self.getChildren():
-            log.error("'%s' has children, can't convert"%self.p_combinedName)
-        keyable = copy.copy(self.p_keyable)
-        hidden =  copy.copy(self.p_hidden)
-        locked =  copy.copy(self.p_locked)
-        storedNumeric = False
-        if self.isNumeric() and not self.getChildren():
-            storedNumeric = True
-            minimum =  copy.copy(self.p_minValue)
-            maximum =  copy.copy(self.p_maxValue)
-            default =  copy.copy(self.p_defaultValue)
-            softMin =  copy.copy(self.p_softMin)
-            softMax =  copy.copy(self.p_softMax)
-        
-        attributes.doConvertAttrType(self.p_combinedName,attrType)
-        
-        #>>> Reset variables
-        self.doHidden(hidden)
-        self.doKeyable(keyable)        
-        self.doLocked(locked)
-
-        if self.isNumeric() and not self.getChildren() and storedNumeric:
-            if softMin is not False or int(softMin) !=0 :
-                self.doSoftMin(softMin)
-            if softMax is not False or int(softMax) !=0 :
-                self.doSoftMax(softMax)            
-            if minimum is not False:
-                self.doMin(minimum)
-            if maximum is not False:
-                self.doMax(maximum)
-            if default is not False:
-                self.doDefault(default)
-        
-        self.attrType = mc.getAttr(self.p_combinedName,type=True)    
-        #log.debug("'%s.%s' converted to '%s'"%(self.obj.mNode,self.attr,attrType))
-                        
+        """	
+	try:
+	    if self.obj.isReferenced():
+		log.error("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.mNode,self.attr,attrType))                           
+	    if self.getChildren():
+		log.error("'%s' has children, can't convert"%self.p_combinedName)
+	    keyable = copy.copy(self.p_keyable)
+	    hidden =  copy.copy(self.p_hidden)
+	    locked =  copy.copy(self.p_locked)
+	    storedNumeric = False
+	    if self.isNumeric() and not self.getChildren():
+		storedNumeric = True
+		minimum =  copy.copy(self.p_minValue)
+		maximum =  copy.copy(self.p_maxValue)
+		default =  copy.copy(self.p_defaultValue)
+		softMin =  copy.copy(self.p_softMin)
+		softMax =  copy.copy(self.p_softMax)
+	    
+	    attributes.doConvertAttrType(self.p_combinedName,attrType)
+	    
+	    #>>> Reset variables
+	    self.doHidden(hidden)
+	    self.doKeyable(keyable)        
+	    self.doLocked(locked)
+    
+	    if self.isNumeric() and not self.getChildren() and storedNumeric:
+		if softMin is not False or int(softMin) !=0 :
+		    self.doSoftMin(softMin)
+		if softMax is not False or int(softMax) !=0 :
+		    self.doSoftMax(softMax)            
+		if minimum is not False:
+		    self.doMin(minimum)
+		if maximum is not False:
+		    self.doMax(maximum)
+		if default is not False:
+		    self.doDefault(default)
+	    
+	    self.attrType = mc.getAttr(self.p_combinedName,type=True)    
+	    #log.debug("'%s.%s' converted to '%s'"%(self.obj.mNode,self.attr,attrType))
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	    s_funcMsg = "{0}.{1}.doConvert()".format(*fmt_args)	    
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, attrType, error]
+	    s_errorMsg = "{0}.{1}.doConvert() | attrType: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)             
     def isMulti(self):
 	return mc.addAttr("%s.%s"%(self.obj.mNode,self.attr),q=True,m=True)
     def isIndexMatters(self):
@@ -3665,9 +3808,10 @@ class cgmAttr(object):
 
             #log.debug("'%s.%s' >Message> '%s'"%(self.obj.mNode,self.attr,self.value))
             return self.value
-            
-        except:
-            log.error("'%s.%s' failed to get"%(self.obj.mNode,self.attr))
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, error]
+	    s_errorMsg = "{0}.{1}.getMessage() | error: {2}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  
                
             
     def doStore(self,infoToStore,convertIfNecessary = True):
@@ -3689,11 +3833,6 @@ class cgmAttr(object):
           #  log.error("'%s.%s' failed to store '%s'"%(self.obj.mNode,self.attr,infoToStore))
             
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # Set Options
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>                                                        
-
-                
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Connections and transfers
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     def returnCompatibleFromTarget(self,target,*a, **kw):
@@ -3704,10 +3843,13 @@ class cgmAttr(object):
         target(string) - object or attribute to connect to
         *a, **kw
         """ 
-        assert mc.objExists(target),"'%s' doesn't exist"%target
-        
-        return attributes.returnCompatibleAttrs(self.obj.mNode,self.p_nameLong,target,*a, **kw)
-         
+	try:
+	    mi_target = validateObjArg(target)
+	    return attributes.returnCompatibleAttrs(self.obj.mNode,self.p_nameLong,mi_target.mNode,*a, **kw)
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, target, error]
+	    s_errorMsg = "{0}.{1}.returnCompatibleFromTarget() | target: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  
     
     def doConnectOut(self,target,*a, **kw):
         """ 
@@ -3717,7 +3859,6 @@ class cgmAttr(object):
         target(string) - object or attribute to connect to
         *a, **kw
         """ 
-	_str_funcName = "doConnectOut(%s)"%self.p_combinedShortName
 	#log.debug(">>> %s >>> "%(_str_funcName) + "="*75) 	
 	try:
 	    try:d_target = validateAttrArg(target,noneValid=False)
@@ -3726,9 +3867,13 @@ class cgmAttr(object):
 	    try:attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
 	    except StandardError,error:raise StandardError,"connection fail: %s"%(error)		
 	    #log.debug(">>> %s.doConnectOut >>-->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
-	except StandardError,error:
-	    raise StandardError,"%s >> error: %s"%(_str_funcName,error)
-    #@cgmGeneral.TimerDebug
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	    s_funcMsg = "{0}.{1}.doConnectOut()".format(*fmt_args)	    
+	    fmt_args = [s_funcMsg, target, error]
+	    s_errorMsg = "{0} | target: {1} | error: {2}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  
+	
     def doConnectIn(self,source,childIndex = False,*a, **kw):
         """ 
         Attempts to make a connection from a source to our instanced attribute
@@ -3737,8 +3882,6 @@ class cgmAttr(object):
         source(string) - object or attribute to connect to
         *a, **kw
         """ 
-	_str_funcName = "doConnectIn(%s)"%self.p_combinedShortName
-	#log.debug(">>> %s >>> "%(_str_funcName) + "="*75) 	
 	try:
 	    try:d_source = validateAttrArg(source,noneValid=False)
 	    except StandardError,error:raise StandardError,"%s failed to validate: %s"%(source,error)
@@ -3748,10 +3891,14 @@ class cgmAttr(object):
 		except StandardError,error:raise StandardError,"connection fail: %s"%(error)		
 		#log.debug(">>> %s.doConnectIn <<--<<  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            						
 	    else:
-		log.warning(">>> %s.doConnectIn >> source failed to validate: %s"%(self.p_combinedShortName,source) + "="*75)            			    
+		log.warning("Source failed to validate: %s"%(source) + "="*75)            			    
 		return False
-	except StandardError,error:
-	    raise StandardError,"%s >> error: %s"%(_str_funcName,error)
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong]
+	    s_funcMsg = "{0}.{1}.doConnectIn()".format(*fmt_args)	    
+	    fmt_args = [s_funcMsg, source, error]
+	    s_errorMsg = "{0} | source: {1} | error: {2}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  
                 
     def doCopyTo(self,target, targetAttrName = None, *a,**kw):
         """                                     
@@ -3775,67 +3922,62 @@ class cgmAttr(object):
         RETURNS:
         success(bool)
         """
-        assert mc.objExists(target),"'%s' doesn't exist"%target
-        assert mc.ls(target,long=True) != [self.obj.mNode], "Can't transfer to self!"
-        functionName = 'doCopyTo'
-        if targetAttrName is None: targetAttrName = self.attr
-        convertToMatch = kw.pop('convertToMatch',True)
-        values = kw.pop('values',True)
-        incomingConnections = kw.pop('incomingConnections',False)
-        outgoingConnections = kw.pop('outgoingConnections',False)
-        keepSourceConnections = kw.pop('keepSourceConnections',True)
-        copyAttrSettings = kw.pop('copyAttrSettings',True)
-        connectSourceToTarget = kw.pop('connectSourceToTarget',False)
-        connectTargetToSource = kw.pop('connectTargetToSource',False)  
-        
-	#log.debug("AttrFactory instance: '%s'"%self.p_combinedName)
-	#log.debug("convertToMatch: '%s'"%convertToMatch)
-	#log.debug("targetAttrName: '%s'"%targetAttrName)
-	#log.debug("incomingConnections: '%s'"%incomingConnections)
-	#log.debug("outgoingConnections: '%s'"%outgoingConnections)
-	#log.debug("keepSourceConnections: '%s'"%keepSourceConnections)
-	#log.debug("copyAttrSettings: '%s'"%copyAttrSettings)
-	#log.debug("connectSourceToTarget: '%s'"%connectSourceToTarget)
-	#log.debug("keepSourceConnections: '%s'"%keepSourceConnections)
-	#log.debug("connectTargetToSource: '%s'"%connectTargetToSource)
-            
-        copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
-        
-        if sum(copyTest) < 1:
-            log.warning("You must have at least one option for copying selected. Otherwise, you're looking for the 'doDuplicate' function.")            
-            return False
-
-        if '.' in list(target):
-            targetBuffer = target.split('.')
-            if len(targetBuffer) == 2:
-                attributes.doCopyAttr(self.obj.mNode,
-                                      self.p_nameLong,
-                                      targetBuffer[0],
-                                      targetBuffer[1],
-                                      convertToMatch = convertToMatch,
-                                      values=values, incomingConnections = incomingConnections,
-                                      outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
-                                      copyAttrSettings = copyAttrSettings, 
-		                      connectTargetToSource = connectTargetToSource, connectSourceToTarget = connectSourceToTarget)               
-
-            else:
-                log.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
-        else:
-            attributes.doCopyAttr(self.obj.mNode,
-                                  self.p_nameLong,
-                                  target,
-                                  targetAttrName,
-                                  convertToMatch = convertToMatch,
-                                  values=values, incomingConnections = incomingConnections,
-                                  outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
-                                  copyAttrSettings = copyAttrSettings, 
-	                          connectTargetToSource = connectTargetToSource, connectSourceToTarget = connectSourceToTarget)                                                      
-        #except:
-        #    log.warning("'%s' failed to copy to '%s'!"%(target,self.p_combinedName))          
-	self.doCopySettingsTo([target,targetAttrName])
-	
-	return True
-	
+	try:
+	    assert mc.objExists(target),"'%s' doesn't exist"%target
+	    assert mc.ls(target,long=True) != [self.obj.mNode], "Can't transfer to self!"
+	    functionName = 'doCopyTo'
+	    if targetAttrName is None: targetAttrName = self.attr
+	    convertToMatch = kw.pop('convertToMatch',True)
+	    values = kw.pop('values',True)
+	    incomingConnections = kw.pop('incomingConnections',False)
+	    outgoingConnections = kw.pop('outgoingConnections',False)
+	    keepSourceConnections = kw.pop('keepSourceConnections',True)
+	    copyAttrSettings = kw.pop('copyAttrSettings',True)
+	    connectSourceToTarget = kw.pop('connectSourceToTarget',False)
+	    connectTargetToSource = kw.pop('connectTargetToSource',False)  
+	    
+		
+	    copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
+	    
+	    if sum(copyTest) < 1:
+		log.warning("You must have at least one option for copying selected. Otherwise, you're looking for the 'doDuplicate' function.")            
+		return False
+    
+	    if '.' in list(target):
+		targetBuffer = target.split('.')
+		if len(targetBuffer) == 2:
+		    attributes.doCopyAttr(self.obj.mNode,
+			                  self.p_nameLong,
+			                  targetBuffer[0],
+			                  targetBuffer[1],
+			                  convertToMatch = convertToMatch,
+			                  values=values, incomingConnections = incomingConnections,
+			                  outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
+			                  copyAttrSettings = copyAttrSettings, 
+			                  connectTargetToSource = connectTargetToSource, connectSourceToTarget = connectSourceToTarget)               
+    
+		else:
+		    log.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
+	    else:
+		attributes.doCopyAttr(self.obj.mNode,
+		                      self.p_nameLong,
+		                      target,
+		                      targetAttrName,
+		                      convertToMatch = convertToMatch,
+		                      values=values, incomingConnections = incomingConnections,
+		                      outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
+		                      copyAttrSettings = copyAttrSettings, 
+		                      connectTargetToSource = connectTargetToSource, connectSourceToTarget = connectSourceToTarget)                                                      
+	    #except:
+	    #    log.warning("'%s' failed to copy to '%s'!"%(target,self.p_combinedName))          
+	    self.doCopySettingsTo([target,targetAttrName])
+	    
+	    return True
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, target, targetAttrName, error]
+	    s_errorMsg = "{0}.{1}.doCopyTo() | target: {2} | | targetAttrName: {3} | error: {4}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  
+	    
     def doTransferTo(self,target):
         """ 
         Transfer an instanced attribute to a target with all settings and connections intact
@@ -3844,24 +3986,29 @@ class cgmAttr(object):
         target(string) -- object to transfer it to
         *a, **kw
         """ 
-        assert mc.objExists(target),"'%s' doesn't exist"%target
-        assert mc.ls(target,type = 'transform',long = True),"'%s' Doesn't have a transform"%target
-        assert self.isUserDefined() is not False,"'%s' isn't user defined. Transferring this attribute is probably a bad idea. Might we suggest doCopyTo along with a connect to source option"%self.p_combinedShortName        
-        assert mc.ls(target,long=True) != [self.obj.mNode], "Can't transfer to self!"
-        assert '.' not in list(target),"'%s' appears to be an attribute. Can't transfer to an attribute."%target
-        assert self.isDynamic() is True,"'%s' is not a dynamic attribute."%self.p_combinedShortName
-        
-        #mc.copyAttr(self.obj.mNode,self.target.obj.mNode,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
-        attributes.doCopyAttr(self.obj.mNode,
-                              self.p_nameLong,
-                              target,
-                              self.p_nameLong,
-                              convertToMatch = True,
-                              values = True, incomingConnections = True,
-                              outgoingConnections = True, keepSourceConnections = False,
-                              copyAttrSettings = True, connectSourceToTarget = False)
-        self.doDelete()
-
+	try:
+	    mi_target = validateObjArg(target,cgmObject)
+	    assert self.isUserDefined() is not False,"'%s' isn't user defined. Transferring this attribute is probably a bad idea. Might we suggest doCopyTo along with a connect to source option"%self.p_combinedShortName        
+	    assert mi_target != self.obj.mNode, "Can't transfer to self!"
+	    assert self.isDynamic() is True,"'%s' is not a dynamic attribute."%self.p_combinedShortName
+	    fmt_args = [self.p_nameLong, self.obj.p_nameShort, mi_target.p_nameShort]	    
+	    log.warning("Transferring attr: '{0}' | from '{1}' to '{2}'".format(*fmt_args))	
+	    s_attrBuffer = copy.copy(self.p_nameLong)
+	    #mc.copyAttr(self.obj.mNode,self.target.obj.mNode,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
+	    attributes.doCopyAttr(self.obj.mNode,
+		                  self.p_nameLong,
+		                  mi_target.mNode,
+		                  self.p_nameLong,
+		                  convertToMatch = True,
+		                  values = True, incomingConnections = True,
+		                  outgoingConnections = True, keepSourceConnections = False,
+		                  copyAttrSettings = True, connectSourceToTarget = False)
+	    self.doDelete()
+	    return cgmAttr(mi_target,s_attrBuffer)
+	except Exception,error:
+	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, target, error]
+	    s_errorMsg = "{0}.{1}.doTransferTo() | target: {2} | error: {3}".format(*fmt_args)	    
+	    log.error(s_errorMsg)  
 class NameFactory(object):
     """ 
     New Name Factory. Finds a 
