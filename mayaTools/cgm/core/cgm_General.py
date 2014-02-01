@@ -6,56 +6,7 @@ email: jjburton@cgmonks.com
 Website : http://www.cgmonks.com
 ------------------------------------------
 
-This is for general purpose python code. The most important of which is cgmFuncCls - the core function class of the cgm created toolkit
-
-#Sample cgmFuncCls
-from cgm.core import cgm_General as cgmGeneral
-def testFunc(*args, **kws):
-    class fncWrap(cgmGeneral.cgmFuncCls):
-    	def __init__(self,*args, **kws):
-    	    super(fncWrap, self).__init__(*args, **kws)
-    	    self._str_funcName = 'testFunc'	
-    	    self.int_test = 10000
-	    self._str_funcHelp = "This is a sample function"
-    	    #self._b_autoProgressBar = 1
-	    #self._b_reportTimes = 1
-    	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'stringTest',"default":None}]	    
-    	    self.__dataBind__(*args, **kws)
-    	    self.l_funcSteps = [{'step':'Our first step','call':self.testSubFunc},
-    	                        {'step':'Pass two','call':self.testSubFunc2},
-    	                        {'step':'Pass progressBar set','call':self.testProgressBarSet},
-    	                        {'step':'Pass progressBar iter','call':self.testProgressBarIter}]
-    	def testSubFunc(self):
-    	    self.log_info(self.d_kws['stringTest'])
-    	    self.d_test = {"maya":"yay!"}
-    	    for i in range(50):
-    	        self.log_warning(i)
-    	def testSubFunc2(self):
-    	    self.log_infoNestedDict('d_test')
-    	    #raise StandardError, "Sopped"
-    	def testProgressBarSet(self):
-    	   for i in range(self.int_test):
-    	       self.progressBar_set(status = ("Getting: '%s'"%i), progress = i, maxValue = self.int_test)
-    	def testProgressBarIter(self):
-    	   self.progressBar_setMaxStepValue(self.int_test)
-    	   for i in range(self.int_test):
-    	       self.progressBar_iter(status = ("Getting: '%s'"%i))
-    return fncWrap(*args, **kws).go()
-reload(cgmGeneral)
-testFunc()
-testFunc(printHelp = True)#Let's you see a break down of the arg/kws of a function
-testFunc(reportTimes = True,reportEnv = True)#Here we wanna see the enviornment report as well
-testFunc(reportTimes = True)#Show times for steps of functions
-testFunc(reportShow = True)#Show a report of a function before running it
-testFunc(autoProgressBar = True)#automatically generate a progress bar of the steps of a function
-
-#Example code
-'''
-try:#Name ===============================================================================
-    try:#Sub ===============================================================================		
-    except Exception,error:raise StandardError, "%s | %s"%('a',error)
-except Exception,error:raise StandardError, "[Name]{%s}"%(error)
-'''
+For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 ================================================================
 """
 import maya.cmds as mc
@@ -81,22 +32,14 @@ log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
 #========================================================================= 
-_str_subLine = '-'*75
-_str_hardLine = '='*75
-_str_hardBreak = '=' * 100
+_str_subLine = '-'*100
+_str_hardLine = '='*100
+_str_hardBreak = '=' * 125
 _str_headerDiv = '///'
 _str_baseStart = "--"
+
 class cgmFuncCls(object):  
     """
-    Examples:
-    self._l_ARGS_KWS_DEFAULTS = [{'kw':'kwString',"default":None,'help':"FillINToHelp","argType":"mObject"}
-				 {'kw':'targetSurface',"default":None},
-				 {'kw':"createControlLoc","default":True},
-				 {'kw':"createUpLoc","default":False},
-				 {'kw':"parentToFollowGroup","default":False},	                  
-				 {'kw':'f_offset',"default":1.0},
-				 {'kw':'orientation',"default":'zyx'}]
-				 
     Don't:
     -- append to self._l_ARGS_KWS_DEFAULTS -- causes pass through issues with *args
     """
@@ -130,13 +73,10 @@ class cgmFuncCls(object):
 	self._l_errors = []
 	self._l_warnings = []
 	#These are our mask so that the fail report ignores them
-	self._l_reportMask = ['_b_pushCleanKWs','_l_ARGS_KWS_BUILTINS','_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	self._l_reportMask = ['_b_pushCleanKWs','_str_lastLog','_l_ARGS_KWS_BUILTINS','_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
-
-	#List of kws to ignore when a function wants to use kws for special purposes in the function call -- like attr:value
-	#self._l_kwMask = ['reportTimes','reportShow','autoProgressBar']
 	
     def __updateFuncStrings__(self):
 	self._str_funcCombined = self._str_funcName
@@ -207,6 +147,7 @@ class cgmFuncCls(object):
 	try:
 	    str_lastLogBuffer = self._str_lastLog#Buffer this
 	    if detail == 2:	
+		report_enviornment()
 		try:db_file = tb.tb_frame.f_code.co_filename
 		except:db_file = "<maya console>"
 		self.report_base()
@@ -238,7 +179,6 @@ class cgmFuncCls(object):
 	    mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
 	    return cgmExceptCB(etype,value,tb,detail,True)
 	    #return mUtils._formatGuiException(etype, value, tb, detail)	
-	    #raise self._Exception,self._ExceptionError
 	except Exception,error:
 	    print("[%s._ExceptionHook_ Exception]{%s}"%(self._str_funcCombined,error))
 	        
@@ -276,13 +216,16 @@ class cgmFuncCls(object):
 	for i,d_step in enumerate(self.l_funcSteps):
 	    t1 = time.clock()	    
 	    try:
-		_str_step = d_step.get('step') or False
-		if _str_step:
-		    self._str_progressBarReportStart = self._str_funcCombined + " %s "%_str_step
-		else: _str_step = 'process'
-		if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
-		
-		self._str_step = _str_step	
+		try:
+		    _str_step = d_step.get('step') or False
+		    if _str_step:
+			self._str_progressBarReportStart = self._str_funcCombined + " %s "%_str_step
+		    else: _str_step = 'Process'
+		    if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
+		    
+		    self._str_step = _str_step	
+		    self.log_debug(_str_headerDiv + " Step : %s "%_str_step + _str_headerDiv + _str_subLine)	  	    		    
+		except Exception,error:raise Exception,"[strStep query]{%s}"%error 
 
 		res = d_step['call'](*args,**kws)
 		if res is not None:
@@ -292,7 +235,6 @@ class cgmFuncCls(object):
 		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
 		    break"""
 	    except Exception,error:
-		#self._str_fail = "[Step: '%s' | time: %0.3f] > %s"%(_str_step,(time.clock()-t1),error)#stored the failed step string		
 		self._str_failStep = _str_step
 		self._str_failTime = "%0.3f"%(time.clock()-t1)
 		self._Exception = Exception
@@ -319,26 +261,24 @@ class cgmFuncCls(object):
 	    mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   	
 	    self.update_moduleData()	    
 	    raise self._Exception,"%s >> %s"%(self._str_funcCombined,str(self._ExceptionError))
-	
 	if self._b_reportTimes:
-	    f_total = (time.clock()-t_start)	    
-	    if int_lenSteps > 1:
-		self.log_info(_str_headerDiv + " Times " + _str_headerDiv + _str_subLine)			    	    
-		if self.int_max != 0:
-		    for pair in self._l_funcTimes:
-			self.log_info(" -- '%s' >>  %s " % (pair[0],pair[1]))				 
-		self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
-	    else:self.log_warning("[Total = %0.3f sec] " % (f_total))	    
+	    try:
+		f_total = (time.clock()-t_start)	    
+		if int_lenSteps > 1:
+		    self.log_info(_str_headerDiv + " Times " + _str_headerDiv + _str_subLine)			    	    
+		    if self.int_max != 0:
+			for pair in self._l_funcTimes:
+			    self.log_info(" -- '%s' >>  %s " % (pair[0],pair[1]))				 
+		    self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
+		else:self.log_warning("[Total = %0.3f sec] " % (f_total))
+	    except Exception,error:self.log_error("[Failed to report times]{%s}"%error)
 	return self._return_()
 
-    
-	
     def _return_(self):
 	'''overloadable for special return'''
 	if self.int_max == 0:#If it's a one step, return, return the single return
 	    try:return self.d_return[self.d_return.keys()[0]]
 	    except:pass
-	    
 	for k in self.d_return.keys():#Otherise we return the first one with actual data
 	    buffer = self.d_return.get(k)
 	    if buffer:
@@ -354,7 +294,7 @@ class cgmFuncCls(object):
     def report_base(self):
 	self.update_moduleData()
 	self.log_info("="*100)	
-	self.log_info(_str_headerDiv + " %s "%self._str_funcCombined + _str_headerDiv + _str_hardLine)
+	self.log_info(_str_headerDiv + " %s "%self._str_funcCombined + _str_headerDiv)
 	self.log_info("="*100)
 	self.log_info(" Python Module: %s "%self._str_modPath)
 	try:self.log_info(_str_baseStart + " Python Module Version: %s "%self.mod.__version__)
@@ -442,14 +382,15 @@ class cgmFuncCls(object):
     
     def printHelp(self):
 	self.update_moduleData()		
-	print("#" + ">"*3 + " %s "%self._str_funcCombined + "="*50)
+	print("#" + ">"*3 + " %s "%self._str_funcCombined + _str_hardBreak)
 	print("Python Module: %s "%self._str_modPath)	 
-	print(_str_subLine * 2)		
-	if self._str_funcHelp is not None:print("%s "%self._str_funcHelp)
+	if self._str_funcHelp is not None:
+	    print(_str_subLine * 2)		
+	    print("%s "%self._str_funcHelp)
 	print(_str_subLine * 2)	
-	print("@kws -- [index - argKW(argType - default) -- info]")
+	print("@kws -- [index - argKW(argType - default) -- info]") 
 	for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS + self._l_ARGS_KWS_BUILTINS):
-	    l_tmp = ['%i - '%i]
+	    l_tmp = ['    %i - '%i]
 	    if d_buffer in self._l_ARGS_KWS_BUILTINS:
 		l_tmp.append("(BUILTIN) - ")
 	    try:l_tmp.append("'%s'"%d_buffer['kw'])
@@ -487,7 +428,7 @@ class cgmFuncCls(object):
 	    print("%s%s"%(self._str_reportStart,str(arg)))
 	except:pass	
 	
-    def log_todo(self,arg):
+    def log_toDo(self,arg):
 	try:
 	    try:self._l_toDo.append("%s | %s"%(self._str_step,str(arg)))
 	    except:self._l_toDo.append("%s"%(str(arg)))
@@ -596,7 +537,10 @@ class cgmFuncCls(object):
 	try:
 	    self.mod = inspect.getmodule(self)
 	    self._str_modPath = str(self.mod)
-	    self._str_mod = '%s' % self.mod.__name__.split('.')[-1]
+	    self._str_mod = '%s' % self.mod.__name__.split('.')[-1]    
+	    if self._str_mod  == '__main__':
+		self._str_mod = "LocalMayaEnv" 
+		self._str_modPath = "Script Editor" 
 	    self._str_funcCombined = "%s.%s"%(self._str_mod,self._str_funcName)
 	except:self._str_funcCombined = self._str_funcName	
 	
@@ -606,7 +550,8 @@ def verify_mirrorSideArg(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = 'cgmGeneral.verify_mirrorSideArg'
+	    self._str_funcName = 'verify_mirrorSideArg'
+	    self._str_funcHelp = "Validate a mirror side arg for red9 use"	    
 	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'str_side',"default":None,'help':"The side to validate","argType":"str"}] 	    
 	    self.__dataBind__(*args,**kws)
 	def __func__(self):

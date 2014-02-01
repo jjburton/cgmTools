@@ -1434,7 +1434,7 @@ def ut_cgmLimb(*args, **kws):
 	    except Exception,error:raise StandardError,"[state check]{%s}"%(error)
 	    
 	    #try:#Template pose-----------------------------------------------------
-	    self.log_todo("Need to add template pose tests")
+	    self.log_toDo("Need to add template pose tests")
 	    #except Exception,error:raise StandardError,"[state check]{%s}"%(error)
 	    
 	    #self.log_warning("Test warning")
@@ -1503,9 +1503,9 @@ def ut_cgmLimb(*args, **kws):
 		    except Exception,error:raise StandardError,"['%s']{%s}"%(str_tag,error)		    
 	    except Exception,error:raise StandardError,"[Rig state]{%s}"%(error)
 	    
-	    self.log_todo("Need to add mirror checks")
-	    self.log_todo("Need to add pose space stuff")
-	    self.log_todo("Need to add fk/ik switch testing")
+	    self.log_toDo("Need to add mirror checks")
+	    self.log_toDo("Need to add pose space stuff")
+	    self.log_toDo("Need to add fk/ik switch testing")
 	    
     return fncWrap(*args, **kws).go()
 	    
