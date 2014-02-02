@@ -95,7 +95,7 @@ mySecondFuncCls(printHelp = 1)#...this is a built in that will report registered
 cgmGeneral.verify_mirrorSideArg(printHelp = 1)#...let's see a real function
 
 #In your script editor, go History>show stack trace, toggle it on and off and try
-mySecondFuncCls('cat')#...note the vairance in what's reported
+mySecondFuncCls('cat')#...note the variance in what's reported
 
 mySecondFuncCls(reportShow = 1)#...take a look at how our report is fleshing out more
 
@@ -111,7 +111,7 @@ mySecondFuncCls(valueToPass,setLogLevel = 'info')#...or set it back
 #>>My Third FuncCls func =========================================================================
 #Let's get even more advanced and start playing with meta data storing and what not. One huge
 #benefit of this it that when we get error reports from users we can get a better snapshot of what
-#they were doing and find where things break easier
+#they were doing and find where things break easier without the benefit of an ide running on users machine
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as cgmValid
 

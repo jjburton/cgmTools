@@ -16,7 +16,6 @@ Help for learning the basis of cgmMeta.cgmAttr
 from cgm.core import cgm_Meta as cgmMeta
 import maya.cmds as mc
 
-
 #>>Intro =========================================================================
 #First we're gonna make some objects 
 try:mi_baseObj = cgmMeta.cgmObject('baseObj')#...if it exists, initialize, except, make...
@@ -101,7 +100,6 @@ mPlug_testEnumAttr.setEnum("no:yes")
 mPlug_testEnumAttr.setEnum("off:on")
 mPlug_testBoolAttr.setEnum("off:on")
 #==============================================================================================
-
 
 
 #>>Connections/Transfers and more =========================================================================
