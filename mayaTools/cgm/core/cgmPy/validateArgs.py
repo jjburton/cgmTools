@@ -1,8 +1,7 @@
 """
 ------------------------------------------
 cgm_Meta: cgm.core
-Author: Josh Burton
-email: jjburton@cgmonks.com
+Authors: Josh Burton & Ryan Porter
 
 Website : http://www.cgmonks.com
 ------------------------------------------
@@ -32,35 +31,6 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
- 
-def _returnCallerFunctionName():
-    '''
-    Return the function name two frames back in the stack. This enables
-    exceptions called from one of the validateArgs functions to report
-    the function from which they were called.
-    '''
-
-    result = '[unknown function]'
-
-    try:
-        frame, filename, line_no, func_name, lines, index = \
-            inspect.getouterframes(inspect.currentframe())[2]
-
-        module_name = inspect.getmodule(frame)
-        module_name = "" if module_name is None else module_name.__name__
-
-        result = "{0}.{1}".format(module_name, func_name)
-
-        if func_name == '<module>':
-            func_name = "<Script Editor>"
-
-        if filename == "<maya console>":
-            result = "<Maya>.{0}".format(func_name)
-    except StandardError:
-        log.exception("Failed to inspect functio name")
-
-    return result
-
 def isFloatEquivalent(lhs, rhs, **kwargs):
     """
     Return true if both floats are with E (epsilon) of one another, 
@@ -101,7 +71,7 @@ def isVectorEquivalent(lhs, rhs, **kwargs):
     return result
 
 #>>> Basics ============================================================== 
-def stringArg(arg=None, noneValid=True, **kwargs):
+def stringArg(arg=None, noneValid=True, calledFrom = None, **kwargs):
     """
     Return 'arg' if 'arg' is a string, else return False if noneValid
     is True, else raise TypeError
@@ -121,8 +91,10 @@ def stringArg(arg=None, noneValid=True, **kwargs):
     """
     log.debug("validateArgs.stringArg arg={0} noneValid={1}".format(arg, noneValid))
 
-    _str_funcName = _returnCallerFunctionName()
-
+    _str_funcRoot = 'stringArg'
+    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
+    else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg)    
+    
     result = arg
 
     if not isinstance(arg, basestring):
@@ -168,7 +140,7 @@ def listArg(l_args=None, types=None):
 
     return result
 
-def stringListArg(l_args=None, noneValid=False, **kwargs):
+def stringListArg(l_args=None, noneValid=False, calledFrom = None, **kwargs):
     """
     Return each 'arg' in 'l_arg' if it is a string. Raise an exception if 
     any arg is not a string and noneValid is False.
@@ -189,29 +161,26 @@ def stringListArg(l_args=None, noneValid=False, **kwargs):
     """
     log.debug("validateArgs.stringArg arg={0} noneValid={1}".format(str(l_args), noneValid))
     
-    _str_funcName = _returnCallerFunctionName()
-
+    _str_funcRoot = 'stringListArg'
+    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,l_args)    
+    else:_str_funcName = "{0}({1})".format(_str_funcRoot,l_args)    
+    
     result = []
 
-    if isinstance(l_args, (tuple, list)):
-        for arg in l_args:
-            tmp = stringArg(arg, noneValid)
-            if isinstance(tmp, basestring):
-                result.append(tmp)
-            else:
-                log.warning(
-                    "Arg {0} from func '{1}' ".format(arg, _str_funcName) +\
-                    " is type '{2}', not 'str'".format(type(arg).__name__)
-                )
-    else:
-        fmt_args = (str(l_args), _str_funcName, type(l_args).__name__)
-        s_errorMsg = "Args '{0}' from func '{1}' is type '{2}', not 'list'"
-
-        raise TypeError(s_errorMsg.format(*fmt_args))
-
+    if not isinstance(l_args, (tuple, list)):l_args = [l_args]
+    
+    for arg in l_args:
+        tmp = stringArg(arg, noneValid)
+        if isinstance(tmp, basestring):
+            result.append(tmp)
+        else:
+            log.warning(
+                "Arg {0} from func '{1}' ".format(arg, _str_funcName) +\
+                " is type '{2}', not 'str'".format(type(arg).__name__)
+            )
     return result
     
-def boolArg(arg=None, **kwargs):
+def boolArg(arg=None, calledFrom = None, **kwargs):
     """
     Validate that 'arg' is a bool, or an equivalent int (0 or 1), 
     otherwise return False or raise TypeError
@@ -231,8 +200,10 @@ def boolArg(arg=None, **kwargs):
     """
     log.debug("validateArgs.boolArg arg={0}".format(arg))
 
-    _str_funcName = _returnCallerFunctionName()
-
+    _str_funcRoot = 'boolArg'
+    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
+    else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg) 
+    
     result = arg
 
     if isinstance(arg, int) and arg in [0,1]:
@@ -245,7 +216,7 @@ def boolArg(arg=None, **kwargs):
     
     return result
 
-def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, **kwargs):
+def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, calledFrom = None, **kwargs):
     """
     Return 'arg' if 'arg' is an existing, uniquely named Maya object, meeting
     the optional requirements of mayaType and isTransform, otherwise
@@ -273,7 +244,9 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, **kwar
     """
     log.debug("validateArgs.objString arg={0}".format(arg))
 
-    _str_funcName = _returnCallerFunctionName()
+    _str_funcRoot = 'objString'
+    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
+    else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg) 
 
     result = None 
 
@@ -319,7 +292,7 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, **kwar
 
     return result
 
-def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False, **kwargs):
+def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False, calledFrom = None, **kwargs):
     """
     Return each item in l_args if that item is an existing, uniquely named Maya object, 
     meeting the optional requirements of mayaType and isTransform, otherwise raise an
@@ -330,17 +303,16 @@ def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False
     :returns:
         list
 
-    :raises:
-        TypeError | if 'l_arg' is not a list
     """
     log.debug("validateArgs.objString arg={0}".format(arg))
 
-    _str_funcName = _returnCallerFunctionName()
+    _str_funcRoot = 'objStringList'
+    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,l_args)    
+    else:_str_funcName = "{0}({1})".format(_str_funcRoot,l_args) 
 
     result = []
 
-    if not isinstance(l_args, (list, tuple)):
-        raise TypeError('l_args must be a list')
+    if not isinstance(l_args, (list, tuple)):l_args = [l_args]
 
     for arg in l_args:
         tmp = objString(arg, mayaType, noneValid, isTransform)
@@ -455,8 +427,12 @@ d_rotateOrder = {
 class simpleOrientation():
     """ 
     """
-    def __init__(self,arg=None, **kwargs):
-        _str_funcName = _returnCallerFunctionName()
+    def __init__(self,arg=None, calledFrom = None, **kwargs):
+        
+        _str_funcRoot = 'simpleOrientation'
+        if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
+        else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg)    
+        
         log.debug('Caller: {0}, arg: {1}'.format(_str_funcName, arg))
 
         str_arg = stringArg(arg, noneValid=True)
@@ -562,8 +538,10 @@ d_shortAxisToLong = {
 class simpleAxis():
     """ 
     """
-    def __init__(self,arg):
-        _str_funcName = _returnCallerFunctionName()
+    def __init__(self,arg,calledFrom = None):
+        _str_funcRoot = 'simpleAxis'
+        if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
+        else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg) 
         #log.debug('Caller: {0}, arg: {1}'.format(_str_funcName, arg))
     
         self.__str_axis = None

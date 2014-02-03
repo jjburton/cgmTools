@@ -544,6 +544,31 @@ class cgmFuncCls(object):
 	    self._str_funcCombined = "%s.%s"%(self._str_mod,self._str_funcName)
 	except:self._str_funcCombined = self._str_funcName	
 	
+def returnCallerFunctionName():
+    '''
+    Return the function name two frames back in the stack. This enables
+    exceptions called to report the function from which they were called.
+    '''
+
+    result = '[unknown function]'
+
+    try:
+	frame, filename, line_no, s_funcName, lines, index = \
+            inspect.getouterframes(inspect.currentframe())[2]
+
+	s_moduleName = inspect.getmodule(frame)
+	s_moduleName = "" if s_moduleName is None else s_moduleName.__name__
+
+	result = "{0}.{1}".format(s_moduleName, s_funcName)
+
+	if s_funcName == '<module>':
+	    s_funcName = "<Script Editor>"
+
+	if filename == "<maya console>":
+	    result = "<Maya>.{0}".format(s_funcName)
+    except StandardError:
+	log.exception("Failed to inspect function name")
+    return result
 def verify_mirrorSideArg(*args,**kws):
     class fncWrap(cgmFuncCls):
 	def __init__(self,*args,**kws):

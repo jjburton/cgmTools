@@ -393,13 +393,17 @@ def ut_cgmMeta(*args, **kws):
 		#---------------- 
 		#self.log_info('>'*3 + " Enum test and connection to float...")
 		self.cgmEnumAttr = cgmMeta.cgmAttr(node,'enumTest',value = 3, enum = '1:2:3:red:4:5:6')
+		self.log_debug('Added attr')
 		assert node.hasAttr('enumTest')                                        
-		assert self.cgmEnumAttr.value == 3
-		assert self.cgmEnumAttr.p_hidden == False
+		assert self.cgmEnumAttr.value == 3,"Value not 3, %s"%self.cgmEnumAttr.value
+		assert self.cgmEnumAttr.p_hidden == False,"Not hidden"
+		self.log_debug('hidden')		
 		self.cgmEnumAttr.doConnectOut(self.cgmFloatAttr.p_combinedName)#Connect 
+		self.log_debug('connect')		
 		assert self.cgmEnumAttr.getDriven() == [self.cgmFloatAttr.p_combinedName]," %s not equal to [%s]"%(self.cgmEnumAttr.getDriven(), self.cgmFloatAttr.p_combinedName)#This should be what's connected
+	    except Exception,error:raise StandardError,"[enum]{%s}"%error
 	
-		#Double3 test
+	    try:#Double3 test
 		#---------------- 
 		#self.log_info('>'*3 + " Double3 and connection from float...")        
 		self.cgmVectorAttr = cgmMeta.cgmAttr(node,'vecTest',value = [3,1,2])
@@ -413,7 +417,7 @@ def ut_cgmMeta(*args, **kws):
 		assert self.cgmVectorAttr.value == [1.0,44.0,7.0],self.cgmVectorAttr.value
 		self.cgmVectorXAttr.doConnectIn(self.cgmFloatAttr.p_combinedName)
 		assert self.cgmVectorXAttr.getDriver() == self.cgmFloatAttr.p_combinedName," %s not equal to [%s]"%(self.cgmVectorXAttr.getDriver(), self.cgmFloatAttr.p_combinedName)#This should be what's connected
-	    except Exception,error:raise StandardError,"[enum]{%s}"%error
+	    except Exception,error:raise StandardError,"[double3]{%s}"%error
 	    #node.select()	    
 	def _NodeFactory_(self,**kws):
 	    NodeF.test_argsToNodes()	
