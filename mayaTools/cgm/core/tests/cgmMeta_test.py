@@ -26,6 +26,8 @@ from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import PuppetFactory as pFactory
+import cgm.core.tests.test_validateArgs as test_validateArgs
+reload(test_validateArgs)
 
 import maya.cmds as mc
 
@@ -85,11 +87,26 @@ def ut_AllTheThings(*args, **kws):
 	    self._b_reportTimes = 1
 	    self._b_pushCleanKWs = 1
 	    self.__dataBind__(*args, **kws)
-	    self.l_funcSteps = [{'step':'cgmMeta','call':ut_cgmMeta},	                        
+	    self.l_funcSteps = [{'step':'cgm function libraries','call':ut_cgmLibraries},
+	                        {'step':'cgmMeta','call':ut_cgmMeta},	                        
 	                        {'step':'cgmPuppet/Module','call':ut_cgmPuppet},
 	                        ]                       
     return fncWrap(*args, **kws).go()
 
+def ut_cgmLibraries(*args, **kws):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	'''
+	Batch tester for cgm core library of functions
+	'''
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'ut_cgmLibraries'	
+	    self._b_autoProgressBar = 1
+	    self._b_reportTimes = 1
+	    self.__dataBind__(*args, **kws)
+	    self.l_funcSteps = [{'step':'validateArgs','call':test_validateArgs.main},
+	                        ]
+    return fncWrap(*args, **kws).go()
 
 def ut_cgmMeta(*args, **kws):
     class fncWrap(cgmGeneral.cgmFuncCls):
