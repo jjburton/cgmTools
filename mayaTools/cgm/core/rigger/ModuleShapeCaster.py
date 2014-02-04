@@ -2004,6 +2004,8 @@ def shapeCast_eyebrow(*args,**kws):
 	    if not self.ml_centerRigJoints:raise StandardError,"Failed to find center rig joints"	    
 	    
 	    #>> calculate ------------------------------------------------------------------------
+	    self.f_baseDistance = distance.returnCurveLength(self.mi_helper.leftBrowHelper.mNode) /10
+	    '''
 	    ml_measureJointList = self.ml_browLeftHandles
 	    try:#Get a casted base distance
 		d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],ml_measureJointList[0].mNode,axis=self.str_orientation[0]+'+')
@@ -2013,7 +2015,7 @@ def shapeCast_eyebrow(*args,**kws):
 		if not d_return:raise Exception
 	    except:
 		self.f_baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_measureJointList]) /4 		
-	    
+	    '''
 	    #>> Running lists --------------------------------------------------------------------
 	    self.ml_handles = []
 	    self.ml_pinHandles = []
@@ -2046,14 +2048,14 @@ def shapeCast_eyebrow(*args,**kws):
 		    self.progressBar_set(status = "shaping : '%s'... "%mObj.p_nameShort, progress = i, maxValue = int_lenMax)		    				    		    		    		    
 		    try:
 			if mObj.getAttr('isSubControl') or len(ml_jointList) >1 and mObj in [ml_jointList[1]]:
-			    _size = __baseDistance * .8
+			    _size = __baseDistance * 1
 			    _color = l_colors[1]
 			else:
-			    _size = __baseDistance * 1.1
+			    _size = __baseDistance * 1.5
 			    _color = l_colors[0]
 			    
 			if str_direction == 'center':
-			    _size = __baseDistance * .8			    
+			    _size = __baseDistance * 1			    
 			    
 			mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
 			Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
@@ -3174,8 +3176,10 @@ def shapeCast_eyelids(*args,**kws):
 	    except Exception,error:raise StandardError,"Missing lwrlid handleJoints | %s "%(error)  
 	    
 	    #>> calculate ------------------------------------------------------------------------
-	    self.f_baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in self.ml_uprLidHandles]) /2 
-	
+	    #self.f_baseDistance = distance.returnCurveLength(self.mi_helper.lwrLidHelper.mNode) /4
+	    _tmpScale = distance.returnBoundingBoxSize(self.mi_helper.pupilHelper.mNode)
+	    self.f_baseDistance = (_tmpScale[0]+_tmpScale[1])/3
+	    
 	def _buildShapes_(self):
 	    try:#query ===========================================================
 		mi_go = self.mi_go
