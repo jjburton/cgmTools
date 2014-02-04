@@ -329,7 +329,7 @@ def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False
 
 def valueArg(numberToCheck=None, noneValid=True,
              inRange=None, minValue=None, maxValue=None, autoClamp=False,
-             isValue=None, isEquivalent=None):
+             isValue=None, isEquivalent=None,calledFrom = None):
     '''
     Validate that 'numberToCheck' fits the expected parameters and returns False or
     raises exceptions in numberToCheck is invalid. 
@@ -362,11 +362,14 @@ def valueArg(numberToCheck=None, noneValid=True,
         ArgumentError | if inRange is specified and either minValue or maxValue
                         is also specified.
     '''
+    _str_funcRoot = 'valueArg'
+    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,numberToCheck)    
+    else:_str_funcName = "{0}({1})".format(_str_funcRoot,numberToCheck) 
     
-    if not isinstance(numberToCheck, (float, int)):
+    if not isinstance(numberToCheck, (float, int)) and noneValid is not True:
         raise TypeError('numberToCheck must be an int or a float')
 
-    result = None
+    result = numberToCheck
 
     if result is None and inRange is not None:
         if not isinstance(inRange, (list, tuple)) or len(inRange) != 2:
