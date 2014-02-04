@@ -347,7 +347,7 @@ def build_controls(*args, **kws):
 		except Exception,error:raise Exception,"[registration]{%s}"%(error)
 		
 		try:#Set up some attributes
-		    attributes.doSetLockHideKeyableAttr(mObj.mNode,channels = ["r%s"%mi_go._jointOrientation[1],'v'])
+		    attributes.doSetLockHideKeyableAttr(mObj.mNode,channels = ["r%s"%mi_go._jointOrientation[1],"r%s"%mi_go._jointOrientation[2],'v'])
 		except Exception,error:raise Exception,"[Attribute setup]{%s}"%(error)
 		
 		try:#Vis Connect
