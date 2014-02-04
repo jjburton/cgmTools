@@ -720,7 +720,7 @@ def returnCurveLength(curve):
     length(float)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    shapes = mc.listRelatives(curve,shapes=True)
+    shapes = mc.listRelatives(curve,shapes=True,path = 1)
 
     shapeLengths = []
 
