@@ -2602,10 +2602,30 @@ class cgmEyeballBlock(cgmRigBlock):
 	    
 	    mi_mirror.tx = -self.tx
 	    mi_mirror.ty = self.ty
+	    mi_mirror.tz = self.tz
 	    mi_mirror.sy = self.sy 
-	except Exception,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
-	#try:#Push mirror stuff to the   
-	#except Exception,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
+	except Exception,error:raise StandardError,"[{0} - main mirror] | error: {1} ".format(_str_funcName,error)
+	
+	try:
+	    mi_pupilMirror = mi_mirror.pupilHelper
+	    mi_irisMirror = mi_mirror.irisHelper
+	    
+	    mi_irisMirror.ty = self.irisHelper.ty
+	    mi_irisMirror.tz = self.irisHelper.tz
+	    
+	    mi_pupilMirror.ty = self.pupilHelper.ty
+	    mi_pupilMirror.tz = self.pupilHelper.tz
+	except Exception,error:raise StandardError,"[{0} - iris/pupil] | error: {1} ".format(_str_funcName,error)
+	
+	try:
+	    mi_uprLidMirror = mi_mirror.uprLidHelper
+	    mi_lwrLidMirror = mi_mirror.lwrLidHelper
+	    
+	    crvUtils.mirrorCurve(self.uprLidHelper.mNode, mi_uprLidMirror.mNode,mirrorAcross='x')
+	    crvUtils.mirrorCurve(self.lwrLidHelper.mNode, mi_lwrLidMirror.mNode,mirrorAcross='x')	    
+
+	except Exception,error:raise StandardError,"[{0} - eyelids] | error: {1} ".format(_str_funcName,error)
+	
  
 	
     def __buildModule__(self):
