@@ -21,7 +21,8 @@ log.setLevel(logging.WARNING)
 modules = [
 	'boolArgs',
 	'objString',
-	'stringArgs'
+	'stringArgs',
+    'valueArg'
 ]
 
 def main(**kwargs):	

@@ -23,7 +23,46 @@ log.setLevel(logging.INFO)
 
 # CLASSES ====================================================================
 class TestValueArgs(unittest.TestCase):
-    def test_numberIsNoneRaisesError(self):
+    def test_simpleInt(self):
+        '''
+        Confirm that the function will return the same value if 
+        it is passed an int.
+        '''
+        arg = 1
+
+        self.assertEqual(
+            validateArgs.valueArg(arg, noneValid=True), 
+            arg,
+            "validateArgs.valueArg did not return the arg "+\
+            "it was passed when noneValid=True")
+
+        self.assertEqual(
+            validateArgs.valueArg(arg, noneValid=False), 
+            arg,
+            "validateArgs.valueArg did not return the arg "+\
+            "it was passed when noneValid=False")
+        
+    def test_simpleFloat(self):
+        '''
+        Confirm that the function will return the same value if 
+        it is passed an int.
+        '''
+        arg = 1.999999
+
+        self.assertEqual(
+            validateArgs.valueArg(arg, noneValid=True), 
+            arg,
+            "validateArgs.valueArg did not return the arg "+\
+            "it was passed when noneValid=True")
+
+        self.assertEqual(
+            validateArgs.valueArg(arg, noneValid=False), 
+            arg,
+            "validateArgs.valueArg did not return the arg "+\
+            "it was passed when noneValid=False")
+        
+    
+    def test_numberIsNoneRaisesError(self, noneValid= False):
         self.assertRaises(
             StandardError,
             validateArgs.valueArg,

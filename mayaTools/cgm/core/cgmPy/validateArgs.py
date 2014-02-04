@@ -369,7 +369,7 @@ def valueArg(numberToCheck=None, noneValid=True,
     if not isinstance(numberToCheck, (float, int)) and noneValid is not True:
         raise TypeError('numberToCheck must be an int or a float')
 
-    result = numberToCheck
+    result = None
 
     if result is None and inRange is not None:
         if not isinstance(inRange, (list, tuple)) or len(inRange) != 2:
@@ -381,6 +381,7 @@ def valueArg(numberToCheck=None, noneValid=True,
                     numberToCheck = min(inRange)
                 elif numberToCheck > max(inRange):
                     numberToCheck = max(inRange)
+            else: result = False
         else:
             result = numberToCheck
 
@@ -388,6 +389,7 @@ def valueArg(numberToCheck=None, noneValid=True,
         if numberToCheck < minValue:
             if autoClamp:
                 result = minValue
+            else: result = False
         else:
             result = numberToCheck
 
@@ -395,6 +397,7 @@ def valueArg(numberToCheck=None, noneValid=True,
         if numberToCheck > maxValue:
             if autoClamp:
                 result = maxValue
+            else: result = False
         else:
             result = numberToCheck
 
@@ -410,8 +413,11 @@ def valueArg(numberToCheck=None, noneValid=True,
         else:
             result = False
 
-    if result is None and noneValid:
-        result = False
+    if result is None:
+        if numberToCheck is not None:
+            result = numberToCheck
+        else:
+            result = False
 
     return result
    
