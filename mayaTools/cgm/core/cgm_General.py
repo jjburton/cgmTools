@@ -45,9 +45,8 @@ class cgmFuncCls(object):
     """
     def __init__(self,*args, **kws):
         self._str_funcClass = None
+	self._str_funcName = None
 	self._str_funcCombined = None
-        self._str_funcName = None
-        self._str_funcHelp = None	
 	self._str_progressBar = None
         self._str_funcDebug = None
 	self._b_WIP = False
@@ -94,6 +93,11 @@ class cgmFuncCls(object):
 	except:self._str_funcArgs = None
 	try:self._str_funcKWs = str(kws)
 	except:self._str_funcKWs = None
+        
+        try:self._str_funcHelp 
+        except:
+	    try:self._str_funcHelp = self.__doc__
+	    except:self._str_funcHelp = None
 	
 	self.__updateFuncStrings__()
 		
