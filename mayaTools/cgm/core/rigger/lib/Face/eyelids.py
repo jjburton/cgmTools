@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyelids rig builder
 ================================================================
 """
-__version__ = 'faceAlpha2.01092014'
+__version__ = 'faceAlpha2.02042014'
 
 # From Python =============================================================
 import copy
@@ -148,6 +148,7 @@ def build_rigSkeleton(*args, **kws):
 		    try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)
 		    except Exception,error:raise StandardError,"Crv split fail | error: %s "%(error)       
 		    if k == 'lwr':l_pos = l_pos[1:-1]#remove start and end for lwr	    
+		    if not l_pos:raise StandardError,"No positions, we have a problem"
 		    int_last = len(l_pos) -1 #last count
 		    int_mid = int(len(l_pos)/2)#mid count	 
 		    d_buildCurves[k]['l_pos'] = l_pos#Store it
@@ -357,9 +358,9 @@ def build_controls(*args, **kws):
 			ml_targets = [ml_cull[int_idx-1],ml_cull[int_idx+1]]#get the one before and after
 			try:
 			    _str_const = mc.parentConstraint([mi_obj.mNode for mi_obj in ml_targets],i_ctrl.getMessage('constraintGroup')[0],maintainOffset = True)[0]
-			    l_weightTargets = mc.parentConstraint(_str_const,q=True,weightAliasList = True)
-			    for t in l_weightTargets:
-				if 'main' not in t:attributes.doSetAttr(_str_const,t,.5)
+			    #l_weightTargets = mc.parentConstraint(_str_const,q=True,weightAliasList = True)
+			    #for t in l_weightTargets:
+				#if 'main' not in t:attributes.doSetAttr(_str_const,t,.5)
 			except Exception,error:raise StandardError,"sub: %s | targets: %s"%(i_ctrl.p_nameShort,[mi_obj.p_nameShort for mi_obj in ml_targets],error)
 	    except Exception,error:raise Exception,"[Constrain subs]{%s}"%error	
 
@@ -745,7 +746,11 @@ def build_rig(*args, **kws):
 		    mi_lwrWire.doName()
 		    mi_uprDriverCrv.parent = mi_go._i_rigNull
 		    mi_lwrDriverCrv.parent = mi_go._i_rigNull
-		    
+		    #.dropoffDistance[0] Need to set dropoff distance
+		    try:
+			attributes.doSetAttr(mi_uprWire.mNode,"dropoffDistance[0]",50)
+			attributes.doSetAttr(mi_lwrWire.mNode,"dropoffDistance[0]",50)
+		    except Exception,error:raise Exception,"[Failed to set dropoffDistance] | error:{0}".format(error)
 		except Exception,error:raise StandardError,">> wire deformer : %s"%(error)  	    
 		
 		try:#Skin driver curve ---------------------------------------------------------
@@ -795,6 +800,7 @@ def build_rig(*args, **kws):
 		    mi_lwrBlinkWire.addAttr('cgmTypeModifier','blink')	    
 		    mi_lwrBlinkWire.doName()
 		    mc.setAttr("%s.scale[0]"%mi_lwrBlinkWire.mNode,0)
+		    mc.setAttr("%s.dropoffDistance[0]"%mi_lwrBlinkWire.mNode,50)
 		    
 		    mPlug_height.value = 1
 		    _l_return = mc.wire(mi_uprBlinkCrv.mNode, w = mi_smartBlinkCrv.mNode, gw = False, en = 1, ce = 0, li =0)
@@ -803,11 +809,11 @@ def build_rig(*args, **kws):
 		    mi_uprBlinkWire.addAttr('cgmTypeModifier','blink')	    
 		    mi_uprBlinkWire.doName()
 		    mc.setAttr("%s.scale[0]"%mi_uprBlinkWire.mNode,0)
+		    mc.setAttr("%s.dropoffDistance[0]"%mi_uprBlinkWire.mNode,50)
 		    
 		    mPlug_height.value = .1#back to default
 		    
-		    mi_smartBlinkCrv.parent = mi_go._i_rigNull#Parent back after setup so the wires are where we want them
-		    
+		    mi_smartBlinkCrv.parent = mi_go._i_rigNull#Parent back after setup so the wires are where we want them	    
 		except Exception,error:raise StandardError, "[Blink target wire deformers]{%s}"%(error)
 	
 		try:#Blendshape the upr and lwr curves to smart blink targets------------------------------------

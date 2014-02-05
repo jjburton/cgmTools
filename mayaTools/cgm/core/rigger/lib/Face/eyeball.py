@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyeball rig builder
 ================================================================
 """
-__version__ = 'faceAlpha2.010814'
+__version__ = 'faceAlpha2.02042014'
 
 # From Python =============================================================
 import copy

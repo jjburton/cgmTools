@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyebrow rig builder
 ================================================================
 """
-__version__ = 'faceAlpha2.01132014'
+__version__ = 'faceAlpha2.02042014'
 
 # From Python =============================================================
 import copy
@@ -107,7 +107,8 @@ def build_rigSkeleton(*args, **kws):
 	
 	def gatherInfo(self):
 	    mi_go = self._go#Rig Go instance link
-	    self.mi_skullPlate = mi_go._mi_skullPlate
+	    #self.mi_skullPlate = mi_go._mi_skullPlate
+	    self.mi_skullPlate = cgmMeta.cgmObject('browPlate')
 	    
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
@@ -165,6 +166,7 @@ def build_rigSkeleton(*args, **kws):
 	def build_handleJoints(self):
 	    mi_go = self._go#Rig Go instance link	    
 	    ml_moduleHandleJoints = []
+	    ml_influenceJoints = []
 	    for k_name in self.md_sortedJoints.keys():#For each name...
 		for k_direction in self.md_sortedJoints[k_name].keys():#for each direction....
 		    if k_name in ['brow','uprCheek','temple']:
@@ -184,7 +186,10 @@ def build_rigSkeleton(*args, **kws):
 			#Build ----------------------------------------------------------
 			int_lenMax = len(self.l_build)			
 			for i,mJnt in enumerate(self.l_build):
-			    self.progressBar_set(status = "Handle Joints: '%s'... "%mJnt, progress =  i, maxValue = int_lenMax)		    				    		    			    
+			    if mJnt == 'mid':_strJoint = 'mid'
+			    else:_strJoint = mJnt.p_nameShort
+			    
+			    self.progressBar_set(status = "Handle Joints: '%s'... "%_strJoint, progress =  i, maxValue = int_lenMax)		    				    		    			    
 			    if mJnt == 'mid':
 				useCurve = False
 				if k_direction == 'left':
@@ -203,24 +208,13 @@ def build_rigSkeleton(*args, **kws):
 				mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)				    
 				mi_jnt.doName()
 				ml_handleJoints.append(mi_jnt)
-				
-				#Orient
-				#mc.delete( mc.orientConstraint([ml_skinJoints[0].mNode,ml_skinJoints[-1].mNode],mi_jnt.mNode, maintainOffset = False))
-				v_aimVector = mi_go._vectorAim				
-				v_upVector = mi_go._vectorOutNegative
-				if k_direction == 'right':
-				    v_upVector = cgmMath.multiplyLists([v_upVector,[-1,-1,-1]])				
-				mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode,
-				                               weight = 1, aimVector = v_aimVector, upVector = v_upVector, 
-				                               worldUpObject = ml_skinJoints[0].mNode, worldUpType = 'object' ))				
-				jntUtils.freezeJointOrientation(mi_jnt)
-				
+								
 				try:#influenceJoint -----------------------------------------------------------------------
 				    mi_dup = mi_jnt.doDuplicate()
 				    mi_dup.addAttr('cgmTypeModifier','handleInfl',attrType='string',lock=True)				    
 				    mi_dup.doName()
 				    mi_jnt.connectChildNode(mi_dup,'influenceJoint','sourceJoint')
-				    
+				    ml_influenceJoints.append(mi_dup)
 				    mi_dup.parent = mi_go._i_deformNull	
 				    mi_go.connect_toRigGutsVis(mi_dup,vis = True)#connect to guts vis switches
 
@@ -239,6 +233,23 @@ def build_rigSkeleton(*args, **kws):
 				except:pass
 				i_j.doName()
 				ml_handleJoints.append(i_j)			
+			
+			for mJnt in ml_handleJoints + ml_influenceJoints:
+			    #Orient
+			    #mc.delete( mc.orientConstraint([ml_skinJoints[0].mNode,ml_skinJoints[-1].mNode],mi_jnt.mNode, maintainOffset = False))
+			    v_aimVector = mi_go._vectorAim				
+			    v_upVector = mi_go._vectorUp
+			    #if k_direction == 'right':
+				#v_upVector = cgmMath.multiplyLists([v_upVector,[-1,-1,-1]])	
+			    '''
+			    mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode,
+							   weight = 1, aimVector = v_aimVector, upVector = v_upVector, 
+							   worldUpObject = ml_skinJoints[0].mNode, worldUpType = 'object' ))
+			    '''
+			    mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode, mJnt.mNode,
+			                                   weight = 1, aimVector = v_aimVector, upVector = v_upVector,
+			                                   worldUpVector = [0,1,0],worldUpType = 'scene' ))			
+			    jntUtils.freezeJointOrientation(mJnt)			    
 			
 			self.md_sortedJoints[k_name][k_direction]['handle'] = ml_handleJoints
 			ml_moduleHandleJoints.extend(ml_handleJoints)
@@ -351,13 +362,16 @@ def build_controls(*args, **kws):
 		    try:
 			mObj.parent = mi_go._i_deformNull
 			str_mirrorSide = mi_go.verify_mirrorSideArg(mObj.getAttr('cgmDirection'))#Get the mirror side
-			str_cgmDirection = mObj.getAttr('cgmDirection')		
+			str_cgmDirection = mObj.getAttr('cgmDirection')	
+			_addMirrorAttributeBridges = None
+			'''
 			if str_cgmDirection == 'center':
 			    if ii == 0:
 				_addMirrorAttributeBridges = None#other center controls	
 			    else:
-				_addMirrorAttributeBridges = None#other center controls					
-			else:
+				_addMirrorAttributeBridges = None#other center controls	'''
+				
+			if ii == 1:
 			    _addMirrorAttributeBridges = [["fwdBack","t%s"%mi_go._jointOrientation[0]],
 				                          #["mirrorRoll","r%s"%mi_go._jointOrientation[2]],
 				                          #["mirrorTwist","r%s"%mi_go._jointOrientation[1]],
@@ -577,11 +591,17 @@ def build_rig(*args, **kws):
 	    try:#>> Attach brow rig joints =======================================================================================
 		mi_go = self._go#Rig Go instance link
 		#str_skullPlate = self.str_skullPlate
-		str_skullPlate = 'testSkullOnlyPlate'		
+		str_skullPlate = 'browPlate'
+		if not mc.objExists(str_skullPlate):raise StandardError,"Missing test skull plate"
 		d_section = self.md_rigList['brow']
 		ml_rigJoints = d_section['center']['ml_rigJoints'] + d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
+		if not ml_rigJoints:raise StandardError,"No rigJoints"
 		ml_handles = d_section['center']['ml_handles'] + d_section['left']['ml_handles'] + d_section['right']['ml_handles']
+		if not ml_handles:raise StandardError,"No handles"
 		str_centerBrowRigJoint = d_section['center']['ml_rigJoints'][0].mNode
+		if not str_centerBrowRigJoint:raise StandardError,"Missing center brow rig joint"
+		
+		
 		f_offsetOfUpLoc = distance.returnDistanceBetweenObjects(d_section['left']['ml_rigJoints'][0].mNode,
 		                                                        d_section['left']['ml_rigJoints'][-1].mNode)
 		int_lenMax = len(ml_rigJoints)
@@ -624,7 +644,7 @@ def build_rig(*args, **kws):
 		    except Exception,error:
 			raise StandardError,"Attach handle. obj: %s | error : %s"%(mObj.p_nameShort,error)	  
 	    except Exception,error:
-		raise StandardError,"Attach | %s"%(mObj.p_nameShort,error)
+		raise StandardError,"[Attach] | error: {0}".format(error)
 	    
 	    try:#>> Center Brow =======================================================================================
 		ml_handles = d_section['center']['ml_handles']
@@ -661,7 +681,7 @@ def build_rig(*args, **kws):
 		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)			
 		
 	    except Exception,error:
-		raise StandardError,"Center Brow | %s"%(error)
+		raise StandardError,"[Center brow] | error: {0}".format(error)
 	    
 	    #>> Left and Right =======================================================================================
 	    for i,d_browSide in enumerate([self.md_rigList['brow']['left'],self.md_rigList['brow']['right']] ):
@@ -723,7 +743,7 @@ def build_rig(*args, **kws):
 				str_upLoc = d_current['upLoc'].mNode
 				str_offsetGroup = d_current['offsetGroup'].mNode				    
 				if obj_idx == 0:
-				    '''
+				    str_offsetGroup = d_current['offsetGroup'].mNode		    				    
 				    #If it's the interior brow, we need to aim forward and back on the chain
 				    #We need to make a couple of locs
 				    d_tomake = {'aimIn':{'target':str_centerBrowRigJoint,
@@ -756,23 +776,23 @@ def build_rig(*args, **kws):
 
 				    mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup,
                                                      maintainOffset = True, weight = 1, aimVector = cgmMath.multiplyLists([v_aim,[-1,-1,-1]]), upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )				    
-				    
+				    '''
 				elif obj_idx == int_lastIndex:
-				    #ml_targets = [ml_rigJoints[obj_idx-1]]
+				    ml_targets = [ml_rigJoints[obj_idx-1]]
 				    #ml_targets = [ ml_handles[1].influenceJoint ]
-				    ml_targets = [ml_rigJoints[obj_idx-1].masterGroup.follicleFollow]
+				    #ml_targets = [ml_rigJoints[obj_idx-1].masterGroup.follicleFollow]
 				    
 				    str_offsetGroup = d_current['offsetGroup'].mNode		    
 				    str_upLoc = d_current['upLoc'].mNode				    
 
-				    mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup,
+				    mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup, skip = [mi_go._jointOrientation[1],mi_go._jointOrientation[2]],
 		                                     maintainOffset = True, weight = 1, aimVector = cgmMath.multiplyLists([v_aim,[-1,-1,-1]]), upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )				    
 				    
 				else:
-				    ml_targets = [ml_rigJoints[obj_idx+1]]
+				    ml_targets = [ml_rigJoints[obj_idx-1].masterGroup.follicleFollow]
 				    str_offsetGroup = d_current['offsetGroup'].mNode	
 				    str_upLoc = d_current['upLoc'].mNode				    				    			    
-				    mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup,
+				    mc.aimConstraint([o.mNode for o in ml_targets],str_offsetGroup, skip = [mi_go._jointOrientation[1],mi_go._jointOrientation[2]],
 				                     maintainOffset = True, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = str_upLoc, worldUpType = 'object' )				    
 			
 			    except Exception,error:raise StandardError,"Loc setup. | error : %s"%(error)
@@ -1383,8 +1403,8 @@ def build_rig(*args, **kws):
 	    try:#>> Attach temple rig joints =======================================================================================
 		mi_go = self._go#Rig Go instance link
 		#str_skullPlate = self.str_skullPlate
-		str_skullPlate = 'testSkullOnlyPlate'		
-		
+		str_skullPlate = 'browPlate'
+		if not mc.objExists(str_skullPlate):raise StandardError,"Missing test skull plate"		
 		d_section = self.md_rigList['temple']
 		ml_rigJoints = d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
 		ml_handles = d_section['left']['ml_handles'] + d_section['right']['ml_handles']
