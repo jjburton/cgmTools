@@ -62,11 +62,12 @@ class TestValueArgs(unittest.TestCase):
             "it was passed when noneValid=False")
         
     
-    def test_numberIsNoneRaisesError(self, noneValid= False):
+    def test_numberIsNoneRaisesError(self):
         self.assertRaises(
             StandardError,
             validateArgs.valueArg,
-            numberToCheck=None
+            numberToCheck=None,
+            noneValid= False,
         )
 
     def test_numberIsNotNumberRaisesError(self):
