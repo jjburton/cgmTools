@@ -325,7 +325,7 @@ class cgmFuncCls(object):
 			self.log_info("{'%s'}(nested) "%k)
 			l_bufferKeys = buffer.keys()
 			l_bufferKeys.sort()
-			for k2 in buffer.keys():
+			for k2 in l_bufferKeys:
 			    self.log_info(_str_baseStart * 2 + "[%s] = %s "%(k2,buffer[k2]))			
 		    else:
 			self.log_info("['%s'] = %s "%(k,self.__dict__[k]))
