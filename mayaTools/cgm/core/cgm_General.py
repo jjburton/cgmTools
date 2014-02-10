@@ -39,10 +39,19 @@ _str_headerDiv = '///'
 _str_baseStart = "--"
 
 class cgmFuncCls(object):  
-    """
-    Don't:
-    -- append to self._l_ARGS_KWS_DEFAULTS -- causes pass through issues with *args
-    """
+    '''
+    Core cgm function class wrapper. Adds a lot of features for maya functions for free. For example usage:
+    cgm.core.examples.help_cgmFuncCls
+    
+    :parameters:
+	args/kws | varied based on self._l_ARGS_KWS_DEFAULTS setup
+
+    :raises:
+	Exception | when reached
+	
+    :Do not
+	Append to self._l_ARGS_KWS_DEFAULTS -- causes pass through issues with *args
+    '''    
     def __init__(self,*args, **kws):
         self._str_funcClass = None
 	self._str_funcName = None
@@ -79,10 +88,10 @@ class cgmFuncCls(object):
 	
     def __updateFuncStrings__(self):
 	self._str_funcCombined = self._str_funcName
-	try:self._str_funcName = "%s - from %s"%(self._str_funcName,kws['calledFrom'])
+	try:self._str_funcName = "{0}- from {1}".format(self._str_funcName,kws['calledFrom'])
 	except:pass
 	self._str_progressBarReportStart = self._str_funcCombined
-	self._str_reportStart = " %s >> "%(self._str_funcName)
+	self._str_reportStart = " {0} >> ".format(self._str_funcName)
 	
     def __dataBind__(self,*args,**kws):
 	try:self._l_funcArgs = args
@@ -130,7 +139,7 @@ class cgmFuncCls(object):
 	for kw in kws:
 	    try:
 		if kw not in l_storedKeys:self.d_kws[kw] = kws[kw]
-	    except Exception,error:raise StandardError,"%s failed to store kw: %s | value: %s | error: %s"%(self._str_reportStart,kw,kws[kw],error)
+	    except Exception,error:raise StandardError,"{0} failed to store kw: {1} | value: {2} | error: {3}".format(self._str_reportStart,kw,kws[kw],error)
 	'''
 	self._l_ARGS_KWS_BUILTINS = [{'kw':'reportShow',"default":False,'help':"(BUILTIN) - show report at start of log","argType":"bool"},
 	                             {'kw':'reportTimes',"default":False,'help':"(BUILTIN) - show step times in log","argType":"bool"},
@@ -144,7 +153,7 @@ class cgmFuncCls(object):
 	if self.d_kws.get('reportTimes'):self._b_reportTimes = True
 		
     def __func__(self,*args,**kws):
-	raise StandardError,"%s No function set"%self._str_reportStart
+	raise StandardError,"{0} No function set".format(self._str_reportStart)
         
     def _ExceptionHook_(self, etype, value, tb, detail=2):
 	# do something here...
@@ -156,8 +165,8 @@ class cgmFuncCls(object):
 		except:db_file = "<maya console>"
 		self.report_base()
 		self.log_info(_str_headerDiv + " Exception " + _str_headerDiv + _str_subLine)		
-		self.log_info("Step: '%s'"%self._str_failStep)
-		self.log_info("Time: %s sec"%self._str_failTime)
+		self.log_info("Step: '{0}'".format(self._str_failStep))
+		self.log_info("Time: {0} sec".format(self._str_failTime))
 		if db_file != "<maya console>":
 		    linecache.clearcache()		
 		    lineno = tb.tb_lineno
@@ -176,15 +185,15 @@ class cgmFuncCls(object):
 		    try:self.log_info("Last log entry: %s"%str_lastLogBuffer)
 		    except Exception, error:
 			log.error("This failed")
-			log.error("Failed to report last log: %s"%error)
-	    else:self.log_error("[Step: '%s' | time: %s]{%s}"%(self._str_failStep,self._str_failTime,self._ExceptionError))
+			log.error("Failed to report last log: {0}".format(error))
+	    else:self.log_error("[Step: '{0}' | time: {1} | error: {2}".format(self._str_failStep,self._str_failTime,self._ExceptionError))
 	    if detail == 2:self.log_info(_str_hardBreak)
 	    self.progressBar_end()
 	    mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
 	    return cgmExceptCB(etype,value,tb,detail,True)
 	    #return mUtils._formatGuiException(etype, value, tb, detail)	
 	except Exception,error:
-	    print("[%s._ExceptionHook_ Exception]{%s}"%(self._str_funcCombined,error))
+	    print("[{0}._ExceptionHook_ Exception | {1}".format(self._str_funcCombined,error))
 	        
     def go(self,*args,**kws):
 	"""
@@ -205,7 +214,7 @@ class cgmFuncCls(object):
 	    int_keys = range(0,len(self.l_funcSteps)-1)
 	    self.int_max = len(self.l_funcSteps)-1
 	except Exception,error:
-	    raise StandardError, ">"*3 + " %s[FAILURE go start]{%s}"%(self._str_funcCombined,error)
+	    raise StandardError, ">"*3 + " {0}[FAILURE go start | error: {1}]".format(self._str_funcCombined,error)
 	
 	mc.undoInfo(openChunk=True)
 	int_lenSteps = len(self.l_funcSteps)
@@ -225,11 +234,15 @@ class cgmFuncCls(object):
 		    if _str_step:
 			self._str_progressBarReportStart = self._str_funcCombined + " %s "%_str_step
 		    else: _str_step = 'Process'
-		    if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
-		    
+		    		    
 		    self._str_step = _str_step	
-		    self.log_debug(_str_headerDiv + " Step : %s "%_str_step + _str_headerDiv + _str_subLine)	  	    		    
+		    try:self.log_debug(_str_headerDiv + " Step : %s "%_str_step + _str_headerDiv + _str_subLine)
+		    except Exception,error:self.log_warning("[debug info! | error: {0}]".format(error))		    
 		except Exception,error:raise Exception,"[strStep query]{%s}"%error 
+		
+		try:
+		    if self._b_autoProgressBar:self.progressBar_set(status = _str_step, progress = i, maxValue = int_lenSteps)
+		except Exception,error:self.log_warning("[progress bar! | error: {0}]".format(error))
 
 		res = d_step['call'](*args,**kws)
 		if res is not None:
@@ -264,7 +277,7 @@ class cgmFuncCls(object):
 	if self._Exception is not None:
 	    mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   	
 	    self.update_moduleData()	    
-	    raise self._Exception,"%s >> %s"%(self._str_funcCombined,str(self._ExceptionError))
+	    raise self._Exception,"{0} >> {1}".format(self._str_funcCombined,str(self._ExceptionError))
 	if self._b_reportTimes:
 	    try:
 		f_total = (time.clock()-t_start)	    
@@ -272,10 +285,10 @@ class cgmFuncCls(object):
 		    self.log_info(_str_headerDiv + " Times " + _str_headerDiv + _str_subLine)			    	    
 		    if self.int_max != 0:
 			for pair in self._l_funcTimes:
-			    self.log_info(" -- '%s' >>  %s " % (pair[0],pair[1]))				 
+			    self.log_info(" -- '{0}' >>  {1} ".format(pair[0],pair[1]))				 
 		    self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
 		else:self.log_warning("[Total = %0.3f sec] " % (f_total))
-	    except Exception,error:self.log_error("[Failed to report times]{%s}"%error)
+	    except Exception,error:self.log_error("[Failed to report times | error: {0}]".format(error))
 	return self._return_()
 
     def _return_(self):
@@ -498,9 +511,46 @@ class cgmFuncCls(object):
 	try:mc.progressBar(self._str_progressBar,edit = True,**kws)	
 	except Exception,error:log.error("%s > failed to set progress bar status | %s"%(self._str_reportStart,error))	
     
+    
+    def log_infoDict(self,arg = None,tag = 'Stored Dict'):
+	'''
+	Log a dictionary.
+        
+	:parameters:
+	    arg | dict
+	    tag | string
+		label for the dict to log.
+
+	:raises:
+	    TypeError | if not passed a dict
+	'''
+	try:
+	    if not isinstance(arg,dict):
+		raise TypeError,"[Not a dict. arg: {0}]".format(arg)
+	    try:
+		l_keys = arg.keys()
+		self.log_info('Dict: {0} '.format(tag) + _str_subLine)			    
+		l_keys.sort()
+		for k in l_keys:
+		    try:str_key = k.p_nameShort
+		    except:str_key = k
+		    buffer = arg[k]
+		    if isinstance(buffer,dict):
+			self.log_info('%s '%self._str_funcCombined + ">" + " Nested Dict: '{0}' ".format(str_key) + _str_subLine)
+			l_bufferKeys = buffer.keys()
+			l_bufferKeys.sort()
+			for k2 in l_bufferKeys:
+			    self.log_info("-"*2 +'>' + " '{0}' : {1} ".format(k2,buffer[k2]))			
+		    else:
+			self.log_info(">" + " '{0}' : {1} ".format(str_key,arg[k]))		    
+	    except Exception,error:
+		self.log_warning("[Not a dict. arg: {0} | error: {1} ]".format(arg,error))
+	except:pass	
+    
     def log_infoNestedDict(self,arg):
 	try:
-	    if type(arg) not in [list,tuple]:arg = [arg]
+	    if type(arg) not in [list,tuple]:arg = [arg]#attr
+	    
 	    for atr in arg:
 		try:
 		    l_keys = self.__dict__[atr].keys()
@@ -521,7 +571,7 @@ class cgmFuncCls(object):
 		except Exception,error:
 		    log.warning("Key not found or not dict: %s | %s"%(atr,error))
 	except:pass
-	
+		
     def get_cleanKWS(self):
 	"""
 	Fuction to return the _d_funcKWS cleaned of all registered arg 'kws'. Useful for using kws as a pass through for other things
