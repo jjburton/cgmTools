@@ -1,0 +1,24 @@
+from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_Meta as cgmMeta
+reload(cgmGeneral)
+import maya.cmds as mc
+def ccFuncCls(direction = 'l', prefix = 'hand'):
+    class fncWrap(cgmGeneral.cgmFuncCls):
+        '''
+        This is my first funcCls
+        '''
+        def __init__(self, direction, prefix):
+            super(fncWrap, self).__init__(direction, prefix)
+            self._str_funcName = 'ccFuncCls'
+            self._b_reportTimes = 1
+            self._b_autoProgressBar = True
+            self.__dataBind__(direction, prefix)
+        def _setup_(self):pass
+        def __func__(self): 
+            self.mi_cc = cgmMeta.cgmObject(nodeType = 'transform')
+            self.mi_cc.rename(direction +'_'+ prefix + '_cc_ctrl')
+            self.mi_cc.addAttr('isCTRL', True)
+            self.mi_cc.doGroup()
+    return fncWrap(direction, prefix).go()
+   
+ccFuncCls('left','hand')
