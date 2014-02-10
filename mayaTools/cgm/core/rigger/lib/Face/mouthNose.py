@@ -841,10 +841,10 @@ def build_rig(*args, **kws):
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        {'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
-	                        {'step':'Lip Structure','call':self._buildLipStructure_},	                        
+	                        {'step':'Lip Structure','call':self._buildLipStructure_},
+	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
 	                        {'step':'NoseBuild','call':self._buildNose_},
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        	                        
-	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        
 	                        #{'step':'Cheek build','call':self._buildCheeks_},
 	                        #{'step':'Lock N hide','call':self._lockNHide_},
 	                        ]	
@@ -1821,15 +1821,11 @@ def build_rig(*args, **kws):
 		
 		try:#>> Connect corners
 		    for str_direction in 'left','right':
-		       mi_jnt = self.md_rigList['nostrilRig'][str_direction][0]
-		       mi_controlLoc = self.md_attachReturns[mi_jnt]['controlLoc']
-		       #mi_controlLoc.parent = mi_noseMoveTrackLoc.masterGroup
-		       mi_controlLoc.parent = self.md_rigList['smileLineRig'][str_direction][0]
-		    
+			mi_jnt = self.md_rigList['nostrilRig'][str_direction][0]
+			mi_controlLoc = self.md_attachReturns[mi_jnt]['controlLoc']
+			mi_controlLoc.parent = self.md_rigList['sneerHandleInfluenceJoints'][str_direction][0]
 		except Exception,error:raise StandardError,"[Connect Corners] | error: {0}".format(error)	
 
-		
-		
 		d_build = {#'noseMove':{},
 		           'noseTop':{},
 		           'noseUnder':{}}
@@ -3651,40 +3647,30 @@ def build_rig(*args, **kws):
 	
 	def _buildSmileLines_(self):
 	    mi_go = self._go#Rig Go instance link
-	    try:#Setup segments ========================================================================
-		#self.mi_smileFollowLeft
-		d_build = {'smileLineSegment':{'orientation':mi_go._jointOrientation,
-		                               'left':{'mi_curve':None},
-		                               'right':{'mi_curve':None}}}	
-		self.create_segmentfromDict(d_build)
-	    except Exception,error:raise StandardError,"[Segments | error: {0}]".format(error)  
 	    
-	    try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
-		d_build = {'smileLeft':{'target':self.md_rigList['smileLineSegment']['leftSegmentCurve'],
-		                        'bindJoints':[self.md_rigList['sneerHandle']['left'][0],
-		                                      self.md_rigList['smileHandle']['left'][0],
-		                                      self.md_rigList['nostrilRig']['left'][0],
-		                                      self.md_rigList['smileBaseHandle']['left'][0]]},
-		           'smileRight':{'target':self.md_rigList['smileLineSegment']['rightSegmentCurve'],
-		                        'bindJoints':[self.md_rigList['sneerHandle']['right'][0],
-		                                      self.md_rigList['smileHandle']['right'][0],
-		                                      self.md_rigList['nostrilRig']['right'][0],		                                      
-		                                      self.md_rigList['smileBaseHandle']['right'][0]]}}
-		self.skin_fromDict(d_build)
-	    except Exception,error:raise StandardError,"[Skinning! | error: {0}".format(error)	   
-
+	    try:#influenceJoints -----------------------------------------------------------------------
+		d_build = {'sneerHandle':{},
+		           'smileBaseHandle':{}}
+		self.create_influenceJoints(d_build)
+		self.log_infoDict(self.md_rigList['sneerHandleInfluenceJoints'],'sneerHandle')
+	    except Exception,error:raise StandardError,"[influence joints | error: {0}]".format(error)	
+	    
 	    try:#Attach stuff to surfaces ====================================================================================		
-		d_build = {#'smileLineRig':{},
-		           #'sneerHandle':{'mode':'handleAttach'},
-		           'sneerHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0].masterGroup.p_nameShort},
-		           'smileHandle':{'attachTo':self.mi_jawPlate},#Rig attach so that we can drive it's position via the left lip corner		           
-		           'smileBaseHandle':{'attachTo':self.mi_lwrTeethPlate},#Rig attach so that we can drive it's position via the chin           	                         		           	           
+		d_build = {'sneerHandleInfluenceJoints':{'attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position via the left lip corner
+		           'sneerHandle':{'mode':'parentOnly','attachTo':None,'parentTo':self.md_rigList['noseMoveRig'][0].p_nameShort},
+		           'smileHandle':{'attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position via the left lip corner		           
+		           'smileBaseHandle':{'attachTo':self.mi_lwrTeethPlate},#...rig attach so that we can drive it's position via the chin           	                         		           	           
 		           }
 		self.attach_fromDict(d_build)
-	    except Exception,error:raise StandardError,"[Attach! | error: {0}".format(error)
+	    except Exception,error:raise StandardError,"[Attach! | error: {0}]".format(error)
 	    
 	    try:#>>> Connect rig joints to handles ==================================================================
-		d_build = {'smileHandle':{'mode':'parentConstraint','rewireFollicleOffset':True,
+		d_build = {'sneerHandleInfluenceJoints':{'mode':'pointConstraint','rewireFollicleOffset':True,
+		                                         'left':{'targets':[self.md_rigList['sneerHandle']['left'][0]],
+		                                                 'rewireHandle':self.md_rigList['sneerHandle']['left'][0]},
+		                                         'right':{'targets':[self.md_rigList['sneerHandle']['right'][0]],
+		                                                  'rewireHandle':self.md_rigList['sneerHandle']['right'][0]}},		           
+		           'smileHandle':{'mode':'pointConstraint','rewireFollicleOffset':True,
 		                          'left':{'targets':[self.md_rigList['lipCornerHandle']['left'][0]],
 		                                  'rewireHandle':self.md_rigList['lipCornerHandle']['left'][0]},
 		                          'right':{'targets':[self.md_rigList['lipCornerHandle']['right'][0]],#was lipCornerRig
@@ -3694,7 +3680,30 @@ def build_rig(*args, **kws):
 		                              'targets':[self.md_rigList['chinTrackLoc'][0]]}	           
 		           }
 		self.connect_fromDict(d_build)
-	    except Exception,error:raise StandardError,"[Connect! | error: {0}]".format(error) 
+	    except Exception,error:raise StandardError,"[Connect! | error: {0}]".format(error) 	    
+	    
+	    try:#Setup segments ========================================================================
+		d_build = {'smileLineSegment':{'orientation':mi_go._jointOrientation,
+		                               'left':{'mi_curve':None},
+		                               'right':{'mi_curve':None}}}	
+		self.create_segmentfromDict(d_build)
+	    except Exception,error:raise StandardError,"[Segments | error: {0}]".format(error)  
+	    
+	    
+	    try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
+		d_build = {'smileLeft':{'target':self.md_rigList['smileLineSegment']['leftSegmentCurve'],
+		                        'bindJoints':[self.md_rigList['sneerHandle']['left'][0].influenceJoint,
+		                                      self.md_rigList['smileHandle']['left'][0],
+		                                      self.md_rigList['nostrilRig']['left'][0],
+		                                      self.md_rigList['smileBaseHandle']['left'][0]]},
+		           'smileRight':{'target':self.md_rigList['smileLineSegment']['rightSegmentCurve'],
+		                        'bindJoints':[self.md_rigList['sneerHandle']['right'][0].influenceJoint,
+		                                      self.md_rigList['smileHandle']['right'][0],
+		                                      self.md_rigList['nostrilRig']['right'][0],		                                      
+		                                      self.md_rigList['smileBaseHandle']['right'][0]]}}
+		self.skin_fromDict(d_build)
+	    except Exception,error:raise StandardError,"[Skinning! | error: {0}".format(error)	   
+
 
 	def _buildSmileLinesOLD_(self):
 	    mi_go = self._go#Rig Go instance link
@@ -3999,56 +4008,7 @@ def build_rig(*args, **kws):
 		    raise StandardError,"Attach rig joint loop. obj: %s | ]{%s}"%(mObj.p_nameShort,error)	
 		
 	    return True
-		
-	def _buildTemple_(self):
-	    try:#>> Attach temple rig joints =======================================================================================
-		mi_go = self._go#Rig Go instance link
-		str_skullPlate = self.str_skullPlate
-		d_section = self.md_rigList['temple']
-		ml_rigJoints = d_section['left']['ml_rigJoints'] + d_section['right']['ml_rigJoints']
-		ml_handles = d_section['left']['ml_handles'] + d_section['right']['ml_handles']
-    
-		for mObj in ml_rigJoints:
-		    try:
-			try:#>> Attach ------------------------------------------------------------------------------------------
-			    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
-				                                    targetSurface = str_skullPlate,
-				                                    createControlLoc = True,
-				                                    createUpLoc = True,
-				                                    f_offset = self.f_offsetOfUpLoc,
-				                                    orientation = mi_go._jointOrientation)
-			except Exception,error:raise StandardError,"Failed to attach. | ] | error: {0}".format(error)
-			self.md_attachReturns[mObj] = d_return
-		    except Exception,error:
-			raise StandardError,"Attach rig joint loop. obj: %s | ]{%s}"%(mObj.p_nameShort,error)	    
-		    
-		for mObj in ml_handles:
-		    try:
-			try:#>> Attach ------------------------------------------------------------------------------------------
-			    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
-				                                    targetSurface = str_skullPlate,
-				                                    createControlLoc = False,
-				                                    createUpLoc = True,	
-				                                    parentToFollowGroup = False,
-				                                    orientation = mi_go._jointOrientation)
-			except Exception,error:raise StandardError,"Failed to attach. | ] | error: {0}".format(error)
-			self.md_attachReturns[mObj] = d_return
-		    except Exception,error:
-			raise StandardError,"Attach handle. obj: %s | ]{%s}"%(mObj.p_nameShort,error)	  
-	    except Exception,error:
-		raise StandardError,"[Attach |error: {0}]".format(error)		
-	    
-	    try:#>> Setup handle =======================================================================================
-		for i,mObj in enumerate(ml_handles):
-		    try:#Connect the control loc to the center handle
-			mi_controlLoc = self.md_attachReturns[ml_rigJoints[i]]['controlLoc']
-			mc.pointConstraint(mObj.mNode,mi_controlLoc.mNode,maintainOffset = True)
-			#cgmMeta.cgmAttr(mi_controlLoc,"translate").doConnectIn("%s.translate"%mi_centerHandle.mNode)
-		    except Exception,error:raise StandardError,"[Control loc connec]{ %s}"%(error)			
-				
-	    except Exception,error:
-		raise StandardError,"[Setup handle] | error: {0}".format(error)
-	
+
 	def _lockNHide_(self):
 	    #Lock and hide all 
 	    for mHandle in self.ml_handlesJoints:
@@ -4715,10 +4675,113 @@ def build_rig(*args, **kws):
 						mc.parentConstraint([mObj.mNode for mObj in ml_targets],mi_controlLoc.mNode,maintainOffset = True)
 					    except Exception,error:raise StandardError,"Failed to attach to crv. | ] | error: {0}".format(error)	
 					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)	
+				    elif str_mode == 'pointConstraint':
+					try:
+					    try:#See if we have a handle return
+						ml_targets = d_buffer['targets']
+						d_current = self.md_attachReturns[mObj]
+						mi_controlLoc = d_current['controlLoc']					    
+					    except Exception,error:raise StandardError,"[Query '%s'!]{%s}"%(str_key,error)
+					    try:#>> Attach  loc  --------------------------------------------------------------------------------------
+						mc.pointConstraint([mObj.mNode for mObj in ml_targets],mi_controlLoc.mNode,maintainOffset = True)
+					    except Exception,error:raise StandardError,"Failed to attach to crv. | ] | error: {0}".format(error)	
+					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)	
 				    else:
 					raise NotImplementedError,"not implemented : mode: %s"%str_mode
 		    except Exception,error:  raise StandardError,"[%s]{%s}"%(str_tag,error)			    
 	    except Exception,error:  raise StandardError,"[connect_fromDict] | error: {0}".format(error)	
+	    
+	def get_mdSidesBufferFromTag(self,str_tag):
+	    '''
+	    Process a dict against to a md_rigList
+	    '''
+	    md_buffer = {}
+	    buffer = self.md_rigList[str_tag]
+	    if type(buffer) == dict:
+		for str_side in ['left','right','center']:
+			bfr_side = buffer.get(str_side)
+			if bfr_side:
+			    md_buffer[str_side] = bfr_side
+	    else:
+		md_buffer['reg'] = buffer
+	    return md_buffer
+	
+	def create_influenceJoints(self,d_build):
+	    '''
+	    '''
+	    try:#>> Infuence joints  =======================================================================================
+		mi_go = self._go#Rig Go instance link
+		str_skullPlate = self.str_skullPlate
+		
+		for str_tag in d_build.iterkeys():
+		    try:
+			ml_buffer = []
+			md_buffer = self.get_mdSidesBufferFromTag(str_tag)
+			    
+			l_skip = d_build[str_tag].get('skip') or []
+			
+			str_newTag = '{0}InfluenceJoints'.format(str_tag)
+			self.md_rigList[str_newTag] = {}#...start new dict	
+		    
+			for str_side in md_buffer.iterkeys():
+			    if str_side in l_skip:
+				self.log_info("%s Skipping aim: %s"%(str_tag,str_side))
+			    else:
+				try:
+				    if d_build[str_tag].get(str_side):#if we have special instructions for a direction key...
+					d_buffer = d_build[str_tag][str_side]
+				    else:
+					d_buffer = d_build[str_tag]	
+				    ml_buffer = md_buffer[str_side]
+				    
+				    try:
+					int_indexBuffer = d_build[str_tag].get('index') or False
+					if int_indexBuffer is not False:
+					    self.log_info("%s | %s > Utilizing index call"%(str_tag,str_side))					
+					    ml_buffer = [ml_buffer[int_indexBuffer]]
+				    except Exception,error:raise StandardError,"[Index call!| error: {0}]".format(error)
+				    int_len = len(ml_buffer)
+				    _d = {}
+				    self.d_buffer = _d
+				    int_len = len(ml_buffer)			    
+				    ml_influenceJoints = []			    
+				    for idx,mJnt in enumerate(ml_buffer):
+					str_mObj = mJnt.p_nameShort
+					
+					try:#Status update ----------------------------------------------------------------------
+					    str_message = "Creating influence joint : '{0}' {1} > '{2}'".format(str_tag,str_side,str_mObj)
+					    self.log_info(str_message)
+					    self.progressBar_set(status = (str_message),progress = idx, maxValue = int_len)	
+					except Exception,error:raise StandardError,"[Status update] | error: {0}".format(error)	
+					
+					try:#Create----------------------------------------------------------------------
+					    mi_influenceJoint = cgmMeta.cgmObject( mc.joint(),setClass = 1)
+					    Snap.go(mi_influenceJoint,mJnt.mNode,orient=True)
+					    mi_influenceJoint.rotateOrder = mJnt.rotateOrder
+					    mi_influenceJoint.doCopyNameTagsFromObject(mJnt.mNode,ignore=['cgmType'])	
+					    mi_influenceJoint.addAttr('cgmTypeModifier','influence',lock=True)
+					    mi_influenceJoint.doName()
+					    mJnt.connectChildNode(mi_influenceJoint,'influenceJoint','sourceJoint')
+					    ml_influenceJoints.append(mi_influenceJoint)
+					    mi_influenceJoint.parent = mi_go._i_deformNull	
+					except Exception,error:raise StandardError,"[influence joint for '{0}'! | error: {1}]".format(str_mObj,error)				    
+					
+					try:#Create offsetgroup for the mid
+					    mi_offsetGroup = cgmMeta.cgmObject( mi_influenceJoint.doGroup(True),setClass=True)	 
+					    mi_offsetGroup.doStore('cgmName',mi_influenceJoint.mNode)
+					    mi_offsetGroup.addAttr('cgmTypeModifier','master',lock=True)
+					    mi_offsetGroup.doName()
+					    mi_influenceJoint.connectChildNode(mi_offsetGroup,'masterGroup','groupChild')
+					except Exception,error:raise StandardError,"[masterGroup for '{0}'! | error: {1}]".format(str_mObj,error)				    
+					    
+				    mi_go.connect_toRigGutsVis(ml_influenceJoints, vis = True)#connect to guts vis switches
+				    self.md_rigList[str_newTag][str_side] = ml_influenceJoints#...store
+				except Exception,error:raise Exception,"[side: {0} | error: {1}]".format(str_side,error)			     
+		    except Exception,error:
+			try:self.log_infoNestedDict('d_buffer')
+			except:pass
+			raise Exception,"[tag: {0} | error: {1}]".format(str_tag,error)			    
+	    except Exception,error: raise Exception,"[create_influenceJoint] | error: {0}".format(error)
 	    
 	def aim_fromDict(self,d_build):
 	    '''
