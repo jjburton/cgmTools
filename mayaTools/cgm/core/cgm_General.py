@@ -405,7 +405,7 @@ class cgmFuncCls(object):
 	    print(_str_subLine * 2)		
 	    print("%s "%self._str_funcHelp)
 	print(_str_subLine * 2)	
-	print("@kws -- [index - argKW(argType - default) -- info]") 
+	print("@kws -- [index - argKW(argType - default) | info]") 
 	for i,d_buffer in enumerate(self._l_ARGS_KWS_DEFAULTS + self._l_ARGS_KWS_BUILTINS):
 	    l_tmp = ['    %i - '%i]
 	    if d_buffer in self._l_ARGS_KWS_BUILTINS:
@@ -421,7 +421,7 @@ class cgmFuncCls(object):
 	    l_buffer.append(")")
 	    l_tmp.append("".join(l_buffer))
 	    #-------------------------------------------------
-	    try:l_tmp.append(" -- %s"%d_buffer['help'])
+	    try:l_tmp.append(" | %s"%d_buffer['help'])
 	    except:pass		
 	    #l_build = ["%s : %s"%(s[0],s[1]) for s in l_tmp]
 	    print("".join(l_tmp))	
