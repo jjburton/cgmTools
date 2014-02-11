@@ -128,9 +128,10 @@ def listArg(l_args=None, types=None):
 
     result = isinstance(l_args, (tuple, list))
     if not result:
-        try:
-            l_args = [l_args]#try to make it a list
-            result = isinstance(l_args, (tuple, list))#Try again
+        try:#Conversion -----------------------------------------------------------------------------
+            if l_args is not None:
+                l_args = [l_args]#try to make it a list
+                result = isinstance(l_args, (tuple, list))#Try again
         except Exception,error:raise Exception,"Failed to convert to list | error: {0}".format(error)
 
     if result:
