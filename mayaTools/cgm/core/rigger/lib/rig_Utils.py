@@ -1,15 +1,12 @@
 """
-cgmLimb
-Josh Burton (under the supervision of David Bokser:)
-www.cgmonks.com
-1/12/2011
+------------------------------------------
+rig_Utils: cgm.core.rigger.lib
+Author: Josh Burton
+email: jjburton@cgmonks.com
+Website : http://www.cgmonks.com
+------------------------------------------
 
-Key:
-1) Class - Limb
-    Creates our rig objects
-2)  
-
-
+================================================================
 """
 # From Python =============================================================
 import copy
@@ -1294,26 +1291,49 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     on twist methods.
 
     The general idea is a joint chain with a start control and and end control. Full twist, squash and stretch, additive scale ability
-
-    @kws
-    jointList(list) -- jointList of joints to setup
-    influenceJoints(list) -- influence joints for setup segment
-    addSquashStretch(bool) -- whether to setup squash and stretch in the segment
-    addTwist(bool)-- whether tto setup extra twist control
-    startControl(inst/str) -- start control object
-    startControl(inst/str) -- end control object
-    segmentType(str) -- currently only support 'curve' type.
-    rotateGroupAxis(str) -- the rotate axis of the rotate group for a twist setup
-    secondaryAxis(arg) -- pass through command for other functions
-    baseName(str) -- basename for various naming
-    advancedTwistSetup(bool) -- pass through command to createCurveSegment
-    additiveScaleSetup(bool) -- whether to setup additive scale
-    connectAdditiveScale(bool) --whether to connect additive scale
-    orientation(str) -- joint orientation
-    controlOrientation(str) --control orientation. Important as it sets which channels will drive twist and additive scale
-    moduleInstance(arg) -- 
-
-    """
+    
+    :parameters:
+        jointList(list) | jointList of joints to setup
+        influenceJoints(list) | influence joints for setup segment
+        addSquashStretch(bool) | whether to setup squash and stretch in the segment
+        addTwist(bool)| whether tto setup extra twist control
+        startControl(inst/str) | start control object
+        startControl(inst/str) | end control object
+        segmentType(str) | currently only support 'curve' type.
+        rotateGroupAxis(str) | the rotate axis of the rotate group for a twist setup
+        secondaryAxis(arg) | pass through command for other functions
+        baseName(str) | basename for various naming
+        advancedTwistSetup(bool) | pass through command to createCurveSegment
+        additiveScaleSetup(bool) | whether to setup additive scale
+        connectAdditiveScale(bool) |whether to connect additive scale
+        orientation(str) | joint orientation
+        controlOrientation(str) |control orientation. Important as it sets which channels will drive twist and additive scale
+        moduleInstance(arg) | 
+    :returns:
+        Dict ------------------------------------------------------------------
+	'mi_anchorStart'
+	'mi_anchorStart'
+	'mi_anchorEnd'
+	'mPlug_extendTwist'
+	'mi_constraintStartAim'
+	'mi_constraintEndAim'
+	'mi_endAimConstraint'
+	'mi_segmentCurve'(cgmObject) | segment curve
+	'segmentCurve'(str) | segment curve string
+	'mi_ikHandle'(cgmObject) | spline ik Handle
+	'mi_segmentGroup'(cgmObject) | segment group containing most of the guts
+	'l_driverJoints'(list) | list of string driver joint names
+	'ml_driverJoints'(metalist) | cgmObject instances of driver joints
+	'scaleBuffer'(str) | scale buffer node
+	'mi_scaleBuffer'(cgmBufferNode) | scale buffer node for the setup
+	'mPlug_extendTwist'(cgmAttr) | extend twist attribute instance
+	'l_drivenJoints'(list) | list of string driven joint names
+	'ml_drivenJoints'(metalist) | cgmObject instances of driven joints
+	
+    :raises:
+	Exception | if reached
+	
+    """      
     _str_funcName = 'createCGMSegment'
     log.info(">>> %s >> "%_str_funcName + "="*75)   
     
@@ -1736,11 +1756,17 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         mi_segmentCurve.connectChildNode(i_attachEndNull,'attachEnd','segmentCurve')
 
     except Exception,error:
-        log.error("createCGMSegment>>Info storage fail!")
-
-    return {'mi_segmentCurve':mi_segmentCurve,'mi_anchorStart':i_anchorStart,'mi_anchorEnd':i_anchorEnd,'mPlug_extendTwist':mPlug_extendTwist,
-            'mi_constraintStartAim':i_startAimConstraint,'mi_constraintEndAim':i_endAimConstraint}
-
+        log.error("createCGMSegment>>Info storage fail! |  error: {0}".format(error))
+    
+    try:#Return ========================================================================================
+	md_return = {'mi_segmentCurve':mi_segmentCurve,'mi_anchorStart':i_anchorStart,'mi_anchorEnd':i_anchorEnd,'mPlug_extendTwist':mPlug_extendTwist,
+	             'mi_constraintStartAim':i_startAimConstraint,'mi_constraintEndAim':i_endAimConstraint}
+	for k in d_segmentBuild.keys():
+	    if k not in md_return.keys():
+		md_return[k] = d_segmentBuild[k]#...push to the return dict
+	return md_return
+    except Exception,error:
+        log.error("createCGMSegment>>return fail| error: {0}".format(error))
 
 
 def controlSurfaceSmoothWeights(controlSurface,start = None, end = None):
@@ -1912,6 +1938,41 @@ def controlCurveTightenEndWeights(curve,start = None, end = None, blendLength = 
 
 def createSegmentCurve(*args,**kws):
     class fncWrap(cgmGeneral.cgmFuncCls):
+	"""
+	Root of the segment setup.
+	Inspiriation from Jason Schleifer's work as well as http://faithofthefallen.wordpress.com/2008/10/08/awesome-spine-setup/
+	on twist methods.
+    	
+	:parameters:
+	    0 - 'jointList'(joints - None) | List or metalist of joints
+	    1 - 'useCurve'(nurbsCurve - None) | Which curve to use. If None. One Created
+	    2 - 'orientation'(string - zyx) | What is the joints orientation
+	    3 - 'secondaryAxis'(maya axis arg(ex:'yup') - yup) | Only necessary when no module provide for orientating
+	    4 - 'baseName'(string - None) | baseName string
+	    5 - 'connectBy'(string - trans) | How the joint will scale
+	    6 - 'advancedTwistSetup'(bool - False) | Whether to do the cgm advnaced twist setup
+	    7 - 'addMidTwist'(bool - True) | Whether to setup a mid twist on the segment
+	    8 - 'moduleInstance'(cgmModule - None) | cgmModule to use for connecting on build
+	    9 - 'extendTwistToEnd'(bool - False) | Whether to extned the twist to the end by default
+	    
+	:returns:
+	    Dict ------------------------------------------------------------------
+	    'mi_segmentCurve'(cgmObject) | segment curve
+	    'segmentCurve'(str) | segment curve string
+	    'mi_ikHandle'(cgmObject) | spline ik Handle
+	    'mi_segmentGroup'(cgmObject) | segment group containing most of the guts
+	    'l_driverJoints'(list) | list of string driver joint names
+	    'ml_driverJoints'(metalist) | cgmObject instances of driver joints
+	    'scaleBuffer'(str) | scale buffer node
+	    'mi_scaleBuffer'(cgmBufferNode) | scale buffer node for the setup
+	    'mPlug_extendTwist'(cgmAttr) | extend twist attribute instance
+	    'l_drivenJoints'(list) | list of string driven joint names
+	    'ml_drivenJoints'(metalist) | cgmObject instances of driven joints
+	    
+	:raises:
+	    Exception | if reached
+	    
+	"""   	
 	def __init__(self,*args,**kws):
 	    """
 	    """
@@ -1919,7 +1980,6 @@ def createSegmentCurve(*args,**kws):
 	    self._str_funcName= "createSegmentCurve"
 	    self._b_reportTimes = True
 	    self._b_autoProgressBar = 1
-	    self._str_funcHelp = "This is our general purpose spline IK segment\nIt has lots of features:)"
 	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'jointList',"default":None,'help':"List or metalist of joints","argType":"joints"},
 	                                 {'kw':'useCurve',"default":None,'help':"Which curve to use. If None. One Created","argType":"nurbsCurve"},
 	                                 {'kw':'orientation',"default":'zyx','help':"What is the joints orientation","argType":"string"},
