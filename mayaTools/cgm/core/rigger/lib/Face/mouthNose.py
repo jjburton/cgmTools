@@ -841,9 +841,9 @@ def build_rig(*args, **kws):
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        {'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
-	                        {'step':'Lip Structure','call':self._buildLipStructure_},
-	                        {'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
-	                        {'step':'NoseBuild','call':self._buildNose_},
+	                        #{'step':'Lip Structure','call':self._buildLipStructure_},
+	                        #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
+	                        #{'step':'NoseBuild','call':self._buildNose_},
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        	                        
 	                        #{'step':'Cheek build','call':self._buildCheeks_},
 	                        #{'step':'Lock N hide','call':self._lockNHide_},
@@ -942,7 +942,7 @@ def build_rig(*args, **kws):
 		
 		#>> cheek --------------------------------------------------------------------------------------------------
 		b_buildCheek = True
-		d_cheekBuild = {#'cheekHandle':{"left":{},"right":{},'check':ml_handleJoints,'tag':'cheek'},
+		d_cheekBuild = {'cheekAnchor':{"left":{},"right":{},'check':ml_handleJoints,'checkToggle':b_buildCheek},
 		                'cheekRig':{"left":{},"right":{},'check':ml_rigJoints,'tag':'cheek','checkToggle':b_buildCheek}}
 		
 		_l_buildDicts.append(d_cheekBuild)
@@ -995,8 +995,8 @@ def build_rig(*args, **kws):
 			if not _b_directionChecked:
 			    self.log_error("%s nothing checked"%(k_tag))
 		    else:
-			self.log_error("%s | Check toggle off"%(k_tag))
-		except Exception,error:raise StandardError,"%s loop | %s"%(k_tag,error)
+			self.log_error("[{0} | Check toggle off]".format(k_tag))
+		except Exception,error:raise StandardError,"['{0}' loop | error: {1}]".format(k_tag,error)
 		
 	    #>> Segment Joints --------------------------------------------------------------------------------------------------
 	    self.md_rigList['uprLipSegment'] = {}
@@ -1096,68 +1096,6 @@ def build_rig(*args, **kws):
 		d_['mi_mouthMove'] = mi_mouthMove
 	    except Exception,error:raise StandardError,"[Query! | error: {0}]".format(error)
 	    
-	    try:#Get Segment Data =======================================================================================
-		ml_segment = self.md_rigList['squashSegmentLower']['center']
-		mi_startInfluence = self.md_rigList['squashSegmentLower']['start']
-		mi_endInfluence = self.md_rigList['squashSegmentLower']['end']
-		
-		#d_segReturn = rUtils.createSegmentCurve(ml_segment, addMidTwist = False, moduleInstance = mi_go._mi_module, connectBy = 'scale')
-		
-	    except Exception,error:raise StandardError,"[Get Segment data | error: {0}]".format(error) 	 
-	    
-	    try:#>> Build segment =======================================================================================
-		d_segReturn = rUtils.createCGMSegment([i_jnt.mNode for i_jnt in ml_segment],
-		                                      addSquashStretch = True,
-		                                      addTwist = True,
-		                                      influenceJoints = [mi_startInfluence,mi_endInfluence],
-		                                      startControl = mi_startInfluence,
-		                                      endControl = mi_endInfluence,
-		                                      orientation = mi_go._jointOrientation,
-		                                      baseName = 'lwrSegmentScale',
-		                                      additiveScaleSetup = True,
-		                                      connectAdditiveScale = True,		                                      
-		                                      moduleInstance = mi_go._mi_module)
-		
-		try:#post create segmenet process
-		    mi_curve = d_segReturn['mi_segmentCurve']
-		    mi_anchorEnd = d_segReturn['mi_anchorEnd']
-		    mi_anchorStart = d_segReturn['mi_anchorStart']
-		    mi_go._i_rigNull.msgList_append(mi_curve,'segmentCurves','rigNull')	
-		    mi_anchorEnd.parent = mi_jawHandle#...not sure what we want to parent to yet
-		except Exception,error:raise StandardError,"[post segment query! | {0}]".format(error)
-		
-		try:#post segmentparent
-		    mi_curve.segmentGroup.parent = mi_go._i_rigNull.mNode
-		    for attr in 'translate','scale','rotate':
-			cgmMeta.cgmAttr(mi_curve,attr).p_locked = False
-		    mi_curve.parent = mi_go._i_rigNull
-		except Exception,error:raise StandardError,"[post segment parent! | error: {0}]".format(error)
-		
-		self.d_buffer = d_segReturn
-		self.log_infoNestedDict('d_buffer')
-	    except Exception,error:raise StandardError,"[cgmSegment creation | error: {0}]".format(error) 	 
-	    			
-	    try:#>>>Connect master scale =======================================================================================
-		mi_distanceBuffer = mi_curve.scaleBuffer		
-		cgmMeta.cgmAttr(mi_distanceBuffer,'masterScale',lock=True).doConnectIn(mPlug_multpHeadScale.p_combinedShortName)    
-	    except Exception,error:raise StandardError,"[segment scale connect! | error: {0}]".format(error)
-	    
-	    try:#Do a few attribute connections =======================================================================================
-		#Push squash and stretch multipliers to cog
-		try:
-		    for k in mi_distanceBuffer.d_indexToAttr.keys():
-			attrName = 'scaleMult_%s'%k
-			cgmMeta.cgmAttr(mi_distanceBuffer.mNode,'scaleMult_%s'%k,keyable=1,hidden=0).doCopyTo(mi_jawHandle.mNode,attrName,connectSourceToTarget = True)
-			cgmMeta.cgmAttr(mi_jawHandle.mNode,attrName,defaultValue = 1)
-		except Exception,error:raise StandardError,"[scaleMult transfer! | error: {0}]".format(error)
-		
-		cgmMeta.cgmAttr(mi_curve,'twistType').doCopyTo(mi_jawHandle.mNode,connectSourceToTarget=True)
-		cgmMeta.cgmAttr(mi_curve,'twistExtendToEnd').doCopyTo(mi_jawHandle.mNode,connectSourceToTarget=True)
-		cgmMeta.cgmAttr(mi_curve,'scaleMidUp').doCopyTo(mi_jawHandle.mNode,connectSourceToTarget=True)
-		cgmMeta.cgmAttr(mi_curve,'scaleMidOut').doCopyTo(mi_jawHandle.mNode,connectSourceToTarget=True)
-	    except Exception,error:raise StandardError,"[segment attribute transfer! | error: {0}]".format(error)
-	    
-	    
 	    try:#>> Simple def =======================================================================================	
 		try:#Dups
 		    f_halfLen = f_lenJawLine/2
@@ -1224,8 +1162,74 @@ def build_rig(*args, **kws):
 		except Exception,error:raise StandardError,"[def duplication! | error: {0}]".format(error)	
 	    except Exception,error:raise StandardError,"[Simple Def ! | error: {0}]".format(error)	
 	    
+	    try:#Get Segment Data =======================================================================================
+		ml_segment = self.md_rigList['squashSegmentLower']['center']
+		mi_startInfluence = self.md_rigList['squashSegmentLower']['start']
+		mi_endInfluence = self.md_rigList['squashSegmentLower']['end']
+		
+		#d_segReturn = rUtils.createSegmentCurve(ml_segment, addMidTwist = False, moduleInstance = mi_go._mi_module, connectBy = 'scale')
+		
+	    except Exception,error:raise StandardError,"[Get Segment data | error: {0}]".format(error) 	 
+	    
+	    try:#>> Build segment =======================================================================================
+		d_segReturn = rUtils.createCGMSegment([i_jnt.mNode for i_jnt in ml_segment],
+		                                      addSquashStretch = True,
+		                                      addTwist = True,
+		                                      influenceJoints = [mi_startInfluence,mi_endInfluence],
+		                                      startControl = mi_startInfluence,
+		                                      endControl = mi_endInfluence,
+		                                      orientation = mi_go._jointOrientation,
+		                                      baseName = 'lwrSegmentScale',
+		                                      additiveScaleSetup = True,
+		                                      connectAdditiveScale = True,		                                      
+		                                      moduleInstance = mi_go._mi_module)
+		
+		try:#post create segmenet process
+		    mi_curve = d_segReturn['mi_segmentCurve']
+		    mi_anchorEnd = d_segReturn['mi_anchorEnd']
+		    mi_anchorStart = d_segReturn['mi_anchorStart']
+		    mi_go._i_rigNull.msgList_append(mi_curve,'segmentCurves','rigNull')	
+		except Exception,error:raise StandardError,"[post segment query! | {0}]".format(error)
+		
+		try:#post segment parent
+		    mi_curve.segmentGroup.parent = mi_go._i_rigNull.mNode
+		    for attr in 'translate','scale','rotate':
+			cgmMeta.cgmAttr(mi_curve,attr).p_locked = False
+		    mi_curve.parent = mi_go._i_rigNull
+		    
+		    d_segReturn['ml_driverJoints'][0].parent = self.md_rigList['faceBaseDef'][0]	
+		    d_segReturn['ml_drivenJoints'][0].parent = self.md_rigList['faceBaseDef'][0]	
+		    mi_anchorEnd.parent = mi_jawHandle#...not sure what we want to parent to yet
+		    mi_anchorStart.parent = self.md_rigList['faceBaseDef'][0]
+		    
+		except Exception,error:raise StandardError,"[post segment parent! | error: {0}]".format(error)
+		
+		self.d_buffer = d_segReturn
+		#self.log_infoNestedDict('d_buffer')
+	    except Exception,error:raise StandardError,"[cgmSegment creation | error: {0}]".format(error) 	 
+	    			
+	    try:#>>>Connect master scale =======================================================================================
+		mi_distanceBuffer = mi_curve.scaleBuffer		
+		cgmMeta.cgmAttr(mi_distanceBuffer,'masterScale',lock=True).doConnectIn(mPlug_multpHeadScale.p_combinedShortName)    
+	    except Exception,error:raise StandardError,"[segment scale connect! | error: {0}]".format(error)
+	    
+	    try:#Do a few attribute connections =======================================================================================
+		#Push squash and stretch multipliers to cog
+		try:
+		    for k in mi_distanceBuffer.d_indexToAttr.keys():
+			attrName = 'scaleMult_%s'%k
+			cgmMeta.cgmAttr(mi_distanceBuffer.mNode,'scaleMult_%s'%k,keyable=1,hidden=0).doCopyTo(mi_jawHandle.mNode,attrName,connectSourceToTarget = True)
+			cgmMeta.cgmAttr(mi_jawHandle.mNode,attrName,defaultValue = 1)
+		except Exception,error:raise StandardError,"[scaleMult transfer! | error: {0}]".format(error)
+		
+		cgmMeta.cgmAttr(mi_curve,'twistType').doCopyTo(mi_jawHandle.mNode,connectSourceToTarget=True)
+		cgmMeta.cgmAttr(mi_curve,'twistExtendToEnd').doCopyTo(mi_jawHandle.mNode,connectSourceToTarget=True)
+		cgmMeta.cgmAttr(mi_curve,'scaleMidUp').doCopyTo(mi_jawHandle.mNode,connectSourceToTarget=True)
+		cgmMeta.cgmAttr(mi_curve,'scaleMidOut').doCopyTo(mi_jawHandle.mNode,connectSourceToTarget=True)
+	    except Exception,error:raise StandardError,"[segment attribute transfer! | error: {0}]".format(error)
+	    
 	    try:#>> Skin  =======================================================================================
-		d_build = {'jawPlate':{'target':mi_jawPlate,'mi':3,'dr':9,
+		d_build = {'jawPlate':{'target':mi_jawPlate,'mi':4,'dr':9,
 		                       'bindJoints':ml_skinJoints + ml_segment},
 		           'lwrTeethPlate':{'target':mi_lwrTeethPlate,'mi':3,'dr':9,
 		                            'bindJoints':[mi_jawRig]},
@@ -3784,6 +3788,139 @@ def build_rig(*args, **kws):
 	    return	
 	
 	def _buildCheeks_(self):
+	    mi_go = self._go#Rig Go instance link   
+	    '''
+	    try:#influenceJoints -----------------------------------------------------------------------
+		d_build = {'jawLine':{'skip':['left','right']},
+		           'cheekRig':{'index':-1},
+		           'cheekAnchor':{},
+	                   'jawAnchor':{}}
+		self.create_influenceJoints(d_build)
+		self.log_infoDict(self.md_rigList['cheekRigInfluenceJoints'],'cheekRig')
+		self.log_infoDict(self.md_rigList['jawLineInfluenceJoints'],'jawLine')
+	    except Exception,error:raise StandardError,"[influence joints | error: {0}]".format(error)	
+	    '''
+	    
+	    '''
+	    try:#Attach stuff to surfaces ====================================================================================		
+		d_build = {'cheekAnchorInfluenceJoints':{'attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position via the left lip corner
+		           'jawAnchorInfluenceJoints':{'attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position
+	                   'cheekAnchor':{'mode':'handleAttach','attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position         
+	                   'cheekAnchor':{'mode':'handleAttach','attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position         	                   
+	                   }
+		self.attach_fromDict(d_build)
+	    except Exception,error:raise StandardError,"[Attach! | error: {0}]".format(error)
+	    
+	    try:#>>> Connect rig joints to handles ==================================================================
+		d_build = {'sneerHandleInfluenceJoints':{'mode':'pointConstraint','rewireFollicleOffset':True,
+	                                                 'left':{'targets':[self.md_rigList['sneerHandle']['left'][0]],
+	                                                         'rewireHandle':self.md_rigList['sneerHandle']['left'][0]},
+	                                                 'right':{'targets':[self.md_rigList['sneerHandle']['right'][0]],
+	                                                          'rewireHandle':self.md_rigList['sneerHandle']['right'][0]}},		           
+	                   'smileHandle':{'mode':'pointConstraint','rewireFollicleOffset':True,
+	                                  'left':{'targets':[self.md_rigList['lipCornerHandle']['left'][0]],
+	                                          'rewireHandle':self.md_rigList['lipCornerHandle']['left'][0]},
+	                                  'right':{'targets':[self.md_rigList['lipCornerHandle']['right'][0]],#was lipCornerRig
+	                                           'rewireHandle':self.md_rigList['lipCornerHandle']['right'][0]}},
+	                   'smileLineRig':{'mode':'rigToSegment'},
+	                   'smileBaseHandle':{'mode':'parentConstraint',
+	                                      'targets':[self.md_rigList['chinTrackLoc'][0]]}	           
+	                   }
+		self.connect_fromDict(d_build)
+	    except Exception,error:raise StandardError,"[Connect! | error: {0}]".format(error) 		    
+	    '''
+
+	    try:#Build Curves ===================================================================================================
+		md_curvesBuilds = {'uprCheekFollowLeft':{'pointTargets':self.md_rigList['uprCheekRig']['left'] + [self.md_rigList['smileLineRig']['left'][0]]},
+		                   'uprCheekFollowRight':{'pointTargets':self.md_rigList['uprCheekRig']['right'] + [self.md_rigList['smileLineRig']['right'][0]]}}	
+		self.create_curvesFromDict(md_curvesBuilds)
+	    except Exception,error:raise StandardError,"[Build Curves!] | error: {0}".format(error)
+	    
+	    try:#Build plates ===================================================================================================
+		md_plateBuilds = {'cheekLeft':{'mode':'cheekLoft','direction':'left','name':'cheek',
+		                               'smileCrv':self.mi_smileLeftCrv},
+		                  'cheekRight':{'mode':'cheekLoft','direction':'right','name':'cheek',
+		                                'smileCrv':self.mi_smileRightCrv}}
+		self.create_plateFromDict(md_plateBuilds)
+	    except Exception,error:raise StandardError,"[Plates!] | error: {0}".format(error)
+	    
+	    try:#Attach stuff to surfaces ====================================================================================
+		#Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
+		str_skullPlate = self.str_skullPlate
+		str_jawPlate = self.mi_jawPlate.p_nameShort
+		str_cheekLeftPlate = self.mi_cheekLeftPlate.p_nameShort
+		str_cheekRightPlate = self.mi_cheekRightPlate.p_nameShort
+		str_uprCheekFollowLeftCrv = self.mi_uprCheekFollowLeftCrv.p_nameShort
+		str_uprCheekFollowRightCrv = self.mi_uprCheekFollowRightCrv.p_nameShort
+			
+		d_build = {'sneerHandle':{'mode':'parentOnly','attachTo':str_jawPlate,'parentTo':self.md_rigList['noseMoveRig'][0].masterGroup.p_nameShort},
+		           'jawAnchor':{'mode':'handleAttach','attachTo':str_jawPlate,},
+		           'cheekRig':{'mode':'rigAttach','attachTo':str_jawPlate,
+		                       'left':{'attachTo':str_cheekLeftPlate},
+		                       'right':{'attachTo':str_cheekRightPlate}},
+		           'uprCheekRig':{'attachTo':str_jawPlate,},
+		           'uprCheekHandles':{'attachTo':str_jawPlate,
+		                              'left':{0:{'mode':'handleAttach'},
+		                                      1:{}},
+		                              'right':{0:{'mode':'handleAttach'},
+		                                       1:{}}},		           	                         		           	           
+		           'jawLine':{'attachTo':str_jawPlate,'mode':'handleAttach'},
+		           }
+		"""
+		d_build = {'smileHandle':{}}
+		"""
+		self.attach_fromDict(d_build)
+	    except Exception,error:raise StandardError,"[Attach!] | error: {0}".format(error)
+	    
+	    #self.log_infoNestedDict('md_attachReturns')
+	    
+	    try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
+		mi_noseMove = self.md_rigList['noseMoveHandle'][0]		
+		d_build = {'cheekFollowLeft':{'target':self.mi_uprCheekFollowLeftCrv,
+		                              'bindJoints':[mi_noseMove,
+		                                            self.md_rigList['smileLineRig']['left'][0],		                                            
+		                                            self.md_rigList['smileLineRig']['left'][1],
+		                                            self.md_rigList['uprCheekHandles']['left'][0]]},
+		           'cheekFollowRight':{'target':self.mi_uprCheekFollowRightCrv,
+		                              'bindJoints':[mi_noseMove,
+		                                            self.md_rigList['smileLineRig']['right'][0],		                                            
+		                                            self.md_rigList['smileLineRig']['right'][1],
+		                                            self.md_rigList['uprCheekHandles']['right'][0]]},
+		           'cheekRight':{'target':self.mi_cheekRightPlate,
+		                        'bindJoints':self.md_rigList['jawLine']['right'] + self.md_rigList['smileLineRig']['right'] + self.md_rigList['jawAnchor']['right'] + self.md_rigList['uprCheekHandles']['right']},		           
+		           'cheekLeft':{'target':self.mi_cheekLeftPlate,
+		                        'bindJoints':self.md_rigList['jawLine']['left'] + self.md_rigList['smileLineRig']['left'] + self.md_rigList['jawAnchor']['left'] + self.md_rigList['uprCheekHandles']['left']}}
+		self.skin_fromDict(d_build)
+	    except Exception,error:raise StandardError,"[Skinning! | error: {0}]".format(error)	
+	    
+	    try:#>>> Connect rig joints to handles ==================================================================
+		'''
+		{'lipCornerRig':{},
+		           'mouthMoveTrackLoc':{'driver':self.md_rigList['mouthMove']}}
+		self.md_rigList['mouthMoveTrackLoc']   
+		'''
+		"""
+		'jawLine':{'mode':'rigToFollow',
+		                      'skip':['center'],
+		                      'left':{'attachTo':self.mi_cheekLeftPlate},
+		                      'right':{'attachTo':self.mi_cheekRightPlate}}
+		d_build = {'smileHandle':{'mode':'pointBlend',
+		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]},
+		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]}}}		
+		"""
+		d_build = {'uprCheekRig':{'mode':'rigToFollow',
+		                          'left':{'attachTo':self.mi_cheekLeftPlate},
+		                          'right':{'attachTo':self.mi_cheekRightPlate}},
+		           'uprCheekHandles':{'mode':'rigToFollow',
+		                              'index':1,#Only use one index
+		                              'left':{'attachTo':self.mi_uprCheekFollowLeftCrv},
+		                              'right':{'attachTo':self.mi_uprCheekFollowRightCrv}}}
+		                      
+		self.connect_fromDict(d_build)
+	    except Exception,error:raise StandardError,"[Connect!] | error: {0}".format(error)	
+	    return
+	
+	def _buildCheeksOld_(self):
 	    mi_go = self._go#Rig Go instance link    
 	    
 	    try:#Build Curves ===================================================================================================
