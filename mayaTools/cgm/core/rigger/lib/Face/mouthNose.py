@@ -846,7 +846,7 @@ def build_rig(*args, **kws):
 	                        #{'step':'NoseBuild','call':self._buildNose_},
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        	                        
 	                        #{'step':'Cheek build','call':self._buildCheeks_},
-	                        {'step':'Lock N hide','call':self._lockNHide_},
+	                        #{'step':'Lock N hide','call':self._lockNHide_},
 	                        ]	
 	    #=================================================================
 	def _gatherInfo_(self):
@@ -1996,10 +1996,12 @@ def build_rig(*args, **kws):
 		                                    'controlObj':self.md_rigList['lipCornerHandle']['right'][0]}},		           
 		           'lipCornerHandle':{'mode':'blendAttach','defaultValue':.75,'followSuffix':'Jaw',
 		                              'drivers':[mi_mouthMoveTrackLoc,mi_mouthMoveJawTrackLoc],'attachTo':[mi_uprTeethPlate,mi_lwrTeethPlate]},
-		           'lipUprHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,#...non center handle
-		                           'center':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode}},
-		           'lipLwrHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,#...non  center handles
-		                           'center':{'mode':'handleAttach','attachTo':mi_lwrTeethPlate}},	           		           		           
+		           #'lipUprHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,#...non center handle
+		                           #'center':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode}},
+		           'lipUprHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,#...non  center handles
+		                           'center':{'mode':'slideHandleAttach','attachTo':mi_uprTeethPlate}},			           
+		           'lipLwrHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveJawTrackLoc.mNode,#...non  center handles
+		                           'center':{'mode':'slideHandleAttach','attachTo':mi_lwrTeethPlate}},	           		           		           
 		           #'lipLwrHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode,#...non  center handles
 		           #                'center':{'mode':'blendAttach','defaultValue':.6,'attachTo':mi_lwrTeethPlate.mNode,
 		           #                          'followSuffix':'Jaw','target0':mi_mouthMoveTrackLoc}},	           
@@ -2025,9 +2027,13 @@ def build_rig(*args, **kws):
 		           'lipCornerHandle':{'mode':'attrOffsetConnect','driver':self.md_rigList['mouthMove'],'attrsToConnect':['tz'],
 		                              'right':{'attrsToMirror':['tz']}},
 		           'lipCornerRig':{'mode':'attrOffsetConnect','driver':self.md_rigList['mouthMove'],'attrsToConnect':['tz'],
-		                           'right':{'attrsToMirror':['tz']}},		           
+		                           'right':{'attrsToMirror':['tz']}},
 		           'lipLwrHandle':{'skip':['left','right'],
-		                           'center':{'mode':'offsetConnect','driver':self.md_rigList['mouthMove']}},
+		                           'center':{'mode':'simpleSlideHandle','driver':self.md_rigList['mouthMove']}},
+		           'lipUprHandle':{'skip':['left','right'],
+		                           'center':{'mode':'simpleSlideHandle','driver':self.md_rigList['mouthMove']}},		           
+		           #'lipLwrHandle':{'skip':['left','right'],
+		                           #'center':{'mode':'offsetConnect','driver':self.md_rigList['mouthMove']}},
 		           #'lipCornerRig':{'rewireFollicleOffset':True},#...will connect to handle
 		           }
 		self.connect_fromDict(d_build)
@@ -2040,12 +2046,12 @@ def build_rig(*args, **kws):
 		mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		mi_offsetGroup.doName()
 		mObj.connectChildNode(mi_offsetGroup,"offsetGroup","childObject")
-		
+		"""
 		mc.pointConstraint([self.md_rigList['lipCornerHandle']['left'][0].mNode,
 		                    self.md_rigList['mouthMove'][0].mNode,
 		                    self.md_rigList['lipCornerHandle']['right'][0].mNode],
 		                   mi_offsetGroup.mNode,skip = [mi_go._jointOrientation[0],mi_go._jointOrientation[2]],
-		                   maintainOffset = True)
+		                   maintainOffset = True)"""
 	    except Exception,error:raise StandardError,"[Center upr lip offsetgroup! | error: {0}]".format(error)
 	    
 	    try:#>>> Aim some stuff =================================================================================
@@ -2079,7 +2085,8 @@ def build_rig(*args, **kws):
 		d_build = {#'chin':{'mode':'singleTarget','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
 		                   #'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_lwrCenterHandle.masterGroup},
 		           'lipUprHandle':{'mode':'singleBlend','upLoc':mi_mouthMoveUpLoc,'skip':['left','right'],
-		                           'center':{'d_target0':{'target':self.md_rigList['lipCornerHandle']['left'][0],
+		                           'center':{'offsetGroup':mi_offsetGroup,
+		                                     'd_target0':{'target':self.md_rigList['lipCornerHandle']['left'][0],
 		                                        'v_aim':mi_go._vectorOut,'v_up':mi_go._vectorAim},
 		                                     'd_target1':{'target':self.md_rigList['lipCornerHandle']['right'][0],
 		                                                  'v_aim':mi_go._vectorOutNegative,'v_up':mi_go._vectorAim}}}}
@@ -4663,7 +4670,21 @@ def build_rig(*args, **kws):
 					                                            parentToFollowGroup = False,
 					                                            orientation = mi_go._jointOrientation)
 					    self.md_attachReturns[mObj] = d_return					
-					except Exception,error:raise StandardError,"[{0} fail! | error: {1}]".format(str_mode,error)				    
+					except Exception,error:raise StandardError,"[{0} fail! | error: {1}]".format(str_mode,error)
+				    elif str_mode == 'slideHandleAttach' and _attachTo:
+					'''
+					Drive a handle position with offset
+					'''
+					try:
+					    d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+	                                                                            targetSurface = _attachTo,
+	                                                                            createControlLoc = True,
+	                                                                            createUpLoc = True,	
+	                                                                            attachControlLoc = True,
+	                                                                            parentToFollowGroup = False,
+	                                                                            orientation = mi_go._jointOrientation)
+					    self.md_attachReturns[mObj] = d_return					
+					except Exception,error:raise StandardError,"[{0} fail! | error: {1}]".format(str_mode,error)
 				    elif str_mode == 'parentOnly':
 					try:mObj.masterGroup.parent = _parentTo
 					except Exception,error:raise StandardError,"[parentTo. | error: {0}]".format(error)		    
@@ -4823,6 +4844,24 @@ def build_rig(*args, **kws):
 					    mc.pointConstraint(mi_target.mNode,mObj.masterGroup.mNode,maintainOffset = True)
 					    #mObj.masterGroup.parent = mi_target
 					except Exception,error:raise StandardError,"[Failed!] | error: {0}".format(error)
+				    elif str_mode == 'simpleSlideHandle':
+					try:
+					    try:#See if we have a handle return
+						if ml_driver: ml_handles = cgmValid.listArg(ml_driver)
+						else:					
+						    ml_handles = self.md_rigList[str_tag.replace('Rig','Handle')][str_key]
+						if len(ml_handles) != len(ml_buffer):raise StandardError,"len of toConnect(%s) != len handles(%s)"%(len(ml_handles),len(ml_buffer))
+						mi_handle = ml_handles[0]
+					    except Exception,error:raise StandardError,"[Query!] | error: {0}".format(error)
+	
+					    try:#Connect the control loc to the center handle
+						mi_controlLoc = self.md_attachReturns[mObj]['controlLoc']
+						cgmMeta.cgmAttr(mi_controlLoc,'translate').doConnectIn("{0}.translate".format(mi_handle.mNode))						
+						cgmMeta.cgmAttr(mi_controlLoc,'rotate').doConnectIn("{0}.rotate".format(mi_handle.mNode))
+						
+					    except Exception,error:raise StandardError,"[Control loc connect!]%error: {0}]".format(error)
+
+					except Exception,error:raise StandardError,"[{0}! | {1}]".format(str_mode,error)				    
 				    elif str_mode == 'rigToHandle':
 					try:
 					    try:#See if we have a handle return
@@ -4854,11 +4893,9 @@ def build_rig(*args, **kws):
 						    mi_rewireHandle = d_buffer.get('rewireHandle') or d_build[str_tag].get('rewireHandle') or mi_handle
 						    mi_follicleOffsetGroup = self.md_attachReturns[mObj]['offsetGroup']
 						    for attr in mi_go._jointOrientation[0]:
-							attributes.doConnectAttr ((mi_rewireHandle.mNode+'.t%s'%attr),(mi_follicleOffsetGroup.mNode+'.t%s'%attr))						    
-						    
-					    except Exception,error:raise StandardError,"[rewire Follicle Offset!%error: {0}]".format(error)
-					    
-					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					    
+							attributes.doConnectAttr ((mi_rewireHandle.mNode+'.t%s'%attr),(mi_follicleOffsetGroup.mNode+'.t%s'%attr))						     
+					    except Exception,error:raise StandardError,"[rewire Follicle Offset! | error: {0}]".format(error)
+					except Exception,error:raise StandardError,"[{0}! | {1}]".format(str_mode,error)					     				
 				    elif str_mode == 'rigToFollow':
 					try:
 					    try:#See if we have a handle return
@@ -5028,7 +5065,7 @@ def build_rig(*args, **kws):
 							NodeF.argsToNodes(arg_attributeBridge).doBuild()					
 					    except Exception,error:raise StandardError,"[Offset group!] | error: {0}".format(error)
 
-					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					     				
+					except Exception,error:raise StandardError,"[{0}! | {1}]".format(str_mode,error)					     				
 				    else:
 					raise NotImplementedError,"not implemented : mode: %s"%str_mode
 		    except Exception,error:  raise StandardError,"[%s]{%s}"%(str_tag,error)			    
@@ -5223,15 +5260,17 @@ def build_rig(*args, **kws):
 					'''
 					We need to first find our target which be a child to our aimOffset group. Sometimes that's the basic offset group
 					'''
-					try: mi_offsetTarget = d_current['offsetGroup']#See if we have an offset group
-					except:
-					    self.log_warning("'%s' |No offset group in build dict. Checking object"%str_mObj)
-					    try:
-						mi_offsetTarget = mObj.offsetGroup
+					mi_offsetTarget = d_buffer.get('offsetGroup') or d_build[str_tag].get('offsetGroup') or False
+					if not mi_offsetTarget:
+					    try: mi_offsetTarget = d_current['offsetGroup']#See if we have an offset group
 					    except:
-						self.log_warning("'%s' | No offset group found. Using object"%str_mObj)					
-						mi_offsetTarget = mObj
-			
+						self.log_warning("'%s' |No offset group in build dict. Checking object"%str_mObj)
+						try:
+						    mi_offsetTarget = mObj.offsetGroup
+						except:
+						    self.log_warning("'%s' | No offset group found. Using object"%str_mObj)					
+						    mi_offsetTarget = mObj
+			    
 					mi_aimOffsetGroup = cgmMeta.cgmObject(mi_offsetTarget.doGroup(True),setClass=True)
 					mi_aimOffsetGroup.doStore('cgmName',mObj.mNode)
 					mi_aimOffsetGroup.addAttr('cgmTypeModifier','AimOffset',lock=True)
