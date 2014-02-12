@@ -841,12 +841,12 @@ def build_rig(*args, **kws):
 	    self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
 	                        {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
 	                        {'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
-	                        #{'step':'Lip Structure','call':self._buildLipStructure_},
+	                        {'step':'Lip Structure','call':self._buildLipStructure_},
 	                        #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
 	                        #{'step':'NoseBuild','call':self._buildNose_},
 	                        #{'step':'Tongue build','call':self._buildTongue_},	                        	                        
 	                        #{'step':'Cheek build','call':self._buildCheeks_},
-	                        #{'step':'Lock N hide','call':self._lockNHide_},
+	                        {'step':'Lock N hide','call':self._lockNHide_},
 	                        ]	
 	    #=================================================================
 	def _gatherInfo_(self):
@@ -1987,7 +1987,7 @@ def build_rig(*args, **kws):
 		           #'lipCornerRig':{'attachTo':mi_lwrTeethPlate},#reg, will be driven by...		           
 		           #'lipCornerHandle':{'mode':'parentOnly','attachTo':None,'parentTo':mi_mouthMoveTrackLoc.mNode},
 		           #'lipCornerHandle':{'mode':'handleAttach','attachTo':mi_lwrTeethPlate},
-		           'lipCornerRig':{'mode':'blendAttach','defaultValue':.75,'followSuffix':'Jaw',
+		           'lipCornerRig':{'mode':'blendAttach','defaultValue':.75,'followSuffix':'Jaw','connectFollicleOffset':True,
 		                           'left':{'mode':'blendAttach','attachTo':[mi_uprTeethPlate,mi_lwrTeethPlate],
 		                                   'drivers':[self.md_rigList['lipCornerHandle']['left'][0],self.md_rigList['lipCornerHandle']['left'][0]],
 		                                   'controlObj':self.md_rigList['lipCornerHandle']['left'][0]},
@@ -2022,7 +2022,10 @@ def build_rig(*args, **kws):
 		d_build = {'mouthMoveTrackLoc':{'driver':self.md_rigList['mouthMove']},
 		           'chinTrackLoc':{'driver':self.md_rigList['chin']},
 		           #'lipCornerHandle':{'driver':self.md_rigList['mouthMove']},
-		           #'lipCornerHandle':{'mode':'offsetConnect','driver':self.md_rigList['mouthMove']},
+		           'lipCornerHandle':{'mode':'attrOffsetConnect','driver':self.md_rigList['mouthMove'],'attrsToConnect':['tz'],
+		                              'right':{'attrsToMirror':['tz']}},
+		           'lipCornerRig':{'mode':'attrOffsetConnect','driver':self.md_rigList['mouthMove'],'attrsToConnect':['tz'],
+		                           'right':{'attrsToMirror':['tz']}},		           
 		           'lipLwrHandle':{'skip':['left','right'],
 		                           'center':{'mode':'offsetConnect','driver':self.md_rigList['mouthMove']}},
 		           #'lipCornerRig':{'rewireFollicleOffset':True},#...will connect to handle
@@ -2073,8 +2076,8 @@ def build_rig(*args, **kws):
 		'''
 		#'lipLwrRig':{'mode':'lipLineBlend','upLoc':mi_mouthMoveUpLoc}
 		#mi_noseMove,mi_noseMove.masterGroup,
-		d_build = {'chin':{'mode':'singleTarget','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
-		                   'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_lwrCenterHandle.masterGroup},
+		d_build = {#'chin':{'mode':'singleTarget','v_aim':mi_go._vectorUp,'v_up':mi_go._vectorUp,
+		                   #'upLoc':mi_mouthMoveUpLoc,'aimTarget':mi_lwrCenterHandle.masterGroup},
 		           'lipUprHandle':{'mode':'singleBlend','upLoc':mi_mouthMoveUpLoc,'skip':['left','right'],
 		                           'center':{'d_target0':{'target':self.md_rigList['lipCornerHandle']['left'][0],
 		                                        'v_aim':mi_go._vectorOut,'v_up':mi_go._vectorAim},
@@ -4201,7 +4204,11 @@ def build_rig(*args, **kws):
 		    try:d_buffer['follicleFollow'].parent = mi_go._i_rigNull
 		    except:pass
 		    try:d_buffer['follicleAttach'].parent = mi_go._i_rigNull
-		    except:pass				
+		    except:pass	
+		    try:
+			if d_buffer.get('controlLoc'):
+			    mi_go.connect_toRigGutsVis(d_buffer['controlLoc'],vis = True)#connect to guts vis switches
+		    except:pass			    
 	    except Exception,error:raise StandardError,"Parent follicles. | ] | error: {0}".format(error)
 	    
 	def returnRebuiltCurveString(self,crv, int_spans = 5, rpo = 0):
@@ -4263,6 +4270,7 @@ def build_rig(*args, **kws):
 				    _parentTo = d_use.get('parentTo') or False
 				    str_mode = d_use.get('mode') or 'rigAttach'
 				    str_base = mObj.getBaseName() or 'NONAMETAG'
+				    b_connectFollicleOffset = d_buffer.get('connectFollicleOffset') or d_build[str_tag].get('connectFollicleOffset') or False 
 				    
 				    try:#Status update ----------------------------------------------------------------------
 					str_message = "Attach : '%s' | mObj: '%s' | mode: '%s' | _attachTo: '%s' | parentTo: '%s' "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo)
@@ -4552,6 +4560,15 @@ def build_rig(*args, **kws):
 					    except Exception,error:
 						#self.log_infoNestedDict('d_buffer')
 						raise StandardError,"!Setup follow loc blend!|!] | error: {0}".format(error)
+					    
+					    try:#connectFollicleOffset ==================================================================================
+						if b_connectFollicleOffset:
+						    for mi_loc in mi_targ0Loc,mi_targ1Loc:
+							mi_follicleOffsetGroup = self.md_attachReturns[mi_loc]['offsetGroup']
+							for attr in mi_go._jointOrientation[0]:
+							    attributes.doConnectAttr ((_mControlObj.mNode+'.t%s'%attr),(mi_follicleOffsetGroup.mNode+'.t%s'%attr))						    
+							
+					    except Exception,error:raise StandardError,"[Connect Follicle Offset! | error: {0}]".format(error)					    
 					except Exception,error:raise StandardError,"[{0} fail! | error: {1}]".format(str_mode,error)				    
 				    elif str_mode == 'blendAttachStable' and _attachTo:
 					try:#Blend attach ==================================================================================
@@ -4791,7 +4808,7 @@ def build_rig(*args, **kws):
 				    try:#Gather data ----------------------------------------------------------------------
 					str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'rigToHandle'
 					b_rewireFollicleOffset = d_buffer.get('rewireFollicleOffset') or d_build[str_tag].get('rewireFollicleOffset') or False 
-					ml_driver = d_buffer.get('driver') or False
+					ml_driver = d_buffer.get('driver') or d_build[str_tag].get('driver')  or False
 				    except Exception,error:raise StandardError,"[Data gather!] | error: {0}".format(error)
 
 				    try:#Status update ----------------------------------------------------------------------
@@ -4977,7 +4994,41 @@ def build_rig(*args, **kws):
 							attributes.doConnectAttr ((mi_rewireHandle.mNode+'.t%s'%attr),(mi_follicleOffsetGroup.mNode+'.t%s'%attr))						    
 					    except Exception,error:raise StandardError,"[rewire Follicle Offset!%error: {0}]".format(error)
 					    
-					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					   
+					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)	
+					
+				    elif str_mode == 'attrOffsetConnect':
+					try:
+					    try:#See if we have a handle return
+						if ml_driver: ml_handles = cgmValid.listArg(ml_driver)
+						else:ml_handles = self.md_rigList[str_tag.replace('Rig','Handle')][str_key]
+						if len(ml_handles) != len(ml_buffer):raise StandardError,"len of toConnect(%s) != len handles(%s)"%(len(ml_handles),len(ml_buffer))
+						mi_handle = ml_handles[0]
+						l_attrsToConnect = d_buffer.get('attrsToConnect') or d_build[str_tag].get('attrsToConnect') or ['tx','ty','tz']
+						l_attrsToMirror = d_buffer.get('attrsToMirror') or d_build[str_tag].get('attrsToMirror') or []
+						self.log_info("{0} | attrOffsetConnect | driver: {1} | attrsToConnect: {2} | attrsToMirror: {3}".format(str_mObj,ml_driver,l_attrsToConnect,l_attrsToMirror))
+
+					    except Exception,error:raise StandardError,"[Query! | error: {0}]".format(error)
+	
+					    try:#Setup the offset to push handle rotation to the rig joint control
+						#Create offsetgroup for the mid
+						mi_offsetGroup = cgmMeta.cgmObject( mObj.doGroup(True),setClass=True)	 
+						mi_offsetGroup.doStore('cgmName',mObj.mNode)
+						mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
+						mi_offsetGroup.doName()
+						mObj.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')
+						
+						for a in l_attrsToConnect:
+						    if a not in l_attrsToMirror:
+							cgmMeta.cgmAttr(mi_offsetGroup,a).doConnectIn("{0}.{1}".format(mi_handle.mNode,a))
+						    else:
+							mPlug_attrBridgeDriven = cgmMeta.cgmAttr(mi_offsetGroup,a)
+							mPlug_attrBridgeDriver = cgmMeta.cgmAttr(mi_handle,a)
+							arg_attributeBridge = "%s = -%s"%(mPlug_attrBridgeDriven.p_combinedShortName,
+							                                  mPlug_attrBridgeDriver.p_combinedShortName)							
+							NodeF.argsToNodes(arg_attributeBridge).doBuild()					
+					    except Exception,error:raise StandardError,"[Offset group!] | error: {0}".format(error)
+
+					except Exception,error:raise StandardError,"[%s!]{%s}"%(str_mode,error)					     				
 				    else:
 					raise NotImplementedError,"not implemented : mode: %s"%str_mode
 		    except Exception,error:  raise StandardError,"[%s]{%s}"%(str_tag,error)			    
