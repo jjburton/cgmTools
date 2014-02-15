@@ -37,17 +37,6 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                                    {'kw':'maxIterations',"default":10,"argType":'float','help':"maxIterations"},
                                    {'kw':'pierceDepth',"default":4,"argType":'float','help':"maxIterations"}]       
 			self.__dataBind__(*args, **kws)
-			surface = self.d_kws['surface']
-			raySource = self.d_kws['raySource']
-			rayDir = self.d_kws['rayDir']
-			maxDistance = self.d_kws['maxDistance']
-			obj = self.d_kws['obj']
-			axis = self.d_kws['axis']
-			vector = self.d_kws['vector']
-			singleReturn = self.d_kws['singleReturn']
-			axisToCheck = self.d_kws['axisToCheck']
-			maxIterations = self.d_kws['maxIterations']
-			pierceDepth = self.d_kws['pierceDepth']
 						
 		def findSurfaceIntersections(self):
 			'''
