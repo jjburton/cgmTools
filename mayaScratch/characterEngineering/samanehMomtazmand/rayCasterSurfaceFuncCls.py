@@ -37,8 +37,13 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                                    {'kw':'maxIterations',"default":10,"argType":'float','help':"maxIterations"},
                                    {'kw':'pierceDepth',"default":4,"argType":'float','help':"maxIterations"}]       
 			self.__dataBind__(*args, **kws)
-						
-		def findSurfaceIntersections(self):
+			surface = self.d_kws['surface']
+			raySource = self.d_kws['raySource']
+			rayDir = self.d_kws['rayDir']
+			maxDistance = self.d_kws['maxDistance']
+			
+			# Functions		
+		def findSurfaceIntersections(surface, raySource, rayDir, maxDistance = 1000):
 			'''
 			Return the pierced points on a surface from a raySource and rayDir
 			'''						 
@@ -120,7 +125,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 				log.error(">>> %s >> surface: %s | raysource: %s | rayDir %s | error: %s"%(_str_funcName,surface,raySource,rayDir,error))
 				return None
 			            	
-		def findSurfaceIntersectionFromObjectAxis(self):            	
+		def findSurfaceIntersectionFromObjectAxis(surface, obj, axis = 'z+', vector = False, maxDistance = 1000, singleReturn = True):            	
 			'''
 			Find surface intersections for an object's axis
 			'''
@@ -152,7 +157,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 				log.error(">>> %s >> surface: %s | obj: %s | axis %s | vector: %s | error: %s"%(self._str_funcName,surface,obj,axis,vector,error))
 				return None 	
 
-		def findSurfaceMidPointFromObject(self):            	
+		def findSurfaceMidPointFromObject(mesh,obj,axisToCheck = ['x','z'], vector = False, maxDistance = 1000, maxIterations = 10,**kws):            	
 			'''
 			findSurfaceMidPointFromObject
 			'''
@@ -199,7 +204,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 				raise StandardError, "%s >> error: %s"%(self._str_funcName,error)										
 							
 							
-		def findFurthestPointInRangeFromObject(self):            	
+		def findFurthestPointInRangeFromObject(surface,obj,axis = 'z+', pierceDepth = 4, vector = False, maxDistance = 1000):            	
 			'''
 			Find the furthest point in range on an axis. Useful for getting to the outershell of a surface
 			'''
@@ -233,12 +238,3 @@ rayCasterSurfaceFuncCls(reportTimes = 1)
 rayCasterSurfaceFuncCls(printHelp = 1)
 rayCasterSurfaceFuncCls(reportShow = 1)
 rayCasterSurfaceFuncCls(reportEnv = 1)# Exception: LocalMayaEnv.rayCasterSurfaceFuncCls >>  rayCasterSurfaceFuncCls >>  No function set # 
-    
-    
-    
-    
-    
-    
-    
-    
-    	
