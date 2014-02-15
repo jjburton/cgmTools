@@ -86,22 +86,22 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 					            	
 				#Get the closest intersection.
 				self.gotHit = self.surfaceFn.allIntersections(raySource,
-	            																			 self.rayDirection,
-																									 self.noFaceIds,
-																									 self.noTriangleIds,
-																									 self.sortIds,
-																									 om.MSpace.kWorld,
-																									 self.maxDist,
-																									 self.bothDirections,
-																									 self.noAccelerator,
-																									 self.noSortHits,
-																									 self.hitPoints, 
-																									 self.noHitParam, 
-																									 self.noHitFace, 
-																									 self.noHitTriangle, 
-																									 self.noHitBary1, 
-																									 self.noHitBary2,
-																									 self.tolerance)
+	            											 self.rayDirection,
+															 self.noFaceIds,
+															 self.noTriangleIds,
+															 self.sortIds,
+															 om.MSpace.kWorld,
+															 self.maxDist,
+															 self.bothDirections,
+															 self.noAccelerator,
+															 self.noSortHits,
+															 self.hitPoints, 
+															 self.noHitParam, 
+															 self.noHitFace, 
+															 self.noHitTriangle, 
+															 self.noHitBary1, 
+															 self.noHitBary2,
+															 self.tolerance)
 								
 				#Return the intersection as a Python list.
 				if self.gotHit:
