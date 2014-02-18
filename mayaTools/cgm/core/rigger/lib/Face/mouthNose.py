@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 mouthNose rig builder
 ================================================================
 """
-__version__ = 'faceAlpha2.01302014'
+__version__ = 'faceAlpha2.02182014'
 
 # From Python =============================================================
 import copy
@@ -835,7 +835,7 @@ def build_rig(*args, **kws):
     class fncWrap(modUtils.rigStep):
         def __init__(self,*args, **kws):
             super(fncWrap, self).__init__(*args, **kws)
-            self._str_funcName = 'build_rig(%s)'%self.d_kws['goInstance']._strShortName	
+            self._str_funcName = 'build_rig({0})'.format(self.d_kws['goInstance']._strShortName)	
             self._b_reportTimes = True
             self.__dataBind__()
             self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
@@ -844,9 +844,11 @@ def build_rig(*args, **kws):
                                 #{'step':'Lip Structure','call':self._buildLipStructure_},
                                 #{'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
                                 #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
-                                #{'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
+                                #'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
                                 #{'step':'Tongue build','call':self._buildTongue_},
-                                #{'step':'Upper Cheek','call':self._buildUprCheek_},	                        	                        
+                                #{'step':'Upper Cheek','call':self._buildUprCheek_},
+                                {'step':'Mid Cheek','call':self._buildMidCheek_},	  
+                                #{'step':'JawLine build','call':self._buildJawLines_},
                                 #{'step':'Cheek build','call':self._buildCheeks_},
                                 #{'step':'Lock N hide','call':self._lockNHide_},
                                 ]	
@@ -875,8 +877,8 @@ def build_rig(*args, **kws):
 
             #>> Get our lists ==========================================================================
             '''
-	    We need lists of handle and a rig joints for each part - We're going to get it by doing a procedural dict search
-	    '''
+            We need lists of handle and a rig joints for each part - We're going to get it by doing a procedural dict search
+            '''
             ml_handleJoints = mi_go._i_rigNull.msgList_get('handleJoints')
             ml_rigJoints = mi_go._i_rigNull.msgList_get('rigJoints')
             self.md_rigList = {"squashSegmentLower":{},
@@ -1000,28 +1002,39 @@ def build_rig(*args, **kws):
                         self.log_error("[{0} | Check toggle off]".format(k_tag))
                 except Exception,error:raise Exception,"['{0}' loop | error: {1}]".format(k_tag,error)
 
-            #>> Segment Joints --------------------------------------------------------------------------------------------------
-            self.md_rigList['uprLipSegment'] = {}
-            self.md_rigList['lwrLipSegment'] = {}
-            self.md_rigList['uprLipSegment']['left'] = mi_go._i_rigNull.msgList_get('uprLipSegmentLeft')
-            self.md_rigList['uprLipSegment']['right'] = mi_go._i_rigNull.msgList_get('uprLipSegmentRight')
-
-            self.md_rigList['lwrLipSegment']['left'] = mi_go._i_rigNull.msgList_get('lwrLipSegmentLeft')
-            self.md_rigList['lwrLipSegment']['right'] = mi_go._i_rigNull.msgList_get('lwrLipSegmentRight') 
-
-
-            self.md_rigList['smileLineSegment'] = {}
-            self.md_rigList['smileLineSegment']['left'] = mi_go._i_rigNull.msgList_get('smileLineSegmentLeft')
-            self.md_rigList['smileLineSegment']['right'] = mi_go._i_rigNull.msgList_get('smileLineSegmentRight')	
-            
-            self.md_rigList['uprCheekSegment'] = {}
-            self.md_rigList['uprCheekSegment']['left'] = mi_go._i_rigNull.msgList_get('uprCheekSegmentLeft')
-            self.md_rigList['uprCheekSegment']['right'] = mi_go._i_rigNull.msgList_get('uprCheekSegmentRight')	
-            
-            #>> Segment Joints --------------------------------------------------------------------------------------------------
-            self.md_rigList['squashSegmentLower']['center'] = mi_go._i_rigNull.msgList_get('lowerStretchSegment')
-            self.md_rigList['squashSegmentLower']['start'] = mi_go._i_rigNull.lowerStretchStartDriver
-            self.md_rigList['squashSegmentLower']['end'] = mi_go._i_rigNull.lowerStretchEndDriver
+            try:#>> Segment Joints --------------------------------------------------------------------------------------------------
+                self.md_rigList['uprLipSegment'] = {}
+                self.md_rigList['lwrLipSegment'] = {}
+                self.md_rigList['uprLipSegment']['left'] = mi_go._i_rigNull.msgList_get('uprLipSegmentLeft')
+                self.md_rigList['uprLipSegment']['right'] = mi_go._i_rigNull.msgList_get('uprLipSegmentRight')
+    
+                self.md_rigList['lwrLipSegment']['left'] = mi_go._i_rigNull.msgList_get('lwrLipSegmentLeft')
+                self.md_rigList['lwrLipSegment']['right'] = mi_go._i_rigNull.msgList_get('lwrLipSegmentRight') 
+    
+    
+                self.md_rigList['smileLineSegment'] = {}
+                self.md_rigList['smileLineSegment']['left'] = mi_go._i_rigNull.msgList_get('smileLineSegmentLeft')
+                self.md_rigList['smileLineSegment']['right'] = mi_go._i_rigNull.msgList_get('smileLineSegmentRight')	
+                
+                self.md_rigList['uprCheekSegment'] = {}
+                self.md_rigList['uprCheekSegment']['left'] = mi_go._i_rigNull.msgList_get('uprCheekSegmentLeft')
+                self.md_rigList['uprCheekSegment']['right'] = mi_go._i_rigNull.msgList_get('uprCheekSegmentRight')	
+                
+                self.md_rigList['cheekSegment'] = {}
+                self.md_rigList['cheekSegment']['left'] = mi_go._i_rigNull.msgList_get('cheekSegmentLeft')
+                self.md_rigList['cheekSegment']['right'] = mi_go._i_rigNull.msgList_get('cheekSegmentRight')	
+                #self.log_infoDict(self.md_rigList['cheekSegment'],'cheekSegment')
+                
+                self.md_rigList['jawLineSegment'] = {}
+                self.md_rigList['jawLineSegment']['left'] = mi_go._i_rigNull.msgList_get('jawLineSegmentLeft')
+                self.md_rigList['jawLineSegment']['right'] = mi_go._i_rigNull.msgList_get('jawLineSegmentRight')	
+                self.log_infoDict(self.md_rigList['jawLineSegment'],'jawLineSegment')
+                
+                #>> Segment Joints --------------------------------------------------------------------------------------------------
+                self.md_rigList['squashSegmentLower']['center'] = mi_go._i_rigNull.msgList_get('lowerStretchSegment')
+                self.md_rigList['squashSegmentLower']['start'] = mi_go._i_rigNull.lowerStretchStartDriver
+                self.md_rigList['squashSegmentLower']['end'] = mi_go._i_rigNull.lowerStretchEndDriver
+            except Exception,error:raise Exception,"[Segment joints | error: {0}]".format(error)
 
 
             #>> Lip Tigteners --------------------------------------------------------------------------------------------------
@@ -1038,6 +1051,8 @@ def build_rig(*args, **kws):
             self.f_offsetOfUpLoc = distance.returnBoundingBoxSizeToAverage(self.mi_skullPlate.mNode)
 
             #>> Running lists ==========================================================================
+            self.md_rigList['specialLocs'] = {}
+            self.d_dataBuffer = {}            
             self.ml_toVisConnect = []
             self.ml_curves = []
             self.md_attachReturns = {}
@@ -1094,6 +1109,7 @@ def build_rig(*args, **kws):
                 mi_mouthMove = self.md_rigList['mouthMove'][0]
 
                 f_lenJawLine = distance.returnCurveLength(self.mi_jawLineCrv.mNode)
+                self.d_dataBuffer['f_lenJawLine'] = f_lenJawLine
                 d_['f_lenJawLine'] = f_lenJawLine
                 d_['mi_jawHandle'] = mi_jawHandle
                 d_['mi_jawRig'] = mi_jawRig
@@ -1166,7 +1182,33 @@ def build_rig(*args, **kws):
 
                 except Exception,error:raise Exception,"[def duplication! | error: {0}]".format(error)	
             except Exception,error:raise Exception,"[Simple Def ! | error: {0}]".format(error)	
-
+            
+            try:#Build Some Special Locs =======================================================================================
+                mi_uprHeadDef = self.md_rigList['uprHeadDef'][0]
+                d_directions = {'left':{'vector':[-2,0,0]},
+                                'right':{'vector':[2,0,0]}}
+                self.md_rigList['specialLocs']['uprHeadDef'] = {}
+                
+                for k_dir in d_directions.keys():
+                    mi_loc = mi_uprHeadDef.doLoc()
+                    str_locKey = "uprHeadUpLoc{0}".format(k_dir.capitalize())
+                    log.info(str_locKey)
+                    v_offset = cgmMath.multiplyLists([d_directions[k_dir]['vector'],[f_lenJawLine,f_lenJawLine,f_lenJawLine]])
+                    try:mc.move(v_offset[0],v_offset[1],v_offset[2],mi_loc.mNode,relative = 1)
+                    except Exception,error:"[Move fail | error: {0}]".format(error)
+                    try:
+                        mi_loc.addAttr('cgmName',str_locKey)
+                        mi_loc.doName()
+                    except Exception,error:"[Name | error: {0}]".format(error)
+                    
+                    mi_loc.parent = mi_uprHeadDef
+                    self.md_rigList['specialLocs']['uprHeadDef'][k_dir] = mi_loc
+                    mi_uprHeadDef.connectChildNode(mi_loc,str_locKey,'source')
+                    
+                    self._go.connect_toRigGutsVis(mi_loc,vis = True)#connect to guts vis switches
+                    
+            except Exception,error:raise Exception,"[Build Skull up locs | error: {0}]".format(error) 	             
+             
             try:#Get Segment Data =======================================================================================
                 ml_segment = self.md_rigList['squashSegmentLower']['center']
                 mi_startInfluence = self.md_rigList['squashSegmentLower']['start']
@@ -2185,9 +2227,9 @@ def build_rig(*args, **kws):
 
                         try:#>> Args to nodes -----------------------------------------------------------------------
                             '''
-			    l_lipCorner_uprDriver_jnt.rotateX = l_lipCorner_handle_anim.tightUpr;
-			    l_lipCorner_lwrDriver_jnt.rotateX = -l_lipCorner_handle_anim.tightLwr;
-			    '''				    
+                            l_lipCorner_uprDriver_jnt.rotateX = l_lipCorner_handle_anim.tightUpr;
+                            l_lipCorner_lwrDriver_jnt.rotateX = -l_lipCorner_handle_anim.tightLwr;
+                            '''				    
                             self.log_info("'%s' | Args to nodes"%(str_k))
                             d_argToBuild = {'upr':"%s%s = %s"%(mi_uprDriver.p_nameShort,str_rollAttr, mPlug_tightenUpr.p_combinedShortName),
                                             'lwr':"%s%s = -%s"%(mi_lwrDriver.p_nameShort,str_rollAttr, mPlug_tightenLwr.p_combinedShortName)}
@@ -2283,17 +2325,17 @@ def build_rig(*args, **kws):
                     self.ml_lwrLipHandles = ml_lwrLipHandles
 
                     '''	
-		    d_logs = {'uprLipRig':ml_uprLipRigJoints,
-			      'lipLwrRig':ml_lwrLipRigJoints,
-			      'uprLipHandle':ml_uprLipHandles,
-			      'lwrLipHandle':ml_lwrLipHandles,
-			      }
-
-		    for k in d_logs.iterkeys():
-			self.log_info("%s..."%k)
-			for mObj in d_logs[k]:
-			    self.log_info("--> %s "%mObj.p_nameShort)	
-			    '''
+                    d_logs = {'uprLipRig':ml_uprLipRigJoints,
+                          'lipLwrRig':ml_lwrLipRigJoints,
+                          'uprLipHandle':ml_uprLipHandles,
+                          'lwrLipHandle':ml_lwrLipHandles,
+                          }
+        
+                    for k in d_logs.iterkeys():
+                    self.log_info("%s..."%k)
+                    for mObj in d_logs[k]:
+                        self.log_info("--> %s "%mObj.p_nameShort)	
+                        '''
                     ml_curves = []
 
                     try:#Upr driven curve
@@ -2363,49 +2405,49 @@ def build_rig(*args, **kws):
 
 
                 '''	
-		try:#Locators and aiming -------------------------------------------------------
-		    self.progressBar_set(status = 'Locator creation!')
-
-		    #Make a loc group
-		    mi_locGroup = cgmMeta.cgmObject(mc.group(em=True))
-		    mi_locGroup.parent = mi_go._i_constrainNull
-		    mi_locGroup.addAttr('cgmTypeModifier','locGroup')
-		    mi_locGroup.doName()
-		    mi_locGroup.parent = mi_go._i_rigNull
-		    self.ml_toVisConnect.append(mi_locGroup)
-
-		    ml_locs = []
-		    self.progressBar_setMaxStepValue(len(ml_uprLipRigJoints + ml_lwrLipRigJoints))	
-
-		    for i,mi_obj in enumerate(ml_uprLipRigJoints + ml_lwrLipRigJoints):
-			try:
-			    self.progressBar_iter(status = ("Curve locator: '%s'"%mi_obj.p_nameShort))			    
-
-			    try:#Loc creation -----------------------------------------------------------
-				mi_loc = mi_obj.doLoc()
-				ml_locs.append(mi_loc)
-				mi_locShape = cgmMeta.cgmNode(mi_loc.getShapes()[0])
-				mi_locShape.localScaleX = mi_go._f_skinOffset
-				mi_locShape.localScaleY = mi_go._f_skinOffset
-				mi_locShape.localScaleZ = mi_go._f_skinOffset
-				mi_loc.parent = mi_locGroup
-			    except Exception,error:raise Exception,"[loc creation] | error: {0}".format(error)  	    
-			    #> Aim constraint
-			    #mi_root = mi_obj.root
-			    #mi_root.parent = self._i_constrainNull
-			    #try:mc.aimConstraint(mi_loc.mNode,mi_root.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
-			    #except Exception,error:raise Exception,"[aim constrai]{%s}%s"%(error)  	    
-			    #Attach to curve
-			    if i < len(ml_uprLipRigJoints):mi_crv = mi_uprDrivenCrv
-			    else:mi_crv = mi_lwrDrivenCrv
-			    try:crvUtils.attachObjToCurve(mi_loc.mNode,mi_crv.mNode)
-			    except Exception,error:raise Exception," attach| %s "%(error)  	    
-			    self.md_attachReturns[mObj] = {'posLoc':mi_loc,'posLocShape':mi_locShape}#store it
-			except Exception,error:raise Exception,"%s | '%s' loc setup | %s "%(i,mi_obj.p_nameShort,error)  	    
-
-		except Exception,error:
-		    raise StandardError,"locator/aim setup | %s"%(error)
-		'''
+                try:#Locators and aiming -------------------------------------------------------
+                    self.progressBar_set(status = 'Locator creation!')
+        
+                    #Make a loc group
+                    mi_locGroup = cgmMeta.cgmObject(mc.group(em=True))
+                    mi_locGroup.parent = mi_go._i_constrainNull
+                    mi_locGroup.addAttr('cgmTypeModifier','locGroup')
+                    mi_locGroup.doName()
+                    mi_locGroup.parent = mi_go._i_rigNull
+                    self.ml_toVisConnect.append(mi_locGroup)
+        
+                    ml_locs = []
+                    self.progressBar_setMaxStepValue(len(ml_uprLipRigJoints + ml_lwrLipRigJoints))	
+        
+                    for i,mi_obj in enumerate(ml_uprLipRigJoints + ml_lwrLipRigJoints):
+                    try:
+                        self.progressBar_iter(status = ("Curve locator: '%s'"%mi_obj.p_nameShort))			    
+        
+                        try:#Loc creation -----------------------------------------------------------
+                        mi_loc = mi_obj.doLoc()
+                        ml_locs.append(mi_loc)
+                        mi_locShape = cgmMeta.cgmNode(mi_loc.getShapes()[0])
+                        mi_locShape.localScaleX = mi_go._f_skinOffset
+                        mi_locShape.localScaleY = mi_go._f_skinOffset
+                        mi_locShape.localScaleZ = mi_go._f_skinOffset
+                        mi_loc.parent = mi_locGroup
+                        except Exception,error:raise Exception,"[loc creation] | error: {0}".format(error)  	    
+                        #> Aim constraint
+                        #mi_root = mi_obj.root
+                        #mi_root.parent = self._i_constrainNull
+                        #try:mc.aimConstraint(mi_loc.mNode,mi_root.mNode,maintainOffset = False, weight = 1, aimVector = v_aim, upVector = v_up, worldUpVector = [0,1,0], worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
+                        #except Exception,error:raise Exception,"[aim constrai]{%s}%s"%(error)  	    
+                        #Attach to curve
+                        if i < len(ml_uprLipRigJoints):mi_crv = mi_uprDrivenCrv
+                        else:mi_crv = mi_lwrDrivenCrv
+                        try:crvUtils.attachObjToCurve(mi_loc.mNode,mi_crv.mNode)
+                        except Exception,error:raise Exception," attach| %s "%(error)  	    
+                        self.md_attachReturns[mObj] = {'posLoc':mi_loc,'posLocShape':mi_locShape}#store it
+                    except Exception,error:raise Exception,"%s | '%s' loc setup | %s "%(i,mi_obj.p_nameShort,error)  	    
+        
+                except Exception,error:
+                    raise StandardError,"locator/aim setup | %s"%(error)
+                '''
                 try:#Lip setup -------------------------------------------------------
                     try:#Wire deformers -------------------------------------------------------------
                         self.progressBar_set(status = 'Smart Seal - Wire deformer...')
@@ -2516,8 +2558,8 @@ def build_rig(*args, **kws):
 
             try:#Reverse curve ====================================
                 '''
-		Setup driven reverse curve for upr and lower to drive the right side segments
-		'''
+                Setup driven reverse curve for upr and lower to drive the right side segments
+                '''
                 d_toDup = {'uprLipDrivenReverse':mi_uprDrivenCrv,
                            'lwrLipDrivenReverse':mi_lwrDrivenCrv}	
 
@@ -2545,7 +2587,7 @@ def build_rig(*args, **kws):
                                             'right':{'mi_curve':self.mi_lwrLipDrivenReverseCrv}}}	
                 self.create_segmentfromDict(d_build)
             except Exception,error:raise Exception,"[Segments | error: {0}]".format(error)  
-
+            
             try:#Setup Lip Roll ========================================================================
                 #Gonna setup our connections for the roll setup
                 d_build = {'uprLipRoll':{'handleKey':'lipUprHandle',
@@ -2624,11 +2666,11 @@ def build_rig(*args, **kws):
                         try:#>> Args to nodes -----------------------------------------------------------------------
                             self.log_info("'%s' | Args to nodes"%(str_k))
                             '''
-			    uprLip_driven_splineIKCurve.twistStart= -center_lipUpr_handle_anim.rollLeft - (center_lipUpr_handle_anim.rotateX/2) ;
-			    uprLip_driven_splineIKCurve.twistEnd = -center_lipUpr_handle_anim.rollLeft - center_lipUpr_handle_anim.rotateX - (center_lipUpr_handle_anim.rollRight/3);
-			    uprLip_ReverseDriven_splineIKCurve.twistStart = center_lipUpr_handle_anim.rollRight + (center_lipUpr_handle_anim.rotateX/2);	    
-			    uprLip_ReverseDriven_splineIKCurve.twistEnd = center_lipUpr_handle_anim.rollRight + center_lipUpr_handle_anim.rotateX + (center_lipUpr_handle_anim.rollLeft/3);
-			    '''			    
+                            uprLip_driven_splineIKCurve.twistStart= -center_lipUpr_handle_anim.rollLeft - (center_lipUpr_handle_anim.rotateX/2) ;
+                            uprLip_driven_splineIKCurve.twistEnd = -center_lipUpr_handle_anim.rollLeft - center_lipUpr_handle_anim.rotateX - (center_lipUpr_handle_anim.rollRight/3);
+                            uprLip_ReverseDriven_splineIKCurve.twistStart = center_lipUpr_handle_anim.rollRight + (center_lipUpr_handle_anim.rotateX/2);	    
+                            uprLip_ReverseDriven_splineIKCurve.twistEnd = center_lipUpr_handle_anim.rollRight + center_lipUpr_handle_anim.rotateX + (center_lipUpr_handle_anim.rollLeft/3);
+                            '''			    
                             try:#>>Build our dicts --------------------------------------------------------------------
                                 d_argToBuild = {'averageRoll':{'arg':toFill_averageRoll,
                                                                'fill':(mPlug_result_averageRoll.p_combinedShortName,
@@ -2698,7 +2740,7 @@ def build_rig(*args, **kws):
                            'lipLwrRig':{'mode':'rigToSegment'}}
                 self.connect_fromDict(d_build)
             except Exception,error:raise Exception,"[Connect! | error: {0}]".format(error) 
-
+            
             try:#Build mid lip Up Locs ========================================================================	
                 d_build = {'uprLipSegment':{'left':{'mi_curve':mi_uprDrivenCrv},
                                             'right':{'mi_curve':self.mi_uprLipDrivenReverseCrv}},
@@ -2737,7 +2779,7 @@ def build_rig(*args, **kws):
                 d_build = {'lipUprRig':{'mode':'lipLineSegmentBlend','midUpLoc':self.mi_uprLipSegmentMidUpLoc,'midHandle':self.md_rigList['lipUprHandle']['center'][0],'v_up':mi_go._vectorUp},
                            'lipLwrRig':{'mode':'lipLineSegmentBlend','midUpLoc':self.mi_lwrLipSegmentMidUpLoc,'midHandle':self.md_rigList['lipLwrHandle']['center'][0],'v_up':mi_go._vectorUp}}
                 self.aim_fromDict(d_build)
-            except Exception,error:raise Exception,"[Aim!] | error: {0}".format(error)
+            except Exception,error:raise Exception,"[Aim! | error: {0}]".format(error)
 
         def _buildLipOverUnder_(self):
             #>> Get some data =======================================================================================
@@ -4351,7 +4393,65 @@ def build_rig(*args, **kws):
             except Exception,error:raise Exception,"[constrain mids!] | error: {0}".format(error)	    
 
             return
+        
+        def _buildJawLines_(self):
+            mi_go = self._go#Rig Go instance link
+            try:#Pull Local ========================================================================
+                f_lenJawLine = self.d_dataBuffer['f_lenJawLine']
+            except Exception,error:raise Exception,"[Pull local | error: {0}]".format(error)  
+            
+            try:#make special up locs for handles -----------------------------------------------------------------------
+                d_build = {'jawAnchor':{'mode':'handleAimOut','offsetDist':f_lenJawLine}}
+                self.create_specialLocsFromDict(d_build)
+            except Exception,error:raise Exception,"[influence joints | error: {0}]".format(error)	           
+            
+            '''
+            try:#Setup segments ========================================================================
+                d_build = {'jawLineSegment':{'orientation':mi_go._jointOrientation,
+                                             'left':{'mi_curve':None},
+                                             'right':{'mi_curve':None}}}	
+                self.create_segmentfromDict(d_build)
+            except Exception,error:raise Exception,"[Segments | error: {0}]".format(error)  
+            '''
 
+            try:#Attach stuff to surfaces ====================================================================================
+                str_jawPlate = self.mi_jawPlate.p_nameShort                
+                d_build = {'jawAnchor':{'mode':'handleAttach','attachTo':str_jawPlate},
+                           'jawLine':{'attachTo':str_jawPlate,'mode':'pointAttach',
+                                      'center':{'mode':'handleAttach'}}}
+                self.attach_fromDict(d_build)
+            except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
+            
+            try:#>>> Aim some stuff =================================================================================
+                d_build = {'jawLine':{'mode':'segmentSingleAim','skip':['center'],
+                                      'left':{'v_aim':mi_go._vectorOutNegative,'v_up':mi_go._vectorAim,
+                                              'upLoc':self.md_rigList['jawAnchor']['left'][0].handleAimOut},
+                                      'right':{'v_aim':mi_go._vectorOut,'v_up':mi_go._vectorAimNegative,
+                                               'upLoc':self.md_rigList['jawAnchor']['right'][0].handleAimOut}}}
+                self.aim_fromDict(d_build)
+            except Exception,error:raise Exception,"[Aim! | error: {0}]".format(error)      
+            
+            '''
+            try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
+                d_build = {'jawLineLeft':{'target':self.md_rigList['jawLineSegment']['leftSegmentCurve'],
+                                        'bindJoints':[self.md_rigList['jawAnchor']['left'][0],
+                                                      self.md_rigList['jawLine']['center'][0]
+                                                      ]},
+                           'jawLineRight':{'target':self.md_rigList['jawLineSegment']['rightSegmentCurve'],
+                                         'bindJoints':[self.md_rigList['jawAnchor']['right'][0],
+                                                       self.md_rigList['jawLine']['center'][0]]}}
+                self.skin_fromDict(d_build)
+            except Exception,error:raise Exception,"[Skinning! | error: {0}".format(error)	  
+            '''
+            try:#>>> Connect rig joints to handles ==================================================================
+                d_build = {'jawLine':{'skip':['left','right'],
+                                      'mode':'attrOffsetConnect','driver':self.md_rigList['chin'][0],'attrsToConnect':['tz']}}
+                           #'jawLine':{'skip':['center'],
+                                      #'mode':'rigToSegment'}}
+                self.connect_fromDict(d_build)
+            except Exception,error:raise Exception,"[Connect! | error: {0}]".format(error) 	    
+            
+            
         def _buildSmileLines_(self):
             mi_go = self._go#Rig Go instance link
 
@@ -4495,52 +4595,52 @@ def build_rig(*args, **kws):
         def _buildCheeks_(self):
             mi_go = self._go#Rig Go instance link   
             '''
-	    try:#influenceJoints -----------------------------------------------------------------------
-		d_build = {'jawLine':{'skip':['left','right']},
-		           'cheekRig':{'index':-1},
-		           'cheekAnchor':{},
-	                   'jawAnchor':{}}
-		self.create_influenceJoints(d_build)
-		self.log_infoDict(self.md_rigList['cheekRigInfluenceJoints'],'cheekRig')
-		self.log_infoDict(self.md_rigList['jawLineInfluenceJoints'],'jawLine')
-	    except Exception,error:raise Exception,"[influence joints | error: {0}]".format(error)	
-	    '''
+            try:#influenceJoints -----------------------------------------------------------------------
+            d_build = {'jawLine':{'skip':['left','right']},
+                       'cheekRig':{'index':-1},
+                       'cheekAnchor':{},
+                           'jawAnchor':{}}
+            self.create_influenceJoints(d_build)
+            self.log_infoDict(self.md_rigList['cheekRigInfluenceJoints'],'cheekRig')
+            self.log_infoDict(self.md_rigList['jawLineInfluenceJoints'],'jawLine')
+            except Exception,error:raise Exception,"[influence joints | error: {0}]".format(error)	
+            '''
 
             '''
-	    try:#Attach stuff to surfaces ====================================================================================		
-		d_build = {'cheekAnchorInfluenceJoints':{'attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position via the left lip corner
-		           'jawAnchorInfluenceJoints':{'attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position
-	                   'cheekAnchor':{'mode':'handleAttach','attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position         
-	                   'cheekAnchor':{'mode':'handleAttach','attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position         	                   
-	                   }
-		self.attach_fromDict(d_build)
-	    except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
-
-	    try:#>>> Connect rig joints to handles ==================================================================
-		d_build = {'sneerHandleInfluenceJoints':{'mode':'pointConstraint','rewireFollicleOffset':True,
-	                                                 'left':{'targets':[self.md_rigList['sneerHandle']['left'][0]],
-	                                                         'rewireHandle':self.md_rigList['sneerHandle']['left'][0]},
-	                                                 'right':{'targets':[self.md_rigList['sneerHandle']['right'][0]],
-	                                                          'rewireHandle':self.md_rigList['sneerHandle']['right'][0]}},		           
-	                   'smileHandle':{'mode':'pointConstraint','rewireFollicleOffset':True,
-	                                  'left':{'targets':[self.md_rigList['lipCornerHandle']['left'][0]],
-	                                          'rewireHandle':self.md_rigList['lipCornerHandle']['left'][0]},
-	                                  'right':{'targets':[self.md_rigList['lipCornerHandle']['right'][0]],#was lipCornerRig
-	                                           'rewireHandle':self.md_rigList['lipCornerHandle']['right'][0]}},
-	                   'smileLineRig':{'mode':'rigToSegment'},
-	                   'smileBaseHandle':{'mode':'parentConstraint',
-	                                      'targets':[self.md_rigList['chinTrackLoc'][0]]}	           
-	                   }
-		self.connect_fromDict(d_build)
-	    except Exception,error:raise Exception,"[Connect! | error: {0}]".format(error) 		    
-	    '''
+            try:#Attach stuff to surfaces ====================================================================================		
+            d_build = {'cheekAnchorInfluenceJoints':{'attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position via the left lip corner
+                       'jawAnchorInfluenceJoints':{'attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position
+                           'cheekAnchor':{'mode':'handleAttach','attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position         
+                           'cheekAnchor':{'mode':'handleAttach','attachTo':self.mi_jawPlate},#...rig attach so that we can drive it's position         	                   
+                           }
+            self.attach_fromDict(d_build)
+            except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
+    
+            try:#>>> Connect rig joints to handles ==================================================================
+            d_build = {'sneerHandleInfluenceJoints':{'mode':'pointConstraint','rewireFollicleOffset':True,
+                                                         'left':{'targets':[self.md_rigList['sneerHandle']['left'][0]],
+                                                                 'rewireHandle':self.md_rigList['sneerHandle']['left'][0]},
+                                                         'right':{'targets':[self.md_rigList['sneerHandle']['right'][0]],
+                                                                  'rewireHandle':self.md_rigList['sneerHandle']['right'][0]}},		           
+                           'smileHandle':{'mode':'pointConstraint','rewireFollicleOffset':True,
+                                          'left':{'targets':[self.md_rigList['lipCornerHandle']['left'][0]],
+                                                  'rewireHandle':self.md_rigList['lipCornerHandle']['left'][0]},
+                                          'right':{'targets':[self.md_rigList['lipCornerHandle']['right'][0]],#was lipCornerRig
+                                                   'rewireHandle':self.md_rigList['lipCornerHandle']['right'][0]}},
+                           'smileLineRig':{'mode':'rigToSegment'},
+                           'smileBaseHandle':{'mode':'parentConstraint',
+                                              'targets':[self.md_rigList['chinTrackLoc'][0]]}	           
+                           }
+            self.connect_fromDict(d_build)
+            except Exception,error:raise Exception,"[Connect! | error: {0}]".format(error) 		    
+            '''
 
             try:#Build Curves ===================================================================================================
-                md_curvesBuilds = {'uprCheekFollowLeft':{'pointTargets':self.md_rigList['uprCheekRig']['left'] + [self.md_rigList['smileLineRig']['left'][0]]},
-                                   'uprCheekFollowRight':{'pointTargets':self.md_rigList['uprCheekRig']['right'] + [self.md_rigList['smileLineRig']['right'][0]]}}	
+                md_curvesBuilds = {'uprCheekFollowLeft':{'pointTargets':self.md_rigList['uprCheekRig']['left'][:-1] + [self.md_rigList['smileLineRig']['left'][0]]},
+                                   'uprCheekFollowRight':{'pointTargets':self.md_rigList['uprCheekRig']['right'][:-1] + [self.md_rigList['smileLineRig']['right'][0]]}}	
                 self.create_curvesFromDict(md_curvesBuilds)
             except Exception,error:raise Exception,"[Build Curves!] | error: {0}".format(error)
-
+            
             try:#Build plates ===================================================================================================
                 md_plateBuilds = {'cheekLeft':{'mode':'cheekLoft','direction':'left','name':'cheek',
                                                'smileCrv':self.mi_smileLeftCrv},
@@ -4548,83 +4648,40 @@ def build_rig(*args, **kws):
                                                 'smileCrv':self.mi_smileRightCrv}}
                 self.create_plateFromDict(md_plateBuilds)
             except Exception,error:raise Exception,"[Plates!] | error: {0}".format(error)
-
+            
             try:#Attach stuff to surfaces ====================================================================================
                 #Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
                 str_skullPlate = self.str_skullPlate
                 str_jawPlate = self.mi_jawPlate.p_nameShort
                 str_cheekLeftPlate = self.mi_cheekLeftPlate.p_nameShort
                 str_cheekRightPlate = self.mi_cheekRightPlate.p_nameShort
-                str_uprCheekFollowLeftCrv = self.mi_uprCheekFollowLeftCrv.p_nameShort
-                str_uprCheekFollowRightCrv = self.mi_uprCheekFollowRightCrv.p_nameShort
 
-                d_build = {'sneerHandle':{'mode':'parentOnly','attachTo':str_jawPlate,'parentTo':self.md_rigList['noseMoveRig'][0].masterGroup.p_nameShort},
-                           'jawAnchor':{'mode':'handleAttach','attachTo':str_jawPlate,},
-                           'cheekRig':{'mode':'rigAttach','attachTo':str_jawPlate,
-                                       'left':{'attachTo':str_cheekLeftPlate},
-                                       'right':{'attachTo':str_cheekRightPlate}},
-                           'uprCheekRig':{'attachTo':str_jawPlate,},
-                           'uprCheekHandles':{'attachTo':str_jawPlate,
-                                              'left':{0:{'mode':'handleAttach'},
-                                                      1:{}},
-                                              'right':{0:{'mode':'handleAttach'},
-                                                       1:{}}},		           	                         		           	           
-                           'jawLine':{'attachTo':str_jawPlate,'mode':'handleAttach'},
+                d_build = {'cheekRig':{'mode':'pointAttach','attachTo':str_jawPlate,
+                                       'left':{'mode':'pointAttach','attachTo':str_cheekLeftPlate},
+                                       'right':{'mode':'pointAttach','attachTo':str_cheekRightPlate}},	           	                         		           	           
                            }
-                """
-		d_build = {'smileHandle':{}}
-		"""
+
                 self.attach_fromDict(d_build)
             except Exception,error:raise Exception,"[Attach!] | error: {0}".format(error)
 
-            #self.log_infoNestedDict('md_attachReturns')
-
             try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
                 mi_noseMove = self.md_rigList['noseMoveHandle'][0]		
-                d_build = {'cheekFollowLeft':{'target':self.mi_uprCheekFollowLeftCrv,
-                                              'bindJoints':[mi_noseMove,
-                                                            self.md_rigList['smileLineRig']['left'][0],		                                            
-                                                            self.md_rigList['smileLineRig']['left'][1],
-                                                            self.md_rigList['uprCheekHandles']['left'][0]]},
-                           'cheekFollowRight':{'target':self.mi_uprCheekFollowRightCrv,
-                                               'bindJoints':[mi_noseMove,
-                                                             self.md_rigList['smileLineRig']['right'][0],		                                            
-                                                             self.md_rigList['smileLineRig']['right'][1],
-                                                             self.md_rigList['uprCheekHandles']['right'][0]]},
-                           'cheekRight':{'target':self.mi_cheekRightPlate,
-                                         'bindJoints':self.md_rigList['jawLine']['right'] + self.md_rigList['smileLineRig']['right'] + self.md_rigList['jawAnchor']['right'] + self.md_rigList['uprCheekHandles']['right']},		           
+                d_build = {'cheekRight':{'target':self.mi_cheekRightPlate,
+                                         'bindJoints':self.md_rigList['jawLine']['right'] + self.md_rigList['smileLineRig']['right'] + self.md_rigList['uprCheekRig']['right']},		           
                            'cheekLeft':{'target':self.mi_cheekLeftPlate,
-                                        'bindJoints':self.md_rigList['jawLine']['left'] + self.md_rigList['smileLineRig']['left'] + self.md_rigList['jawAnchor']['left'] + self.md_rigList['uprCheekHandles']['left']}}
+                                        'bindJoints':self.md_rigList['jawLine']['left'] + self.md_rigList['smileLineRig']['left'] + self.md_rigList['uprCheekRig']['left']}}
                 self.skin_fromDict(d_build)
             except Exception,error:raise Exception,"[Skinning! | error: {0}]".format(error)	
-
-            try:#>>> Connect rig joints to handles ==================================================================
-                '''
-		{'lipCornerRig':{},
-		           'mouthMoveTrackLoc':{'driver':self.md_rigList['mouthMove']}}
-		self.md_rigList['mouthMoveTrackLoc']   
-		'''
-                """
-		'jawLine':{'mode':'rigToFollow',
-		                      'skip':['center'],
-		                      'left':{'attachTo':self.mi_cheekLeftPlate},
-		                      'right':{'attachTo':self.mi_cheekRightPlate}}
-		d_build = {'smileHandle':{'mode':'pointBlend',
-		                          'left':{'targets':[self.md_rigList['lipCornerRig']['left'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]},
-		                          'right':{'targets':[self.md_rigList['lipCornerRig']['right'][0].masterGroup,self.md_rigList['mouthMoveTrackLoc'][0]]}}}		
-		"""
-                d_build = {'uprCheekRig':{'mode':'rigToFollow',
-                                          'left':{'attachTo':self.mi_cheekLeftPlate},
-                                          'right':{'attachTo':self.mi_cheekRightPlate}},
-                           'uprCheekHandles':{'mode':'rigToFollow',
-                                              'index':1,#Only use one index
-                                              'left':{'attachTo':self.mi_uprCheekFollowLeftCrv},
-                                              'right':{'attachTo':self.mi_uprCheekFollowRightCrv}}}
-
-                self.connect_fromDict(d_build)
-            except Exception,error:raise Exception,"[Connect!] | error: {0}".format(error)	
-            return
-
+            
+            try:#>>> Aim some stuff =================================================================================
+                d_build = {'cheekRig':{'mode':'segmentSingleAim','skip':['center'],
+                                       'left':{'v_aim':mi_go._vectorOutNegative,'v_up':mi_go._vectorAim,
+                                               'upLoc':self.md_rigList['jawAnchor']['left'][0].handleAimOut},
+                                       'right':{'v_aim':mi_go._vectorOut,'v_up':mi_go._vectorAimNegative,
+                                                'upLoc':self.md_rigList['jawAnchor']['right'][0].handleAimOut}}}
+                self.aim_fromDict(d_build)
+            except Exception,error:raise Exception,"[Aim! | error: {0}]".format(error)      
+            
         def _buildCheeksOld_(self):
             mi_go = self._go#Rig Go instance link    
 
@@ -4664,9 +4721,6 @@ def build_rig(*args, **kws):
                                                        1:{}}},		           	                         		           	           
                            'jawLine':{'mode':'handleAttach'},
                            }
-                """
-		d_build = {'smileHandle':{}}
-		"""
                 self.attach_fromDict(d_build)
             except Exception,error:raise Exception,"[Attach!] | error: {0}".format(error)
 
@@ -4742,23 +4796,95 @@ def build_rig(*args, **kws):
                                                        1:{'mode':'slideHandleAttach','attachTo':mi_browPlate}}}}				
                 self.attach_fromDict(d_build)
             except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
-
+            
+            try:#Setup segments ========================================================================
+                d_build = {'uprCheekSegment':{'orientation':mi_go._jointOrientation,
+                                              'left':{'mi_curve':None},
+                                              'right':{'mi_curve':None}}}	                
+                self.create_segmentfromDict(d_build)
+            except Exception,error:raise Exception,"[Segments | error: {0}]".format(error)  
+            
             try:#>>> Connect rig joints to handles ==================================================================
                 # 'driver':self.md_rigList['mouthMove']
                 d_build = {'uprCheekHandles':{'left':{0:{'mode':'skip'},
                                                       1:{'mode':'simpleSlideHandle','driver':mi_l_eyeMove}},
                                               'right':{0:{'mode':'skip'},
-                                                       1:{'mode':'simpleSlideHandle','driver':mi_r_eyeMove}}}}	
+                                                       1:{'mode':'simpleSlideHandle','driver':mi_r_eyeMove}}},
+                           'uprCheekRig':{'mode':'rigToSegment'}}	
                 self.connect_fromDict(d_build)
-            except Exception,error:raise Exception,"[Connect!] | error: {0}]".format(error)
+            except Exception,error:raise Exception,"[Connect! | error: {0}]".format(error)
+            
+            try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
+                d_build = {'uprCheekLeft':{'target':self.md_rigList['uprCheekSegment']['leftSegmentCurve'],
+                                           'bindJoints':[self.md_rigList['uprCheekHandles']['left'][0],
+                                                         self.md_rigList['uprCheekHandles']['left'][1]]},
+                           'uprCheekRight':{'target':self.md_rigList['uprCheekSegment']['rightSegmentCurve'],
+                                            'bindJoints':[self.md_rigList['uprCheekHandles']['right'][0],
+                                                          self.md_rigList['uprCheekHandles']['right'][1]]}}
+                self.skin_fromDict(d_build)
+            except Exception,error:raise Exception,"[Skinning! | error: {0}]".format(error)	               
             return
+            try:#>>> Aim some stuff =================================================================================
+                d_build = {'uprCheekRig':{'mode':'lipLineSegmentBlend',
+                                          'v_up':mi_go._vectorUp}}
+                self.aim_fromDict(d_build)
+            except Exception,error:raise Exception,"[Aim! | error: {0}]".format(error)
+            
+        def _buildMidCheek_(self):
+            try:#>> Query ========================================================================
+                mi_go = self._go#Rig Go instance link
+                try:#>> plate queries ---------------------------------------------------------------
+                    str_skullPlate = self.str_skullPlate                    
+                    mi_browPlate = self.mi_browPlate
+                    mi_uprTeethPlate = self.mi_uprTeethPlate
+                    mi_lwrTeethPlate = self.mi_lwrTeethPlate	
+                    mi_jawPlate = self.mi_jawPlate
+                except Exception,error:raise Exception,"[Plate query | error: {0}]".format(error)
+            except Exception,error:raise Exception,"[Query | error: {0}]".format(error)
+            '''
+            try:#influenceJoints -----------------------------------------------------------------------
+                d_build = {'cheekAnchor':{}}
+                self.create_influenceJoints(d_build)
+                self.log_infoDict(self.md_rigList['cheekAnchorInfluenceJoints'],'cheekAnchor')
+            except Exception,error:raise Exception,"[influence joints | error: {0}]".format(error)	
+            '''
+            try:#Attach stuff to surfaces ====================================================================================
+                #Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
+                d_build = {'cheekAnchor':{'left':{'mode':'pointAttach','attachTo':mi_jawPlate},
+                                          'right':{'mode':'pointAttach','attachTo':mi_jawPlate}}}				
+                self.attach_fromDict(d_build)
+            except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
+            
             try:#Setup segments ========================================================================
-                d_build = {'smileLineSegment':{'orientation':mi_go._jointOrientation,
-                                               'left':{'mi_curve':None},
-                                               'right':{'mi_curve':None}}}	                
+                d_build = {'cheekSegment':{'orientation':mi_go._jointOrientation,
+                                           'left':{'mi_curve':None},
+                                           'right':{'mi_curve':None}}}	                
                 self.create_segmentfromDict(d_build)
-            except Exception,error:raise Exception,"[Segments | error: {0}]".format(error)  
-
+            except Exception,error:raise Exception,"[Segments | error: {0}]".format(error) 
+            
+            #smileHandle
+            try:#>>> Connect rig joints to handles ==================================================================
+                # 'driver':self.md_rigList['mouthMove']
+                d_build = {'cheekRig':{'mode':'rigToSegment'}}	
+                self.connect_fromDict(d_build)
+            except Exception,error:raise Exception,"[Connect! | error: {0}]".format(error)
+            
+            try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
+                d_build = {'cheekLeft':{'target':self.md_rigList['cheekSegment']['leftSegmentCurve'],
+                                        'bindJoints':[self.md_rigList['cheekAnchor']['left'][0],
+                                                      self.md_rigList['smileHandle']['left'][0]]},
+                           'cheekRight':{'target':self.md_rigList['cheekSegment']['rightSegmentCurve'],
+                                         'bindJoints':[self.md_rigList['cheekAnchor']['right'][0],
+                                                       self.md_rigList['smileHandle']['right'][0]]}}
+                self.skin_fromDict(d_build)
+            except Exception,error:raise Exception,"[Skinning! | error: {0}]".format(error)	               
+            return
+            try:#>>> Aim some stuff =================================================================================
+                d_build = {'uprCheekRig':{'mode':'lipLineSegmentBlend',
+                                          'v_up':mi_go._vectorUp}}
+                self.aim_fromDict(d_build)
+            except Exception,error:raise Exception,"[Aim! | error: {0}]".format(error)
+            
         def _attachSquash_(self):
             mi_go = self._go#Rig Go instance link
             str_skullPlate = self.str_skullPlate
@@ -4831,355 +4957,187 @@ def build_rig(*args, **kws):
                     try:
                         ml_buffer = []
                         md_buffer = self.get_mdSidesBufferFromTag(str_tag)
-
+                        l_skip = d_build[str_tag].get('skip') or []
                         for str_key in md_buffer.iterkeys():
-                            ml_buffer = md_buffer[str_key]
-                            int_len = len(ml_buffer)
-
-                            if d_build[str_tag].get(str_key):#if we have special instructions for a direction key...
-                                d_buffer = d_build[str_tag][str_key]
+                            if str_key in l_skip:
+                                self.log_info("{0} Skipping attach: {1}".format(str_tag,str_key))
                             else:
-                                d_buffer = d_build[str_tag]
-
-                            for ii,mObj in enumerate(ml_buffer):
-                                try:
-                                    if d_buffer.get(ii):#if we have special instructions for a index key...
-                                        self.log_info("%s | %s > Utilizing index key"%(str_tag,str_key))
-                                        d_use = d_buffer[ii]
-                                        #self.log_infoNestedDict('d_buffer')
-                                    else:d_use = d_buffer
-
-                                    self.d_buffer = d_use
-
-                                    _attachTo = d_use.get('attachTo')
-                                    if _attachTo == None:_attachTo = str_skullPlate
-                                    _parentTo = d_use.get('parentTo') or False
-                                    str_mode = d_use.get('mode') or 'rigAttach'
-                                    str_base = mObj.getBaseName() or 'NONAMETAG'
-                                    b_connectFollicleOffset = d_buffer.get('connectFollicleOffset') or d_build[str_tag].get('connectFollicleOffset') or False 
-
-                                    try:#Status update ----------------------------------------------------------------------
-                                        str_message = "Attach : '%s' | mObj: '%s' | mode: '%s' | _attachTo: '%s' | parentTo: '%s' "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo)
-                                        self.log_info(str_message)
-                                        self.progressBar_set(status = str_message,progress = ii, maxValue= int_len)
-                                    except Exception,error:raise Exception,"[Status Update] | error: {0}".format(error)					    
-
-                                    if str_mode == 'rigAttach' and _attachTo:
-                                        try:#Attach
-                                            d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
-                                                                                    targetSurface = _attachTo,
-                                                                                    createControlLoc = True,
-                                                                                    createUpLoc = True,
-                                                                                    f_offset = f_offsetOfUpLoc,
-                                                                                    orientation = mi_go._jointOrientation)
-                                        except Exception,error:raise Exception,"[Rig mode attach. |error: {0}]".format(error)
-                                        try:#>> Setup curve locs ------------------------------------------------------------------------------------------
-                                            mi_controlLoc = d_return['controlLoc']
-                                            mi_crvLoc = mi_controlLoc.doDuplicate(parentOnly=False)
-                                            mi_crvLoc.addAttr('cgmTypeModifier','followAttach',lock=True)
-                                            mi_crvLoc.doName()
-                                            mi_crvLoc.parent = mi_go._i_rigNull#parent to rigNull
-                                            d_return['followLoc'] = mi_crvLoc #Add the curve loc
-                                            self.md_attachReturns[mObj] = d_return										
-                                        except Exception,error:raise Exception,"[Loc setup. |error: {0}]".format(error)
-                                        #self.log_info("%s mode attached!]{%s}"%(str_mode,mObj.p_nameShort))
-
-                                    elif str_mode == 'handleAttach' and _attachTo:
-                                        try:
-                                            d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
-                                                                                    targetSurface = _attachTo,
-                                                                                    createControlLoc = False,
-                                                                                    createUpLoc = True,	
-                                                                                    parentToFollowGroup = False,
-                                                                                    orientation = mi_go._jointOrientation)
-                                            self.md_attachReturns[mObj] = d_return					
-                                        except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)				    
-
-                                    elif str_mode == 'blendHandleAttach' and _attachTo:
-                                        '''
-					                    This mode is for attaching to two surfaces
-                                        '''
-                                        try:#Blend attach ==================================================================================
-                                            try:#Query ---------------------------------------------------------------------------------------
-                                                _target0 = d_use['target0'] #or self.md_rigList['stableJaw'][0]
-                                                _defaultValue = d_use.get('defaultValue') or None
-                                                _suffix = d_use.get('followSuffix') or 'Deformation'
-                                                _d = {'handle':mObj,
-                                                      'target0':_target0}
-                                                self.d_buffer = _d						
-                                                d_trackLocs = {'stable':{'attachTo':_target0},
-                                                               'def':{'attachTo':_attachTo},}
-
-                                            except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)	
-
-                                            try:#Build Tracklocs -----------------------------------------------------------------------------
-                                                for str_t in d_trackLocs.iterkeys():
-                                                    try:
-                                                        d_sub = d_trackLocs[str_t]
-                                                        mi_loc = mObj.doLoc()
-                                                        mi_loc.addAttr('cgmTypeModifier',str_t)
-                                                        mi_loc.doName()
-                                                        str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
-                                                        _d['%sLoc'%str_t] = mi_loc
-                                                        mi_loc.parent = mi_go._i_rigNull#parent to rigNull
-                                                        try:#Attach
-                                                            d_return = surfUtils.attachObjToSurface(objToAttach = mi_loc,
-                                                                                                    targetSurface = d_sub.get('attachTo'),
-                                                                                                    createControlLoc = False,
-                                                                                                    createUpLoc = False,	
-                                                                                                    attachControlLoc = False,
-                                                                                                    parentToFollowGroup = True,
-                                                                                                    orientation = mi_go._jointOrientation)
-                                                            self.md_attachReturns[mi_loc] = d_return								
-                                                        except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
-                                                        self.log_info("'%s' created"%str_tmp)
-                                                        self.md_rigList[str_tmp] = [mi_loc]
-                                                        self.__dict__['mi_%s'%str_tmp] = mi_loc
-                                                        mObj.connectChildNode(mi_loc,'%sLoc'%str_t,'owner')
-                                                    except Exception,error:raise Exception,"!'%s' loc setup! | %s"%(str_t,error)				
-                                            except Exception,error:raise Exception,"[Track locs! | error: {0}]".format(error)	
-                                            try:#Blend Setup -----------------------------------------------------------------------------
-                                                #Query
-                                                mi_handle = _d['handle']		    
-                                                mi_0Loc = _d['stableLoc']
-                                                mi_1Loc = _d['defLoc']
-                                                mi_stableDef = _d['target0']
-
-                                                if str_mode == 'blendStableAttach':
-                                                    try:#Constrain the stable loc to the face
-                                                        mi_controlLoc = self.md_attachReturns[mi_0Loc]['controlLoc']
-                                                        #mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
-                                                        mi_controlLoc.parent = mi_stableDef
-                                                    except Exception,error:raise Exception,"[Stable loc controlLoc! | error: {0}]".format(error)
-
-                                                try:#Create constrain the handle master Group
-                                                    str_parentConstraint = mc.parentConstraint([mi_0Loc.mNode,mi_1Loc.mNode],mi_handle.masterGroup.mNode,
-                                                                                               maintainOffset = True)[0]
-                                                except Exception,error:raise Exception,"[Parent Constraint! | error: {0}]".format(error)
-
-                                                try:
-                                                    #EndBlend
-                                                    d_blendFollowReturn = NodeF.createSingleBlendNetwork([mi_handle.mNode,'follow%s'%_suffix.capitalize()],
-                                                                                                         [mi_handle.mNode,'resultStableFollow'],
-                                                                                                         [mi_handle.mNode,'resultDefFollow'],
-                                                                                                         keyable=True)
-                                                    l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
-                                                    #Connect                                  
-                                                    d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
-                                                    d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
-                                                    d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
-                                                    d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True	
-                                                    if _defaultValue is not None:
-                                                        d_blendFollowReturn['d_driver']['mi_plug'].p_defaultValue = _defaultValue
-                                                        d_blendFollowReturn['d_driver']['mi_plug'].value = _defaultValue
-                                                except Exception,error:raise Exception,"[Blend! | error: {0}]".format(error)
-
-                                            except Exception,error:
-                                                #self.log_infoNestedDict('d_buffer')
-                                                raise StandardError,"!Setup follow loc blend!|!] | error: {0}".format(error)
-                                        except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)				    
-                                    elif str_mode == 'blendStableAttach' and _attachTo:
-                                        try:#Blend attach ==================================================================================
-                                            try:#Query ---------------------------------------------------------------------------------------
-                                                _target0 = d_use.get('target0') or self.md_rigList['stableJaw'][0]
-                                                _d = {'handle':mObj,
-                                                      'target0':_target0}
-                                                self.d_buffer = _d
-                                                _defaultValue = d_use.get('defaultValue') or None
-                                                _suffix = d_use.get('followSuffix') or 'Deformation'
-                                            except Exception,error:raise Exception,"[Query! | {0}]".format(error)
-
-                                            try:#Build Tracklocs -----------------------------------------------------------------------------
-                                                d_trackLocs = {'stable':{'attachControlLoc':False,'parentToFollowGroup':False},
-                                                               'def':{'attachControlLoc':True,'parentToFollowGroup':True}}
-                                                for str_t in d_trackLocs.iterkeys():
-                                                    try:
-                                                        d_sub = d_trackLocs[str_t]
-                                                        mi_loc = mObj.doLoc()
-                                                        mi_loc.addAttr('cgmTypeModifier',str_t)
-                                                        mi_loc.doName()
-                                                        str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
-                                                        _d['%sLoc'%str_t] = mi_loc
-                                                        mi_loc.parent = mi_go._i_rigNull#parent to rigNull			    
-                                                        try:#Attach
-                                                            d_return = surfUtils.attachObjToSurface(objToAttach = mi_loc,
-                                                                                                    targetSurface = _attachTo,
-                                                                                                    createControlLoc = True,
-                                                                                                    createUpLoc = False,	
-                                                                                                    attachControlLoc = d_sub.get('attachControlLoc'),
-                                                                                                    parentToFollowGroup = d_sub.get('parentToFollowGroup'),
-                                                                                                    orientation = mi_go._jointOrientation)
-                                                            self.md_attachReturns[mi_loc] = d_return								
-                                                        except Exception,error:raise Exception,"[Attach! | {0}]".format(error)
-
-                                                        self.log_info("'%s' created"%str_tmp)
-
-                                                        self.md_rigList[str_tmp] = [mi_loc]
-                                                        self.__dict__['mi_%s'%str_tmp] = mi_loc
-                                                        mObj.connectChildNode(mi_loc,'%sLoc'%str_t,'owner')
-                                                    except Exception,error:raise Exception,"!'%s' loc setup! | %s"%(str_t,error)				
-                                            except Exception,error:raise Exception,"[Track locs! | {0}]".format(error)	
-                                            try:#Blend Setup -----------------------------------------------------------------------------
-                                                #Query
-                                                mi_handle = _d['handle']		    
-                                                mi_stableLoc = _d['stableLoc']
-                                                mi_defLoc = _d['defLoc']
-                                                mi_stableDef = _d['target0']
-
-                                                try:#Constrain the stable loc to the face
-                                                    mi_controlLoc = self.md_attachReturns[mi_stableLoc]['controlLoc']
-                                                    #mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
-                                                    mi_controlLoc.parent = mi_stableDef
-                                                except Exception,error:raise Exception,"!Stable loc controlLoc! | %s"%(error)
-
-                                                try:#Create constrain the handle master Group
-                                                    str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
-                                                                                               maintainOffset = True)[0]
-                                                except Exception,error:raise Exception,"!Parent Constraint! | %s"%(error)
-
-                                                try:
-                                                    #EndBlend
-                                                    d_blendFollowReturn = NodeF.createSingleBlendNetwork([mi_handle.mNode,'follow%s'%_suffix.capitalize()],
-                                                                                                         [mi_handle.mNode,'resultStableFollow'],
-                                                                                                         [mi_handle.mNode,'resultDefFollow'],
-                                                                                                         keyable=True)
-                                                    l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
-                                                    #Connect                                  
-                                                    d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
-                                                    d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
-                                                    d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
-                                                    d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True	
-                                                    if _defaultValue is not None:
-                                                        d_blendFollowReturn['d_driver']['mi_plug'].p_defaultValue = _defaultValue
-                                                        d_blendFollowReturn['d_driver']['mi_plug'].value = _defaultValue
-                                                except Exception,error:raise Exception,"[Blend! | {0}]".format(error)
-
-                                            except Exception,error:
-                                                #self.log_infoNestedDict('d_buffer')
-                                                raise StandardError,"!Setup follow loc blend!|!]{%s}"%(error)
-                                        except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)				    
-                                    elif str_mode == 'blendAttach' and _attachTo:
-                                        try:#Blend attach ==================================================================================
-                                            try:#Query ---------------------------------------------------------------------------------------
-                                                try:
-                                                    _ml_drivers = d_use.get('drivers') or d_build[str_tag][str_key].get('drivers') or False
-                                                    if not cgmValid.isListArg(_ml_drivers):raise ValueError,"blend attach drivers must be list"
-                                                    if len(_ml_drivers)!=2:raise ValueError,"blend attach drivers must be len 2"
-                                                except Exception,error:raise Exception,"[Drivers! | error: {0}]".format(error)	
-
-                                                try:
-                                                    _mControlObj = d_use.get('controlObj') or mObj
-                                                except Exception,error:raise Exception,"[controlObj! | error: {0}]".format(error)	
-
-                                                _d = {'handle':mObj,}
-                                                self.d_buffer = _d
-
-                                                _defaultValue = d_use.get('defaultValue') or None
-                                                _suffix = d_use.get('followSuffix') or 'Deformation'
-                                                if not cgmValid.isListArg(_attachTo):raise ValueError,"blend attach attachTo must be list"
-                                                if len(_attachTo)!=2:raise ValueError,"blend attach attachTo must be len 2"
-                                            except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)	
-
-                                            try:#Build Tracklocs -----------------------------------------------------------------------------
-                                                for i in range(2):
-                                                    try:
-                                                        str_t = 'targ{0}'.format(i)
-                                                        mi_loc = mObj.doLoc()
-                                                        mi_loc.addAttr('cgmTypeModifier',str_t)
-                                                        mi_loc.doName()
-                                                        str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
-                                                        _d['{0}Loc'.format(str_t)] = mi_loc
-                                                        mi_loc.parent = mi_go._i_rigNull#parent to rigNull
-                                                        try:#Attach
-                                                            d_return = surfUtils.attachObjToSurface(objToAttach = mi_loc,
-                                                                                                    targetSurface = _attachTo[i],
-                                                                                                    createControlLoc = True,
-                                                                                                    createUpLoc = False,	
-                                                                                                    attachControlLoc = False,
-                                                                                                    parentToFollowGroup = False,
-                                                                                                    orientation = mi_go._jointOrientation)							    
-                                                            self.md_attachReturns[mi_loc] = d_return								
-                                                        except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
-
-                                                        self.log_info("'%s' created"%str_tmp)
-                                                        self.md_rigList[str_tmp] = [mi_loc]
-                                                        self.__dict__['mi_%s'%str_tmp] = mi_loc
-                                                        mObj.connectChildNode(mi_loc,'%sLoc'%str_t,'owner')
-                                                    except Exception,error:raise Exception,"!'%s' loc setup! | %s"%(str_t,error)				
-                                            except Exception,error:raise Exception,"[Track locs! | error: {0}]".format(error)	
-                                            try:#Blend Setup -----------------------------------------------------------------------------
-                                                try:#Query
-                                                    mi_handle = _d['handle']		    
-                                                    mi_targ0Loc = _d['targ0Loc']
-                                                    mi_targ1Loc = _d['targ1Loc']
-                                                    mi_targ0Driver = self.md_attachReturns[mi_targ0Loc]['controlLoc']
-                                                    mi_targ1Driver = self.md_attachReturns[mi_targ1Loc]['controlLoc']
+                                ml_buffer = md_buffer[str_key]
+                                int_len = len(ml_buffer)
+    
+                                if d_build[str_tag].get(str_key):#if we have special instructions for a direction key...
+                                    d_buffer = d_build[str_tag][str_key]
+                                else:
+                                    d_buffer = d_build[str_tag]
+    
+                                for ii,mObj in enumerate(ml_buffer):
+                                    try:
+                                        if d_buffer.get(ii):#if we have special instructions for a index key...
+                                            self.log_info("%s | %s > Utilizing index key"%(str_tag,str_key))
+                                            d_use = d_buffer[ii]
+                                            #self.log_infoNestedDict('d_buffer')
+                                        else:d_use = d_buffer
+    
+                                        self.d_buffer = d_use
+    
+                                        _attachTo = d_use.get('attachTo') or d_build[str_tag].get('attachTo')
+                                        if _attachTo == None:_attachTo = str_skullPlate
+                                        _parentTo = d_use.get('parentTo') or False
+                                        str_mode = d_use.get('mode') or 'rigAttach'
+                                        str_base = mObj.getBaseName() or 'NONAMETAG'
+                                        b_connectFollicleOffset = d_buffer.get('connectFollicleOffset') or d_build[str_tag].get('connectFollicleOffset') or False 
+    
+                                        try:#Status update ----------------------------------------------------------------------
+                                            str_message = "Attach : '%s' | mObj: '%s' | mode: '%s' | _attachTo: '%s' | parentTo: '%s' "%(str_tag,mObj.p_nameShort,str_mode, _attachTo,_parentTo)
+                                            self.log_info(str_message)
+                                            self.progressBar_set(status = str_message,progress = ii, maxValue= int_len)
+                                        except Exception,error:raise Exception,"[Status Update] | error: {0}".format(error)					    
+    
+                                        if str_mode == 'rigAttach' and _attachTo:
+                                            try:#Attach
+                                                d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+                                                                                        targetSurface = _attachTo,
+                                                                                        createControlLoc = True,
+                                                                                        createUpLoc = True,
+                                                                                        f_offset = f_offsetOfUpLoc,
+                                                                                        orientation = mi_go._jointOrientation)
+                                            except Exception,error:raise Exception,"[Rig mode attach. |error: {0}]".format(error)
+                                            try:#>> Setup curve locs ------------------------------------------------------------------------------------------
+                                                mi_controlLoc = d_return['controlLoc']
+                                                mi_crvLoc = mi_controlLoc.doDuplicate(parentOnly=False)
+                                                mi_crvLoc.addAttr('cgmTypeModifier','followAttach',lock=True)
+                                                mi_crvLoc.doName()
+                                                mi_crvLoc.parent = mi_go._i_rigNull#parent to rigNull
+                                                d_return['followLoc'] = mi_crvLoc #Add the curve loc
+                                                self.md_attachReturns[mObj] = d_return										
+                                            except Exception,error:raise Exception,"[Loc setup. |error: {0}]".format(error)
+                                            #self.log_info("%s mode attached!]{%s}"%(str_mode,mObj.p_nameShort))
+                                        elif str_mode == 'pointAttach' and _attachTo:
+                                            try:#Attach
+                                                d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+                                                                                        targetSurface = _attachTo,
+                                                                                        createControlLoc = False,
+                                                                                        createUpLoc = False,
+                                                                                        f_offset = f_offsetOfUpLoc,
+                                                                                        pointAttach = True,
+                                                                                        orientation = mi_go._jointOrientation)
+                                            except Exception,error:raise Exception,"[Point attach. |error: {0}]".format(error)
+                                        elif str_mode == 'handleAttach' and _attachTo:
+                                            try:
+                                                d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+                                                                                        targetSurface = _attachTo,
+                                                                                        createControlLoc = False,
+                                                                                        createUpLoc = True,	
+                                                                                        parentToFollowGroup = False,
+                                                                                        orientation = mi_go._jointOrientation)
+                                                self.md_attachReturns[mObj] = d_return					
+                                            except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)				    
+    
+                                        elif str_mode == 'blendHandleAttach' and _attachTo:
+                                            '''
+                                            This mode is for attaching to two surfaces
+                                            '''
+                                            try:#Blend attach ==================================================================================
+                                                try:#Query ---------------------------------------------------------------------------------------
+                                                    _target0 = d_use['target0'] #or self.md_rigList['stableJaw'][0]
+                                                    _defaultValue = d_use.get('defaultValue') or None
+                                                    _suffix = d_use.get('followSuffix') or 'Deformation'
+                                                    _d = {'handle':mObj,
+                                                          'target0':_target0}
+                                                    self.d_buffer = _d						
+                                                    d_trackLocs = {'stable':{'attachTo':_target0},
+                                                                   'def':{'attachTo':_attachTo},}
+    
                                                 except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)	
-
-                                                try:#Constrain the stable loc to the face
-                                                    mi_targ0Driver.parent = _ml_drivers[0]
-                                                    mi_targ1Driver.parent = _ml_drivers[1]
-                                                except Exception,error:raise Exception,"[Stable loc controlLoc! | error: {0}]".format(error)
-
-                                                try:#Create constrain the handle master Group
-                                                    str_parentConstraint = mc.parentConstraint([mi_targ0Loc.mNode,mi_targ1Loc.mNode],mi_handle.masterGroup.mNode,
-                                                                                               maintainOffset = True)[0]
-                                                except Exception,error:raise Exception,"[Parent Constraint! | error: {0}]".format(error)
-
-                                                try:
-                                                    #EndBlend
-                                                    d_blendFollowReturn = NodeF.createSingleBlendNetwork([_mControlObj.mNode,'follow%s'%_suffix.capitalize()],
-                                                                                                         [_mControlObj.mNode,'resultTarg0Follow'],
-                                                                                                         [_mControlObj.mNode,'resultTarg1Follow'],
-                                                                                                         keyable=True)
-                                                    l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
-                                                    #Connect                                  
-                                                    d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
-                                                    d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
-                                                    d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
-                                                    d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True	
-                                                    if _defaultValue is not None:
-                                                        d_blendFollowReturn['d_driver']['mi_plug'].p_defaultValue = _defaultValue
-                                                        d_blendFollowReturn['d_driver']['mi_plug'].value = _defaultValue
-                                                except Exception,error:raise Exception,"[Blend! | error: {0}]".format(error)
-
-                                            except Exception,error:
-                                                #self.log_infoNestedDict('d_buffer')
-                                                raise StandardError,"!Setup follow loc blend!|!] | error: {0}".format(error)
-
-                                            try:#connectFollicleOffset ==================================================================================
-                                                if b_connectFollicleOffset:
-                                                    for mi_loc in mi_targ0Loc,mi_targ1Loc:
-                                                        mi_follicleOffsetGroup = self.md_attachReturns[mi_loc]['offsetGroup']
-                                                        for attr in mi_go._jointOrientation[0]:
-                                                            attributes.doConnectAttr ((_mControlObj.mNode+'.t%s'%attr),(mi_follicleOffsetGroup.mNode+'.t%s'%attr))						    
-
-                                            except Exception,error:raise Exception,"[Connect Follicle Offset! | error: {0}]".format(error)					    
-                                        except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)				    
-                                    elif str_mode == 'blendAttachStable' and _attachTo:
-                                        try:#Blend attach ==================================================================================
-                                            try:#Query ---------------------------------------------------------------------------------------
-                                                _target0 = d_use.get('target0') or self.md_rigList['stableJaw'][0]
-                                                _mControlObj = d_use.get('controlObj') or mObj
-                                                _d = {'handle':mObj,
-                                                      'target0':_target0}
-                                                self.d_buffer = _d
-                                                _defaultValue = d_use.get('defaultValue') or None
-                                                _suffix = d_use.get('followSuffix') or 'Deformation'
-                                            except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)	
-
-                                            try:#Build Tracklocs -----------------------------------------------------------------------------
-                                                d_trackLocs = {'stable':{'attachControlLoc':False,'parentToFollowGroup':False},
-                                                               'def':{'attachControlLoc':True,'parentToFollowGroup':True}}
-                                                for i,str_t in enumerate(d_trackLocs.keys()):
+    
+                                                try:#Build Tracklocs -----------------------------------------------------------------------------
+                                                    for str_t in d_trackLocs.iterkeys():
+                                                        try:
+                                                            d_sub = d_trackLocs[str_t]
+                                                            mi_loc = mObj.doLoc()
+                                                            mi_loc.addAttr('cgmTypeModifier',str_t)
+                                                            mi_loc.doName()
+                                                            str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
+                                                            _d['%sLoc'%str_t] = mi_loc
+                                                            mi_loc.parent = mi_go._i_rigNull#parent to rigNull
+                                                            try:#Attach
+                                                                d_return = surfUtils.attachObjToSurface(objToAttach = mi_loc,
+                                                                                                        targetSurface = d_sub.get('attachTo'),
+                                                                                                        createControlLoc = False,
+                                                                                                        createUpLoc = False,	
+                                                                                                        attachControlLoc = False,
+                                                                                                        parentToFollowGroup = True,
+                                                                                                        orientation = mi_go._jointOrientation)
+                                                                self.md_attachReturns[mi_loc] = d_return								
+                                                            except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
+                                                            self.log_info("'%s' created"%str_tmp)
+                                                            self.md_rigList[str_tmp] = [mi_loc]
+                                                            self.__dict__['mi_%s'%str_tmp] = mi_loc
+                                                            mObj.connectChildNode(mi_loc,'%sLoc'%str_t,'owner')
+                                                        except Exception,error:raise Exception,"!'%s' loc setup! | %s"%(str_t,error)				
+                                                except Exception,error:raise Exception,"[Track locs! | error: {0}]".format(error)	
+                                                try:#Blend Setup -----------------------------------------------------------------------------
+                                                    #Query
+                                                    mi_handle = _d['handle']		    
+                                                    mi_0Loc = _d['stableLoc']
+                                                    mi_1Loc = _d['defLoc']
+                                                    mi_stableDef = _d['target0']
+    
+                                                    if str_mode == 'blendStableAttach':
+                                                        try:#Constrain the stable loc to the face
+                                                            mi_controlLoc = self.md_attachReturns[mi_0Loc]['controlLoc']
+                                                            #mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
+                                                            mi_controlLoc.parent = mi_stableDef
+                                                        except Exception,error:raise Exception,"[Stable loc controlLoc! | error: {0}]".format(error)
+    
+                                                    try:#Create constrain the handle master Group
+                                                        str_parentConstraint = mc.parentConstraint([mi_0Loc.mNode,mi_1Loc.mNode],mi_handle.masterGroup.mNode,
+                                                                                                   maintainOffset = True)[0]
+                                                    except Exception,error:raise Exception,"[Parent Constraint! | error: {0}]".format(error)
+    
                                                     try:
-                                                        d_sub = d_trackLocs[str_t]
-                                                        mi_loc = mObj.doLoc()
-                                                        mi_loc.addAttr('cgmTypeModifier',str_t)
-                                                        mi_loc.doName()
-                                                        str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
-                                                        _d['%sLoc'%str_t] = mi_loc
-                                                        if str_t == 'def':
+                                                        #EndBlend
+                                                        d_blendFollowReturn = NodeF.createSingleBlendNetwork([mi_handle.mNode,'follow%s'%_suffix.capitalize()],
+                                                                                                             [mi_handle.mNode,'resultStableFollow'],
+                                                                                                             [mi_handle.mNode,'resultDefFollow'],
+                                                                                                             keyable=True)
+                                                        l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
+                                                        #Connect                                  
+                                                        d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
+                                                        d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
+                                                        d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
+                                                        d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True	
+                                                        if _defaultValue is not None:
+                                                            d_blendFollowReturn['d_driver']['mi_plug'].p_defaultValue = _defaultValue
+                                                            d_blendFollowReturn['d_driver']['mi_plug'].value = _defaultValue
+                                                    except Exception,error:raise Exception,"[Blend! | error: {0}]".format(error)
+    
+                                                except Exception,error:
+                                                    #self.log_infoNestedDict('d_buffer')
+                                                    raise StandardError,"!Setup follow loc blend!|!] | error: {0}".format(error)
+                                            except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)				    
+                                        elif str_mode == 'blendStableAttach' and _attachTo:
+                                            try:#Blend attach ==================================================================================
+                                                try:#Query ---------------------------------------------------------------------------------------
+                                                    _target0 = d_use.get('target0') or self.md_rigList['stableJaw'][0]
+                                                    _d = {'handle':mObj,
+                                                          'target0':_target0}
+                                                    self.d_buffer = _d
+                                                    _defaultValue = d_use.get('defaultValue') or None
+                                                    _suffix = d_use.get('followSuffix') or 'Deformation'
+                                                except Exception,error:raise Exception,"[Query! | {0}]".format(error)
+    
+                                                try:#Build Tracklocs -----------------------------------------------------------------------------
+                                                    d_trackLocs = {'stable':{'attachControlLoc':False,'parentToFollowGroup':False},
+                                                                   'def':{'attachControlLoc':True,'parentToFollowGroup':True}}
+                                                    for str_t in d_trackLocs.iterkeys():
+                                                        try:
+                                                            d_sub = d_trackLocs[str_t]
+                                                            mi_loc = mObj.doLoc()
+                                                            mi_loc.addAttr('cgmTypeModifier',str_t)
+                                                            mi_loc.doName()
+                                                            str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
+                                                            _d['%sLoc'%str_t] = mi_loc
                                                             mi_loc.parent = mi_go._i_rigNull#parent to rigNull			    
                                                             try:#Attach
                                                                 d_return = surfUtils.attachObjToSurface(objToAttach = mi_loc,
@@ -5190,87 +5148,267 @@ def build_rig(*args, **kws):
                                                                                                         parentToFollowGroup = d_sub.get('parentToFollowGroup'),
                                                                                                         orientation = mi_go._jointOrientation)
                                                                 self.md_attachReturns[mi_loc] = d_return								
+                                                            except Exception,error:raise Exception,"[Attach! | {0}]".format(error)
+    
+                                                            self.log_info("'%s' created"%str_tmp)
+    
+                                                            self.md_rigList[str_tmp] = [mi_loc]
+                                                            self.__dict__['mi_%s'%str_tmp] = mi_loc
+                                                            mObj.connectChildNode(mi_loc,'%sLoc'%str_t,'owner')
+                                                        except Exception,error:raise Exception,"!'%s' loc setup! | %s"%(str_t,error)				
+                                                except Exception,error:raise Exception,"[Track locs! | {0}]".format(error)	
+                                                try:#Blend Setup -----------------------------------------------------------------------------
+                                                    #Query
+                                                    mi_handle = _d['handle']		    
+                                                    mi_stableLoc = _d['stableLoc']
+                                                    mi_defLoc = _d['defLoc']
+                                                    mi_stableDef = _d['target0']
+    
+                                                    try:#Constrain the stable loc to the face
+                                                        mi_controlLoc = self.md_attachReturns[mi_stableLoc]['controlLoc']
+                                                        #mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
+                                                        mi_controlLoc.parent = mi_stableDef
+                                                    except Exception,error:raise Exception,"!Stable loc controlLoc! | %s"%(error)
+    
+                                                    try:#Create constrain the handle master Group
+                                                        str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
+                                                                                                   maintainOffset = True)[0]
+                                                    except Exception,error:raise Exception,"!Parent Constraint! | %s"%(error)
+    
+                                                    try:
+                                                        #EndBlend
+                                                        d_blendFollowReturn = NodeF.createSingleBlendNetwork([mi_handle.mNode,'follow%s'%_suffix.capitalize()],
+                                                                                                             [mi_handle.mNode,'resultStableFollow'],
+                                                                                                             [mi_handle.mNode,'resultDefFollow'],
+                                                                                                             keyable=True)
+                                                        l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
+                                                        #Connect                                  
+                                                        d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
+                                                        d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
+                                                        d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
+                                                        d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True	
+                                                        if _defaultValue is not None:
+                                                            d_blendFollowReturn['d_driver']['mi_plug'].p_defaultValue = _defaultValue
+                                                            d_blendFollowReturn['d_driver']['mi_plug'].value = _defaultValue
+                                                    except Exception,error:raise Exception,"[Blend! | {0}]".format(error)
+    
+                                                except Exception,error:
+                                                    #self.log_infoNestedDict('d_buffer')
+                                                    raise StandardError,"!Setup follow loc blend!|!]{%s}"%(error)
+                                            except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)				    
+                                        elif str_mode == 'blendAttach' and _attachTo:
+                                            try:#Blend attach ==================================================================================
+                                                try:#Query ---------------------------------------------------------------------------------------
+                                                    try:
+                                                        _ml_drivers = d_use.get('drivers') or d_build[str_tag][str_key].get('drivers') or False
+                                                        if not cgmValid.isListArg(_ml_drivers):raise ValueError,"blend attach drivers must be list"
+                                                        if len(_ml_drivers)!=2:raise ValueError,"blend attach drivers must be len 2"
+                                                    except Exception,error:raise Exception,"[Drivers! | error: {0}]".format(error)	
+    
+                                                    try:
+                                                        _mControlObj = d_use.get('controlObj') or mObj
+                                                    except Exception,error:raise Exception,"[controlObj! | error: {0}]".format(error)	
+    
+                                                    _d = {'handle':mObj,}
+                                                    self.d_buffer = _d
+    
+                                                    _defaultValue = d_use.get('defaultValue') or None
+                                                    _suffix = d_use.get('followSuffix') or 'Deformation'
+                                                    if not cgmValid.isListArg(_attachTo):raise ValueError,"blend attach attachTo must be list"
+                                                    if len(_attachTo)!=2:raise ValueError,"blend attach attachTo must be len 2"
+                                                except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)	
+    
+                                                try:#Build Tracklocs -----------------------------------------------------------------------------
+                                                    for i in range(2):
+                                                        try:
+                                                            str_t = 'targ{0}'.format(i)
+                                                            mi_loc = mObj.doLoc()
+                                                            mi_loc.addAttr('cgmTypeModifier',str_t)
+                                                            mi_loc.doName()
+                                                            str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
+                                                            _d['{0}Loc'.format(str_t)] = mi_loc
+                                                            mi_loc.parent = mi_go._i_rigNull#parent to rigNull
+                                                            try:#Attach
+                                                                d_return = surfUtils.attachObjToSurface(objToAttach = mi_loc,
+                                                                                                        targetSurface = _attachTo[i],
+                                                                                                        createControlLoc = True,
+                                                                                                        createUpLoc = False,	
+                                                                                                        attachControlLoc = False,
+                                                                                                        parentToFollowGroup = False,
+                                                                                                        orientation = mi_go._jointOrientation)							    
+                                                                self.md_attachReturns[mi_loc] = d_return								
                                                             except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
-
-                                                        self.log_info("'%s' created"%str_tmp)
-
-                                                        self.md_rigList[str_tmp] = [mi_loc]
-                                                        self.__dict__['mi_%s'%str_tmp] = mi_loc
-                                                        mObj.connectChildNode(mi_loc,'%sLoc'%str_t,'owner')
-                                                    except Exception,error:raise Exception,"!'%s' loc setup! | %s"%(str_t,error)				
-                                            except Exception,error:raise Exception,"[Track locs! | error: {0}]".format(error)	
-                                            try:#Blend Setup -----------------------------------------------------------------------------
-                                                #Query
-                                                mi_handle = _d['handle']		    
-                                                mi_stableLoc = _d['stableLoc']
-                                                mi_defLoc = _d['defLoc']
-                                                mi_stableDef = _d['target0']
-
-                                                try:#Constrain the stable loc to the face
-                                                    #mi_controlLoc = self.md_attachReturns[mi_stableLoc]['controlLoc']
-                                                    #mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
-                                                    #mi_controlLoc.parent = mi_stableDef
-                                                    mi_stableLoc.parent = mi_stableDef
-                                                except Exception,error:raise Exception,"[Stable loc controlLoc! | error: {0}]".format(error)
-
-                                                try:#Create constrain the handle master Group
-                                                    str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
-                                                                                               maintainOffset = True)[0]
-                                                except Exception,error:raise Exception,"[Parent Constraint! | error: {0}]".format(error)
-
-                                                try:
-                                                    #EndBlend
-                                                    d_blendFollowReturn = NodeF.createSingleBlendNetwork([_mControlObj.mNode,'follow%s'%_suffix.capitalize()],
-                                                                                                         [_mControlObj.mNode,'resultStableFollow'],
-                                                                                                         [_mControlObj.mNode,'resultDefFollow'],
-                                                                                                         keyable=True)
-                                                    l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
-                                                    #Connect                                  
-                                                    d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
-                                                    d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
-                                                    d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
-                                                    d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True	
-                                                    if _defaultValue is not None:
-                                                        d_blendFollowReturn['d_driver']['mi_plug'].p_defaultValue = _defaultValue
-                                                        d_blendFollowReturn['d_driver']['mi_plug'].value = _defaultValue
-                                                except Exception,error:raise Exception,"[Blend! | error: {0}]".format(error)
-
-                                            except Exception,error:
-                                                #self.log_infoNestedDict('d_buffer')
-                                                raise StandardError,"!Setup follow loc blend!|!] | error: {0}".format(error)
-                                        except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)				    
-                                    elif str_mode == 'slideAttach' and _attachTo:
-                                        try:
-                                            d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
-                                                                                    targetSurface = _attachTo,
-                                                                                    createControlLoc = True,
-                                                                                    createUpLoc = True,	
-                                                                                    attachControlLoc = False,
-                                                                                    parentToFollowGroup = False,
-                                                                                    orientation = mi_go._jointOrientation)
-                                            self.md_attachReturns[mObj] = d_return					
-                                        except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)
-                                    elif str_mode == 'slideHandleAttach' and _attachTo:
-                                        '''
-					Drive a handle position with offset
-					'''
-                                        try:
-                                            d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
-                                                                                    targetSurface = _attachTo,
-                                                                                    createControlLoc = True,
-                                                                                    createUpLoc = True,	
-                                                                                    attachControlLoc = True,
-                                                                                    parentToFollowGroup = False,
-                                                                                    orientation = mi_go._jointOrientation)
-                                            self.md_attachReturns[mObj] = d_return					
-                                        except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)
-                                    elif str_mode == 'parentOnly':
-                                        try:mObj.masterGroup.parent = _parentTo
-                                        except Exception,error:raise Exception,"[parentTo. | error: {0}]".format(error)		    
-                                        #self.log_info("%s parented!]{%s}"%(str_mode,mObj.p_nameShort))
-                                    else:
-                                        raise NotImplementedError,"mode: %s "%str_mode
-                                except Exception,error:  raise StandardError,"attaching: %s | %s"%(mObj,error)				
+    
+                                                            self.log_info("'%s' created"%str_tmp)
+                                                            self.md_rigList[str_tmp] = [mi_loc]
+                                                            self.__dict__['mi_%s'%str_tmp] = mi_loc
+                                                            mObj.connectChildNode(mi_loc,'%sLoc'%str_t,'owner')
+                                                        except Exception,error:raise Exception,"!'%s' loc setup! | %s"%(str_t,error)				
+                                                except Exception,error:raise Exception,"[Track locs! | error: {0}]".format(error)	
+                                                try:#Blend Setup -----------------------------------------------------------------------------
+                                                    try:#Query
+                                                        mi_handle = _d['handle']		    
+                                                        mi_targ0Loc = _d['targ0Loc']
+                                                        mi_targ1Loc = _d['targ1Loc']
+                                                        mi_targ0Driver = self.md_attachReturns[mi_targ0Loc]['controlLoc']
+                                                        mi_targ1Driver = self.md_attachReturns[mi_targ1Loc]['controlLoc']
+                                                    except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)	
+    
+                                                    try:#Constrain the stable loc to the face
+                                                        mi_targ0Driver.parent = _ml_drivers[0]
+                                                        mi_targ1Driver.parent = _ml_drivers[1]
+                                                    except Exception,error:raise Exception,"[Stable loc controlLoc! | error: {0}]".format(error)
+    
+                                                    try:#Create constrain the handle master Group
+                                                        str_parentConstraint = mc.parentConstraint([mi_targ0Loc.mNode,mi_targ1Loc.mNode],mi_handle.masterGroup.mNode,
+                                                                                                   maintainOffset = True)[0]
+                                                    except Exception,error:raise Exception,"[Parent Constraint! | error: {0}]".format(error)
+    
+                                                    try:
+                                                        #EndBlend
+                                                        d_blendFollowReturn = NodeF.createSingleBlendNetwork([_mControlObj.mNode,'follow%s'%_suffix.capitalize()],
+                                                                                                             [_mControlObj.mNode,'resultTarg0Follow'],
+                                                                                                             [_mControlObj.mNode,'resultTarg1Follow'],
+                                                                                                             keyable=True)
+                                                        l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
+                                                        #Connect                                  
+                                                        d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
+                                                        d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
+                                                        d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
+                                                        d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True	
+                                                        if _defaultValue is not None:
+                                                            d_blendFollowReturn['d_driver']['mi_plug'].p_defaultValue = _defaultValue
+                                                            d_blendFollowReturn['d_driver']['mi_plug'].value = _defaultValue
+                                                    except Exception,error:raise Exception,"[Blend! | error: {0}]".format(error)
+    
+                                                except Exception,error:
+                                                    #self.log_infoNestedDict('d_buffer')
+                                                    raise StandardError,"!Setup follow loc blend!|!] | error: {0}".format(error)
+    
+                                                try:#connectFollicleOffset ==================================================================================
+                                                    if b_connectFollicleOffset:
+                                                        for mi_loc in mi_targ0Loc,mi_targ1Loc:
+                                                            mi_follicleOffsetGroup = self.md_attachReturns[mi_loc]['offsetGroup']
+                                                            for attr in mi_go._jointOrientation[0]:
+                                                                attributes.doConnectAttr ((_mControlObj.mNode+'.t%s'%attr),(mi_follicleOffsetGroup.mNode+'.t%s'%attr))						    
+    
+                                                except Exception,error:raise Exception,"[Connect Follicle Offset! | error: {0}]".format(error)					    
+                                            except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)				    
+                                        elif str_mode == 'blendAttachStable' and _attachTo:
+                                            try:#Blend attach ==================================================================================
+                                                try:#Query ---------------------------------------------------------------------------------------
+                                                    _target0 = d_use.get('target0') or self.md_rigList['stableJaw'][0]
+                                                    _mControlObj = d_use.get('controlObj') or mObj
+                                                    _d = {'handle':mObj,
+                                                          'target0':_target0}
+                                                    self.d_buffer = _d
+                                                    _defaultValue = d_use.get('defaultValue') or None
+                                                    _suffix = d_use.get('followSuffix') or 'Deformation'
+                                                except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)	
+    
+                                                try:#Build Tracklocs -----------------------------------------------------------------------------
+                                                    d_trackLocs = {'stable':{'attachControlLoc':False,'parentToFollowGroup':False},
+                                                                   'def':{'attachControlLoc':True,'parentToFollowGroup':True}}
+                                                    for i,str_t in enumerate(d_trackLocs.keys()):
+                                                        try:
+                                                            d_sub = d_trackLocs[str_t]
+                                                            mi_loc = mObj.doLoc()
+                                                            mi_loc.addAttr('cgmTypeModifier',str_t)
+                                                            mi_loc.doName()
+                                                            str_tmp = '%s%sLoc'%(str_base,str_t.capitalize())
+                                                            _d['%sLoc'%str_t] = mi_loc
+                                                            if str_t == 'def':
+                                                                mi_loc.parent = mi_go._i_rigNull#parent to rigNull			    
+                                                                try:#Attach
+                                                                    d_return = surfUtils.attachObjToSurface(objToAttach = mi_loc,
+                                                                                                            targetSurface = _attachTo,
+                                                                                                            createControlLoc = True,
+                                                                                                            createUpLoc = False,	
+                                                                                                            attachControlLoc = d_sub.get('attachControlLoc'),
+                                                                                                            parentToFollowGroup = d_sub.get('parentToFollowGroup'),
+                                                                                                            orientation = mi_go._jointOrientation)
+                                                                    self.md_attachReturns[mi_loc] = d_return								
+                                                                except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
+    
+                                                            self.log_info("'%s' created"%str_tmp)
+    
+                                                            self.md_rigList[str_tmp] = [mi_loc]
+                                                            self.__dict__['mi_%s'%str_tmp] = mi_loc
+                                                            mObj.connectChildNode(mi_loc,'%sLoc'%str_t,'owner')
+                                                        except Exception,error:raise Exception,"!'%s' loc setup! | %s"%(str_t,error)				
+                                                except Exception,error:raise Exception,"[Track locs! | error: {0}]".format(error)	
+                                                try:#Blend Setup -----------------------------------------------------------------------------
+                                                    #Query
+                                                    mi_handle = _d['handle']		    
+                                                    mi_stableLoc = _d['stableLoc']
+                                                    mi_defLoc = _d['defLoc']
+                                                    mi_stableDef = _d['target0']
+    
+                                                    try:#Constrain the stable loc to the face
+                                                        #mi_controlLoc = self.md_attachReturns[mi_stableLoc]['controlLoc']
+                                                        #mc.pointConstraint(mi_faceDef.mNode,mi_controlLoc.mNode,maintainOffset = True)
+                                                        #mi_controlLoc.parent = mi_stableDef
+                                                        mi_stableLoc.parent = mi_stableDef
+                                                    except Exception,error:raise Exception,"[Stable loc controlLoc! | error: {0}]".format(error)
+    
+                                                    try:#Create constrain the handle master Group
+                                                        str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
+                                                                                                   maintainOffset = True)[0]
+                                                    except Exception,error:raise Exception,"[Parent Constraint! | error: {0}]".format(error)
+    
+                                                    try:
+                                                        #EndBlend
+                                                        d_blendFollowReturn = NodeF.createSingleBlendNetwork([_mControlObj.mNode,'follow%s'%_suffix.capitalize()],
+                                                                                                             [_mControlObj.mNode,'resultStableFollow'],
+                                                                                                             [_mControlObj.mNode,'resultDefFollow'],
+                                                                                                             keyable=True)
+                                                        l_targetWeights = mc.parentConstraint(str_parentConstraint,q=True, weightAliasList=True)
+                                                        #Connect                                  
+                                                        d_blendFollowReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[1]))
+                                                        d_blendFollowReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (str_parentConstraint,l_targetWeights[0]))
+                                                        d_blendFollowReturn['d_result1']['mi_plug'].p_hidden = True
+                                                        d_blendFollowReturn['d_result2']['mi_plug'].p_hidden = True	
+                                                        if _defaultValue is not None:
+                                                            d_blendFollowReturn['d_driver']['mi_plug'].p_defaultValue = _defaultValue
+                                                            d_blendFollowReturn['d_driver']['mi_plug'].value = _defaultValue
+                                                    except Exception,error:raise Exception,"[Blend! | error: {0}]".format(error)
+    
+                                                except Exception,error:
+                                                    #self.log_infoNestedDict('d_buffer')
+                                                    raise StandardError,"!Setup follow loc blend!|!] | error: {0}".format(error)
+                                            except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)				    
+                                        elif str_mode == 'slideAttach' and _attachTo:
+                                            try:
+                                                d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+                                                                                        targetSurface = _attachTo,
+                                                                                        createControlLoc = True,
+                                                                                        createUpLoc = True,	
+                                                                                        attachControlLoc = False,
+                                                                                        parentToFollowGroup = False,
+                                                                                        orientation = mi_go._jointOrientation)
+                                                self.md_attachReturns[mObj] = d_return					
+                                            except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)
+                                        elif str_mode == 'slideHandleAttach' and _attachTo:
+                                            '''
+                                            Drive a handle position with offset
+                                            '''
+                                            try:
+                                                d_return = surfUtils.attachObjToSurface(objToAttach = mObj.getMessage('masterGroup')[0],
+                                                                                        targetSurface = _attachTo,
+                                                                                        createControlLoc = True,
+                                                                                        createUpLoc = True,	
+                                                                                        attachControlLoc = True,
+                                                                                        parentToFollowGroup = False,
+                                                                                        orientation = mi_go._jointOrientation)
+                                                self.md_attachReturns[mObj] = d_return					
+                                            except Exception,error:raise Exception,"[{0} fail! | error: {1}]".format(str_mode,error)
+                                        elif str_mode == 'parentOnly':
+                                            try:mObj.masterGroup.parent = _parentTo
+                                            except Exception,error:raise Exception,"[parentTo. | error: {0}]".format(error)		    
+                                            #self.log_info("%s parented!]{%s}"%(str_mode,mObj.p_nameShort))
+                                        else:
+                                            raise NotImplementedError,"mode: %s "%str_mode
+                                    except Exception,error:  raise StandardError,"attaching: %s | %s"%(mObj,error)				
                     except Exception,error:  raise StandardError,"'%s' | %s"%(str_tag,error)			    
             except Exception,error:  raise StandardError,"[attach_fromDict |error: {0}]".format(error)	
 
@@ -5301,10 +5439,10 @@ def build_rig(*args, **kws):
                         else:
                             md_buffer['reg'] = buffer 
                         '''
-			d_build = {'uprLipSegment':{'orientation':mi_go._jointOrientation,
-			    'left':{'mi_curve':mi_uprDrivenCrv},
-			    'right':{'mi_curve':self.mi_uprLipDrivenReverseCrv}}}
-			'''
+                        d_build = {'uprLipSegment':{'orientation':mi_go._jointOrientation,
+                            'left':{'mi_curve':mi_uprDrivenCrv},
+                            'right':{'mi_curve':self.mi_uprLipDrivenReverseCrv}}}
+                        '''
                         int_len = len(md_buffer.keys())
                         for i,str_key in enumerate(md_buffer.iterkeys()):
                             if d_build[str_tag].get(str_key):#if we have special instructions for a direction key...
@@ -5337,11 +5475,11 @@ def build_rig(*args, **kws):
 
                             try:#>> Store stuff ========================================================================
                                 '''
-				d_return = {'mi_segmentCurve':mi_segmentCurve,'segmentCurve':mi_segmentCurve.mNode,'mi_ikHandle':mi_IK_Handle,'mi_segmentGroup':mi_grp,
-				'l_driverJoints':self.l_driverJoints,'ml_driverJoints':ml_driverJoints,
-				'scaleBuffer':mi_jntScaleBufferNode.mNode,'mi_scaleBuffer':mi_jntScaleBufferNode,'mPlug_extendTwist':self.mPlug_factorInfluenceIn,
-				'l_drivenJoints':self.l_joints,'ml_drivenJoints':ml_joints}
-				'''
+                                d_return = {'mi_segmentCurve':mi_segmentCurve,'segmentCurve':mi_segmentCurve.mNode,'mi_ikHandle':mi_IK_Handle,'mi_segmentGroup':mi_grp,
+                                'l_driverJoints':self.l_driverJoints,'ml_driverJoints':ml_driverJoints,
+                                'scaleBuffer':mi_jntScaleBufferNode.mNode,'mi_scaleBuffer':mi_jntScaleBufferNode,'mPlug_extendTwist':self.mPlug_factorInfluenceIn,
+                                'l_drivenJoints':self.l_joints,'ml_drivenJoints':ml_joints}
+                                '''
                                 d_segReturn['mi_segmentGroup'].parent = mi_go._i_rigNull
                                 mi_curve = d_segReturn['mi_segmentCurve']
                                 self.md_rigList[str_tag]['{0}SegmentCurve'.format(str_key)] = mi_curve
@@ -5350,7 +5488,7 @@ def build_rig(*args, **kws):
                                 self.md_attachReturns[mi_curve] = d_segReturn
                                 d_segReturn['ml_driverJoints'][0].parent = mi_go._i_faceDeformNull
                                 #d_segReturn['ml_driverJoints'][0].parent = self.md_rigList['faceBaseDef'][0]	
-                                #d_segReturn['ml_drivenJoints'][0].parent = mi_go._i_rigNull
+                                d_segReturn['ml_drivenJoints'][0].parent = mi_go._i_faceDeformNull
 
                                 #for mJnt in d_segReturn['ml_driverJoints'][0],d_segReturn['ml_drivenJoints'][0]:
                                     #mJnt.parent = mi_go._i_faceDeformNull
@@ -5358,10 +5496,10 @@ def build_rig(*args, **kws):
                                 self.log_infoDict(d_segReturn,'{0} Seg Return'.format(str_tag))
                                 raise StandardError,"[Return processing | error: {0}]".format(error)	
 
-                            #try:#>>>Connect master scale =======================================================================================
-                                ##mi_distanceBuffer = mi_curve.scaleBuffer		
-                                #cgmMeta.cgmAttr(mi_distanceBuffer,'masterScale',lock=True).doConnectIn(mPlug_multpHeadScale.p_combinedShortName)    
-                            #except Exception,error:raise Exception,"[segment scale connect! | error: {0}]".format(error)				
+                            try:#>>>Connect master scale =======================================================================================
+                                mi_distanceBuffer = mi_curve.scaleBuffer		
+                                cgmMeta.cgmAttr(mi_distanceBuffer,'masterScale',lock=True).doConnectIn(mPlug_multpHeadScale.p_combinedShortName)    
+                            except Exception,error:raise Exception,"[segment scale connect! | error: {0}]".format(error)				
                     except Exception,error:raise Exception,"[{0} | error: {1}]".format(str_tag,error)			    
             except Exception,error:raise Exception,"[create_segmentfromDict] | error: {0}".format(error)	
 
@@ -5409,7 +5547,7 @@ def build_rig(*args, **kws):
                         l_skip = d_build[str_tag].get('skip') or []
                         for str_key in md_buffer.iterkeys():
                             if str_key in l_skip:
-                                self.log_info("%s Skipping connect: %s"%(str_tag,str_key))
+                                self.log_info("{0} Skipping connect: {1}".format(str_tag,str_key))
                             else:
                                 if d_build[str_tag].get(str_key):#if we have special instructions for a direction key...
                                     d_buffer = d_build[str_tag][str_key]
@@ -5750,6 +5888,7 @@ def build_rig(*args, **kws):
                                             mJnt.connectChildNode(mi_influenceJoint,'influenceJoint','sourceJoint')
                                             ml_influenceJoints.append(mi_influenceJoint)
                                             mi_influenceJoint.parent = mi_go._i_deformNull	
+                                            
                                         except Exception,error:raise Exception,"[influence joint for '{0}'! | error: {1}]".format(str_mObj,error)				    
 
                                         try:#Create offsetgroup for the mid
@@ -5759,7 +5898,8 @@ def build_rig(*args, **kws):
                                             mi_offsetGroup.doName()
                                             mi_influenceJoint.connectChildNode(mi_offsetGroup,'masterGroup','groupChild')
                                         except Exception,error:raise Exception,"[masterGroup for '{0}'! | error: {1}]".format(str_mObj,error)				    
-
+                                    
+                                    jntUtils.metaFreezeJointOrientation(ml_influenceJoints)
                                     mi_go.connect_toRigGutsVis(ml_influenceJoints, vis = True)#connect to guts vis switches
                                     self.md_rigList[str_newTag][str_side] = ml_influenceJoints#...store
                                 except Exception,error:raise Exception,"[side: {0} | error: {1}]".format(str_side,error)			     
@@ -5768,6 +5908,75 @@ def build_rig(*args, **kws):
                         except:pass
                         raise Exception,"[tag: {0} | error: {1}]".format(str_tag,error)			    
             except Exception,error: raise Exception,"[create_influenceJoint] | error: {0}".format(error)
+            
+        def create_specialLocsFromDict(self,d_build):
+            '''
+            '''
+            try:#>> Infuence joints  =======================================================================================
+                mi_go = self._go#Rig Go instance link
+
+                for str_tag in d_build.iterkeys():
+                    try:
+                        ml_buffer = []
+                        md_buffer = self.get_mdSidesBufferFromTag(str_tag)
+
+                        l_skip = d_build[str_tag].get('skip') or []
+
+                        for str_side in md_buffer.iterkeys():
+                            if str_side in l_skip:
+                                self.log_info("{0} Skipping loc creation: {1}".format(str_tag,str_side))
+                            else:
+                                try:
+                                    if d_build[str_tag].get(str_side):#if we have special instructions for a direction key...
+                                        d_buffer = d_build[str_tag][str_side]
+                                    else:
+                                        d_buffer = d_build[str_tag]	
+                                    ml_buffer = md_buffer[str_side]
+
+                                    try:
+                                        int_indexBuffer = d_build[str_tag].get('index') or False
+                                        if int_indexBuffer is not False:
+                                            self.log_info("%s | %s > Utilizing index call"%(str_tag,str_side))					
+                                            ml_buffer = [ml_buffer[int_indexBuffer]]
+                                    except Exception,error:raise Exception,"[Index call!| error: {0}]".format(error)
+                                    int_len = len(ml_buffer)
+                                    _d = {}
+                                    self.d_buffer = _d
+                                    int_len = len(ml_buffer)		
+                                    
+                                    for idx,mJnt in enumerate(ml_buffer):
+                                        str_mObj = mJnt.p_nameShort
+                                        str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'No idea'
+                                        f_dist = d_buffer.get('offsetDist') or d_build[str_tag].get('offsetDist') or 100
+
+                                        try:#Status update ----------------------------------------------------------------------
+                                            str_message = "Creating special loc joint : '{0}' {1} > '{2}' | mode: {3}".format(str_tag,str_side,str_mObj, str_mode)
+                                            self.log_info(str_message)
+                                            self.progressBar_set(status = (str_message),progress = idx, maxValue = int_len)	
+                                        except Exception,error:raise Exception,"[Status update] | error: {0}".format(error)	
+                                        
+                                        if str_mode == 'handleAimOut':
+                                            mi_loc = mJnt.doLoc()
+                                            mi_loc.parent = mJnt
+                                            if str_side == 'left':#...offset
+                                                setattr(mi_loc,"t{0}".format(mi_go._jointOrientation[0]),f_dist)
+                                            else:
+                                                setattr(mi_loc,"t{0}".format(mi_go._jointOrientation[0]),-f_dist)
+                                                
+                                            mi_loc.doStore('cgmName',str_mObj)
+                                            mi_loc.addAttr('cgmTypeModifier',str_mode,lock=True)
+                                            mi_loc.doName()   
+                                            
+                                            mi_go.connect_toRigGutsVis(mi_loc, vis = True)#...connect to guts vis switches
+                                            mJnt.connectChildNode(mi_loc,str_mode,'source')#...store
+                                        else:
+                                            raise NotImplementedError,"Don't know this mode"
+                                except Exception,error:raise Exception,"[side: {0} | error: {1}]".format(str_side,error)			     
+                    except Exception,error:
+                        try:self.log_infoNestedDict('d_buffer')
+                        except:pass
+                        raise Exception,"[tag: {0} | error: {1}]".format(str_tag,error)			    
+            except Exception,error: raise Exception,"[create_specialLocsFromDict] | error: {0}".format(error)
 
         def aim_fromDict(self,d_build):
             '''
@@ -5801,7 +6010,7 @@ def build_rig(*args, **kws):
                         l_skip = d_build[str_tag].get('skip') or []
                         for str_side in md_buffer.iterkeys():
                             if str_side in l_skip:
-                                self.log_info("%s Skipping aim: %s"%(str_tag,str_side))
+                                self.log_info("{0} Skipping aim: {1}".format(str_tag,str_side))
                             else:
                                 try:
                                     if d_build[str_tag].get(str_side):#if we have special instructions for a direction key...
@@ -5844,7 +6053,7 @@ def build_rig(*args, **kws):
                                     str_mObj = mObj.p_nameShort
 
                                     try:#Status update ----------------------------------------------------------------------
-                                        str_message = "Aiming : '%s' %s > '%s'"%(str_tag,str_side,str_mObj)
+                                        str_message = "Aiming : '{0}' {1} > '{2}'".format(str_tag,str_side,str_mObj)
                                         self.log_info(str_message)
                                         self.progressBar_set(status = (str_message),progress = idx, maxValue = int_len)	
                                     except Exception,error:raise Exception,"[Status update] | error: {0}".format(error)	
@@ -5864,13 +6073,13 @@ def build_rig(*args, **kws):
 
                                     try:#Aim Offset group ----------------------------------------------------------------------
                                         '''
-					We need to first find our target which be a child to our aimOffset group. Sometimes that's the basic offset group
-					'''
+                                        We need to first find our target which be a child to our aimOffset group. Sometimes that's the basic offset group
+                                        '''
                                         mi_offsetTarget = d_buffer.get('offsetGroup') or d_build[str_tag].get('offsetGroup') or False
                                         if not mi_offsetTarget:
                                             try: mi_offsetTarget = d_current['offsetGroup']#See if we have an offset group
                                             except:
-                                                self.log_warning("'%s' |No offset group in build dict. Checking object"%str_mObj)
+                                                self.log_warning("'{0}' |No offset group in build dict. Checking object".format(str_mObj))
                                                 try:
                                                     mi_offsetTarget = mObj.offsetGroup
                                                 except:
@@ -5994,7 +6203,35 @@ def build_rig(*args, **kws):
                                                                                                    weight = 1)[0]) 
                                             mi_contraint.interpType = 0
                                         except Exception,error:raise Exception,"[Constraints setup!] | error: {0}".format(error)
-
+                                    elif str_mode == 'segmentSingleAim':
+                                        try:#Vectors ===============================================
+                                            self.log_info("'%s' | getting vectors..."%str_mObj)					    						
+                                            v_up = d_buffer.get('v_up') or d_build[str_tag].get('v_up') or False
+                                            v_aim = d_buffer.get('v_aim') or d_build[str_tag].get('v_aim') or False
+                                            if not v_aim:
+                                                self.log_infoDict(d_buffer,'d_buffer')
+                                                self.log_infoDict(d_build[str_tag],'d_build')
+                                                
+                                                raise ValueError,"No v_aim found"
+                                            v_aimNegative = [v*-1 for v in v_aim]
+                                        except Exception,error:raise Exception,"[{0} Vector query!] | error: {1}".format(str_mode,error)	
+                                        
+                                        try:#Targets ===============================================
+                                            if mObj != ml_buffer[-1]:
+                                                mi_target = ml_buffer[idx +1].masterGroup
+                                                v_useAim = v_aim
+                                            else:
+                                                mi_target = ml_buffer[-2].masterGroup
+                                                v_useAim = v_aimNegative
+                                                
+                                        except Exception,error:raise Exception,"[Targets query!] | error: {0}".format(error)	
+                                        
+                                        try:
+                                            mc.aimConstraint(mi_target.mNode, mi_aimOffsetGroup.mNode,
+                                                             weight = 1, aimVector = v_useAim, upVector = v_up,
+                                                             maintainOffset = True,
+                                                             worldUpObject = mi_upLoc.mNode, worldUpType = 'object' )
+                                        except Exception,error:raise Exception,"[Constraints setup!] | error: {0}".format(error)
                                     elif str_mode == 'singleBlend':#...single aim blend
                                         try:#Gather data ----------------------------------------------------------------------
                                             d_target0 = d_buffer.get('d_target0') or d_build[str_tag].get('d_target0')
@@ -6034,9 +6271,9 @@ def build_rig(*args, **kws):
                                     elif str_mode == 'singleTarget':
                                         try:				
                                             '''
-					d_build = {'noseUnderRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
-		                           'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseUnderTarget}}
-					    '''
+                                            d_build = {'noseUnderRig':{'mode':'singleTarget','aimVector':mi_go._vectorUpNegative,'upVector':mi_go._vectorAim,
+                                                           'upLoc':mi_noseMoveUpLoc,'aimTarget':mi_noseUnderTarget}}
+                                                '''
                                             mi_aimTo = d_buffer['aimTarget']
                                             v_up = d_buffer['v_up']
                                             v_aim = d_buffer['v_aim']
@@ -6071,7 +6308,7 @@ def build_rig(*args, **kws):
 
 
                                     else:
-                                        raise NotImplementedError,"Mode not implemented : '%s'"%str_mode
+                                        raise NotImplementedError,"Mode not implemented : '{0}'".format(str_mode)
                     except Exception,error:
                         try:self.log_infoNestedDict('d_buffer')
                         except:pass
@@ -6119,7 +6356,7 @@ def build_rig(*args, **kws):
                                 str_direction = d_buffer['direction']
                                 #str_name = d_buffer['name']
                                 mi_smileCrv = d_buffer['smileCrv']
-                                d_buffer['uprCheekJoints'] = self.md_rigList['uprCheekRig'][str_direction]
+                                d_buffer['uprCheekJoints'] = self.md_rigList['uprCheekRig'][str_direction][:-1]
                                 d_buffer['cheekJoints'] = self.md_rigList['cheekRig'][str_direction]				
                                 d_buffer['jawLineJoints'] = self.md_rigList['jawLine'][str_direction]
                                 d_buffer['sneerHandle'] = self.md_rigList['sneerHandle'][str_direction][0]
