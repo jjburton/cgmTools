@@ -2425,7 +2425,7 @@ def createSegmentCurve(*args,**kws):
 	    except Exception,error:
 		raise StandardError,"[fix twists]{%s}"%(error) 
 	    
-	    try:#>>>Hook up scales #==========================================================================
+	    try:#>>>Hook up stretch/scale #==========================================================================
 		#Buffer
 		mi_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = self.str_baseName,overideMessageCheck=True)
 		mi_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
@@ -2451,62 +2451,79 @@ def createSegmentCurve(*args,**kws):
 		    #Store our distance base to our buffer
 		    try:mi_jntScaleBufferNode.store(ml_distanceShapes[i].distance)#Store to our buffer
 		    except Exception,error:raise StandardError,"[Failed to store joint distance: %s]{%s}"%(ml_distanceShapes[i].mNode,error)
-	    
-		    #Create the normalized base distance
-		    mi_mdNormalBaseDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
-		    mi_mdNormalBaseDist.operation = 1
-		    mi_mdNormalBaseDist.doStore('cgmName',mJnt.mNode)
-		    mi_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
-		    mi_mdNormalBaseDist.doName()
-	    
-		    attributes.doConnectAttr('%s.masterScale'%(mi_jntScaleBufferNode.mNode),#>>
-		                             '%s.%s'%(mi_mdNormalBaseDist.mNode,'input1X'))
-		    attributes.doConnectAttr('%s.%s'%(mi_jntScaleBufferNode.mNode,mi_jntScaleBufferNode.d_indexToAttr[i]),#>>
-		                             '%s.%s'%(mi_mdNormalBaseDist.mNode,'input2X'))	
-		    mPlug_attrNormalBaseDist.doConnectIn('%s.%s'%(mi_mdNormalBaseDist.mNode,'output.outputX'))
-
-		    #Create the normalized distance
-		    mi_mdNormalDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
-		    mi_mdNormalDist.operation = 1
-		    mi_mdNormalDist.doStore('cgmName',mJnt.mNode)
-		    mi_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
-		    mi_mdNormalDist.doName()
-	    
-		    attributes.doConnectAttr('%s.masterScale'%(mi_jntScaleBufferNode.mNode),#>>
-		                             '%s.%s'%(mi_mdNormalDist.mNode,'input1X'))
-		    mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdNormalDist.mNode,'input2X'))	
-		    mPlug_attrNormalDist.doConnectIn('%s.%s'%(mi_mdNormalDist.mNode,'output.outputX'))
-	
-		    #Create the mdNode
-		    mi_mdSegmentScale = cgmMeta.cgmNode(nodeType='multiplyDivide')
-		    mi_mdSegmentScale.operation = 2
-		    mi_mdSegmentScale.doStore('cgmName',mJnt.mNode)
-		    mi_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
-		    mi_mdSegmentScale.doName()
-		    mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input1X'))	
-		    mPlug_attrNormalBaseDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input2X'))
-		    mPlug_attrResult.doConnectIn('%s.%s'%(mi_mdSegmentScale.mNode,'output.outputX'))
-
-		    #Append our data
-		    ml_distanceAttrs.append(mPlug_attrDist)
-		    ml_resultAttrs.append(mPlug_attrResult)
 		    
-		    #Connect to the joint	    
+		    
+		    
+		    
 		    if self.str_connectBy.lower() in ['translate','trans']:
+			#Let's build our args
+			l_argBuild = []
+			#distance by master
+			l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalBaseDist.p_combinedShortName,
+			                                           '{0}.{1}'.format(mi_jntScaleBufferNode.mNode,mi_jntScaleBufferNode.d_indexToAttr[i]),
+			                                           "{0}.masterScale".format(mi_jntScaleBufferNode.mNode)))
+			l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalDist.p_combinedShortName,
+			                                           mPlug_attrDist.p_combinedShortName,
+			                                           "{0}.masterScale".format(mi_jntScaleBufferNode.mNode)))			
+			for arg in l_argBuild:
+			    self.log_info("Building: {0}".format(arg))
+			    NodeF.argsToNodes(arg).doBuild()
 			#Still not liking the way this works with translate scale. looks fine till you add squash and stretch
 			try:
 			    mPlug_attrDist.doConnectIn('%s.%s'%(ml_distanceShapes[i].mNode,'distance'))		        
 			    mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_joints[i+1].mNode,str_orientation[0]))
 			    mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_driverJoints[i+1].mNode,str_orientation[0]))    	    
-			except Exception,error:raise StandardError,"[Failed to connect joint attrs by translate: %s]{%s}"%(mJnt.mNode,error)	
+			except Exception,error:raise StandardError,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		    
 		    else:
-			try:
+			mi_mdNormalBaseDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
+			mi_mdNormalBaseDist.operation = 1
+			mi_mdNormalBaseDist.doStore('cgmName',mJnt.mNode)
+			mi_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
+			mi_mdNormalBaseDist.doName()
+		
+			attributes.doConnectAttr('%s.masterScale'%(mi_jntScaleBufferNode.mNode),#>>
+			                         '%s.%s'%(mi_mdNormalBaseDist.mNode,'input1X'))
+			attributes.doConnectAttr('%s.%s'%(mi_jntScaleBufferNode.mNode,mi_jntScaleBufferNode.d_indexToAttr[i]),#>>
+			                         '%s.%s'%(mi_mdNormalBaseDist.mNode,'input2X'))	
+			mPlug_attrNormalBaseDist.doConnectIn('%s.%s'%(mi_mdNormalBaseDist.mNode,'output.outputX'))
+    
+			#Create the normalized distance
+			mi_mdNormalDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
+			mi_mdNormalDist.operation = 1
+			mi_mdNormalDist.doStore('cgmName',mJnt.mNode)
+			mi_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
+			mi_mdNormalDist.doName()
+		
+			attributes.doConnectAttr('%s.masterScale'%(mi_jntScaleBufferNode.mNode),#>>
+			                         '%s.%s'%(mi_mdNormalDist.mNode,'input1X'))
+			mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdNormalDist.mNode,'input2X'))	
+			mPlug_attrNormalDist.doConnectIn('%s.%s'%(mi_mdNormalDist.mNode,'output.outputX'))
+	    
+			#Create the mdNode
+			mi_mdSegmentScale = cgmMeta.cgmNode(nodeType='multiplyDivide')
+			mi_mdSegmentScale.operation = 2
+			mi_mdSegmentScale.doStore('cgmName',mJnt.mNode)
+			mi_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
+			mi_mdSegmentScale.doName()
+			mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input1X'))	
+			mPlug_attrNormalBaseDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input2X'))
+			mPlug_attrResult.doConnectIn('%s.%s'%(mi_mdSegmentScale.mNode,'output.outputX'))	
+			
+			try:#Connect
 			    mPlug_attrDist.doConnectIn('%s.%s'%(ml_distanceShapes[i].mNode,'distance'))		        
 			    mPlug_attrResult.doConnectOut('%s.s%s'%(mJnt.mNode,str_orientation[0]))
 			    mPlug_attrResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,str_orientation[0]))
+			except Exception,error:raise StandardError,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		    
+			
+			ml_mainMDs.append(mi_mdSegmentScale)#store the md
 	    
-			except Exception,error:raise StandardError,"[Failed to connect joint attrs by scale: %s]{%s}"%(mJnt.mNode,error)	
-		    ml_mainMDs.append(mi_mdSegmentScale)#store the md
+		    #Create the normalized base distance
+
+
+		    #Append our data
+		    ml_distanceAttrs.append(mPlug_attrDist)
+		    ml_resultAttrs.append(mPlug_attrResult)
+		    
 	
 		for axis in [str_orientation[1],str_orientation[2]]:
 		    attributes.doConnectAttr('%s.s%s'%(mJnt.mNode,axis),#>>
