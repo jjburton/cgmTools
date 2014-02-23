@@ -94,36 +94,16 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 				self.maxDist = om.MDistance.internalToUI(distVector)
 				log.debug("maxDist: %s"%maxDist)
 				
-				self.bothDirections = False
-				self.noFaceIds = None
-				self.noTriangleIds = None
-				self.noHitParam = None
-				self.noSortHits = False
-				self.noHitFace = None
-				self.noHitTriangle = None
-				self.noHitBary1 = None
-				self.noHitBary2 = None
-				self.tolerance = 0
-				self.noAccelerator = None
+				self.paramU = None
+				self.paramV = None
+				self.ignoreTrimBoundaries = False
+				self.tolerance = kMFnNurbsEpsilon #'kMFnNurbsEpsilon' is not Defined
+				self.ReturnStatus = None
+
 					            	
 				#Get the closest intersection.
-				self.gotHit = self.surfaceFn.allIntersections(raySource,
-	            									self.rayDirection,
-															self.noFaceIds,
-															self.noTriangleIds,
-															self.sortIds,
-															om.MSpace.kWorld,
-															self.maxDist,
-															self.bothDirections,
-															self.noAccelerator,
-															self.noSortHits,
-															self.hitPoints, 
-															self.noHitParam, 
-															self.noHitFace, 
-															self.noHitTriangle, 
-															self.noHitBary1, 
-															self.noHitBary2,
-															self.tolerance)
+				self.gotHit = self.surfaceFn.closestPoint(raySource, self.paramU, self.paramV, 
+				self.ignoreTrimBoundaries, self.tolerance, om.MSpace.kObject, self.ReturnStatus)
 								
 				#Return the intersection as a Python list.
 				if self.gotHit:
