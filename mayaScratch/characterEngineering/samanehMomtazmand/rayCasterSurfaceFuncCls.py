@@ -44,10 +44,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                                    {'kw':'singleReturn',"default":True,"argType":'bool','help':"singleReturn"},
                                    {'kw':'axisToCheck',"default":['x','z'],"argType":'list','help':"axisToCheck"},
                                    {'kw':'maxIterations',"default":10,"argType":'float','help':"maxIterations"},
-                                   {'kw':'pierceDepth',"default":4,"argType":'float','help':"maxIterations"},
-                                   {'kw':'raySourceVector ',"default":[0,0,0],"argType":'double3','help':"raySourceVector"},
-                                   {'kw':'hitPointVector',"default":[0,0,0],"argType":'double3','help':"hitPointVector"},
-                                   {'kw':'distVector',"default":[0,0,0],"argType":'double3','help':"distVector"},]      
+                                   {'kw':'pierceDepth',"default":4,"argType":'float','help':"maxIterations"}]      
 			self.__dataBind__(*args, **kws)
 			surface = self.d_kws['surface']
 			raySource = self.d_kws['raySource']
@@ -94,6 +91,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 				self.maxDist = om.MDistance.internalToUI(distVector)
 				log.debug("maxDist: %s"%maxDist)
 				
+				#other variables
 				self.paramU = None
 				self.paramV = None
 				self.ignoreTrimBoundaries = False
