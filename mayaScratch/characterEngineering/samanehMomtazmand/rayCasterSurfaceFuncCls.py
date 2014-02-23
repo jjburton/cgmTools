@@ -95,13 +95,13 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 				self.paramU = None
 				self.paramV = None
 				self.ignoreTrimBoundaries = False
-				self.tolerance = kMFnNurbsEpsilon #'kMFnNurbsEpsilon' is not Defined
+				self.kMFnNurbsEpsilon = [0,0,0]
 				self.ReturnStatus = None
 
 					            	
 				#Get the closest intersection.
-				self.gotHit = self.surfaceFn.closestPoint(raySource, self.paramU, self.paramV, 
-				self.ignoreTrimBoundaries, self.tolerance, om.MSpace.kObject, self.ReturnStatus)
+				self.gotHit = self.surfaceFn.closestPoint(raySource, self.rayDirection, self.paramU, self.paramV, 
+				self.ignoreTrimBoundaries, self.kMFnNurbsEpsilon, om.MSpace.kObject, self.ReturnStatus)
 								
 				#Return the intersection as a Python list.
 				if self.gotHit:
@@ -116,8 +116,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 						self.x1.createFromList(pArray, 2)
 						self.uvPoint = x1.asFloat2Ptr()
 						self.uvSet = None
-						self.closestPolygon=None
-						self.uvReturn = self.surfaceFn.getUVAtPoint(self.hitMPoint,self.uvPoint,om.MSpace.kWorld)
+						self.uvReturn = self.surfaceFn.getParamAtPoint(self.hitMPoint,self.uvPoint,self.paramU,self.paramV, self.ignoreTrimBoundaries, om.MSpace.kObject, self.kMFnNurbsEpsilon)
 									
 						self.uValue = om.MScriptUtil.getFloat2ArrayItem(self.uvPoint, 0, 0) or False
 						self.vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
