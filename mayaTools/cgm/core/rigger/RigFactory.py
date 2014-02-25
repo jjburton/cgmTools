@@ -478,7 +478,21 @@ class go(object):
 						 mPlug_globalScale.p_combinedShortName,
 						 mi_parentHeadHandle.p_nameShort)).doBuild()
 	    self.mPlug_multpHeadScale = mPlug_multpHeadScale
-	except Exception,error:raise StandardError,"!verify_faceScaleDriver! | %s"%(error)	
+	except Exception,error:raise StandardError,"!verify_faceScaleDriver! | %s"%(error)
+	
+    def verify_offsetGroup(self,mObj):
+	try:
+	    mi_buffer = mObj.getMessageAsMeta('offsetGroup')
+	    if mi_buffer:
+		return mi_buffer[0]
+	    else:
+		mi_offsetGroup = cgmMeta.cgmObject( mObj.doGroup(True),setClass=True)	 
+		mi_offsetGroup.doStore('cgmName',mObj.mNode)
+		mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
+		mi_offsetGroup.doName()
+		mObj.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')	                
+		return mi_offsetGroup	
+	except Exception,error:raise Exception,"[verify_offsetGroup! | error: {0}]".format(error)  
 	
     def verify_faceSettings(self):
 	"""
