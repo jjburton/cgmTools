@@ -846,9 +846,9 @@ def build_rig(*args, **kws):
                                 {'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
                                 {'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
                                 #{'step':'Tongue build','call':self._buildTongue_},
-                                {'step':'Upper Cheek','call':self._buildUprCheek_},
+                                ###{'step':'Upper Cheek','call':self._buildUprCheek_},
                                 ###{'step':'Mid Cheek','call':self._buildMidCheek_},	  
-                                #{'step':'JawLine build','call':self._buildJawLines_},
+                                {'step':'JawLine build','call':self._buildJawLines_},
                                 {'step':'Cheek Surface Build','call':self._buildCheekSurface_},
                                 {'step':'Lock N hide','call':self._lockNHide_},
                                 ]	
@@ -2059,9 +2059,9 @@ def build_rig(*args, **kws):
                                               'right':{'attrsToMirror':['tz']}},
                            'lipCornerRig':{'mode':'attrOffsetConnect','driver':self.md_rigList['mouthMove'],'attrsToConnect':['tz'],
                                            'right':{'attrsToMirror':['tz']}},
-                           'smileHandle':{'mode':'smileHandleOutOffset',
-                                          'left':{'driver':self.md_rigList['lipCornerHandle']['left'][0],'attrsToConnect':['tx'],'attrsToMirror':['tx']},
-                                          'right':{'driver':self.md_rigList['lipCornerHandle']['right'][0],'attrsToConnect':['tx'],'attrsToMirror':['tx']}},                      
+                           'smileHandle':{'mode':'smileHandleOffset',
+                                          'left':{'driver':self.md_rigList['lipCornerHandle']['left'][0],'attrsToConnect':['tx','tz']},
+                                          'right':{'driver':self.md_rigList['lipCornerHandle']['right'][0],'attrsToConnect':['tx','tz']}},                            
                            'lipLwrHandle':{'skip':['left','right'],
                                            'center':{'mode':'simpleSlideHandle','driver':self.md_rigList['mouthMove']}},
                            'lipUprHandle':{'skip':['left','right'],
@@ -4563,13 +4563,25 @@ def build_rig(*args, **kws):
             return	
 
         def _buildCheekSurface_(self):
-            mi_go = self._go#Rig Go instance link   
+            try:#>> Query ========================================================================
+                mi_go = self._go#Rig Go instance link
+                str_skullPlate = self.str_skullPlate
 
+                try:#>> plate queries ---------------------------------------------------------------
+                    mi_browPlate = self.mi_browPlate
+                    mi_uprTeethPlate = self.mi_uprTeethPlate
+                    mi_lwrTeethPlate = self.mi_lwrTeethPlate	
+                    mi_jawPlate = self.mi_jawPlate
+                except Exception,error:raise Exception,"[Plate query | error: {0}]".format(error)
+                mi_l_eyeMove = cgmMeta.cgmObject('l_eye_eyeMove_anim')
+                mi_r_eyeMove = cgmMeta.cgmObject('r_eye_eyeMove_anim')
+            except Exception,error:raise Exception,"[Query | error: {0}]".format(error)
+            
             try:#Build Curves ===================================================================================================
                 md_curvesBuilds = {'uprCheekFollowLeft':{'pointTargets':self.md_rigList['uprCheekRig']['left'][:-1] + [self.md_rigList['smileLineRig']['left'][0]]},
                                    'uprCheekFollowRight':{'pointTargets':self.md_rigList['uprCheekRig']['right'][:-1] + [self.md_rigList['smileLineRig']['right'][0]]}}	
                 self.create_curvesFromDict(md_curvesBuilds)
-            except Exception,error:raise Exception,"[Build Curves!] | error: {0}".format(error)
+            except Exception,error:raise Exception,"[Build Curves! | error: {0}".format(error)
             
             try:#Build plates ===================================================================================================
                 md_plateBuilds = {'cheekLeft':{'mode':'cheekLoft','direction':'left','name':'cheek',
@@ -4587,8 +4599,14 @@ def build_rig(*args, **kws):
                 str_cheekRightPlate = self.mi_cheekRightPlate.p_nameShort
 
                 d_build = {'cheekRig':{'left':{'mode':'pointAttach','attachTo':str_cheekLeftPlate},
-                                       'right':{'mode':'pointAttach','attachTo':str_cheekRightPlate}},	
-                           'cheekAnchor':{'mode':'slideAttach','attachTo':str_jawPlate}
+                                       'right':{'mode':'pointAttach','attachTo':str_cheekRightPlate}},
+                           'uprCheekRig':{'left':{'mode':'handleAttach','attachTo':str_cheekLeftPlate},
+                                          'right':{'mode':'handleAttach','attachTo':str_cheekRightPlate}},
+                           'cheekAnchor':{'mode':'slideAttach','attachTo':str_jawPlate},
+                           'uprCheekHandles':{'left':{0:{'mode':'parentOnly','attachTo':None,'parentTo':mi_l_eyeMove.mNode},
+                                                      1:{'mode':'slideHandleAttach','attachTo':mi_browPlate}},
+                                              'right':{0:{'mode':'parentOnly','attachTo':None,'parentTo':mi_r_eyeMove.mNode},
+                                                       1:{'mode':'slideHandleAttach','attachTo':mi_browPlate}}}                           
                            }
 
                 self.attach_fromDict(d_build)
@@ -4598,16 +4616,20 @@ def build_rig(*args, **kws):
                 mi_noseMove = self.md_rigList['noseMoveHandle'][0]
                 # self.md_rigList['smileLineRig']['left']
                 d_build = {'cheekRight':{'target':self.mi_cheekRightPlate,
-                                         'bindJoints':self.md_rigList['jawLine']['right'] + self.md_rigList['cheekAnchor']['right'] + self.md_rigList['smileHandle']['right'] + self.md_rigList['uprCheekRig']['right']},		           
+                                         'bindJoints':self.md_rigList['jawLine']['right'] + self.md_rigList['cheekAnchor']['right'] + self.md_rigList['smileHandle']['right'] + self.md_rigList['uprCheekHandles']['right']},		           
                            'cheekLeft':{'target':self.mi_cheekLeftPlate,
-                                        'bindJoints':self.md_rigList['jawLine']['left'] + self.md_rigList['cheekAnchor']['left'] + self.md_rigList['smileHandle']['left'] + self.md_rigList['uprCheekRig']['left']}}
+                                        'bindJoints':self.md_rigList['jawLine']['left'] + self.md_rigList['cheekAnchor']['left'] + self.md_rigList['smileHandle']['left'] + self.md_rigList['uprCheekHandles']['left']}}
                 self.skin_fromDict(d_build)
             except Exception,error:raise Exception,"[Skinning! | error: {0}]".format(error)	
             
             try:#>>> Connect  ==================================================================
-                d_build = {'cheekAnchor':{'mode':'pointConstraint',
-                                          'left':{'targets':[self.md_rigList['jawLine']['left'][0],self.md_rigList['uprCheekRig']['left'][0]]},
-                                          'right':{'targets':[self.md_rigList['jawLine']['right'][0],self.md_rigList['uprCheekRig']['right'][0]]}}}
+                d_build = {'uprCheekHandles':{'left':{0:{'mode':'skip'},
+                                                      1:{'mode':'simpleSlideHandle','driver':mi_l_eyeMove}},
+                                              'right':{0:{'mode':'skip'},
+                                                       1:{'mode':'simpleSlideHandle','driver':mi_r_eyeMove}}},
+                           'cheekAnchor':{'mode':'pointConstraint',
+                                          'left':{'targets':[self.md_rigList['jawLine']['left'][0],self.md_rigList['uprCheekHandles']['left'][0]]},
+                                          'right':{'targets':[self.md_rigList['jawLine']['right'][0],self.md_rigList['uprCheekHandles']['right'][0]]}}}
 
                 self.connect_fromDict(d_build)
             except Exception,error:raise Exception,"[Connect!] | error: {0}".format(error)	            
@@ -4623,7 +4645,7 @@ def build_rig(*args, **kws):
 				'''
                 d_build = {'cheekAnchor':{'mode':'singleBlend',
                                           'left':{'d_target0':{'target':self.md_rigList['smileHandle']['left'][0],
-                                                               'upLoc':self.md_rigList['uprCheekRig']['left'][0],
+                                                               'upLoc':self.md_rigList['uprCheekHandles']['left'][0],
                                                                'v_aim':mi_go._vectorUp,
                                                                'v_up':mi_go._vectorOutNegative},
                                                   'd_target1':{'target':self.md_rigList['smileHandle']['left'][0],
@@ -4631,7 +4653,7 @@ def build_rig(*args, **kws):
                                                                'v_aim':mi_go._vectorUpNegative,
                                                                'v_up':mi_go._vectorOutNegative}},
                                           'right':{'d_target0':{'target':self.md_rigList['smileHandle']['right'][0],
-                                                               'upLoc':self.md_rigList['uprCheekRig']['right'][0],
+                                                               'upLoc':self.md_rigList['uprCheekHandles']['right'][0],
                                                                'v_aim':mi_go._vectorUp,
                                                                'v_up':mi_go._vectorOutNegative},
                                                   'd_target1':{'target':self.md_rigList['smileHandle']['right'][0],
@@ -4640,9 +4662,9 @@ def build_rig(*args, **kws):
                                                                'v_up':mi_go._vectorOutNegative}}},
                             'cheekRig':{'mode':'segmentSingleAim',
                                         'left':{'v_aim':mi_go._vectorOutNegative,'v_up':mi_go._vectorAim,
-                                                'upLoc':self.md_rigList['specialLocs']['jawRig']['left']},
+                                                'upLoc':self.md_rigList['specialLocs']['uprHeadDef']['left']},
                                         'right':{'v_aim':mi_go._vectorOut,'v_up':mi_go._vectorAimNegative,
-                                                 'upLoc':self.md_rigList['specialLocs']['jawRig']['right']}}}
+                                                 'upLoc':self.md_rigList['specialLocs']['uprHeadDef']['right']}}}
                 self.aim_fromDict(d_build)
             except Exception,error:raise Exception,"[Aim! | error: {0}]".format(error)      
             
@@ -5714,7 +5736,7 @@ def build_rig(*args, **kws):
 
                                         except Exception,error:raise Exception,"[0}!| error: {1}".format(str_mode,error)
 
-                                    elif str_mode in ['attrOffsetConnect','smileHandleOutOffset']:
+                                    elif str_mode in ['attrOffsetConnect','smileHandleOffset']:
                                         try:
                                             try:#See if we have a handle return
                                                 if ml_driver: ml_handles = cgmValid.listArg(ml_driver)
@@ -5725,37 +5747,72 @@ def build_rig(*args, **kws):
                                                 l_attrsToMirror = d_buffer.get('attrsToMirror') or d_build[str_tag].get('attrsToMirror') or []
                                                 self.log_info("{0} | attrOffsetConnect | driver: {1} | attrsToConnect: {2} | attrsToMirror: {3}".format(str_mObj,ml_driver,l_attrsToConnect,l_attrsToMirror))
                                                 
-                                                mi_offsetGroup = mi_go.verify_offsetGroup(mObj)#..Create offsetgroup
-
+                                                try:mi_offsetGroup = mi_go.verify_offsetGroup(mObj)#..Create offsetgroup
+                                                except Exception,error:raise Exception,"[offset verify fail! | error: {0}]".format(error)
                                             except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
 
-                                            try:#Setup the offset to push handle rotation to the rig joint control
-                                                for a in l_attrsToConnect:
+                                            try:#Setup the offset to push handle rotation to the rig joint control 
+                                                for ii,a in enumerate(l_attrsToConnect):
+                                                    mPlug_attrBridgeDriven = cgmMeta.cgmAttr(mi_offsetGroup,a)
+                                                    mPlug_attrBridgeDriver = cgmMeta.cgmAttr(mi_handle,l_attrsToConnect[0])   
+                                                    
                                                     if str_mode == 'attrOffsetConnect':
                                                         if a not in l_attrsToMirror:
                                                             cgmMeta.cgmAttr(mi_offsetGroup,a).doConnectIn("{0}.{1}".format(mi_handle.mNode,a))
                                                         else:
-                                                            mPlug_attrBridgeDriven = cgmMeta.cgmAttr(mi_offsetGroup,a)
-                                                            mPlug_attrBridgeDriver = cgmMeta.cgmAttr(mi_handle,a)
                                                             arg_attributeBridge = "{0} = -{1}".format(mPlug_attrBridgeDriven.p_combinedShortName,
                                                                                                             mPlug_attrBridgeDriver.p_combinedShortName)						
-                                                            NodeF.argsToNodes(arg_attributeBridge).doBuild()		
-                                                    else:
-                                                        mPlug_attrBridgeDriven = cgmMeta.cgmAttr(mi_offsetGroup,a)
-                                                        mPlug_attrBridgeDriver = cgmMeta.cgmAttr(mi_handle,a)
-                                                        mPlug_negateFactor = cgmMeta.cgmAttr(mObj,'negateCornerOut',attrType='float',value = -.75,hidden = False,defaultValue=-.75)
-                                                        mPlug_negateResult = cgmMeta.cgmAttr(mObj,'res_negateCornerOut',attrType='float',value = 0.0, keyable=False, hidden=True)
-                                                        
-                                                        arg_negateFactor = "{0} = {1} * {2}".format(mPlug_negateResult.p_combinedShortName,
-                                                                                                    mPlug_negateFactor.p_combinedShortName,
-                                                                                                    mPlug_attrBridgeDriver.p_combinedShortName)
-                                                        arg_attributeBridge = "{0} = if {1} >= 0: {2} else 0".format(mPlug_attrBridgeDriven.p_combinedShortName,
-                                                                                                                       mPlug_attrBridgeDriver.p_combinedShortName,
-                                                                                                                       mPlug_negateResult.p_combinedShortName)							
-                                                        for str_arg in arg_negateFactor,arg_attributeBridge:
-                                                            self.log_info("Building: {0}".format(str_arg))
-                                                            NodeF.argsToNodes(str_arg).doBuild()	                                                        
-                                            except Exception,error:raise Exception,"[Offset group!] | error: {0}".format(error)
+                                                            NodeF.argsToNodes(arg_attributeBridge).doBuild()
+                                                            
+                                                    elif str_mode == 'smileHandleOffset':
+                                                        if ii == 0:
+                                                            mPlug_smileOn = cgmMeta.cgmAttr(mObj,'res_smileOffsetOn',attrType='float',value = 0.0, keyable=False, hidden=True)                                                            
+                                                            
+                                                            mPlug_negateFactor = cgmMeta.cgmAttr(mObj,'negateCornerOut',attrType='float',value = -.7,hidden = False,defaultValue=-.7)
+                                                            mPlug_negateResult = cgmMeta.cgmAttr(mObj,'res_negateCornerOut',attrType='float',value = 0.0, keyable=False, hidden=True)
+                                                            
+                                                            arg_negateFactor = "{0} = {1} * {2}".format(mPlug_negateResult.p_combinedShortName,
+                                                                                                        mPlug_negateFactor.p_combinedShortName,
+                                                                                                        mPlug_attrBridgeDriver.p_combinedShortName)
+                                                            arg_negateOutOn = "{0} = {1} * {2}".format(mPlug_attrBridgeDriven.p_combinedShortName,
+                                                                                                       mPlug_smileOn.p_combinedShortName,
+                                                                                                       mPlug_negateResult.p_combinedShortName)                                                            
+                                                            
+                                                            arg_smileOn = "{0} = if {1} >= 0: 1 else 0".format(mPlug_smileOn.p_combinedShortName,
+                                                                                                               mPlug_attrBridgeDriver.p_combinedShortName,
+                                                                                                               mPlug_negateResult.p_combinedShortName)		
+                                                            
+                                                            for str_arg in arg_negateFactor,arg_negateOutOn,arg_smileOn:
+                                                                self.log_info("Building: {0}".format(str_arg))
+                                                                NodeF.argsToNodes(str_arg).doBuild()	
+                                                        elif ii == 1:
+                                                            mPlug_outFactor = cgmMeta.cgmAttr(mObj,'cornerPushMax',attrType='float',value = .75,hidden = False,defaultValue = .75)
+                                                            mPlug_outTarget = cgmMeta.cgmAttr(mObj,'cornerOutTarget',attrType='float',value = 2.0,hidden = False,defaultValue = 2.0)
+                                                            
+                                                            mPlug_outUseResult = cgmMeta.cgmAttr(mObj,'res_cornerPushUse',attrType='float',value = 0.0, keyable=False, hidden=True)
+                                                            mPlug_outFactorResult = cgmMeta.cgmAttr(mObj,'res_cornerPushFactor',attrType='float',value = 0.0, keyable=False, hidden=True)
+                                                            
+                                                            arg_outFactor = "{0} = {2} / {1}".format(mPlug_outFactorResult.p_combinedShortName,
+                                                                                                     mPlug_outTarget.p_combinedShortName,
+                                                                                                     mPlug_attrBridgeDriver.p_combinedShortName)
+                                                            if mObj.cgmDirection == 'left':
+                                                                arg_outFactorValue = "{0} = {1} * {2}".format(mPlug_outUseResult.p_combinedShortName,
+                                                                                                              mPlug_outFactorResult.p_combinedShortName,
+                                                                                                              mPlug_outFactor.p_combinedShortName)   
+                                                            else:
+                                                                arg_outFactorValue = "{0} = {1} * -{2}".format(mPlug_outUseResult.p_combinedShortName,
+                                                                                                               mPlug_outFactorResult.p_combinedShortName,
+                                                                                                               mPlug_outFactor.p_combinedShortName)                                                                   
+                                                            arg_negateOutOn = "{0} = {1} * {2}".format(mPlug_attrBridgeDriven.p_combinedShortName,
+                                                                                                       mPlug_smileOn.p_combinedShortName,
+                                                                                                       mPlug_outUseResult.p_combinedShortName)
+                                                            
+                                                            for str_arg in arg_outFactor,arg_outFactorValue,arg_negateOutOn:
+                                                                self.log_info("Building: {0}".format(str_arg))
+                                                                NodeF.argsToNodes(str_arg).doBuild()
+                                                                
+                                                        else:self.log_warning("[Not sure what to do with {0} | mode: {1}]".format(a,str_mode))
+                                            except Exception,error:raise Exception,"[Setup!] | error: {0}".format(error)
 
                                         except Exception,error:raise Exception,"[{0}! | {1}]".format(str_mode,error)					     				
                                     else:
