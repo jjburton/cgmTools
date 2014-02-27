@@ -819,9 +819,9 @@ def build_controls(*args, **kws):
                 ml_list = self.md_directionControls[str_direction]
                 int_lenMax = len(ml_list)				
                 for i,mCtrl in enumerate(ml_list):
-                    self.progressBar_set(status = "Setting mirror index: '%s'"%mCtrl.p_nameShort, progress =  i, maxValue = int_lenMax)		    				    		    					    
+                    self.progressBar_set(status = "Setting mirror index: '{0}'".format(mCtrl.p_nameShort), progress =  i, maxValue = int_lenMax)		    				    		    					    
                     try:mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
-                    except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
+                    except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: {0} | {1}".format(mCtrl,error)
 
             try:self._go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll')
             except Exception,error: raise StandardError,"[Controls all connect]{%s}"%error	    
@@ -840,17 +840,17 @@ def build_rig(*args, **kws):
             self.__dataBind__()
             self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
                                 {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
-                                {'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
-                                {'step':'Lip Structure','call':self._buildLipStructure_},
-                                {'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
-                                {'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
-                                {'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
+                                #{'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
+                                #{'step':'Lip Structure','call':self._buildLipStructure_},
+                                #{'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
+                                #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
+                                #{'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
                                 #{'step':'Tongue build','call':self._buildTongue_},
                                 ###{'step':'Upper Cheek','call':self._buildUprCheek_},
                                 ###{'step':'Mid Cheek','call':self._buildMidCheek_},	  
-                                {'step':'JawLine build','call':self._buildJawLines_},
-                                {'step':'Cheek Surface Build','call':self._buildCheekSurface_},
-                                {'step':'Lock N hide','call':self._lockNHide_},
+                                #{'step':'JawLine build','call':self._buildJawLines_},
+                                #{'step':'Cheek Surface Build','call':self._buildCheekSurface_},
+                                #{'step':'Lock N hide','call':self._lockNHide_},
                                 ]	
             #=================================================================
         def _gatherInfo_(self):
@@ -2429,6 +2429,8 @@ def build_rig(*args, **kws):
                         try:
                             attributes.doSetAttr(mi_uprWire.mNode,"dropoffDistance[0]",50)
                             attributes.doSetAttr(mi_lwrWire.mNode,"dropoffDistance[0]",50)
+                            attributes.doSetAttr(mi_uprWire.mNode,"scale[0]",0)#...this get's rid of some weird scale stuff...
+                            attributes.doSetAttr(mi_lwrWire.mNode,"scale[0]",0)                            
                         except Exception,error:raise Exception,"[Failed to set dropoffDistance] | error:{0}".format(error)			
                     except Exception,error:raise Exception,"[wire deformer!] | error: {0}".format(error)  	    
 
@@ -2740,12 +2742,75 @@ def build_rig(*args, **kws):
             except Exception,error:raise Exception,"[Build mid lip Up Locs | error: {0}]".format(error)  
 
             try:#>>> Aim some stuff =================================================================================
-                d_build = {'lipUprRig':{'mode':'lipLineSegmentBlend','midUpLoc':self.mi_uprLipSegmentMidUpLoc,'midHandle':self.md_rigList['lipUprHandle']['center'][0],'v_up':mi_go._vectorUp},
-                           'lipLwrRig':{'mode':'lipLineSegmentBlend','midUpLoc':self.mi_lwrLipSegmentMidUpLoc,'midHandle':self.md_rigList['lipLwrHandle']['center'][0],'v_up':mi_go._vectorUp}}
+                d_build = {'lipUprRig':{'mode':'lipLineSegmentBlend','midUpLoc':self.mi_uprLipSegmentMidUpLoc,
+                                        'centerTargets':[self.md_rigList['uprLipSegment']['left'][-1].mNode,
+                                                         self.md_rigList['uprLipSegment']['right'][-1].mNode],
+                                        'midHandle':self.md_rigList['lipUprHandle']['center'][0],'v_up':mi_go._vectorUp},
+                           'lipLwrRig':{'mode':'lipLineSegmentBlend','midUpLoc':self.mi_lwrLipSegmentMidUpLoc,
+                                        'centerTargets':[self.md_rigList['lwrLipSegment']['left'][-1].mNode,
+                                                         self.md_rigList['lwrLipSegment']['right'][-1].mNode],                                        
+                                        'midHandle':self.md_rigList['lipLwrHandle']['center'][0],'v_up':mi_go._vectorUp}}
                 self.aim_fromDict(d_build)
             except Exception,error:raise Exception,"[Aim! | error: {0}]".format(error)
-
+            
         def _buildLipOverUnder_(self):
+            #>> Get some data =======================================================================================
+            try:#>> Query ========================================================================
+                mi_go = self._go#Rig Go instance link	
+            except Exception,error:raise Exception,"[Query | error: {0}]".format(error)  
+
+            try:#Template Curve duplication ====================================================================================
+                self.progressBar_set(status = 'Template Curve duplication')  
+                d_toDup = {'mouthTopTrace':self.mi_mouthTopCastCrv,
+                           'mouthBaseTrace':self.mi_mouthLowCastCrv}
+                for str_k in d_toDup.iterkeys():
+                    mi_dup = cgmMeta.cgmObject( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],setClass=True )
+                    mi_dup.cgmType = 'traceCrv'
+                    mi_dup.cgmName = mi_dup.cgmName.replace('Cast','')
+                    mi_dup.doName()
+                    cgmMeta.cgmAttr(mi_dup,'translate',lock = False, keyable = True)
+                    cgmMeta.cgmAttr(mi_dup,'rotate',lock = False, keyable = True)
+                    cgmMeta.cgmAttr(mi_dup,'scale',lock = False, keyable = True)
+                    mi_dup.parent = mi_go._i_rigNull
+
+                    #ml_curves.append(mi_dup)
+                    self.__dict__["mi_{0}Crv".format(str_k)] = mi_dup
+
+            except Exception,error:raise Exception,"[Template Curve | error: {0}]".format(error)  
+
+            try:#Build plates ====================================================================================
+                md_plateBuilds = {'uprLip':{'crvs':[self.mi_mouthTopCastCrv,self.mi_lipOverTraceCrv,self.mi_lipUprCrv]},
+                                  'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]},}
+                self.create_plateFromDict(md_plateBuilds)
+            except Exception,error:raise Exception,"[Plates | error: {0}]".format(error)  	    
+
+            try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
+                d_build = {'uprLipPlate':{'target':self.mi_uprLipPlate,
+                                          'bindJoints': [self.md_rigList['lipCornerRig']['left'][0].lwrDriverSkin,self.md_rigList['lipCornerRig']['right'][0].uprDriverSkin] + self.ml_uprLipRigJoints + self.md_rigList['noseMoveRig'] + [self.md_rigList['nostrilRig']['left'][0],self.md_rigList['nostrilRig']['right'][0]] + [self.md_rigList['noseUnderRig'][0]]},		           	          
+                           'lwrLipPlate':{'target':self.mi_lwrLipPlate,
+                                          'bindJoints':self.ml_lwrLipRigJoints + [self.md_rigList['lipCornerRig']['left'][0].lwrDriverSkin,self.md_rigList['lipCornerRig']['right'][0].uprDriverSkin] +self.md_rigList['chin']}}
+                self.skin_fromDict(d_build)
+
+            except Exception,error:raise Exception,"[Skinning  | error: {0}]".format(error)    
+
+            try:#Attach stuff to surfaces ====================================================================================
+                #Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
+                str_skullPlate = self.str_skullPlate
+                mi_uprTeethPlate = self.mi_uprTeethPlate
+                mi_lwrTeethPlate = self.mi_lwrTeethPlate
+
+                str_uprLipPlate = self.mi_uprLipPlate.p_nameShort
+                str_lwrLipPlate = self.mi_lwrLipPlate.p_nameShort
+                mi_mouthMoveTrackLoc = self.md_rigList['mouthMoveTrackLoc'][0]
+
+                d_build = {'lipOverRig':{'mode':'handleAttach','attachTo':str_uprLipPlate},		           
+                           'lipUnderRig':{'mode':'handleAttach','attachTo':str_lwrLipPlate}}
+
+                self.attach_fromDict(d_build)
+
+            except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error) 
+            
+        def _buildLipOverUnderOLD_(self):
             #>> Get some data =======================================================================================
             try:#>> Query ========================================================================
                 mi_go = self._go#Rig Go instance link	
@@ -6119,6 +6184,7 @@ def build_rig(*args, **kws):
                                                 mi_segmentCurve =  mObj.skinJoint.segJoint.segmentCurve
                                                 mi_upLoc = d_buffer['midUpLoc']
                                                 mi_midHandle = d_buffer['midHandle']
+                                                l_centerTargets = d_buffer['centerTargets']
                                             else:
                                                 mi_upLoc = mObj.skinJoint.segJoint.upLoc
                                         except Exception,error:raise Exception,"['%s' upLoc!]{%s}"%(str_mObj,error)
@@ -6147,10 +6213,10 @@ def build_rig(*args, **kws):
                                                 _d['v_up'] = v_up										
                                             except Exception,error:raise Exception,"[Vector query!] | error: {0}".format(error)					    
 
-                                        except Exception,error:raise Exception,"[%s query]{%s}"%(str_mode,error)					
+                                        except Exception,error:raise Exception,"[{0} query | error: {1}]".format(str_mode,error)					
 
                                         try:
-                                            self.log_info("'%s' | getting targets..."%str_mObj)					    											    
+                                            self.log_info("'{0}' | getting targets...".format(str_mObj))					    											    
                                             if str_side != 'center':					
                                                 #Get objects
                                                 if idx == 0:
@@ -6173,7 +6239,7 @@ def build_rig(*args, **kws):
 
                                         #loc creation ------------------------------------------------------------------------
                                         try:
-                                            self.log_info("'%s' | making locs..."%str_mObj)					    											    
+                                            self.log_info("'{0}' | making locs...".format(str_mObj))					    											    
                                             mi_locIn = mObj.doLoc()
                                             mi_locIn.addAttr('cgmTypeModifier','aimIn',lock=True)
                                             mi_locIn.doName()					    
@@ -6189,8 +6255,8 @@ def build_rig(*args, **kws):
                                         except Exception,error:raise Exception,"[Aim loc creation!] | error: {0}".format(error)
                                         try:
                                             if str_side == 'center':
-                                                #If it's our center we're going to aim at the up object with the aimout/in as up vectors
-
+                                                #If it's our center we're going to aim at the up object with the aimout/in as up vectors -- bad, Josh
+                                                '''
                                                 mc.aimConstraint(mi_upLoc.mNode, mi_locIn.mNode,
                                                                  weight = 1, aimVector = v_up, upVector = v_aimIn,
                                                                  maintainOffset = 0,
@@ -6202,6 +6268,12 @@ def build_rig(*args, **kws):
                                                 mi_contraint = cgmMeta.cgmNode(mc.orientConstraint([mi_locIn.mNode,mi_locOut.mNode], mi_aimOffsetGroup.mNode,
                                                                                                    maintainOffset = True,					                        
                                                                                                    weight = 1)[0]) 
+                                                ''' 
+                                                mi_locIn.parent = l_centerTargets[0]
+                                                mi_locOut.parent = l_centerTargets[1]                                                
+                                                mi_contraint = cgmMeta.cgmNode(mc.orientConstraint(l_centerTargets, mi_aimOffsetGroup.mNode,
+                                                                                                   maintainOffset = True,					                        
+                                                                                                   weight = 1)[0])                                                 
                                                 mi_contraint.interpType = 0						
                                                 #mi_contraint = cgmMeta.cgmNode(mc.orientConstraint([mi_midHandle.mNode], mObj.masterGroup.mNode,
                                                                                                     #maintainOffset = 1,					                        
