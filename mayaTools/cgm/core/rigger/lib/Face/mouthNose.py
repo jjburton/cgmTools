@@ -840,9 +840,10 @@ def build_rig(*args, **kws):
             self.__dataBind__()
             self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
                                 {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
-                                #{'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
-                                #{'step':'Lip Structure','call':self._buildLipStructure_},
-                                #{'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
+                                {'step':'Build Lip Up loc structure','call':self._buildLipUpLocStructure_},	                                
+                                {'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
+                                {'step':'Lip Structure','call':self._buildLipStructure_},
+                                {'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
                                 #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
                                 #{'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
                                 #{'step':'Tongue build','call':self._buildTongue_},
@@ -1049,22 +1050,20 @@ def build_rig(*args, **kws):
             #>> Calculate ==========================================================================
             #Width of the skull plate...trying
             self.f_offsetOfUpLoc = distance.returnBoundingBoxSizeToAverage(self.mi_skullPlate.mNode)
+            
+            #>> Data buffers =======================================================================
+            self.d_dataBuffer = {}            
+            self.d_dataBuffer['f_lenJawLine'] = distance.returnCurveLength(self.mi_jawLineCrv.mNode)
 
             #>> Running lists ==========================================================================
             self.md_rigList['specialLocs'] = {}
-            self.d_dataBuffer = {}            
             self.ml_toVisConnect = []
             self.ml_curves = []
             self.md_attachReturns = {}
             #self.report()
             return True
 
-        def _buildSkullDeformation_(self):
-            """
-            Plan of attack
-            1) See if we have stretch setup stuff
-            2) Build simple head def if not
-            """	    	    
+        def _buildSkullDeformation_(self):   
             try:#>> Get some data =======================================================================================
                 mi_go = self._go#Rig Go instance link
                 mi_skullPlate = self.mi_skullPlate  
@@ -1081,7 +1080,7 @@ def build_rig(*args, **kws):
 
             try:#>> Setup =======================================================================================
                 self._buildJawDeformation_()
-            except Exception,error:raise Exception,"[Setup!| error: {0}]".format(error)
+            except Exception,error:raise Exception,"[Jaw Deformation!| error: {0}]".format(error)
 
         def _buildJawDeformation_(self):
             try:#>> Get some data =======================================================================================
@@ -1108,8 +1107,7 @@ def build_rig(*args, **kws):
                 mi_noseMoveHandle = self.md_rigList['noseMoveHandle'][0]
                 mi_mouthMove = self.md_rigList['mouthMove'][0]
 
-                f_lenJawLine = distance.returnCurveLength(self.mi_jawLineCrv.mNode)
-                self.d_dataBuffer['f_lenJawLine'] = f_lenJawLine
+                f_lenJawLine = self.d_dataBuffer['f_lenJawLine']
                 d_['f_lenJawLine'] = f_lenJawLine
                 d_['mi_jawHandle'] = mi_jawHandle
                 d_['mi_jawRig'] = mi_jawRig
@@ -1298,9 +1296,111 @@ def build_rig(*args, **kws):
 
                 #ConnectVis
                 #mi_go.connect_toRigGutsVis(self.md_rigList['faceBaseDef'],vis = True)#connect to guts vis switches
-
             except Exception,error:raise Exception,"[Connect!] | error: {0}".format(error)
+            
+        def _buildLipUpLocStructure_(self):
+            try:#>> Get some data =======================================================================================
+                mi_go = self._go#Rig Go instance link
 
+                f_offsetOfUpLoc = self.f_offsetOfUpLoc      
+		f_lenJawLine = self.d_dataBuffer['f_lenJawLine']
+            except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
+
+            try:#>> Build chains =======================================================================================
+                d_jointsToCreate = {'uprLipUpDriver':{'start':self.md_rigList['noseTopHandle'][0],
+                                                      'end':self.md_rigList['lipUprHandle']['center'][0],
+		                                      'offsetMultiplier':1,
+                                                      'parent':self.md_rigList['uprHeadDef']},
+		                    'lwrLipUpDriver':{'start':self.md_rigList['chin'][0],
+		                                      'end':self.md_rigList['lipLwrHandle']['center'][0],
+		                                      'offsetMultiplier':-1,		                                      
+		                                      'parent':self.md_rigList['jawRig']}}          
+                for k_tag in d_jointsToCreate.iterkeys():
+                    try:
+                        try:#Query
+                            d_sub = d_jointsToCreate[k_tag]
+			    ml_toLock = []
+			    #self.md_rigList['specialLocs'][k_tag] = {}
+			    #__d = self.md_rigList['specialLocs'][k_tag] 			    
+                        except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
+                        
+                        try:#>>Create --------------------------------------------------------------------
+                            ml_buffer = []
+                            
+                            mi_start = cgmMeta.cgmObject(mc.joint(p = d_sub['start'].getPosition()),setClass=True)
+                            mi_end = cgmMeta.cgmObject(mc.joint(p = d_sub['end'].getPosition()),setClass=True)
+                            ml_buffer = [mi_start,mi_end]
+    
+                            mi_start.parent = d_sub.get('parent') or False
+                        except Exception,error:raise Exception,"[Create! | error: {0}]".format(error)
+                        
+                        try:#>>Name --------------------------------------------------------------------
+                            l_n = ['start','end']
+                            for i,mJnt in enumerate(ml_buffer):
+                                mJnt.addAttr('cgmName',k_tag,lock=True)			
+                                mJnt.addAttr('cgmNameModifier',l_n[i],lock=True)	
+                                mJnt.doName()
+				#ml_toLock.append(mJnt)				
+                        except Exception,error:raise Exception,"[Name! | error: {0}]".format(error)
+                        
+                        try:#>>Orient --------------------------------------------------------------------
+                            joints.orientJointChain([mJnt.mNode for mJnt in ml_buffer],mi_go._jointOrientation,"{0}up".format(mi_go._jointOrientation[1]))  
+                        except Exception,error:raise Exception,"[Orient! | error: {0}]".format(error)                        
+                        
+                        try:#>>Create IK handle --------------------------------------------------------------------
+                            buffer = mc.ikHandle( sj=mi_start.mNode, ee=mi_end.mNode,
+                                                  solver = 'ikRPsolver', forceSolver = True,
+                                                  snapHandleFlagToggle=True )  	
+                            #>>> Name --------------------------------------------------------------------
+                            log.debug(buffer)
+                            mi_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+                            mi_ik_handle.addAttr('cgmName',k_tag,attrType='string',lock=True)    
+                            mi_ik_handle.doName()
+                                                
+                            mi_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+                            mi_ik_effector.addAttr('cgmName',k_tag,attrType='string',lock=True)    
+                            mi_ik_effector.doName()   
+			    
+                            mi_ik_handle.parent = d_sub['end']#...parent
+                        except Exception,error:raise Exception,"[ikHandle creation! | error: {0}]".format(error)
+			
+			try:#>>rpLoc --------------------------------------------------------------------
+			    mi_rpLoc = mi_start.doLoc()
+			    mi_rpLoc.addAttr('cgmName',k_tag,lock=True)			
+			    mi_rpLoc.addAttr('cgmTypeModifier','rp',lock=True)
+			    mi_rpLoc.doName()
+			    ml_toLock.append(mi_rpLoc)				
+			    
+			    setattr(mi_rpLoc,"t{0}".format(mi_go._jointOrientation[2]),(f_lenJawLine * d_sub['offsetMultiplier']))
+			    mi_rpLoc.parent = d_sub['parent']
+			except Exception,error:raise Exception,"[upLoc! | error: {0}]".format(error) 
+			
+                        try:#>>poleVector --------------------------------------------------------------------
+                            cBuffer = mc.poleVectorConstraint(mi_rpLoc.mNode,mi_ik_handle.mNode)
+			    rUtils.IKHandle_fixTwist(mi_ik_handle)#...Fix the twist
+                        except Exception,error:raise Exception,"[poleVector! | error: {0}]".format(error) 
+			
+			try:#>>upLoc --------------------------------------------------------------------
+			    mi_upLoc = mi_start.doLoc()
+			    mi_upLoc.addAttr('cgmName',k_tag,lock=True)			
+			    mi_upLoc.addAttr('cgmTypeModifier','up',lock=True)
+			    mi_upLoc.doName()
+			    ml_toLock.append(mi_upLoc)				
+			    
+			    mi_upLoc.parent = mi_start
+			    setattr(mi_upLoc,"t{0}".format(mi_go._jointOrientation[1]),(f_lenJawLine * d_sub['offsetMultiplier']))
+			except Exception,error:raise Exception,"[upLoc! | error: {0}]".format(error) 
+			
+                        try:#>>cleanup --------------------------------------------------------------------
+			    self.md_rigList['specialLocs'][k_tag] = mi_upLoc
+			    for mObj in ml_toLock:
+				for channel in ['translate','scale','rotate']:
+				    mc.setAttr ((mObj.mNode+'.'+channel),lock=1)          
+			    mc.select(cl=1)                                        
+			    
+                        except Exception,error:raise Exception,"[clean up! | error: {0}]".format(error) 
+                    except Exception,error:raise Exception,"[{0} fail | error: {1}]".format(k_tag,error)
+            except Exception,error:raise Exception,"[Build chains! | error: {0}]".format(error)            
         def _buildSimpleSkullDeformation_(self):
             """
             Plan of attack
@@ -2757,6 +2857,9 @@ def build_rig(*args, **kws):
             #>> Get some data =======================================================================================
             try:#>> Query ========================================================================
                 mi_go = self._go#Rig Go instance link	
+		mi_uprLipUpLoc = self.md_rigList['specialLocs']['uprLipUpDriver']
+		mi_lwrLipUpLoc = self.md_rigList['specialLocs']['lwrLipUpDriver']
+		
             except Exception,error:raise Exception,"[Query | error: {0}]".format(error)  
 
             try:#Template Curve duplication ====================================================================================
@@ -2794,22 +2897,82 @@ def build_rig(*args, **kws):
             except Exception,error:raise Exception,"[Skinning  | error: {0}]".format(error)    
 
             try:#Attach stuff to surfaces ====================================================================================
-                #Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
-                str_skullPlate = self.str_skullPlate
-                mi_uprTeethPlate = self.mi_uprTeethPlate
-                mi_lwrTeethPlate = self.mi_lwrTeethPlate
-
                 str_uprLipPlate = self.mi_uprLipPlate.p_nameShort
                 str_lwrLipPlate = self.mi_lwrLipPlate.p_nameShort
-                mi_mouthMoveTrackLoc = self.md_rigList['mouthMoveTrackLoc'][0]
-
-                d_build = {'lipOverRig':{'mode':'handleAttach','attachTo':str_uprLipPlate},		           
-                           'lipUnderRig':{'mode':'handleAttach','attachTo':str_lwrLipPlate}}
-
+                d_build = {'lipOverRig':{'mode':'pointAttach','attachTo':str_uprLipPlate},		           
+                           'lipUnderRig':{'mode':'pointAttach','attachTo':str_lwrLipPlate}}
                 self.attach_fromDict(d_build)
-
             except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error) 
-            
+	    #singleTarget
+	    '''
+	    'lipUnderRig':{'mode':'singleBlend',
+		                         'center':{'d_target0':{'target':self.md_rigList['lipLwrHandle']['center'][0],
+		                                                'upLoc':mi_lwrLipUpLoc,
+		                                                'v_aim':mi_go._vectorUp,
+		                                                'v_up':mi_go._vectorAim},
+		                                   'd_target1':{'target':self.md_rigList['chin'][0],
+		                                                'upLoc':mi_lwrLipUpLoc,
+		                                                'v_aim':mi_go._vectorUpNegative,
+		                                                'v_up':mi_go._vectorAim}},                                          
+		                         'left':{'d_target0':{'target':self.md_rigList['lipLwrHandle']['left'][0],
+                                                               'upLoc':mi_lwrLipUpLoc,
+                                                               'v_aim':mi_go._vectorUp,
+                                                               'v_up':mi_go._vectorAim},
+                                                  'd_target1':{'target':self.md_rigList['smileBaseHandle']['left'][0],
+                                                               'upLoc':mi_lwrLipUpLoc,
+                                                               'v_aim':mi_go._vectorUpNegative,
+                                                               'v_up':mi_go._vectorAim}},
+                                          'right':{'d_target0':{'target':self.md_rigList['lipLwrHandle']['right'][0],
+                                                               'upLoc':mi_lwrLipUpLoc,
+                                                               'v_aim':mi_go._vectorUp,
+                                                               'v_up':mi_go._vectorAimNegative},
+                                                  'd_target1':{'target':self.md_rigList['smileBaseHandle']['right'][0],
+                                                               'upLoc':mi_lwrLipUpLoc,
+                                                               'v_aim':mi_go._vectorUpNegative,
+                                                               'v_up':mi_go._vectorAimNegative}}},
+	    '''
+            try:#>>> Aim some stuff =================================================================================
+                d_build = {'lipUnderRig':{'mode':'singleTarget',
+		                         'center':{'aimTarget':self.md_rigList['lipLwrHandle']['center'][0],
+		                                   'upLoc':mi_lwrLipUpLoc,
+		                                   'v_aim':mi_go._vectorUp,
+		                                   'v_up':mi_go._vectorAim},                                          
+		                         'left':{'aimTarget':self.md_rigList['lipLwrHandle']['left'][0],
+		                                 'upLoc':self.md_rigList['lipUnderRig']['center'][0],
+		                                 'v_aim':mi_go._vectorUp,
+		                                 'v_up':mi_go._vectorOutNegative},
+                                          'right':{'aimTarget':self.md_rigList['lipLwrHandle']['right'][0],
+		                                   'upLoc':self.md_rigList['lipUnderRig']['center'][0],
+		                                   'v_aim':mi_go._vectorUp,
+		                                   'v_up':mi_go._vectorOut}},
+		           'lipOverRig':{'mode':'singleBlend',
+		                         'center':{'d_target0':{'target':self.md_rigList['noseUnderRig'][0],
+		                                                'upLoc':mi_uprLipUpLoc,
+		                                                'v_aim':mi_go._vectorUp,
+		                                                'v_up':mi_go._vectorAim},
+		                                   'd_target1':{'target':self.md_rigList['lipUprHandle']['center'][0],
+		                                                'upLoc':mi_uprLipUpLoc,
+		                                                'v_aim':mi_go._vectorUpNegative,
+		                                                'v_up':mi_go._vectorAim}},                                          
+		                          'left':{'d_target0':{'target':self.md_rigList['nostrilRig']['left'][0],
+                                                               'upLoc':mi_uprLipUpLoc,
+                                                               'v_aim':mi_go._vectorUp,
+                                                               'v_up':mi_go._vectorAim},
+                                                  'd_target1':{'target':self.md_rigList['lipUprHandle']['left'][0],
+                                                               'upLoc':mi_uprLipUpLoc,
+                                                               'v_aim':mi_go._vectorUpNegative,
+                                                               'v_up':mi_go._vectorAim}},
+                                          'right':{'d_target0':{'target':self.md_rigList['nostrilRig']['right'][0],
+                                                               'upLoc':mi_uprLipUpLoc,
+                                                               'v_aim':mi_go._vectorUp,
+                                                               'v_up':mi_go._vectorAimNegative},
+                                                  'd_target1':{'target':self.md_rigList['lipUprHandle']['right'][0],
+                                                               'upLoc':mi_uprLipUpLoc,
+                                                               'v_aim':mi_go._vectorUpNegative,
+                                                               'v_up':mi_go._vectorAimNegative}}}}
+                self.aim_fromDict(d_build)
+            except Exception,error:raise Exception,"[Aim! | error: {0}]".format(error)     
+	    
         def _buildLipOverUnderOLD_(self):
             #>> Get some data =======================================================================================
             try:#>> Query ========================================================================
