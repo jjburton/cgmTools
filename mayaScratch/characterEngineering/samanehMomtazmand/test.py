@@ -82,7 +82,13 @@ noHitFace = None
 noHitTriangle = None
 noHitBary1 = None
 noHitBary2 = None
-rayDir = (1.0, 0.0, 0.0)
+
+centerPointX = float(vertices[0][0])
+centerPointY = float(vertices[0][1])
+centerPointZ = float(vertices[0][2])
+raySourceVector = om.MVector(raySource[0], raySource[1], raySource[2])
+centerPointVector = om.MVector(centerPointX,centerPointY,centerPointZ)
+rayDir = om.MVector(centerPointVector - raySourceVector)
 rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
 
 #Get the closest intersection.
