@@ -95,7 +95,6 @@ rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
 gotHit = meshFn.closestIntersection(raySource,rayDirection,noFaceIds,noTriangleIds,sortIds,
                                                             om.MSpace.kWorld,maxDist, bothDirections,noAccelerator,
                                                             hitPoint,noHitParam, noHitFace, noHitTriangle, noHitBary1, noHitBary2)
-#I got 'gotHit' False!!!!
 
 
 #Return the intersection as a Python list.
