@@ -839,11 +839,11 @@ def build_rig(*args, **kws):
             self._b_reportTimes = True
             self.__dataBind__()
             self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-                                {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
-                                {'step':'Build Lip Up loc structure','call':self._buildLipUpLocStructure_},	                                
+                                #{'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
+                                #{'step':'Build Lip Up loc structure','call':self._buildLipUpLocStructure_},	                                
                                 {'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
-                                {'step':'Lip Structure','call':self._buildLipStructure_},
-                                {'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
+                                #{'step':'Lip Structure','call':self._buildLipStructure_},
+                                #{'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
                                 #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
                                 #{'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
                                 #{'step':'Tongue build','call':self._buildTongue_},
@@ -1307,19 +1307,22 @@ def build_rig(*args, **kws):
             except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
 
             try:#>> Build chains =======================================================================================
-                d_jointsToCreate = {'uprLipUpDriver':{'start':self.md_rigList['noseTopHandle'][0],
+                d_jointsToCreate = {'uprLipUpDriver':{'start':self.md_rigList['noseMoveHandle'][0],
                                                       'end':self.md_rigList['lipUprHandle']['center'][0],
 		                                      'offsetMultiplier':1,
-                                                      'parent':self.md_rigList['uprHeadDef']},
+                                                      #'parent':self.md_rigList['uprHeadDef']
+		                                      },
 		                    'lwrLipUpDriver':{'start':self.md_rigList['chin'][0],
 		                                      'end':self.md_rigList['lipLwrHandle']['center'][0],
 		                                      'offsetMultiplier':-1,		                                      
-		                                      'parent':self.md_rigList['jawRig']}}          
+		                                      #'parent':self.md_rigList['jawRig']
+		                                      }}          
                 for k_tag in d_jointsToCreate.iterkeys():
                     try:
                         try:#Query
                             d_sub = d_jointsToCreate[k_tag]
 			    ml_toLock = []
+			    ml_toVisConnect = []
 			    #self.md_rigList['specialLocs'][k_tag] = {}
 			    #__d = self.md_rigList['specialLocs'][k_tag] 			    
                         except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
@@ -1331,7 +1334,8 @@ def build_rig(*args, **kws):
                             mi_end = cgmMeta.cgmObject(mc.joint(p = d_sub['end'].getPosition()),setClass=True)
                             ml_buffer = [mi_start,mi_end]
     
-                            mi_start.parent = d_sub.get('parent') or False
+                            mi_start.parent = d_sub.get('parent') or d_sub['start']
+			    ml_toVisConnect.extend(ml_buffer)
                         except Exception,error:raise Exception,"[Create! | error: {0}]".format(error)
                         
                         try:#>>Name --------------------------------------------------------------------
@@ -1340,6 +1344,7 @@ def build_rig(*args, **kws):
                                 mJnt.addAttr('cgmName',k_tag,lock=True)			
                                 mJnt.addAttr('cgmNameModifier',l_n[i],lock=True)	
                                 mJnt.doName()
+				
 				#ml_toLock.append(mJnt)				
                         except Exception,error:raise Exception,"[Name! | error: {0}]".format(error)
                         
@@ -1369,10 +1374,11 @@ def build_rig(*args, **kws):
 			    mi_rpLoc.addAttr('cgmName',k_tag,lock=True)			
 			    mi_rpLoc.addAttr('cgmTypeModifier','rp',lock=True)
 			    mi_rpLoc.doName()
-			    ml_toLock.append(mi_rpLoc)				
-			    
+			    ml_toLock.append(mi_rpLoc)	
+			    ml_toVisConnect.append(mi_rpLoc)				
+			    			    
 			    setattr(mi_rpLoc,"t{0}".format(mi_go._jointOrientation[2]),(f_lenJawLine * d_sub['offsetMultiplier']))
-			    mi_rpLoc.parent = d_sub['parent']
+			    mi_rpLoc.parent = d_sub.get('parent') or d_sub['start']
 			except Exception,error:raise Exception,"[upLoc! | error: {0}]".format(error) 
 			
                         try:#>>poleVector --------------------------------------------------------------------
@@ -1386,12 +1392,15 @@ def build_rig(*args, **kws):
 			    mi_upLoc.addAttr('cgmTypeModifier','up',lock=True)
 			    mi_upLoc.doName()
 			    ml_toLock.append(mi_upLoc)				
+			    ml_toVisConnect.append(mi_upLoc)				
 			    
 			    mi_upLoc.parent = mi_start
 			    setattr(mi_upLoc,"t{0}".format(mi_go._jointOrientation[1]),(f_lenJawLine * d_sub['offsetMultiplier']))
 			except Exception,error:raise Exception,"[upLoc! | error: {0}]".format(error) 
 			
                         try:#>>cleanup --------------------------------------------------------------------
+			    mi_go.connect_toRigGutsVis(ml_toVisConnect,vis = True)#connect to guts vis switches
+			    
 			    self.md_rigList['specialLocs'][k_tag] = mi_upLoc
 			    for mObj in ml_toLock:
 				for channel in ['translate','scale','rotate']:
@@ -5983,7 +5992,8 @@ def build_rig(*args, **kws):
                                                 for ii,a in enumerate(l_attrsToConnect):
                                                     mPlug_attrBridgeDriven = cgmMeta.cgmAttr(mi_offsetGroup,a)
                                                     mPlug_attrBridgeDriver = cgmMeta.cgmAttr(mi_handle,l_attrsToConnect[0])   
-                                                    
+                                                    mPlug_mouthMoveDriver = cgmMeta.cgmAttr(self.md_rigList['mouthMove'][0],'tz')
+						    
                                                     if str_mode == 'attrOffsetConnect':
                                                         if a not in l_attrsToMirror:
                                                             cgmMeta.cgmAttr(mi_offsetGroup,a).doConnectIn("{0}.{1}".format(mi_handle.mNode,a))
@@ -6016,26 +6026,39 @@ def build_rig(*args, **kws):
                                                         elif ii == 1:
                                                             mPlug_outFactor = cgmMeta.cgmAttr(mObj,'cornerPushMax',attrType='float',value = .75,hidden = False,defaultValue = .75)
                                                             mPlug_outTarget = cgmMeta.cgmAttr(mObj,'cornerOutTarget',attrType='float',value = 2.0,hidden = False,defaultValue = 2.0)
+                                                            mPlug_outMouthMoveInfluence = cgmMeta.cgmAttr(mObj,'mouthMoveFactor',attrType='float',value = .5,hidden = False)
                                                             
                                                             mPlug_outUseResult = cgmMeta.cgmAttr(mObj,'res_cornerPushUse',attrType='float',value = 0.0, keyable=False, hidden=True)
                                                             mPlug_outFactorResult = cgmMeta.cgmAttr(mObj,'res_cornerPushFactor',attrType='float',value = 0.0, keyable=False, hidden=True)
-                                                            
+                                                            mPlug_outMouthMoveResult = cgmMeta.cgmAttr(mObj,'res_mouthMoveValue',attrType='float',value = 0.0, keyable=False, hidden=True)
+                                                            mPlug_outResult = cgmMeta.cgmAttr(mObj,'res_out',attrType='float',value = 0.0, keyable=False, hidden=True)
+							    
                                                             arg_outFactor = "{0} = {2} / {1}".format(mPlug_outFactorResult.p_combinedShortName,
                                                                                                      mPlug_outTarget.p_combinedShortName,
                                                                                                      mPlug_attrBridgeDriver.p_combinedShortName)
                                                             if mObj.cgmDirection == 'left':
                                                                 arg_outFactorValue = "{0} = {1} * {2}".format(mPlug_outUseResult.p_combinedShortName,
                                                                                                               mPlug_outFactorResult.p_combinedShortName,
-                                                                                                              mPlug_outFactor.p_combinedShortName)   
+                                                                                                              mPlug_outFactor.p_combinedShortName) 
+								arg_outMouthMoveValue = "{0} = {1} * {2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
+								                                                 mPlug_mouthMoveDriver.p_combinedShortName,
+								                                                 mPlug_outMouthMoveInfluence.p_combinedShortName)
                                                             else:
                                                                 arg_outFactorValue = "{0} = {1} * -{2}".format(mPlug_outUseResult.p_combinedShortName,
                                                                                                                mPlug_outFactorResult.p_combinedShortName,
-                                                                                                               mPlug_outFactor.p_combinedShortName)                                                                   
-                                                            arg_negateOutOn = "{0} = {1} * {2}".format(mPlug_attrBridgeDriven.p_combinedShortName,
+                                                                                                               mPlug_outFactor.p_combinedShortName) 
+								arg_outMouthMoveValue = "{0} = {1} * -{2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
+								                                                  mPlug_mouthMoveDriver.p_combinedShortName,
+								                                                  mPlug_outMouthMoveInfluence.p_combinedShortName)								
+                                                            arg_negateOutOn = "{0} = {1} * {2}".format(mPlug_outResult.p_combinedShortName,
                                                                                                        mPlug_smileOn.p_combinedShortName,
                                                                                                        mPlug_outUseResult.p_combinedShortName)
-                                                            
-                                                            for str_arg in arg_outFactor,arg_outFactorValue,arg_negateOutOn:
+							    
+                                                            arg_negateOutOn = "{0} = {1} + {2}".format(mPlug_attrBridgeDriven.p_combinedShortName,
+                                                                                                       mPlug_outMouthMoveResult.p_combinedShortName,
+                                                                                                       mPlug_outUseResult.p_combinedShortName)
+							    
+                                                            for str_arg in arg_outFactor,arg_outFactorValue,arg_negateOutOn,arg_outMouthMoveValue:
                                                                 self.log_info("Building: {0}".format(str_arg))
                                                                 NodeF.argsToNodes(str_arg).doBuild()
                                                                 
