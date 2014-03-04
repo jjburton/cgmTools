@@ -839,19 +839,19 @@ def build_rig(*args, **kws):
             self._b_reportTimes = True
             self.__dataBind__()
             self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-                                #{'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
-                                #{'step':'Build Lip Up loc structure','call':self._buildLipUpLocStructure_},	                                
+                                {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
+                                {'step':'Build Lip Up loc structure','call':self._buildLipUpLocStructure_},	                                
                                 {'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
-                                #{'step':'Lip Structure','call':self._buildLipStructure_},
-                                #{'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
-                                #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
-                                #{'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
-                                #{'step':'Tongue build','call':self._buildTongue_},
+                                {'step':'Lip Structure','call':self._buildLipStructure_},
+                                {'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
+                                {'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
+                                {'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
+                                {'step':'Tongue build','call':self._buildTongue_},
                                 ###{'step':'Upper Cheek','call':self._buildUprCheek_},
                                 ###{'step':'Mid Cheek','call':self._buildMidCheek_},	  
-                                #{'step':'JawLine build','call':self._buildJawLines_},
-                                #{'step':'Cheek Surface Build','call':self._buildCheekSurface_},
-                                #{'step':'Lock N hide','call':self._lockNHide_},
+                                {'step':'JawLine build','call':self._buildJawLines_},
+                                {'step':'Cheek Surface Build','call':self._buildCheekSurface_},
+                                {'step':'Lock N hide','call':self._lockNHide_},
                                 ]	
             #=================================================================
         def _gatherInfo_(self):
@@ -4813,13 +4813,13 @@ def build_rig(*args, **kws):
                 mi_l_eyeMove = cgmMeta.cgmObject('l_eye_eyeMove_anim')
                 mi_r_eyeMove = cgmMeta.cgmObject('r_eye_eyeMove_anim')
             except Exception,error:raise Exception,"[Query | error: {0}]".format(error)
-            
+            '''
             try:#Build Curves ===================================================================================================
                 md_curvesBuilds = {'uprCheekFollowLeft':{'pointTargets':self.md_rigList['uprCheekRig']['left'][:-1] + [self.md_rigList['smileLineRig']['left'][0]]},
                                    'uprCheekFollowRight':{'pointTargets':self.md_rigList['uprCheekRig']['right'][:-1] + [self.md_rigList['smileLineRig']['right'][0]]}}	
                 self.create_curvesFromDict(md_curvesBuilds)
             except Exception,error:raise Exception,"[Build Curves! | error: {0}".format(error)
-            
+            '''
             try:#Build plates ===================================================================================================
                 md_plateBuilds = {'cheekLeft':{'mode':'cheekLoft','direction':'left','name':'cheek',
                                                'smileCrv':self.mi_smileLeftCrv},
@@ -4841,11 +4841,11 @@ def build_rig(*args, **kws):
                                           'right':{'mode':'handleAttach','attachTo':str_cheekRightPlate}},
                            'cheekAnchor':{'mode':'slideAttach','attachTo':str_jawPlate},
                            'uprCheekHandles':{'left':{0:{'mode':'parentOnly','attachTo':None,'parentTo':mi_l_eyeMove.mNode},
-                                                      1:{'mode':'slideHandleAttach','attachTo':mi_browPlate}},
+                                                      1:{'mode':'slideAttach','attachTo':str_jawPlate}},
                                               'right':{0:{'mode':'parentOnly','attachTo':None,'parentTo':mi_r_eyeMove.mNode},
-                                                       1:{'mode':'slideHandleAttach','attachTo':mi_browPlate}}}                           
+                                                       1:{'mode':'slideAttach','attachTo':str_jawPlate}}}                           
                            }
-
+		#'mode':'parentOnly','attachTo':None,'parentTo':mi_l_eyeMove.mNode
                 self.attach_fromDict(d_build)
             except Exception,error:raise Exception,"[Attach!] | error: {0}".format(error)
 
@@ -4861,9 +4861,9 @@ def build_rig(*args, **kws):
             
             try:#>>> Connect  ==================================================================
                 d_build = {'uprCheekHandles':{'left':{0:{'mode':'skip'},
-                                                      1:{'mode':'simpleSlideHandle','driver':mi_l_eyeMove}},
+                                                      1:{'mode':'pointConstraint','targets':[mi_l_eyeMove,self.md_rigList['sneerHandleInfluenceJoints']['left'][0]]}},
                                               'right':{0:{'mode':'skip'},
-                                                       1:{'mode':'simpleSlideHandle','driver':mi_r_eyeMove}}},
+                                                       1:{'mode':'pointConstraint','targets':[mi_r_eyeMove,self.md_rigList['sneerHandleInfluenceJoints']['right'][0]]}}},
                            'cheekAnchor':{'mode':'pointConstraint',
                                           'left':{'targets':[self.md_rigList['jawLine']['left'][0],self.md_rigList['uprCheekHandles']['left'][0]]},
                                           'right':{'targets':[self.md_rigList['jawLine']['right'][0],self.md_rigList['uprCheekHandles']['right'][0]]}}}
@@ -5139,6 +5139,7 @@ def build_rig(*args, **kws):
                     cgmMeta.cgmAttr(mJoint,'v',lock = True, hidden = True)		
                 except Exception,error:self.log_error("[mJoint: '%s']{%s}"%(mJoint.p_nameShort,error))
             mi_go = self._go#Rig Go instance link
+
             try:#parent folicles to rignull
                 for k in self.md_attachReturns.keys():# we wanna parent 
                     d_buffer = self.md_attachReturns[k]
@@ -5149,9 +5150,14 @@ def build_rig(*args, **kws):
                     try:
                         if d_buffer.get('controlLoc'):
                             mi_go.connect_toRigGutsVis(d_buffer['controlLoc'],vis = True)#connect to guts vis switches
+			    if not d_buffer['controlLoc'].parent:
+				d_buffer['controlLoc'].parent = mi_go._i_rigNull
                     except:pass			    
             except Exception,error:raise Exception,"Parent follicles. | ] | error: {0}".format(error)
-
+	    
+	    mi_go.collectObjectTypeInRigNull('locator')
+	    mi_go.collectObjectTypeInRigNull('follicle')
+	    
         def returnRebuiltCurveString(self,crv, int_spans = 5, rpo = 0):
             try:crv.mNode
             except:crv = cgmMeta.cgmObject(crv)
@@ -5788,13 +5794,14 @@ def build_rig(*args, **kws):
                                     try:#Gather data ----------------------------------------------------------------------
                                         if d_buffer.get(i):#if we have special instructions for a index key...
                                             self.log_info("%s | %s > Utilizing index key"%(str_tag,str_key))
-                                            d_buffer = d_buffer[i]
-                                            #self.log_infoNestedDict('d_buffer')
-
-                                        str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'rigToHandle'
-                                        b_rewireFollicleOffset = d_buffer.get('rewireFollicleOffset') or d_build[str_tag].get('rewireFollicleOffset') or False 
-                                        b_rewireFollicleOffsetRotate = d_buffer.get('rewireFollicleOffsetRotate') or d_build[str_tag].get('rewireFollicleOffsetRotate') or False 
-                                        ml_driver = d_buffer.get('driver') or d_build[str_tag].get('driver')  or False
+                                            d_use = d_buffer[i]
+					else:
+					    d_use = d_buffer
+					    
+                                        str_mode = d_use.get('mode') or d_build[str_tag].get('mode') or 'rigToHandle'
+                                        b_rewireFollicleOffset = d_use.get('rewireFollicleOffset') or d_build[str_tag].get('rewireFollicleOffset') or False 
+                                        b_rewireFollicleOffsetRotate = d_use.get('rewireFollicleOffsetRotate') or d_build[str_tag].get('rewireFollicleOffsetRotate') or False 
+                                        ml_driver = d_use.get('driver') or d_build[str_tag].get('driver')  or False
                                     except Exception,error:raise Exception,"[Data gather!] | error: {0}".format(error)
 
                                     try:#Status update ----------------------------------------------------------------------
@@ -5853,7 +5860,7 @@ def build_rig(*args, **kws):
                                     elif str_mode == 'rigToFollow':
                                         try:
                                             try:#See if we have a handle return
-                                                mi_attachTo = d_buffer['attachTo']
+                                                mi_attachTo = d_use['attachTo']
                                                 d_current = self.md_attachReturns[mObj]
                                                 mi_followLoc = d_current['followLoc']
                                                 mi_controlLoc = d_current['controlLoc']					    
@@ -5919,7 +5926,7 @@ def build_rig(*args, **kws):
                                     elif str_mode == 'pointBlend':
                                         try:
                                             try:#See if we have a handle return
-                                                ml_targets = d_buffer['targets']
+                                                ml_targets = d_use['targets']
                                                 d_current = self.md_attachReturns[mObj]
                                                 #mi_followLoc = d_current['followLoc']
                                                 mi_controlLoc = d_current['controlLoc']					    
@@ -5932,7 +5939,7 @@ def build_rig(*args, **kws):
                                     elif str_mode == 'parentConstraint':
                                         try:
                                             try:#See if we have a handle return
-                                                ml_targets = d_buffer['targets']
+                                                ml_targets = d_use['targets']
                                                 d_current = self.md_attachReturns[mObj]
                                                 #mi_followLoc = d_current['followLoc']
                                                 mi_controlLoc = d_current['controlLoc']					    
@@ -5944,15 +5951,14 @@ def build_rig(*args, **kws):
                                     elif str_mode == 'pointConstraint':
                                         try:
                                             try:#See if we have a handle return
-                                                ml_targets = d_buffer['targets']
+                                                ml_targets = d_use['targets']
                                                 d_current = self.md_attachReturns[mObj]
                                                 mi_controlLoc = d_current['controlLoc']					    
                                             except Exception,error:raise Exception,"[Query {0}!| error: {1}]".format(str_key,error)
                                             try:#>> Attach  loc  --------------------------------------------------------------------------------------
                                                 mc.pointConstraint([mObj.mNode for mObj in ml_targets],mi_controlLoc.mNode,maintainOffset = True)
-                                            except Exception,error:raise Exception,"Failed to attach to crv. | ] | error: {0}".format(error)	
-                                        except Exception,error:raise Exception,"[0}!| error: {1}".format(str_mode,error)
-
+                                            except Exception,error:raise Exception,"Failed to constrain. | error: {0}]".format(error)	
+                                        except Exception,error:raise Exception,"[{0}!| error: {1}".format(str_mode,error)
                                     elif str_mode == 'offsetConnect':
                                         try:
                                             try:#See if we have a handle return
@@ -5962,7 +5968,6 @@ def build_rig(*args, **kws):
                                                 if len(ml_handles) != len(ml_buffer):raise StandardError,"len of toConnect(%s) != len handles(%s)"%(len(ml_handles),len(ml_buffer))
                                                 mi_handle = ml_handles[0]
                                             except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
-
 
                                             try:#Setup the offset to push handle rotation to the rig joint control
                                                 #Create offsetgroup for the mid
@@ -5980,8 +5985,8 @@ def build_rig(*args, **kws):
                                                 else:ml_handles = self.md_rigList[str_tag.replace('Rig','Handle')][str_key]
                                                 if len(ml_handles) != len(ml_buffer):raise StandardError,"len of toConnect(%s) != len handles(%s)"%(len(ml_handles),len(ml_buffer))
                                                 mi_handle = ml_handles[0]
-                                                l_attrsToConnect = d_buffer.get('attrsToConnect') or d_build[str_tag].get('attrsToConnect') or ['tx','ty','tz']
-                                                l_attrsToMirror = d_buffer.get('attrsToMirror') or d_build[str_tag].get('attrsToMirror') or []
+                                                l_attrsToConnect = d_use.get('attrsToConnect') or d_build[str_tag].get('attrsToConnect') or ['tx','ty','tz']
+                                                l_attrsToMirror = d_use.get('attrsToMirror') or d_build[str_tag].get('attrsToMirror') or []
                                                 self.log_info("{0} | attrOffsetConnect | driver: {1} | attrsToConnect: {2} | attrsToMirror: {3}".format(str_mObj,ml_driver,l_attrsToConnect,l_attrsToMirror))
                                                 
                                                 try:mi_offsetGroup = mi_go.verify_offsetGroup(mObj)#..Create offsetgroup
@@ -6072,7 +6077,7 @@ def build_rig(*args, **kws):
                                     #Rewire stuff
                                     try:#rewireFollicleOffset
                                         if b_rewireFollicleOffset:
-                                            mi_rewireHandle = d_buffer.get('rewireHandle') or d_build[str_tag].get('rewireHandle') or mi_handle
+                                            mi_rewireHandle = d_use.get('rewireHandle') or d_build[str_tag].get('rewireHandle') or mi_handle
                                             try:mi_follicleOffsetGroup = d_current['offsetGroup']
                                             except Exception,error:raise ValueError,"Failed to find attach return for: {0} | {1}".format(str_mObj,error)
                                             for attr in mi_go._jointOrientation[0]:
@@ -6081,13 +6086,12 @@ def build_rig(*args, **kws):
 
                                     try:#rewireFollicleOffset
                                         if b_rewireFollicleOffsetRotate:
-                                            mi_rewireHandle = d_buffer.get('rewireHandle') or d_build[str_tag].get('rewireHandle') or mi_handle
+                                            mi_rewireHandle = d_use.get('rewireHandle') or d_build[str_tag].get('rewireHandle') or mi_handle
                                             try:mi_follicleOffsetGroup = d_current['offsetGroup']
                                             except Exception,error:raise ValueError,"Failed to find attach return for: {0} | {1}".format(str_mObj,error)
                                             cgmMeta.cgmAttr(mi_follicleOffsetGroup,'rotate').doConnectIn("%s.rotate"%(mi_rewireHandle.mNode))
                                     except Exception,error:raise Exception,"[rewire Follicle Offset rotate! | error: {0}]".format(error)
-
-                    except Exception,error:  raise StandardError,"[%s]{%s}"%(str_tag,error)			    
+                    except Exception,error:  raise StandardError,"[{0} | error: {1}]".format(str_tag,error)			    
             except Exception,error:  raise StandardError,"[connect_fromDict] | error: {0}".format(error)	
 
         def get_mdSidesBufferFromTag(self,str_tag):
