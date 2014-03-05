@@ -63,8 +63,8 @@ def findSurfaceIntersection(surface, raySource, rayDir, maxDistance = 1000):
             raise StandardError,"findSurfaceIntersection>>> More than one surface named: %s"%surface
                 
     	objType = search.returnObjectType(surface)
-    	if objType == 'mesh': rayCasterMesh()
-    	elif objType == 'nurbsSurface': rayCasterNurbsSurface()
+
+    	elif objType == 'nurbsSurface': pass
     	else : log.error("its not a nurbsSurface!")
     	
     	#get surfaceShape and center point of the surface.
