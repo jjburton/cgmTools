@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyebrow rig builder
 ================================================================
 """
-__version__ = 'faceAlpha2.02042014'
+__version__ = 'faceAlpha2.03062014'
 
 # From Python =============================================================
 import copy
@@ -151,16 +151,6 @@ def build_rigSkeleton(*args, **kws):
 	    for mJoint in ml_rightRigJoints:
 		mJoint.__setattr__("r%s"%mi_go._jointOrientation[1],180)
 		jntUtils.freezeJointOrientation(mJoint)
-	    """
-	    ml_rigJoints = []
-	    for i,mJoint in enumerate(mi_go._ml_skinJoints):
-		i_j = cgmMeta.cgmObject( mc.duplicate(mJoint.mNode,po=True,ic=True,rc=True)[0],setClass=True )
-		i_j.parent = False#Parent to world				
-		i_j.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
-		i_j.doName()
-		ml_rigJoints.append(i_j)
-	    mi_go._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints',"rigNull")
-	    """
 	    self.ml_rigJoints = ml_rigJoints#pass to wrapper
 	    
 	def build_handleJoints(self):
@@ -170,7 +160,7 @@ def build_rigSkeleton(*args, **kws):
 	    for k_name in self.md_sortedJoints.keys():#For each name...
 		for k_direction in self.md_sortedJoints[k_name].keys():#for each direction....
 		    if k_name in ['brow','uprCheek','temple']:
-			log.info("Building '%s' | '%s' handle joints"%(k_name,k_direction))
+			log.info("Building '{0}' | '{1}' handle joints".format(k_name,k_direction))
 			ml_skinJoints = self.md_sortedJoints[k_name][k_direction]['skin']
 			ml_handleJoints = []
 			self.l_build = []
@@ -208,44 +198,37 @@ def build_rigSkeleton(*args, **kws):
 				mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)				    
 				mi_jnt.doName()
 				ml_handleJoints.append(mi_jnt)
-								
+			    else:
+				mi_jnt = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
+				mi_jnt.parent = False#Parent to world				
+				mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
+				if len(self.l_build)>1:
+				    if i == 0:
+					mi_jnt.addAttr('cgmNameModifier','start',attrType='string',lock=True)
+				    else:
+					mi_jnt.addAttr('cgmNameModifier','end',attrType='string',lock=True)
+				    
+				try:mi_jnt.doRemove('cgmIterator')#Purge the iterator
+				except:pass
+				mi_jnt.doName()
+				ml_handleJoints.append(mi_jnt)
+				
+			    if k_name == 'brow':
 				try:#influenceJoint -----------------------------------------------------------------------
 				    mi_dup = mi_jnt.doDuplicate()
-				    mi_dup.addAttr('cgmTypeModifier','handleInfl',attrType='string',lock=True)				    
+				    mi_dup.addAttr('cgmTypeModifier','infl',attrType='string',lock=True)				    
 				    mi_dup.doName()
 				    mi_jnt.connectChildNode(mi_dup,'influenceJoint','sourceJoint')
 				    ml_influenceJoints.append(mi_dup)
-				    mi_dup.parent = mi_go._i_deformNull	
+				    mi_dup.parent = False
 				    mi_go.connect_toRigGutsVis(mi_dup,vis = True)#connect to guts vis switches
 
-				except Exception,error:raise StandardError,"[mid influence joint for '%s']{%s}"%(mJnt.p_nameShort,error)
-			    else:
-				i_j = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
-				i_j.parent = False#Parent to world				
-				i_j.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
-				if len(self.l_build)>1:
-				    if i == 0:
-					i_j.addAttr('cgmNameModifier','start',attrType='string',lock=True)
-				    else:
-					i_j.addAttr('cgmNameModifier','end',attrType='string',lock=True)
-				    
-				try:i_j.doRemove('cgmIterator')#Purge the iterator
-				except:pass
-				i_j.doName()
-				ml_handleJoints.append(i_j)			
+				except Exception,error:raise StandardError,"[influence joint for '%s']{%s}"%(mJnt.p_nameShort,error)				
 			
 			for mJnt in ml_handleJoints + ml_influenceJoints:
 			    #Orient
-			    #mc.delete( mc.orientConstraint([ml_skinJoints[0].mNode,ml_skinJoints[-1].mNode],mi_jnt.mNode, maintainOffset = False))
 			    v_aimVector = mi_go._vectorAim				
 			    v_upVector = mi_go._vectorUp
-			    #if k_direction == 'right':
-				#v_upVector = cgmMath.multiplyLists([v_upVector,[-1,-1,-1]])	
-			    '''
-			    mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode,
-							   weight = 1, aimVector = v_aimVector, upVector = v_upVector, 
-							   worldUpObject = ml_skinJoints[0].mNode, worldUpType = 'object' ))
-			    '''
 			    mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode, mJnt.mNode,
 			                                   weight = 1, aimVector = v_aimVector, upVector = v_upVector,
 			                                   worldUpVector = [0,1,0],worldUpType = 'scene' ))			
@@ -613,6 +596,7 @@ def build_rig(*args, **kws):
 				                                    targetSurface = str_skullPlate,
 				                                    createControlLoc = True,
 				                                    createUpLoc = True,
+			                                            attachControlLoc = True,
 			                                            #parentToFollowGroup = 1,#NEW, trying
 				                                    f_offset = f_offsetOfUpLoc,
 				                                    orientation = mi_go._jointOrientation)
@@ -666,10 +650,10 @@ def build_rig(*args, **kws):
 		    mi_offsetGroup.doName()
 		    mi_centerHandle.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
 		    
-		    arg = "%s.ty = %s.ty >< %s.ty"%(mi_offsetGroup.p_nameShort,
-		                                    self.md_rigList['brow']['left']['ml_handles'][0].p_nameShort,
-		                                    self.md_rigList['brow']['right']['ml_handles'][0].p_nameShort,
-		                                    )
+		    arg = "{0}.ty = {1}.ty >< {2}.ty".format(mi_offsetGroup.p_nameShort,
+		                                             self.md_rigList['brow']['left']['ml_handles'][0].p_nameShort,
+		                                             self.md_rigList['brow']['right']['ml_handles'][0].p_nameShort,
+		                                             )
 		    NodeF.argsToNodes(arg).doBuild()
 		except Exception,error:raise StandardError,"Offset group | error: %s"%(error)			
 		try:#Create the brow up loc and parent it to the 
@@ -917,11 +901,14 @@ def build_rig(*args, **kws):
 			    except Exception,error:raise Exception,"[Query]{%s}"%error	
 			    
 			    try:# Get Plugs ----------------------------------------------------------------------------------
+				mPlug_driver = cgmMeta.cgmAttr(mi_handle,"t{0}".format(mi_go._jointOrientation[1]))
+				
 				mPlug_maxPush = cgmMeta.cgmAttr(mi_browSettings,"%s_maxOut"%(str_label),value=f_maxOut, attrType='float',keyable=0,hidden=False)			    
 				mPlug_targetValue = cgmMeta.cgmAttr(mi_browSettings,"%s_targetValue"%(str_label), value=f_targetValue,attrType='float',keyable=0,hidden=False)			    
-				mPlug_result = cgmMeta.cgmAttr(mi_browSettings,"result_%s%s"%(str_direction,str_label.capitalize()), attrType='float',keyable=0,hidden=False,lock = True)			    
-				mPlug_resultClamp = cgmMeta.cgmAttr(mi_browSettings,"result_%s%sClamp"%(str_direction,str_label.capitalize()),attrType='float',keyable=0,hidden=False,lock = True)			    
-				mPlug_resultDiv = cgmMeta.cgmAttr(mi_browSettings,"result_%s%sDiv"%(str_direction,str_label.capitalize()), attrType='float',keyable=0,hidden=False,lock = True)			    
+				mPlug_result = cgmMeta.cgmAttr(mi_browSettings,"res_%s%s"%(str_direction,str_label.capitalize()), attrType='float',keyable=0,hidden=False,lock = True)			    
+				mPlug_resultClamp = cgmMeta.cgmAttr(mi_browSettings,"res_%s%sClamp"%(str_direction,str_label.capitalize()),attrType='float',keyable=0,hidden=False,lock = True)			    
+				mPlug_resultDiv = cgmMeta.cgmAttr(mi_browSettings,"res_%s%sDiv"%(str_direction,str_label.capitalize()), attrType='float',keyable=0,hidden=False,lock = True)			    
+				mPlug_resultMult = cgmMeta.cgmAttr(mi_browSettings,"res_%s%sMult"%(str_direction,str_label.capitalize()), attrType='float',keyable=0,hidden=False,lock = True)			    
 			    
 			    except Exception,error:raise Exception,"[Get Plugs]{%s}"%error	
 			    
@@ -935,53 +922,63 @@ def build_rig(*args, **kws):
 			    except Exception,error:raise Exception,"[Offset group]{%s}"%error			    
 			    
 			    try:# Nodal Args ----------------------------------------------------------------------------------
-				"""
+				'''
 				clamp(mPlug_targetValue,0,ty)/mPlug_targetValue) * mPlug_maxValue
-				"""
+				'''
 				try:#Clamp ----------------------------------------------------------------------------------
-				    arg_clamp = "%s = clamp(%s,0,%s)"%(mPlug_resultClamp.p_combinedShortName,
-					                               mPlug_targetValue.p_combinedShortName,
-					                               "%s.t%s"%(mi_handle.p_nameShort,mi_go._jointOrientation[1]))
+				    arg_clamp = "{0} = clamp({1},0,{2})".format(mPlug_resultClamp.p_combinedShortName,
+				                                                mPlug_targetValue.p_combinedShortName,
+				                                                "{0}.t{1}".format(mi_handle.p_nameShort,mi_go._jointOrientation[1]))
 				    #self.log_info(arg_clamp)
 				    NodeF.argsToNodes(arg_clamp).doBuild()
 				except Exception,error:
 				    #self.log_error(arg_clamp)
-				    raise Exception,"[clamp setup]{%s}"%error
+				    raise Exception,"[clamp setup | {0}]".format(error)
 				
 				try:#Div ----------------------------------------------------------------------------------
-				    arg_div = "%s = %s / %s"%(mPlug_resultDiv.p_combinedShortName,
-					                      mPlug_resultClamp.p_combinedShortName,
-					                      mPlug_targetValue.p_combinedShortName)
+				    arg_div = "{0} = {1} / {2}".format(mPlug_resultDiv.p_combinedShortName,
+				                                       mPlug_resultClamp.p_combinedShortName,
+				                                       mPlug_targetValue.p_combinedShortName)
 				    #self.log_info(arg_div)
 				    NodeF.argsToNodes(arg_div).doBuild()		    
 				except Exception,error:
 				    self.log_error(arg_div)
-				    raise Exception,"[div setup]{%s}"%error
+				    raise Exception,"[div setup | {0}]".format(error)
 		
 				try:#Mult ---------------------------------------------------------------------------------- 
-				    arg_mult = "%s = %s * %s"%(mPlug_result.p_combinedShortName,
-					                       mPlug_resultDiv.p_combinedShortName,
-					                       mPlug_maxPush.p_combinedShortName)
+				    arg_mult = "{0} = {1} * {2}".format(mPlug_resultMult.p_combinedShortName,
+				                                        mPlug_resultDiv.p_combinedShortName,
+				                                        mPlug_maxPush.p_combinedShortName)
 				    #self.log_info(arg_mult)
 				    NodeF.argsToNodes(arg_mult).doBuild()		    
 				except Exception,error:
 				    self.log_error(arg_mult)
-				    raise Exception,"[mult setup]{%s}"%error	
+				    raise Exception,"[mult setup | {0}]".format(error)
+				
+				try:#Condition ---------------------------------------------------------------------------------- 
+				    arg_cond = "{0} = if {1} <= 0: {2} else 0".format(mPlug_result.p_combinedShortName,
+				                                                      mPlug_driver.p_combinedShortName,
+				                                                      mPlug_resultMult.p_combinedShortName)
+				    self.log_info("cond: {0}".format(arg_cond))
+				    NodeF.argsToNodes(arg_cond).doBuild()		    
+				except Exception,error:
+				    self.log_error(arg_cond)
+				    raise Exception,"[Condition setup | {0}]".format(error)
 				
 				try:#Connect ---------------------------------------------------------------------------------- 
 				    if str_direction == 'left':
-					arg_connect = "%s = %s"%("%s.t%s"%(mi_offsetGroup.p_nameShort,mi_go._jointOrientation[0]),
-					                         mPlug_result.p_combinedShortName)
+					arg_connect = "{0} = {1}".format("{0}.t{1}".format(mi_offsetGroup.p_nameShort,mi_go._jointOrientation[0]),
+					                                 mPlug_result.p_combinedShortName)
 				    else:
-					arg_connect = "%s = -%s"%("%s.t%s"%(mi_offsetGroup.p_nameShort,mi_go._jointOrientation[0]),
-					                         mPlug_result.p_combinedShortName)				
+					arg_connect = "{0} = -{1}".format("{0}.t{1}".format(mi_offsetGroup.p_nameShort,mi_go._jointOrientation[0]),
+					                                  mPlug_result.p_combinedShortName)				
 				    #self.log_info(arg_mult)
 				    NodeF.argsToNodes(arg_connect).doBuild()		    
 				except Exception,error:
 				    self.log_error(arg_connect)
-				    raise Exception,"[connect setup]{%s}"%error				
-			    except Exception,error:raise Exception,"[Nodal Args ]{%s}"%error
-		    except Exception,error:raise Exception,"[inner/outer fail!]{%s}"%error
+				    raise Exception,"[connect setup | {0}]".format(error)
+			    except Exception,error:raise Exception,"[Nodal Args | {0}]".format(error)
+		    except Exception,error:raise Exception,"[inner/outer fail! | {0}]".format(error)
 		    
 		    try:#Mid ----------------------------------------------------------------------------------
 			try:#>> Query ----------------------------------------------------------------------------------	
@@ -1453,7 +1450,7 @@ def build_rig(*args, **kws):
 	def _lockNHide_(self):
 	    mi_go = self._go#Rig Go instance link
 	    
-	    #Lock and hide all 
+	    #Lock and hide all ------------------------------------------------------------------------
 	    for mHandle in self.ml_handlesJoints:
 		cgmMeta.cgmAttr(mHandle,'scale',lock = True, hidden = True)
 		cgmMeta.cgmAttr(mHandle,'v',lock = True, hidden = True)		
@@ -1469,7 +1466,7 @@ def build_rig(*args, **kws):
 		    #mi_go.mPlug_multpHeadScale.doConnectOut("%s.inverseScale%s"%(mJoint.mNode,attr))	
 		    #mi_go.mPlug_globalScale.doConnectOut("%s.inverseScale%s"%(mJoint.mNode,attr))	
 		    
-	    try:#parent folicles to rignull
+	    try:#parent folicles to rignull ------------------------------------------------------------------------
 		for k in self.md_attachReturns.keys():# we wanna parent 
 		    d_buffer = self.md_attachReturns[k]
 		    try:d_buffer['follicleFollow'].parent = mi_go._i_rigNull
@@ -1477,6 +1474,11 @@ def build_rig(*args, **kws):
 		    try:d_buffer['follicleAttach'].parent = mi_go._i_rigNull
 		    except:pass				
 	    except Exception,error:raise StandardError,"Parent follicles. | error : %s"%(error)
+	    
+	    try:#collect stuff ------------------------------------------------------------------------
+		for t in 'locator','follicle':
+		    mi_go.collectObjectTypeInRigNull(t)
+	    except Exception,error:raise StandardError,"Collect. | error : {0}".format(error)
 	    
     return fncWrap(*args, **kws).go()
     
