@@ -103,7 +103,7 @@ class go(object):
 	    self.l_coreNames = self._mi_module.coreNames.value
 	    self._mi_templateNull = self._mi_module.templateNull#speed link
 	    self._mi_rigNull = self._mi_module.rigNull#speed link
-	    self._targetMesh = self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
+	    self._targetMesh = ['Morphy_Face_PLY'] or self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
 	    self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
 	    self._ml_controlObjects = self._mi_templateNull.msgList_get('controlObjects')
 	    
@@ -1954,6 +1954,7 @@ def shapeCast_eyebrow(*args,**kws):
 	    #Find our helpers -------------------------------------------------------------------------------------------
 	    self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
+	    self.mi_leftBrowCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftBrowHelper'),noneValid=False)
 
 	    #>> Find our joint lists ===================================================================
 	    ml_handleJoints = self.mi_module.rigNull.msgList_get('handleJoints')
@@ -2004,7 +2005,8 @@ def shapeCast_eyebrow(*args,**kws):
 	    if not self.ml_centerRigJoints:raise StandardError,"Failed to find center rig joints"	    
 	    
 	    #>> calculate ------------------------------------------------------------------------
-	    self.f_baseDistance = distance.returnCurveLength(self.mi_helper.leftBrowHelper.mNode) /10
+	    self.f_browLength = distance.returnCurveLength(self.mi_helper.leftBrowHelper.mNode)	    	    
+	    self.f_baseDistance = self.f_browLength /10
 	    '''
 	    ml_measureJointList = self.ml_browLeftHandles
 	    try:#Get a casted base distance
@@ -2188,7 +2190,8 @@ def shapeCast_eyebrow(*args,**kws):
 		self.ml_handles.extend(ml_handleCrvs)	
 		
 	def _facePins_(self): 
-	    __baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in self.ml_browLeftHandles]) /2 
+	    #distance.returnCurveLength(self.mi_jawLineCrv.mNode)
+	    __baseDistance = self.f_browLength / 5
 	    log.info("%s >>> baseDistance : %s"%(self._str_reportStart,__baseDistance))
 	    
 	    d_build = {'left':{'jointList': self.ml_leftRigJoints},
