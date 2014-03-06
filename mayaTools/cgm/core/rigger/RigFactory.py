@@ -484,7 +484,7 @@ class go(object):
 	try:
 	    mi_buffer = mObj.getMessageAsMeta('offsetGroup')
 	    if mi_buffer:
-		return mi_buffer[0]
+		return mi_buffer
 	    else:
 		mi_offsetGroup = cgmMeta.cgmObject( mObj.doGroup(True),setClass=True)	 
 		mi_offsetGroup.doStore('cgmName',mObj.mNode)
@@ -514,7 +514,22 @@ class go(object):
 	    return True
 	
 	raise Exception,"No face settings found!"
-     
+    
+    def collectObjectTypeInRigNull(self,objType = 'locator'):
+	try:
+	    ml_objs = []
+	    for mObj in self._i_rigNull.getChildren(asMeta = 1):
+		if mObj.getMayaType() == objType:
+		    ml_objs.append(mObj)
+	    if ml_objs:
+		mi_group = cgmMeta.cgmObject(name = objType,setClass=1)
+		mi_group.addAttr('cgmName',objType)
+		mi_group.doName()
+		mi_group.parent = self._i_rigNull		    
+		for mObj in ml_objs:
+		    mObj.parent = mi_group
+	except Exception,error:raise Exception,"[collectObjectTypeInRigNull({0}! | error: {1}]".format(objType,error)  
+	
     def verify_mirrorSideArg(self,arg  = None):
 	_str_funcName = "return_mirrorSideAsString(%s)"%self._mi_module.p_nameShort   
 	log.debug(">>> %s "%(_str_funcName) + "="*75)   
@@ -1745,7 +1760,7 @@ def verify_eyeLook(*args,**kws):
 		mi_buildModule = self.mi_module
 		mi_rigNull = self.mi_module.rigNull
 		mi_puppet = self.mi_module.modulePuppet
-		mi_faceDeformNull = self.mi_module.rigNull.faceDeformNull
+		mi_faceDeformNull = self.mi_module.faceDeformNull
 	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
 	    
 	    try:mShapeCast.go(mi_buildModule,['eyeLook'])
