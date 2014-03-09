@@ -19,13 +19,7 @@ def findSurfaceIntersection(surface, raySource):
     '''
     surfaceShape = mc.listRelatives(surface, s=1)
     centerPoint = mc.xform(surface, q=1, ws=1, t=1)    
-	raySource = om.MPoint(raySource[0], raySource[1], raySource[2])
-	raySourceVector = om.MVector(raySource[0], raySource[1], raySource[2])
-	centerPointVector = om.MVector(centerPoint[0],centerPoint[1],centerPoint[2]) 
-	rayDir = om.MPoint(centerPointVector - raySourceVector)
-	rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
-	hitPoint = om.MPoint()
-	maxDistance = 1000
+    maxDistance = 1000
 	
     log.debug("raySource: %s"%raySource)    
     log.debug("maxDistance: %s"%maxDistance)
@@ -41,7 +35,13 @@ def findSurfaceIntersection(surface, raySource):
 	#checking the type             
     objType = search.returnObjectType(surface)
     
-    if objType == 'nurbsSurface':     
+    if objType == 'nurbsSurface': 
+        raySource = om.MPoint(raySource[0], raySource[1], raySource[2])
+        raySourceVector = om.MVector(raySource[0], raySource[1], raySource[2])
+        centerPointVector = om.MVector(centerPoint[0],centerPoint[1],centerPoint[2]) 
+        rayDir = om.MPoint(centerPointVector - raySourceVector)
+        rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
+        hitPoint = om.MPoint()    
         selectionList = om.MSelectionList()
         selectionList.add(surfaceShape)
         surfacePath = om.MDagPath()
@@ -70,12 +70,17 @@ def findSurfaceIntersection(surface, raySource):
             hitMPoint = om.MPoint(hitPoint)         
             log.debug("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
             print({'hit'[hitPoint.x,hitPoint.y,hitPoint.z],'source'[raySource.x,raySource.y,raySource.z]})                
-
             mc.spaceLocator(p=(hitPoint.x, hitPoint.y, hitPoint.z))
         else:
             return None
     
-    elif objType == 'mesh':     
+    elif objType == 'mesh':
+        raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
+        raySourceVector = om.MFloatVector(raySource[0], raySource[1], raySource[2])
+        centerPointVector = om.MFloatVector(centerPoint[0],centerPoint[1],centerPoint[2]) 
+        rayDir = om.MFloatPoint(centerPointVector - raySourceVector)
+        rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
+        hitPoint = om.MFloatPoint()     
         selectionList = om.MSelectionList()
         selectionList.add(surface)
         meshPath = om.MDagPath()
@@ -102,7 +107,7 @@ def findSurfaceIntersection(surface, raySource):
 
     	#Return the intersection as a Python list.
         if gotHit :
-            hitMPoint = om.MPoint(hitPoint.x, hitPoint.y, hitPoint.z)         
+            hitMPoint = om.MFloatPoint(hitPoint.x, hitPoint.y, hitPoint.z)         
             pArray = [0.0,0.0]
             x1 = om.MScriptUtil()
             x1.createFromList( pArray, 2 )
@@ -120,3 +125,17 @@ def findSurfaceIntersection(surface, raySource):
         else:
             return None
     else : raise StandardError,"wrong surface type!"
+
+#test
+surface = mc.cylinder()[0]
+loc = mc.spaceLocator()
+mc.move(8,6,3, loc)
+mc.move(8,0,3, surface)
+mc.delete(mc.aimConstraint(surface, loc))
+raySource = mc.xform(loc, q=1, ws=1, t=1)
+surfaceShape = mc.listRelatives(surface, s=1)
+centerPoint = mc.xform(surface, q=1, ws=1, t=1)
+findSurfaceIntersection(surface, raySource)
+
+
+
