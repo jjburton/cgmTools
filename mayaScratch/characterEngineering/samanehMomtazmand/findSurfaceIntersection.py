@@ -62,18 +62,8 @@ def findSurfaceIntersection(surface, raySource):
         om.MScriptUtil.setDouble(tolerance, .1)
 
         #Get the closest intersection.
-        gotHit = surfaceFn.intersect(raySource, rayDirection, uPtr, vPtr,
-        hitPoint, toleranceSU.asDouble(), spc, False, None, False, None)
+        gotHit = surfaceFn.intersect(raySource, rayDirection, uPtr, vPtr,hitPoint, toleranceSU.asDouble(), spc, False, None, False, None)
 
-    	#Return the intersection as a Python list.
-        if gotHit:
-            hitMPoint = om.MPoint(hitPoint)         
-            log.debug("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
-            print({'hit'[hitPoint.x,hitPoint.y,hitPoint.z],'source'[raySource.x,raySource.y,raySource.z]})                
-            mc.spaceLocator(p=(hitPoint.x, hitPoint.y, hitPoint.z))
-        else:
-            return None
-    
     elif objType == 'mesh':
         raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
         raySourceVector = om.MFloatVector(raySource[0], raySource[1], raySource[2])
@@ -90,42 +80,34 @@ def findSurfaceIntersection(surface, raySource):
         #maxDist
         maxDist = maxDistance
         
-        #other variables 
-        sortIds = False
-        bothDirections = False
-        noFaceIds = None
-        noTriangleIds = None
-        noAccelerator = None
-        noHitParam = None
-        noHitFace = None
-        noHitTriangle = None
-        noHitBary1 = None
-        noHitBary2 = None
-
+        #other variables
+        spc = om.MSpace.kWorld
+          
         #Get the closest intersection.
-        gotHit=meshFn.closestIntersection(raySource,rayDirection,noFaceIds,noTriangleIds,sortIds,om.MSpace.kWorld,maxDist,bothDirections,noAccelerator,hitPoint,noHitParam,noHitFace,noHitTriangle,noHitBary1,noHitBary2)
+        gotHit=meshFn.closestIntersection(raySource,rayDirection,None,None,False,spc,maxDist,False,None,hitPoint,None,None,None,None,None)
 
-    	#Return the intersection as a Python list.
-        if gotHit :
-            hitMPoint = om.MFloatPoint(hitPoint.x, hitPoint.y, hitPoint.z)         
-            pArray = [0.0,0.0]
-            x1 = om.MScriptUtil()
-            x1.createFromList( pArray, 2 )
-            uvPoint = x1.asFloat2Ptr()
-            uvSet = None
-            closestPolygon=None
-            uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
+	else : raise StandardError,"wrong surface type!"
+	
+    #Return the intersection as a Python list.
+    if gotHit :
+        hitMPoint = om.MFloatPoint(hitPoint.x, hitPoint.y, hitPoint.z)         
+        pArray = [0.0,0.0]
+        x1 = om.MScriptUtil()
+        x1.createFromList( pArray, 2 )
+        uvPoint = x1.asFloat2Ptr()
+        uvSet = None
+        closestPolygon=None
+        uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
 
-            uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
-            vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
-            log.debug("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
-            print({'hit'[hitPoint.x,hitPoint.y,hitPoint.z],'source'[raySource.x,raySource.y,raySource.z],'uv'[uValue,vValue]})                
+        uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
+        vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+        log.debug("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
+        print({'hit'[hitPoint.x,hitPoint.y,hitPoint.z],'source'[raySource.x,raySource.y,raySource.z],'uv'[uValue,vValue]})                   
+        mc.spaceLocator(p=(hitPoint.x, hitPoint.y, hitPoint.z))
+        
+    else:
+        return None
     
-            mc.spaceLocator(p=(hitPoint.x, hitPoint.y, hitPoint.z))
-        else:
-            return None
-    else : raise StandardError,"wrong surface type!"
-
 #test
 surface = mc.cylinder()[0]
 loc = mc.spaceLocator()
@@ -136,6 +118,3 @@ raySource = mc.xform(loc, q=1, ws=1, t=1)
 surfaceShape = mc.listRelatives(surface, s=1)
 centerPoint = mc.xform(surface, q=1, ws=1, t=1)
 findSurfaceIntersection(surface, raySource)
-
-
-

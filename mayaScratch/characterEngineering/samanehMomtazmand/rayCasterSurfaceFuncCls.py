@@ -1,17 +1,13 @@
+from cgm.core import cgm_Meta as cgmMeta
+import Red9.core.Red9_Meta as r9Meta
 import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
 from zooPyMaya import apiExtensions
 from cgm.core import cgm_General as cgmGeneral
-from cgm.lib import (locators,
-                     dictionary,
-                     cgmMath,
-                     lists,
-                     geo,
-                     distance)
+from cgm.lib import(locators,dictionary,cgmMath,lists,geo,distance,search)
 import os
-
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -23,7 +19,14 @@ def ut_rayCasterSurfaceFuncCls(surface, raySource, rayDir, maxDistance = 1000):
 	assert type('raySource') in [int, float], "raySource is not int or float!"
 	assert type('rayDir') in [int, float], "rayDir is not int or float!"
 	assert type('maxDistance') in [int, float], "maxDistance is not int or float!"
-
+	assert type('obj') in [str], "obj is not a string!"
+	assert type('axis') in [str], "axis is not a string!"
+	assert type('vector') in [bool], "axis is not a bool!"
+	assert type('singleReturn') in [bool], "singleReturn is not a bool!"
+	assert type('axisToCheck') in [list], "axisToCheck is not a list!"
+	assert type('maxIterations') in [int, float], "maxIterations is not int or float!"
+	assert type('pierceDepth') in [int, float], "pierceDepth is not int or float!"
+	
 def rayCasterSurfaceFuncCls(*args, **kws):
 			
 	class fncWrap(cgmGeneral.cgmFuncCls):
@@ -34,75 +37,99 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 		def __init__(self, *args, **kws):
 			super(fncWrap, self).__init__(*args, **kws)
 			self._str_funcName = 'rayCasterSurfaceFuncCls'                     
-			self._l_ARGS_KWS_DEFAULTS = [{'kw':'surface',"default":'',"argType":'str','help':"currently nurbs surface only"},
+			self._l_ARGS_KWS_DEFAULTS = [{'kw':'surface',"default":'',"argType":'str','help':"nurbs or poly surface"},
                                    {'kw':'raySource',"default":[0,0,0],"argType":'double3','help':"point in world space"},
                                    {'kw':'rayDir',"default":[0,0,0],"argType":'double3','help':"world space vector"},
                                    {'kw':'maxDistance', "default":1000,"argType":'float','help':"maxDistance"},
-                                   {'kw':'obj',"default":'',"argType":'string','help':"an object"},
-                                   {'kw':'axis',"default":'z+',"argType":'string','help':"object's axis"},
+                                   {'kw':'obj',"default":'',"argType":'string','help':"object source"},
+                                   {'kw':'axis',"default":'z+',"argType":'string','help':"object source axis"},
                                    {'kw':'vector',"default":False,"argType":'bool','help':"object's vector"},
-                                   {'kw':'singleReturn',"default":True,"argType":'bool','help':"singleReturn"},
+                                   {'kw':'singleReturn',"default":True,"argType":'bool','help':"one intersection"},
                                    {'kw':'axisToCheck',"default":['x','z'],"argType":'list','help':"axisToCheck"},
                                    {'kw':'maxIterations',"default":10,"argType":'float','help':"maxIterations"},
-                                   {'kw':'pierceDepth',"default":4,"argType":'float','help':"maxIterations"}]      
+                                   {'kw':'pierceDepth',"default":4,"argType":'float','help':"pierceDepth"}]      
 			self.__dataBind__(*args, **kws)
 			surface = self.d_kws['surface']
 			raySource = self.d_kws['raySource']
 			rayDir = self.d_kws['rayDir']
 			maxDistance = self.d_kws['maxDistance']
 							
-			self.l_funcSteps = [{'step':'findSurfaceIntersections','call':self.findSurfaceIntersections()},
+			self.l_funcSteps = [{'step':'findSurfaceIntersection','call':self.findSurfaceIntersection()},
+								{'step':'findSurfaceIntersections','call':self.findSurfaceIntersections()},
 	                        	{'step':'findSurfaceIntersectionFromObjectAxis','call':self.findSurfaceIntersectionFromObjectAxis()},
 	                        	{'step':'findSurfaceMidPointFromObject','call':self.findSurfaceMidPointFromObject()},
 	                        	{'step':'findFurthestPointInRangeFromObject','call':self.findFurthestPointInRangeFromObject()}]
-	   
-						
-			# Functions	
-
-			
-		def findSurfaceIntersections(self):
+	   						
+		# Functions				
+		def findSurfaceIntersection(self):
 			'''
-			Return the pierced points on a surface from a raySource and rayDir
-			'''		
-							 
+			Return the pierced point on a surface from a raySource and rayDir
+			'''									 
 			try:
-				self._str_funcName = 'findSurfaceIntersections'
+				self._str_funcName = 'findSurfaceIntersection'
 				log.debug(">>> %s >> "%self._str_funcName + "="*75)
 				if len(mc.ls(surface))>1:
-					raise StandardError,"findSurfaceIntersections>>> More than one surface named: %s"%surface
-				self.selectionList = om.MSelectionList()
-				self.selectionList.add(surface)
-				self.surfacePath = om.MDagPath()
-				self.selectionList.getDagPath(0, self.surfacePath)
-				self.surfaceFn = om.MFnNurbsSurface(self.surfacePath)
-				raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
-				self.rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
-				self.hitPoints = om.MFloatPointArray()
+					raise StandardError,"findSurfaceIntersection>>> More than one surface named: %s"%surface
+				
+				self.surfaceShape = mc.listRelatives(surface, s=1)
+				self.centerPoint = mc.xform(surface, q=1, ws=1, t=1)
+				
+				#checking the type 
+				self.objType = search.returnObjectType(surface)
+				
+				if self.objType == 'nurbsSurface':
+					raySource = om.MPoint(raySource[0], raySource[1], raySource[2])
+					self.raySourceVector = om.MVector(raySource[0], raySource[1], raySource[2])
+					self.centerPointVector = om.MVector(self.centerPoint[0],self.centerPoint[1],self.centerPoint[2])
+					rayDir = om.MPoint(self.centerPointVector - self.raySourceVector)
+					self.rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
+					self.hitPoint = om.MPoint()
+					self.selectionList = om.MSelectionList()
+					self.selectionList.add(self.surfaceShape)
+					self.surfacePath = om.MDagPath()
+					self.selectionList.getDagPath(0, self.surfacePath)
+					self.surfaceFn = om.MFnNurbsSurface(self.surfacePath)
 	            	
-				#Set up a variable for each remaining parameter in the
-				#MFnNurbsSurface::allIntersections call. We could have supplied these as
-				#literal values in the call, but this makes the example more readable.
-				self.sortIds = False
-				
-				#maxDist
-				self.raySourceVector = om.MVector(raySource[0], raySource[1], raySource[2])
-				self.hitPointVector = om.MVector(hitPoint[0], hitPoint[1], hitPoint[2])
-				self.distVector = om.MVector.length(raySourceVector - hitPointVector)
-				self.maxDist = om.MDistance.internalToUI(distVector)
-				log.debug("maxDist: %s"%maxDist)
-				
-				#other variables
-				self.paramU = None
-				self.paramV = None
-				self.ignoreTrimBoundaries = False
-				self.kMFnNurbsEpsilon = [0,0,0]
-				self.ReturnStatus = None
+        			#maxDist
+        			self.maxDist = maxDistance
 
+        			#other variables 
+        			self.uSU = om.MScriptUtil()
+        			self.vSU = om.MScriptUtil()
+        			self.uPtr = self.uSU.asDoublePtr()
+        			self.vPtr = self.vSU.asDoublePtr()
+        			self.spc = om.MSpace.kWorld
+        			self.toleranceSU = om.MScriptUtil()
+        			self.tolerance = self.toleranceSU.asDoublePtr()
+        			om.MScriptUtil.setDouble(self.tolerance, .1)
+
+        			#Get the closest intersection.
+        			self.gotHit = self.surfaceFn.intersect(raySource,self.rayDirection,self.uPtr,self.vPtr,self.hitPoint,self.toleranceSU.asDouble(),self.spc,False,None,False,None)
 					            	
-				#Get the closest intersection.
-				self.gotHit = self.surfaceFn.closestPoint(raySource, self.rayDirection, self.paramU, self.paramV, 
-				self.ignoreTrimBoundaries, self.kMFnNurbsEpsilon, om.MSpace.kObject, self.ReturnStatus)
-								
+				elif self.objType == 'mesh':
+					raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
+					self.raySourceVector = om.MFloatVector(raySource[0], raySource[1], raySource[2])
+					self.centerPointVector = om.MFloatVector(self.centerPoint[0],self.centerPoint[1],self.centerPoint[2]) 
+					rayDir = om.MFloatPoint(self.centerPointVector - self.raySourceVector)
+					self.rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
+					self.hitPoint = om.MFloatPoint()     
+					self.selectionList = om.MSelectionList()
+					self.selectionList.add(surface)
+					self.meshPath = om.MDagPath()
+					self.selectionList.getDagPath(0, self.meshPath)
+					self.meshFn = om.MFnMesh(self.meshPath)
+
+        			#maxDist
+        			self.maxDist = maxDistance
+        
+        			#other variables 
+					self.spc = om.MSpace.kWorld
+
+        			#Get the closest intersection.
+        			self.gotHit = self.meshFn.closestIntersection(raySource,self.rayDirection,None,None,False,self.spc,self.maxDist,False,None,self.hitPoint,None,None,None,None,None)
+        			
+				else : raise StandardError,"wrong surface type!"
+        			
 				#Return the intersection as a Python list.
 				if self.gotHit:
 					self.returnDict = {}
@@ -124,11 +151,107 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 									
 						self.returnDict = {'hits':self.hitList,'source':[raySource.x,raySource.y,raySource.z],'uvs':self.uvList}
 						return self.returnDict
-				else:
-					return None
+				else: return None
+						
 			except StandardError,error:
 				log.error(">>> %s >> surface: %s | raysource: %s | rayDir %s | error: %s"%(_str_funcName,surface,raySource,rayDir,error))
 				return None
+
+		def findSurfaceIntersections(self):
+			'''
+			Return the pierced points on a surface from a raySource and rayDir
+			'''		
+							 
+			try:
+				self._str_funcName = 'findSurfaceIntersections'
+				log.debug(">>> %s >> "%self._str_funcName + "="*75)
+				if len(mc.ls(surface))>1:
+					raise StandardError,"findSurfaceIntersections>>> More than one surface named: %s"%surface
+				
+				self.surfaceShape = mc.listRelatives(surface, s=1)
+				self.centerPoint = mc.xform(surface, q=1, ws=1, t=1)
+				
+				#checking the type 
+				self.objType = search.returnObjectType(surface)
+				
+				if self.objType == 'nurbsSurface':
+					raySource = om.MPoint(raySource[0], raySource[1], raySource[2])
+					self.raySourceVector = om.MVector(raySource[0], raySource[1], raySource[2])
+					self.centerPointVector = om.MVector(self.centerPoint[0],self.centerPoint[1],self.centerPoint[2])
+					rayDir = om.MPoint(self.centerPointVector - self.raySourceVector)
+					self.rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
+					self.hitPoints = om.MPoint()
+					self.selectionList = om.MSelectionList()
+					self.selectionList.add(surfaceShape)
+					self.surfacePath = om.MDagPath()
+					self.selectionList.getDagPath(0, self.surfacePath)
+					self.surfaceFn = om.MFnNurbsSurface(self.surfacePath)
+	            	
+        			#maxDist
+        			self.maxDist = maxDistance
+
+        			#other variables 
+        			self.u = om.MDoubleArray()
+        			self.v = om.MDoubleArray()
+        			self.spc = om.MSpace.kWorld
+        			self.toleranceSU = om.MScriptUtil()
+        			self.tolerance = self.toleranceSU.asDoublePtr()
+        			om.MScriptUtil.setDouble(self.tolerance, .1)
+
+        			#Get the closest intersection.
+        			self.gotHit = self.surfaceFn.intersect(raySource,self.rayDirection,self.u,self.v,self.hitPoints,self.toleranceSU.asDouble(),self.spc,False,None,False,None)
+        			
+				elif self.objType == 'mesh':
+        			raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
+        			self.raySourceVector = om.MFloatVector(raySource[0], raySource[1], raySource[2])
+        			self.centerPointVector = om.MFloatVector(self.centerPoint[0],self.centerPoint[1],self.centerPoint[2]) 
+        			rayDir = om.MFloatPoint(self.centerPointVector - self.raySourceVector)
+        			self.rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
+        			self.hitPoints = om.MFloatPointArray()             
+        			self.selectionList = om.MSelectionList()
+        			self.selectionList.add(surface)
+        			self.meshPath = om.MDagPath()
+        			self.selectionList.getDagPath(0, self.meshPath)
+        			self.meshFn = om.MFnMesh(self.meshPath)
+
+        			#maxDist
+        			self.maxDist = maxDistance
+
+        			#other variables
+					self.spc = om.MSpace.kWorld
+
+        			#Get the closest intersection.
+        			self.gotHit = self.meshFn.allIntersections(raySource,self.rayDirection,None,None,False,self.spc,self.maxDist,False,None,False,self.hitPoints,None,None,None,None,None)
+     			
+				else : raise StandardError,"wrong surface type!"
+        			
+				#Return the intersection as a Python list.
+				if self.gotHit:
+					self.returnDict = {}
+					self.hitList = []
+					self.uvList = []
+					for i in range( self.hitPoints.length() ):
+						self.hitList.append( [self.hitPoints[i].x, self.hitPoints[i].y, self.hitPoints[i].z])
+						self.hitMPoint = om.MPoint(self.hitPoints[i])
+						self.pArray = [0.0,0.0]
+						self.x1 = om.MScriptUtil()
+						self.x1.createFromList(pArray, 2)
+						self.uvPoint = x1.asFloat2Ptr()
+						self.uvSet = None
+						self.uvReturn = self.surfaceFn.getParamAtPoint(self.hitMPoint,self.uvPoint,self.paramU,self.paramV, self.ignoreTrimBoundaries, om.MSpace.kObject, self.kMFnNurbsEpsilon)
+									
+						self.uValue = om.MScriptUtil.getFloat2ArrayItem(self.uvPoint, 0, 0) or False
+						self.vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+						self.uvList.append([self.uValue,self.vValue])
+									
+						self.returnDict = {'hits':self.hitList,'source':[raySource.x,raySource.y,raySource.z],'uvs':self.uvList}
+						return self.returnDict
+				else: return None
+						
+			except StandardError,error:
+				log.error(">>> %s >> surface: %s | raysource: %s | rayDir %s | error: %s"%(_str_funcName,surface,raySource,rayDir,error))
+				return None
+
 			            	
 		def findSurfaceIntersectionFromObjectAxis(surface, obj, axis = 'z+', vector = False, maxDistance = 1000, singleReturn = True):            	
 			'''

@@ -44,7 +44,7 @@ def findSurfaceIntersections(surface, raySource):
         hitPoints = om.MPointArray()
             
         selectionList = om.MSelectionList()
-        selectionList.add('nurbsCylinderShape1')
+        selectionList.add(surfaceShape)
         surfacePath = om.MDagPath()
         selectionList.getDagPath(0, surfacePath)
         surfaceFn = om.MFnNurbsSurface(surfacePath)
@@ -63,17 +63,6 @@ def findSurfaceIntersections(surface, raySource):
         #Get the closest intersection.
         gotHit = surfaceFn.intersect(raySource,rayDirection,u,v,hitPoints,toleranceSU.asDouble(),spc,False,None,False,None)
 
-    	#Return the intersection as a Python list.
-        if gotHit:
-            len = hitPoints.length()
-            for i in range(0,len):
-                point = hitPoints[i]         
-                log.debug("Hit! [%s]"%(point))
-                print(point, raySource)                
-                mc.spaceLocator(p=(point[0],point[1],point[2]))
-        else:
-            return None
-    
     elif objType == 'mesh':
         raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
         raySourceVector = om.MFloatVector(raySource[0], raySource[1], raySource[2])
@@ -96,29 +85,30 @@ def findSurfaceIntersections(surface, raySource):
 
         #Get the closest intersection.
         gotHit = meshFn.allIntersections(raySource,rayDirection,None,None,False,spc,maxDist,False,None,False,hitPoints,None,None,None,None,None)
-
-        #Return the intersection as a Python list.
-        if gotHit :
-            len = hitPoints.length()
-            for i in range(0,len):
-                point = hitPoints[i]                
-                hitMPoint = om.MPoint(point)         
-                pArray = [0.0,0.0]
-                x1 = om.MScriptUtil()
-                x1.createFromList( pArray, 2 )
-                uvPoint = x1.asFloat2Ptr()
-                uvSet = None
-                closestPolygon=None
-                uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
-                uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
-                vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
-                log.debug("Hit! [%s]"%(point))
-                print(point, raySource)                
-                mc.spaceLocator(p=(point[0],point[1],point[2]))
-        else:
-            return None
+        
     else : raise StandardError,"wrong surface type!"
 
+    #Return the intersection as a Python list.
+    if gotHit :
+        len = hitPoints.length()
+        for i in range(0,len):
+            point = hitPoints[i]                
+            hitMPoint = om.MPoint(point)         
+            pArray = [0.0,0.0]
+            x1 = om.MScriptUtil()
+            x1.createFromList( pArray, 2 )
+            uvPoint = x1.asFloat2Ptr()
+            uvSet = None
+            closestPolygon=None
+            uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
+            uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
+            vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+            log.debug("Hit! [%s]"%(point))
+            print(point, raySource)                
+            mc.spaceLocator(p=(point[0],point[1],point[2]))
+    else:
+        return None
+    
 #test
 surface = mc.cylinder()[0]
 loc = mc.spaceLocator()
@@ -129,5 +119,3 @@ raySource = mc.xform(loc, q=1, ws=1, t=1)
 surfaceShape = mc.listRelatives(surface, s=1)
 centerPoint = mc.xform(surface, q=1, ws=1, t=1)
 findSurfaceIntersections(surface, raySource)
-
-
