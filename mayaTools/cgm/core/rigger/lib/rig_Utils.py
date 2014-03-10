@@ -3565,7 +3565,11 @@ def create_spaceLocatorForObject(obj,parentTo = False):
             i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	
     
             log.debug("constraintGroup: '%s'"%i_constraintGroup.getShortName())		
-    except Exception,error:raise StandardError,"%s >> parent | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> parent | %s"%(_str_funcName,error) 
+    
+    try:#change to cgmControl
+	i_control = cgmMeta.cgmControl(i_control.mNode, setClass=1)
+    except Exception,error:raise StandardError,"%s >> cgmControl conversion | %s"%(_str_funcName,error) 
     
     return i_control
 
