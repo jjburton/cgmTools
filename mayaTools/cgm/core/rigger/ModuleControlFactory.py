@@ -116,11 +116,11 @@ def registerControl(*args,**kws):
 	                        {'step':'Copy Pivot','call':self._copyPivot},
 	                        {'step':'Naming','call':self._naming},
 	                        {'step':'Aim Setup','call':self._aimSetup},
-	                        {'step':'Mirror Setup','call':self._mirrorSetup},
 	                        {'step':'Rotate Order','call':self._rotateOrder},
 	                        {'step':'Initial Freeze','call':self._initialFreeze},
 	                        {'step':'Groups Setup','call':self._groupsSetup},
 	                        {'step':'Space Pivot','call':self._spacePivots},
+	                        {'step':'Mirror Setup','call':self._mirrorSetup},	                        
 	                        {'step':'Freeze','call':self._freeze},
 	                        {'step':'Mirror Attribute Bridges','call':self._mirrorAttributeBridges_},	                        
 	                        {'step':'lock N Hide','call':self._lockNHide},
@@ -146,6 +146,7 @@ def registerControl(*args,**kws):
 		# Running lists ------------------------------------------------------------------------------------------
 		self.ml_groups = []#Holder for groups
 		self.ml_constraintGroups = []
+		self.ml_spacePivots = []
 		
 	def _copyTransform(self):		    
 	    copyTransform = self.d_kws['copyTransform']
@@ -215,27 +216,7 @@ def registerControl(*args,**kws):
     
 	    if aim is not None or up is not None or makeAimable:
 		self.mi_control._verifyAimable()
-		
-	def _mirrorSetup(self):	
-	    str_mirrorSide = self.str_mirrorSide
-	    str_mirrorAxis = self.str_mirrorAxis
-	    b_makeMirrorable = self.b_makeMirrorable
-	    if str_mirrorSide is not None or b_makeMirrorable:
-		try:self.mi_control._verifyMirrorable()
-		except Exception,error:raise StandardError,"_mirrorSetup | %s"%(error)
-		l_enum = cgmMeta.cgmAttr(self.mi_control,'mirrorSide').p_enum
-		if str_mirrorSide in l_enum:
-		    log.debug("%s >> %s >> found in : %s"%(self._str_funcCombined, "mirrorSetup", l_enum))		
-		    try:
-			self.mi_control.mirrorSide = l_enum.index(str_mirrorSide)
-			log.debug("%s >> %s >> mirrorSide set to: %s"%(self._str_funcCombined,"mirrorSetup",self.mi_control.mirrorSide ))						    
-		    except Exception,error:raise StandardError,"str_mirrorSide : %s | %s"%(str_mirrorSide,error)
-		if str_mirrorAxis:
-		    try:
-			self.mi_control.mirrorAxis = str_mirrorAxis
-			log.debug("%s >> %s >> str_mirrorAxis set: %s"%(self._str_funcCombined,"mirrorSetup",str_mirrorAxis))				    
-		    except Exception,error:raise StandardError,"str_mirrorAxis : %s | %s"%(str_mirrorAxis,error)
-		    
+			    
 	def _rotateOrder(self):	    		
 	    controlType = self.d_kws['controlType']
 	    setRotateOrder = self.d_kws['setRotateOrder']
@@ -319,15 +300,47 @@ def registerControl(*args,**kws):
 	def _spacePivots(self):	    		
 	    addSpacePivots = self.d_kws['addSpacePivots']
 	    if addSpacePivots:
-		ml_spaceLocators = []
 		parent = self.mi_control.getMessage('masterGroup')[0]
 		for i in range(int(addSpacePivots)):
 		    try:
 			i_pivot = rUtils.create_spaceLocatorForObject(self.mi_control.mNode,parent)
-			ml_spaceLocators.append(i_pivot)
+			self.ml_spacePivots.append(i_pivot)
+			#log.info("spacePivot created: {0}".format(i_pivot.p_nameShort))			
 		    except Exception,error:
 			raise StandardError,"space pivot %s | %s"%(i,error)
 
+	def _mirrorSetup(self):	
+	    str_mirrorSide = self.str_mirrorSide
+	    str_mirrorAxis = self.str_mirrorAxis
+	    b_makeMirrorable = self.b_makeMirrorable
+	    if str_mirrorSide is not None or b_makeMirrorable:
+		for mObj in [self.mi_control] + self.ml_spacePivots:
+		    #log.info("mirrorsetup: {0}".format(mObj.p_nameShort))
+		    try:self.mi_control._verifyMirrorable()
+		    except Exception,error:raise StandardError,"_mirrorSetup | %s"%(error)
+		    l_enum = cgmMeta.cgmAttr(self.mi_control,'mirrorSide').p_enum
+		    if str_mirrorSide in l_enum:
+			log.debug("%s >> %s >> found in : %s"%(self._str_funcCombined, "mirrorSetup", l_enum))		
+			try:
+			    self.mi_control.mirrorSide = l_enum.index(str_mirrorSide)
+			    log.debug("%s >> %s >> mirrorSide set to: %s"%(self._str_funcCombined,"mirrorSetup",self.mi_control.mirrorSide ))						    
+			except Exception,error:raise StandardError,"str_mirrorSide : %s | %s"%(str_mirrorSide,error)
+		    if str_mirrorAxis:
+			try:
+			    self.mi_control.mirrorAxis = str_mirrorAxis
+			    log.debug("%s >> %s >> str_mirrorAxis set: %s"%(self._str_funcCombined,"mirrorSetup",str_mirrorAxis))				    
+			except Exception,error:raise StandardError,"str_mirrorAxis : %s | %s"%(str_mirrorAxis,error)
+		for mObj in self.mi_control.msgList_get('spacePivots'):
+		    try:
+			try:mObj._verifyMirrorable()
+			except Exception,error:raise StandardError,"_mirrorSetup | %s"%(error)
+			#cgmMeta.cgmAttr(mObj,'mirrorSide').doConnectIn(self.mi_control,'mirrorSide')
+			#cgmMeta.cgmAttr(self.mi_control,'mirrorAxis').doCopyTo(mObj,connectTargetToSource = 1)
+			attributes.storeInfo(mObj.mNode,'mirrorAxis',"{0}.mirrorAxis".format(self.mi_control.mNode))
+			attributes.storeInfo(mObj.mNode,'mirrorSide',"{0}.mirrorSide".format(self.mi_control.mNode))
+			
+		    except Exception,error:raise StandardError,"spacePivot failed failed! {0}| error: {1}".format(mObj,error)
+		    
 	def _freeze(self):	    		
 	    shapeParentTo = self.d_kws['shapeParentTo']
 	    freezeAll = self.d_kws['freezeAll']
