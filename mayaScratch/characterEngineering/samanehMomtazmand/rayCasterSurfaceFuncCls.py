@@ -54,11 +54,11 @@ def rayCasterSurfaceFuncCls(*args, **kws):
             rayDir = self.d_kws['rayDir']
             maxDistance = self.d_kws['maxDistance']
                             
-            self.l_funcSteps = [{'step':'findSurfaceIntersection','call':self.findSurfaceIntersection()},
-                                {'step':'findSurfaceIntersections','call':self.findSurfaceIntersections()},
-                                {'step':'findSurfaceIntersectionFromObjectAxis','call':self.findSurfaceIntersectionFromObjectAxis()},
-                                {'step':'findSurfaceMidPointFromObject','call':self.findSurfaceMidPointFromObject()},
-                                {'step':'findFurthestPointInRangeFromObject','call':self.findFurthestPointInRangeFromObject()}]
+            self.l_funcSteps = [{'step':'findSurfaceIntersection','call':self.findSurfaceIntersection},
+                                {'step':'findSurfaceIntersections','call':self.findSurfaceIntersections},
+                                {'step':'findSurfaceIntersectionFromObjectAxis','call':self.findSurfaceIntersectionFromObjectAxis},
+                                {'step':'findSurfaceMidPointFromObject','call':self.findSurfaceMidPointFromObject},
+                                {'step':'findFurthestPointInRangeFromObject','call':self.findFurthestPointInRangeFromObject}]
                                
         # Functions                
         def findSurfaceIntersection(self):
