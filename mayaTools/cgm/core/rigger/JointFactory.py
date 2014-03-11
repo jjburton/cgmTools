@@ -917,6 +917,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 	    self.int_nostrilCount = self.mi_helper.nostrilJoints
 	    self.int_uprCheekCount = self.mi_helper.uprCheekJoints
 	    self.int_tongueCount = self.mi_helper.tongueJoints
+	    self.int_smileLineCount = self.mi_helper.smileLineCount
 	    
 	    #Running lists ============================================================================================
 	    self.ml_moduleJoints = []
@@ -1050,10 +1051,10 @@ def doSkeletonizeMouthNose(*args,**kws):
 	def _buildLips_(self):
 	    str_skullPlate = self.str_skullPlate
 	    	    	    
-	    l_build = [{'tag':'lipUpr','crv':self.mi_lipUprCrv, 'minU':None, 'maxU':None, 'count':self.int_lipCount, 'startSplitFactor':.1, 'parent':self.str_rootJoint},
-	               {'tag':'lipLwr','crv':self.mi_lipLwrCrv, 'minU':None, 'maxU':None, 'count':self.int_lipCount, 'startSplitFactor':.1,'parent':self.md_moduleJoints['jaw']},
+	    l_build = [{'tag':'lipUpr','crv':self.mi_lipUprCrv, 'minU':None, 'maxU':None, 'count':self.int_lipCount, 'startSplitFactor':.05, 'parent':self.str_rootJoint},
+	               {'tag':'lipLwr','crv':self.mi_lipLwrCrv, 'minU':None, 'maxU':None, 'count':self.int_lipCount, 'startSplitFactor':.05,'parent':self.md_moduleJoints['jaw']},
 	               {'tag':'lipOver','crv':self.mi_lipOverTraceCrv,'minU':.1, 'maxU':.9, 'count':3, 'startSplitFactor': None, 'parent':self.str_rootJoint},
-	               {'tag':'lipUnder','crv':self.mi_lipUnderTraceCrv,'minU':.25, 'maxU':.75, 'count':3, 'startSplitFactor': None, 'parent':self.md_moduleJoints['jaw']}]
+	               {'tag':'lipUnder','crv':self.mi_lipUnderTraceCrv,'minU':.1, 'maxU':.9, 'count':3, 'startSplitFactor': None, 'parent':self.md_moduleJoints['jaw']}]
 	    
 	    md_buffer = {}
 	    for d in l_build:#First loop creates and stores to runnin md
@@ -1376,7 +1377,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 		             'right':{'crv':self.mi_smileRightCrv}}	
 	    
 	    #Get some statics
-	    int_count = 5	    
+	    int_count = self.int_smileLineCount#...was 5	    
 	    str_skullPlate = self.str_skullPlate
 	    			
 	    for k in d_buildCurves.keys():#Make our left and right joints
@@ -1591,11 +1592,11 @@ def doSkeletonizeMouthNose(*args,**kws):
 		    log.debug("maxU : %s | maxV: %s"%(f_maxU,f_maxV))
 		    
 		    l_uValues = cgmMath.returnSplitValueList(0,f_maxU,1)
-		    l_vValues = cgmMath.returnSplitValueList(0,f_maxV*.8,int_jointCnt)
+		    l_vValues = cgmMath.returnSplitValueList(0,f_maxV,int_jointCnt+1)
 		    #log.info("l_uValues : %s "%(l_uValues))
 		    #log.info("l_vValues : %s "%(l_vValues))
 		    l_pos = []
-		    for v in l_vValues:
+		    for v in l_vValues[:-1]:
 			l_pos.append(mc.pointPosition("%s.uv[%s][%s]"%(str_loft,l_uValues[0],v)))
 		    mc.delete(str_loft,str_lwrCurve)
 		except Exception,error:raise StandardError,"loft split fail | error: %s "%(error)   
@@ -1626,16 +1627,6 @@ def doSkeletonizeMouthNose(*args,**kws):
 			Snap.go(mi_jnt,self.str_skullPlate,snapToSurface=True)	
 		    except Exception,error:
 			raise StandardError,"snap to mesh | pos count: %s | error: %s "%(k,i,error)       
-		    '''
-		    try:#Orient
-			constraintBuffer = mc.normalConstraint(self.str_skullPlate,mi_jnt.mNode, weight = 1, aimVector = self.v_aim, upVector = self.v_up, worldUpType = 'scene' )
-			mc.delete(constraintBuffer)
-			mi_jnt.parent = self.str_rootJoint
-		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Constraint fail | error: %s "%(k,i,error)       
-		    try:#freeze
-			jntUtils.metaFreezeJointOrientation(mi_jnt)
-		    except Exception,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       
-		    '''
 		try:#Orienting -------------------------------------------------------------------------
 		    str_mirror = False
 		    str_direction = k		    
