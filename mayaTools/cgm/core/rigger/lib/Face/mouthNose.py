@@ -176,6 +176,15 @@ def build_rigSkeleton(*args, **kws):
             #Build our handle build info stuff...
             #TODO make this a contditional build for when we don't use all the joints
             '''
+	                                           "uprCheekSegment":{'left':{'skinKey':'uprCheekLeft'},
+                                                          'right':{'skinKey':'uprCheekRight'},
+                                                          'mode':'segmentChain'},
+                                       "cheekSegment":{'left':{'skinKey':'cheekLeft'},
+                                                       'right':{'skinKey':'cheekRight'},
+                                                       'mode':'segmentChain'},
+                                       "jawLineSegment":{'left':{'skinKey':'jawLineLeft'},
+                                                         'right':{'skinKey':'jawLineRight'},
+                                                         'mode':'segmentChain'},
 	    self.md_handleBuildInfo = {"uprCheek":{"left":{'crv':self.mi_leftUprCheekCrv,'skinKey':'uprCheekLeft'},
 	                                           "right":{'crv':self.mi_rightUprCheekCrv,'skinKey':'uprCheekRight'},
 	                                           'tagsPosition':['outer','inner'],
@@ -190,15 +199,6 @@ def build_rigSkeleton(*args, **kws):
             self.md_handleBuildInfo = {"smileLineSegment":{'left':{'skinKey':'smileLeft'},
                                                            'right':{'skinKey':'smileRight'},
                                                            'mode':'segmentChain'},
-                                       "uprCheekSegment":{'left':{'skinKey':'uprCheekLeft'},
-                                                          'right':{'skinKey':'uprCheekRight'},
-                                                          'mode':'segmentChain'},
-                                       "cheekSegment":{'left':{'skinKey':'cheekLeft'},
-                                                       'right':{'skinKey':'cheekRight'},
-                                                       'mode':'segmentChain'},
-                                       "jawLineSegment":{'left':{'skinKey':'jawLineLeft'},
-                                                         'right':{'skinKey':'jawLineRight'},
-                                                         'mode':'segmentChain'},
                                        "uprLipSegment":{'left':{'ml_targets':self.md_jointList['uprLipLeft'] + self.md_jointList['uprLipCenter']},
                                                         'right':{'ml_targets':self.md_jointList['uprLipRight'] + self.md_jointList['uprLipCenter']},
                                                         'mode':'segmentChain'},
@@ -212,12 +212,12 @@ def build_rigSkeleton(*args, **kws):
                                        "cheekAnchor":{"left":{'skinKey':'cheekLeft'},
                                                       "right":{'skinKey':'cheekRight'},
                                                       'tags':['cheekAnchor'],
-                                                      'mode':'zeroDuplicate'},	                               
+                                                      'mode':'zeroDuplicate'},	  	                               
                                        "smile":{"left":{'crv':self.mi_smileLeftCrv,'skinKey':'smileLeft',
                                                         'mi_closeTarget':self.md_jointList['cornerLipLeft'][0]},
                                                 "right":{'crv':self.mi_smileRightCrv,'skinKey':'smileRight',
                                                          'mi_closeTarget':self.md_jointList['cornerLipRight'][0]},
-                                                "tags":['sneer','smile','smileBase'],'mode':'midSmileLinePoint'},
+                                                "tags":['sneer','uprSmile','smile','smileBase'],'mode':'smileLine'},
                                        "uprCheek":{"left":{'crv':self.mi_leftUprCheekCrv,'skinKey':'uprCheekLeft'},
                                                    "right":{'crv':self.mi_rightUprCheekCrv,'skinKey':'uprCheekRight'},
                                                    'tagsPosition':['outer','inner'],
@@ -373,7 +373,9 @@ def build_rigSkeleton(*args, **kws):
                             self.ml_build = []
                             #Build our copy list -------------------------------------------
                             if str_mode in ['regularMid','midSmileLinePoint']:
-                                self.ml_build = [ml_skinJoints[0],'mid',ml_skinJoints[-1]]		    
+                                self.ml_build = [ml_skinJoints[0],'mid',ml_skinJoints[-1]]
+			    elif str_mode == 'smileLine':
+                                self.ml_build = [ml_skinJoints[0],'uprMid','mid',ml_skinJoints[-1]]				
                             elif str_mode == 'startEnd':
                                 self.ml_build = [ml_skinJoints[0],ml_skinJoints[-1]]
                             elif str_mode == 'zeroDuplicate':
@@ -547,25 +549,32 @@ def build_rigSkeleton(*args, **kws):
                                 except Exception,error:raise Exception,"[mid fail]{%s}"%error
                             else:
                                 for i,mJnt in enumerate(self.ml_build):
-                                    if mJnt == 'mid':
+                                    if mJnt in ['mid','uprMid']:
                                         mi_crv = d_buffer.get('crv')
                                         if not mi_crv:
                                             raise StandardError,"[Step: '%s' '%s' | failed to find use curve]"%(k_name,k_direction)
-                                        if str_mode == 'midSmileLinePoint':
-                                            try:
-                                                mi_target = d_buffer['mi_closeTarget']
-                                                #Get initial point to get distance, offset a loc, get new pos
-                                                pos_initial = distance.returnClosestUPosition(mi_target.mNode,mi_crv.mNode)
-                                                f_dist = distance.returnDistanceBetweenPoints(mi_target.getPosition(),pos_initial)
-                                                mi_loc = mi_target.doLoc()
-                                                mi_loc.parent = mi_target
-                                                if k_direction == 'left':
-                                                    mi_loc.__setattr__("t%s"%mi_go._jointOrientation[2],f_dist)
-                                                else:
-                                                    mi_loc.__setattr__("t%s"%mi_go._jointOrientation[2],-f_dist)						
-                                                pos = distance.returnClosestUPosition(mi_loc.mNode,mi_crv.mNode)
-                                                mi_loc.delete()
-                                            except Exception,error:raise Exception,"[midClosestCurvePoint failed]{%s}"%error    
+                                        
+                                        if str_mode in ['smileLine','midSmileLinePoint']:
+					    if mJnt == 'mid':
+						try:
+						    mi_target = d_buffer['mi_closeTarget']
+						    #Get initial point to get distance, offset a loc, get new pos
+						    pos_initial = distance.returnClosestUPosition(mi_target.mNode,mi_crv.mNode)
+						    f_dist = distance.returnDistanceBetweenPoints(mi_target.getPosition(),pos_initial)
+						    mi_loc = mi_target.doLoc()
+						    mi_loc.parent = mi_target
+						    if k_direction == 'left':
+							mi_loc.__setattr__("t%s"%mi_go._jointOrientation[2],f_dist)
+						    else:
+							mi_loc.__setattr__("t%s"%mi_go._jointOrientation[2],-f_dist)						
+						    pos = distance.returnClosestUPosition(mi_loc.mNode,mi_crv.mNode)
+						    mi_loc.delete()
+						except Exception,error:raise Exception,"[midClosestCurvePoint failed | error: {0}]".format(error)    
+					    else:
+						try:
+						    #Get initial point to get distance, offset a loc, get new pos
+						    pos = crvUtils.getPercentPointOnCurve(mi_crv,.25)
+						except Exception,error:raise Exception,"[midClosestCurvePoint failed | error: {0}]".format(error)   						
                                         else:
                                             pos = crvUtils.getMidPoint(mi_crv)
                                         mc.select(cl=True)
@@ -573,7 +582,7 @@ def build_rigSkeleton(*args, **kws):
                                         mi_jnt.parent = False
                                         mi_jnt.addAttr('cgmDirection',k_direction,lock=True)
                                         if l_tags:
-                                            mi_jnt.addAttr('cgmName',l_tags[1],attrType='string',lock=True)				    				    
+                                            mi_jnt.addAttr('cgmName',l_tags[i],attrType='string',lock=True)				    				    
                                         else:
                                             mi_jnt.addAttr('cgmName',k_name,lock=True)						
                                             mi_jnt.addAttr('cgmNameModifier','mid',attrType='string',lock=True)				    

@@ -2347,6 +2347,12 @@ def shapeCast_mouthNose(*args,**kws):
 	    d_['smileRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                            cgmDirection = 'right',
 	                                                            cgmName = 'smile')  
+	    d_['uprSmileLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                            cgmDirection = 'left',
+	                                                            cgmName = 'uprSmile')
+	    d_['uprSmileRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                            cgmDirection = 'right',
+	                                                            cgmName = 'uprSmile') 	    
 	    d_['smileBaseLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                            cgmDirection = 'left',
 	                                                            cgmName = 'smileBase')
@@ -2605,8 +2611,8 @@ def shapeCast_mouthNose(*args,**kws):
 	    self.ml_handles.extend(ml_handleCrvs)
 	    
 	def _simpleShapeCasts_(self):	
-	    l_build = [{'key':'smileLeft','isSub':True},{'key':'smileBaseLeft','isSub':True},{'key':'sneerLeft','multi':1},
-	               {'key':'smileRight','isSub':True},{'key':'smileBaseRight','isSub':True},{'key':'sneerRight','multi':1},	
+	    l_build = [{'key':'smileLeft','isSub':True},{'key':'smileBaseLeft','isSub':True},{'key':'sneerLeft','multi':1},{'key':'uprSmileLeft','isSub':True},
+	               {'key':'smileRight','isSub':True},{'key':'smileBaseRight','isSub':True},{'key':'sneerRight','multi':1},{'key':'uprSmileRight','isSub':True},	
 	               {'key':'lipUprCenter'},{'key':'lipUprLeft','isSub':True},{'key':'lipUprRight','isSub':True},
 	               {'key':'lipLwrCenter'},{'key':'lipLwrLeft','isSub':True},{'key':'lipLwrRight','isSub':True},
 	               {'key':'lipCornerLeft'},{'key':'lipCornerRight'},{'key':'chin'},{'key':'jawAnchorLeft'},{'key':'jawAnchorRight'},
