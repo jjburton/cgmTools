@@ -483,13 +483,44 @@ def getMidPoint(*args, **kws):
 	    self.mi_crv = cgmMeta.validateObjArg(self.d_kws['curve'],mayaType='nurbsCurve',noneValid=False)
 	    self._str_funcCombined = self._str_funcCombined + "('%s')"%self.mi_crv.p_nameShort
 	    
-	    self.str_bufferU = mc.ls("%s.u[*]"%self.mi_crv.mNode)[0]
+	    try:self.str_bufferU = mc.ls("{0}{1}".format(self.mi_crv.mNode,".u[*]"))[0]
+	    except Exception,error:raise Exception,"ls fail | error: {0}".format(error)
 	    self.f_maxU = float(self.str_bufferU.split(':')[-1].split(']')[0])	
 	    
 	    return mc.pointPosition("%s.u[%f]"%(self.mi_crv.mNode,self.f_maxU/2), w=True)
-	    
     return fncWrap(*args, **kws).go()
 
+def getPercentPointOnCurve(*args, **kws):
+    """
+    Function to find a factored point on a maxU curve length
+    @kws
+    baseCurve -- curve on check
+    factor -- value on that curve
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args, **kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(curve = None)
+	    self._str_funcName = 'getPercentPointOnCurve'	
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'curve',"default":None},
+	                                 {'kw':'factor',"default":.1}]	    
+	    self.__dataBind__(*args, **kws)
+	    #=================================================================
+	    #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
+    
+	def __func__(self):
+	    """
+	    """	    
+	    self.f_factor = cgmValid.valueArg(self.d_kws['factor'],minValue=0,maxValue=1.0)
+	    self.mi_crv = cgmMeta.validateObjArg(self.d_kws['curve'],mayaType='nurbsCurve',noneValid=False)
+	    #self._str_funcCombined = self._str_funcCombined + "('{0}')".format(self.mi_crv.p_nameShort)	    
+	    try:self.str_bufferU = mc.ls("{0}{1}".format(self.mi_crv.mNode,".u[*]"))[0]
+	    except Exception,error:raise Exception,"ls fail | error: {0}".format(error)
+	    self.f_maxU = float(self.str_bufferU.split(':')[-1].split(']')[0])	
+	    
+	    return mc.pointPosition("%s.u[%f]"%(self.mi_crv.mNode,self.f_maxU*self.f_factor), w=True)
+    return fncWrap(*args, **kws).go()
     
 def convertCurve(*args, **kws):
     """
