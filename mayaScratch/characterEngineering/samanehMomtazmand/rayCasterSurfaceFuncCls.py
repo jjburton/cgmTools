@@ -56,13 +56,9 @@ def rayCasterSurfaceFuncCls(*args, **kws):
             rayDir = self.d_kws['rayDir']
             maxDistance = self.d_kws['maxDistance']
 
-            self.l_funcSteps = [{'step':'findSurfaceIntersection','call':self.findSurfaceIntersection},
-                                {'step':'findSurfaceIntersections','call':self.findSurfaceIntersections},
-                                {'step':'findSurfaceIntersectionFromObjectAxis','call':self.findSurfaceIntersectionFromObjectAxis},
-                                {'step':'findSurfaceMidPointFromObject','call':self.findSurfaceMidPointFromObject},
-                                {'step':'findFurthestPointInRangeFromObject','call':self.findFurthestPointInRangeFromObject}]
-
-
+            self.l_funcSteps = [{'step':'_setup_','call':self._setup_}]
+            return None
+        def _setup_(self):pass
         #Functions
         def findSurfaceIntersection(self):
             '''
@@ -329,7 +325,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                 mc.delete(self.loc)    
                 return self.l_pos
             except StandardError,error:
-                raise StandardError, ">> error"
+                raise StandardError, "error"
                             
                             
         def findFurthestPointInRangeFromObject(self):
