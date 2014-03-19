@@ -59,10 +59,9 @@ from cgm.lib import (attributes,
                      )
 
 #>>Warning -- ALL of these expect a face module funcCls self arg
-def returnRebuiltCurveString(self,crv, int_spans = 5, rpo = 0):
+def returnRebuiltCurveString(crv, int_spans = 5, rpo = 0):
     try:crv.mNode
     except:crv = cgmMeta.cgmObject(crv)
-
     return mc.rebuildCurve (crv.mNode, ch=0, rpo=rpo, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=int_spans, d=3, tol=0.001)[0]		
 
 def attach_fromDict(self,d_build):
@@ -1579,7 +1578,7 @@ def create_plateFromDict(self,md_plateBuilds):
 			str_direction = d_buffer['direction']
 			#str_name = d_buffer['name']
 			mi_smileCrv = d_buffer['smileCrv']
-			d_buffer['uprCheekJoints'] = self.md_rigList['uprCheekRig'][str_direction][:-1]
+			d_buffer['uprCheekJoints'] = self.md_rigList['uprCheekRig'][str_direction]#[:-1]
 			d_buffer['cheekJoints'] = self.md_rigList['cheekRig'][str_direction]				
 			d_buffer['jawLineJoints'] = self.md_rigList['jawLine'][str_direction]
 			d_buffer['sneerHandle'] = self.md_rigList['sneerHandle'][str_direction][0]
@@ -1603,8 +1602,8 @@ def create_plateFromDict(self,md_plateBuilds):
 
 			    #str_startRailCrv = mc.rebuildCurve (str_startRailCrv, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=5, d=3, tol=0.001)[0]		
 			    #str_endRailCrv = mc.rebuildCurve (str_endRailCrv, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=5, d=3, tol=0.001)[0]		
-			    str_startRailCrv = self.returnRebuiltCurveString(str_startRailCrv,5,1)
-			    str_endRailCrv = self.returnRebuiltCurveString(str_endRailCrv,5,1)
+			    str_startRailCrv = returnRebuiltCurveString(str_startRailCrv,5,1)
+			    str_endRailCrv = returnRebuiltCurveString(str_endRailCrv,5,1)
 
 			except Exception,error:raise Exception,"[Rail curve build |error: {0}]".format(error)
 
@@ -1633,7 +1632,7 @@ def create_plateFromDict(self,md_plateBuilds):
 		    try:#Reg curve loft
 			l_crvsRebuilt = []
 			for mi_crv in d_buffer['crvs']:#rebuild crvs
-			    l_crvsRebuilt.append(self.returnRebuiltCurveString(mi_crv,4))
+			    l_crvsRebuilt.append(returnRebuiltCurveString(mi_crv,4))
 
 			str_loft = mc.loft(l_crvsRebuilt,uniform = True,degree = 3,ss = 3)[0]
 			mc.delete(l_crvsRebuilt)#Delete the rebuilt curves
