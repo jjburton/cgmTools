@@ -853,20 +853,20 @@ def build_rig(*args, **kws):
             self._b_reportTimes = True
             self.__dataBind__()
             self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-	                        {'step':'Mirror Indexing','call':self._mirrorIndex_},
-                                {'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
-                                {'step':'Build Lip Up loc structure','call':self._buildLipUpLocStructure_},	                                
-                                {'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
-                                {'step':'Lip Structure','call':self._buildLipStructure_},
-                                {'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
-                                {'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
-                                {'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
-                                {'step':'Tongue build','call':self._buildTongue_},
+	                        #{'step':'Mirror Indexing','call':self._mirrorIndex_},
+                                #{'step':'Build Skull Deformation','call':self._buildSkullDeformation_},	
+                                #{'step':'Build Lip Up loc structure','call':self._buildLipUpLocStructure_},	                                
+                                #{'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
+                                #{'step':'Lip Structure','call':self._buildLipStructure_},
+                                #{'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
+                                #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
+                                #{'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
+                                #{'step':'Tongue build','call':self._buildTongue_},
                                 ###{'step':'Upper Cheek','call':self._buildUprCheek_},
                                 ###{'step':'Mid Cheek','call':self._buildMidCheek_},	  
-                                {'step':'JawLine build','call':self._buildJawLines_},
+                                #{'step':'JawLine build','call':self._buildJawLines_},
                                 {'step':'Cheek Surface Build','call':self._buildCheekSurface_},
-                                {'step':'Lock N hide','call':self._lockNHide_},
+                                #{'step':'Lock N hide','call':self._lockNHide_},
                                 ]	
             #=================================================================
         def _gatherInfo_(self):
@@ -3220,57 +3220,152 @@ def build_rig(*args, **kws):
                                                'smileCrv':self.mi_smileLeftCrv},
                                   'cheekRight':{'mode':'cheekLoft','direction':'right','name':'cheek',
                                                 'smileCrv':self.mi_smileRightCrv}}
-                #self.create_plateFromDict(md_plateBuilds)
 		faceUtils.create_plateFromDict(self,md_plateBuilds)
-		
             except Exception,error:raise Exception,"[Plates!] | error: {0}".format(error)
-            
+	    
+            try:#influenceJoints -----------------------------------------------------------------------
+		self.md_rigList['outerUprCheekHandle'] = {'left':[self.md_rigList['uprCheekHandles']['left'][0]],
+		                                          'right':[self.md_rigList['uprCheekHandles']['right'][0]]}
+                d_build = {'outerUprCheekHandle':{'parentToHandle':True}}
+		faceUtils.create_influenceJoints(self,d_build)
+                self.log_infoDict(self.md_rigList['outerUprCheekHandleInfluenceJoints'],'outerUprCheekHandle')
+            except Exception,error:raise Exception,"[influence joints | error: {0}]".format(error)	
+	    
             try:#Attach stuff to surfaces ====================================================================================
                 #Define our keys and any special settings for the build, if attach surface is not set, set to skull, if None, then none
                 str_skullPlate = self.str_skullPlate
                 str_jawPlate = self.mi_jawPlate.p_nameShort
                 str_cheekLeftPlate = self.mi_cheekLeftPlate.p_nameShort
                 str_cheekRightPlate = self.mi_cheekRightPlate.p_nameShort
-
+		'''
+		'outerUprCheekHandleInfluenceJoints':{'left':{'mode':'parentOnly','attachTo':None,'parentTo':mi_l_eyeMove.mNode},
+				      'right':{'mode':'parentOnly','attachTo':None,'parentTo':mi_r_eyeMove.mNode}},	
+		'''
                 d_build = {'cheekRig':{'left':{'mode':'pointAttach','attachTo':str_cheekLeftPlate},
                                        'right':{'mode':'pointAttach','attachTo':str_cheekRightPlate}},
                            'uprCheekRig':{'left':{'mode':'handleAttach','attachTo':str_cheekLeftPlate},
                                           'right':{'mode':'handleAttach','attachTo':str_cheekRightPlate}},
-                           'cheekAnchor':{'mode':'slideAttach','attachTo':str_jawPlate},
+                           'cheekAnchor':{'mode':'slideAttach','attachTo':str_jawPlate},	           
                            'uprCheekHandles':{'left':{0:{'mode':'parentOnly','attachTo':None,'parentTo':mi_l_eyeMove.mNode},
                                                       1:{'mode':'slideAttach','attachTo':str_jawPlate}},
                                               'right':{0:{'mode':'parentOnly','attachTo':None,'parentTo':mi_r_eyeMove.mNode},
                                                        1:{'mode':'slideAttach','attachTo':str_jawPlate}}}                           
                            }
-		
 		faceUtils.attach_fromDict(self,d_build)
-		
             except Exception,error:raise Exception,"[Attach!] | error: {0}".format(error)
-
+	    
             try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
                 mi_noseMove = self.md_rigList['noseMoveHandle'][0]
                 # self.md_rigList['smileLineRig']['left']
                 d_build = {'cheekRight':{'target':self.mi_cheekRightPlate,
-                                         'bindJoints':self.md_rigList['uprSmileHandle']['right'] + self.md_rigList['jawLine']['right'] + self.md_rigList['cheekAnchor']['right'] + self.md_rigList['smileHandle']['right'] + self.md_rigList['uprCheekHandles']['right']},		           
+                                         'bindJoints':self.md_rigList['uprSmileHandle']['right'] + self.md_rigList['jawLine']['right'] + self.md_rigList['cheekAnchor']['right'] + self.md_rigList['smileHandle']['right'] + [self.md_rigList['uprCheekHandles']['right'][-1]] + self.md_rigList['outerUprCheekHandleInfluenceJoints']['right']},		           
                            'cheekLeft':{'target':self.mi_cheekLeftPlate,
-                                        'bindJoints':self.md_rigList['uprSmileHandle']['left'] + self.md_rigList['jawLine']['left'] + self.md_rigList['cheekAnchor']['left'] + self.md_rigList['smileHandle']['left'] + self.md_rigList['uprCheekHandles']['left']}}
+                                        'bindJoints':self.md_rigList['uprSmileHandle']['left'] + self.md_rigList['jawLine']['left'] + self.md_rigList['cheekAnchor']['left'] + self.md_rigList['smileHandle']['left'] + [self.md_rigList['uprCheekHandles']['left'][-1]] + self.md_rigList['outerUprCheekHandleInfluenceJoints']['left']}}
 		faceUtils.skin_fromDict(self,d_build)
-		
             except Exception,error:raise Exception,"[Skinning! | error: {0}]".format(error)	
-            
-            try:#>>> Connect  ==================================================================
-                d_build = {'uprCheekHandles':{'left':{0:{'mode':'skip'},
-                                                      1:{'mode':'pointConstraint','targets':[mi_l_eyeMove,self.md_rigList['sneerHandleInfluenceJoints']['left'][0]]}},
-                                              'right':{0:{'mode':'skip'},
-                                                       1:{'mode':'pointConstraint','targets':[mi_r_eyeMove,self.md_rigList['sneerHandleInfluenceJoints']['right'][0]]}}},
-                           'cheekAnchor':{'mode':'pointConstraint',
-                                          'left':{'targets':[self.md_rigList['jawLine']['left'][0],self.md_rigList['uprCheekHandles']['left'][0]]},
-                                          'right':{'targets':[self.md_rigList['jawLine']['right'][0],self.md_rigList['uprCheekHandles']['right'][0]]}}}
+                        
+            try:#>>> Influence push Offset  ==================================================================
+		'''
+		'outerUprCheekHandleInfluenceJoints':{'left':{'mode':'parentConstraint','targets':[self.md_rigList['outerUprCheekHandle']['left'][0]]},
+		                                                 'right':{'mode':'parentConstraint','targets':[self.md_rigList['outerUprCheekHandle']['right'][0]]}},
+		           
+		'outerUprCheekHandleInfluenceJoints':{'mode':'outerUprCheekOffset',
+		                                                 'left':{'driver':self.md_rigList['outerUprCheekHandle']['left'][0],'attrsToConnect':['tx','tz']},
+		                                                 'right':{'driver':self.md_rigList['outerUprCheekHandle']['right'][0],'attrsToConnect':['tx','tz']}},                          
+		'''
+		for str_direction in 'left','right':
+		    try:
+			try:#Query! ----------------------------------------------------------------------------------
+		    
+			    mi_influenceJoint = self.md_rigList['outerUprCheekHandleInfluenceJoints'][str_direction][0]
+			    mi_handle = self.md_rigList['outerUprCheekHandle'][str_direction][0]
+			    
+			    try:mi_offsetGroup = mi_go.verify_offsetGroup(mi_influenceJoint)#..Create offsetgroup
+			    except Exception,error:raise Exception,"[offset verify fail! | error: {0}]".format(error)	
+				    
+			    str_attr = "t{0}".format(mi_go._jointOrientation[0])
+			    ml_innerOuterOffsetPlugs = []
+			    l_nodalArgs = []		    
+			except Exception,error:raise Exception,"[Query! | {0}]".format(error)			
 
-		faceUtils.connect_fromDict(self,d_build)
-		
-            except Exception,error:raise Exception,"[Connect!] | error: {0}".format(error)	            
+			try:#Get Plugs! ----------------------------------------------------------------------------------
+			    mPlug_attrDriven = cgmMeta.cgmAttr(mi_offsetGroup,str_attr)
+			    mPlug_attrDriver = cgmMeta.cgmAttr(mi_handle,"t{0}".format(mi_go._jointOrientation[1]))   
+			    
+			    mPlug_outFactor = cgmMeta.cgmAttr(mi_handle,'pushMax',attrType='float',value = .75,hidden = False,defaultValue = .75)
+			    mPlug_upTarget = cgmMeta.cgmAttr(mi_handle,'upTarget',attrType='float',value = 1.3,hidden = False,defaultValue = 1.3)
+			    
+			    mPlug_upOnResult = cgmMeta.cgmAttr(mi_handle,'res_upOn',attrType='float',value = 0.0, keyable=False, hidden=True)
+			    mPlug_outUseResult = cgmMeta.cgmAttr(mi_handle,'res_upUse',attrType='float',value = 0.0, keyable=False, hidden=True)
+			    mPlug_outFactorResult = cgmMeta.cgmAttr(mi_handle,'res_pushFactor',attrType='float',value = 0.0, keyable=False, hidden=True)
+			    mPlug_outResult = cgmMeta.cgmAttr(mi_handle,'res_out',attrType='float',value = 0.0, keyable=False, hidden=True)
+			    
+			except Exception,error:raise Exception,"[Get Plugs fail! | {0}]".format(error)
+			
+			try:#Nodal Args! ----------------------------------------------------------------------------------
+			    try:
+				arg_upOn = "{0} = if {1} >= 0: 1 else 0".format(mPlug_upOnResult.p_combinedShortName,
+				                                                mPlug_attrDriver.p_combinedShortName)
+				l_nodalArgs.append(arg_upOn)
+			    except Exception,error:raise Exception,"[upOn arg! | {0}]".format(error)
+			    
+			    try:
+				arg_outFactor = "{0} = {2} / {1}".format(mPlug_outFactorResult.p_combinedShortName,
+				                                         mPlug_upTarget.p_combinedShortName,
+				                                         mPlug_attrDriver.p_combinedShortName)
+				l_nodalArgs.append(arg_outFactor)
+			    except Exception,error:raise Exception,"[out factor arg! | {0}]".format(error)			    
+			    
+			    try:
+				if mi_handle.cgmDirection == 'left':
+				    arg_outFactorValue = "{0} = {1} * {2}".format(mPlug_outUseResult.p_combinedShortName,
+					                                          mPlug_outFactorResult.p_combinedShortName,
+					                                          mPlug_outFactor.p_combinedShortName) 
+				    
+				else:
+				    arg_outFactorValue = "{0} = {1} * -{2}".format(mPlug_outUseResult.p_combinedShortName,
+					                                           mPlug_outFactorResult.p_combinedShortName,
+					                                           mPlug_outFactor.p_combinedShortName) 
+				l_nodalArgs.append(arg_outFactorValue)
+			    except Exception,error:raise Exception,"[out use arg! | {0}]".format(error)
+			    
+			    try:
+				arg_outResult = "{0} = {1} * {2}".format(mPlug_attrDriven.p_combinedShortName,
+				                                         mPlug_upOnResult.p_combinedShortName,
+				                                         mPlug_outUseResult.p_combinedShortName)
+				l_nodalArgs.append(arg_outResult)				
+			    except Exception,error:raise Exception,"[out use arg! | {0}]".format(error)
+			    
+			    
+			    for str_arg in l_nodalArgs:
+				self.log_info("Building: {0}".format(str_arg))
+				NodeF.argsToNodes(str_arg).doBuild()	
+				
+			except Exception,error:raise Exception,"[Nodal args fail! | {0}]".format(error)
+		    except Exception,error:raise Exception,"['{0} | {1}]".format(str_direction,error)
+            except Exception,error:raise Exception,"[Influence push Offset!] | error: {0}".format(error)            
             
+            
+            return
+	    try:#>>> Connect  ==================================================================
+		'''
+		'outerUprCheekHandleInfluenceJoints':{'left':{'mode':'parentConstraint','targets':[self.md_rigList['outerUprCheekHandle']['left'][0]]},
+								 'right':{'mode':'parentConstraint','targets':[self.md_rigList['outerUprCheekHandle']['right'][0]]}},
+			   
+		'outerUprCheekHandleInfluenceJoints':{'mode':'outerUprCheekOffset',
+								 'left':{'driver':self.md_rigList['outerUprCheekHandle']['left'][0],'attrsToConnect':['tx','tz']},
+								 'right':{'driver':self.md_rigList['outerUprCheekHandle']['right'][0],'attrsToConnect':['tx','tz']}},                          
+		'''
+		d_build = {'uprCheekHandles':{'left':{0:{'mode':'skip'},
+		                                      1:{'mode':'pointConstraint','targets':[mi_l_eyeMove,self.md_rigList['sneerHandleInfluenceJoints']['left'][0]]}},
+		                              'right':{0:{'mode':'skip'},
+		                                       1:{'mode':'pointConstraint','targets':[mi_r_eyeMove,self.md_rigList['sneerHandleInfluenceJoints']['right'][0]]}}}, 
+		           'cheekAnchor':{'mode':'pointConstraint',
+		                          'left':{'targets':[self.md_rigList['jawLine']['left'][0],self.md_rigList['uprCheekHandles']['left'][0]]},
+		                          'right':{'targets':[self.md_rigList['jawLine']['right'][0],self.md_rigList['uprCheekHandles']['right'][0]]}}}
+		faceUtils.connect_fromDict(self,d_build)
+	    except Exception,error:raise Exception,"[Connect!] | error: {0}".format(error)		
+	    
             try:#>>> Aim some stuff =================================================================================
                 d_build = {'cheekAnchor':{'mode':'singleBlend',
                                           'left':{'d_target0':{'target':self.md_rigList['smileHandle']['left'][0],
