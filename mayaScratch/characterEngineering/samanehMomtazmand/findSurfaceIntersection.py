@@ -17,6 +17,7 @@ def findSurfaceIntersection(surface, raySource):
     '''
     findSurfaceIntersection
     '''
+    #Is this function supposed to be working? you're referencing kw's that don't exist, rayDir @ line 34
     surfaceShape = mc.listRelatives(surface, s=1)
     centerPoint = mc.xform(surface, q=1, ws=1, t=1)    
     maxDistance = 1000
@@ -28,41 +29,42 @@ def findSurfaceIntersection(surface, raySource):
         _str_funcName = 'findSurfaceIntersection'
         log.debug(">>> %s >> "%_str_funcName + "="*75)           
         if len(mc.ls(surface))>1:
-            raise StandardError,"findSurfaceIntersection>>> More than one surface named: %s"%surface
-    except StandardError,error:
+            raise ValueError,"findSurfaceIntersection>>> More than one surface named: %s"%surface
+    except Exception,error:
         log.error(">>> %s >> surface: %s | raysource: %s | rayDir %s | error: %s"%(_str_funcName,surface,raySource,rayDir,error))   
-                 
-	#checking the type             
+	raise Exception,error#you need to raise the excepction still because we want to to stop if things aren't right
+    
+    #checking the type             
     objType = search.returnObjectType(surface)
     
     if objType == 'nurbsSurface': 
-        raySource = om.MPoint(raySource[0], raySource[1], raySource[2])
-        raySourceVector = om.MVector(raySource[0], raySource[1], raySource[2])
-        centerPointVector = om.MVector(centerPoint[0],centerPoint[1],centerPoint[2]) 
-        rayDir = om.MPoint(centerPointVector - raySourceVector)
-        rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
-        hitPoint = om.MPoint()    
-        selectionList = om.MSelectionList()
-        selectionList.add(surfaceShape)
-        surfacePath = om.MDagPath()
-        selectionList.getDagPath(0, surfacePath)
-        surfaceFn = om.MFnNurbsSurface(surfacePath)
+	raySource = om.MPoint(raySource[0], raySource[1], raySource[2])
+	raySourceVector = om.MVector(raySource[0], raySource[1], raySource[2])
+	centerPointVector = om.MVector(centerPoint[0],centerPoint[1],centerPoint[2]) 
+	rayDir = om.MPoint(centerPointVector - raySourceVector)
+	rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
+	hitPoint = om.MPoint()    
+	selectionList = om.MSelectionList()
+	selectionList.add(surfaceShape)
+	surfacePath = om.MDagPath()
+	selectionList.getDagPath(0, surfacePath)
+	surfaceFn = om.MFnNurbsSurface(surfacePath)
 
-        #maxDist
-        maxDist = maxDistance
+	#maxDist
+	maxDist = maxDistance
 
-        #other variables 
-        uSU = om.MScriptUtil()
-        vSU = om.MScriptUtil()
-        uPtr = uSU.asDoublePtr()
-        vPtr = uSU.asDoublePtr()
-        spc = om.MSpace.kWorld
-        toleranceSU = om.MScriptUtil()
-        tolerance = toleranceSU.asDoublePtr()
-        om.MScriptUtil.setDouble(tolerance, .1)
+	#other variables 
+	uSU = om.MScriptUtil()
+	vSU = om.MScriptUtil()
+	uPtr = uSU.asDoublePtr()
+	vPtr = vSU.asDoublePtr()#was uSU, wouldn't think you meant to use twice?
+	spc = om.MSpace.kWorld
+	toleranceSU = om.MScriptUtil()
+	tolerance = toleranceSU.asDoublePtr()
+	om.MScriptUtil.setDouble(tolerance, .1)
 
-        #Get the closest intersection.
-        gotHit = surfaceFn.intersect(raySource, rayDirection, uPtr, vPtr,hitPoint, toleranceSU.asDouble(), spc, False, None, False, None)
+	#Get the closest intersection.
+	gotHit = surfaceFn.intersect(raySource, rayDirection, uPtr, vPtr,hitPoint, toleranceSU.asDouble(), spc, False, None, False, None)
 
     elif objType == 'mesh':
         raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
@@ -86,7 +88,7 @@ def findSurfaceIntersection(surface, raySource):
         #Get the closest intersection.
         gotHit=meshFn.closestIntersection(raySource,rayDirection,None,None,False,spc,maxDist,False,None,hitPoint,None,None,None,None,None)
 
-	else : raise StandardError,"wrong surface type!"
+    else : raise StandardError,"wrong surface type!"
 	
     #Return the intersection as a Python list.
     if gotHit :
@@ -101,12 +103,13 @@ def findSurfaceIntersection(surface, raySource):
 
         uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
         vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
-        log.debug("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
-        print({'hit'[hitPoint.x,hitPoint.y,hitPoint.z],'source'[raySource.x,raySource.y,raySource.z],'uv'[uValue,vValue]})                   
+        log.info("Hit! [{0},{1},{2}]".format(hitPoint.x, hitPoint.y, hitPoint.z))#Use new formatting method
+	#Syntax is wrong here, wont' load
+        #print({'hit'[hitPoint.x,hitPoint.y,hitPoint.z],'source'[raySource.x,raySource.y,raySource.z],'uv'[uValue,vValue]})                   
         mc.spaceLocator(p=(hitPoint.x, hitPoint.y, hitPoint.z))
         
     else:
-        return None
+        return False#Don't usually wanna return None
     
 #test
 surface = mc.cylinder()[0]
