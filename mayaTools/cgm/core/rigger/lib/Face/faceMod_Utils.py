@@ -987,15 +987,16 @@ def connect_fromDict(self,d_build):
 							arg_outMouthMoveValue = "{0} = {1} * -{2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
 						                                                          mPlug_mouthMoveDriver.p_combinedShortName,
 						                                                          mPlug_outMouthMoveInfluence.p_combinedShortName)								
+						    
 						    arg_negateOutOn = "{0} = {1} * {2}".format(mPlug_outResult.p_combinedShortName,
 					                                                       mPlug_smileOn.p_combinedShortName,
 					                                                       mPlug_outUseResult.p_combinedShortName)
-						    
-						    arg_negateOutOn = "{0} = {1} + {2}".format(mPlug_attrBridgeDriven.p_combinedShortName,
+						    #This was the same name as the above
+						    arg_sum = "{0} = {1} + {2}".format(mPlug_attrBridgeDriven.p_combinedShortName,
 					                                                       mPlug_outMouthMoveResult.p_combinedShortName,
 					                                                       mPlug_outUseResult.p_combinedShortName)
 						    
-						    for str_arg in arg_outFactor,arg_outFactorValue,arg_negateOutOn,arg_outMouthMoveValue:
+						    for str_arg in arg_outFactor,arg_outFactorValue,arg_negateOutOn,arg_outMouthMoveValue,arg_sum:
 							self.log_info("Building: {0}".format(str_arg))
 							NodeF.argsToNodes(str_arg).doBuild()
 							
@@ -1043,6 +1044,10 @@ def get_mdSidesBufferFromTag(self,str_tag):
 
 def create_influenceJoints(self,d_build):
     '''
+    Create influence joints from objects in the md_rigList
+    
+    :parameters:
+	parentToHandle | whether to parent the influence joint's offset group to the handle
     '''
     try:#>> Infuence joints  =======================================================================================
 	mi_go = self._go#Rig Go instance link
@@ -1075,11 +1080,17 @@ def create_influenceJoints(self,d_build):
 				    self.log_info("%s | %s > Utilizing index call"%(str_tag,str_side))					
 				    ml_buffer = [ml_buffer[int_indexBuffer]]
 			    except Exception,error:raise Exception,"[Index call!| error: {0}]".format(error)
-			    int_len = len(ml_buffer)
-			    _d = {}
-			    self.d_buffer = _d
-			    int_len = len(ml_buffer)			    
-			    ml_influenceJoints = []			    
+			    
+			    try:
+				int_len = len(ml_buffer)
+				_d = {}
+				self.d_buffer = _d
+				int_len = len(ml_buffer)			    
+				ml_influenceJoints = []	
+				b_parentToHandle = d_buffer.get('parentToHandle') or d_build[str_tag].get('parentToHandle') or False 
+
+			    except Exception,error:raise Exception,"[Query | error: {0}]".format(error)					    
+			    		    
 			    for idx,mJnt in enumerate(ml_buffer):
 				str_mObj = mJnt.p_nameShort
 
@@ -1108,6 +1119,9 @@ def create_influenceJoints(self,d_build):
 				    mi_offsetGroup.addAttr('cgmTypeModifier','master',lock=True)
 				    mi_offsetGroup.doName()
 				    mi_influenceJoint.connectChildNode(mi_offsetGroup,'masterGroup','groupChild')
+				    
+				    if b_parentToHandle:
+					mi_offsetGroup.parent = mJnt
 				except Exception,error:raise Exception,"[masterGroup for '{0}'! | error: {1}]".format(str_mObj,error)				    
 			    
 			    jntUtils.metaFreezeJointOrientation(ml_influenceJoints)
