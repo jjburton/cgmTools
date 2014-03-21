@@ -961,44 +961,67 @@ def connect_fromDict(self,d_build):
 							self.log_info("Building: {0}".format(str_arg))
 							NodeF.argsToNodes(str_arg).doBuild()	
 						elif ii == 1:
-						    mPlug_outFactor = cgmMeta.cgmAttr(mObj,'cornerPushMax',attrType='float',value = .75,hidden = False,defaultValue = .75)
-						    mPlug_outTarget = cgmMeta.cgmAttr(mObj,'cornerOutTarget',attrType='float',value = 2.0,hidden = False,defaultValue = 2.0)
-						    mPlug_outMouthMoveInfluence = cgmMeta.cgmAttr(mObj,'mouthMoveFactor',attrType='float',value = .5,hidden = False)
-						    
-						    mPlug_outUseResult = cgmMeta.cgmAttr(mObj,'res_cornerPushUse',attrType='float',value = 0.0, keyable=False, hidden=True)
-						    mPlug_outFactorResult = cgmMeta.cgmAttr(mObj,'res_cornerPushFactor',attrType='float',value = 0.0, keyable=False, hidden=True)
-						    mPlug_outMouthMoveResult = cgmMeta.cgmAttr(mObj,'res_mouthMoveValue',attrType='float',value = 0.0, keyable=False, hidden=True)
-						    mPlug_outResult = cgmMeta.cgmAttr(mObj,'res_out',attrType='float',value = 0.0, keyable=False, hidden=True)
-						    
-						    arg_outFactor = "{0} = {2} / {1}".format(mPlug_outFactorResult.p_combinedShortName,
-					                                                     mPlug_outTarget.p_combinedShortName,
-					                                                     mPlug_attrBridgeDriver.p_combinedShortName)
-						    if mObj.cgmDirection == 'left':
-							arg_outFactorValue = "{0} = {1} * {2}".format(mPlug_outUseResult.p_combinedShortName,
-						                                                      mPlug_outFactorResult.p_combinedShortName,
-						                                                      mPlug_outFactor.p_combinedShortName) 
-							arg_outMouthMoveValue = "{0} = {1} * {2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
-						                                                         mPlug_mouthMoveDriver.p_combinedShortName,
-						                                                         mPlug_outMouthMoveInfluence.p_combinedShortName)
-						    else:
-							arg_outFactorValue = "{0} = {1} * -{2}".format(mPlug_outUseResult.p_combinedShortName,
-						                                                       mPlug_outFactorResult.p_combinedShortName,
-						                                                       mPlug_outFactor.p_combinedShortName) 
-							arg_outMouthMoveValue = "{0} = {1} * -{2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
-						                                                          mPlug_mouthMoveDriver.p_combinedShortName,
-						                                                          mPlug_outMouthMoveInfluence.p_combinedShortName)								
-						    
-						    arg_negateOutOn = "{0} = {1} * {2}".format(mPlug_outResult.p_combinedShortName,
-					                                                       mPlug_smileOn.p_combinedShortName,
-					                                                       mPlug_outUseResult.p_combinedShortName)
-						    #This was the same name as the above
-						    arg_sum = "{0} = {1} + {2}".format(mPlug_attrBridgeDriven.p_combinedShortName,
-					                                                       mPlug_outMouthMoveResult.p_combinedShortName,
-					                                                       mPlug_outUseResult.p_combinedShortName)
-						    
-						    for str_arg in arg_outFactor,arg_outFactorValue,arg_negateOutOn,arg_outMouthMoveValue,arg_sum:
-							self.log_info("Building: {0}".format(str_arg))
-							NodeF.argsToNodes(str_arg).doBuild()
+						    try:#>> Main handle...
+							mPlug_outFactor = cgmMeta.cgmAttr(mObj,'cornerPushMax',attrType='float',value = 1.5,hidden = False,defaultValue = 1.5)
+							mPlug_outTarget = cgmMeta.cgmAttr(mObj,'cornerOutTarget',attrType='float',value = 2.0,hidden = False,defaultValue = 2.0)
+							mPlug_outMouthMoveInfluence = cgmMeta.cgmAttr(mObj,'mouthMoveFactor',attrType='float',value = .5,hidden = False)
+							
+							mPlug_outUseResult = cgmMeta.cgmAttr(mObj,'res_cornerPushUse',attrType='float',value = 0.0, keyable=False, hidden=True)
+							mPlug_outFactorResult = cgmMeta.cgmAttr(mObj,'res_cornerPushFactor',attrType='float',value = 0.0, keyable=False, hidden=True)
+							mPlug_outMouthMoveResult = cgmMeta.cgmAttr(mObj,'res_mouthMoveValue',attrType='float',value = 0.0, keyable=False, hidden=True)
+							mPlug_outResult = cgmMeta.cgmAttr(mObj,'res_out',attrType='float',value = 0.0, keyable=False, hidden=True)
+							mPlug_sumResult = cgmMeta.cgmAttr(mObj,'res_sumFinal',attrType='float',value = 0.0, keyable=False, hidden=True)
+							
+							arg_outFactor = "{0} = {2} / {1}".format(mPlug_outFactorResult.p_combinedShortName,
+							                                         mPlug_outTarget.p_combinedShortName,
+							                                         mPlug_attrBridgeDriver.p_combinedShortName)
+							if mObj.cgmDirection == 'left':
+							    arg_outFactorValue = "{0} = {1} * {2}".format(mPlug_outUseResult.p_combinedShortName,
+								                                          mPlug_outFactorResult.p_combinedShortName,
+								                                          mPlug_outFactor.p_combinedShortName) 
+							    arg_outMouthMoveValue = "{0} = {1} * {2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
+								                                             mPlug_mouthMoveDriver.p_combinedShortName,
+								                                             mPlug_outMouthMoveInfluence.p_combinedShortName)
+							else:
+							    arg_outFactorValue = "{0} = {1} * -{2}".format(mPlug_outUseResult.p_combinedShortName,
+								                                           mPlug_outFactorResult.p_combinedShortName,
+								                                           mPlug_outFactor.p_combinedShortName) 
+							    arg_outMouthMoveValue = "{0} = {1} * -{2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
+								                                              mPlug_mouthMoveDriver.p_combinedShortName,
+								                                              mPlug_outMouthMoveInfluence.p_combinedShortName)								
+							
+							#This was the same name as the above
+							arg_sum = "{0} = {1} + {2}".format(mPlug_sumResult.p_combinedShortName,
+							                                   mPlug_outMouthMoveResult.p_combinedShortName,
+							                                   mPlug_outResult.p_combinedShortName)
+							
+							arg_negateOutOn = "{0} = {1} * {2}".format(mPlug_outResult.p_combinedShortName,
+							                                           mPlug_smileOn.p_combinedShortName,
+							                                           mPlug_outUseResult.p_combinedShortName)
+							
+							mPlug_sumResult.doConnectOut(mPlug_attrBridgeDriven.p_combinedShortName)
+							
+							for str_arg in arg_outFactor,arg_outFactorValue,arg_negateOutOn,arg_outMouthMoveValue,arg_sum:
+							    self.log_info("Building: {0}".format(str_arg))
+							    NodeF.argsToNodes(str_arg).doBuild()
+						    except Exception,error:raise Exception,"[smileHandleOffset!] | error: {0}".format(error)
+						    try:#>> uprSmileHandle...
+							mi_uprHandle = self.md_rigList['uprSmileHandle'][str_key][0]
+							try:mi_uprOffsetGroup = mi_go.verify_offsetGroup(mi_uprHandle)#..Create offsetgroup
+							except Exception,error:raise Exception,"[offset verify fail! | error: {0}]".format(error)
+							
+							mPlug_attrBridgeUprDriven = cgmMeta.cgmAttr(mi_uprOffsetGroup,a)   
+							
+							mPlug_uprPushFactor = cgmMeta.cgmAttr(mi_uprHandle,'pushFactor',attrType='float',value = .5,hidden = False,defaultValue = .5)
+							mPlug_uprOutResult = cgmMeta.cgmAttr(mi_uprHandle,'res_out',attrType='float',value = 0.0, keyable=False, hidden=True)
+							
+							arg_uprOut = "{0} = {1} * {2}".format(mPlug_attrBridgeUprDriven.p_combinedShortName,
+							                                      mPlug_sumResult.p_combinedShortName,
+							                                      mPlug_uprPushFactor.p_combinedShortName)							
+							for str_arg in [arg_uprOut]:
+							    self.log_info("Building: {0}".format(str_arg))
+							    NodeF.argsToNodes(str_arg).doBuild()							
+						    except Exception,error:raise Exception,"[uprSmileHandle!] | error: {0}".format(error)
 							
 						else:self.log_warning("[Not sure what to do with {0} | mode: {1}]".format(a,str_mode))
 				    except Exception,error:raise Exception,"[Setup!] | error: {0}".format(error)
