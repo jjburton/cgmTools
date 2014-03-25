@@ -859,14 +859,14 @@ def build_rig(*args, **kws):
                                 {'step':'Mouth/Lip Handles','call':self._buildMouthHandles_},
                                 {'step':'Lip Structure','call':self._buildLipStructure_},
                                 {'step':'Lip Over/Under','call':self._buildLipOverUnder_},	                        
-                                {'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
-                                {'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
-                                {'step':'Tongue build','call':self._buildTongue_},
+                                #{'step':'Smile Line Build','call':self._buildSmileLines_},	                        	                        
+                                #{'step':'NoseBuild','call':self._buildNose_},#Smile lines must be built and mouth handles
+                                #{'step':'Tongue build','call':self._buildTongue_},
                                 ###{'step':'Upper Cheek','call':self._buildUprCheek_},
                                 ###{'step':'Mid Cheek','call':self._buildMidCheek_},	  
-                                {'step':'JawLine build','call':self._buildJawLines_},
-                                {'step':'Cheek Surface Build','call':self._buildCheekSurface_},
-                                {'step':'Lock N hide','call':self._lockNHide_},
+                                #{'step':'JawLine build','call':self._buildJawLines_},
+                                #{'step':'Cheek Surface Build','call':self._buildCheekSurface_},
+                                #{'step':'Lock N hide','call':self._lockNHide_},
                                 ]	
             #=================================================================
         def _gatherInfo_(self):
@@ -1387,109 +1387,136 @@ def build_rig(*args, **kws):
             except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
 
             try:#>> Build chains =======================================================================================
-                d_jointsToCreate = {'uprLipUpDriver':{'start':self.md_rigList['noseMoveHandle'][0],
-                                                      'end':self.md_rigList['lipUprHandle']['center'][0],
-		                                      'offsetMultiplier':1,
-                                                      #'parent':self.md_rigList['uprHeadDef']
-		                                      },
-		                    'lwrLipUpDriver':{'start':self.md_rigList['chin'][0],
-		                                      'end':self.md_rigList['lipLwrHandle']['center'][0],
-		                                      'offsetMultiplier':-1,		                                      
-		                                      #'parent':self.md_rigList['jawRig']
-		                                      }}          
+		#'parent':self.md_rigList['uprHeadDef']
+		self.md_rigList['lipOverUnderJnts'] = {}		
+                d_jointsToCreate = {'uprLipUpDriver':{'center':{'start':self.md_rigList['noseMoveHandle'][0],
+		                                                'end':self.md_rigList['lipUprHandle']['center'][0],
+		                                                'offsetMultiplier':1},
+		                                      'left':{'start':self.md_rigList['nostrilRig']['left'][0],
+		                                              'end':self.md_rigList['lipUprHandle']['left'][0],
+		                                              'offsetMultiplier':1},		        
+		                                      'right':{'start':self.md_rigList['nostrilRig']['right'][0],
+		                                               'end':self.md_rigList['lipUprHandle']['right'][0],
+		                                               'offsetMultiplier':1}},		                    
+		                    'lwrLipUpDriver':{'center':{'start':self.md_rigList['chin'][0],
+		                                                'end':self.md_rigList['lipLwrHandle']['center'][0],
+		                                                'offsetMultiplier':1},
+		                                      'left':{'start':self.md_rigList['smileBaseHandle']['left'][0],
+		                                              'end':self.md_rigList['lipLwrHandle']['left'][0],
+		                                              'offsetMultiplier':1},		        
+		                                      'right':{'start':self.md_rigList['smileBaseHandle']['right'][0],
+		                                                             'end':self.md_rigList['lipLwrHandle']['right'][0],
+		                                                             'offsetMultiplier':1}}}          
                 for k_tag in d_jointsToCreate.iterkeys():
-                    try:
-                        try:#Query
-                            d_sub = d_jointsToCreate[k_tag]
-			    ml_toLock = []
-			    ml_toVisConnect = []
-			    #self.md_rigList['specialLocs'][k_tag] = {}
-			    #__d = self.md_rigList['specialLocs'][k_tag] 			    
-                        except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
-                        
-                        try:#>>Create --------------------------------------------------------------------
-                            ml_buffer = []
-                            
-                            mi_start = cgmMeta.cgmObject(mc.joint(p = d_sub['start'].getPosition()),setClass=True)
-                            mi_end = cgmMeta.cgmObject(mc.joint(p = d_sub['end'].getPosition()),setClass=True)
-                            ml_buffer = [mi_start,mi_end]
-    
-                            mi_start.parent = d_sub.get('parent') or d_sub['start']
-			    ml_toVisConnect.extend(ml_buffer)
-                        except Exception,error:raise Exception,"[Create! | error: {0}]".format(error)
-                        
-                        try:#>>Name --------------------------------------------------------------------
-                            l_n = ['start','end']
-                            for i,mJnt in enumerate(ml_buffer):
-                                mJnt.addAttr('cgmName',k_tag,lock=True)			
-                                mJnt.addAttr('cgmNameModifier',l_n[i],lock=True)	
-                                mJnt.doName()
+		    try:
+			self.md_rigList['specialLocs'][k_tag] = {}
+			self.md_rigList['lipOverUnderJnts'][k_tag] = {}
+			
+			for k_dir in d_jointsToCreate[k_tag].iterkeys():
+			    try:
+				try:#Query					
+				    d_sub = d_jointsToCreate[k_tag][k_dir]
+				    str_tagDir = "{0}{1}".format(k_tag,k_dir.capitalize())
+				    self.log_info("building '{0}".format(str_tagDir))
+				    ml_toLock = []
+				    ml_toVisConnect = []
+				    #self.md_rigList['specialLocs'][k_tag] = {}
+				    #__d = self.md_rigList['specialLocs'][k_tag] 			    
+				except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
 				
-				#ml_toLock.append(mJnt)				
-                        except Exception,error:raise Exception,"[Name! | error: {0}]".format(error)
-                        
-                        try:#>>Orient --------------------------------------------------------------------
-                            joints.orientJointChain([mJnt.mNode for mJnt in ml_buffer],mi_go._jointOrientation,"{0}up".format(mi_go._jointOrientation[1]))  
-                        except Exception,error:raise Exception,"[Orient! | error: {0}]".format(error)                        
-                        
-                        try:#>>Create IK handle --------------------------------------------------------------------
-                            buffer = mc.ikHandle( sj=mi_start.mNode, ee=mi_end.mNode,
-                                                  solver = 'ikRPsolver', forceSolver = True,
-                                                  snapHandleFlagToggle=True )  	
-                            #>>> Name --------------------------------------------------------------------
-                            log.debug(buffer)
-                            mi_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
-                            mi_ik_handle.addAttr('cgmName',k_tag,attrType='string',lock=True)    
-                            mi_ik_handle.doName()
-                                                
-                            mi_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
-                            mi_ik_effector.addAttr('cgmName',k_tag,attrType='string',lock=True)    
-                            mi_ik_effector.doName()   
-			    
-                            mi_ik_handle.parent = d_sub['end']#...parent
-                        except Exception,error:raise Exception,"[ikHandle creation! | error: {0}]".format(error)
-			
-			try:#>>rpLoc --------------------------------------------------------------------
-			    mi_rpLoc = mi_start.doLoc()
-			    mi_rpLoc.addAttr('cgmName',k_tag,lock=True)			
-			    mi_rpLoc.addAttr('cgmTypeModifier','rp',lock=True)
-			    mi_rpLoc.doName()
-			    ml_toLock.append(mi_rpLoc)	
-			    ml_toVisConnect.append(mi_rpLoc)				
-			    			    
-			    setattr(mi_rpLoc,"t{0}".format(mi_go._jointOrientation[2]),(f_lenJawLine * d_sub['offsetMultiplier']))
-			    mi_rpLoc.parent = d_sub.get('parent') or d_sub['start']
-			except Exception,error:raise Exception,"[upLoc! | error: {0}]".format(error) 
-			
-                        try:#>>poleVector --------------------------------------------------------------------
-                            cBuffer = mc.poleVectorConstraint(mi_rpLoc.mNode,mi_ik_handle.mNode)
-			    rUtils.IKHandle_fixTwist(mi_ik_handle)#...Fix the twist
-                        except Exception,error:raise Exception,"[poleVector! | error: {0}]".format(error) 
-			
-			try:#>>upLoc --------------------------------------------------------------------
-			    mi_upLoc = mi_start.doLoc()
-			    mi_upLoc.addAttr('cgmName',k_tag,lock=True)			
-			    mi_upLoc.addAttr('cgmTypeModifier','up',lock=True)
-			    mi_upLoc.doName()
-			    ml_toLock.append(mi_upLoc)				
-			    ml_toVisConnect.append(mi_upLoc)				
-			    
-			    mi_upLoc.parent = mi_start
-			    setattr(mi_upLoc,"t{0}".format(mi_go._jointOrientation[1]),(f_lenJawLine * d_sub['offsetMultiplier']))
-			except Exception,error:raise Exception,"[upLoc! | error: {0}]".format(error) 
-			
-                        try:#>>cleanup --------------------------------------------------------------------
-			    mi_go.connect_toRigGutsVis(ml_toVisConnect,vis = True)#connect to guts vis switches
-			    
-			    self.md_rigList['specialLocs'][k_tag] = mi_upLoc
-			    for mObj in ml_toLock:
-				for channel in ['translate','scale','rotate']:
-				    mc.setAttr ((mObj.mNode+'.'+channel),lock=1)          
-			    mc.select(cl=1)                                        
-			    
-                        except Exception,error:raise Exception,"[clean up! | error: {0}]".format(error) 
-                    except Exception,error:raise Exception,"[{0} fail | error: {1}]".format(k_tag,error)
-            except Exception,error:raise Exception,"[Build chains! | error: {0}]".format(error)            
+				try:#>>Create --------------------------------------------------------------------
+				    ml_buffer = []
+				    
+				    mi_start = cgmMeta.cgmObject(mc.joint(p = d_sub['start'].getPosition()),setClass=True)
+				    mi_end = cgmMeta.cgmObject(mc.joint(p = d_sub['end'].getPosition()),setClass=True)
+				    ml_buffer = [mi_start,mi_end]
+	    
+				    mi_start.parent = d_sub.get('parent') or d_sub['start']
+				    ml_toVisConnect.extend(ml_buffer)
+				except Exception,error:raise Exception,"[Create! | error: {0}]".format(error)
+				
+				try:#>>Name --------------------------------------------------------------------
+				    l_n = ['start','end']
+				    for i,mJnt in enumerate(ml_buffer):
+					mJnt.addAttr('cgmName',k_tag,lock=True)			
+					mJnt.addAttr('cgmNameModifier',l_n[i],lock=True)	
+					mJnt.doName()
+					
+					#ml_toLock.append(mJnt)				
+				except Exception,error:raise Exception,"[Name! | error: {0}]".format(error)
+				
+				try:#>>Orient --------------------------------------------------------------------
+				    joints.orientJointChain([mJnt.mNode for mJnt in ml_buffer],mi_go._jointOrientation,"{0}up".format(mi_go._jointOrientation[0]))  
+				except Exception,error:raise Exception,"[Orient! | error: {0}]".format(error)                        
+				
+				try:#>>Create IK handle --------------------------------------------------------------------
+				    buffer = mc.ikHandle( sj=mi_start.mNode, ee=mi_end.mNode,
+					                  solver = 'ikRPsolver', forceSolver = True,
+					                  snapHandleFlagToggle=True )  	
+				    #>>> Name --------------------------------------------------------------------
+				    log.debug(buffer)
+				    mi_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+				    mi_ik_handle.addAttr('cgmName',k_tag,attrType='string',lock=True)    
+				    mi_ik_handle.doName()
+							
+				    mi_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+				    mi_ik_effector.addAttr('cgmName',k_tag,attrType='string',lock=True)    
+				    mi_ik_effector.doName()   
+				    
+				    mi_ik_handle.parent = d_sub['end']#...parent
+				except Exception,error:raise Exception,"[ikHandle creation! | error: {0}]".format(error)
+				
+				try:#>>rpLoc --------------------------------------------------------------------
+				    mi_rpLoc = mi_start.doLoc()
+				    mi_rpLoc.addAttr('cgmName',k_tag,lock=True)			
+				    mi_rpLoc.addAttr('cgmTypeModifier','rp',lock=True)
+				    mi_rpLoc.doName()
+				    ml_toLock.append(mi_rpLoc)	
+				    ml_toVisConnect.append(mi_rpLoc)				
+							    
+				    setattr(mi_rpLoc,"t{0}".format(mi_go._jointOrientation[2]),(f_lenJawLine * d_sub['offsetMultiplier']))
+				    mi_rpLoc.parent = d_sub.get('parent') or d_sub['start']
+				except Exception,error:raise Exception,"[upLoc! | error: {0}]".format(error) 
+				
+				try:#>>poleVector --------------------------------------------------------------------
+				    cBuffer = mc.poleVectorConstraint(mi_rpLoc.mNode,mi_ik_handle.mNode)
+				    rUtils.IKHandle_fixTwist(mi_ik_handle)#...Fix the twist
+				    f_buffer = getattr(mi_end,"t{0}".format(mi_go._jointOrientation[0]))
+				    setattr(mi_end,"t{0}".format(mi_go._jointOrientation[0]),f_buffer * .25)
+				    
+				except Exception,error:raise Exception,"[poleVector! | error: {0}]".format(error) 
+				
+				try:#>>upLoc --------------------------------------------------------------------
+				    mi_upLoc = mi_start.doLoc()
+				    mi_upLoc.addAttr('cgmName',k_tag,lock=True)			
+				    mi_upLoc.addAttr('cgmTypeModifier','up',lock=True)
+				    mi_upLoc.doName()
+				    ml_toLock.append(mi_upLoc)				
+				    ml_toVisConnect.append(mi_upLoc)				
+				    
+				    mi_upLoc.parent = mi_start
+				    setattr(mi_upLoc,"t{0}".format(mi_go._jointOrientation[1]),(f_lenJawLine * d_sub['offsetMultiplier']))
+				except Exception,error:raise Exception,"[upLoc! | error: {0}]".format(error) 
+				
+				try:#>>cleanup --------------------------------------------------------------------
+				    mi_go.connect_toRigGutsVis(ml_toVisConnect,vis = True)#connect to guts vis switches
+				    
+				    self.md_rigList['specialLocs'][str_tagDir] = [mi_upLoc]
+				    self.md_rigList['specialLocs'][k_tag][k_dir] = [mi_upLoc]
+				    
+				    self.md_rigList['lipOverUnderJnts'][str_tagDir] = [mi_start]
+				    self.md_rigList['lipOverUnderJnts'][k_tag][k_dir] = [mi_start]
+				    
+				    for mObj in ml_toLock:
+					for channel in ['translate','scale','rotate']:
+					    mc.setAttr ((mObj.mNode+'.'+channel),lock=1)          
+				    mc.select(cl=1)                                        
+				    
+				except Exception,error:raise Exception,"[clean up! | error: {0}]".format(error) 
+				
+			    except Exception,error:raise Exception,"[{0} fail | error: {1}]".format(k_dir,error)
+		    except Exception,error:raise Exception,"[{0} fail | error: {1}]".format(k_tag,error)
+	    except Exception,error:raise Exception,"[Build chains! | error: {0}]".format(error)            
         def _buildSimpleSkullDeformation_(self):
             """
             Plan of attack
@@ -2937,7 +2964,7 @@ def build_rig(*args, **kws):
                         raise Exception,"[%s | loc create]{%s}"%(str_k,error)	
                     mc.pointConstraint([mLoc.mNode for mLoc in ml_locs],mi_loc.mNode,maintainOffset = False)
                     #self.md_rigList["%sMidUpLoc"%str_k]
-                    self.__dict__["mi_%sMidUpLoc"%str_k] = mi_loc
+                    self.__dict__["mi_{0}MidUpLoc".format(str_k)] = mi_loc
                     #d_return['midUpLoc'] = mi_loc#Push to the attachReturn for later pulling
             except Exception,error:raise Exception,"[Build mid lip Up Locs | error: {0}]".format(error)  
 
@@ -2957,98 +2984,300 @@ def build_rig(*args, **kws):
             #>> Get some data =======================================================================================
             try:#>> Query ========================================================================
                 mi_go = self._go#Rig Go instance link	
-		mi_uprLipUpLoc = self.md_rigList['specialLocs']['uprLipUpDriver']
-		mi_lwrLipUpLoc = self.md_rigList['specialLocs']['lwrLipUpDriver']
+
+		md_upr_upLocs = self.md_rigList['specialLocs']['uprLipUpDriver']
+		md_overSkinJoints = self.md_rigList['lipOverUnderJnts']['uprLipUpDriver']
+		md_lwr_upLocs = self.md_rigList['specialLocs']['lwrLipUpDriver']
+		md_underSkinJoints = self.md_rigList['lipOverUnderJnts']['lwrLipUpDriver']
 		
             except Exception,error:raise Exception,"[Query | error: {0}]".format(error)  
+	    
+	    try:#Template Curve duplication ====================================================================================
+		self.progressBar_set(status = 'Template Curve duplication')  
+		d_toDup = {'mouthTopTrace':self.mi_mouthTopCastCrv,
+	                   'mouthBaseTrace':self.mi_mouthLowCastCrv}
+		for str_k in d_toDup.iterkeys():
+		    mi_dup = cgmMeta.cgmObject( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],setClass=True )
+		    mi_dup.cgmType = 'traceCrv'
+		    mi_dup.cgmName = mi_dup.cgmName.replace('Cast','')
+		    mi_dup.doName()
+		    cgmMeta.cgmAttr(mi_dup,'translate',lock = False, keyable = True)
+		    cgmMeta.cgmAttr(mi_dup,'rotate',lock = False, keyable = True)
+		    cgmMeta.cgmAttr(mi_dup,'scale',lock = False, keyable = True)
+		    mi_dup.parent = mi_go._i_rigNull
 
-            try:#Template Curve duplication ====================================================================================
-                self.progressBar_set(status = 'Template Curve duplication')  
-                d_toDup = {'mouthTopTrace':self.mi_mouthTopCastCrv,
-                           'mouthBaseTrace':self.mi_mouthLowCastCrv}
-                for str_k in d_toDup.iterkeys():
-                    mi_dup = cgmMeta.cgmObject( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],setClass=True )
-                    mi_dup.cgmType = 'traceCrv'
-                    mi_dup.cgmName = mi_dup.cgmName.replace('Cast','')
-                    mi_dup.doName()
-                    cgmMeta.cgmAttr(mi_dup,'translate',lock = False, keyable = True)
-                    cgmMeta.cgmAttr(mi_dup,'rotate',lock = False, keyable = True)
-                    cgmMeta.cgmAttr(mi_dup,'scale',lock = False, keyable = True)
-                    mi_dup.parent = mi_go._i_rigNull
+		    #ml_curves.append(mi_dup)
+		    self.__dict__["mi_{0}Crv".format(str_k)] = mi_dup
 
-                    #ml_curves.append(mi_dup)
-                    self.__dict__["mi_{0}Crv".format(str_k)] = mi_dup
+	    except Exception,error:raise Exception,"[Template Curve | error: {0}]".format(error)  
 
-            except Exception,error:raise Exception,"[Template Curve | error: {0}]".format(error)  
-
-            try:#Build plates ====================================================================================
-                md_plateBuilds = {'uprLip':{'crvs':[self.mi_mouthTopCastCrv,self.mi_lipOverTraceCrv,self.mi_lipUprCrv]},
-                                  'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]},}
-                #self.create_plateFromDict(md_plateBuilds)
+	    try:#Build plates ====================================================================================
+		md_plateBuilds = {'uprLip':{'crvs':[self.mi_mouthTopCastCrv,self.mi_lipOverTraceCrv,self.mi_lipUprCrv]},
+	                          'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]},}
 		faceUtils.create_plateFromDict(self,md_plateBuilds)
-            except Exception,error:raise Exception,"[Plates | error: {0}]".format(error)  	    
+	    except Exception,error:raise Exception,"[Plates | error: {0}]".format(error)  	    
 
-            try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
-                d_build = {'uprLipPlate':{'target':self.mi_uprLipPlate,
-                                          'bindJoints': [self.md_rigList['lipCornerRig']['left'][0].lwrDriverSkin,self.md_rigList['lipCornerRig']['right'][0].uprDriverSkin] + self.ml_uprLipRigJoints + self.md_rigList['noseMoveRig'] + [self.md_rigList['nostrilRig']['left'][0],self.md_rigList['nostrilRig']['right'][0]] + [self.md_rigList['noseUnderRig'][0]]},		           	          
-                           'lwrLipPlate':{'target':self.mi_lwrLipPlate,
-                                          'bindJoints':self.ml_lwrLipRigJoints + [self.md_rigList['lipCornerRig']['left'][0].lwrDriverSkin,self.md_rigList['lipCornerRig']['right'][0].uprDriverSkin] +self.md_rigList['chin']}}
+	    try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
+		d_build = {'uprLipPlate':{'target':self.mi_uprLipPlate,
+	                                  'bindJoints': [self.md_rigList['lipCornerRig']['left'][0].uprDriverSkin,
+	                                                 md_overSkinJoints['center'][0],md_overSkinJoints['left'][0],
+	                                                 md_overSkinJoints['right'][0],self.md_rigList['lipCornerRig']['right'][0].uprDriverSkin] + self.ml_uprLipRigJoints},		           	          
+	                   'lwrLipPlate':{'target':self.mi_lwrLipPlate,
+	                                  'bindJoints':[self.md_rigList['lipCornerRig']['left'][0].lwrDriverSkin,
+	                                                 md_underSkinJoints['center'][0],md_underSkinJoints['left'][0],
+	                                                 md_underSkinJoints['right'][0],self.md_rigList['lipCornerRig']['right'][0].lwrDriverSkin] + self.ml_lwrLipRigJoints}}
 		faceUtils.skin_fromDict(self,d_build)
-            except Exception,error:raise Exception,"[Skinning  | error: {0}]".format(error)    
+	    except Exception,error:raise Exception,"[Skinning  | error: {0}]".format(error)    
+	    
+	    try:#>> Create some surfaceTrack locs =======================================================================================
+		'''we need these locs to get some of the lip roll movement into the over under'''
+		d_build = {'lipUnderRig':{'mode':'surfTrackLoc','storeCreatedToRigList':True},
+		           'lipOverRig':{'mode':'surfTrackLoc','storeCreatedToRigList':True}}
+		faceUtils.create_specialLocsFromDict(self,d_build)
+	    except Exception,error:raise Exception,"[SurfaceTrack locs  | error: {0}]".format(error)    	    
 
-            try:#Attach stuff to surfaces ====================================================================================
-                str_uprLipPlate = self.mi_uprLipPlate.p_nameShort
-                str_lwrLipPlate = self.mi_lwrLipPlate.p_nameShort
-                d_build = {'lipOverRig':{'mode':'pointAttach','attachTo':str_uprLipPlate},		           
-                           'lipUnderRig':{'mode':'pointAttach','attachTo':str_lwrLipPlate}}
+	    try:#Attach stuff to surfaces ====================================================================================
+		str_uprLipPlate = self.mi_uprLipPlate.p_nameShort
+		str_lwrLipPlate = self.mi_lwrLipPlate.p_nameShort
+		d_build = {'lipOverRig_surfTrackLoc':{'mode':'pointAttach','attachTo':str_uprLipPlate},		           
+	                   'lipUnderRig_surfTrackLoc':{'mode':'pointAttach','attachTo':str_lwrLipPlate}}
 		faceUtils.attach_fromDict(self,d_build)
+		
+	    except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error) 
+
+            try:#Contrain some stuff ====================================================================================
+		'''
+				                                             #self.md_rigList['lipCornerRig']['left'][0],
+		                                             #self.md_rigList['uprSmileHandle']['left'][0],
+							     self.md_rigList['lipUprHandle']['center'][0],
+		'''
+		d_build = {'lipOverRig':{'mode':'point',
+		                         'center':{'targets':[self.md_rigList['lipOverRig']['center'][0].surfTrackLoc]},                                          
+		                         'left':{'targets':[self.md_rigList['lipOverRig']['left'][0].surfTrackLoc,
+		                                            self.md_rigList['nostrilRig']['left'][0]]},                                          
+		                         'right':{'targets':[self.md_rigList['lipOverRig']['right'][0].surfTrackLoc,
+		                                             self.md_rigList['nostrilRig']['right'][0]]}}, 
+		           'lipUnderRig':{'mode':'point',
+		                          'center':{'targets':[self.md_rigList['lipUnderRig']['center'][0].surfTrackLoc]},                                          
+		                          'left':{'targets':[self.md_rigList['lipUnderRig']['left'][0].surfTrackLoc,		                                               		                                             
+		                                             self.md_rigList['smileBaseHandle']['left'][0]]},                                          
+		                          'right':{'targets':[self.md_rigList['lipUnderRig']['right'][0].surfTrackLoc,		                                               		                                              
+		                                              self.md_rigList['smileBaseHandle']['right'][0]]}}}		
+		faceUtils.constrain_fromDict(self,d_build)
 		
             except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error) 
 	    #singleTarget
 
             try:#>>> Aim some stuff =================================================================================
-                d_build = {'lipUnderRig':{'mode':'singleTarget',
-		                         'center':{'aimTarget':self.md_rigList['lipLwrHandle']['center'][0],
-		                                   'upLoc':mi_lwrLipUpLoc,
-		                                   'v_aim':mi_go._vectorUp,
-		                                   'v_up':mi_go._vectorAim},                                          
-		                         'left':{'aimTarget':self.md_rigList['lipLwrHandle']['left'][0],
-		                                 'upLoc':self.md_rigList['lipUnderRig']['center'][0],
-		                                 'v_aim':mi_go._vectorUp,
-		                                 'v_up':mi_go._vectorOutNegative},
-                                          'right':{'aimTarget':self.md_rigList['lipLwrHandle']['right'][0],
-		                                   'upLoc':self.md_rigList['lipUnderRig']['center'][0],
-		                                   'v_aim':mi_go._vectorUp,
-		                                   'v_up':mi_go._vectorOut}},
-		           'lipOverRig':{'mode':'singleBlend',
+		'''
+				           'lipOverRig':{'mode':'singleBlend',
 		                         'center':{'d_target0':{'target':self.md_rigList['noseUnderRig'][0],
-		                                                'upLoc':mi_uprLipUpLoc,
+		                                                'upLoc':md_upr_upLocs['center'][0],
 		                                                'v_aim':mi_go._vectorUp,
 		                                                'v_up':mi_go._vectorAim},
 		                                   'd_target1':{'target':self.md_rigList['lipUprHandle']['center'][0],
-		                                                'upLoc':mi_uprLipUpLoc,
+		                                                'upLoc':md_upr_upLocs['center'][0],
 		                                                'v_aim':mi_go._vectorUpNegative,
 		                                                'v_up':mi_go._vectorAim}},                                          
 		                          'left':{'d_target0':{'target':self.md_rigList['nostrilRig']['left'][0],
-                                                               'upLoc':mi_uprLipUpLoc,
+                                                               'upLoc':md_upr_upLocs['left'][0],
                                                                'v_aim':mi_go._vectorUp,
                                                                'v_up':mi_go._vectorAim},
                                                   'd_target1':{'target':self.md_rigList['lipUprHandle']['left'][0],
-                                                               'upLoc':mi_uprLipUpLoc,
+                                                               'upLoc':md_upr_upLocs['left'][0],
                                                                'v_aim':mi_go._vectorUpNegative,
                                                                'v_up':mi_go._vectorAim}},
                                           'right':{'d_target0':{'target':self.md_rigList['nostrilRig']['right'][0],
-                                                               'upLoc':mi_uprLipUpLoc,
+                                                               'upLoc':md_upr_upLocs['right'][0],
                                                                'v_aim':mi_go._vectorUp,
                                                                'v_up':mi_go._vectorAimNegative},
                                                   'd_target1':{'target':self.md_rigList['lipUprHandle']['right'][0],
-                                                               'upLoc':mi_uprLipUpLoc,
+                                                               'upLoc':md_upr_upLocs['right'][0],
                                                                'v_aim':mi_go._vectorUpNegative,
+                                                               'v_up':mi_go._vectorAimNegative}}}}
+							       
+					    'center':{'d_target0':{'target':self.md_rigList['noseUnderRig'][0],
+		                                                'upLoc':md_upr_upLocs['center'][0],
+		                                                'v_aim':mi_go._vectorUp,
+		                                                'v_up':mi_go._vectorAim},
+		                                   'd_target1':{'target':self.md_rigList['lipUprHandle']['center'][0],
+		                                                'upLoc':md_upr_upLocs['center'][0],
+		                                                'v_aim':mi_go._vectorUpNegative,
+		                                                'v_up':mi_go._vectorAim}},  
+		
+		'lipUnderRig':{'mode':'singleTarget',
+		                         'center':{'aimTarget':self.md_rigList['lipLwrHandle']['center'][0],
+		                                   'upLoc':md_lwr_upLocs['center'][0],
+		                                   'v_aim':mi_go._vectorUp,
+		                                   'v_up':mi_go._vectorAim},                                          
+		                         'left':{'aimTarget':self.md_rigList['lipUnderRig']['center'][0],
+		                                 'upLoc':md_lwr_upLocs['left'][0],
+		                                 'v_aim':mi_go._vectorOutNegative,
+		                                 'v_up':mi_go._vectorUp},
+                                          'right':{'aimTarget':self.md_rigList['lipUnderRig']['center'][0],
+		                                   'upLoc':md_lwr_upLocs['right'][0],
+		                                   'v_aim':mi_go._vectorOut,
+		                                   'v_up':mi_go._vectorUp}},
+		'''
+                d_build = {'lipUnderRig':{'mode':'singleBlend',
+		                          'center':{'d_target0':{'target':self.md_rigList['lipLwrHandle']['center'][0],
+		                                                 'upLoc':self.md_rigList['lipUnderRig']['right'][0].masterGroup,
+		                                                 'v_aim':mi_go._vectorUp,
+		                                                 'v_up':mi_go._vectorOutNegative},
+		                                    'd_target1':{'target':self.md_rigList['lipLwrHandle']['center'][0],
+		                                                 'upLoc':self.md_rigList['lipUnderRig']['left'][0].masterGroup,
+		                                                 'v_aim':mi_go._vectorUp,
+		                                                 'v_up':mi_go._vectorOut}},                                          
+		                           'left':{'d_target0':{'target':self.md_rigList['lipUnderRig']['center'][0],
+		                                                'upLoc':md_lwr_upLocs['left'][0],
+		                                                'v_aim':mi_go._vectorOutNegative,
+		                                                'v_up':mi_go._vectorAim},
+		                                   'd_target1':{'target':self.md_rigList['lipUnderRig']['center'][0],
+		                                                'upLoc':md_lwr_upLocs['left'][0],
+		                                                'v_aim':mi_go._vectorOutNegative,
+		                                                'v_up':mi_go._vectorAim}},
+		                           'right':{'d_target0':{'target':self.md_rigList['lipUnderRig']['center'][0],
+		                                                 'upLoc':md_lwr_upLocs['right'][0],
+		                                                 'v_aim':mi_go._vectorOut,
+		                                                 'v_up':mi_go._vectorAimNegative},
+		                                    'd_target1':{'target':self.md_rigList['lipUnderRig']['center'][0],
+		                                                 'upLoc':md_lwr_upLocs['right'][0],
+		                                                 'v_aim':mi_go._vectorOut,
+		                                                 'v_up':mi_go._vectorAimNegative}}},		           
+		           'lipOverRig':{'mode':'singleBlend',
+		                         'center':{'d_target0':{'target':self.md_rigList['lipOverRig']['left'][0].masterGroup,
+		                                                'upLoc':self.md_rigList['lipUprHandle']['center'][0],
+		                                                'v_aim':mi_go._vectorOut,
+		                                                'v_up':mi_go._vectorUpNegative},
+		                                   'd_target1':{'target':self.md_rigList['lipOverRig']['right'][0].masterGroup,
+		                                                'upLoc':self.md_rigList['lipUprHandle']['center'][0],
+		                                                'v_aim':mi_go._vectorOutNegative,
+		                                                'v_up':mi_go._vectorUpNegative}},                                          
+		                          'left':{'d_target0':{'target':self.md_rigList['nostrilRig']['left'][0],
+                                                               'upLoc':md_upr_upLocs['left'][0],
+                                                               'v_aim':mi_go._vectorUp,
+                                                               'v_up':mi_go._vectorAim},
+                                                  'd_target1':{'target':self.md_rigList['lipOverRig']['center'][0],
+                                                               'upLoc':md_upr_upLocs['left'][0],
+                                                               'v_aim':mi_go._vectorOutNegative,
+                                                               'v_up':mi_go._vectorAim}},
+                                          'right':{'d_target0':{'target':self.md_rigList['nostrilRig']['right'][0],
+                                                               'upLoc':md_upr_upLocs['right'][0],
+                                                               'v_aim':mi_go._vectorUp,
+                                                               'v_up':mi_go._vectorAimNegative},
+                                                  'd_target1':{'target':self.md_rigList['lipOverRig']['center'][0],
+                                                               'upLoc':md_upr_upLocs['right'][0],
+                                                               'v_aim':mi_go._vectorOut,
                                                                'v_up':mi_go._vectorAimNegative}}}}
 		faceUtils.aim_fromDict(self,d_build)
 		
             except Exception,error:raise Exception,"[Aim! | error: {0}]".format(error)     
-	    
+	def _buildLipOverUnderOLD_(self):
+	    #>> Get some data =======================================================================================
+	    try:#>> Query ========================================================================
+		mi_go = self._go#Rig Go instance link	
+		#mi_uprLipUpLoc = self.md_rigList['specialLocs']['uprLipUpDriver']
+		#mi_lwrLipUpLoc = self.md_rigList['specialLocs']['lwrLipUpDriver']
+
+		md_upr_upLocs = self.md_rigList['specialLocs']['uprLipUpDriver']
+		md_overSkinJoints = self.md_rigList['lipOverUnderJnts']['uprLipUpDriver']
+		md_lwr_upLocs = self.md_rigList['specialLocs']['lwrLipUpDriver']
+		md_underSkinJoints = self.md_rigList['lipOverUnderJnts']['lwrLipUpDriver']
+		
+		#self.md_rigList['specialLocs']['uprLipUpDriver']['left']		
+	    except Exception,error:raise Exception,"[Query | error: {0}]".format(error)  
+
+	    try:#Template Curve duplication ====================================================================================
+		self.progressBar_set(status = 'Template Curve duplication')  
+		d_toDup = {'mouthTopTrace':self.mi_mouthTopCastCrv,
+	                   'mouthBaseTrace':self.mi_mouthLowCastCrv}
+		for str_k in d_toDup.iterkeys():
+		    mi_dup = cgmMeta.cgmObject( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],setClass=True )
+		    mi_dup.cgmType = 'traceCrv'
+		    mi_dup.cgmName = mi_dup.cgmName.replace('Cast','')
+		    mi_dup.doName()
+		    cgmMeta.cgmAttr(mi_dup,'translate',lock = False, keyable = True)
+		    cgmMeta.cgmAttr(mi_dup,'rotate',lock = False, keyable = True)
+		    cgmMeta.cgmAttr(mi_dup,'scale',lock = False, keyable = True)
+		    mi_dup.parent = mi_go._i_rigNull
+
+		    #ml_curves.append(mi_dup)
+		    self.__dict__["mi_{0}Crv".format(str_k)] = mi_dup
+
+	    except Exception,error:raise Exception,"[Template Curve | error: {0}]".format(error)  
+
+	    try:#Build plates ====================================================================================
+		md_plateBuilds = {'uprLip':{'crvs':[self.mi_mouthTopCastCrv,self.mi_lipOverTraceCrv,self.mi_lipUprCrv]},
+	                          'lwrLip':{'crvs':[self.mi_lipLwrCrv,self.mi_lipUnderTraceCrv,self.mi_mouthLowCastCrv]},}
+		#self.create_plateFromDict(md_plateBuilds)
+		faceUtils.create_plateFromDict(self,md_plateBuilds)
+	    except Exception,error:raise Exception,"[Plates | error: {0}]".format(error)  	    
+
+	    try:#>> Skinning Plates/Curves/Ribbons  =======================================================================================
+		#                                          'bindJoints': [self.md_rigList['lipCornerRig']['left'][0].lwrDriverSkin,self.md_rigList['lipCornerRig']['right'][0].uprDriverSkin] + self.ml_uprLipRigJoints + self.md_rigList['noseMoveRig'] + [self.md_rigList['nostrilRig']['left'][0],self.md_rigList['nostrilRig']['right'][0]] + [self.md_rigList['noseUnderRig'][0]]},		           	          
+		d_build = {'uprLipPlate':{'target':self.mi_uprLipPlate,
+	                                  'bindJoints': [self.md_rigList['lipCornerRig']['left'][0].uprDriverSkin,
+	                                                 md_overSkinJoints['center'][0],md_overSkinJoints['left'][0],
+	                                                 md_overSkinJoints['right'][0],self.md_rigList['lipCornerRig']['right'][0].uprDriverSkin] + self.ml_uprLipRigJoints},		           	          
+	                   'lwrLipPlate':{'target':self.mi_lwrLipPlate,
+	                                  'bindJoints':[self.md_rigList['lipCornerRig']['left'][0].lwrDriverSkin,
+	                                                 md_underSkinJoints['center'][0],md_underSkinJoints['left'][0],
+	                                                 md_underSkinJoints['right'][0],self.md_rigList['lipCornerRig']['right'][0].lwrDriverSkin] + self.ml_lwrLipRigJoints}}
+		faceUtils.skin_fromDict(self,d_build)
+	    except Exception,error:raise Exception,"[Skinning  | error: {0}]".format(error)    
+
+	    try:#Attach stuff to surfaces ====================================================================================
+		str_uprLipPlate = self.mi_uprLipPlate.p_nameShort
+		str_lwrLipPlate = self.mi_lwrLipPlate.p_nameShort
+		d_build = {'lipOverRig':{'mode':'pointAttach','attachTo':str_uprLipPlate},		           
+	                   'lipUnderRig':{'mode':'pointAttach','attachTo':str_lwrLipPlate}}
+		faceUtils.attach_fromDict(self,d_build)
+		
+	    except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error) 
+	    #singleTarget
+
+	    try:#>>> Aim some stuff =================================================================================
+		d_build = {'lipUnderRig':{'mode':'singleTarget',
+	                                 'center':{'aimTarget':self.md_rigList['lipLwrHandle']['center'][0],
+	                                           'upLoc':md_lwr_upLocs['center'][0],
+	                                           'v_aim':mi_go._vectorUp,
+	                                           'v_up':mi_go._vectorAim},                                          
+	                                 'left':{'aimTarget':self.md_rigList['smileBaseHandle']['left'][0],
+	                                         'upLoc':self.md_rigList['lipUnderRig']['center'][0],
+	                                         'v_aim':mi_go._vectorUpNegative,
+	                                         'v_up':mi_go._vectorOutNegative},
+	                                  'right':{'aimTarget':self.md_rigList['smileBaseHandle']['right'][0],
+	                                           'upLoc':self.md_rigList['lipUnderRig']['center'][0],
+	                                           'v_aim':mi_go._vectorUpNegative,
+	                                           'v_up':mi_go._vectorOut}},
+	                   'lipOverRig':{'mode':'singleBlend',
+	                                 'center':{'d_target0':{'target':self.md_rigList['noseUnderRig'][0],
+	                                                        'upLoc':md_upr_upLocs['center'][0],
+	                                                        'v_aim':mi_go._vectorUp,
+	                                                        'v_up':mi_go._vectorAim},
+	                                           'd_target1':{'target':self.md_rigList['lipUprHandle']['center'][0],
+	                                                        'upLoc':md_upr_upLocs['center'][0],
+	                                                        'v_aim':mi_go._vectorUpNegative,
+	                                                        'v_up':mi_go._vectorAim}},                                          
+	                                  'left':{'d_target0':{'target':self.md_rigList['nostrilRig']['left'][0],
+	                                                       'upLoc':md_upr_upLocs['left'][0],
+	                                                       'v_aim':mi_go._vectorUp,
+	                                                       'v_up':mi_go._vectorAim},
+	                                          'd_target1':{'target':self.md_rigList['lipUprHandle']['left'][0],
+	                                                       'upLoc':md_upr_upLocs['left'][0],
+	                                                       'v_aim':mi_go._vectorUpNegative,
+	                                                       'v_up':mi_go._vectorAim}},
+	                                  'right':{'d_target0':{'target':self.md_rigList['nostrilRig']['right'][0],
+	                                                       'upLoc':md_upr_upLocs['right'][0],
+	                                                       'v_aim':mi_go._vectorUp,
+	                                                       'v_up':mi_go._vectorAimNegative},
+	                                          'd_target1':{'target':self.md_rigList['lipUprHandle']['right'][0],
+	                                                       'upLoc':md_upr_upLocs['right'][0],
+	                                                       'v_aim':mi_go._vectorUpNegative,
+	                                                       'v_up':mi_go._vectorAimNegative}}}}
+		faceUtils.aim_fromDict(self,d_build)
+		
+	    except Exception,error:raise Exception,"[Aim! | error: {0}]".format(error)   	    
         def _buildJawLines_(self):
             mi_go = self._go#Rig Go instance link
             try:#Pull Local ========================================================================
@@ -3297,6 +3526,7 @@ def build_rig(*args, **kws):
 			    mPlug_upOnResult = cgmMeta.cgmAttr(mi_handle,'res_upOn',attrType='float',value = 0.0, keyable=False, hidden=True)
 			    mPlug_outUseResult = cgmMeta.cgmAttr(mi_handle,'res_upUse',attrType='float',value = 0.0, keyable=False, hidden=True)
 			    mPlug_outFactorResult = cgmMeta.cgmAttr(mi_handle,'res_pushFactor',attrType='float',value = 0.0, keyable=False, hidden=True)
+			    mPlug_outMultResult = cgmMeta.cgmAttr(mi_handle,'res_multOut',attrType='float',value = 0.0, keyable=False, hidden=True)			    
 			    mPlug_outResult = cgmMeta.cgmAttr(mi_handle,'res_out',attrType='float',value = 0.0, keyable=False, hidden=True)
 			    
 			except Exception,error:raise Exception,"[Get Plugs fail! | {0}]".format(error)
@@ -3329,12 +3559,18 @@ def build_rig(*args, **kws):
 			    except Exception,error:raise Exception,"[out use arg! | {0}]".format(error)
 			    
 			    try:
-				arg_outResult = "{0} = {1} * {2}".format(mPlug_attrDriven.p_combinedShortName,
-				                                         mPlug_upOnResult.p_combinedShortName,
-				                                         mPlug_outUseResult.p_combinedShortName)
-				l_nodalArgs.append(arg_outResult)				
+				arg_outMultResult = "{0} = {1} * {2}".format(mPlug_outMultResult.p_combinedShortName,
+				                                             mPlug_upOnResult.p_combinedShortName,
+				                                             mPlug_outUseResult.p_combinedShortName)
+				l_nodalArgs.append(arg_outMultResult)				
 			    except Exception,error:raise Exception,"[out use arg! | {0}]".format(error)
 			    
+			    try:
+				arg_outResult = "{0} = clamp(0,{1},{2})".format(mPlug_attrDriven.p_combinedShortName,
+				                                                mPlug_outFactor.p_combinedShortName,
+				                                                mPlug_outMultResult.p_combinedShortName)
+				l_nodalArgs.append(arg_outResult)				
+			    except Exception,error:raise Exception,"[out use arg! | {0}]".format(error)
 			    
 			    for str_arg in l_nodalArgs:
 				self.log_info("Building: {0}".format(str_arg))

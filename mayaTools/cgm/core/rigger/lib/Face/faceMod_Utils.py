@@ -928,21 +928,44 @@ def connect_fromDict(self,d_build):
 				    try:#Setup the offset to push handle rotation to the rig joint control 
 					for ii,a in enumerate(l_attrsToConnect):
 					    mPlug_attrBridgeDriven = cgmMeta.cgmAttr(mi_offsetGroup,a)
-					    mPlug_attrBridgeDriver = cgmMeta.cgmAttr(mi_handle,l_attrsToConnect[0])   
-					    mPlug_mouthMoveDriver = cgmMeta.cgmAttr(self.md_rigList['mouthMove'][0],'tz')
-					    
+					    mPlug_attrBridgeDriver = cgmMeta.cgmAttr(mi_handle,l_attrsToConnect[0])  
+						    
 					    if str_mode == 'attrOffsetConnect':
 						if a not in l_attrsToMirror:
 						    cgmMeta.cgmAttr(mi_offsetGroup,a).doConnectIn("{0}.{1}".format(mi_handle.mNode,a))
 						else:
 						    arg_attributeBridge = "{0} = -{1}".format(mPlug_attrBridgeDriven.p_combinedShortName,
-					                                                            mPlug_attrBridgeDriver.p_combinedShortName)						
+						                                              mPlug_attrBridgeDriver.p_combinedShortName)						
 						    NodeF.argsToNodes(arg_attributeBridge).doBuild()
 						    
 					    elif str_mode == 'smileHandleOffset':
-						if ii == 0:
-						    mPlug_smileOn = cgmMeta.cgmAttr(mObj,'res_smileOffsetOn',attrType='float',value = 0.0, keyable=False, hidden=True)                                                            
+						mPlug_smileAttrDriver = cgmMeta.cgmAttr(mi_handle,"t{0}".format(mi_go._jointOrientation[2]) )  					    
+						mPlug_mouthMoveDriver = cgmMeta.cgmAttr(self.md_rigList['mouthMove'][0],'tz')						
+						try:
+						    mPlug_smileTarget = cgmMeta.cgmAttr(mObj,'cornerOutTarget',attrType='float',value = 2.0,hidden = False,defaultValue = 2.0)
 						    
+						    mPlug_smileOn = cgmMeta.cgmAttr(mObj,'res_smileOn',attrType='float',value = 0.0, keyable=False, hidden=True)                                                            
+						    mPlug_smileClamped = cgmMeta.cgmAttr(mObj,'res_smileDriverClamp',attrType='float',value = 0.0, keyable=False, hidden=True)							
+						    mPlug_smileValueResult = cgmMeta.cgmAttr(mObj,'res_smileValueOut',attrType='float',value = 0.0, keyable=False, hidden=True)							
+						    
+						    arg_smileOn = "{0} = if {1} >= 0: {2} else 0".format(mPlug_smileOn.p_combinedShortName,
+						                                                         mPlug_smileAttrDriver.p_combinedShortName,
+						                                                         mPlug_smileValueResult.p_combinedShortName)							    
+						    
+						    arg_smileDriverClamp = "{0} = clamp(0,{1},{2})".format(mPlug_smileClamped.p_combinedShortName,
+						                                                           mPlug_smileTarget.p_combinedShortName,
+						                                                           mPlug_smileAttrDriver.p_combinedShortName)
+						    
+						    arg_smileFactor = "{0} = {2} / {1}".format(mPlug_smileValueResult.p_combinedShortName,
+						                                               mPlug_smileTarget.p_combinedShortName,
+						                                               mPlug_smileClamped.p_combinedShortName)						    
+						    #l_nodalArgs.append(arg_smileOn,arg_smileDriverClamp,arg_smileFactor)
+						    for str_arg in arg_smileOn,arg_smileDriverClamp,arg_smileFactor:
+							self.log_info("Building: {0}".format(str_arg))
+							NodeF.argsToNodes(str_arg).doBuild()							    
+						except Exception,error:raise Exception,"[smile driver! | {0}]".format(error)	
+												
+						if ii == 0:
 						    mPlug_negateFactor = cgmMeta.cgmAttr(mObj,'negateCornerOut',attrType='float',value = -.7,hidden = False,defaultValue=-.7)
 						    mPlug_negateResult = cgmMeta.cgmAttr(mObj,'res_negateCornerOut',attrType='float',value = 0.0, keyable=False, hidden=True)
 						    
@@ -951,11 +974,7 @@ def connect_fromDict(self,d_build):
 					                                                        mPlug_attrBridgeDriver.p_combinedShortName)
 						    arg_negateOutOn = "{0} = {1} * {2}".format(mPlug_attrBridgeDriven.p_combinedShortName,
 					                                                       mPlug_smileOn.p_combinedShortName,
-					                                                       mPlug_negateResult.p_combinedShortName)                                                            
-						    
-						    arg_smileOn = "{0} = if {1} >= 0: 1 else 0".format(mPlug_smileOn.p_combinedShortName,
-					                                                               mPlug_attrBridgeDriver.p_combinedShortName,
-					                                                               mPlug_negateResult.p_combinedShortName)		
+					                                                       mPlug_negateResult.p_combinedShortName)   
 						    
 						    for str_arg in arg_negateFactor,arg_negateOutOn,arg_smileOn:
 							self.log_info("Building: {0}".format(str_arg))
@@ -963,32 +982,28 @@ def connect_fromDict(self,d_build):
 						elif ii == 1:
 						    try:#>> Main handle...
 							mPlug_outFactor = cgmMeta.cgmAttr(mObj,'cornerPushMax',attrType='float',value = 1.5,hidden = False,defaultValue = 1.5)
-							mPlug_outTarget = cgmMeta.cgmAttr(mObj,'cornerOutTarget',attrType='float',value = 2.0,hidden = False,defaultValue = 2.0)
 							mPlug_outMouthMoveInfluence = cgmMeta.cgmAttr(mObj,'mouthMoveFactor',attrType='float',value = .5,hidden = False)
 							
 							mPlug_outUseResult = cgmMeta.cgmAttr(mObj,'res_cornerPushUse',attrType='float',value = 0.0, keyable=False, hidden=True)
-							mPlug_outFactorResult = cgmMeta.cgmAttr(mObj,'res_cornerPushFactor',attrType='float',value = 0.0, keyable=False, hidden=True)
 							mPlug_outMouthMoveResult = cgmMeta.cgmAttr(mObj,'res_mouthMoveValue',attrType='float',value = 0.0, keyable=False, hidden=True)
 							mPlug_outResult = cgmMeta.cgmAttr(mObj,'res_out',attrType='float',value = 0.0, keyable=False, hidden=True)
 							mPlug_sumResult = cgmMeta.cgmAttr(mObj,'res_sumFinal',attrType='float',value = 0.0, keyable=False, hidden=True)
-							
-							arg_outFactor = "{0} = {2} / {1}".format(mPlug_outFactorResult.p_combinedShortName,
-							                                         mPlug_outTarget.p_combinedShortName,
-							                                         mPlug_attrBridgeDriver.p_combinedShortName)
+					
 							if mObj.cgmDirection == 'left':
 							    arg_outFactorValue = "{0} = {1} * {2}".format(mPlug_outUseResult.p_combinedShortName,
-								                                          mPlug_outFactorResult.p_combinedShortName,
+								                                          mPlug_smileOn.p_combinedShortName,
 								                                          mPlug_outFactor.p_combinedShortName) 
 							    arg_outMouthMoveValue = "{0} = {1} * {2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
 								                                             mPlug_mouthMoveDriver.p_combinedShortName,
 								                                             mPlug_outMouthMoveInfluence.p_combinedShortName)
 							else:
 							    arg_outFactorValue = "{0} = {1} * -{2}".format(mPlug_outUseResult.p_combinedShortName,
-								                                           mPlug_outFactorResult.p_combinedShortName,
+								                                           mPlug_smileOn.p_combinedShortName,
 								                                           mPlug_outFactor.p_combinedShortName) 
 							    arg_outMouthMoveValue = "{0} = {1} * -{2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
 								                                              mPlug_mouthMoveDriver.p_combinedShortName,
 								                                              mPlug_outMouthMoveInfluence.p_combinedShortName)								
+													
 							
 							#This was the same name as the above
 							arg_sum = "{0} = {1} + {2}".format(mPlug_sumResult.p_combinedShortName,
@@ -1001,10 +1016,29 @@ def connect_fromDict(self,d_build):
 							
 							mPlug_sumResult.doConnectOut(mPlug_attrBridgeDriven.p_combinedShortName)
 							
-							for str_arg in arg_outFactor,arg_outFactorValue,arg_negateOutOn,arg_outMouthMoveValue,arg_sum:
+							for str_arg in arg_outFactorValue,arg_negateOutOn,arg_outMouthMoveValue,arg_sum:
 							    self.log_info("Building: {0}".format(str_arg))
 							    NodeF.argsToNodes(str_arg).doBuild()
 						    except Exception,error:raise Exception,"[smileHandleOffset!] | error: {0}".format(error)
+						    
+						    try:#>> smileHandleRotate...
+							mPlug_rotateCheekVolume = cgmMeta.cgmAttr(mObj,'cheekVolumeMax',attrType='float',value = 20,hidden = False,defaultValue = 20)
+							mPlug_attrRotateDriven = cgmMeta.cgmAttr(mi_offsetGroup,"r{0}".format(mi_go._jointOrientation[1]))   
+							
+							if mObj.cgmDirection == 'left':
+							    arg_rotateOut = "{0} = {1} * -{2}".format(mPlug_attrRotateDriven.p_combinedShortName,
+								                                     mPlug_rotateCheekVolume.p_combinedShortName,
+								                                     mPlug_smileOn.p_combinedShortName)	
+							else:
+							    arg_rotateOut = "{0} = {1} * {2}".format(mPlug_attrRotateDriven.p_combinedShortName,
+							                                              mPlug_rotateCheekVolume.p_combinedShortName,
+							                                              mPlug_smileOn.p_combinedShortName)													      										
+						
+							for str_arg in [arg_rotateOut]:
+							    self.log_info("Building: {0}".format(str_arg))
+							    NodeF.argsToNodes(str_arg).doBuild()							
+						    except Exception,error:raise Exception,"[smileHandleRotate!] | error: {0}".format(error)
+						    
 						    try:#>> uprSmileHandle...
 							mi_uprHandle = self.md_rigList['uprSmileHandle'][str_key][0]
 							try:mi_uprOffsetGroup = mi_go.verify_offsetGroup(mi_uprHandle)#..Create offsetgroup
@@ -1022,7 +1056,6 @@ def connect_fromDict(self,d_build):
 							    self.log_info("Building: {0}".format(str_arg))
 							    NodeF.argsToNodes(str_arg).doBuild()							
 						    except Exception,error:raise Exception,"[uprSmileHandle!] | error: {0}".format(error)
-							
 						else:self.log_warning("[Not sure what to do with {0} | mode: {1}]".format(a,str_mode))
 				    except Exception,error:raise Exception,"[Setup!] | error: {0}".format(error)
 
@@ -1184,17 +1217,27 @@ def create_specialLocsFromDict(self,d_build):
 			    try:
 				int_indexBuffer = d_build[str_tag].get('index') or False
 				if int_indexBuffer is not False:
-				    self.log_info("%s | %s > Utilizing index call"%(str_tag,str_side))					
+				    self.log_info("{0} | {1} > Utilizing index call".format(str_tag,str_side))					
 				    ml_buffer = [ml_buffer[int_indexBuffer]]
 			    except Exception,error:raise Exception,"[Index call!| error: {0}]".format(error)
+			    
 			    int_len = len(ml_buffer)
 			    _d = {}
 			    self.d_buffer = _d
-			    int_len = len(ml_buffer)		
+			    int_len = len(ml_buffer)	
 			    
+			    b_storeCreatedToRigList = d_buffer.get('storeCreatedToRigList') or d_build[str_tag].get('storeCreatedToRigList') or False 
+			    
+			    str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'No idea'			    			    
+			    str_tagPlusMode = "{0}_{1}".format(str_tag,str_mode)
+			    if b_storeCreatedToRigList:
+				if not self.md_rigList.get(str_tagPlusMode):#if we don't have an entry...
+				    self.md_rigList[str_tagPlusMode] = {}#..add it
+				if not self.md_rigList[str_tagPlusMode].get(str_side):#If we don't have the side..
+				    self.md_rigList[str_tagPlusMode][str_side] = []#..add it
+				__l_storeBack = self.md_rigList[str_tagPlusMode][str_side]#..buffer
 			    for idx,mJnt in enumerate(ml_buffer):
 				str_mObj = mJnt.p_nameShort
-				str_mode = d_buffer.get('mode') or d_build[str_tag].get('mode') or 'No idea'
 				f_dist = d_buffer.get('offsetDist') or d_build[str_tag].get('offsetDist') or 100
 
 				try:#Status update ----------------------------------------------------------------------
@@ -1203,20 +1246,35 @@ def create_specialLocsFromDict(self,d_build):
 				    self.progressBar_set(status = (str_message),progress = idx, maxValue = int_len)	
 				except Exception,error:raise Exception,"[Status update] | error: {0}".format(error)	
 				
-				if str_mode == 'handleAimOut':
+				try:#>> Standard stuff
 				    mi_loc = mJnt.doLoc()
 				    mi_loc.parent = mJnt
-				    if str_side == 'left':#...offset
-					setattr(mi_loc,"t{0}".format(mi_go._jointOrientation[0]),f_dist)
-				    else:
-					setattr(mi_loc,"t{0}".format(mi_go._jointOrientation[0]),-f_dist)
-					
+				    
 				    mi_loc.doStore('cgmName',str_mObj)
 				    mi_loc.addAttr('cgmTypeModifier',str_mode,lock=True)
 				    mi_loc.doName()   
 				    
 				    mi_go.connect_toRigGutsVis(mi_loc, vis = True)#...connect to guts vis switches
 				    mJnt.connectChildNode(mi_loc,str_mode,'source')#...store
+				    
+				    if b_storeCreatedToRigList: __l_storeBack.append(mi_loc)
+				    
+				except Exception,error:raise Exception,"[Standard stuff] | error: {0}".format(error)	
+				
+				if str_mode == 'handleAimOut':
+				    if str_side == 'left':#...offset
+					setattr(mi_loc,"t{0}".format(mi_go._jointOrientation[0]),f_dist)
+				    else:
+					setattr(mi_loc,"t{0}".format(mi_go._jointOrientation[0]),-f_dist)
+
+				elif str_mode == 'surfTrackLoc':	
+				    mi_loc.parent = mi_go._i_rigNull
+				    mi_masterGroup = (cgmMeta.cgmObject(mi_loc.doGroup(True),setClass=True))
+				    mi_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
+				    mi_masterGroup.doName()
+				    mi_loc.connectChildNode(mi_masterGroup,'masterGroup','groupChild')
+				    
+				    mi_masterGroup.parent = mi_go._i_rigNull
 				else:
 				    raise NotImplementedError,"Don't know this mode"
 			except Exception,error:raise Exception,"[side: {0} | error: {1}]".format(str_side,error)			     
@@ -1225,7 +1283,86 @@ def create_specialLocsFromDict(self,d_build):
 		except:pass
 		raise Exception,"[tag: {0} | error: {1}]".format(str_tag,error)			    
     except Exception,error: raise Exception,"[create_specialLocsFromDict] | error: {0}".format(error)
+    
+def constrain_fromDict(self,d_build):
+    '''
+    handler for constraining bits
 
+    Modes:
+    lipLineBlend -- special lip line mode
+    singleTarget -- aims at a single target
+    segmentSingleAim -- aim one to the next. last aims at second to last
+    segmentStartAim -- all aim back to first, first aims at second
+
+    Flags
+    'index'(int) -- root dict flag to specify only using a certain index of a list
+    'skip'(string) -- skip one of the side flags - 'left','right','center'
+    '''
+    try:#>> constrain  =======================================================================================
+	mi_go = self._go#Rig Go instance link
+
+	for str_tag in d_build.iterkeys():
+	    ml_buffer = []
+	    md_buffer = get_mdSidesBufferFromTag(self,str_tag)
+	    d = {}
+	    l_skip = d_build[str_tag].get('skip') or []
+	    for str_side in md_buffer.iterkeys():
+		try:
+		    if str_side in l_skip:
+			self.log_info("{0} Skipping aim: {1}".format(str_tag,str_side))
+		    else:
+			try:
+			    if d_build[str_tag].has_key(str_side):#if we have special instructions for a direction key...
+				d_buffer = d_build[str_tag][str_side]
+				self.log_warning("{0} using side dict".format(str_side))
+			    else:
+				d_buffer = d_build[str_tag]	
+			    ml_buffer = md_buffer[str_side]
+
+			    try:
+				int_indexBuffer = d_build[str_tag].get('index') or False
+				if int_indexBuffer is not False:
+				    self.log_info("%s | %s > Utilizing index call"%(str_tag,str_side))					
+				    ml_buffer = [ml_buffer[int_indexBuffer]]
+			    except Exception,error:raise Exception,"[Index call!| error: {0}]".format(error)
+			    int_len = len(ml_buffer)
+			    _d = {}
+			    self.d_buffer = _d
+			    int_last = len(ml_buffer)-1	
+			except Exception,error:raise Exception,"[Side data query! | error: {0}]".format(error)
+
+			for idx,mObj in enumerate(ml_buffer):
+			    try:#Gather data ----------------------------------------------------------------------
+				if d_buffer.get(idx):#if we have special instructions for a index key...
+				    self.log_info("%s | %s > Utilizing index key"%(str_tag,str_key))
+				    d_use = d_buffer[idx]
+				else:
+				    d_use = d_buffer
+				
+				str_mObj = mObj.p_nameShort
+				mi_masterGroup = mObj.masterGroup				
+				str_mode = d_use.get('mode') or d_build[str_tag].get('mode') or 'point'
+				ml_targets = d_use.get('targets') or d_build[str_tag].get('targets') or False
+			    except Exception,error:raise Exception,"[Data gather!] | error: {0}".format(error)
+			    
+			    try:#Status update ----------------------------------------------------------------------
+				str_message = "Constraining : '{0}' {1} > '{2}'".format(str_tag,str_side,str_mObj)
+				self.log_info(str_message)
+				self.progressBar_set(status = (str_message),progress = idx, maxValue = int_len)	
+			    except Exception,error:raise Exception,"[Status update] | error: {0}".format(error)	
+
+
+			    if str_mode == 'point':#This is pretty much just for the lip rig line for now
+				self.log_info("Side: '{0}' | idx: %s | Aiming :'{1}' | to:'{2}' ".format(str_side,idx,str_mObj,[mTarget.mNode for mTarget in ml_targets]))					
+				try:
+				    mc.pointConstraint([mTarget.mNode for mTarget in ml_targets], mi_masterGroup.mNode,
+				                       weight = 1, maintainOffset = True)
+				except Exception,error:raise Exception,"[constraint! | error: {0}]".format(error)						
+			    else:
+				raise NotImplementedError,"Mode not implemented : '{0}'".format(str_mode)
+		except Exception,error: raise Exception,"['{0}' '{1}' fail] | error: {2}".format(str_tag, str_side,error)
+    except Exception,error: raise Exception,"[constrain_fromDict] | error: {0}".format(error)
+    
 def aim_fromDict(self,d_build):
     '''
     handler for aiming stuff to handles,curves,surfaces or whatever
