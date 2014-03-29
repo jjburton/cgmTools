@@ -223,6 +223,8 @@ def attach_fromDict(self,d_build):
 					    try:#Create constrain the handle master Group
 						str_parentConstraint = mc.parentConstraint([mi_0Loc.mNode,mi_1Loc.mNode],mi_handle.masterGroup.mNode,
 					                                                   maintainOffset = True)[0]
+						mi_contraint = cgmMeta.cgmNode(str_parentConstraint) 
+						mi_contraint.interpType = 0							
 					    except Exception,error:raise Exception,"[Parent Constraint! | error: {0}]".format(error)
 
 					    try:
@@ -304,6 +306,8 @@ def attach_fromDict(self,d_build):
 					    try:#Create constrain the handle master Group
 						str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
 					                                                   maintainOffset = True)[0]
+						mi_contraint = cgmMeta.cgmNode(str_parentConstraint) 
+						mi_contraint.interpType = 0						
 					    except Exception,error:raise Exception,"!Parent Constraint! | %s"%(error)
 
 					    try:
@@ -366,7 +370,7 @@ def attach_fromDict(self,d_build):
 						                                                createUpLoc = False,	
 						                                                attachControlLoc = False,
 							                                        f_offset = f_offsetOfUpLoc,							                                        
-						                                                parentToFollowGroup = False,
+						                                                parentToFollowGroup = True,
 						                                                orientation = mi_go._jointOrientation)							    
 							self.md_attachReturns[mi_loc] = d_return								
 						    except Exception,error:raise Exception,"[Attach! | error: {0}]".format(error)
@@ -394,6 +398,8 @@ def attach_fromDict(self,d_build):
 					    try:#Create constrain the handle master Group
 						str_parentConstraint = mc.parentConstraint([mi_targ0Loc.mNode,mi_targ1Loc.mNode],mi_handle.masterGroup.mNode,
 					                                                   maintainOffset = True)[0]
+						mi_contraint = cgmMeta.cgmNode(str_parentConstraint) 
+						mi_contraint.interpType = 0							
 					    except Exception,error:raise Exception,"[Parent Constraint! | error: {0}]".format(error)
 
 					    try:
@@ -487,6 +493,8 @@ def attach_fromDict(self,d_build):
 					    try:#Create constrain the handle master Group
 						str_parentConstraint = mc.parentConstraint([mi_stableLoc.mNode,mi_defLoc.mNode],mi_handle.masterGroup.mNode,
 					                                                   maintainOffset = True)[0]
+						mi_contraint = cgmMeta.cgmNode(str_parentConstraint) 
+						mi_contraint.interpType = 0							
 					    except Exception,error:raise Exception,"[Parent Constraint! | error: {0}]".format(error)
 
 					    try:
@@ -910,7 +918,7 @@ def connect_fromDict(self,d_build):
 
 				except Exception,error:raise Exception,"[0}!| error: {1}".format(str_mode,error)
 
-			    elif str_mode in ['attrOffsetConnect','smileHandleOffset']:
+			    elif str_mode in ['attrOffsetConnect','attrOffsetFactorConnect','smileHandleOffset']:
 				try:
 				    try:#See if we have a handle return
 					if ml_driver: ml_handles = cgmValid.listArg(ml_driver)
@@ -937,7 +945,21 @@ def connect_fromDict(self,d_build):
 						    arg_attributeBridge = "{0} = -{1}".format(mPlug_attrBridgeDriven.p_combinedShortName,
 						                                              mPlug_attrBridgeDriver.p_combinedShortName)						
 						    NodeF.argsToNodes(arg_attributeBridge).doBuild()
-						    
+					    elif str_mode == 'attrOffsetFactorConnect':
+						str_attr = d_use.get('attrName') or d_build[str_tag].get('attrName') or 'push'
+						mPlug_factor = cgmMeta.cgmAttr(mObj,str_attr, attrType = 'float', value = .75, hidden = False, defaultValue = .75)
+						l_args = []
+						
+						if a not in l_attrsToMirror:
+						    arg_factor = "{0} = {1} * {2}".format(mPlug_attrBridgeDriven.p_combinedShortName,
+						                                          mPlug_factor.p_combinedShortName,
+						                                          mPlug_attrBridgeDriver.p_combinedShortName)
+						else:
+						    arg_factor = "{0} = {1} * -{2}".format(mPlug_attrBridgeDriven.p_combinedShortName,
+						                                          mPlug_factor.p_combinedShortName,
+						                                          mPlug_attrBridgeDriver.p_combinedShortName)					
+						NodeF.argsToNodes(arg_factor).doBuild()						
+
 					    elif str_mode == 'smileHandleOffset':
 						mPlug_smileAttrDriver = cgmMeta.cgmAttr(mi_handle,"t{0}".format(mi_go._jointOrientation[2]) )  					    
 						mPlug_mouthMoveDriver = cgmMeta.cgmAttr(self.md_rigList['mouthMove'][0],'tz')						
@@ -966,7 +988,7 @@ def connect_fromDict(self,d_build):
 						except Exception,error:raise Exception,"[smile driver! | {0}]".format(error)	
 												
 						if ii == 0:
-						    mPlug_negateFactor = cgmMeta.cgmAttr(mObj,'negateCornerOut',attrType='float',value = -.7,hidden = False,defaultValue=-.7)
+						    mPlug_negateFactor = cgmMeta.cgmAttr(mObj,'negateCornerOut',attrType='float',value = -.2,hidden = False,defaultValue=-.2)
 						    mPlug_negateResult = cgmMeta.cgmAttr(mObj,'res_negateCornerOut',attrType='float',value = 0.0, keyable=False, hidden=True)
 						    
 						    arg_negateFactor = "{0} = {1} * {2}".format(mPlug_negateResult.p_combinedShortName,
@@ -982,47 +1004,47 @@ def connect_fromDict(self,d_build):
 						elif ii == 1:
 						    try:#>> Main handle...
 							mPlug_outFactor = cgmMeta.cgmAttr(mObj,'cornerPushMax',attrType='float',value = 1.5,hidden = False,defaultValue = 1.5)
-							mPlug_outMouthMoveInfluence = cgmMeta.cgmAttr(mObj,'mouthMoveFactor',attrType='float',value = .5,hidden = False)
+							#mPlug_outMouthMoveInfluence = cgmMeta.cgmAttr(mObj,'mouthMoveFactor',attrType='float',value = .5,hidden = False)
 							
 							mPlug_outUseResult = cgmMeta.cgmAttr(mObj,'res_cornerPushUse',attrType='float',value = 0.0, keyable=False, hidden=True)
-							mPlug_outMouthMoveResult = cgmMeta.cgmAttr(mObj,'res_mouthMoveValue',attrType='float',value = 0.0, keyable=False, hidden=True)
+							#mPlug_outMouthMoveResult = cgmMeta.cgmAttr(mObj,'res_mouthMoveValue',attrType='float',value = 0.0, keyable=False, hidden=True)
 							mPlug_outResult = cgmMeta.cgmAttr(mObj,'res_out',attrType='float',value = 0.0, keyable=False, hidden=True)
-							mPlug_sumResult = cgmMeta.cgmAttr(mObj,'res_sumFinal',attrType='float',value = 0.0, keyable=False, hidden=True)
+							#mPlug_sumResult = cgmMeta.cgmAttr(mObj,'res_sumFinal',attrType='float',value = 0.0, keyable=False, hidden=True)
 					
 							if mObj.cgmDirection == 'left':
 							    arg_outFactorValue = "{0} = {1} * {2}".format(mPlug_outUseResult.p_combinedShortName,
 								                                          mPlug_smileOn.p_combinedShortName,
 								                                          mPlug_outFactor.p_combinedShortName) 
-							    arg_outMouthMoveValue = "{0} = {1} * {2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
-								                                             mPlug_mouthMoveDriver.p_combinedShortName,
-								                                             mPlug_outMouthMoveInfluence.p_combinedShortName)
+							    #arg_outMouthMoveValue = "{0} = {1} * {2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
+								#                                             mPlug_mouthMoveDriver.p_combinedShortName,
+								#                                             mPlug_outMouthMoveInfluence.p_combinedShortName)
 							else:
 							    arg_outFactorValue = "{0} = {1} * -{2}".format(mPlug_outUseResult.p_combinedShortName,
 								                                           mPlug_smileOn.p_combinedShortName,
 								                                           mPlug_outFactor.p_combinedShortName) 
-							    arg_outMouthMoveValue = "{0} = {1} * -{2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
-								                                              mPlug_mouthMoveDriver.p_combinedShortName,
-								                                              mPlug_outMouthMoveInfluence.p_combinedShortName)								
+							    #arg_outMouthMoveValue = "{0} = {1} * -{2}".format(mPlug_outMouthMoveResult.p_combinedShortName,
+								#                                              mPlug_mouthMoveDriver.p_combinedShortName,
+								#                                              mPlug_outMouthMoveInfluence.p_combinedShortName)								
 													
 							
 							#This was the same name as the above
-							arg_sum = "{0} = {1} + {2}".format(mPlug_sumResult.p_combinedShortName,
-							                                   mPlug_outMouthMoveResult.p_combinedShortName,
-							                                   mPlug_outResult.p_combinedShortName)
+							#arg_sum = "{0} = {1} + {2}".format(mPlug_sumResult.p_combinedShortName,
+							#                                   mPlug_outMouthMoveResult.p_combinedShortName,
+							#                                   mPlug_outResult.p_combinedShortName)
 							
 							arg_negateOutOn = "{0} = {1} * {2}".format(mPlug_outResult.p_combinedShortName,
 							                                           mPlug_smileOn.p_combinedShortName,
 							                                           mPlug_outUseResult.p_combinedShortName)
 							
-							mPlug_sumResult.doConnectOut(mPlug_attrBridgeDriven.p_combinedShortName)
+							mPlug_outResult.doConnectOut(mPlug_attrBridgeDriven.p_combinedShortName)
 							
-							for str_arg in arg_outFactorValue,arg_negateOutOn,arg_outMouthMoveValue,arg_sum:
+							for str_arg in arg_outFactorValue,arg_negateOutOn:
 							    self.log_info("Building: {0}".format(str_arg))
 							    NodeF.argsToNodes(str_arg).doBuild()
 						    except Exception,error:raise Exception,"[smileHandleOffset!] | error: {0}".format(error)
 						    
 						    try:#>> smileHandleRotate...
-							mPlug_rotateCheekVolume = cgmMeta.cgmAttr(mObj,'cheekVolumeMax',attrType='float',value = 20,hidden = False,defaultValue = 20)
+							mPlug_rotateCheekVolume = cgmMeta.cgmAttr(mObj,'cheekVolumeMax',attrType='float',value = 5,hidden = False,defaultValue = 5)
 							mPlug_attrRotateDriven = cgmMeta.cgmAttr(mi_offsetGroup,"r{0}".format(mi_go._jointOrientation[1]))   
 							
 							if mObj.cgmDirection == 'left':
@@ -1050,7 +1072,7 @@ def connect_fromDict(self,d_build):
 							mPlug_uprOutResult = cgmMeta.cgmAttr(mi_uprHandle,'res_out',attrType='float',value = 0.0, keyable=False, hidden=True)
 							
 							arg_uprOut = "{0} = {1} * {2}".format(mPlug_attrBridgeUprDriven.p_combinedShortName,
-							                                      mPlug_sumResult.p_combinedShortName,
+							                                      mPlug_outResult.p_combinedShortName,
 							                                      mPlug_uprPushFactor.p_combinedShortName)							
 							for str_arg in [arg_uprOut]:
 							    self.log_info("Building: {0}".format(str_arg))
@@ -1649,8 +1671,8 @@ def aim_fromDict(self,d_build):
 
 				    mi_go.connect_toRigGutsVis([mi_locIn,mi_locOut],vis = 1, doShapes = True)#connect to guts vis switches
 
-				    mi_locIn.parent = mi_offsetTarget.parent
-				    mi_locOut.parent = mi_offsetTarget.parent
+				    mi_locIn.parent = mi_aimOffsetGroup.parent
+				    mi_locOut.parent = mi_aimOffsetGroup.parent
 				except Exception,error:raise Exception,"[Aim loc creation!] | error: {0}".format(error)
 				try:
 				    mc.aimConstraint(d_target0['target'].mNode, mi_locIn.mNode,
