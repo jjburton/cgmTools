@@ -56,7 +56,11 @@ def rayCasterSurfaceFuncCls(*args, **kws):
             rayDir = self.d_kws['rayDir']
             maxDistance = self.d_kws['maxDistance']
 
-            self.l_funcSteps = [{'step':'_setup_','call':self._setup_}]
+            self.l_funcSteps = [{'step':'findSurfaceIntersections','call':self.findSurfaceIntersections},
+								{'step':'findSurfaceIntersections','call':self.findSurfaceIntersections},
+								{'step':'findSurfaceIntersectionFromObjectAxis','call':self.findSurfaceIntersectionFromObjectAxis},
+								{'step':'findSurfaceMidPointFromObject','call':self.findSurfaceMidPointFromObject},
+								{'step':'findFurthestPointInRangeFromObject','call':self.findFurthestPointInRangeFromObject}]
             return None
         def _setup_(self):pass
         #Functions
@@ -70,7 +74,6 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                 if len(mc.ls(surface))>1:
                     raise StandardError,"findSurfaceIntersection>>> More than one surface named: %s"%surface
                 
-                self.surfaceShape = mc.listRelatives(surface, s=1)
                 self.centerPoint = mc.xform(surface, q=1, ws=1, t=1)
                 
                 #checking the type 
@@ -84,7 +87,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                     self.rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
                     self.hitPoint = om.MPoint()
                     self.selectionList = om.MSelectionList()
-                    self.selectionList.add(self.surfaceShape)
+                    self.selectionList.add(surface)
                     self.surfacePath = om.MDagPath()
                     self.selectionList.getDagPath(0, self.surfacePath)
                     self.surfaceFn = om.MFnNurbsSurface(self.surfacePath)
@@ -166,7 +169,6 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                 if len(mc.ls(surface))>1:
                     raise StandardError,"findSurfaceIntersections>>> More than one surface named: %s"%surface
 
-                self.surfaceShape = mc.listRelatives(surface, s=1)
                 self.centerPoint = mc.xform(surface, q=1, ws=1, t=1)
 
                 #checking the type 
@@ -180,7 +182,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                     self.rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
                     self.hitPoints = om.MPoint()
                     self.selectionList = om.MSelectionList()
-                    self.selectionList.add(surfaceShape)
+                    self.selectionList.add(surface)
                     self.surfacePath = om.MDagPath()
                     self.selectionList.getDagPath(0, self.surfacePath)
                     self.surfaceFn = om.MFnNurbsSurface(self.surfacePath)
