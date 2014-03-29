@@ -1700,7 +1700,21 @@ class cgmObject(cgmNode):
 		return validateObjListArg(buffer, mType = cgmNode)
 	    return buffer
 	except Exception,error:raise Exception,"[%s.getConstraintsFrom(asMeta = %s]{%s}"%(self.p_nameShort, asMeta,error)
-	    
+    
+    def getConstrainingObjects(self,asMeta = False):
+	try:
+	    l_constainingObjects = []	    
+	    ml_buffer = self.getConstraintsTo(True)
+	    if ml_buffer:
+		for mConstraint in ml_buffer:
+		    targets = constraints.returnConstraintTargets(mConstraint.mNode)
+		    if targets:l_constainingObjects.extend(targets)
+		    
+	    if asMeta and buffer:
+		return validateObjListArg(l_constainingObjects, mType = cgmObject)
+	    return l_constainingObjects
+	except Exception,error:raise Exception,"[%s.getConstrainingObjects(asMeta = %s]{%s}"%(self.p_nameShort, asMeta,error)
+	     
     def isConstrainedBy(self,obj):
 	l_constraints = self.getConstraintsTo()
 	if not l_constraints:
@@ -3887,8 +3901,13 @@ class cgmAttr(object):
 	    except StandardError,error:raise StandardError,"%s failed to validate: %s"%(source,error)
 	    mPlug_source = d_source.get('mi_plug')
 	    if mPlug_source:
-		try:attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
-		except StandardError,error:raise StandardError,"connection fail: %s"%(error)		
+		if self.getChildren() and not mPlug_source.getChildren():
+		    for cInstance in self.getChildren(asMeta=True):
+			log.info("Children detected. Connecting to child: {0}".format(cInstance.p_combinedName))
+			attributes.doConnectAttr(mPlug_source.p_combinedName,cInstance.p_combinedName)
+		else:
+		    try:attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
+		    except StandardError,error:raise StandardError,"connection fail: %s"%(error)		
 		#log.debug(">>> %s.doConnectIn <<--<<  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            						
 	    else:
 		log.warning("Source failed to validate: %s"%(source) + "="*75)            			    
