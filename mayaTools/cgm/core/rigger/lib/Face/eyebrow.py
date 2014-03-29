@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 eyebrow rig builder
 ================================================================
 """
-__version__ = 'faceAlpha2.03102014'
+__version__ = 'faceAlpha2.03292014'
 
 # From Python =============================================================
 import copy
@@ -1891,6 +1891,7 @@ def build_rig(*args, **kws):
 	
 	def _lockNHide_(self):
 	    mi_go = self._go#Rig Go instance link
+	    mPlug_multpHeadScale = mi_go.mPlug_multpHeadScale
 	    
 	    #Lock and hide all ------------------------------------------------------------------------
 	    for mHandle in self.ml_handlesJoints:
@@ -1916,6 +1917,13 @@ def build_rig(*args, **kws):
 		    try:d_buffer['follicleAttach'].parent = mi_go._i_rigNull
 		    except:pass	
 		    try:
+			if d_buffer.get('follicleFollow'):
+			    cgmMeta.cgmAttr(d_buffer.get('follicleFollow'),'scale').doConnectIn(mPlug_multpHeadScale.p_combinedShortName)
+			if d_buffer.get('follicleAttach'):
+			    cgmMeta.cgmAttr(d_buffer.get('follicleAttach'),'scale').doConnectIn(mPlug_multpHeadScale.p_combinedShortName)
+		    except Exception,error:
+			self.log_error("[follicle scale connect. | error: {0}]".format(error))		    
+		    try:
 			if d_buffer.get('controlLoc'):
 			    mi_go.connect_toRigGutsVis(d_buffer['controlLoc'],vis = True)#connect to guts vis switches
 			    if not d_buffer['controlLoc'].parent:
@@ -1924,8 +1932,8 @@ def build_rig(*args, **kws):
 	    except Exception,error:raise StandardError,"Parent follicles. | error : %s"%(error)
 	    
 	    try:#collect stuff ------------------------------------------------------------------------
-		for t in 'locator','follicle':
-		    mi_go.collectObjectTypeInRigNull(t)
+		for str_type in 'locator','follicle','nurbsCurve','nurbsSurface':
+		    mi_go.collectObjectTypeInRigNull(str_type)
 	    except Exception,error:raise StandardError,"Collect. | error : {0}".format(error)
 	    
     return fncWrap(*args, **kws).go()
