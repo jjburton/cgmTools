@@ -61,3 +61,8 @@ crvUtils.returnSplitCurveList(crv,5,minU = .3, markPoints=True,rebuildForSplit=T
 crvUtils.returnSplitCurveList(crv,1,markPoints=True,rebuildForSplit=True)
 crvUtils.returnSplitCurveList(crv,5,markPoints=True,rebuildForSplit=True,insetSplitFactor=.01)
 crvUtils.returnSplitCurveList(crv,8,markPoints=True,rebuildForSplit=True,startSplitFactor=.3)
+
+#>>> percentPointOnCurve
+reload(crvUtils)
+crv = 'smileLeft_2_rigHelper'
+crvUtils.getPercentPointOnCurve(crv,.5)

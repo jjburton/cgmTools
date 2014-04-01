@@ -102,6 +102,7 @@ cgm.core._reload()
 from cgm.core import cgm_PuppetMeta as cgmPM
 a = cgmPM.cgmEyeballBlock(direction = 'left')
 a = r9Meta.MetaClass('l_eye_rigHelper')
+a = r9Meta.MetaClass('r_eye_rigHelper')
 a.mNode
 a.pupilHelper
 a.__mirrorBuild__()
@@ -117,11 +118,11 @@ b = cgmPM.cgmEyeball(name = 'eye',direction = 'left')
 cgmPM.cgmModule(name = 'eye',direction = 'left')
 
 m1 = cgmPM.cgmModule('l_eye_part')
+
 m1.doSetParentModule('neck_part')
 p = cgmMeta.cgmNode('Morphy_puppetNetwork')
 p.mClass
 p.gatherModules()
-
 m1 = cgmPM.cgmModule('l_eyelid_part')
 m1.getNameAlias()
 m1.get_allModuleChildren()
