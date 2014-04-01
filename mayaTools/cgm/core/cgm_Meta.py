@@ -4601,7 +4601,7 @@ def validateObjArg(*args,**kws):
 			self.mi_arg = self.mi_autoInstance
 		    elif self.mi_autoInstance.getAttr('mClass'):
 			self.log_warning("This object is already mClass tagged. Cannot change via this call.")		    									
-			return False
+			return self.mi_autoInstance
 		    else:
 			try:self.mi_arg = mType(self.mi_autoInstance.mNode)
 			except Exception,error:
