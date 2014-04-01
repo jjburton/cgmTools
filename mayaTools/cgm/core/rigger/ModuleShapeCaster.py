@@ -2397,12 +2397,14 @@ def shapeCast_mouthNose(*args,**kws):
 	    #>> Jaw --------------------------------------------------------------------------	    
 	    d_['jaw'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                      cgmName = 'jaw')
+	    '''
 	    d_['jawAnchorLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                                cgmDirection = 'left',
 	                                                                cgmName = 'jawAnchor')	
 	    d_['jawAnchorRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                                cgmDirection = 'right',
-	                                                                cgmName = 'jawAnchor')	 	    
+	                                                                cgmName = 'jawAnchor')	
+									'''
 	    d_['chin'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                       cgmName = 'chin')	    
 	    d_['tongueTip'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
@@ -2615,7 +2617,8 @@ def shapeCast_mouthNose(*args,**kws):
 	               {'key':'smileRight','isSub':True},{'key':'smileBaseRight','isSub':True},{'key':'sneerRight'},{'key':'uprSmileRight','isSub':True},	
 	               {'key':'lipUprCenter','multi':.5},{'key':'lipUprLeft','isSub':True},{'key':'lipUprRight','isSub':True},
 	               {'key':'lipLwrCenter','multi':.5},{'key':'lipLwrLeft','isSub':True},{'key':'lipLwrRight','isSub':True},
-	               {'key':'lipCornerLeft'},{'key':'lipCornerRight'},{'key':'chin'},{'key':'jawAnchorLeft'},{'key':'jawAnchorRight'},
+	               {'key':'lipCornerLeft'},{'key':'lipCornerRight'},{'key':'chin'},
+	               #{'key':'jawAnchorLeft'},{'key':'jawAnchorRight'},
 	               {'key':'cheekAnchorLeft'},{'key':'cheekAnchorRight'},
 	               {'key':'uprCheekOuterLeft'},{'key':'uprCheekInnerLeft','isSub':True},{'key':'uprCheekInnerRight','isSub':True},{'key':'uprCheekOuterRight'},	               
 	               {'key':'noseTop','isSub':True},{'key':'noseTip','isSub':True},{'key':'noseUnder','isSub':True},{'key':'nostrilLeft','isSub':True},{'key':'nostrilRight','isSub':True}]
