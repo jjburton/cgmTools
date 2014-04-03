@@ -7,6 +7,7 @@ import maya.OpenMaya as om
 from zooPyMaya import apiExtensions
 from cgm.core import cgm_General as cgmGeneral
 from cgm.lib import(locators,dictionary,cgmMath,lists,geo,distance,search)
+reload(cgmMeta)
 import os
 import pdb
 import logging
@@ -58,11 +59,15 @@ def rayCasterSurfaceFuncCls(*args, **kws):
 
             self.l_funcSteps = [{'step':'findSurfaceIntersections','call':self.findSurfaceIntersections},
 								{'step':'findSurfaceIntersections','call':self.findSurfaceIntersections},
+<<<<<<< HEAD
 								{'step':'findSurfaceIntersectionFromObjectAxis','call':self.findSurfaceIntersectionFromObjectAxis},
+=======
+				                {'step':'findSurfaceIntersectionFromObjectAxis','call':self.findSurfaceIntersectionFromObjectAxis},
+>>>>>>> a74dcc0b1f3d32ff9449b519e5b057593e67ecca
 								{'step':'findSurfaceMidPointFromObject','call':self.findSurfaceMidPointFromObject},
 								{'step':'findFurthestPointInRangeFromObject','call':self.findFurthestPointInRangeFromObject}]
             return None
-        def _setup_(self):pass
+
         #Functions
         def findSurfaceIntersection(self):
             '''
