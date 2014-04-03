@@ -1,21 +1,21 @@
 '''
-------------------------------------------
-Red9 Studio Pack: Maya Pipeline Solutions
-Author: Mark Jackson
-email: rednineinfo@gmail.com
+..
+    Red9 Studio Pack: Maya Pipeline Solutions
+    Author: Mark Jackson
+    email: rednineinfo@gmail.com
+    
+    Red9 blog : http://red9-consultancy.blogspot.co.uk/
+    MarkJ blog: http://markj3d.blogspot.co.uk
+    
 
-Red9 blog : http://red9-consultancy.blogspot.co.uk/
-MarkJ blog: http://markj3d.blogspot.co.uk
-------------------------------------------
-
-This is the General library of utils used throughout the modules
-These are abstract general functions
-
-NOTHING IN THIS MODULE SHOULD REQUIRE RED9
-================================================================
+    This is the General library of utils used throughout the modules
+    These are abstract general functions
+    
+    NOTHING IN THIS MODULE SHOULD REQUIRE RED9
 
 '''
 from __future__ import with_statement  # required only for Maya2009/8
+from functools import wraps
 import maya.cmds as cmds
 import maya.mel as mel
 import os
@@ -26,11 +26,6 @@ import sys
 #Only valid Red9 import
 import Red9.startup.setup as r9Setup
 
-#import ctypes
-
-# import wave
-# import contextlib
-# from ..packages.pydub.pydub import audio_segment
 
 import logging
 logging.basicConfig()
@@ -60,7 +55,12 @@ def forceToString(text):
     else:
         return text
     
-
+def formatPath(path):
+    '''
+    take a path and format it to forward slashes with catches for the exceptions
+    '''
+    return os.path.normpath(path).replace('\\','/').replace('\t','/t').replace('\n','/n').replace('\a', '/a')
+    
 def itersubclasses(cls, _seen=None):
     """
     itersubclasses(cls)
@@ -167,7 +167,7 @@ def Timer(func):
     '''
     Simple timer decorator
     '''
-
+    @wraps(func)
     def wrapper(*args, **kws):
         t1 = time.time()
         res=func(*args, **kws)
@@ -200,7 +200,8 @@ def runProfile(func):
     '''
     import cProfile
     from time import gmtime, strftime
-
+    
+    @wraps(func)
     def wrapper(*args, **kwargs):
         currentTime = strftime("%d-%m-%H.%M.%S", gmtime())
         dumpFileName = 'c:/%s(%s).profile' % (func.__name__, currentTime)
@@ -256,20 +257,22 @@ class ProgressBarContext(object):
     '''
     Context manager to make it easier to wrap progressBars
     
-    example usage:
-        step=5
-        progressBar=r9General.ProgressBarContext(1000)
-        progressBar.setStep(step)
-        count=0
-        with progressBar:
-            for i in range(1:1000):
-            
-                if progressBar.isCanceled():
-                    print 'process cancelled'
-                    return
-
-                progressBar.setProgress(count)
-                count+=step
+    >>> #Example of using this in code
+    >>> 
+    >>> step=5
+    >>> progressBar=r9General.ProgressBarContext(1000)
+    >>> progressBar.setStep(step)
+    >>> count=0
+    >>> 
+    >>> #now do your code but increment and check the progress state
+    >>> with progressBar:
+    >>>     for i in range(1:1000):
+    >>>        if progressBar.isCanceled():
+    >>>             print 'process cancelled'
+    >>>             return
+    >>>         progressBar.setProgress(count)
+    >>>         count+=step
+    
     '''
     def __init__(self, maxValue=100, interruptable=True):
         if maxValue <= 0:
@@ -355,10 +358,25 @@ class HIKContext(object):
 class SceneRestoreContext(object):
     """
     Simple Context Manager for restoring Scene Global settings
+    
     Basically we store the state of all the modelPanels and timeLine
-    setups. Think of it like this, you export a scene, file -new, then reimport it
-    but you've now lost all the UI sceneSetup. This is capable of returning the UI
-    to the previous state. Maybe this could be a tool in it's own write?
+    setups. Think of it like this, you export a scene, file -new, then re-import it
+    but you've now lost all the scenes UI and setups. This is capable of returning 
+    the UI to the previous state. Maybe this could be a tool in it's own write?
+    
+    Things stored:
+        * All UI viewport states, display and settings
+        * currentTime, timeRanges, timeUnits, sceneUnits, upAxis
+        * Main cameras and transforms for the 4 main modelPanels
+        * active sound and sound displays
+        
+    >>> from Red9.core.Red9_General import SceneRestoreContext as sceneStore
+    >>> with sceneStore:    
+    >>>     #do something to modify the scene setup
+    >>>     cmds.currentTime(100)
+    >>> 
+    >>> #out of the context manager the scene will be restored as it was 
+    >>> #before the code entered the context. (with sceneStore:)
     """
     def __init__(self):
         self.gPlayBackSlider=mel.eval("string $temp=$gPlayBackSlider")
@@ -478,9 +496,9 @@ def thumbnailFromPlayBlast(filepath, width, height):
     '''
     Generate a ThumbNail of the screen
     Note: 'cf' flag is broken in 2012
-    @param filepath: path to Thumbnail
-    @param width: width of capture
-    @param height: height of capture
+    :param filepath: path to Thumbnail
+    :param width: width of capture
+    :param height: height of capture
     '''
     filepath=os.path.splitext(filepath)[0]
     filename=os.path.basename(filepath)
@@ -647,7 +665,7 @@ class Clipboard:
 
 def os_OpenFileDirectory(path):
     '''
-    open the given folder in the default os browser
+    open the given folder in the default OS browser
     '''
     import subprocess
     path=os.path.abspath(path)
@@ -663,7 +681,7 @@ def os_OpenFileDirectory(path):
     
 def os_OpenFile(filePath):
     '''
-    open the given file in the default program
+    open the given file in the default program for this OS
     '''
     import subprocess
     #log.debug('filePath : %s' % filePath)

@@ -1,15 +1,11 @@
 '''
-------------------------------------------
-Red9 Studio Pack: Maya Pipeline Solutions
-Author: Mark Jackson
-email: rednineinfo@gmail.com
-
-Red9 blog : http://red9-consultancy.blogspot.co.uk/
-MarkJ blog: http://markj3d.blogspot.co.uk
-------------------------------------------
-
-
-================================================================
+..
+    Red9 Studio Pack: Maya Pipeline Solutions
+    Author: Mark Jackson
+    email: rednineinfo@gmail.com
+    
+    Red9 blog : http://red9-consultancy.blogspot.co.uk/
+    MarkJ blog: http://markj3d.blogspot.co.uk
 
 '''
 
@@ -149,6 +145,7 @@ class SceneReviewerUI(object):
         cmds.scrollField('history',e=True,h=(height/2)-120)
         cmds.scrollField('history',e=True,w=width)
         cmds.rowColumnLayout('SceneNodeActivatorRC', e=True, columnWidth=[(1,(width/2)-1), (2,(width/2)-1)])
+    
     
 class SceneReviewer(object):
     

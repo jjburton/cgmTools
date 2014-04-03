@@ -1,14 +1,15 @@
 '''
-Red9 Studio Pack: Maya Pipeline Solutions
-Author: Mark Jackson
-email: rednineinfo@gmail.com
-
-Red9 blog : http://red9-consultancy.blogspot.co.uk/
-MarkJ blog: http://markj3d.blogspot.co.uk
-
-This is the Core library of utils used throughout the modules
-
-Setup : Follow the Install instructions in the Modules package
+..
+    Red9 Studio Pack: Maya Pipeline Solutions
+    Author: Mark Jackson
+    email: rednineinfo@gmail.com
+    
+    Red9 blog : http://red9-consultancy.blogspot.co.uk/
+    MarkJ blog: http://markj3d.blogspot.co.uk
+    
+    This is the Core library of utils used throughout the modules
+    
+    Setup : Follow the Install instructions in the Modules package
 '''
 
 from __future__ import with_statement  # required only for Maya2009/8
@@ -18,6 +19,7 @@ import maya.OpenMaya as OpenMaya
 from functools import partial
 import re
 import random
+import math
 
 import Red9.packages.configobj as configobj
 import Red9.startup.setup as r9Setup
@@ -48,9 +50,10 @@ def nodeNameStrip(node):
 def prioritizeNodeList(nList, priorityList, regex=True, prioritysOnly=False):
     '''
     Simple function to force the order of a given nList such that nodes
-    in the given priority list are moved to the front of the list
-    @param nList: main input list
-    @param priorityList: list which is used to prioritize/order the main nList
+    in the given priority list are moved to the front of the list.
+    
+    :param nList: main input list
+    :param priorityList: list which is used to prioritize/order the main nList
     '''
     stripped = [nodeNameStrip(node) for node in nList]  # stripped back to nodeName
     reordered = []
@@ -78,13 +81,17 @@ def prioritizeNodeList(nList, priorityList, regex=True, prioritysOnly=False):
      
 def sortNumerically(data):
     """
-    Sort the given data in the way that humans expect. So:
-    data=['Joint_1','Joint_2','Joint_9','Joint_10','Joint_11','Joint_12']
-    data.sort()
-    gives us: ['Joint_1', 'Joint_10', 'Joint_11', 'Joint_12', 'Joint_2', 'Joint_9']
+    Sort the given data in the way that humans expect.
     
-    sortNumerically(data)
-    gives us: ['Joint_1', 'Joint_2', 'Joint_9', 'Joint_10', 'Joint_11', 'Joint_12']
+    >>> data=['Joint_1','Joint_2','Joint_9','Joint_10','Joint_11','Joint_12']
+    >>>
+    >>> #standard gives us:
+    >>> data.sort()
+    >>> ['Joint_1', 'Joint_10', 'Joint_11', 'Joint_12', 'Joint_2', 'Joint_9']
+    >>> 
+    >>> #sortNumerically gives us:
+    >>> sortNumerically(data)
+    >>> ['Joint_1', 'Joint_2', 'Joint_9', 'Joint_10', 'Joint_11', 'Joint_12']
     """
     convert = lambda text: int(text) if text.isdigit() else text
     alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
@@ -116,61 +123,68 @@ def decodeString(val):
         #log.debug('ValType : %s > left undecoded' % type(val))
         return val
     if val=='False' or val=='True' or val=='None':
-        log.debug('Decoded as type(bool)')
+        #log.debug('Decoded as type(bool)')
         return eval(val)
     elif val=='[]':
-        log.debug('Decoded as type(empty list)')
+        #log.debug('Decoded as type(empty list)')
         return eval(val)
     elif val=='()':
-        log.debug('Decoded as type(empty tuple)')
+        #log.debug('Decoded as type(empty tuple)')
         return eval(val)
     elif val=='{}':
-        log.debug('Decoded as type(empty dict)')
+        #log.debug('Decoded as type(empty dict)')
         return eval(val)
     elif (val[0]=='[' and val[-1] ==']'):
-        log.debug('Decoded as type(list)')
+        #log.debug('Decoded as type(list)')
         return eval(val)
     elif (val[0] =='(' and val[-1]==')'):
-        log.debug('Decoded as type(tuple)')
+        #log.debug('Decoded as type(tuple)')
         return eval(val)
     elif (val[0] =='{' and val[-1]=='}'):
-        log.debug('Decoded as type(dict)')
+        #log.debug('Decoded as type(dict)')
         return eval(val)
     try:
         encoded=int(val)
-        log.debug('Decoded as type(int)')
+        #log.debug('Decoded as type(int)')
         return encoded
     except:
         pass
     try:
         encoded=float(val)
-        log.debug('Decoded as type(float)')
+        #log.debug('Decoded as type(float)')
         return encoded
     except:
         pass
-    log.debug('Decoded as type(string)')
+    #log.debug('Decoded as type(string)')
     return val
 
 def floatIsEqual(a, b, tolerance=0.01, allowGimbal=True):
     '''
-    compare 2 floats with tolerance 
-    @param a: value 1 
-    @param b: value 2 
-    @param tolerance: compare with this tolerance default=0.001 
-    @param allowGimbal: allow values differences to be divisible by 180 compensate for gimbal flips 
+    compare 2 floats with tolerance.
     
-    TODO: still giving us issues, look into other ways to do this confirm for gimbal!
+    :param a: value 1 
+    :param b: value 2 
+    :param tolerance: compare with this tolerance default=0.001 
+    :param allowGimbal: allow values differences to be divisible by 180 compensate for gimbal flips 
+    
     '''
-    if abs(a-b)<tolerance:
+    if abs(a - b) < tolerance:
         return True
     else:
         if allowGimbal:
-            if abs(a - b) % 180 < tolerance:
+            mod = abs(a - b) % 180.0
+            if mod < tolerance:
+                log.debug('compare passed with gimbal : %f == %f : diff = %f' % (a, b, mod))
                 return True
-            elif abs(a - b) % 360 < tolerance:
+            elif abs(180.0 - mod) < tolerance:
+                log.debug('compare passed with gimbal 180 : %f == %f : diff = %f' % (a, b, abs(180 - mod)))
                 return True
-            elif abs(a - b) % 90 < tolerance:
+            elif abs(90.0 - mod) < tolerance:
+                log.debug('compare passed with gimbal 90 : %f == %f diff = %f' % (a, b, abs(90.0 - mod)))
                 return True
+            log.debug('compare with gimbal failed against mod 180: best diff :%f' % (abs(180.0-mod)))
+            log.debug('compare with gimbal failed against mod 90: best diff :%f' % (abs(90.0-mod)))
+    log.debug('float is out of tolerance : %f - %f == %f' % (a, b, abs(a - b)))
     return False
 
 def valueToMappedRange(value, currentMin, currentMax, givenMin, givenMax):
@@ -206,8 +220,21 @@ def validateString(strText):
 
 class FilterNode_Settings(object):
     '''
-    Simple settings object to pass into the filterNode Calls. This includes simple methods
-    for managing and checking the filterSettings
+    Simple concept, this settings object is passed into the filterNode Calls
+    and is used to setup how hierarchies are processed and filtered. This is
+    class is used through out Red in conjunction with the filterNode class. 
+    
+    Default settings bound:
+        * nodeTypes: []  - search for given Maya nodeTypes'
+        * searchAttrs: [] - search for given attributes on nodes
+        * searchPattern: [] - search for nodeName patterns
+        * hierarchy: False - full hierarchy process
+        * metaRig: False - ??Do we do this here?? {'MetaClass','functCall'}
+        * filterPriority: [] - A way of re-ordering the hierarchy lists
+        * incRoots: True - process rootNodes in the filters
+        * transformClamp: True - clamp any nodes found to their transforms
+        * infoBlock: ''
+        * rigData: {}
     '''
     def __init__(self):
         self.__dict__ = {'nodeTypes': [],  # search for given Maya nodeTypes
@@ -273,7 +300,7 @@ class FilterNode_Settings(object):
     def resetFilters(self, rigData=True):
         '''
         reset the MAIN filter args only
-        @param rigData: this is a cached attr and not fully handled 
+        :param rigData: this is a cached attr and not fully handled 
         by the UI hence the option NOT to reset, used by the UI presetFill calls
         '''
         self.nodeTypes=[]
@@ -326,7 +353,7 @@ class FilterNode_Settings(object):
     def write(self, filepath):
         '''
         write the filterSettings attribute out to a ConfigFile
-        @param filepath: file path to write the configFile out to
+        :param filepath: file path to write the configFile out to
         '''
         ConfigObj = configobj.ConfigObj(indent_type='\t')
         ConfigObj['filterNode_settings']=self.__dict__
@@ -337,7 +364,7 @@ class FilterNode_Settings(object):
     def read(self, filepath):
         '''
         Read a given ConfigFile and fill this object instance with the data
-        @param filepath: file path to write the configFile out to
+        :param filepath: file path to write the configFile out to
         '''
         self.resetFilters()
         for key, val in configobj.ConfigObj(filepath)['filterNode_settings'].items():
@@ -506,16 +533,31 @@ class FilterNode_UI(object):
         
 class FilterNode(object):
     '''
-    FilterNode is a class for managing, searching and filtering nodes with the scene
-    If the class property rootNodes is given a list to process then all functions
-    are based on Hierarchy filtering of child nodes beneath the given. If rootNodes
-    is not filled, then the functions will search through ALL SCENE NODES
+    FilterNode is a class for managing, searching and filtering nodes with the scene.
+    If the arg roots[] is given then the code filters the hierarchy's of these roots.
+    If roots is not given then the functions will search globally at a scene level.
+    
+    Note that the main call, ProcessFilter() is only part of this class, there are 
+    many other specific filtering functions for finding nodes in your Maya scene.
+    
+    This is a crucial class and used extensively in Red9 where ever hierarchies
+    are in need of filtering. Used in conjunction with a FilterNode_Settings object 
+    which,if not given, gets bound to self.settings. 
+    
+    >>> flt = FilterNode(rootNode)
+    >>> flt.settings.nodeTypes=['nurbsCurve']
+    >>> filt.settings.searchPattern=['Ctrl']
+    >>> filt.ProcessFilter()
+    
+    The above makes a filterNode class, we pass in our hierarchies rootNode (string), 
+    then set the internal settings to filter the hierarchy for all child nurbsCurves 
+    who's name includes 'Ctrl'. Finally the ProcessFilter runs the main call.
     '''
     def __init__(self, roots=None, filterSettings=None):
         '''
-        @param roots: Given root nodes in the Maya scene to search from.
-            if this is not given then the filter codes default to scanning all scene nodes
-        @param filterSettings: This expects a FileterNode_Settings Object to be passed in. This
+        :param roots: Given root nodes in the Maya scene to search from.
+            If a root is NOT given then the filter codes default to scanning all scene nodes.
+        :param filterSettings: This expects a FilterNode_Settings Object to be passed in. This
             in turn holds all the filtering parameters used by the main lsIntersector call
             all other calls use given params so can be called directly.
         '''
@@ -617,8 +659,8 @@ class FilterNode(object):
 
         Also if a single rootNode is passed, and it's of type 'character'
         then the code will return the characterMembers instead
-        @param incRoots: include the given rootNodes in the filter
-        #TODO : objectSet modifications need testing!!!!!
+        :param incRoots: include the given rootNodes in the filter
+        TODO: objectSet modifications need testing!!!!!
         '''
 
         self.hierarchy=[]
@@ -662,14 +704,14 @@ class FilterNode(object):
         for example, when filtered for meshes, we might not want the shape node
         This now has complex handling for dealing with CharcterSets and SelectionSets
         
-        @param nodeTypes: Maya NodeTypes passed into the listRelatives wrapper
-        @param nodes: optional - allows you to pass in a list to process if required
-        @param incRoots: Include the given root nodes in the search, default=True
+        :param nodeTypes: Maya NodeTypes passed into the listRelatives wrapper
+        :param nodes: optional - allows you to pass in a list to process if required
+        :param incRoots: Include the given root nodes in the search, default=True
             Valid only if the Class is in 'Selected' processMode only.
-        @param transformClamp: Clamp the return to the Transform nodes. Ie, mesh normally
+        :param transformClamp: Clamp the return to the Transform nodes. Ie, mesh normally
             would return the shape node, this clamps the return to it's Transform node, default=False
 
-        @return: a list of nodes who type match the given search list
+        :return: a list of nodes who type match the given search list
         '''
       
         self.foundNodeTypes = []
@@ -833,8 +875,9 @@ class FilterNode(object):
         character sets and animLayers to find all animCurve data.
         Note that this has no filter for excluding curves of type
         eg: setDrivens etc will need post filtering from the returns in many cases
-        @param nodes: optional given node list, return animData in the nodes history
-        @param safe: optional 'bool', only return animCurves which are safe to modify, this
+        
+        :param nodes: optional given node list, return animData in the nodes history
+        :param safe: optional 'bool', only return animCurves which are safe to modify, this
                      will strip out SetDrivens, Clips curves etc..
         '''
         animCurves=[]
@@ -895,25 +938,26 @@ class FilterNode(object):
         '''
         Search for nodes that have a given attr or any attrs from a given list[]
         
-        @param searchAttrs: list or string of attributes to search for on all child nodes
-        NOTE: new operators 'NOT:' and '='
-        @param nodes: optional - allows you to pass in a list to process if required
-        @param returnValues : If found return the Value of the Attrs
-        along with the node - switches return type to tuple. default=False
-        @param incRoots: Include the given root nodes in the search, default=True
-        Valid only if the Class is in 'Selected' processMode only.
+        :param searchAttrs: list or string of attributes to search for on all child nodes
+            NOTE: new operators 'NOT:' and '='
+        :param nodes: optional - allows you to pass in a list to process if required
+        :param returnValues: If found return the Value of the Attrs
+            along with the node - switches return type to tuple. default=False
+        :param incRoots: Include the given root nodes in the search, default=True
+            Valid only if the Class is in 'Selected' processMode only.
          
-        @rtype: list[] or dict{} of nodes whos attributes include any of the given attrs[]
-        @return: Nodes that have the search attr/attrs. If returnValue is given as a
-        keyword then it will return a dict in the form {node,attrValue}
+        :rtype: list[] or dict{} of nodes whos attributes include any of the given attrs[]
+        :return: Nodes that have the search attr/attrs. If returnValue is given as a
+            keyword then it will return a dict in the form {node,attrValue}
         
-        NOTE: If the searchAttrs has an entry in the form NOT:searchAttr then this will be forcibly
-        excluded from the filter. Also you can now do 'myAttr=2.33' to only pass if the attr is equal
-        similarly 'NOT:myAttr=2.33' will exclude if the value is equal
-        see the ..\Red9\tests\Red9_CoreUtilTests.py for live unittest examples
+        .. note::
+            If the searchAttrs has an entry in the form NOT:searchAttr then this will be forcibly
+            excluded from the filter. Also you can now do 'myAttr=2.33' to only pass if the attr is equal
+            similarly 'NOT:myAttr=2.33' will exclude if the value is equal
+            see the ..\Red9\tests\Red9_CoreUtilTests.py for live unittest examples
         
-        TODO: current Implementation DOES NOT allow multiple attr tests as only 1 val per key
-        in the excludeAttrs and includeAttrs is currently supported!!!!!!
+        TODO: current Implementation DOES NOT allow multiple attr tests as only 1 val per key 
+            in the excludeAttrs and includeAttrs is currently supported!!!!!!
         '''
         
         self.foundAttributes = []
@@ -1038,14 +1082,15 @@ class FilterNode(object):
         '''
         Search for nodes who's name match the given search patterns
         
-        @param searchPattern: string/list patterns to match node names against (includes a 'NOT:' operator)
-        @param nodes: optional - allows you to pass in a list to process if required
-        @param incRoots: Include the given root nodes in the search, default=True
+        :param searchPattern: string/list patterns to match node names against (includes a 'NOT:' operator)
+        :param nodes: optional - allows you to pass in a list to process if required
+        :param incRoots: Include the given root nodes in the search, default=True
             Valid only if the Class is in 'Selected' processMode only.
             
-        NOTE: If the searchPattern has an entry in the form NOT:searchtext then this will be forcibly
-        excluded from the filter. ie, My_L_Foot_Ctrl will be excluded with the following pattern
-        ['Ctrl','NOT:My'] where Ctrl finds it, but the 'NOT:My' tells the filter to skip it if found
+        .. note:: 
+            If the searchPattern has an entry in the form NOT:searchtext then this will be forcibly
+            excluded from the filter. ie, My_L_Foot_Ctrl will be excluded with the following pattern
+            ['Ctrl','NOT:My'] where Ctrl finds it, but the 'NOT:My' tells the filter to skip it if found
         '''
         self.foundPattern = []
         include=[]
@@ -1147,8 +1192,8 @@ class FilterNode(object):
         '''
         very light wrapper to handle MetaData in the FilterSystems. This is hard coded
         to find CTRL markered attrs and give back the attached nodes
-        @param walk: walk the found systems for subSystems and process those too
-        @param incMain: Like the other filters we allow the given top
+        :param walk: walk the found systems for subSystems and process those too
+        :param incMain: Like the other filters we allow the given top
             node in the hierarchy to be removed from processing. In a MetaRig
             this is the CTRL_Main controller which should be Top World Space
         '''
@@ -1190,13 +1235,13 @@ class FilterNode(object):
             more accurate filtering.
             Uses the FilterNode_Settings object for all args such that:
                 
-            @self.settings.nodeTypes: nodetypes to search for on child nodes
-            @self.settings.searchAttrs: attribute to search for on child nodes
-            @self.settings.searchPattern: name pattern to match on child nodes
-            @self.settings.transformClamp: Clamp the return to the Transform nodes.
-            @self.settings.incRoots: Include the given root nodes in the search.
+            :param settings.nodeTypes: nodetypes to search for on child nodes
+            :param settings.searchAttrs: attribute to search for on child nodes
+            :param settings.searchPattern: name pattern to match on child nodes
+            :param settings.transformClamp: Clamp the return to the Transform nodes.
+            :param settings.incRoots: Include the given root nodes in the search.
             
-            @return: all nodes which match ALL the given keyword filter searches
+            :return: all nodes which match ALL the given keyword filter searches
             '''
             log.debug(self.settings.__dict__)
             self.intersectionData=[]
@@ -1279,13 +1324,13 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
     '''
     Matches 2 given NODE LISTS by node name via various methods.
     
-    @keyword matchMethod:
-        base: =  Match each element by exact name (shortName)
+    :param matchMethod: default 'stripPrefix' 
+        *base*:  Match each element by exact name (shortName)
         such that Spine==Spine or REF1:Spine==REF2:Spine
-        stripPrefix: = Match each element by a relaxed naming convention
+        
+        *stripPrefix*: Match each element by a relaxed naming convention
         allowing for prefixes such that RigX_Spine == Spine
-    @rtype: list of tuple pairs
-    @return: matched pairs of lists for processing [(a1,b2),[(a2,b2)]
+    :return: matched pairs of tuples for processing [(a1,b2),[(a2,b2)]
     '''
 
     infoPrint = ""
@@ -1327,21 +1372,20 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
 
 def processMatchedNodes(nodes=None, filterSettings=None, toMany=False, matchMethod='stripPrefix'):
     '''
-    ##=================================================
     HUGELY IMPORTANT CALL FOR ALL ANIMATION FUNCTIONS
-    ##=================================================
+    
     PreProcess the given 'nodes' and 'filterSettings'(optional)
     via a MatchedNodeInput OBJECT that has an attribute self.MatchedPairs
     We're going to use this throughout the code such that:
     nodeList.MatchedPairs = [(ObjA,ObjB),(ObjC,ObjD) .....]
     
-    @param nodes: Given Nodes for processing
-    @param filterSettings: as all other functions, this is the main hierarchy filter
-    @param toMany: Return a MatchedPairs where the first node in each
-    tuple is the first selected node, ie, used to cast data from the first
-    node to all subsequent nodes [(ObjA,ObjB),(ObjA,ObjC),(ObjA,ObjD) ....
-    @param matchMethod: method used in the name matchProcess
-    @return: MatchNodeInputs class object
+    :param nodes: Given Nodes for processing
+    :param filterSettings: as all other functions, this is the main hierarchy filter
+    :param toMany: Return a MatchedPairs where the first node in each
+        tuple is the first selected node, ie, used to cast data from the first
+        node to all subsequent nodes [(ObjA,ObjB),(ObjA,ObjC),(ObjA,ObjD) ....
+    :param matchMethod: method used in the name matchProcess
+    :return: MatchNodeInputs class object
     '''
     #nodeList = None
 
@@ -1374,22 +1418,24 @@ class MatchedNodeInputs(object):
     Class to process and match input nodes for most of the Hierarchy/Anim
     functions that work on carefully managed matched pairs of nodes.
     
-    @param nodes: root nodes to start the filtering process from
-    @param matchMethod: Method of matching each nodePair based on nodeName
-    @param filterSettings: This is a FilterSettings_Node object used to pass all the
-    
-        filter types into the FilterNode code within. Internally the following is true:
-        @param settings.nodeTypes: list[] - search nodes of type
-        @param settings.searchAttrs: list[] - search nodes with Attrs of name
-        @param settings.searchPattern: list[] - search for a given nodeName searchPattern
-        @param settings.hierarchy: bool - process all children from the roots
-        @param settings.incRoots: bool - include the original root nodes in the filter
+    :param nodes: root nodes to start the filtering process from
+    :param matchMethod: Method of matching each nodePair based on nodeName
+    :param filterSettings: This is a FilterSettings_Node object used to pass all 
+        the filter types into the FilterNode code within. Internally the following 
+        is true:
+        
+        | settings.nodeTypes: list[] - search nodes of type
+        | settings.searchAttrs: list[] - search nodes with Attrs of name
+        | settings.searchPattern: list[] - search for a given nodeName searchPattern
+        | settings.hierarchy: bool - process all children from the roots
+        | settings.incRoots: bool - include the original root nodes in the filter
+        
+    :return: list of matched pairs [(a1,b2),[(a2,b2)]   
             
-    NOTE: with all the search and hierarchy keywords OFF the code performs
-    a Dumb zip, no matching and no Hierarchy filtering, just zip the given nodes
-    into selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
-
-    @return: list of matched pairs [(a1,b2),[(a2,b2)]
+    .. note:: 
+        with all the search and hierarchy keywords OFF the code performs
+        a Dumb zip, no matching and no Hierarchy filtering, just zip the given nodes
+        into selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
     '''
     
     def __init__(self, nodes=None, filterSettings=None, matchMethod='stripPrefix'):
@@ -1414,8 +1460,8 @@ class MatchedNodeInputs(object):
         settings object if one was passed in to the main class.
         This uses the ProcessFilter() method for powerful pre-filtering before
         passing the results into the matchNodeLists func.
-        @rtype: tuple
-        @return: a matched pair list of nodes
+        :rtype: tuple
+        :return: a matched pair list of nodes
         '''
         if self.settings.filterIsActive():
             if not len(self.roots)==2:
@@ -1727,9 +1773,11 @@ class LockChannels(object):
         '''
         From a given chnMap file restore the channelBox status for all attributes
         found that are in the map file. ie, keyable, hidden, locked
-        NOTE: Here we're dealing with 2 possible sets of data, either decoded by the
-        ConfigObj decoder or a JSON deserializer and there's subtle differences in the dict
-        thats returned hence the decodeString() calls
+        
+        .. note:: 
+            Here we're dealing with 2 possible sets of data, either decoded by the
+            ConfigObj decoder or a JSON deserializer and there's subtle differences in the dict
+            thats returned hence the decodeString() calls
         TODO: Add progress bar?
         '''
         if not nodes:
@@ -1789,12 +1837,13 @@ class LockChannels(object):
     def processState(nodes, attrs, mode, hierarchy=True, userDefined=False):
         '''
         Easy wrapper to manage channels that are keyable / locked
-        in the channelBox
-        @param nodes: nodes to process
-        @param attrs: set() of attrs
-        @param mode: 'lock' or 'unlock'
-        @param hierarchy: process all child nodes
-        @param usedDefined: process all UserDefined attributes on all nodes
+        in the channelBox.
+        
+        :param nodes: nodes to process
+        :param attrs: set() of attrs
+        :param mode: 'lock' or 'unlock'
+        :param hierarchy: process all child nodes
+        :param usedDefined: process all UserDefined attributes on all nodes
         '''
         userDefAttrs=set()
         if not nodes:
@@ -1844,8 +1893,8 @@ def timeOffset_addPadding(pad=None, padfrom=None, scene=False):
     '''
     simple wrap of the timeoffset class which will add padding into the
     animation curves on the selected object by shifting keys
-    @param pad: amount of padding frames to add
-    @param padfrom: frame to pad from
+    :param pad: amount of padding frames to add
+    :param padfrom: frame to pad from
     '''
     nodes = None
     if not pad:
@@ -1871,7 +1920,7 @@ def timeOffset_collapse(scene=False):
     '''
     simple wrap of the timeoffset that given a selected range in the timeline will
     collapse the keys within that range and shift forward keys back to close the gap
-    @param scene: whether to process the entire scene or selected nodes
+    :param scene: whether to process the entire scene or selected nodes
     '''
     nodes = None
     timeRange = r9Anim.timeLineRangeGet(always=False)
@@ -1889,13 +1938,17 @@ def timeOffset_collapse(scene=False):
    
 class TimeOffset(object):
     '''
-    offset=100
+    A class for dealing with time manipulation inside Maya.
     
-    flt=r9Core.FilterNode_Settings()
-    flt.read(os.path.join(r9Setup.red9Presets(),'Crytek_New_Meta.cfg'))
-    flt.incRoots=True
-    flt.printSettings()
-    r9Core.TimeOffset().fromSelected(offset, filterSettings=flt, flocking=False, randomize=False)
+    >>> offset=100
+    >>> 
+    >>> #build a filterSettings object up, in this case we're loading a current one.
+    >>> flt=r9Core.FilterNode_Settings()
+    >>> flt.read(os.path.join(r9Setup.red9Presets(),'Crytek_New_Meta.cfg'))
+    >>> flt.incRoots=True
+    >>> flt.printSettings()
+    >>> 
+    >>> r9Core.TimeOffset().fromSelected(offset, filterSettings=flt, flocking=False, randomize=False)
 
     '''
     @classmethod
@@ -1916,21 +1969,21 @@ class TimeOffset(object):
     def fromSelected(cls, offset, nodes=None, filterSettings=None, flocking=False,
                      randomize=False, timerange=None):
         '''
-        Process the current selection list and offset as appropriate
-        @param offset: number of frames to offset
-        @param nodes: nodes to offset (or root of the filterSettings)
-        @param flocking: wether to sucessively increment nodes during offset
-        @param randomize: whether to add a ramdon factor to each succesive nodes offset
-        @param timerange: only offset times within a given timerange
-        @param filterSettings: This is a FilterSettings_Node object used to pass all the
-        filter types into the FilterNode code. Internally the following is true:
+        Process the current selection list and offset as appropriate.
+        
+        :param offset: number of frames to offset
+        :param nodes: nodes to offset (or root of the filterSettings)
+        :param flocking: wether to sucessively increment nodes during offset
+        :param randomize: whether to add a ramdon factor to each succesive nodes offset
+        :param timerange: only offset times within a given timerange
+        :param filterSettings: this is a FilterSettings_Node object used to pass all 
+            the filter types into the FilterNode code. Internally the following is true:
 
-            @param settings.nodeTypes: list[] - search nodes of type
-            @param settings.searchAttrs: list[] - search nodes with Attrs of name
-            @param settings.searchPattern: list[] - search for a given nodeName searchPattern
-            @param settings.hierarchy: bool - process all children from the roots
-            @param settings.incRoots: bool - include the original root nodes in the filter
-            
+            | settings.nodeTypes: list[] - search nodes of type
+            | settings.searchAttrs: list[] - search nodes with Attrs of name
+            | settings.searchPattern: list[] - search for a given nodeName searchPattern
+            | settings.hierarchy: bool - process all children from the roots
+            | settings.incRoots: bool - include the original root nodes in the filter
         '''
         log.debug('TimeOffset from Selected : offset=%s, flocking=%i, randomize=%i, timerange=%s' % \
                   (offset, flocking, randomize, str(timerange)))
@@ -1974,12 +2027,13 @@ class TimeOffset(object):
     def animCurves(offset, nodes=None, timerange=None):
         '''
         Shift Animation curves. If nodes are fed in to process then we do
-        a number of aggressive searches to find all linked animation data
-        @param offset: amount to offset the curves
-        @param nodes: nodes to offset if given
-        @param timerange: if timerange given [start,end] then we cut the keys in that 
-        range before shifting associated keys. Now we could just use the 
-        keyframe(option='insert') BUT this has a MAJOR crash bug!
+        a number of aggressive searches to find all linked animation data.
+        
+        :param offset: amount to offset the curves
+        :param nodes: nodes to offset if given
+        :param timerange: if timerange given [start,end] then we cut the keys in that 
+            range before shifting associated keys. Now we could just use the 
+            keyframe(option='insert') BUT this has a MAJOR crash bug!
         '''
         safeCurves=FilterNode.lsAnimCurves(nodes, safe=True)
         
@@ -2026,10 +2080,11 @@ class TimeOffset(object):
     def sound(offset, mode='Scene', audioNodes=None, timerange=None):
         '''
         Offset Audio nodes.
-        @param offset: amount to offset the sounds nodes by
-        @param mode: either process entire scene or selected
-        @param audioNodes: optional, given nodes to process
-        @param timerange: optional timerange to process (outer bounds only)
+        
+        :param offset: amount to offset the sounds nodes by
+        :param mode: either process entire scene or selected
+        :param audioNodes: optional, given nodes to process
+        :param timerange: optional timerange to process (outer bounds only)
         '''
         if mode=='Scene':
             audioNodes=cmds.ls(type='audio')
@@ -2053,10 +2108,11 @@ class TimeOffset(object):
     def animClips(offset, mode='Scene', clips=None, timerange=None):
         '''
         Offset Trax Clips
-        @param offset: amount to offset the sounds nodes by
-        @param mode: either process entire scene or selected
-        @param clips: optional, given clips to offset
-        @param timerange: optional timerange to process (outer bounds only)
+        
+        :param offset: amount to offset the sounds nodes by
+        :param mode: either process entire scene or selected
+        :param clips: optional, given clips to offset
+        :param timerange: optional timerange to process (outer bounds only)
         '''
         if mode=='Scene':
             clips=cmds.ls(type='animClip')
@@ -2075,17 +2131,26 @@ class TimeOffset(object):
             log.info('%i : AnimClips were offset' % len(clips))
  
  
+def distanceBetween(nodeA, nodeB):
+    '''
+    simple calculation to return the distance between 2 objects
+    '''
+    x1, y1, z1, _,_,_ = cmds.xform(nodeA,q=True,ws=True,piv=True)
+    x2, y2, z2, _,_,_ = cmds.xform(nodeB,q=True,ws=True,piv=True)
+    return math.sqrt(math.pow((x1-x2),2) + math.pow((y1-y2),2) + math.pow((z1-z2),2))
+
+
 class MatrixOffset(object):
     
     '''
     Given 2 transforms calculate the difference as a Matrix and
-    apply that to a given list of nodes.
+    apply that as an offset matrix to a given list of nodes.
         
-    Matrix=offsetMatrix('inputA','inputB')
-    Matrix=offsetMatrix('inputB','inputA')
-    
-    applyOffsetMatrixToNodes(nodes,Matrix)
+    >>> matrixOffset = MatrixOffset()
+    >>> matrixOffset.setOffsetMatrix('inputA','inputB')
+    >>> applyOffsetMatrixToNodes(nodesToOffset)
     '''
+    
     def __init__(self):
         self.CachedData=[]
         self.OffsetMatrix=OpenMaya.MMatrix
@@ -2100,7 +2165,10 @@ class MatrixOffset(object):
         
     def setOffsetMatrix(self, inputA, inputB):
         '''
-        from 2 transform return an offsetMatrix between them
+        from 2 transform return an offsetMatrix between them 
+        
+        :param inputA: MayaNode A
+        :param inputB: MayaNode B
         '''
         DagNodeA=MatrixOffset.get_MDagPath(inputA)
         DagNodeB=MatrixOffset.get_MDagPath(inputB)
@@ -2111,7 +2179,7 @@ class MatrixOffset(object):
         self.OffsetMatrix=initialMatrix.inverse()*newMatrix
         return self.OffsetMatrix
         
-    def cacheCurrentData(self, nodes):
+    def __cacheCurrentData(self, nodes):
         '''
         Return a list of tuples containing the cached state of the nodes
         [(node, MDagpath, worldMatrix, parentInverseMatrix)]
@@ -2133,15 +2201,19 @@ class MatrixOffset(object):
         return self.CachedData
     
     
-    def applyOffsetMatrixToNodes(self, nodes, Matrix=None):
+    def applyOffsetMatrixToNodes(self, nodes, matrix=None):
         '''
         offset all the given nodes by the given MMatrix object
+        
+        :param nodes: Nodes to apply the offset Matrix too
+        :param matrix: Optional OpenMaya.MMatrix to transform the data by
         '''
         offsetMatrix=self.OffsetMatrix
-        if Matrix:
-            offsetMatrix=Matrix
-            
-        for node, dag, initialMatrix, parentInverseMatrix, rotScal in self.cacheCurrentData(nodes):
+        if matrix:
+            offsetMatrix=matrix
+        if not type(nodes)==list:
+            nodes=[nodes]
+        for node, dag, initialMatrix, parentInverseMatrix, rotScal in self.__cacheCurrentData(nodes):
             if parentInverseMatrix:
                 if not initialMatrix.isEquivalent(dag.inclusiveMatrix()):
                     print 'Dag has already been modified by previous parent node', node
@@ -2150,10 +2222,12 @@ class MatrixOffset(object):
                 #multiply the offset by the inverse ParentMatrix to put it into the correct space
                     OpenMaya.MFnTransform(dag).set(OpenMaya.MTransformationMatrix(initialMatrix*parentInverseMatrix*offsetMatrix.inverse()))
                     print 'node offset : ', node
-                    #cmds.setAttr('%s.rotatePivot' % node, rotScal[0][0][0],rotScal[0][0][1],rotScal[0][0][2])
-                    #cmds.setAttr('%s.scalePivot' % node, rotScal[1][0][0],rotScal[1][0][1],rotScal[1][0][2])
+                    cmds.setAttr('%s.rotatePivot' % node, rotScal[0][0][0],rotScal[0][0][1],rotScal[0][0][2])
+                    cmds.setAttr('%s.scalePivot' % node, rotScal[1][0][0],rotScal[1][0][1],rotScal[1][0][2])
             else:
                 OpenMaya.MFnTransform(dag).set(OpenMaya.MTransformationMatrix(initialMatrix*offsetMatrix.inverse()))
+                cmds.setAttr('%s.rotatePivot' % node, rotScal[0][0][0],rotScal[0][0][1],rotScal[0][0][2])
+                cmds.setAttr('%s.scalePivot' % node, rotScal[1][0][0],rotScal[1][0][1],rotScal[1][0][2])
 
        
 
