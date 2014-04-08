@@ -13,20 +13,6 @@ import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
-#unit testing
-def ut_rayCasterSurfaceFuncCls(surface='nurbsCylinder1', raySource=(-1.2,0,1), rayDir=(0,1,0), maxDistance = 1000):
-    assert type('surface') in [str], "surface is not a string!"
-    assert type('raySource') in [int, float], "raySource is not int or float!"
-    assert type('rayDir') in [int, float], "rayDir is not int or float!"
-    assert type('maxDistance') in [int, float], "maxDistance is not int or float!"
-    assert type('obj') in [str], "obj is not a string!"
-    assert type('axis') in [str], "axis is not a string!"
-    assert type('vector') in [bool], "axis is not a bool!"
-    assert type('singleReturn') in [bool], "singleReturn is not a bool!"
-    assert type('axisToCheck') in [list], "axisToCheck is not a list!"
-    assert type('maxIterations') in [int, float], "maxIterations is not int or float!"
-    assert type('pierceDepth') in [int, float], "pierceDepth is not int or float!"
     
 def rayCasterSurfaceFuncCls(*args, **kws):
             
@@ -39,8 +25,8 @@ def rayCasterSurfaceFuncCls(*args, **kws):
             super(fncWrap, self).__init__(*args, **kws)
             self._str_funcName = 'rayCasterSurfaceFuncCls'
             self._l_ARGS_KWS_DEFAULTS = [{'kw':'surface',"default":'nurbsCylinder1',"argType":'str','help':"nurbs or poly surface"},
-                                   {'kw':'raySource',"default":[0,0,0],"argType":'double3','help':"point in world space"},
-                                   {'kw':'rayDir',"default":[0,0,0],"argType":'double3','help':"world space vector"},
+                                   {'kw':'raySource',"default":[0,0,0],"argType":'tuple','help':"point in world space"},
+                                   {'kw':'rayDir',"default":[0,0,0],"argType":'tuple','help':"world space vector"},
                                    {'kw':'maxDistance', "default":1000,"argType":'float','help':"maxDistance"},
                                    {'kw':'obj',"default":'',"argType":'string','help':"object source"},
                                    {'kw':'axis',"default":'z+',"argType":'string','help':"object source axis"},
@@ -56,7 +42,11 @@ def rayCasterSurfaceFuncCls(*args, **kws):
             rayDir = self.d_kws['rayDir']
             maxDistance = self.d_kws['maxDistance']
 
-            self.l_funcSteps = [{'step':'_setup_','call':self._setup_}]
+            self.l_funcSteps = [{'step':'findSurfaceIntersections','call':self.findSurfaceIntersections},
+								{'step':'findSurfaceIntersections','call':self.findSurfaceIntersections},
+								{'step':'findSurfaceIntersectionFromObjectAxis','call':self.findSurfaceIntersectionFromObjectAxis},
+								{'step':'findSurfaceMidPointFromObject','call':self.findSurfaceMidPointFromObject},
+								{'step':'findFurthestPointInRangeFromObject','call':self.findFurthestPointInRangeFromObject}]
             return None
         def _setup_(self):pass
         #Functions
@@ -70,7 +60,6 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                 if len(mc.ls(surface))>1:
                     raise StandardError,"findSurfaceIntersection>>> More than one surface named: %s"%surface
                 
-                self.surfaceShape = mc.listRelatives(surface, s=1)
                 self.centerPoint = mc.xform(surface, q=1, ws=1, t=1)
                 
                 #checking the type 
@@ -84,7 +73,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                     self.rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
                     self.hitPoint = om.MPoint()
                     self.selectionList = om.MSelectionList()
-                    self.selectionList.add(self.surfaceShape)
+                    self.selectionList.add(surface)
                     self.surfacePath = om.MDagPath()
                     self.selectionList.getDagPath(0, self.surfacePath)
                     self.surfaceFn = om.MFnNurbsSurface(self.surfacePath)
@@ -166,7 +155,6 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                 if len(mc.ls(surface))>1:
                     raise StandardError,"findSurfaceIntersections>>> More than one surface named: %s"%surface
 
-                self.surfaceShape = mc.listRelatives(surface, s=1)
                 self.centerPoint = mc.xform(surface, q=1, ws=1, t=1)
 
                 #checking the type 
@@ -180,7 +168,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                     self.rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
                     self.hitPoints = om.MPoint()
                     self.selectionList = om.MSelectionList()
-                    self.selectionList.add(surfaceShape)
+                    self.selectionList.add(surface)
                     self.surfacePath = om.MDagPath()
                     self.selectionList.getDagPath(0, self.surfacePath)
                     self.surfaceFn = om.MFnNurbsSurface(self.surfacePath)
@@ -338,7 +326,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                 if len(mc.ls(surface))>1:
                     raise StandardError,"findFurthestPointInRangeFromObject>>> More than one surface named: %s"%surface                                  
                 #>>>First cast to get our initial range
-                self.d_firstcast = findSurfaceIntersectionFromObjectAxis(surface, obj, axis = axis, vector=vector, maxDistance = maxDistance)
+                self.d_firstcast = findSurfaceIntersectionFromObjectAxis(surface, obj, axis, vector, maxDistance)
                 if not self.d_firstcast.get('hit'):
                     raise StandardError,"findFurthestPointInRangeFromObject>>> first cast failed to hit"
                 self.baseDistance = distance.returnDistanceBetweenPoints(distance.returnWorldSpacePosition(obj),self.d_firstcast['hit'])                        
@@ -346,7 +334,7 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                 self.castDistance = self.baseDistance + pierceDepth
                 log.debug("findFurthestPointInRangeFromObject>>>castDistance: %s"%castDistance)
                 self.l_positions = []
-                self.d_castReturn = findSurfaceIntersectionFromObjectAxis(surface, obj, axis=axis, maxDistance = castDistance, singleReturn=False) or {}
+                self.d_castReturn = findSurfaceIntersectionFromObjectAxis(surface, obj, axis, maxDistance = castDistance, singleReturn=False) or {}
                 log.debug("2nd castReturn: %s"%self.d_castReturn)
                 if self.d_castReturn.get('hits'):
                     self.closestPoint = distance.returnFurthestPoint(distance.returnWorldSpacePosition(obj),self.d_castReturn.get('hits')) or False    
@@ -358,7 +346,30 @@ def rayCasterSurfaceFuncCls(*args, **kws):
                 raise StandardError, " >> error"
 
     return fncWrap(*args, **kws).go()
-    
+
+#test
+surface = str(mc.cylinder()[0])
+loc = mc.spaceLocator()
+mc.move(8,6,3, loc)
+mc.move(8,0,3, surface)
+mc.delete(mc.aimConstraint(surface, loc))
+raySource = mc.xform(loc, q=1, ws=1, t=1)
+
+#unit testing
+def ut_rayCasterSurfaceFuncCls(surface, raySource, rayDir, maxDistance, obj, axis, vector, singleReturn, axisToCheck, maxIterations, pierceDepth):
+    assert type(surface) in [str], "surface is not a string!"
+    assert type(raySource) in [list,tuple], "error type raySource!"
+    assert type(rayDir) in [list,tuple], "error type rayDir!"
+    assert type(maxDistance) in [int, float], "maxDistance is not int or float!"
+    assert type(obj) in [str], "obj is not a string!"
+    assert type(axis) in [str], "axis is not a string!"
+    assert type(vector) in [bool], "axis is not a bool!"
+    assert type(singleReturn) in [bool], "singleReturn is not a bool!"
+    assert type(axisToCheck) in [list,tuple], "axisToCheck is not a list!"
+    assert type(maxIterations) in [int, float], "maxIterations is not int or float!"
+    assert type(pierceDepth) in [int, float], "pierceDepth is not int or float!"
+ut_rayCasterSurfaceFuncCls(surface, raySource, rayDir=[0,1,0], maxDistance = 1000, obj='obj', axis='z+', vector=False, singleReturn=True, axisToCheck=['x','z'], maxIterations=10, pierceDepth=4)
+
 rayCasterSurfaceFuncCls(reportTimes = 1)
 rayCasterSurfaceFuncCls(printHelp = 1)
 rayCasterSurfaceFuncCls(reportShow = 1)
