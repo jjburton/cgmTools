@@ -97,9 +97,7 @@ def build_rigSkeleton(*args, **kws):
 	    #=================================================================
 	
 	def gatherInfo(self):
-	    mi_go = self._go#Rig Go instance link
-	    self.mi_skullPlate = mi_go._mi_skullPlate
-	    
+	    mi_go = self._go#Rig Go instance link    
 	    self.mi_helper = cgmMeta.validateObjArg(mi_go._mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"No suitable helper found"
 	    		    

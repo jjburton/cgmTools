@@ -2992,6 +2992,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
                      'buildJawLine':'bool',                                          
                      'nostrilJoints':'int',
                      'cheekLoftCount':'int',
+                     'smileLineCount':'int',
                      'cheekJoints':'int',
                      'tongueJoints':'int',                     
                      'lipJoints':'int',                       
@@ -3018,7 +3019,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
                      'skullPlate':'messageSimple', 
                      'moduleNose':'messageSimple'} 
     d_defaultSettings = {'buildNose':True,'buildNostril':True,'buildUprCheek':True,'buildTongue':True,'buildSquashStretch':True,'buildJawLine':True,
-                         'uprCheekJoints':3,'nostrilJoints':1,'cheekLoftCount':2,'lipJoints':7,'cheekJoints':3,'tongueJoints':5}
+                         'uprCheekJoints':3,'nostrilJoints':1,'cheekLoftCount':2,'smileLineCount':6,'lipJoints':7,'cheekJoints':3,'tongueJoints':5}
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
 

@@ -110,6 +110,43 @@ def stringArg(arg=None, noneValid=True, calledFrom = None, **kwargs):
 
 def listArg(l_args=None, types=None):
     """
+    Return list if possible, and all items in that list are 
+    instances of types, else return False. If types is None, then the
+    type of each item is not tested.
+
+    :parameters:
+        l_arg | object
+            value to be validated as a list
+        types | type, class, or list of types and/or classes
+
+    :returns
+        list
+
+    :raises:
+        Exception | if arg is not list and unable to convert to list
+    """
+
+    result = isinstance(l_args, (tuple, list))
+    if not result:
+        try:#Conversion -----------------------------------------------------------------------------
+            if l_args is not None:
+                l_args = [l_args]#try to make it a list
+                result = isinstance(l_args, (tuple, list))#Try again
+        except Exception,error:raise Exception,"Failed to convert to list | error: {0}".format(error)
+
+    if result:
+        if types is not None:
+            for arg in l_args:
+                if not isinstance(arg, types):
+                    result = False
+                    break
+            result = l_args
+        else:
+            result = l_args
+    return result
+
+def isListArg(l_args=None, types=None):
+    """
     Return True if l_args is a list, and all items in that list are 
     instances of types, else return False. If types is None, then the
     type of each item is not tested.
@@ -118,10 +155,6 @@ def listArg(l_args=None, types=None):
         l_arg | object
             value to be validated as a list
         types | type, class, or list of types and/or classes
-        noneValid | bool
-            if True 
-            if True, returns 'None' if arg is not a string. 
-            Otherwise, raises TypeError 
 
     :returns
         bool
@@ -561,7 +594,7 @@ class simpleAxis():
         
         str_arg = arg
         
-        if listArg(arg, types=int):
+        if isListArg(arg, types=int):
             str_arg = str(list(arg))
         elif isinstance(arg, basestring):
             pass

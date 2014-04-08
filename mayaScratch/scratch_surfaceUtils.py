@@ -29,14 +29,14 @@ reload(surfUtils)
 surface = 'loftedSurface1'
 surface = 'skullPlate'
 surface = 'uprLipFollow_plate_surf'
-surface = 'skullPlate_v02'
+surface = 'browPlate'
 obj = 'center_browUpr_jnt'
 surfUtils.attachObjToSurface(obj,surface,True)
 for jnt in mc.ls(sl=True):
     surfUtils.attachObjToSurface(jnt,surface,True)
     
 for jnt in mc.ls(sl=True):
-    surfUtils.attachObjToSurface(jnt,surface,True,attachControlLoc = False)
+    surfUtils.attachObjToSurface(jnt,surface,True,attachControlLoc = 1)
     
 for jnt in mc.ls(sl=True):
     surfUtils.attachObjToSurface(jnt,surface,False)

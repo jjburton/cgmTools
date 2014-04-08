@@ -16,7 +16,7 @@ TODO: Module and test setup
 assert 1==1
 #Nothing, 1 does indeed equal 1 so nothing happens
 assert 1==2
-// Error: Encountered exception:  // 
+#// Error: Encountered exception:  // 
 
 #Okay, so it is great to know that there is something wrong but this doesn't help much if this is in a long line of code
 #Instead, we can offer an exception message with it

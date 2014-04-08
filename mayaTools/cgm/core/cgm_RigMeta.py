@@ -777,9 +777,11 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 		i_drivenObject = ml_iterDriven[self.dynIterSettings[a]['driven']]
 		i_matchObject = ml_iterMatch[self.dynIterSettings[a]['match']]
 		log.debug("%s.doIter>> driven: '%s'"%(self.getShortName(),i_drivenObject.getShortName()))
-		log.debug("%s.doIter>> match: '%s'"%(self.getShortName(),i_matchObject.getShortName()))
+		log.debug("%s.doIter>> match: '%s'"%(self.getShortName(),i_matchObject.getShortName()))	
 		minValue = self.dynIterSettings[a].get('minValue') or 0
 		maxValue = self.dynIterSettings[a].get('maxValue') or 359
+		log.debug("%s.doIter>> minValue: '%s'"%(self.getShortName(),minValue))
+		log.debug("%s.doIter>> maxValue: '%s'"%(self.getShortName(),maxValue))			
 		maxIter = self.dynIterSettings[a].get('maxIter') or 50
 		
 		if self.dynIterSettings[a].get('matchAttr') and self.dynIterSettings[a].get('drivenAttr'):
@@ -1116,7 +1118,6 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	#self.connectChildNode(i_driver,'dynDriver_%s'%index,'dynMaster')	
 	i_driver.connectChildNode(i_dynObject,'dynMatchTarget')
 	
-	
 	#>>> Match attr setting
 	if l_matchAttrs is None and not i_driver.getAttr('dynMatchAttrs'):
 	    #Only preload this if we have no arg and none are set
@@ -1157,8 +1158,8 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	else:
 	    raise StandardError,"cgmDynamicMatch.doMatch>> No valid arg:  match: %s"%(match)	
 
-	i_driver = cgmMeta.validateObjArg(l_dynDrivers[index],cgmMeta.cgmObject)
-	i_target = cgmMeta.validateObjArg(l_dynMatchTargets[index],cgmMeta.cgmObject)	    
+	i_driver = cgmMeta.validateObjArg(l_dynDrivers[index],cgmMeta.cgmObject,noneValid = False)
+	i_target = cgmMeta.validateObjArg(l_dynMatchTargets[index],cgmMeta.cgmObject,cgmMeta.cgmObject,noneValid = False)	
 	log.debug("cgmDynamicMatch.doMatch>> Driver on : %s"%i_driver.getShortName())
 	
 	#>>>Prematch attr set

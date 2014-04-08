@@ -343,17 +343,19 @@ def doSetParentModule(*args,**kws):
 		return False
 	
 	    if moduleParent.mClass not in __l_modulesClasses__:
-		self.log_warning("'%s' is not a recognized module type"%moduleParent.mClass)
+		self.log_warning("'{0}' is not a recognized module type".format(moduleParent.mClass))
 		return False
 	
 	    if not moduleParent.hasAttr('moduleChildren'):#Quick check
-		self.log_warning("'%s'doesn't have 'moduleChildren' attr"%moduleParent.getShortName())#if it doesn't initialize, nothing is there		
+		self.log_warning("'{0}'doesn't have 'moduleChildren' attr".format(moduleParent.getShortName()))#if it doesn't initialize, nothing is there		
 		return False	
 	    buffer = copy.copy(moduleParent.getMessage('moduleChildren',False)) or []#Buffer till we have have append functionality	
 	    ml_moduleChildren = moduleParent.moduleChildren
 
 	    if mi_module in ml_moduleChildren:
-		self.log_warning("already connnected to '%s'"%(moduleParent.getShortName()))
+		self.log_warning("already connnected to '{0}'".format(moduleParent.getShortName()))
+		if mi_module.moduleParent is not moduleParent:
+		    mi_module.connectParentNode(moduleParent,'moduleParent')
 		return
 	    else:
 		try:#Connect ==========================================================================================

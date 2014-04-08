@@ -239,7 +239,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
             else:
                 return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z],'uv':False}
         else:
-            return None    
+            return {}    
     except StandardError,error:
         log.error(">>> %s >> mesh: %s | raysource: %s | rayDir %s | error: %s"%(_str_funcName,mesh,raySource,rayDir,error))
         return None

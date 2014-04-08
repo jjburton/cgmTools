@@ -103,7 +103,7 @@ class go(object):
 	    self.l_coreNames = self._mi_module.coreNames.value
 	    self._mi_templateNull = self._mi_module.templateNull#speed link
 	    self._mi_rigNull = self._mi_module.rigNull#speed link
-	    self._targetMesh = self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
+	    self._targetMesh = ['Morphy_Face_PLY'] or self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
 	    self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
 	    self._ml_controlObjects = self._mi_templateNull.msgList_get('controlObjects')
 	    
@@ -1954,6 +1954,7 @@ def shapeCast_eyebrow(*args,**kws):
 	    #Find our helpers -------------------------------------------------------------------------------------------
 	    self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
 	    if not self.mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
+	    self.mi_leftBrowCrv = cgmMeta.validateObjArg(self.mi_helper.getMessage('leftBrowHelper'),noneValid=False)
 
 	    #>> Find our joint lists ===================================================================
 	    ml_handleJoints = self.mi_module.rigNull.msgList_get('handleJoints')
@@ -2004,7 +2005,8 @@ def shapeCast_eyebrow(*args,**kws):
 	    if not self.ml_centerRigJoints:raise StandardError,"Failed to find center rig joints"	    
 	    
 	    #>> calculate ------------------------------------------------------------------------
-	    self.f_baseDistance = distance.returnCurveLength(self.mi_helper.leftBrowHelper.mNode) /10
+	    self.f_browLength = distance.returnCurveLength(self.mi_helper.leftBrowHelper.mNode)	    	    
+	    self.f_baseDistance = self.f_browLength /10
 	    '''
 	    ml_measureJointList = self.ml_browLeftHandles
 	    try:#Get a casted base distance
@@ -2188,7 +2190,8 @@ def shapeCast_eyebrow(*args,**kws):
 		self.ml_handles.extend(ml_handleCrvs)	
 		
 	def _facePins_(self): 
-	    __baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in self.ml_browLeftHandles]) /2 
+	    #distance.returnCurveLength(self.mi_jawLineCrv.mNode)
+	    __baseDistance = self.f_browLength / 5
 	    log.info("%s >>> baseDistance : %s"%(self._str_reportStart,__baseDistance))
 	    
 	    d_build = {'left':{'jointList': self.ml_leftRigJoints},
@@ -2344,6 +2347,12 @@ def shapeCast_mouthNose(*args,**kws):
 	    d_['smileRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                            cgmDirection = 'right',
 	                                                            cgmName = 'smile')  
+	    d_['uprSmileLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                            cgmDirection = 'left',
+	                                                            cgmName = 'uprSmile')
+	    d_['uprSmileRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+	                                                            cgmDirection = 'right',
+	                                                            cgmName = 'uprSmile') 	    
 	    d_['smileBaseLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                            cgmDirection = 'left',
 	                                                            cgmName = 'smileBase')
@@ -2388,12 +2397,14 @@ def shapeCast_mouthNose(*args,**kws):
 	    #>> Jaw --------------------------------------------------------------------------	    
 	    d_['jaw'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                      cgmName = 'jaw')
+	    '''
 	    d_['jawAnchorLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                                cgmDirection = 'left',
 	                                                                cgmName = 'jawAnchor')	
 	    d_['jawAnchorRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                                cgmDirection = 'right',
-	                                                                cgmName = 'jawAnchor')	 	    
+	                                                                cgmName = 'jawAnchor')	
+									'''
 	    d_['chin'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
 	                                                       cgmName = 'chin')	    
 	    d_['tongueTip'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
@@ -2602,11 +2613,12 @@ def shapeCast_mouthNose(*args,**kws):
 	    self.ml_handles.extend(ml_handleCrvs)
 	    
 	def _simpleShapeCasts_(self):	
-	    l_build = [{'key':'smileLeft','isSub':True},{'key':'smileBaseLeft','isSub':True},{'key':'sneerLeft','multi':1},
-	               {'key':'smileRight','isSub':True},{'key':'smileBaseRight','isSub':True},{'key':'sneerRight','multi':1},	
-	               {'key':'lipUprCenter'},{'key':'lipUprLeft','isSub':True},{'key':'lipUprRight','isSub':True},
-	               {'key':'lipLwrCenter'},{'key':'lipLwrLeft','isSub':True},{'key':'lipLwrRight','isSub':True},
-	               {'key':'lipCornerLeft'},{'key':'lipCornerRight'},{'key':'chin'},{'key':'jawAnchorLeft'},{'key':'jawAnchorRight'},
+	    l_build = [{'key':'smileLeft','isSub':True},{'key':'smileBaseLeft','isSub':True},{'key':'sneerLeft'},{'key':'uprSmileLeft','isSub':True},
+	               {'key':'smileRight','isSub':True},{'key':'smileBaseRight','isSub':True},{'key':'sneerRight'},{'key':'uprSmileRight','isSub':True},	
+	               {'key':'lipUprCenter','multi':.5},{'key':'lipUprLeft','isSub':True},{'key':'lipUprRight','isSub':True},
+	               {'key':'lipLwrCenter','multi':.5},{'key':'lipLwrLeft','isSub':True},{'key':'lipLwrRight','isSub':True},
+	               {'key':'lipCornerLeft'},{'key':'lipCornerRight'},{'key':'chin'},
+	               #{'key':'jawAnchorLeft'},{'key':'jawAnchorRight'},
 	               {'key':'cheekAnchorLeft'},{'key':'cheekAnchorRight'},
 	               {'key':'uprCheekOuterLeft'},{'key':'uprCheekInnerLeft','isSub':True},{'key':'uprCheekInnerRight','isSub':True},{'key':'uprCheekOuterRight'},	               
 	               {'key':'noseTop','isSub':True},{'key':'noseTip','isSub':True},{'key':'noseUnder','isSub':True},{'key':'nostrilLeft','isSub':True},{'key':'nostrilRight','isSub':True}]

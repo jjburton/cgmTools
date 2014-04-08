@@ -71,6 +71,7 @@ def attachObjToSurface(*args,**kws):
 	                                 {'kw':'targetSurface',"default":None},
 	                                 {'kw':"createControlLoc","default":True},
 	                                 {'kw':"createUpLoc","default":False},
+	                                 {'kw':"pointAttach","default":False,'help':"pointConstrain only"},	                  	                                 
 	                                 {'kw':"parentToFollowGroup","default":False,'help':"Parent the main object to the follow group"},	                  
 	                                 {'kw':"attachControlLoc","default":True,'help':"Whether to setup a controlLoc attach setup"},	
 	                                 {'kw':"connectOffset","default":True,'help':"Whether to connect the controlLoc fffset",'argType':'bool'},	                  	                                 	                                 
@@ -99,6 +100,7 @@ def attachObjToSurface(*args,**kws):
 	    self.b_parentToFollowGroup = cgmValid.boolArg(self.d_kws['parentToFollowGroup'],calledFrom=self._str_funcCombined)
 	    self.b_attachControlLoc = cgmValid.boolArg(self.d_kws['attachControlLoc'],calledFrom=self._str_funcCombined)
 	    self.b_connectOffset = cgmValid.boolArg(self.d_kws['connectOffset'],calledFrom=self._str_funcCombined)
+	    self.b_pointAttach = cgmValid.boolArg(self.d_kws['pointAttach'],calledFrom=self._str_funcCombined)
 	    
 	    self.f_offset = cgmValid.valueArg(self.d_kws['f_offset'], calledFrom=self._str_funcCombined)
 	    #Get info ============================================================================
@@ -157,8 +159,13 @@ def attachObjToSurface(*args,**kws):
 		    
 			self.md_return["driverLoc"] = mi_driverLoc
 			#Constrain =====================================================================
-			mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
-			mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)  		    
+			#mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
+			#mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)  
+			if self.b_pointAttach:
+			    mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
+			else:
+			    mc.parentConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
+			
 		except Exception,error:raise StandardError,"!Groups - no control Loc setup! | %s"%(error)
 		
 		
@@ -253,10 +260,14 @@ def attachObjToSurface(*args,**kws):
 		attributes.doConnectAttr  ((mi_worldTranslate.mNode+'.outputTranslate'),(mi_cpos.mNode+'.inPosition'))
 		
 		#Constrain =====================================================================
-		mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
-		mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)    
+		#mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
+		#mc.orientConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)    
 		
-		#mc.orientConstraint(self.mi_controlLoc.mNode, self.mi_driverLoc.mNode, maintainOffset = True) 
+		if self.b_pointAttach:
+		    mc.pointConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
+		else:
+		    mc.parentConstraint(self.mi_driverLoc.mNode, self.mi_obj.mNode, maintainOffset = True)
+		    
 		if self.b_attachControlLoc:
 		    for attr in self.mi_orientation.p_string[0]:
 			attributes.doConnectAttr  ((mi_controlLoc.mNode+'.t%s'%attr),(mi_offsetGroup.mNode+'.t%s'%attr))

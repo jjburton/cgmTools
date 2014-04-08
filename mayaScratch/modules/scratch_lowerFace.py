@@ -73,10 +73,10 @@ mFactory.log.setLevel(mFactory.logging.DEBUG)
 import cgm.core
 cgm.core._reload()
 a = cgmPM.cgmMouthNoseBlock(reportTimes = True)
-a = cgmPM.cgmMouthNoseBlock('mouthNose_1_rigHelper')
+a = cgmPM.cgmMouthNoseBlock('mouthNose_rigHelper')
+a.__verify__()
 m1  = a.__verifyModule__()
 a = cgmPM.cgmMouthNose()
-
 
 p = cgmMeta.cgmNode('Morphy_puppetNetwork')
 p.mClass
@@ -86,7 +86,7 @@ m1.mNode
 
 a = r9Meta.MetaClass('mouthNose_part')
 a.getState()
-a.moduleTarget.doSetParentModule('neck_part')
+a.doSetParentModule('neck_part')
 m1.doSetParentModule('neck_part')
 p.gatherModules()
 

@@ -1,17 +1,17 @@
 '''
-
-Red9 Studio Pack: Maya Pipeline Solutions
-Author: Mark Jackson
-email: rednineinfo@gmail.com
-
-Red9 blog : http://red9-consultancy.blogspot.co.uk/
-MarkJ blog: http://markj3d.blogspot.co.uk
-
-
-This is the core of the Animation Toolset Lib, a suite of tools
-designed from production experience to automate an animators life.
-
-Setup : Follow the Install instructions in the Modules package
+..
+    Red9 Studio Pack: Maya Pipeline Solutions
+    Author: Mark Jackson
+    email: rednineinfo@gmail.com
+    
+    Red9 blog : http://red9-consultancy.blogspot.co.uk/
+    MarkJ blog: http://markj3d.blogspot.co.uk
+    
+    
+    This is the core of the Animation Toolset Lib, a suite of tools
+    designed from production experience to automate an animators life.
+    
+    Setup : Follow the Install instructions in the Modules package
 
 
 Code examples: 
@@ -27,31 +27,41 @@ Code examples:
     MatchedNode object that contains a tuple of matching pairs based on the given settings.
 
 #######################
- snapTransform example:
+ AnimFunctions example:
 #######################
-        
-    import Red9_CoreUtils as r9Core
-    import maya.cmds as cmds
-
-    #Make a settings object and set the internal filters
-    settings=r9Core.FilterNode_Settings()
-    settings.nodeTypes='nurbsCurve'
-    settings.searchAttrs='Control_Marker'
-    settings.printSettings()
     
-    #Option 1: Run the snap using the settings object to filter the hierarchies
-    #for specific nodes within each root hierarchy
-    anim=r9Anim.AnimFunctions()
-    anim.snapTransform(nodes=cmds.ls(sl=True),time=r9Anim.timeLineRangeGet(),filterSettings=settings)
+    The main AnimFunctions class is designed to run with an r9Core.FilterNode
+    object that is responsible for how we process hierarchies. If one isn't passed
+    as an arg then the code simply processes the 'nodes' args in zipped pairs. 
+    See the documentation on the r9Core.MatchedNodeInputs for more detail.
     
-    #Option 2: Run the snap by passing in an already processed MatchedNodeInput object
-    #Make the MatchedNode object and process the hierarchies by passing the settings object in
-    matched=r9Core.MatchedNodeInputs(nodes=cmds.ls(sl=True),filterSettings=settings)
-    matched.processMatchedPairs()
-    for n in matched.MatchedPairs:print n #see what's been filtered
+    All the AnimFunctions such as copyKeys, copyAttrs etc use the same base setup
     
-    #Rather than passing in the settings or nodes, pass in the already processed MatchedNode
-    anim.snapTransform(nodes=matched,time=r9Anim.timeLineRangeGet())
+    >>> import Red9_CoreUtils as r9Core
+    >>> import maya.cmds as cmds
+    >>>                              
+    >>> #Make a settings object and set the internal filter to find all
+    >>> #child nurbsCurves that have an attr called 'Control_Marker'
+    >>> settings = r9Core.FilterNode_Settings()
+    >>> settings.nodeTypes ='nurbsCurve'
+    >>> settings.searchAttrs = 'Control_Marker'
+    >>> settings.printSettings()
+    >>> 
+    >>> #Option 1: Run the snap using the settings object you just made
+    >>> #'nodes' will be the two roots of the rig hierarchies to snap.
+    >>> anim = r9Anim.AnimFunctions()
+    >>> anim.snapTransform(nodes=cmds.ls(sl=True), time=r9Anim.timeLineRangeGet(), filterSettings=settings)
+    >>> 
+    >>> #Option 2: Run the snap by passing in an already processed MatchedNodeInput object
+    >>> #Make the MatchedNode object and process the hierarchies by passing the settings object in
+    >>> matched = r9Core.MatchedNodeInputs(nodes=cmds.ls(sl=True), filterSettings=settings)
+    >>> matched.processMatchedPairs()
+    >>> #see what's been filtered
+    >>> for n in matched.MatchedPairs:
+    >>>     print n 
+    >>> 
+    >>> #Rather than passing in the settings or nodes, pass in the already processed MatchedNode
+    >>> anim.snapTransform(nodes=matched, time=r9Anim.timeLineRangeGet())
         
 '''
 
@@ -117,11 +127,12 @@ def getChannelBoxSelection():
 
 def getChannelBoxAttrs(node=None, asDict=True, incLocked=True):
     '''
-    return a dict of attributes in the ChannelBox by their status
-    @param node: given node
-    @param asDict:  True returns a dict with keys 'keyable','locked','nonKeyable' of attrs
-                    False returns a list (non ordered) of all attrs available on the channelBox
-    @param incLocked: True by default - whether to include locked channels in the return (only valid if not asDict)
+    return a dict of attributes in the ChannelBox by their status.
+    
+    :param node: given node.
+    :param asDict: True returns a dict with keys 'keyable','locked','nonKeyable' of attrs 
+        False returns a list (non ordered) of all attrs available on the channelBox.
+    :param incLocked: True by default - whether to include locked channels in the return (only valid if not asDict)
     '''
     statusDict={}
     if not node:
@@ -143,9 +154,10 @@ def getChannelBoxAttrs(node=None, asDict=True, incLocked=True):
 
 def getSettableChannels(node=None, incStatics=True):
     '''
-    return a list of settable attributes on a given node
-    @param node: node to inspect
-    @param incStatics: whether to include non-keyable static channels (On by default)
+    return a list of settable attributes on a given node.
+    
+    :param node: node to inspect.
+    :param incStatics: whether to include non-keyable static channels (On by default).
     
     FIXME: BUG some Compound attrs such as constraints return invalid data for some of the
     base functions using this as they can't be simply set. Do we strip them here?
@@ -172,13 +184,40 @@ def getAnimLayersFromGivenNodes(nodes):
         nodes=[nodes]
     return cmds.animLayer(nodes, q=True, affectedLayers=True)
 
+
+def mergeAnimLayers(nodes, deleteBaked=True):
+    '''
+    from the given nodes find, merge and remove any animLayers found
+    '''
+    animLayers=getAnimLayersFromGivenNodes(nodes)
+    if animLayers:
+        try:
+            deleteMerged=cmds.optionVar(query='animLayerMergeDeleteLayers')
+            cmds.optionVar(iv=('animLayerMergeDeleteLayers', deleteBaked))
+            mel.eval('animLayerMerge {"%s"}' % '","'.join(animLayers))
+
+#        cmds.bakeResults(nodes,
+#                         simulation=False,
+#                         dic=False,
+#                         removeBakedAttributeFromLayer=True,
+#                         destinationLayer='Merged_Layer',
+#                         smart=True,
+#                         sampleBy=1,
+#                         time=timeLineRangeGet())
+        except:
+            log.warning('animLayer Merge failed!')
+        finally:
+            cmds.optionVar(iv=('animLayerMergeDeleteLayers',deleteMerged))
+    return 'Merged_Layer'
+
 def timeLineRangeGet(always=True):
     '''
     Return the current PlaybackTimeline OR if a range is selected in the
     TimeLine, (Highlighted in Red) return that instead.
-    @param always: always return a timeline range, if none selected return the playbackRange
-    @rtype: tuple
-    @return: (start,end)
+    
+    :param always: always return a timeline range, if none selected return the playbackRange.
+    :rtype: tuple
+    :return: (start,end)
     '''
     playbackRange = None
     PlayBackSlider = mel.eval('$tmpVar=$gPlayBackSlider')
@@ -263,12 +302,13 @@ def pointOnPolyCmd(nodes):
         nameSpace = sourceName.replace(sourceName.split(':')[-1], '')
         assembled = assembled.replace(nameSpace, '')
     print(cmdstring + assembled)
-    mel.eval(cmdstring + assembled)
+    con=mel.eval(cmdstring)
+    mel.eval(assembled)
+    return con
     
 def eulerSelected():
     '''
     cheap trick! for selected objects run a Euler Filter and then delete Static curves
-    NOTE: delete sc fails if the nodes are in animLayers
     '''
     cmds.filterCurve(cmds.ls(sl=True, l=True))
     cmds.delete(cmds.ls(sl=True, l=True), sc=True)
@@ -309,15 +349,32 @@ class AnimationUI(object):
             self.ui_optVarConfig = os.path.join(r9Setup.mayaPrefs(), '__red9config__')
         self.ANIM_UI_OPTVARS = dict()
         self.__uiCache_readUIElements()
-
+        
+        
     @classmethod
     def show(cls):
         global RED_ANIMATION_UI
         global RED_ANIMATION_UI_OPENCALLBACK
         animUI=cls()
-        if r9General.getModifier()=='Ctrl':
-            animUI.dock=False
+
+        if 'ui_docked' in animUI.ANIM_UI_OPTVARS['AnimationUI']:
+            animUI.dock = eval(animUI.ANIM_UI_OPTVARS['AnimationUI']['ui_docked'])
+
+        print 'Recorded DOCKED STATUS : ', animUI.dock
+
+        if r9General.getModifier() == 'Ctrl':
+            if not animUI.dock:
+                print 'switching True'
+                animUI.dock = True
+            else:
+                print 'switching false'
+                animUI.dock = False
+            #animUI.dock = False
+   
         animUI._showUI()
+        animUI.ANIM_UI_OPTVARS['AnimationUI']['ui_docked'] = animUI.dock
+        animUI.__uiCache_storeUIElements()
+        
         RED_ANIMATION_UI=animUI
         if callable(RED_ANIMATION_UI_OPENCALLBACK):
             try:
@@ -325,8 +382,19 @@ class AnimationUI(object):
                 RED_ANIMATION_UI_OPENCALLBACK()
             except:
                 log.warning('RED_ANIMATION_UI_OPENCALLBACK failed')
-           
+    
+    def __uicloseEvent(self,*args):
+        print 'AnimUI close event called'
+        self.__uiCache_storeUIElements()
+        RED_ANIMATION_UI=None
+        del(self)
+    
+    def __del__(self):
+        if cmds.scriptJob(exists=self.jobOnDelete):
+            cmds.scriptJob(kill=self.jobOnDelete, force=True)
+            
     def _showUI(self):
+        
         try:
             #'Maya2011 dock delete'
             if cmds.dockControl(self.dockCnt, exists=True):
@@ -336,25 +404,28 @@ class AnimationUI(object):
         
         if cmds.window(self.win, exists=True):
             cmds.deleteUI(self.win, window=True)
+            
         animwindow = cmds.window(self.win, title=self.label)
         
         cmds.menuBarLayout()
         cmds.menu(l="VimeoHelp")
-        cmds.menuItem(l="Open Vimeo > WalkThrough", \
+        cmds.menuItem(l="Open Vimeo > WalkThrough",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/56431983')")
-        cmds.menuItem(l="Open Vimeo > HierarchyControl", \
+        cmds.menuItem(l="Open Vimeo > HierarchyControl",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/56551684')")
-        cmds.menuItem(l="Open Vimeo > Track or Stabilize", \
+        cmds.menuItem(l="Open Vimeo > Track or Stabilize",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/33440361')")
-        cmds.menuItem(l="Open Vimeo > CopyKeys & TimeOffsets", \
+        cmds.menuItem(l="Open Vimeo > CopyKeys & TimeOffsets",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/33440348')")
-        cmds.menuItem(l="Open Vimeo > MirrorSetups", \
+        cmds.menuItem(l="Open Vimeo > MirrorSetups",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/57882801')")
-        cmds.menuItem(l="Open Vimeo > PoseSaver - Advanced Topics", \
+        cmds.menuItem(l="Open Vimeo > PoseSaver - Advanced Topics",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/66269033')")
         cmds.menuItem(divider=True)
         cmds.menuItem(l="Contact Me", c=lambda *args: (r9Setup.red9ContactInfo()))
-
+        cmds.menu(l="Tools")
+        cmds.menuItem(l="Reset to Default",
+                      c=self.__uiCache_resetDefaults)
         self.MainLayout = cmds.scrollLayout('red9MainScroller', rc=self.__uiCB_resizeMainScroller)
         self.form = cmds.formLayout()
         self.tabs = cmds.tabLayout(innerMarginWidth=5, innerMarginHeight=5)
@@ -384,11 +455,10 @@ class AnimationUI(object):
         cmds.separator(h=5, style='none')
         cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)])
         self.uicbCAttrHierarchy = cmds.checkBox('uicbCAttrHierarchy', l='Hierarchy', al='left', v=False,
-                                                ann='Copy Attributes Hierarchy : Filter Hierarchies for transforms & joints then Match NodeNames')
-                                                #onc="cmds.checkBox('uicbCAttrToMany', e=True, v=False)")
+                                                ann='Copy Attributes Hierarchy : Filter Hierarchies for transforms & joints then Match NodeNames',
+                                                cc=lambda x: self.__uiCache_addCheckbox('uicbCAttrHierarchy'))
         self.uicbCAttrToMany = cmds.checkBox('uicbCAttrToMany', l='CopyToMany', al='left', v=False,
                                                 ann='Copy Matching Attributes from First selected to all Subsequently selected nodes')
-                                                #onc="cmds.checkBox('uicbCAttrHierarchy', e=True, v=False)")
         self.uicbCAttrChnAttrs = cmds.checkBox(ann='Copy only those channels selected in the channelBox',
                                             l='ChBox Attrs', al='left', v=False)
         cmds.setParent(self.AnimLayout)
@@ -410,7 +480,8 @@ class AnimationUI(object):
         cmds.separator(h=5, style='none')
         cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)])
         self.uicbCKeyHierarchy = cmds.checkBox('uicbCKeyHierarchy', l='Hierarchy', al='left', v=False,
-                                            ann='Copy Keys Hierarchy : Filter Hierarchies for transforms & joints then Match NodeNames')
+                                            ann='Copy Keys Hierarchy : Filter Hierarchies for transforms & joints then Match NodeNames',
+                                            cc=lambda x: self.__uiCache_addCheckbox('uicbCKeyHierarchy'))
         self.uicbCKeyToMany = cmds.checkBox('uicbCKeyToMany', l='CopyToMany', al='left', v=False,
                                             ann='Copy Animation from First selected to all Subsequently selected nodes')
         self.uicbCKeyChnAttrs = cmds.checkBox(ann='Copy only those channels selected in the channelBox',
@@ -418,12 +489,16 @@ class AnimationUI(object):
 
         cmds.setParent('..')
         cmds.separator(h=2, style='none')
-        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 70), (3, 120)], columnSpacing=[(1, 10), (2, 10)])
-        self.uicbCKeyRange = cmds.checkBox(ann='ONLY Copy Keys over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)',
-                                            l='TimeRange', al='left', v=False)
-        cmds.text(l='Paste by ', align='right')
+        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)])
+        self.uicbCKeyRange = cmds.checkBox('uicbCKeyRange', l='TimeRange', al='left', v=False,
+                                            ann='ONLY Copy Keys over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)',
+                                            cc=lambda x: self.__uiCache_addCheckbox('uicbCKeyRange'))
+        self.uicbCKeyAnimLay = cmds.checkBox('uicbCKeyAnimLay', l='MergeLayers', al='left', v=False,
+                                            ann='If AnimLayers are found pre-compile the anim and copy the resulting data',
+                                            cc=lambda x: self.__uiCache_addCheckbox('uicbCKeyAnimLay'))
+        #cmds.text(l='Paste by ', align='right')
         cmds.optionMenu('om_PasteMethod',
-                        ann='Default = "replace", paste method used by the copy code internally',
+                        ann='Paste Method Used: Default = "replace", paste method used by the copy code internally',
                         cc=partial(self.__uiCB_setCopyKeyPasteMethod))
         for preset in ["insert",
                        "replace",
@@ -453,10 +528,10 @@ class AnimationUI(object):
 
         cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)])
 
-        self.uicbSnapRange = cmds.checkBox(ann='Snap Nodes over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)',
-                                            l='TimeRange', al='left', v=False,
-                                            cc=partial(self.__uiCB_manageSnapTime))
-        self.uicbSnapPreCopyKeys = cmds.checkBox(l='PreCopyKeys', al='left',
+        self.uicbSnapRange = cmds.checkBox('uicbSnapRange', l='TimeRange', al='left', v=False,
+                                            ann='Snap Nodes over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)',
+                                            cc=self.__uiCB_manageSnapTime)
+        self.uicbSnapPreCopyKeys = cmds.checkBox('uicbSnapPreCopyKeys', l='PreCopyKeys', al='left',
                                                  ann='Copy all animation data for all channels prior to running the Snap over Time',
                                                  en=False, v=True)
         self.uiifgSnapStep = cmds.intFieldGrp('uiifgSnapStep', l='FrmStep', en=False, value1=1, cw2=(50, 40),
@@ -464,9 +539,9 @@ class AnimationUI(object):
         cmds.separator(h=2, style='none')
         cmds.separator(h=2, style='none')
         cmds.separator(h=2, style='none')
-        self.uicbSnapHierarchy = cmds.checkBox(ann='Filter Hierarchies with given args - then Snap Transforms for matched nodes',
-                                            l='Hierarchy', al='left', v=False,
-                                            cc=partial(self.__uiCB_manageSnapHierachy))
+        self.uicbSnapHierarchy = cmds.checkBox('uicbSnapHierarchy', l='Hierarchy', al='left', v=False,
+                                               ann='Filter Hierarchies with given args - then Snap Transforms for matched nodes',
+                                               cc=self.__uiCB_manageSnapHierachy)
         self.uicbSnapPreCopyAttrs = cmds.checkBox(ann='Copy all Values for all channels prior to running the Snap',
                                             l='PreCopyAttrs', al='left', en=False, v=True)
         self.uiifSnapIterations = cmds.intFieldGrp('uiifSnapIterations', l='Iterations', en=False, value1=1, cw2=(50, 40),
@@ -482,10 +557,15 @@ class AnimationUI(object):
         cmds.columnLayout(adjustableColumn=True)
         #cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)])
         cmds.rowColumnLayout(numberOfColumns=4, columnWidth=[(1, 100), (2, 55), (3, 55), (4, 100)], columnSpacing=[(1, 10), (3, 5)])
-        self.uicbStabRange = cmds.checkBox(ann='Process over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)',
-                                            l='TimeRange', al='left', v=False)
-        self.uicbStabTrans = cmds.checkBox(ann='Track the Translation data', l='Trans', al='left', v=True)
-        self.uicbStabRots = cmds.checkBox(ann='Track the Rotational data', l='Rots', al='left', v=True)
+        self.uicbStabRange = cmds.checkBox('uicbStabRange', l='TimeRange', al='left', v=False,
+                                            ann='Process over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)',
+                                            cc=lambda x: self.__uiCache_addCheckbox('uicbStabRange'))
+        self.uicbStabTrans = cmds.checkBox('uicbStabTrans', l='Trans', al='left', v=True,
+                                           ann='Track the Translation data',
+                                           cc=lambda x: self.__uiCache_addCheckbox('uicbStabTrans'))
+        self.uicbStabRots = cmds.checkBox('uicbStabRots', l='Rots', al='left', v=True,
+                                          ann='Track the Rotational data',
+                                          cc=lambda x: self.__uiCache_addCheckbox('uicbStabRots'))
         self.uiffgStabStep = cmds.floatFieldGrp('uiffgStabStep', l='Step', value1=1, cw2=(40, 50),
                                               ann='Frames to advance the timeline between Processing - accepts negative values')
         cmds.setParent('..')
@@ -515,7 +595,8 @@ class AnimationUI(object):
                                             l='Hierarchy', al='left', en=True, v=False,
                                             ann='Offset Hierarchy',
                                             ofc=partial(self.__uiCB_manageTimeOffsetChecks, 'Off'),
-                                            onc=partial(self.__uiCB_manageTimeOffsetChecks))
+                                            onc=partial(self.__uiCB_manageTimeOffsetChecks),
+                                            cc=lambda x: self.__uiCache_addCheckbox('uicbTimeOffsetHierarchy'))
               
         self.uicbTimeOffsetScene = cmds.checkBox('uicbTimeOffsetScene',
                                             l='FullScene',
@@ -523,10 +604,12 @@ class AnimationUI(object):
                                             al='left', v=False,
                                             ofc=partial(self.__uiCB_manageTimeOffsetChecks, 'Off'),
                                             onc=partial(self.__uiCB_manageTimeOffsetChecks, 'Full'))
+                                            #cc=lambda x: self.__uiCache_addCheckbox('uicbTimeOffsetScene'))
         
-        self.uicbTimeOffsetPlayback = cmds.checkBox('OffsetTimelines', l='OffsetTimelines',
+        self.uicbTimeOffsetPlayback = cmds.checkBox('uicbTimeOffsetTimelines', l='OffsetTimelines',
                                             ann='ON:Scene Level Processing: OFF:SelectedNode Processing - Offsets Animation, Sound and Clip data as appropriate',
-                                            al='left', v=False, en=False)
+                                            al='left', v=False, en=False,
+                                            cc=lambda x: self.__uiCache_addCheckbox('uicbTimeOffsetTimelines'))
 #        self.uiffgTimeOffset = cmds.floatFieldGrp('uiffgTimeOffset', l='Offset ', value1=1, cw2=(35, 50),
 #                                            ann='Frames to offset the data by')
         cmds.setParent('..')
@@ -534,7 +617,8 @@ class AnimationUI(object):
         cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)])
         self.uicbTimeOffsetRange = cmds.checkBox('uicbTimeOffsetRange',
                                             l='TimeRange', al='left', en=True, v=False,
-                                            ann='Offset nodes by range : PlaybackTimeRange or Selected TimeRange (in Red on the timeline)')
+                                            ann='Offset nodes by range : PlaybackTimeRange or Selected TimeRange (in Red on the timeline)',
+                                            cc=lambda x: self.__uiCache_addCheckbox('uicbTimeOffsetRange'))
         self.uicbTimeOffsetFlocking = cmds.checkBox('uicbTimeOffsetFlocking',
                                             l='Flocking', al='left', en=True, v=False,
                                             ann='Offset Selected Nodes by incremental amounts')
@@ -565,7 +649,8 @@ class AnimationUI(object):
         cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)])
         self.uicbMirrorHierarchy = cmds.checkBox('uicbMirrorHierarchy',
                                             l='Hierarchy', al='left', en=True, v=False,
-                                            ann='Mirror Hierarchy, or Mirror Selected nodes if they have the Mirror Marker data')
+                                            ann='Mirror Hierarchy, or Mirror Selected nodes if they have the Mirror Marker data',
+                                            cc=lambda x: self.__uiCache_addCheckbox('uicbMirrorHierarchy'))
               
         cmds.setParent('..')
         
@@ -875,11 +960,13 @@ class AnimationUI(object):
             cmds.showWindow(animwindow)
             cmds.window(self.win, edit=True, widthHeight=(355, 720))
             
+            
         #Set the initial Interface up
         self.__uiPresetsUpdate()
         self.__uiPresetReset()
         self.__uiCache_loadUIElements()
-          
+        #self.jobOnDelete=cmds.scriptJob(uiDeleted=(self.win, self.__uicloseEvent), runOnce=1)
+        
 
     # UI Callbacks
     #------------------------------------------------------------------------------
@@ -893,6 +980,7 @@ class AnimationUI(object):
             val=True
         cmds.intFieldGrp('uiifSnapIterations', e=True, en=val)
         cmds.checkBox(self.uicbSnapPreCopyAttrs, e=True, en=val)
+        self.__uiCache_addCheckbox('uicbSnapHierarchy')
             
     def __uiCB_manageSnapTime(self, *args):
         '''
@@ -903,6 +991,7 @@ class AnimationUI(object):
             val=True
         cmds.checkBox(self.uicbSnapPreCopyKeys, e=True, en=val)
         cmds.intFieldGrp('uiifgSnapStep', e=True, en=val)
+        self.__uiCache_addCheckbox('uicbSnapRange')
         
     def __uiCB_manageTimeOffsetChecks(self, *args):
         '''
@@ -1189,7 +1278,7 @@ class AnimationUI(object):
         '''
         Switch the Pose mode from Project to Local. In project mode save is disabled.
         Both have different caches to store the 2 mapped root paths
-        @param mode: 'local' or 'project', in project the poses are load only, save=disabled
+        :param mode: 'local' or 'project', in project the poses are load only, save=disabled
         '''
         if mode == 'local':
             self.posePath = os.path.join(self.posePathLocal, self.getPoseSubFolder())
@@ -1501,8 +1590,9 @@ class AnimationUI(object):
         Unselect all other iconTextCheckboxes than the currently selected
         without this you would be able to multi-select the thumbs
         
-        NOTE: because we prefix the buttons to get over the issue of non-numeric
-        first characters we now need to strip the first character back off
+        .. note:: 
+            because we prefix the buttons to get over the issue of non-numeric
+            first characters we now need to strip the first character back off
         '''
         for button in cmds.gridLayout(self.uiglPoses, q=True, ca=True):
             if current and not button[1:] == current:
@@ -1832,7 +1922,7 @@ class AnimationUI(object):
             log.debug('UI configFile being written')
             ConfigObj = configobj.ConfigObj(indent_type='\t')
             self.__uiPresetFillFilter()  # fill the internal filterSettings obj
-            
+            self.ANIM_UI_OPTVARS['AnimationUI']['ui_docked'] = self.dock
             ConfigObj['filterNode_settings'] = self.filterSettings.__dict__
             ConfigObj['AnimationUI'] = self.ANIM_UI_OPTVARS['AnimationUI']
             ConfigObj.filename = self.ui_optVarConfig
@@ -1879,6 +1969,8 @@ class AnimationUI(object):
             self.__uiCB_enableRelativeSwitches()  # relativePose switch enables
             self.__uiCB_managePoseRootMethod()  # metaRig or SetRootNode for Pose Root
             self.__uiCB_switchPosePathMode(self.posePathMode)  # pose Mode - 'local' or 'project'
+            self.__uiCB_manageSnapHierachy()  # preCopyAttrs
+            self.__uiCB_manageSnapTime()  # preCopyKeys
             
             
         except StandardError, err:
@@ -1908,7 +2000,12 @@ class AnimationUI(object):
             self.ANIM_UI_OPTVARS['AnimationUI']['checkboxes'] = {}
         self.ANIM_UI_OPTVARS['AnimationUI']['checkboxes'][checkbox] = cmds.checkBox(checkbox, q=True, v=True)
         self.__uiCache_storeUIElements()
-        
+    
+    def __uiCache_resetDefaults(self, *args):
+        defaultConfig=os.path.join(self.presetDir, '__red9animreset__')
+        if os.path.exists(defaultConfig):
+            self.ANIM_UI_OPTVARS['AnimationUI']=configobj.ConfigObj(defaultConfig)['AnimationUI']
+            self.__uiCache_loadUIElements()
         
         
     # MAIN UI FUNCTION CALLS
@@ -1938,6 +2035,7 @@ class AnimationUI(object):
         '''
         self.kws['toMany'] = cmds.checkBox(self.uicbCKeyToMany, q=True, v=True)
         self.kws['pasteKey']=cmds.optionMenu('om_PasteMethod', q=True, v=True)
+        self.kws['mergeLayers']=cmds.checkBox('uicbCKeyAnimLay', q=True, v=True)
         if cmds.checkBox(self.uicbCKeyRange, q=True, v=True):
             self.kws['time'] = timeLineRangeGet()
         if cmds.checkBox(self.uicbCKeyChnAttrs, q=True, v=True):
@@ -2277,7 +2375,29 @@ class AnimationUI(object):
 #===========================================================================
        
 class AnimFunctions(object):
+    '''
+    Most of the main Animation Functions take a settings object which is 
+    responsible for hierarchy processing. See r9Core.FilterNode and 
+    r9Core.Filter_Settings for more details. These are then passed to
+    the r9Core.MatchedNodeInputs class which is designed specifically
+    to process two hierarchies and filter them for matching pairs.
+    What this means is that all the anim functions deal with hierarchies
+    in the same manor making it very simple to extend.
     
+    Generic filters passed into r9Core.MatchedNodeInputs class:
+        * setting.nodeTypes: list[] - search for child nodes of type (wraps cmds.listRelatives types=)
+        * setting.searchAttrs: list[] - search for child nodes with Attrs of name
+        * setting.searchPattern: list[] - search for nodes with a given nodeName searchPattern
+        * setting.hierarchy: bool = lsHierarchy code to return all children from the given nodes
+        * setting.metaRig: bool = use the MetaRig wires to build the initial Object list up
+        
+    .. note:: 
+        with all the search and hierarchy settings OFF the code performs
+        a dumb copy, no matching and no Hierarchy filtering, copies using
+        selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
+
+
+    '''
     def __init__(self, **kws):
         kws.setdefault('matchMethod', 'stripPrefix')
         
@@ -2288,7 +2408,7 @@ class AnimFunctions(object):
     #===========================================================================
 
     def copyKeys_ToMultiHierarchy(self, nodes=None, time=(), pasteKey='replace',
-                 attributes=None, filterSettings=None, matchMethod=None, **kws):
+                 attributes=None, filterSettings=None, matchMethod=None, mergeLayers=True, **kws):
         '''
         This isn't the best way by far to do this, but as a quick wrapper
         it works well enough. Really we need to process the nodes more intelligently
@@ -2301,42 +2421,32 @@ class AnimFunctions(object):
                           pasteKey=pasteKey,
                           filterSettings=filterSettings,
                           toMany=False,
-                          matchMethod=matchMethod)
+                          matchMethod=matchMethod,
+                          mergeLayers=mergeLayers)
                
-
+    @r9General.Timer
     def copyKeys(self, nodes=None, time=(), pasteKey='replace', attributes=None,
-                 filterSettings=None, toMany=False, matchMethod=None, **kws):
+                 filterSettings=None, toMany=False, matchMethod=None, mergeLayers=True, **kws):
         '''
         Copy Keys is a Hi-Level wrapper function to copy animation data between
         filtered nodes, either in hierarchies or just selected pairs.
                 
-        @param nodes: List of Maya nodes to process. This combines the filterSettings
+        :param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call,
             making it capable of powerful hierarchy filtering and node matching methods.
-        @param filterSettings: Passed into the decorator and onto the FilterNode code
+        :param filterSettings: Passed into the decorator and onto the FilterNode code
             to setup the hierarchy filters - See docs on the FilterNode_Settings class
-        @param pasteKey: Uses the standard pasteKey option methods - merge,replace,
+        :param pasteKey: Uses the standard pasteKey option methods - merge,replace,
             insert etc. This is fed to the internal pasteKey method. Default=replace
-        @param time: Copy over a given timerange - time=(start,end). Default is
+        :param time: Copy over a given timerange - time=(start,end). Default is
             to use no timeRange. If time is passed in via the timeLineRange() function
             then it will consider the current timeLine PlaybackRange, OR if you have a
             highlighted range of time selected(in red) it'll use this instead.
-        @param attributes: Only copy the given attributes[]
-        @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
+        :param attributes: Only copy the given attributes[]
+        :param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
+        :paam mergeLayers: this pre-processes animLayers so that we have a single, temporary merged
+            animLayer to extract a compiled version of the animData from. This gets deleted afterwards.
         
-        Generic filters passed into r9Core.MatchedNodeInputs class:
-        #-----------------------------------------------------------------
-        @setting.nodeTypes: list[] - search for child nodes of type (wraps cmds.listRelatives types=)
-        @setting.searchAttrs: list[] - search for child nodes with Attrs of name
-        @setting.searchPattern: list[] - search for nodes with a given nodeName searchPattern
-        @setting.hierarchy: bool = lsHierarchy code to return all children from the given nodes
-        @setting.metaRig: bool = use the MetaRig wires to build the initial Object list up
-        
-        NOTE: with all the search and hierarchy settings OFF the code performs
-        a Dumb copy, no matching and no Hierarchy filtering, copies using
-        selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
-
-
         '''
         if not matchMethod:
             matchMethod=self.matchMethod
@@ -2349,6 +2459,34 @@ class AnimFunctions(object):
                                               toMany,
                                               matchMethod=matchMethod).MatchedPairs
         
+        srcNodes=[src for src, _ in nodeList]
+        
+        # FUCKING ANIM LAYERS ARE SATAN'S TESTICLES!!
+        # with very poor wrapper code in mel only!
+        #-------------------------------------------------
+        animLayers=getAnimLayersFromGivenNodes(srcNodes)
+        if animLayers:
+            if mergeLayers:
+                try:
+                    layerCache={}
+                    for layer in animLayers:
+                        layerCache[layer]={'mute':cmds.animLayer(layer, q=True, mute=True),
+                                           'locked':cmds.animLayer(layer, q=True, lock=True)}
+                    mergeAnimLayers(srcNodes, deleteBaked=False)
+
+                    #return the original mute and lock states and select the new
+                    #MergedLayer ready for the rest of teh copy code to deal with
+                    for layer,cache in layerCache.items():
+                        for layer,cache in layerCache.items():
+                            cmds.animLayer(layer, edit=True, mute=cache['mute'])
+                            cmds.animLayer(layer, edit=True, mute=cache['locked'])
+                    mel.eval("source buildSetAnimLayerMenu")
+                    mel.eval('selectLayer("Merged_Layer")')
+                except:
+                    log.debug('CopyKeys internal : AnimLayer Merge Failed')
+            else:
+                log.warning('SrcNodes have animLayers, results may be eratic unless Baked!')
+                
         if nodeList:
             with r9General.HIKContext([d for _, d in nodeList]):
                 for src, dest in nodeList:
@@ -2362,9 +2500,13 @@ class AnimFunctions(object):
                             if cmds.copyKey(src, hierarchy=False, time=time):
                                 cmds.pasteKey(dest, option=pasteKey)
                     except:
-                        pass
+                        log.debug('Failed to copyKeys between : %s >> %s' % (src, dest))
         else:
             raise StandardError('Nothing found by the Hierarchy Code to process')
+        
+        if mergeLayers:
+            if animLayers and cmds.animLayer('Merged_Layer', query=True, exists=True):
+                cmds.delete('Merged_Layer')
         return True
     
     
@@ -2394,28 +2536,15 @@ class AnimFunctions(object):
         Copy Attributes is a Hi-Level wrapper function to copy Attribute data between
         filtered nodes, either in hierarchies or just selected pairs.
                 
-        @param nodes: List of Maya nodes to process. This combines the filterSettings
+        :param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call,
             making it capable of powerful hierarchy filtering and node matching methods.
-        @param filterSettings: Passed into the decorator and onto the FilterNode code
+        :param filterSettings: Passed into the decorator and onto the FilterNode code
             to setup the hierarchy filters - See docs on the FilterNode_Settings class
-        @param attributes: Only copy the given attributes[]
-        @param skipAttrs: Copy all Settable Attributes OTHER than the given, not
+        :param attributes: Only copy the given attributes[]
+        :param skipAttrs: Copy all Settable Attributes OTHER than the given, not
             used if an attributes list is passed
-        @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
-        
-        Generic filters passed into r9Core.MatchedNodeInputs class:
-        #-----------------------------------------------------------------
-        @setting.nodeTypes: list[] - search for child nodes of type (wraps cmds.listRelatives types=)
-        @setting.searchAttrs: list[] - search for child nodes with Attrs of name
-        @setting.searchPattern: list[] - search for nodes with a given nodeName searchPattern
-        @setting.hierarchy: bool = lsHierarchy code to return all children from the given nodes
-        @setting.metaRig: bool = use the MetaRig wires to build the initial Object list up
-        
-        NOTE: with all the search and hierarchy settings OFF the code performs
-        a Dumb copy, no matching and no Hierarchy filtering, copies using
-        selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
-
+        :param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
 
         '''
         if not matchMethod:
@@ -2449,11 +2578,17 @@ class AnimFunctions(object):
                                 
                             for attr in attrs:
                                 if cmds.attributeQuery(attr, node=dest, exists=True):
-                                    log.debug('copyAttr : %s.%s > %s.%s' % (r9Core.nodeNameStrip(dest),
-                                                                    r9Core.nodeNameStrip(attr),
-                                                                    r9Core.nodeNameStrip(src),
-                                                                    r9Core.nodeNameStrip(attr)))
-                                    cmds.setAttr('%s.%s' % (dest, attr), cmds.getAttr('%s.%s' % (src, attr)))
+                                    try:
+                                        log.debug('copyAttr : %s.%s > %s.%s' % (r9Core.nodeNameStrip(dest),
+                                                                        r9Core.nodeNameStrip(attr),
+                                                                        r9Core.nodeNameStrip(src),
+                                                                        r9Core.nodeNameStrip(attr)))
+                                        cmds.setAttr('%s.%s' % (dest, attr), cmds.getAttr('%s.%s' % (src, attr)))
+                                    except:
+                                        log.debug('failed to copyAttr : %s.%s > %s.%s' % (r9Core.nodeNameStrip(dest),
+                                                                        r9Core.nodeNameStrip(attr),
+                                                                        r9Core.nodeNameStrip(src),
+                                                                        r9Core.nodeNameStrip(attr)))
                     except:
                         pass
         else:
@@ -2472,44 +2607,35 @@ class AnimFunctions(object):
         Snap objects over a timeRange. This wraps the default hierarchy filters
         so it's capable of multiple hierarchy filtering and matching methods.
         The resulting node lists are snapped over time and keyed.
-        @requires: SnapRuntime plugin to be available
+        :requires: SnapRuntime plugin to be available
         
-        @param nodes: List of Maya nodes to process. This combines the filterSettings
+        :param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call,
             making it capable of powerful hierarchy filtering and node matching methods.
-        @param filterSettings: Passed into the decorator and onto the FilterNode code
+        :param filterSettings: Passed into the decorator and onto the FilterNode code
             to setup the hierarchy filters - See docs on the FilterNode_Settings class
-        @param time: Copy over a given timerange - time=(start,end). Default is
+        :param time: Copy over a given timerange - time=(start,end). Default is
             to use no timeRange. If time is passed in via the timeLineRange() function
             then it will consider the current timeLine PlaybackRange, OR if you have a
             highlighted range of time selected(in red) it'll use this instead.
-        @param step: Time Step between processing when using kws['time'] range
+        :param step: Time Step between processing when using kws['time'] range
             this accepts negative values to run the time backwards if required
-        @param preCopyKeys: Run a CopyKeys pass prior to snap - this means that
+        :param preCopyKeys: Run a CopyKeys pass prior to snap - this means that
             all channels that are keyed have their data taken across
-        @param preCopyAttrs: Run a CopyAttrs pass prior to snap - this means that
+        :param preCopyAttrs: Run a CopyAttrs pass prior to snap - this means that
             all channel Values on all nodes will have their data taken across
-        @param iterations: Number of times to process the frame.
-        @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
-        @param prioritySnapOnly: if True ONLY snap the nodes in the filterPriority list = Super speed up!!
-        NOTE: you can also pass the CopyKey kws in to the preCopy call, see copyKeys above
+        :param iterations: Number of times to process the frame.
+        :param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
+        :param prioritySnapOnly: if True ONLY snap the nodes in the filterPriority list = Super speed up!!
         
-        NOTE: using prioritySnap with animLayers may produce unexpected results! CopyKeys doesn't yet
-        deal correctly with animLayer data when copying, it will only copy from the first active layer,
-        really need to merge layers down first!!
+        .. note:: 
+            you can also pass the CopyKey kws in to the preCopy call, see copyKeys above
         
-        Generic filters passed into r9Core.MatchedNodeInputs class:
-        #-----------------------------------------------------------------
-        @setting.nodeTypes: list[] - search for child nodes of type (wraps cmds.listRelatives types=)
-        @setting.searchAttrs: list[] - search for child nodes with Attrs of name
-        @setting.searchPattern: list[] - search for nodes with a given nodeName searchPattern
-        @setting.hierarchy: bool = lsHierarchy code to return all children from the given nodes
-        @setting.metaRig: bool = use the MetaRig wires to build the initial Object list up
+        .. note:: 
+            using prioritySnap with animLayers may produce unexpected results! CopyKeys doesn't yet
+            deal correctly with animLayer data when copying, it will only copy from the first active layer,
+            really need to merge layers down first!!
         
-        NOTE: with all the search and hierarchy settings OFF the code performs
-        a Dumb copy, no matching and no Hierarchy filtering, copies using
-        selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
-
         '''
         self.snapCacheData = {}  # TO DO - Cache the data and check after first run data is all valid
         self.nodesToSnap = []
@@ -2643,9 +2769,9 @@ class AnimFunctions(object):
         This now also allows for Component based track inputs, ie, track this
         nodes to this poly's normal
 
-        @param nodes: either single (Stabilize) or twin to track
-        @param time: [start,end] for a frameRange
-        @param step: int value for frame advance between process runs
+        :param nodes: either single (Stabilize) or twin to track
+        :param time: [start,end] for a frameRange
+        :param step: int value for frame advance between process runs
         '''
         
         #destObj = None  #Main Object being manipulated and keyed
@@ -2703,11 +2829,13 @@ class AnimFunctions(object):
             cmds.currentTime(time, e=True, u=False)
             cmds.SnapTransforms(source=snapRef, destination=destObj, timeEnabled=True, snapTranslates=trans, snapRotates=rots)
             try:
-                cmds.setKeyframe(destObj, at='translate')
+                if trans:
+                    cmds.setKeyframe(destObj, at='translate')
             except:
                 pass
             try:
-                cmds.setKeyframe(destObj, at='rotate')
+                if rots:
+                    cmds.setKeyframe(destObj, at='rotate')
             except:
                 pass
                       
@@ -2722,14 +2850,14 @@ class AnimFunctions(object):
         bindNodes is a Hi-Level wrapper function to bind animation data between
         filtered nodes, either in hierarchies or just selected pairs.
                 
-        @param nodes: List of Maya nodes to process. This combines the filterSettings
+        :param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call,
             making it capable of powerful hierarchy filtering and node matching methods.
-        @param filterSettings: Passed into the decorator and onto the FilterNode code
+        :param filterSettings: Passed into the decorator and onto the FilterNode code
             to setup the hierarchy filters - See docs on the FilterNode_Settings class
-        @param attributes: Only copy the given attributes[]
-        @param bindMethod: method of binding the data
-        @param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
+        :param attributes: Only copy the given attributes[]
+        :param bindMethod: method of binding the data
+        :param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
         #TODO: expose this to the UI's!!!!
         '''
         
@@ -2805,9 +2933,9 @@ class curveModifierContext(object):
     """
     def __init__(self, initialUndo=False, undoFuncCache=[], undoDepth=1):
         '''
-        @param initialUndo: on first process whether undo on entry to the context manager
-        @param undoFuncCache: functions to catch in the undo stack
-        @param undoDepth: depth of the undo stack to go to
+        :param initialUndo: on first process whether undo on entry to the context manager
+        :param undoFuncCache: functions to catch in the undo stack
+        :param undoDepth: depth of the undo stack to go to
         '''
         self.initialUndo = initialUndo
         self.undoFuncCache = undoFuncCache
@@ -2844,7 +2972,8 @@ class curveModifierContext(object):
 class RandomizeKeys(object):
     '''
     This is a simple implementation of a Key Randomizer, designed to add
-    noise to animations
+    noise to animations.
+    
     TODO: add in methods to generate secades type of flicking randomization, current
     implementation is too regular.
     '''
@@ -3034,13 +3163,14 @@ class RandomizeKeys(object):
                                 
     def addNoise(self, curves, time=(), step=1, currentKeys=True, randomRange=[-1, 1], damp=1, percent=False):
         '''
-        Simple noise function designed to add noise to keyframed animation data
-        @param curves: Maya animCurves to process
-        @param time: timeRange to process
-        @param step: frame step used in the processor
-        @param currentKeys: ONLY randomize keys that already exists
-        @param randomRange: range [upper, lower] bounds passed to teh randomizer
-        @param damp: damping passed into the randomizer
+        Simple noise function designed to add noise to keyframed animation data.
+        
+        :param curves: Maya animCurves to process
+        :param time: timeRange to process
+        :param step: frame step used in the processor
+        :param currentKeys: ONLY randomize keys that already exists
+        :param randomRange: range [upper, lower] bounds passed to teh randomizer
+        :param damp: damping passed into the randomizer
         '''
         if percent:
             damp=damp/100
@@ -3327,19 +3457,19 @@ class MirrorHierarchy(object):
     hierarchy. The hierarchy is filtered like everything else in the Red9
     pack, using a filterSettings node thats passed into the __init__
     
-    mirror=MirrorHierarchy(cmds.ls(sl=True)[0])
-    #set the settings object to run metaData
-    mirror.settings.metaRig=True
-    mirror.settings.printSettings()
-    mirror.mirrorData(mode='Anim')
+    >>> mirror=MirrorHierarchy(cmds.ls(sl=True)[0])
+    >>> #set the settings object to run metaData
+    >>> mirror.settings.metaRig=True
+    >>> mirror.settings.printSettings()
+    >>> mirror.mirrorData(mode='Anim')
     
     TODO: We need to do a UI for managing these marker attrs and the Index lists
     '''
     
     def __init__(self, nodes=[], filterSettings=None, **kws):
         '''
-        @param nodes: initial nodes to process
-        @param filterSettings: filterSettings object to process hierarchies
+        :param nodes: initial nodes to process
+        :param filterSettings: filterSettings object to process hierarchies
         '''
         
         self.nodes = nodes
@@ -3354,6 +3484,10 @@ class MirrorHierarchy(object):
         self.mirrorDict = {'Centre': {}, 'Left': {}, 'Right': {}}
         self.kws = kws  # allows us to pass kws into the copyKey and copyAttr call if needed, ie, pasteMethod!
         #print 'kws in Mirror call : ', self.kws
+        
+        #cache the function pointers for speed
+        self.transferCallKeys = AnimFunctions().copyKeys
+        self.transferCallAttrs = AnimFunctions().copyAttributes
         
         # make sure we have a settings object
         if filterSettings:
@@ -3386,16 +3520,19 @@ class MirrorHierarchy(object):
         
     def setMirrorIDs(self, node, side=None, slot=None, axis=None):
         '''
-        Add/Set the default attrs required by the MirrorSystems
-        @param node: nodes to take the attrs
-        @param side: valid values are 'Centre','Left' or 'Right' or 0, 1, 2
-        @param slot: bool Mainly used to pair up left and right paired controllers
-        @param axis: eg 'translateX,rotateY,rotateZ' simple comma separated string
+        Add/Set the default attrs required by the MirrorSystems.
+        
+        :param node: nodes to take the attrs
+        :param side: valid values are 'Centre','Left' or 'Right' or 0, 1, 2
+        :param slot: bool Mainly used to pair up left and right paired controllers
+        :param axis: eg 'translateX,rotateY,rotateZ' simple comma separated string
             If this is set then it overrides the default mirror axis.
             These are the channels who have their attribute/animCurve values inversed
             during mirror. NOT we allow axis to have a null string 'None' so it can be
             passed in blank when needed
-        NOTE: slot index can't be ZERO
+            
+        .. note:: 
+            slot index can't be ZERO
         '''
         # Note using the MetaClass as all the type checking
         # and attribute handling is done for us
@@ -3559,13 +3696,13 @@ class MirrorHierarchy(object):
         '''
         objs = cmds.ls(sl=True, l=True)
         if mode == 'Anim':
-            transferCall = AnimFunctions().copyKeys
+            transferCall = self.transferCallKeys  # AnimFunctions().copyKeys
         else:
-            transferCall = AnimFunctions().copyAttributes
+            transferCall = self.transferCallAttrs  # AnimFunctions().copyAttributes
         
         # switch the anim data over via temp
         cmds.select(objA)
-        cmds.duplicate(name='DELETE_ME_TEMP')
+        cmds.duplicate(name='DELETE_ME_TEMP', po=True)
         temp = cmds.ls(sl=True, l=True)[0]
         log.debug('temp %s:' % temp)
         transferCall([objA, temp], **self.kws)
@@ -3585,10 +3722,10 @@ class MirrorHierarchy(object):
         '''
         self.getMirrorSets(nodes)
         if mode == 'Anim':
-            transferCall = AnimFunctions().copyKeys
+            transferCall = self.transferCallKeys  # AnimFunctions().copyKeys
             inverseCall = AnimFunctions.inverseAnimChannels
         else:
-            transferCall = AnimFunctions().copyAttributes
+            transferCall = self.transferCallAttrs  # AnimFunctions().copyAttributes
             inverseCall = AnimFunctions.inverseAttributes
             
         if primeAxis == 'Left':
@@ -3955,12 +4092,15 @@ class CameraTracker():
         CameraTracker is a simple wrap over the internal viewFit call but this manages the data
         over time. Works by taking the current camera, in the current 3dView, and fitting it to
         frame the currently selected objects per frame, or rather per frameStep.
-        @param start: start frame
-        @param end: end frame
-        @param step: frame step to increment between fit
-        @param fixed: switch between tracking or panning framing fit
-        @param keepOffset: keep the current camera offset rather than doing a full viewFit
-        TODO: add option for cloning the camera rather than using the current directly
+        
+        :param start: start frame
+        :param end: end frame
+        :param step: frame step to increment between fit
+        :param fixed: switch between tracking or panning framing fit
+        :param keepOffset: keep the current camera offset rather than doing a full viewFit
+        
+        TODO:: 
+            add option for cloning the camera rather than using the current directly
         '''
         if not cmds.ls(sl=True):
             raise StandardError('Nothing selected to Track!')

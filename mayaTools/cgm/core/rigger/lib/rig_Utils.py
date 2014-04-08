@@ -1,15 +1,12 @@
 """
-cgmLimb
-Josh Burton (under the supervision of David Bokser:)
-www.cgmonks.com
-1/12/2011
+------------------------------------------
+rig_Utils: cgm.core.rigger.lib
+Author: Josh Burton
+email: jjburton@cgmonks.com
+Website : http://www.cgmonks.com
+------------------------------------------
 
-Key:
-1) Class - Limb
-    Creates our rig objects
-2)  
-
-
+================================================================
 """
 # From Python =============================================================
 import copy
@@ -1294,26 +1291,49 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
     on twist methods.
 
     The general idea is a joint chain with a start control and and end control. Full twist, squash and stretch, additive scale ability
-
-    @kws
-    jointList(list) -- jointList of joints to setup
-    influenceJoints(list) -- influence joints for setup segment
-    addSquashStretch(bool) -- whether to setup squash and stretch in the segment
-    addTwist(bool)-- whether tto setup extra twist control
-    startControl(inst/str) -- start control object
-    startControl(inst/str) -- end control object
-    segmentType(str) -- currently only support 'curve' type.
-    rotateGroupAxis(str) -- the rotate axis of the rotate group for a twist setup
-    secondaryAxis(arg) -- pass through command for other functions
-    baseName(str) -- basename for various naming
-    advancedTwistSetup(bool) -- pass through command to createCurveSegment
-    additiveScaleSetup(bool) -- whether to setup additive scale
-    connectAdditiveScale(bool) --whether to connect additive scale
-    orientation(str) -- joint orientation
-    controlOrientation(str) --control orientation. Important as it sets which channels will drive twist and additive scale
-    moduleInstance(arg) -- 
-
-    """
+    
+    :parameters:
+        jointList(list) | jointList of joints to setup
+        influenceJoints(list) | influence joints for setup segment
+        addSquashStretch(bool) | whether to setup squash and stretch in the segment
+        addTwist(bool)| whether tto setup extra twist control
+        startControl(inst/str) | start control object
+        startControl(inst/str) | end control object
+        segmentType(str) | currently only support 'curve' type.
+        rotateGroupAxis(str) | the rotate axis of the rotate group for a twist setup
+        secondaryAxis(arg) | pass through command for other functions
+        baseName(str) | basename for various naming
+        advancedTwistSetup(bool) | pass through command to createCurveSegment
+        additiveScaleSetup(bool) | whether to setup additive scale
+        connectAdditiveScale(bool) |whether to connect additive scale
+        orientation(str) | joint orientation
+        controlOrientation(str) |control orientation. Important as it sets which channels will drive twist and additive scale
+        moduleInstance(arg) | 
+    :returns:
+        Dict ------------------------------------------------------------------
+	'mi_anchorStart'
+	'mi_anchorStart'
+	'mi_anchorEnd'
+	'mPlug_extendTwist'
+	'mi_constraintStartAim'
+	'mi_constraintEndAim'
+	'mi_endAimConstraint'
+	'mi_segmentCurve'(cgmObject) | segment curve
+	'segmentCurve'(str) | segment curve string
+	'mi_ikHandle'(cgmObject) | spline ik Handle
+	'mi_segmentGroup'(cgmObject) | segment group containing most of the guts
+	'l_driverJoints'(list) | list of string driver joint names
+	'ml_driverJoints'(metalist) | cgmObject instances of driver joints
+	'scaleBuffer'(str) | scale buffer node
+	'mi_scaleBuffer'(cgmBufferNode) | scale buffer node for the setup
+	'mPlug_extendTwist'(cgmAttr) | extend twist attribute instance
+	'l_drivenJoints'(list) | list of string driven joint names
+	'ml_drivenJoints'(metalist) | cgmObject instances of driven joints
+	
+    :raises:
+	Exception | if reached
+	
+    """      
     _str_funcName = 'createCGMSegment'
     log.info(">>> %s >> "%_str_funcName + "="*75)   
     
@@ -1736,11 +1756,17 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         mi_segmentCurve.connectChildNode(i_attachEndNull,'attachEnd','segmentCurve')
 
     except Exception,error:
-        log.error("createCGMSegment>>Info storage fail!")
-
-    return {'mi_segmentCurve':mi_segmentCurve,'mi_anchorStart':i_anchorStart,'mi_anchorEnd':i_anchorEnd,'mPlug_extendTwist':mPlug_extendTwist,
-            'mi_constraintStartAim':i_startAimConstraint,'mi_constraintEndAim':i_endAimConstraint}
-
+        log.error("createCGMSegment>>Info storage fail! |  error: {0}".format(error))
+    
+    try:#Return ========================================================================================
+	md_return = {'mi_segmentCurve':mi_segmentCurve,'mi_anchorStart':i_anchorStart,'mi_anchorEnd':i_anchorEnd,'mPlug_extendTwist':mPlug_extendTwist,
+	             'mi_constraintStartAim':i_startAimConstraint,'mi_constraintEndAim':i_endAimConstraint}
+	for k in d_segmentBuild.keys():
+	    if k not in md_return.keys():
+		md_return[k] = d_segmentBuild[k]#...push to the return dict
+	return md_return
+    except Exception,error:
+        log.error("createCGMSegment>>return fail| error: {0}".format(error))
 
 
 def controlSurfaceSmoothWeights(controlSurface,start = None, end = None):
@@ -1912,6 +1938,41 @@ def controlCurveTightenEndWeights(curve,start = None, end = None, blendLength = 
 
 def createSegmentCurve(*args,**kws):
     class fncWrap(cgmGeneral.cgmFuncCls):
+	"""
+	Root of the segment setup.
+	Inspiriation from Jason Schleifer's work as well as http://faithofthefallen.wordpress.com/2008/10/08/awesome-spine-setup/
+	on twist methods.
+    	
+	:parameters:
+	    0 - 'jointList'(joints - None) | List or metalist of joints
+	    1 - 'useCurve'(nurbsCurve - None) | Which curve to use. If None. One Created
+	    2 - 'orientation'(string - zyx) | What is the joints orientation
+	    3 - 'secondaryAxis'(maya axis arg(ex:'yup') - yup) | Only necessary when no module provide for orientating
+	    4 - 'baseName'(string - None) | baseName string
+	    5 - 'connectBy'(string - trans) | How the joint will scale
+	    6 - 'advancedTwistSetup'(bool - False) | Whether to do the cgm advnaced twist setup
+	    7 - 'addMidTwist'(bool - True) | Whether to setup a mid twist on the segment
+	    8 - 'moduleInstance'(cgmModule - None) | cgmModule to use for connecting on build
+	    9 - 'extendTwistToEnd'(bool - False) | Whether to extned the twist to the end by default
+	    
+	:returns:
+	    Dict ------------------------------------------------------------------
+	    'mi_segmentCurve'(cgmObject) | segment curve
+	    'segmentCurve'(str) | segment curve string
+	    'mi_ikHandle'(cgmObject) | spline ik Handle
+	    'mi_segmentGroup'(cgmObject) | segment group containing most of the guts
+	    'l_driverJoints'(list) | list of string driver joint names
+	    'ml_driverJoints'(metalist) | cgmObject instances of driver joints
+	    'scaleBuffer'(str) | scale buffer node
+	    'mi_scaleBuffer'(cgmBufferNode) | scale buffer node for the setup
+	    'mPlug_extendTwist'(cgmAttr) | extend twist attribute instance
+	    'l_drivenJoints'(list) | list of string driven joint names
+	    'ml_drivenJoints'(metalist) | cgmObject instances of driven joints
+	    
+	:raises:
+	    Exception | if reached
+	    
+	"""   	
 	def __init__(self,*args,**kws):
 	    """
 	    """
@@ -1919,7 +1980,6 @@ def createSegmentCurve(*args,**kws):
 	    self._str_funcName= "createSegmentCurve"
 	    self._b_reportTimes = True
 	    self._b_autoProgressBar = 1
-	    self._str_funcHelp = "This is our general purpose spline IK segment\nIt has lots of features:)"
 	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'jointList',"default":None,'help':"List or metalist of joints","argType":"joints"},
 	                                 {'kw':'useCurve',"default":None,'help':"Which curve to use. If None. One Created","argType":"nurbsCurve"},
 	                                 {'kw':'orientation',"default":'zyx','help':"What is the joints orientation","argType":"string"},
@@ -2365,7 +2425,7 @@ def createSegmentCurve(*args,**kws):
 	    except Exception,error:
 		raise StandardError,"[fix twists]{%s}"%(error) 
 	    
-	    try:#>>>Hook up scales #==========================================================================
+	    try:#>>>Hook up stretch/scale #==========================================================================
 		#Buffer
 		mi_jntScaleBufferNode = cgmMeta.cgmBufferNode(name = self.str_baseName,overideMessageCheck=True)
 		mi_jntScaleBufferNode.addAttr('cgmType','distanceBuffer')
@@ -2391,62 +2451,79 @@ def createSegmentCurve(*args,**kws):
 		    #Store our distance base to our buffer
 		    try:mi_jntScaleBufferNode.store(ml_distanceShapes[i].distance)#Store to our buffer
 		    except Exception,error:raise StandardError,"[Failed to store joint distance: %s]{%s}"%(ml_distanceShapes[i].mNode,error)
-	    
-		    #Create the normalized base distance
-		    mi_mdNormalBaseDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
-		    mi_mdNormalBaseDist.operation = 1
-		    mi_mdNormalBaseDist.doStore('cgmName',mJnt.mNode)
-		    mi_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
-		    mi_mdNormalBaseDist.doName()
-	    
-		    attributes.doConnectAttr('%s.masterScale'%(mi_jntScaleBufferNode.mNode),#>>
-		                             '%s.%s'%(mi_mdNormalBaseDist.mNode,'input1X'))
-		    attributes.doConnectAttr('%s.%s'%(mi_jntScaleBufferNode.mNode,mi_jntScaleBufferNode.d_indexToAttr[i]),#>>
-		                             '%s.%s'%(mi_mdNormalBaseDist.mNode,'input2X'))	
-		    mPlug_attrNormalBaseDist.doConnectIn('%s.%s'%(mi_mdNormalBaseDist.mNode,'output.outputX'))
-
-		    #Create the normalized distance
-		    mi_mdNormalDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
-		    mi_mdNormalDist.operation = 1
-		    mi_mdNormalDist.doStore('cgmName',mJnt.mNode)
-		    mi_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
-		    mi_mdNormalDist.doName()
-	    
-		    attributes.doConnectAttr('%s.masterScale'%(mi_jntScaleBufferNode.mNode),#>>
-		                             '%s.%s'%(mi_mdNormalDist.mNode,'input1X'))
-		    mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdNormalDist.mNode,'input2X'))	
-		    mPlug_attrNormalDist.doConnectIn('%s.%s'%(mi_mdNormalDist.mNode,'output.outputX'))
-	
-		    #Create the mdNode
-		    mi_mdSegmentScale = cgmMeta.cgmNode(nodeType='multiplyDivide')
-		    mi_mdSegmentScale.operation = 2
-		    mi_mdSegmentScale.doStore('cgmName',mJnt.mNode)
-		    mi_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
-		    mi_mdSegmentScale.doName()
-		    mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input1X'))	
-		    mPlug_attrNormalBaseDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input2X'))
-		    mPlug_attrResult.doConnectIn('%s.%s'%(mi_mdSegmentScale.mNode,'output.outputX'))
-
-		    #Append our data
-		    ml_distanceAttrs.append(mPlug_attrDist)
-		    ml_resultAttrs.append(mPlug_attrResult)
 		    
-		    #Connect to the joint	    
+		    
+		    
+		    
 		    if self.str_connectBy.lower() in ['translate','trans']:
+			#Let's build our args
+			l_argBuild = []
+			#distance by master
+			l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalBaseDist.p_combinedShortName,
+			                                           '{0}.{1}'.format(mi_jntScaleBufferNode.mNode,mi_jntScaleBufferNode.d_indexToAttr[i]),
+			                                           "{0}.masterScale".format(mi_jntScaleBufferNode.mNode)))
+			l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalDist.p_combinedShortName,
+			                                           mPlug_attrDist.p_combinedShortName,
+			                                           "{0}.masterScale".format(mi_jntScaleBufferNode.mNode)))			
+			for arg in l_argBuild:
+			    self.log_info("Building: {0}".format(arg))
+			    NodeF.argsToNodes(arg).doBuild()
 			#Still not liking the way this works with translate scale. looks fine till you add squash and stretch
 			try:
 			    mPlug_attrDist.doConnectIn('%s.%s'%(ml_distanceShapes[i].mNode,'distance'))		        
 			    mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_joints[i+1].mNode,str_orientation[0]))
 			    mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_driverJoints[i+1].mNode,str_orientation[0]))    	    
-			except Exception,error:raise StandardError,"[Failed to connect joint attrs by translate: %s]{%s}"%(mJnt.mNode,error)	
+			except Exception,error:raise StandardError,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		    
 		    else:
-			try:
+			mi_mdNormalBaseDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
+			mi_mdNormalBaseDist.operation = 1
+			mi_mdNormalBaseDist.doStore('cgmName',mJnt.mNode)
+			mi_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
+			mi_mdNormalBaseDist.doName()
+		
+			attributes.doConnectAttr('%s.masterScale'%(mi_jntScaleBufferNode.mNode),#>>
+			                         '%s.%s'%(mi_mdNormalBaseDist.mNode,'input1X'))
+			attributes.doConnectAttr('%s.%s'%(mi_jntScaleBufferNode.mNode,mi_jntScaleBufferNode.d_indexToAttr[i]),#>>
+			                         '%s.%s'%(mi_mdNormalBaseDist.mNode,'input2X'))	
+			mPlug_attrNormalBaseDist.doConnectIn('%s.%s'%(mi_mdNormalBaseDist.mNode,'output.outputX'))
+    
+			#Create the normalized distance
+			mi_mdNormalDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
+			mi_mdNormalDist.operation = 1
+			mi_mdNormalDist.doStore('cgmName',mJnt.mNode)
+			mi_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
+			mi_mdNormalDist.doName()
+		
+			attributes.doConnectAttr('%s.masterScale'%(mi_jntScaleBufferNode.mNode),#>>
+			                         '%s.%s'%(mi_mdNormalDist.mNode,'input1X'))
+			mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdNormalDist.mNode,'input2X'))	
+			mPlug_attrNormalDist.doConnectIn('%s.%s'%(mi_mdNormalDist.mNode,'output.outputX'))
+	    
+			#Create the mdNode
+			mi_mdSegmentScale = cgmMeta.cgmNode(nodeType='multiplyDivide')
+			mi_mdSegmentScale.operation = 2
+			mi_mdSegmentScale.doStore('cgmName',mJnt.mNode)
+			mi_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
+			mi_mdSegmentScale.doName()
+			mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input1X'))	
+			mPlug_attrNormalBaseDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input2X'))
+			mPlug_attrResult.doConnectIn('%s.%s'%(mi_mdSegmentScale.mNode,'output.outputX'))	
+			
+			try:#Connect
 			    mPlug_attrDist.doConnectIn('%s.%s'%(ml_distanceShapes[i].mNode,'distance'))		        
 			    mPlug_attrResult.doConnectOut('%s.s%s'%(mJnt.mNode,str_orientation[0]))
 			    mPlug_attrResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,str_orientation[0]))
+			except Exception,error:raise StandardError,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		    
+			
+			ml_mainMDs.append(mi_mdSegmentScale)#store the md
 	    
-			except Exception,error:raise StandardError,"[Failed to connect joint attrs by scale: %s]{%s}"%(mJnt.mNode,error)	
-		    ml_mainMDs.append(mi_mdSegmentScale)#store the md
+		    #Create the normalized base distance
+
+
+		    #Append our data
+		    ml_distanceAttrs.append(mPlug_attrDist)
+		    ml_resultAttrs.append(mPlug_attrResult)
+		    
 	
 		for axis in [str_orientation[1],str_orientation[2]]:
 		    attributes.doConnectAttr('%s.s%s'%(mJnt.mNode,axis),#>>
@@ -3488,7 +3565,11 @@ def create_spaceLocatorForObject(obj,parentTo = False):
             i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	
     
             log.debug("constraintGroup: '%s'"%i_constraintGroup.getShortName())		
-    except Exception,error:raise StandardError,"%s >> parent | %s"%(_str_funcName,error)  
+    except Exception,error:raise StandardError,"%s >> parent | %s"%(_str_funcName,error) 
+    
+    try:#change to cgmControl
+	i_control = cgmMeta.cgmControl(i_control.mNode, setClass=1)
+    except Exception,error:raise StandardError,"%s >> cgmControl conversion | %s"%(_str_funcName,error) 
     
     return i_control
 

@@ -157,7 +157,7 @@ mPlug_testValueAttr.doCopySettingsTo(mPlug_testStringAttr)#...let's copy setting
 #Transfer-------------------------------------------------------------------------------------------
 mPlug_testValueAttr.p_combinedName#...just checking in where it is
 mPlug_catch = mPlug_testValueAttr.doTransferTo(mi_catchObj)
-mPlug_catch.p_combinedName#...hope our attr likes it's new home...:)
+mPlug_catch.p_combinedName#...hope our attr likes its new home...:)
 #==============================================================================================
 
 

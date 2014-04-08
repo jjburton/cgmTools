@@ -25,9 +25,9 @@ import copy
 #First we're gonna make some objects to deal with, say 5
 ml_cgmObjects = []
 for i in range(5):
-	mObj= cgmMeta.cgmObject(mc.joint(p = [0,0,2*i],name = 'generatedCGMObject_%i'%i))
-	ml_cgmObjects.append(mObj)
-	
+    mObj= cgmMeta.cgmObject(mc.joint(p = [0,0,2*i],name = 'generatedCGMObject_%i'%i))
+    ml_cgmObjects.append(mObj)
+
 #Neat,now we have a few joints to play with...let's play
 ml_cgmObjects[1].p_parent = False #We're gonna parent the idx 1 joint to the world by passing it false
 

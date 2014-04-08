@@ -500,7 +500,7 @@ class AnimBinderUI(object):
 
         cmds.separator(h=20, style="none")
         cmds.iconTextButton(style='iconOnly', bgc=(0.7,0,0), image1='Rocket9_buttonStrap2.bmp',
-                                 c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200 )
+                                 c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200)
         cmds.showWindow(self.win)
         
     @classmethod
@@ -528,7 +528,7 @@ def GetBoundControls(rootNode=None):
     return [node for node in cmds.listRelatives(rootNode, ad=True, f=True)\
              if cmds.attributeQuery('BoundCtr', exists=True, node=node)]
 
-def BakeBinderData(rootNode=None):
+def BakeBinderData(rootNode=None, ignoreInFilter=[]):
     '''
     From a given Root Node search all children for the 'BoundCtr' attr marker. If none
     were found then search for the BindNode attr and use the message links to walk to
@@ -565,9 +565,10 @@ def BakeBinderData(rootNode=None):
                     cmds.deleteAttr('%s.BoundCtr' % node)
                 except StandardError,error:
                     log.info(error)
-                    
+            if ignoreInFilter:
+                BoundCtrls = [node for node in BoundCtrls if node.split('|')[-1].split(':')[-1] not in ignoreInFilter]
             cmds.filterCurve(BoundCtrls)
-            cmds.delete(BoundCtrls,sc=True)  # static channels
+            cmds.delete(BoundCtrls, sc=True)  # static channels
         except StandardError,error:
             raise StandardError(error)
     else:
@@ -623,7 +624,7 @@ def BindSkeletons(source, dest, method='connect'):
                 pass
     
 
-def MakeStabilizedNode(nodeName=None):
+def MakeStabilizedNode(nodeName=None, centered=True):
     '''
     Very simple proc to generate a Stabilized node for
     raw MoCap tracking purposes... First selected node
@@ -631,15 +632,19 @@ def MakeStabilizedNode(nodeName=None):
     aim's worldUp
     '''
     RequiredMarkers = pm.ls(sl=True, l=True)
-    AimAt = RequiredMarkers[0]
-    WorldUpObj = RequiredMarkers[1]
-
-    
     #pos = pm.xform(WorldUpObj, q=True, ws=True, t=True)
-    Curve = pm.curve(ws=True, d=1, p=(0, 0, 0), k=0)
+    curve = pm.curve(ws=True, d=1, p=(0, 0, 0), k=0)
     
-    pm.pointConstraint(RequiredMarkers,Curve)
-    pm.aimConstraint((AimAt, Curve),
+    if centered:
+        AimAt = RequiredMarkers[0]
+        WorldUpObj = RequiredMarkers[1]
+        pm.pointConstraint(RequiredMarkers, curve)
+    else:
+        AimAt = RequiredMarkers[1]
+        WorldUpObj = RequiredMarkers[2]
+        pm.pointConstraint(RequiredMarkers[0], curve)
+
+    pm.aimConstraint((AimAt, curve),
                      weight=1,
                      aimVector=(0, 0, 1),
                      upVector=(0, 1, 0),
@@ -648,7 +653,7 @@ def MakeStabilizedNode(nodeName=None):
         
     #Snap a curveKnot to the pivot of all referenceMarkers
     for node in RequiredMarkers:
-        pm.curve(Curve, a=True, ws=True, p=(pm.xform(node, q=True, ws=True, t=True)))
-    pm.curve(Curve, a=True, ws=True, p=(pm.xform(AimAt, q=True, ws=True, t=True)))
+        pm.curve(curve, a=True, ws=True, p=(pm.xform(node, q=True, ws=True, t=True)))
+    pm.curve(curve, a=True, ws=True, p=(pm.xform(AimAt, q=True, ws=True, t=True)))
     
-    return Curve
+    return curve

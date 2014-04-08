@@ -463,7 +463,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			MelMenuItem( use_parent, l="%s"%a,
 		                     c = Callback(i_switch.go,a))						
 		except StandardError,error:
-		    log.info("Failed to build dynSwitch for: %s | %s"%(i_o.getShortName(),error))	
+		    log.info("Failed to build dynSwitch for: %s | %s"%(i_module.getShortName(),error))	
 		try:#module basic menu
 		    MelMenuItem( use_parent, l="Key",
 		                 c = Callback(i_module.animKey))							
@@ -577,13 +577,15 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			    
 		else:
 		    MelMenuItem(parent,l="-- %s --"%i_puppet.cgmName,en = False)
+		'''
 		try:#To build dynswitch
 		    i_switch = i_puppet.rigNull.dynSwitch
 		    for a in i_switch.l_dynSwitchAlias:
 			MelMenuItem( use_parent, l="%s"%a,
 		                     c = Callback(i_switch.go,a))						
 		except StandardError,error:
-		    log.info("Failed to build dynSwitch for: %s | %s"%(i_o.getShortName(),error))	
+		    log.info("Failed to build dynSwitch for: %s | %s"%(i_puppet.getShortName(),error))	
+		'''
 		try:#puppet basic menu
 		    MelMenuItem( use_parent, l="Key",
 		                 c = Callback(i_puppet.anim_key))							
