@@ -37,6 +37,7 @@ _str_hardLine = '='*100
 _str_hardBreak = '=' * 125
 _str_headerDiv = '///'
 _str_baseStart = "--"
+_d_KWARG_stopAtStep = {'kw':'stopAtStep',"default":None, 'help':"Step of a cgmFuncToStopAt", "argType":"int/str"}
 
 class cgmFuncCls(object):  
     '''
@@ -63,6 +64,7 @@ class cgmFuncCls(object):
 	self._b_reportTimes = False
 	self._b_pushCleanKWs = False
 	self._str_lastLog = None
+	self._int_stopStep = None
 	self._l_ARGS_KWS_DEFAULTS = []
 	self._l_ARGS_KWS_BUILTINS = [{'kw':'reportShow',"default":False,'help':"show report at start of log","argType":"bool"},
 	                             {'kw':'reportTimes',"default":False,'help':"show step times in log","argType":"bool"},
@@ -70,7 +72,8 @@ class cgmFuncCls(object):
 	                             {'kw':'reportToDo',"default":False,'help':"Override. Get to do list for func","argType":"bool"},	                                 
 	                             {'kw':'printHelp',"default":False,'help':"Override.  Get help block for func","argType":"bool"},
 	                             {'kw':'setLogLevel',"default":None,'help':"Set the debug level on call","argType":"str"},
-	                             {'kw':'autoProgressBar',"default":False,'help':"Show generated progress bar by steps","argType":"bool"}]	
+	                             {'kw':'autoProgressBar',"default":False,'help':"Show generated progress bar by steps","argType":"bool"},
+	                             {'kw':'stopAtStep',"default":None, 'help':"Step of a cgmFuncToStopAt", "argType":"int/str"}]	
 	self.d_kws  = {}
 	self.l_funcSteps = []
 	self.d_return = {}
@@ -82,7 +85,7 @@ class cgmFuncCls(object):
 	self._l_warnings = []
 	#These are our mask so that the fail report ignores them
 	self._l_reportMask = ['_b_pushCleanKWs','_str_lastLog','_l_ARGS_KWS_BUILTINS','_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
-	                      '_b_autoProgressBar','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
+	                      '_b_autoProgressBar','_int_stopStep','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
 	
@@ -149,11 +152,26 @@ class cgmFuncCls(object):
 	                             {'kw':'setLogLevel',"default":None,'help':"(BUILTIN) - Set the debug level on call","argType":"str"},
 	                             {'kw':'autoProgressBar',"default":False,'help':"(BUILTIN) - show generated progress bar by steps","argType":"bool"}]
 	'''    
+	#Minor validation of built ins
 	if self.d_kws.get('autoProgressBar'):self._b_autoProgressBar = True
 	if self.d_kws.get('reportTimes'):self._b_reportTimes = True
+	
+
 		
     def __func__(self,*args,**kws):
 	raise StandardError,"{0} No function set".format(self._str_reportStart)
+    
+    def validate_stopAtStep(self):
+	__stopAtStep = self.d_kws.get('stopAtStep')
+	if __stopAtStep is not None:
+	    if type(__stopAtStep) is int:
+		self.log_debug("stopAtStep is int")
+		if __stopAtStep is 0:
+		    self.log_warning("a stopAtStep of 0 is pointless as no steps will execute. Will stop anyway.")		    
+		if __stopAtStep <= (len(self.l_funcSteps)-1):
+		    self.log_debug("stopAtStep in range")		    
+		    self._int_stopStep = __stopAtStep
+		else:self.log_debug("stopAtStep NOT in range")		    
         
     def _ExceptionHook_(self, etype, value, tb, detail=2):
 	# do something here...
@@ -200,6 +218,7 @@ class cgmFuncCls(object):
 	"""
 	self._Exception  = None
 	self._ExceptionError = None
+	self.validate_stopAtStep()
 	
 	if self.d_kws.get('printHelp'):
 	    self.printHelp()
@@ -227,6 +246,13 @@ class cgmFuncCls(object):
 	    else:kws = _d_cleanKWS	
 	    
 	for i,d_step in enumerate(self.l_funcSteps):
+	    
+	    if self._int_stopStep is not None and i >= self._int_stopStep:
+		self.log_info("Stop at step reached | Skipped the following...")
+		for ii,d_step in enumerate(self.l_funcSteps[self._int_stopStep:]):
+		    _str_step = d_step.get('step') or False
+		    self.log_info("Step: {0} | {1}".format(ii + self._int_stopStep, _str_step))		    
+		break
 	    t1 = time.clock()	    
 	    try:
 		try:
@@ -335,7 +361,7 @@ class cgmFuncCls(object):
 		if k not in self._l_reportMask:
 		    buffer = self.__dict__[k]
 		    if type(buffer) is dict:
-			self.log_info("{'%s'}(nested) "%k)
+			self.log_info("('{0}' -- nested dict)".format(k))
 			l_bufferKeys = buffer.keys()
 			l_bufferKeys.sort()
 			for k2 in l_bufferKeys:
@@ -472,7 +498,10 @@ class cgmFuncCls(object):
 	except:pass	
     def log_debug(self,arg):
 	try:
-	    log.debug("[DEBUG]%s%s"%(self._str_reportStart,str(arg)))
+	    if self._str_step:
+		log.debug("[DEBUG]{0}{1} | {2}".format(self._str_reportStart,self._str_step,str(arg)))				
+	    else:
+		log.debug("[DEBUG]{0}{1}".format(self._str_reportStart,str(arg)))
 	    self._str_lastLog = arg	    
 	except:pass	
     #>>> Progress bar stuff =====================================================================
