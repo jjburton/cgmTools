@@ -46,6 +46,74 @@ reload(distance)
 
 #>>> Utilities
 #===================================================================
+def returnNormalizedUV(mesh, uValue, vValue):
+    """
+    uv Values from many functions need to be normalized to be correct when using those values for other functions
+    
+    The calculcaion for doing so is 
+    size = maxV - minV
+    sum = rawV + minV
+    normalValue = sum / size
+    
+    :parameters:
+	mesh(string) | Surface to normalize to
+	uValue(float) | uValue to normalize 
+	vValue(float) | vValue to normalize 
+
+    :returns:
+	Dict ------------------------------------------------------------------
+	'uv'(double2) |  point from which we cast
+	'uValue'(float) | normalized uValue
+	'vValue'(float) | normalized vValue
+	
+    :raises:
+	Exception | if reached
+	
+    """      
+    try:
+	_str_funcName = 'returnNormalizedUV'
+
+	try:#Validation ----------------------------------------------------------------
+	    mesh = cgmValid.objString(mesh,'nurbsSurface', calledFrom = _str_funcName)
+	    if len(mc.ls(mesh))>1:
+		raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
+	    _str_objType = search.returnObjectType(mesh)
+	    
+	    l_shapes = mc.listRelatives(mesh, shapes=True)
+	    if len(l_shapes)>1:
+		log.debug( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(mesh,l_shapes) )
+	    mi_shape = cgmMeta.validateObjArg(l_shapes[0],cgmMeta.cgmNode,noneValid=False)
+	    
+	    uMin = mi_shape.mnu
+	    uMax = mi_shape.mxu
+	    vMin = mi_shape.mnv
+	    vMax = mi_shape.mxv
+	    
+	except Exception,error:raise Exception,"Validation failure | {0}".format(error) 		
+
+	try:#Calculation ----------------------------------------------------------------
+	    uSize = uMax - uMin
+	    vSize = vMax - vMin
+	    
+	    uSum = uMin + uValue
+	    vSum = vMin + vValue
+	    
+	    uNormal = uSum / uSize
+	    vNormal = vSum / vSize
+	except Exception,error:raise Exception,"Calculation |{0}".format(error) 		
+	    
+	try:
+	    d_return = {'uv':[uNormal,vNormal],'uValue':uNormal,'vValue':vNormal}
+	    return d_return 
+	except Exception,error:raise Exception,"Return prep |{0}".format(error) 		
+
+    except Exception,error:
+	log.error(">>> {0} >> Failure! mesh: '{1}' | uValue: {2} | vValue {3}".format(_str_funcName,mesh,uValue,vValue))
+	log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
+	return None
+
+
+
 def attachObjToSurface(*args,**kws):
     """
     objToAttach = None
