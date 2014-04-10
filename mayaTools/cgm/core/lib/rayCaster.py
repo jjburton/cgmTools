@@ -1,32 +1,25 @@
-#=================================================================================================================================================
-#=================================================================================================================================================
-#	DraggerContextFactory - a part of cgmTools
-#=================================================================================================================================================
-#=================================================================================================================================================
-#
-# DESCRIPTION:
-#	Classes and functions for DraggerContext
-#
-#
-# AUTHOR:
-# 	Josh Burton
-#	http://www.cgmonks.com
-# 	Copyright 2012 CG Monks - All Rights Reserved.
-#
-# ACKNOWLEDGEMENTS:
-#   Morgan Loomis
-# 	http://forums.cgsociety.org/archive/index.php/t-983068.html
-# 	http://forums.cgsociety.org/archive/index.php/t-1002257.html
-# 	https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
-#======================================================================================================================
+"""
+------------------------------------------
+rayCaster: cgm.core.lib.rayCaster
+Author: Josh Burton
+email: jjburton@cgmonks.com
+Website : http://www.cgmonks.com
+------------------------------------------
+
+ACKNOWLEDGEMENTS:
+   Samaneh Momtazmand -- r&d for casting with surfaces
+================================================================
+"""
 import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
 from zooPyMaya import apiExtensions
+from cgm.core.lib import surface_Utils as surfUtils
 
 from cgm.lib import (locators,
                      dictionary,
+                     search,
                      cgmMath,
                      lists,
                      geo,
@@ -146,208 +139,362 @@ def findSurfaceIntersection(surface, raySource, rayDir, maxDistance = 1000):
     except StandardError,error:
         log.error(">>> %s >> mesh: %s | raysource: %s | rayDir %s | error: %s"%(_str_funcName,surface,raySource,rayDir,error))
         return None
-    
-def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000):
+   
+
+def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance = .1):
     """
+    Return the closest point on a surface from a raySource and rayDir. Can't process uv point for surfaces yet
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
+    Thanks to Samaneh Momtazmand for doing the r&d to get this working with surfaces
+    
+    :parameters:
+        mesh(string) | Surface to cast at
+        raySource(double3) | point from which to cast in world space
+        rayDir(vector) | world space vector
+	maxDistance(float) | Maximum cast distance 
+	tolerance(float) | Tolerance for cast (surface cast mode only) 
 
-    Return the closest point on a surface from a raySource and rayDir
-
-    Arguments
-    mesh(string) -- currently poly surface only
-    raySource(double3) -- point in world space
-    rayDir(double3) -- world space vector
-
-    returns hitpoint(double3)
-    """    
+    :returns:
+        Dict ------------------------------------------------------------------
+	'source'(double3) |  point from which we cast
+	'hit'(double3) | world space points | active during single return
+	'hits'(list) | world space points | active during multi return
+	'uv'(double2) | uv on surface of hit | only works for mesh surfaces
+	
+    :raises:
+	Exception | if reached
+	
+    """      
     try:
         _str_funcName = 'findMeshIntersection'
-        log.debug(">>> %s >> "%_str_funcName + "="*75)           
-        if len(mc.ls(mesh))>1:
-            raise StandardError,"findMeshIntersection>>> More than one mesh named: %s"%mesh    
-    
-        #Create an empty selection list.
-        selectionList = om.MSelectionList()
-    
-        #Put the mesh's name on the selection list.
-        selectionList.add(mesh)
-    
-        #Create an empty MDagPath object.
-        meshPath = om.MDagPath()
-    
-        #Get the first item on the selection list (which will be our mesh)
-        #as an MDagPath.
-        selectionList.getDagPath(0, meshPath)
-    
-        #Create an MFnMesh functionset to operate on the node pointed to by
-        #the dag path.
-        meshFn = om.MFnMesh(meshPath)
-    
-        #Convert the 'raySource' parameter into an MFloatPoint.
-        raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
-    
-        #Convert the 'rayDir' parameter into an MVector.`
-        rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
-    
-        #Create an empty MFloatPoint to receive the hit point from the call.
-        hitPoint = om.MFloatPoint()
-    
-        log.debug("maxDistance: %s"%maxDistance)
-    
-        #Set up a variable for each remaining parameter in the
-        #MFnMesh::closestIntersection call. We could have supplied these as
-        #literal values in the call, but this makes the example more readable.
-        sortIds = False
-        maxDist = maxDistance#om.MDistance.internalToUI(1000000)# This needs work    
-        #maxDist = om.MDistance.internalToUI(maxDistance) # This needs work
-        bothDirections = False
-        noFaceIds = None
-        noTriangleIds = None
-        noAccelerator = None
-        noHitParam = None
-        noHitFace = None
-        noHitTriangle = None
-        noHitBary1 = None
-        noHitBary2 = None
-    
-        #Get the closest intersection.
-        gotHit = meshFn.closestIntersection(
-            raySource, rayDirection,
-            noFaceIds, noTriangleIds,
-            sortIds, om.MSpace.kWorld, maxDist, bothDirections,
-            noAccelerator,
-            hitPoint,
-            noHitParam, noHitFace, noHitTriangle, noHitBary1, noHitBary2)
-    
+
+        try:
+            if len(mc.ls(mesh))>1:
+                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
+            _str_objType = search.returnObjectType(mesh)
+            if _str_objType not in ['mesh','nurbsSurface']:
+                raise ValueError,"Object type not supported | type: {0}".format(_str_objType)
+	    
+	    #Create an empty selection list.
+	    selectionList = om.MSelectionList()
+
+	    #Convert the 'raySource' parameter into an MFloatPoint.
+	    #raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
+	    mPoint_raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
+	
+	    #Convert the 'rayDir' parameter into an MVector.`
+	    mVec_rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
+	
+	    #Create an empty MFloatPoint to receive the hit point from the call.
+	    mPoint_hit = om.MFloatPoint()
+	    
+	    #centerPointVector = om.MFloatVector(centerPoint[0],centerPoint[1],centerPoint[2]) 
+	    #rayDir = om.MFloatPoint(centerPointVector - raySourceVector)
+	    maxDist = maxDistance
+	    spc = om.MSpace.kWorld	
+	    
+        except Exception,error:
+            raise ValueError,"Validation fail |0}".format(error)    
+        
+        try:
+	    if _str_objType == 'nurbsSurface': 
+		log.debug("{0} | Surface cast mode".format(_str_funcName))
+		
+		surfaceShape = mc.listRelatives(mesh, s=1)[0]
+
+		mPoint_raySource = om.MPoint(raySource[0], raySource[1], raySource[2])
+		mVec_rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
+		mPoint_hit = om.MPoint()    
+		selectionList = om.MSelectionList()
+		selectionList.add(surfaceShape)
+		surfacePath = om.MDagPath()
+		selectionList.getDagPath(0, surfacePath)
+		surfaceFn = om.MFnNurbsSurface(surfacePath)		
+	
+		#other variables 
+		#uSU = om.MScriptUtil()
+		#vSU = om.MScriptUtil()
+		#uPtr = uSU.asDoublePtr()
+		#vPtr = vSU.asDoublePtr()		
+		mPoint_u = om.doublePtr()
+		mPoint_v = om.doublePtr()
+		
+		#Get the closest intersection.
+		gotHit = surfaceFn.intersect(mPoint_raySource,
+		                             mVec_rayDirection,
+		                             mPoint_u, mPoint_v,mPoint_hit, tolerance, spc, False, None, False, None)
+
+	    elif _str_objType == 'mesh':
+		log.debug("{0} | Mesh cast mode".format(_str_funcName))
+		
+		#Put the mesh's name on the selection list.
+		selectionList.add(mesh)
+	    
+		#Create an empty MDagPath object.
+		meshPath = om.MDagPath()
+	    
+		#Get the first item on the selection list (which will be our mesh)
+		#as an MDagPath.
+		selectionList.getDagPath(0, meshPath)
+	    
+		#Create an MFnMesh functionset to operate on the node pointed to by
+		#the dag path.
+		meshFn = om.MFnMesh(meshPath)
+	    
+		#Set up a variable for each remaining parameter in the
+		#MFnMesh::closestIntersection call. We could have supplied these as
+		#literal values in the call, but this makes the example more readable.
+		sortIds = False
+		#maxDist = maxDistance#om.MDistance.internalToUI(1000000)# This needs work    
+		#maxDist = om.MDistance.internalToUI(maxDistance) # This needs work
+		bothDirections = False
+		noFaceIds = None
+		noTriangleIds = None
+		noAccelerator = None
+		noHitParam = None
+		noHitFace = None
+		noHitTriangle = None
+		noHitBary1 = None
+		noHitBary2 = None
+		
+		#Get the closest intersection.
+		gotHit = meshFn.closestIntersection(
+		    mPoint_raySource, mVec_rayDirection,
+		    noFaceIds, noTriangleIds,
+		    sortIds, om.MSpace.kWorld, maxDist, bothDirections,
+		    noAccelerator,
+		    mPoint_hit,
+		    noHitParam, noHitFace, noHitTriangle, noHitBary1, noHitBary2)
+	    
+		#Get the closest intersection.
+		#gotHit=meshFn.closestIntersection(raySource,rayDirection,None,None,False,spc,maxDist,False,None,hitPoint,None,None,None,None,None)
+	    else : raise ValueError,"Wrong surface type!"
+        except Exception,error:
+            raise Exception,"Cast fail |{0}".format(error) 
+		    
         #Return the intersection as a Pthon list.
+	d_return = {}
         if gotHit:
             #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
-            hitMPoint = om.MPoint(hitPoint) # Thank you Capper on Tech-artists.org          
+	    hitMPoint = om.MPoint(mPoint_hit) # Thank you Capper on Tech-artists.org          
             pArray = [0.0,0.0]
             x1 = om.MScriptUtil()
             x1.createFromList( pArray, 2 )
             uvPoint = x1.asFloat2Ptr()
             uvSet = None
             closestPolygon=None
-            uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
-    
-            uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
-            vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
-            log.debug("Hit! [%s,%s,%s]"%(hitPoint.x, hitPoint.y, hitPoint.z))
-            if uValue and vValue:
-                return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z],'uv':[uValue,vValue]}                
-            else:
-                return {'hit':[hitPoint.x, hitPoint.y, hitPoint.z],'source':[raySource.x,raySource.y,raySource.z],'uv':False}
-        else:
-            return {}    
-    except StandardError,error:
-        log.error(">>> %s >> mesh: %s | raysource: %s | rayDir %s | error: %s"%(_str_funcName,mesh,raySource,rayDir,error))
+	    log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_funcName,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
+	        
+	    d_return['hit'] = [mPoint_hit.x, mPoint_hit.y, mPoint_hit.z]
+	    d_return['source'] = [mPoint_raySource.x,mPoint_raySource.y,mPoint_raySource.z]
+	    try:
+		if _str_objType == 'mesh':
+		    uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
+	
+		    uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
+		    vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+		    if uValue and vValue:
+			d_return['uv'] = [uValue,vValue]		    
+		else:
+		    uRaw = mPoint_u.value()
+		    vRaw = mPoint_v.value()
+		    __d = surfUtils.returnNormalizedUV(mesh,uRaw,vRaw)#normalize data
+		    
+		    d_return['l_rawUV'] = [uRaw,vRaw]
+		    d_return['uv'] = __d['uv']
+		    
+	    except Exception,error:raise Exception,"Uv Processing failure |{0}".format(error) 		
+	return d_return 
+    except Exception,error:
+        log.error(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_funcName,mesh,raySource,rayDir))
+        log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
         return None
     
-def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000):
+def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance = .1):
     """
+    Return the closest points on a surface from a raySource and rayDir. Can't process uv point for surfaces yet
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
+    Thanks to Samaneh Momtazmand for doing the r&d to get this working with surfaces
+    
+    :parameters:
+        mesh(string) | Surface to cast at
+        raySource(double3) | point from which to cast in world space
+        rayDir(vector) | world space vector
+	maxDistance(value) | Maximum cast distance 
 
-    Return the pierced points on a surface from a raySource and rayDir
-
-    Arguments
-    mesh(string) -- currently poly surface only
-    raySource(double3) -- point in world space
-    rayDir(double3) -- world space vector
-
-    returns hitpoints(list) -- [pos1,pos2...]
-    """    
+    :returns:
+        Dict ------------------------------------------------------------------
+	'source'(double3) |  point from which we cast
+	'hits'(list) | world space points
+	'uvs'(list) | uv on surface of hit | only works for mesh surfaces
+	
+    :raises:
+	Exception | if reached
+	
+    """      
     try:
         _str_funcName = 'findMeshIntersections'
-        log.debug(">>> %s >> "%_str_funcName + "="*75)       
-        if len(mc.ls(mesh))>1:
-            raise StandardError,"findMeshIntersections>>> More than one mesh named: %s"%mesh       
-        #Create an empty selection list.
-        selectionList = om.MSelectionList()
-    
-        #Put the mesh's name on the selection list.
-        selectionList.add(mesh)
-    
-        #Create an empty MDagPath object.
-        meshPath = om.MDagPath()
-    
-        #Get the first item on the selection list (which will be our mesh)
-        #as an MDagPath.
-        selectionList.getDagPath(0, meshPath)
-    
-        #Create an MFnMesh functionset to operate on the node pointed to by
-        #the dag path.
-        meshFn = om.MFnMesh(meshPath)
-    
-        #Convert the 'raySource' parameter into an MFloatPoint.
-        raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
-    
-        #Convert the 'rayDir' parameter into an MVector.`
-        rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
-    
-        #Create an empty MFloatPoint to receive the hit point from the call.
-        hitPoints = om.MFloatPointArray()
-    
-        #Set up a variable for each remaining parameter in the
-        #MFnMesh::allIntersections call. We could have supplied these as
-        #literal values in the call, but this makes the example more readable.
-        sortIds = False
-        maxDist = maxDistance#om.MDistance.internalToUI(1000000)# This needs work    
-        bothDirections = False
-        noFaceIds = None
-        noTriangleIds = None
-        noHitParam = None
-        noSortHits = False
-        noHitFace = None
-        noHitTriangle = None
-        noHitBary1 = None
-        noHitBary2 = None
-        tolerance = 0
-        noAccelerator = None
-    
-        #Get the closest intersection.
-        gotHit = meshFn.allIntersections(
-            raySource,
-            rayDirection,
-            noFaceIds,
-            noTriangleIds,
-            sortIds,
-            om.MSpace.kWorld,
-            maxDist,
-            bothDirections,
-            noAccelerator,
-            noSortHits,
-            hitPoints, noHitParam, noHitFace, noHitTriangle, noHitBary1, noHitBary2,tolerance)
-    
+
+        try:
+            if len(mc.ls(mesh))>1:
+                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
+            _str_objType = search.returnObjectType(mesh)
+            if _str_objType not in ['mesh','nurbsSurface']:
+                raise ValueError,"Object type not supported | type: {0}".format(_str_objType)
+	    
+	    #Create an empty selection list.
+	    selectionList = om.MSelectionList()
+
+	    #Convert the 'raySource' parameter into an MFloatPoint.
+	    #raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
+	    mPoint_raySource = om.MFloatPoint(raySource[0], raySource[1], raySource[2])
+	
+	    #Convert the 'rayDir' parameter into an MVector.`
+	    mVec_rayDirection = om.MFloatVector(rayDir[0], rayDir[1], rayDir[2])
+	
+	    #Create an empty MFloatPoint to receive the hit point from the call.
+	    mPointArray_hits = om.MFloatPointArray()
+	    
+	    #centerPointVector = om.MFloatVector(centerPoint[0],centerPoint[1],centerPoint[2]) 
+	    #rayDir = om.MFloatPoint(centerPointVector - raySourceVector)
+	    maxDist = maxDistance
+	    spc = om.MSpace.kWorld	
+	    
+        except Exception,error:
+            raise ValueError,"Validation fail |0}".format(error)    
+        
+        try:
+	    if _str_objType == 'nurbsSurface': 
+		log.debug("{0} | Surface cast mode".format(_str_funcName))
+		centerPoint = mc.xform(mesh, q=1, ws=1, t=1)    
+		surfaceShape = mc.listRelatives(mesh, s=1)[0]
+		
+		mPointArray_hits = om.MPointArray()
+		mPoint_raySource = om.MPoint(raySource[0], raySource[1], raySource[2])
+		mVec_rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
+			
+		selectionList = om.MSelectionList()
+		selectionList.add(surfaceShape)
+		surfacePath = om.MDagPath()
+		selectionList.getDagPath(0, surfacePath)
+		surfaceFn = om.MFnNurbsSurface(surfacePath)
+		
+		#Get the closest intersection.
+		mPointArray_u = om.MDoubleArray()
+		mPointArray_v = om.MDoubleArray()	
+		spc = om.MSpace.kWorld
+	
+		#Get the closest intersection.
+		'''
+		d_kws = {'raySource':mPoint_raySource,
+		         'rayDirection':mVec_rayDirection,
+		         'u':u,
+		         'v':v,
+		         'mPointArray':mPointArray_hits,
+		         'space':spc}
+		for k in d_kws.keys():
+			print ("# {0} | {1}".format(k,d_kws[k]))
+		'''
+		gotHit = surfaceFn.intersect(mPoint_raySource,
+		                             mVec_rayDirection,
+		                             mPointArray_u,mPointArray_v,mPointArray_hits,
+		                             tolerance,
+		                             spc,False,None,False,None)
+		
+	    elif _str_objType == 'mesh':
+		log.debug("{0} | Mesh cast mode".format(_str_funcName))
+		
+		#Put the mesh's name on the selection list.
+		selectionList.add(mesh)
+	    
+		#Create an empty MDagPath object.
+		meshPath = om.MDagPath()
+	    
+		#Get the first item on the selection list (which will be our mesh)
+		#as an MDagPath.
+		selectionList.getDagPath(0, meshPath)
+	    
+		#Create an MFnMesh functionset to operate on the node pointed to by
+		#the dag path.
+		meshFn = om.MFnMesh(meshPath)
+	    
+		#Set up a variable for each remaining parameter in the
+		#MFnMesh::closestIntersection call. We could have supplied these as
+		#literal values in the call, but this makes the example more readable.
+		sortIds = False
+		bothDirections = False
+		noFaceIds = None
+		noTriangleIds = None
+		noHitParam = None
+		noSortHits = False
+		noHitFace = None
+		noHitTriangle = None
+		noHitBary1 = None
+		noHitBary2 = None
+		tolerance = 0
+		noAccelerator = None
+		
+		#Get the closest intersection.
+		gotHit = meshFn.allIntersections(
+		    mPoint_raySource,
+		    mVec_rayDirection,
+		    noFaceIds,
+		    noTriangleIds,
+		    sortIds,
+		    om.MSpace.kWorld,
+		    maxDist,
+		    bothDirections,
+		    noAccelerator,
+		    noSortHits,
+		    mPointArray_hits, noHitParam, noHitFace, noHitTriangle, noHitBary1, noHitBary2,tolerance)
+		
+	    else : raise ValueError,"Wrong surface type!"
+        except Exception,error:
+            raise Exception,"Cast fail |{0}".format(error) 
+		    
         #Return the intersection as a Pthon list.
-        if gotHit:        
-            returnDict = {}
-            hitList = []
-            uvList = []
-            for i in range( hitPoints.length() ):
-                hitList.append( [hitPoints[i].x, hitPoints[i].y,hitPoints[i].z])
+	d_return = {}
+	l_hits = []
+	l_uv = []	
+	l_rawUV = []
+        if gotHit:
+	    for i in range( mPointArray_hits.length() ):
+		l_hits.append( [mPointArray_hits[i].x, mPointArray_hits[i].y,mPointArray_hits[i].z])
     
-                #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
-                hitMPoint = om.MPoint(hitPoints[i]) # Thank you Capper on Tech-artists.org          
-                pArray = [0.0,0.0]
-                x1 = om.MScriptUtil()
-                x1.createFromList( pArray, 2 )
-                uvPoint = x1.asFloat2Ptr()
-                uvSet = None
-                closestPolygon=None
-                uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
+		#Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
+		mPoint_hit = om.MPoint(mPointArray_hits[i]) # Thank you Capper on Tech-artists.org          
+		log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_funcName,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
+		
+		pArray = [0.0,0.0]
+		x1 = om.MScriptUtil()
+		x1.createFromList( pArray, 2 )
+		uvPoint = x1.asFloat2Ptr()
+		uvSet = None
+		closestPolygon=None
+		if _str_objType == 'mesh':
+		    uvReturn = meshFn.getUVAtPoint(mPoint_hit,uvPoint,om.MSpace.kWorld)
+		    uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
+		    vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+		    if uValue and vValue:
+			l_uv.append([uValue,vValue])
+		else:#Nurbs
+		    uRaw = mPointArray_u[i]
+		    vRaw =  mPointArray_v[i]
+		    __d = surfUtils.returnNormalizedUV(mesh,uRaw,vRaw)#normalize data
+		    
+		    l_rawUV.append([uRaw,vRaw])
+		    l_uv.append(__d['uv'])
     
-                uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
-                vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
-                uvList.append([uValue,vValue])
-    
-            returnDict = {'hits':hitList,'source':[raySource.x,raySource.y,raySource.z],'uvs':uvList}
-    
-            return returnDict
-        else:
-            return None   
-    except StandardError,error:
-        log.error(">>> %s >> mesh: %s | raysource: %s | rayDir %s | error: %s"%(_str_funcName,mesh,raySource,rayDir,error))
+	    d_return['hits'] = l_hits
+	    d_return['source'] = [mPoint_raySource.x,mPoint_raySource.y,mPoint_raySource.z]	    
+	    if l_uv:
+		d_return['uvs'] = l_uv
+	    if l_rawUV:
+		d_return['uvsRaw'] = l_rawUV
+	return d_return 
+    except Exception,error:
+        log.error(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_funcName,mesh,raySource,rayDir))
+        log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
         return None
     
 def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, maxDistance = 1000, singleReturn = True):
@@ -409,6 +556,8 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
                     l_pos = [d_posReturn.get('hit'),d_negReturn.get('hit')]
                     pos = distance.returnAveragePointPosition(l_pos)          
                     l_positions.append(pos)
+		else:
+		    raise RuntimeError,"No hit deteted. Object isn't in the mesh"
             if len(l_positions) == 1:
                 l_pos =  l_positions[0]
             else:
@@ -426,7 +575,9 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
         return l_pos
     except StandardError,error:
         for kw in [mesh,obj,axisToCheck,vector,maxDistance,maxIterations]:
-            log.debug("%s"%kw)        
+            log.debug("%s"%kw)  
+	try:mc.delete(loc)
+	except:pass
         raise StandardError, "%s >> error: %s"%(_str_funcName,error)
 
 def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
