@@ -309,7 +309,7 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
                 str_mayaTypes_formatted = ', '.join(l_mayaTypes)
                 fmt_args = [arg, str_argMayaType, str_mayaTypes_formatted]
 
-                raise TypeError('Arg {0} is type {1}, expected {2}'.format(*fmt_args))
+                raise TypeError("Arg {0} is type '{1}', expected '{2}'".format(*fmt_args))
 
     if result is None and isTransform:
         if not mc.objectType(arg, isType="transform"):
@@ -337,7 +337,7 @@ def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False
         list
 
     """
-    log.debug("validateArgs.objString arg={0}".format(arg))
+    log.debug("validateArgs.objString arg={0}".format(l_args))
 
     _str_funcRoot = 'objStringList'
     if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,l_args)    
