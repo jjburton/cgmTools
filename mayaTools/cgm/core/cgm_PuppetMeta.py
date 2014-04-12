@@ -778,7 +778,6 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	
 	#>>> Watch groups
         self.addAttr('autoPickerWatchGroups',attrType = 'message',lock=True)#These groups will setup pickers for all sub groups of them	
-	
         self.doName()
 	
 	#MasterNull
@@ -792,6 +791,8 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
 
 	self.i_masterNull.doStore('cgmName', self.mNode + '.cgmName')	
+	self.i_masterNull.doStore('cgmTypeModifier', 'customizationAsset')	
+	
 	#self.masterNull.addAttr('cgmName',self.cgmName,attrType = 'string',lock=True)
 	self.i_masterNull.doName()
 	attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
@@ -802,7 +803,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	l_baseGroups = ['noTransform','geo','customGeo','hairGeo',
 	                'clothesGeo','baseGeo','bsGeo']
 	l_geoGroups = ['customGeo','bsGeo','baseGeo']
-	l_customGeoGroups = ['clothesGeo','hairGeo','earGeo','eyeballGeo','eyebrowGeo']
+	l_customGeoGroups = ['clothesGeo','hairGeo','earGeo','eyeballGeo','eyebrowGeo','uprTeethGeo','lwrTeethGeo','tongueGeo']
 	l_earGeoGroups = ['left_earGeo','right_earGeo']
 	l_eyeGeoGroups = ['left_eyeGeo','right_eyeGeo']	
 	l_bsTargetGroups = ['faceTargets','bodyTargets']
@@ -813,77 +814,79 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	l_autoPickerWatchAttrs = ['left_earGeo','right_earGeo','left_eyeGeo','right_eyeGeo']
 	l_autoPickerWatchGroups = []
 	for attr in l_baseGroups + l_customGeoGroups+ l_bsTargetGroups + l_bsBodyTargets + l_bsFaceTargets + l_earGeoGroups + l_eyeGeoGroups:
-	    #if log.getEffectiveLevel() == 10:log.debug('On attr: %s'%attr)
-	    self.i_masterNull.addAttr(attr+'Group',attrType = 'messageSimple', lock = True)
-	    grp = attributes.returnMessageObject(self.masterNull.mNode,attr+'Group')# Find the group
-	    Attr = 'i_' + attr+'Group'#Get a better attribute store string           
-	    if mc.objExists( grp ):
-		#If exists, initialize it
-		self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
-		#if log.getEffectiveLevel() == 10:log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
-		#if log.getEffectiveLevel() == 10:log.debug(self.__dict__[Attr].mNode)
-
-	    else:#Make it
-		#if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
-		self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
-		self.__dict__[Attr].doName()
-		#self.i_masterNull.connectChildNode(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
-		self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
-		
-		#if log.getEffectiveLevel() == 10:log.debug("Initialized as 'self.%s'"%(Attr))         
-		
-	    #>>> Special data parsing to get things named how we want
-	    if 'left' in attr and not self.__dict__[Attr].hasAttr('cgmDirection'):
-		buffer = self.__dict__[Attr].cgmName
-		buffer = buffer.split('left_')
-		self.__dict__[Attr].doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
-		self.__dict__[Attr].doStore('cgmDirection','left')
-	    if 'right' in attr and not self.__dict__[Attr].hasAttr('cgmDirection'):
-		buffer = self.__dict__[Attr].cgmName
-		buffer = buffer.split('right_')
-		self.__dict__[Attr].doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
-		self.__dict__[Attr].doStore('cgmDirection','right')
-		
-	    if 'Targets' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier'):
-		buffer = self.__dict__[Attr].cgmName
-		buffer = buffer.split('Targets')
-		self.__dict__[Attr].doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
-		self.__dict__[Attr].doStore('cgmTypeModifier','targets',overideMessageCheck = True)
-		self.__dict__[Attr].doName()
-		
-	    if 'Geo' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier'):
-		buffer = self.__dict__[Attr].cgmName
-		buffer = buffer.split('Geo')
-		self.__dict__[Attr].doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
-		self.__dict__[Attr].doStore('cgmTypeModifier','geo',overideMessageCheck = True)
-		self.__dict__[Attr].doName()
-		
-	    # Few Case things
-	    #==============            
-	    if attr == 'geo':
-		self.__dict__[Attr].doParent(self.i_noTransformGroup)
-	    elif attr in l_geoGroups:
-		self.__dict__[Attr].doParent(self.i_geoGroup)	
-	    elif attr in l_customGeoGroups:
-		self.__dict__[Attr].doParent(self.i_customGeoGroup)
-	    elif attr in l_earGeoGroups:
-		self.__dict__[Attr].doParent(self.i_earGeoGroup)
-	    elif attr in l_eyeGeoGroups:
-		self.__dict__[Attr].doParent(self.i_eyeballGeoGroup)	    
-	    elif attr in l_bsTargetGroups:
-		self.__dict__[Attr].doParent(self.i_bsGeoGroup)
-	    elif attr in l_bsFaceTargets:
-		self.__dict__[Attr].doParent(self.i_faceTargetsGroup)
-	    elif attr in l_bsBodyTargets:
-		self.__dict__[Attr].doParent(self.i_bodyTargetsGroup)	    
-	    else:    
-		self.__dict__[Attr].doParent(self.i_masterNull)
-		
-	    if attr in l_autoPickerWatchAttrs:#append to our list to store
-		l_autoPickerWatchGroups.append(self.__dict__[Attr].mNode)
-
-	    attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
-	
+	    try:
+		#if log.getEffectiveLevel() == 10:log.debug('On attr: %s'%attr)
+		self.i_masterNull.addAttr(attr+'Group',attrType = 'messageSimple', lock = True)
+		grp = attributes.returnMessageObject(self.masterNull.mNode,attr+'Group')# Find the group
+		Attr = 'i_' + attr+'Group'#Get a better attribute store string           
+		if mc.objExists( grp ):
+		    #If exists, initialize it
+		    self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
+		    #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
+		    #if log.getEffectiveLevel() == 10:log.debug(self.__dict__[Attr].mNode)
+    
+		else:#Make it
+		    #if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
+		    self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
+		    self.__dict__[Attr].doName()
+		    #self.i_masterNull.connectChildNode(self.__dict__[Attr].mNode, attr+'Group','puppet') #Connect the child to the holder
+		    self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
+		    
+		    #if log.getEffectiveLevel() == 10:log.debug("Initialized as 'self.%s'"%(Attr))         
+		    
+		#>>> Special data parsing to get things named how we want
+		if 'left' in attr and not self.__dict__[Attr].hasAttr('cgmDirection'):
+		    buffer = self.__dict__[Attr].cgmName
+		    buffer = buffer.split('left_')
+		    self.__dict__[Attr].doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
+		    self.__dict__[Attr].doStore('cgmDirection','left')
+		if 'right' in attr and not self.__dict__[Attr].hasAttr('cgmDirection'):
+		    buffer = self.__dict__[Attr].cgmName
+		    buffer = buffer.split('right_')
+		    self.__dict__[Attr].doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
+		    self.__dict__[Attr].doStore('cgmDirection','right')
+		    
+		if 'Targets' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier'):
+		    buffer = self.__dict__[Attr].cgmName
+		    buffer = buffer.split('Targets')
+		    self.__dict__[Attr].doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
+		    self.__dict__[Attr].doStore('cgmTypeModifier','targets',overideMessageCheck = True)
+		    self.__dict__[Attr].doName()
+		    
+		if 'Geo' in attr and not self.__dict__[Attr].hasAttr('cgmTypeModifier'):
+		    buffer = self.__dict__[Attr].cgmName
+		    buffer = buffer.split('Geo')
+		    self.__dict__[Attr].doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
+		    self.__dict__[Attr].doStore('cgmTypeModifier','geo',overideMessageCheck = True)
+		    self.__dict__[Attr].doName()
+		    
+		# Few Case things
+		#==============            
+		if attr == 'geo':
+		    self.__dict__[Attr].doParent(self.i_noTransformGroup)
+		elif attr in l_geoGroups:
+		    self.__dict__[Attr].doParent(self.i_geoGroup)	
+		elif attr in l_customGeoGroups:
+		    self.__dict__[Attr].doParent(self.i_customGeoGroup)
+		elif attr in l_earGeoGroups:
+		    self.__dict__[Attr].doParent(self.i_earGeoGroup)
+		elif attr in l_eyeGeoGroups:
+		    self.__dict__[Attr].doParent(self.i_eyeballGeoGroup)	    
+		elif attr in l_bsTargetGroups:
+		    self.__dict__[Attr].doParent(self.i_bsGeoGroup)
+		elif attr in l_bsFaceTargets:
+		    self.__dict__[Attr].doParent(self.i_faceTargetsGroup)
+		elif attr in l_bsBodyTargets:
+		    self.__dict__[Attr].doParent(self.i_bodyTargetsGroup)	    
+		else:    
+		    self.__dict__[Attr].doParent(self.i_masterNull)
+		    
+		if attr in l_autoPickerWatchAttrs:#append to our list to store
+		    l_autoPickerWatchGroups.append(self.__dict__[Attr].mNode)
+    
+		attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
+	    except Exception,error:
+		log.error("'{0}' Group check fail. | attr: '{1}' | error: {2}".format(self.p_nameShort,attr,error))
 	self.autoPickerWatchGroups = l_autoPickerWatchGroups#store them
 	# Master Curve
 	#==================================================================
@@ -900,6 +903,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    self.i_masterControl.__verify__()
 	self.i_masterControl.parent = self.i_masterNull.mNode
 	self.i_masterControl.doName()
+	
 	
 	# Vis setup
 	# Setup the vis network
