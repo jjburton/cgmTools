@@ -15,8 +15,7 @@ import copy
 import re
 
 #TEMP
-import cgm.core
-cgm.core._reload()
+#import cgm.core
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 import logging

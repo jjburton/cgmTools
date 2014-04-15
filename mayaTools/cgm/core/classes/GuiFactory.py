@@ -34,10 +34,7 @@ else:
     currentGenUI = False
     
 #>>> From cgm ==============================================================
-from cgm.lib.classes import NameFactory as nFactory
-reload(nFactory)
 from cgm.core import cgm_Meta as cgmMeta
-
 from cgm.lib import (search,
                      guiFactory,
                      dictionary)
@@ -145,7 +142,7 @@ class cgmGUI(mUI.BaseMelWindow):
         if args:args[0] = fullName
         if kws and 'varName' in kws.keys():kws.pop('varName')
         self.__dict__['var_%s'%varName] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
-        log.info('var_%s'%varName)
+        log.debug('var_%s'%varName)
         if fullName not in self.l_optionVars:
             self.l_optionVars.append(fullName)
 	return fullName
