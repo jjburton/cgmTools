@@ -4454,7 +4454,7 @@ class NameFactory(object):
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================  
-def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMorpheusMakerNetwork'],dataType = ''):
+def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMorpheusMakerNetwork'],dataType = '',asMeta = False):
     """
     Meant to be a faster get command than Mark's for nodes we only want initializeOnly mode
     """
@@ -4472,11 +4472,16 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
 		returnList.append(i_o.mNode)
     """
     checkList = mc.ls(type='network')
-    returnList = []
+    l_return = []
     for o in checkList:
 	if attributes.doGetAttr(o,'mClass') in mTypes:
-	    returnList.append(o)
-    return returnList
+	    l_return.append(o)
+    if asMeta:
+	ml_return = []
+	for o in l_return:
+	    ml_return.append(r9Meta.MetaClass(o))
+	return ml_return
+    return l_return
 
 #=======================================================================================================      
 # Argument validation
