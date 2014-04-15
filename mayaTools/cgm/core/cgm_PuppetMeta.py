@@ -952,12 +952,12 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	#if log.getEffectiveLevel() == 10:log.debug(">>> cgmMorpheusMakerNetwork.doChangeName")	
 	controlsLeft = self.getMessage('controlsLeft')
 	if not controlsLeft:
-	    log.warning("No left controls. Aborting check.")
+	    log.warning("{0} | No left controls. Aborting check.".format(self.p_nameShort))
 	    return False
 	
 	controlsRight = self.getMessage('controlsRight')	
 	if not controlsRight:
-	    log.warning("No right controls. Aborting check.")
+	    log.warning("{0} | No right controls. Aborting check.".format(self.p_nameShort))
 	    return False
 	
 	if len(controlsLeft) != len(controlsRight):
@@ -967,18 +967,18 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	#Geo
 	baseBodyGeo = self.getMessage('baseBodyGeo')
 	if not baseBodyGeo:
-	    log.warning("No base geo. Aborting check.")
+	    log.warning("{0} | No base geo. Aborting check.".format(self.p_nameShort))
 	    return False
 	
 	#Skincluster
 	#skinCluster = self.getMessage('skinCluster')
 	if not deformers.returnObjectDeformers(baseBodyGeo[0],'skinCluster'):
-	    log.warning("No skinCluster. Aborting check.")
+	    log.warning("0} | No skinCluster. Aborting check.".format(self.p_nameShort))
 	    return False
 	
 	#>>> Blendshape nodes
 	if not deformers.returnObjectDeformers(baseBodyGeo[0],'blendShape'):
-	    log.warning("No body blendshape node. Aborting check.")
+	    log.warning("{0} | No body blendshape node. Aborting check.".format(self.p_nameShort))
 	    return False
 	"""
 	if not self.getMessage('faceBlendshapeNodes'):
