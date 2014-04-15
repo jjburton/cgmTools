@@ -248,7 +248,7 @@ class cgmFuncCls(object):
 	for i,d_step in enumerate(self.l_funcSteps):
 	    
 	    if self._int_stopStep is not None and i >= self._int_stopStep:
-		self.log_info("Stop at step reached | Skipped the following...")
+		self.log_info("Stop at step reached ({0}) | Skipped the following...".format(self._int_stopStep))
 		for ii,d_step in enumerate(self.l_funcSteps[self._int_stopStep:]):
 		    _str_step = d_step.get('step') or False
 		    self.log_info("Step: {0} | {1}".format(ii + self._int_stopStep, _str_step))		    
