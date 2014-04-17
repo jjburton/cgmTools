@@ -888,6 +888,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    except Exception,error:
 		log.error("'{0}' Group check fail. | attr: '{1}' | error: {2}".format(self.p_nameShort,attr,error))
 	self.autoPickerWatchGroups = l_autoPickerWatchGroups#store them
+	
 	# Master Curve
 	#==================================================================
 	masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
@@ -923,7 +924,29 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	    
 	    nodeF.build_mdNetwork(visArg)
 	
-	#if log.getEffectiveLevel() == 10:log.debug("Verified: '%s'"%self.cgmName)
+	# Settings setup
+	# Setup the settings network
+	#====================================================================	
+	i_settings = self.i_masterControl.controlSettings
+	str_nodeShort = str(i_settings.getShortName())
+	#Skeleton/geo settings
+	for attr in ['geo',]:
+	    i_settings.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+	    nodeF.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+	    nodeF.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+	 
+	
+	#Divider
+	i_settings.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
+	
+	#>>>Connect some flags
+	#=====================================================================
+	i_geoGroup = self.masterNull.geoGroup
+	i_geoGroup.overrideEnabled = 1		
+	cgmMeta.cgmAttr(i_settings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
+	cgmMeta.cgmAttr(i_settings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))    
+	
+
         return True
         
     def doChangeName(self,name = ''):
