@@ -4411,8 +4411,57 @@ def connectBlendChainByConstraint(l_jointChain1,l_jointChain2,l_blendChain, driv
 
         return d_blendReturn
     except Exception,error:
-        raise StandardError,"%s >>  error: %s"%(_str_funcName,error)   
+        raise StandardError,"%s >>  error: %s"%(_str_funcName,error) 
+    
+def connect_singleDriverAttrToMulti(drivenAttr = None, driverAttrs = None):
+    """
+    Function to drive a single attribute with many drivers.
+    If one driver, it uses a direct connect. If multiple, it creates an average node.
+    
+    :parameters:
+	0 - 'drivenAttr'(attr - None) | attr to be driven
+	1 - 'driverAttrs'(attrs - None) | attrs that drive.
+	
+    :returns:
+	(bool) | success
+	
+    :raises:
+	Exception | if reached
+	
+    """
+    _str_funcName = 'connect_singleDriverAttrToMulti' 
+    _str_reportStart = "{0} >> ".format(_str_funcName) 
+    
+    try:#>>> Data gather and arg check     
+	d_ret = cgmMeta.validateAttrArg(drivenAttr,noneValid=True)
+	if not d_ret:
+	    raise ValueError,"Bad drivenAttr| {0}".format(drivenAttr)	
+	mPlug_driven = d_ret['mi_plug']
+	log.info("{0} driven: '{1}'".format(_str_reportStart,mPlug_driven.p_combinedShortName))
+	
+	d_ret = cgmMeta.validateAttrListArg(driverAttrs,noneValid=True)
+	if not d_ret:
+	    raise ValueError,"Bad drivers| {0}".format(drivenAttr)	
+	mlPlugs_drivers = d_ret['ml_plugs']
+	
+	for i,mPlug in enumerate(mlPlugs_drivers):
+	    log.info("{0} driver {1}: '{2}'".format(_str_reportStart,i,mPlug.p_combinedShortName))
+    except Exception,error:raise StandardError,"[{0}>> Validate |  error: {1}]".format(_str_funcName,error) 
 
+    try:#>>> Connect   
+	_int_lenDrivers = len(mlPlugs_drivers)
+	if _int_lenDrivers == 1:
+	    log.info("{0} mode: Single driver".format(_str_reportStart))
+	    mPlug_driven.doConnectIn(mlPlugs_drivers[0])
+	else:
+	    str_arg = "{0} = {1}".format(mPlug_driven.p_combinedShortName," >< ".join(mPlug.p_combinedShortName for mPlug in mlPlugs_drivers))
+	    log.info("{0} mode: Blend mode".format(_str_reportStart))
+	    log.info("{0} arg to build : '{1}'".format(_str_reportStart,str_arg))
+	    NodeF.argsToNodes(str_arg).doBuild()
+	
+	return True
+    except Exception,error:raise StandardError,"[{0}>> Connect |  error: {1}]".format(_str_funcName,error) 
+    
 def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = None, channels = ['translate','rotate']):
     """
     @kws
