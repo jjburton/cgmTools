@@ -921,21 +921,20 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 		      {'result':[iVis,'leftControls_out'],'drivers':[[iVis,'left'],[iVis,'controls']]},
 		      {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
 		       ]
-	    
 	    nodeF.build_mdNetwork(visArg)
 	
 	# Settings setup
+	
 	# Setup the settings network
 	#====================================================================	
 	i_settings = self.i_masterControl.controlSettings
 	str_nodeShort = str(i_settings.getShortName())
 	#Skeleton/geo settings
-	for attr in ['geo',]:
+	for attr in ['geo','bsGeo','customGeo']:
 	    i_settings.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
 	    nodeF.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
 	    nodeF.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
 	 
-	
 	#Divider
 	i_settings.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
 	
@@ -946,6 +945,16 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	cgmMeta.cgmAttr(i_settings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(i_settings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))    
 	
+	i_geoGroup = self.masterNull.bsGeoGroup
+	i_geoGroup.overrideEnabled = 1		
+	cgmMeta.cgmAttr(i_settings.mNode,'bsGeoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
+	cgmMeta.cgmAttr(i_settings.mNode,'bsGeoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))    
+
+	i_geoGroup = self.masterNull.customGeoGroup
+	i_geoGroup.overrideEnabled = 1		
+	cgmMeta.cgmAttr(i_settings.mNode,'customGeoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
+	cgmMeta.cgmAttr(i_settings.mNode,'customGeoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))    
+		
 
         return True
         
