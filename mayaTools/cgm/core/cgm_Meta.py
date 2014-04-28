@@ -2270,8 +2270,27 @@ class cgmObjectSet(cgmNode):
     def reset(self):
         """ Reset the set objects """        
         if self.getList():
-            mc.select(self.getList())
-            ml_resetChannels.main()        
+            #mc.select(self.getList())
+            #ml_resetChannels.main()  
+	    for obj in self.getList():
+		try:
+		    if '.' in obj:
+			l_buffer = obj.split('.')
+			obj = l_buffer[0]
+			attrs = [l_buffer[1]]
+		    else:
+			attrs = mc.listAttr(obj, keyable=True, unlocked=True) or False
+			
+		    if attrs:
+			for attr in attrs:
+			    try:
+				default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
+				mc.setAttr(obj+'.'+attr, default)
+			    except Exception,error:
+				mc.setAttr(obj+'.'+attr, 0)
+				#log.error("'{0}' reset | error: {1}".format(attr,error))   				    
+		except Exception,error:
+		    log.debug("'{0}' reset fail | obj: '{1}' | error: {2}".format(self.p_nameShort,obj,error))   
             return True
         
         log.warning("'%s' has no data"%(self.mNode))  
