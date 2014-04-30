@@ -954,7 +954,6 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	i_geoGroup.overrideEnabled = 1		
 	cgmMeta.cgmAttr(i_settings.mNode,'customGeoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
 	cgmMeta.cgmAttr(i_settings.mNode,'customGeoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))    
-		
 
         return True
         
@@ -1795,18 +1794,18 @@ class cgmModule(cgmMeta.cgmObject):
     def storeTemplatePose(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
-        help(mFactory.storePose_templateSettings)
+        help(mFactory.poseStore_templateSettings)
         """
 	kws['mModule'] = self	
-        return mFactory.storePose_templateSettings(*args,**kws)   
+        return mFactory.poseStore_templateSettings(*args,**kws)   
     
     def loadTemplatePose(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
-        help(mFactory.readPose_templateSettings)
+        help(mFactory.poseRead_templateSettings)
         """
 	kws['mModule'] = self	
-        return mFactory.readPose_templateSettings(*args,**kws)   
+        return mFactory.poseRead_templateSettings(*args,**kws)   
     
     #>>> Skeletonize
     #===========================================================  

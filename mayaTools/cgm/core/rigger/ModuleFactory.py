@@ -941,9 +941,7 @@ def doTemplate(*args,**kws):
 		mi_module = self._mi_module
 		kws = self.d_kws		
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
-	    
-	    if isTemplated(**kws):
-		return True
+	
 	    if not isSized(**kws):
 		self.log_warning("Not sized")
 		return False    
@@ -1459,17 +1457,18 @@ def changeState(*args,**kws):
 		    return True	    
     return fncWrap(*args,**kws).go()
 
-def storePose_templateSettings(*args,**kws):
+def poseStore_templateSettings(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcHelp = "Builds a template's data settings for reconstruction./nexampleDict = {'root':{'test':[0,1,0]},/n'controlObjects':{0:[1,1,1]}}"
-	    self._str_funcName= "storePose_templateSettings('%s')"%self._str_moduleName	
+	    self._str_funcName= "poseStore_templateSettings('%s')"%self._str_moduleName	
 	    #self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},	
 	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
+	    
 	def buildDict_AnimAttrsOfObject(self, node,ignore = ['visibility']):
 	    attrDict = {}
 	    attrs = r9Anim.getSettableChannels(node,incStatics=True)
@@ -1477,7 +1476,7 @@ def storePose_templateSettings(*args,**kws):
 		for attr in attrs:
 		    if attr not in ignore:
 			try:attrDict[attr]=mc.getAttr('%s.%s' % (node,attr))
-			except:mi_module.log_debug('%s : attr is invalid in this instance' % attr)
+			except:self.log_debug('%s : attr is invalid in this instance' % attr)
 	    return attrDict
 	
 	def __func__(self):
@@ -1505,10 +1504,10 @@ def storePose_templateSettings(*args,**kws):
 		poseDict['controlObjects'] = {}
 		poseDict['helperObjects'] = {}
 		
-		for i,i_node in enumerate(mi_templateNull.controlObjects):
-		    poseDict['controlObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(i_node.mNode)
-		    if i_node.getMessage('helper'):
-			poseDict['helperObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(i_node.helper.mNode)
+		for i,mi_node in enumerate(mi_templateNull.msgList_get('controlObjects')):
+		    poseDict['controlObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.mNode)
+		    if mi_node.getMessage('helper'):
+			poseDict['helperObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.helper.mNode)
 		
 		#Store it        
 		mi_templateNull.controlObjectTemplatePose = poseDict
@@ -1517,14 +1516,14 @@ def storePose_templateSettings(*args,**kws):
 	    
     return fncWrap(*args,**kws).go()
 
-def readPose_templateSettings(*args,**kws):
+def poseRead_templateSettings(*args,**kws):
     class fncWrap(ModuleFunc):
 	def __init__(self,*args,**kws):
 	    """
 	    """
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcHelp = "Reads and applies template settings pose data"
-	    self._str_funcName= "readPose_templateSettings('%s')"%self._str_moduleName	
+	    self._str_funcName= "poseRead_templateSettings('%s')"%self._str_moduleName	
 	    #self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},	
 	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
@@ -1539,8 +1538,8 @@ def readPose_templateSettings(*args,**kws):
 		d_pose = mi_templateNull.controlObjectTemplatePose
 	    except Exception,error:raise StandardError,"[Query]{%s}"%error
 	    
-	    
 	    if type(d_pose) is not dict:
+		self.log_error("Pose dict is not a dict: {0}".format(d_pose))
 		return False
 	    
 	    #>>> Get the root
@@ -1554,7 +1553,12 @@ def readPose_templateSettings(*args,**kws):
 			    mc.setAttr('%s.%s' % (mi_templateNull.getMessage(key)[0],attr), val)
 			except Exception,err:
 			    self.log_error(err)   
-			    
+			
+	    ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
+	    if not ml_controlObjects:
+		log.error("No control objects found")
+		return False
+	    
 	    for key in d_pose['controlObjects']:
 		for attr, val in d_pose['controlObjects'][key].items():
 		    try:
@@ -1562,7 +1566,7 @@ def readPose_templateSettings(*args,**kws):
 		    except:pass      
 		
 		    try:
-			mc.setAttr('%s.%s' % (mi_templateNull.getMessage('controlObjects')[int(key)], attr), val)
+			mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].mNode, attr), val)
 		    except Exception,err:
 			self.log_error(err) 
 			
@@ -1572,11 +1576,11 @@ def readPose_templateSettings(*args,**kws):
 			val=eval(val)
 		    except:pass      
 		    try:
-			if mi_templateNull.controlObjects[int(key)].getMessage('helper'):
-			    mi_module.log_debug(mi_templateNull.controlObjects[int(key)].getMessage('helper')[0])
-			    mc.setAttr('%s.%s' % (mi_templateNull.controlObjects[int(key)].getMessage('helper')[0], attr), val)
+			if ml_controlObjects[int(key)].getMessage('helper'):
+			    self.log_debug(ml_controlObjects[int(key)].getMessage('helper')[0])
+			    mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].getMessage('helper')[0], attr), val)
 		    except Exception,err:
-			self.log_error(err)    
+			self.log_error("helperObjects '{0}' | {1}".format(attr,err))    
 	    return True
     return fncWrap(*args,**kws).go()
   

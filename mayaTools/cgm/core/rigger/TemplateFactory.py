@@ -90,7 +90,7 @@ class go(object):
 	self._mi_module = self.m
         if tryTemplateUpdate:
             log.info("Trying template update...")
-            if updateTemplate(module,**kws):
+            if updateTemplate(mModule,**kws):
                 if loadTemplatePose:
                     log.info("Trying loadTemplatePose...")                                    
                     self.m.loadTemplatePose()                

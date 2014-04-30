@@ -336,13 +336,15 @@ def testMorpheus( *a ):
     
 def loadMorpheusMaker( *a ):
     try:
+	print("Trying to load Morheus Maker 2014")
 	from morpheusRig_v2.core.tools import MorpheusMaker as mMaker
+	reload(mMaker)    
+	mMaker.go()	
     except:
 	log.warning("You appear to be missing the Morpheus pack. Patience...:)")
 	return False
     
-    reload(mMaker)    
-    mMaker.go()
+
     
 def loadLocalCGMPythonSetup( *a ):
     evalMel('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_General as cgmGeneral;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;")')
