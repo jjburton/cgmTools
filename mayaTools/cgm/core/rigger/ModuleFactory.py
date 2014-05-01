@@ -1512,7 +1512,10 @@ def poseStore_templateSettings(*args,**kws):
 		#Store it        
 		mi_templateNull.controlObjectTemplatePose = poseDict
 		return poseDict
-	    except Exception,error:raise StandardError,"[Posr store]{%s}"%(error)   
+	    except Exception,error:
+		if not mi_module.isTemplated():
+		    raise StandardError,"Not templated"
+		raise StandardError,"[Pose store]{%s}"%(error)   
 	    
     return fncWrap(*args,**kws).go()
 
