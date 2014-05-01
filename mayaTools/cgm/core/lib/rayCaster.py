@@ -194,7 +194,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
 	    spc = om.MSpace.kWorld	
 	    
         except Exception,error:
-            raise ValueError,"Validation fail |0}".format(error)    
+            raise ValueError,"Validation fail |{0}".format(error)    
         
         try:
 	    if _str_objType == 'nurbsSurface': 
