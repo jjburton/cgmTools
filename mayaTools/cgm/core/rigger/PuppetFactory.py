@@ -251,6 +251,7 @@ def getState(*args,**kws):
 	    
 	    l_states = []
 	    d_states = {}
+	    
 	    for i,mModule in enumerate(ml_modules):
 		_str_module = mModule.p_nameShort
 		self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)		
@@ -260,6 +261,75 @@ def getState(*args,**kws):
 	    for p in d_states.iteritems():
 		self.log_info(" '%s' | state : %s"%(p[0],p[1]))
 	    return min(l_states)
+    return fncWrap(*args,**kws).go()
+
+def isTemplated(*args,**kws):
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = "puppetFactory.isTemplated('%s')"%self._mi_puppet.cgmName	
+	    self.__dataBind__(*args,**kws)
+	    
+	def __func__(self):
+	    """
+	    """
+	    ml_modules = getModules(self._mi_puppet)	    
+	    if not ml_modules:
+		self.log_warning("'%s' has no modules"%self.cgmName)
+		return False
+
+	    for i,mModule in enumerate(ml_modules):
+		if not mModule.isTemplated(**kws):
+		    return False
+	    return True
+    return fncWrap(*args,**kws).go()
+
+def isSized(*args,**kws):
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = "puppetFactory.isSized('%s')"%self._mi_puppet.cgmName	
+	    self.__dataBind__(*args,**kws)
+	    
+	def __func__(self):
+	    """
+	    """
+	    ml_modules = getModules(self._mi_puppet)	    
+	    if not ml_modules:
+		self.log_warning("'%s' has no modules"%self.cgmName)
+		return False
+
+	    for i,mModule in enumerate(ml_modules):
+		if not mModule.isSized(**kws):
+		    return False
+	    return True
+    return fncWrap(*args,**kws).go()
+
+def isSkeletonized(*args,**kws):
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = "puppetFactory.isSkeletonized('%s')"%self._mi_puppet.cgmName	
+	    self.__dataBind__(*args,**kws)
+	    
+	def __func__(self):
+	    """
+	    """
+	    ml_modules = getModules(self._mi_puppet)	    
+	    if not ml_modules:
+		self.log_warning("'%s' has no modules"%self.cgmName)
+		return False
+
+	    for i,mModule in enumerate(ml_modules):
+		if not mModule.isSkeletonized(**kws):
+		    return False
+	    return True
     return fncWrap(*args,**kws).go()
 
 def getOrderedModules(*args,**kws):
@@ -337,7 +407,58 @@ def getOrderedModules(*args,**kws):
 		except Exception,error:raise StandardError,"[mModule : %s]{%s}"%(mModule.p_nameShort,error)	
     return fncWrap(*args,**kws).go()
 
+#=====================================================================================================
+#>>> Template functions
+#=====================================================================================================
+def poseStore_templateSettings(*args,**kws):
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = "puppetFactory.poseStore_templateSettings('%s')"%self._mi_puppet.cgmName	
+	    self.__dataBind__(*args,**kws)
+	    
+	def __func__(self):
+	    """
+	    """
+	    ml_modules = getModules(self._mi_puppet)	    
+	    if not ml_modules:
+		self.log_warning("'%s' has no modules"%self.cgmName)
+		return False
 
+	    for i,mModule in enumerate(ml_modules):
+		if not mModule.storeTemplatePose(**kws):
+		    self.log_error("{0} failed".format(mModule.p_nameShort))
+		    return False
+	    self.log_info("Template Pose Saved")
+	    return True
+    return fncWrap(*args,**kws).go()
+
+def poseLoad_templateSettings(*args,**kws):
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = "puppetFactory.poseLoad_templateSettings('%s')"%self._mi_puppet.cgmName	
+	    self.__dataBind__(*args,**kws)
+	    
+	def __func__(self):
+	    """
+	    """
+	    ml_modules = getModules(self._mi_puppet)	    
+	    if not ml_modules:
+		self.log_warning("'%s' has no modules"%self.cgmName)
+		return False
+
+	    for i,mModule in enumerate(ml_modules):
+		if not mModule.loadTemplatePose(**kws):
+		    self.log_error("{0} failed".format(mModule.p_nameShort))
+		    return False
+	    self.log_info("Template Pose Loaded")
+	    return True
+    return fncWrap(*args,**kws).go()
 #=====================================================================================================
 #>>> Anim functions functions
 #=====================================================================================================
