@@ -211,6 +211,7 @@ class cgmFuncCls(object):
 	    return cgmExceptCB(etype,value,tb,detail,True)
 	    #return mUtils._formatGuiException(etype, value, tb, detail)	
 	except Exception,error:
+	    mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload	    
 	    print("[{0}._ExceptionHook_ Exception | {1}".format(self._str_funcCombined,error))
 	        
     def go(self,*args,**kws):
@@ -304,6 +305,7 @@ class cgmFuncCls(object):
 	    mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   	
 	    self.update_moduleData()	    
 	    raise self._Exception,"{0} >> {1}".format(self._str_funcCombined,str(self._ExceptionError))
+	
 	if self._b_reportTimes:
 	    try:
 		f_total = (time.clock()-t_start)	    
@@ -315,6 +317,7 @@ class cgmFuncCls(object):
 		    self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
 		else:self.log_warning("[Total = %0.3f sec] " % (f_total))
 	    except Exception,error:self.log_error("[Failed to report times | error: {0}]".format(error))
+	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
 	return self._return_()
 
     def _return_(self):
