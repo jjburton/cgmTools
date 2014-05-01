@@ -274,6 +274,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         Delete the Puppet
         """
         mc.delete(self.masterNull.mNode)
+	mc.delete(self.mNode)
         del(self)
 
     def addModule(self,mClass = 'cgmModule',**kws):
@@ -466,6 +467,23 @@ class cgmPuppet(cgmMeta.cgmNode):
     
     def isCustomizable(self):
 	return False 
+    
+    def isTemplated(self,*args,**kws):
+	kws['mPuppet'] = self			
+	return pFactory.isTemplated(*args,**kws)
+    def poseStore_templateSettings(self,*args,**kws):
+	kws['mPuppet'] = self			
+	return pFactory.poseStore_templateSettings(*args,**kws)
+    def poseLoad_templateSettings(self,*args,**kws):
+	kws['mPuppet'] = self			
+	return pFactory.poseLoad_templateSettings(*args,**kws)
+    
+    def isSized(self,*args,**kws):
+	kws['mPuppet'] = self			
+	return pFactory.isSized(*args,**kws)
+    def isSkeletonized(self,*args,**kws):
+	kws['mPuppet'] = self			
+	return pFactory.isSkeletonized(*args,**kws)
     
     ##@r9General.Timer
     def _verifyMasterControl(self,**kws):
@@ -1038,6 +1056,9 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	return False
 	
     def updateTemplate(self,**kws):
+	if not self.mPuppet.isTemplated():
+	    log.error("'{0}' Not templated!".format(self.cgmName))
+	    return False
 	return morphyF.updateTemplate(self,saveTemplatePose = True,**kws)  
 	
     ##@r9General.Timer
