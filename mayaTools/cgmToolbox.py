@@ -340,9 +340,9 @@ def loadMorpheusMaker( *a ):
 	from morpheusRig_v2.core.tools import MorpheusMaker as mMaker
 	reload(mMaker)    
 	mMaker.go()	
-    except:
-	log.warning("You appear to be missing the Morpheus pack. Patience...:)")
-	return False
+    except Exception,error:
+	raise Exception,"You appear to be missing the Morpheus pack. Or maybe angered the spirits... | {0}".format(error)
+
     
 
     
