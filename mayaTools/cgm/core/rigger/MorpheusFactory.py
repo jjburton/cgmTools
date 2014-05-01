@@ -35,12 +35,12 @@ reload(constraints)
 #======================================================================
 # Processing factory
 #======================================================================
-l_modulesToDoOrder = ['torso','neckHead']
+#l_modulesToDoOrder = ['torso','neckHead']
 #This is the main key for data tracking. It is also the processing order
 #l_modulesToDoOrder = ['torso','neckHead','leg_left']
 #l_modulesToDoOrder = ['torso','clavicle_left','clavicle_right','arm_left','arm_right']
 #l_modulesToDoOrder = ['torso','clavicle_left']
-#l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right']
+l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right']
 '''
 l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
                       'clavicle_left','arm_left',
@@ -343,7 +343,7 @@ def setState(mAsset,state = 0,
 	loadTemplatePose = kws.get('loadTemplatePose') or True
 	
 	mi_Morpheus = mAsset.mPuppet
-	d_customizationData = verify_customizationData(mAsset)
+	d_customizationData = verify_sizingData(mAsset)
     except Exception,error:
 	raise Exception,"{0} defaults fail | {1}".format(_str_funcName,error)
     
@@ -395,7 +395,7 @@ def updateTemplate(mAsset,**kws):
     _str_funcName = 'updateTemplate'	        
     
     try:
-	d_customizationData = verify_customizationData(mAsset)
+	d_customizationData = verify_sizingData(mAsset)
 	i_Morpheus = mAsset.mPuppet
 	if not d_customizationData:
 	    raise ValueError,"No customization data found"
