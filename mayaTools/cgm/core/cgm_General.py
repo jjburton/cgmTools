@@ -63,6 +63,8 @@ class cgmFuncCls(object):
 	self._b_autoProgressBar = False
 	self._b_reportTimes = False
 	self._b_pushCleanKWs = False
+	self._b_SuccessBreak = False
+	self._b_ExceptionInterupt = True#Whether to use the cgmFuncCls Exception Interupt or not
 	self._str_lastLog = None
 	self._int_stopStep = None
 	self._l_ARGS_KWS_DEFAULTS = []
@@ -84,7 +86,7 @@ class cgmFuncCls(object):
 	self._l_errors = []
 	self._l_warnings = []
 	#These are our mask so that the fail report ignores them
-	self._l_reportMask = ['_b_pushCleanKWs','_str_lastLog','_l_ARGS_KWS_BUILTINS','_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	self._l_reportMask = ['_b_SuccessBreak','_b_ExceptionInterupt','_b_pushCleanKWs','_str_lastLog','_l_ARGS_KWS_BUILTINS','_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_int_stopStep','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
@@ -173,6 +175,18 @@ class cgmFuncCls(object):
 		    self._int_stopStep = __stopAtStep
 		else:self.log_debug("stopAtStep NOT in range")		    
         
+    def _SuccessReturn_(self, res = None):
+	'''
+	Added as a mid function success break.
+	
+	Usage in line would be 
+	return self._SuccessReturn_('Cat') if you wanted to return 'Cat' at that step.
+	Whatever the return is (if there is) will be stored to the buffer
+	'''
+	self._b_SuccessBreak = 1
+	if res is not None:
+	    self.d_return[self._str_step] = res
+	
     def _ExceptionHook_(self, etype, value, tb, detail=2):
 	# do something here...
 	try:
@@ -247,7 +261,9 @@ class cgmFuncCls(object):
 	    else:kws = _d_cleanKWS	
 	    
 	for i,d_step in enumerate(self.l_funcSteps):
-	    
+	    if self._b_SuccessBreak:
+		self.log_debug("Success Break | Step {0}".format(i))
+		break
 	    if self._int_stopStep is not None and i >= self._int_stopStep:
 		self.log_info("Stop at step reached ({0}) | Skipped the following...".format(self._int_stopStep))
 		for ii,d_step in enumerate(self.l_funcSteps[self._int_stopStep:]):
@@ -300,12 +316,7 @@ class cgmFuncCls(object):
 		
 	if self.d_kws.get('reportEnv'):
 	    report_enviornment()   
-	    
-	if self._Exception is not None:
-	    mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   	
-	    self.update_moduleData()	    
-	    raise self._Exception,"{0} >> {1}".format(self._str_funcCombined,str(self._ExceptionError))
-	
+	    	
 	if self._b_reportTimes:
 	    try:
 		f_total = (time.clock()-t_start)	    
@@ -317,6 +328,15 @@ class cgmFuncCls(object):
 		    self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
 		else:self.log_warning("[Total = %0.3f sec] " % (f_total))
 	    except Exception,error:self.log_error("[Failed to report times | error: {0}]".format(error))
+	    
+	if self._Exception is not None:
+	    if self._b_ExceptionInterupt:
+		self.update_moduleData()			
+		mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   
+		raise self._Exception,"{0} >> {1}".format(self._str_funcCombined,str(self._ExceptionError))
+	    else:
+		raise self._Exception,self._ExceptionError
+	    
 	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
 	return self._return_()
 
