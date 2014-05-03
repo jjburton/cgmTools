@@ -948,25 +948,31 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 		log.warning("'%s.%s'couldn't query"%(self.mNode,a))
 	return True
 	    
-    def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,**kws):
+    def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,fastName = True,**kws):
         """
         Function for naming a maya instanced object using the cgm.NameFactory class.
-
-        Keyword arguments:
-        sceneUnique(bool) -- Whether to run a full scene dictionary check or the faster just objExists check (default False)
-
         """
 	#if not self.getTransform() and self.__justCreatedState__:
 	    #log.error("Naming just created nodes, causes recursive issues. Name after creation")
 	    #return False
-	if sceneUnique:
-	    log.error("Remove this cgmNode.doName sceneUnique call")
-	if self.isReferenced():
-	    log.error("'%s' is referenced. Cannot change name"%self.mNode)
-	    return False	
-	#Name it
-	NameFactory(self).doName(nameChildren = nameChildren,fastIterate=fastIterate,**kws)
-	#log.debug("Named: '%s'"%self.getShortName())
+	if fastName:
+	    d_updatedNamesDict = self.getNameDict()
+	    ignore = kws.get('ignore') or []
+	    if 'cgmName' not in d_updatedNamesDict.keys():
+		if self.getMayaType() !='group' and 'cgmName' not in ignore:
+		    d_updatedNamesDict['cgmName'] = self.getShortName()
+		
+	    _str_nameCandidate =  nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
+	    mc.rename(self.mNode, _str_nameCandidate	)
+	    return _str_nameCandidate
+	else:
+	    if sceneUnique:
+		log.error("Remove this cgmNode.doName sceneUnique call")
+	    if self.isReferenced():
+		log.error("'%s' is referenced. Cannot change name"%self.mNode)
+		return False	
+	    #Name it
+	    NameFactory(self).doName(nameChildren = nameChildren,fastIterate=fastIterate,**kws)	    
 	
     def doTagAndName(self,d_tags,overideMessageCheck = False, **kws):
 	"""
@@ -1404,18 +1410,24 @@ class cgmObject(cgmNode):
     
     def getChildren(self,fullPath=False,asMeta = False):
 	try:
-	    buffer = search.returnChildrenObjects(self.mNode,fullPath) or []
-	    if buffer and asMeta:
-		return validateObjListArg(buffer,mType = cgmObject)
-	    return buffer
+	    if asMeta:
+		buffer = search.returnChildrenObjects(self.mNode,True) or []
+		if buffer:
+		    return validateObjListArg(buffer,mType = cgmObject)
+		return []
+	    else:
+		return search.returnChildrenObjects(self.mNode,fullPath) or []
 	except Exception,error:raise Exception,"[%s.getChildren(fullPath = %s, asMeta = %s]{%s}"%(self.p_nameShort,fullPath, asMeta,error)
 	
     def getAllChildren(self,fullPath = False,asMeta = False):
 	try:
-	    buffer = search.returnAllChildrenObjects(self.mNode,fullPath) or []  
-	    if buffer and asMeta:
-		return validateObjListArg(buffer,mType = cgmObject)
-	    return buffer
+	    if asMeta:
+		buffer = search.returnAllChildrenObjects(self.mNode,True) or []
+		if buffer:
+		    return validateObjListArg(buffer,mType = cgmObject)
+		return []
+	    else:
+		return search.returnAllChildrenObjects(self.mNode,fullPath) or []
 	except Exception,error:raise Exception,"[%s.getAllChildren(fullPath = %s, asMeta = %s]{%s}"%(self.p_nameShort,fullPath, asMeta,error)
 	    
     def getShapes(self,fullPath = True, asMeta = False):
@@ -3707,10 +3719,10 @@ class cgmAttr(object):
 	try:
 	    asMeta = cgmValid.boolArg(asMeta)   
 	    if obj:
-		buffer =  attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes)
+		buffer =  attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes) or []
 		if asMeta: return validateObjListArg(buffer)
 		return lists.returnListNoDuplicates(buffer)
-	    buffer = attributes.returnDrivenAttribute(self.p_combinedName,skipConversionNodes) or None
+	    buffer = attributes.returnDrivenAttribute(self.p_combinedName,skipConversionNodes) or []
 	    if asMeta and buffer: return validateAttrListArg(buffer)['ml_plugs']
 	    return buffer
 	except Exception,error:
@@ -3724,10 +3736,10 @@ class cgmAttr(object):
 	try:
 	    asMeta = cgmValid.boolArg(asMeta)   
 	    if obj:
-		buffer =  attributes.returnDriverObject(self.p_combinedName,skipConversionNodes)
+		buffer =  attributes.returnDriverObject(self.p_combinedName,skipConversionNodes) or []
 		if asMeta: return validateObjListArg(buffer)
 		return buffer
-	    buffer = attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes)
+	    buffer = attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes) or []
 	    if asMeta and buffer: return validateAttrListArg(buffer)['ml_plugs']
 	    return buffer
 	except Exception,error:
