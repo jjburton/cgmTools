@@ -485,7 +485,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	kws['mPuppet'] = self			
 	return pFactory.isSkeletonized(*args,**kws)
     
-    ##@r9General.Timer
+    @cgmGeneral.Timer
     def _verifyMasterControl(self,**kws):
 	""" 
 	"""
@@ -1795,6 +1795,14 @@ class cgmModule(cgmMeta.cgmObject):
         """
 	kws['mModule'] = self	
         return mFactory.isTemplated(*args,**kws)
+    
+    def template_update(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.template_update)
+        """
+	kws['mModule'] = self	
+        return mFactory.template_update(*args,**kws)    
     
     def doTemplate(self,*args,**kws):
         """
