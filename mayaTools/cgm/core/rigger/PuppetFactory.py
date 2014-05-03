@@ -41,7 +41,8 @@ class PuppetFunc(cgmGeneral.cgmFuncCls):
 	except Exception,error:raise StandardError,"PuppetFunc failed to initialize | %s"%error
 	self._str_funcName= "testPuppetFunc"		
 	super(PuppetFunc, self).__init__(*args, **kws)
-	self._mi_puppet = puppet	
+	self._mi_puppet = puppet
+	self._b_ExceptionInterupt = False
 	self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet]	
 	#=================================================================
 		
