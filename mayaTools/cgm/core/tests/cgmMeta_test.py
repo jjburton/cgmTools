@@ -86,6 +86,7 @@ def ut_AllTheThings(*args, **kws):
 	    self._b_autoProgressBar = 1
 	    self._b_reportTimes = 1
 	    self._b_pushCleanKWs = 1
+	    self._b_ExceptionInterupt = False
 	    self.__dataBind__(*args, **kws)
 	    self.l_funcSteps = [{'step':'cgm function libraries','call':ut_cgmLibraries},
 	                        {'step':'cgmMeta','call':ut_cgmMeta},	                        
@@ -223,8 +224,9 @@ def ut_cgmMeta(*args, **kws):
     
 	    #cgmNode functions
 	    #---------------------------------------------------------- 
+	    self.MetaNode.addAttr('cgmName','badabing')
 	    self.MetaNode.doName()
-	    assert self.MetaNode.hasAttr('cgmName') is True
+	    assert self.MetaNode.hasAttr('cgmName') is True,"Lacking cgmName attr"
     
 	    self.MetaObject.doCopyNameTagsFromObject(self.MetaNode.mNode)
 	    assert self.MetaObject.cgmName == self.MetaNode.cgmName,"CGM Name copying failed"
@@ -899,34 +901,39 @@ def ut_cgmMeta(*args, **kws):
 	       
 	def _nameFactory_(self,**kws):	    
 	    nf = cgmMeta.NameFactory
-	    #>>> Create some nodes
-	    i_net1 = cgmMeta.cgmNode(name = 'net',nodeType = 'network')        
-	    i_net1.addAttr('cgmName','net', attrType = 'string')
-	    assert nf(i_net1).getBaseIterator() == 0,"baseIterator: %s"%nf(i_net1).getBaseIterator()
 	    
-	    i_net2 = cgmMeta.cgmNode( mc.duplicate(i_net1.mNode)[0] )
-	    assert nf(i_net1).getMatchedSiblings() == [i_net2],"%s"%nf(i_net1).getMatchedSiblings()
-	    assert nf(i_net2).getMatchedSiblings() == [i_net1],"%s"%nf(i_net2).getMatchedSiblings()
-	    assert nf(i_net1).getBaseIterator() == 1,"%s"%"baseIterator: %s"%nf(i_net1).getBaseIterator()
-	    assert i_net1.getNameDict() == i_net2.getNameDict(),"Name dicts not equal"
-	    assert nf(i_net1).getIterator() == 1
-	    i_net1.doName(fastIterate = False)
-	    assert nf(i_net2).getIterator() == 2
-	    nf(i_net2).doNameObject(fastIterate = False)
-	    assert '2' in list(i_net2.mNode),"2 not in : '%s'"%i_net2.mNode
+	    try:#>>> Create some nodes
+		i_net1 = cgmMeta.cgmNode(name = 'net',nodeType = 'network')        
+		i_net1.addAttr('cgmName','net', attrType = 'string')
+		assert nf(i_net1).getBaseIterator() == 0,"baseIterator: %s"%nf(i_net1).getBaseIterator()
+	    except Exception,error:raise Exception,"Initial | {0}".format(error)
 	    
-	    #Transform nodes
-	    i_trans1a = cgmMeta.cgmObject(name = 'trans')
-	    i_parent = cgmMeta.cgmObject(name = 'parent')
-	    i_parent.addAttr('cgmName','nameParent', attrType = 'string')
+	    try:
+		i_net2 = cgmMeta.cgmNode( mc.duplicate(i_net1.mNode)[0] )
+		assert nf(i_net1).getMatchedSiblings() == [i_net2],"%s"%nf(i_net1).getMatchedSiblings()
+		assert nf(i_net2).getMatchedSiblings() == [i_net1],"%s"%nf(i_net2).getMatchedSiblings()
+		assert nf(i_net1).getBaseIterator() == 1,"%s"%"baseIterator: %s"%nf(i_net1).getBaseIterator()
+		assert i_net1.getNameDict() == i_net2.getNameDict(),"Name dicts not equal"
+		assert nf(i_net1).getIterator() == 1,"Not 1 | {0}".format(nf(i_net1).getIterator())
+		i_net1.doName(fastName=False,fastIterate = False)
+		assert nf(i_net2).getIterator() == 2,"Not 2 | {0}".format(nf(i_net2).getIterator())
+		nf(i_net2).doNameObject(fastIterate = False)
+		assert '2' in list(i_net2.mNode),"2 not in : '%s'"%i_net2.mNode
+	    except Exception,error:raise Exception,"Duplicate | {0}".format(error)
 	    
-	    i_trans1b = cgmMeta.cgmObject(mc.duplicate(i_trans1a.mNode)[0] )
-	    i_trans1a.parent = i_parent.mNode
-	    i_trans1b.parent = i_parent.mNode
-	    assert i_trans1b.mNode in i_trans1a.getSiblings(),"%s"%i_trans1a.getSiblings()
-	    assert nf(i_trans1a).getMatchedSiblings() == [i_trans1b],"%s"%nf(i_trans1a).getMatchedSiblings()
-	    assert nf(i_trans1b).getMatchedSiblings() == [i_trans1a],"%s"%nf(i_trans1b).getMatchedSiblings()        
-	    assert nf(i_trans1b).returnUniqueGeneratedName(fastIterate = False) == nf(i_trans1a).returnUniqueGeneratedName(fastIterate = False),"Not returning same name buffer"
+	    try:#Transform nodes
+		i_trans1a = cgmMeta.cgmObject(name = 'trans')
+		i_parent = cgmMeta.cgmObject(name = 'parent')
+		i_parent.addAttr('cgmName','nameParent', attrType = 'string')
+		
+		i_trans1b = cgmMeta.cgmObject(mc.duplicate(i_trans1a.mNode)[0] )
+		i_trans1a.parent = i_parent.mNode
+		i_trans1b.parent = i_parent.mNode
+		assert i_trans1b.mNode in i_trans1a.getSiblings(),"%s"%i_trans1a.getSiblings()
+		assert nf(i_trans1a).getMatchedSiblings() == [i_trans1b],"%s"%nf(i_trans1a).getMatchedSiblings()
+		assert nf(i_trans1b).getMatchedSiblings() == [i_trans1a],"%s"%nf(i_trans1b).getMatchedSiblings()        
+		assert nf(i_trans1b).returnUniqueGeneratedName(fastIterate = False) == nf(i_trans1a).returnUniqueGeneratedName(fastIterate = False),"Not returning same name buffer"
+	    except Exception,error:raise Exception,"TransformNodes | {0}".format(error)
 	    
 	    #Name different ways
 	    bufferName =  nf(i_trans1a).returnUniqueGeneratedName(fastIterate = False)
