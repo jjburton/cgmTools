@@ -58,37 +58,45 @@ def returnBaseControlSize(mi_obj,mesh,axis=True):
     RETURNS:
     axisDistances(dict) -- axis distances, average
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """ 
-    mi_obj = cgmMeta.validateObjArg(mi_obj,cgmMeta.cgmObject)
-    
-    _str_funcName = "returnBaseControlSize(%s)"%mi_obj.p_nameShort
-    log.debug(">> %s "%(_str_funcName) + "="*75)
-    start = time.clock()
-    
-    log.debug("%s >> mesh: %s "%(_str_funcName,mesh))  
-    log.debug("%s >> axis: %s "%(_str_funcName,axis))        
+    """       
     try:#>>Figure out the axis to do
-	d_axisToDo = {}
-	if axis == True:
-	    axis = ['x','y','z']
-	if type(axis) in [list,tuple]:
-	    for a in axis:
-		if a in dictionary.stringToVectorDict.keys():
-		    if list(a)[0] in d_axisToDo.keys():
-			d_axisToDo[list(a)[0]].append( a )
-		    else:
-			d_axisToDo[list(a)[0]] = [ a ]
-			 
-		elif type(a) is str and a.lower() in ['x','y','z']:
-		    buffer = []
-		    buffer.append('%s+'%a.lower())
-		    buffer.append('%s-'%a.lower())  
-		    d_axisToDo[a.lower()] = buffer
-		else:
-		    log.warning("Don't know what with: '%s'"%a)
+	log.info(mi_obj)	
+	mi_obj = cgmMeta.validateObjArg(mi_obj,cgmMeta.cgmObject,noneValid = True)
+	if not mi_obj:
+	    raise ValueError,"mi_obj kw: {0} ".format(mi_obj)
 	
-	log.debug("%s >> d_axisToDo: %s "%(_str_funcName,d_axisToDo))        
-	if not d_axisToDo:return False
+	_str_funcName = "returnBaseControlSize(%s)"%mi_obj.p_nameShort
+	log.debug(">> %s "%(_str_funcName) + "="*75)
+	start = time.clock()
+	
+	log.debug("%s >> mesh: %s "%(_str_funcName,mesh))  
+	log.debug("%s >> axis: %s "%(_str_funcName,axis)) 
+	
+	try:
+	    d_axisToDo = {}
+	    if axis == True:
+		axis = ['x','y','z']
+	    if type(axis) in [list,tuple]:
+		for a in axis:
+		    if a in dictionary.stringToVectorDict.keys():
+			if list(a)[0] in d_axisToDo.keys():
+			    d_axisToDo[list(a)[0]].append( a )
+			else:
+			    d_axisToDo[list(a)[0]] = [ a ]
+			     
+		    elif type(a) is str and a.lower() in ['x','y','z']:
+			buffer = []
+			buffer.append('%s+'%a.lower())
+			buffer.append('%s-'%a.lower())  
+			d_axisToDo[a.lower()] = buffer
+		    else:
+			log.warning("Don't know what with: '%s'"%a)
+	    log.debug("%s >> d_axisToDo: %s "%(_str_funcName,d_axisToDo))  
+	    if not d_axisToDo:return False	    
+	except Exception,error:
+	    raise Exception,"Axis check | {0}".format(error)
+	
+	
 	#>>
 	d_returnDistances = {}
 	for axis in d_axisToDo:
@@ -98,28 +106,29 @@ def returnBaseControlSize(mi_obj,mesh,axis=True):
 		try:
 		    info = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[0])
 		    d_returnDistances[axis] = (distance.returnDistanceBetweenPoints(info['hit'],mi_obj.getPosition()) *2)
-		except StandardError,error:
-		    raise StandardError,"raycast | %s"%error
+		except Exception,error:
+		    raise Exception,"raycast | %s"%error
 	    else:
 		try:
 		    info1 = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[0])
 		    info2 = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[1])
 		    if info1 and info2:
 			d_returnDistances[axis] = distance.returnDistanceBetweenPoints(info1['hit'],info2['hit'])                    
-		except StandardError,error:
-		    raise StandardError,"raycast | %s"%error
+		except Exception,error:
+		    raise Exception,"raycast | %s"%error
 		
-	if not d_returnDistances:raise StandardError,"No intersections found"
+	if not d_returnDistances:
+	    raise Exception,"No intersections found"
 	    
 	#>>Add the average
 	log.debug("%s >> d_returnDistances: %s "%(_str_funcName,d_returnDistances))        	
 	d_returnDistances['average'] = (sum([d_returnDistances.get(k) for k in d_returnDistances.keys()]))/len(d_returnDistances.keys())
+	
+	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
+	return d_returnDistances    
+    except Exception,error:
+	raise Exception," returnBaseControlSize | {0}".format(error)
     
-    except StandardError,error:
-	raise StandardError,"%s >> %s"(_str_funcName,error)
-    log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
-    
-    return d_returnDistances
 
 
 def joinCurves(targetObjects, mode = 'simple', curveDegree = 1):
