@@ -16,7 +16,7 @@ import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
 from zooPyMaya import apiExtensions
 from cgm.core.lib import surface_Utils as surfUtils
-
+from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.lib import (locators,
                      dictionary,
                      search,
@@ -169,6 +169,9 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
         _str_funcName = 'findMeshIntersection'
 
         try:
+	    if cgmValid.isListArg(mesh):
+		log.warning("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
+		mesh = mesh[0]
             if len(mc.ls(mesh))>1:
                 raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
             _str_objType = search.returnObjectType(mesh)
@@ -336,6 +339,9 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance
         _str_funcName = 'findMeshIntersections'
 
         try:
+	    if cgmValid.isListArg(mesh):
+		log.warning("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
+		mesh = mesh[0]	    
             if len(mc.ls(mesh))>1:
                 raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
             _str_objType = search.returnObjectType(mesh)

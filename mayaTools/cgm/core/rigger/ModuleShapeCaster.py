@@ -103,7 +103,7 @@ class go(object):
 	    self.l_coreNames = self._mi_module.coreNames.value
 	    self._mi_templateNull = self._mi_module.templateNull#speed link
 	    self._mi_rigNull = self._mi_module.rigNull#speed link
-	    self._targetMesh = ['Morphy_Face_PLY'] or self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
+	    self._targetMesh = ['Morphy_Body_GEO'] or self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
 	    self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
 	    self._ml_controlObjects = self._mi_templateNull.msgList_get('controlObjects')
 	    
@@ -250,7 +250,13 @@ class go(object):
 	    if self.l_controlSnapObjects and self._targetMesh:
 		midIndex = int(len(self.l_controlSnapObjects)/2)
 		log.info("%s >> midIndex = %s"%(_str_funcName,midIndex))	    		
-		d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self.str_jointOrientation[1],self.str_jointOrientation[2]])
+		try:
+		    d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self.str_jointOrientation[1],self.str_jointOrientation[2]])
+		except Exception,error:
+		    log.info("cast objects: {0}".format(self.l_controlSnapObjects))
+		    log.info("target mesh: {0}".format(self._targetMesh))
+		    log.info("axis: {0}".format(self.str_jointOrientation))
+		    raise Exception,"shapeCast.returnBaseControlSize send | {0}".format(error)
 		log.info("%s >> d_return = %s"%(_str_funcName,d_return))	    		
 		l_lengths = [d_return[k] for k in d_return.keys()]
 		log.info("%s >> l_lengths = %s"%(_str_funcName,l_lengths))	    				
