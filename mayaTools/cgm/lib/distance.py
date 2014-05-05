@@ -725,10 +725,8 @@ def returnCurveLength(curve):
     shapeLengths = []
 
     for shape in shapes:
-        print shape
         infoNode = createCurveLengthNode(shape)
         shapeLengths.append(mc.getAttr(infoNode+'.arcLength'))
-        print shapeLengths
         mc.delete(infoNode)
     return sum(shapeLengths)
 

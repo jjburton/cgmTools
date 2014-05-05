@@ -68,7 +68,7 @@ def go(*args, **kws):
         def __init__(self,*args, **kws):
 	    super(fncWrap, self).__init__(*args, **kws)
 	    self._str_funcName = 'TemplateFactory.go'	
-	    self._b_reportTimes = 1 #..we always want this on so we're gonna set it on
+	    self._b_reportTimes = 0 #..we always want this on so we're gonna set it on
 	    self._cgmClass = 'TemplateFactory.go'
 	    '''
 	    mModule = None,
@@ -115,7 +115,7 @@ def go(*args, **kws):
 	def _step_templateNeed_(self):
 	    #Before something can be templated, we need to see if it has a puppet yet
 	    if not self._mi_module.getMessage('modulePuppet') and not self._mi_module.getMessage('moduleParent'):
-		self.log.info("No modulePuppet or moduleParent. Need to create")
+		self.log_debug("No modulePuppet or moduleParent. Need to create")
 		if self._mi_module.getMessage("helper"):
 		    self._mi_module.__buildSimplePuppet__()
 		else:
@@ -130,8 +130,9 @@ def go(*args, **kws):
 	    if self.d_kws['tryTemplateUpdate']:
 		self.log_info("Trying template update...")
 		if self._mi_module.template_update(**kws):
+		    self.log_info("Template update...")		    
 		    if self.d_kws['loadTemplatePose']:
-			log.info("Trying loadTemplatePose...")                                    
+			self.log_info("Trying loadTemplatePose...")                                    
 			self._mi_module.loadTemplatePose()                
 		    return self._SuccessReturn_()
 	    
@@ -256,6 +257,31 @@ def verify_moduleTemplateToggles(goInstance):
     return True
 
 
+#>>Template curve
+
+def store_baseLength(mModule):
+    """
+    If a module needs pivots and has them, returns them. Checks if a module has necessary pivots.
+    """
+    _str_funcName = "store_curveLength"
+    try:
+	mi_templateNull = mModule.templateNull
+	ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
+	f_distance = distance.returnDistanceBetweenPoints(ml_controlObjects[0].getParent(asMeta = 1).getPosition(),ml_controlObjects[-1].getParent(asMeta = 1).getPosition())		
+	mi_templateNull.doStore('moduleBaseLength',f_distance )
+	log.info("Base Length: {0}".format(f_distance))
+	
+	if mi_templateNull.getMessage('curve'):
+	    try:
+		
+		f_crvLen = distance.returnCurveLength(mi_templateNull.getMessage('curve')[0])
+		mi_templateNull.doStore('curveBaseLength',f_crvLen )
+		log.debug("Curve Length: {0}".format(f_crvLen))
+		return True
+	    except Exception,error:self.log_error("Failed to get curve length | {0}".format(error))
+	    
+	return f_distance  
+    except Exception,error:raise Exception,"{0} | {1}".format(_str_funcName,error)
 
 #>>>> Pivots stuff 
 #==========================================================================================
@@ -443,7 +469,7 @@ def build_limbTemplate(*args, **kws):
             self._str_funcName = 'build_LimbTemplate(%s)'%self.d_kws['goInstance']._strShortName	
             self.__dataBind__(*args, **kws)
 	    #self._b_ExceptionInterupt = True
-	    #self._b_autoProgressBar = True
+	    self._b_autoProgressBar = True
 	    self._b_reportTimes = True
             self.l_funcSteps = [{'step':'Build Handles','call':self._step_buildHandles},
 	                        {'step':'Build Template Curve','call':self._step_buildCurve},
@@ -520,6 +546,7 @@ def build_limbTemplate(*args, **kws):
 		    self.l_tmplHandles.append (i_obj.mNode)
 		    mi_go.ml_controlObjects.append(i_obj)
 		except Exception,error:raise Exception,"Create Obj {0} fail | {1} ".format(i,error)
+	    store_baseLength(mi_go._mi_module)#Store our base length before we move stuff around
 		
         def _step_buildCurve(self):
             mi_go = self._go

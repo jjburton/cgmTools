@@ -1179,7 +1179,7 @@ def returnParentsFromObjectToParent(obj,parentObject,fullpath=True):
     shortNameBuffer = []
     for p in parentsList:
 	shortName = mc.ls(p,shortNames=True)[0]
-	log.info(shortName)
+	log.debug(shortName)
 	shortNameBuffer.append(shortName)
     if not fullpath:
 	return shortNameBuffer

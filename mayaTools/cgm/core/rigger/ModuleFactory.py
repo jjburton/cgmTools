@@ -1016,7 +1016,7 @@ def template_update(*args,**kws):
 		#return False
 	    try:
 		mc.xform(i_root.parent, translation = corePosList[0],worldSpace = True)
-		mc.xform(ml_controlObjects[0].parent, translation = corePosList[0],worldSpace = True)
+		#mc.xform(ml_controlObjects[0].parent, translation = corePosList[0],worldSpace = True)
 	    except Exception,error:
 		try:self.log_error("root.parent : {0}".format(i_root.parent))
 		except:pass
@@ -1030,28 +1030,43 @@ def template_update(*args,**kws):
 	    
 	    try:
 		for i,i_obj in enumerate(ml_controlObjects[1:]):
-		    log.info(i_obj.getShortName())
-		    objConstraints = constraints.returnObjectConstraints(i_obj.parent)
-		    if objConstraints:mc.delete(objConstraints) 
-		    buffer = search.returnParentsFromObjectToParent(i_obj.mNode,i_root.mNode)
-		    i_obj.parent = False
-		    if buffer:mc.delete(buffer)
-		    mc.xform(i_obj.mNode, translation = corePosList[1:][i],worldSpace = True) 
-	    except Exception,error:raise Exception,"objects move fail | {0}".format(error)
+		    try:
+			self.log_info("On {0}...".format(i_obj.p_nameShort))
+			try:
+			    if i_obj.parent:
+				objConstraints = constraints.returnObjectConstraints(i_obj.parent)
+				if objConstraints:mc.delete(objConstraints) 
+			except Exception,error:raise Exception,"Constraints clear fail | {0}".format(error)
+			'''
+			try:
+			    buffer = search.returnParentsFromObjectToParent(i_obj.mNode,i_root.mNode)
+			    i_obj.parent = False
+			    if buffer:mc.delete(buffer)
+			except Exception,error:raise Exception,"Parent fail | {0}".format(error)
+			'''  
+			try:mc.xform(i_obj.parent, translation = corePosList[1:][i],worldSpace = True)
+			except Exception,error:raise Exception,"final Move fail | {0}".format(error)
+			
+		    except Exception,error:
+			self.log_error("current obj : {0}".format(i_obj))
+			self.log_error("current parent : {0}".format(i_obj.parent))			
+			self.log_error("ml_controlObjects: {0}".format(ml_controlObjects))
+			raise Exception,"obj {0} fail | {1}".format(i,error)
 		    
+	    except Exception,error:raise Exception,"objects move fail | {0}".format(error)
+	    '''
 	    try:
 		buffer = search.returnParentsFromObjectToParent(ml_controlObjects[0].mNode,i_root.mNode)
 		ml_controlObjects[0].parent = False
 		if buffer:mc.delete(buffer)
 	    except Exception,error:raise Exception,"reparent prep fail | {0}".format(error)
-	    
-	    tFactory.doParentControlObjects(mi_module)
+	    '''
+	    #tFactory.doParentControlObjects(mi_module)
 	    tFactory.doCastPivots(mi_module)
-	    
+	    #tFactory.store_curveLength(mi_module)#Store our base length before we move stuff around
+	    return True	    
 	    mi_module.loadTemplatePose()#Restore the pose
 	    return True	    
-	
-
     return fncWrap(*args,**kws).go()
 
 def returnTemplateObjects(*args,**kws):
@@ -1583,12 +1598,12 @@ def poseStore_templateSettings(*args,**kws):
 		poseDict['orientRootHelper'] = self.buildDict_AnimAttrsOfObject(mi_templateNull.getMessage('orientRootHelper')[0])
 		poseDict['controlObjects'] = {}
 		poseDict['helperObjects'] = {}
-		
+
 		for i,mi_node in enumerate(mi_templateNull.msgList_get('controlObjects')):
 		    poseDict['controlObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.mNode)
 		    if mi_node.getMessage('helper'):
 			poseDict['helperObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.helper.mNode)
-		
+
 		#Store it        
 		mi_templateNull.controlObjectTemplatePose = poseDict
 		return poseDict
@@ -1611,6 +1626,130 @@ def poseRead_templateSettings(*args,**kws):
 	    self.__dataBind__(*args,**kws)	    
 	    #=================================================================
 	
+	def __normalizeValue__(self,value,attr = 'no attr name',obj = 'obj'):
+	    '''
+	    New concept for normalizing our values to the differential between a stored curve length and a current one
+	    '''
+	    try:
+		if self.f_crvLength_stored is not None:
+		    self.log_debug("Found stored crv length. Processing...")
+		    # base/value | current/x
+		    # (value * current)/stored
+		    buffer = ((value * self.f_crvLength_current)/self.f_crvLength_stored)
+		    self.log_info("'{0}.{1}' ...".format(obj,attr))
+		    self.log_info("Math : ({0} * {1}) / {2} = {3}".format(value,self.f_crvLength_current,self.f_crvLength_stored,buffer))
+		    self.log_info("Old: {0} | New: {1}".format(value,buffer))		    
+		    return buffer
+		    
+		else:
+		    self.log_debug("No stored crv length. Using value: {0}".format(value))
+		    return value
+		    
+	    except Exception,error:raise StandardError,"[__normalizeValue__ | {0}]".format(error)
+	
+	def __func__(self):
+	    """
+	    """
+	    try:#Query ========================================================
+		mi_module = self._mi_module
+		kws = self.d_kws
+		mi_templateNull = mi_module.templateNull   
+		d_pose = mi_templateNull.controlObjectTemplatePose
+		ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
+		if not ml_controlObjects:
+		    log.error("No control objects found")
+		    return False	
+		l_storedPosList = mi_templateNull.templateStarterData
+		
+	    except Exception,error:raise StandardError,"[Query]{%s}"%error
+	    
+	    if type(d_pose) is not dict:
+		self.log_error("Pose dict is not a dict: {0}".format(d_pose))
+		return False
+	    
+	    poseReset_templateSettings(mi_module)
+	    
+	    try:#>>> We need to setup our value normalizer value
+		
+		ml_controlObjects
+		self.log_info("Distance between : {0} and {1}".format(ml_controlObjects[0].getParent(asMeta = 1).p_nameShort,ml_controlObjects[-1].getParent(asMeta = 1).p_nameShort))
+		self.f_crvLength_current = distance.returnDistanceBetweenPoints(ml_controlObjects[0].getParent(asMeta = 1).getPosition(),ml_controlObjects[-1].getParent(asMeta = 1).getPosition())		
+		self.f_crvLength_stored =  mi_templateNull.getAttr('moduleBaseLength') or None
+		
+		'''
+		#Curve method
+		if mi_templateNull.getMessage('curve'):
+		    try:
+			self.f_crvLength_current = distance.returnCurveLength(mi_templateNull.getMessage('curve')[0])
+		    except Exception,error:self.log_error("Failed to get curve length | {0}".format(error))	    
+		self.f_crvLength_stored = mi_templateNull.getAttr('curveBaseLength') or None
+		'''
+	    except Exception,error:raise StandardError,"[Validate normalize data | {0}]".format(error)
+	    
+	    #>>> Get the root
+	    l_translates = ['translateX','translateY','translateZ']#Flag our
+	    for key in ['root','orientRootHelper']:
+		try:
+		    if d_pose[key]:
+			for attr, val in d_pose[key].items():
+			    try:
+				val=eval(val)
+			    except:pass 
+			    try:
+				if attr in l_translates:
+				    mc.setAttr('%s.%s' % (mi_templateNull.getMessage(key)[0],attr), self.__normalizeValue__(val,attr,key))
+				else:
+				    mc.setAttr('%s.%s' % (mi_templateNull.getMessage(key)[0],attr), val)
+			    except Exception,err:
+				self.log_error(err)   
+		except Exception,error:raise Exception,"key fail : {0} | {1}".format(key,error)
+			
+	    
+	    for key in d_pose['controlObjects']:
+		for attr, val in d_pose['controlObjects'][key].items():
+		    try:
+			val=eval(val)
+		    except:pass      
+		
+		    try:
+			if attr in l_translates:
+			    mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].mNode, attr), self.__normalizeValue__(val,attr,("obj{0}".format(key))))
+			else:
+			    mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].mNode, attr), val)
+			    
+		    except Exception,err:
+			self.log_error(err) 
+			
+	    for key in d_pose['helperObjects']:
+		for attr, val in d_pose['helperObjects'][key].items():
+		    try:
+			val=eval(val)
+		    except:pass      
+		    try:
+			if ml_controlObjects[int(key)].getMessage('helper'):
+			    mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].getMessage('helper')[0], attr), val)
+		    except Exception,err:
+			self.log_error("helperObjects '{0}' | {1}".format(attr,err))    
+	    return True
+    return fncWrap(*args,**kws).go()
+
+def poseReset_templateSettings(*args,**kws):
+    class fncWrap(ModuleFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName= "poseReset_templateSettings({0})".format(self._str_moduleName)	
+	    self.__dataBind__(*args,**kws)	    
+	    #=================================================================
+	    
+	def _resetTransform_(self,obj,attr):
+	    try:
+		default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
+		mc.setAttr(obj+'.'+attr, default)
+	    except Exception,error:
+		mc.setAttr(obj+'.'+attr, 0)	 
+		
 	def __func__(self):
 	    """
 	    """
@@ -1627,15 +1766,17 @@ def poseRead_templateSettings(*args,**kws):
 	    
 	    #>>> Get the root
 	    for key in ['root','orientRootHelper']:
-		if d_pose[key]:
-		    for attr, val in d_pose[key].items():
-			try:
-			    val=eval(val)
-			except:pass      
-			try:
-			    mc.setAttr('%s.%s' % (mi_templateNull.getMessage(key)[0],attr), val)
-			except Exception,err:
-			    self.log_error(err)   
+		try:
+		    if d_pose[key]:
+			for attr, val in d_pose[key].items():
+			    try:
+				val=eval(val)
+			    except:pass 
+			    try:
+				self._resetTransform_(mi_templateNull.getMessage(key)[0],attr)
+			    except Exception,err:
+				self.log_error(err)   
+		except Exception,error:raise Exception,"key fail : {0} | {1}".format(key,error)
 			
 	    ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
 	    if not ml_controlObjects:
@@ -1649,7 +1790,7 @@ def poseRead_templateSettings(*args,**kws):
 		    except:pass      
 		
 		    try:
-			mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].mNode, attr), val)
+			self._resetTransform_(ml_controlObjects[int(key)].mNode,attr)
 		    except Exception,err:
 			self.log_error(err) 
 			
@@ -1660,13 +1801,11 @@ def poseRead_templateSettings(*args,**kws):
 		    except:pass      
 		    try:
 			if ml_controlObjects[int(key)].getMessage('helper'):
-			    self.log_debug(ml_controlObjects[int(key)].getMessage('helper')[0])
-			    mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].getMessage('helper')[0], attr), val)
+			    self._resetTransform_(ml_controlObjects[int(key)].getMessage('helper')[0],attr)			    
 		    except Exception,err:
 			self.log_error("helperObjects '{0}' | {1}".format(attr,err))    
 	    return True
     return fncWrap(*args,**kws).go()
-  
     
 #=====================================================================================================
 #>>> Anim functions functions
