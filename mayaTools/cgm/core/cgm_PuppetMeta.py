@@ -478,6 +478,10 @@ class cgmPuppet(cgmMeta.cgmNode):
 	kws['mPuppet'] = self			
 	return pFactory.poseLoad_templateSettings(*args,**kws)
     
+    def templateSettingsCall(self,*args,**kws):
+	kws['mPuppet'] = self			
+	return pFactory.templateSettings_do(*args,**kws)
+       
     def isSized(self,*args,**kws):
 	kws['mPuppet'] = self			
 	return pFactory.isSized(*args,**kws)
@@ -1834,7 +1838,15 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.poseRead_templateSettings)
         """
 	kws['mModule'] = self	
-        return mFactory.poseRead_templateSettings(*args,**kws)   
+        return mFactory.poseRead_templateSettings(*args,**kws)
+    
+    def poseReset_templateSettings(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.poseRead_templateSettings)
+        """
+	kws['mModule'] = self	
+        return mFactory.poseReset_templateSettings(*args,**kws)   
     
     #>>> Skeletonize
     #===========================================================  

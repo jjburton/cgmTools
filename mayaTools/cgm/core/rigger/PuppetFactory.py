@@ -14,6 +14,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.lib import (search,attributes)
 from cgm.core import cgm_General as cgmGeneral
 from cgm.lib.ml import ml_resetChannels
@@ -24,6 +25,8 @@ geoTypes = 'nurbsSurface','mesh','poly','subdiv'
 _d_KWARG_mPuppet = {'kw':'mPuppet',"default":None,'help':"cgmPuppet mNode or str name","argType":"cgmPuppet"}
 _d_KWARG_moduleStateArg = {'kw':'moduleStateArg',"default":0,'help':"What state to check for","argType":"module state"}
 _d_KWARG_mirrorSideArg = {'kw':'mirrorSideArg',"default":None,'help':"Which side arg","argType":"string"}
+_d_KWARG_mode = {'kw':'mode',"default":None,'help':"Special mode for this fuction","argType":"varied"}
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Puppet Wrapper
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -411,6 +414,57 @@ def getOrderedModules(*args,**kws):
 #=====================================================================================================
 #>>> Template functions
 #=====================================================================================================
+def templateSettings_do(*args,**kws):
+    '''
+    Simple factory for template settings functions
+    '''
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._b_reportTimes = True
+	    self._str_funcName = "puppetFactory.templateSettings_do('{0}')".format(self._mi_puppet.cgmName)		    	    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+	                                 {'kw':'mode',"default":None,'help':"Special mode for this fuction","argType":"varied"}] 
+	    self.__dataBind__(*args,**kws)
+	    self._str_funcName = "puppetFactory.templateSettings_do('{0}',mode = {1})".format(self._mi_puppet.cgmName,self.d_kws.get('mode') or None)		    	    
+	    self.__updateFuncStrings__()
+	    
+	def __func__(self):
+	    """
+	    """
+	    l_modes = 'reset','store','load'
+	    str_mode = self.d_kws['mode']
+	    str_mode = cgmValid.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
+	    if str_mode not in l_modes:
+		raise ValueError,"Mode : {0} not in list: {1}".format(str_mode,l_modes)
+	    if str_mode is None:
+		self.log_error("Mode is None. Don't know what to do with this")
+		return False
+	    
+	    ml_modules = getModules(self._mi_puppet)	    
+	    if not ml_modules:
+		self.log_warning("'%s' has no modules"%self.cgmName)
+		return False
+
+	    int_lenModules = len(ml_modules)
+	    for i,mModule in enumerate(ml_modules):
+		try:
+		    _str_module = mModule.p_nameShort
+		    d_modesToCalls = {'reset':mModule.poseReset_templateSettings,
+		                      'store':mModule.storeTemplatePose,
+		                      'load':mModule.loadTemplatePose,
+		                      }
+		    self.progressBar_set(status = "{0} Module: '{1}' ".format(str_mode,_str_module),progress = i, maxValue = int_lenModules)	    		
+		    
+		    if not d_modesToCalls[str_mode](**kws):
+			self.log_error("{0} failed".format(mModule.p_nameShort))
+			return False
+		except Exception,error:raise Exception,"Module : '{0}' | Mode : {1} | error: {2}".format(mModule.p_nameShort,str_mode,error)
+	    return True
+    return fncWrap(*args,**kws).go()
+
 def poseStore_templateSettings(*args,**kws):
     class fncWrap(PuppetFunc):
 	def __init__(self,*args,**kws):
