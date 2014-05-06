@@ -267,6 +267,8 @@ def store_baseLength(mModule):
     try:
 	mi_templateNull = mModule.templateNull
 	ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
+	if not ml_controlObjects:
+	    raise StandardError,"No control objects on msgList"
 	f_distance = distance.returnDistanceBetweenPoints(ml_controlObjects[0].getParent(asMeta = 1).getPosition(),ml_controlObjects[-1].getParent(asMeta = 1).getPosition())		
 	mi_templateNull.doStore('moduleBaseLength',f_distance )
 	log.info("Base Length: {0}".format(f_distance))
@@ -372,17 +374,16 @@ def returnModuleBaseSize(self):
 		size = max(boundingBoxSize) *.6
 		if i_parent.moduleType == 'clavicle':
 		    return size * 2   
-		
 		if self.moduleType == 'clavicle':
 		    return size * .5
 		elif self.moduleType == 'head':
 		    return size * .75
 		elif self.moduleType == 'neck':
 		    return size * .5
-		elif self.moduleType == 'leg':
-		    return size * 1.5
+		elif self.moduleType in ['arm','leg']:
+		    return size * .5
 		elif self.moduleType in ['finger','thumb']:
-		    return size * .75                
+		    return size * .75 
     
 	    else:
 		log.debug("Parent has not been templated...")          
@@ -546,7 +547,6 @@ def build_limbTemplate(*args, **kws):
 		    self.l_tmplHandles.append (i_obj.mNode)
 		    mi_go.ml_controlObjects.append(i_obj)
 		except Exception,error:raise Exception,"Create Obj {0} fail | {1} ".format(i,error)
-	    store_baseLength(mi_go._mi_module)#Store our base length before we move stuff around
 		
         def _step_buildCurve(self):
             mi_go = self._go
@@ -627,6 +627,8 @@ def build_limbTemplate(*args, **kws):
 	    mi_go._mi_templateNull.msgList_connect(self.l_tmplHandles,'controlObjects')
 	    
 	    mi_go._mi_rootControl =self._mi_rootControl#link to carry
+	    
+	    store_baseLength(mi_go._mi_module)#Store our base length before we move stuff around
 	    
 	def _step_buildOrientHelpers(self):
 	    mi_go = self._go	   

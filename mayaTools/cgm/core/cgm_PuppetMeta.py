@@ -453,6 +453,14 @@ class cgmPuppet(cgmMeta.cgmNode):
 	kws['mPuppet'] = self			
 	return pFactory.mirrorMe(*args,**kws)
     
+    def mirror_do(self,**kws):
+	kws['mPuppet'] = self			
+	return pFactory.mirror_do(**kws)
+    
+    def mirrorSetup_verify(self,**kws):
+	kws['mPuppet'] = self			
+	return pFactory.mirrorSetup_verify(**kws)   
+    
     def anim_reset(self,*args,**kws):
 	kws['mPuppet'] = self			
 	return pFactory.animReset(*args,**kws)
@@ -471,14 +479,17 @@ class cgmPuppet(cgmMeta.cgmNode):
     def isTemplated(self,*args,**kws):
 	kws['mPuppet'] = self			
 	return pFactory.isTemplated(*args,**kws)
-    def poseStore_templateSettings(self,*args,**kws):
-	kws['mPuppet'] = self			
-	return pFactory.poseStore_templateSettings(*args,**kws)
-    def poseLoad_templateSettings(self,*args,**kws):
-	kws['mPuppet'] = self			
-	return pFactory.poseLoad_templateSettings(*args,**kws)
+    #def poseStore_templateSettings(self,*args,**kws):
+	#kws['mPuppet'] = self			
+	#return pFactory.poseStore_templateSettings(*args,**kws)
+    #def poseLoad_templateSettings(self,*args,**kws):
+	#kws['mPuppet'] = self			
+	#return pFactory.poseLoad_templateSettings(*args,**kws)
     
     def templateSettingsCall(self,*args,**kws):
+	'''
+	Call for doing multiple functions with templateSettings
+	'''
 	kws['mPuppet'] = self			
 	return pFactory.templateSettings_do(*args,**kws)
        
@@ -1961,8 +1972,16 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.get_rollJointCountList)
         """
 	kws['mModule'] = self	
-        return mFactory.get_rollJointCountList(*args,**kws)    
+        return mFactory.get_rollJointCountList(*args,**kws)  
     
+    def get_controls(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.get_controls)
+        """
+	kws['mModule'] = self	
+        return mFactory.get_controls(*args,**kws)
+
     def puppetSettings_setAttr(self,*args,**kws):
 	kws['mModule'] = self			
 	return mFactory.puppetSettings_setAttr(*args,**kws)
@@ -2014,7 +2033,9 @@ class cgmModule(cgmMeta.cgmObject):
     def mirrorRight(self,**kws):
 	kws['mModule'] = self	
 	return mFactory.mirrorSymRight(**kws)  
-    
+    def mirror_do(self,**kws):
+	kws['mModule'] = self	
+	return mFactory.mirror_do(**kws)      
     #>>> Module Children
     #========================================================================
     def get_allModuleChildren(self,*args,**kws):

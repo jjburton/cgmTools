@@ -118,7 +118,7 @@ def getUnifiedGeo(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getUnifiedGeo('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.getUnifiedGeo('%s')"%self._mi_puppet.cgmName	
 	    self.__dataBind__(*args,**kws)
 	def __func__(self):
 	    buffer = self._mi_puppet.getMessage('unifiedGeo')
@@ -133,7 +133,7 @@ def getGeo(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getGeo('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.getGeo('%s')"%self._mi_puppet.cgmName	
 	    self._str_funcHelp = "Get all the geo in our geo groups"	    
 	    self.__dataBind__(*args,**kws)
 	    #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
@@ -152,7 +152,7 @@ def getModules(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getModules('%s')"%self._mi_puppet.cgmName
+	    self._str_funcName = "puppet.getModules('%s')"%self._mi_puppet.cgmName
 	    self._str_funcHelp = "Get the modules of a puppet"	    
 	    self.__dataBind__(*args,**kws)
 	def __func__(self):
@@ -177,7 +177,7 @@ def gatherModules(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.gatherModules('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.gatherModules('%s')"%self._mi_puppet.cgmName	
 	    self._str_funcHelp = "Collect all modules where they should be in the heirarchy"	    	    
 	    self.__dataBind__(*args,**kws)
 	def __func__(self):
@@ -201,7 +201,7 @@ def getModuleFromDict(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getModuleFromDict('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.getModuleFromDict('%s')"%self._mi_puppet.cgmName	
 	    self._str_funcHelp = "Search the modues of a puppet for a module by attribute/value kws"	    	    
 	    self.__dataBind__(*args,**kws)
 	def __func__(self):
@@ -239,7 +239,7 @@ def getState(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getState('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.getState('%s')"%self._mi_puppet.cgmName	
 	    self._str_funcHelp = "Get a pupppet's state"	    	    
 	    self.__dataBind__(*args,**kws)
 	    
@@ -273,7 +273,7 @@ def isTemplated(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.isTemplated('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.isTemplated('%s')"%self._mi_puppet.cgmName	
 	    self.__dataBind__(*args,**kws)
 	    
 	def __func__(self):
@@ -296,7 +296,7 @@ def isSized(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.isSized('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.isSized('%s')"%self._mi_puppet.cgmName	
 	    self.__dataBind__(*args,**kws)
 	    
 	def __func__(self):
@@ -319,7 +319,7 @@ def isSkeletonized(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.isSkeletonized('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.isSkeletonized('%s')"%self._mi_puppet.cgmName	
 	    self.__dataBind__(*args,**kws)
 	    
 	def __func__(self):
@@ -357,7 +357,7 @@ def getOrderedModules(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getOrderedModules('%s')"%self._mi_puppet.cgmName
+	    self._str_funcName = "puppet.getOrderedModules('%s')"%self._mi_puppet.cgmName
 	    self._str_funcHelp = "Returns ordered modules of a character\nBy processing the various modules by parent into a logic list"
 	    self.__dataBind__(*args,**kws)
 	    #self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
@@ -424,11 +424,11 @@ def templateSettings_do(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._b_reportTimes = True
-	    self._str_funcName = "puppetFactory.templateSettings_do('{0}')".format(self._mi_puppet.cgmName)		    	    
+	    self._str_funcName = "puppet.templateSettings_do('{0}')".format(self._mi_puppet.cgmName)		    	    
 	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
 	                                 {'kw':'mode',"default":None,'help':"Special mode for this fuction","argType":"varied"}] 
 	    self.__dataBind__(*args,**kws)
-	    self._str_funcName = "puppetFactory.templateSettings_do('{0}',mode = {1})".format(self._mi_puppet.cgmName,self.d_kws.get('mode') or None)		    	    
+	    self._str_funcName = "puppet.templateSettings_do('{0}',mode = {1})".format(self._mi_puppet.cgmName,self.d_kws.get('mode') or None)		    	    
 	    self.__updateFuncStrings__()
 	    
 	def __func__(self):
@@ -465,13 +465,152 @@ def templateSettings_do(*args,**kws):
 	    return True
     return fncWrap(*args,**kws).go()
 
+def mirrorSetup_verify(*args,**kws):
+    '''
+    '''
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._str_funcName = 'puppetFactory.mirrorSetup_verify'
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+	                                 {'kw':'mode',"default":None,'help':"What mode will we be verifying in.","argType":"varied"},
+	                                 _d_KWARG_mirrorSideArg]
+	    self.__dataBind__(*args,**kws)
+	    self._b_ExceptionInterupt = True
+	    self._b_reportTimes = 1
+	    self.l_funcSteps = [{'step':'Query','call':self._verifyData},
+	                        {'step':'Module data','call':self._moduleData_},
+	                        {'step':'Process','call':self._process}]
+	    
+	    self._str_funcName = "puppet.templateSettings_mirrorVerify('{0}',mode = '{1}')".format(self._mi_puppet.cgmName,self.d_kws.get('mode') or None)		    	    
+	    self.__updateFuncStrings__()
+	    
+	def _verifyData(self):
+	    """
+	    """
+	    #self.d_kws['str_side'],
+	    #self.str_side = cgmGeneral.verify_mirrorSideArg(self.d_kws['mirrorSideArg'],**kws)	
+	    
+	    l_modes = ['template']
+	    str_mode = self.d_kws['mode']
+	    self.str_mode = cgmValid.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
+	    if self.str_mode not in l_modes:
+		raise ValueError,"Mode : {0} not in list: {1}".format(str_mode,l_modes)
+	    
+	    self.md_data = {}
+	    self.ml_modules = getOrderedModules(self._mi_puppet)
+	    
+	    self.d_runningSideIdxes = {}
+	    
+	def _moduleData_(self):
+	    ml_modules = self.ml_modules
+	    self.int_lenModules = len(ml_modules)
+	    
+	    try:#>>>Controls map
+		for i,mModule in enumerate(ml_modules):
+		    _str_module = mModule.p_nameShort		    
+		    self.progressBar_set(status = "Initial gather for: '{0}' ".format(_str_module),progress = i, maxValue = self.int_lenModules)		    				    		    
+		    self.md_data[mModule.mNode] = {}#...Initize a dict for this object
+		    _d = self.md_data[mModule.mNode]#...link it
+		    _d['str_name'] = _str_module
+		    _d['ml_controls'] = mModule.get_controls(self.str_mode)
+		    _d['mi_mirror'] = mModule.getMirror()
+		    _d['str_side'] = cgmGeneral.verify_mirrorSideArg(mModule.getMayaAttr('cgmDirection') or 'center',**kws)
+		    
+		    if _d['str_side'] not in self.d_runningSideIdxes.keys():
+			self.d_runningSideIdxes[_d['str_side']] = [0]
+		    self.log_infoDict(_d,_str_module)
+		self.log_infoDict(self.d_runningSideIdxes,"Side idxs")
+	    except Exception,error:raise Exception,"Control Gather fail | error: {0}".format(error)
+	    
+	def _process(self):
+	    """
+	    1) get a module 
+	    2) get controls
+	    3) see if has a mirror
+	    4) register 
+	    """
+	    ml_cull = copy.copy(self.ml_modules)
+	    
+	    while ml_cull:
+		for mModule in ml_cull:		
+		    try:#>>>Controls map
+			self.log_info("On: {0}".format(mModule.p_nameShort))
+			
+			try:md_buffer = self.md_data[mModule.mNode]#...get the modules dict
+			except Exception,error:raise Exception,"metaDict query | error: {0}".format(error)
+			
+			ml_modulesToDo = [mModule]#...append
+			mi_mirror = md_buffer.get('mi_mirror') or False
+			
+			if mi_mirror:
+			    try:
+				try:md_mirror = self.md_data[mi_mirror.mNode]
+				except Exception,error:raise Exception,"Failed to pull mirror from metaDict | {0}".format(error)			    
+				int_controls = len(md_buffer['ml_controls'])
+				int_mirrorControls = len(self.md_data[mi_mirror.mNode]['ml_controls'])
+				if int_controls != int_mirrorControls:
+				    raise ValueError,"Control lengths of mirrors do not match | mModule: {0} | mMirror: {1}".format(md_buffer['str_name'],md_mirror['str_name'])
+				ml_modulesToDo.append(mi_mirror)#...append if we have it
+				
+			    except Exception,error:raise Exception,"mirror check fail | error: {0}".format(error)
+		       
+			for mi_module in ml_modulesToDo:
+			    self.log_debug("Sub on: {0}".format(mi_module.p_nameShort))	
+
+			    try:
+				try:md_buffer = self.md_data[mi_module.mNode]#...get the modules dict	
+				except Exception,error:raise Exception,"metaDict query | error: {0}".format(error)
+				
+				ml_cull.remove(mi_module)#...remove this one as being processed
+				str_mirrorSide = md_buffer['str_side']
+				int_idxStart = max(self.d_runningSideIdxes[str_mirrorSide])
+				int_idxRunning = int_idxStart + 1
+				self.log_info("mModule: {0} | starting mirror index: {1}".format(md_buffer['str_name'],int_idxStart))
+				
+				self.progressBar_set(status = "Verifying '{0}' ".format(md_buffer['str_name']),progress = len(ml_cull), maxValue = self.int_lenModules)		    				    
+				
+				for i,mObj in enumerate(md_buffer['ml_controls']):
+				    try:					
+					if mObj.mClass != 'cgmControl':
+					    try:
+						mObj.mClass = 'cgmControl'
+						mObj = cgmMeta.cgmControl(mObj.mNode,setClass=True)
+					    except Exception,error:raise StandardError,"Set to cgmControl if Not | {0}".format(error)
+					#log.info("mirrorsetup: {0}".format(mObj.p_nameShort))
+					
+					try:mObj._verifyMirrorable()
+					except Exception,error:raise StandardError,"_mirrorSetup | {0}".format(error)
+					
+					l_enum = cgmMeta.cgmAttr(mObj,'mirrorSide').p_enum
+					if str_mirrorSide in l_enum:
+					    log.debug("%s >> %s >> found in : %s"%(self._str_funcCombined, "mirrorSetup", l_enum))		
+					    try:
+						mObj.mirrorSide = l_enum.index(str_mirrorSide)
+						self.log_debug("mirrorSide set to: %s"%(mObj.mirrorSide))						    
+					    except Exception,error:raise StandardError,"str_mirrorSide : %s | %s"%(str_mirrorSide,error)
+					if not mObj.getMayaAttr('mirrorAxis'):
+					    mObj.mirrorAxis = 'translateX,rotateZ,rotateY'
+					    #log.debug("str_mirrorAxis set: %s"%(str_mirrorAxis))				    					    
+					mObj.mirrorIndex = int_idxRunning
+					int_idxRunning += 1
+					self.d_runningSideIdxes[str_mirrorSide].append(int_idxRunning)					
+				    except Exception,error:raise Exception,"'{0}' fail | error: {1}".format(mObj.p_nameShort,error)
+			    except Exception,error:raise Exception,"{0} fail | error: {1}".format(mi_module.p_nameShort,error)	
+		    except Exception,error:raise Exception,"'{0}' fail | error: {1}".format(self.md_data[mModule.mNode]['str_name'],error)
+		
+	    return True
+    return fncWrap(*args,**kws).go()
+
 def poseStore_templateSettings(*args,**kws):
     class fncWrap(PuppetFunc):
 	def __init__(self,*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.poseStore_templateSettings('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.poseStore_templateSettings('%s')"%self._mi_puppet.cgmName	
 	    self.__dataBind__(*args,**kws)
 	    
 	def __func__(self):
@@ -496,7 +635,7 @@ def poseLoad_templateSettings(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.poseLoad_templateSettings('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.poseLoad_templateSettings('%s')"%self._mi_puppet.cgmName	
 	    self.__dataBind__(*args,**kws)
 	    
 	def __func__(self):
@@ -549,7 +688,7 @@ def mirrorMe(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getModules('%s')"%self._mi_puppet.cgmName
+	    self._str_funcName = "puppet.getModules('%s')"%self._mi_puppet.cgmName
 	    self._str_funcHelp = "Mirror all puppets modules"	    	    	    
 	    self.l_funcSteps = [{'step':'Process','call':self._process}]	
 	    self.__dataBind__(*args,**kws)
@@ -567,6 +706,74 @@ def mirrorMe(*args,**kws):
 	    return False
     return fncWrap(*args,**kws).go()
 
+def mirror_do(*args,**kws):
+    '''
+    Factory Rewrite of mirror functions.
+    TODO -- replace the many mirror functions here
+    '''
+    class fncWrap(PuppetFunc):
+        def __init__(self,*args,**kws):
+            """
+            """	
+            super(fncWrap, self).__init__(*args,**kws)
+            #self._b_reportTimes = True
+            self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+                                         {'kw':'mode',"default":'anim','help':"Special mode for this fuction","argType":"string"},
+                                         {'kw':'mirrorMode',"default":'symLeft','help':"Special mode for this fuction","argType":"string"}] 
+            self.__dataBind__(*args,**kws)
+            self._str_funcName = "puppet.mirror_do('{0}',mode = {1})".format(self._mi_puppet.cgmName,self.d_kws.get('mode') or None)		    	    
+            self.__updateFuncStrings__()
+            self.l_funcSteps = [{'step':'Verify','call':self._fncStep_validate_},
+                                {'step':'Process','call':self._fncStep_process_}]	
+
+        def _fncStep_validate_(self):
+            try:		
+                l_modes = ['template']
+                str_mode = self.d_kws['mode']
+                self.str_mode = cgmValid.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
+                if self.str_mode not in l_modes:
+                    raise ValueError,"Mode : {0} not in list: {1}".format(str_mode,l_modes)
+            except Exception,error: raise Exception,"Mode validate | error: {0}".format(error)
+
+            try:
+                l_mirrorModes = ['symLeft','symRight']
+                self.str_mirrorMode = cgmValid.stringArg(self.d_kws['mirrorMode'],noneValid=False,calledFrom = self._str_funcName)
+                if self.str_mirrorMode not in l_mirrorModes:
+                    raise ValueError,"Mode : {0} not in list: {1}".format(self.str_mirrorMode,l_mirrorModes)
+            except Exception,error: raise Exception,"Mirror Mode validate | error: {0}".format(error)	    
+
+	    self.ml_modules = getModules(self._mi_puppet)
+
+        def _fncStep_process_(self):
+            """
+            """
+	    
+            try:
+                ml_controls = []
+		for mModule in self.ml_modules:
+		    try:
+			ml_moduleControls = mModule.get_controls(mode = self.d_kws['mode'])
+			if not ml_moduleControls:
+			    raise StandardError,"No controls found"
+			ml_controls.extend(ml_moduleControls)
+		    except Exception,error:
+			raise Exception,"Module '{0}' | error: {1}".format(mModule.p_nameShort,error)		
+            except Exception,error:raise Exception,"Gather controls | error: {0}".format(error)		
+
+            if ml_controls:
+                l_controls = [mObj.mNode for mObj in ml_controls]
+                _str_mrrMd = self.str_mirrorMode
+                if _str_mrrMd == 'symLeft':
+                    r9Anim.MirrorHierarchy(l_controls).makeSymmetrical(mode = '',primeAxis = "Left" )
+                elif _str_mrrMd == 'symRight':
+                    r9Anim.MirrorHierarchy(l_controls).makeSymmetrical(mode = '',primeAxis = "Left" )
+                else:
+                    raise StandardError,"Don't know what to do with this mode: {0}".format(self.str_mirrorMode)
+                mc.select(l_controls)
+                return True
+            return False	    
+
+    return fncWrap(*args,**kws).go()
 
 '''	
 def mirrorMe(self,**kws):
@@ -597,7 +804,7 @@ def get_mirrorIndexDict(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.get_mirrorIndexDict('%s')"%self._mi_puppet.cgmName
+	    self._str_funcName = "puppet.get_mirrorIndexDict('%s')"%self._mi_puppet.cgmName
 	    self._str_funcHelp = "Get the mirror index dict"	    	    	    	    
 	    self.__dataBind__(*args,**kws)	
 	    
@@ -636,7 +843,7 @@ def get_mirrorIndexDictFromSide(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "puppetFactory.getModules('%s')"%self._mi_puppet.cgmName	
+	    self._str_funcName = "puppet.getModules('%s')"%self._mi_puppet.cgmName	
 	    self._l_ARGS_KWS_DEFAULTS.append({'kw':'str_side',"default":None,'help':"Which side arg","argType":"string"}) 
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Query','call':self._verifyData},
