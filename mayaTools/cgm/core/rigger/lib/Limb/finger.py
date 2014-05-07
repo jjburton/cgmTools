@@ -99,10 +99,9 @@ def __bindSkeletonSetup__(self,addHelpers = True):
 	
 	if addHelpers:
 	    ml_pairs = lists.parseListToPairs(ml_moduleJoints)
-	    
-	    jUtils.add_defHelpJoint(ml_pairs[1][0],ml_pairs[1][1],helperType = 'childRootHold',orientation=self.jointOrientation)
+	    jUtils.add_defHelpJoint(ml_pairs[1][0],ml_pairs[1][1],helperType = 'childRootHold',orientation=self.str_jointOrientation)
 	    for ml_pair in ml_pairs[1:]:
-		jUtils.add_defHelpJoint(ml_pair[0],ml_pair[1],helperType = 'halfPush',orientation=self.jointOrientation)
+		jUtils.add_defHelpJoint(ml_pair[0],ml_pair[1],helperType = 'halfPush',orientation=self.str_jointOrientation)
 		
 	"""
 	for i,i_jnt in enumerate(ml_moduleJoints):
@@ -135,7 +134,7 @@ def __bindSkeletonSetup__(self,addHelpers = True):
 	"""
 	#ml_moduleJoints = self._mi_module.rigNull.msgList_get('moduleJoints')
 	#self._i_rigNull.msgList_connect(ml_moduleJoints,'skinJoints','module')	
-	self._mi_module.rig_getReport()#report
+	#self._mi_module.rig_getReport()#report
 	
     except StandardError,error:
 	log.error("build_arm>>__bindSkeletonSetup__ fail!")

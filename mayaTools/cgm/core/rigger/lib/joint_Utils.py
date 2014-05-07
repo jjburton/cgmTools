@@ -82,102 +82,105 @@ def mirrorJointOrientation(*args,**kws):
 	    	
     return fncWrap(*args,**kws).go()
     
-#@cgmGeneral.Timer
+@cgmGeneral.Timer
 def metaFreezeJointOrientation(targetJoints):
     """
     Copies joint orietnations from one joint to others
     """
-    if type(targetJoints) not in [list,tuple]:targetJoints=[targetJoints]
-
-    ml_targetJoints = cgmMeta.validateObjListArg(targetJoints,cgmMeta.cgmObject,mayaType='joint')
-    for i_jnt in ml_targetJoints:
-	if i_jnt.getConstraintsTo():
-            log.warning("freezeJointOrientation>> target joint has constraints. Can't change orientation. Culling from targets: '%s'"%i_jnt.getShortName())
-	    return False
-	
-    #buffer parents and children of 
-    d_children = {}
-    d_parent = {}
-    mi_parent = cgmMeta.validateObjArg(ml_targetJoints[0].parent,noneValid=True)
+    try:
+	if type(targetJoints) not in [list,tuple]:targetJoints=[targetJoints]
     
-    for i_jnt in ml_targetJoints:
-        d_children[i_jnt] = cgmMeta.validateObjListArg( mc.listRelatives(i_jnt.mNode, path=True, c=True),cgmMeta.cgmObject,True) or []
-	d_parent[i_jnt] = cgmMeta.validateObjArg(i_jnt.parent,noneValid=True)
-    for i_jnt in ml_targetJoints:
-	for i,i_c in enumerate(d_children[i_jnt]):
-	    log.debug(i_c.getShortName())
-	    log.debug("freezeJointOrientation>> parented '%s' to world to orient parent"%i_c.mNode)
-	    i_c.parent = False
+	ml_targetJoints = cgmMeta.validateObjListArg(targetJoints,cgmMeta.cgmObject,mayaType='joint')
+	'''
+	for i_jnt in ml_targetJoints:
+	    if i_jnt.getConstraintsTo():
+		log.warning("freezeJointOrientation>> target joint has constraints. Can't change orientation. Culling from targets: '%s'"%i_jnt.getShortName())
+		return False
+	    '''
+	#buffer parents and children of 
+	d_children = {}
+	d_parent = {}
+	mi_parent = cgmMeta.validateObjArg(ml_targetJoints[0].parent,noneValid=True)
+	
+	for i_jnt in ml_targetJoints:
+	    d_children[i_jnt] = cgmMeta.validateObjListArg( mc.listRelatives(i_jnt.mNode, path=True, c=True),cgmMeta.cgmObject,True) or []
+	    d_parent[i_jnt] = cgmMeta.validateObjArg(i_jnt.parent,noneValid=True)
+	for i_jnt in ml_targetJoints:
+	    for i,i_c in enumerate(d_children[i_jnt]):
+		#log.debug(i_c.getShortName())
+		#log.debug("freezeJointOrientation>> parented '%s' to world to orient parent"%i_c.mNode)
+		i_c.parent = False
+		
+	if mi_parent:
+	    ml_targetJoints[0].parent = False
 	    
-    if mi_parent:
-	ml_targetJoints[0].parent = False
-	
-    #Orient
-    for i,i_jnt in enumerate(ml_targetJoints):
-	"""
-	So....jointOrient is always in xyz rotate order
-	dup,rotate order
-	Unparent, add rotate & joint rotate, push value, zero rotate, parent back, done
-	"""
-	if i != 0 and d_parent.get(i_jnt):
-	    i_jnt.parent = d_parent.get(i_jnt)#parent back first before duping
-	buffer = mc.duplicate(i_jnt.mNode,po=True,ic=False)[0]#Duplicate the joint
-	i_dup = cgmMeta.cgmObject(buffer)
-	i_dup.rotateOrder = 0
-	
-	#New method  ----
-	mi_zLoc = i_jnt.doLoc()#Make some locs
-	mi_yLoc = i_jnt.doLoc()
-	str_group = mi_zLoc.doGroup() #group for easy move
-	mi_yLoc.parent = str_group
-	
-	mi_zLoc.tz = 1#Move
-	mi_yLoc.ty = 1
-	
-	mc.makeIdentity(i_dup.mNode, apply = 1, jo = 1)#Freeze
-	
-	#Aim
-	str_const = mc.aimConstraint(mi_zLoc.mNode,i_dup.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = [0,1,0], worldUpObject = mi_yLoc.mNode, worldUpType = 'object' )[0]
-	
-	i_jnt.rotate = [0,0,0] #Move to joint
-	i_jnt.jointOrient = i_dup.rotate
-	
-	mc.delete([str_const,str_group])#Delete extra stuff
-        i_dup.delete()
-	
-	#Old method
-	"""
-	mc.delete(mc.orientConstraint(i_jnt.mNode, i_dup.mNode, w=1, maintainOffset = False))
-
-	l_rValue = i_dup.rotate
-	l_joValue = i_dup.jointOrient
-	l_added = cgmMath.list_add(l_rValue,l_joValue)	
-	
-	i_dup.jointOrientX = l_added[0]
-	i_dup.jointOrientY = l_added[1]
-	i_dup.jointOrientZ = l_added[2]	
-	i_dup.rotate = [0,0,0]
-	
-	i_dup.parent = i_jnt.parent
-	
-	i_jnt.rotate = [0,0,0]
-	i_jnt.jointOrient = i_dup.jointOrient
-	i_dup.delete()
-
-	"""
-	
-    #reparent
-    if mi_parent:
-	try:ml_targetJoints[0].parent = mi_parent
-	except Exception,error: raise StandardError,"Failed to parent back %s"%error
-    for i_jnt in ml_targetJoints:
-        for i_c in d_children[i_jnt]:
-            log.debug("freezeJointOrientation>> parented '%s' back"%i_c.getShortName())
-            i_c.parent = i_jnt.mNode 
-	    cgmMeta.cgmAttr(i_c,"inverseScale").doConnectIn("%s.scale"%i_jnt.mNode )
-
-	
-    return True
+	#Orient
+	for i,i_jnt in enumerate(ml_targetJoints):
+	    """
+	    So....jointOrient is always in xyz rotate order
+	    dup,rotate order
+	    Unparent, add rotate & joint rotate, push value, zero rotate, parent back, done
+	    """
+	    if i != 0 and d_parent.get(i_jnt):
+		i_jnt.parent = d_parent.get(i_jnt)#parent back first before duping
+	    buffer = mc.duplicate(i_jnt.mNode,po=True,ic=False)[0]#Duplicate the joint
+	    i_dup = cgmMeta.cgmObject(buffer)
+	    i_dup.rotateOrder = 0
+	    
+	    #New method  ----
+	    mi_zLoc = i_jnt.doLoc()#Make some locs
+	    mi_yLoc = i_jnt.doLoc()
+	    str_group = mi_zLoc.doGroup() #group for easy move
+	    mi_yLoc.parent = str_group
+	    
+	    mi_zLoc.tz = 1#Move
+	    mi_yLoc.ty = 1
+	    
+	    mc.makeIdentity(i_dup.mNode, apply = 1, jo = 1)#Freeze
+	    
+	    #Aim
+	    str_const = mc.aimConstraint(mi_zLoc.mNode,i_dup.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = [0,1,0], worldUpObject = mi_yLoc.mNode, worldUpType = 'object' )[0]
+	    
+	    i_jnt.rotate = [0,0,0] #Move to joint
+	    i_jnt.jointOrient = i_dup.rotate
+	    
+	    mc.delete([str_const,str_group])#Delete extra stuff
+	    i_dup.delete()
+	    
+	    #Old method
+	    """
+	    mc.delete(mc.orientConstraint(i_jnt.mNode, i_dup.mNode, w=1, maintainOffset = False))
+    
+	    l_rValue = i_dup.rotate
+	    l_joValue = i_dup.jointOrient
+	    l_added = cgmMath.list_add(l_rValue,l_joValue)	
+	    
+	    i_dup.jointOrientX = l_added[0]
+	    i_dup.jointOrientY = l_added[1]
+	    i_dup.jointOrientZ = l_added[2]	
+	    i_dup.rotate = [0,0,0]
+	    
+	    i_dup.parent = i_jnt.parent
+	    
+	    i_jnt.rotate = [0,0,0]
+	    i_jnt.jointOrient = i_dup.jointOrient
+	    i_dup.delete()
+    
+	    """
+	    
+	#reparent
+	if mi_parent:
+	    try:ml_targetJoints[0].parent = mi_parent
+	    except Exception,error: raise StandardError,"Failed to parent back %s"%error
+	for i_jnt in ml_targetJoints:
+	    for i_c in d_children[i_jnt]:
+		log.debug("freezeJointOrientation>> parented '%s' back"%i_c.getShortName())
+		i_c.parent = i_jnt.mNode 
+		cgmMeta.cgmAttr(i_c,"inverseScale").doConnectIn("%s.scale"%i_jnt.mNode )
+    
+	    
+	return True
+    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
 
 def freezeJointOrientation(targetJoints):
     return metaFreezeJointOrientation(targetJoints)

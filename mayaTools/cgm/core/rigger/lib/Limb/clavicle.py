@@ -62,9 +62,8 @@ reload(joints)
 __l_jointAttrs__ = ['rigJoints','fkJoints']   
 
 def __bindSkeletonSetup__(self):
-    """
-    TODO: Do I need to connect per joint overrides or will the final group setup get them?
-    """
+    pass
+'''
     log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "-"*75)            
     try:
 	if not self._cgmClass == 'JointFactory.go':
@@ -83,7 +82,7 @@ def __bindSkeletonSetup__(self):
     except StandardError,error:
 	log.error("build_clavicle>>__bindSkeletonSetup__ fail!")
 	raise StandardError,error   
-    
+    '''
 def build_rigSkeleton(goInstance = None):
     class fncWrap(modUtils.rigStep):
 	def __init__(self,goInstance = None):

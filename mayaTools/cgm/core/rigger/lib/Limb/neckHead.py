@@ -72,7 +72,7 @@ def __bindSkeletonSetup__(self):
 	raise StandardError,error
     
     _str_funcName = "__bindSkeletonSetup__(%s)"%self._strShortName
-    log.info(">>> %s "%(_str_funcName) + "="*75)
+    #log.info(">>> %s "%(_str_funcName) + "="*75)
     start = time.clock()
     
     #>>> Re parent joints
@@ -102,9 +102,9 @@ def __bindSkeletonSetup__(self):
 	    
 	self._mi_module.rigNull.msgList_connect(ml_skinJoints,'skinJoints')    	
 	    
-	log.info("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
-	log.info("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))			
-	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
+	#log.info("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
+	#log.info("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))			
+	#log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
 
     except StandardError,error:
 	raise StandardError,"%s >>> error : %s"%(_str_funcName,error)

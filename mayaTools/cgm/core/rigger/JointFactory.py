@@ -20,11 +20,13 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
+reload(jntUtils)
 from cgm.core.lib import rayCaster as rayCast
 from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.classes import SnapFactory as Snap
-
+from cgm.core.rigger.lib import module_Utils as modUtils
+reload(modUtils)
 from cgm.lib import (cgmMath,
                      joints,
                      rigging,
@@ -67,123 +69,145 @@ settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictio
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-class go(object):
-    def __init__(self,mModule,forceNew = True,saveTemplatePose = True,**kws): 
-        """
-        To do:
-        Add rotation order settting
-        Add module parent check to make sure parent is templated to be able to move forward, or to constrain
-        Add any other piece meal data necessary
-        Add a cleaner to force a rebuild
-        """
-        # Get our base info
-        #==============	        
-        #>>> module null data 
-        #assert mModule.mClass in ['cgmModule','cgmLimb'],"Not a module"
-        assert mModule.isTemplated(),"Module is not templated"
-	mc.select(cl=1)#Clear our selection because we're gonna be making joints
-        #assert object is templated
-        #assert ...	
-	self.cls = "JointFactory.go"
-	self._cgmClass = "JointFactory.go"
-        self._mi_module = mModule# Link for shortness
-	_str_funcName = "go.__init__(%s)"%self._mi_module.p_nameShort  
-	log.info(">>> %s >>> "%(_str_funcName) + "="*75)
+def go(*args, **kws):
+    """
+    Customization template builder from template file for setting up a cgmMorpheusMakerNetwork
+    
+    :parameters:
+	0 - 'customizationNode'(morpheusCustomizationAsset - None) | Morpheus system biped customization asset
 	
-        if mModule.isSkeletonized():
-            if forceNew:
-                deleteSkeleton(mModule)
-            else:
-                log.warning("'%s' has already been skeletonized"%mModule.getShortName())
-                return        
-        
-        #>>> store template settings
-        if saveTemplatePose and not self._mi_module.getMessage('helper'):
-            log.debug("Saving template pose in JointFactory.go")
-            self._mi_module.storeTemplatePose()
-        
-        self.rigNull = self._mi_module.getMessage('rigNull')[0] or False
-        self._mi_rigNull = self._mi_module.rigNull
-        self._mi_puppet = self._mi_module.modulePuppet	
-        self.moduleColors = self._mi_module.getModuleColors()
-        self.l_coreNames = self._mi_module.coreNames.value
-        self.foundDirections = False #Placeholder to see if we have it
-                
-        #>>> part name 
-        self._partName = self._mi_module.getPartNameBase()
-        self._partType = self._mi_module.moduleType.lower() or False
-        self._strShortName = self._mi_module.getShortName() or False
+    :returns:
+        Nothing
 	
-        self.direction = None
-        if self._mi_module.hasAttr('cgmDirection'):
-            self.direction = self._mi_module.cgmDirection or None
-        
-        #>>> template null 
-        self._mi_templateNull = self._mi_module.templateNull
+    :raises:
+	Exception | if reached
 	
-        #>>> Gather info
-        #=========================================================	
-        self._l_coreNames = self._mi_module.coreNames.value  
-        self.str_jointOrientation = modules.returnSettingsData('jointOrientation')
-        self._d_handleToHandleJoints = {}
-	
+    """       
+    class fncWrap(cgmGeneral.cgmFuncCls):		
+        def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'go'	
+	    self._b_reportTimes = 1 #..we always want this on so we're gonna set it on
+	    self._cgmClass = 'JointFactory.go'
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'mModule',"default":None,"argType":'cgmModule','help':"This must be a cgm module"},
+	                                 {'kw':'forceNew',"default":True,"argType":'bool','help':"Whether to force a new one"},
+	                                 {'kw':'saveTemplatePose',"default":True,"argType":'bool','help':"Whether to attempt to load a tempate pose or now"},
+	                                ]	    
+	    self.__dataBind__(*args, **kws)
+	    self.l_funcSteps = [{'step':'Initial Validation','call':self._step_validate_},
+	                        {'step':'Need Building?','call':self._step_buildNeed_},
+	                        {'step':'Data Bind','call':self._step_jointDataBind_},	                        
+	                        {'step':'Main process','call':self._step_jointProcess_},
+	                        #{'step':'Tag Children','call':self._step_tagChildren_},	                        	                        
+	                        ]
+	    
+        def _step_validate_(self):
+	    assert self.d_kws['mModule'].isModule(),"Not a module"
+	    assert self.d_kws['mModule'].isTemplated(),"Not Templated"
+	    self._mi_module = self.d_kws['mModule']# Link for shortness
+	    self._str_reportStart = "{0}('{1}')".format(self._str_reportStart,self._mi_module.p_nameShort)
+	    self.cls = "JointFactory.go"
+	    self._cgmClass = "JointFactory.go"
+	    	    
+	def _step_buildNeed_(self):
+	    mi_module = self._mi_module
+	    self._strShortName = self._mi_module.getShortName() or False     
+	    
+	    #>>> store template settings
+	    if self.d_kws['saveTemplatePose'] and not self._mi_module.getMessage('helper'):
+		self.log_debug("Saving template pose..")
+		self._mi_module.storeTemplatePose()
+	    
+	    if self._mi_module.isSkeletonized():
+		if self.d_kws['forceNew']:
+		    self._mi_module.skeletonDelete()
+		else:
+		    self.log_info("'{0}' has already been Skeletonized. Done.".format(self._strShortName))
+		    return self._SuccessReturn_()
 
-	if not hasJointSetup(self):
-	    raise StandardError, "Need to add to build dict"
-	
-	#Skeletonize
-	self.str_progressBar = gui.doStartMayaProgressBar(4)
-	if self._mi_module.mClass == 'cgmLimb':
-	    #Gather specific data for Limb
-	    #>>> Instances and joint stuff
-	    self.curveDegree = self._mi_templateNull.curveDegree	
-	    self._mi_root = self._mi_templateNull.root
-	    self._mi_orientRootHelper = self._mi_templateNull.orientRootHelper
-	    self._mi_curve = self._mi_templateNull.curve
-	    self._ml_controlObjects = self._mi_templateNull.msgList_get('controlObjects')
+	def _step_jointDataBind_(self):
+	    self.rigNull = self._mi_module.getMessage('rigNull')[0] or False
+	    self._mi_rigNull = self._mi_module.rigNull
+	    self._mi_puppet = self._mi_module.modulePuppet	
+	    self.moduleColors = self._mi_module.getModuleColors()
 	    
-	    log.debug("Module: %s"%self._mi_module.getShortName())
-	    log.debug("partType: %s"%self._partType)
-	    log.debug("direction: %s"%self.direction) 
-	    log.debug("colors: %s"%self.moduleColors)
-	    log.debug("coreNames: %s"%self.l_coreNames)
-	    log.debug("root: %s"%self._mi_root.getShortName())
-	    log.debug("curve: %s"%self._mi_curve.getShortName())
-	    log.debug("orientRootHelper: %s"%self._mi_orientRootHelper.getShortName())
-	    log.debug("rollJoints: %s"%self._mi_templateNull.rollJoints)
-	    log.debug("jointOrientation: %s"%self.str_jointOrientation)
-	    log.debug("hasJointSetup: %s"%hasJointSetup(self))		
+	    self.foundDirections = False #Placeholder to see if we have it
+		    
+	    #>>> part name 
+	    self._partName = self._mi_module.getPartNameBase()
+	    self._partType = self._mi_module.moduleType.lower() or False
 	    
-	    log.debug("mode: cgmLimb Skeletonize")
-	    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Skeletonize'), progress=0)    		
-	    doSkeletonizeLimb(self)
+	    self.direction = None
+	    if self._mi_module.hasAttr('cgmDirection'):
+		self.direction = self._mi_module.cgmDirection or None
 	    
-	    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Special Joints'), progress=4)    				
-	    self.build(self)
+	    #>>> template null 
+	    self._mi_templateNull = self._mi_module.templateNull
 	    
-	    #Only going to tag our handleJoints at the very end because of message connection duplication
-	    for i_obj in self._ml_controlObjects:
-		i_obj.connectChildNode(self._d_handleToHandleJoints[i_obj],'handleJoint')	    
-	elif self._mi_module.mClass == 'cgmEyeball':
-	    log.info(">>> %s.go >> eyeball mode!"%(self._mi_module.p_nameShort))
-	    try:doSkeletonizeEyeball(self)
-	    except Exception,error:log.warning(">>> %s.go >> build failed: %s"%(self._mi_module.p_nameShort,error)) 
-	elif self._mi_module.mClass == 'cgmEyelids':
-	    log.info(">>> %s.go >> eyelids mode!"%(self._mi_module.p_nameShort))
-	    try:doSkeletonizeEyelids(self)
-	    except Exception,error:log.warning(">>> %s.go >> build failed: %s"%(self._mi_module.p_nameShort,error)) 
-	elif self._mi_module.mClass == 'cgmEyebrow':
-	    log.info(">>> %s.go >> eyebrow mode!"%(self._mi_module.p_nameShort))
-	    doSkeletonizeEyebrow(self)
-	elif self._mi_module.mClass == 'cgmMouthNose':
-	    log.info(">>> %s.go >> mouthNose mode!"%(self._mi_module.p_nameShort))
-	    try:doSkeletonizeMouthNose(self,**kws)
-	    except Exception,error:log.warning(">>> %s.go >> build failed: %s"%(self._mi_module.p_nameShort,error)) 	    
-	else:
-	    raise NotImplementedError,"haven't implemented '%s' skeletonizing yet yet"%self._mi_module.mClass
+	    #>>> Gather info
+	    #=========================================================	
+	    self._l_coreNames = self._mi_module.coreNames.value  
+	    self.str_jointOrientation = modules.returnSettingsData('jointOrientation')
+	    self._d_handleToHandleJoints = {}
+	    
+	    if not hasJointSetup(self):
+		raise StandardError, "Need to add to build dict"
 
-	gui.doEndMayaProgressBar(self.str_progressBar)#Close out this progress bar        
-	log.info("%s.go >> build completed!"%(self._strShortName) + "-"*75)
+	def _step_jointProcess_(self):
+	    if self._mi_module.mClass == 'cgmLimb':
+		self.curveDegree = self._mi_templateNull.curveDegree	
+		self._mi_root = self._mi_templateNull.root
+		self._mi_orientRootHelper = self._mi_templateNull.orientRootHelper
+		self._mi_curve = self._mi_templateNull.curve
+		self._ml_controlObjects = self._mi_templateNull.msgList_get('controlObjects')
+
+		self.log_debug("mode: cgmLimb Skeletonize")
+		build_limbSkeleton(self)
+		    
+		try:self.modSpecificBuild(self)#...this is post stuff
+		except Exception,error:raise Exception,"Post stuff fail | {0}".format(error)
+		
+		#Only going to tag our handleJoints at the very end because of message connection duplication
+		
+		try:
+		    for mObj in self._ml_controlObjects:
+			mObj.connectChildNode(self.ml_moduleJoints[self._d_handleToHandleJoints[mObj]],'handleJoint')	
+		except Exception,error:self.log_error("Tagging fail | error: {0}".format(error)) 
+		
+	    elif self._mi_module.mClass == 'cgmEyeball':
+		log.info(">>> %s.go >> eyeball mode!"%(self._mi_module.p_nameShort))
+		try:doSkeletonizeEyeball(self)
+		except Exception,error:log.warning(">>> %s.go >> build failed: %s"%(self._mi_module.p_nameShort,error)) 
+	    elif self._mi_module.mClass == 'cgmEyelids':
+		log.info(">>> %s.go >> eyelids mode!"%(self._mi_module.p_nameShort))
+		try:doSkeletonizeEyelids(self)
+		except Exception,error:log.warning(">>> %s.go >> build failed: %s"%(self._mi_module.p_nameShort,error)) 
+	    elif self._mi_module.mClass == 'cgmEyebrow':
+		log.info(">>> %s.go >> eyebrow mode!"%(self._mi_module.p_nameShort))
+		doSkeletonizeEyebrow(self)
+	    elif self._mi_module.mClass == 'cgmMouthNose':
+		log.info(">>> %s.go >> mouthNose mode!"%(self._mi_module.p_nameShort))
+		try:doSkeletonizeMouthNose(self,**kws)
+		except Exception,error:log.warning(">>> %s.go >> build failed: %s"%(self._mi_module.p_nameShort,error)) 	    
+	    else:
+		raise NotImplementedError,"haven't implemented '{0}' skeletonizing yet yet".format(self._mi_module.mClass)
+    
+		
+	def _step_tagChildren_(self):
+	    doTagChildren(self._mi_module)
+	    
+	def _step_poseLoad_(self):
+	    #>>> store template settings
+	    self._mi_module.loadTemplatePose()	
+
+
+	    
+	    """
+	    self._mi_templateNull.overrideEnabled = 1		
+	    cgmMeta.cgmAttr(self._mi_masterSettings.mNode,'templateVis',lock=False).doConnectOut("%s.%s"%(self._mi_templateNull.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(self._mi_masterSettings.mNode,'templateLock',lock=False).doConnectOut("%s.%s"%(self._mi_templateNull.mNode,'overrideDisplayType'))    
+	    """
+    return fncWrap(*args, **kws).go()
 	
 class JointFactoryFunc(cgmGeneral.cgmFuncCls):
     def __init__(self,*args,**kws):
@@ -209,31 +233,30 @@ class JointFactoryFunc(cgmGeneral.cgmFuncCls):
 	#=================================================================
 	
 def hasJointSetup(self):
-    if not issubclass(type(self),go):
-	log.error("Not a JointFactory.go instance: '%s'"%self)
-	raise StandardError
-    self = self#Link
-    log.debug(">>> %s.hasJointSetup >> "%(self._strShortName) + "="*75)      
+    try:
+	log.debug(">>> %s.hasJointSetup >> "%(self._strShortName) + "="*75)      
+	
+	if self._partType not in d_moduleTypeToBuildModule.keys():
+	    self.log_error("%s.hasJointSetup>>> '%s' Not in d_moduleTypeToBuildModule"%(self._strShortName,self._partType))	
+	    return False
+	
+	try:#Version
+	    self._buildVersion = d_moduleTypeToBuildModule[self._partType].__version__    
+	except:
+	    self.log_error("%s.hasJointSetup>>> Missing version"%(self._strShortName))	
+	    return False
+	
+	try:#Joints list
+	    self.modSpecificBuild = d_moduleTypeToBuildModule[self._partType].__bindSkeletonSetup__
+	    self.modSpecificBuildModule = d_moduleTypeToBuildModule[self._partType]
+	except:
+	    self.log_error("%s.hasJointSetup>>> Missing Joint Setup Function"%(self._strShortName))	
+	    return False	
+	
+	return True  
+    except Exception,error:
+	raise Exception,"hasJointSetup fail | error: {0}".format(error)
     
-    if self._partType not in d_moduleTypeToBuildModule.keys():
-	log.error("%s.isBuildable>>> '%s' Not in d_moduleTypeToBuildModule"%(self._strShortName,self._partType))	
-	return False
-    
-    try:#Version
-	self._buildVersion = d_moduleTypeToBuildModule[self._partType].__version__    
-    except:
-	log.error("%s.isBuildable>>> Missing version"%(self._strShortName))	
-	return False
-    
-    try:#Joints list
-	self.build = d_moduleTypeToBuildModule[self._partType].__bindSkeletonSetup__
-	self.buildModule = d_moduleTypeToBuildModule[self._partType]
-    except:
-	log.error("%s.isBuildable>>> Missing Joint Setup Function"%(self._strShortName))	
-	return False	
-    
-    return True  
-
 def doSkeletonizeEyeball(self):
     """     
     """
@@ -1675,413 +1698,432 @@ def doSkeletonizeMouthNose(*args,**kws):
  	    	
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()  
-    
-def doSkeletonizeLimb(self):
-    """ 
-    DESCRIPTION:
-    Basic limb skeletonizer
-    
-    ARGUMENTS:
-    stiffIndex(int) - the index of the template objects you want to not have roll joints
-                      For example, a value of -1 will let the chest portion of a spine 
-                      segment be solid instead of having a roll segment. Default is the modules setting
-    RETURNS:
-    l_limbJoints(list)
-    """
-    # Get our base info
-    #==================	        
-    assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
-    assert mc.objExists(self._mi_module.mNode),"module no longer exists"
-    _str_funcName = "doSkeletonizeLimb(%s)"%self._strShortName   
-    log.debug(">>> %s >>> "%(_str_funcName) + "="*75)    
-    start = time.clock()
-    
-    try:
-	_str_subFunc = "Info gather"
-	curve = self._mi_curve.mNode
-	partName = self._partName
-	l_limbJoints = []
-    
-	#>>> Check roll joint args
-	rollJoints = self._mi_templateNull.rollJoints
-	d_rollJointOverride = self._mi_templateNull.rollOverride
-	if type(d_rollJointOverride) is not dict:
-	    d_rollJointOverride = False
+
+
+
+def build_limbSkeleton(*args, **kws):
+    class fncWrap_build_limbTemplate(modUtils.skeletonizeStep):
+        def __init__(self,*args, **kws):
+            super(fncWrap_build_limbTemplate, self).__init__(*args, **kws)
+            self._str_funcName = 'build_limbSkeleton({0})'.format(self.d_kws['goInstance']._strShortName)	
+            self.__dataBind__(*args, **kws)
+	    self._b_ExceptionInterupt = True
+	    self._b_autoProgressBar = True
+	    self._b_reportTimes = True
+            self.l_funcSteps = [{'step':'Validate','call':self._step_validate},
+	                        {'step':'Parent Check','call':self._step_parentCheck},
+	                        {'step':'Initial Creation','call':self._step_initialCreation},
+	                        {'step':'Naming','call':self._step_naming},
+	                        {'step':'Orient','call':self._step_orientInitial},
+	                        {'step':'Flagging','call':self._step_jointFlags},
+	                        #{'step':'Parent','call':self._step_parentObjects},
+                                ]
+            #=================================================================
+	    #self.l_strSteps = ['Start','template objects','curve','root control','helpers']
+		 
+        def _step_validate(self):
+	    try:mi_go = self._go
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
 	    
-	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*75)
-    except Exception,error:
-	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
-    
-    try:#>>> See if we have have a suitable parent joint to use
-	# We'll know it is if the first template position shares an equivalent position with it's parentModule
-	#======================================================
-	_str_subFunc = "Parent check"	
-	i_parentJointToUse = False
+	    try:#Gather limb specific data and check
+		#========================================================================
+		pass
+	    except Exception,error:raise Exception,"Gather info fail | {0} ".format(error)
+	    
+	    # Get our base info
+	    #==================	        	    
+	    self.str_curve = mi_go._mi_curve.mNode
+	    self.l_limbJoints = []
 	
-	pos = distance.returnWorldSpacePosition( self._ml_controlObjects[0].mNode )
-	log.debug("pos: %s"%pos)
-	#Get parent position, if we have one
-	if self._mi_module.getMessage('moduleParent'):
-	    log.debug("Found moduleParent, checking joints...")
-	    i_parentRigNull = self._mi_module.moduleParent.rigNull
-	    parentJoints = i_parentRigNull.msgList_getMessage('moduleJoints')
-	    log.debug(parentJoints)
-	    if parentJoints:
-		parent_pos = distance.returnWorldSpacePosition( parentJoints[-1] )
-		log.debug("parentPos: %s"%parent_pos)  
-		
-	    log.debug("Equivalent: %s"%cgmMath.isVectorEquivalent(pos,parent_pos))
-	    if cgmMath.isVectorEquivalent(pos,parent_pos):#if they're equivalent
-		i_parentJointToUse = cgmMeta.cgmObject(parentJoints[-1])
-		
-	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
-    except Exception,error:
-	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
-    
-    #>>> Make if our segment only has one handle
-    #==========================================	
-    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Parent Check...'), progress=1)    				    
-    self.b_parentStole = False
-    if len(self._ml_controlObjects) == 1:
-        if i_parentJointToUse:
-            log.debug("Single joint: moduleParent mode")
-            #Need to grab the last joint for this module
-            l_limbJoints = [parentJoints[-1]]
-            i_parentRigNull.msgList_connect(parentJoints[:-1],'moduleJoints','rigNull')
-	    self.b_parentStole = True	    
-        else:
-            log.debug("Single joint: no parent mode")
-            l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
-    else:
-        if i_parentJointToUse:
-            #We're going to reconnect all but the last joint back to the parent module and delete the last parent joint which we're replacing
-            i_parentRigNull.msgList_connect(parentJoints[:-1],'moduleJoints','rigNull')
-            mc.delete(i_parentJointToUse.mNode)
-	    self.b_parentStole = True
-            
-        #>>> Make the limb segment
-        #==========================
-	try:
-	    _str_subFunc = "getUPositions"		    
-	    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Making segment joints...'), progress=1)    				    	
-	    l_spanUPositions = []
-	    #>>> Divide stuff
-	    for i_obj in self._ml_controlObjects:#These are our base span u positions on the curve
-		l_spanUPositions.append(distance.returnNearestPointOnCurveInfo(i_obj.mNode,curve)['parameter'])
-	    l_spanSegmentUPositions = lists.parseListToPairs(l_spanUPositions)
-	    #>>>Get div per span
-	    l_spanDivs = self._mi_module.get_rollJointCountList() or []
-	    
-	    log.debug("l_spanSegmentUPositions: %s"%l_spanSegmentUPositions)
-	    log.debug("l_spanDivs: %s"%l_spanDivs)	    
-
-	    log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
-	except Exception,error:
-	    raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
-
-        
-	try:#>>>Get div per span 
-	    _str_subFunc = "initial Joint creation"
-	    
-	    l_jointUPositions = []
-	    for i,segment in enumerate(l_spanSegmentUPositions):#Split stuff up
-		#Get our span u value distance
-		length = segment[1]-segment[0]
-		div = length / (l_spanDivs[i] +1)
-		tally = segment[0]
-		l_jointUPositions.append(tally)
-		for i in range(l_spanDivs[i] +1)[1:]:
-		    tally = segment[0]+(i*div)
-		    l_jointUPositions.append(tally)
-	    l_jointUPositions.append(l_spanUPositions[-1])
+	    #>>> Check roll joint args
+	    rollJoints = mi_go._mi_templateNull.rollJoints
+	    self.d_rollJointOverride = mi_go._mi_templateNull.rollOverride
+	    if type(self.d_rollJointOverride) is not dict:
+		self.d_rollJointOverride = False
 		    
-	    l_jointPositions = []
-	    for u in l_jointUPositions:
-		l_jointPositions.append(mc.pointPosition("%s.u[%f]"%(curve,u)))
+
+        def _step_parentCheck(self):
+	    try:mi_go = self._go
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
+	    
+	    try:#>>> See if we have have a suitable parent joint to use
+		# We'll know it is if the first template position shares an equivalent position with it's parentModule
+		#======================================================
+		self.mi_parentJointToUse = False
 		
+		pos = distance.returnWorldSpacePosition( mi_go._ml_controlObjects[0].mNode )
+		self.log_debug("pos: %s"%pos)
 		
-	    #>>> Remove the duplicate positions"""
-	    l_jointPositions = lists.returnPosListNoDuplicates(l_jointPositions)
-	    #>>> Actually making the joints
-	    for pos in l_jointPositions:
-		l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
+		#Get parent position, if we have one
+		if mi_go._mi_module.getMessage('moduleParent'):
+		    self.log_debug("Found moduleParent, checking joints...")
+		    self.mi_parentRigNull = mi_go._mi_module.moduleParent.rigNull
+		    self.l_parentJoints = self.mi_parentRigNull.msgList_getMessage('moduleJoints')
+		    if self.l_parentJoints:
+			parent_pos = distance.returnWorldSpacePosition( self.l_parentJoints[-1] )
+			self.log_debug("parentPos: %s"%parent_pos)  
+			
+		    self.log_debug("Equivalent: %s"%cgmMath.isVectorEquivalent(pos,parent_pos))
+		    if cgmMath.isVectorEquivalent(pos,parent_pos):#if they're equivalent
+			self.mi_parentJointToUse = cgmMeta.cgmObject(self.l_parentJoints[-1])
+			
+	    except Exception,error:raise Exception,"Parent check fail | {0} ".format(error)
+
+        def _step_initialCreation(self):
+	    try:mi_go = self._go
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
 	    
-	    log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
-	except Exception,error:
-	    raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+	    #>>> Make if our segment only has one handle
+	    #==========================================	
+	    mi_go.b_parentStole = False
+	    if len(mi_go._ml_controlObjects) == 1:
+		try:
+		    if self.mi_parentJointToUse:
+			self.log_debug("Single joint: moduleParent mode")
+			#Need to grab the last joint for this module
+			self.l_limbJoints = [self.l_parentJoints[-1]]
+			self.mi_parentRigNull.msgList_connect(self.l_parentJoints[:-1],'moduleJoints','rigNull')
+			mi_go.b_parentStole = True	    
+		    else:
+			self.log_debug("Single joint: no parent mode")
+			self.l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
+		except Exception,error:raise Exception,"Single object mode fail | {0} ".format(error)
+	    else:
+		try:
+		    if self.mi_parentJointToUse:
+			self.log_debug("Stealing parent joint : {0} | will no longer exist".format(self.mi_parentJointToUse.mNode))
+			#We're going to reconnect all but the last joint back to the parent module and delete the last parent joint which we're replacing
+			self.mi_parentRigNull.msgList_connect(self.l_parentJoints[:-1],'moduleJoints','rigNull')
+			mc.delete(self.mi_parentJointToUse.mNode)
+			mi_go.b_parentStole = True
+			
+		    #>>> Make the limb segment
+		    #==========================
+		    try:#>> Get U Positions
+			l_spanUPositions = []
+			#>>> Divide stuff
+			for i_obj in mi_go._ml_controlObjects:#These are our base span u positions on the curve
+			    l_spanUPositions.append(distance.returnNearestPointOnCurveInfo(i_obj.mNode,self.str_curve)['parameter'])
+			l_spanSegmentUPositions = lists.parseListToPairs(l_spanUPositions)
+			#>>>Get div per span
+			l_spanDivs = mi_go._mi_module.get_rollJointCountList() or []
+			
+			self.log_debug("l_spanSegmentUPositions: %s"%l_spanSegmentUPositions)
+			self.log_debug("l_spanDivs: %s"%l_spanDivs)	    
+		    except Exception,error:raise Exception,"Get U Positions fail | {0} ".format(error)
 
-               
-    #>>> Naming
-    #=========== 
-    """ 
-    Copy naming information from template objects to the joints closest to them
-    copy over a cgmNameModifier tag from the module first
-    """
-    #attributes.copyUserAttrs(moduleNull,l_limbJoints[0],attrsToCopy=['cgmNameModifier'])
-    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Naming...'), progress=2)    				    
-    
-    try:#>>>First we need to find our matches
-	_str_subFunc = "Find matches"	
-	log.debug("Finding matches from module controlObjects")
-	for i_obj in self._ml_controlObjects:
-	    closestJoint = distance.returnClosestObject(i_obj.mNode,l_limbJoints)
-	    #transferObj = attributes.returnMessageObject(obj,'cgmName')
-	    """Then we copy it"""
-	    attributes.copyUserAttrs(i_obj.mNode,closestJoint,attrsToCopy=['cgmPosition','cgmNameModifier','cgmDirection','cgmName'])
-	    self._d_handleToHandleJoints[i_obj] = cgmMeta.cgmNode(closestJoint)
-	    i_obj.connectChildNode(closestJoint,'handleJoint')
-	    
-	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
-    except Exception,error:
-	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
-
-    try:#>>>If we stole our parents anchor joint, we need to to reconnect it
-	_str_subFunc = "ParentStole reconnect"		
-	log.debug("%s"%_str_subFunc)
-	if self.b_parentStole:
-	    i_parentControl = self._mi_module.moduleParent.templateNull.msgList_get('controlObjects')[-1]
-	    log.debug("parentControl: %s"%i_parentControl.getShortName())
-	    closestJoint = distance.returnClosestObject(i_parentControl.mNode,l_limbJoints)	
-	    i_parentControl.connectChildNode(closestJoint,'handleJoint')
-	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
-    except Exception,error:
-	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
-
-    #>>>Store it
-    self._mi_rigNull.msgList_connect(l_limbJoints,'moduleJoints','rigNull')
-  
-
-    #>>>Store these joints and rename the heirarchy
-    try:#Metaclassing our objects
-	_str_subFunc = "Metaclassing our objects"
-	log.debug("%s"%_str_subFunc)		
-	for i,o in enumerate(l_limbJoints):
-	    i_o = cgmMeta.cgmObject(o)
-	    i_o.addAttr('mClass','cgmObject',lock=True) 
-	    i_o.addAttr('d_jointFlags', '{}',attrType = 'string', lock=True, hidden=True) 
-	    
-	ml_moduleJoints = self._mi_rigNull.msgList_get('moduleJoints',asMeta = True)  
+		    try:#>>>Get div per span 
+			_str_subFunc = "initial Joint creation"
+			
+			l_jointUPositions = []
+			for i,segment in enumerate(l_spanSegmentUPositions):#Split stuff up
+			    #Get our span u value distance
+			    length = segment[1]-segment[0]
+			    div = length / (l_spanDivs[i] +1)
+			    tally = segment[0]
+			    l_jointUPositions.append(tally)
+			    for i in range(l_spanDivs[i] +1)[1:]:
+				tally = segment[0]+(i*div)
+				l_jointUPositions.append(tally)
+			l_jointUPositions.append(l_spanUPositions[-1])
+				
+			l_jointPositions = []
+			for u in l_jointUPositions:
+			    l_jointPositions.append(mc.pointPosition("%s.u[%f]"%(self.str_curve,u)))
+			    
+			    
+			#>>> Remove the duplicate positions"""
+			l_jointPositions = lists.returnPosListNoDuplicates(l_jointPositions)
+			#>>> Actually making the joints
+			for pos in l_jointPositions:
+			    self.l_limbJoints.append ( mc.joint (p=(pos[0],pos[1],pos[2]))) 
+		    except Exception,error:raise Exception,"Get U Positions fail | {0} ".format(error)
+		except Exception,error:raise Exception,"regular segment mode fail | {0} ".format(error)
 	
-	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
-    except Exception,error:
-	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
-    
-    try:#Naming
-	_str_subFunc = "Naming"	
-	log.debug("%s"%_str_subFunc)	
-	ml_moduleJoints[0].doName(nameChildren=True,fastIterate=True)#name
-	log.debug("%s >>> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-start)) + "-"*50)
-    except Exception,error:
-	raise StandardError,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
-
-    l_moduleJoints = [i_j.p_nameShort for i_j in ml_moduleJoints]#store
-    
-    #>>> Orientation    
-    #=============== 
-    mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Skeletonize>> step:'%s' "%(self._strShortName,'Orienting...'), progress=3)    				        
-    try:
-	if not doOrientSegment(self):
-	    raise StandardError, "Orient failed"
-    except Exception,error:
-        raise StandardError,"Segment orientation failed: %s"%error    
-    
-    #>>> Set its radius and toggle axis visbility on
-    jointSize = (distance.returnDistanceBetweenObjects (l_moduleJoints[0],l_moduleJoints[-1])/6)
-    reload(attributes)
-    #jointSize*.2
-    attributes.doMultiSetAttr(l_moduleJoints,'radi',3)
-    
-    #>>> Flag our handle joints
-    #===========================
-    ml_handles = []
-    ml_handleJoints = []
-    for i_obj in self._ml_controlObjects:
-	if i_obj.hasAttr('handleJoint'):
-	    #d_buffer = i_obj.handleJoint.d_jointFlags
-	    #d_buffer['isHandle'] = True
-	    #i_obj.handleJoint.d_jointFlags = d_buffer
-	    ml_handleJoints.append(i_obj.handleJoint)
-    
-    self._mi_rigNull.msgList_connect(ml_handleJoints,'handleJoints','rigNull')
+	def _step_naming(self):
+	    try:mi_go = self._go
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)	    
+	    """ 
+	    Copy naming information from template objects to the joints closest to them
+	    copy over a cgmNameModifier tag from the module first
+	    """
 	    
-    return True 
+	    try:#>>>First we need to find our matches
+		_str_subFunc = "Find matches"	
+		self.log_debug("Finding matches from module controlObjects")
+		for mObj in mi_go._ml_controlObjects:
+		    closestJoint = distance.returnClosestObject(mObj.mNode,self.l_limbJoints)
+		    idx = self.l_limbJoints.index(closestJoint)
+		    #transferObj = attributes.returnMessageObject(obj,'cgmName')
+		    """Then we copy it"""
+		    attributes.copyUserAttrs(mObj.mNode,closestJoint,attrsToCopy=['cgmPosition','cgmNameModifier','cgmDirection','cgmName'])
+		    mi_go._d_handleToHandleJoints[mObj] = idx
+		    mObj.connectChildNode(closestJoint,'handleJoint')
+		    
+	    except Exception,error:raise Exception,"Match find fail | {0} ".format(error)
 
-@cgmGeneral.Timer
-def doOrientSegment(self):
-    """ 
-    Segement orienter. Must have a JointFactory Instance
-    """ 
-    # Get our base info
-    #==================	        
-    assert self.cls == 'JointFactory.go',"Not a JointFactory.go instance!"
-    assert mc.objExists(self._mi_module.mNode),"module no longer exists"
-    
-    ml_moduleJoints = self._mi_rigNull.msgList_get('moduleJoints',asMeta = True)
-    l_moduleJoints = [i_j.p_nameShort for i_j in ml_moduleJoints]    
-    
-    #self._mi_rigNull = self._mi_module.rigNull#refresh
-    log.debug(">>> %s.doOrientSegment >> "%self._strShortName + "="*75)            
-        
-    #>>> orientation vectors
-    #=======================    
-    orientationVectors = search.returnAimUpOutVectorsFromOrientation(self.str_jointOrientation)
-    wantedAimVector = orientationVectors[0]
-    wantedUpVector = orientationVectors[1]  
-    log.debug("wantedAimVector: %s"%wantedAimVector)
-    log.debug("wantedUpVector: %s"%wantedUpVector)
-    
-    #>>> Put objects in order of closeness to root
-    #l_limbJoints = distance.returnDistanceSortedList(l_limbJoints[0],l_limbJoints)
-    
-    #>>> Segment our joint list by cgmName, prolly a better way to optimize this
-    l_cull = copy.copy(l_moduleJoints)
-    if len(l_cull)==1:
-        log.debug('Single joint orient mode')
-        helper = self._mi_templateNull.orientRootHelper.mNode
-        if helper:
-            log.debug("helper: %s"%helper)
-            constBuffer = mc.orientConstraint( helper,l_cull[0],maintainOffset = False)
-            mc.delete (constBuffer[0])  
-	    #Push rotate to jointOrient
-	    i_jnt = cgmMeta.cgmObject(l_cull[0])
-	    ##i_jnt.jointOrient = i_jnt.rotate
-	    ##i_jnt.rotate = [0,0,0]
+	    try:#>>>If we stole our parents anchor joint, we need to to reconnect it
+		if mi_go.b_parentStole:
+		    mi_parentControl = mi_go._mi_module.moduleParent.templateNull.msgList_get('controlObjects')[-1]
+		    self.log_debug("parentControl: %s"%mi_parentControl.getShortName())
+		    closestJoint = distance.returnClosestObject(mi_parentControl.mNode,self.l_limbJoints)	
+		    mi_parentControl.connectChildNode(closestJoint,'handleJoint')
+	    except Exception,error:raise Exception,"Stolen parent repair fail | {0} ".format(error)
+
+	
+	    try:#>>>Store it
+		mi_go._mi_rigNull.msgList_connect(self.l_limbJoints,'moduleJoints','rigNull')
+	    except Exception,error:raise Exception,"Store msgList fail | {0} ".format(error)
+	
+	    #>>>Store these joints and rename the heirarchy
+	    try:#Metaclassing our objects
+		ml_moduleJoints = [cgmMeta.cgmObject(o,setClass=1) for o in self.l_limbJoints]
+		for i,mObj in enumerate(ml_moduleJoints):
+		    mObj.addAttr('d_jointFlags', '{}',attrType = 'string', lock=True, hidden=True) 
+	    except Exception,error:raise Exception,"Joint flag/metaing fail | {0} ".format(error)
+
+	    try:#Naming
+		ml_moduleJoints[0].doName(fastName = False, nameChildren=True,fastIterate=True)#name
+	    except Exception,error:raise Exception,"Joint flag/metaing fail | {0} ".format(error)
 	    
-    else:#Normal mode
-        log.debug('Normal orient mode')        
-        self.l_jointSegmentIndexSets= []
-        while l_cull:
-            matchTerm = search.findRawTagInfo(l_cull[0],'cgmName')
-            buffer = []
-            objSet = search.returnMatchedTagsFromObjectList(l_cull,'cgmName',matchTerm)
-            for o in objSet:
-                buffer.append(l_moduleJoints.index(o))
-            self.l_jointSegmentIndexSets.append(buffer)
-            for obj in objSet:
-                l_cull.remove(obj)
-            
-        #>>> un parenting the chain
-        for i,i_jnt in enumerate(ml_moduleJoints):
-	    if i != 0:
-		i_jnt.parent = False
-            i_jnt.displayLocalAxis = 1#tmp
-	    #Reset the jointRotate before orientating
-	    ##i_jnt.jointOrient = [0,0,0]	    
-	    #Set rotateOrder
-            try:
-		#i_jnt.rotateOrder = 2
-                i_jnt.rotateOrder = self.str_jointOrientation
+	    self.ml_moduleJoints = ml_moduleJoints
+	    
+	def _step_orientInitial(self):
+	    try:
+		mi_go = self._go
+		ml_moduleJoints = self.ml_moduleJoints
+		mi_go.ml_moduleJoints = ml_moduleJoints#...push	    
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)	 
+	    
+	    try:doOrientSegment(mi_go)
+	    except Exception,error:raise Exception,"Segment orientation failed: %s"%error    
+	    
+	def _step_jointFlags(self):
+	    try:
+		mi_go = self._go
+		ml_moduleJoints = self.ml_moduleJoints	
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)	 
+	    l_moduleJoints = [i_j.mNode for i_j in ml_moduleJoints]#store
+		    
+	    #>>> Set its radius and toggle axis visbility on
+	    jointSize = (distance.returnDistanceBetweenObjects (l_moduleJoints[0],l_moduleJoints[-1])/6)
+	    attributes.doMultiSetAttr(l_moduleJoints,'radi',3)
+	    
+	    #>>> Flag our handle joints
+	    #===========================
+	    ml_handles = []
+	    ml_handleJoints = []
+	    for i_obj in mi_go._ml_controlObjects:
+		if i_obj.hasAttr('handleJoint'):
+		    #d_buffer = i_obj.handleJoint.d_jointFlags
+		    #d_buffer['isHandle'] = True
+		    #i_obj.handleJoint.d_jointFlags = d_buffer
+		    ml_handleJoints.append(i_obj.handleJoint)
+	    
+	    mi_go._mi_rigNull.msgList_connect(ml_handleJoints,'handleJoints','rigNull')
+		    
+	    return True 
+    return fncWrap_build_limbTemplate(*args, **kws).go()
+	        
+
+def doOrientSegment(*args, **kws):
+    class fncWrap_doOrientSegment(modUtils.skeletonizeStep):
+        def __init__(self,*args, **kws):
+            super(fncWrap_doOrientSegment, self).__init__(*args, **kws)
+            self._str_funcName = 'doOrientSegment({0})'.format(self.d_kws['goInstance']._strShortName)	
+            self.__dataBind__(*args, **kws)
+	    self._b_autoProgressBar = True
+	    self._b_reportTimes = True
+	    self._b_ExceptionInterupt = True
+            self.l_funcSteps = [{'step':'Validate','call':self._step_validate},
+	                        {'step':'Main orient pass','call':self._step_mainOrient},
+	                        {'step':'Parent connect','call':self._step_connectToParent},	                        
+	                        {'step':'Freeze Orientation','call':self._step_freeze},
+	                        {'step':'Speical case','call':self._step_specialCase},
+                                ]
+            #=================================================================
+	    #self.l_strSteps = ['Start','template objects','curve','root control','helpers']
+		 
+        def _step_validate(self):
+	    try:mi_go = self._go
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
+	    
+	    try:self.ml_moduleJoints = mi_go.ml_moduleJoints
+	    except:
+		self.log_info("Initialing module joints...")
+		self.ml_moduleJoints = self._mi_rigNull.msgList_get('moduleJoints',asMeta = True)
+	    try:self.l_moduleJoints = mi_go.l_moduleJoints
+	    except:
+		self.log_info("Initialing joints list...")
+		self.l_moduleJoints = [mJnt.p_nameShort for mJnt in self.ml_moduleJoints]   
+		
+	
+	    try:#>>> orientation vectors
+		#=======================    
+		self.orientationVectors = search.returnAimUpOutVectorsFromOrientation(mi_go.str_jointOrientation)
+		self.wantedAimVector = self.orientationVectors[0]
+		self.wantedUpVector = self.orientationVectors[1]  
+		self.log_debug("self.wantedAimVector: %s"%self.wantedAimVector)
+		self.log_debug("self.wantedUpVector: %s"%self.wantedUpVector)
+	    except Exception,error:raise Exception,"orientation vectors fail | {0} ".format(error)
+	    
+	    #>>> Put objects in order of closeness to root
+	    #l_limbJoints = distance.returnDistanceSortedList(l_limbJoints[0],l_limbJoints)
+	    
+        def _step_mainOrient(self):
+	    try:mi_go = self._go
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
+	    
+	    #>>> Segment our joint list by cgmName, prolly a better way to optimize this
+	    l_cull = copy.copy(self.l_moduleJoints)
+	    if len(l_cull)==1:
+		try:
+		    self.log_debug('Single joint orient mode')
+		    helper = mi_go._mi_templateNull.orientRootHelper.mNode
+		    if helper:
+			self.log_debug("helper: %s"%helper)
+			constBuffer = mc.orientConstraint( helper,l_cull[0],maintainOffset = False)
+			mc.delete (constBuffer[0])  
+			#Push rotate to jointOrient
+			i_jnt = cgmMeta.cgmObject(l_cull[0])
+		except Exception,error:raise Exception,"Single joint orient fail | {0} ".format(error)
+		    
+	    else:#Normal mode
+		try:
+		    self.log_debug('Normal orient mode')        
+		    mi_go.l_jointSegmentIndexSets= []
+		    while l_cull:
+			matchTerm = search.findRawTagInfo(l_cull[0],'cgmName')
+			buffer = []
+			objSet = search.returnMatchedTagsFromObjectList(l_cull,'cgmName',matchTerm)
+			for o in objSet:
+			    buffer.append(self.l_moduleJoints.index(o))
+			mi_go.l_jointSegmentIndexSets.append(buffer)
+			for obj in objSet:
+			    l_cull.remove(obj)
+			
+		    #>>> un parenting the chain
+		    for i,mJnt in enumerate(self.ml_moduleJoints):
+			if i != 0:
+			    mJnt.parent = False
+			mJnt.displayLocalAxis = 1#tmp
+			try:
+			    mJnt.rotateOrder = mi_go.str_jointOrientation
+			except Exception,error:
+			    log.error("doOrientSegment>>rotate order set fail: %s"%mJnt.getShortName())
+		
+		    #>>>per segment stuff
+		    assert len(mi_go.l_jointSegmentIndexSets) == len(mi_go._mi_module.coreNames.value)#quick check to make sure we've got the stuff we need
+		    cnt = 0
+		    self.log_debug("Segment Index sets: %s"%mi_go.l_jointSegmentIndexSets)
+		    for cnt,segment in enumerate(mi_go.l_jointSegmentIndexSets):#for each segment
+			try:
+			    self.log_debug("On segment: %s"%segment)	    
+			    lastCnt = len(mi_go.l_jointSegmentIndexSets)-1
+			    segmentHelper = mi_go._ml_controlObjects[cnt].getMessage('helper')[0]
+			    helperObjectCurvesShapes =  mc.listRelatives(segmentHelper,shapes=True)
+			    upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)   
+			    
+			    if not mc.objExists(segmentHelper) and search.returnObjectType(segmentHelper) != 'nurbsCurve':
+				raise StandardError,"doOrientSegment>>> No helper found"
+			    
+			    if cnt != lastCnt:
+				#>>> Create our up object from from the helper object 
+				#>>> make a pair list
+				#pairList = lists.parseListToPairs(segment)
+				"""for pair in pairList:
+				    constraintBuffer = mc.aimConstraint(self.ml_moduleJoints[pair[1]].mNode,self.ml_moduleJoints[pair[0]].mNode,maintainOffset = False, weight = 1, aimVector = self.wantedAimVector, upVector = self.wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
+				    mc.delete(constraintBuffer[0])"""
+				for index in segment:
+				    if index != 0:
+					self.ml_moduleJoints[index].parent = self.ml_moduleJoints[index-1].mNode
+				    self.ml_moduleJoints[index].rotate  = [0,0,0]			
+				    self.ml_moduleJoints[index].jointOrient  = [0,0,0]	
+				    
+				    #self.log_debug("%s aim to %s"%(self.ml_moduleJoints[index].mNode,self.ml_moduleJoints[index+1].mNode))
+				    constraintBuffer = mc.aimConstraint(self.ml_moduleJoints[index+1].mNode,self.ml_moduleJoints[index].mNode,maintainOffset = False, weight = 1, aimVector = self.wantedAimVector, upVector = self.wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
+				    mc.delete(constraintBuffer[0])
+				    
+				    #Push rotate to jointOrient
+				    #self.ml_moduleJoints[index].jointOrient = self.ml_moduleJoints[index].rotate
+				    #self.ml_moduleJoints[index].rotate = [0,0,0]
+				    
+				mc.delete(upLoc)
+				#>>>  Increment and delete the up loc """
+			    else:
+				self.log_debug(">>> Last count")
+				#>>> Make an aim object and move it """
+				mJnt = self.ml_moduleJoints[segment[-1]]
+				self.log_debug(mJnt.getShortName())
+				mJnt.parent = self.ml_moduleJoints[segment[-1]-1].mNode
+				mJnt.jointOrient  = [0,0,0]
+				#self.ml_moduleJoints[index].rotate  = [0,0,0]					
+		
+				aimLoc = locators.locMeObject(segmentHelper)
+				aimLocGroup = rigging.groupMeObject(aimLoc)
+				mc.move (0,0,10, aimLoc, localSpace=True)
+				constraintBuffer = mc.aimConstraint(aimLoc,mJnt.mNode,maintainOffset = False, weight = 1, aimVector = self.wantedAimVector, upVector = self.wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
+				mc.delete(constraintBuffer[0])
+				mc.delete(aimLocGroup)
+				mc.delete(upLoc)
+
+			except Exception,error:
+			    self.log_error,"ml_moduleJoints = {0}".format(self.ml_moduleJoints)
+			    raise Exception,"Segment fail| cnt: {0} | segment: [1]| error: {2} ".format(cnt,segment,error)
+				
+		    #>>>Reconnect the joints
+		    for cnt,mJnt in enumerate(self.ml_moduleJoints[1:]):#parent each to the one before it
+			mJnt.parent = self.ml_moduleJoints[cnt].mNode
+			cgmMeta.cgmAttr(mJnt,"inverseScale").doConnectIn("%s.scale"%mJnt.parent)
+		except Exception,error:raise Exception,"Normal mode orient fail | {0} ".format(error)
+	
+	    if mi_go._mi_module.moduleType in ['foot']:
+		self.log_debug("Special case orient")
+		if len(self.ml_moduleJoints) > 1:
+		    helper = mi_go._mi_templateNull.orientRootHelper.mNode
+		    if helper:
+			self.log_debug("Root joint fix...")                
+			rootJoint = self.ml_moduleJoints[0]
+			self.ml_moduleJoints[1].parent = False #unparent the first child
+			constBuffer = mc.orientConstraint( helper,rootJoint,maintainOffset = False)
+			mc.delete (constBuffer[0])   
+			self.ml_moduleJoints[1].parent = rootJoint
+			self.ml_moduleJoints[1].jointOrient = self.ml_moduleJoints[1].rotate
+			self.ml_moduleJoints[1].rotate = [0,0,0]        
+	    
+	    # 
+        def _step_connectToParent(self):
+	    try:mi_go = self._go
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
+	    
+	    #Connect to parent
+	    try:
+		if mi_go._mi_module.getMessage('moduleParent'):#If we have a moduleParent, constrain it
+		    connectToParentModule(mi_go._mi_module)    
+	    except Exception,error:raise Exception, "Failed to connect to module parent | error: {0}".format(error)
+        def _step_freeze(self):
+	    try:mi_go = self._go
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
+	    
+	    #""" Freeze the rotations """
+	    try:
+		jntUtils.metaFreezeJointOrientation(self.ml_moduleJoints) 
 	    except Exception,error:
-		log.error("doOrientSegment>>rotate order set fail: %s"%i_jnt.getShortName())
-    
-        #>>>per segment stuff
-        assert len(self.l_jointSegmentIndexSets) == len(self._mi_module.coreNames.value)#quick check to make sure we've got the stuff we need
-        cnt = 0
-	log.debug("Segment Index sets: %s"%self.l_jointSegmentIndexSets)
-        for cnt,segment in enumerate(self.l_jointSegmentIndexSets):#for each segment
-	    log.debug("On segment: %s"%segment)	    
-	    lastCnt = len(self.l_jointSegmentIndexSets)-1
-            segmentHelper = self._ml_controlObjects[cnt].getMessage('helper')[0]
-            helperObjectCurvesShapes =  mc.listRelatives(segmentHelper,shapes=True)
-            upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)        
-            if not mc.objExists(segmentHelper) and search.returnObjectType(segmentHelper) != 'nurbsCurve':
-                raise StandardError,"doOrientSegment>>> No helper found"
+		raise Exception,"Failed to freeze rotations | %s"%error
+	
+        def _step_specialCase(self):
+	    try:mi_go = self._go
+	    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
 	    
-            if cnt != lastCnt:
-		log.debug(cnt)
-                #>>> Create our up object from from the helper object 
-                #>>> make a pair list
-                #pairList = lists.parseListToPairs(segment)
-                """for pair in pairList:
-                    constraintBuffer = mc.aimConstraint(ml_moduleJoints[pair[1]].mNode,ml_moduleJoints[pair[0]].mNode,maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
-                    mc.delete(constraintBuffer[0])"""
-		for index in segment:
-		    if index != 0:
-			ml_moduleJoints[index].parent = ml_moduleJoints[index-1].mNode
-		    ml_moduleJoints[index].rotate  = [0,0,0]			
-		    ml_moduleJoints[index].jointOrient  = [0,0,0]	
-		    
-		    log.debug("%s aim to %s"%(ml_moduleJoints[index].mNode,ml_moduleJoints[index+1].mNode))
-		    constraintBuffer = mc.aimConstraint(ml_moduleJoints[index+1].mNode,ml_moduleJoints[index].mNode,maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
-		    mc.delete(constraintBuffer[0])
-		    
-		    #Push rotate to jointOrient
-		    #ml_moduleJoints[index].jointOrient = ml_moduleJoints[index].rotate
-		    #ml_moduleJoints[index].rotate = [0,0,0]
-		    
-		mc.delete(upLoc)
-                """for index in segment[-1:]:
-		    log.debug("%s orient to %s"%(ml_moduleJoints[index].mNode,ml_moduleJoints[index-1].mNode))		    
-                    constraintBuffer = mc.orientConstraint(ml_moduleJoints[index-1].mNode,ml_moduleJoints[index].mNode,maintainOffset = False, weight = 1)
-                    mc.delete(constraintBuffer[0])"""
-                #>>>  Increment and delete the up loc """
-            else:
-		log.debug(">>> Last count")
-                #>>> Make an aim object and move it """
-		i_jnt = ml_moduleJoints[segment[-1]]
-		log.debug(i_jnt.getShortName())
-		i_jnt.parent = ml_moduleJoints[segment[-1]-1].mNode
-		i_jnt.jointOrient  = [0,0,0]
-		#ml_moduleJoints[index].rotate  = [0,0,0]					
-
-                aimLoc = locators.locMeObject(segmentHelper)
-                aimLocGroup = rigging.groupMeObject(aimLoc)
-                mc.move (0,0,10, aimLoc, localSpace=True)
-                constraintBuffer = mc.aimConstraint(aimLoc,i_jnt.mNode,maintainOffset = False, weight = 1, aimVector = wantedAimVector, upVector = wantedUpVector, worldUpVector = [0,1,0], worldUpObject = upLoc, worldUpType = 'object' )
-                mc.delete(constraintBuffer[0])
-                mc.delete(aimLocGroup)
-                mc.delete(upLoc)
-		#>>>Push the first joints orient to 		
-		#i_jnt.jointOrient = i_jnt.rotate
-		#i_jnt.rotate = [0,0,0]	
-        #>>>Reconnect the joints
-        for cnt,i_jnt in enumerate(ml_moduleJoints[1:]):#parent each to the one before it
-            i_jnt.parent = ml_moduleJoints[cnt].mNode
-	    i_p = cgmMeta.cgmObject(i_jnt.parent)
-	    #Verify inverse scale connection
-	    cgmMeta.cgmAttr(i_jnt,"inverseScale").doConnectIn("%s.scale"%i_p.mNode)
-
-    if self._mi_module.moduleType in ['foot']:
-        log.debug("Special case orient")
-        if len(l_moduleJoints) > 1:
-            helper = self._mi_templateNull.orientRootHelper.mNode
-            if helper:
-                log.debug("Root joint fix...")                
-                rootJoint = l_moduleJoints[0]
-                ml_moduleJoints[1].parent = False #unparent the first child
-                constBuffer = mc.orientConstraint( helper,rootJoint,maintainOffset = False)
-                mc.delete (constBuffer[0])   
-                ml_moduleJoints[1].parent = rootJoint
-		ml_moduleJoints[1].jointOrient = ml_moduleJoints[1].rotate
-		ml_moduleJoints[1].rotate = [0,0,0]        
-    
-    #Copy 
-
-    #Connect to parent
-    try:
-	if self._mi_module.getMessage('moduleParent'):#If we have a moduleParent, constrain it
-	    connectToParentModule(self._mi_module)    
-    except:
-	raise StandardError, "Failed to connect to module parent"
-    
-    #""" Freeze the rotations """
-    try:
-	jntUtils.metaFreezeJointOrientation(ml_moduleJoints) 
-    except Exception,error:
-	raise StandardError,"Failed to freeze rotations | %s"%error
-
-    try:
-	for i,i_jnt in enumerate(ml_moduleJoints):
-	    log.debug(i_jnt.getAttr('cgmName'))
-	    if i_jnt.getAttr('cgmName') in ['ankle']:
-		log.debug("Copy orient from parent mode: %s"%i_jnt.getShortName())
-		joints.doCopyJointOrient(i_jnt.parent,i_jnt.mNode)
-    except:
-	raise StandardError, "Failed to Copy parent joint orient"    
-    return True
-
-
-
+	    for i,mJnt in enumerate(self.ml_moduleJoints):
+		self.log_debug(mJnt.getAttr('cgmName'))
+		if mJnt.getAttr('cgmName') in ['ankle']:
+		    self.log_debug("Copy orient from parent mode: %s"%mJnt.getShortName())
+		    joints.doCopyJointOrient(mJnt.parent,mJnt.mNode)
+  
+	    return True	    
+    return fncWrap_doOrientSegment(*args, **kws).go()
+		
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Module tools
@@ -2112,6 +2154,7 @@ def deleteSkeleton(*args,**kws):
 	    
 	    #We need to see if any of or moduleJoints have children
 	    l_strayChildren = []
+	    l_safeToDeleteChildren = []
 	    for i_jnt in ml_skinJoints:
 		buffer = i_jnt.getChildren(True)
 		for c in buffer:
@@ -2120,6 +2163,9 @@ def deleteSkeleton(*args,**kws):
 			    i_c = cgmMeta.cgmObject(c)
 			    i_c.parent = False
 			    l_strayChildren.append(i_c.mNode)
+			    if not i_c.getMessage('rigNull'):
+				self.log_warning("Deleting non connected stray child: '{0}'".format(i_c.p_nameShort))
+				mc.delete(i_c.mNode)
 			except Exception,error:
 			    self.log_warning(error)     
 			    
@@ -2133,76 +2179,43 @@ def deleteSkeleton(*args,**kws):
 	    return True
     return fncWrap(*args,**kws).go()
 
-def deleteSkeleton2(self,*args,**kws):  
-    #MUST BE A MODULE
-    if not self.isSkeletonized():
-        log.warning("Not skeletonized. Cannot delete skeleton: '%s'"%self.getShortName())
-        return False
-    log.debug(">>> %s.deleteSkeleton >> "%self.p_nameShort + "="*75)            
-    
-    ml_skinJoints = self.rig_getSkinJoints(asMeta = True)
-    l_skinJoints = [i_j.p_nameLong for i_j in ml_skinJoints if i_j ]  
-    
-    #We need to see if any of or moduleJoints have children
-    l_strayChildren = []
-    for i_jnt in ml_skinJoints:
-        buffer = i_jnt.getChildren(True)
-        for c in buffer:
-            if c not in l_skinJoints:
-                try:
-                    i_c = cgmMeta.cgmObject(c)
-                    i_c.parent = False
-                    l_strayChildren.append(i_c.mNode)
-                except Exception,error:
-                    log.warning(error)     
-		    
-    log.debug("l_strayChildren: %s"%l_strayChildren)    
-    self.msgList_purge('skinJoints')
-    self.msgList_purge('moduleJoints')
-    self.msgList_purge('handleJoints')
-    
-    if l_skinJoints:
-	mc.delete(l_skinJoints)
-    else:return False
-	
-
-    
-    return True
 
 def connectToParentModule(self):
     """
     Pass a module class. Constrains template root to parent's closest template object
     """
-    log.debug(">>> %s.connectToParentModule >> "%self.p_nameShort + "="*75)            
-    if not self.isSkeletonized():
-        log.error("Must be skeletonized to contrainToParentModule: '%s' "%self.getShortName())
-        return False
+    try:
+	log.debug(">>> %s.connectToParentModule >> "%self.p_nameShort + "="*75)            
+	if not self.isSkeletonized():
+	    log.error("Must be skeletonized to contrainToParentModule: '%s' "%self.getShortName())
+	    return False
+	
+	l_moduleJoints = self.rigNull.msgList_getMessage('moduleJoints') 
     
-    ml_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta = True)
-    l_moduleJoints = [i_o.p_nameShort for i_o in ml_moduleJoints]
-    if not self.getMessage('moduleParent'):
-        return False
-    else:
-        #>>> Get some info
-        i_rigNull = self.rigNull #Link
-        i_parent = self.moduleParent #Link
-        parentState = i_parent.getState() 
-        if i_parent.isSkeletonized():#>> If we have a module parent
-            #>> If we have another anchor
-	    if self.moduleType == 'eyelids':
-		str_targetObj = i_parent.rigNull.msgList_getMessage('moduleJoints')[0]
-		for mJoint in ml_moduleJoints:
-		    mJoint.parent = str_targetObj
+	if not self.getMessage('moduleParent'):
+	    return False
+	else:
+	    #>>> Get some info
+	    i_rigNull = self.rigNull #Link
+	    i_parent = self.moduleParent #Link
+	    if i_parent.isSkeletonized():#>> If we have a module parent
+		#>> If we have another anchor
+		if self.moduleType == 'eyelids':
+		    str_targetObj = i_parent.rigNull.msgList_getMessage('moduleJoints')[0]
+		    for jnt in l_moduleJoints:
+			#mJoint.parent = str_targetObj
+			rigging.doParentReturnName(jnt,str_targetObj)
+			
+		else:
+		    l_parentSkinJoints = i_parent.rigNull.msgList_getMessage('moduleJoints')
+		    str_targetObj = distance.returnClosestObject(l_moduleJoints[0],l_parentSkinJoints)
+		    rigging.doParentReturnName(l_moduleJoints[0],str_targetObj)		
 	    else:
-		l_parentSkinJoints = i_parent.rigNull.msgList_getMessage('moduleJoints')
-		str_targetObj = distance.returnClosestObject(l_moduleJoints[0],l_parentSkinJoints)
-		ml_moduleJoints[0].parent = str_targetObj
-            
-        else:
-            log.error("Parent has not been skeletonized...")           
-            return False  
-    return True
-
+		log.error("Parent has not been skeletonized...")           
+		return False  
+	return True
+    except Exception,error:raise Exception,"connectToParentModule fail | {0} ".format(error)
+    
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Module tools

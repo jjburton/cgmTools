@@ -121,7 +121,7 @@ def __bindSkeletonSetup__(self):
 	#self._i_rigNull.msgList_connect(ml_moduleJoints,'moduleJoints','module')
 	#self._i_rigNull.msgList_connect(ml_skinJoints,'skinJoints','module')
 	
-	self._mi_module.rig_getReport()#report
+	#self._mi_module.rig_getReport()#report
 
     except StandardError,error:
 	log.error("build_arm>>__bindSkeletonSetup__ fail!")

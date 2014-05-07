@@ -80,7 +80,7 @@ def __bindSkeletonSetup__(self):
 	raise StandardError,error
     
     _str_funcName = "__bindSkeletonSetup__(%s)"%self._strShortName
-    log.debug(">>> %s "%(_str_funcName) + "="*75)
+    #log.debug(">>> %s "%(_str_funcName) + "="*75)
     start = time.clock()
     
     #>>> Re parent joints
@@ -112,9 +112,9 @@ def __bindSkeletonSetup__(self):
 		    log.debug("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
 	
 	self._mi_module.rigNull.msgList_connect(ml_skinJoints,'skinJoints')    	
-	log.debug("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
-	log.debug("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))
-	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
+	#log.debug("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
+	#log.debug("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))
+	#log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
     except StandardError,error:
 	raise StandardError,"%s >>> error : %s"%(_str_funcName,error)
 

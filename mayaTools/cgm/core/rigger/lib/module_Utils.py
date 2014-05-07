@@ -61,15 +61,31 @@ class templateStep(cgmGeneral.cgmFuncCls):
 	    assert goInstance._cgmClass == 'TemplateFactory.go'
 	except StandardError,error:
 	    raise StandardError,"Not a TemplateFactory.go : %s"%error	
-	
+	self._b_ExceptionInterupt = False
 	self._str_funcName = 'templateStep(%s)'%goInstance._strShortName	
-	self._l_ARGS_KWS_DEFAULTS = [{'kw':'goInstance', "default":None, 'help':"This is your RigFactory go instance", "argType":"RigFactory.go"},
+	self._l_ARGS_KWS_DEFAULTS = [{'kw':'goInstance', "default":None, 'help':"This is your TemplateFactory go instance", "argType":"RigFactory.go"},
 	                             {'kw':'reportTimes', "default":True, 'help':"Change to report defaults", "argType":"bool"}]
 	self.__dataBind__(*args, **kws)
 	self._go = goInstance
-	#self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
-	#=================================================================
+
 	
+class skeletonizeStep(cgmGeneral.cgmFuncCls):
+    def __init__(self,*args,**kws):
+	"""
+	"""	
+	super(skeletonizeStep, self).__init__(self,*args,**kws)
+	goInstance = args[0]
+	try:
+	    assert goInstance._cgmClass == 'JointFactory.go'
+	except StandardError,error:
+	    raise StandardError,"Not a JointFactory.go : %s"%error	
+	self._b_ExceptionInterupt = False	
+	self._str_funcName = 'skeletonizeStep(%s)'%goInstance._strShortName	
+	self._l_ARGS_KWS_DEFAULTS = [{'kw':'goInstance', "default":None, 'help':"This is your JointFactory go instance", "argType":"RigFactory.go"},
+	                             {'kw':'reportTimes', "default":True, 'help':"Change to report defaults", "argType":"bool"}]
+	self.__dataBind__(*args, **kws)
+	self._go = goInstance
+
 	
 def exampleWrap(*args, **kws):
     class example(rigStep):

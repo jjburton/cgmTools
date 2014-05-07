@@ -64,7 +64,7 @@ def __bindSkeletonSetup__(self,addHelpers = True):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
     """
-    log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "="*75)            
+    #log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "="*75)            
     try:
 	if not self._cgmClass == 'JointFactory.go':
 	    log.error("Not a JointFactory.go instance: '%s'"%self)
@@ -94,13 +94,13 @@ def __bindSkeletonSetup__(self,addHelpers = True):
 	
 	if addHelpers:
 	    ml_pairs = lists.parseListToPairs(ml_moduleJoints)
-	    jUtils.add_defHelpJoint(ml_pairs[0][0],ml_pairs[0][1],helperType = 'childRootHold',orientation=self.jointOrientation)
+	    jUtils.add_defHelpJoint(ml_pairs[0][0],ml_pairs[0][1],helperType = 'childRootHold',orientation=self.str_jointOrientation)
 	    for ml_pair in ml_pairs:
-		jUtils.add_defHelpJoint(ml_pair[0],ml_pair[1],helperType = 'halfPush',orientation=self.jointOrientation)
+		jUtils.add_defHelpJoint(ml_pair[0],ml_pair[1],helperType = 'halfPush',orientation=self.str_jointOrientation)
 
 	#ml_moduleJoints = self._mi_module.rigNull.msgList_get('moduleJoints')
 	#self._i_rigNull.msgList_connect(ml_moduleJoints,'skinJoints','module')	
-	self._mi_module.rig_getReport()#report
+	#self._mi_module.rig_getReport()#report
 	
     except StandardError,error:
 	log.error("build_arm>>__bindSkeletonSetup__ fail!")
