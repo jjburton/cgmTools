@@ -280,7 +280,10 @@ class cgmFuncCls(object):
 		    		    
 		    self._str_step = _str_step	
 		    try:self.log_debug(_str_headerDiv + " Step : %s "%_str_step + _str_headerDiv + _str_subLine)
-		    except Exception,error:self.log_warning("[debug info! | error: {0}]".format(error))		    
+		    except Exception,error:
+			if self._b_ExceptionInterupt:
+			    mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   			
+			self.log_warning("[debug info! | error: {0}]".format(error))		    
 		except Exception,error:raise Exception,"[strStep query]{%s}"%error 
 		
 		try:
@@ -303,7 +306,10 @@ class cgmFuncCls(object):
 	    
 	    t2 = time.clock()
 	    _str_time = "%0.3f"%(t2-t1)
+	    pair_time = [_str_step,_str_time]
 	    self._l_funcTimes.append([_str_step,_str_time])	
+	    if self._b_reportTimes:
+		self.log_info(" TIME -- Step: '{0}' >>  {1} ".format(pair_time[0],pair_time[1]))				 
 	self.progressBar_end()
 	mc.undoInfo(closeChunk=True)	
 	
@@ -321,10 +327,10 @@ class cgmFuncCls(object):
 	    try:
 		f_total = (time.clock()-t_start)	    
 		if int_lenSteps > 1:
-		    self.log_info(_str_headerDiv + " Times " + _str_headerDiv + _str_subLine)			    	    
-		    if self.int_max != 0:
-			for pair in self._l_funcTimes:
-			    self.log_info(" -- '{0}' >>  {1} ".format(pair[0],pair[1]))				 
+		    #self.log_info(_str_headerDiv + " Times " + _str_headerDiv + _str_subLine)			    	    
+		    #if self.int_max != 0:
+			#for pair in self._l_funcTimes:
+			    #self.log_info(" -- '{0}' >>  {1} ".format(pair[0],pair[1]))				 
 		    self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
 		else:self.log_warning("[Total = %0.3f sec] " % (f_total))
 	    except Exception,error:self.log_error("[Failed to report times | error: {0}]".format(error))
@@ -335,7 +341,7 @@ class cgmFuncCls(object):
 		mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   
 		raise self._Exception,"{0} >> {1}".format(self._str_funcCombined,str(self._ExceptionError))
 	    else:
-		raise self._Exception,"{0} {1}".format(self._str_reportStart,self._ExceptionError)
+		raise self._Exception,"{0} | {1} | {2}".format(self._str_reportStart,self._str_step,self._ExceptionError)
 	    
 	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
 	return self._return_()
