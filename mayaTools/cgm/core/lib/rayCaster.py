@@ -170,7 +170,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
 
         try:
 	    if cgmValid.isListArg(mesh):
-		log.warning("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
+		log.debug("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
 		mesh = mesh[0]
             if len(mc.ls(mesh))>1:
                 raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
@@ -340,7 +340,7 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance
 
         try:
 	    if cgmValid.isListArg(mesh):
-		log.warning("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
+		log.debug("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
 		mesh = mesh[0]	    
             if len(mc.ls(mesh))>1:
                 raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)

@@ -20,7 +20,7 @@ from cgm.lib.classes import NameFactory as nFactory
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger import TemplateFactory as tFactory
-
+from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.lib import (curves,
                      deformers,
                      distance,
@@ -40,13 +40,18 @@ reload(constraints)
 #l_modulesToDoOrder = ['torso','neckHead','leg_left']
 #l_modulesToDoOrder = ['torso','clavicle_left','clavicle_right','arm_left','arm_right']
 #l_modulesToDoOrder = ['torso','clavicle_left']
-l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right']
+#l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right']
 '''
 l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
                       'clavicle_left','arm_left',
                       'thumb_left','index_left','middle_left','ring_left','pinky_left',                   
                       'clavicle_right','arm_right',
                       'thumb_right','index_right','middle_right','ring_right','pinky_right',
+                      ]'''
+'''
+l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
+                      'clavicle_left','arm_left',
+                      'clavicle_right','arm_right',
                       ]'''
 #l_modulesToDoOrder = ['torso']
 """
@@ -61,15 +66,14 @@ l_modulesToDoOrder = ['torso',
                       'clavicle_left','arm_left',
                       'thumb_left','index_left','middle_left','ring_left','pinky_left',
                       ]
-
+"""
 l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
                       'clavicle_left','arm_left',
-                      'thumb_left','index_left','middle_left','ring_left','pinky_left'                      
+                      'thumb_left','index_left','middle_left','ring_left','pinky_left',                     
                       'clavicle_right','arm_right',
                       'thumb_right','index_right','middle_right','ring_right','pinky_right'
-                      
                       ]
-"""
+
 
 #This is the parent info for each module
 d_moduleParents = {'torso':False,
@@ -130,31 +134,30 @@ d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}'
 
 #This dict is for which controls map to which keys
 d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
-                    'neckHead':['neck_bodyShaper','head_bodyShaper'],
+                    'neckHead':['neck_loc','head_loc'],
                     'head':['head_bodyShaper','headTop_bodyShaper'],
-                    'leg_left':['l_upr_leg_bodyShaper','l_lwr_leg_bodyShaper','l_ankle_bodyShaper','l_ball_loc'],                    
-                    'leg_right':['r_upr_leg_bodyShaper','r_lwr_leg_bodyShaper','r_ankle_bodyShaper','r_ball_loc'],                    
+                    'leg_left':['l_upr_leg_loc','l_lwr_leg_loc','l_ankle_bodyShaper','l_ball_loc'],                    
+                    'leg_right':['r_upr_leg_loc','r_lwr_leg_loc','r_ankle_bodyShaper','r_ball_loc'],                    
                     'foot_left':['l_ankle_bodyShaper','l_ball_loc','l_toes_bodyShaper'],                    
                     'foot_right':['r_ankle_bodyShaper','r_ball_loc','r_toes_bodyShaper'],                                        
-                    'arm_left':['l_upr_arm_bodyShaper','l_lwr_arm_bodyShaper','l_hand_bodyShaper'],
+                    'arm_left':['l_arm_loc','l_lwr_arm_loc','l_hand_bodyShaper'],
                     'hand_left':['l_hand_bodyShaper'],
-                    'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper','Morphy_Body_GEO.vtx[3]'],
-                    'index_left':['Morphy_Body_GEO.f[688]','l_index_1_bodyShaper','l_index_mid_bodyShaper','l_index_2_bodyShaper','Morphy_Body_GEO.vtx[292]'], 
-                    'middle_left':['Morphy_Body_GEO.f[705]','l_middle_1_bodyShaper','l_middle_mid_bodyShaper','l_middle_2_bodyShaper','Morphy_Body_GEO.vtx[188]'], 
-                    'ring_left':['Morphy_Body_GEO.f[703]','l_ring_1_bodyShaper','l_ring_mid_bodyShaper','l_ring_2_bodyShaper','Morphy_Body_GEO.vtx[85]'], 
-                    'pinky_left':['Morphy_Body_GEO.f[706]','l_pinky_1_bodyShaper','l_pinky_mid_bodyShaper','l_pinky_2_bodyShaper','Morphy_Body_GEO.vtx[492]'],                     
-                    'clavicle_left':['Morphy_Body_GEO.f[2055]','l_upr_arm_bodyShaper'],
-                    'clavicle_right':['Morphy_Body_GEO.f[4840]','r_upr_arm_bodyShaper'],
-                    'arm_right':['r_upr_arm_bodyShaper','r_lwr_arm_bodyShaper','r_wristMeat_bodyShaper'],
-                    'thumb_right':['r_thumb_1_bodyShaper','r_thumb_mid_bodyShaper','r_thumb_2_bodyShaper','Morphy_Body_GEO.vtx[2853]'],
-                    'index_right':['Morphy_Body_GEO.f[3473]','r_index_1_bodyShaper','r_index_mid_bodyShaper','r_index_2_bodyShaper','Morphy_Body_GEO.vtx[3080]'], 
-                    'middle_right':['Morphy_Body_GEO.f[3490]','r_middle_1_bodyShaper','r_middle_mid_bodyShaper','r_middle_2_bodyShaper','Morphy_Body_GEO.vtx[3006]'], 
-                    'ring_right':['Morphy_Body_GEO.f[3488]','r_ring_1_bodyShaper','r_ring_mid_bodyShaper','r_ring_2_bodyShaper','Morphy_Body_GEO.vtx[2933]'], 
-                    'pinky_right':['Morphy_Body_GEO.f[3491]','r_pinky_1_bodyShaper','r_pinky_mid_bodyShaper','r_pinky_2_bodyShaper','Morphy_Body_GEO.vtx[3299]'],                         
+                    'thumb_left':['l_thumb_1_bodyShaper','l_thumb_mid_bodyShaper','l_thumb_2_bodyShaper','l_thumb_3_shaper1_shape2.cv[4]'],
+                    'index_left':['l_root_index_loc','l_index_1_bodyShaper','l_index_mid_bodyShaper','l_index_2_bodyShaper','l_index_2_shaperCurve1_shape2.cv[4]'], 
+                    'middle_left':['l_root_middle_loc','l_middle_1_bodyShaper','l_middle_mid_bodyShaper','l_middle_2_bodyShaper','l_middle_2_shaperCurve1_shape2.cv[4]'], 
+                    'ring_left':['l_root_ring_loc','l_ring_1_bodyShaper','l_ring_mid_bodyShaper','l_ring_2_bodyShaper','l_ring_2_shaperCurve1_shape2.cv[4]'], 
+                    'pinky_left':['l_root_pinky_loc','l_pinky_1_bodyShaper','l_pinky_mid_bodyShaper','l_pinky_2_bodyShaper','l_pinky_1_shaperCurve3_shape2.cv[4]'],                     
+                    'clavicle_left':['l_clav_loc','l_arm_loc'],
+                    'clavicle_right':['r_clav_loc','r_arm_loc'],
+                    'arm_right':['r_arm_loc','r_lwr_arm_loc','r_hand_bodyShaper'],
+                    'thumb_right':['r_thumb_1_bodyShaper','r_thumb_mid_bodyShaper','r_thumb_2_bodyShaper','r_thumb_3_shaper1_shape2.cv[4]'],
+                    'index_right':['r_root_index_loc','r_index_1_bodyShaper','r_index_mid_bodyShaper','r_index_2_bodyShaper','r_index_2_shaperCurve1_shape2.cv[4]'], 
+                    'middle_right':['r_root_middle_loc','r_middle_1_bodyShaper','r_middle_mid_bodyShaper','r_middle_2_bodyShaper','r_middle_2_shaperCurve1_shape2.cv[4]'], 
+                    'ring_right':['r_root_ring_loc','r_ring_1_bodyShaper','r_ring_mid_bodyShaper','r_ring_2_bodyShaper','r_ring_2_shaperCurve1_shape2.cv[4]'], 
+                    'pinky_right':['r_root_pinky_loc','r_pinky_1_bodyShaper','r_pinky_mid_bodyShaper','r_pinky_2_bodyShaper','r_pinky_1_shaperCurve3_shape2.cv[4]'],                         
                     }
 
 
-#@cgmGeneral.Timer
 def verify_sizingData(mAsset = None, skinDepth = .75):
     """
     Gather info from customization asset
@@ -200,7 +203,7 @@ def verify_sizingData(mAsset = None, skinDepth = .75):
 			if i_c.isComponent():#If it's a component
 			    log.debug("{0} >> Component Mode!".format(_str_funcName))
 			    i_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#make a loc
-			    Snap.go(i_loc.mNode,targets = c,move = True, orient = True)#Snap to the surface
+			    Snap.go(i_loc.mNode,targets = c,move = True, orient = False)#Snap to the surface
 			    if '.f' in i_c.getComponent():
 				mc.move(0,0,-skinDepth,i_loc.mNode,r=True,os=True)
 			    #i_loc.tz -= skinDepth#Offset on z by skin depth
@@ -214,6 +217,8 @@ def verify_sizingData(mAsset = None, skinDepth = .75):
 	    except Exception,error:
 		raise Exception,"'{0}' key fail | {1}".format(str_moduleKey,error)
     except Exception,error:
+	try:gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+	except:pass	
 	raise Exception,"{0} fail | {1}".format(_str_funcName,error)
     try:gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
     except:pass
@@ -225,107 +230,110 @@ def verifyMorpheusNodeStructure(mMorpheus):
     
     What is a morpheus asset
     """
-    _str_funcName = 'verifyMorpheusNodeStructure'	    
+    _str_funcName = 'verifyMorpheusNodeStructure'
     assert mMorpheus.mClass == 'cgmMorpheusPuppet',"Not a cgmMorpheusPuppet"
     d_moduleInstances = {}
     
     def returnModuleMatch(moduleKey):
-        for i_m in mMorpheus.moduleChildren:
-            matchBuffer = 0
-            for key in d_moduleCheck[moduleKey].keys():
-                log.debug("attr: %s"%key)
-                log.debug("value: '%s"%i_m.__dict__[key])
-                log.debug("checkTo: '%s'"%d_moduleCheck[moduleKey].get(key))
-                if i_m.hasAttr(key) and i_m.__dict__[key] == d_moduleCheck[moduleKey].get(key):
-                    matchBuffer +=1
-            if matchBuffer == len(d_moduleCheck[moduleKey].keys()):
-                log.debug("Found Morpheus Module: '%s'"%moduleKey)
-                return i_m
-        return False
-
-    try:# Create the modules
-	#=====================================================================
-	mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
-	for str_moduleKey in l_modulesToDoOrder:
-	    try:
-		if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
-		    break
-		mc.progressBar(mayaMainProgressBar, edit=True, status = "On '%s'..."%(str_moduleKey), step=1)
-		
-		if str_moduleKey not in d_moduleParents.keys():#Make sure we have a parent
-		    raise StandardError, "Missing parent info for: '%s'"%str_moduleKey
-		if str_moduleKey not in d_moduleCheck.keys():#Make sure we have a parent
-		    raise StandardError, "Missing check info for: '%s'"%str_moduleKey
-		    return False  
-	
-		if str_moduleKey in d_moduleTemplateSettings.keys():#Make sure we have settings
-		    d_settingsDict = d_moduleTemplateSettings[str_moduleKey]
-		elif d_moduleCheck[str_moduleKey]['moduleType'] in d_moduleTemplateSettings.keys():
-		    d_settingsDict = d_moduleTemplateSettings[ d_moduleCheck[str_moduleKey]['moduleType'] ]            
-		else:
-		    log.debug("Missing limb info for: '%s'"%str_moduleKey)
-		    return False
-	
-		log.debug("'{0}' structure check...".format(str_moduleKey))                
-		if str_moduleKey in d_moduleInstances.keys():#if it's already stored, use it
-		    i_module = d_moduleInstances[str_moduleKey]
-		else:
-		    i_module = mMorpheus.getModuleFromDict(checkDict = d_moduleCheck[str_moduleKey])#Look for it
-		    d_moduleInstances[str_moduleKey] = i_module#Store it if found
-		if not i_module:
-		    log.debug("'{0}' creating...".format(str_moduleKey))                
-		    kw_direction = False
-		    kw_name = False
-		    if 'cgmDirection' in d_moduleCheck[str_moduleKey].keys():
-			kw_direction = d_moduleCheck[str_moduleKey].get('cgmDirection')
-		    if 'cgmName' in d_moduleCheck[str_moduleKey].keys():
-			kw_name = d_moduleCheck[str_moduleKey].get('cgmName')            
-		    i_module = mMorpheus.addModule(mClass = 'cgmLimb',mType = d_moduleCheck[str_moduleKey]['moduleType'],name = kw_name, direction = kw_direction)
-		    d_moduleInstances[str_moduleKey] = i_module#Store it
+	for i_m in mMorpheus.moduleChildren:
+	    matchBuffer = 0
+	    for key in d_moduleCheck[moduleKey].keys():
+		log.debug("attr: %s"%key)
+		log.debug("value: '%s"%i_m.__dict__[key])
+		log.debug("checkTo: '%s'"%d_moduleCheck[moduleKey].get(key))
+		if i_m.hasAttr(key) and i_m.__dict__[key] == d_moduleCheck[moduleKey].get(key):
+		    matchBuffer +=1
+	    if matchBuffer == len(d_moduleCheck[moduleKey].keys()):
+		log.debug("Found Morpheus Module: '%s'"%moduleKey)
+		return i_m
+	return False    
+    
+    try:
+	try:# Create the modules
+	    #=====================================================================
+	    mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
+	    for str_moduleKey in l_modulesToDoOrder:
+		try:
+		    if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
+			break
+		    mc.progressBar(mayaMainProgressBar, edit=True, status = "On '%s'..."%(str_moduleKey), step=1)
 		    
-		if i_module:
-		    log.debug("'{0}' verifying...".format(str_moduleKey))                
-		    i_module.__verify__()
-		    
-		#>>> Settings
-		log.debug("'{0}' settings check...".format(str_moduleKey))                		
-		for key in d_settingsDict.keys():
-		    i_templateNull = i_module.templateNull
-		    if i_templateNull.hasAttr(key):
-			log.debug("attr: '%s'"%key)  
-			log.debug("setting: '%s'"%d_settingsDict.get(key))                  
-			try:i_templateNull.__setattr__(key,d_settingsDict.get(key)) 
-			except:log.warning("attr failed: %s"%key)
+		    if str_moduleKey not in d_moduleParents.keys():#Make sure we have a parent
+			raise StandardError, "Missing parent info for: '%s'"%str_moduleKey
+		    if str_moduleKey not in d_moduleCheck.keys():#Make sure we have a parent
+			raise StandardError, "Missing check info for: '%s'"%str_moduleKey
+			return False  
+	    
+		    if str_moduleKey in d_moduleTemplateSettings.keys():#Make sure we have settings
+			d_settingsDict = d_moduleTemplateSettings[str_moduleKey]
+		    elif d_moduleCheck[str_moduleKey]['moduleType'] in d_moduleTemplateSettings.keys():
+			d_settingsDict = d_moduleTemplateSettings[ d_moduleCheck[str_moduleKey]['moduleType'] ]            
+		    else:
+			log.debug("Missing limb info for: '%s'"%str_moduleKey)
+			return False
+	    
+		    log.debug("'{0}' structure check...".format(str_moduleKey))                
+		    if str_moduleKey in d_moduleInstances.keys():#if it's already stored, use it
+			i_module = d_moduleInstances[str_moduleKey]
+		    else:
+			i_module = mMorpheus.getModuleFromDict(checkDict = d_moduleCheck[str_moduleKey])#Look for it
+			d_moduleInstances[str_moduleKey] = i_module#Store it if found
+		    if not i_module:
+			log.debug("'{0}' creating...".format(str_moduleKey))                
+			kw_direction = False
+			kw_name = False
+			if 'cgmDirection' in d_moduleCheck[str_moduleKey].keys():
+			    kw_direction = d_moduleCheck[str_moduleKey].get('cgmDirection')
+			if 'cgmName' in d_moduleCheck[str_moduleKey].keys():
+			    kw_name = d_moduleCheck[str_moduleKey].get('cgmName')            
+			i_module = mMorpheus.addModule(mClass = 'cgmLimb',mType = d_moduleCheck[str_moduleKey]['moduleType'],name = kw_name, direction = kw_direction)
+			d_moduleInstances[str_moduleKey] = i_module#Store it
 			
-		#>>>Parent stuff       
-		log.debug("'{0}' parent check...".format(str_moduleKey))                
-		if d_moduleParents.get(str_moduleKey):#If we should be looking for a module parent
-		    if d_moduleParents.get(str_moduleKey) in d_moduleInstances.keys():
-			i_moduleParent = False
-			if i_module.getMessage('moduleParent') and i_module.getMessage('moduleParent') == [d_moduleInstances[d_moduleParents[str_moduleKey]].mNode]:
-			    i_moduleParent = None
+		    if i_module:
+			log.debug("'{0}' verifying...".format(str_moduleKey))                
+			i_module.__verify__()
+			
+		    #>>> Settings
+		    log.debug("'{0}' settings check...".format(str_moduleKey))                		
+		    for key in d_settingsDict.keys():
+			i_templateNull = i_module.templateNull
+			if i_templateNull.hasAttr(key):
+			    log.debug("attr: '%s'"%key)  
+			    log.debug("setting: '%s'"%d_settingsDict.get(key))                  
+			    try:i_templateNull.__setattr__(key,d_settingsDict.get(key)) 
+			    except:log.warning("attr failed: %s"%key)
+			    
+		    #>>>Parent stuff       
+		    log.debug("'{0}' parent check...".format(str_moduleKey))                
+		    if d_moduleParents.get(str_moduleKey):#If we should be looking for a module parent
+			if d_moduleParents.get(str_moduleKey) in d_moduleInstances.keys():
+			    i_moduleParent = False
+			    if i_module.getMessage('moduleParent') and i_module.getMessage('moduleParent') == [d_moduleInstances[d_moduleParents[str_moduleKey]].mNode]:
+				i_moduleParent = None
+			    else:
+				i_moduleParent = d_moduleInstances[d_moduleParents.get(str_moduleKey)]
 			else:
-			    i_moduleParent = d_moduleInstances[d_moduleParents.get(str_moduleKey)]
-		    else:
-			i_moduleParent = mMorpheus.getModuleFromDict(checkDict = d_moduleCheck.get(d_moduleParents.get(str_moduleKey)))
-		    
-		    if i_moduleParent is None:
-			log.debug("'{0}' | moduleParent already connected: '{1}'".format(str_moduleKey,d_moduleParents.get(str_moduleKey)))                
-		    elif i_moduleParent:
-			i_module.doSetParentModule(i_moduleParent.mNode)
-		    else:
-			log.debug("'{0}' | moduleParent not found from key: '{1}'".format(str_moduleKey,d_moduleParents.get(str_moduleKey)))
-	    except Exception,error:
-		raise Exception,"'{0}' | {1}".format(str_moduleKey,error)		    
+			    i_moduleParent = mMorpheus.getModuleFromDict(checkDict = d_moduleCheck.get(d_moduleParents.get(str_moduleKey)))
+			
+			if i_moduleParent is None:
+			    log.debug("'{0}' | moduleParent already connected: '{1}'".format(str_moduleKey,d_moduleParents.get(str_moduleKey)))                
+			elif i_moduleParent:
+			    i_module.doSetParentModule(i_moduleParent.mNode)
+			else:
+			    log.debug("'{0}' | moduleParent not found from key: '{1}'".format(str_moduleKey,d_moduleParents.get(str_moduleKey)))
+		except Exception,error:
+		    raise Exception,"'{0}' | {1}".format(str_moduleKey,error)		    
+	except Exception,error:raise Exception,"{0} create modules fail | {1}".format(_str_funcName,error)
+	
+	# For each module
+	#=====================================================================
+	gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+	#i_limb.getGeneratedCoreNames()   
+	return mMorpheus
+    
     except Exception,error:
 	gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    	
-	raise Exception,"{0} created modules fail | {1}".format(_str_funcName,error)
-    
-    # For each module
-    #=====================================================================
-    gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
-    #i_limb.getGeneratedCoreNames()   
-    return mMorpheus
+	raise Exception,"{0} fail | error: {1}".format(_str_funcName,error)
 
 
 def setState(mAsset,state = 0,
@@ -419,7 +427,7 @@ def updateTemplate(mAsset,**kws):
 		i_module.storeTemplatePose()		
 		i_module.doSize(sizeMode = 'manual',
 		                posList = d_customizationData.get(str_moduleKey))
-		i_module.doTemplate(tryTemplateUpdate = True,
+		i_module.doTemplate(tryTemplateUpdate = True,forceNew = True,
 		                    **kws)        
 	    except Exception,error:
 		raise Exception,"'{0}' | {1}".format(str_moduleKey,error)		
@@ -431,247 +439,183 @@ def updateTemplate(mAsset,**kws):
 	return False
 
 
+#Shared Settings
+#========================= 
+_d_KWARG_mMorpheusAsset = {'kw':'mMorpheusAsset',"default":None,'help':"cgmMorpheusMakerNetwork mNode or str name","argType":"cgmPuppet"}
 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Asset Wrapper
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+class MorpheusNetworkFunc(cgmGeneral.cgmFuncCls):
+    def __init__(self,*args,**kws):
+	"""
+	"""	
+	try:
+	    try:asset = kws['mMorpheusAsset']
+	    except:
+		try:asset = args[0]
+		except:raise StandardError,"No kw or arg asset found'"
+	    if asset.mClass not in ['cgmMorpheusMakerNetwork']:
+		raise StandardError,"[mMorpheusAsset: '%s']{Not a asset!}"%asset.mNode
+	except Exception,error:raise StandardError,"MorpheusNetworkFunc failed to initialize | %s"%error
+	self._str_funcName= "testMorpheusNetworkFunc"		
+	super(MorpheusNetworkFunc, self).__init__(*args, **kws)
+	self._mi_asset = asset
+	self._b_ExceptionInterupt = False
+	self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset]	
+	#=================================================================
+	
+def geo_verify(*args,**kws):
+    '''
+    Function to gather, duplicate and place geo for a Morpheus asset
+    '''
+    class fncWrap(MorpheusNetworkFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._b_reportTimes = True
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset] 
+	    self.__dataBind__(*args,**kws)
+	    self._str_funcName = "morphyAsset.geo_verify('{0}')".format(self._mi_asset.cgmName)		    	    
+	    self.__updateFuncStrings__()
+	    self.l_funcSteps = [{'step':'Verify','call':self._fncStep_validate_},
+	                        {'step':'Connect/Parent','call':self._fncStep_process_}]	
 
-#>>>>>>>>>>>>>>OLD CODE, Prior to April 2014
-#=====================================================================================
-#>>> Utilities
-#=====================================================================================
-def verify_customizationData2(i_network, skinDepth = .75):
-    """
-    Gather info from customization asset
-    
-    from morpheusRig_v2.core import MorpheusFactory as morphyF
-    reload(morphyF)
-    morphyF.verify_customizationData('Morphy_customizationNetwork')
-    """
-    #These are the controls we'll drive positional data from to plug to our modules
-    d_initialData = {}
-    
-    #>>> Verify our arg
-    try:i_network.mNode
-    except:
-        if mc.objExists(i_network):
-            i_network = r9Meta.MetaClass(i_network)
-        else:
-            log.error("'%s' doesn't exist"%i_network)
-            return False
-    assert i_network.mClass == 'cgmMorpheusMakerNetwork',"Not a cgmMorpheusMakerNetwork. Aborted!"
-    
-    #>> Collect our positional info
-    #====================================================================
-    i_objSet = i_network.objSetAll#Should I use this or the message info
-    log.info(i_objSet.value)
-    
-    controlBuffer = i_network.objSetAll.value
-    for moduleKey in l_modulesToDoOrder:
-        if moduleKey not in d_moduleControls.keys():
-            log.warning("Missing controls info for: '%s'"%moduleKey)
-            return False
-        log.info("On moduleKey: '%s'"%moduleKey)
-        controls = d_moduleControls.get(moduleKey)
-        posBuffer = []
-        for c in controls:
-            if not mc.objExists(c):
-                log.warning("Necessary positioning control not found: '%s'"%c)
-                return False
-            else:
-                log.info("Found: '%s'"%c)
-                i_c = cgmMeta.cgmNode(c)
-                if i_c.isComponent():#If it's a component
-                    log.info('Component mode')
-                    i_loc = cgmMeta.cgmObject(mc.spaceLocator()[0])#make a loc
-                    Snap.go(i_loc.mNode,targets = c,move = True, orient = True)#Snap to the surface
-                    if '.f' in i_c.getComponent():
-                        mc.move(0,0,-skinDepth,i_loc.mNode,r=True,os=True)
-                    #i_loc.tz -= skinDepth#Offset on z by skin depth
-                    pos = i_loc.getPosition()#get position
-                    i_loc.delete()
-                else:
-                    pos = i_c.getPosition()
-                if not pos:return False
-                posBuffer.append(pos)
-        d_initialData[moduleKey] = posBuffer
-        
-    return d_initialData
-        
-def verifyMorpheusNodeStructure2(i_Morpheus):
-    """"
-    Returns a defined Morpheus asset
-    
-    What is a morpheus asset
-    """
-    assert i_Morpheus.mClass == 'cgmMorpheusPuppet',"Not a cgmMorpheusPuppet"
-    
-    def returnModuleMatch(moduleKey):
-        for i_m in i_Morpheus.moduleChildren:
-            matchBuffer = 0
-            for key in d_moduleCheck[moduleKey].keys():
-                log.debug("attr: %s"%key)
-                log.debug("value: '%s"%i_m.__dict__[key])
-                log.debug("checkTo: '%s'"%d_moduleCheck[moduleKey].get(key))
-                if i_m.hasAttr(key) and i_m.__dict__[key] == d_moduleCheck[moduleKey].get(key):
-                    matchBuffer +=1
-            if matchBuffer == len(d_moduleCheck[moduleKey].keys()):
-                log.debug("Found Morpheus Module: '%s'"%moduleKey)
-                return i_m
-        return False
- 
-    d_moduleInstances = {}
-    
-    # Create the modules
-    #=====================================================================
-    mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
-    
-    for moduleKey in l_modulesToDoOrder:
-        if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
-            break
-        mc.progressBar(mayaMainProgressBar, edit=True, status = "On segment '%s'..."%(moduleKey), step=1)
-        
-        if moduleKey not in d_moduleParents.keys():#Make sure we have a parent
-            raise StandardError, "Missing parent info for: '%s'"%moduleKey
-        if moduleKey not in d_moduleCheck.keys():#Make sure we have a parent
-            raise StandardError, "Missing check info for: '%s'"%moduleKey
-            return False  
+	def _fncStep_validate_(self):
+	    if not self._mi_asset.getMessage('mPuppet'):
+		raise ValueError,"Missing Puppet"
+	    self._mi_puppet = self._mi_asset.mPuppet
+		
+	    self.l_baseBodyGeo = self._mi_asset.getMessage('baseBodyGeo')
+	    if not self.l_baseBodyGeo:
+		raise ValueError,"Missing baseBodyGeo"		
+	    
+	    l_geo = geo_getActive(self._mi_asset)
+	    if not l_geo:
+		raise ValueError,"geo_getActive failed to find any geo"
+	    self.l_geo = l_geo
+	    
+	def _fncStep_process_(self):
+	    try:
+		mi_puppet = self._mi_puppet
+	    except Exception,error:
+		raise Exception,"Bring local fail | {0}".format(error)
+	    
+	    self.log_warning("This is a wip function. This needs to resolve what final geo is being used better")
+	    
+	    try:
+		if not self._mi_puppet.getMessage('unifiedGeo'):
+		    self.log_warning("Creating unified geo...")
+		    
+		    newMesh = mc.duplicate(self.l_baseBodyGeo[0])
+		    mMesh = cgmMeta.cgmObject(newMesh[0])
+		    mMesh.doStore('cgmName',"{0}.cgmName".format(mi_puppet.mNode))
+		    #mMesh.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
+		    mMesh.doName()		
+		    mMesh.parent = mi_puppet.masterNull.geoGroup#...parent it
+		    self._mi_puppet.doStore('unifiedGeo',mMesh.mNode)
+		else:
+		    self.log_info("Unified geo found")
+	    except Exception,error:raise Exception,"Unified Geo fail | {0}".format(error)		
+		#i_target.visibility = False	
+	    
+	    return True
+	    #resetGeo = p.getMessage('resetGeo')
+	    #unifiedGeo attr on puppet
+	    '''
+	    if resetGeo:#if we have one, we're good to go
+		log.info('Reset Geo exists!')
+	    else:
+		newMesh = mc.duplicate(baseGeo)
+		i_target = cgmMeta.cgmObject(newMesh[0])
+		i_target.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
+		i_target.doName()
+		i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
+		p.doStore('resetGeo',i_target.mNode)
+		i_target.visibility = False
+		
+		log.info('Reset good!')'''	    
+    return fncWrap(*args,**kws).go()
 
-        if moduleKey in d_moduleTemplateSettings.keys():#Make sure we have settings
-            d_settingsDict = d_moduleTemplateSettings[moduleKey]
-        elif d_moduleCheck[moduleKey]['moduleType'] in d_moduleTemplateSettings.keys():
-            d_settingsDict = d_moduleTemplateSettings[ d_moduleCheck[moduleKey]['moduleType'] ]            
-        else:
-            log.info("Missing limb info for: '%s'"%moduleKey)
-            return False
+def geo_getActive(*args,**kws):
+    '''
+    Factory Rewrite of mirror functions.
+    TODO -- replace the many mirror functions here
+    '''
+    class fncWrap(MorpheusNetworkFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    #self._b_reportTimes = True
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset] 
+	    self.__dataBind__(*args,**kws)
+	    self._str_funcName = "morphyAsset.geo_getActive('{0}')".format(self._mi_asset.cgmName)		    	    
+	    self.__updateFuncStrings__()
 
-        log.debug("Have all setup info. Checking structure...")
-        if moduleKey in d_moduleInstances.keys():#if it's already stored, use it
-            i_module = d_moduleInstances[moduleKey]
-        else:
-            i_module = i_Morpheus.getModuleFromDict(checkDict = d_moduleCheck[moduleKey])#Look for it
-            d_moduleInstances[moduleKey] = i_module#Store it if found
-        if not i_module:
-            log.info("Need to create: '%s'"%moduleKey)
-            kw_direction = False
-            kw_name = False
-            if 'cgmDirection' in d_moduleCheck[moduleKey].keys():
-                kw_direction = d_moduleCheck[moduleKey].get('cgmDirection')
-            if 'cgmName' in d_moduleCheck[moduleKey].keys():
-                kw_name = d_moduleCheck[moduleKey].get('cgmName')            
-            i_module = i_Morpheus.addModule(mClass = 'cgmLimb',mType = d_moduleCheck[moduleKey]['moduleType'],name = kw_name, direction = kw_direction)
-            d_moduleInstances[moduleKey] = i_module#Store it
-            
-        if i_module:i_module.__verify__()
-            
-        #>>> Settings
-        for key in d_settingsDict.keys():
-            i_templateNull = i_module.templateNull
-            if i_templateNull.hasAttr(key):
-                log.debug("attr: '%s'"%key)  
-                log.debug("setting: '%s'"%d_settingsDict.get(key))                  
-                try:i_templateNull.__setattr__(key,d_settingsDict.get(key)) 
-                except:log.warning("attr failed: %s"%key)
-        #>>>Parent stuff        
-        if d_moduleParents.get(moduleKey):#If we should be looking for a module parent
-            if d_moduleParents.get(moduleKey) in d_moduleInstances.keys():
-                i_moduleParent = False
-                if i_module.getMessage('moduleParent') and i_module.getMessage('moduleParent') == [d_moduleInstances[d_moduleParents[moduleKey]].mNode]:
-                    i_moduleParent = None
-                else:
-                    i_moduleParent = d_moduleInstances[d_moduleParents.get(moduleKey)]
-            else:
-                i_moduleParent = i_Morpheus.getModuleFromDict(checkDict = d_moduleCheck.get(d_moduleParents.get(moduleKey)))
-            
-            if i_moduleParent is None:
-                log.info("moduleParent already connected: '%s'"%d_moduleParents.get(moduleKey))                
-            elif i_moduleParent:
-                i_module.doSetParentModule(i_moduleParent.mNode)
-            else:
-                log.info("moduleParent not found from key: '%s'"%d_moduleParents.get(moduleKey))
-        
-    # For each module
-    #=====================================================================
-    gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
-    #i_limb.getGeneratedCoreNames()   
-    return i_Morpheus
+	def __func__(self):
+	    self.log_warning("This is a wip function. This needs to resolve what final geo is being used better")
+	    #Gather, duplicate, 
+	    try:
+		self.log_info("Base body geo: {0}".format(self._mi_asset.baseBodyGeo))
+	    except Exception,error: raise Exception,"gather fail | error: {0}".format(error)
+	    
+	    return self._mi_asset.baseBodyGeo
 
-def setState2(i_customizationNetwork,state = 0,
-             **kws):
-    """"
-    Returns a defined Morpheus asset
-    
-    What is a morpheus asset
-    """ 
-    assert i_customizationNetwork.mClass == 'cgmMorpheusMakerNetwork', "Not a customization Network"
-    assert i_customizationNetwork.mPuppet.mClass == 'cgmMorpheusPuppet',"Puppet isn't there"
-    
-    #>>>Kw defaults
-    rebuildFrom = kws.get('rebuildFrom') or None
-    forceNew =  kws.get('forceNew') or False
-    tryTemplateUpdate = kws.get('tryTemplateUpdate') or True
-    loadTemplatePose = kws.get('loadTemplatePose') or True
-    
-    i_Morpheus = i_customizationNetwork.mPuppet
-    d_customizationData = verify_customizationData(i_customizationNetwork)
-    
-    #connect our geo to our unified mesh geo
-    if i_customizationNetwork.getMessage('baseBodyGeo'):
-        i_Morpheus.connectChildNode(i_customizationNetwork.getMessage('baseBodyGeo')[0],'unifiedGeo')
-    
-    if not d_customizationData:
-        return False
-    
-    try:
-        mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
-        
-        for moduleKey in l_modulesToDoOrder:
-            if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
-                break
-            mc.progressBar(mayaMainProgressBar, edit=True, status = "Setting:'%s'..."%(moduleKey), step=1)
-            i_module = i_Morpheus.getModuleFromDict(checkDict = d_moduleCheck[moduleKey])
-            if not i_module:
-                log.warning("Cannot find Module: '%s'"%moduleKey)
-                return False
-            log.debug("Building: '%s'"%moduleKey)
-            try:
-                kws['sizeMode'] = 'manual'
-                kws['posList'] = d_customizationData.get(moduleKey)
-                i_module.setState(state,**kws)
-            except StandardError,error:
-                log.error("Set state fail: '%s'"%i_module.getShortName())
-                raise StandardError,error
-            #i_module.doSize('manual', posList = d_customizationData.get(moduleKey))
-            #i_module.doTemplate()
-        gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
-    except Exception,error:
-        gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar  
-        log.error(error)
-        return False
-        
-@r9General.Timer
-def updateTemplate2(i_customizationNetwork,**kws):  
-    assert i_customizationNetwork.mClass == 'cgmMorpheusMakerNetwork', "Not a customization Network"
-    assert i_customizationNetwork.mPuppet.mClass == 'cgmMorpheusPuppet',"Puppet isn't there"
-    
-    d_customizationData = verify_customizationData(i_customizationNetwork)
-    i_Morpheus = i_customizationNetwork.mPuppet
-    
-    if not d_customizationData:
-        return False
-    
-    mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
-    
-    for moduleKey in l_modulesToDoOrder:
-        if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
-            break
-        mc.progressBar(mayaMainProgressBar, edit=True, status = "Setting:'%s'..."%(moduleKey), step=1)
-        
-        i_module = i_Morpheus.getModuleFromDict(checkDict = d_moduleCheck[moduleKey])
-        if not i_module:
-            log.warning("Cannot find Module: '%s'"%moduleKey)
-            return False
-        log.debug("Building: '%s'"%moduleKey)
-        i_module.doSize(sizeMode = 'manual',
-                        posList = d_customizationData.get(moduleKey))
-        i_module.doTemplate(tryTemplateUpdate = True,
-                            **kws)        
-    gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
-        
+    return fncWrap(*args,**kws).go()
+
+def puppet_verifyAll(*args,**kws):
+    '''
+    '''
+    class fncWrap(MorpheusNetworkFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._b_reportTimes = True
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset] 
+	    self.__dataBind__(*args,**kws)
+	    self._str_funcName = "morphyAsset.puppet_verify('{0}')".format(self._mi_asset.cgmName)		    	    
+	    self.__updateFuncStrings__()
+	    self._b_autoProgressBar = 1
+	    self.l_funcSteps = [{'step':'Puppet Check','call':self._fncStep_puppet_},
+	                        #{'step':'Geo','call':self._fncStep_geo_},
+	                        {'step':'Master Control','call':self._fncStep_masterControl_},	                        
+	                        {'step':'Nodes','call':self._fncStep_nodes_},
+	                        ]	
+
+	def _fncStep_puppet_(self):
+	    if not self._mi_asset.getMessage('mPuppet'):
+		raise ValueError,"Missing Puppet"
+	    self._mi_puppet = self._mi_asset.mPuppet
+	    if not self._mi_puppet.getMessage('masterNull'):
+		raise ValueError,"Puppet missing masterNull. Reverify and rerun"	
+	    
+	    
+	def _fncStep_geo_(self):
+	    geo_verify(self._mi_asset)
+	    
+	def _fncStep_masterControl_(self):
+	    #Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
+	    if not self._mi_puppet.getMessage('masterControl'):
+		if not self._mi_puppet._verifyMasterControl():
+		    raise StandardError,"MasterControl failed to verify"
+	    
+	    mi_assetMasterControl = self._mi_asset.masterControl#...masterControl of the asset
+	    mi_settings = mi_assetMasterControl.controlSettings
+	    mi_masterNull = self._mi_puppet.masterNull
+	    mi_puppetMasterControl = self._mi_puppet.masterControl
+	    mi_partsGroup = self._mi_puppet.masterNull.partsGroup
+	    #mi_masterNull.overrideEnabled = 1	
+	    #cgmMeta.cgmAttr(mi_settings.mNode,'puppetVis',lock=False).doConnectOut("%s.%s"%(mi_puppetMasterControl.mNode,'v'))	    
+	    cgmMeta.cgmAttr(mi_settings.mNode,'puppetVis',lock=False).doConnectOut("%s.%s"%(mi_partsGroup.mNode,'overrideVisibility'))
+	    cgmMeta.cgmAttr(mi_settings.mNode,'puppetLock',lock=False).doConnectOut("%s.%s"%(mi_partsGroup.mNode,'overrideDisplayType'))    
+	    for a in ['translate','rotate','scale']:
+		cgmMeta.cgmAttr(mi_puppetMasterControl,a,lock=True)
+	    mi_puppetMasterControl.v = 0
+	    
+	def _fncStep_nodes_(self):
+	    verifyMorpheusNodeStructure(self._mi_puppet)
+	   
+    return fncWrap(*args,**kws).go()

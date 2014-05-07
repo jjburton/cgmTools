@@ -104,7 +104,7 @@ def go(*args, **kws):
 	    try:#Geo -------------------------------------------------------------------------------------------
 		if self.d_kws['geo'] is None:
 		    try:
-			self.d_kws['geo'] = self._mi_module .modulePuppet.getUnifiedGeo()
+			self.d_kws['geo'] = self._mi_module.modulePuppet.getUnifiedGeo()
 			if not self.d_kws['geo']:
 			    raise ValueError, "Module puppet missing geo"
 		    except StandardError,error:log.warning("geo failed to find: %s"%(error) + "="*75) 
@@ -377,11 +377,11 @@ def returnModuleBaseSize(self):
 		if self.moduleType == 'clavicle':
 		    return size * .5
 		elif self.moduleType == 'head':
-		    return size * .75
+		    return size * .5
 		elif self.moduleType == 'neck':
 		    return size * .5
 		elif self.moduleType in ['arm','leg']:
-		    return size * .5
+		    return size * .75
 		elif self.moduleType in ['finger','thumb']:
 		    return size * .75 
     

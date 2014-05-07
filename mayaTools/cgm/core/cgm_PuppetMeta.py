@@ -963,7 +963,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	i_settings = self.i_masterControl.controlSettings
 	str_nodeShort = str(i_settings.getShortName())
 	#Skeleton/geo settings
-	for attr in ['geo','bsGeo','customGeo']:
+	for attr in ['geo','bsGeo','customGeo','puppet']:
 	    i_settings.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
 	    nodeF.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
 	    nodeF.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
@@ -1055,12 +1055,25 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	"""
 	Verify a Morpheus Puppet, creates one if not exists, otherwise make sure it's intact
 	"""
-	if not self.hasAttr('mPuppet'):
-	    self.__verify__()
+	_str_funcName = 'verifyPuppet'
+	try:
+	    try:#>> Initial puppet...
+		if not self.hasAttr('mPuppet'):
+		    self.__verify__()
+		
+		if not self.getMessage('mPuppet'):
+		    mi_puppet = cgmMorpheusPuppet(name = str(self.cgmName),doVerify=True)
+		else:
+		    mi_puppet = self.mPuppet
+		    mi_puppet.__verify__()	
+		    
+		self.mPuppet = mi_puppet.mNode
+	    except Exception,error:raise Exception,"Initial puppet fail | error: {0}".format(error)
 	    
-	self.mPuppet = cgmMorpheusPuppet(name = str(self.cgmName),doVerify=True).mNode
-        morphyF.verifyMorpheusNodeStructure(self.mPuppet)
-	return True
+	    morphyF.puppet_verifyAll(self)
+	     
+	    return True
+	except Exception,error:raise Exception,"{0} fail | error: {1}".format(_str_funcName,error)	
 	
     def verify_customizationData(self): 
 	return morphyF.verify_customizationData(self)

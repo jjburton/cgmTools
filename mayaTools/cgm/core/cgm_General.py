@@ -335,7 +335,7 @@ class cgmFuncCls(object):
 		mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   
 		raise self._Exception,"{0} >> {1}".format(self._str_funcCombined,str(self._ExceptionError))
 	    else:
-		raise self._Exception,self._ExceptionError
+		raise self._Exception,"{0} {1}".format(self._str_reportStart,self._ExceptionError)
 	    
 	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
 	return self._return_()
