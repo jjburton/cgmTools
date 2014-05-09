@@ -56,7 +56,7 @@ _d_KWARG_attr = {'kw':'attr',"default":None, 'help':"Attribute name to look for"
 _d_KWARG_value = {'kw':'value',"default":None, 'help':"Value to set", "argType":"variable"}
 _d_KWARG_forceNew = {'kw':'forceNew',"default":False, 'help':"typical kw to force a new one of whatever", "argType":"bool"}
 _d_KWARG_transformsOnly = {'kw':'transformsOnly',"default":True,'help':"Only reset transforms","argType":"bool"}
-
+_d_KWARG_select = {'kw':'select',"default":False,'help':"Whether to select what has been found","argType":"bool"}
 #=========================================================================
 import logging
 logging.basicConfig()

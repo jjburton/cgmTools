@@ -22,7 +22,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.rigger import RigFactory as mRig
-from cgm.lib import (modules,curves,distance,attributes,search,constraints)
+from cgm.lib import (modules,curves,distance,attributes,search,constraints,lists)
 from cgm.lib.ml import ml_resetChannels
 
 from cgm.core.lib import (nameTools)
@@ -520,11 +520,13 @@ def isRigged(*args,**kws):
             mi_rigNull = mi_module.rigNull
             str_shortName = self._str_moduleName
 
-            ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
-            l_rigJoints = [i_j.p_nameShort for i_j in ml_rigJoints] or []
-            l_skinJoints = rig_getSkinJoints(mi_module,asMeta=False)
+            #ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
+            l_rigJoints = get_joints(mi_module,rigJoints = True, asMeta=False)            
+            #l_rigJoints = [i_j.p_nameShort for i_j in ml_rigJoints] or []
+            l_skinJoints = get_joints(mi_module,skinJoints = True, asMeta=False)
 
-            if not ml_rigJoints:
+            if not l_skinJoints or not l_rigJoints:
+                self.log_debug("Necessary chains not found")
                 mi_rigNull.version = ''#clear the version	
                 return False
 
@@ -533,14 +535,15 @@ def isRigged(*args,**kws):
                 self.log_warning("Need to find a better face rig joint test rather than constraints")	    
             else:
                 b_foundConstraint = False
-                for i,mJoint in enumerate(ml_rigJoints):
-                    if mJoint.getConstraintsTo():
+                for i,jnt in enumerate(l_rigJoints):
+                    if cgmMeta.cgmObject(jnt).getConstraintsTo():
                         b_foundConstraint = True
+                        break
                     elif i == (len(ml_rigJoints) - 1) and not b_foundConstraint:
                         self.log_warning("No rig joints are constrained")	    
                         return False
 
-            if len( l_skinJoints ) < len( ml_rigJoints ):
+            if len( l_skinJoints ) < len( l_rigJoints ):
                 self.log_warning(" %s != %s. Not enough rig joints"%(len(l_skinJoints),len(l_rigJoints)))
                 mi_rigNull.version = ''#clear the version        
                 return False
@@ -768,6 +771,7 @@ def rig_getSkinJoints(*args,**kws):
             """
             """
             super(fncWrap, self).__init__(*args, **kws)
+            self._b_reportTimes = 1
             self._str_funcName= "rig_getSkinJoints({0})".format(self._str_moduleName)
             self._str_funcHelp = "Get the skin joints of a module"
             self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
@@ -1327,6 +1331,25 @@ def isModule(*args,**kws):
             return True
     return fncWrap(*args,**kws).go()
 
+def isRootModule(*args,**kws):
+    class fncWrap(ModuleFunc):
+        def __init__(self,*args,**kws):
+            """
+            """	
+            super(fncWrap, self).__init__(*args,**kws)
+            self._str_funcName = "isRootModule({0})".format(self._str_moduleName)
+            self.__dataBind__(*args,**kws)
+            #=================================================================
+        def __func__(self): 
+            mi_module = self._mi_module
+            if not mi_module.getMessage('moduleParent'):
+                self.log_info("No parent")
+                if mi_module.getMessage('modulePuppet'):
+                    self.log_info("Found puppet")                    
+                    return True
+            return False	 
+    return fncWrap(*args,**kws).go() 
+
 def getState(*args,**kws):
     """ 
     Check module state ONLY from the state check attributes
@@ -1874,6 +1897,87 @@ def get_controls(*args,**kws):
                     raise StandardError,"Not done yet"
             except Exception,error: raise Exception,"Mode '{0} fail | error: {1}".format(str_mode,error)
             return ml_controlObjects
+    return fncWrap(*args,**kws).go()
+
+def get_joints(*args,**kws):
+    '''
+    Simple factory for template settings functions
+    '''
+    class fncWrap(ModuleFunc):
+        def __init__(self,*args,**kws):
+            """
+            """	
+            super(fncWrap, self).__init__(*args,**kws)
+            self._b_reportTimes = 0
+            self._str_funcName = "module.get_joints('{0}')".format(self._str_moduleName)		    	                
+            self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+                                         {'kw':'skinJoints',"default":False,'help':"Whether to include skin joints or not","argType":"bool"},
+                                         {'kw':'moduleJoints',"default":False,'help':"Whether to include module core joints or not","argType":"bool"},                                         
+                                         {'kw':'rigJoints',"default":False,'help':"Whether to include rig joints or not","argType":"bool"},
+                                         cgmMeta._d_KWARG_asMeta,                                         
+                                         cgmMeta._d_KWARG_select] 
+            self.__dataBind__(*args,**kws)
+
+        def __func__(self):
+            try:
+                try:
+                    mi_module = self._mi_module
+                    mi_templateNull = mi_module.templateNull  
+                    mi_rigNull = mi_module.rigNull                    
+                except Exception,error: raise Exception,"Link meta fail | error: {0}".format(error)
+
+                _b_skinJoints = cgmValid.boolArg(self.d_kws['skinJoints'],calledFrom=self._str_reportStart)
+                _b_moduleJoints = cgmValid.boolArg(self.d_kws['moduleJoints'],calledFrom=self._str_reportStart)                
+                _b_rigJoints = cgmValid.boolArg(self.d_kws['rigJoints'],calledFrom=self._str_reportStart)
+                _b_select = cgmValid.boolArg(self.d_kws['select'],calledFrom=self._str_reportStart)
+                
+                if not _b_skinJoints and not _b_moduleJoints and not _b_rigJoints:
+                    self.log_error("Nothing set to find. Check your kws")
+                    return self._SuccessReturn_(False)
+            except Exception,error: raise Exception,"Inital data fail | error: {0}".format(error)
+            
+            l_return = []
+            if _b_moduleJoints or _b_skinJoints:
+                try:
+                    buffer = mi_rigNull.msgList_get('moduleJoints',asMeta = False)
+                except Exception,error:self.log_error("module joints fail | error: {0}".format(error))  
+                if _b_skinJoints:
+                    try:
+                        for obj in buffer:
+                            #Need to check for msgLists...
+                            l_attrs = mc.listAttr(obj,ud = 1)
+                            for a in l_attrs:
+                                #self.log_info("Checking: {0}.{1}".format(obj,a))
+                                for singleHook in mRig.__l_moduleJointSingleHooks__:
+                                    if singleHook in a:
+                                        bfr_single =  attributes.returnMessageObject(obj,a)
+                                        if bfr_single:
+                                            #self.log_info("Found '{0}' on '{1}.{2}'".format(bfr_single,obj,a))
+                                            buffer.insert(buffer.index(obj) +1,bfr_single)                                    
+                                
+                                for msgHook in mRig.__l_moduleJointMsgListHooks__:
+                                    if msgHook in a:
+                                        bfr_msgHook =  attributes.returnMessageObject(obj,a)
+                                        if bfr_msgHook:
+                                           #self.log_info("Found '{0}' on '{1}.{2}'".format(bfr_msgHook,obj,a))                                            
+                                           buffer.insert(buffer.index(obj) +1, bfr_msgHook)                                        
+                    except Exception,error:self.log_error("skin joints fail | error: {0}".format(error))  
+                if buffer:l_return.extend(buffer)
+            if _b_rigJoints:
+                try:
+                    buffer = mi_rigNull.msgList_get('rigJoints',asMeta = False)
+                    if buffer:l_return.extend(buffer)
+                except Exception,error:self.log_error("rig joints fail | error: {0}".format(error)) 
+                
+            if not l_return:
+                return []
+            elif _b_select:
+                l_return = lists.returnListNoDuplicates(l_return)
+                mc.select(l_return)
+                
+            if kws.get('asMeta'):
+                l_return = cgmMeta.validateObjListArg(l_return,cgmMeta.cgmObject)
+            return l_return
     return fncWrap(*args,**kws).go()
 
 def get_mirror(*args,**kws):

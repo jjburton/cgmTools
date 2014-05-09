@@ -119,6 +119,8 @@ class cgmPuppet(cgmMeta.cgmNode):
 		    raise StandardError,"'%s' failed to verify!"%name
 	    except Exception,error:
 		raise StandardError,"%s >>> verify fail | error : %s"%(_str_funcName,error) 
+	
+	self._UTILS = pFactory
 
     #====================================================================================
     #@cgmGeneral.Timer    
@@ -754,6 +756,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	if self.__justCreatedState__ or doVerify:
 	    if not self.__verify__():
 		raise StandardError,"Failed!"
+	self._UTILS = morphyF
 
     def __bindData__(self):
         pass
@@ -1491,8 +1494,13 @@ class cgmModule(cgmMeta.cgmObject):
 	    log.critical("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.mNode)
 	    raise StandardError,"'%s' failed to initialize!"%self.mNode
         #if log.getEffectiveLevel() == 10:log.debug("'%s' Checks out!"%self.getShortName())
+	self._UTILS = mFactory
 	
     ##@r9General.Timer
+    def atMFactory(self,func,*args,**kws):
+	kws['mModule'] = self	
+	return mFactory.__dict__[func](self,*args,**kws)
+    
     def initialize(self,**kws):
         """ 
         Initializes the various components a moduleNull for a character/asset.
@@ -2112,7 +2120,11 @@ class cgmModule(cgmMeta.cgmObject):
     def dynSwitch_siblings(self,*args,**kws):
 	kws['mModule'] = self				
 	return mFactory.dynSwitch_siblings(*args,**kws)
-	
+    
+    def get_joints(self,**kws):
+	kws['mModule'] = self	
+	return mFactory.get_joints(**kws)
+      
     #>>> Toggles
     #========================================================================  
     def toggle_subVis(self,*args,**kws):

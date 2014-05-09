@@ -73,7 +73,7 @@ for module in d_moduleTypeToBuildModule.keys():
     reload(d_moduleTypeToBuildModule[module])
     
 __l_moduleJointSingleHooks__ = ['scaleJoint']
-__l_moduleJointMsgListHooks__ = ['helperJoints']
+__l_moduleJointMsgListHooks__ = ['helperJoints','defHelp_joints']
 
 #>>> Main class function
 #=====================================================================
@@ -1628,16 +1628,16 @@ def get_simpleRigJointDriverDict(self,printReport = True):
 def get_report(self):
     try:
 	_str_funcName = "%s.get_report"%self.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75)  
-	log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
+	#log.debug(">>> %s "%(_str_funcName) + "="*75)  
+	#log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
 	start = time.clock()        		    
 	if not self.isSkeletonized():
 	    log.error("%s.get_report >> Not skeletonized. Wrong report."%(self.p_nameShort))
 	    return False
-	l_moduleJoints = self.rigNull.msgList_get('moduleJoints',False) or []
-	l_skinJoints =self.rig_getSkinJoints(False)
+	l_moduleJoints = self._UTILS.get_joints(self, moduleJoints = True)
+	l_skinJoints = self._UTILS.get_joints(self,skinJoints = True)
 	ml_handleJoints = self.rig_getHandleJoints() or []
-	l_rigJoints = self.rigNull.msgList_get('rigJoints',False) or []
+	l_rigJoints = self._UTILS.get_joints(self,rigJoints = True)
 	ml_rigHandleJoints = self.rig_getRigHandleJoints() or []
 	ml_rigDefJoints = get_rigDeformationJoints(self) or []
 	ml_segmentHandleTargets = get_segmentHandleTargets(self) or []

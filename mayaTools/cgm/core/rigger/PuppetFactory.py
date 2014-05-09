@@ -15,7 +15,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as cgmValid
-from cgm.lib import (search,attributes)
+from cgm.lib import (search,attributes,lists)
 from cgm.core import cgm_General as cgmGeneral
 from cgm.lib.ml import ml_resetChannels
 
@@ -98,9 +98,52 @@ def stateCheck(*args,**kws):
 		except Exception,error: log.error("%s module: %s | %s"%(self._str_reportStart,_str_module,error))
     return fncWrap(*args,**kws).go()
 
+def get_report(*args,**kws):
+    '''
+    Puppet reporting tool
+    '''
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._b_reportTimes = True
+            self._str_funcName = "puppet.get_report('{0}')".format(self._mi_puppet.cgmName)		    	    	    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+	                                 {'kw':'rigReport',"default":False,'help':"Whether to include the rig report","argType":"bool"},
+	                                 ] 
+	    self.__dataBind__(*args,**kws)   
+
+	def __func__(self):
+	    try:
+		try:
+		    mi_puppet = self._mi_puppet
+		    self.ml_modules = getModules(self._mi_puppet)		    
+		except Exception,error: raise Exception,"Link meta fail | error: {0}".format(error)
+
+		_b_rigReport = cgmValid.boolArg(self.d_kws['rigReport'],calledFrom=self._str_reportStart)
+		
+		if not _b_rigReport:
+		    self.log_error("Nothing set to find. Check your kws")
+		    return self._SuccessReturn_(False)
+	    except Exception,error: raise Exception,"Inital data fail | error: {0}".format(error)
+	    
+	    try:
+		for mModule in self.ml_modules:
+		    try:
+			if _b_rigReport:
+			    mModule._UTILS.rig_getReport(mModule)
+		    except Exception,error:
+			raise Exception,"Module '{0}' | error: {1}".format(mModule.p_nameShort,error)		
+	    except Exception,error:raise Exception,"Report fail | error: {0}".format(error)		
+    
+
+    return fncWrap(*args,**kws).go()
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Puppet Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+
 def simplePuppetReturn():
     try:
 	catch = mc.ls(type='network')
@@ -155,6 +198,7 @@ def getModules(*args,**kws):
 	    self._str_funcName = "puppet.getModules('%s')"%self._mi_puppet.cgmName
 	    self._str_funcHelp = "Get the modules of a puppet"	    
 	    self.__dataBind__(*args,**kws)
+	    self._b_reportTimes = 1
 	def __func__(self):
 	    try:ml_initialModules = self._mi_puppet.moduleChildren
 	    except:ml_initialModules = []
@@ -242,11 +286,12 @@ def getState(*args,**kws):
 	    self._str_funcName = "puppet.getState('%s')"%self._mi_puppet.cgmName	
 	    self._str_funcHelp = "Get a pupppet's state"	    	    
 	    self.__dataBind__(*args,**kws)
-	    
+	    self._b_reportTimes = 1
 	def __func__(self):
 	    """
 	    """
 	    ml_modules = getModules(self._mi_puppet)
+	    #ml_modules = self._mi_puppet.moduleChildren
 	    int_lenModules = len(ml_modules)  
 	    
 	    if not ml_modules:
@@ -262,8 +307,8 @@ def getState(*args,**kws):
 		r_state = mModule.getState(**kws)
 		l_states.append(r_state)
 		d_states[_str_module] = r_state
-	    for p in d_states.iteritems():
-		self.log_info(" '%s' | state : %s"%(p[0],p[1]))
+	    #for p in d_states.iteritems():
+		#self.log_info(" '%s' | state : %s"%(p[0],p[1]))
 	    return min(l_states)
     return fncWrap(*args,**kws).go()
 
@@ -706,6 +751,67 @@ def mirrorMe(*args,**kws):
 	    return False
     return fncWrap(*args,**kws).go()
 
+def get_joints(*args,**kws):
+    '''
+    Factory Rewrite of mirror functions.
+    TODO -- replace the many mirror functions here
+    '''
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    #self._b_reportTimes = True
+            self._str_funcName = "puppet.get_joints('{0}')".format(self._mi_puppet.cgmName)		    	    	    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+	                                 {'kw':'skinJoints',"default":False,'help':"Whether to include skin joints or not","argType":"bool"},
+	                                 {'kw':'moduleJoints',"default":False,'help':"Whether to include module core joints or not","argType":"bool"},                                         
+	                                 {'kw':'rigJoints',"default":False,'help':"Whether to include rig joints or not","argType":"bool"},
+	                                 cgmMeta._d_KWARG_asMeta,                                         
+	                                 cgmMeta._d_KWARG_select] 
+	    self.__dataBind__(*args,**kws)   
+
+	def __func__(self):
+	    try:
+		try:
+		    mi_puppet = self._mi_puppet
+		    self.ml_modules = getModules(self._mi_puppet)		    
+		except Exception,error: raise Exception,"Link meta fail | error: {0}".format(error)
+
+		_b_skinJoints = cgmValid.boolArg(self.d_kws['skinJoints'],calledFrom=self._str_reportStart)
+		_b_moduleJoints = cgmValid.boolArg(self.d_kws['moduleJoints'],calledFrom=self._str_reportStart)                
+		_b_rigJoints = cgmValid.boolArg(self.d_kws['rigJoints'],calledFrom=self._str_reportStart)
+		_b_select = cgmValid.boolArg(self.d_kws['select'],calledFrom=self._str_reportStart)
+		
+		if not _b_skinJoints and not _b_moduleJoints and not _b_rigJoints:
+		    self.log_error("Nothing set to find. Check your kws")
+		    return self._SuccessReturn_(False)
+	    except Exception,error: raise Exception,"Inital data fail | error: {0}".format(error)
+	    
+	    try:
+		l_return = []
+		for mModule in self.ml_modules:
+		    try:
+			l_buffer = mModule.get_joints(**kws)
+			if not l_buffer:
+			    raise StandardError,"No joints found"
+			l_return.extend(l_buffer)
+		    except Exception,error:
+			self.log_error("Module '{0}' | error: {1}".format(mModule.p_nameShort,error))	
+	    except Exception,error:raise Exception,"Gather joints | error: {0}".format(error)		
+
+            if not l_return:
+                self.log_error("More than likely not skeletonized yet")
+                return False
+            elif _b_select:
+                if kws.get('asMeta'):
+                    mc.select([mObj.mNode for mObj in l_return])
+                else:
+                    mc.select(l_return)
+            return l_return	    
+
+    return fncWrap(*args,**kws).go()
+	    
 def mirror_do(*args,**kws):
     '''
     Factory Rewrite of mirror functions.
@@ -721,7 +827,7 @@ def mirror_do(*args,**kws):
                                          {'kw':'mode',"default":'anim','help':"Special mode for this fuction","argType":"string"},
                                          {'kw':'mirrorMode',"default":'symLeft','help':"Special mode for this fuction","argType":"string"}] 
             self.__dataBind__(*args,**kws)
-            self._str_funcName = "puppet.mirror_do('{0}',mode = {1})".format(self._mi_puppet.cgmName,self.d_kws.get('mode') or None)		    	    
+            self._str_funcName = "puppet.mirror_do('{0}')".format(self._mi_puppet.cgmName,self.d_kws.get('mode') or None)		    	    
             self.__updateFuncStrings__()
             self.l_funcSteps = [{'step':'Verify','call':self._fncStep_validate_},
                                 {'step':'Process','call':self._fncStep_process_}]	

@@ -82,7 +82,7 @@ def mirrorJointOrientation(*args,**kws):
 	    	
     return fncWrap(*args,**kws).go()
     
-@cgmGeneral.Timer
+#@cgmGeneral.Timer
 def metaFreezeJointOrientation(targetJoints):
     """
     Copies joint orietnations from one joint to others
@@ -270,7 +270,7 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
 	ml_dynDefHelpJoints.append(i_dupJnt)#append to help joint list
 	
 	i_dupJnt.connectChildNode(mi_childJoint,"defHelp_childTarget")#Connect Child target
-	mi_targetJoint.msgList_connect(ml_dynDefHelpJoints,str_plugHook,'defHelp_target')#Connect
+	mi_targetJoint.msgList_append(ml_dynDefHelpJoints,str_plugHook,'defHelp_target')#Connect
     else:
 	i_dupJnt = i_matchJnt
     #------------------------------------------------------------

@@ -1921,10 +1921,12 @@ def build_limbSkeleton(*args, **kws):
 		    ml_handleJoints.append(i_obj.handleJoint)
 	    
 	    mi_go._mi_rigNull.msgList_connect(ml_handleJoints,'handleJoints','rigNull')
-		    
+	    mi_go._mi_rigNull.msgList_connect(ml_moduleJoints,'skinJoints') 
+
 	    return True 
     return fncWrap_build_limbTemplate(*args, **kws).go()
-	        
+	    
+    
 
 def doOrientSegment(*args, **kws):
     class fncWrap_doOrientSegment(modUtils.skeletonizeStep):
@@ -2098,8 +2100,7 @@ def doOrientSegment(*args, **kws):
 	    
 	    #Connect to parent
 	    try:
-		if mi_go._mi_module.getMessage('moduleParent'):#If we have a moduleParent, constrain it
-		    connectToParentModule(mi_go._mi_module)    
+		connectToParentModule(mi_go._mi_module)    
 	    except Exception,error:raise Exception, "Failed to connect to module parent | error: {0}".format(error)
         def _step_freeze(self):
 	    try:mi_go = self._go
@@ -2185,35 +2186,45 @@ def connectToParentModule(self):
     Pass a module class. Constrains template root to parent's closest template object
     """
     try:
-	log.debug(">>> %s.connectToParentModule >> "%self.p_nameShort + "="*75)            
-	if not self.isSkeletonized():
-	    log.error("Must be skeletonized to contrainToParentModule: '%s' "%self.getShortName())
-	    return False
-	
-	l_moduleJoints = self.rigNull.msgList_getMessage('moduleJoints') 
+	log.debug(">>> %s.connectToParentModule >> "%self.p_nameShort + "="*75)  
+	try:
+	    l_moduleJoints = self.rigNull.msgList_getMessage('moduleJoints') 
+	    
+	    if self._UTILS.isRootModule(self):
+		log.info("NEED TO CONNECT TO PUPPET")
+		try:
+		    rigging.doParentReturnName(l_moduleJoints[0],self.modulePuppet.masterNull.skeletonGroup.mNode)		
+		except Exception,error:raise Exception,"root module parent fail | {0} ".format(error)
     
-	if not self.getMessage('moduleParent'):
-	    return False
-	else:
-	    #>>> Get some info
-	    i_rigNull = self.rigNull #Link
-	    i_parent = self.moduleParent #Link
-	    if i_parent.isSkeletonized():#>> If we have a module parent
-		#>> If we have another anchor
-		if self.moduleType == 'eyelids':
-		    str_targetObj = i_parent.rigNull.msgList_getMessage('moduleJoints')[0]
-		    for jnt in l_moduleJoints:
-			#mJoint.parent = str_targetObj
-			rigging.doParentReturnName(jnt,str_targetObj)
-			
-		else:
-		    l_parentSkinJoints = i_parent.rigNull.msgList_getMessage('moduleJoints')
-		    str_targetObj = distance.returnClosestObject(l_moduleJoints[0],l_parentSkinJoints)
-		    rigging.doParentReturnName(l_moduleJoints[0],str_targetObj)		
 	    else:
-		log.error("Parent has not been skeletonized...")           
-		return False  
-	return True
+		l_moduleJoints = self.rigNull.msgList_getMessage('moduleJoints') 
+	    
+		if not self.getMessage('moduleParent'):
+		    return False
+		else:
+		    #>>> Get some info
+		    i_rigNull = self.rigNull #Link
+		    i_parent = self.moduleParent #Link
+		    if i_parent.isSkeletonized():#>> If we have a module parent
+			#>> If we have another anchor
+			if self.moduleType == 'eyelids':
+			    str_targetObj = i_parent.rigNull.msgList_getMessage('moduleJoints')[0]
+			    for jnt in l_moduleJoints:
+				#mJoint.parent = str_targetObj
+				rigging.doParentReturnName(jnt,str_targetObj)
+				
+			else:
+			    l_parentSkinJoints = i_parent.rigNull.msgList_getMessage('moduleJoints')
+			    str_targetObj = distance.returnClosestObject(l_moduleJoints[0],l_parentSkinJoints)
+			    rigging.doParentReturnName(l_moduleJoints[0],str_targetObj)		
+		    else:
+			log.error("Parent has not been skeletonized...")           
+			return False  
+		return True
+	except Exception,error:
+	    if not self.isSkeletonized():
+		log.error("Must be skeletonized to contrainToParentModule: '%s' "%self.getShortName())
+	    raise Exception,error	
     except Exception,error:raise Exception,"connectToParentModule fail | {0} ".format(error)
     
 
