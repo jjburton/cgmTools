@@ -309,7 +309,7 @@ class cgmFuncCls(object):
 	    pair_time = [_str_step,_str_time]
 	    self._l_funcTimes.append([_str_step,_str_time])	
 	    if self._b_reportTimes:
-		self.log_info(" TIME -- Step: '{0}' >>  {1} ".format(pair_time[0],pair_time[1]))				 
+		self.log_info(" [TIME] -- Step: '{0}' >>  {1} ".format(pair_time[0],pair_time[1]))				 
 	self.progressBar_end()
 	mc.undoInfo(closeChunk=True)	
 	
@@ -326,13 +326,13 @@ class cgmFuncCls(object):
 	if self._b_reportTimes:
 	    try:
 		f_total = (time.clock()-t_start)	    
-		if int_lenSteps > 1:
-		    #self.log_info(_str_headerDiv + " Times " + _str_headerDiv + _str_subLine)			    	    
+		if int_lenSteps > 2:
+		    self.log_info(_str_headerDiv + " Times " + _str_headerDiv + _str_subLine)			    	    
 		    #if self.int_max != 0:
 			#for pair in self._l_funcTimes:
 			    #self.log_info(" -- '{0}' >>  {1} ".format(pair[0],pair[1]))				 
 		    self.log_warning(_str_headerDiv + " Total : %0.3f sec "%(f_total) + _str_headerDiv + _str_subLine)			    	    
-		else:self.log_warning("[Total = %0.3f sec] " % (f_total))
+		#else:self.log_warning("[Total = %0.3f sec] " % (f_total))
 	    except Exception,error:self.log_error("[Failed to report times | error: {0}]".format(error))
 	    
 	if self._Exception is not None:
