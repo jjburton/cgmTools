@@ -29,15 +29,16 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
-# cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
-#========================================================================= 
+#Strings settings
 _str_subLine = '-'*100
 _str_hardLine = '='*100
 _str_hardBreak = '=' * 125
 _str_headerDiv = '///'
 _str_baseStart = "--"
 _d_KWARG_stopAtStep = {'kw':'stopAtStep',"default":None, 'help':"Step of a cgmFuncToStopAt", "argType":"int/str"}
+
+#Shared data...
+_l_moduleStates = ['define','size','template','skeleton','rig']
 
 class cgmFuncCls(object):  
     '''
@@ -250,7 +251,7 @@ class cgmFuncCls(object):
 	except Exception,error:
 	    raise StandardError, ">"*3 + " {0}[FAILURE go start | error: {1}]".format(self._str_funcCombined,error)
 	
-	mc.undoInfo(openChunk=True)
+	#mc.undoInfo(openChunk=True)
 	int_lenSteps = len(self.l_funcSteps)
 	
 	if self._b_pushCleanKWs:
@@ -275,7 +276,7 @@ class cgmFuncCls(object):
 		try:
 		    _str_step = d_step.get('step') or False
 		    if _str_step:
-			self._str_progressBarReportStart = self._str_funcCombined + " %s "%_str_step
+			self._str_progressBarReportStart = self._str_reportStart + " %s "%_str_step
 		    else: _str_step = 'Process'
 		    		    
 		    self._str_step = _str_step	
@@ -311,7 +312,7 @@ class cgmFuncCls(object):
 	    if self._b_reportTimes:
 		self.log_info(" [TIME] -- Step: '{0}' >>  {1} ".format(pair_time[0],pair_time[1]))				 
 	self.progressBar_end()
-	mc.undoInfo(closeChunk=True)	
+	#mc.undoInfo(closeChunk=True)	
 	
 	#Reporting and closing out =========================================================================
 	if self._b_WIP or self.d_kws.get('reportShow'):

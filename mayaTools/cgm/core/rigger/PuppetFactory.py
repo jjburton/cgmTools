@@ -110,6 +110,7 @@ def get_report(*args,**kws):
 	    self._b_reportTimes = True
             self._str_funcName = "puppet.get_report('{0}')".format(self._mi_puppet.cgmName)		    	    	    
 	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+	                                 {'kw':'moduleReport',"default":False,'help':"Whether to get the module report","argType":"bool"},	                                 
 	                                 {'kw':'rigReport',"default":False,'help':"Whether to include the rig report","argType":"bool"},
 	                                 ] 
 	    self.__dataBind__(*args,**kws)   
@@ -118,17 +119,33 @@ def get_report(*args,**kws):
 	    try:
 		try:
 		    mi_puppet = self._mi_puppet
-		    self.ml_modules = getModules(self._mi_puppet)		    
+		    self.ml_modules = getModules(self._mi_puppet)
+		    int_lenModules = len(self.ml_modules)		    
 		except Exception,error: raise Exception,"Link meta fail | error: {0}".format(error)
 
 		_b_rigReport = cgmValid.boolArg(self.d_kws['rigReport'],calledFrom=self._str_reportStart)
+		_b_moduleReport = cgmValid.boolArg(self.d_kws['moduleReport'],calledFrom=self._str_reportStart)
 		
-		if not _b_rigReport:
+		if not _b_rigReport and not _b_moduleReport:
 		    self.log_error("Nothing set to find. Check your kws")
 		    return self._SuccessReturn_(False)
 	    except Exception,error: raise Exception,"Inital data fail | error: {0}".format(error)
-	    
 	    try:
+		if _b_moduleReport:
+		    self.log_info(cgmGeneral._str_headerDiv + "Module Report " + cgmGeneral._str_headerDiv + cgmGeneral._str_subLine)
+		    for i,mModule in enumerate(self.ml_modules):
+			try:
+			    _str_module = mModule.p_nameShort
+			    mi_rigNull = mModule.rigNull
+			    mi_templateNull = mModule.templateNull
+			    self.progressBar_set(status = "Module Report: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)
+			    
+			    self.log_info("'{0}' | state: '{1}' | template version: {2} | rig version: {3}".format(mModule.p_nameShort,
+			                                                                                           cgmGeneral._l_moduleStates[mModule.getState()],
+			                                                                                           mi_templateNull.getMayaAttr('version'),
+			                                                                                           mi_rigNull.getMayaAttr('version')))
+			except Exception,error:
+			    raise Exception,"Module report fail'{0}' | error: {1}".format(mModule.p_nameShort,error)			    
 		for mModule in self.ml_modules:
 		    try:
 			if _b_rigReport:
@@ -136,8 +153,6 @@ def get_report(*args,**kws):
 		    except Exception,error:
 			raise Exception,"Module '{0}' | error: {1}".format(mModule.p_nameShort,error)		
 	    except Exception,error:raise Exception,"Report fail | error: {0}".format(error)		
-    
-
     return fncWrap(*args,**kws).go()
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -809,9 +824,111 @@ def get_joints(*args,**kws):
                 else:
                     mc.select(l_return)
             return l_return	    
-
     return fncWrap(*args,**kws).go()
+
+def get_jointsBindDict(*args,**kws):
+    d_bindJointKeys_to_matchData = {'all':{},
+                                    'body':{'faceModuleOK':False},
+                                    'face':{'ignoreCheck':True},
+                                    'bodyNoEyes':{'l_ignore':['eyeball']},
+                                    'eyeball':{'isModule':'eyeball'},
+                                    'head':{'indexArgs':[['neckHead',-1]]},
+                                    'tongue':{'isModule':'tongue'}}    
+    '''
+    'tongue':['tongue','jaw','head'],
+    'unified':['bodySansEyes'],
+    'uprTeeth':['head','uprTeeth'],
+    'lwrTeeth':['lowerTeeth','jaw','head'],
+    'eyebrow':['eyebrow','uprHead','head'],
+    'earLeft':['earLeft','uprHead','head'],
+    'earRight':['earRight','uprHead','head'],
+    'eyeLeft':['eyeLeft','uprHead','head'],
+    'eyeRight':['eyeRight','uprHead','head'],
+    'body':['bodySansEyes'
+    '''
+    class fncWrap(PuppetFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._b_reportTimes = True
+            self._str_funcName = "puppet.get_jointsBindDict('{0}')".format(self._mi_puppet.cgmName)		    	    	    
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+	                                 cgmMeta._d_KWARG_asMeta] 
+	    self.__dataBind__(*args,**kws)   
+
+	def __func__(self):
+	    try:
+		try:
+		    mi_puppet = self._mi_puppet
+		    self.ml_modules = getModules(self._mi_puppet)		    
+		except Exception,error: raise Exception,"Link meta fail | error: {0}".format(error)
+		self._d_return = {}
+		
+		#Gonna build our list holders
+		for key in d_bindJointKeys_to_matchData.keys():
+		    self._d_return[key] = []#...initiate the list
+	    except Exception,error: raise Exception,"Inital data fail | error: {0}".format(error)
 	    
+	    try:
+		l_return = []
+		l_stopMatch = []
+		for mModule in self.ml_modules:
+		    try:
+			l_buffer = mModule.get_joints(skinJoints = True, asMeta = self.d_kws['asMeta'])
+			str_partType = mModule.moduleType
+			b_isFaceModule = mModule._UTILS.isFaceModule(mModule)
+			if b_isFaceModule:
+			    self._d_return['face'].extend(l_buffer)
+			if not l_buffer:
+			    raise StandardError,"No joints found"
+			self.log_info("Module : {0} | type: {1} | isFaceModule {2}".format(mModule.p_nameShort,mModule.moduleType, b_isFaceModule)) 			
+			
+			for key in d_bindJointKeys_to_matchData.keys():
+			    if key in l_stopMatch:#...if we already matched this one specifically
+				continue
+			    #self.log_info("checking {0}".format(key))
+			    d_buffer = d_bindJointKeys_to_matchData[key]
+			    if d_buffer.get('ignoreCheck'):
+				continue
+			    
+			    l_ignore = d_buffer.get('l_ignore') or []
+			    is_module = d_buffer.get('isModule') or None
+			    l_indexArgs = d_buffer.get('indexArgs') or []
+			    
+			    _faceModuleOK = d_buffer.get('faceModuleOK') or True
+			    _faceModuleOnly = d_buffer.get('faceModuleOnly') or False
+			    
+			    if not _faceModuleOK and b_isFaceModule:
+				#self.log_info("Face modules not okay. This one is.")				    				
+				continue
+			    
+			    if _faceModuleOnly and not b_isFaceModule:
+				
+				continue
+			    
+			    if is_module and is_module != str_partType:
+				#self.log_info("Wrong module type. isModule check on")
+				continue
+			    if l_ignore:
+				if str_partType in l_ignore:
+				    #self.log_info("Module type in igore list.")				    
+				    continue
+
+			    self._d_return[key].extend(l_buffer)
+			    
+			    for a in l_indexArgs:
+				if str_partType == a[0]:
+				    self._d_return[key] = [(l_buffer[int(a[1])])]
+				    self.log_info("indexArg match found for {0}".format(key))				    
+				    l_stopMatch.append(key)
+		    except Exception,error:
+			self.log_error("Module '{0}' | error: {1}".format(mModule.p_nameShort,error))	
+	    except Exception,error:raise Exception,"Gather joints | error: {0}".format(error)		
+            self.log_infoDict(self._d_return,"Return Dict")
+            return self._d_return	    
+    return fncWrap(*args,**kws).go()
+
 def mirror_do(*args,**kws):
     '''
     Factory Rewrite of mirror functions.

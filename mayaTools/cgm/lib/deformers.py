@@ -43,6 +43,12 @@ typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFil
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
 
+#>>>======================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=========================================================================
 
 def polyUniteGeo(objList,name='unitedGeo'):
     """
@@ -230,7 +236,16 @@ def removePolyUniteNode(polyUniteNode):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # General Deformer Utilities
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+def isSkinned(obj = None):
+    try:_str_funcName = "{0}.isSkinned()".format(obj)
+    except:_str_funcName = "isSkinned()"
+    try:
+	if returnObjectDeformers(obj,'skinCluster'):
+	    return True
+	return False
+    except StandardError,error:
+	log.error("obj: {0}".format(obj))
+	raise StandardError, "{0} fail | error: {1}"(_str_funcName,error)    
 
 
 def returnObjectDeformers(obj, deformerTypes = 'all'):

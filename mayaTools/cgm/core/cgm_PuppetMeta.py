@@ -37,7 +37,6 @@ from cgm.core.lib import nameTools
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import PuppetFactory as pFactory
 from cgm.core.rigger import MorpheusFactory as morphyF
-
 from cgm.core.classes import NodeFactory as nodeF
 from cgm.lib import (modules,
                      distance,
@@ -49,6 +48,7 @@ from cgm.lib import (modules,
 
 cgmModuleTypes = mFactory.__l_modulesClasses__
 __l_faceModuleTypes__ = mFactory.__l_faceModules__
+_l_moduleStates = mFactory._l_moduleStates
 
 ########################################################################
 class cgmPuppet(cgmMeta.cgmNode):

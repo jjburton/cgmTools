@@ -1419,7 +1419,7 @@ class cgmObject(cgmNode):
 		return search.returnChildrenObjects(self.mNode,fullPath) or []
 	except Exception,error:raise Exception,"[%s.getChildren(fullPath = %s, asMeta = %s]{%s}"%(self.p_nameShort,fullPath, asMeta,error)
 	
-    def getAllChildren(self,fullPath = False,asMeta = False):
+    def getAllChildren(self,fullPath = True,asMeta = False):
 	try:
 	    if asMeta:
 		buffer = search.returnAllChildrenObjects(self.mNode,True) or []

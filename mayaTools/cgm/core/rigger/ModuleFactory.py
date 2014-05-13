@@ -35,7 +35,7 @@ from cgm.lib.ml import (ml_breakdownDragger,
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Shared libraries
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-_l_moduleStates = ['define','size','template','skeleton','rig']
+_l_moduleStates = cgmGeneral._l_moduleStates
 __l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow','cgmMouthNose']
 __l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthNose']
 
@@ -1347,6 +1347,22 @@ def isRootModule(*args,**kws):
                 if mi_module.getMessage('modulePuppet'):
                     self.log_info("Found puppet")                    
                     return True
+            return False	 
+    return fncWrap(*args,**kws).go() 
+
+def isFaceModule(*args,**kws):
+    class fncWrap(ModuleFunc):
+        def __init__(self,*args,**kws):
+            """
+            """	
+            super(fncWrap, self).__init__(*args,**kws)
+            self._str_funcName = "isFaceModule({0})".format(self._str_moduleName)
+            self.__dataBind__(*args,**kws)
+            #=================================================================
+        def __func__(self): 
+            mi_module = self._mi_module
+            if mi_module.moduleType in __l_faceModules__:
+                return True
             return False	 
     return fncWrap(*args,**kws).go() 
 

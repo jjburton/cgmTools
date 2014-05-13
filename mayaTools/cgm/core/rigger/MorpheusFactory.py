@@ -21,6 +21,7 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.rigger.lib import morpheus_sharedData as MORPHYDATA
 from cgm.lib import (curves,
                      deformers,
                      distance,
@@ -446,6 +447,34 @@ _d_KWARG_mMorpheusAsset = {'kw':'mMorpheusAsset',"default":None,'help':"cgmMorph
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Asset Wrapper
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+l_geoGroups = ['bodyGeo','bsGeo','unifiedGeo','earGeo','eyeGeo','customGeo','eyebrowGeo','teethGeo','tongueGeo']
+l_earGeoGroups = ['left_earGeo','right_earGeo']
+l_eyeGeoGroups = ['left_eyeGeo','right_eyeGeo']
+l_teethGeoGroups = ['upper_teethGeo','lower_teethGeo']
+l_bsTargetGroups = ['faceTargets','bodyTargets']	
+d_geoStoreKeyToGeoGroups = {'tongue':'tongueGeoGroup',
+                            'unified':'unifiedGeoGroup',
+                            'uprTeeth':'upper_teethGeoGroup',
+                            'lwrTeeth':'lower_teethGeoGroup',
+                            'eyebrow':'eyebrowGeoGroup',
+                            'earLeft':'left_earGeoGroup',
+                            'earRight':'right_earGeoGroup',
+                            'eyeLeft':'left_eyeGeoGroup',
+                            'eyeRight':'right_eyeGeoGroup',
+                            'body':'bodyGeoGroup'}
+
+#List of priorities of tags to look for joint data for
+d_geoGroupTagToSkinClusterTag = {'tongue':['tongue','jaw','head'],
+                                 'unified':['bodyNoEyes'],
+                                 'uprTeeth':['head','uprTeeth'],
+                                 'lwrTeeth':['lowerTeeth','jaw','head'],
+                                 'eyebrow':['eyebrow','uprHead','head'],
+                                 'earLeft':['earLeft','uprHead','head'],
+                                 'earRight':['earRight','uprHead','head'],
+                                 'eyeLeft':['eyeLeft','uprHead','head'],
+                                 'eyeRight':['eyeRight','uprHead','head'],
+                                 'body':['bodySansEyes']}
+
 class MorpheusNetworkFunc(cgmGeneral.cgmFuncCls):
     def __init__(self,*args,**kws):
 	"""
@@ -465,9 +494,15 @@ class MorpheusNetworkFunc(cgmGeneral.cgmFuncCls):
 	self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset]	
 	#=================================================================
 	
-def geo_verify(*args,**kws):
+def puppet_updateGeoFromAsset(*args,**kws):
     '''
     Function to gather, duplicate and place geo for a Morpheus asset
+    
+    Geo we should have:
+    1) Unified body geo for curve casing
+    2) Additional geo in appropriate groups
+    3) Reset body for blendshapes
+    4) Blendshape building here?
     '''
     class fncWrap(MorpheusNetworkFunc):
 	def __init__(self,*args,**kws):
@@ -475,26 +510,34 @@ def geo_verify(*args,**kws):
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._b_reportTimes = True
-	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset] 
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset,
+	                                #{'kw':'clean',"default":'Morphy_customizationNetwork',"argType":'morpheusBipedCustomizationAsset','help':"This should be a customization asset"},
+	                                ]
 	    self.__dataBind__(*args,**kws)
-	    self._str_funcName = "morphyAsset.geo_verify('{0}')".format(self._mi_asset.cgmName)		    	    
+	    self._str_funcName = "morphyAsset.puppet_updateGeoFromAsset('{0}')".format(self._mi_asset.cgmName)		    	    
 	    self.__updateFuncStrings__()
 	    self.l_funcSteps = [{'step':'Verify','call':self._fncStep_validate_},
-	                        {'step':'Connect/Parent','call':self._fncStep_process_}]	
+	                        {'step':'Mesh creation','call':self._fncStep_process_},
+	                        ]	
 
 	def _fncStep_validate_(self):
 	    if not self._mi_asset.getMessage('mPuppet'):
 		raise ValueError,"Missing Puppet"
 	    self._mi_puppet = self._mi_asset.mPuppet
-		
+	    self._mi_puppetMasterNull = self._mi_puppet.masterNull
+	    self._mi_puppetGeoGroup = self._mi_puppetMasterNull.geoGroup
+	    
 	    self.l_baseBodyGeo = self._mi_asset.getMessage('baseBodyGeo')
 	    if not self.l_baseBodyGeo:
 		raise ValueError,"Missing baseBodyGeo"		
 	    
-	    l_geo = geo_getActive(self._mi_asset)
-	    if not l_geo:
+	    d_AssetGeo = get_assetActiveGeo(self._mi_asset) or {}
+	    if not d_AssetGeo.get('d_geoTargets'):
 		raise ValueError,"geo_getActive failed to find any geo"
-	    self.l_geo = l_geo
+	    self.d_AssetGeo = d_AssetGeo
+	    
+	    puppet_purgeGeo(self._mi_asset)
+	    
 	    
 	def _fncStep_process_(self):
 	    try:
@@ -506,63 +549,309 @@ def geo_verify(*args,**kws):
 	    
 	    try:
 		if not self._mi_puppet.getMessage('unifiedGeo'):
-		    self.log_warning("Creating unified geo...")
+		    self.log_warning("Creating unified geo...THIS NEEDS TO BE A BETTER METHOD AT SOME POINT USING REAL UNIFED GEO CALL")
 		    
 		    newMesh = mc.duplicate(self.l_baseBodyGeo[0])
 		    mMesh = cgmMeta.cgmObject(newMesh[0])
 		    mMesh.doStore('cgmName',"{0}.cgmName".format(mi_puppet.mNode))
+		    attributes.doSetLockHideKeyableAttr(mMesh.mNode,False,True,True)
 		    #mMesh.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
+		    mMesh.parent = self._mi_puppetGeoGroup.unifiedGeoGroup#...parent it		    
 		    mMesh.doName()		
-		    mMesh.parent = mi_puppet.masterNull.geoGroup#...parent it
 		    self._mi_puppet.doStore('unifiedGeo',mMesh.mNode)
 		else:
 		    self.log_info("Unified geo found")
-	    except Exception,error:raise Exception,"Unified Geo fail | {0}".format(error)		
+	    except Exception,error:raise Exception,"Base Geo fail | {0}".format(error)		
 		#i_target.visibility = False	
 	    
+	    try:
+		for str_key in self.d_AssetGeo.get('d_geoTargets'):
+		    if str_key in ['body']:continue
+		    buffer = self.d_AssetGeo.get('d_geoTargets')[str_key]
+		    if buffer:
+			for obj in buffer:
+			    self.log_info("'{0}' |  need to duplicate: '{1}'".format(str_key,obj))
+			    newMesh = mc.duplicate(obj)
+			    mMesh = cgmMeta.cgmObject(newMesh[0])
+			    mMesh.doCopyNameTagsFromObject(obj)
+			    attributes.doSetLockHideKeyableAttr(mMesh.mNode,False,True,True)			    
+			    #mMesh.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
+			    mMesh.parent = False
+			    self.log_info("'{0}' |  parenting to: '{1}'".format(str_key,d_geoStoreKeyToGeoGroups.get(str_key)))
+			    mMesh.parent = self._mi_puppetGeoGroup.getMessageAsMeta(d_geoStoreKeyToGeoGroups.get(str_key))#...parent it		    
+			    mMesh.doName()		
+	    except Exception,error:raise Exception,"Geo duplication | {0}".format(error)	    
 	    return True
-	    #resetGeo = p.getMessage('resetGeo')
-	    #unifiedGeo attr on puppet
-	    '''
-	    if resetGeo:#if we have one, we're good to go
-		log.info('Reset Geo exists!')
-	    else:
-		newMesh = mc.duplicate(baseGeo)
-		i_target = cgmMeta.cgmObject(newMesh[0])
-		i_target.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
-		i_target.doName()
-		i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
-		p.doStore('resetGeo',i_target.mNode)
-		i_target.visibility = False
-		
-		log.info('Reset good!')'''	    
+	    
     return fncWrap(*args,**kws).go()
 
-def geo_getActive(*args,**kws):
+def puppet_purgeGeo(*args,**kws):
     '''
-    Factory Rewrite of mirror functions.
-    TODO -- replace the many mirror functions here
+    Function to gather, duplicate and place geo for a Morpheus asset
     '''
     class fncWrap(MorpheusNetworkFunc):
 	def __init__(self,*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args,**kws)
-	    #self._b_reportTimes = True
-	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset] 
+	    self._b_reportTimes = True
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset,
+	                                #{'kw':'clean',"default":'Morphy_customizationNetwork',"argType":'morpheusBipedCustomizationAsset','help':"This should be a customization asset"},
+	                                ]
 	    self.__dataBind__(*args,**kws)
-	    self._str_funcName = "morphyAsset.geo_getActive('{0}')".format(self._mi_asset.cgmName)		    	    
+	    self._str_funcName = "morphyAsset.puppet_purgeGeo('{0}')".format(self._mi_asset.cgmName)		    	    
 	    self.__updateFuncStrings__()
+	    self.l_funcSteps = [{'step':'Clean','call':self._fncStep_clean_},
+	                        ]	
+	    
+	def _fncStep_clean_(self):
+	    if not self._mi_asset.getMessage('mPuppet'):
+		raise ValueError,"Missing Puppet"
+	    self._mi_puppet = self._mi_asset.mPuppet
+	    self._mi_puppetMasterNull = self._mi_puppet.masterNull
+	    self._mi_puppetGeoGroup = self._mi_puppetMasterNull.geoGroup
+	    
+	    self.l_baseBodyGeo = self._mi_asset.getMessage('baseBodyGeo')
+	    if not self.l_baseBodyGeo:
+		raise ValueError,"Missing baseBodyGeo"	
+	    
+	    try:
+		mi_puppet = self._mi_puppet
+	    except Exception,error:
+		raise Exception,"Bring local fail | {0}".format(error)
+	    
+	    d_currentPuppetGeo = get_puppetGeo(self._mi_asset)
+	    if d_currentPuppetGeo.get('d_geoTargets'):
+		for str_key in d_currentPuppetGeo.get('d_geoTargets'):
+		    buffer = d_currentPuppetGeo.get('d_geoTargets')[str_key]
+		    if buffer:
+			for obj in buffer:
+			    #self.log_info("'{0}' |  deleting: '{1}'".format(str_key,obj.p_nameShort))			    
+			    try:mc.delete(obj.mNode)
+			    except Exception,error:self.log_error("{0} failed to delete | {1}".format(obj,error))
 
-	def __func__(self):
+    return fncWrap(*args,**kws).go()
+
+def puppet_verifyGeoDeformation(*args,**kws):
+    '''
+    '''
+    class fncWrap(MorpheusNetworkFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._b_reportTimes = True
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset,
+	                                #{'kw':'clean',"default":'Morphy_customizationNetwork',"argType":'morpheusBipedCustomizationAsset','help':"This should be a customization asset"},
+	                                ]
+	    self.__dataBind__(*args,**kws)
+	    self._str_funcName = "morphyAsset.puppet_verifyGeoDeformation('{0}')".format(self._mi_asset.cgmName)		    	    
+	    self.__updateFuncStrings__()
+	    self.l_funcSteps = [{'step':'Verify','call':self._fncStep_validate_},
+	                        {'step':'Skinning','call':self._fncStep_skinning_},
+	                        ]	
+
+	def _fncStep_validate_(self):
+	    if not self._mi_asset.getMessage('mPuppet'):
+		raise ValueError,"Missing Puppet"
+	    self._mi_puppet = self._mi_asset.mPuppet
+	    self._mi_puppetMasterNull = self._mi_puppet.masterNull
+	    self._mi_puppetGeoGroup = self._mi_puppetMasterNull.geoGroup
+	    	
+	    self._d_skinBindDict = self._mi_puppet._UTILS.get_jointsBindDict(self._mi_puppet)
+	    
+	    d_puppetGeo = get_puppetGeo(self._mi_asset) or {}
+	    if not d_puppetGeo.get('d_geoTargets'):
+		raise ValueError,"get_puppetGeo failed to find any geo"
+	    self.d_puppetGeo = d_puppetGeo
+	    
+	def _fncStep_skinning_(self):
+	    try:
+		mi_puppet = self._mi_puppet
+	    except Exception,error:
+		raise Exception,"Bring local fail | {0}".format(error)
+	    	    
+	    try:
+		reload(deformers)
+		for str_key in self.d_puppetGeo.get('d_geoTargets'):
+		    try:
+			__ml_skinJoints = False
+			l_geo = self.d_puppetGeo.get('d_geoTargets')[str_key]
+			if l_geo:
+			    try:l_skinKeyBuffer = d_geoGroupTagToSkinClusterTag[str_key]
+			    except Exception,error:raise Exception,"Skin key list fail | {0}".format(str_key)
+			    self.log_info("...looking to skin to one of {0}".format(l_skinKeyBuffer))
+			    for k in l_skinKeyBuffer:
+				buffer = self._d_skinBindDict.get(k)
+				if buffer:
+				    self.log_info("found skin joints on key: {0} | cnt : {1}".format(k,len(buffer)))
+				    __ml_skinJoints = buffer
+				    break			    
+			    for mObj in l_geo:
+				try:
+				    str_shortName = mObj.p_nameShort			    
+				    self.log_info("'{0}' | Checking: '{1}'".format(str_key,str_shortName))			    
+				    if deformers.isSkinned(mObj.mNode):
+					self.log_info("... is skinned")
+				    else:
+					if not __ml_skinJoints:
+					    raise ValueError,"No skin joints found"
+					self.log_info("Skinning: '{0}'".format(mObj))
+					toBind = [mJnt.mNode for mJnt in __ml_skinJoints] + [mObj.mNode]
+					cluster = mc.skinCluster(toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
+					mi_cluster = cgmMeta.cgmNode(cluster[0])
+					mi_cluster.doStore('cgmName',mObj.mNode)					
+					#mi_cluster.doCopyNameTagsFromObject(mObj.mNode,ignore=['cgmTypeModifier','cgmType'])
+					mi_cluster.addAttr('mClass','cgmNode',attrType='string',lock=True)
+					mi_cluster.doName()
+				except Exception,error:
+				    raise Exception,"mObj fail {0} | {1}".format(mObj,error)
+		    except Exception,error:
+			raise Exception,"key {0} | {1}".format(str_key,error)
+	    except Exception,error:raise Exception,"Geo duplication | {0}".format(error)	    
+	    return True
+	    
+    return fncWrap(*args,**kws).go()
+
+def get_assetActiveGeo(*args,**kws):
+    '''
+    This function should return the active geo from the asset to then ensure that the puppet has as well.
+    '''
+    class fncWrap(MorpheusNetworkFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._b_reportTimes = True
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset] 
+	    self._str_funcName = "morphyAsset.get_assetActiveGeo('{0}')".format(self._mi_asset.cgmName)
+	    self.l_funcSteps = [{'step':'Validate','call':self._fncStep_validate_},
+	                        {'step':'Base Body','call':self._fncStep_baseBodyCheck_},
+	                        {'step':'Geo Groups','call':self._fncStep_searchGeoGroups_},
+	                        ]	
+	    
+	    self.__dataBind__(*args,**kws)
+	    #self.__updateFuncStrings__()
+	    self._returnDict = {}
+	    
+	def _fncStep_validate_(self):
+	    self._mi_assetMasterNull = self._mi_asset.masterNull
+	    self._mi_assetGeoGroup = self._mi_assetMasterNull.geoGroup	    
+	    
+	def _fncStep_baseBodyCheck_(self):
 	    self.log_warning("This is a wip function. This needs to resolve what final geo is being used better")
-	    #Gather, duplicate, 
 	    try:
 		self.log_info("Base body geo: {0}".format(self._mi_asset.baseBodyGeo))
 	    except Exception,error: raise Exception,"gather fail | error: {0}".format(error)
-	    
-	    return self._mi_asset.baseBodyGeo
+	    #self._returnDict['baseBody']
+	    self._returnDict['baseBody'] = self._mi_asset.baseBodyGeo
+	
+	def _fncStep_searchGeoGroups_(self):
+	    try:#> Gather geo ------------------------------------------------------------------------------------------	    
+		self._returnDict['md_geoGroups'] = {}
+		self._returnDict['d_geoTargets']= {}
+		d_geoGroupsToCheck = MORPHYDATA._d_customizationGeoGroupsToCheck
 
+		for key in d_geoGroupsToCheck.keys():
+		    try:
+			self.log_debug("Checking : '{0}' | msgAttr: '{1}'".format(key,d_geoGroupsToCheck[key]))
+			buffer = self._mi_assetMasterNull.getMessage(d_geoGroupsToCheck[key])
+			if not buffer:raise RuntimeError,"Group not found"			    
+			mi_group = cgmMeta.validateObjArg(buffer,mayaType = ['group'])
+			l_geoGroupObjs = mi_group.getAllChildren(fullPath = True)
+			if not l_geoGroupObjs:
+			    self.log_warning("Empty group: '{0}'".format(mi_group.p_nameShort))
+			else:
+			    l_toSkin = []
+			    for o in l_geoGroupObjs:
+				if search.returnObjectType(o) in ['mesh','nurbsSurface']:
+				    if attributes.doGetAttr(o,'v'):
+					l_toSkin.append(o) 
+				    self.log_debug("Not skinnable: '{0}'".format(o))				    
+				else:
+				    self.log_info("'{0}' | Not visible. Ignoring: '{1}'".format(key,o))				    
+			    if not l_toSkin:
+				self.log_warning("No skinnable objects found")
+			    else:
+				self._returnDict['d_geoTargets'][key] = l_toSkin 
+				self.log_debug("--- Good Geo for {0}:".format(key))			    
+				for o in l_toSkin:
+				    self.log_debug("     '{0}'".format(o))				
+			self._returnDict['md_geoGroups'][key]  = mi_group
+		    except Exception,error:raise Exception,"{0} | {1}".format(key,error)			
+	    except Exception,error:
+		raise Exception,"Geo gather fail | {0}".format(error)	    
+	    
+	    #self.log_infoDict(self._returnDict)
+	    return self._returnDict
+    return fncWrap(*args,**kws).go()
+
+def get_puppetGeo(*args,**kws):
+    '''
+    This function should return the active geo from the asset to then ensure that the puppet has as well.
+    '''
+    class fncWrap(MorpheusNetworkFunc):
+	def __init__(self,*args,**kws):
+	    """
+	    """	
+	    super(fncWrap, self).__init__(*args,**kws)
+	    self._b_reportTimes = True
+	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset] 
+	    self._str_funcName = "morphyAsset.get_puppetGeo('{0}')".format(self._mi_asset.cgmName)
+	    self.l_funcSteps = [{'step':'Validate','call':self._fncStep_validate_},
+	                        {'step':'Geo Groups','call':self._fncStep_searchGeoGroups_},
+	                        ]	
+	    
+	    self.__dataBind__(*args,**kws)
+	    #self.__updateFuncStrings__()
+	    
+	def _fncStep_validate_(self):
+	    if not self._mi_asset.getMessage('mPuppet'):
+		raise ValueError,"Missing Puppet"
+	    self._mi_puppet = self._mi_asset.mPuppet
+	    if not self._mi_puppet.getMessage('masterNull'):
+		raise ValueError,"Puppet missing masterNull. Reverify and rerun"	
+	    self._mi_puppetMasterNull = self._mi_puppet.masterNull
+	    self._mi_puppetGeoGroup = self._mi_puppetMasterNull.geoGroup
+	    
+	    self._returnDict = {}
+	    	
+	def _fncStep_searchGeoGroups_(self):
+	    try:#> Gather geo ------------------------------------------------------------------------------------------	    
+		self._returnDict['md_geoGroups'] = {}
+		self._returnDict['d_geoTargets']= {}
+		
+		
+		for key in d_geoStoreKeyToGeoGroups.keys():
+		    try:
+			self.log_debug("Checking : '{0}' | msgAttr: '{1}'".format(key,d_geoStoreKeyToGeoGroups[key]))
+			buffer = self._mi_puppetGeoGroup.getMessage(d_geoStoreKeyToGeoGroups[key])
+			if not buffer:raise RuntimeError,"Group not found"			    
+			mi_group = cgmMeta.validateObjArg(buffer,mayaType = ['group','transform'])
+			l_geoGroupObjs = mi_group.getAllChildren(fullPath = True)
+			if not l_geoGroupObjs:
+			    self.log_debug("Empty group: '{0}'".format(mi_group.p_nameShort))
+			else:
+			    l_toSkin = []
+			    for o in l_geoGroupObjs:
+				if search.returnObjectType(o) in ['mesh','nurbsSurface']:
+				    l_toSkin.append(cgmMeta.cgmObject(o)) 
+				else:
+				    self.log_debug("Not skinnable: '{0}'".format(o))				    
+			    if not l_toSkin:
+				self.log_warning("No skinnable objects found")
+			    else:
+				self._returnDict['d_geoTargets'][key] = l_toSkin 
+				self.log_debug("--- Good Geo for {0}:".format(key))			    
+				for o in l_toSkin:
+				    self.log_debug("     '{0}'".format(o))				
+			self._returnDict['md_geoGroups'][key]  = mi_group
+		    except Exception,error:raise Exception,"{0} | {1}".format(key,error)			
+	    except Exception,error:
+		raise Exception,"Geo gather fail | {0}".format(error)	    
+	    
+	    #self.log_infoDict(self._returnDict)
+	    return self._returnDict
     return fncWrap(*args,**kws).go()
 
 def puppet_verifyAll(*args,**kws):
@@ -575,7 +864,6 @@ def puppet_verifyAll(*args,**kws):
 	    super(fncWrap, self).__init__(*args,**kws)
 	    self._b_reportTimes = True
 	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset] 
-	    self.__dataBind__(*args,**kws)
 	    self._str_funcName = "morphyAsset.puppet_verify('{0}')".format(self._mi_asset.cgmName)		    	    
 	    self.__updateFuncStrings__()
 	    self._b_autoProgressBar = 1
@@ -583,7 +871,9 @@ def puppet_verifyAll(*args,**kws):
 	                        #{'step':'Geo','call':self._fncStep_geo_},
 	                        {'step':'Master Control','call':self._fncStep_masterControl_},	                        
 	                        {'step':'Nodes','call':self._fncStep_nodes_},
+	                        {'step':'Geo Groups','call':self._fncStep_geoGroups_},	                        
 	                        ]	
+	    self.__dataBind__(*args,**kws)
 
 	def _fncStep_puppet_(self):
 	    if not self._mi_asset.getMessage('mPuppet'):
@@ -592,6 +882,7 @@ def puppet_verifyAll(*args,**kws):
 	    if not self._mi_puppet.getMessage('masterNull'):
 		raise ValueError,"Puppet missing masterNull. Reverify and rerun"	
 	    
+	    self._mi_puppetMasterNull = self._mi_puppet.masterNull
 	    
 	def _fncStep_geo_(self):
 	    geo_verify(self._mi_asset)
@@ -606,6 +897,8 @@ def puppet_verifyAll(*args,**kws):
 	    mi_settings = mi_assetMasterControl.controlSettings
 	    mi_masterNull = self._mi_puppet.masterNull
 	    mi_puppetMasterControl = self._mi_puppet.masterControl
+	    self._mi_mi_puppetMasterControl = mi_puppetMasterControl
+	    
 	    mi_partsGroup = self._mi_puppet.masterNull.partsGroup
 	    #mi_masterNull.overrideEnabled = 1	
 	    #cgmMeta.cgmAttr(mi_settings.mNode,'puppetVis',lock=False).doConnectOut("%s.%s"%(mi_puppetMasterControl.mNode,'v'))	    
@@ -617,5 +910,80 @@ def puppet_verifyAll(*args,**kws):
 	    
 	def _fncStep_nodes_(self):
 	    verifyMorpheusNodeStructure(self._mi_puppet)
-	   
+	    
+	def _fncStep_geoGroups_(self):
+	    mi_masterNull = self._mi_puppetMasterNull
+	    mi_geoGroup = self._mi_puppetMasterNull.geoGroup
+	    
+	    self.log_info("Checking geo groups...")	    
+	    for attr in l_geoGroups + l_earGeoGroups + l_eyeGeoGroups + l_bsTargetGroups + l_teethGeoGroups:
+		try:
+		    self.log_info("On: {0}".format(attr))
+		    str_plug = attr+'Group'
+		    str_newAttrName = '_mi_' + attr+  'Group'#Get a better attribute store string    
+		    mi_geoGroup.addAttr(attr+'Group',attrType = 'messageSimple', lock = True)
+		    bfr_grp = mi_geoGroup.getMessage(str_plug)
+		    try:
+			if not bfr_grp:
+			    #if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
+			    mGrp = cgmMeta.cgmObject(name=attr)#Create and initialize
+			    mGrp.addAttr('cgmName',attr)
+			    mGrp.doName()
+			    mGrp.connectParentNode(mi_geoGroup.mNode,'puppet', str_plug)
+			else:
+			    mGrp = mi_geoGroup.getMessageAsMeta(str_plug)
+			self.__dict__[str_newAttrName] = mGrp
+		    except Exception,error:raise Exception,"Group verify fail | {0}".format(error)
+			
+		    try:
+			#>>> Special data parsing to get things named how we want
+			if not mGrp.hasAttr('cgmDirection'):
+			    if 'left' in attr:
+				buffer = mGrp.cgmName
+				buffer = buffer.split('left_')
+				mGrp.doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
+				mGrp.doStore('cgmDirection','left')
+			    if 'right' in attr:
+				buffer = mGrp.cgmName
+				buffer = buffer.split('right_')
+				mGrp.doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
+				mGrp.doStore('cgmDirection','right')
+			if not mGrp.hasAttr('cgmPosition'):
+			    if 'upper' in attr:
+				buffer = mGrp.cgmName
+				buffer = buffer.split('upper_')
+				mGrp.doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
+				mGrp.doStore('cgmPosition','upper')
+			    if 'lower' in attr:
+				buffer = mGrp.cgmName
+				buffer = buffer.split('lower_')
+				mGrp.doStore('cgmName',''.join(buffer[1:]),overideMessageCheck = True)		
+				mGrp.doStore('cgmPosition','lower')
+			if 'Geo' in attr:
+			    buffer = mGrp.cgmName
+			    buffer = buffer.split('Geo')
+			    mGrp.doStore('cgmName',''.join(buffer[0]),overideMessageCheck = True)		
+			    mGrp.doStore('cgmTypeModifier','geo',overideMessageCheck = True)
+			    mGrp.doName()
+		    except Exception,error:raise Exception,"Special parse fail | {0}".format(error)
+		    
+		    try:# Few Case things
+			#==============            
+			if attr in l_geoGroups:
+			    mGrp.parent = mi_geoGroup
+			elif attr in l_earGeoGroups:
+			    mGrp.parent = self._mi_earGeoGroup
+			elif attr in l_eyeGeoGroups:
+			    mGrp.parent = self._mi_eyeGeoGroup	    
+			elif attr in l_bsTargetGroups:
+			    mGrp.parent = self._mi_bsGeoGroup	
+			elif attr in l_teethGeoGroups:
+			    mGrp.parent = self._mi_teethGeoGroup	
+			else:    
+			    mGrp.parent = self._mi_geoGroup
+		    except Exception,error:raise Exception,"Parent fail | {0}".format(error)
+		    attributes.doSetLockHideKeyableAttr( mGrp.mNode )
+		except Exception,error:
+		    self.log_error("Group check fail. | attr: '{0}' | error: {1}".format(attr,error))	    
+	    
     return fncWrap(*args,**kws).go()
