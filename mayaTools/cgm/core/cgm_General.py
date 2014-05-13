@@ -64,7 +64,7 @@ class cgmFuncCls(object):
 	self._b_autoProgressBar = False
 	self._b_reportTimes = False
 	self._b_pushCleanKWs = False
-	self._b_SuccessBreak = False
+	self._b_ReturnBreak = False
 	self._b_ExceptionInterupt = True#Whether to use the cgmFuncCls Exception Interupt or not
 	self._str_lastLog = None
 	self._int_stopStep = None
@@ -87,7 +87,7 @@ class cgmFuncCls(object):
 	self._l_errors = []
 	self._l_warnings = []
 	#These are our mask so that the fail report ignores them
-	self._l_reportMask = ['_b_SuccessBreak','_b_ExceptionInterupt','_b_pushCleanKWs','_str_lastLog','_l_ARGS_KWS_BUILTINS','_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
+	self._l_reportMask = ['_b_ReturnBreak','_b_ExceptionInterupt','_b_pushCleanKWs','_str_lastLog','_l_ARGS_KWS_BUILTINS','_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_int_stopStep','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
 	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
@@ -184,10 +184,23 @@ class cgmFuncCls(object):
 	return self._SuccessReturn_('Cat') if you wanted to return 'Cat' at that step.
 	Whatever the return is (if there is) will be stored to the buffer
 	'''
-	self._b_SuccessBreak = 1
+	self._b_ReturnBreak = 1
 	if res is not None:
 	    self.d_return[self._str_step] = res
+	    
+    def _FailBreak_(self, res = None):
+	'''
+	Added as a mid function success break.
 	
+	Usage in line would be 
+	return self._SuccessReturn_('Cat') if you wanted to return 'Cat' at that step.
+	Whatever the return is (if there is) will be stored to the buffer
+	'''
+	self._b_ReturnBreak = 1
+	if res is not None:
+	    self.log_error("FAILURE >> {0}".format(res))	    
+	    self.d_return[self._str_step] = res
+	    
     def _ExceptionHook_(self, etype, value, tb, detail=2):
 	# do something here...
 	try:
@@ -262,7 +275,7 @@ class cgmFuncCls(object):
 	    else:kws = _d_cleanKWS	
 	    
 	for i,d_step in enumerate(self.l_funcSteps):
-	    if self._b_SuccessBreak:
+	    if self._b_ReturnBreak:
 		self.log_debug("Success Break | Step {0}".format(i))
 		break
 	    if self._int_stopStep is not None and i >= self._int_stopStep:
@@ -276,7 +289,7 @@ class cgmFuncCls(object):
 		try:
 		    _str_step = d_step.get('step') or False
 		    if _str_step:
-			self._str_progressBarReportStart = self._str_reportStart + " %s "%_str_step
+			self._str_progressBarReportStart = self._str_reportStart #+ " %s "%_str_step
 		    else: _str_step = 'Process'
 		    		    
 		    self._str_step = _str_step	
