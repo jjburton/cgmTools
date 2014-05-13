@@ -869,7 +869,9 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 		    self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
 		    
 		    #if log.getEffectiveLevel() == 10:log.debug("Initialized as 'self.%s'"%(Attr))         
-		    
+		if not  self.__dict__[Attr].getAttr('cgmName'):
+		    self.__dict__[Attr].addAttr('cgmName',attr,lock = True)
+		    self.__dict__[Attr].doName()		    
 		#>>> Special data parsing to get things named how we want
 		if 'left' in attr and not self.__dict__[Attr].hasAttr('cgmDirection'):
 		    buffer = self.__dict__[Attr].cgmName
@@ -1082,9 +1084,10 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	return morphyF.verify_customizationData(self)
     
     def setState(self,state,**kws):
-	if self.verifyPuppet():
+	_str_funcName = 'setState({0})'.format(self.cgmName)
+	try:
 	    return morphyF.setState(self,state,**kws)
-	return False
+	except Exception,error:raise Exception,"{0} fail | error: {1}".format(_str_funcName,error)	
 	
     def updateTemplate(self,**kws):
 	if not self.mPuppet.isTemplated():
