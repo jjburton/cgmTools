@@ -364,7 +364,7 @@ def doSetParentModule(*args,**kws):
                     buffer.append(mi_module.mNode) #Revist when children has proper add/remove handling
                     moduleParent.moduleChildren = buffer
                     mi_module.moduleParent = moduleParent.mNode
-                    self.log_info("parent set to: '%s'!"%moduleParent.getShortName())    
+                    #self.log_info("parent set to: '%s'!"%moduleParent.getShortName())    
                 except Exception,error:raise StandardError,"[Connection]{%s}"%(error)	
             mi_module.parent = moduleParent.parent
             return True	 

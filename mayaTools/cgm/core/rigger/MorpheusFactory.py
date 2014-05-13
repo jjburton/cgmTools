@@ -570,14 +570,14 @@ def puppet_updateGeoFromAsset(*args,**kws):
 		    buffer = self.d_AssetGeo.get('d_geoTargets')[str_key]
 		    if buffer:
 			for obj in buffer:
-			    self.log_info("'{0}' |  need to duplicate: '{1}'".format(str_key,obj))
+			    self.log_debug("'{0}' |  need to duplicate: '{1}'".format(str_key,obj))
 			    newMesh = mc.duplicate(obj)
 			    mMesh = cgmMeta.cgmObject(newMesh[0])
 			    mMesh.doCopyNameTagsFromObject(obj)
 			    attributes.doSetLockHideKeyableAttr(mMesh.mNode,False,True,True)			    
 			    #mMesh.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
 			    mMesh.parent = False
-			    self.log_info("'{0}' |  parenting to: '{1}'".format(str_key,d_geoStoreKeyToGeoGroups.get(str_key)))
+			    self.log_debug("'{0}' |  parenting to: '{1}'".format(str_key,d_geoStoreKeyToGeoGroups.get(str_key)))
 			    mMesh.parent = self._mi_puppetGeoGroup.getMessageAsMeta(d_geoStoreKeyToGeoGroups.get(str_key))#...parent it		    
 			    mMesh.doName()		
 	    except Exception,error:raise Exception,"Geo duplication | {0}".format(error)	    
@@ -654,7 +654,11 @@ def puppet_verifyGeoDeformation(*args,**kws):
 	def _fncStep_validate_(self):
 	    if not self._mi_asset.getMessage('mPuppet'):
 		raise ValueError,"Missing Puppet"
+		
 	    self._mi_puppet = self._mi_asset.mPuppet
+	    if not self._mi_puppet.isSkeletonized():
+		return self._FailBreak_("Puppet not skeletonized")
+	    
 	    self._mi_puppetMasterNull = self._mi_puppet.masterNull
 	    self._mi_puppetGeoGroup = self._mi_puppetMasterNull.geoGroup
 	    	
@@ -767,9 +771,9 @@ def get_assetActiveGeo(*args,**kws):
 				if search.returnObjectType(o) in ['mesh','nurbsSurface']:
 				    if attributes.doGetAttr(o,'v'):
 					l_toSkin.append(o) 
-				    self.log_debug("Not skinnable: '{0}'".format(o))				    
-				else:
-				    self.log_info("'{0}' | Not visible. Ignoring: '{1}'".format(key,o))				    
+				    else:
+					self.log_info("'{0}' | Not visible. Ignoring: '{1}'".format(key,o))				    
+				else:self.log_debug("Not skinnable: '{0}'".format(o))				    
 			    if not l_toSkin:
 				self.log_warning("No skinnable objects found")
 			    else:
@@ -803,7 +807,6 @@ def get_puppetGeo(*args,**kws):
 	                        ]	
 	    
 	    self.__dataBind__(*args,**kws)
-	    #self.__updateFuncStrings__()
 	    
 	def _fncStep_validate_(self):
 	    if not self._mi_asset.getMessage('mPuppet'):
@@ -868,10 +871,10 @@ def puppet_verifyAll(*args,**kws):
 	    self.__updateFuncStrings__()
 	    self._b_autoProgressBar = 1
 	    self.l_funcSteps = [{'step':'Puppet Check','call':self._fncStep_puppet_},
-	                        #{'step':'Geo','call':self._fncStep_geo_},
-	                        {'step':'Master Control','call':self._fncStep_masterControl_},	                        
 	                        {'step':'Nodes','call':self._fncStep_nodes_},
-	                        {'step':'Geo Groups','call':self._fncStep_geoGroups_},	                        
+	                        {'step':'Geo Groups','call':self._fncStep_geoGroups_},
+	                        {'step':'Geo','call':self._fncStep_geo_},	                        
+	                        {'step':'Master Control','call':self._fncStep_masterControl_},	                        	                        
 	                        ]	
 	    self.__dataBind__(*args,**kws)
 
@@ -885,7 +888,7 @@ def puppet_verifyAll(*args,**kws):
 	    self._mi_puppetMasterNull = self._mi_puppet.masterNull
 	    
 	def _fncStep_geo_(self):
-	    geo_verify(self._mi_asset)
+	    puppet_updateGeoFromAsset(self._mi_asset)
 	    
 	def _fncStep_masterControl_(self):
 	    #Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
@@ -906,7 +909,7 @@ def puppet_verifyAll(*args,**kws):
 	    cgmMeta.cgmAttr(mi_settings.mNode,'puppetLock',lock=False).doConnectOut("%s.%s"%(mi_partsGroup.mNode,'overrideDisplayType'))    
 	    for a in ['translate','rotate','scale']:
 		cgmMeta.cgmAttr(mi_puppetMasterControl,a,lock=True)
-	    mi_puppetMasterControl.v = 0
+	    #mi_puppetMasterControl.v = 0
 	    
 	def _fncStep_nodes_(self):
 	    verifyMorpheusNodeStructure(self._mi_puppet)
