@@ -252,11 +252,13 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
             if md_locs.get('blend'):mi_orientTarget = md_locs.get('blend')
             else:mi_orientTarget = md_locs.get('fk')
             log.info("%s >> joint orient target: '%s'"%(_str_funcName,mi_orientTarget.p_nameShort))		
-            mc.orientConstraint(mi_orientTarget.mNode,mi_ballJoint.mNode,maintainOffset= True)
+            constBuffer = mc.orientConstraint(mi_orientTarget.mNode,mi_ballJoint.mNode,maintainOffset= True)
+	    attributes.doSetAttr(constBuffer[0],'interpType',0)
 
         if mi_fkControl:
             log.info("%s >> FK constraining. target: '%s' | control: '%s'"%(_str_funcName,mi_fkLoc.p_nameShort,mi_fkControl.p_nameShort))		
-            mc.orientConstraint(mi_fkControl.mNode,mi_fkLoc.mNode,maintainOffset= True)
+            constBuffer = mc.orientConstraint(mi_fkControl.mNode,mi_fkLoc.mNode,maintainOffset= True)
+	    attributes.doSetAttr(constBuffer[0],'interpType',0)
 
     except Exception,error:
         raise StandardError,"%s >> joint constraint setup fail! | error: %s"%(_str_funcName,error)
@@ -300,7 +302,7 @@ def create_distanceMeasure(*args, **kws):
 			mi_buffer.doName()
 			
 		    self.__dict__["mi_%s"%str_key ]= mi_buffer
-		except Exception,error:raise StandardError,"[%s fail]{%s}"%(str_key,error)	    
+		except Exception,error:raise Exception,"[%s fail]{%s}"%(str_key,error)	    
 		
 	def _build_(self):
 	    try:#Create distance ---------------------------------------------------------
@@ -311,7 +313,7 @@ def create_distanceMeasure(*args, **kws):
 		    self.mi_distanceObject.doName()
 		self.mi_distanceObject.connectChildNode(self.mi_distanceShape,'shape')
 	    
-	    except Exception,error:raise StandardError,"[Create distance fail]{%s}"%(error)
+	    except Exception,error:raise Exception,"[Create distance fail]{%s}"%(error)
 	    
 	    try:#Connect  ---------------------------------------------------------
 		_d_check = {'start':{'mObj':self.mi_start},
@@ -326,8 +328,8 @@ def create_distanceMeasure(*args, **kws):
 		                        (self.mi_distanceShape.mNode+'.%sPoint'%str_key))
 			
 			self.mi_distanceObject.connectChildNode(_d['mObj'],str_key)
-		    except Exception,error:raise StandardError,"[%s fail]{%s}"%(str_key,error)	    
-	    except Exception,error:raise StandardError,"[Create distance fail]{%s}"%(error)	    
+		    except Exception,error:raise Exception,"[%s fail]{%s}"%(str_key,error)	    
+	    except Exception,error:raise Exception,"[Create distance fail]{%s}"%(error)	    
 	    
 	    if self._b_asMeta:
 		return {'mi_shape':self.mi_distanceShape , 'mi_object':self.mi_distanceObject,
@@ -710,7 +712,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                                           i_orientGroup.mNode,
                                           maintainOffset = False, weight = 1)[0]
             i_orientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
-
+	    i_orientConstraint.interpType = 2
 
             #Blendsetup
             log.debug("i_orientConstraint: %s"%i_orientConstraint)
@@ -1180,6 +1182,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
                                           i_orientGroup.mNode,
                                           maintainOffset = False, weight = 1)[0]
             i_orientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
+	    i_orientConstraint.interpType = 0
 
 
             #Blendsetup
@@ -2018,7 +2021,7 @@ def createSegmentCurve(*args,**kws):
 		self.b_addMidTwist = cgmValid.boolArg(self.d_kws['addMidTwist'])
 		self.b_advancedTwistSetup = cgmValid.boolArg(self.d_kws['advancedTwistSetup'])
 		self.b_extendTwistToEnd= cgmValid.boolArg(self.d_kws['extendTwistToEnd'])
-	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)  
+	    except Exception,error:raise Exception,"[Query | error: {0}".format(error)  
 	    
 	    try:#Validate =====================================================================================
 		if self.b_addMidTwist and self.int_lenJoints <4:
@@ -2040,7 +2043,7 @@ def createSegmentCurve(*args,**kws):
 		self.upChannel = '%sup'%self.str_orientation [1]#upChannel
 		
 	    except Exception,error:
-		raise StandardError,"[data validation]{%s}"%(error)  
+		raise StandardError,"[data validation | error: {0}".format(error)  
 
 	    try:#>>> Module instance =====================================================================================
 		self.mi_rigNull = False	
@@ -2052,14 +2055,14 @@ def createSegmentCurve(*args,**kws):
 			log.debug('baseName set to module: %s'%self.str_baseName)	    	    
 		if self.str_baseName is None:self.str_baseName = 'testSegmentCurve'    
 		
-	    except Exception,error:raise StandardError,"[Module checks]{%s}"%(error) 	    
+	    except Exception,error:raise Exception,"[Module checks | error: {0}".format(error) 	    
 	    
 	def _curveCheck_(self):
 	    try:#Query ===========================================================================================
 		if self.mi_useCurve:
 		    #must get a offset u position
 		    self.f_MatchPosOffset = crvUtils.getUParamOnCurve(self.ml_joints[0].mNode, self.mi_useCurve.mNode)
-	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)  
+	    except Exception,error:raise Exception,"[Query | error: {0}".format(error)  
 	    
 	def _jointSetup_(self):
 	    try:#>> Group ========================================================================================
@@ -2067,7 +2070,7 @@ def createSegmentCurve(*args,**kws):
 		self.mi_grp.addAttr('cgmName', str(self.str_baseName), lock=True)
 		self.mi_grp.addAttr('cgmTypeModifier','segmentStuff', lock=True)
 		self.mi_grp.doName()
-	    except Exception,error:raise StandardError,"[Group Creation]{%s}"%(error) 	    
+	    except Exception,error:raise Exception,"[Group Creation | error: {0}".format(error) 	    
 	
 	    try:#>> Orient ========================================================================================
 		if not self.mi_module:#if it is, we can assume it's right
@@ -2080,8 +2083,8 @@ def createSegmentCurve(*args,**kws):
 			"""
 			try:
 			    joints.orientJoint(mJnt.mNode,self.str_orientation,self.str_secondaryAxis)
-			except Exception,error:raise StandardError,"['%s' orient failed]{%s}"%(mJnt.p_nameShort,error)  
-	    except Exception,error:raise StandardError,"[Orient]{%s}"%(error) 	    
+			except Exception,error:raise Exception,"['%s' orient failed]{%s}"%(mJnt.p_nameShort,error)  
+	    except Exception,error:raise Exception,"[Orient | error: {0}".format(error) 	    
 
 	    try:#>> Joints #=========================================================================
 		l_driverJoints = mc.duplicate([mJnt.mNode for mJnt in self.ml_joints],po=True,ic=True,rc=True)
@@ -2097,7 +2100,7 @@ def createSegmentCurve(*args,**kws):
 		self.ml_driverJoints = ml_driverJoints
 		self.l_driverJoints = [mJnt.p_nameShort for mJnt in self.ml_driverJoints]
 		
-	    except Exception,error:raise StandardError,"[Driver Joints]{%s}"%(error) 	
+	    except Exception,error:raise Exception,"[Driver Joints | error: {0}".format(error) 	
 	    
 	def _splineIK_(self):
 	    if self.mi_useCurve:
@@ -2109,7 +2112,7 @@ def createSegmentCurve(*args,**kws):
 		    buffer = mc.ikHandle( simplifyCurve=False, eh = 1,curve = self.mi_useCurve.mNode,
 		                          rootOnCurve=True, forceSolver = True, snapHandleFlagToggle=True,
 		                          parentCurve = False, solver = 'ikSplineSolver',createCurve = False,)  
-		except Exception,error:raise StandardError,"[Spline IK | use curve mode]{%s}"%(error) 	
+		except Exception,error:raise Exception,"[Spline IK | use curve mode | error: {0}".format(error) 	
 		self.log_info(buffer)
 		mi_segmentCurve = self.mi_useCurve#Link
 		mi_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
@@ -2119,7 +2122,7 @@ def createSegmentCurve(*args,**kws):
 		    buffer = mc.ikHandle( sj=self.ml_driverJoints[0].mNode, ee=self.ml_driverJoints[-1].mNode,simplifyCurve=False,
 		                          solver = 'ikSplineSolver', ns = 4, rootOnCurve=True,forceSolver = True,
 		                          createCurve = True,snapHandleFlagToggle=True )  
-		except Exception,error:raise StandardError,"[Spline IK | build curve]{%s}"%(error) 	
+		except Exception,error:raise Exception,"[Spline IK | build curve | error: {0}".format(error) 	
 	
 		mi_segmentCurve = cgmMeta.cgmObject( buffer[2],setClass=True )
 		mi_segmentCurve.addAttr('cgmName',self.str_baseName,attrType='string',lock=True)    
@@ -2131,7 +2134,7 @@ def createSegmentCurve(*args,**kws):
 			mi_segmentCurve.overrideEnabled = 1		
 			cgmMeta.cgmAttr(self.mi_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_segmentCurve.mNode,'overrideVisibility'))    
 			cgmMeta.cgmAttr(self.mi_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_segmentCurve.mNode,'overrideDisplayType'))    
-		except Exception,error:raise StandardError,"[Connect To Module]{%s}"%(error) 
+		except Exception,error:raise Exception,"[Connect To Module | error: {0}".format(error) 
 		
 	    self.mi_splineSolver = cgmMeta.cgmNode(name = 'ikSplineSolver')
 	    try:#>> Update func name strings ==============================================================================
@@ -2157,7 +2160,7 @@ def createSegmentCurve(*args,**kws):
 		    mi_ikHandle.offset = self.f_MatchPosOffset
 		mi_segmentCurve.connectChildNode(self.mi_grp,'segmentGroup','owner')
 		self.mi_segmentCurve = mi_segmentCurve		
-	    except Exception,error:raise StandardError,"[Handle/Effector]{%s}"%(error) 	
+	    except Exception,error:raise Exception,"[Handle/Effector | error: {0}".format(error) 	
 	    
 	def _twistSetup_(self):
 	    try:#Pull local =======================================================================================
@@ -2167,13 +2170,13 @@ def createSegmentCurve(*args,**kws):
 		str_orientation = self.str_orientation
 		
 	    except Exception,error:
-		raise StandardError,"[Pull local]{%s}"%(error)  
+		raise StandardError,"[Pull local | error: {0}".format(error)  
 	    
 	    try:#SplineIK Twist =======================================================================================
 		d_twistReturn = IKHandle_addSplineIKTwist(mi_ikHandle.mNode,self.b_advancedTwistSetup)
 		mPlug_twistStart = d_twistReturn['mi_plug_start']
 		mPlug_twistEnd = d_twistReturn['mi_plug_end']
-	    except Exception,error:raise StandardError,"[Initial SplineIK Twist]{%s}"%(error)  
+	    except Exception,error:raise Exception,"[Initial SplineIK Twist | error: {0}".format(error)  
 	    
 	    try:#>>> Twist stuff
 		#=========================================================================
@@ -2193,7 +2196,7 @@ def createSegmentCurve(*args,**kws):
 			    ml_afterJoints = ml_driverJoints[int_mid+1:-1]
 			    self.log_debug("beforeJoints: %s"%[i_jnt.getShortName() for i_jnt in ml_beforeJoints])
 			    self.log_debug("afterJoints: %s"%[i_jnt.getShortName() for i_jnt in ml_afterJoints])
-			except Exception,error:raise StandardError,"[Split fail!]{%s}"%(error)  
+			except Exception,error:raise Exception,"[Split fail! | error: {0}".format(error)  
     
 			mPlug_midTwist = cgmMeta.cgmAttr(self.mi_segmentCurve,"twistMid",attrType='float',keyable=True,hidden=False)	    
 			ml_midTwistJoints.extend(ml_beforeJoints)
@@ -2215,7 +2218,7 @@ def createSegmentCurve(*args,**kws):
 			    NodeF.argsToNodes(arg).doBuild()
 			    #Store it
 			    d_midTwistOutPlugs[i] = mPlug_midFactorOut    
-		    except Exception,error:raise StandardError,"[MidTwist setup fail!]{%s}"%(error)  
+		    except Exception,error:raise Exception,"[MidTwist setup fail! | error: {0}".format(error)  
 	    
 		mPlugs_rollSumDrivers = []#Advanced Twist
 		mPlugs_rollDrivers = []
@@ -2253,7 +2256,7 @@ def createSegmentCurve(*args,**kws):
 			d_mPlugs_rotateGroupDrivers[i] = mPlug_twistSum
 			
 	    except Exception,error:
-		raise StandardError,"[Segment Twist setup]{%s}"%(error) 
+		raise StandardError,"[Segment Twist setup | error: {0}".format(error) 
 	    
 	def _attachJoints_(self):
 	    try:#Pull local =======================================================================================
@@ -2267,7 +2270,7 @@ def createSegmentCurve(*args,**kws):
 		mi_rigNull = self.mi_rigNull
 		md_mPlugs_rotateGroupDrivers = self.md_mPlugs_rotateGroupDrivers
 	    except Exception,error:
-		raise StandardError,"[Pull local]{%s}"%(error)  
+		raise StandardError,"[Pull local | error: {0}".format(error)  
 	    
 	    try:#>>> Create up locs, follicles -------------------------------------------------------------
 		ml_pointOnCurveInfos = []
@@ -2331,11 +2334,13 @@ def createSegmentCurve(*args,**kws):
 			    mi_upLoc.overrideEnabled = 1		
 			    cgmMeta.cgmAttr(mi_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_upLoc.mNode,'overrideVisibility'))
 			    cgmMeta.cgmAttr(mi_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_upLoc.mNode,'overrideDisplayType'))    
-		    except Exception,error:raise StandardError,"[module connect]{%s}"%(error) 
+		    except Exception,error:raise Exception,"[module connect | error: {0}".format(error) 
 		
 		#Orient constrain our last joint to our splineIK Joint
-		mc.orientConstraint(ml_driverJoints[-1].mNode,ml_joints[-1].mNode,maintainOffset = True)
-	    except Exception,error:raise StandardError,"[attach and connect]{%s}"%(error) 
+		constBuffer = mc.orientConstraint(ml_driverJoints[-1].mNode,ml_joints[-1].mNode,maintainOffset = True)
+		attributes.doSetAttr(constBuffer[0],'interpType',0)
+	    
+	    except Exception,error:raise Exception,"[attach and connect | error: {0}".format(error) 
 	    
 	def _stretchSetup_(self):
 	    try:#Pull local =======================================================================================
@@ -2349,7 +2354,7 @@ def createSegmentCurve(*args,**kws):
 		ml_pointOnCurveInfos = self.ml_pointOnCurveInfos
 		ml_upGroups = self.ml_upGroups		
 		md_mPlugs_rotateGroupDrivers = self.md_mPlugs_rotateGroupDrivers
-	    except Exception,error:raise StandardError,"[Pull local]{%s}"%(error)  
+	    except Exception,error:raise Exception,"[Pull local | error: {0}".format(error)  
 	    
 	    try:#>>> Scale stuff =============================================================================
 		#> Create IK effectors,Create distance nodes
@@ -2404,9 +2409,9 @@ def createSegmentCurve(*args,**kws):
 			if mi_module:#Connect hides if we have a module instance:
 			    cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideVisibility'))
 			    cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideDisplayType'))    
-		    except Exception,error:raise StandardError,"[Pull local]{%s}"%(error)  
+		    except Exception,error:raise Exception,"[Pull local | error: {0}".format(error)  
 	    except Exception,error:
-		raise StandardError,"[scale stuff setup]{%s}"%(error) 
+		raise Exception,"[scale stuff setup | error: {0}".format(error) 
 	    
 	    try:#fix twists ==========================================================================================
 		#>> Second part for the full twist setup
@@ -2423,7 +2428,7 @@ def createSegmentCurve(*args,**kws):
 		    if mc.xform (mJnt.mNode, q=True, ws=True, ro=True) != rotBuffer:
 			self.log_info("Found the following on '%s': %s"%(mJnt.getShortName(),mc.xform (mJnt.mNode, q=True, ws=True, ro=True)))
 	    except Exception,error:
-		raise StandardError,"[fix twists]{%s}"%(error) 
+		raise Exception,"[fix twists | error: {0}".format(error) 
 	    
 	    try:#>>>Hook up stretch/scale #==========================================================================
 		#Buffer
@@ -2450,7 +2455,7 @@ def createSegmentCurve(*args,**kws):
 
 		    #Store our distance base to our buffer
 		    try:mi_jntScaleBufferNode.store(ml_distanceShapes[i].distance)#Store to our buffer
-		    except Exception,error:raise StandardError,"[Failed to store joint distance: %s]{%s}"%(ml_distanceShapes[i].mNode,error)
+		    except Exception,error:raise Exception,"[Failed to store joint distance: %s]{%s}"%(ml_distanceShapes[i].mNode,error)
 		    
 		    
 		    
@@ -2473,7 +2478,7 @@ def createSegmentCurve(*args,**kws):
 			    mPlug_attrDist.doConnectIn('%s.%s'%(ml_distanceShapes[i].mNode,'distance'))		        
 			    mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_joints[i+1].mNode,str_orientation[0]))
 			    mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_driverJoints[i+1].mNode,str_orientation[0]))    	    
-			except Exception,error:raise StandardError,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		    
+			except Exception,error:raise Exception,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		    
 		    else:
 			mi_mdNormalBaseDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
 			mi_mdNormalBaseDist.operation = 1
@@ -2513,7 +2518,7 @@ def createSegmentCurve(*args,**kws):
 			    mPlug_attrDist.doConnectIn('%s.%s'%(ml_distanceShapes[i].mNode,'distance'))		        
 			    mPlug_attrResult.doConnectOut('%s.s%s'%(mJnt.mNode,str_orientation[0]))
 			    mPlug_attrResult.doConnectOut('%s.s%s'%(ml_driverJoints[i].mNode,str_orientation[0]))
-			except Exception,error:raise StandardError,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		    
+			except Exception,error:raise Exception,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		    
 			
 			ml_mainMDs.append(mi_mdSegmentScale)#store the md
 	    
@@ -2528,7 +2533,7 @@ def createSegmentCurve(*args,**kws):
 		for axis in [str_orientation[1],str_orientation[2]]:
 		    attributes.doConnectAttr('%s.s%s'%(mJnt.mNode,axis),#>>
 		                             '%s.s%s'%(ml_driverJoints[i].mNode,axis))	 	
-	    except Exception,error:raise StandardError,"[Stretch wiring]{%s}"%(error) 
+	    except Exception,error:raise Exception,"[Stretch wiring | error: {0}".format(error) 
 
 	    try:#Connect last joint scale to second to last
 		for axis in ['scaleX','scaleY','scaleZ']:
@@ -2536,21 +2541,21 @@ def createSegmentCurve(*args,**kws):
 		                             '%s.%s'%(ml_joints[-1].mNode,axis))	 
 	    
 		mc.pointConstraint(ml_driverJoints[0].mNode,ml_joints[0].mNode,maintainOffset = False)
-	    except Exception,error:raise StandardError,"[constrain last end end bits]{%s}"%(error) 
+	    except Exception,error:raise Exception,"[constrain last end end bits | error: {0}".format(error) 
 	    
 	    try:#>> Connect and close =============================================================================
 		mi_segmentCurve.connectChildNode(mi_jntScaleBufferNode,'scaleBuffer','segmentCurve')
 		mi_segmentCurve.connectChildNode(mi_IK_Handle,'ikHandle','segmentCurve')
 		mi_segmentCurve.msgList_connect(ml_joints,'drivenJoints','segmentCurve')       
 		mi_segmentCurve.msgList_connect(ml_driverJoints,'driverJoints','segmentCurve')   
-	    except Exception,error:raise StandardError,"[Final Connections]{%s}"%(error) 
+	    except Exception,error:raise Exception,"[Final Connections | error: {0}".format(error) 
 	    
 	    try:#Return Prep ====================================================================================
 		d_return = {'mi_segmentCurve':mi_segmentCurve,'segmentCurve':mi_segmentCurve.mNode,'mi_ikHandle':mi_IK_Handle,'mi_segmentGroup':mi_grp,
 		            'l_driverJoints':self.l_driverJoints,'ml_driverJoints':ml_driverJoints,
 		            'scaleBuffer':mi_jntScaleBufferNode.mNode,'mi_scaleBuffer':mi_jntScaleBufferNode,'mPlug_extendTwist':self.mPlug_factorInfluenceIn,
 		            'l_drivenJoints':self.l_joints,'ml_drivenJoints':ml_joints}
-	    except Exception,error:raise StandardError,"[Return prep]{%s}"%(error) 
+	    except Exception,error:raise Exception,"[Return prep | error: {0}".format(error) 
 	    return d_return	   		
 
     return fncWrap(*args,**kws).go()
@@ -2644,7 +2649,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             """
 		try:
 		    joints.orientJoint(i_jnt.mNode,orientation,secondaryAxis)
-	        except Exception,error:raise StandardError,"['%s' orient failed]{%s}"%(i_jnt.p_nameShort,error)  
+	        except Exception,error:raise Exception,"['%s' orient failed]{%s}"%(i_jnt.p_nameShort,error)  
 
     except Exception,error:
         raise StandardError,"%s >> base group | error: %s"%(_str_funcName,error)  
@@ -3474,7 +3479,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         i_parent = cgmMeta.validateObjArg(parentTo,cgmMeta.cgmObject,noneValid=True)    
         bbSize = distance.returnBoundingBoxSize(i_obj.mNode,True)
         size = max(bbSize)
-    except Exception,error:raise StandardError,"%s >> get info | %s"%(str_shortName,error)  
+    except Exception,error:raise Exception,"%s >> get info | %s"%(str_shortName,error)  
     
     _str_funcName = "create_spaceLocatorForObject(%s)"%i_obj.p_nameShort  
     log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
@@ -3482,15 +3487,15 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     try:#>>>Create #====================================================
         i_control = cgmMeta.cgmObject(curves.createControlCurve('pivotLocator',size),setClass=True)
         try:l_color = curves.returnColorsFromCurve(i_obj.mNode)
-        except Exception,error:raise StandardError,"color | %s"%(error)          
+        except Exception,error:raise Exception,"color | %s"%(error)          
         log.debug("l_color: %s"%l_color)
         curves.setColorByIndex(i_control.mNode,l_color[0])
-    except Exception,error:raise StandardError,"%s >> create | %s"%(_str_funcName,error)  
+    except Exception,error:raise Exception,"%s >> create | %s"%(_str_funcName,error)  
 
     try:#>>>Snap and Lock
         #====================================================	
         Snap.go(i_control,i_obj.mNode,move=True, orient = True)
-    except Exception,error:raise StandardError,"%s >> snapNLock | %s"%(_str_funcName,error)  
+    except Exception,error:raise Exception,"%s >> snapNLock | %s"%(_str_funcName,error)  
 
     try:#>>>Copy Transform
         #====================================================   
@@ -3503,7 +3508,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         i_newTransform.parent = mBuffer.parent#Copy parent
         i_control = i_newTransform
         mc.delete(mBuffer.mNode)
-    except Exception,error:raise StandardError,"%s >> copy transform | %s"%(_str_funcName,error)  
+    except Exception,error:raise Exception,"%s >> copy transform | %s"%(_str_funcName,error)  
 
     try:#>>>Register
         #====================================================    
@@ -3512,7 +3517,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         str_pivotAttr = str("pivot_%s"%i)
         str_objName = str(i_obj.getShortName())
         str_pivotName = str(i_control.getShortName())
-    except Exception,error:raise StandardError,"%s >> register | %s"%(_str_funcName,error)  
+    except Exception,error:raise Exception,"%s >> register | %s"%(_str_funcName,error)  
 
     try:#Build the network
         i_obj.addAttr(str_pivotAttr,enumName = 'off:lock:on', defaultValue = 2, value = 0, attrType = 'enum',keyable = False, hidden = False)
@@ -3521,14 +3526,14 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         log.debug(d_ret)
         d_ret = NodeF.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
         log.debug(d_ret)
-    except Exception,error:raise StandardError,"%s >> network | %s"%(_str_funcName,error)  
+    except Exception,error:raise Exception,"%s >> network | %s"%(_str_funcName,error)  
     
     try:
         for shape in mc.listRelatives(i_control.mNode,shapes=True,fullPath=True):
             log.debug(shape)
             mc.connectAttr("%s.overrideVisibility"%i_control.mNode,"%s.overrideVisibility"%shape,force=True)
             mc.connectAttr("%s.overrideDisplayType"%i_control.mNode,"%s.overrideDisplayType"%shape,force=True)
-    except Exception,error:raise StandardError,"%s >> shape connect | %s"%(_str_funcName,error)  
+    except Exception,error:raise Exception,"%s >> shape connect | %s"%(_str_funcName,error)  
 
     try:#Vis 
         #>>>Name stuff
@@ -3544,7 +3549,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         i_control.doName(nameShapes=True)
     
         i_control.addAttr('cgmAlias',(i_obj.getNameAlias()+'_pivot_%s'%i),lock=True)
-    except Exception,error:raise StandardError,"%s >> vis | %s"%(_str_funcName,error)  
+    except Exception,error:raise Exception,"%s >> vis | %s"%(_str_funcName,error)  
 
     try:#Store on object
         #====================================================    
@@ -3554,7 +3559,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
             buffer.append(i_control.mNode)
             i_obj.msgList_append(buffer,'spacePivots','controlTarget')
         log.debug("spacePivots: %s"%i_obj.msgList_get('spacePivots',asMeta = True))
-    except Exception,error:raise StandardError,"%s >> store | %s"%(_str_funcName,error)  
+    except Exception,error:raise Exception,"%s >> store | %s"%(_str_funcName,error)  
     
     try:#parent
         if i_parent:
@@ -3565,11 +3570,11 @@ def create_spaceLocatorForObject(obj,parentTo = False):
             i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	
     
             log.debug("constraintGroup: '%s'"%i_constraintGroup.getShortName())		
-    except Exception,error:raise StandardError,"%s >> parent | %s"%(_str_funcName,error) 
+    except Exception,error:raise Exception,"%s >> parent | %s"%(_str_funcName,error) 
     
     try:#change to cgmControl
 	i_control = cgmMeta.cgmControl(i_control.mNode, setClass=1)
-    except Exception,error:raise StandardError,"%s >> cgmControl conversion | %s"%(_str_funcName,error) 
+    except Exception,error:raise Exception,"%s >> cgmControl conversion | %s"%(_str_funcName,error) 
     
     return i_control
 
@@ -4446,7 +4451,7 @@ def connect_singleDriverAttrToMulti(drivenAttr = None, driverAttrs = None):
 	
 	for i,mPlug in enumerate(mlPlugs_drivers):
 	    log.info("{0} driver {1}: '{2}'".format(_str_reportStart,i,mPlug.p_combinedShortName))
-    except Exception,error:raise StandardError,"[{0}>> Validate |  error: {1}]".format(_str_funcName,error) 
+    except Exception,error:raise Exception,"[{0}>> Validate |  error: {1}]".format(_str_funcName,error) 
 
     try:#>>> Connect   
 	_int_lenDrivers = len(mlPlugs_drivers)
@@ -4460,7 +4465,7 @@ def connect_singleDriverAttrToMulti(drivenAttr = None, driverAttrs = None):
 	    NodeF.argsToNodes(str_arg).doBuild()
 	
 	return True
-    except Exception,error:raise StandardError,"[{0}>> Connect |  error: {1}]".format(_str_funcName,error) 
+    except Exception,error:raise Exception,"[{0}>> Connect |  error: {1}]".format(_str_funcName,error) 
     
 def connectBlendJointChain(l_jointChain1,l_jointChain2,l_blendChain, driver = None, channels = ['translate','rotate']):
     """
@@ -5430,7 +5435,7 @@ def addRibbonTwistToControlSetupRewrite(*args,**kws):
 		self.b_addMidTwist = cgmValid.boolArg(self.d_kws['addMidTwist'])
 		self.b_advancedTwistSetup = cgmValid.boolArg(self.d_kws['advancedTwistSetup'])
 		self.b_extendTwistToEnd= cgmValid.boolArg(self.d_kws['extendTwistToEnd'])
-	    except Exception,error:raise StandardError,"[Query]{%s}"%(error)  
+	    except Exception,error:raise Exception,"[Query | error: {0}".format(error)  
 	    
 	    try:#Validate =====================================================================================
 		if self.b_addMidTwist and self.int_lenJoints <4:
@@ -5452,7 +5457,7 @@ def addRibbonTwistToControlSetupRewrite(*args,**kws):
 		self.upChannel = '%sup'%self.str_orientation [1]#upChannel
 		
 	    except Exception,error:
-		raise StandardError,"[data validation]{%s}"%(error)  
+		raise StandardError,"[data validation | error: {0}".format(error)  
 
 	    try:#>>> Module instance =====================================================================================
 		self.mi_rigNull = False	
@@ -5464,7 +5469,7 @@ def addRibbonTwistToControlSetupRewrite(*args,**kws):
 			log.debug('baseName set to module: %s'%self.str_baseName)	    	    
 		if self.str_baseName is None:self.str_baseName = 'testSegmentCurve'    
 		
-	    except Exception,error:raise StandardError,"[Module checks]{%s}"%(error) 	    
+	    except Exception,error:raise Exception,"[Module checks | error: {0}".format(error) 	    
     return fncWrap(*args,**kws).go()
 
 def addRibbonTwistToControlSetupOld(jointList,
