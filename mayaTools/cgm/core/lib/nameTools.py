@@ -219,6 +219,11 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
         if tagInfo is not False:
             namesDict[tag] = (tagInfo)
             
+    _iterator = search.findRawTagInfo(obj,'cgmIterator')
+    if _iterator is not False:
+        log.debug("Iterator found")
+        namesDict['cgmIterator'] = (_iterator)
+            
     # remove tags up stream that we don't want if they don't exist on the actual object"""
     if not mc.objExists(obj+'.cgmTypeModifier'):
         if namesDict.get('cgmTypeModifier') != None:
@@ -258,7 +263,8 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
             childNamesDict['cgmType'] = namesDict.get('cgmType')
             if namesDict.get('cgmTypeModifier') != None:
                 childNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
-            
+            if namesDict.get('cgmIterator') != None:
+                childNamesDict['cgmIterator'] = namesDict.get('cgmIterator')            
             return childNamesDict
         elif isType == 'shape' or 'Constraint' in isType:
             """if so, it's a child name object"""
