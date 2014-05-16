@@ -186,6 +186,7 @@ class cgmFuncCls(object):
 	'''
 	self._b_ReturnBreak = 1
 	if res is not None:
+	    self.log_info("SUCCESS >> {0}".format(res))	    	    
 	    self.d_return[self._str_step] = res
 	    
     def _FailBreak_(self, res = None):
