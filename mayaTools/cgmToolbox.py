@@ -341,7 +341,8 @@ def loadMorpheusMaker( *a ):
 	reload(mMaker)    
 	mMaker.go()	
     except Exception,error:
-	raise Exception,"You appear to be missing the Morpheus pack. Or maybe angered the spirits... | {0}".format(error)
+	log.error("You appear to be missing the Morpheus pack. Or maybe angered the spirits...")
+	raise Exception,error
 
     
 

@@ -24,6 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.lib import nameTools
+reload(nameTools)
 from cgm.lib.ml import (ml_resetChannels)
 
 from cgm.lib import (lists,
