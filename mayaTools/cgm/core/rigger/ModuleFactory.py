@@ -519,7 +519,7 @@ def isRigged(*args,**kws):
 
             mi_rigNull = mi_module.rigNull
             str_shortName = self._str_moduleName
-
+            
             #ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
             l_rigJoints = get_joints(mi_module,rigJoints = True, asMeta=False)            
             #l_rigJoints = [i_j.p_nameShort for i_j in ml_rigJoints] or []
@@ -539,7 +539,7 @@ def isRigged(*args,**kws):
                     if cgmMeta.cgmObject(jnt).getConstraintsTo():
                         b_foundConstraint = True
                         break
-                    elif i == (len(ml_rigJoints) - 1) and not b_foundConstraint:
+                    elif i == (len(l_rigJoints) - 1) and not b_foundConstraint:
                         self.log_warning("No rig joints are constrained")	    
                         return False
 
@@ -608,6 +608,11 @@ def rigDelete(*args,**kws):
 
             mc.delete(mi_rigNull.getChildren())
             mi_rigNull.version = ''#clear the version
+            
+            ml_skinJoints = get_joints(self._mi_module,skinJoints = True,asMeta = True)
+            for mObj in ml_skinJoints:
+                mObj.rotate = [0,0,0]
+                mObj.scale = [1,1,1]
             return True   
     return fncWrap(*args,**kws).go()
 
@@ -1918,6 +1923,10 @@ def get_controls(*args,**kws):
 def get_joints(*args,**kws):
     '''
     Simple factory for template settings functions
+    
+    skinJoints
+    moduleJoints
+    rigJoints
     '''
     class fncWrap(ModuleFunc):
         def __init__(self,*args,**kws):
@@ -2123,7 +2132,7 @@ def mirrorMe(*args,**kws):
             if mi_mirror:
                 l_buffer.extend(mi_mirror.rigNull.moduleSet.getList())
             if l_buffer:
-                r9Anim.MirrorHierarchy(l_buffer).mirrorData(mode = '')
+                r9Anim.MirrorHierarchy().mirrorData(l_buffer,mode = '')
                 mc.select(l_buffer)
                 return True
             return False  
