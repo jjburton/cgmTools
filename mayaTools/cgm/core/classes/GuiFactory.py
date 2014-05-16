@@ -24,6 +24,7 @@ __defaultSize__ = 200, 300
 import maya.cmds as mc
 import maya.mel as mel
 import copy
+from cgm.core import cgm_General as cgmGeneral
 
 mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
 
@@ -147,7 +148,6 @@ class cgmGUI(mUI.BaseMelWindow):
             self.l_optionVars.append(fullName)
 	return fullName
 	    
-	    
     def create_cgmDebugOptionVar(self,*args,**kws):
         fullName = "cgmVar_guiDebug"
         self.__dict__['var_DebugMode'] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
@@ -255,9 +255,6 @@ class cgmGUI(mUI.BaseMelWindow):
     def printHelp(self):pass
         #help(morphyMakerLib)
 
-    def printReport(self):pass
-        #morphyMakerLib.printReport(self)
-    
     def do_DebugEchoTest(self):
 	log.info('#'+'='*25)
 	log.info('Tool: %s'%self.__toolName__)	
@@ -737,3 +734,26 @@ def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....'
 
 def doEndMayaProgressBar(mayaMainProgressBar):
     mc.progressBar(mayaMainProgressBar, edit=True, endProgress=True)
+    
+def log_selfReport(self):
+    try:
+	log.info("="*100)		
+	log.info("{0} GUI = {1} {0}".format(cgmGeneral._str_headerDiv, self))
+	log.info("="*100)	
+	l_keys = self.__dict__.keys()
+	l_keys.sort()		    
+	log.info(" Self Stored: " + cgmGeneral._str_subLine)
+	for i,str_k in enumerate(l_keys):
+	    try:
+		buffer = self.__dict__[str_k]
+		#type(buffer)
+		bfr_type = type(buffer)
+		if bfr_type in [bool,str,list,tuple]:
+		    log.info(cgmGeneral._str_baseStart * 2 + "[{0}] : {1} ".format(str_k,buffer))
+		if 'var_' in str_k:
+		    log.info(cgmGeneral._str_baseStart * 2 + "[{0}] | type: {1} | value: {2}".format(buffer.name,buffer.varType,buffer.value))		
+		#log.info(cgmGeneral._str_baseStart * 4 + "Type: {0}".format(type(buffer)))
+	    except Exception,error:
+		log.error("log_selfReport >> '{0}' key fail | error: {1}".format(str_k,error))
+    except Exception,error:
+	log.error("log_self fail | error: {0}".format(error))
