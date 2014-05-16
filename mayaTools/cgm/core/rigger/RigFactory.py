@@ -27,6 +27,9 @@ from cgm.core.classes import GuiFactory as gui
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
+from cgm.core.rigger.lib import cgmRigs_sharedData as cgmRigsData
+reload(cgmRigsData)
+
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 reload(mControlFactory)
@@ -53,8 +56,8 @@ from cgm.lib import (cgmMath,
                      )
 reload(rigging)
 l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball','eyelids','eyebrow']
-__l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthnose']
-#l_modulesDone = []
+__l_faceModules__ = cgmRigsData.__l_faceModules__
+
 #>>> Register rig functions
 #=====================================================================
 d_moduleTypeToBuildModule = {'leg':leg,
@@ -72,88 +75,120 @@ d_moduleTypeToBuildModule = {'leg':leg,
 for module in d_moduleTypeToBuildModule.keys():
     reload(d_moduleTypeToBuildModule[module])
     
-__l_moduleJointSingleHooks__ = ['scaleJoint']
-__l_moduleJointMsgListHooks__ = ['helperJoints','defHelp_joints']
+__l_moduleJointSingleHooks__ = cgmRigsData.__l_moduleJointSingleHooks__
+__l_moduleJointMsgListHooks__ = cgmRigsData.__l_moduleJointMsgListHooks__
+__l_moduleControlMsgListHooks__ = cgmRigsData.__l_moduleControlMsgListHooks__
 
 #>>> Main class function
 #=====================================================================
-class go(object):
-    def __init__(self,mModule = None,forceNew = True,autoBuild = True, ignoreRigCheck = False,**kws): 
-        """
-        To do:
-        Add rotation order settting
-        Add module parent check to make sure parent is templated to be able to move forward, or to constrain
-        Add any other piece meal data necessary
-        Add a cleaner to force a rebuild
-        """
-        # Get our base info
-        #==============	        
-        #>>> module null data
-	"""
-	try:mModule
-	except Exception,error:
-	    log.error("RigFactory.go.__init__>>module instance isn't working!")
-	    raise StandardError,error    
-	"""
-	#>>> Intial stuff
-	i_module = False
-	try:
-	    if mModule.isModule():
-		i_module = mModule
-	except Exception,error:
-	    raise StandardError,"RigFactory.go.init. Module call failure. Probably not a module: '%s'"%error	    
-	if not i_module:
-	    raise StandardError,"RigFactory.go.init Module instance no longer exists: '%s'"%mModule
+def go(*args, **kws):
+    """
+    Customization rig builder from template file for setting up a cgmMorpheusMakerNetwork
+    
+    :parameters:
 	
-	_str_funcName = "go.__init__(%s)"%i_module.p_nameShort  
-	log.info(">>> %s "%(_str_funcName) + "="*100)
-	start = time.clock()
+    :returns:
 	
-	#Some basic assertions
-        assert mModule.isSkeletonized(),"Module is not skeletonized: '%s'"%mModule.getShortName()
-        
-        log.debug(">>> forceNew: %s"%forceNew)	
-        self._mi_module = mModule# Link for shortness
-	self._mi_module.__verify__()
-	self._cgmClass = 'RigFactory.go'
+    :raises:
 	
-	#First we want to see if we have a moduleParent to see if it's rigged yet
-	if self._mi_module.getMessage('moduleParent'):
-	    if not self._mi_module.moduleParent.isRigged():
-		raise StandardError,"%s >> '%s's module parent is not rigged yet: '%s'"%(_str_funcName,self._mi_module.getShortName(),self._mi_module.moduleParent.getShortName())
-	
-	#Then we want to see if we have a moduleParent to see if it's rigged yet
-	b_rigged = self._mi_module.isRigged()
-	if b_rigged and forceNew is not True and ignoreRigCheck not in [1,True]:
-	    raise StandardError,"%s >>> '%s' already rigged and not forceNew"%(_str_funcName,self._mi_module.getShortName())
-	
-	#Verify we have a puppet and that puppet has a masterControl which we need for or master scale plug
-	self._i_puppet = self._mi_module.modulePuppet
-	if not self._i_puppet.__verify__():
-	    raise StandardError,"%s >>> modulePuppet failed to verify"%_str_funcName	
-	if not self._i_puppet._verifyMasterControl():
-	    raise StandardError,"%s >>> masterControl failed to verify"%_str_funcName
-	
-	#Verify a dynamic switch
-	try:
-	    if not self._mi_module.rigNull.getMessage('dynSwitch'):
-		self._i_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=self._mi_module.rigNull.mNode)
+    """       
+    class fncWrap(cgmGeneral.cgmFuncCls):		
+        def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'RigFactory.go'	
+	    self._b_reportTimes = 1 #..we always want this on so we're gonna set it on
+	    self._cgmClass = 'RigFactory.go'
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'mModule',"default":None,"argType":'cgmModule','help':"This must be a cgm module"},
+	                                 {'kw':'forceNew',"default":True,"argType":'bool','help':"Whether to force a new one"},
+	                                 {'kw':'autoBuild',"default":True,"argType":'bool','help':"Whether to autobuild or not"},
+	                                 {'kw':'ignoreRigCheck',"default":False,"argType":'bool','help':"Whether to ignore the rig check on initialization"},
+	                                 ]	    
+	    self.__dataBind__(*args, **kws)
+	    self.l_funcSteps = [{'step':'Initial Validation','call':self._fncStep_validate_},
+	                        {'step':'Buffer Data','call':self._fncStep_bufferData_}, 	                        
+	                        {'step':'Need Rigging?','call':self._fncStep_rigNeed_},
+	                        {'step':'Dynamic Switch','call':self._fncStep_dynamicSwitch_},                       	                        	                        
+	                        {'step':'Module rig checks','call':self._fncStep_moduleRigChecks_},                       	                        	                        	                        
+	                        {'step':'Deform/Constrain groups','call':self._fncStep_deformGroup_},    
+	                        {'step':'Process','call':self._fncStep_process_},                       	                        	                        	                        	                        	                        
+	                        ]
+	    
+        def _fncStep_validate_(self):
+	    assert self.d_kws['mModule'].isModule(),"Not a module"
+	    self._mi_module = self.d_kws['mModule']# Link for shortness
+	    self._i_rigNull = self._mi_module.rigNull#speed link
+	    
+	    self._strShortName = self._mi_module.getShortName() or False	    
+	    self._str_funcName = "{0}('{1}')".format(self._str_funcName,self._strShortName)
+	    self.__updateFuncStrings__()
+	    
+	    self._i_puppet = self._mi_module.modulePuppet
+	    self._i_puppet.__verifyGroups__()
+	    
+	    self._mi_moduleParent = False
+	    if self._mi_module.getMessage('moduleParent'):
+		self._mi_moduleParent = self._mi_module.moduleParent
+		
+	    self._b_forceNew = cgmValid.boolArg(self.d_kws['forceNew'])
+	    self._b_ignoreRigCheck= cgmValid.boolArg(self.d_kws['ignoreRigCheck'])
+	    self._b_autoBuild = cgmValid.boolArg(self.d_kws['autoBuild'])
+	    
+	    '''
+	    try:#Geo -------------------------------------------------------------------------------------------
+		
+		if self.d_kws['geo'] is None:
+		    try:
+			self.d_kws['geo'] = self._i_puppet.getUnifiedGeo()
+			if not self.d_kws['geo']:
+			    raise ValueError, "Module puppet missing geo"
+		    except StandardError,error:log.warning("geo failed to find: {0}".format(error) + "="*75) 
+		self.str_geo = cgmValid.objString(self.d_kws['geo'],mayaType=['mesh','nurbsSurface'])
+	    except StandardError,error:self.log_error("geo failed : {0}".format(error))  
+	    '''
+	    
+	    #Some basic assertions
+	    assert self._mi_module.isSkeletonized(),"Module is not skeletonized: '{0}'".format(self._strShortName)
+	    
+        def _fncStep_rigNeed_(self):
+	    if self._mi_moduleParent:
+		if not self._mi_moduleParent.isRigged():
+		    raise StandardError,"'module parent is not rigged yet: '{0}'".format(self._mi_moduleParent.getShortName())
+	    
+	    #Then we want to see if we have a moduleParent to see if it's rigged yet
+	    __b_rigged = self._mi_module.isRigged()
+	    if __b_rigged and not self._b_forceNew and self._b_ignoreRigCheck is not True:
+		return self._SuccessReturn_("Aready rigged and not forceNew")
+	    
+	    if not isBuildable(self):
+		raise StandardError,"The builder for module type '{0}' is not ready".format(self._partType)
+
+	    try:
+		self._outOfDate = False
+		if self._version != self._buildVersion:
+		    self._outOfDate = True	    
+		    self.log_warning("Rig version out of date: {0} != {1}".format(self._version,self._buildVersion))	
+		else:
+		    if self._b_forceNew and self._mi_module.isRigged():
+			self._mi_module.rigDelete()
+		    self.log_debug("Rig version up to date !")
+	    except Exception,error:raise Exception,"Version check fail | error: {0}".format(error)
+		
+        def _fncStep_dynamicSwitch_(self):
+	    if not self._i_rigNull.getMessage('dynSwitch'):
+		self._i_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=self._i_rigNull.mNode)
 	    else:
-		self._i_dynSwitch = self._mi_module.rigNull.dynSwitch
-	    log.debug("switch: '%s'"%self._i_dynSwitch.getShortName())
-	except Exception,error:
-	    raise StandardError,"%s >> Dynamic switch build failed! | %s"%(self._strShortName,error)
-				
-	try:#>>> Gather info =========================================================================
+		self._i_dynSwitch = self._i_rigNull.dynSwitch
+		
+        def _fncStep_dynamicSwitch2_(self):
+	    pass	    
+        def _fncStep_bufferData_(self):
 	    #Master control ---------------------------------------------------------
 	    self._i_masterControl = self._mi_module.modulePuppet.masterControl
 	    self.mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')	    
 	    self._i_masterSettings = self._i_masterControl.controlSettings
 	    self._i_masterDeformGroup = self._mi_module.modulePuppet.masterNull.deformGroup	    
 	    self._l_moduleColors = self._mi_module.getModuleColors()
-	    self._mi_moduleParent = False
-	    if self._mi_module.getMessage('moduleParent'):
-		self._mi_moduleParent = self._mi_module.moduleParent	    
+    
 	    #Module stuff ------------------------------------------------------------
 	    self._l_coreNames = self._mi_module.coreNames.value
 	    self._i_templateNull = self._mi_module.templateNull#speed link
@@ -178,7 +213,6 @@ class go(object):
 	    #>>> part name -----------------------------------------------------------------
 	    self._partName = self._mi_module.getPartNameBase()
 	    self._partType = self._mi_module.moduleType.lower() or False
-	    self._strShortName = self._mi_module.getShortName() or False
 	    
 	    #>>> Instances and joint stuff ----------------------------------------------------
 	    self._mi_orientation = cgmValid.simpleOrientation(str(modules.returnSettingsData('jointOrientation')) or 'zyx')
@@ -190,807 +224,790 @@ class go(object):
 	    self._vectorUpNegative = self._mi_orientation.p_upNegative.p_vector
 	    self._vectorOutNegative = self._mi_orientation.p_outNegative.p_vector
 	    
-	except Exception,error:
-	    raise StandardError,"%s >> Module data gather fail! | %s"%(_str_funcName,error)
+	    #>>> Some place holders ----------------------------------------------------	    
+	    self._md_controlShapes = {}
 	    
-        #>>> See if we have a buildable module -- do we have a builder
-	if not isBuildable(self):
-	    raise StandardError,"The builder for module type '%s' is not ready"%self._partType
-	
-	try:#>>>Version Check ========================================================================
-	    self._outOfDate = False
-	    if self._version != self._buildVersion:
-		self._outOfDate = True	    
-		log.warning("%s >> '%s'(%s) rig version out of date: %s != %s"%(_str_funcName, self._strShortName,self._partType,self._version,self._buildVersion))	
-	    else:
-		if forceNew and self._mi_module.isRigged():
-		    self._mi_module.rigDelete()
-		log.debug("%s >>> '%s' rig version up to date !"%(_str_funcName,self.buildModule.__name__))	
-	except Exception,error:
-	    raise StandardError,"%s  >> Version check fail | %s"%(self._strShortName,error)
-
-	#>>>Connect switches
-	try: verify_moduleRigToggles(self)
-	except Exception,error:
-	    raise StandardError,"%s  >> Module data gather fail! | %s"%(self._strShortName,error)
-	
-	#>>> Object Set
-	try: self._mi_module.__verifyObjectSet__()
-	except Exception,error:
-	    raise StandardError,"%s >>> error : %s"%(_str_funcName,error) 
-	
-	try:#>>> FACE MODULES If face module we need a couple of data points
-	    if self._partType.lower() in __l_faceModules__:
-		self._i_headModule = False
-		self._mi_parentHeadHandle = False
-		self.verify_headModule()
-		self.verify_faceModuleAttachJoint()
-		self.verify_faceSkullPlate()
-		self.verify_faceDeformNull()#make sure we have a face deform null
-		self.verify_faceScaleDriver()#scale driver
-	
-		try:#>> Constrain  head stuff =======================================================================================
-		    mi_parentHeadHandle = self._mi_parentHeadHandle
-		    mi_constrainNull =  self._i_faceDeformNull
-		    log.info(mi_parentHeadHandle)
-		    log.info(mi_constrainNull)		    
-		    try:
-			if not mi_constrainNull.isConstrainedBy(mi_parentHeadHandle.mNode):
-			    mc.parentConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
-			    #for attr in 'xzy':
-				#mi_go.mPlug_multpHeadScale.doConnectOut("%s.s%s"%(mi_constrainNull.mNode,attr))
-			    mc.scaleConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
-		    except Exception,error:raise Exception,"Failed to constrain | %s"%error
-		except Exception,error:raise StandardError,"!constrain stuff to the head! | %s"%(error)			
-	except Exception,error:
-	    raise StandardError,"%s >>> error : %s"%(_str_funcName,error) 	
-	
-	try:#>>> Deform group for the module =====================================================
-	    if not self._mi_module.getMessage('deformNull'):
-		if self._partType in ['eyebrow', 'mouthnose']:
-		    #Make it and link it ------------------------------------------------------
-		    buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
-		    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
-		    i_grp.addAttr('cgmName',self._partName,lock=True)
-		    i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
-		    i_grp.doName()
-		    i_grp.parent = self._i_faceDeformNull	
-		    self._mi_module.connectChildNode(i_grp,'deformNull','module')
-		    self._mi_module.connectChildNode(i_grp,'constrainNull','module')
-		    self._i_deformNull = i_grp#link
-		else:
-		    #Make it and link it
-		    if self._partType in ['eyelids']:
-			buffer = rigging.groupMeObject(self._mi_moduleParent.deformNull.mNode,False)			
-		    else:
-			buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
-			
-		    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
-		    i_grp.addAttr('cgmName',self._partName,lock=True)
-		    i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
-		    i_grp.doName()
-		    i_grp.parent = self._i_masterDeformGroup.mNode
-		    self._mi_module.connectChildNode(i_grp,'deformNull','module')
-		    if self._partType in ['eyeball']:
-			self._mi_module.connectChildNode(i_grp,'constrainNull','module')	
-			i_grp.parent = self._i_faceDeformNull				
-	    self._i_deformNull = self._mi_module.deformNull
-	except Exception,error:
-	    raise StandardError,"%s  >> Deform Null fail! | %s"%(self._strShortName,error)	
-	
-	try:#>>> Constrain Deform group for the module ==========================================
-	    if not self._mi_module.getMessage('constrainNull'):
-		if self._partType not in __l_faceModules__ or self._partType in ['eyelids']:
-		    #Make it and link it
-		    buffer = rigging.groupMeObject(self._i_deformNull.mNode,False)
-		    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
-		    i_grp.addAttr('cgmName',self._partName,lock=True)
-		    i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
-		    i_grp.doName()
-		    i_grp.parent = self._i_deformNull.mNode
-		    self._mi_module.connectChildNode(i_grp,'constrainNull','module')
-	    self._i_constrainNull = self._mi_module.constrainNull
-	except Exception,error:
-	    raise StandardError,"%s  >> Constrain Null fail! | %s"%(self._strShortName,error)	
-	
-        #Make our stuff
-	self._md_controlShapes = {}
-	if self._partType in l_modulesDone:
-	    if self._outOfDate and autoBuild:
-		self.doBuild(**kws)
-	    else:
-		log.debug("'%s' No autobuild."%self._strShortName)
-	else:
-	    log.warning("'%s' module type not in done list. No auto build"%self.buildModule.__name__)
 	    
-	log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	    
-	
-    
-    
-    def doBuild(self,buildTo = '',**kws):
-	"""
-	Return if a module is shaped or not
-	"""
-	_str_funcName = "go.doBuild(%s)"%self._mi_module.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()
-	
-	d_build = self.buildModule.__d_buildOrder__
-	int_keys = d_build.keys()
-	
-	#Build our progress Bar
-	mayaMainProgressBar = gui.doStartMayaProgressBar(len(int_keys))
-	#mc.progressBar(mayaMainProgressBar, edit=True, progress=0) 
-	for k in int_keys:
-	    try:	
-		str_name = d_build[k].get('name') or 'noName'
-		func_current = d_build[k].get('function')
-		_str_subFunc = str_name
-		time_sub = time.clock() 
-		log.debug(">>> %s..."%_str_subFunc) 
-		
-		mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >>Rigging>> step:'%s'..."%(self._strShortName,str_name), progress=k+1)    
-		func_current(self)
-    
-		if buildTo.lower() == str_name:
-		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
-		    break
-		log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 		
-	    except Exception,error:
-		raise StandardError,"%s.doBuild >> Step %s failed! | %s"%(self._strShortName,str_name,error)
-	
-	log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
-	gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar        
-	
+        def _fncStep_moduleRigChecks_(self):
+	    #>>>Connect switches
+	    try: verify_moduleRigToggles(self)
+	    except Exception,error:raise Exception,"Module rig toggle fail | error: {0}".format(error)
 	    
-    def isShaped(self):
-	"""
-	Return if a module is shaped or not
-	"""
-	_str_funcName = "go.isShaped(%s)"%self._mi_module.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()	
-	b_return = True
-	try:
-	    if self._partType in d_moduleTypeToBuildModule.keys():
-		checkShapes = d_moduleTypeToBuildModule[self._partType].__d_controlShapes__
-	    else:
-		log.debug("%s.isShaped>>> Don't have a shapeDict, can't check. Passing..."%(self._strShortName))	    
-		return True
-	    for key in checkShapes.keys():
-		for subkey in checkShapes[key]:
-		    if not self._i_rigNull.getMessage('%s_%s'%(key,subkey)):
-			if not self._i_rigNull.msgList_getMessage('%s_%s'%(key,subkey)):
-			    if not self._i_rigNull.msgList_get('%s'%(subkey),False):
-				log.warning("%s.isShaped>>> Missing %s '%s' "%(self._strShortName,key,subkey))
-				b_return =  False
-				break
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
-	    return True
-	except Exception,error:
-	    raise StandardError,"%s >>  %s"%(_str_funcName,error)  
-	
-    def isRigSkeletonized(self):
-	"""
-	Return if a module is rig skeletonized or not
-	"""
-	_str_funcName = "go.isRigSkeletonized(%s)"%self._mi_module.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	for key in self._l_jointAttrs:
-	    if not self._i_rigNull.getMessage('%s'%(key)) and not self._i_rigNull.msgList_getMessage('%s'%(key)):
-		log.error("%s.isRigSkeletonized>>> Missing key '%s'"%(self._strShortName,key))
-		return False		
-	return True
-    
-    def verify_faceModuleAttachJoint(self):
-	_str_funcName = "go.verify_faceModuleAttachJoint(%s)"%self._mi_module.p_nameShort  
-	
-	#Find our head attach joint ------------------------------------------------------------------------------------------------
-	self.str_faceAttachJoint = False
-	if not self._i_headModule:
-	    raise StandardError,"%s >> Must have a head module"%_str_funcName
-	try:
-	    mi_end = self._i_headModule.rigNull.msgList_get('moduleJoints')[-1]
-	    buffer =  mi_end.getMessage('scaleJoint')
-	    if buffer:
-		buffer2 =  mi_end.scaleJoint.getMessage('rigJoint')
-		if buffer2:
-		    self.str_faceAttachJoint = buffer2[0]
-		else:
-		    self.str_faceAttachJoint = buffer[0]
-	    else:
-		self.str_faceAttachJoint = mi_end.mNode
-	except Exception,error:
-	    log.error("%s failed to find root joint from moduleParent | %s"%(_str_funcName,error))
-	
-	return self.str_faceAttachJoint
-    
-    def verify_faceSkullPlate(self,*args,**kws):
-	return fnc_verify_faceSkullPlate(self,*args,**kws)
-
-    def verify_faceDeformNull(self):
-	"""
-	Return if a module is rig skeletonized or not
-	"""
-	_str_funcName = "go.verify_faceDeformNull(%s)"%self._mi_module.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	if self._partType not in __l_faceModules__:
-	    raise StandardError, "%s >> Not a face module"%_str_funcName
-	
-	#Try to see if we ahve a face attach joint ==============================
-	try:self.str_faceAttachJoint
-	except:
-	    try:self.verify_faceModuleAttachJoint()
-	    except Exception,error:
-		raise StandardError, "%s >> error: %s"%(_str_funcName,error)
-	
-	
-	#Check if we have a face deformNull on a parent --------------------------	    
-	buffer = self._mi_moduleParent.getMessage('faceDeformNull')
-	if buffer:
-	    self._mi_module.connectChildNode(buffer[0],'faceDeformNull')
-	    self._i_rigNull.connectChildNode(buffer[0],'faceDeformNull')
-	    self._i_faceDeformNull = self._mi_moduleParent.faceDeformNull
-	    return True
-	
-	#Make it and link it ------------------------------------------------------
-	buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
-	i_grp = cgmMeta.cgmObject(buffer,setClass=True)
-	i_grp.addAttr('cgmName','face',lock=True)
-	i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
-	i_grp.doName()
-	i_grp.parent = self._i_masterDeformGroup.mNode	
-	self._mi_module.connectChildNode(i_grp,'faceDeformNull')	
-	self._mi_moduleParent.connectChildNode(i_grp,'faceDeformNull','module')
-	self._i_faceDeformNull = i_grp#link
-	return True
-    
-    def verify_headModule(self):
-	if self._partType not in __l_faceModules__:
-	    log.info("Not a face module, not gonna find a head from here")
-	    return False
-	
-	if self._partType == 'eyelids':
-	    self._i_headModule = self._mi_module.moduleParent.moduleParent
-	else:
-	    self._i_headModule = self._mi_module.moduleParent
-	    
-	self._mi_parentHeadHandle = self._i_headModule.rigNull.handleIK	    
-	return self._i_headModule
-	    
-    def verify_faceScaleDriver(self):
-	try:
-	    mi_parentHeadHandle = self._mi_parentHeadHandle
-	    mi_parentBlendPlug = cgmMeta.cgmAttr(mi_parentHeadHandle,'scale')
-	    mi_faceDeformNull = self._i_faceDeformNull
-	    #connect blend joint scale to the finger blend joints
-	    '''
-	    for i_jnt in ml_blendJoints:
-		mi_parentBlendPlug.doConnectOut("%s.scale"%i_jnt.mNode)
-	    '''	
-	    
-	    #intercept world scale and add in head scale
-	    mPlug_multpHeadScale = cgmMeta.cgmAttr(mi_faceDeformNull,'out_multpHeadScale',value = 1.0,defaultValue=1.0,lock = True)
-	    
-	    mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
-	    mPlug_globalScale.doConnectOut(mPlug_multpHeadScale)
-	    NodeF.argsToNodes("%s = %s * %s.sy"%(mPlug_multpHeadScale.p_combinedShortName,
-						 mPlug_globalScale.p_combinedShortName,
-						 mi_parentHeadHandle.p_nameShort)).doBuild()
-	    self.mPlug_multpHeadScale = mPlug_multpHeadScale
-	except Exception,error:raise StandardError,"!verify_faceScaleDriver! | %s"%(error)
-	
-    def verify_offsetGroup(self,mObj):
-	try:
-	    mi_buffer = mObj.getMessageAsMeta('offsetGroup')
-	    if mi_buffer:
-		return mi_buffer
-	    else:
-		mi_offsetGroup = cgmMeta.cgmObject( mObj.doGroup(True),setClass=True)	 
-		mi_offsetGroup.doStore('cgmName',mObj.mNode)
-		mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
-		mi_offsetGroup.doName()
-		mObj.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')	                
-		return mi_offsetGroup	
-	except Exception,error:raise Exception,"[verify_offsetGroup! | error: {0}]".format(error)  
-	
-    def verify_faceSettings(self):
-	"""
-	Return if a module is rig skeletonized or not
-	"""
-	_str_funcName = "go.verify_faceSettings(%s)"%self._mi_module.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	if self._partType not in __l_faceModules__:
-	    raise StandardError, "%s >> Not a face module"%_str_funcName
-		
-	#>> Constrain Null ==========================================================    
-	if self._i_rigNull.getMessage('settings'):
-	    return True
-	
-	#Check if we have a settings control on parent module --------------------------	    
-	buffer = self._i_headModule.rigNull.getMessage('settings')
-	if buffer:
-	    self._i_rigNull.connectChildNode(buffer[0],'settings')		    
-	    return True
-	
-	raise Exception,"No face settings found!"
-    
-    def collectObjectTypeInRigNull(self,objType = 'locator'):
-	try:
-	    ml_objs = []
-	    for mObj in self._i_rigNull.getChildren(asMeta = 1):
-		if mObj.getMayaType() == objType:
-		    ml_objs.append(mObj)
-	    if ml_objs:
-		mi_group = cgmMeta.cgmObject(name = objType,setClass=1)
-		mi_group.addAttr('cgmName',objType)
-		mi_group.doName()
-		mi_group.parent = self._i_rigNull		    
-		for mObj in ml_objs:
-		    mObj.parent = mi_group
-	except Exception,error:raise Exception,"[collectObjectTypeInRigNull({0}! | error: {1}]".format(objType,error)  
-	
-    def verify_mirrorSideArg(self,arg  = None):
-	_str_funcName = "return_mirrorSideAsString(%s)"%self._mi_module.p_nameShort   
-	log.debug(">>> %s "%(_str_funcName) + "="*75)   
-	try:
-	    if arg is not None and arg.lower() in ['right','left']:
-		return arg.capitalize()
-	    else:
-		return 'Centre'
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error) 
-	
-    def cleanTempAttrs(self):
-	for key in self._shapesDict.keys():
-	    for subkey in self._shapesDict[key]:
-		self._i_rigNull.doRemove('%s_%s'%(key,subkey))
-	return True
-	                         
-    def _get_influenceChains(self):
-	return get_influenceChains(self._mi_module)	
-	
-    def _get_segmentHandleChains(self):
-	return get_segmentHandleChains(self._mi_module)
-	
-    def _get_segmentChains(self):
-	return get_segmentChains(self._mi_module)
+	    #>>> Object Set
+	    try: self._mi_module.__verifyObjectSet__()
+	    except Exception,error:raise Exception,"Object set fail | error: {0}".format(error)
         
-    def _get_rigDeformationJoints(self):
-	return get_rigDeformationJoints(self._mi_module)
-	
-    def _get_handleJoints(self):
-	return self._mi_module.rig_getRigHandleJoints(asMeta = True)
-    
-    def _get_simpleRigJointDriverDict(self):
-	return get_simpleRigJointDriverDict(self._mi_module)
-    def _get_eyeLook(self):
-	return get_eyeLook(self._mi_module)
-    def _verify_eyeLook(self):
-	return verify_eyeLook(self._mi_module)   
-    def get_report(self):
-	self._mi_module.rig_getReport()
-    def _set_versionToCurrent(self):
-	self._i_rigNull.version = str(self._buildVersion)	
-	
-    #>> Connections
-    #=====================================================================
-    def connect_toRigGutsVis(self, ml_objects, vis = True, doShapes = False):
-	try:
-	    _str_funcName = "go.connect_toRigGutsVis(%s)"%self._mi_module.p_nameShort  
-	    #log.debug(">>> %s "%(_str_funcName) + "="*75)
-	    #start = time.clock()	
+        def _fncStep_deformGroup_(self):
+	    try:
+		if self._partType.lower() in __l_faceModules__:
+		    self.log_info("Face module...")
+		    self._i_headModule = False
+		    self._mi_parentHeadHandle = False
+		    self.verify_headModule()
+		    self.verify_faceModuleAttachJoint()
+		    self.verify_faceSkullPlate()
+		    self.verify_faceDeformNull()#make sure we have a face deform null
+		    self.verify_faceScaleDriver()#scale driver
 	    
-	    if type(ml_objects) not in [list,tuple]:ml_objects = [ml_objects]
-	    for i_obj in ml_objects:
-		if doShapes:
+		    try:#>> Constrain  head stuff =======================================================================================
+			mi_parentHeadHandle = self._mi_parentHeadHandle
+			mi_constrainNull =  self._i_faceDeformNull	    
+			try:
+			    if not mi_constrainNull.isConstrainedBy(mi_parentHeadHandle.mNode):
+				mc.parentConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
+				#for attr in 'xzy':
+				    #mi_go.mPlug_multpHeadScale.doConnectOut("%s.s%s"%(mi_constrainNull.mNode,attr))
+				mc.scaleConstraint(mi_parentHeadHandle.mNode,mi_constrainNull.mNode)
+			except Exception,error:raise Exception,"Failed to constrain | %s"%error
+		    except Exception,error:raise Exception,"!constrain stuff to the head! | %s"%(error)				    
+	    except Exception,error:raise Exception,"Face module fail | error: {0}".format(error)
+        
+	    try:#>>> Deform group for the module =====================================================
+		if not self._mi_module.getMessage('deformNull'):
+		    if self._partType in ['eyebrow', 'mouthnose']:
+			#Make it and link it ------------------------------------------------------
+			buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
+			i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+			i_grp.addAttr('cgmName',self._partName,lock=True)
+			i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
+			i_grp.doName()
+			i_grp.parent = self._i_faceDeformNull	
+			self._mi_module.connectChildNode(i_grp,'deformNull','module')
+			self._mi_module.connectChildNode(i_grp,'constrainNull','module')
+			self._i_deformNull = i_grp#link
+		    else:
+			#Make it and link it
+			if self._partType in ['eyelids']:
+			    buffer = rigging.groupMeObject(self._mi_moduleParent.deformNull.mNode,False)			
+			else:
+			    buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
+			    
+			i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+			i_grp.addAttr('cgmName',self._partName,lock=True)
+			i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
+			i_grp.doName()
+			i_grp.parent = self._i_masterDeformGroup.mNode
+			self._mi_module.connectChildNode(i_grp,'deformNull','module')
+			if self._partType in ['eyeball']:
+			    self._mi_module.connectChildNode(i_grp,'constrainNull','module')	
+			    i_grp.parent = self._i_faceDeformNull				
+		self._i_deformNull = self._mi_module.deformNull
+	    except Exception,error:raise Exception,"Deform null fail | error: {0}".format(error)
+
+	    
+	    try:#>>> Constrain Deform group for the module ==========================================
+		if not self._mi_module.getMessage('constrainNull'):
+		    if self._partType not in __l_faceModules__ or self._partType in ['eyelids']:
+			#Make it and link it
+			buffer = rigging.groupMeObject(self._i_deformNull.mNode,False)
+			i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+			i_grp.addAttr('cgmName',self._partName,lock=True)
+			i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
+			i_grp.doName()
+			i_grp.parent = self._i_deformNull.mNode
+			self._mi_module.connectChildNode(i_grp,'constrainNull','module')
+		self._i_constrainNull = self._mi_module.constrainNull
+	    except Exception,error:raise Exception,"Constrain null fail | error: {0}".format(error)
+	
+        
+        
+        
+	def _fncStep_process_(self):
+	    if self._partType in l_modulesDone:
+		if self._outOfDate and self._b_autoBuild:
+		    self.doBuild(**kws)
+		else:self.log_warning("No autobuild.")
+	    else:self.log_warning("'{0}' module type not in done list. No auto build".format(self.buildModule.__name__) )       
+	
+	def doBuild(self,buildTo = '',**kws):
+	    """
+	    Return if a module is shaped or not
+	    """
+	    
+	    _str_funcName = "go.doBuild({0})".format(self._strShortName)
+	    try:
+		d_build = self.buildModule.__d_buildOrder__
+		int_keys = d_build.keys()
+		
+		#Build our progress Bar
+		mayaMainProgressBar = gui.doStartMayaProgressBar(len(int_keys))
+		for k in int_keys:
+		    try:	
+			str_name = d_build[k].get('name') or 'noName'
+			func_current = d_build[k].get('function')
+			_str_subFunc = str_name
+			
+			mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >>Rigging>> step:'%s'..."%(self._strShortName,str_name), progress=k+1)    
+			func_current(self)
+	    
+			if buildTo.lower() == str_name:
+			    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
+			    break
+		    except Exception,error:
+			raise Exception,"%s.doBuild >> Step %s failed! | %s"%(self._strShortName,str_name,error)
+		
+		gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+	    except Exception,error:
+		gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    		
+		raise Exception,"{0} | error: {1}".format(_str_funcName,error)
+	def isShaped(self):
+	    """
+	    Return if a module is shaped or not
+	    """
+	    _str_funcName = "go.isShaped({0})".format(self._strShortName)  
+	    try:
+		if self._partType in d_moduleTypeToBuildModule.keys():
+		    checkShapes = d_moduleTypeToBuildModule[self._partType].__d_controlShapes__
+		else:
+		    self.log_debug("isShaped>>> Don't have a shapeDict, can't check. Passing...")	    
+		    return True
+		for key in checkShapes.keys():
+		    for subkey in checkShapes[key]:
+			if not self._i_rigNull.getMessage('{0}_{1}'.format(key,subkey)):
+			    if not self._i_rigNull.msgList_getMessage('{0}_{1}'.format(key,subkey)):
+				if not self._i_rigNull.msgList_get('{0}'.format(subkey),False):
+				    self.log_error("isShaped >>> Missing {0} '{1}' ".format(key,subkey))
+				    return False
+		return True
+	    except Exception,error:raise Exception,"{0} >>  {1}".format(_str_funcName,error)    
+	def isRigSkeletonized(self):
+	    """
+	    Return if a module is rig skeletonized or not
+	    """
+	    _str_funcName = "go.isRigSkeletonized({0})".format(self._strShortName)  
+	    try:
+		for key in self._l_jointAttrs:
+		    if not self._i_rigNull.getMessage('{0}'.format(key)) and not self._i_rigNull.msgList_getMessage('{0}'.format(key)):
+			self.log_error("isRigSkeletonized >>> Missing key '{0}'".format(key))
+			return False		
+		return True
+	    except Exception,error:raise Exception,"{0} >>  {1}".format(_str_funcName,error)    
+
+
+	#>>> NOT REWRITTEN ==============================================================
+	def verify_faceModuleAttachJoint(self):
+	    _str_funcName = "go.verify_faceModuleAttachJoint(%s)"%self._mi_module.p_nameShort  
+	    
+	    #Find our head attach joint ------------------------------------------------------------------------------------------------
+	    self.str_faceAttachJoint = False
+	    if not self._i_headModule:
+		raise StandardError,"%s >> Must have a head module"%_str_funcName
+	    try:
+		mi_end = self._i_headModule.rigNull.msgList_get('moduleJoints')[-1]
+		buffer =  mi_end.getMessage('scaleJoint')
+		if buffer:
+		    buffer2 =  mi_end.scaleJoint.getMessage('rigJoint')
+		    if buffer2:
+			self.str_faceAttachJoint = buffer2[0]
+		    else:
+			self.str_faceAttachJoint = buffer[0]
+		else:
+		    self.str_faceAttachJoint = mi_end.mNode
+	    except Exception,error:
+		log.error("%s failed to find root joint from moduleParent | %s"%(_str_funcName,error))
+	    
+	    return self.str_faceAttachJoint
+	
+	def verify_faceSkullPlate(self,*args,**kws):
+	    return fnc_verify_faceSkullPlate(self,*args,**kws)
+    
+	def verify_faceDeformNull(self):
+	    """
+	    Return if a module is rig skeletonized or not
+	    """
+	    _str_funcName = "go.verify_faceDeformNull(%s)"%self._mi_module.p_nameShort  
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    if self._partType not in __l_faceModules__:
+		raise StandardError, "%s >> Not a face module"%_str_funcName
+	    
+	    #Try to see if we ahve a face attach joint ==============================
+	    try:self.str_faceAttachJoint
+	    except:
+		try:self.verify_faceModuleAttachJoint()
+		except Exception,error:
+		    raise StandardError, "%s >> error: %s"%(_str_funcName,error)
+	    
+	    
+	    #Check if we have a face deformNull on a parent --------------------------	    
+	    buffer = self._mi_moduleParent.getMessage('faceDeformNull')
+	    if buffer:
+		self._mi_module.connectChildNode(buffer[0],'faceDeformNull')
+		self._i_rigNull.connectChildNode(buffer[0],'faceDeformNull')
+		self._i_faceDeformNull = self._mi_moduleParent.faceDeformNull
+		return True
+	    
+	    #Make it and link it ------------------------------------------------------
+	    buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
+	    i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+	    i_grp.addAttr('cgmName','face',lock=True)
+	    i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
+	    i_grp.doName()
+	    i_grp.parent = self._i_masterDeformGroup.mNode	
+	    self._mi_module.connectChildNode(i_grp,'faceDeformNull')	
+	    self._mi_moduleParent.connectChildNode(i_grp,'faceDeformNull','module')
+	    self._i_faceDeformNull = i_grp#link
+	    return True
+	
+	def verify_headModule(self):
+	    if self._partType not in __l_faceModules__:
+		log.info("Not a face module, not gonna find a head from here")
+		return False
+	    
+	    if self._partType == 'eyelids':
+		self._i_headModule = self._mi_module.moduleParent.moduleParent
+	    else:
+		self._i_headModule = self._mi_module.moduleParent
+		
+	    self._mi_parentHeadHandle = self._i_headModule.rigNull.handleIK	    
+	    return self._i_headModule
+		
+	def verify_faceScaleDriver(self):
+	    try:
+		mi_parentHeadHandle = self._mi_parentHeadHandle
+		mi_parentBlendPlug = cgmMeta.cgmAttr(mi_parentHeadHandle,'scale')
+		mi_faceDeformNull = self._i_faceDeformNull
+		#connect blend joint scale to the finger blend joints
+		'''
+		for i_jnt in ml_blendJoints:
+		    mi_parentBlendPlug.doConnectOut("%s.scale"%i_jnt.mNode)
+		'''	
+		
+		#intercept world scale and add in head scale
+		mPlug_multpHeadScale = cgmMeta.cgmAttr(mi_faceDeformNull,'out_multpHeadScale',value = 1.0,defaultValue=1.0,lock = True)
+		
+		mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+		mPlug_globalScale.doConnectOut(mPlug_multpHeadScale)
+		NodeF.argsToNodes("%s = %s * %s.sy"%(mPlug_multpHeadScale.p_combinedShortName,
+	                                             mPlug_globalScale.p_combinedShortName,
+	                                             mi_parentHeadHandle.p_nameShort)).doBuild()
+		self.mPlug_multpHeadScale = mPlug_multpHeadScale
+	    except Exception,error:raise Exception,"!verify_faceScaleDriver! | %s"%(error)
+	    
+	def verify_offsetGroup(self,mObj):
+	    try:
+		mi_buffer = mObj.getMessageAsMeta('offsetGroup')
+		if mi_buffer:
+		    return mi_buffer
+		else:
+		    mi_offsetGroup = cgmMeta.cgmObject( mObj.doGroup(True),setClass=True)	 
+		    mi_offsetGroup.doStore('cgmName',mObj.mNode)
+		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
+		    mi_offsetGroup.doName()
+		    mObj.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')	                
+		    return mi_offsetGroup	
+	    except Exception,error:raise Exception,"[verify_offsetGroup! | error: {0}]".format(error)  
+	    
+	def verify_faceSettings(self):
+	    """
+	    Return if a module is rig skeletonized or not
+	    """
+	    _str_funcName = "go.verify_faceSettings(%s)"%self._mi_module.p_nameShort  
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    if self._partType not in __l_faceModules__:
+		raise StandardError, "%s >> Not a face module"%_str_funcName
+		    
+	    #>> Constrain Null ==========================================================    
+	    if self._i_rigNull.getMessage('settings'):
+		return True
+	    
+	    #Check if we have a settings control on parent module --------------------------	    
+	    buffer = self._i_headModule.rigNull.getMessage('settings')
+	    if buffer:
+		self._i_rigNull.connectChildNode(buffer[0],'settings')		    
+		return True
+	    
+	    raise Exception,"No face settings found!"
+	
+	def collectObjectTypeInRigNull(self,objType = 'locator'):
+	    try:
+		ml_objs = []
+		for mObj in self._i_rigNull.getChildren(asMeta = 1):
+		    if mObj.getMayaType() == objType:
+			ml_objs.append(mObj)
+		if ml_objs:
+		    mi_group = cgmMeta.cgmObject(name = objType,setClass=1)
+		    mi_group.addAttr('cgmName',objType)
+		    mi_group.doName()
+		    mi_group.parent = self._i_rigNull		    
+		    for mObj in ml_objs:
+			mObj.parent = mi_group
+	    except Exception,error:raise Exception,"[collectObjectTypeInRigNull({0}! | error: {1}]".format(objType,error)  
+	
+	def collect_worldDynDrivers(self):
+	    try:
+		ml_objs = []
+		mi_worldSpaceObjectsGroup = self._i_puppet.masterNull.worldSpaceObjectsGroup
+		for mObj in self._i_masterControl.getChildren(asMeta = 1):
+		    if mObj.getMayaAttr('cgmType') in ['dynDriver']:
+			mObj.parent = mi_worldSpaceObjectsGroup
+	    except Exception,error:raise Exception,"[collectObjectTypeInRigNull ! | error: {0}]".format(error)  
+	    
+	def verify_mirrorSideArg(self,arg  = None):
+	    _str_funcName = "return_mirrorSideAsString(%s)"%self._mi_module.p_nameShort   
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)   
+	    try:
+		if arg is not None and arg.lower() in ['right','left']:
+		    return arg.capitalize()
+		else:
+		    return 'Centre'
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error) 
+	    
+	def cleanTempAttrs(self):
+	    for key in self._shapesDict.keys():
+		for subkey in self._shapesDict[key]:
+		    self._i_rigNull.doRemove('%s_%s'%(key,subkey))
+	    return True
+				     
+	def _get_influenceChains(self):
+	    return get_influenceChains(self._mi_module)	
+	    
+	def _get_segmentHandleChains(self):
+	    return get_segmentHandleChains(self._mi_module)
+	    
+	def _get_segmentChains(self):
+	    return get_segmentChains(self._mi_module)
+	    
+	def _get_rigDeformationJoints(self):
+	    return get_rigDeformationJoints(self._mi_module)
+	    
+	def _get_handleJoints(self):
+	    return self._mi_module.rig_getRigHandleJoints(asMeta = True)
+	
+	def _get_simpleRigJointDriverDict(self):
+	    return get_simpleRigJointDriverDict(self._mi_module)
+	def _get_eyeLook(self):
+	    return get_eyeLook(self._mi_module)
+	def _verify_eyeLook(self):
+	    return verify_eyeLook(self._mi_module)   
+	def get_report(self):
+	    self._mi_module.rig_getReport()
+	def _set_versionToCurrent(self):
+	    self._i_rigNull.version = str(self._buildVersion)	
+	    
+	#>> Connections
+	#=====================================================================
+	def connect_toRigGutsVis(self, ml_objects, vis = True, doShapes = False):
+	    try:
+		_str_funcName = "go.connect_toRigGutsVis(%s)"%self._mi_module.p_nameShort  
+		#log.debug(">>> %s "%(_str_funcName) + "="*75)
+		#start = time.clock()	
+		
+		if type(ml_objects) not in [list,tuple]:ml_objects = [ml_objects]
+		for i_obj in ml_objects:
+		    if doShapes:
+			for shp in i_obj.getShapes():
+			    mShp = cgmMeta.cgmNode(shp)
+			    mShp.overrideEnabled = 1		
+			    if vis: cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mShp.mNode,'overrideVisibility'))
+			    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mShp.mNode,'overrideDisplayType'))    
+		    else:
+			i_obj.overrideEnabled = 1		
+			if vis: cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
+			cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
+		
+		#log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+	    
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)
+	
+	def connect_pushOverridesToShapes(self,ml_objects):
+	    for mObj in ml_objects:
+		_overrideEnabled = mObj.overrideEnabled
+		_overrideVisibilityDriver = attributes.returnDrivenAttribute("%s.overrideVisibility"%mObj.mNode)
+		_overrideDisplayTypeDriver = attributes.returnDrivenAttribute("%s.overrideDisplayType"%mObj.mNode)
+		
+		if _overrideEnabled:
 		    for shp in i_obj.getShapes():
 			mShp = cgmMeta.cgmNode(shp)
-			mShp.overrideEnabled = 1		
-			if vis: cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mShp.mNode,'overrideVisibility'))
-			cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mShp.mNode,'overrideDisplayType'))    
+			mShp.overrideEnabled = 1
+			if _overrideVisibilityDriver: attributes.doConnectAttr(_overrideVisibilityDriver,"%s.overrideVisibility"%mObj.mNode)
+			if _overrideDisplayTypeDriver: attributes.doConnectAttr(_overrideDisplayTypeDriver,"%s.overrideDisplayType"%mObj.mNode)
+		    attributes.doSetAttr(mObj.mNode, "overrideEnabled", 0)
+		    attributes.doSetAttr(mObj.mNode, "overrideVisibility", 1)
+		    attributes.doSetAttr(mObj.mNode, "overrideDisplayType", 0)
 		else:
-		    i_obj.overrideEnabled = 1		
-		    if vis: cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideVisibility'))
-		    cgmMeta.cgmAttr(self._i_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_obj.mNode,'overrideDisplayType'))    
-	    
-	    #log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+		    log.info("%s : no override enabled!"%mObj.p_nameShort)
+		    
 	
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)
-    
-    def connect_pushOverridesToShapes(self,ml_objects):
-	for mObj in ml_objects:
-	    _overrideEnabled = mObj.overrideEnabled
-	    _overrideVisibilityDriver = attributes.returnDrivenAttribute("%s.overrideVisibility"%mObj.mNode)
-	    _overrideDisplayTypeDriver = attributes.returnDrivenAttribute("%s.overrideDisplayType"%mObj.mNode)
+	def connect_restoreJointLists(self):
+	    raise DeprecationWarning, "Please remove this instance of 'connect_restoreJointLists'"
+	    try:
+		if self._ml_rigJoints:
+		    log.debug("%s.connect_restoreJointLists >> Found rig joints to store back"%self._strShortName)
+		    self._i_rigNull.connectChildrenNodes(self._ml_rigJoints,'rigJoints','rigNull')
+		self._i_rigNull.connectChildrenNodes(self._ml_skinJoints,'skinJoints','rigNull')#Push back
+		self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
+	    except Exception,error:
+		raise StandardError,"%s.connect_restoreJointLists >> Failure: %s"%(self._strShortName,error)
+	
+	#>> Attributes
+	#=====================================================================	
+	def _verify_moduleMasterScale(self):
+	    _str_funcName = "go._verify_moduleMasterScale(%s)"%self._mi_module.p_nameShort  
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()	
+	    try:
+		mPlug_moduleMasterScale = cgmMeta.cgmAttr(self._i_rigNull,'masterScale',value = 1.0,defaultValue=1.0)
+		mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+		mPlug_globalScale.doConnectOut(mPlug_moduleMasterScale)
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)
 	    
-	    if _overrideEnabled:
-		for shp in i_obj.getShapes():
-		    mShp = cgmMeta.cgmNode(shp)
-		    mShp.overrideEnabled = 1
-		    if _overrideVisibilityDriver: attributes.doConnectAttr(_overrideVisibilityDriver,"%s.overrideVisibility"%mObj.mNode)
-		    if _overrideDisplayTypeDriver: attributes.doConnectAttr(_overrideDisplayTypeDriver,"%s.overrideDisplayType"%mObj.mNode)
-		attributes.doSetAttr(mObj.mNode, "overrideEnabled", 0)
-		attributes.doSetAttr(mObj.mNode, "overrideVisibility", 1)
-		attributes.doSetAttr(mObj.mNode, "overrideDisplayType", 0)
-	    else:
-		log.info("%s : no override enabled!"%mObj.p_nameShort)
+	    
+	def _get_masterScalePlug(self):
+	    _str_funcName = "go._verify_moduleMasterScale(%s)"%self._mi_module.p_nameShort  
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    try:
+		if self._i_rigNull.hasAttr('masterScale'):
+		    return cgmMeta.cgmAttr(self._i_rigNull,'masterScale')
+		return cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)   
+	    
+	
+	def build_visSub(self):
+	    _str_funcName = "go.build_visSub(%s)"%self._strShortName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()	
+	    try:
+		mi_settings = self._i_rigNull.settings
+		#Add our attrs
+		mPlug_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
+		mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub_out', defaultValue = 1, attrType = 'int', keyable = False,hidden = True,lock=True)
 		
-    
-    def connect_restoreJointLists(self):
-	raise DeprecationWarning, "Please remove this instance of 'connect_restoreJointLists'"
-	try:
-	    if self._ml_rigJoints:
-		log.debug("%s.connect_restoreJointLists >> Found rig joints to store back"%self._strShortName)
-		self._i_rigNull.connectChildrenNodes(self._ml_rigJoints,'rigJoints','rigNull')
-	    self._i_rigNull.connectChildrenNodes(self._ml_skinJoints,'skinJoints','rigNull')#Push back
-	    self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
-	except Exception,error:
-	    raise StandardError,"%s.connect_restoreJointLists >> Failure: %s"%(self._strShortName,error)
-    
-    #>> Attributes
-    #=====================================================================	
-    def _verify_moduleMasterScale(self):
-	_str_funcName = "go._verify_moduleMasterScale(%s)"%self._mi_module.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()	
-	try:
-	    mPlug_moduleMasterScale = cgmMeta.cgmAttr(self._i_rigNull,'masterScale',value = 1.0,defaultValue=1.0)
-	    mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
-	    mPlug_globalScale.doConnectOut(mPlug_moduleMasterScale)
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)
-	
-	
-    def _get_masterScalePlug(self):
-	_str_funcName = "go._verify_moduleMasterScale(%s)"%self._mi_module.p_nameShort  
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	try:
-	    if self._i_rigNull.hasAttr('masterScale'):
-		return cgmMeta.cgmAttr(self._i_rigNull,'masterScale')
-	    return cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)   
-	
-    
-    def build_visSub(self):
-	_str_funcName = "go.build_visSub(%s)"%self._strShortName
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()	
-	try:
-	    mi_settings = self._i_rigNull.settings
-	    #Add our attrs
-	    mPlug_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
-	    mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mi_settings,'visSub_out', defaultValue = 1, attrType = 'int', keyable = False,hidden = True,lock=True)
+		#Get one of the drivers
+		if self._mi_module.getAttr('cgmDirection') and self._mi_module.cgmDirection.lower() in ['left','right']:
+		    str_mainSubDriver = "%s.%sSubControls_out"%(self._i_masterControl.controlVis.getShortName(),
+		                                                self._mi_module.cgmDirection)
+		else:
+		    str_mainSubDriver = "%s.subControls_out"%(self._i_masterControl.controlVis.getShortName())
 	    
-	    #Get one of the drivers
-	    if self._mi_module.getAttr('cgmDirection') and self._mi_module.cgmDirection.lower() in ['left','right']:
-		str_mainSubDriver = "%s.%sSubControls_out"%(self._i_masterControl.controlVis.getShortName(),
-		                                            self._mi_module.cgmDirection)
-	    else:
-		str_mainSubDriver = "%s.subControls_out"%(self._i_masterControl.controlVis.getShortName())
-	
-	    iVis = self._i_masterControl.controlVis
-	    visArg = [{'result':[mPlug_result_moduleSubDriver.obj.mNode,mPlug_result_moduleSubDriver.attr],
-		       'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubDriver.attr]]}]
-	    NodeF.build_mdNetwork(visArg)
-	    
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
-	    return mPlug_result_moduleSubDriver
-	    
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)   
-    
-    def build_visSubFace(self):
-	_str_funcName = "go.build_visSubFace(%s)"%self._strShortName
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()	
-	try:
-	    mi_settings = self._i_rigNull.settings
-	    #Add our attrs
-	    mPlug_moduleSubFaceDriver = cgmMeta.cgmAttr(mi_settings,'visSubFace', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
-	    mPlug_result_moduleSubFaceDriver = cgmMeta.cgmAttr(mi_settings,'visSubFace_out', defaultValue = 1, attrType = 'int', keyable = False,hidden = True,lock=True)
-	    
-	    #Get one of the drivers
-	    if self._mi_module.getAttr('cgmDirection') and self._mi_module.cgmDirection.lower() in ['left','right']:
-		str_mainSubDriver = "%s.%sSubControls_out"%(self._i_masterControl.controlVis.getShortName(),
-		                                            self._mi_module.cgmDirection)
-	    else:
-		str_mainSubDriver = "%s.subControls_out"%(self._i_masterControl.controlVis.getShortName())
-	
-	    iVis = self._i_masterControl.controlVis
-	    visArg = [{'result':[mPlug_result_moduleSubFaceDriver.obj.mNode,mPlug_result_moduleSubFaceDriver.attr],
-		       'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubFaceDriver.attr]]}]
-	    NodeF.build_mdNetwork(visArg)
-	    
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
-	    return mPlug_result_moduleSubFaceDriver
-	    
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error) 
-    
-    
-    #>>> Joint chains
-    #=====================================================================
-    def mirrorChainOrientation(self,ml_chain):
-	_str_funcName = "go.mirrorChainOrientation(%s)"%self._strShortName
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()	
-	try:
-	    #Get our segment joints
-	    for mJoint in ml_chain:
-		mJoint.parent = False
+		iVis = self._i_masterControl.controlVis
+		visArg = [{'result':[mPlug_result_moduleSubDriver.obj.mNode,mPlug_result_moduleSubDriver.attr],
+	                   'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubDriver.attr]]}]
+		NodeF.build_mdNetwork(visArg)
 		
-	    for mJoint in ml_chain:
-		mJoint.__setattr__("r%s"%self._jointOrientation[2],180)
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
+		return mPlug_result_moduleSubDriver
 		
-	    for i,mJoint in enumerate(ml_chain[1:]):
-		mJoint.parent = ml_chain[i]
-		
-	    jntUtils.metaFreezeJointOrientation(ml_chain)
-	    
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
-	    return ml_chain
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)   
 	
-    def build_rigChain(self):
-	_str_funcName = "go.build_rigChain(%s)"%self._strShortName
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()	
-	try:
-	    #Get our segment joints
-	    l_rigJointsExist = self._i_rigNull.msgList_get('rigJoints',asMeta = False, cull = True)
-	    if l_rigJointsExist:
-		log.error("Deleting existing rig chain")
-		mc.delete(l_rigJointsExist)
+	def build_visSubFace(self):
+	    _str_funcName = "go.build_visSubFace(%s)"%self._strShortName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()	
+	    try:
+		mi_settings = self._i_rigNull.settings
+		#Add our attrs
+		mPlug_moduleSubFaceDriver = cgmMeta.cgmAttr(mi_settings,'visSubFace', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
+		mPlug_result_moduleSubFaceDriver = cgmMeta.cgmAttr(mi_settings,'visSubFace_out', defaultValue = 1, attrType = 'int', keyable = False,hidden = True,lock=True)
 		
-	    l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in self._ml_skinJoints],po=True,ic=True,rc=True)
-	    ml_rigJoints = [cgmMeta.cgmObject(j) for j in l_rigJoints]
+		#Get one of the drivers
+		if self._mi_module.getAttr('cgmDirection') and self._mi_module.cgmDirection.lower() in ['left','right']:
+		    str_mainSubDriver = "%s.%sSubControls_out"%(self._i_masterControl.controlVis.getShortName(),
+		                                                self._mi_module.cgmDirection)
+		else:
+		    str_mainSubDriver = "%s.subControls_out"%(self._i_masterControl.controlVis.getShortName())
 	    
-	    for i,mJnt in enumerate(ml_rigJoints):
-		#log.info(mJnt.p_nameShort)		
-		mJnt.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
-		l_rigJoints[i] = mJnt.mNode
-		mJnt.connectChildNode(self._l_skinJoints[i],'skinJoint','rigJoint')#Connect	    
-		if mJnt.hasAttr('scaleJoint'):
-		    if mJnt.scaleJoint in self._ml_skinJoints:
-			int_index = self._ml_skinJoints.index(mJnt.scaleJoint)
-			mJnt.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
-		if mJnt.hasAttr('rigJoint'):mJnt.doRemove('rigJoint')
-	    
-	    #Name loop
-	    ml_rigJoints[0].parent = False
-	    for mJnt in ml_rigJoints:
-		mJnt.doName()		
-	    self._ml_rigJoints = ml_rigJoints
-	    self._l_rigJoints = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]
-	    self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
-	    return ml_rigJoints
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
+		iVis = self._i_masterControl.controlVis
+		visArg = [{'result':[mPlug_result_moduleSubFaceDriver.obj.mNode,mPlug_result_moduleSubFaceDriver.attr],
+	                   'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubFaceDriver.attr]]}]
+		NodeF.build_mdNetwork(visArg)
+		
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
+		return mPlug_result_moduleSubFaceDriver
+		
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error) 
 	
+	
+	#>>> Joint chains
+	#=====================================================================
+	def mirrorChainOrientation(self,ml_chain):
+	    _str_funcName = "go.mirrorChainOrientation(%s)"%self._strShortName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()	
+	    try:
+		#Get our segment joints
+		for mJoint in ml_chain:
+		    mJoint.parent = False
+		    
+		for mJoint in ml_chain:
+		    mJoint.__setattr__("r%s"%self._jointOrientation[2],180)
+		    
+		for i,mJoint in enumerate(ml_chain[1:]):
+		    mJoint.parent = ml_chain[i]
+		    
+		jntUtils.metaFreezeJointOrientation(ml_chain)
+		
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
+		return ml_chain
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)  
+	    
+	def build_rigChain(self):
+	    _str_funcName = "go.build_rigChain(%s)"%self._strShortName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()	
+	    try:
+		#Get our segment joints
+		l_rigJointsExist = self._i_rigNull.msgList_get('rigJoints',asMeta = False, cull = True)
+		if l_rigJointsExist:
+		    log.error("Deleting existing rig chain")
+		    mc.delete(l_rigJointsExist)
+		    
+		l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in self._ml_skinJoints],po=True,ic=True,rc=True)
+		ml_rigJoints = [cgmMeta.cgmObject(j) for j in l_rigJoints]
+		
+		for i,mJnt in enumerate(ml_rigJoints):
+		    #log.info(mJnt.p_nameShort)		
+		    mJnt.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
+		    l_rigJoints[i] = mJnt.mNode
+		    mJnt.connectChildNode(self._l_skinJoints[i],'skinJoint','rigJoint')#Connect	    
+		    if mJnt.hasAttr('scaleJoint'):
+			if mJnt.scaleJoint in self._ml_skinJoints:
+			    int_index = self._ml_skinJoints.index(mJnt.scaleJoint)
+			    mJnt.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
+		    if mJnt.hasAttr('rigJoint'):mJnt.doRemove('rigJoint')
+		
+		#Name loop
+		ml_rigJoints[0].parent = False
+		for mJnt in ml_rigJoints:
+		    mJnt.doName()		
+		self._ml_rigJoints = ml_rigJoints
+		self._l_rigJoints = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]
+		self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
+		return ml_rigJoints
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)  
+	    
+	
+	def build_handleChain(self,typeModifier = 'handle',connectNodesAs = False): 
+	    _str_funcName = "go.build_handleChain(%s)"%self._strShortName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()		
+	    try:
+		ml_handleJoints = self._mi_module.rig_getHandleJoints()
+		ml_handleChain = []
+		
+		for i,i_handle in enumerate(ml_handleJoints):
+		    i_new = i_handle.doDuplicate()
+		    if ml_handleChain:i_new.parent = ml_handleChain[-1]#if we have data, parent to last
+		    else:i_new.parent = False
+		    i_new.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
+		    i_new.doName()
+		    
+		    #i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
+		    ml_handleChain.append(i_new)
+		    
+		#self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+		#self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
+		log.debug("%s.buildHandleChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_handleChain]))
+		if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
+		    self._i_rigNull.msgList_connect(ml_handleChain,connectNodesAs,'rigNull')#Push back
+		
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+		return ml_handleChain
     
-    def build_handleChain(self,typeModifier = 'handle',connectNodesAs = False): 
-	_str_funcName = "go.build_handleChain(%s)"%self._strShortName
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()		
-	try:
-	    ml_handleJoints = self._mi_module.rig_getHandleJoints()
-	    ml_handleChain = []
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	    
-	    for i,i_handle in enumerate(ml_handleJoints):
-		i_new = i_handle.doDuplicate()
-		if ml_handleChain:i_new.parent = ml_handleChain[-1]#if we have data, parent to last
-		else:i_new.parent = False
+	def duplicate_jointChain(self,ml_jointList = None, typeModifier = 'handle',connectNodesAs = False): 
+	    _str_funcName = "go.duplicate_jointChain(%s)"%self._strShortName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()		
+	    try:
+		ml_dupChain = []
+		for i,i_handle in enumerate(ml_jointList):
+		    i_new = i_handle.doDuplicate()
+		    if ml_dupChain:i_new.parent = ml_dupChain[-1]#if we have data, parent to last
+		    else:i_new.parent = False
+		    i_new.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
+		    i_new.doName()
+		    ml_dupChain.append(i_new)
+		    
+		log.debug("%s.duplicate_jointChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_dupChain]))
+		if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
+		    self._i_rigNull.msgList_connect(ml_dupChain,connectNodesAs,'rigNull')#Push back
+		
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+		return ml_dupChain
+    
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)  
+	
+	def duplicate_moduleJoint(self, index = None, typeModifier = 'duplicate', connectNodesAs = False):    
+	    """
+	    This is only necessary because message connections are duplicated and make duplicating connected joints problematic
+	    """
+	    _str_funcName = "go.duplicate_moduleJoint(%s)"%self._strShortName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()		
+	    try:
+		if index is None:
+		    raise StandardError, "%s.duplicate_moduleJoint >> No index specified"%(self._strShortName)
+		if type(index) is not int:
+		    raise StandardError, "%s.duplicate_moduleJoint >> index not int: %s | %s"%(self._strShortName,index,type(index))
+		if index > len(self._ml_moduleJoints)+1:
+		    raise StandardError, "%s.duplicate_moduleJoint >> index > len(moduleJoints): %s | %s"%(self._strShortName,index,(len(self._ml_moduleJoints)+1))
+		
+		i_target = self._ml_moduleJoints[index]
+		buffer = mc.duplicate(i_target.mNode,po=True,ic=True)[0]
+		i_new = cgmMeta.validateObjArg(buffer,cgmMeta.cgmObject)
+		i_new.parent = False
+		
 		i_new.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
 		i_new.doName()
-		
-		#i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
-		ml_handleChain.append(i_new)
-		
-	    #self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
-	    #self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
-	    log.debug("%s.buildHandleChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_handleChain]))
-	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
-		self._i_rigNull.msgList_connect(ml_handleChain,connectNodesAs,'rigNull')#Push back
-	    
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
-	    return ml_handleChain
-
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
-	
-    def duplicate_jointChain(self,ml_jointList = None, typeModifier = 'handle',connectNodesAs = False): 
-	_str_funcName = "go.duplicate_jointChain(%s)"%self._strShortName
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()		
-	try:
-	    ml_dupChain = []
-	    for i,i_handle in enumerate(ml_jointList):
-		i_new = i_handle.doDuplicate()
-		if ml_dupChain:i_new.parent = ml_dupChain[-1]#if we have data, parent to last
-		else:i_new.parent = False
-		i_new.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
-		i_new.doName()
-		ml_dupChain.append(i_new)
-		
-	    log.debug("%s.duplicate_jointChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_dupChain]))
-	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
-		self._i_rigNull.msgList_connect(ml_dupChain,connectNodesAs,'rigNull')#Push back
-	    
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
-	    return ml_dupChain
-
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
+		    
+		#Push back our nodes
+		self.connect_restoreJointLists()#Push back
+		log.debug("%s.duplicate_moduleJoint >> created: %s"%(self._strShortName,i_new.p_nameShort))
+		if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
+		    self._i_rigNull.connectChildNode(i_new,connectNodesAs,'rigNull')#Push back
+		    
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+		return i_new
     
-    def duplicate_moduleJoint(self, index = None, typeModifier = 'duplicate', connectNodesAs = False):    
-	"""
-	This is only necessary because message connections are duplicated and make duplicating connected joints problematic
-	"""
-	_str_funcName = "go.duplicate_moduleJoint(%s)"%self._strShortName
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()		
-	try:
-	    if index is None:
-		raise StandardError, "%s.duplicate_moduleJoint >> No index specified"%(self._strShortName)
-	    if type(index) is not int:
-		raise StandardError, "%s.duplicate_moduleJoint >> index not int: %s | %s"%(self._strShortName,index,type(index))
-	    if index > len(self._ml_moduleJoints)+1:
-		raise StandardError, "%s.duplicate_moduleJoint >> index > len(moduleJoints): %s | %s"%(self._strShortName,index,(len(self._ml_moduleJoints)+1))
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	    
-	    i_target = self._ml_moduleJoints[index]
-	    buffer = mc.duplicate(i_target.mNode,po=True,ic=True)[0]
-	    i_new = cgmMeta.validateObjArg(buffer,cgmMeta.cgmObject)
-	    i_new.parent = False
+	def build_segmentChains(self, ml_segmentHandleJoints = None, connectNodes = True):
+	    _str_funcName = "go.build_segmentChains(%s)"%self._strShortName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()
+	    try:
+		ml_segmentChains = []
+		if ml_segmentHandleJoints is None:
+		    ml_segmentHandleJoints = get_segmentHandleTargets(self._mi_module)
+		    
+		if not ml_segmentHandleJoints:raise StandardError,"%s.build_segmentChains>> failed to get ml_segmentHandleJoints"%self._strShortName
+		
+		l_segPairs = lists.parseListToPairs(ml_segmentHandleJoints)
+		
+		for i,ml_pair in enumerate(l_segPairs):
+		    index_start = self._ml_moduleJoints.index(ml_pair[0])
+		    index_end = self._ml_moduleJoints.index(ml_pair[-1]) + 1
+		    buffer_segmentTargets = self._ml_moduleJoints[index_start:index_end]
+		    
+		    log.debug("segment %s: %s"%(i,buffer_segmentTargets))
+		    
+		    ml_newChain = []
+		    for i2,j in enumerate(buffer_segmentTargets):
+			i_j = j.doDuplicate()
+			i_j.addAttr('cgmTypeModifier','seg_%s'%i,attrType='string',lock=True)
+			i_j.doName()
+			if ml_newChain:
+			    i_j.parent = ml_newChain[-1].mNode
+			ml_newChain.append(i_j)
+			
+		    ml_newChain[0].parent = False#Parent to deformGroup
+		    ml_segmentChains.append(ml_newChain)
+		
+		#Sometimes last segement joints have off orientaions, we're gonna fix
+		joints.doCopyJointOrient(ml_segmentChains[-1][-2].mNode,ml_segmentChains[-1][-1].mNode)
+		for segmentChain in ml_segmentChains:
+		    jntUtils.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain])
+		    
+		#Connect stuff ============================================================================================    
+		#self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+		#self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back	
+		if connectNodes:
+		    for i,ml_chain in enumerate(ml_segmentChains):
+			l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
+			log.debug("segment chain %s: %s"%(i,l_chain))
+			self._i_rigNull.msgList_connect(ml_chain,'segment%s_Joints'%i,"rigNull")
+			log.debug("segment%s_Joints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_Joints'%i,False)))
+		
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+		return ml_segmentChains
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	    
-	    i_new.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
-	    i_new.doName()
-		
-	    #Push back our nodes
-	    self.connect_restoreJointLists()#Push back
-	    log.debug("%s.duplicate_moduleJoint >> created: %s"%(self._strShortName,i_new.p_nameShort))
-	    if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
-		self._i_rigNull.connectChildNode(i_new,connectNodesAs,'rigNull')#Push back
-		
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
-	    return i_new
-
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
 	
-    def build_segmentChains(self, ml_segmentHandleJoints = None, connectNodes = True):
-	_str_funcName = "go.build_segmentChains(%s)"%self._strShortName
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()
-	try:
-	    ml_segmentChains = []
-	    if ml_segmentHandleJoints is None:
+	def build_simpleInfluenceChains(self,addMidInfluence = True):
+	    """
+	    
+	    """
+	    _str_funcName = "go.build_simpleInfluenceChains(%s)"%self._strShortName
+	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    start = time.clock()
+	    try:
+		ml_handleJoints = self._mi_module.rig_getHandleJoints()
 		ml_segmentHandleJoints = get_segmentHandleTargets(self._mi_module)
 		
-	    if not ml_segmentHandleJoints:raise StandardError,"%s.build_segmentChains>> failed to get ml_segmentHandleJoints"%self._strShortName
-	    
-	    l_segPairs = lists.parseListToPairs(ml_segmentHandleJoints)
-	    
-	    for i,ml_pair in enumerate(l_segPairs):
-		index_start = self._ml_moduleJoints.index(ml_pair[0])
-		index_end = self._ml_moduleJoints.index(ml_pair[-1]) + 1
-		buffer_segmentTargets = self._ml_moduleJoints[index_start:index_end]
+		#>> Make influence joints ================================================================================
+		l_influencePairs = lists.parseListToPairs(ml_segmentHandleJoints)
+		ml_influenceJoints = []
+		ml_influenceChains = []
 		
-		log.debug("segment %s: %s"%(i,buffer_segmentTargets))
-		
-		ml_newChain = []
-		for i2,j in enumerate(buffer_segmentTargets):
-		    i_j = j.doDuplicate()
-		    i_j.addAttr('cgmTypeModifier','seg_%s'%i,attrType='string',lock=True)
-		    i_j.doName()
-		    if ml_newChain:
-			i_j.parent = ml_newChain[-1].mNode
-		    ml_newChain.append(i_j)
+		for i,m_pair in enumerate(l_influencePairs):#For each pair
+		    str_nameModifier = 'seg_%s'%i	    
+		    l_tmpChain = []
+		    ml_midJoints = []	    
+		    for ii,i_jnt in enumerate(m_pair):
+			i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
+			i_new.parent = False
+			i_new.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)
+			i_new.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
+			if l_tmpChain:
+			    i_new.parent = l_tmpChain[-1].mNode
+			i_new.doName()
+			i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations    
+			l_tmpChain.append(i_new)
+			
+		    if addMidInfluence:
+			log.debug("%s.build_simpleInfuenceChains>>> Splitting influence segment: 2 |'%s' >> '%s'"%(self._mi_module.getShortName(),m_pair[0].getShortName(),m_pair[1].getShortName()))
+			l_new_chain = joints.insertRollJointsSegment(l_tmpChain[0].mNode,l_tmpChain[1].mNode,1)
+			#Let's name our new joints
+			for ii,jnt in enumerate(l_new_chain):
+			    i_jnt = cgmMeta.cgmObject(jnt,setClass=True)
+			    i_jnt.doCopyNameTagsFromObject(m_pair[0].mNode)
+			    i_jnt.addAttr('cgmName','%s_mid_%s'%(m_pair[0].cgmName,ii),lock=True)
+			    i_jnt.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)		
+			    i_jnt.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
+			    i_jnt.doName()
+			    ml_midJoints.append(i_jnt)
+			
+		    #Build the chain lists -------------------------------------------------------------------------------------------
+		    ml_segmentChain = [l_tmpChain[0]]
+		    if ml_midJoints:
+			ml_segmentChain.extend(ml_midJoints)
+		    ml_segmentChain.append(l_tmpChain[-1])
+		    for i_j in ml_segmentChain:ml_influenceJoints.append(i_j)
+		    ml_influenceChains.append(ml_segmentChain)#append to influence chains
 		    
-		ml_newChain[0].parent = False#Parent to deformGroup
-		ml_segmentChains.append(ml_newChain)
-	    
-	    #Sometimes last segement joints have off orientaions, we're gonna fix
-	    joints.doCopyJointOrient(ml_segmentChains[-1][-2].mNode,ml_segmentChains[-1][-1].mNode)
-	    for segmentChain in ml_segmentChains:
-		jntUtils.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain])
+		    log.debug("%s.buildHandleChain >> built handle chain %s: %s"%(self._strShortName,i,[i_j.getShortName() for i_j in ml_segmentChain]))
+		    
+		#Copy orientation of the very last joint to the second to last
+		joints.doCopyJointOrient(ml_influenceChains[-1][-2].mNode,ml_influenceChains[-1][-1].mNode)
+	
+		#Figure out how we wanna store this, ml_influence joints 
+		for i_jnt in ml_influenceJoints:
+		    i_jnt.parent = False
+		    
+		for i_j in ml_influenceJoints:
+		    jntUtils.metaFreezeJointOrientation(i_j.mNode)#Freeze orientations
 		
-	    #Connect stuff ============================================================================================    
-	    #self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
-	    #self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back	
-	    if connectNodes:
-		for i,ml_chain in enumerate(ml_segmentChains):
+		#Connect stuff ============================================================================================    
+		for i,ml_chain in enumerate(ml_influenceChains):
 		    l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
-		    log.debug("segment chain %s: %s"%(i,l_chain))
-		    self._i_rigNull.msgList_connect(ml_chain,'segment%s_Joints'%i,"rigNull")
-		    log.debug("segment%s_Joints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_Joints'%i,False)))
-	    
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
-	    return ml_segmentChains
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
+		    log.debug("%s.build_simpleInfuenceChains>>> split chain: %s"%(self._mi_module.getShortName(),l_chain))
+		    self._i_rigNull.msgList_connect(ml_chain,'segment%s_InfluenceJoints'%i,"rigNull")
+		    log.debug("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_InfluenceJoints'%i,False)))
+		
+		log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
+		return {'ml_influenceChains':ml_influenceChains,'ml_influenceJoints':ml_influenceJoints,'ml_segmentHandleJoints':ml_segmentHandleJoints}
+	    except Exception,error:
+		raise StandardError,"%s >> %s"%(_str_funcName,error)  	
 	
-    
-    def build_simpleInfluenceChains(self,addMidInfluence = True):
-	"""
-	
-	"""
-	_str_funcName = "go.build_simpleInfluenceChains(%s)"%self._strShortName
-	log.debug(">>> %s "%(_str_funcName) + "="*75)
-	start = time.clock()
-	try:
-	    ml_handleJoints = self._mi_module.rig_getHandleJoints()
-	    ml_segmentHandleJoints = get_segmentHandleTargets(self._mi_module)
-	    
-	    #>> Make influence joints ================================================================================
-	    l_influencePairs = lists.parseListToPairs(ml_segmentHandleJoints)
-	    ml_influenceJoints = []
-	    ml_influenceChains = []
-	    
-	    for i,m_pair in enumerate(l_influencePairs):#For each pair
-		str_nameModifier = 'seg_%s'%i	    
-		l_tmpChain = []
-		ml_midJoints = []	    
-		for ii,i_jnt in enumerate(m_pair):
-		    i_new = cgmMeta.cgmObject(mc.duplicate(i_jnt.mNode,po=True,ic=True)[0])
-		    i_new.parent = False
-		    i_new.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)
-		    i_new.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
-		    if l_tmpChain:
-			i_new.parent = l_tmpChain[-1].mNode
-		    i_new.doName()
-		    i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations    
-		    l_tmpChain.append(i_new)
-		    
-		if addMidInfluence:
-		    log.debug("%s.build_simpleInfuenceChains>>> Splitting influence segment: 2 |'%s' >> '%s'"%(self._mi_module.getShortName(),m_pair[0].getShortName(),m_pair[1].getShortName()))
-		    l_new_chain = joints.insertRollJointsSegment(l_tmpChain[0].mNode,l_tmpChain[1].mNode,1)
-		    #Let's name our new joints
-		    for ii,jnt in enumerate(l_new_chain):
-			i_jnt = cgmMeta.cgmObject(jnt,setClass=True)
-			i_jnt.doCopyNameTagsFromObject(m_pair[0].mNode)
-			i_jnt.addAttr('cgmName','%s_mid_%s'%(m_pair[0].cgmName,ii),lock=True)
-			i_jnt.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)		
-			i_jnt.addAttr('cgmTypeModifier','influence',attrType='string',lock=True)		
-			i_jnt.doName()
-			ml_midJoints.append(i_jnt)
-		    
-		#Build the chain lists -------------------------------------------------------------------------------------------
-		ml_segmentChain = [l_tmpChain[0]]
-		if ml_midJoints:
-		    ml_segmentChain.extend(ml_midJoints)
-		ml_segmentChain.append(l_tmpChain[-1])
-		for i_j in ml_segmentChain:ml_influenceJoints.append(i_j)
-		ml_influenceChains.append(ml_segmentChain)#append to influence chains
-		
-		log.debug("%s.buildHandleChain >> built handle chain %s: %s"%(self._strShortName,i,[i_j.getShortName() for i_j in ml_segmentChain]))
-		
-	    #Copy orientation of the very last joint to the second to last
-	    joints.doCopyJointOrient(ml_influenceChains[-1][-2].mNode,ml_influenceChains[-1][-1].mNode)
-    
-	    #Figure out how we wanna store this, ml_influence joints 
-	    for i_jnt in ml_influenceJoints:
-		i_jnt.parent = False
-		
-	    for i_j in ml_influenceJoints:
-		jntUtils.metaFreezeJointOrientation(i_j.mNode)#Freeze orientations
-	    
-	    #Connect stuff ============================================================================================    
-	    for i,ml_chain in enumerate(ml_influenceChains):
-		l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
-		log.debug("%s.build_simpleInfuenceChains>>> split chain: %s"%(self._mi_module.getShortName(),l_chain))
-		self._i_rigNull.msgList_connect(ml_chain,'segment%s_InfluenceJoints'%i,"rigNull")
-		log.debug("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_InfluenceJoints'%i,False)))
-	    
-	    log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
-	    return {'ml_influenceChains':ml_influenceChains,'ml_influenceJoints':ml_influenceJoints,'ml_segmentHandleJoints':ml_segmentHandleJoints}
-	except Exception,error:
-	    raise StandardError,"%s >> %s"%(_str_funcName,error)  
+    f1 = fncWrap(*args, **kws)
+    f1.go()
+    return f1
+
 	
 #>>> Functions
 #=============================================================================================================
@@ -1003,7 +1020,7 @@ class RigFactoryFunc(cgmGeneral.cgmFuncCls):
 	    if not issubclass(type(goInstance),go):
 		raise StandardError,"Not a RigFactory.go instance: '%s'"%goInstance
 	    assert mc.objExists(goInstance._mi_module.mNode),"Module no longer exists"
-	except Exception,error:raise StandardError,"RigFactoryFunc fail | %s"%error
+	except Exception,error:raise Exception,"RigFactoryFunc fail | %s"%error
 	
 	super(RigFactoryFunc, self).__init__(*args, **kws)
 	self._str_moduleShortName = goInstance._strShortName
@@ -1083,9 +1100,6 @@ def isBuildable(goInstance):
     log.info("'%s' NEEDS CONVERSION TO cgmFuncCls"%_str_funcName)
     
     try:
-	if not issubclass(type(goInstance),go):
-	    log.error("Not a RigFactory.go instance: '%s'"%goInstance)
-	    raise StandardError
 	self = goInstance#Link
 	
 	if self._partType not in d_moduleTypeToBuildModule.keys():
@@ -1122,7 +1136,7 @@ def isBuildable(goInstance):
 	
 	return True
     except Exception,error:
-	raise StandardError,"%s >> %s"%(_str_funcName,error)
+	raise Exception,"%s >> %s"%(_str_funcName,error)
     
 
 def verify_moduleRigToggles(goInstance):
@@ -1130,10 +1144,6 @@ def verify_moduleRigToggles(goInstance):
     Rotate orders
     hips = 3
     """    
-    if not issubclass(type(goInstance),go):
-	log.error("Not a RigFactory.go instance: '%s'"%goInstance)
-	raise StandardError
-    
     self = goInstance
     _str_funcName = "%s.verify_moduleRigToggles"%self._strShortName
     log.debug(">>> %s "%(_str_funcName) + "="*75)   
@@ -1667,8 +1677,8 @@ class ModuleFunc(cgmGeneral.cgmFuncCls):
 	    except:mModule = args[0]
 	    try:
 		assert mModule.isModule()
-	    except Exception,error:raise StandardError,"Not a module instance : %s"%error	
-	except Exception,error:raise StandardError,"ModuleFunc failed to initialize | %s"%error
+	    except Exception,error:raise Exception,"Not a module instance : %s"%error	
+	except Exception,error:raise Exception,"ModuleFunc failed to initialize | %s"%error
 	self._str_funcName= "testFModuleFuncunc"		
 	super(ModuleFunc, self).__init__(*args, **kws)
 
@@ -1711,7 +1721,7 @@ def get_eyeLook(*args,**kws):
 		self.log_info("Failed to find eyeLook.")
 		return False
 
-	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
+	    except Exception,error:raise Exception,"!Query! | %s"%(error)
     return fncWrap(*args,**kws).go()
 	
 def verify_eyeLook(*args,**kws):
@@ -1740,7 +1750,7 @@ def verify_eyeLook(*args,**kws):
 		try:self._mi_moduleParent = mi_buildModule.moduleParent
 		except:self._mi_moduleParent = False		
 
-	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
+	    except Exception,error:raise Exception,"!Query! | %s"%(error)
 	    
 	    #self._ml_puppetEyeLook = mi_puppet.msgList_get('eyeLook')
 	    #try:self._mi_moduleEyeLook = mi_buildModule.eyeLook
@@ -1761,17 +1771,17 @@ def verify_eyeLook(*args,**kws):
 		mi_rigNull = self.mi_module.rigNull
 		mi_puppet = self.mi_module.modulePuppet
 		mi_faceDeformNull = self.mi_module.faceDeformNull
-	    except Exception,error:raise StandardError,"!Query! | %s"%(error)
+	    except Exception,error:raise Exception,"!Query! | %s"%(error)
 	    
 	    try:mShapeCast.go(mi_buildModule,['eyeLook'])
-	    except Exception,error:raise StandardError,"shapeCast | %s"%(error)	    
+	    except Exception,error:raise Exception,"shapeCast | %s"%(error)	    
 	    try:mi_eyeLookShape = mi_rigNull.shape_eyeLook
-	    except Exception,error:raise StandardError,"grabShape | %s"%(error)	    
+	    except Exception,error:raise Exception,"grabShape | %s"%(error)	    
 	    mi_rigNull.doRemove('shape_eyeLook')
 	    try:d_buffer = mControlFactory.registerControl(mi_eyeLookShape.mNode,addDynParentGroup=True,
 	                                                   mirrorSide = 'center', mirrorAxis="translateX,rotateY,rotateZ",		                                               	                                                   
 	                                                   addSpacePivots=2)
-	    except Exception,error:raise StandardError,"register Control | %s"%(error)
+	    except Exception,error:raise Exception,"register Control | %s"%(error)
 	    mi_eyeLookShape = d_buffer['instance']
 	    mi_eyeLookShape.masterGroup.parent = mi_faceDeformNull
 	    self.mi_eyeLookShape = mi_eyeLookShape
@@ -1799,7 +1809,7 @@ def verify_eyeLook(*args,**kws):
 			    self.ml_dynParentsToAdd.append( mi_parentsParentRigNull.cog )	    
 		
 		self.ml_dynParentsToAdd.append(mi_puppet.masterControl)		
-	    except Exception,error:raise StandardError,"!Gather parent space targets! | %s"%(error)
+	    except Exception,error:raise Exception,"!Gather parent space targets! | %s"%(error)
 
 	    try:#Setup dynamic parent ======================================================
 		#Add our parents
@@ -1816,22 +1826,22 @@ def verify_eyeLook(*args,**kws):
 		for o in self.ml_dynParentsToAdd:
 		    mi_dynGroup.addDynParent(o)
 		mi_dynGroup.rebuild()	    
-	    except Exception,error:raise StandardError,"dynParent setup | %s"%(error)	
+	    except Exception,error:raise Exception,"dynParent setup | %s"%(error)	
 	    
 	    try:#Connections ======================================================
 		mi_puppet.msgList_append(mi_eyeLookShape,'eyeLook','puppet')
 		mi_buildModule.connectChildNode(mi_eyeLookShape,'eyeLook')	
 		if mi_moduleParent:
 		    mi_parentRigNull.connectChildNode(mi_eyeLookShape,'eyeLook','rigNull')
-	    except Exception,error:raise StandardError,"!Connections! | %s"%(error)		    
+	    except Exception,error:raise Exception,"!Connections! | %s"%(error)		    
 
 	    try:#DynSwitch ======================================================
 		mi_dynSwitch = cgmRigMeta.cgmDynamicSwitch(dynOwner=mi_eyeLookShape.mNode)
-	    except Exception,error:raise StandardError,"!dynSwitch! | %s"%(error)	
+	    except Exception,error:raise Exception,"!dynSwitch! | %s"%(error)	
 	    
 	    try:#Set locks ======================================================
 		mi_eyeLookShape._setControlGroupLocks(True)
-	    except Exception,error:raise StandardError,"!set group Locks! | %s"%(error)	
+	    except Exception,error:raise Exception,"!set group Locks! | %s"%(error)	
 	    
 	    try:#Set mirror =======================================================
 		int_start = mi_puppet.get_nextMirrorIndex('centre')#"Centre"...really, Mark? :)
@@ -1843,7 +1853,7 @@ def verify_eyeLook(*args,**kws):
 		#except Exception,error: raise StandardError,"!Controls all connect!| %s"%error	    
 		#try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
 		#except Exception,error: raise StandardError,"!Failed to set module objectSet! | %s"%error
-	    except Exception,error:raise StandardError,"!Mirror Setup! | %s"%(error)	
+	    except Exception,error:raise Exception,"!Mirror Setup! | %s"%(error)	
 	    
 	    try:#moduleParent Stuff =======================================================
 		if mi_moduleParent:
@@ -1853,6 +1863,6 @@ def verify_eyeLook(*args,**kws):
 		    except Exception,error: raise StandardError,"!Controls all connect!| %s"%error	    
 		    try:mi_parentRigNull.moduleSet.extend(self.ml_controlsAll)
 		    except Exception,error: raise StandardError,"!Failed to set module objectSet! | %s"%error
-	    except Exception,error:raise StandardError,"!Module Parent registration! | %s"%(error)	
+	    except Exception,error:raise Exception,"!Module Parent registration! | %s"%(error)	
 	    
     return fncWrap(*args,**kws).go()
