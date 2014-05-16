@@ -198,47 +198,21 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
 	    #if log.getEffectiveLevel() == 10:log.debug("Master Null good...")
 	except Exception,error:
-	    raise StandardError,"%s >>> MasterNull | error : %s"%(_str_funcName,error)	
+	    raise Exception,"%s >>> MasterNull | error : %s"%(_str_funcName,error)	
 	    
 	try:#Quick select sets ================================================================
-	    if not self.getMessage('puppetSet'):#
-		i_selectSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
-		i_selectSet.connectParentNode(self.mNode,'puppet','puppetSet')
-	    
-	    i_selectSet = self.puppetSet
-	    cgmMeta.cgmAttr(self,'cgmName').doCopyTo(i_selectSet.mNode,connectTargetToSource =True)
-	    i_selectSet.doName()	    
+	    self.__verifyObjectSet__()
 	    
 	except Exception,error:
-	    raise StandardError,"%s >>> ObjectSet | error : %s"%(_str_funcName,error)
+	    raise Exception,"%s >>> ObjectSet | error : %s"%(_str_funcName,error)
+	
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Groups
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 	try:
-	    #if log.getEffectiveLevel() == 10:log.debug(5)
-	    for attr in 'deform','noTransform','geo','parts':
-		grp = attributes.returnMessageObject(self.i_masterNull.mNode,attr+'Group')# Find the group
-		Attr = 'i_' + attr+'Group'#Get a better attribute store string           
-		if mc.objExists( grp ):
-		    self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
-		    #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
-		else:#Make it
-		    #if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
-		    self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
-		    self.__dict__[Attr].doName()
-		    self.__dict__[Attr].connectParentNode(self.i_masterNull.mNode,'puppet', attr+'Group')
-		    #if log.getEffectiveLevel() == 10:log.debug("Initialized as 'self.%s'"%(Attr))                    
-		    self.__dict__[Attr].__verify__()
-		    
-		# Few Case things
-		#==============            
-		if attr == 'geo':
-		    self.__dict__[Attr].doParent(self.i_noTransformGroup)
-		else:    
-		    self.__dict__[Attr].doParent(self.i_masterNull)
-		attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
+	    self.__verifyGroups__()
 	except Exception,error:
-	    raise StandardError,"%s >>> groups |error : %s"%(_str_funcName,error)	
+	    raise Exception,"%s >>> groups |error : %s"%(_str_funcName,error)	
 	    
         return True
 
@@ -253,7 +227,53 @@ class cgmPuppet(cgmMeta.cgmNode):
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Puppet Utilities
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>             
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    def __verifyGroups__(self):
+	_str_funcName = "__verifyGroups__({0})".format(self.p_nameShort)
+	try:#Quick select sets ================================================================
+	    #if log.getEffectiveLevel() == 10:log.debug(5)
+	    mi_masterNull = self.masterNull
+	    for attr in 'deform','noTransform','geo','parts','worldSpaceObjects':
+		grp = attributes.returnMessageObject(mi_masterNull.mNode,attr+'Group')# Find the group
+		Attr = 'i_' + attr+'Group'#Get a better attribute store string           
+		if mc.objExists( grp ):
+		    self.__dict__[Attr]  = r9Meta.MetaClass(grp)#initialize
+		    #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized as 'self.%s'"%(grp,Attr))
+		else:#Make it
+		    #if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
+		    self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
+		    self.__dict__[Attr].doName()
+		    self.__dict__[Attr].connectParentNode(mi_masterNull.mNode,'puppet', attr+'Group')
+		    #if log.getEffectiveLevel() == 10:log.debug("Initialized as 'self.%s'"%(Attr))                    
+		    self.__dict__[Attr].__verify__()
+		    
+		# Few Case things
+		#==============            
+		if attr == 'geo':
+		    self.__dict__[Attr].doParent(self.i_noTransformGroup)
+		elif attr == 'worldSpaceObjects':
+		    self.__dict__[Attr].doParent(self.masterControl)
+		else:    
+		    self.__dict__[Attr].doParent(mi_masterNull)
+		attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode ) 	    
+	except Exception,error:raise Exception,"{0} | error : {1}".format(_str_funcName,error)    
+   
+    
+    
+    def __verifyObjectSet__(self):
+	_str_funcName = "__verifyObjectSet__({0})".format(self.p_nameShort)
+	try:#Quick select sets ================================================================
+	    if not self.getMessage('puppetSet'):#
+		i_selectSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
+		i_selectSet.connectParentNode(self.mNode,'puppet','puppetSet')
+	    
+	    i_selectSet = self.puppetSet
+	    cgmMeta.cgmAttr(self,'cgmName').doCopyTo(i_selectSet.mNode,connectTargetToSource =True)
+	    i_selectSet.doName()		    
+	    
+	except Exception,error:raise Exception,"{0} >>> ObjectSet | error : {1}".format(_str_funcName,error)
+    
+    
     def tracePuppet(self):
         pass #Do this later.Trace a puppet to be able to fully delete everything.
         #self.nodes_list.append()
@@ -521,7 +541,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    if self.getGeo():
 		averageBBSize = distance.returnBoundingBoxSizeToAverage(self.masterNull.geoGroup.mNode)
 		#if log.getEffectiveLevel() == 10:log.debug("averageBBSize: %s"%averageBBSize)
-		kws['size'] = averageBBSize * 1.5
+		kws['size'] = averageBBSize 
 	    elif len(self.moduleChildren) == 1 and self.moduleChildren[0].getMessage('helper'):
 		#if log.getEffectiveLevel() == 10:log.debug(">>> %s : Helper found.Sizing that."%_str_funcName)
 		averageBBSize = distance.returnBoundingBoxSizeToAverage(self.moduleChildren[0].getMessage('helper'))		
@@ -1720,8 +1740,12 @@ class cgmModule(cgmMeta.cgmObject):
 	    i_selectSet.doName()
 	    
 	    if self.getMessage('modulePuppet'):
-		self.modulePuppet.puppetSet.addObj(i_selectSet.mNode)
-	    
+		mi_modulePuppet = self.modulePuppet
+		if not mi_modulePuppet.getMessage('puppetSet'):
+		    mi_modulePuppet.__verifyObjectSet__()
+		try:self.modulePuppet.puppetSet.addObj(i_selectSet.mNode)
+		except Exception,error:raise Exception,"Failed to add to puppetSet | error: {0}".format(error)
+	
 	except Exception,error:
 	    raise StandardError,"%s >>> ObjectSet | error : %s"%(_str_funcName,error)
     
