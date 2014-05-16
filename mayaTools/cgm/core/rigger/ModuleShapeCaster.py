@@ -1130,6 +1130,15 @@ class go(object):
 		l_segmentControls.append( mi_crv.mNode )
 		ml_segmentControls.append( mi_crv )
 		
+		#Snap pivot to handle joint?
+		mObj = cgmMeta.cgmObject(seg[0])
+		if mObj.getMessage('owner'):
+		    log.info("Owner!")
+		    _handleJointBuffer = mObj.owner.getMessage('handleJoint')
+		    if _handleJointBuffer:
+			rigging.copyPivot(mi_crv.mNode,_handleJointBuffer[0])		
+		
+		
 	    self.d_returnControls['segmentIK'] = l_segmentControls 
 	    self.md_ReturnControls['segmentIK'] = ml_segmentControls
 	    self._mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentIK','owner')
@@ -1847,20 +1856,20 @@ class go(object):
 	    l_objectsToDo = self.l_controlSnapObjects
 	    
 	for i,obj in enumerate(l_objectsToDo):
-	    log.debug(obj)
+	    mObj = cgmMeta.cgmObject(obj)
+	    log.info(obj)
 	    self._pushKWsDict(d_kws,i,l_objectsToDo)
-
 	    log.debug(">>>>>>>>>>>aim: %s"%self.aimAxis)
 	    log.debug(">>>>>>>>>> lathe: %s"%self.latheAxis)
 	    log.debug(">>>>>>>>>> l_specifiedRotates: %s"%self.l_specifiedRotates)
 	    log.debug(">>>>>>>>>> distance: %s"%self.maxDistance)
 	    #Few more special cases
-	    if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle'] and not self._ml_targetObjects:
+	    if mObj.getAttr('cgmName') in ['ankle'] and not self._ml_targetObjects:
 		log.debug('Special rotate mode')
 		self.rootRotate = [0,0,0]
 		self.latheAxis = 'y'	 
 		
-	    if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['hip']:
+	    if mObj.getAttr('cgmName') in ['hip']:
 		self.l_specifiedRotates = [-90,-60,-30,0,30,60,90]
 		self.closedCurve = False
 		
@@ -1886,6 +1895,13 @@ class go(object):
 	    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[1])                    
 	    mi_crv.addAttr('cgmType',attrType='string',value = 'segIKCurve',lock=True)	
 	    mi_crv.doName()
+	    
+	    #Snap pivot to handle joint? <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  THIS IS NEW TEST CODE - 05.14.2014
+	    if mObj.getMessage('owner'):
+		log.info("Owner!")
+		_handleJointBuffer = mObj.getMessage('handleJoint')
+		if _handleJointBuffer:
+		    rigging.copyPivot(mi_crv.mNode,_handleJointBuffer[0])
 	    
 	    #Store for return
 	    l_segmentControls.append( mi_crv.mNode )
