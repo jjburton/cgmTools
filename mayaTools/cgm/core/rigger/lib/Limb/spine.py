@@ -573,7 +573,7 @@ def build_deformation(*args, **kws):
 	    
 	    try:#>>>Connect segment scale
 		mi_distanceBuffer = i_curve.scaleBuffer	
-		cgmMeta.cgmAttr(mi_distanceBuffer,'segmentScale').doTransferTo(mi_cog.mNode)    
+		cgmMeta.cgmAttr(mi_distanceBuffer,'segmentScaleMult').doTransferTo(mi_cog.mNode)    
 	    except Exception,error:raise Exception,"Connect segment scale fail! | error : {0}".format(error)  
 
 	    

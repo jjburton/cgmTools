@@ -470,7 +470,8 @@ def build_deformation(*args, **kws):
 	    
 	    try:#>>>Connect segment scale
 		mi_distanceBuffer = i_curve.scaleBuffer	
-		cgmMeta.cgmAttr(mi_distanceBuffer,'segmentScale').doTransferTo(mi_go._i_rigNull.settings.mNode)    
+		cgmMeta.cgmAttr(mi_distanceBuffer,
+		                'segmentScaleMult').doTransferTo(mi_go._i_rigNull.settings.mNode)    
 		
 	    except Exception,error:raise Exception,"Connect Segment Scale! | error: {0}".format(error)
 
@@ -536,7 +537,7 @@ def build_deformation(*args, **kws):
 		for k in i_buffer.d_indexToAttr.keys():
 		    attrName = 'neckHead_%s'%k
 		    cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_handleIK.mNode,attrName,connectSourceToTarget = True)
-		    cgmMeta.cgmAttr(mi_handleIK.mNode,attrName,defaultValue = 1,keyable=True)
+		    cgmMeta.cgmAttr(mi_handleIK.mNode,attrName,defaultValue = 1,keyable=False,hidden=False)
 		
 		cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)
 		cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)
@@ -624,7 +625,7 @@ def build_deformation2(self):
 	time_sub = time.clock() 
 	log.debug(">>> %s..."%_str_subFunc) 	
 	mi_distanceBuffer = i_curve.scaleBuffer	
-	cgmMeta.cgmAttr(mi_distanceBuffer,'segmentScale').doTransferTo(self._i_rigNull.settings.mNode)    
+	cgmMeta.cgmAttr(mi_distanceBuffer,'segmentScaleMult ').doTransferTo(self._i_rigNull.settings.mNode)    
 	
 	log.debug("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except StandardError,error:
@@ -700,8 +701,9 @@ def build_deformation2(self):
 	#>>> Move attrs to handle ik ==========================================================
 	for k in i_buffer.d_indexToAttr.keys():
 	    attrName = 'neckHead_%s'%k
-	    cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_handleIK.mNode,attrName,connectSourceToTarget = True)
-	    cgmMeta.cgmAttr(mi_handleIK.mNode,attrName,defaultValue = 1,keyable=True)
+	    cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_handleIK.mNode,
+	                                                              attrName,connectSourceToTarget = True)
+	    cgmMeta.cgmAttr(mi_handleIK.mNode,attrName,defaultValue = 1,keyable=False)
 	
 	cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)
 	cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(mi_handleIK.mNode,connectSourceToTarget=True)
