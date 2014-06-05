@@ -68,11 +68,13 @@ from cgm.lib import (attributes,
 
 #>>> Skeleton
 #===================================================================
-__l_jointAttrs__ = ['startAnchor','endAnchor','anchorJoints','rigJoints','influenceJoints','segmentJoints']   
+__l_jointAttrs__ = ['startAnchor','endAnchor','anchorJoints','rigJoints',
+                    'influenceJoints','segmentJoints']   
 
 def __bindSkeletonSetup__(self):
     """
-    The idea at the end of this is that we have create our skin joints from our module joints
+    The idea at the end of this is that we have create our skin joints from our
+    module joints
     """
     try:
 	if not self._cgmClass == 'JointFactory.go':
@@ -92,7 +94,8 @@ def __bindSkeletonSetup__(self):
 	raise StandardError, "%s is not skeletonized yet."%self._strShortName
     
     try:#Reparent joints
-	ml_moduleJoints = self._mi_module.rigNull.msgList_get('moduleJoints',asMeta = True)  #Get the module joints
+	ml_moduleJoints = self._mi_module.rigNull.msgList_get('moduleJoints',
+	                                                      asMeta = True)#Get the module joints
 	ml_skinJoints = []
 	
 	for i,i_jnt in enumerate(ml_moduleJoints):
@@ -544,8 +547,9 @@ def build_deformation(*args, **kws):
 		
 		
 		drivers = ["%s.%s"%(curveSegmentReturn['mi_segmentCurve'].mNode,"fkTwistResult")]
-		drivers.append("%s.r%s"%(ml_segmentHandles[-1].mNode,mi_go._jointOrientation[0]))
-		drivers.append("%s.r%s"%(mi_handleIK.mNode,mi_go._jointOrientation[0]))
+		
+		for mObj in ml_segmentHandles[-1],mi_handleIK,mi_handleIK.dynParentGroup:
+		    drivers.append("%s.r%s"%(mObj.mNode,mi_go._jointOrientation[0]))
 	
 		NodeF.createAverageNode(drivers,
 			                [curveSegmentReturn['mi_segmentCurve'].mNode,"twistEnd"],1)
@@ -555,8 +559,10 @@ def build_deformation(*args, **kws):
 	    try:#Setup bottom twist driver
 		#log.debug("%s.r%s"%(ml_segmentHandles[0].getShortName(),mi_go._jointOrientation[0]))
 		#log.debug("%s.r%s"%(mi_hips.getShortName(),mi_go._jointOrientation[0]))
-		drivers = ["%s.r%s"%(ml_segmentHandles[0].mNode,mi_go._jointOrientation[0])]
-		drivers.append("%s.r%s"%(mi_hips.mNode,mi_go._jointOrientation[0]))
+		drivers = []
+		
+		for mObj in ml_segmentHandles[0],mi_hips,mi_hips.dynParentGroup:
+		    drivers.append("%s.r%s"%(mObj.mNode,mi_go._jointOrientation[0]))
 	
 		#log.debug("driven: %s"%("%s.r%s"%(ml_anchorJoints[1].mNode,mi_go._jointOrientation[0])))
 		NodeF.createAverageNode(drivers,

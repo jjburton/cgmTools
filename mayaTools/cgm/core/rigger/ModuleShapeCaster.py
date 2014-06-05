@@ -103,7 +103,7 @@ class go(object):
 	    self.l_coreNames = self._mi_module.coreNames.value
 	    self._mi_templateNull = self._mi_module.templateNull#speed link
 	    self._mi_rigNull = self._mi_module.rigNull#speed link
-	    self._targetMesh = ['Morphy_Body_GEO'] or self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
+	    self._targetMesh = self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
 	    self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
 	    self._ml_controlObjects = self._mi_templateNull.msgList_get('controlObjects')
 	    
@@ -1781,7 +1781,8 @@ class go(object):
 	self.joinMode = True
 	self.closedCurve = True
 	self.rotateBank = None	    
-	self.maxDistance = 1000
+	#self.maxDistance = 1000
+	self.maxDistance = self._baseModuleDistance	
 	self.aimAxis = 'y+'
 	self.latheAxis = 'z'
 	self.insetMult = .1
@@ -1795,7 +1796,7 @@ class go(object):
 	
 	#Figure out some flag stuff
 	if 'neck' in self.str_partType:
-	    self.maxDistance = 1000
+	    #self.maxDistance = 1000
 	    self.insetMult = .05
 	    self.posOffset = [0,0,self.f_skinOffset*2]
 	    d_kws = {'default':{'l_specifiedRotates':None,
@@ -1862,7 +1863,7 @@ class go(object):
 	    log.debug(">>>>>>>>>>>aim: %s"%self.aimAxis)
 	    log.debug(">>>>>>>>>> lathe: %s"%self.latheAxis)
 	    log.debug(">>>>>>>>>> l_specifiedRotates: %s"%self.l_specifiedRotates)
-	    log.debug(">>>>>>>>>> distance: %s"%self.maxDistance)
+	    log.info(">>>>>>>>>> distance: %s"%self.maxDistance)
 	    #Few more special cases
 	    if mObj.getAttr('cgmName') in ['ankle'] and not self._ml_targetObjects:
 		log.debug('Special rotate mode')

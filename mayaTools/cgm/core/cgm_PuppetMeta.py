@@ -253,6 +253,8 @@ class cgmPuppet(cgmMeta.cgmNode):
 		    self.__dict__[Attr].doParent(self.i_noTransformGroup)
 		elif attr == 'worldSpaceObjects':
 		    self.__dict__[Attr].doParent(self.masterControl)
+		elif attr == 'deform' and self.getMessage('masterControl'):
+		    self.__dict__[Attr].doParent(self.getMessage('masterControl')[0])		    
 		else:    
 		    self.__dict__[Attr].doParent(mi_masterNull)
 		attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode ) 	    

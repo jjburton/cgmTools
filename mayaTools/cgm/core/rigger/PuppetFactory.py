@@ -760,7 +760,7 @@ def mirrorMe(*args,**kws):
 	    l_controls = mc.ls(sl=True)
 	    log.info(l_controls)
 	    if l_controls:
-		r9Anim.MirrorHierarchy(l_controls).mirrorData(mode = '')
+		r9Anim.MirrorHierarchy().mirrorData(l_controls,mode = '')		
 		mc.select(l_controls)
 		return True	    
 	    return False
@@ -987,9 +987,9 @@ def mirror_do(*args,**kws):
                 l_controls = [mObj.mNode for mObj in ml_controls]
                 _str_mrrMd = self.str_mirrorMode
                 if _str_mrrMd == 'symLeft':
-                    r9Anim.MirrorHierarchy(l_controls).makeSymmetrical(mode = '',primeAxis = "Left" )
+                    r9Anim.MirrorHierarchy().makeSymmetrical(l_controls,mode = '',primeAxis = "Left" )
                 elif _str_mrrMd == 'symRight':
-                    r9Anim.MirrorHierarchy(l_controls).makeSymmetrical(mode = '',primeAxis = "Left" )
+                    r9Anim.MirrorHierarchy().makeSymmetrical(l_controls,mode = '',primeAxis = "Left" )
                 else:
                     raise StandardError,"Don't know what to do with this mode: {0}".format(self.str_mirrorMode)
                 mc.select(l_controls)
