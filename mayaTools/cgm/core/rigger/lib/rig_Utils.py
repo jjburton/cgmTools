@@ -2447,19 +2447,23 @@ def createSegmentCurve(*args,**kws):
 		    #self.progressBar_set(status = "node setup | '%s'"%self.l_joints[i], progress = i, maxValue = self.int_lenJoints)		    
 		    
 		    #Make some attrs
-		    mPlug_attrDist= cgmMeta.cgmAttr(mi_jntScaleBufferNode.mNode,"distance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)
-		    mPlug_attrNormalBaseDist = cgmMeta.cgmAttr(mi_jntScaleBufferNode.mNode,"normalizedBaseDistance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)			
-		    mPlug_attrNormalDist = cgmMeta.cgmAttr(mi_jntScaleBufferNode.mNode,"normalizedDistance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)		
-		    mPlug_attrResult = cgmMeta.cgmAttr(mi_jntScaleBufferNode.mNode,"scaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
-		    mPlug_attrTransformedResult = cgmMeta.cgmAttr(mi_jntScaleBufferNode.mNode,"scaledScaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
+		    mPlug_attrDist= cgmMeta.cgmAttr(mi_jntScaleBufferNode.mNode,
+		                                    "distance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)
+		    mPlug_attrNormalBaseDist = cgmMeta.cgmAttr(mi_jntScaleBufferNode.mNode,
+		                                               "normalizedBaseDistance_%s"%i,attrType = 'float',
+		                                               initialValue=0,lock=True,minValue = 0)			
+		    mPlug_attrNormalDist = cgmMeta.cgmAttr(mi_jntScaleBufferNode.mNode,
+		                                           "normalizedDistance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)		
+		    mPlug_attrResult = cgmMeta.cgmAttr(mi_jntScaleBufferNode.mNode,
+		                                       "scaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
+		    mPlug_attrTransformedResult = cgmMeta.cgmAttr(mi_jntScaleBufferNode.mNode,
+		                                                  "scaledScaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
 
 		    #Store our distance base to our buffer
 		    try:mi_jntScaleBufferNode.store(ml_distanceShapes[i].distance)#Store to our buffer
 		    except Exception,error:raise Exception,"[Failed to store joint distance: %s]{%s}"%(ml_distanceShapes[i].mNode,error)
 		    
-		    
-		    
-		    
+
 		    if self.str_connectBy.lower() in ['translate','trans']:
 			#Let's build our args
 			l_argBuild = []
@@ -2478,7 +2482,8 @@ def createSegmentCurve(*args,**kws):
 			    mPlug_attrDist.doConnectIn('%s.%s'%(ml_distanceShapes[i].mNode,'distance'))		        
 			    mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_joints[i+1].mNode,str_orientation[0]))
 			    mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_driverJoints[i+1].mNode,str_orientation[0]))    	    
-			except Exception,error:raise Exception,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		    
+			except Exception,error:
+			    raise Exception,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		    
 		    else:
 			mi_mdNormalBaseDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
 			mi_mdNormalBaseDist.operation = 1
@@ -5880,9 +5885,34 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
     except:pass
 
     #attributeHolder
-    i_holder = cgmMeta.validateObjArg(attributeHolder,cgmMeta.cgmBufferNode,noneValid=False)   
-    mPlug_segmentScale = cgmMeta.cgmAttr(i_holder,"segmentScale",attrType = 'float',initialValue=1.0,minValue = 0.0001,keyable=True)	
-
+    i_holder = cgmMeta.validateObjArg(attributeHolder,cgmMeta.cgmBufferNode,noneValid=False) 
+    
+    '''
+    Okay, we need to build a scale blender that will 1) give us a 0-1 value, and a condition node to use that or the segmentScale Factor
+    '''
+    #mPlug_result_segmentScale = cgmMeta.cgmAttr(i_holder,"result_segmentScale",attrType = 'float',hidden = True)
+    #mPlug_neg_segmentScale = cgmMeta.cgmAttr(i_holder,"result_negateSegmentScale",attrType = 'float',hidden = True)
+    #mPlug_blend_segmentScale = cgmMeta.cgmAttr(i_holder,"result_blendSegmentScale",attrType = 'float',hidden = True)
+    
+    mPlug_segmentScale = cgmMeta.cgmAttr(i_holder,"segmentScaleMult",attrType = 'float',
+                                         initialValue=1.0,hidden=False,defaultValue=1.0,keyable=True)	
+    '''
+    #arg_smileOn = "{0} = if {1} >= 0: {2} else 0".format(
+    arg_negateSegFactor = "{0} = 1 - {1}".format(mPlug_neg_segmentScale.p_combinedShortName,
+                                                 mPlug_segmentScale.p_combinedShortName)
+    
+    arg_blendSegFactor = "{0} = {1} + {2}".format(mPlug_blend_segmentScale.p_combinedShortName,
+                                                  mPlug_neg_segmentScale.p_combinedShortName,
+                                                  mPlug_segmentScale.p_combinedShortName)
+    
+    arg_resSegFactor = "{0} = if {1} >= 1: {2} else {3}".format(mPlug_result_segmentScale.p_combinedShortName,
+                                                                mPlug_segmentScale.p_combinedShortName,
+                                                                mPlug_segmentScale.p_combinedShortName,
+                                                                mPlug_blend_segmentScale.p_combinedName)
+    
+    for a in arg_negateSegFactor,arg_resSegFactor,arg_blendSegFactor:
+	NodeF.argsToNodes(a).doBuild()
+    '''    
     #Initialize joint list
     ml_jointList = cgmMeta.validateObjListArg(jointList,cgmMeta.cgmObject,noneValid=False)   
 
@@ -5891,12 +5921,21 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
     ml_attrs = []
     for i,i_jnt in enumerate(ml_jointList[:-1]):
         #make sure attr exists
-        i_attr = cgmMeta.cgmAttr(i_holder,"scaleMult_%s"%i,attrType = 'float',initialValue=1)
+        i_attr = cgmMeta.cgmAttr(i_holder,"scaleMult_{0}".format(i),attrType = 'float',initialValue=1)
+        mPlug_resultScaleMult = cgmMeta.cgmAttr(i_holder,
+	                                        "result_scaleMultByFactor_{0}".format(i),
+	                                        attrType = 'float',hidden=True)
+	
+	arg_blendSegFactor = "{0} = {1} * {2}".format(mPlug_resultScaleMult.p_combinedShortName,
+	                                              i_attr.p_combinedShortName,
+	                                              mPlug_segmentScale.p_combinedShortName)	
+	NodeF.argsToNodes(arg_blendSegFactor).doBuild()
+	
         #outScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%outChannel)
         #upScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%upChannel)
 
         if connectBy == 'translate':
-            mainDriver = '%s.scaleResult_%s'%(i_holder.mNode,(i))
+            mainDriver = '{0}.scaleResult_{1}'.format(i_holder.mNode,(i))
         else:
             mainDriver = '%s.scale%s'%(i_jnt.mNode,aimChannel)	
         log.debug(mainDriver)
@@ -5932,10 +5971,11 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
         for channel in [outChannel,upChannel]:
             attributes.doConnectAttr('%s.output%s'%(i_invScale.mNode,channel),#>>
                                      '%s.input1%s'%(i_powScale.mNode,channel))
-            attributes.doConnectAttr('%s'%(i_attr.p_combinedName),#>>
+            attributes.doConnectAttr('%s'%(mPlug_resultScaleMult.p_combinedName),#>> was i_attr
                                      '%s.input2%s'%(i_powScale.mNode,channel))
 
         #Create the mdNode
+	'''
         i_mdSegmentScaleMult = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         i_mdSegmentScaleMult.operation = 1
         i_mdSegmentScaleMult.doStore('cgmName',i_jnt.mNode)
@@ -5944,8 +5984,8 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
         for channel in [outChannel,upChannel]:
             attributes.doConnectAttr('%s.output%s'%(i_powScale.mNode,channel),#>>
                                      '%s.input1%s'%(i_mdSegmentScaleMult.mNode,channel))
-            attributes.doConnectAttr('%s'%(mPlug_segmentScale.p_combinedName),#>>
-                                     '%s.input2%s'%(i_mdSegmentScaleMult.mNode,channel))        
+            attributes.doConnectAttr('%s'%(mPlug_result_segmentScale.p_combinedName),#>>
+                                     '%s.input2%s'%(i_mdSegmentScaleMult.mNode,channel)) '''       
         
         """
 	#Create the worldScale multiplier node
@@ -5966,9 +6006,9 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
                                  '%s.input2%s'%(i_worldScale.mNode,upChannel))""" 
 
         #Connect to joint
-        attributes.doConnectAttr('%s.output%s'%(i_mdSegmentScaleMult.mNode,outChannel),#>>
+        attributes.doConnectAttr('%s.output%s'%(i_powScale.mNode,outChannel),#>>
                                  '%s.scale%s'%(i_jnt.mNode,outChannel))  
-        attributes.doConnectAttr('%s.output%s'%(i_mdSegmentScaleMult.mNode,upChannel),#>>
+        attributes.doConnectAttr('%s.output%s'%(i_powScale.mNode,upChannel),#>>
                                  '%s.scale%s'%(i_jnt.mNode,upChannel)) 	
 
         ml_attrs.append(i_attr)
@@ -6029,17 +6069,29 @@ def addAdditiveScaleToSegmentCurveSetup(segmentCurve, orientation = 'zyx', modul
     dPlugs_midOuts = {}
 
     for i,i_jnt in enumerate(ml_startBlendJoints):#We need out factors for start and end up and outs, let's get em
-        mPlug_addFactorIn = cgmMeta.cgmAttr(mi_segmentCurve,"scaleFactor_%s"%(i),attrType='float',value=(1-(fl_factor * (i))),hidden=False)	    
-        mPlug_out_startFactorUp = cgmMeta.cgmAttr(mi_segmentCurve,"out_addStartUpScaleFactor_%s"%(i),attrType='float',lock=True)
-        mPlug_out_startFactorOut = cgmMeta.cgmAttr(mi_segmentCurve,"out_addStartOutScaleFactor_%s"%(i),attrType='float',lock=True)
+        mPlug_addFactorIn = cgmMeta.cgmAttr(mi_segmentCurve,
+	                                    "scaleFactor_%s"%(i),attrType='float',value=(1-(fl_factor * (i))),hidden=False)	    
+        mPlug_out_startFactorUp = cgmMeta.cgmAttr(mi_segmentCurve,
+	                                          "out_addStartUpScaleFactor_%s"%(i),attrType='float',lock=True)
+        mPlug_out_startFactorOut = cgmMeta.cgmAttr(mi_segmentCurve,
+	                                           "out_addStartOutScaleFactor_%s"%(i),attrType='float',lock=True)
 
-        mPlug_out_endFactorUp = cgmMeta.cgmAttr(mi_segmentCurve,"out_addEndUpScaleFactor_%s"%(i),attrType='float',lock=True)		
-        mPlug_out_endFactorOut = cgmMeta.cgmAttr(mi_segmentCurve,"out_addEndOutScaleFactor_%s"%(i),attrType='float',lock=True)
+        mPlug_out_endFactorUp = cgmMeta.cgmAttr(mi_segmentCurve,
+	                                        "out_addEndUpScaleFactor_%s"%(i),attrType='float',lock=True)		
+        mPlug_out_endFactorOut = cgmMeta.cgmAttr(mi_segmentCurve,
+	                                         "out_addEndOutScaleFactor_%s"%(i),attrType='float',lock=True)
 
-        startUpArg = "%s = %s * %s"%(mPlug_out_startFactorUp.p_combinedShortName, mPlug_in_startUp.p_combinedShortName, mPlug_addFactorIn.p_combinedShortName )
-        startOutArg = "%s = %s * %s"%(mPlug_out_startFactorOut.p_combinedShortName, mPlug_in_startOut.p_combinedShortName, mPlug_addFactorIn.p_combinedShortName )
-        endUpArg = "%s = %s * %s"%(mPlug_out_endFactorUp.p_combinedShortName, mPlug_in_endUp.p_combinedShortName, mPlug_addFactorIn.p_combinedShortName )
-        endOutArg = "%s = %s * %s"%(mPlug_out_endFactorOut.p_combinedShortName, mPlug_in_endOut.p_combinedShortName, mPlug_addFactorIn.p_combinedShortName )
+        startUpArg = "%s = %s * %s"%(mPlug_out_startFactorUp.p_combinedShortName,
+	                             mPlug_in_startUp.p_combinedShortName,
+	                             mPlug_addFactorIn.p_combinedShortName )
+        startOutArg = "%s = %s * %s"%(mPlug_out_startFactorOut.p_combinedShortName,
+	                              mPlug_in_startOut.p_combinedShortName,
+	                              mPlug_addFactorIn.p_combinedShortName )
+        endUpArg = "%s = %s * %s"%(mPlug_out_endFactorUp.p_combinedShortName,
+	                           mPlug_in_endUp.p_combinedShortName,
+	                           mPlug_addFactorIn.p_combinedShortName )
+        endOutArg = "%s = %s * %s"%(mPlug_out_endFactorOut.p_combinedShortName,
+	                            mPlug_in_endOut.p_combinedShortName, mPlug_addFactorIn.p_combinedShortName )
 
         for arg in [startUpArg,startOutArg,endUpArg,endOutArg]:
             log.debug("arg %s: %s"%(i,arg))
