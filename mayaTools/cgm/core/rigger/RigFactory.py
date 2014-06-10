@@ -898,7 +898,8 @@ def go(*args, **kws):
 		    ml_newChain = []
 		    for i2,j in enumerate(buffer_segmentTargets):
 			i_j = j.doDuplicate()
-			i_j.addAttr('cgmTypeModifier','seg_%s'%i,attrType='string',lock=True)
+			i_j.addAttr('cgmTypeModifier','seg_{0}'.format(i),attrType='string',lock=True)
+			i_j.addAttr('cgmIterator','{0}'.format(i2),lock=True)			
 			i_j.doName()
 			if ml_newChain:
 			    i_j.parent = ml_newChain[-1].mNode
