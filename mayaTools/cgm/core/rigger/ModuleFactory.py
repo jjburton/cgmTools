@@ -2076,7 +2076,7 @@ def mirrorPush(*args,**kws):
             else:raise StandardError, "Module doesn't have mirror"
 
             if l_buffer:
-                r9Anim.MirrorHierarchy(l_buffer).makeSymmetrical(mode = '',primeAxis = mi_module.cgmDirection.capitalize() )
+                r9Anim.MirrorHierarchy().makeSymmetrical(l_buffer,mode = '',primeAxis = mi_module.cgmDirection.capitalize() )
                 mc.select(l_buffer)
                 return True
             return False	 
@@ -2106,7 +2106,7 @@ def mirrorPull(*args,**kws):
             else:raise StandardError, "Module doesn't have mirror"
 
             if l_buffer:
-                r9Anim.MirrorHierarchy(l_buffer).makeSymmetrical(mode = '',primeAxis = mi_mirror.cgmDirection.capitalize() )
+                r9Anim.MirrorHierarchy().makeSymmetrical(l_buffer,mode = '',primeAxis = mi_mirror.cgmDirection.capitalize() )
                 mc.select(l_buffer)
                 return True
             return False	 
@@ -2160,7 +2160,7 @@ def mirrorSymLeft(*args,**kws):
             if mi_mirror:
                 l_buffer.extend(mi_mirror.rigNull.moduleSet.getList())    
             if l_buffer:
-                r9Anim.MirrorHierarchy(l_buffer).makeSymmetrical(mode = '',primeAxis = "Left" )
+                r9Anim.MirrorHierarchy().makeSymmetrical(l_buffer,mode = '',primeAxis = "Left" )
                 mc.select(l_buffer)
                 return True
             return False	 
@@ -2187,7 +2187,7 @@ def mirrorSymRight(*args,**kws):
             if mi_mirror:
                 l_buffer.extend(mi_mirror.rigNull.moduleSet.getList())    	    
             if l_buffer:
-                r9Anim.MirrorHierarchy(l_buffer).makeSymmetrical(mode = '',primeAxis = "Right" )
+                r9Anim.MirrorHierarchy().makeSymmetrical(l_buffer,mode = '',primeAxis = "Right" )
                 mc.select(l_buffer)
                 return True
             return False	 
@@ -2259,9 +2259,9 @@ def mirror_do(*args,**kws):
                 l_controls = [mObj.mNode for mObj in ml_controls]
                 _str_mrrMd = self.str_mirrorMode
                 if _str_mrrMd == 'symLeft':
-                    r9Anim.MirrorHierarchy(l_controls).makeSymmetrical(mode = '',primeAxis = "Left" )
+                    r9Anim.MirrorHierarchy().makeSymmetrical(l_controls,mode = '',primeAxis = "Left" )
                 elif _str_mrrMd == 'symRight':
-                    r9Anim.MirrorHierarchy(l_controls).makeSymmetrical(mode = '',primeAxis = "Left" )
+                    r9Anim.MirrorHierarchy().makeSymmetrical(l_controls,mode = '',primeAxis = "Left" )
                 else:
                     raise StandardError,"Don't know what to do with this mode: {0}".format(self.str_mirrorMode)
                 mc.select(l_controls)
@@ -2311,7 +2311,7 @@ def mirrorMe_siblings(*args,**kws):
                     self.log_error("[child: %s]{%s}"%(mModule.getShortName(),error))
 
             if l_controls:
-                r9Anim.MirrorHierarchy(l_controls).mirrorData(mode = '')		    
+                r9Anim.MirrorHierarchy().mirrorData(l_controls,mode = '')		    
                 mc.select(l_controls) 
                 return True
             return False
