@@ -3354,7 +3354,13 @@ class cgmAttr(object):
     
     #>>> Property - p_nameLong ================== 
     def getNameLong(self):
-	return mc.attributeQuery(self.attr, node = self.obj.mNode, longName = True) or False	
+	try:
+	    return mc.attributeQuery(self.attr, node = self.obj.mNode, longName = True) or False
+	except:
+	    if mc.objExists("{0}.{1}".format(self.obj.mNode,self.attr)):
+		return self.attr
+	    else:
+		raise RuntimeError,"Attr does not exist: {0}.{1}".format(self.obj.mNode,self.attr)
     def doRename(self,arg):
         """ 
         Rename an attribute as something else
@@ -3676,7 +3682,8 @@ class cgmAttr(object):
     def getChildren(self,asMeta = False):
 	try:
 	    asMeta = cgmValid.boolArg(asMeta)
-	    buffer = mc.attributeQuery(self.attr, node = self.obj.mNode, listChildren=True) or []
+	    try:buffer = mc.attributeQuery(self.attr, node = self.obj.mNode, listChildren=True) or []
+	    except:buffer = []
 	    if asMeta:
 		return [cgmAttr(self.obj.mNode,c) for c in buffer]
 	    return buffer
@@ -3908,10 +3915,21 @@ class cgmAttr(object):
 	#log.debug(">>> %s >>> "%(_str_funcName) + "="*75) 	
 	try:
 	    try:d_target = validateAttrArg(target,noneValid=False)
-	    except StandardError,error:raise StandardError,"%s failed to validate: %s"%(target,error)
+	    except Exception,error:raise Exception,"%s failed to validate: %s"%(target,error)
 	    mPlug_target = d_target.get('mi_plug')
-	    try:attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
-	    except StandardError,error:raise StandardError,"connection fail: %s"%(error)		
+	    
+	    if mPlug_target:
+		if mPlug_target.getChildren() and not self.getChildren():
+		    for cInstance in mPlug_target.getChildren(asMeta=True):
+			log.info("Single to multi mode. Children detected. Connecting to child: {0}".format(cInstance.p_combinedName))
+			attributes.doConnectAttr(self.p_combinedName,cInstance.p_combinedName)
+		else:
+		    try:attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
+		    except Exception,error:raise Exception,"connection fail: %s"%(error)		    
+	    else:
+		log.warning("Source failed to validate: %s"%(source) + "="*75)            			    
+		return False	    
+		
 	    #log.debug(">>> %s.doConnectOut >>-->>  %s "%(self.p_combinedShortName,mPlug_target.p_combinedName) + "="*75)            						
 	except Exception,error:
 	    fmt_args = [self.obj.p_nameShort, self.p_nameLong]
@@ -3935,7 +3953,7 @@ class cgmAttr(object):
 	    if mPlug_source:
 		if self.getChildren() and not mPlug_source.getChildren():
 		    for cInstance in self.getChildren(asMeta=True):
-			log.info("Children detected. Connecting to child: {0}".format(cInstance.p_combinedName))
+			log.info("Single to multi mode. Children detected. Connecting to child: {0}".format(cInstance.p_combinedName))
 			attributes.doConnectAttr(mPlug_source.p_combinedName,cInstance.p_combinedName)
 		else:
 		    try:attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
