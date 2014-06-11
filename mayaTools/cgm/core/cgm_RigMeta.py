@@ -663,7 +663,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	    i_matchObject.parent = i_matchTarget.mNode
 	    i_matchObject.doStore('cgmName',"%s_toMatch_%s"%(i_drivenObject.getNameAlias(),i_matchTarget.getNameAlias())) 
 	    i_matchObject.addAttr('cgmType','dynIterMatchObject')
-	    i_matchObject.addAttr('mClass','cgmMeta.cgmObject')	
+	    i_matchObject.addAttr('mClass','cgmObject')	
 	    i_matchObject.doName()	    
 	    log.debug("%s.addDynIterTarget>> match object created: %s"%(self.getShortName(),i_matchObject.getShortName()))
 	elif not i_matchObject:
@@ -1037,35 +1037,37 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	"""
 	
 	"""
-	log.debug(">>> %s.addDynMatchTarget() >> "%(self.p_nameShort) + "-"*75)  				    						
-	#>>> Validate
-	i_dMatchTarget = cgmMeta.validateObjArg(arg,cgmMeta.cgmObject,noneValid=True)
-	if not i_dMatchTarget:raise StandardError, "cgmDynamicMatch.addDynMatchTarget>> Failed to cgmMeta.validate: %s"%arg	    
-	if self == i_dMatchTarget:
-	    raise StandardError, "cgmDynamicMatch.addDynMatchTarget>> Cannot add self as target"
-	if not i_dMatchTarget.isTransform():
-	    raise StandardError, "cgmDynamicMatch.addDynMatchTarget>> MatchTarget has no transform: '%s'"%i_dMatchTarget.getShortName()
-	log.debug("cgmDynamicMatch.addDynMatchTarget>> '%s'"%i_dMatchTarget.getShortName())
-
-	ml_dynMatchTargets = [cgmMeta.cgmObject(o) for o in self.msgList_get('dynMatchTargets',asMeta=False)]
-	log.debug(">>>>>>>>>>>>> Start add %s"%self.msgList_get('dynMatchTargets',False))
-	
-	if i_dMatchTarget in ml_dynMatchTargets:
-	    log.debug("cgmDynamicMatch.addDynMatchTarget>> Object already connected: %s"%i_dMatchTarget.getShortName())
-	    self.verifyMatchTargetDriver(i_dMatchTarget,l_matchAttrs)	    
-	    return True
-	
-	if alias is not None:
-	    i_dynMatchTarget.addAttr('cgmAlias', str(alias),lock = True)
-	
-	#>>> Connect it
-	log.debug("cgmDynamicMatch.addDynMatchTarget>> Adding target: '%s'"%i_dMatchTarget.getShortName())
-	ml_dynMatchTargets.append(i_dMatchTarget)	
-	self.msgList_connect(ml_dynMatchTargets,'dynMatchTargets')#Connect the nodes
-	log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_get('dynMatchTargets',False))
-	
-	#Verify our driver for the target
-	self.verifyMatchTargetDriver(i_dMatchTarget,l_matchAttrs)
+	try:
+	    log.debug(">>> %s.addDynMatchTarget() >> "%(self.p_nameShort) + "-"*75)  				    						
+	    #>>> Validate
+	    i_dMatchTarget = cgmMeta.validateObjArg(arg,cgmMeta.cgmObject,noneValid=True)
+	    if not i_dMatchTarget:raise StandardError, "cgmDynamicMatch.addDynMatchTarget>> Failed to cgmMeta.validate: %s"%arg	    
+	    if self == i_dMatchTarget:
+		raise StandardError, "cgmDynamicMatch.addDynMatchTarget>> Cannot add self as target"
+	    if not i_dMatchTarget.isTransform():
+		raise StandardError, "cgmDynamicMatch.addDynMatchTarget>> MatchTarget has no transform: '%s'"%i_dMatchTarget.getShortName()
+	    log.debug("cgmDynamicMatch.addDynMatchTarget>> '%s'"%i_dMatchTarget.getShortName())
+    
+	    ml_dynMatchTargets = [cgmMeta.cgmObject(o) for o in self.msgList_get('dynMatchTargets',asMeta=False)]
+	    log.debug(">>>>>>>>>>>>> Start add %s"%self.msgList_get('dynMatchTargets',False))
+	    
+	    if i_dMatchTarget in ml_dynMatchTargets:
+		log.debug("cgmDynamicMatch.addDynMatchTarget>> Object already connected: %s"%i_dMatchTarget.getShortName())
+		self.verifyMatchTargetDriver(i_dMatchTarget,l_matchAttrs)	    
+		return True
+	    
+	    if alias is not None:
+		i_dynMatchTarget.addAttr('cgmAlias', str(alias),lock = True)
+	    
+	    #>>> Connect it
+	    log.debug("cgmDynamicMatch.addDynMatchTarget>> Adding target: '%s'"%i_dMatchTarget.getShortName())
+	    ml_dynMatchTargets.append(i_dMatchTarget)	
+	    self.msgList_connect(ml_dynMatchTargets,'dynMatchTargets')#Connect the nodes
+	    log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_get('dynMatchTargets',False))
+	    
+	    #Verify our driver for the target
+	    self.verifyMatchTargetDriver(i_dMatchTarget,l_matchAttrs)
+	except Exception,error:raise Exception,"addDynMatchTarget fail! | {0}".format(error)
 	    
     def verifyMatchTargetDriver(self,arg,l_matchAttrs = None):
 	"""
@@ -1108,7 +1110,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 	i_driver.parent = i_dMatchTarget.mNode
 	i_driver.doStore('cgmName',"%s_toMatch_%s"%(i_dMatchTarget.getNameAlias(),i_dynObject.getNameAlias())) 
 	i_driver.addAttr('cgmType','dynDriver')
-	i_driver.addAttr('mClass','cgmMeta.cgmObject')	
+	i_driver.addAttr('mClass','cgmObject')	
 	i_driver.addAttr('dynMatchAttrs',attrType='string',lock=True)	
 	i_driver.doName()
 
