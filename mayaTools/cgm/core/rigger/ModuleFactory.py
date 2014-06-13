@@ -2422,7 +2422,7 @@ def mirrorPush_siblings(*args,**kws):
                 try:
                     l_controls.extend(mModule.rigNull.moduleSet.getList())
                     kws = self.get_cleanKWS()#We use this to get non registered kws -- maya one's more than like
-                    kws['mModule'] = i_c
+                    kws['mModule'] = mModule
                     mirrorPush(**kws)		    
                 except Exception,error:
                     self.log_error("child: %s | %s"%(_str_module,error))
@@ -2462,7 +2462,7 @@ def mirrorPull_siblings(*args,**kws):
                 try:
                     l_controls.extend(mModule.rigNull.moduleSet.getList())
                     kws = self.get_cleanKWS()#We use this to get non registered kws -- maya one's more than like
-                    kws['mModule'] = i_c
+                    kws['mModule'] = mModule
                     mirrorPull(**kws)		    
                 except Exception,error:
                     self.log_error("child: %s | %s"%(_str_module,error))
