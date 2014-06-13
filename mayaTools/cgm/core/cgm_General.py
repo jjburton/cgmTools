@@ -19,7 +19,7 @@ import platform
 import sys
 import traceback
 import linecache
-
+import datetime
 # Shared Defaults ========================================================
 
 #=========================================================================
@@ -696,6 +696,7 @@ def returnCallerFunctionName():
     except StandardError:
 	log.exception("Failed to inspect function name")
     return result
+
 def verify_mirrorSideArg(*args,**kws):
     class fncWrap(cgmFuncCls):
 	def __init__(self,*args,**kws):
@@ -899,7 +900,20 @@ def TimerDebug(func):
         return res
     return wrapper
 
-
+def returnDateStr(arg = "%m%d%Y"):
+    '''
+    %d is the day number
+    %m is the month number
+    %b is the month abbreviation
+    %y is the year last two digits
+    %Y is the all year
+    '''
+    try:
+	today = datetime.date.today()
+	return today.strftime(arg)    
+    except Exception,error:
+	raise Exception,"cgmGeneral.returnDateStr(arg = {1}) fail | {0}".format(error,arg)
+    
 def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
