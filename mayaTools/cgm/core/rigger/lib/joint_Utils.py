@@ -378,7 +378,7 @@ def setup_defHelpJoint(targetJoint,orientation = 'zyx'):
 	f_sdkUpTransValue = mi_childJoint.getAttr("t%s"%(orientation[0])) * -.25
 	
 	f_baseAimTransValue = mi_helperJoint.getAttr("t%s"%(orientation[0]))
-	f_sdkAimTransValue = mi_childJoint.getAttr("t%s"%(orientation[0])) * -.75	
+	f_sdkAimTransValue = mi_childJoint.getAttr("t%s"%(orientation[0])) * -.5	
 	
 	#Move the pos loc for our pose ----------------------------------
 	mi_posLoc.__setattr__("t%s"%orientation[0],f_sdkAimTransValue)
