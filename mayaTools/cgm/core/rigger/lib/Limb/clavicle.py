@@ -137,7 +137,7 @@ def build_rigSkeleton(goInstance = None):
 			mJoint.connectChildNode(ml_fkDriverJoints[i],"attachJoint","rootJoint")
 			cgmMeta.cgmAttr(mJoint.mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkDriverJoints[i].mNode)
 			"""
-            except Exception,error: raise StandardError,"Failed to create mirror chain | %s"%error
+            except Exception,error: raise Exception,"Failed to create mirror chain | %s"%error
 
             self._go._i_rigNull.msgList_connect(ml_fkJoints,'fkJoints',"rigNull")
             self.ml_fkJoints = ml_fkJoints#pass to wrapper
@@ -231,7 +231,7 @@ def build_controls(goInstance = None):
                 d_buffer = mControlFactory.registerControl(i_obj.mNode,shapeParentTo=ml_fkJoints[0].mNode,
                                                            mirrorSide=self._go._str_mirrorDirection, mirrorAxis="",		                                           
                                                            makeAimable=True,typeModifier='fk') 
-            except Exception,error: raise StandardError,"Register control | %s"%error
+            except Exception,error: raise Exception,"Register control | %s"%error
 
             try:
                 i_obj = d_buffer['instance']
@@ -241,12 +241,12 @@ def build_controls(goInstance = None):
                 i_obj.drawStyle = 6#Stick joint draw style	    
 
                 cgmMeta.cgmAttr(i_obj,'radius',hidden=True)
-            except Exception,error: raise StandardError,"Failed to set attrs | %s"%error
+            except Exception,error: raise Exception,"Failed to set attrs | %s"%error
 
             try:
                 for i_obj in ml_controlsFK:
                     i_obj.delete()
-            except Exception,error: raise StandardError,"Failed to delete | %s"%error
+            except Exception,error: raise Exception,"Failed to delete | %s"%error
 
             self.ml_controlsAll.extend([ml_fkJoints[0]])	
 
@@ -274,10 +274,10 @@ def build_controls(goInstance = None):
             try:
                 for i,mCtrl in enumerate(self.ml_controlsAll):
                     mCtrl.mirrorIndex = int_strt + i		
-            except Exception,error: raise StandardError,"Failed to register mirror index | %s"%error
+            except Exception,error: raise Exception,"Failed to register mirror index | %s"%error
 
             try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
-            except Exception,error: raise StandardError,"Failed to set module objectSet | %s"%error
+            except Exception,error: raise Exception,"Failed to set module objectSet | %s"%error
 
 
     return fncWrap(goInstance).go()
