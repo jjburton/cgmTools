@@ -103,7 +103,7 @@ class go(object):
             self.l_coreNames = self._mi_module.coreNames.value
             self._mi_templateNull = self._mi_module.templateNull#speed link
             self._mi_rigNull = self._mi_module.rigNull#speed link
-            self._targetMesh = self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
+            self._targetMesh = self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo()[0] or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
             self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
             self._ml_controlObjects = self._mi_templateNull.msgList_get('controlObjects')
 
