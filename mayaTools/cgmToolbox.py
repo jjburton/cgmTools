@@ -45,13 +45,13 @@ def setupCGMScriptPaths():
         if fullPath not in mayaScriptPathsSet:
             mayaScriptPaths.append( fullPath )
             mayaScriptPaths.extend( fullPath.dirs( recursive=True ) )
-    
+
             mayaScriptPaths = mUI.removeDupes( mayaScriptPaths )
             newScriptPath = os.pathsep.join( [ p.unresolved() for p in mayaScriptPaths ] )
-    
+
             maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
-	    
-        
+
+
 
 def setupCGMPlugins():
     thisFile = Path( __file__ )
@@ -117,7 +117,7 @@ class AutoStartInstaller(object):
         except: print ('No mel user setup')
 
         return pyUserSetup, melUserSetup
-    
+
     def isInstalled( self ):
         success = False
         pyUserSetup, melUserSetup = self.getUserSetupFile()
@@ -131,7 +131,7 @@ class AutoStartInstaller(object):
 
         print ('Not installed')
         return False
-    
+
     def install( self ):
         success = False
         pyUserSetup, melUserSetup = self.getUserSetupFile()
@@ -142,8 +142,8 @@ class AutoStartInstaller(object):
 
         success = False
         errors = []
-        
-	"""if pyUserSetup is not None:
+
+        """if pyUserSetup is not None:
 		try:
 			self.installPy( pyUserSetup )
 			success = True
@@ -170,7 +170,7 @@ class AutoStartInstaller(object):
                     return True
 
         return False
-    
+
     def installPy( self, pyUserSetup ):
         if self.isInstalledPy( pyUserSetup ):
             return
@@ -181,37 +181,37 @@ class AutoStartInstaller(object):
         else:
             raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup )
     def isInstalledMel( self, melUserSetup ):
-	l_lines = ['import cgmToolbox','import cgm.core','cgm.core._reload()']
-	l_found = []
-	l_missing = []
+        l_lines = ['import cgmToolbox','import cgm.core','cgm.core._reload()']
+        l_found = []
+        l_missing = []
         with open( melUserSetup ) as f:
-	    for i,codeLine in enumerate(l_lines):
-		for line in f:
-		    if codeLine in line:
-			l_found.append(codeLine)
-			break
-		if codeLine not in l_found:
-		    l_missing.append(codeLine)
-	log.info("Found: %s"%l_found)
-	if l_missing:
-	    log.info("Failed to find: %s"%l_missing)
-	    return l_missing
-	return True
-		
-		
-                
+            for i,codeLine in enumerate(l_lines):
+                for line in f:
+                    if codeLine in line:
+                        l_found.append(codeLine)
+                        break
+                if codeLine not in l_found:
+                    l_missing.append(codeLine)
+        log.info("Found: %s"%l_found)
+        if l_missing:
+            log.info("Failed to find: %s"%l_missing)
+            return l_missing
+        return True
+
+
+
     def installMel( self, melUserSetup ):
-	buffer = self.isInstalledMel( melUserSetup )
+        buffer = self.isInstalledMel( melUserSetup )
         if buffer == True:
             return
 
         if melUserSetup.getWritable():
             with open( melUserSetup, 'a' ) as f:
-		for l in buffer:
-		    f.write( '\n\npython( "%s" );\n'%l )
+                for l in buffer:
+                    f.write( '\n\npython( "%s" );\n'%l )
         else:
             raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % melUserSetup )
-    
+
     def createPyUserSetup(self):
         try:
             envFile = mc.about(environmentFile = True) or False #Get env variable
@@ -220,14 +220,14 @@ class AutoStartInstaller(object):
             buffer = envFile.split('/')[:-1]#parse to list and pull 'Maya.env'
             buffer.extend(['scripts','userSetup.mel'])
             newLocation =  os.sep.join(buffer)
-            
+
             f=open(newLocation,'w')
             f.close()
             return True
         except:
             guiFactory.warning("Couldn't create a mel user file")
             return False
-        
+
 
 
 def buildCGMMenu( *a ):
@@ -261,17 +261,17 @@ def loadTDTools( *a ):
     from cgm.tools import tdTools
     reload(tdTools)
     tdTools.run()
-    
+
 def loadRed9( *a ):
     import Red9
     reload(Red9)
     Red9.start()
-    
+
 def startWingServer( *a ):
     from cgm.core.lib.wing import mayaWingServer as mWingServer
     reload(mWingServer)
     mWingServer.startServer()
-    
+
 def loadAttrTools( *a ):
     from cgm.tools import attrTools
     reload(attrTools)
@@ -296,23 +296,23 @@ def loadPuppetBox( *a ):
     from cgm.tools import puppetBox
     reload(puppetBox)
     cgmPuppetBoxWin = puppetBox.run()
-    
+
 def loadPuppetBox2( *a ):
     from cgm.tools import puppetBox2
     reload(puppetBox2)
     cgmPuppetBoxWin = puppetBox2.run()	
-    
+
 def loadCGMSimpleGUI( *a ):
     from cgm.core.classes import GuiFactory as uiFactory
     reload(uiFactory)
     uiFactory.cgmGUI()
-    
+
 def reload_cgmCore( *a ):
     try:
-	import cgm.core
-	cgm.core._reload()	
+        import cgm.core
+        cgm.core._reload()	
     except Exception,error:log.warning("[reload_cgmCoreFail]{%s}"%error)
-	
+
 def loadPolyUniteTool( *a ):
     from cgm.tools import polyUniteTool
     reload(polyUniteTool)
@@ -328,25 +328,25 @@ def connectToWingIDE( *a ):
     except:
         from cgm.lib import cgmDeveloperLib
     cgmDeveloperLib.connectToWing()
-        
+
 def testMorpheus( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
     testCGM.MorpheusBase_Test()
-    
+
 def loadMorpheusMaker( *a ):
     try:
-	print("Trying to load Morheus Maker 2014")
-	from morpheusRig_v2.core.tools import MorpheusMaker as mMaker
-	reload(mMaker)    
-	mMaker.go()	
+        print("Trying to load Morheus Maker 2014")
+        from morpheusRig_v2.core.tools import MorpheusMaker as mMaker
+        reload(mMaker)    
+        mMaker.go()	
     except Exception,error:
-	log.error("You appear to be missing the Morpheus pack. Or maybe angered the spirits...")
-	raise Exception,error
+        log.error("You appear to be missing the Morpheus pack. Or maybe angered the spirits...")
+        raise Exception,error
 
-    
 
-    
+
+
 def loadLocalCGMPythonSetup( *a ):
     evalMel('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_General as cgmGeneral;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;")')
 #Unittest =====================================================================
@@ -354,58 +354,58 @@ def unittest_All( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
     testCGM.ut_AllTheThings()
-    
+
 def unittest_cgmMeta( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
     testCGM.ut_cgmMeta()
-    
+
 def unittest_cgmPuppet( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
     testCGM.ut_cgmPuppet()  
-    
+
 def unittest_cgmLimb( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
     testCGM.ut_cgmLimb()  
-        
+
 
 #Help stuff =====================================================================
 def goTo_keyframeCoop( *a ):
     try:
-	import webbrowser
-	webbrowser.open("http://keyframeco-op.com/")
+        import webbrowser
+        webbrowser.open("http://keyframeco-op.com/")
     except Exception,error:
-	log.warning("[Failed to load Keyframe Co-op]{%s}"%error)
-	
+        log.warning("[Failed to load Keyframe Co-op]{%s}"%error)
+
 def goTo_cgmVimeo( *a ):
     try:
-	import webbrowser
-	webbrowser.open("http://vimeo.com/cgmonks")
+        import webbrowser
+        webbrowser.open("http://vimeo.com/cgmonks")
     except Exception,error:
-	log.warning("[Failed to load cgm vimeo]{%s}"%error)
-	
+        log.warning("[Failed to load cgm vimeo]{%s}"%error)
+
 def goTo_red9Vimeo( *a ):
     try:
-	import webbrowser
-	webbrowser.open("http://vimeo.com/user9491246")
+        import webbrowser
+        webbrowser.open("http://vimeo.com/user9491246")
     except Exception,error:
-	log.warning("[Failed to load red9 vimeo]{%s}"%error)
-	
+        log.warning("[Failed to load red9 vimeo]{%s}"%error)
+
 def goTo_stackOverflow( *a ):
     try:
-	import webbrowser
-	webbrowser.open("http://stackoverflow.com")
+        import webbrowser
+        webbrowser.open("http://stackoverflow.com")
     except Exception,error:
-	log.warning("[Failed to load stackOverflow]{%s}"%error)
-	
+        log.warning("[Failed to load stackOverflow]{%s}"%error)
+
 def get_enviornmentInfo( *a ):
     try:
-	cgmGeneral.report_enviornment()
+        cgmGeneral.report_enviornment()
     except Exception,error:
-	log.warning("[Failed to report enviornment]{%s}"%error)
-	
+        log.warning("[Failed to report enviornment]{%s}"%error)
+
 #Zoo stuff =====================================================================
 def loadZooToolbox( *a ):
     import zooToolbox
@@ -480,7 +480,7 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            ('Snap Tools - snap tools menu',
                             'cgmSnapToolsMM is a tool for accessing snapping tools from a marking menu...',
                             ToolCB( "zooHotkeyer cgmSnapMM \"cgmSnapMM;\" \"cgmSnapMMKillUI;\" \"-default t -enableMods 0 -ann Tools for snapping stuff around\";" )),
-                        
+
                            ('NEW Set Key Menu - key creation menu',
                             'cgmPuppet key menu - wip',
                             ToolCB( "zooHotkeyer cgmPuppetKeyMM \"cgmPuppetKeyMM;\" \"cgmPuppetKeyMMKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
@@ -494,37 +494,37 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
               ('dev', (('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",
                         purgeCGMOptionVars),
                        #('Connect to Wing IDE', " Attempts to connect to Wing IDE",
-                        #                       connectToWingIDE), 
+                       #                       connectToWingIDE), 
                        ('Start Wing Server', " Opens a command port for Wing IDE",
-                                               startWingServer),   
+                        startWingServer),   
                        ('Load Local CGM Python', " Sets up standard cgm ptyhon imports for use in the script editor",
-                                               loadLocalCGMPythonSetup),                        
+                        loadLocalCGMPythonSetup),                        
                        ('Simple cgmGUI', " Base cgmGUI",
                         loadCGMSimpleGUI),
                        ('cgm.MorpheusMaker', " Morpheus maker tool",
                         loadMorpheusMaker),
-                        ('zooToolbox', " Open zooToolbox Window",
+                       ('zooToolbox', " Open zooToolbox Window",
                         loadZooToolbox),        
-                        ('unitTest - cgm', " WARNING - Opens new file...Unit test cgm.core",
-                         unittest_All),  
-                        ('unitTest - cgmMeta', " WARNING - Opens new file...Unit test cgm.core",
-                         unittest_cgmMeta),   
-                        ('unitTest - cgmPuppet', " WARNING - Opens new file...Unit test cgm.core",
-                         unittest_cgmPuppet),   
-                        ('unitTest - cgmLimb', " WARNING - Opens new file...Unit test cgm.core",
-                         unittest_cgmLimb),                           
+                       ('unitTest - cgm', " WARNING - Opens new file...Unit test cgm.core",
+                        unittest_All),  
+                       ('unitTest - cgmMeta', " WARNING - Opens new file...Unit test cgm.core",
+                        unittest_cgmMeta),   
+                       ('unitTest - cgmPuppet', " WARNING - Opens new file...Unit test cgm.core",
+                        unittest_cgmPuppet),   
+                       ('unitTest - cgmLimb', " WARNING - Opens new file...Unit test cgm.core",
+                        unittest_cgmLimb),                           
                        )),
               ('help', (('Keyframe Co-op', " Community Support ",
-                        goTo_keyframeCoop),  
+                         goTo_keyframeCoop),  
                         ('CG Monks Vimeo', " Tutorials and more ",
-                          goTo_cgmVimeo), 
+                         goTo_cgmVimeo), 
                         ('Red9 Vimeo', " Tutorials and more ",
-                          goTo_red9Vimeo),   
+                         goTo_red9Vimeo),   
                         ('Stack Overflow', " This is where we go when code-stumped... ",
-                          goTo_stackOverflow),                          
+                         goTo_stackOverflow),                          
                         ('Enviornment Info', " What's your maya enviornment? ",
-                          get_enviornmentInfo),                           
-                       ))
+                         get_enviornmentInfo),                           
+                        ))
               )
 
 
