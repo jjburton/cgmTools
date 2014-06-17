@@ -124,7 +124,7 @@ class cgmGUI(mUI.BaseMelWindow):
         log.info("WINDOW_TITLE: '%s'"%cgmGUI.WINDOW_TITLE)
         log.info("DEFAULT_SIZE: %s"%str(cgmGUI.DEFAULT_SIZE))
         self.description = 'This is a series of tools for working with cgm Sets'
-
+        self.__version__ = __version__
         self.dockCnt = '%sDock'%__toolName__	
         self.__toolName__ = __toolName__		
         self.l_allowedDockAreas = ['right', 'left']
@@ -245,7 +245,7 @@ class cgmGUI(mUI.BaseMelWindow):
         mc.text(label=('%s%s' %('Written by: ',__author__)))
         mc.text(label=('%s%s%s' %('Copyright ',__owner__,', 2011')))
         add_LineBreak()
-        mc.text(label='Version: %s' % __version__)
+        mc.text(label='Version: %s' % self.__version__)
         mc.text(label='')
         add_Button(column,'Visit Tool Webpage', 'import webbrowser;webbrowser.open(" http://www.cgmonks.com/tools/maya-tools/morphyMaker/")')
         add_Button(column,'Close', 'import maya.cmds as mc;mc.deleteUI(\"' + window + '\", window=True)')
