@@ -53,8 +53,8 @@ def returnRandomName():
     buffer = random.choice(randomOptions)
     cnt = 0
     while mc.objExists(buffer) and cnt<10:
-	cnt +=1
-	buffer = random.choice(randomOptions)
+        cnt +=1
+        buffer = random.choice(randomOptions)
     return buffer 
 
 
@@ -66,18 +66,18 @@ def returnSelected():
     """      
     # First look for attributes in the channel box
     returnList = []
-        
+
     channelBoxCheck = returnSelectedAttributesFromChannelBox()
     if channelBoxCheck:
         for item in channelBoxCheck:
             returnList.append(item)
         return returnList
-    
+
     # Otherwise add the objects themselves
     viewPortSelection = mc.ls(sl=True,flatten=True) or []
     for item in viewPortSelection:
         returnList.append(item)
- 
+
     if returnList:
         return returnList
     return False
@@ -112,7 +112,7 @@ def checkSelectionLength(length):
 def returnObjectSets():
     """ 
     Return a semi intelligent dictionary of sets in a mays scene file.
-    
+
     Return dict keys:
     all(list) -- all sets found
     maya(list) -- maya made and controlled sets (tweakSet, etc)
@@ -121,77 +121,77 @@ def returnObjectSets():
     referenced(dict) -- ['From Scene'] are local sets, all other sets are indexed to their reference prefix
     qss(list) -- quick select sets
     types(dict) -- Sets indexed to their type as understood by cgm tools. 'typeModifier' tag in this case
-    
+
     """    
     returnSetsDict = {'maya':[],'qss':[],'referenced':{},'cgmTypes':{},'objectSetGroups':[]}
-    
+
     returnSetsDict['all'] = mc.ls(type='objectSet') or []
     returnSetsDict['render'] = mc.listSets(type = 1) or []
     returnSetsDict['deformer'] = mc.listSets(type = 2) or []    
-    
+
     refBuffer = {'From Scene':[]}
     returnSetsDict['referenced'] = refBuffer
-    
+
     typeBuffer = {'NONE':[]}
     returnSetsDict['cgmTypes'] = typeBuffer
-    
+
     for s in returnSetsDict['all']:
-	#Get our qss sets
-	if mc.sets(s,q=True,text=True) == 'gCharacterSet':
-	    returnSetsDict['qss'].append(s)
-	    
-	#Get our maya sets
-	for check in ['defaultCreaseDataSet',
-                                  'defaultObjectSet',
-                                  'defaultLightSet',
-                                  'initialParticleSE',
-                                  'initialShadingGroup',
-	                          'Vray',
-	                          'SG',
-	                          ['cluster','Set'],
-	                          ['skinCluster','Set'],
-                                  'tweakSet']:
-	    if type(check) is list:
-		buffer = []
-		for c in check:
-		    if c in s:
-			buffer.append(1)
-		    else:buffer.append(0)
-		if len(buffer) == sum(buffer):
-		    returnSetsDict['maya'].append(s)
-		    break
-	    
-	    elif check in s:
-		returnSetsDict['maya'].append(s)
-		break
-	    
-	# Get our reference prefixes and sets sorted out
+        #Get our qss sets
+        if mc.sets(s,q=True,text=True) == 'gCharacterSet':
+            returnSetsDict['qss'].append(s)
+
+        #Get our maya sets
+        for check in ['defaultCreaseDataSet',
+                      'defaultObjectSet',
+                      'defaultLightSet',
+                      'initialParticleSE',
+                      'initialShadingGroup',
+                      'Vray',
+                      'SG',
+                      ['cluster','Set'],
+                      ['skinCluster','Set'],
+                      'tweakSet']:
+            if type(check) is list:
+                buffer = []
+                for c in check:
+                    if c in s:
+                        buffer.append(1)
+                    else:buffer.append(0)
+                if len(buffer) == sum(buffer):
+                    returnSetsDict['maya'].append(s)
+                    break
+
+            elif check in s:
+                returnSetsDict['maya'].append(s)
+                break
+
+        # Get our reference prefixes and sets sorted out
         if mc.referenceQuery(s, isNodeReferenced=True):
             refPrefix = returnReferencePrefix(s)
 
-	    if refPrefix in refBuffer.keys():
-		refBuffer[refPrefix].append(s)
-	    else:
-		refBuffer[refPrefix] = [s]
-	else:
-	    refBuffer['From Scene'].append(s)
-	
-	#Type sort
-	buffer = returnTagInfo(s,'cgmType')
-	for tag in dictionary.setTypes.keys():
-	    if dictionary.setTypes[tag] == buffer:
-		if tag in typeBuffer.keys():
-		    typeBuffer[tag].append(s)
-		else:
-		    typeBuffer[tag] = [s]
-	else:
-	    typeBuffer['NONE'].append(s)
-	    
-	#Set group check
-	if returnTagInfo(s,'cgmType') == 'objectSetGroup':
-	    returnSetsDict['objectSetGroups'].append(s)
-    
-    
+            if refPrefix in refBuffer.keys():
+                refBuffer[refPrefix].append(s)
+            else:
+                refBuffer[refPrefix] = [s]
+        else:
+            refBuffer['From Scene'].append(s)
+
+        #Type sort
+        buffer = returnTagInfo(s,'cgmType')
+        for tag in dictionary.setTypes.keys():
+            if dictionary.setTypes[tag] == buffer:
+                if tag in typeBuffer.keys():
+                    typeBuffer[tag].append(s)
+                else:
+                    typeBuffer[tag] = [s]
+        else:
+            typeBuffer['NONE'].append(s)
+
+        #Set group check
+        if returnTagInfo(s,'cgmType') == 'objectSetGroup':
+            returnSetsDict['objectSetGroups'].append(s)
+
+
     return returnSetsDict
 
 
@@ -199,11 +199,11 @@ def returnObjectBuffers():
     """ Search for cgmObjectBuffers in a scene """       
     returnList = []
     groupCheck = mc.ls(type='transform') or []
-    
+
     for o in groupCheck:
         if returnTagInfo(o,'cgmType') == 'objectBuffer':
             returnList.append(o)
-    
+
     if returnList:
         return returnList
     return False
@@ -214,20 +214,20 @@ def returnObjectBuffers():
 def returnSelectedAttributesFromChannelBox(returnRaw = False):
     """ 
     Returns a list of selected object attributes from the channel box
-    
+
     Keyword arguments:
     returnRaw() -- whether you just want channels or objects combined with selected attributes
-    
+
     """    
     selection = mc.ls(sl=True)
     ChannelBoxName = mel.eval('$tmp = $gChannelBoxName');
-    
+
     sma = mc.channelBox(ChannelBoxName, query=True, sma=True)
     ssa = mc.channelBox(ChannelBoxName, query=True, ssa=True)
     sha = mc.channelBox(ChannelBoxName, query=True, sha=True)
     soa = mc.channelBox(ChannelBoxName, query=True, soa=True)
- 
-    
+
+
     channels = []
     if sma:
         channels.extend(sma)
@@ -237,7 +237,7 @@ def returnSelectedAttributesFromChannelBox(returnRaw = False):
         channels.extend(sha)
     if soa:
         channels.extend(soa)
-        
+
     if channels and selection:
         if not returnRaw:
             returnBuffer = []
@@ -258,10 +258,10 @@ def returnSelectedAttributesFromChannelBox(returnRaw = False):
 def returnDataType(data):
     """ 
     Get type string for a data set. Currently handles list,int,float,string,unicode
-    
+
     Keyword arguments:
     data() -- the data to check
-    
+
     """
     def simpleReturn(t):
         if t is int:
@@ -272,9 +272,9 @@ def returnDataType(data):
             return 'string'
         else:
             return False   
-        
+
     typeReturn = type(data)
-    
+
     if typeReturn is list:
         stringFound = False
         # First if there is a single string in the data set, the rest of the list will be treated as a string set
@@ -292,7 +292,7 @@ def returnDataType(data):
             return simpleReturn(type(data[0]))
     else:
         return simpleReturn(typeReturn) 
-    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -383,13 +383,13 @@ def returnTagInfo(obj,tag):
         messageQuery = (mc.attributeQuery (tag,node=obj,msg=True))
         if messageQuery == True:
             returnBuffer = attributes.returnMessageData(obj,tag,False)
-	    if not returnBuffer:
-		return False
-	    elif returnObjectType(returnBuffer[0]) == 'reference':
-		if attributes.repairMessageToReferencedTarget(obj,tag):
-		    return attributes.returnMessageData(obj,tag,False)[0]
-		return returnBuffer[0]
-	    return returnBuffer[0]
+            if not returnBuffer:
+                return False
+            elif returnObjectType(returnBuffer[0]) == 'reference':
+                if attributes.repairMessageToReferencedTarget(obj,tag):
+                    return attributes.returnMessageData(obj,tag,False)[0]
+                return returnBuffer[0]
+            return returnBuffer[0]
         else:
             infoBuffer = mc.getAttr('%s.%s' % (obj,tag))
             if infoBuffer is not None and len(list(str(infoBuffer))) > 0:
@@ -457,6 +457,7 @@ def findRawTagInfo(obj,tag):
     """
     """ first check the object for the tags """
     selfTagInfo = returnTagInfo(obj,tag)
+    _isType = returnObjectType(obj)
     if selfTagInfo is not False:
         return selfTagInfo
     else:
@@ -464,7 +465,7 @@ def findRawTagInfo(obj,tag):
         if tag == 'cgmType':
             """ get the type info and see if there's a short hand name for it """
             return returnType(obj)
-        else:
+        elif _isType not in ['objectSet']:
             """ check up stream """
             upCheck = returnTagUp(obj,tag)
             if upCheck == False:
@@ -472,6 +473,7 @@ def findRawTagInfo(obj,tag):
             else:
                 tagInfo =  upCheck[0]
                 return tagInfo
+    return False
 
 
 
@@ -633,7 +635,7 @@ def returnObjectsConnectedToObj(obj,messageOnly = False):
         return lists.returnListNoDuplicates(returnList)
     else:
         return False
-        
+
 def seekUpStream(startingNode,endObjType = False,incPlugs=False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -681,7 +683,7 @@ def seekUpStream(startingNode,endObjType = False,incPlugs=False):
             currentNode = destNodeName[0]
         timeOut +=1
     return endNode
-    
+
 def seekDownStream(startingNode,endObjType,incPlugs=False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -769,7 +771,7 @@ def returnMayaInfo():
     mayaInfoDict['operatingSystemVersion'] =  mc.about(operatingSystemVersion=True)
     mayaInfoDict['currentTime'] =  mc.about(currentTime=True)
     mayaInfoDict['currentUnit'] =  mc.currentUnit(q=True,linear=True)
-    
+
     return mayaInfoDict
 
 def returnFontList():
@@ -884,9 +886,9 @@ def returnRootTransforms():
     buffer = [str(o)for o in mc.ls(assemblies=True, dag = True)]#First pass...
     l_return = []
     for o in buffer:#Clean it
-	if not returnParentObject(o):l_return.append(o)
+        if not returnParentObject(o):l_return.append(o)
     return l_return
-    
+
 def returnObjectType(obj):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -901,15 +903,15 @@ def returnObjectType(obj):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if len(mc.ls(obj))>1:
-	log.error("returnObjectType>> There is more than one object named '%s'. Please specify which"%obj)
-	return False
-    
+        log.error("returnObjectType>> There is more than one object named '%s'. Please specify which"%obj)
+        return False
+
     intialCheck = mc.objectType(obj)
 
-	
+
     if intialCheck == 'objectSet':
         return 'objectSet'
-    
+
     objShapes = mc.listRelatives(obj,shapes=True,fullPath=True)
 
     # Standard
@@ -957,12 +959,12 @@ def returnObjectType(obj):
                     return 'isoparm'
             if '.ep[' in obj:
                 return 'editPoint'
-	    
+
             buffer =  mc.objectType(obj)
-	    if buffer == 'transform' and returnAllChildrenObjects(obj):#if just a tranform with children, it's a group
-		return 'group'
-	    else:
-		return buffer
+            if buffer == 'transform' and returnAllChildrenObjects(obj):#if just a tranform with children, it's a group
+                return 'group'
+            else:
+                return buffer
         return mc.objectType(objShapes[0])
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Joint Search stuff
@@ -1095,8 +1097,8 @@ def returnAllMeshObjects():
     returnList = []
     buffer = mc.ls(type='mesh')
     for m in buffer:
-	t = mc.listRelatives(m,parent=True,type='transform',fullPath=True) or False
-	if t:returnList.extend(t)
+        t = mc.listRelatives(m,parent=True,type='transform',fullPath=True) or False
+        if t:returnList.extend(t)
     if returnList:return returnList
     return False
 
@@ -1166,23 +1168,23 @@ def returnParentsFromObjectToParent(obj,parentObject,fullpath=True):
     """
     assert mc.objExists(obj)
     assert mc.objExists(parentObject)
-    
+
     parentsList = []
     allParents = returnAllParents(obj,shortNames = False)#Get all the parents
     str_parentlong = mc.ls(parentObject, long = True)[0]#Get the parent object arg's long name
-    
+
     if str_parentlong not in allParents or not allParents:#if our parentObj argument isn't a parent, return False
-	return False
+        return False
     #It is a parent, so let's get what's between
     index = allParents.index(str_parentlong)#get index
     parentsList = allParents[:index]
     shortNameBuffer = []
     for p in parentsList:
-	shortName = mc.ls(p,shortNames=True)[0]
-	log.debug(shortName)
-	shortNameBuffer.append(shortName)
+        shortName = mc.ls(p,shortNames=True)[0]
+        log.debug(shortName)
+        shortNameBuffer.append(shortName)
     if not fullpath:
-	return shortNameBuffer
+        return shortNameBuffer
     return parentsList
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
