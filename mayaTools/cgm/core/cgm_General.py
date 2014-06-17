@@ -900,17 +900,21 @@ def TimerDebug(func):
         return res
     return wrapper
 
-def returnDateStr(arg = "%m%d%Y"):
+def returnTimeStr(arg = "%m%d%Y"):
     '''
     %d is the day number
     %m is the month number
     %b is the month abbreviation
     %y is the year last two digits
     %Y is the all year
+    %H is the hour in local time
+    %M is the minute in local time
+    %S is the second in local time
     '''
     try:
-	today = datetime.date.today()
-	return today.strftime(arg)    
+	#today = datetime.date.today()
+	#return today.strftime(arg)  
+	return time.strftime(arg)
     except Exception,error:
 	raise Exception,"cgmGeneral.returnDateStr(arg = {1}) fail | {0}".format(error,arg)
     
