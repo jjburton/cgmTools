@@ -389,7 +389,7 @@ def getGeneratedCoreNames(*args,**kws):
             self.log_debug("%s partType is %s"%(self._str_moduleName,partType))
             settingsCoreNames = modules.returncgmTemplateCoreNames(partType)
             int_handles = mi_module.templateNull.handles
-            partName = nameTools.returnRawGeneratedName(mi_module.mNode,ignore=['cgmType','cgmTypeModifier'])
+            partName = nameTools.returnRawGeneratedName(mi_module.mNode,ignore=['cgmType','cgmTypeModifier','cgmDirection'])
 
             ### if there are no names settings, genearate them from name of the limb module###
             l_generatedNames = []
@@ -1858,8 +1858,10 @@ def get_controls(*args,**kws):
             super(fncWrap, self).__init__(*args,**kws)
             #self._b_reportTimes = True
             self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
-                                         {'kw':'mode',"default":'anim','help':"Special mode for this fuction","argType":"varied"}] 
+                                         {'kw':'mode',"default":'anim','help':"Special mode for this fuction","argType":"varied"},
+                                         cgmMeta._d_KWARG_asMeta] 
             self.__dataBind__(*args,**kws)
+            self._b_reportTimes = 1
             self._str_funcName = "module.get_controls('{0}',mode = {1})".format(self._str_moduleName,self.d_kws.get('mode') or None)		    	    
             self.__updateFuncStrings__()
 
@@ -1917,6 +1919,8 @@ def get_controls(*args,**kws):
                 else:
                     raise StandardError,"Not done yet"
             except Exception,error: raise Exception,"Mode '{0} fail | error: {1}".format(str_mode,error)
+            if not self.d_kws['asMeta']:
+                return [mObj.p_nameShort for mObj in ml_controlObjects]
             return ml_controlObjects
     return fncWrap(*args,**kws).go()
 
