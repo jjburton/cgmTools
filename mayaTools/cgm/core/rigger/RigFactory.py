@@ -206,6 +206,9 @@ def go(*args, **kws):
             if not self._ml_moduleJoints:raise StandardError, "No module joints found!"
             self._l_moduleJoints = [j.p_nameShort for j in self._ml_moduleJoints]
             self._ml_skinJoints = self._mi_module.rig_getSkinJoints()
+            for mJnt in self._ml_moduleJoints:
+                attributes.doSetAttr(jnt,'displayLocalAxis',0)
+                
             if not self._ml_skinJoints:raise StandardError,"No Skin joints found"
             if not self._ml_moduleJoints:raise StandardError, "No module joints found!"        
             self._l_skinJoints = [j.p_nameShort for j in self._ml_skinJoints]
