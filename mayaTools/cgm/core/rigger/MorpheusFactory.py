@@ -571,6 +571,9 @@ def puppet_updateGeoFromAsset(*args,**kws):
                     mMesh.parent = self._mi_puppetGeoGroup.unifiedGeoGroup#...parent it		    
                     mMesh.doName()		
                     self._mi_puppet.doStore('unifiedGeo',mMesh.mNode)
+                    
+                    mMesh.setDrawingOverrideSettings(pushToShapes=False)
+                    
                 else:
                     self.log_info("Unified geo found")
             except Exception,error:raise Exception,"Base Geo fail | {0}".format(error)		
@@ -591,7 +594,10 @@ def puppet_updateGeoFromAsset(*args,**kws):
                             mMesh.parent = False
                             self.log_debug("'{0}' |  parenting to: '{1}'".format(str_key,d_geoStoreKeyToGeoGroups.get(str_key)))
                             mMesh.parent = self._mi_puppetGeoGroup.getMessageAsMeta(d_geoStoreKeyToGeoGroups.get(str_key))#...parent it		    
-                            mMesh.doName()		
+                            mMesh.doName()	
+                            
+                            mMesh.setDrawingOverrideSettings(pushToShapes=False)
+                            
             except Exception,error:raise Exception,"Geo duplication | {0}".format(error)	    
             return True
 
