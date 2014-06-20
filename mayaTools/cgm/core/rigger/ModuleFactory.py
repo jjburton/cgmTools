@@ -491,7 +491,13 @@ def doRig(*args,**kws):
                 return False 
 
             #kws.pop('mModule')
-            mRig.go(**kws)      
+            mRig.go(**kws)     
+            
+            try:
+                mi_module.modulePuppet.masterControl.controlSettings.__setattr__("{0}_tmpl".format(mi_module.getPartNameBase()),0)
+            except Exception,error:
+                self.log_error("Failed to turn off template vis attribute | {0}".format(error))
+                
             if not isRigged(**kws):
                 self.log_warning("Failed To Rig")
                 return False
@@ -955,8 +961,15 @@ def doTemplate(*args,**kws):
 
             if not isSized(**kws):
                 self.log_warning("Not sized")
-                return False    
-            tFactory.go(**kws)      
+                return False   
+            
+            tFactory.go(**kws)     
+
+            try:
+                mi_module.modulePuppet.masterControl.controlSettings.__setattr__("{0}_tmpl".format(mi_module.getPartNameBase()),1)
+            except Exception,error:
+                self.log_error("Failed to turn on template vis attribute | {0}".format(error))
+            
             if not isTemplated(**kws):
                 self.log_warning("Template failed")
                 return False
