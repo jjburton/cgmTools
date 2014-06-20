@@ -62,35 +62,35 @@ def validateAttrArg(arg):
     Validate an attr arg to usable info
     """
     try:
-	if type(arg) in [list,tuple] and len(arg) == 2:
-	    obj = arg[0]
-	    attr = arg[1]
-	    combined = "%s.%s"%(arg[0],arg[1])
-	    if not mc.objExists(combined):
-		raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%combined
-	elif mc.objExists(arg) and '.' in arg:
-	    obj = arg.split('.')[0]
-	    attr = '.'.join(arg.split('.')[1:])
-	    combined = arg
-	else:
-	    raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
-	
-	return {'obj':obj ,'attr':attr ,'combined':combined}
+        if type(arg) in [list,tuple] and len(arg) == 2:
+            obj = arg[0]
+            attr = arg[1]
+            combined = "%s.%s"%(arg[0],arg[1])
+            if not mc.objExists(combined):
+                raise StandardError,"validateAttrArg>>>obj doesn't exist: %s"%combined
+        elif mc.objExists(arg) and '.' in arg:
+            obj = arg.split('.')[0]
+            attr = '.'.join(arg.split('.')[1:])
+            combined = arg
+        else:
+            raise StandardError,"validateAttrArg>>>Bad attr arg: %s"%arg
+
+        return {'obj':obj ,'attr':attr ,'combined':combined}
     except StandardError,error:
-	log.error("validateAttrArg>>Failure")
-	raise StandardError,error
+        log.error("validateAttrArg>>Failure")
+        raise StandardError,error
 
 def returnCompatibleAttrs(sourceObj,sourceAttr,target,*a, **kw):
     """ 
     Returns compatible attributes
-    
+
     Keyword arguments:
     attrType1(string)  
     attrType1(string)  
     """
     assert mc.objExists('%s.%s'%(sourceObj,sourceAttr)) is True,"returnCompatibleAttrs error. '%s.%s' doesn't exist."%(sourceObj,sourceAttr)
     assert mc.objExists(target) is True,"'%s' doesn't exist."%(target)
-    
+
     sourceType = validateRequestedAttrType( mc.getAttr((sourceObj+'.'+sourceAttr),type=True) )
     if sourceType:
         returnBuffer = []
@@ -100,14 +100,14 @@ def returnCompatibleAttrs(sourceObj,sourceAttr,target,*a, **kw):
         if returnBuffer:    
             return returnBuffer
     return False
-    
+
 
 
 
 def validateRequestedAttrType(attrType):
     """ 
     Returns if an attr type is valid or not
-    
+
     Keyword arguments:
     attrType(string)        
     """          
@@ -116,20 +116,20 @@ def validateRequestedAttrType(attrType):
         if attrType in attrTypesDict.get(option): 
             aType = option
             break
-        
+
     return aType
 
 def validateAttrTypeMatch(attrType1,attrType2):
     """ 
     Returns if attr types match
-    
+
     Keyword arguments:
     attrType1(string)  
     attrType1(string)  
     """
     if attrType1 == attrType2:
         return True
-    
+
     for option in attrTypesDict.keys():
         if attrType1 in attrTypesDict.get(option) and attrType2 in attrTypesDict.get(option): 
             return True
@@ -138,7 +138,7 @@ def validateAttrTypeMatch(attrType1,attrType2):
 def doAddAttr(obj,attrName,attrType,*a, **kw):
     """ 
     Adds an attr if you don't care to know the specific commands for each type
-    
+
     Keyword arguments:
     obj(string) -- must exist in scene
     attrName(string) -- attribute name
@@ -146,10 +146,10 @@ def doAddAttr(obj,attrName,attrType,*a, **kw):
     """          
     assert mc.objExists(obj) is True,"'%s' doesn't exists!. Can't add attribute"%obj
     assert mc.objExists('%s.%s'%(obj,attrName)) is not True,"'%s.%s' already exists. "%(obj,attrName)
-    
+
     attrTypeReturn = validateRequestedAttrType(attrType)
     assert attrTypeReturn is not False,"'%s' is not a valid attribute type for creation."%attrType
-    
+
     if attrTypeReturn == 'string':
         return addStringAttributeToObj(obj,attrName,*a, **kw)
     elif attrTypeReturn == 'double':
@@ -173,14 +173,14 @@ def returnStandardAttrFlags(obj,attr):
     """ 
     Returns a diciontary of locked,keyable,locked states of an attribute. If
     the attribute is numeric, it grabs the typical flags for that.
-    
+
     Keyword arguments:
     obj(string) -- must exist in scene
     attr(string) -- name for an attribute    
     """    
     nameCombined = "%s.%s"%(obj,attr)
     assert mc.objExists(nameCombined) is True,"'%s' doesn't exist!"%(nameCombined)
-    
+
     objAttrs = mc.listAttr(obj, userDefined = True) or []
     dataDict = {'type':mc.getAttr(nameCombined,type=True),
                 'locked':mc.getAttr(nameCombined ,lock=True),
@@ -191,10 +191,10 @@ def returnStandardAttrFlags(obj,attr):
     if attr in objAttrs:
         dynamic = True
     dataDict['dynamic'] = dynamic
-    
-    
+
+
     hidden = not mc.getAttr(nameCombined,channelBox=True)
-    
+
     if dataDict.get('keyable'):
         hidden = mc.attributeQuery(attr, node = obj, hidden=True)
     dataDict['hidden'] = hidden
@@ -202,7 +202,7 @@ def returnStandardAttrFlags(obj,attr):
     enumData = False
     if dataDict.get('type') == 'enum' and dynamic == True:
         dataDict['enum'] = mc.addAttr(nameCombined,q=True, en = True)
-    
+
     numeric = True
     if dataDict.get('type') in ['string','message','enum','bool']:
         numeric = False
@@ -213,34 +213,34 @@ def returnStandardAttrFlags(obj,attr):
         dataDict['writable']=mc.addAttr(nameCombined,q=True,w=True)
         dataDict['storable']=mc.addAttr(nameCombined,q=True,s=True)
         dataDict['usedAsColor']=mc.addAttr(nameCombined,q=True,usedAsColor = True)        
-    
+
     return dataDict
 
 def returnNumericAttrSettingsDict(obj,attr): 
     """ 
     Returns a diciontary of max,min,ranges,softs and default settings of an attribute
-    
+
     Keyword arguments:
     obj(string) -- must exist in scene
     attr(string) -- name for an attribute    
-    
+
     Return:
     dataDict(dict)
     """    
     nameCombined = "%s.%s"%(obj,attr)
     assert mc.objExists(nameCombined) is True,"'%s' doesn't exist!"%(nameCombined)
-    
+
     objAttrs = mc.listAttr(obj, userDefined = True) or []
-    
+
     dynamic = False
     if attr in objAttrs:
         dynamic = True
-        
+
     numeric = True
     attrType = mc.getAttr(nameCombined,type=True)    
     if attrType in ['string','message','enum','bool']:
         numeric = False
-    
+
     dataDict = {}    
     # Return numeric data    
     if not numeric or not dynamic or mc.attributeQuery(attr, node = obj, listChildren=True):
@@ -255,7 +255,7 @@ def returnNumericAttrSettingsDict(obj,attr):
             except:
                 dataDict['min'] = False
                 log.warning("'%s.%s' failed to query min value" %(obj,attr))
-    
+
         dataDict['max'] = False                
         if mc.attributeQuery(attr, node = obj, maxExists=True):
             try:
@@ -265,7 +265,7 @@ def returnNumericAttrSettingsDict(obj,attr):
             except:
                 dataDict['max']  = False
                 log.warning("'%s.%s' failed to query max value" %(obj,attr))
-    
+
         dataDict['default'] = False             
         if type(mc.addAttr(nameCombined,q=True,defaultValue = True)) is int or float:
             try:
@@ -275,7 +275,7 @@ def returnNumericAttrSettingsDict(obj,attr):
             except:
                 dataDict['default'] = False
                 log.warning("'%s.%s' failed to query default value" %(obj,attr))
-    
+
         #>>> Soft values
         dataDict['softMax']  = False
         try:
@@ -284,7 +284,7 @@ def returnNumericAttrSettingsDict(obj,attr):
                 dataDict['softMax'] = softMaxValue[0]                  
         except:
             dataDict['softMax']  = False
-        
+
         dataDict['softMin']  = False
         try:
             softMinValue =  mc.attributeQuery(attr, node = obj, softMin=True)
@@ -292,31 +292,31 @@ def returnNumericAttrSettingsDict(obj,attr):
                 dataDict['softMin']  = softMinValue[0]                  
         except:
             dataDict['softMin']  = False
-        
+
         #>>> Range
         try:
             dataDict['range'] =  mc.attributeQuery(attr, node = obj, range=True)
         except:
             dataDict['range'] = False
-            
+
         try:
             dataDict['softRange'] =  mc.attributeQuery(attr, node = obj, softRange=True)
         except:
             dataDict['softRange'] = False 
-        
+
         return dataDict
-        
-        
+
+
 def returnAttributeDataDict(obj,attr,value = True,incoming = True, outGoing = True):
     """ 
     Returns a diciontary of parent,children,sibling of an attribute or False if nothing found   
-    
+
     Keyword arguments:
     obj(string) -- must exist in scene
     attr(string) -- name for an attribute    
     """       
     assert mc.objExists("%s.%s"%(obj,attr)) is True,"'%s.%s' doesn't exist!"%(obj,attr)
- 
+
     returnDict = {}
     if value:
         returnDict['value'] = doGetAttr(obj,attr)
@@ -324,19 +324,19 @@ def returnAttributeDataDict(obj,attr,value = True,incoming = True, outGoing = Tr
         returnDict['incoming'] = returnDriverAttribute('%s.%s'%(obj,attr),False)
     if outGoing:
         returnDict['outGoing'] = returnDrivenAttribute('%s.%s'%(obj,attr),False)
-        
+
     return returnDict
 
 def returnAttrFamilyDict(obj,attr):
     """ 
     Returns a diciontary of parent,children,sibling of an attribute or False if nothing found   
-    
+
     Keyword arguments:
     obj(string) -- must exist in scene
     attr(string) -- name for an attribute    
     """       
     assert mc.objExists("%s.%s"%(obj,attr)) is True,"'%s.%s' doesn't exist!"%(obj,attr)
- 
+
     returnDict = {}
     buffer = mc.attributeQuery(attr, node = obj, listParent=True)
     if buffer is not None:
@@ -347,12 +347,12 @@ def returnAttrFamilyDict(obj,attr):
     buffer= mc.attributeQuery(attr, node = obj, listSiblings=True)
     if buffer is not None:
         returnDict['siblings'] = buffer
-        
+
     if returnDict:
         return returnDict
     return False
 
-        
+
 def returnAttrListFromStringInput (stringInput1,stringInput2 = None):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -414,7 +414,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
     attrTypes = returnObjectsAttributeTypes(obj)    
     goodToGo = False
     infoData = 0
-	
+
     #Figure out the data type
     #==============      
     if type(info) is list:
@@ -425,7 +425,7 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
                 break
     elif mc.objExists(info) and not overideMessageCheck and not '.' in list(info):#attribute check
         infoData = 'message'
-        
+
     elif mc.objExists(info) and '.' in list(info):
         if '[' not in info:
             infoData = 'attribute'
@@ -488,9 +488,9 @@ def storeInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = Fals
                     if infoAttrType != objAttrType:
                         doConvertAttrType((obj+'.'+infoType),infoAttrType)
 
-                
+
                 doConnectAttr(info,attributeBuffer)
-                
+
                 if leaveUnlocked != True:
                     mc.setAttr(attributeBuffer,lock=True)
             else:
@@ -540,11 +540,11 @@ def doGetAttr(obj,attr,*a, **kw):
             return dataBuffer
         elif attrType == 'double':
             parentAttr = mc.attributeQuery(attr, node =obj, listParent = True)
-	    return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
+            return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
 
         else:
             return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
-        
+
 
 
 
@@ -570,7 +570,7 @@ def doConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     assert fromAttr != toAttr,"Cannot connect an attriubute to itself. The world might blow up!"
-    
+
     wasLocked = False
     if (mc.objExists(toAttr)) == True:
         if mc.getAttr(toAttr,lock=True) == True:
@@ -586,7 +586,7 @@ def doConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
     if transferConnection == True:
         if bufferConnection != False:
             mc.connectAttr(bufferConnection,toAttr)
-            
+
     if wasLocked == True or forceLock == True:
         mc.setAttr(toAttr,lock=True)
 
@@ -622,7 +622,7 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
     """
     attrBuffer = '%s.%s'%(obj,attribute)
     wasLocked = False
-    
+
     if (mc.objExists(attrBuffer)) == True:
         try:
             attrType = mc.getAttr(attrBuffer,type=True)
@@ -630,11 +630,11 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
             if mc.getAttr(attrBuffer,lock=True) == True:
                 wasLocked = True
                 mc.setAttr(attrBuffer,lock=False)
-	    
-	    if not isKeyed([obj,attribute]):
-		if doBreakConnection(obj,attribute):
-		    log.warning("'%s' connection broken"%(attrBuffer))
-            
+
+            if not isKeyed([obj,attribute]):
+                if doBreakConnection(obj,attribute):
+                    log.warning("'%s' connection broken"%(attrBuffer))
+
             if validateRequestedAttrType(attrType) == 'long':
                 mc.setAttr(attrBuffer,int(float(value)), *a, **kw)
             elif validateRequestedAttrType(attrType) == 'string':
@@ -643,12 +643,12 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
                 mc.setAttr(attrBuffer,float(value), *a, **kw)
             else:
                 mc.setAttr(attrBuffer,value, *a, **kw)
-            
+
             if wasLocked == True or forceLock == True:
                 mc.setAttr(attrBuffer,lock=True)
             log.debug("'%s' set to '%s'"%(attrBuffer,value))
-	except StandardError,error:
-	    log.error(error)
+        except StandardError,error:
+            log.error(error)
             log.warning("Failed to set '%s' with '%s'"%(attrBuffer,value))
 
 def doMultiSetAttr(objList, attribute, value, forceLock = False, *a, **kw):
@@ -668,12 +668,39 @@ def doMultiSetAttr(objList, attribute, value, forceLock = False, *a, **kw):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     for obj in objList:
-	attrBuffer = '%s.%s'%(obj,attribute)
-	if (mc.objExists(attrBuffer)):
-	    doSetAttr(obj,attribute,value,forceLock,**kw)
-	else:
-	    log.warning("'%s' doesn't exist! Skipping..."%attrBuffer)
+        attrBuffer = '%s.%s'%(obj,attribute)
+        if (mc.objExists(attrBuffer)):
+            doSetAttr(obj,attribute,value,forceLock,**kw)
+        else:
+            log.warning("'%s' doesn't exist! Skipping..."%attrBuffer)
+	    
+def setAttrsFromDict(obj, attrs = None, pushToShapes = False):
+    """
+    Function for changing drawing override settings on on object
 
+    Keyword arguments:
+    attrs -- default will set all override attributes to default settings
+	     (dict) - pass a dict in and it will attempt to set the key to it's indexed value ('attr':1}
+	     (list) - if a name is provided and that attr is an override attr, it'll reset only that one
+    """
+    # First make sure the drawing override attributes exist on our instanced object
+    log.info("THIS FUNCTION ISN'T DONE!")
+    #Get what to act on
+    targets = [obj]
+    if pushToShapes:
+	buffer = mc.listRelatives(self.mNode,shapes=True,fullPath=fullPath) or []
+	if buffer:	
+	    targets.extend(buffer)
+    
+    for t in targets:
+	if issubclass(attrs,dict):
+	    for a in attrs.keys():
+		try:
+		    attributes.doSetAttr(t,a,attrs[a])
+		except Exception,error:
+		    raise Exception, "There was a problem setting '%s.%s' to %s"%(obj,a,attrs[a])
+
+				
 def doSetStringAttr(attribute,value,forceLock = False):
     """                                     
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -703,7 +730,7 @@ def doSetStringAttr(attribute,value,forceLock = False):
 
     if wasLocked == True or forceLock == True:
         mc.setAttr(attribute,lock=True)
-        
+
 def doRenameAttr(obj,oldAttrName,newAttrName,forceLock = False):
     """                                     
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -733,42 +760,42 @@ def doRenameAttr(obj,oldAttrName,newAttrName,forceLock = False):
     if wasLocked == True or forceLock == True:
         newBuffer = '%s.%s'%(obj,newAttrName)
         mc.setAttr(newBuffer,lock=True)
-          
+
 def doConvertAttrType(targetAttrName,attrType):
     """ 
     Attempts to convert an existing attrType from one type to another. 
     Enum's are stored to strings as 'option1;option2'.
     Strings with a ';' will split to enum options on conversion.
-    
+
     Keyword arguments:
     targetAttrName(string) -- name for an existing attribute name
     attrType(string) -- desired attribute type
-    
+
     """    
     assert mc.objExists(targetAttrName) is True,"'%s' doesn't exist!"%targetAttrName
-    
+
     aType = False
     for option in attrTypesDict.keys():
         if attrType in attrTypesDict.get(option): 
             aType = option
             break
-        
+
     assert aType is not False,"'%s' is not a valid attribute type!"%attrType
-    
-            
+
+
     #>>> Get data
     targetLock = False
     if mc.getAttr((targetAttrName),lock = True) == True:
         targetLock = True
         mc.setAttr(targetAttrName,lock = False)
-    
+
     targetType = mc.getAttr(targetAttrName,type=True)
-    
+
     buffer = targetAttrName.split('.')
     targetObj = buffer[0]
     targetAttr = buffer[-1]
-    
-    
+
+
     #>>> Do the stuff
     if aType != targetType:
         # get data connection and data to transfer after we make our new attr
@@ -779,24 +806,24 @@ def doConvertAttrType(targetAttrName,attrType):
         else:
             connection = returnDriverAttribute(targetAttrName)            
             dataBuffer = mc.getAttr(targetAttrName)
-        
+
         if targetType == 'enum':           
             dataBuffer = mc.addAttr((targetObj+'.'+targetAttr),q=True, en = True)
 
-                    
+
         doDeleteAttr(targetObj,targetAttr)
-        
+
         """if it doesn't exist, make it"""
         if aType == 'string':
             mc.addAttr (targetObj, ln = targetAttr,  dt = aType )
-            
+
         elif aType == 'enum':
             enumStuff  = 'off:on'
             if dataBuffer:
                 if type(dataBuffer) is str or type(dataBuffer) is unicode:
                     enumStuff = dataBuffer
             mc.addAttr (targetObj, ln = targetAttr, at=  'enum', en = enumStuff)
-            
+
         elif aType == 'double3':
             mc.addAttr (targetObj, ln=targetAttr, at= 'double3')
             mc.addAttr (targetObj, ln=(targetAttr+'X'),p=targetAttr , at= 'double')
@@ -804,13 +831,13 @@ def doConvertAttrType(targetAttrName,attrType):
             mc.addAttr (targetObj, ln=(targetAttr+'Z'),p=targetAttr , at= 'double')
         else:
             mc.addAttr (targetObj, ln = targetAttr,  at = aType )
-            
+
         if connection:
             try:
                 doConnectAttr(connection,targetAttrName)
             except:
                 log.warning("Couldn't connect '%s' to the '%s'"%(connection,targetAttrName))
-                
+
         elif dataBuffer is not None:
             if mc.objExists(dataBuffer) and aType == 'message':
                 storeObjectToMessage(dataBuffer,targetObj,targetAttr)
@@ -826,8 +853,8 @@ def doConvertAttrType(targetAttrName,attrType):
                         mc.setAttr(targetAttrName,dataBuffer,type = aType)
                 except:
                     log.warning("Couldn't add '%s' to the '%s'"%(dataBuffer,targetAttrName))
-                    
-                
+
+
         if targetLock:
             mc.setAttr(targetAttrName,lock = True)
 
@@ -845,8 +872,8 @@ def returnMatchNameAttrsDict(fromObject,toObject,attributes=[True],directMatchOn
 
     If attriubtes is set to default ([True]), you can pass keywords and arguments into a listAttr call for the 
     search parameters
-    
-    
+
+
     RETURNS:
     matchAttrs(dict) = {sourceAttr:targetAttr, }
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -854,7 +881,7 @@ def returnMatchNameAttrsDict(fromObject,toObject,attributes=[True],directMatchOn
     matchAttrs = {}
     if attributes[0] is True:
         attributes = mc.listAttr(fromObject, *a, **kw) or []
-    
+
     if attributes:
         for attr in attributes:
             if mc.objExists('%s.%s'%(fromObject, attr) ):
@@ -873,8 +900,8 @@ def returnMatchNameAttrsDict(fromObject,toObject,attributes=[True],directMatchOn
         else:
             return False
     return False
-                    
-            
+
+
 def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
     """                                     
     DESCRIPTION:
@@ -882,7 +909,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
     Copy attributes from one object to another as well as other options. If the attribute already
     exists, it'll copy the values. If it doesn't, it'll make it. If it needs to convert, it can.
     It will not make toast.
-    
+
     Keywords:
     fromObject(string) - obj with attrs
     fromAttr(string) - source attribute
@@ -897,7 +924,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
     copyAttrSettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
     connectSourceToTarget(bool) --useful for moving attribute controls to another object. default False
     connectTargetToSource(bool) --useful for moving attribute controls to another object. default False
-    
+
     RETURNS:
     success(bool)
     """
@@ -910,20 +937,20 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
     copyAttrSettings = kw.pop('copyAttrSettings',True)
     connectSourceToTarget = kw.pop('connectSourceToTarget',False)
     connectTargetToSource = kw.pop('connectTargetToSource',False) 
-    
+
     if not mc.objExists('%s.%s'%(fromObject,fromAttr)):
         log.debug("doCopyAttr error. Source '%s.%s' doesn't exist"%(fromObject,fromAttr))
         return False
     assert mc.objExists(toObject) is True,"Target '%s' doesn't exist"%toObject
-    
+
     # Gather info   
     sourceFlags = returnStandardAttrFlags(fromObject,fromAttr)
     sourceType = sourceFlags.get('type')
-    
+
     if values and not validateRequestedAttrType(sourceType):
         log.warning("'%s.%s' is a '%s' and not valid for copying."%(fromObject,fromAttr,sourceType))             
         return False
-    
+
     sourceLock = sourceFlags.get('locked')
     sourceKeyable = sourceFlags.get('keyable')
     sourceHidden = sourceFlags.get('hidden')
@@ -937,15 +964,15 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
             sourceMin = sourceNumericFlags.get('min')
             sourceSoftMax = sourceNumericFlags.get('softMax')
             sourceSoftMin = sourceNumericFlags.get('softMin')
-        
+
     sourceEnum = False
     if sourceType == 'enum':
         sourceEnum = sourceFlags.get('enum')
-    
+
     goodToGo = True
     targetExisted = False
     relockSource = False
-    
+
     #Let's check on the target attr
     if toAttr is not None:
         #If an attr is specified
@@ -971,14 +998,14 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
                     doConvertAttrType(('%s.%s'%(toObject,toAttr)),sourceType)
                 else:
                     goodToGo = False
-                
-                
+
+
         elif doAddAttr(toObject,toAttr,sourceType):
             #If it doesn't exist, make it
             log.debug("'%s.%s' created!"%(toObject,toAttr))            
         else:
             return False
-            
+
     else:
         #If no attr is specified (None), we first look to see if our target has an attr called what our source is
         matchAttrs = returnMatchNameAttrsDict(fromObject,toObject,[fromAttr])
@@ -989,11 +1016,11 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
             targetKeyable = targetFlags.get('keyable')
             targetHidden = targetFlags.get('hidden')
             targetDynamic = targetFlags.get('dynamic')  
-            
+
             if not targetType:
                 log.warning("'%s.%s' has no type."%(toObject,toAttr))             
                 return False    
-                        
+
             if not validateAttrTypeMatch(targetType,sourceType):
                 if sourceDynamic and convertToMatch:
                     toAttr = fromAttr                    
@@ -1009,23 +1036,23 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
             else:
                 #Otherwise, good to go
                 toAttr = matchAttrs.get(fromAttr)                   
-            
+
         elif doAddAttr(toObject,fromAttr,sourceType):
             toAttr = fromAttr
             log.debug("'%s.%s' created!"%(toObject,fromAttr))   
-            
+
     if not goodToGo:
         log.warning("'%s.%s' may not copy well to '%s.%s'. Source type is '%s', target type is '%s'. Conversion mode is off"%(fromObject,fromAttr,toObject,toAttr,sourceType,targetType))
-        
+
     #Let's get our data    
     dataDict = returnAttributeDataDict(fromObject,fromAttr)
-    
+
     if values:
         if sourceType == 'message' and dataDict.get('value'):
             storeInfo(toObject,toAttr,dataDict.get('value'))
         else:
             doSetAttr(toObject,toAttr,dataDict.get('value'))
-            
+
     if incomingConnections and not connectSourceToTarget:
         buffer = dataDict['incoming']
         if buffer:
@@ -1036,16 +1063,16 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
             except:
                 if sourceType != 'message':
                     log.warning("Inbound fail - '%s.%s' failed to connect to '%s"%(fromObject,fromAttr,buffer))
-                    
+
     if outgoingConnections and not connectSourceToTarget:
         if dataDict['outGoing']:
             for connection in dataDict['outGoing']:
                 try:
                     doConnectAttr(('%s.%s'%(toObject,toAttr)),connection)
-               
+
                 except:
                     log.warning("Outbound fail - '%s' failed to connect to '%s.%s'"%(connection,toObject,toAttr))
-        
+
     if copyAttrSettings:
         if sourceEnum:
             mc.addAttr (('%s.%s'%(toObject,toAttr)), e = True, at=  'enum', en = sourceEnum)
@@ -1060,12 +1087,12 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
                 mc.addAttr((toObject+'.'+toAttr),e=True,softMaxValue = sourceSoftMax)                
             if sourceSoftMin:
                 mc.addAttr((toObject+'.'+toAttr),e=True,softMinValue = sourceSoftMin)                
-            
+
         mc.setAttr(('%s.%s'%(toObject,toAttr)),e=True,channelBox = not sourceHidden)
         mc.setAttr(('%s.%s'%(toObject,toAttr)),e=True,keyable = sourceKeyable)
         mc.setAttr(('%s.%s'%(toObject,toAttr)),e=True,lock = sourceLock)
-        
-        
+
+
     if connectSourceToTarget:
         try:            
             doConnectAttr(('%s.%s'%(toObject,toAttr)),('%s.%s'%(fromObject,fromAttr)))
@@ -1080,10 +1107,10 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
 
     if relockSource:
         mc.setAttr('%s.%s'%(toObject,toAttr),lock = True)
-    
+
     return True
 
-    
+
 
 def copyKeyableAttrs(fromObject,toObject,attrsToCopy=[True],connectAttrs = False):
     """                                     
@@ -1129,7 +1156,7 @@ def copyKeyableAttrs(fromObject,toObject,attrsToCopy=[True],connectAttrs = False
             """if it doesn't exist, make it"""
             if mc.objExists(toObject+'.'+attr) is not True:
                 attrType = (attrTypes.get(attr))
-                
+
                 if attrType == 'string':
                     mc.addAttr (toObject, ln = attr,  dt =attrType )
                 elif attrType == 'enum':
@@ -1203,13 +1230,13 @@ def copyUserAttrs(fromObject,toObject,attrsToCopy=[True]):
         for attr in matchAttrs:
             # see if it's a message attribute to copy  
             if mc.attributeQuery (attr,node=fromObject,msg=True):
-		messageAttrs[attr] = (returnMessageObject(fromObject,attr))
-                
+                messageAttrs[attr] = (returnMessageObject(fromObject,attr))
+
             """ see if it was locked, unlock it and store that it was locked """
             if mc.getAttr((fromObject+'.'+attr),lock=True) == True:
                 lockAttrs[attr] = True
                 mc.setAttr((fromObject+'.'+attr),lock=False)
-                
+
             """if it doesn't exist, make it"""
             if mc.objExists(toObject+'.'+attr) is not True:
                 attrType = (attrTypes.get(attr))
@@ -1227,7 +1254,7 @@ def copyUserAttrs(fromObject,toObject,attrsToCopy=[True]):
                     mc.addAttr (toObject, ln = attr,  at =attrType )
         """ copy values """
         mc.copyAttr(fromObject,toObject,attribute=matchAttrs,v=True,ic=True,oc=True,keepSourceConnections=True)
-        
+
         if messageAttrs:
             for a in messageAttrs.keys():
                 storeInfo(toObject,a,messageAttrs.get(a))
@@ -1436,7 +1463,7 @@ def doDeleteAttr(obj,attr):
         try:
             doBreakConnection(attrBuffer)
         except:pass
-        
+
         mc.deleteAttr(attrBuffer)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1529,14 +1556,14 @@ def doBreakConnection(obj,attr=None):
             attr = attrBuffer[1]
         else:
             return False
-        
+
     assert mc.objExists('%s.%s'%(obj,attr)) is True,"'%s.%s' doesn't exist"%(obj,attr)
-    
+
     attrBuffer = '%s.%s'%(obj,attr)
-            
+
     family = {}
     source = []
-    
+
     if (mc.connectionInfo (attrBuffer,isDestination=True)):             
         #Get the driven for a vector connection
         sourceBuffer = mc.listConnections (attrBuffer, scn = False, s = True, plugs = True)
@@ -1546,16 +1573,16 @@ def doBreakConnection(obj,attr=None):
             sourceBuffer = mc.connectionInfo (attrBuffer,sourceFromDestination=True)
         else:
             sourceBuffer = sourceBuffer[0]
-            
+
         if not sourceBuffer:
             return log.warning("No source for '%s.%s' found!"%(obj,attr))
         try:
             drivenAttr = '%s.%s'%(obj,attr)
             if family and family.get('parent'):
                 drivenAttr = '%s.%s'%(obj,family.get('parent'))
-                
+
             log.debug ("Breaking '%s' to '%s'"%(sourceBuffer,drivenAttr))
-            
+
             #>>>See if stuff is locked
             drivenLock = False
             if mc.getAttr(drivenAttr,lock=True):
@@ -1565,16 +1592,16 @@ def doBreakConnection(obj,attr=None):
             if mc.getAttr(sourceBuffer,lock=True):
                 sourceLock = True
                 mc.setAttr(sourceBuffer,lock=False)
-            
+
             mc.disconnectAttr (sourceBuffer,drivenAttr)
-            
-            
+
+
             if drivenLock:
                 mc.setAttr(drivenAttr,lock=True)
-                
+
             if sourceLock:
                 mc.setAttr(sourceBuffer,lock=True)
-            
+
             return sourceBuffer
         except:
             log.warning('Unable to break connection. See script dump')
@@ -1602,10 +1629,10 @@ def returnDriverAttribute(attribute,skipConversionNodes = False,longNames = True
         if not sourceBuffer:
             sourceBuffer = [mc.connectionInfo (attribute,sourceFromDestination=True)]   
         if sourceBuffer:
-	    if longNames:		    
-		return str(mc.ls(sourceBuffer[0],l=True)[0])#cast to longNames!
-	    else:
-		return str(mc.ls(sourceBuffer[0],shortNames=True)[0])#cast to shortnames!		    
+            if longNames:		    
+                return str(mc.ls(sourceBuffer[0],l=True)[0])#cast to longNames!
+            else:
+                return str(mc.ls(sourceBuffer[0],shortNames=True)[0])#cast to shortnames!		    
         return False
     return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1626,9 +1653,9 @@ def returnDriverObject(attribute,skipConversionNodes = False,longNames = True):
     if not objectBuffer:
         return False
     if longNames:		    
-	return str(mc.ls(objectBuffer[0],l=True)[0])#cast to longNames!
+        return str(mc.ls(objectBuffer[0],l=True)[0])#cast to longNames!
     else:
-	return str(mc.ls(objectBuffer[0],shortNames=True)[0])#cast to shortnames!
+        return str(mc.ls(objectBuffer[0],shortNames=True)[0])#cast to shortnames!
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def returnDrivenAttribute(attribute,skipConversionNodes = False,longNames = True):
     """ 
@@ -1649,12 +1676,12 @@ def returnDrivenAttribute(attribute,skipConversionNodes = False,longNames = True
         if not destinationBuffer:
             destinationBuffer = mc.connectionInfo (attribute,destinationFromSource=True) 
         if destinationBuffer:
-	    returnList = []
-	    for lnk in destinationBuffer:
-		if longNames:		    
-		    returnList.append(str(mc.ls(lnk,l=True)[0]))#cast to longNames!
-		else:
-		    returnList.append(str(mc.ls(lnk,shortNames=True)[0]))#cast to shortnames!		    
+            returnList = []
+            for lnk in destinationBuffer:
+                if longNames:		    
+                    returnList.append(str(mc.ls(lnk,l=True)[0]))#cast to longNames!
+                else:
+                    returnList.append(str(mc.ls(lnk,shortNames=True)[0]))#cast to shortnames!		    
             return returnList
         return False
     return False
@@ -1677,13 +1704,13 @@ def returnDrivenObject(attribute,skipConversionNodes = True,longNames = True):
         return False
     if attribute in objectBuffer:
         objectBuffer.remove(attribute)
-    
+
     returnList = []
     for lnk in objectBuffer:
-	if longNames:		    
-	    returnList.append(str(mc.ls(lnk,l=True)[0]))#cast to longNames!
-	else:
-	    returnList.append(str(mc.ls(lnk,shortNames=True)[0]))#cast to shortnames!	
+        if longNames:		    
+            returnList.append(str(mc.ls(lnk,l=True)[0]))#cast to longNames!
+        else:
+            returnList.append(str(mc.ls(lnk,shortNames=True)[0]))#cast to shortnames!	
     return returnList    
 
 
@@ -1717,7 +1744,7 @@ def returnObjectsAttributeTypes(obj,*a, **kw ):
         return attrDict
     else:
         return False
-    
+
 def returnObjectsAttributeByTypeDict(obj,typeCheck = [],*a, **kw ):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1734,13 +1761,13 @@ def returnObjectsAttributeByTypeDict(obj,typeCheck = [],*a, **kw ):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     assert mc.objExists(obj) is True, "'%s' doesn't exist"%obj
-    
+
     attrs =(mc.listAttr (obj,*a, **kw ))
     typeDict = {}    
     if typeCheck:
         for check in typeCheck:
             typeDict[check] = []
-        
+
     if not attrs == None:   
         for attr in attrs:
             try:               
@@ -1779,7 +1806,7 @@ def returnUserAttributes(obj,*a,**kw):
         return buffer
     else:
         return False
-    
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -1799,9 +1826,9 @@ def returnMessageObject(storageObject, messageAttr):
     """
     attrBuffer = (storageObject+'.'+messageAttr)
     if mc.objExists(attrBuffer) == True:
-	if mc.addAttr(attrBuffer,q=True,m=True):
-	    log.warning("'%s' is a multi message attr. Use returnMessageData"%attrBuffer)
-	    return False
+        if mc.addAttr(attrBuffer,q=True,m=True):
+            log.warning("'%s' is a multi message attr. Use returnMessageData"%attrBuffer)
+            return False
         messageObject = (mc.listConnections (attrBuffer))
         if messageObject != None:
             if mc.objExists(messageObject[0]) and not mc.objectType(messageObject[0])=='reference':
@@ -1829,15 +1856,15 @@ def returnMessageData(storageObject, messageAttr,longNames=True):
     """
     attrBuffer = (storageObject+'.'+messageAttr)
     if mc.objExists(attrBuffer) == True:
-	msgLinks=mc.listConnections(attrBuffer,destination=True,source=True) #CHANGE : Source=True		
-	returnList = []
-	if msgLinks:
-	    for msg in msgLinks:
-		if longNames:
-		    returnList.append(str(mc.ls(msg,l=True)[0]))#cast to longNames!
-		else:
-		    returnList.append(str(mc.ls(msg,shortNames=True)[0]))#cast to shortNames!    
-	    return returnList 
+        msgLinks=mc.listConnections(attrBuffer,destination=True,source=True) #CHANGE : Source=True		
+        returnList = []
+        if msgLinks:
+            for msg in msgLinks:
+                if longNames:
+                    returnList.append(str(mc.ls(msg,l=True)[0]))#cast to longNames!
+                else:
+                    returnList.append(str(mc.ls(msg,shortNames=True)[0]))#cast to shortNames!    
+            return returnList 
         else:
             return False
     else:
@@ -1858,16 +1885,16 @@ def returnObjAttrSplit(attr):
     """
     assert mc.objExists(attr) is True,"'%s' doesn't exist!"
     returnBuffer = []
-    
+
     if '.' in list(attr):
         splitBuffer = attr.split('.')
         if splitBuffer >= 2:
             returnBuffer = [splitBuffer[0],'.'.join(splitBuffer[1:])]
-            
+
         if returnBuffer:
             return returnBuffer
     return False  
-    
+
 def returnMessageObjs(obj):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1924,24 +1951,24 @@ def returnMessageAttrs(obj):
 def repairMessageToReferencedTarget(obj,attr):
     """
     To be repairable, there must have been a message connection both directions.
-    
+
     Assertions - 
     1) Target Attribute must be a message attribute
     2) Target is connected to a reference node
-    
+
     Returns -
     Success(bool)
-    
+
     """
     targetAttr = "%s.%s"%(obj,attr)
     assert mc.attributeQuery (attr,node=obj,msg=True), "'%s' isn't a message attribute. Aborted"%targetAttr
-    
+
     objTest = mc.listConnections(targetAttr, p=1)
     assert mc.objectType(objTest[0]) == 'reference',"'%s' isn't returning a reference. Aborted"%targetAttr 
-    
+
     ref = objTest[0].split('RN.')[0] #Get to the ref
     log.info("Reference connection found, attempting to fix...")
-        
+
     messageConnectionsOut =  mc.listConnections("%s.message"%(obj), p=1)
     if messageConnectionsOut and ref:
         for plug in messageConnectionsOut:
@@ -1950,14 +1977,14 @@ def repairMessageToReferencedTarget(obj,attr):
                 matchObj = plug.split('.')[0]#Just get to the object
                 doConnectAttr("%s.message"%matchObj,targetAttr)
                 log.info("'%s' restored to '%s'"%(targetAttr,matchObj))
-                
+
                 if len(messageConnectionsOut)>1:#fix to first, report other possibles
                     log.warning("Found more than one possible connection. Candidates are:'%s'"%"','".join(messageConnectionsOut))
                     return False
                 return matchObj
     log.warning("No message connections and reference found")
     return False
-        
+
 def returnMessageAttrsAsList(obj):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2003,7 +2030,7 @@ def returnUserAttrsToDict(obj):
     attrDict = {}
     objAttributes =(mc.listAttr (obj, userDefined=True)) or []
     attrTypes = returnObjectsAttributeTypes(obj,userDefined = True)
-    
+
     if objAttributes:
         for attr in objAttributes:                    
             messageBuffer = []
@@ -2011,7 +2038,7 @@ def returnUserAttrsToDict(obj):
             attrType = attrTypes.get(attr)
             if messageQuery == True:
                 query = returnMessageData(obj,attr)
-		attrDict[attr] = (query)
+                attrDict[attr] = (query)
             elif attrType == 'double3':
                 childrenAttrs = mc.attributeQuery(attr, node =obj, listChildren = True)
                 dataBuffer = []
@@ -2032,7 +2059,7 @@ def returnUserAttrsToDict(obj):
                     buffer = mc.getAttr(obj+'.'+attr)
                     if buffer is not None:
                         attrDict[attr] = (buffer)
-                    
+
         return attrDict
     else:
         return False
@@ -2060,7 +2087,7 @@ def returnUserAttrsToList(obj):
             returnList.append(buffer)
         return returnList
     return False
-    
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -2086,9 +2113,9 @@ def addRotateOrderAttr (obj,name):
         mc.setAttr((obj+'.'+name),e = True, keyable = True )
         return ("%s.%s"%(obj,name))
     except StandardError,error:
-	log.error("addRotateOrderAttr>>Failure! '%s' failed to add '%s'"%(obj,name))
-	raise StandardError,error       
-    
+        log.error("addRotateOrderAttr>>Failure! '%s' failed to add '%s'"%(obj,name))
+        raise StandardError,error       
+
 def addPickAxisAttr(obj,name):
     """ 
     Add an axis picker attr
@@ -2103,7 +2130,7 @@ def addPickAxisAttr(obj,name):
         return ("%s.%s"%(obj,name))
     except:
         log.warning("'%s' failed to add '%s'"%(obj,name))
-        
+
 def addAttributesToObj (obj, attributeTypesDict):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2236,7 +2263,7 @@ def addVectorAttributeToObj (obj,attr,*a, **kw):
         mc.addAttr (obj, ln=(attr+'Y'),p=attr , at= 'double',*a, **kw)
         mc.addAttr (obj, ln=(attr+'Z'),p=attr , at= 'double',*a, **kw)       
         return ("%s.%s"%(obj,attr))
-    
+
     except:
         log.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
@@ -2292,8 +2319,8 @@ def addFloatAttributeToObject (obj, attr,*a, **kw):
         mc.addAttr (obj, ln = attr, at = 'float',*a, **kw)
         return ("%s.%s"%(obj,attr))
     except StandardError,error:
-	log.error("addFloatAttributeToObject>>Failure! '%s' failed to add '%s'"%(obj,attr))
-	raise StandardError,error  
+        log.error("addFloatAttributeToObject>>Failure! '%s' failed to add '%s'"%(obj,attr))
+        raise StandardError,error  
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def addEnumAttrToObj (obj,attr,optionList=['off','on'],*a, **kw):
@@ -2321,7 +2348,7 @@ def addEnumAttrToObj (obj,attr,optionList=['off','on'],*a, **kw):
     except:
         log.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
-    
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -2372,7 +2399,7 @@ def addBoolAttrToObject(obj, attr, *a, **kw):
     except:
         log.warning("'%s' failed to add '%s'"%(obj,attr))
         return False
-    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def addSectionBreakAttrToObj(obj, attr):
@@ -2441,28 +2468,28 @@ def storeObjectToMessage (obj, storageObj, messageName):
     """
     assert mc.objExists(obj) is True,"'%s' doesn't exist"%(obj)
     assert mc.objExists(storageObj) is True,"'%s' doesn't exist"%(storageObj)
-    
+
     attrCache = (storageObj+'.'+messageName)
     objLong = mc.ls(obj,long=True)
     if len(objLong)>1:
         log.warning("Can't find long name for storage, found '%s'"%objLong)
         return False 
     objLong = objLong[0]
-    
+
     storageLong = mc.ls(storageObj,long=True)
     if len(storageLong)>1:
         log.warning("Can't find long name for storage, found '%s'"%storageLong)
         return False
     storageLong = storageLong[0]
-        
+
     try:
         if  mc.objExists (attrCache):
             if mc.attributeQuery (messageName,node=storageObj,msg=True) and not mc.addAttr(attrCache,q=True,m=True):
                 if returnMessageObject(storageObj,messageName) != obj:
                     log.debug(attrCache+' already exists. Adding to existing message node.')
                     doBreakConnection(attrCache)
-		    #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-		    doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))
+                    #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+                    doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))
                     return True 
                 else:
                     log.debug("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
@@ -2471,24 +2498,24 @@ def storeObjectToMessage (obj, storageObj, messageName):
                 if connections:
                     for c in connections:
                         doBreakConnection(c)
-                        
+
                 log.debug("'%s' already exists. Not a message attr, converting."%attrCache)
                 doDeleteAttr(storageObj,messageName)
-                
+
                 buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
                 #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-		doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))                
-                        
+                doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))                
+
                 return True
         else:
             mc.addAttr (storageObj, ln=messageName, at= 'message')
             #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
-	    doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))	    
+            doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))	    
             return True
     except StandardError,error:
-	log.warning(error)
-	return False
-    
+        log.warning(error)
+        return False
+
 def storeObjectsToMessage (objects, storageObj, messageName):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2517,18 +2544,18 @@ def storeObjectsToMessage (objects, storageObj, messageName):
             mc.addAttr (storageObj, ln=messageName, at= 'message',m=True,im=False) 
             for obj in objects:
                 mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),nextAvailable=True)
-	    mc.setAttr(attrCache,lock=True)
+            mc.setAttr(attrCache,lock=True)
             return True                       
         else:
             mc.addAttr(storageObj, ln=messageName, at= 'message',m=True,im=False) 
             for obj in objects:
                 mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),nextAvailable=True)
-	    mc.setAttr(attrCache,lock=True)
+            mc.setAttr(attrCache,lock=True)
             return True 
     except:
         log.error("Storing '%s' to '%s.%s' failed!"%(objects,storageObj,messageName))
         return False
-    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def storeObjListNameToMessage (objList, storageObj):
     """ 
@@ -2564,39 +2591,39 @@ def queryIfMessage(obj,attr):
             return False
     else:
         return False
-    
-    
-    
+
+
+
 def reorderAttributes(obj,attrs,direction = 0):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     Acknowledgement:
     Thank you to - http://www.the-area.com/forum/autodesk-maya/mel/how-can-we-reorder-an-attribute-in-the-channel-box/
-    
+
     DESCRIPTION:
     Reorders attributes on an object
-    
+
     ARGUMENTS:
     obj(string) - obj with message attrs
     attrs(list) must be attributes on the object
     direction(int) - 0 is is negative (up on the channelbox), 1 is positive (up on the channelbox)
-    
+
     RETURNS:
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     assert direction in [0,1],"Direction must be 0 for negative, or 1 for positive movement"
     for attr in attrs:
         assert mc.objExists(obj+'.'+attr) is True, "reorderAttributes error. '%s.%s' doesn't exist. Swing and a miss..."%(obj,atr)
-        
+
     userAttrs = mc.listAttr(obj,userDefined = True)
-    
+
     attrsToMove = []
     for attr in userAttrs:
         if not mc.attributeQuery(attr, node = obj,listParent = True):
             attrsToMove.append(attr)
-            
+
     lists.reorderListInPlace(attrsToMove,attrs,direction)
-    
+
     #To reorder, we need delete and undo in the order we want
     for attr in attrsToMove:
         try:
@@ -2605,15 +2632,14 @@ def reorderAttributes(obj,attrs,direction = 0):
             if mc.getAttr(attrBuffer,lock=True) == True:
                 lockState = True
                 mc.setAttr(attrBuffer,lock=False)
-                
+
             mc.deleteAttr('%s.%s'%(obj,attr))
-            
+
             mc.undo()
-            
+
             if lockState:
                 mc.setAttr(attrBuffer,lock=True)
-                
+
         except:
             log.warning("'%s' Failed to reorder"%attr)
-        
 
