@@ -21,6 +21,8 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.classes import NodeFactory as cgmNodeFactory
+reload(cgmNodeFactory)
 from cgm.core.rigger.lib import morpheus_sharedData as MORPHYDATA
 from cgm.lib import (curves,
                      deformers,
@@ -571,9 +573,9 @@ def puppet_updateGeoFromAsset(*args,**kws):
                     mMesh.parent = self._mi_puppetGeoGroup.unifiedGeoGroup#...parent it		    
                     mMesh.doName()		
                     self._mi_puppet.doStore('unifiedGeo',mMesh.mNode)
-                    
+
                     mMesh.setDrawingOverrideSettings(pushToShapes=False)
-                    
+
                 else:
                     self.log_info("Unified geo found")
             except Exception,error:raise Exception,"Base Geo fail | {0}".format(error)		
@@ -595,9 +597,9 @@ def puppet_updateGeoFromAsset(*args,**kws):
                             self.log_debug("'{0}' |  parenting to: '{1}'".format(str_key,d_geoStoreKeyToGeoGroups.get(str_key)))
                             mMesh.parent = self._mi_puppetGeoGroup.getMessageAsMeta(d_geoStoreKeyToGeoGroups.get(str_key))#...parent it		    
                             mMesh.doName()	
-                            
+
                             mMesh.setDrawingOverrideSettings(pushToShapes=False)
-                            
+
             except Exception,error:raise Exception,"Geo duplication | {0}".format(error)	    
             return True
 
@@ -1007,4 +1009,261 @@ def puppet_verifyAll(*args,**kws):
                 except Exception,error:
                     self.log_error("Group check fail. | attr: '{0}' | error: {1}".format(attr,error))	    
 
+    return fncWrap(*args,**kws).go()
+
+#============================================================================================================
+#>>> Face Controls
+#============================================================================================================
+_d_faceBufferAttributes = {"nostril":{'attrs':['flare','in'],
+                                   'sideAttrs':'*'},
+                           "cheek":{'attrs':['up','dn','out','in','blow','suck'],
+                                    'sideAttrs':'*'},
+                           "eye":{'attrs':['squeeze'],
+                                  'sideAttrs':'*'},                           
+                           "mouth":{'attrs':['up','dn','left','right','fwd','back','twist'],
+                                    'sideAttrs':['twist']},
+                           "brow":{'attrs':['center_up','center_dn',
+                                            'inner_up','inner_dn','inner_in',
+                                            'mid_up','mid_dn',
+                                            'outr_up','outr_dn'],
+                                   'sideAttrs':[ 'inner_up','inner_dn','inner_in',
+                                                 'mid_up','mid_dn',
+                                                 'outr_up','outr_dn']},
+                           "jaw":{'attrs':['open','compress','left','right','fwd','back']},
+                           "lip":{'attrs':['smile','smileNarrow','smileWide',
+                                           'frown','frownNarrow','frownWide'],
+                                  'sideAttrs':'*'}}
+
+_d_controlToDrivenSetup = {'mouth':{'control':'mouth_anim',
+                                    'controlType':'joystickReg',
+                                    'dir':{'up':{'driven':'mouth_up',
+                                                 'driver':'ty'},
+                                           'down':{'driven':'mouth_dn',
+                                                   'driver':'ty'},
+                                           'left':{'driven':'mouth_left',
+                                                   'driver':'tx'},
+                                           'right':{'driven':'mouth_right',
+                                                    'driver':'tx'}}}}
+_d_faceControlsToConnect = {'mouth':{'control':'mouth_anim'}}
+
+def faceControls_verify(*args, **kws):
+    """
+    Function to split a curve up u positionally 
+
+    @kws
+    Arg 0 | kw 'curve'(None)  -- Curve to split
+    Arg 1 | kw 'points'(3)  -- Number of points to generate positions for
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+        def __init__(self,*args, **kws):
+            """
+            """	
+            super(fncWrap, self).__init__(*args, **kws)
+            self._b_reportTimes = True
+            self._str_funcName = 'faceControls_verify'	
+            self._l_ARGS_KWS_DEFAULTS = [{'kw':'attributeHolder',"default":None,
+                                          'help':"Name of the attribute Holder"},]	    
+            self.l_funcSteps = [{'step':'Verify Attribute Holder','call':self._fncStep_attributeHolder_},
+                                {'step':'Verify Attributes','call':self._fncStep_attributes_},
+                                #{'step':'Verify Control Wiring','call':self._fncStep_controlWiring_}
+                                ]	    
+            self.__dataBind__(*args, **kws)
+
+        def _fncStep_attributeHolder_(self):
+            """
+            """
+            _obj = False
+            self._mi_obj = False
+            self._d_controls = {}
+            
+            if self.d_kws['attributeHolder'] is not None:
+                _obj = cgmValid.objString(arg=self.d_kws['attributeHolder'], noneValid=True, 
+                                           calledFrom=self._str_funcName)
+                if not _obj:
+                   return self._FailBreak_("Bad obj")
+               
+                self._mi_obj = cgmMeta.cgmNode(_obj)
+                
+            if not _obj:
+                self.log_info("Must create attributeHolder")
+                self._mi_obj = cgmMeta.cgmObject()
+                
+            if not self._mi_obj:
+                return self._FailBreak_("Should have had an object by now")
+            else:#...check naming stuff
+                self._mi_obj.addAttr('cgmName','face')
+                self._mi_obj.addAttr('cgmType','attrHolder')
+                self._mi_obj.doName()
+                
+            self.log_info(self._mi_obj)
+            self._str_attrHolder = self._mi_obj.mNode
+            
+        def _fncStep_attributes_(self):
+            l_sections = _d_faceBufferAttributes.keys()
+            l_sections.sort()
+            
+            for section in l_sections:
+                self._mi_obj.addAttr("{0}________attrs".format(section),
+                                     attrType = 'int',
+                                     keyable = False,
+                                     hidden = False,lock=True) 
+                
+                _d_section = _d_faceBufferAttributes[section]
+                l_attrs = _d_section.get('attrs')
+                l_attrs.sort()
+                
+                #Build our names
+                l_sidesAttrs = _d_section.get('sideAttrs') or []
+                if l_sidesAttrs == '*':
+                    l_sidesAttrs = copy.copy(l_attrs)
+                    
+                for a in l_attrs:
+                    l_name = [section,a]                    
+                    l_names = []
+                    if a in l_sidesAttrs:
+                        for side in ['left','right']:
+                            l_buffer = copy.copy(l_name)
+                            l_buffer.append(side)
+                            l_names.append(l_buffer)
+                    if not l_names:l_names = [l_name]
+                    for n in l_names:
+                        #self.log_info(n)
+                        self._mi_obj.addAttr("_".join(n),attrType = 'float',hidden = False)
+                        
+        def _fncStep_controlWiring_(self):
+            for key in _d_faceControlsToConnect.keys():
+                try:
+                    _d_control = _d_faceControlsToConnect[key]
+                    control = _d_control['control']
+                    
+                    if not mc.objExists(control):
+                        self.log_error("Control not found: {0}".format(control))
+                        continue
+                    
+                    self._d_controls[key] = cgmMeta.cgmObject(control)
+                    
+                    if control == 'mouth_anim':
+                        _str_tyClamp = '{0}_control_ty_clamp'.format(key)
+                        if mc.objExists(_str_tyClamp):
+                            mi_tyClamp = cgmMeta.cgmNode(_str_tyClamp)
+                        else:
+                            mi_tyClamp = cgmMeta.cgmNode(nodeType='clamp')
+                            mi_tyClamp.addAttr('cgmName', '{0}_control_ty_clamp'.format(key))
+                            mi_tyClamp.doName()
+                        _str_tyClamp = mi_tyClamp.mNode
+                        
+                        _str_txClamp = '{0}_control_tx_clamp'.format(key)
+                        if mc.objExists(_str_txClamp):
+                            mi_txClamp = cgmMeta.cgmNode(_str_txClamp)
+                        else:
+                            mi_txClamp = cgmMeta.cgmNode(nodeType='clamp')
+                            mi_txClamp.addAttr('cgmName', '{0}_control_tx_clamp'.format(key))
+                            mi_txClamp.doName()
+                        _str_txClamp = mi_txClamp.mNode
+                        
+                        _str_tzClamp = '{0}_control_tz_clamp'.format(key)
+                        if mc.objExists(_str_tzClamp):
+                            mi_tzClamp = cgmMeta.cgmNode(_str_tzClamp)
+                        else:
+                            mi_tzClamp = cgmMeta.cgmNode(nodeType='clamp')
+                            mi_tzClamp.addAttr('cgmName', '{0}_control_tz_clamp'.format(key))
+                            mi_tzClamp.doName()
+                        _str_tzClamp = mi_tzClamp.mNode
+                        
+                        
+                        _str_mouthMD = '{0}_control_mdNode'.format(key)
+                        if mc.objExists(_str_mouthMD):
+                            mi_mouthMDNode = cgmMeta.cgmNode(_str_mouthMD)
+                        else:
+                            mi_mouthMDNode = cgmMeta.cgmNode(nodeType='multiplyDivide')
+                            mi_mouthMDNode.addAttr('cgmName','{0}_control'.format(key))
+                            mi_mouthMDNode.doName()
+                        _str_mouthMD = mi_mouthMDNode.mNode                        
+                        
+                        try:#>>Positive Y -- R
+                            #R
+                            mPlug_driven = cgmMeta.cgmAttr(self._mi_obj, 'mouth_up') 
+                            mi_tyClamp.minR = 0
+                            mi_tyClamp.maxR = 1
+                            
+                            attributes.doConnectAttr("{0}.ty".format(control),"{0}.inputR".format(_str_tyClamp))
+                            attributes.doConnectAttr("{0}.outputR".format(_str_tyClamp), mPlug_driven.p_combinedShortName)
+                        except Exception,error:
+                            raise Exception,"Positve Y fail | {0}".format(error)
+                        
+                        try:#>>Negative Y -- G
+                            mPlug_driven = cgmMeta.cgmAttr(self._mi_obj, 'mouth_dn') 
+                            mi_tyClamp.minG = -1
+                            mi_tyClamp.maxG = 0
+                            
+                            attributes.doConnectAttr("{0}.ty".format(control),"{0}.inputG".format(_str_tyClamp))
+                            
+                            mi_mouthMDNode.input2X = -1
+                            attributes.doConnectAttr("{0}.outputG".format(_str_tyClamp),"{0}.input1X".format(_str_mouthMD))
+                            attributes.doConnectAttr("{0}.outputX".format(_str_mouthMD), mPlug_driven.p_combinedShortName)
+                            
+                            
+                            #cgmNodeFactory.argsToNodes("{0} = -{1}.outputG".format(mPlug_driven.p_combinedShortName,_str_tyClamp)).doBuild()
+                            #mPlug_driven.p_locked = False
+                            
+                            #attributes.doConnectAttr("{0}.outputG".format(_str_tyClamp),"{0}.mouth_up".format(self._str_attrHolder))
+                        except Exception,error:
+                            raise Exception,"Negative Y fail | {0}".format(error)
+                        
+                        try:#>>Positive X -- main R
+                            #R
+                            mPlug_driven = cgmMeta.cgmAttr(self._mi_obj, 'mouth_left')                             
+                            mi_txClamp.minR = 0
+                            mi_txClamp.maxR = 1
+                            
+                            attributes.doConnectAttr("{0}.tx".format(control),"{0}.inputR".format(_str_txClamp))
+                            attributes.doConnectAttr("{0}.outputR".format(_str_txClamp), mPlug_driven.p_combinedShortName)
+                        except Exception,error:
+                            raise Exception,"Positve X fail | {0}".format(error)
+                        
+                        try:#>>Negative X -- main G, md Y
+                            mPlug_driven = cgmMeta.cgmAttr(self._mi_obj, 'mouth_right') 
+                            mi_txClamp.minG = -1
+                            mi_txClamp.maxG = 0
+                            
+                            attributes.doConnectAttr("{0}.tx".format(control),"{0}.inputG".format(_str_txClamp))
+                            
+                            mi_mouthMDNode.input2X = -1
+                            attributes.doConnectAttr("{0}.outputG".format(_str_txClamp),"{0}.input1Y".format(_str_mouthMD))
+                            attributes.doConnectAttr("{0}.outputY".format(_str_mouthMD), mPlug_driven.p_combinedShortName)
+                            
+                            
+                            #cgmNodeFactory.argsToNodes("{0} = -{1}.outputG".format(mPlug_driven.p_combinedShortName,_str_txClamp)).doBuild()
+                            #mPlug_driven.p_locked = False
+                            
+                            #attributes.doConnectAttr("{0}.outputG".format(_str_txClamp),"{0}.mouth_up".format(self._str_attrHolder))
+                        except Exception,error:
+                            raise Exception,"Negative X fail | {0}".format(error)
+                        
+                        
+                        #'clamp':['minR','maxR','inputR'],
+                        #mi_clamp = cgmMeta.cgmNode(nodeType='clampNode')
+    
+                except Exception,error:
+                    raise StandardError,"Control '{0}' fail | error: {1}".format(key,error)                
+            
+            '''l_controlKeys = _d_controlToDrivenSetup.keys()
+            
+            for control in l_controlKeys:
+                try:
+                    if not mc.objExists(control):
+                        self.log_error("Control not found: {0}".format(control))
+                        continue
+                    
+                    _d_control = _d_controlToDrivenSetup[control]
+                    _controlType = _d_control.get('controlType' or 'joystickReg')
+                    _l_attrs = _d_control['attrs']
+                    if _controlType == 'joystickReg':
+                        if len(_l_attrs) == 4:
+                            self.log_info("4 len joystickReg")
+                except Exception,error:
+                    raise StandardError,"Control '{0}' fail | error: {1}".format(control,error)'''
+                
+
+                
     return fncWrap(*args,**kws).go()
