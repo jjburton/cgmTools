@@ -102,7 +102,7 @@ def stringArg(arg=None, noneValid=True, calledFrom = None, **kwargs):
             result = False
         else:
             fmt_args = (arg, _str_funcName, type(arg).__name__)
-            s_errorMsg = "Arg {0} from func '{1}' is type '{0}', not 'str'"
+            s_errorMsg = "Arg {0} from func '{1}' is type '{2}', not 'str'"
 
             raise TypeError(s_errorMsg.format(*fmt_args))
 
