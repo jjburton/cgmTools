@@ -182,50 +182,56 @@ def go(*args, **kws):
         def _fncStep_dynamicSwitch2_(self):
             pass	    
         def _fncStep_bufferData_(self):
-            #Master control ---------------------------------------------------------
-            self._i_masterControl = self._mi_module.modulePuppet.masterControl
-            self.mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')	    
-            self._i_masterSettings = self._i_masterControl.controlSettings
-            self._i_masterDeformGroup = self._mi_module.modulePuppet.masterNull.deformGroup	    
-            self._l_moduleColors = self._mi_module.getModuleColors()
+            try:#Master control ---------------------------------------------------------
+                self._i_masterControl = self._mi_module.modulePuppet.masterControl
+                self.mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')	    
+                self._i_masterSettings = self._i_masterControl.controlSettings
+                self._i_masterDeformGroup = self._mi_module.modulePuppet.masterNull.deformGroup	 
+            except Exception,error:raise Exception,"Master control | error: {0}".format(error)
+            
+            try:#Module stuff ------------------------------------------------------------
+                self._l_moduleColors = self._mi_module.getModuleColors()            
+                self._l_coreNames = self._mi_module.coreNames.value
+                self._i_templateNull = self._mi_module.templateNull#speed link
+                self._i_rigNull = self._mi_module.rigNull#speed link
+                self._bodyGeo = self._mi_module.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic   
+                self._version = self._i_rigNull.version
+                self._direction = self._mi_module.getAttr('cgmDirection')
+            except Exception,error:raise Exception,"Module stuff | error: {0}".format(error)
 
-            #Module stuff ------------------------------------------------------------
-            self._l_coreNames = self._mi_module.coreNames.value
-            self._i_templateNull = self._mi_module.templateNull#speed link
-            self._i_rigNull = self._mi_module.rigNull#speed link
-            self._bodyGeo = self._mi_module.modulePuppet.getGeo() or ['Morphy_Body_GEO'] #>>>>>>>>>>>>>>>>>this needs better logic   
-            self._version = self._i_rigNull.version
-            self._direction = self._mi_module.getAttr('cgmDirection')
+            try:#Mirror stuff
+                self._str_mirrorDirection = self._mi_module.get_mirrorSideAsString()
+                self._f_skinOffset = self._i_puppet.getAttr('skinDepth') or 1 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<		
+            except Exception,error:raise Exception,"Mirror stuff | error: {0}".format(error)
 
-            #Mirror stuff
-            self._str_mirrorDirection = self._mi_module.get_mirrorSideAsString()
-            self._f_skinOffset = self._i_puppet.getAttr('skinDepth') or 1 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<		
+            try:#Joints ------------------------------------------------------------------
+                self._ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True,cull = True)
+                if not self._ml_moduleJoints:raise StandardError, "No module joints found!"
+                self._l_moduleJoints = [j.p_nameShort for j in self._ml_moduleJoints]
+                self._ml_skinJoints = self._mi_module.rig_getSkinJoints()
+                for mJnt in self._ml_moduleJoints:
+                    attributes.doSetAttr(mJnt.mNode,'displayLocalAxis',0)
+                    
+                if not self._ml_skinJoints:raise StandardError,"No Skin joints found"
+                if not self._ml_moduleJoints:raise StandardError, "No module joints found!"        
+                self._l_skinJoints = [j.p_nameShort for j in self._ml_skinJoints]
+            except Exception,error:raise Exception,"Joints | error: {0}".format(error)
+            
+            try:#>>> part name -----------------------------------------------------------------
+                self._partName = self._mi_module.getPartNameBase()
+                self._partType = self._mi_module.moduleType.lower() or False
+            except Exception,error:raise Exception,"Part Name | error: {0}".format(error)
 
-            #Joints ------------------------------------------------------------------
-            self._ml_moduleJoints = self._i_rigNull.msgList_get('moduleJoints',asMeta = True,cull = True)
-            if not self._ml_moduleJoints:raise StandardError, "No module joints found!"
-            self._l_moduleJoints = [j.p_nameShort for j in self._ml_moduleJoints]
-            self._ml_skinJoints = self._mi_module.rig_getSkinJoints()
-            for mJnt in self._ml_moduleJoints:
-                attributes.doSetAttr(jnt,'displayLocalAxis',0)
-                
-            if not self._ml_skinJoints:raise StandardError,"No Skin joints found"
-            if not self._ml_moduleJoints:raise StandardError, "No module joints found!"        
-            self._l_skinJoints = [j.p_nameShort for j in self._ml_skinJoints]
-
-            #>>> part name -----------------------------------------------------------------
-            self._partName = self._mi_module.getPartNameBase()
-            self._partType = self._mi_module.moduleType.lower() or False
-
-            #>>> Instances and joint stuff ----------------------------------------------------
-            self._mi_orientation = cgmValid.simpleOrientation(str(modules.returnSettingsData('jointOrientation')) or 'zyx')
-            self._jointOrientation = self._mi_orientation.p_string      
-            self._vectorAim = self._mi_orientation.p_aim.p_vector
-            self._vectorUp = self._mi_orientation.p_up.p_vector
-            self._vectorOut = self._mi_orientation.p_out.p_vector
-            self._vectorAimNegative = self._mi_orientation.p_aimNegative.p_vector
-            self._vectorUpNegative = self._mi_orientation.p_upNegative.p_vector
-            self._vectorOutNegative = self._mi_orientation.p_outNegative.p_vector
+            try:#>>> Instances and joint stuff ----------------------------------------------------
+                self._mi_orientation = cgmValid.simpleOrientation(str(modules.returnSettingsData('jointOrientation')) or 'zyx')
+                self._jointOrientation = self._mi_orientation.p_string      
+                self._vectorAim = self._mi_orientation.p_aim.p_vector
+                self._vectorUp = self._mi_orientation.p_up.p_vector
+                self._vectorOut = self._mi_orientation.p_out.p_vector
+                self._vectorAimNegative = self._mi_orientation.p_aimNegative.p_vector
+                self._vectorUpNegative = self._mi_orientation.p_upNegative.p_vector
+                self._vectorOutNegative = self._mi_orientation.p_outNegative.p_vector
+            except Exception,error:raise Exception,"Vectors | error: {0}".format(error)
 
             #>>> Some place holders ----------------------------------------------------	    
             self._md_controlShapes = {}
@@ -248,7 +254,7 @@ def go(*args, **kws):
                     self._mi_parentHeadHandle = False
                     self.verify_headModule()
                     self.verify_faceModuleAttachJoint()
-                    self.verify_faceSkullPlate()
+                    #self.verify_faceSkullPlate()
                     self.verify_faceDeformNull()#make sure we have a face deform null
                     self.verify_faceScaleDriver()#scale driver
 
@@ -452,17 +458,24 @@ def go(*args, **kws):
             return True
 
         def verify_headModule(self):
-            if self._partType not in __l_faceModules__:
-                log.info("Not a face module, not gonna find a head from here")
-                return False
-
-            if self._partType == 'eyelids':
-                self._i_headModule = self._mi_module.moduleParent.moduleParent
-            else:
-                self._i_headModule = self._mi_module.moduleParent
-
-            self._mi_parentHeadHandle = self._i_headModule.rigNull.handleIK	    
-            return self._i_headModule
+            try:
+                if self._partType not in __l_faceModules__:
+                    log.info("Not a face module, not gonna find a head from here")
+                    return False
+    
+                if self._partType == 'eyelids':
+                    self._i_headModule = self._mi_module.moduleParent.moduleParent
+                else:
+                    self._i_headModule = self._mi_module.moduleParent
+                
+                if not self._i_headModule.rigNull.getMessage('handleIK'):
+                    self.log_info("No Handle IK found. Using module joint")
+                    self._mi_parentHeadHandle = self._i_headModule.rigNull.msgList_get('moduleJoints')[-1]	                    
+                else:
+                    self._mi_parentHeadHandle = self._i_headModule.rigNull.handleIK	    
+                return self._i_headModule
+            except Exception,error:
+                raise Exception,"verify_headModule fail | {0}".format(error)
 
         def verify_faceScaleDriver(self):
             try:
@@ -484,7 +497,7 @@ def go(*args, **kws):
                                                      mPlug_globalScale.p_combinedShortName,
                                                      mi_parentHeadHandle.p_nameShort)).doBuild()
                 self.mPlug_multpHeadScale = mPlug_multpHeadScale
-            except Exception,error:raise Exception,"!verify_faceScaleDriver! | %s"%(error)
+            except Exception,error:raise Exception,"verify_faceScaleDriver! | {0}".format(error)
 
         def verify_offsetGroup(self,mObj):
             try:
@@ -1613,7 +1626,8 @@ def get_simpleRigJointDriverDict(self,printReport = True):
         log.debug("Second match: '%s':'%s'"%(i_jnt.getShortName(),i_match.getShortName()))	
         d_rigJointDrivers[i_jnt.mNode] = i_match
         l_cullRigJoints.remove(i_jnt.getShortName())
-        ml_matchTargets.remove(i_match)
+        if i_match in ml_matchTargets:
+            ml_matchTargets.remove(i_match)
 
     if printReport or l_cullRigJoints:
         log.debug("%s.get_simpleRigJointDriverDict >> "%self.getShortName() + "="*50)

@@ -415,7 +415,7 @@ def doSkeletonizeEyelids(self):
             mi_crv = d_buildCurves[k].get('crv')#get instance
             int_count = d_buildCurves[k].get('count')#get int
             log.info("%s >>> building joints for %s curve | count: %s"%(_str_funcName,k, int_count))
-            try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10,startSplitFactor=.05)
+            try:l_pos = crvUtils.returnSplitCurveList(mi_crv.mNode,int_count,rebuildSpans=10)#startSplitFactor=.05
             except Exception,error:raise StandardError,"%s >>> Crv split fail | error: %s "%(_str_funcName,error)       
             d_buildCurves[k]['l_pos'] = l_pos#Store it
             log.info("%s >>> '%s' pos list: %s"%(_str_funcName,k, l_pos))
@@ -455,7 +455,12 @@ def doSkeletonizeEyelids(self):
 
             for i,mJnt in enumerate(ml_jointBuffer):
                 try:#aim constraint
-                    passKWS = {'weight' : 1, 'upVector' : v_aimNegative, 'worldUpVector' : [0,1,0],
+                    #mi_upLoc = cgmMeta.cgmObject('l_eye_move_jnt_loc')
+                    passKWS = {'weight' : 1, 'aimVector' : v_aimNegative, 'upVector' : v_up, 'worldUpVector' : [0,1,0],
+                               'worldUpObject' : mi_upLoc.mNode, 'worldUpType' : 'object'} 	               
+                    mi_target = mi_helper
+                    
+                    """passKWS = {'weight' : 1, 'upVector' : v_aimNegative, 'worldUpVector' : [0,1,0],
                                'worldUpObject' : mi_helper.mNode, 'worldUpType' : 'object'} 	
                     if self._mi_module.cgmDirection == 'left':
                         passKWS['aimVector'] = v_outNegative
@@ -473,7 +478,7 @@ def doSkeletonizeEyelids(self):
                         if i == 0:
                             mi_target = d_buildCurves['upr']['ml_joints'][0]
                         else:
-                            mi_target = ml_jointBuffer[i-1]
+                            mi_target = ml_jointBuffer[i-1]"""
 
                     constraintBuffer = mc.aimConstraint(mi_target.mNode,mJnt.mNode,maintainOffset = False, **passKWS)
                     mc.delete(constraintBuffer)  			    

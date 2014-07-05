@@ -518,13 +518,17 @@ def isRigged(*args,**kws):
         def __func__(self):
             kws = self.d_kws
             mi_module = self._mi_module
+            
+            mi_rigNull = mi_module.rigNull
+            str_shortName = self._str_moduleName
+            
+            if mi_rigNull.hasAttr('ignoreRigCheck') and mi_rigNull.ignoreRigCheck:
+                self.log_info("Ignoring rig check")
+                return True
 
             if not isSkeletonized(**kws):
                 self.log_debug("%s Not skeletonized"%self._str_reportStart)
                 return False   
-
-            mi_rigNull = mi_module.rigNull
-            str_shortName = self._str_moduleName
             
             #ml_rigJoints = mi_rigNull.msgList_get('rigJoints',asMeta = True)
             l_rigJoints = get_joints(mi_module,rigJoints = True, asMeta=False)            
