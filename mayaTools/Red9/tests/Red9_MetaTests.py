@@ -27,6 +27,9 @@ import Red9.core.Red9_Meta as r9Meta
 import Red9.startup.setup as r9Setup
 r9Setup.start(Menu=False)
 
+#force the upAxis, just in case
+r9Setup.mayaUpAxis('y')
+
 class Test_MetaRegistryCalls():
     
     def test_registerMClassNodeMapping(self):
@@ -90,6 +93,14 @@ class Test_MetaClass():
         
         #isReferenced ?? Why is this failing ??
         assert not self.MClass.isReferenced()
+    
+    def test_isValid(self):
+        assert self.MClass.isValid() #strange one, isValid fails if the mNode has no connections.... is this a good decision?
+        cube1=cmds.ls(cmds.polyCube()[0],l=True)[0]
+        newMeta=r9Meta.MetaClass(cube1)
+        assert newMeta.isValid()
+        cmds.delete(newMeta.mNode)
+        assert not self.MClass.isValid()
         
     def test_MObject_Handling(self):
         #mNode is now handled via an MObject
@@ -266,7 +277,24 @@ class Test_MetaClass():
         
         self.MClass.Multiple=[cube1,cube4]
         assert sorted(self.MClass.Multiple)==[cube1,cube4]
+    
+    def test_connections_called_from_wrappedMClass(self):
+        '''
+        lets try connects again and see how it behaves when the mClass calling
+        the code is just a wrapped standard Maya node
+        '''
+        loc1 = cmds.spaceLocator(name="boom")[0]
+        loc2 = cmds.spaceLocator(name="blah")[0]
+        loc3 = cmds.spaceLocator(name="weeh")[0]
+        boom = r9Meta.MetaClass("boom")
         
+        assert r9Meta.isMetaNode(boom)
+        boom.connectChild(loc2,"child","parent")
+        assert boom.child==['|blah']
+        boom.connectChild(loc3,"child","parent")
+        assert boom.child==['|weeh']
+        assert not cmds.attributeQuery('parent', node=loc2, exists=True)
+
     def test_connectionsTo_MayaNodes_Complex(self):
         '''
         This is more to sanity check the connection management, when and how nodes get
@@ -321,7 +349,38 @@ class Test_MetaClass():
             assert False
         except:
             assert True
+    
+    def test_forceFlagReturns(self):
+        '''
+        test the _forceAsMeta flag, modifying all returns to be instantiated metaClass objects
+        This is deep integration and needs careful testing
+        '''
+        cube1=cmds.ls(cmds.polyCube()[0],l=True)[0]
+        cube2=cmds.ls(cmds.polyCube()[0],l=True)[0]
+        cube3=cmds.ls(cmds.polyCube()[0],l=True)[0]
+        self.MClass.connectChild(cube1,'singleAttr1')
+        self.MClass.connectChild(cube2,'singleAttr2')
+        assert self.MClass.getChildren()==[cube1,cube2]
         
+        #throw the flag to force returns
+        self.MClass._forceAsMeta=True
+        
+        assert issubclass(type(self.MClass.singleAttr1[0]), r9Meta.MetaClass)
+        assert self.MClass.singleAttr1[0].mNode==cube1
+        assert r9Meta.isMetaNode(self.MClass.singleAttr1[0])
+        nodes=self.MClass.getChildren()
+        for node in nodes:
+            assert r9Meta.isMetaNode(node)
+            assert node.getParentMetaNode()==self.MClass
+            assert cmds.nodeType(node.mNode)=='transform'
+            
+        #connection handler
+        self.MClass.connectChild(r9Meta.MetaClass(cube3),'newConnect')
+        assert self.MClass.newConnect[0].mNode==cube3
+        assert self.MClass.isChildNode(cube3)
+        assert self.MClass.isChildNode(cube3,'newConnect')
+        
+           
     def test_connectParent(self):
         
         parent=r9Meta.MetaFacialRig(name='Facial')
@@ -349,6 +408,14 @@ class Test_MetaClass():
         self.MClass.newTest=4
         assert self.MClass.newTest==4
 
+    def test_lockState(self):
+        assert not self.MClass.lockState
+        assert not cmds.lockNode(self.MClass.mNode, query=True)[0]
+        self.MClass.lockState=True
+        assert cmds.lockNode(self.MClass.mNode, query=True)[0]
+        
+        
+        
     def test_attributeHandling(self):
         '''
         This tests the standard attribute handing in the MetaClass.__setattr__ 
@@ -507,6 +574,21 @@ class Test_MetaClass():
         assert not cmds.attributeQuery('boolTest',node=node.mNode,exists=True)
     
 
+    def test_attributeHandlingMath(self):
+        '''
+        This tests the python attr handling with math args
+        '''
+        node=self.MClass
+
+        node.addAttr('fltTest', 1.5)
+        node.fltTest+=1
+        assert node.fltTest==2.5
+        node.fltTest-=1
+        assert node.fltTest == 1.5
+        node.fltTest*=2
+        assert node.fltTest == 3.0
+
+        
         
     def test_attributeHandling_MessageAttr(self):
         '''
@@ -613,7 +695,7 @@ class Test_Generic_SearchCalls():
         r9Meta.MetaFacialRigSupport(name='MetaFacialRigSupport_Test')
 
     def teardown(self):
-        self.setup()    
+        self.setup()
            
     def test_isMetaNode(self):
         assert r9Meta.isMetaNode('MetaRig_Test')
@@ -625,7 +707,7 @@ class Test_Generic_SearchCalls():
         assert r9Meta.isMetaNode('MetaRig_Test', mTypes=r9Meta.MetaRig)
         cube1=cmds.ls(cmds.polyCube()[0],l=True)[0]
         assert not r9Meta.isMetaNode(cube1)
-        
+    
     def test_isMetaNodeInherited(self):
         assert r9Meta.isMetaNodeInherited('MetaFacialRig_Test','MetaRig')
         assert r9Meta.isMetaNodeInherited('MetaFacialRig_Test','MetaClass')
@@ -867,6 +949,13 @@ class Test_MetaRig():
         assert self.mRig.R_ArmSystem.getChildren(walk=False)==['|World_Ctrl|R_Wrist_Ctrl', 
                                                      '|World_Ctrl|COG__Ctrl|R_Elbow_Ctrl', 
                                                      '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl']  
+    
+    def test_getNodeConnectionMetaDataMap(self):
+        assert self.mRig.getNodeConnectionMetaDataMap('|World_Ctrl|L_Foot_grp|L_Foot_Ctrl') == {'metaAttr': u'CTRL_L_Foot', 'metaNodeID': u'L_LegSystem'} 
+    
+    def test_getNodeConnections(self):
+        assert self.mRig.L_Leg_System.getNodeConnections('|World_Ctrl|L_Foot_grp|L_Foot_Ctrl') == ['CTRL_L_Foot']
+        
     def test_getChildren_mAttrs(self):
         #TODO: Fill Test
         pass
@@ -874,7 +963,7 @@ class Test_MetaRig():
     def test_getConnectedMetaNodes(self):
         #TODO: Fill Test
         pass
-    
+
     def test_getConnectedMetaNodes_mTypes(self):
         #TODO: Fill Test
         pass

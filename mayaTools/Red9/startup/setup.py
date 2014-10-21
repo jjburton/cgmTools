@@ -16,7 +16,7 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 
 
 __author__ = 'Mark Jackson'
-__buildVersionID__ = 1.42
+__buildVersionID__ = 1.44
 installedVersion= False
 
 import sys
@@ -77,15 +77,31 @@ def mayaPrefs():
     '''
     return os.path.dirname(cmds.about(env=True))
 
-def mayaUpAxis():
+def mayaUpAxis(setAxis=None):
     import maya.OpenMaya as OpenMaya
-    vect=OpenMaya.MGlobal.upAxis()
-    if vect.z:
-        return 'z'
-    if vect.y:
-        return 'y'
+    if setAxis:
+        if setAxis.lower()=='y':
+            OpenMaya.MGlobal.setYAxisUp()
+        if setAxis.lower()=='z':
+            OpenMaya.MGlobal.setZAxisUp()
+    else:
+        vect=OpenMaya.MGlobal.upAxis()
+        if vect.z:
+            return 'z'
+        if vect.y:
+            return 'y'
     
-    
+def mayaIsBatch():
+    return cmds.about(batch=True)
+
+def getCurrentFPS():
+    '''
+    returns the current frames per second as a number, rather than a useless string
+    '''
+    fpsDict = {"game": 15.0, "film": 24.0, "pal": 25.0, "ntsc": 30.0, "show": 48.0, "palf": 50.0, "ntscf": 60.0}
+    return  fpsDict[cmds.currentUnit(q=True, fullName=True, time=True)]
+
+  
 # Menu Builders ------------------------------------------------------------------------
    
 def menuSetup(parent='MayaWindow'):
@@ -190,7 +206,7 @@ def menuSetup(parent='MayaWindow'):
         cmds.menuItem('redNineDebuggerItem',l='Red9 Debugger',sm=True,p='redNineMenuItemRoot')
         cmds.menuItem('redNineLostAnimItem',l="Reconnect Lost Anim", p='redNineDebuggerItem',
                       ann="Reconnect lost animation data via a chSet - see my blog post for more details",
-                      echoCommand=True, c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.reConnectReferencedAnimData()")
+                      echoCommand=True, c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.ReconnectAnimData().show()")
         cmds.menuItem(divider=True,p='redNineDebuggerItem')
         cmds.menuItem('redNineDebugItem',l="systems: DEBUG",ann="Turn all the logging to Debug",
                       echoCommand=True, c="Red9.core._setlogginglevel_debug()")
@@ -244,20 +260,20 @@ def addToMayaMenus():
                 mel.eval('buildFileMenu()')
             cmds.menuItem(divider=True,p=mainFileMenu)
             cmds.menuItem('redNineOpenFolderItem',
-                          l="Red9: OpenSceneFolder",
+                          l="Red9: Open in Explorer",
                           ann="Open the folder containing the current Maya Scene",
                           p=mainFileMenu,
                           echoCommand=True,
                           c="import maya.cmds as cmds;import Red9.core.Red9_General as r9General;r9General.os_OpenFileDirectory(cmds.file(q=True,sn=True))")
         # timeSlider additions
-        if not cmds.menuItem('redNineTimeSliderItem',q=True,ex=True):
+        if not cmds.menuItem('redNineTimeSliderCollapseItem',q=True,ex=True):
             if mayaVersion >= 2011:
                 mel.eval('updateTimeSliderMenu TimeSliderMenu')
                 
             TimeSliderMenu='TimeSliderMenu'
             cmds.menuItem(divider=True, p=TimeSliderMenu)
             cmds.menuItem(subMenu=True, label='Red9: Collapse Range', p=TimeSliderMenu)
-            cmds.menuItem(label='Collapse : Selected Only',
+            cmds.menuItem('redNineTimeSliderCollapseItem', label='Collapse : Selected Only',
                           ann='Collapse the keys in the selected TimeRange (Red highlighted)',
                           c='import Red9.core.Red9_CoreUtils as r9Core;r9Core.timeOffset_collapse(scene=False)')
             cmds.menuItem(label='Collapse : Full Scene',
@@ -271,6 +287,8 @@ def addToMayaMenus():
             cmds.menuItem(label='Pad : Full Scene',
                           ann='Insert time in the selected TimeRange (Red highlighted)',
                           c='import Red9.core.Red9_CoreUtils as r9Core;r9Core.timeOffset_addPadding(scene=True)')
+        else:
+            log.debug('Red9 Timeslider menus already built')
     except:
         log.debug('gMainFileMenu not found >> catch for unitTesting')
 
@@ -287,17 +305,19 @@ def red9ButtonBGC(colour):
         return [0.5, 0.5, 0.5]
    
 def red9ContactInfo(*args):
+    import Red9.core.Red9_General as r9General  # lazy load
     result=cmds.confirmDialog(title='Red9_StudioPack : build %f' % red9_getVersion(),
                        message=("Author: Mark Jackson\r\r"+
                                 "Technical Animation Director\r\r"+
                                 "Contact me at rednineinfo@gmail.com for more information\r\r"+
                                 "thanks for trying the toolset. If you have any\r"+
                                 "suggestions or bugs please let me know!"),
-                       button=['thankyou','ChangeLog'],messageAlign='center')
+                       button=['Red9Consultancy.com','ChangeLog','Close'],messageAlign='center')
     if result == 'ChangeLog':
-        import Red9.core.Red9_General as r9General  # lazy load
         r9General.os_OpenFile(os.path.join(red9ModulePath(),'changeLog.txt'))
-    
+    if result =='Red9Consultancy.com':
+        r9General.os_OpenFile('http://red9consultancy.com/')
+        
 def red9Presets():
     return os.path.join(red9ModulePath(), 'presets')
     
@@ -495,6 +515,9 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindo
     #mel.eval('global float $buildInstalled=%f' % red9_getVersion())
     
     log.info('Red9 StudioPack Complete!')
+    
+    if os.path.exists(os.path.join(red9ModulePath(),'pro_pack')):
+        cmds.evalDeferred("import Red9.pro_pack",lp=True)  # Unresolved Import
 
     
     

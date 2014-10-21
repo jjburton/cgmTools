@@ -39,7 +39,10 @@ Code examples:
     
     >>> import Red9_CoreUtils as r9Core
     >>> import maya.cmds as cmds
-    >>>                              
+    >>> 
+    >>> #===========================
+    >>> #When Processing hierarchies:
+    >>> #===========================
     >>> #Make a settings object and set the internal filter to find all
     >>> #child nurbsCurves that have an attr called 'Control_Marker'
     >>> settings = r9Core.FilterNode_Settings()
@@ -62,6 +65,15 @@ Code examples:
     >>> 
     >>> #Rather than passing in the settings or nodes, pass in the already processed MatchedNode
     >>> anim.snapTransform(nodes=matched, time=r9Anim.timeLineRangeGet())
+    >>>
+    >>>
+    >>> #==============================
+    >>> #When processing simple objects:
+    >>> #==============================
+    >>> #If you simple ignore the filterSettings you can just process given nodes directly
+    >>> #the nodes are zipped into selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
+    >>> anim = r9Anim.AnimFunctions()
+    >>> anim.snapTransform(nodes=cmds.ls(sl=True), time=r9Anim.timeLineRangeGet())
         
 '''
 
@@ -125,25 +137,35 @@ def getChannelBoxSelection():
     '''
     return cmds.channelBox('mainChannelBox', q=True, selectedMainAttributes=True)
 
+def getNodeAttrStatus(node=None, asDict=True, incLocked=True):
+    '''
+    stub function/ wrapper of getChannelBoxAttrs as the name is a
+    little misleading and not really what the function is doing in hindsight.
+    '''
+    return getChannelBoxAttrs(node=None, asDict=True, incLocked=True)
+
 def getChannelBoxAttrs(node=None, asDict=True, incLocked=True):
     '''
-    return a dict of attributes in the ChannelBox by their status.
+    return the status of all attrs on the given node, either as a flat list or
+    a dict. As dict it contains all data which controls the lock, keyable, hidden states etc
     
+    statusDict={'keyable':attrs, 'nonKeyable':attrs, 'locked':attrs}
+        
     :param node: given node.
     :param asDict: True returns a dict with keys 'keyable','locked','nonKeyable' of attrs 
-        False returns a list (non ordered) of all attrs available on the channelBox.
+        False returns a list (non ordered) of all attr states.
     :param incLocked: True by default - whether to include locked channels in the return (only valid if not asDict)
     '''
     statusDict={}
     if not node:
         node = cmds.ls(sl=True, l=True)[0]
-    statusDict['keyable']=cmds.listAttr(node, k=True, u=True)
-    statusDict['locked'] =cmds.listAttr(node, k=True, l=True)
-    statusDict['nonKeyable'] =cmds.listAttr(node, cb=True)
+    statusDict['keyable'] = cmds.listAttr(node, keyable=True, unlocked=True)
+    statusDict['locked'] = cmds.listAttr(node, keyable=True, locked=True)
+    statusDict['nonKeyable'] = cmds.listAttr(node, channelBox=True)
     if asDict:
         return statusDict
     else:
-        attrs=[]
+        attrs = []
         if statusDict['keyable']:
             attrs.extend(statusDict['keyable'])
         if statusDict['nonKeyable']:
@@ -184,16 +206,60 @@ def getAnimLayersFromGivenNodes(nodes):
         nodes=[nodes]
     return cmds.animLayer(nodes, q=True, affectedLayers=True)
 
+def animLayersConfirmCheck(nodes=None, deleteMerged=True):
+    '''
+    return all animLayers associated with the given nodes
+    
+    :param nodes: nodes to check membership of animLayers. If not pass the check will be at sceneLevel
+    :param deleteMerged: modifies the warning message
+    '''
+    animLayers=[]
+    message=''
+    if deleteMerged:
+        message='AnimLayers found in scene:\nThis process needs to merge them down and they will NOT be restored afterwards'
+    else:
+        message='AnimLayers found in scene:\nThis process needs to merge them but they will be restored afterwards'
+    if nodes:
+        if not isinstance(nodes, list):
+            nodes=[nodes]
+        animLayers=getAnimLayersFromGivenNodes(nodes)
+    else:
+        animLayers=cmds.ls(type='animLayer')
+    if animLayers and not len(animLayers)==1:
+        result = cmds.confirmDialog(
+                title='AnimLayers - Confirm',
+                button=['Confirm - Merge', 'Cancel'],
+                message=message,
+                defaultButton='Confirm - Merge',
+                cancelButton='Cancel',
+                dismissString='Cancel')
+        if result == 'Confirm - Merge':
+            return True
+        else:
+            return False
+    return True
+        
 
 def mergeAnimLayers(nodes, deleteBaked=True):
     '''
     from the given nodes find, merge and remove any animLayers found
+    
+    FOR THE LOVE OF GOD AUTODESK, fix animLayers and give us a decent api for them,
+    oh, and stop building massive mel commands on the fly based on bloody optVars!!!!
     '''
     animLayers=getAnimLayersFromGivenNodes(nodes)
     if animLayers:
         try:
-            deleteMerged=cmds.optionVar(query='animLayerMergeDeleteLayers')
-            cmds.optionVar(iv=('animLayerMergeDeleteLayers', deleteBaked))
+            #deal with Maya's optVars for animLayers as the call that sets the defaults 
+            #for these, via the UI call, is a local proc to the performAnimLayerMerge.
+            deleteMerged=True
+            if cmds.optionVar(exists='animLayerMergeDeleteLayers'):
+                deleteMerged=cmds.optionVar(query='animLayerMergeDeleteLayers')
+            cmds.optionVar(intValue=('animLayerMergeDeleteLayers', deleteBaked))
+            
+            if not cmds.optionVar(exists='animLayerMergeByTime'):
+                cmds.optionVar(floatValue=('animLayerMergeByTime', 1.0))
+                                    
             mel.eval('animLayerMerge {"%s"}' % '","'.join(animLayers))
 
 #        cmds.bakeResults(nodes,
@@ -207,7 +273,7 @@ def mergeAnimLayers(nodes, deleteBaked=True):
         except:
             log.warning('animLayer Merge failed!')
         finally:
-            cmds.optionVar(iv=('animLayerMergeDeleteLayers',deleteMerged))
+            cmds.optionVar(intValue=('animLayerMergeDeleteLayers',deleteMerged))
     return 'Merged_Layer'
 
 def timeLineRangeGet(always=True):
@@ -314,6 +380,56 @@ def eulerSelected():
     cmds.delete(cmds.ls(sl=True, l=True), sc=True)
 
 
+class AnimationLayerContext(object):
+    """
+    Context Manager for merging animLayers down and restoring 
+    the data as is afterwards
+    """
+    def __init__(self, srcNodes, mergeLayers=True, restoreOnExit=True):
+        self.srcNodes = srcNodes  # nodes to check for animLayer membership / process
+        self.mergeLayers = mergeLayers  # mute the behaviour of this context
+        self.restoreOnExit = restoreOnExit  # restore the original layers after processing
+        
+        self.deleteBaked=True
+        if self.restoreOnExit:
+            self.deleteBaked=False
+        self.animLayers=[]
+        log.debug('Context Manager : mergeLayers : %s, restoreOnExit : %s' % (self.mergeLayers, self.restoreOnExit))
+    
+    def __enter__(self):
+        self.animLayers=getAnimLayersFromGivenNodes(self.srcNodes)
+        if self.animLayers:
+            if self.mergeLayers:
+                try:
+                    layerCache={}
+                    for layer in self.animLayers:
+                        layerCache[layer]={'mute':cmds.animLayer(layer, q=True, mute=True),
+                                           'locked':cmds.animLayer(layer, q=True, lock=True)}
+                    mergeAnimLayers(self.srcNodes, deleteBaked=self.deleteBaked)
+                    if self.restoreOnExit:
+                        #return the original mute and lock states and select the new
+                        #MergedLayer ready for the rest of the copy code to deal with
+                        for layer,cache in layerCache.items():
+                            for layer,cache in layerCache.items():
+                                cmds.animLayer(layer, edit=True, mute=cache['mute'])
+                                cmds.animLayer(layer, edit=True, mute=cache['locked'])
+                        mel.eval("source buildSetAnimLayerMenu")
+                        mel.eval('selectLayer("Merged_Layer")')
+                except:
+                    log.debug('CopyKeys internal : AnimLayer Merge Failed')
+            else:
+                log.warning('SrcNodes have animLayers, results may be erratic unless Baked!')
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # Close the undo chunk, warn if any exceptions were caught:
+        if self.mergeLayers and self.restoreOnExit:
+            if self.animLayers and cmds.animLayer('Merged_Layer', query=True, exists=True):
+                cmds.delete('Merged_Layer')
+        if exc_type:
+            log.exception('%s : %s'%(exc_type, exc_value))
+        # If this was false, it would re-raise the exception when complete
+        return True
+
 
 class AnimationUI(object):
     
@@ -389,9 +505,9 @@ class AnimationUI(object):
         RED_ANIMATION_UI=None
         del(self)
     
-    def __del__(self):
-        if cmds.scriptJob(exists=self.jobOnDelete):
-            cmds.scriptJob(kill=self.jobOnDelete, force=True)
+#     def __del__(self):
+#         if cmds.scriptJob(exists=self.jobOnDelete):
+#             cmds.scriptJob(kill=self.jobOnDelete, force=True)
             
     def _showUI(self):
         
@@ -409,18 +525,22 @@ class AnimationUI(object):
         
         cmds.menuBarLayout()
         cmds.menu(l="VimeoHelp")
-        cmds.menuItem(l="Open Vimeo > WalkThrough",
+        cmds.menuItem(l="Open Vimeo > WalkThrough v1.27",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/56431983')")
+        cmds.menuItem(l="Open Vimeo > Update v1.40",
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/78577760')")
         cmds.menuItem(l="Open Vimeo > HierarchyControl",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/56551684')")
         cmds.menuItem(l="Open Vimeo > Track or Stabilize",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/33440361')")
         cmds.menuItem(l="Open Vimeo > CopyKeys & TimeOffsets",
-                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/33440348')")
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/81731510')")
         cmds.menuItem(l="Open Vimeo > MirrorSetups",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/57882801')")
         cmds.menuItem(l="Open Vimeo > PoseSaver - Advanced Topics",
                       c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/66269033')")
+        cmds.menuItem(l="Open Vimeo > PoseSaver - Blending and maintain spaces",
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('https://vimeo.com/88391202')")
         cmds.menuItem(divider=True)
         cmds.menuItem(l="Contact Me", c=lambda *args: (r9Setup.red9ContactInfo()))
         cmds.menu(l="Tools")
@@ -478,7 +598,7 @@ class AnimationUI(object):
                     command=partial(self.__uiCall, 'CopyKeys'))
        
         cmds.separator(h=5, style='none')
-        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)])
+        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)], rowSpacing=[(1,5)])
         self.uicbCKeyHierarchy = cmds.checkBox('uicbCKeyHierarchy', l='Hierarchy', al='left', v=False,
                                             ann='Copy Keys Hierarchy : Filter Hierarchies for transforms & joints then Match NodeNames',
                                             cc=lambda x: self.__uiCache_addCheckbox('uicbCKeyHierarchy'))
@@ -486,17 +606,12 @@ class AnimationUI(object):
                                             ann='Copy Animation from First selected to all Subsequently selected nodes')
         self.uicbCKeyChnAttrs = cmds.checkBox(ann='Copy only those channels selected in the channelBox',
                                             l='ChBox Attrs', al='left', v=False)
-
-        cmds.setParent('..')
-        cmds.separator(h=2, style='none')
-        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)])
         self.uicbCKeyRange = cmds.checkBox('uicbCKeyRange', l='TimeRange', al='left', v=False,
                                             ann='ONLY Copy Keys over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)',
                                             cc=lambda x: self.__uiCache_addCheckbox('uicbCKeyRange'))
         self.uicbCKeyAnimLay = cmds.checkBox('uicbCKeyAnimLay', l='MergeLayers', al='left', v=False,
                                             ann='If AnimLayers are found pre-compile the anim and copy the resulting data',
                                             cc=lambda x: self.__uiCache_addCheckbox('uicbCKeyAnimLay'))
-        #cmds.text(l='Paste by ', align='right')
         cmds.optionMenu('om_PasteMethod',
                         ann='Paste Method Used: Default = "replace", paste method used by the copy code internally',
                         cc=partial(self.__uiCB_setCopyKeyPasteMethod))
@@ -526,7 +641,7 @@ class AnimationUI(object):
                      command=partial(self.__uiCall, 'Snap'))
         cmds.separator(h=5, style='none')
 
-        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)])
+        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)], rowSpacing=[(1,2)])
 
         self.uicbSnapRange = cmds.checkBox('uicbSnapRange', l='TimeRange', al='left', v=False,
                                             ann='Snap Nodes over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)',
@@ -536,9 +651,7 @@ class AnimationUI(object):
                                                  en=False, v=True)
         self.uiifgSnapStep = cmds.intFieldGrp('uiifgSnapStep', l='FrmStep', en=False, value1=1, cw2=(50, 40),
                                            ann='Frames to advance the timeline after each Process Run')
-        cmds.separator(h=2, style='none')
-        cmds.separator(h=2, style='none')
-        cmds.separator(h=2, style='none')
+
         self.uicbSnapHierarchy = cmds.checkBox('uicbSnapHierarchy', l='Hierarchy', al='left', v=False,
                                                ann='Filter Hierarchies with given args - then Snap Transforms for matched nodes',
                                                cc=self.__uiCB_manageSnapHierachy)
@@ -590,7 +703,7 @@ class AnimationUI(object):
         cmds.frameLayout(label='TimeOffset', cll=True, borderStyle='etchedOut')
         cmds.columnLayout(adjustableColumn=True)
         #cmds.rowColumnLayout(numberOfColumns=4, columnWidth=[(1, 100), (2, 55), (3, 55), (4, 100)], columnSpacing=[(1, 10), (3, 5)])
-        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)])
+        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)], rowSpacing=[(1,5),(2,5)])
         self.uicbTimeOffsetHierarchy = cmds.checkBox('uicbTimeOffsetHierarchy',
                                             l='Hierarchy', al='left', en=True, v=False,
                                             ann='Offset Hierarchy',
@@ -603,21 +716,19 @@ class AnimationUI(object):
                                             ann='ON:Scene Level Processing: OFF:SelectedNode Processing - Offsets Animation, Sound and Clip data as appropriate',
                                             al='left', v=False,
                                             ofc=partial(self.__uiCB_manageTimeOffsetChecks, 'Off'),
-                                            onc=partial(self.__uiCB_manageTimeOffsetChecks, 'Full'))
-                                            #cc=lambda x: self.__uiCache_addCheckbox('uicbTimeOffsetScene'))
+                                            onc=partial(self.__uiCB_manageTimeOffsetChecks, 'Full'),
+                                            cc=lambda x: self.__uiCache_addCheckbox('uicbTimeOffsetScene'))
         
         self.uicbTimeOffsetPlayback = cmds.checkBox('uicbTimeOffsetTimelines', l='OffsetTimelines',
                                             ann='ON:Scene Level Processing: OFF:SelectedNode Processing - Offsets Animation, Sound and Clip data as appropriate',
                                             al='left', v=False, en=False,
                                             cc=lambda x: self.__uiCache_addCheckbox('uicbTimeOffsetTimelines'))
-#        self.uiffgTimeOffset = cmds.floatFieldGrp('uiffgTimeOffset', l='Offset ', value1=1, cw2=(35, 50),
-#                                            ann='Frames to offset the data by')
-        cmds.setParent('..')
-        cmds.separator(h=2, style='none')
-        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)])
+
         self.uicbTimeOffsetRange = cmds.checkBox('uicbTimeOffsetRange',
                                             l='TimeRange', al='left', en=True, v=False,
                                             ann='Offset nodes by range : PlaybackTimeRange or Selected TimeRange (in Red on the timeline)',
+                                            ofc=partial(self.__uiCB_manageTimeOffsetChecks, 'Ripple'),
+                                            onc=partial(self.__uiCB_manageTimeOffsetChecks, 'Ripple'),
                                             cc=lambda x: self.__uiCache_addCheckbox('uicbTimeOffsetRange'))
         self.uicbTimeOffsetFlocking = cmds.checkBox('uicbTimeOffsetFlocking',
                                             l='Flocking', al='left', en=True, v=False,
@@ -625,8 +736,11 @@ class AnimationUI(object):
         self.uicbTimeOffsetRandom = cmds.checkBox('uicbTimeOffsetRandom', l='Randomizer',
                                             ann='Randomize the offsets using the offset field as the max such that offsets are random(0,offset)',
                                             al='left', v=False)
-        #self.uiffgTimeOffset = cmds.floatFieldGrp('uiffgTimeOffset', l='Offset ', value1=1, cw2=(35, 50),
-        #                                    ann='Frames to offset the data by')
+        self.uicbTimeOffsetRipple = cmds.checkBox('uicbTimeOffsetRipple', l='RippleEdits',
+                                            ann='Ripple the edits to the upper bounds, keys, clips, audio etc will get pushed',
+                                            al='left', v=False,
+                                            cc=lambda x: self.__uiCache_addCheckbox('uicbTimeOffsetRipple'))
+        cmds.separator(style='none')
         cmds.setParent('..')
         cmds.separator(h=2, style='none')
         cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 250), (2, 60)], columnSpacing=[(2, 5)])
@@ -751,25 +865,28 @@ class AnimationUI(object):
         except:
             cmds.text('filterSettingsInfo', label='')
         cmds.separator('filterInfoBase', style='in', vis=False)
-        cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 140), (2, 162)])
+        cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 140), (2, 180)])
         self.uicbIncRoots = cmds.checkBox('uicbIncRoots',
                                             ann='include RootNodes in the Filter',
                                             l='Include Roots',
                                             al='left', v=True,
                                             cc=self.__uiCache_storeUIElements)
         
-#        cmds.optionMenuGrp('uiomMatchMethod',label='MatchMethod:',
-#                        ann='Default = "replace", paste method used by the copy code internally',
-#                        cc=partial(self.__uiCB_setCopyKeyPasteMethod))
-#        for preset in ["base","stripPrefix","index"]:
-#            cmds.menuItem(l=preset)
-#        cmds.optionMenu('om_PasteMethod', e=True, v='replace')
+        cmds.optionMenu('om_MatchMethod', label='MatchMethod:', w=70,
+                        ann='Method used to match nodes in different hierarchies, default="stripPrefix"',
+                        cc=self.__uiCB_setMatchMethod)
+        #for preset in ["base","stripPrefix","index"]:
+        cmds.menuItem(l="base", ann='Exact shortName matching of nodes only, ignores namespaces : Fred:MainCtrl == Bert:MainCtrl')
+        cmds.menuItem(l="stripPrefix", ann='Allows one hierarchy to be prefixed when matching, ignores namespaces : Fred:New_MainCtrl == Bert:MainCtrl')
+        cmds.menuItem(l="index", ann='No matching logic at all, just matched in the order the nodes were found in the hierarchies')
+        
+        cmds.optionMenu('om_MatchMethod', e=True, v='stripPrefix')
             
-        self.uicbMatchMethod = cmds.checkBox('uicbMatchMethod',
-                                            ann='Match method allow prefix stripping?',
-                                            l='MatchMethod = stripPrefixes',
-                                            al='left', v=True,
-                                            cc=lambda x: self.__uiCache_addCheckbox('uicbMatchMethod'))
+#         self.uicbMatchMethod = cmds.checkBox('uicbMatchMethod',
+#                                             ann='Match method allow prefix stripping?',
+#                                             l='MatchMethod = stripPrefixes',
+#                                             al='left', v=True,
+#                                             cc=lambda x: self.__uiCache_addCheckbox('uicbMatchMethod'))
         cmds.setParent(self.FilterLayout)
         cmds.separator(h=10, style='none')
         cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 162), (2, 162)])
@@ -825,15 +942,27 @@ class AnimationUI(object):
         cmds.setParent(self.poseUILayout)
          
         cmds.separator(h=10, style='in')
-        
+        cmds.rowColumnLayout(nc=3, columnWidth=[(1, 260), (2, 22), (3, 22)], columnSpacing=[(2,20)])
         if r9Setup.mayaVersion() > 2012:  # tcc flag not supported in earlier versions
             self.searchFilter = cmds.textFieldGrp('tfPoseSearchFilter', label='searchFilter : ', text='',
                                                 cw=((1, 87), (2, 160)),
+                                                ann='Filter the folder, allows multiple filters separated by ","',
                                                 tcc=lambda x: self.__uiCB_fillPoses(searchFilter=cmds.textFieldGrp('tfPoseSearchFilter', q=True, text=True)))
         else:
             self.searchFilter = cmds.textFieldGrp('tfPoseSearchFilter', label='searchFilter : ', text='',
                                                 cw=((1, 87), (2, 160)), fcc=True,
+                                                ann='Filter the folder, allows multiple filters separated by ","',
                                                 cc=lambda x: self.__uiCB_fillPoses(searchFilter=cmds.textFieldGrp('tfPoseSearchFilter', q=True, text=True)))
+        
+        cmds.iconTextButton('sortByName', style='iconOnly', image1='sortByName.bmp',
+                            w=22, h=20, ann='sortBy Name',
+                            c=lambda * args: self.__uiCB_fillPoses(rebuildFileList=True, sortBy='name'))
+              
+        cmds.iconTextButton('sortByDate', style='iconOnly', image1='sortByDate.bmp',
+                            w=22, h=20, ann='sortBy Date',
+                            c=lambda * args:self.__uiCB_fillPoses(rebuildFileList=True, sortBy='date'))
+              
+        cmds.setParent('..')
         cmds.separator(h=10, style='none')
         
         # SubFolder Scroller
@@ -942,14 +1071,18 @@ class AnimationUI(object):
         #====================
         # Show and Dock
         #====================
+
+#         floating = True
+#         if self.dock:
+#             floating = False
+            
         if self.dock:
             try:
                 # Maya2011 QT docking
-                allowedAreas = ['right', 'left']
                 cmds.dockControl(self.dockCnt, area='right', label=self.label,
                                  content=animwindow,
                                  floating=False,
-                                 allowedArea=allowedAreas,
+                                 allowedArea=['right', 'left'],
                                  width=350)
             except:
                 # Dock failed, opening standard Window
@@ -959,18 +1092,20 @@ class AnimationUI(object):
         else:
             cmds.showWindow(animwindow)
             cmds.window(self.win, edit=True, widthHeight=(355, 720))
-            
+
             
         #Set the initial Interface up
         self.__uiPresetsUpdate()
         self.__uiPresetReset()
         self.__uiCache_loadUIElements()
         #self.jobOnDelete=cmds.scriptJob(uiDeleted=(self.win, self.__uicloseEvent), runOnce=1)
-        
+#         if not self.dock:
+#             cmds.dockControl(self.dockCnt, edit=True, floating=True)
+#             cmds.dockControl(self.dockCnt, edit=True, width=360, height=740)
 
     # UI Callbacks
     #------------------------------------------------------------------------------
-    
+        
     def __uiCB_manageSnapHierachy(self, *args):
         '''
         Disable all hierarchy filtering ui's when not running hierarchys
@@ -995,14 +1130,19 @@ class AnimationUI(object):
         
     def __uiCB_manageTimeOffsetChecks(self, *args):
         '''
-        Disable the frmStep and PreCopy when not running timeline
+        Manage timeOffset checks
         '''
         if args[0] == 'Full':
             cmds.checkBox(self.uicbTimeOffsetHierarchy, e=True, v=False)
             cmds.checkBox(self.uicbTimeOffsetPlayback, e=True, en=True)
             cmds.checkBox(self.uicbTimeOffsetFlocking, e=True, en=False)
             cmds.checkBox(self.uicbTimeOffsetRandom, e=True, en=False)
-            cmds.checkBox(self.uicbTimeOffsetRange, e=True, en=False)
+            cmds.checkBox(self.uicbTimeOffsetRange, e=True, en=True)  # en=False)
+        elif args[0] == 'Ripple':
+            if cmds.checkBox(self.uicbTimeOffsetRange, q=True, v=True):
+                cmds.checkBox(self.uicbTimeOffsetRipple, e=True, en=True)
+            else:
+                cmds.checkBox(self.uicbTimeOffsetRipple, e=True, en=False)
         else:
             cmds.checkBox(self.uicbTimeOffsetPlayback, e=True, en=False)
             cmds.checkBox(self.uicbTimeOffsetScene, e=True, v=False)
@@ -1031,6 +1171,7 @@ class AnimationUI(object):
  
     def __uiCB_resizeMainScroller(self, *args):
         if self.dock:
+            #if not cmds.dockControl(self.dockCnt, query=True, floating=True):
             width=cmds.dockControl(self.dockCnt, q=True, w=True)
             height=cmds.dockControl(self.dockCnt, q=True, h=True)
         else:
@@ -1038,18 +1179,29 @@ class AnimationUI(object):
             width=newSize[0]
             height=newSize[1]
         if width>350:
+            #cmds.scrollLayout(self.MainLayout, e=True, w=width) #new?
             cmds.formLayout(self.form, edit=True, w=width-10)
             #cmds.iconTextButton(self.r9strap, e=True, w=width-10)
         else:
             cmds.scrollLayout(self.MainLayout, e=True, w=350)
-        if height>440:
-            cmds.scrollLayout('uiglPoseScroll', e=True, h=height-430)
             
+        if height>440:  # 440 
+            cmds.scrollLayout('uiglPoseScroll', e=True, h=max(height-430, 200))
+        
+        print 'width self.dockCnt:', cmds.dockControl(self.dockCnt, q=True, w=True)
+        print 'width self.MainLayout:', cmds.scrollLayout(self.MainLayout, q=True, w=True)
+        print 'width self.form:', cmds.formLayout(self.form, q=True, w=True)
+        print 'width poseScroll:', cmds.scrollLayout('uiglPoseScroll', q=True, w=True)
+        
+                                   
     def __uiCB_setCopyKeyPasteMethod(self, *args):
         self.ANIM_UI_OPTVARS['AnimationUI']['keyPasteMethod'] = cmds.optionMenu('om_PasteMethod', q=True, v=True)
         self.__uiCache_storeUIElements()
         
-    
+    def __uiCB_setMatchMethod(self, *args):
+        self.ANIM_UI_OPTVARS['AnimationUI']['matchMethod'] = cmds.optionMenu('om_MatchMethod', q=True, v=True)
+        self.__uiCache_storeUIElements()
+         
     # Preset FilterSettings Object Management
     #------------------------------------------------------------------------------
     
@@ -1231,7 +1383,7 @@ class AnimationUI(object):
             raise StandardError('No Pose Selected in the UI')
         return self.poseSelected
 
-    def buildPoseList(self):
+    def buildPoseList(self, sortBy='name'):
         '''
         Get a list of poses from the PoseRootDir, this allows us to
         filter much faster as it stops all the os calls, cached list instead
@@ -1241,18 +1393,32 @@ class AnimationUI(object):
             log.debug('posePath is invalid')
             return self.poses
         files=os.listdir(self.posePath)
-        files.sort()
+        if sortBy == 'name':
+            files=r9Core.sortNumerically(files)
+            #files.sort()
+        elif sortBy == 'date':
+            files.sort(key=lambda x: os.stat(os.path.join(self.posePath, x)).st_mtime)
+            files.reverse()
+        
         for f in files:
             if f.lower().endswith('.pose'):
                 self.poses.append(f.split('.pose')[0])
         return self.poses
   
     def buildFilteredPoseList(self, searchFilter):
-        filteredPoses = []
-        for pose in self.poses:
-            if searchFilter and not searchFilter.upper() in pose.upper():
-                continue
-            filteredPoses.append(pose)
+        '''
+        build the list of poses to show in the poseUI
+        TODO: hook up an order based by date in here as an option to tie into the UI
+        '''
+        filteredPoses = self.poses
+        if searchFilter:
+            filteredPoses=[]
+            filters=searchFilter.replace(' ','').split(',')
+            for pose in self.poses:
+                for srch in filters:
+                    if srch and srch.upper() in pose.upper():
+                        if not pose in filteredPoses:
+                            filteredPoses.append(pose)
         return filteredPoses
     
     def __validatePoseFunc(self, func):
@@ -1431,7 +1597,7 @@ class AnimationUI(object):
         '''
         return os.path.join(self.getPoseDir(), '%s.bmp' % self.getPoseSelected())
                            
-    def __uiCB_fillPoses(self, rebuildFileList=False, searchFilter=None, *args):
+    def __uiCB_fillPoses(self, rebuildFileList=False, searchFilter=None, sortBy='name', *args):
         '''
         Fill the Pose List/Grid from the given directory
         '''
@@ -1440,9 +1606,9 @@ class AnimationUI(object):
         self.ANIM_UI_OPTVARS['AnimationUI']['poseMode'] = self.poseGridMode
         self.__uiCache_storeUIElements()
         searchFilter = cmds.textFieldGrp('tfPoseSearchFilter', q=True, text=True)
-        
+
         if rebuildFileList:
-            self.buildPoseList()
+            self.buildPoseList(sortBy=sortBy)
             log.debug('Rebuilt Pose internal Lists')
             # Project mode and folder contains NO poses so switch to subFolders
             if not self.poses and self.posePathMode == 'projectPoseMode':
@@ -1450,7 +1616,7 @@ class AnimationUI(object):
                 self.__uiCB_switchSubFolders()
                 return
         log.debug('searchFilter  : %s : rebuildFileList : %s' % (searchFilter, rebuildFileList))
-            
+
         # TextScroll Layout
         # ================================
         if not self.poseGridMode == 'thumb':
@@ -1937,7 +2103,8 @@ class AnimationUI(object):
             log.debug('Loading UI Elements from the config file')
             def __uiCache_LoadCheckboxes():
                 #if self.ANIM_UI_OPTVARS['AnimationUI'].has_key('checkboxes'):
-                if 'checkboxes' in self.ANIM_UI_OPTVARS['AnimationUI']:
+                if 'checkboxes' in self.ANIM_UI_OPTVARS['AnimationUI'] and \
+                            self.ANIM_UI_OPTVARS['AnimationUI']['checkboxes']:
                     for cb, status in self.ANIM_UI_OPTVARS['AnimationUI']['checkboxes'].items():
                         cmds.checkBox(cb, e=True, v=r9Core.decodeString(status))
                 
@@ -1948,6 +2115,8 @@ class AnimationUI(object):
                 self.__uiPresetSelection(Read=True)  # ##not sure on this yet????
             if 'keyPasteMethod' in AnimationUI and AnimationUI['keyPasteMethod']:
                 cmds.optionMenu('om_PasteMethod', e=True, v=AnimationUI['keyPasteMethod'])
+            if 'matchMethod' in AnimationUI and AnimationUI['matchMethod']:
+                cmds.optionMenu('om_MatchMethod', e=True, v=AnimationUI['matchMethod'])
             if 'poseMode' in AnimationUI and AnimationUI['poseMode']:
                 self.poseGridMode = AnimationUI['poseMode']
             if 'posePathMode' in AnimationUI and AnimationUI['posePathMode']:
@@ -1965,7 +2134,8 @@ class AnimationUI(object):
             __uiCache_LoadCheckboxes()
             
             #callbacks
-            cmds.radioCollection(self.uircbPosePathMethod, edit=True, select=self.posePathMode)
+            if self.posePathMode:
+                cmds.radioCollection(self.uircbPosePathMethod, edit=True, select=self.posePathMode)
             self.__uiCB_enableRelativeSwitches()  # relativePose switch enables
             self.__uiCB_managePoseRootMethod()  # metaRig or SetRootNode for Pose Root
             self.__uiCB_switchPosePathMode(self.posePathMode)  # pose Mode - 'local' or 'project'
@@ -2015,6 +2185,9 @@ class AnimationUI(object):
         '''
         Internal UI call for CopyAttrs
         '''
+        if not len(cmds.ls(sl=True, l=True)) >= 2:
+            log.warning('Please Select at least 2 nodes to Process!!')
+            return
         self.kws['toMany'] = cmds.checkBox(self.uicbCAttrToMany, q=True, v=True)
         if cmds.checkBox(self.uicbCAttrChnAttrs, q=True, v=True):
             self.kws['attributes'] = getChannelBoxSelection()
@@ -2033,6 +2206,9 @@ class AnimationUI(object):
         '''
         Internal UI call for CopyKeys call
         '''
+        if not len(cmds.ls(sl=True, l=True)) >= 2:
+            log.warning('Please Select at least 2 nodes to Process!!')
+            return
         self.kws['toMany'] = cmds.checkBox(self.uicbCKeyToMany, q=True, v=True)
         self.kws['pasteKey']=cmds.optionMenu('om_PasteMethod', q=True, v=True)
         self.kws['mergeLayers']=cmds.checkBox('uicbCKeyAnimLay', q=True, v=True)
@@ -2054,12 +2230,16 @@ class AnimationUI(object):
         '''
         Internal UI call for Snap Transforms
         '''
+        if not len(cmds.ls(sl=True, l=True)) >= 2:
+            log.warning('Please Select at least 2 nodes to Process!!')
+            return
         self.kws['preCopyKeys'] = False
         self.kws['preCopyAttrs'] = False
         self.kws['prioritySnapOnly'] = False
         self.kws['iterations'] = cmds.intFieldGrp('uiifSnapIterations', q=True, v=True)[0]
         self.kws['step'] = cmds.intFieldGrp('uiifgSnapStep', q=True, v=True)[0]
         self.kws['pasteKey']=cmds.optionMenu('om_PasteMethod', q=True, v=True)
+        self.kws['mergeLayers']=True
         
         if cmds.checkBox(self.uicbSnapRange, q=True, v=True):
             self.kws['time'] = timeLineRangeGet()
@@ -2077,6 +2257,9 @@ class AnimationUI(object):
         '''
         Internal UI call for Stabilize
         '''
+        if not len(cmds.ls(sl=True, l=True)) >= 1:
+            log.warning('Please Select at least 1 nodes to Process!!')
+            return
         time = ()
         step = cmds.floatFieldGrp('uiffgStabStep', q=True, v=True)[0]
         if direction=='back':
@@ -2092,17 +2275,18 @@ class AnimationUI(object):
         Internal UI call for TimeOffset
         '''
         offset = cmds.floatFieldGrp('uiffgTimeOffset', q=True, v=True)[0]
-
+        if cmds.checkBox(self.uicbTimeOffsetRange, q=True, v=True):
+            self.kws['timerange'] = timeLineRangeGet()
+        self.kws['ripple'] = cmds.checkBox(self.uicbTimeOffsetRipple, q=True, v=True)
+            
         if cmds.checkBox(self.uicbTimeOffsetScene, q=True, v=True):
-            r9Core.TimeOffset.fullScene(offset, cmds.checkBox(self.uicbTimeOffsetPlayback, q=True, v=True))
+            r9Core.TimeOffset.fullScene(offset, cmds.checkBox(self.uicbTimeOffsetPlayback, q=True, v=True), **self.kws)
         else:
             self.kws['flocking']= cmds.checkBox(self.uicbTimeOffsetFlocking, q=True, v=True)
             self.kws['randomize'] = cmds.checkBox(self.uicbTimeOffsetRandom, q=True, v=True)
-            if cmds.checkBox(self.uicbTimeOffsetRange, q=True, v=True):
-                self.kws['timerange'] = timeLineRangeGet()
-                #self.kws['option'] = "insert" #, "segmentOver"
+
+            #self.kws['option'] = "insert" #, "segmentOver"
             if cmds.checkBox(self.uicbTimeOffsetHierarchy, q=True, v=True):
-                print self.kws
                 r9Core.TimeOffset.fromSelected(offset, filterSettings=self.filterSettings, **self.kws)
             else:
                 r9Core.TimeOffset.fromSelected(offset, **self.kws)
@@ -2135,7 +2319,14 @@ class AnimationUI(object):
             except ValueError, error:
                 raise ValueError(error)
         poseHierarchy = cmds.checkBox('uicbPoseHierarchy', q=True, v=True)
-        
+
+#         #Work to hook the poseSave directly to the metaRig.poseCacheStore func directly
+#         if self.filterSettings.metaRig and r9Meta.isMetaNodeInherited(self.__uiCB_getPoseInputNodes(),
+#                                                                       mInstances=r9Meta.MetaRig):
+#             print 'active MetaNode, calling poseCacheSave from metaRig subclass'
+#             r9Meta.MetaClass(self.__uiCB_getPoseInputNodes()).poseCacheStore(filepath=path,
+#                                                                              storeThumbnail=storeThumbnail)
+#         else:
         r9Pose.PoseData(self.filterSettings).poseSave(self.__uiCB_getPoseInputNodes(),
                                                       path,
                                                       useFilter=poseHierarchy,
@@ -2154,6 +2345,10 @@ class AnimationUI(object):
         rotRelMethod = cmds.radioCollection(self.uircbPoseRotMethod, q=True, select=True)
         tranRelMethod = cmds.radioCollection(self.uircbPoseTranMethod, q=True, select=True)
         
+        if poseRelative and not cmds.ls(sl=True, l=True):
+            log.warning('No node selected to use for reference!!')
+            return
+        
         relativeRots='projected'
         relativeTrans='projected'
         if not rotRelMethod=='rotProjected':
@@ -2165,6 +2360,9 @@ class AnimationUI(object):
         log.info('PosePath : %s' % path)
         poseNode=r9Pose.PoseData(self.filterSettings)
         poseNode.prioritySnapOnly=cmds.checkBox(self.uicbSnapPriorityOnly, q=True, v=True)
+        
+        poseNode.matchMethod=self.matchMethod  # needs proving as not fully tested yet!!
+        
         poseNode.poseLoad(self.__uiCB_getPoseInputNodes(),
                                                       path,
                                                       useFilter=poseHierarchy,
@@ -2199,14 +2397,27 @@ class AnimationUI(object):
         basically we'd add a new poseObject per pose and bind each one top the slider
         but with a consistent poseCurrentCache via the _cacheCurrentNodeStates() call
         '''
+        objs=cmds.ls(sl=True,l=True)
         poseNode = r9Pose.PoseData(self.filterSettings)
         poseNode.filepath = self.getPosePath()
         poseNode.useFilter = cmds.checkBox('uicbPoseHierarchy', q=True, v=True)
         poseNode._poseLoad_buildcache(self.__uiCB_getPoseInputNodes())
+        self._poseBlendUndoChunkOpen=False
+        if objs:
+            cmds.select(objs)
         
         def blendPose(*args):
+            if not self._poseBlendUndoChunkOpen:
+                cmds.undoInfo(openChunk=True)
+                self._poseBlendUndoChunkOpen=True
+                log.debug('Opening Undo Chunk for PoseBlender')
             poseNode._applyPose(percent=cmds.floatSliderGrp('poseBlender', q=True, v=True))
-            
+        
+        def closeChunk(*args):
+            cmds.undoInfo(closeChunk=True)
+            self._poseBlendUndoChunkOpen = False
+            log.debug('Closing Undo Chunk for PoseBlender')
+             
         if cmds.window('poseBlender', exists=True):
             cmds.deleteUI('poseBlender')
         cmds.window('poseBlender')
@@ -2217,7 +2428,8 @@ class AnimationUI(object):
                             minValue=0.0,
                             maxValue=100.0,
                             value=0,
-                            dc=blendPose)
+                            dc=blendPose,
+                            cc=closeChunk)
         cmds.showWindow()
             
     def __PosePointCloud(self, func):
@@ -2261,33 +2473,46 @@ class AnimationUI(object):
         elif func=='update':
             self.ppc.updatePosePointCloud()
          
-    def __MirrorPoseAnim(self, func):
+    def __MirrorPoseAnim(self, process, mirrorMode):
         '''
         Internal UI call for Mirror Animation / Pose
         '''
-        self.kws['pasteKey']=cmds.optionMenu('om_PasteMethod', q=True, v=True)
-        
-        mirror=MirrorHierarchy(nodes=cmds.ls(sl=True, l=True), filterSettings=self.filterSettings, **self.kws)
-        mirrorMode='Anim'
-        if func=='MirrorPose':
-            mirrorMode='Pose'
-        if not cmds.checkBox('uicbMirrorHierarchy', q=True, v=True):
-            mirror.mirrorData(cmds.ls(sl=True, l=True), mode=mirrorMode)
-        else:
-            mirror.mirrorData(mode=mirrorMode)
 
-    def __SymmetryPoseAnim(self, func):
-        '''
-        Internal UI call for Mirror Animation / Pose
-        '''
-        mirror=MirrorHierarchy(nodes=cmds.ls(sl=True, l=True), filterSettings=self.filterSettings)
-        mirrorMode='Anim'
-        if func=='SymmetryPose':
-            mirrorMode='Pose'
-        if not cmds.checkBox('uicbMirrorHierarchy', q=True, v=True):
-            mirror.makeSymmetrical(cmds.ls(sl=True, l=True), mode=mirrorMode)
+        if not cmds.ls(sl=True, l=True):
+            log.warning('Nothing selected to process from!!')
+            return
+  
+        self.kws['pasteKey'] = cmds.optionMenu('om_PasteMethod', q=True, v=True)
+        hierarchy=cmds.checkBox('uicbMirrorHierarchy', q=True, v=True)
+        
+        mirror=MirrorHierarchy(nodes=cmds.ls(sl=True, l=True),
+                               filterSettings=self.filterSettings,
+                               **self.kws)
+        
+        #Check for AnimLayers and throw the warning
+        if mirrorMode=='Anim':
+            #slower as we're processing the mirrorSets twice for hierarchy
+            #BUT this is vital info that the user needs prior to running.
+            if hierarchy:
+                animCheckNodes=mirror.getMirrorSets()
+            else:
+                animCheckNodes=cmds.ls(sl=True, l=True)
+            print animCheckNodes
+            if not animLayersConfirmCheck(animCheckNodes):
+                log.warning('Process Aborted by User')
+                return
+
+        if not hierarchy:
+            if process=='mirror':
+                mirror.mirrorData(cmds.ls(sl=True, l=True), mode=mirrorMode)
+            else:
+                mirror.makeSymmetrical(cmds.ls(sl=True, l=True), mode=mirrorMode)
         else:
-            mirror.makeSymmetrical(mode=mirrorMode)
+            if process=='mirror':
+                mirror.mirrorData(mode=mirrorMode)
+            else:
+                mirror.makeSymmetrical(mode=mirrorMode)
+
                       
     # MAIN CALL
     #------------------------------------------------------------------------------
@@ -2308,10 +2533,11 @@ class AnimationUI(object):
             
         # Main Hierarchy Filters =============
         self.__uiPresetFillFilter()  # fill the filterSettings Object
-        if cmds.checkBox('uicbMatchMethod', q=True, v=True):
-            self.matchMethod='stripPrefix'
-        else:
-            self.matchMethod='base'
+        self.matchMethod = cmds.optionMenu('om_MatchMethod', q=True, v=True)
+#         if cmds.checkBox('uicbMatchMethod', q=True, v=True):
+#             self.matchMethod='stripPrefix'
+#         else:
+#             self.matchMethod='base'
         #self.filterSettings.transformClamp = True
          
         try:
@@ -2348,13 +2574,13 @@ class AnimationUI(object):
             elif func == 'PoseBlender':
                 self.__PoseBlend()
             elif func =='MirrorAnim':
-                self.__MirrorPoseAnim(func)
+                self.__MirrorPoseAnim('mirror', 'Anim')
             elif func =='MirrorPose':
-                self.__MirrorPoseAnim(func)
+                self.__MirrorPoseAnim('mirror', 'Pose')
             elif func =='SymmetryPose':
-                self.__SymmetryPoseAnim(func)
+                self.__MirrorPoseAnim('symmetry', 'Pose')
             elif func =='SymmetryAnim':
-                self.__SymmetryPoseAnim(func)
+                self.__MirrorPoseAnim('symmetry', 'Anim')
                 
         except StandardError, error:
             traceback = sys.exc_info()[2]  # get the full traceback
@@ -2426,7 +2652,7 @@ class AnimFunctions(object):
                
     @r9General.Timer
     def copyKeys(self, nodes=None, time=(), pasteKey='replace', attributes=None,
-                 filterSettings=None, toMany=False, matchMethod=None, mergeLayers=True, **kws):
+                 filterSettings=None, toMany=False, matchMethod=None, mergeLayers=False, **kws):
         '''
         Copy Keys is a Hi-Level wrapper function to copy animation data between
         filtered nodes, either in hierarchies or just selected pairs.
@@ -2450,7 +2676,7 @@ class AnimFunctions(object):
         '''
         if not matchMethod:
             matchMethod=self.matchMethod
-        log.debug('CopyKey params : nodes=%s\n : time=%s\n : pasteKey=%s\n : attributes=%s\n : filterSettings=%s\n : matchMethod=%s\n'\
+        log.debug('CopyKey params : nodes=%s : time=%s : pasteKey=%s : attributes=%s : filterSettings=%s : matchMethod=%s'\
                    % (nodes, time, pasteKey, attributes, filterSettings, matchMethod))
                 
         #Build up the node pairs to process
@@ -2464,49 +2690,49 @@ class AnimFunctions(object):
         # FUCKING ANIM LAYERS ARE SATAN'S TESTICLES!!
         # with very poor wrapper code in mel only!
         #-------------------------------------------------
-        animLayers=getAnimLayersFromGivenNodes(srcNodes)
-        if animLayers:
-            if mergeLayers:
-                try:
-                    layerCache={}
-                    for layer in animLayers:
-                        layerCache[layer]={'mute':cmds.animLayer(layer, q=True, mute=True),
-                                           'locked':cmds.animLayer(layer, q=True, lock=True)}
-                    mergeAnimLayers(srcNodes, deleteBaked=False)
-
-                    #return the original mute and lock states and select the new
-                    #MergedLayer ready for the rest of teh copy code to deal with
-                    for layer,cache in layerCache.items():
-                        for layer,cache in layerCache.items():
-                            cmds.animLayer(layer, edit=True, mute=cache['mute'])
-                            cmds.animLayer(layer, edit=True, mute=cache['locked'])
-                    mel.eval("source buildSetAnimLayerMenu")
-                    mel.eval('selectLayer("Merged_Layer")')
-                except:
-                    log.debug('CopyKeys internal : AnimLayer Merge Failed')
+#         animLayers=getAnimLayersFromGivenNodes(srcNodes)
+#         if animLayers:
+#             if mergeLayers:
+#                 try:
+#                     layerCache={}
+#                     for layer in animLayers:
+#                         layerCache[layer]={'mute':cmds.animLayer(layer, q=True, mute=True),
+#                                            'locked':cmds.animLayer(layer, q=True, lock=True)}
+#                     mergeAnimLayers(srcNodes, deleteBaked=False)
+# 
+#                     #return the original mute and lock states and select the new
+#                     #MergedLayer ready for the rest of the copy code to deal with
+#                     for layer,cache in layerCache.items():
+#                         for layer,cache in layerCache.items():
+#                             cmds.animLayer(layer, edit=True, mute=cache['mute'])
+#                             cmds.animLayer(layer, edit=True, mute=cache['locked'])
+#                     mel.eval("source buildSetAnimLayerMenu")
+#                     mel.eval('selectLayer("Merged_Layer")')
+#                 except:
+#                     log.debug('CopyKeys internal : AnimLayer Merge Failed')
+#             else:
+#                 log.warning('SrcNodes have animLayers, results may be eratic unless Baked!')
+        with AnimationLayerContext(srcNodes, mergeLayers=mergeLayers, restoreOnExit=True):
+            if nodeList:
+                with r9General.HIKContext([d for _, d in nodeList]):
+                    for src, dest in nodeList:
+                        try:
+                            if attributes:
+                                #copy only specific attributes
+                                for attr in attributes:
+                                    if cmds.copyKey(src, attribute=attr, hierarchy=False, time=time):
+                                        cmds.pasteKey(dest, attribute=attr, option=pasteKey)
+                            else:
+                                if cmds.copyKey(src, hierarchy=False, time=time):
+                                    cmds.pasteKey(dest, option=pasteKey)
+                        except:
+                            log.debug('Failed to copyKeys between : %s >> %s' % (src, dest))
             else:
-                log.warning('SrcNodes have animLayers, results may be eratic unless Baked!')
-                
-        if nodeList:
-            with r9General.HIKContext([d for _, d in nodeList]):
-                for src, dest in nodeList:
-                    try:
-                        if attributes:
-                            #copy only specific attributes
-                            for attr in attributes:
-                                if cmds.copyKey(src, attribute=attr, hierarchy=False, time=time):
-                                    cmds.pasteKey(dest, attribute=attr, option=pasteKey)
-                        else:
-                            if cmds.copyKey(src, hierarchy=False, time=time):
-                                cmds.pasteKey(dest, option=pasteKey)
-                    except:
-                        log.debug('Failed to copyKeys between : %s >> %s' % (src, dest))
-        else:
-            raise StandardError('Nothing found by the Hierarchy Code to process')
+                raise StandardError('Nothing found by the Hierarchy Code to process')
         
-        if mergeLayers:
-            if animLayers and cmds.animLayer('Merged_Layer', query=True, exists=True):
-                cmds.delete('Merged_Layer')
+#         if mergeLayers:
+#             if animLayers and cmds.animLayer('Merged_Layer', query=True, exists=True):
+#                 cmds.delete('Merged_Layer')
         return True
     
     
@@ -2733,7 +2959,7 @@ class AnimFunctions(object):
         raise NotImplemented
     
     @staticmethod
-    def snap(nodes=None):
+    def snap(nodes=None, snapTranslates=True, snapRotates=True):
         '''
         This takes 2 given transform nodes and snaps them together. It takes into
         account offsets in the pivots of the objects. Uses the API MFnTransform nodes
@@ -2755,7 +2981,7 @@ class AnimFunctions(object):
         
         #pass to the plugin SnapCommand
         for node in nodes[1:]:
-            cmds.SnapTransforms(source=nodes[0], destination=node)
+            cmds.SnapTransforms(source=nodes[0], destination=node, snapTranslates=snapTranslates, snapRotates=snapRotates)
  
         
     @staticmethod
@@ -2832,12 +3058,12 @@ class AnimFunctions(object):
                 if trans:
                     cmds.setKeyframe(destObj, at='translate')
             except:
-                pass
+                log.debug('failed to set translate key on %s' % destObj)
             try:
                 if rots:
                     cmds.setKeyframe(destObj, at='rotate')
             except:
-                pass
+                log.debug('failed to set rotate key on %s' % destObj)
                       
         cmds.delete(deleteMe)
         cmds.autoKeyframe(state=autokeyState)
@@ -3427,6 +3653,7 @@ class FilterCurves(object):
     def resampleCurves(self, *args):
         '''
         straight resample of curves using a managed cmds.bakeResults call
+        :param args[0]: this is the step used in the resample
         '''
         step = args[0]
         if self.snapToFrame:
@@ -3464,6 +3691,9 @@ class MirrorHierarchy(object):
     >>> mirror.mirrorData(mode='Anim')
     
     TODO: We need to do a UI for managing these marker attrs and the Index lists
+    
+    TODO: allow the mirror block to include an offset so that if you need to inverse AND offset 
+        by 180 to get left and right working you can still do so.
     '''
     
     def __init__(self, nodes=[], filterSettings=None, **kws):
@@ -3482,6 +3712,8 @@ class MirrorHierarchy(object):
         self.mirrorIndex = 'mirrorIndex'
         self.mirrorAxis = 'mirrorAxis'
         self.mirrorDict = {'Centre': {}, 'Left': {}, 'Right': {}}
+        self.mergeLayers = True
+        self.indexednodes = []  # all nodes to process - passed to the Animlayer context
         self.kws = kws  # allows us to pass kws into the copyKey and copyAttr call if needed, ie, pasteMethod!
         #print 'kws in Mirror call : ', self.kws
         
@@ -3617,15 +3849,21 @@ class MirrorHierarchy(object):
         '''
         Filter the given nodes into the mirrorDict
         such that {'Centre':{id:node,},'Left':{id:node,},'Right':{id:node,}}
+        :param nodes: only process a given list of nodes, else run the filterSettings 
+            call from the initial nodes passed to the class
         '''
         # reset the current Dict prior to rescanning
         self.mirrorDict = {'Centre': {}, 'Left': {}, 'Right': {}}
         self.unresolved = {'Centre': {}, 'Left': {}, 'Right': {}}
-        if not nodes:
-            nodes = self.getNodes()
-        if not nodes:
-            raise StandardError('no mirrorMarkers found in node list/hierarchy')
-        for node in nodes:
+        self.indexednodes=nodes
+        
+        if not nodes and self.nodes:
+            self.indexednodes = self.getNodes()
+
+        if not self.indexednodes:
+            raise StandardError('No mirrorMarkers found from the given node list/hierarchy')
+        
+        for node in self.indexednodes:
             try:
                 side = self.getMirrorSide(node)
                 index = self.getMirrorIndex(node)
@@ -3654,6 +3892,8 @@ class MirrorHierarchy(object):
             except StandardError, error:
                 log.debug(error)
                 log.info('Failed to add Node to Mirror System : %s' % r9Core.nodeNameStrip(node))
+                
+        return self.indexednodes
     
     def printMirrorDict(self, short=True):
         '''
@@ -3719,14 +3959,25 @@ class MirrorHierarchy(object):
         one side of the mirrorDict and pass that data to the opposite matching node, thus
         making the anim/pose symmetrical according to the mirror setups.
         Really useful for facial setups!
+        
+        :param nodes: optional specific listy of nodes to process, else we run the filterSetting code 
+            on the initial nodes past to the class
+        :param mode: 'Anim' ot 'Pose' process as a single pose or an animation
+        :param primeAxis: 'Left' or 'Right' whether to take the data from the left or right side of the setup
         '''
         self.getMirrorSets(nodes)
+    
+        if not self.indexednodes:
+            raise IOError('No nodes mirrorIndexed nodes found from given / selected nodes')
+        
         if mode == 'Anim':
             transferCall = self.transferCallKeys  # AnimFunctions().copyKeys
             inverseCall = AnimFunctions.inverseAnimChannels
+            self.mergeLayers=True
         else:
             transferCall = self.transferCallAttrs  # AnimFunctions().copyAttributes
             inverseCall = AnimFunctions.inverseAttributes
+            self.mergeLayers=False
             
         if primeAxis == 'Left':
             masterAxis = 'Left'
@@ -3734,20 +3985,21 @@ class MirrorHierarchy(object):
         else:
             masterAxis = 'Right'
             slaveAxis = 'Left'
-               
-        for index, masterSide in self.mirrorDict[masterAxis].items():
-            if not index in self.mirrorDict[slaveAxis].keys():
-                log.warning('No matching Index Key found for %s mirrorIndex : %s >> %s' % \
-                            (masterAxis, index, r9Core.nodeNameStrip(masterSide['node'])))
-            else:
-                slaveData = self.mirrorDict[slaveAxis][index]
-                log.debug('SymmetricalPairs : %s >> %s' % (r9Core.nodeNameStrip(masterSide['node']), \
-                                     r9Core.nodeNameStrip(slaveData['node'])))
-                transferCall([masterSide['node'], slaveData['node']], **self.kws)
-                
-                log.debug('Symmetrical Axis Inversion: %s' % ','.join(slaveData['axis']))
-                if slaveData['axis']:
-                    inverseCall(slaveData['node'], slaveData['axis'])
+            
+        with AnimationLayerContext(self.indexednodes, mergeLayers=self.mergeLayers, restoreOnExit=False):
+            for index, masterSide in self.mirrorDict[masterAxis].items():
+                if not index in self.mirrorDict[slaveAxis].keys():
+                    log.warning('No matching Index Key found for %s mirrorIndex : %s >> %s' % \
+                                (masterAxis, index, r9Core.nodeNameStrip(masterSide['node'])))
+                else:
+                    slaveData = self.mirrorDict[slaveAxis][index]
+                    log.debug('SymmetricalPairs : %s >> %s' % (r9Core.nodeNameStrip(masterSide['node']), \
+                                         r9Core.nodeNameStrip(slaveData['node'])))
+                    transferCall([masterSide['node'], slaveData['node']], **self.kws)
+                    
+                    log.debug('Symmetrical Axis Inversion: %s' % ','.join(slaveData['axis']))
+                    if slaveData['axis']:
+                        inverseCall(slaveData['node'], slaveData['axis'])
              
     def mirrorData(self, nodes=None, mode='Anim'):
         '''
@@ -3755,34 +4007,49 @@ class MirrorHierarchy(object):
         the mirrorSide attr, then process the lists into Side and Index slots
         before Mirroring the animation data. Swapping left for right and
         inversing the required animCurves
+        
+        :param nodes: optional specific listy of nodes to process, else we run the filterSetting code 
+            on the initial nodes past to the class
+        :param mode: 'Anim' ot 'Pose' process as a single pose or an animation
+        
+        TODO: Issue where if nodeA on Left has NO key data at all, and nodeB on right
+        does, then nodeB will be left incorrect. We need to clean the data if there
+        are no keys.
         '''
+
         self.getMirrorSets(nodes)
+        if not self.indexednodes:
+            raise IOError('No nodes mirrorIndexed nodes found from given / selected nodes')
         
         if mode == 'Anim':
             inverseCall = AnimFunctions.inverseAnimChannels
+            self.mergeLayers=True
         else:
             inverseCall = AnimFunctions.inverseAttributes
+            self.mergeLayers=False
+            
         # with r9General.HIKContext(nodes):
-        # Switch Pairs on the Left and Right and inverse the channels
-        for index, leftData in self.mirrorDict['Left'].items():
-            if not index in self.mirrorDict['Right'].keys():
-                log.warning('No matching Index Key found for Left mirrorIndex : %s >> %s' % (index, r9Core.nodeNameStrip(leftData['node'])))
-            else:
-                rightData = self.mirrorDict['Right'][index]
-                log.debug('SwitchingPairs : %s >> %s' % (r9Core.nodeNameStrip(leftData['node']), \
-                                     r9Core.nodeNameStrip(rightData['node'])))
-                self.switchPairData(leftData['node'], rightData['node'], mode=mode)
-                
-                log.debug('Axis Inversions: left: %s' % ','.join(leftData['axis']))
-                log.debug('Axis Inversions: right: %s' % ','.join(rightData['axis']))
-                if leftData['axis']:
-                    inverseCall(leftData['node'], leftData['axis'])
-                if rightData['axis']:
-                    inverseCall(rightData['node'], rightData['axis'])
-                
-        # Inverse the Centre Nodes
-        for data in self.mirrorDict['Centre'].values():
-            inverseCall(data['node'], data['axis'])
+        with AnimationLayerContext(self.indexednodes, mergeLayers=self.mergeLayers, restoreOnExit=False):
+            # Switch Pairs on the Left and Right and inverse the channels
+            for index, leftData in self.mirrorDict['Left'].items():
+                if not index in self.mirrorDict['Right'].keys():
+                    log.warning('No matching Index Key found for Left mirrorIndex : %s >> %s' % (index, r9Core.nodeNameStrip(leftData['node'])))
+                else:
+                    rightData = self.mirrorDict['Right'][index]
+                    log.debug('SwitchingPairs : %s >> %s' % (r9Core.nodeNameStrip(leftData['node']), \
+                                         r9Core.nodeNameStrip(rightData['node'])))
+                    self.switchPairData(leftData['node'], rightData['node'], mode=mode)
+                    
+                    log.debug('Axis Inversions: left: %s' % ','.join(leftData['axis']))
+                    log.debug('Axis Inversions: right: %s' % ','.join(rightData['axis']))
+                    if leftData['axis']:
+                        inverseCall(leftData['node'], leftData['axis'])
+                    if rightData['axis']:
+                        inverseCall(rightData['node'], rightData['axis'])
+                    
+            # Inverse the Centre Nodes
+            for data in self.mirrorDict['Centre'].values():
+                inverseCall(data['node'], data['axis'])
      
     def saveMirrorSetups(self, filepath):
         '''
@@ -3823,7 +4090,11 @@ class MirrorHierarchy(object):
                     if r9Core.matchNodeLists([node], [leftData['node']], matchMethod=matchMethod):
                         log.debug('NodeMatched: %s, Side=Left, index=%i, axis=%s' % (node, int(index), leftData['axis']))
                         if r9Core.decodeString(leftData['axisAttr']):
-                            self.setMirrorIDs(node, side='Left', slot=int(index), axis=','.join(leftData['axis']))
+                            if not leftData['axis']:
+                                axis='None'
+                            else:
+                                axis=','.join(leftData['axis'])
+                            self.setMirrorIDs(node, side='Left', slot=int(index), axis=axis)  # ','.join(leftData['axis']))
                         else:
                             self.setMirrorIDs(node, side='Left', slot=int(index))
                         found = True
@@ -3833,7 +4104,11 @@ class MirrorHierarchy(object):
                         if r9Core.matchNodeLists([node], [rightData['node']], matchMethod=matchMethod):
                             log.debug('NodeMatched: %s, Side=Right, index=%i, axis=%s' % (node, int(index), rightData['axis']))
                             if r9Core.decodeString(rightData['axisAttr']):
-                                self.setMirrorIDs(node, side='Right', slot=int(index), axis=','.join(rightData['axis']))
+                                if not rightData['axis']:
+                                    axis='None'
+                                else:
+                                    axis=','.join(rightData['axis'])
+                                self.setMirrorIDs(node, side='Right', slot=int(index), axis=axis)  # ','.join(rightData['axis']))
                             else:
                                 self.setMirrorIDs(node, side='Right', slot=int(index))
                             found = True
@@ -3843,7 +4118,11 @@ class MirrorHierarchy(object):
                         if r9Core.matchNodeLists([node], [centreData['node']], matchMethod=matchMethod):
                             log.debug('NodeMatched: %s, Side=Centre, index=%i, axis=%s' % (node, int(index), centreData['axis']))
                             if r9Core.decodeString(centreData['axisAttr']):
-                                self.setMirrorIDs(node, side='Centre', slot=int(index), axis=','.join(centreData['axis']))
+                                if not centreData['axis']:
+                                    axis='None'
+                                else:
+                                    axis=','.join(centreData['axis'])
+                                self.setMirrorIDs(node, side='Centre', slot=int(index), axis=axis)  # ','.join(centreData['axis']))
                             else:
                                 self.setMirrorIDs(node, side='Centre', slot=int(index))
                             break
@@ -4071,7 +4350,7 @@ class MirrorSetup(object):
         self.mirrorClass.saveMirrorSetups(filepath=filepath)
 
     def __loadMirrorSetups(self):
-        filepath = cmds.fileDialog2(fileFilter="mirrorMap Files (*.mirrorMap *.mirrorMap);;", okc='Load', cap='Load MirrorSetups')[0]
+        filepath = cmds.fileDialog2(fileFilter="mirrorMap Files (*.mirrorMap *.mirrorMap);;", okc='Load', cap='Load MirrorSetups', fileMode=1)[0]
         if cmds.checkBox('mirrorSaveLoadHierarchy', q=True, v=True):
             self.mirrorClass.nodes = cmds.ls(sl=True, l=True)
             self.mirrorClass.loadMirrorSetups(filepath=filepath, clearCurrent=cmds.checkBox('mirrorClearCurrent', q=True, v=True))
@@ -4204,31 +4483,123 @@ class CameraTracker():
         self.cameraTrackView(fixed=self.fixed)
 
 
-def reConnectReferencedAnimData():
-    '''
-    As per my blog posts on Lost Animaton's see here for details:
-    http://markj3d.blogspot.co.uk/2011/07/lost-animation-when-loading-referenced.html
-    http://markj3d.blogspot.co.uk/2012/09/lost-animation-part2.html
-    '''
-    import pymel.core as pm
+class ReconnectAnimData(object):
     
-    objs = pm.ls(sl=True, st=True)
-    if not objs:
-        raise StandardError('nothing selected to process, please select the characterSet of the broken reference')
+    def __init__(self):
+        self.win = 'ReconnectAnimData'
+        
+    @classmethod
+    def show(cls):
+        cls()._showUI()
     
-    cSet, nodetype = objs
-    refNode = cSet.referenceFile().refNode
+    def _showUI(self):
+        if cmds.window(self.win, exists=True):
+            cmds.deleteUI(self.win, window=True)
+        cmds.window(self.win, title=self.win, widthHeight=(300, 220))
+        
+        cmds.menuBarLayout()
+        cmds.menu(l="Help")
+        cmds.menuItem(l="Bug post -LostAnimPart1", \
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('http://markj3d.blogspot.co.uk/2011/07/lost-animation-when-loading-referenced.html')")
+        cmds.menuItem(l="Bug post -LostAnimPart1", \
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('http://markj3d.blogspot.co.uk/2012/09/lost-animation-part2.html')")
+        cmds.menuItem(l="Bug post -LostAnimPart3", \
+                      c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('http://markj3d.blogspot.co.uk/2014/09/lost-animation-part-3.html')")
+        cmds.menuItem(divider=True)
+        cmds.menuItem(l="Contact Me", c=lambda *args: (r9Setup.red9ContactInfo()))
+        
+        cmds.columnLayout('uicl_audioMain',adjustableColumn=True)
+        cmds.separator(h=10, style='none')
+        cmds.text(l='BUG: Symtoms - Maya file loaded but character\nwas left in T-Pose and all animation looks lost!', align='center')
+        cmds.separator(h=15, style='none')
+        cmds.button(label='Reconnect Via >> Referenced ChSet',
+                    ann='Select the CharacterSet that you want to try and recover',
+                    command=ReconnectAnimData.reConnectReferencedAnimData)
+        
+        cmds.separator(h=15, style='in')
+        cmds.checkBox('StripNamespaces', l='StripNamespaces in Match', v=True)
+        cmds.checkBox('AllowMergedLayers', l='Strip MergedLayer data conventions', v=False)
+        cmds.button(label='Reconnect Via >> Blind Names & Selected Nodes',
+                    ann='Select nodes or CharacterSet that you want to recover via a blind animCurve name match methods',
+                    command=self.__uiCB_reConnectAnimDataBlind)
+        cmds.separator(h=15, style='none')
 
-    if not nodetype == 'character':
-        raise StandardError('You must select a CharacterSet to reconnect')
-    if not refNode:
-        raise StandardError('Given characterSet is not from a referenced file')
+        cmds.iconTextButton(style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp',
+                             c=lambda *args: (r9Setup.red9ContactInfo()), h=22, w=200)
+        cmds.showWindow(self.win)
+        cmds.window(self.win, e=True, widthHeight=(300, 210))
     
-    animCurves = refNode.listConnections(type='animCurve', s=True)
-    cSetPlugs = pm.aliasAttr(cSet, q=True)
+    def __uiCB_reConnectAnimDataBlind(self, *args):
+        ReconnectAnimData.reConnectAnimDataBlind(stripNamespace=cmds.checkBox('StripNamespaces', q=True, v=True),
+                                                 stripLayerNaming=cmds.checkBox('AllowMergedLayers', q=True, v=True))
+                                                                             
+    @staticmethod
+    def reConnectReferencedAnimData(*args):
+        '''
+        As per my blog posts on Lost Animaton's see here for details:
+        http://markj3d.blogspot.co.uk/2011/07/lost-animation-when-loading-referenced.html
+        
+        '''
+        import pymel.core as pm
+        
+        objs = pm.ls(sl=True, st=True)
+        if not objs:
+            raise StandardError('nothing selected to process, please select the characterSet of the broken reference')
+        
+        cSet, nodetype = objs
+        refNode = cSet.referenceFile().refNode
     
-    for plug in cSetPlugs[::2]:
-        for anim in animCurves:
-            if anim.split(':')[-1].endswith(plug):
-                print '%s >> %s' % (anim, plug)
-                pm.connectAttr('%s.output' % anim, '%s.%s' % (cSet, plug), force=True)
+        if not nodetype == 'character':
+            raise StandardError('You must select a CharacterSet to reconnect')
+        if not refNode:
+            raise StandardError('Given characterSet is not from a referenced file')
+        
+        animCurves = refNode.listConnections(type='animCurve', s=True)
+        cSetPlugs = pm.aliasAttr(cSet, q=True)
+        
+        for plug in cSetPlugs[::2]:
+            for anim in animCurves:
+                if anim.split(':')[-1].endswith(plug):
+                    print '%s >> %s' % (anim, plug)
+                    pm.connectAttr('%s.output' % anim, '%s.%s' % (cSet, plug), force=True)
+                    
+                    
+    @staticmethod
+    def reConnectAnimDataBlind(stripNamespace=True, stripLayerNaming=False, *args):
+        '''
+        Blind reconnect based on names. As per my blog posts on Lost Animaton's see here for details:
+        http://markj3d.blogspot.co.uk/2012/09/lost-animation-part2.html
+        
+        :param stripNamespace: Change this to False if the curves are not in the rootNamespace but
+            in the sameNamespace as the controllers.
+        :param stripLayerNaming: allows for the additional 'Merged_Layer_inputB' naming conventions
+        '''
+        nodes=cmds.ls(sl=True,l=True)
+        chns=[]
+        
+        #build up the main lists
+        animCurves=cmds.ls(type='animCurve',s=True)
+        [chns.extend(cmds.listAnimatable(node)) for node in nodes]
+            
+        for chn in chns:
+            if stripNamespace:
+                animCurveExpected=chn.split(':')[-1].split('|')[-1].replace('.','_')
+            else:
+                animCurveExpected=chn.split('|')[-1].replace('.','_')
+            if animCurveExpected in animCurves:
+                if not cmds.isConnected('%s.output' % animCurveExpected,chn):
+                    print '%s >> %s' % (animCurveExpected,chn)
+                    cmds.connectAttr('%s.output' % animCurveExpected,chn,force=True)
+            elif stripLayerNaming:
+                for curve in animCurves:
+                    curveStripped=curve.replace('_Merged_Layer_inputB','')
+                    if curveStripped == animCurveExpected:
+                        if not cmds.isConnected(curve, chn):
+                            print '%s >> %s' % (curve, chn)
+                            cmds.connectAttr('%s.output' % curve,chn,force=True)
+        
+        
+    
+    
+    
+    

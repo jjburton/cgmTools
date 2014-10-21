@@ -158,55 +158,13 @@ def decodeString(val):
     #log.debug('Decoded as type(string)')
     return val
 
-def floatIsEqual(a, b, tolerance=0.01, allowGimbal=True):
-    '''
-    compare 2 floats with tolerance.
-    
-    :param a: value 1 
-    :param b: value 2 
-    :param tolerance: compare with this tolerance default=0.001 
-    :param allowGimbal: allow values differences to be divisible by 180 compensate for gimbal flips 
-    
-    '''
-    if abs(a - b) < tolerance:
-        return True
-    else:
-        if allowGimbal:
-            mod = abs(a - b) % 180.0
-            if mod < tolerance:
-                log.debug('compare passed with gimbal : %f == %f : diff = %f' % (a, b, mod))
-                return True
-            elif abs(180.0 - mod) < tolerance:
-                log.debug('compare passed with gimbal 180 : %f == %f : diff = %f' % (a, b, abs(180 - mod)))
-                return True
-            elif abs(90.0 - mod) < tolerance:
-                log.debug('compare passed with gimbal 90 : %f == %f diff = %f' % (a, b, abs(90.0 - mod)))
-                return True
-            log.debug('compare with gimbal failed against mod 180: best diff :%f' % (abs(180.0-mod)))
-            log.debug('compare with gimbal failed against mod 90: best diff :%f' % (abs(90.0-mod)))
-    log.debug('float is out of tolerance : %f - %f == %f' % (a, b, abs(a - b)))
-    return False
-
-def valueToMappedRange(value, currentMin, currentMax, givenMin, givenMax):
-    '''
-    we have a min max range, lets say 0.5 - 15 and we want to map the
-    range to a new range say 0-1 and return where the value given is
-    in that new range
-    '''
-    # Figure out how 'wide' each range is
-    currentSpan = currentMax - currentMin
-    givenSpan = givenMax - givenMin
-    # Convert the left range into a 0-1 range (float)
-    valueScaled = float(value - currentMin) / float(currentSpan)
-    # Convert the 0-1 range into a value in the right range.
-    return givenMin + (valueScaled * givenSpan)
     
 def validateString(strText):
     '''
     Function to validate that a string has no illegal characters
     '''
     #numerics=['1','2','3','4','5','6','7','8','9','0']
-    illegals=['-', '#', '!']
+    illegals=['-', '#', '!', ' ']
     #if strText[0] in numerics:
     #    raise ValueError('Strings must NOT start with a numeric! >> %s' % strText)
     illegal=[i for i in illegals if i in strText]
@@ -412,18 +370,24 @@ class FilterNode_UI(object):
         # Intersector
         #====================
         cmds.rowColumnLayout(ann='nodeTypeSelectors', numberOfColumns=3, columnWidth=[(1, 130), (2, 130), (3, 130)], columnSpacing=[(1, 10)])
-        cmds.checkBox(l='Meshes', v=False,
-                        onc=lambda x: self.cbNodeTypes.append('mesh'),
-                        ofc=lambda x: self.cbNodeTypes.remove('mesh'))
-        cmds.checkBox(l='Locators', v=False,
-                        onc=lambda x: self.cbNodeTypes.append('locator'),
-                        ofc=lambda x: self.cbNodeTypes.remove('locator'))
-        cmds.checkBox(l='Joints', v=False,
-                        onc=lambda x: self.cbNodeTypes.append('joint'),
-                        ofc=lambda x: self.cbNodeTypes.remove('joint'))
         cmds.checkBox(l='NurbsCurve', v=False,
                         onc=lambda x: self.cbNodeTypes.append('nurbsCurve'),
                         ofc=lambda x: self.cbNodeTypes.remove('nurbsCurve'))
+        cmds.checkBox(l='Meshes', v=False,
+                        onc=lambda x: self.cbNodeTypes.append('mesh'),
+                        ofc=lambda x: self.cbNodeTypes.remove('mesh'))
+        cmds.checkBox(l='Joints', v=False,
+                        onc=lambda x: self.cbNodeTypes.append('joint'),
+                        ofc=lambda x: self.cbNodeTypes.remove('joint'))
+        cmds.checkBox(l='Locators', v=False,
+                        onc=lambda x: self.cbNodeTypes.append('locator'),
+                        ofc=lambda x: self.cbNodeTypes.remove('locator'))
+        cmds.checkBox(l='Cameras', v=False,
+                        onc=lambda x: self.cbNodeTypes.append('camera'),
+                        ofc=lambda x: self.cbNodeTypes.remove('camera'))
+        cmds.checkBox(l='Audio', v=False,
+                        onc=lambda x: self.cbNodeTypes.append('audio'),
+                        ofc=lambda x: self.cbNodeTypes.remove('audio'))
         cmds.checkBox(l='OrientConstraint', v=False,
                         onc=lambda x: self.cbNodeTypes.append('orientConstraint'),
                         ofc=lambda x: self.cbNodeTypes.remove('orientConstraint'))
@@ -433,7 +397,7 @@ class FilterNode_UI(object):
         cmds.checkBox(l='ParentConstraint', v=False,
                         onc=lambda x: self.cbNodeTypes.append('parentConstraint'),
                         ofc=lambda x: self.cbNodeTypes.remove('parentConstraint'))
-        cmds.checkBox(l='ikHandle', v=False,
+        cmds.checkBox(l='IKHandles', v=False,
                         onc=lambda x: self.cbNodeTypes.append('ikHandle'),
                         ofc=lambda x: self.cbNodeTypes.remove('ikHandle'))
         cmds.checkBox(l='Transforms', v=False,
@@ -473,7 +437,7 @@ class FilterNode_UI(object):
         cmds.iconTextButton(style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp',
                              c=lambda *args: (r9Setup.red9ContactInfo()), h=22, w=200)
         cmds.showWindow(window)
-        cmds.window(self.win, e=True, widthHeight=(400, 380))
+        cmds.window(self.win, e=True, widthHeight=(400, 400))
         
         
     def __uiCall(self, mode):
@@ -712,6 +676,10 @@ class FilterNode(object):
             would return the shape node, this clamps the return to it's Transform node, default=False
 
         :return: a list of nodes who type match the given search list
+        
+        TODO: Add the ability to use the NOT: operator in this, so for example, nodeTypes=transform
+        would return all mesh nodes too, or rather the transform from a mesh, maybe you'd want to
+        clamp that and prevent mesh transforms being returned? Is this even reasonable???
         '''
       
         self.foundNodeTypes = []
@@ -724,7 +692,7 @@ class FilterNode(object):
             nodeTypes = [nodeTypes]
         
         if self.processMode=='Selected' and len(self.rootNodes)==1:
-            #PreProcess Set selections and add all members to the test
+            #PreProcess set selections and add all members to the test
             #TO DO: have this process multiple selected Sets
             if cmds.nodeType(self.rootNodes[0])=='character':
                 nodes = self.lsCharacterMembers()
@@ -1208,7 +1176,12 @@ class FilterNode(object):
             else:
                 mnodes=r9Meta.getConnectedMetaNodes(root)
                 if mnodes:
-                    meta=mnodes[0]
+                    for mnode in mnodes:
+                        if issubclass(type(mnode), r9Meta.MetaRig):
+                            meta=mnode
+                            break
+                    if not meta:
+                        meta=mnodes[0]
             if meta and meta not in metaNodes:
                 metaNodes.append(meta)
                 
@@ -1318,6 +1291,43 @@ class FilterNode(object):
             return self.intersectionData
 
 
+def getBlendTargetsFromMesh(node, asList=True, returnAll=False, levels=1):
+    '''
+    quick func to return the blendshape targets found from a give mesh's connected blendshape's
+    
+    TODO: missing index's used to be an issue if you'd deleted a target Maya would leave the 
+    index free resulting in blank targets, doesn't seem to do that now?? Also what do we 
+    return and in what format if we have multiple blendShapes on the node?
+    
+    :param node: node to inspect for blendShapes, or the blendshape itself
+    :param asList: return as a straight list of target names or a dict of data
+    :param returnAll: if multiple blendshapes are found do we return all, or just the first
+    :param levels: same as the 'levels' flag in listHistory as that's ultimately what grabs the blendShape nodes here
+    '''
+
+    if asList:
+        targetData=[]
+    else:
+        targetData={}
+        
+    blendshapes=[b for b in cmds.listHistory(node, levels=levels) if cmds.nodeType(b)=='blendShape']
+    if blendshapes:
+        for blend in blendshapes:
+            weights=cmds.aliasAttr(blend,q=True)
+            if asList:
+                data=weights[0::2]
+                if returnAll:
+                    targetData.extend(data)
+                else:
+                    #means we only return the first blend in the history
+                    return data
+            else:
+                data=(zip(weights[1::2],weights[0::2]))
+                targetData[blend]=data
+    return targetData
+    
+    
+
 #Node Matching -------------------------------------------------------------------------
             
 def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
@@ -1325,12 +1335,17 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
     Matches 2 given NODE LISTS by node name via various methods.
     
     :param matchMethod: default 'stripPrefix' 
-        *base*:  Match each element by exact name (shortName)
+        *index*: No intelligent matching, just purely zip the 
+        lists together in the order they were given
+        
+        *base*:  Match each element by exact name (shortName) 
         such that Spine==Spine or REF1:Spine==REF2:Spine
         
-        *stripPrefix*: Match each element by a relaxed naming convention
-        allowing for prefixes such that RigX_Spine == Spine
+        *stripPrefix*: Match each element by a relaxed naming convention 
+        allowing for prefixes one side such that RigX_Spine == Spine
+        
     :return: matched pairs of tuples for processing [(a1,b2),[(a2,b2)]
+    
     '''
 
     infoPrint = ""
@@ -1339,31 +1354,34 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
     #take a copy of B as we modify the data here
     hierarchyB=list(nodeListB)
     
-    for nodeA in nodeListA:
-        strippedA = nodeNameStrip(nodeA)
-        for nodeB in hierarchyB:
-            #strip the path off for the compare
-            #strippedA = nodeNameStrip(nodeA)
-            strippedB = nodeNameStrip(nodeB)
-            
-            #BaseMatch is a direct compare ONLY
-            if matchMethod == 'base':
-                if strippedA.upper() == strippedB.upper():
-                    infoPrint += '\nMatch Method : %s : %s == %s' % \
-                            (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
-                    matchedData.append((nodeA, nodeB))
-                    hierarchyB.remove(nodeB)
-                    break
+    if matchMethod == 'index':
+        matchedData = zip(nodeListA,nodeListB)
+    else:
+        for nodeA in nodeListA:
+            strippedA = nodeNameStrip(nodeA)
+            for nodeB in hierarchyB:
+                #strip the path off for the compare
+                #strippedA = nodeNameStrip(nodeA)
+                strippedB = nodeNameStrip(nodeB)
                 
-            #Compare allowing for prefixing which is stripped off
-            elif matchMethod == 'stripPrefix':
-                if strippedA.upper().endswith(strippedB.upper()) \
-                    or strippedB.upper().endswith(strippedA.upper()):
-                    infoPrint += '\nMatch Method : %s : %s == %s' % \
-                            (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
-                    matchedData.append((nodeA, nodeB))
-                    hierarchyB.remove(nodeB)
-                    break
+                #BaseMatch is a direct compare ONLY
+                if matchMethod == 'base':
+                    if strippedA.upper() == strippedB.upper():
+                        infoPrint += '\nMatch Method : %s : %s == %s' % \
+                                (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
+                        matchedData.append((nodeA, nodeB))
+                        hierarchyB.remove(nodeB)
+                        break
+                    
+                #Compare allowing for prefixing which is stripped off
+                elif matchMethod == 'stripPrefix':
+                    if strippedA.upper().endswith(strippedB.upper()) \
+                        or strippedB.upper().endswith(strippedA.upper()):
+                        infoPrint += '\nMatch Method : %s : %s == %s' % \
+                                (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
+                        matchedData.append((nodeA, nodeB))
+                        hierarchyB.remove(nodeB)
+                        break
                 
     log.debug('\nMatched Log : \n%s' % infoPrint)
     infoPrint = None
@@ -1834,15 +1852,15 @@ class LockChannels(object):
         log.info('<< AttrMap Processed >>')
         
     @staticmethod
-    def processState(nodes, attrs, mode, hierarchy=True, userDefined=False):
+    def processState(nodes, attrs, mode, hierarchy=False, userDefined=False):
         '''
         Easy wrapper to manage channels that are keyable / locked
         in the channelBox.
         
         :param nodes: nodes to process
         :param attrs: set() of attrs
-        :param mode: 'lock' or 'unlock'
-        :param hierarchy: process all child nodes
+        :param mode: 'lock', 'unlock', 'hide', 'unhide', 'fullkey', 'lockall'
+        :param hierarchy: process all child nodes, default is now False
         :param usedDefined: process all UserDefined attributes on all nodes
         '''
         userDefAttrs=set()
@@ -1854,7 +1872,9 @@ class LockChannels(object):
         if hierarchy:
             #Filter the selection for children including the selected roots
             nodes=FilterNode(nodes).lsHierarchy(incRoots=True)
-
+        
+        if not hasattr(attrs,'__iter__'):
+            attrs=set([attrs])
         if not type(attrs)==set:
             attrs=set(attrs)
             
@@ -1863,10 +1883,8 @@ class LockChannels(object):
         
         if mode=='lock':
             attrKws['lock']=True
-            #attrKws['keyable']=False
         elif mode=='unlock':
             attrKws['lock']=False
-            #attrKws['keyable']=True
         elif mode=='hide':
             attrKws['keyable']=False
         elif mode=='unhide':
@@ -1874,6 +1892,9 @@ class LockChannels(object):
         elif mode=='fullkey':
             attrKws['keyable']=True
             attrKws['lock']=False
+        elif mode=='lockall':
+            attrKws['keyable']=False
+            attrKws['lock']=True
             
         for node in nodes:
             if userDefined:
@@ -1884,7 +1905,16 @@ class LockChannels(object):
                 try:
                     #log.debug('node: %s.%s' % (node,attr))
                     if cmds.attributeQuery(attr, node=node, exists=True):
-                        cmds.setAttr('%s.%s' % (node, attr), **attrKws)
+                        attrString='%s.%s' % (node, attr)
+                        if cmds.getAttr(attrString, type=True) in ['double3','float3']:
+                            #why?? Maya fails to set the 'keyable' flag staus for compound attrs!
+                            childAttrs=cmds.listAttr(attrString, multi=True)
+                            childAttrs.remove(attr)
+                            log.debug('compoundAttr handler for node: %s.%s' % (node,attr))
+                            for childattr in childAttrs:
+                                cmds.setAttr('%s.%s' % (node, childattr), **attrKws)
+                        else:
+                            cmds.setAttr(attrString, **attrKws)
                 except StandardError, error:
                     log.info(error)
                 
@@ -1936,6 +1966,7 @@ def timeOffset_collapse(scene=False):
     
     cmds.currentTime(timeRange[0], e=True)
    
+   
 class TimeOffset(object):
     '''
     A class for dealing with time manipulation inside Maya.
@@ -1952,22 +1983,28 @@ class TimeOffset(object):
 
     '''
     @classmethod
-    def fullScene(cls, offset, timelines=False, timerange=None):
+    def fullScene(cls, offset, timelines=False, timerange=None, ripple=True):
         '''
         Process the entire scene and time offset all suitable nodes
+        
+        :param offset: number of frames to offset
+        :param timelines: offset the playback timelines
+        :param timerange: only offset times within a given timerange
+        :param ripple: manage the upper range of data and ripple them with the offset
         '''
         log.debug('TimeOffset Scene : offset=%s, timelines=%s' % \
                   (offset, str(timelines)))
-        cls.animCurves(offset, timerange=timerange)
-        cls.sound(offset, mode='Scene', timerange=timerange)
-        cls.animClips(offset, mode='Scene', timerange=timerange)
+        cls.animCurves(offset, timerange=timerange, ripple=ripple)
+        cls.sound(offset, mode='Scene', timerange=timerange, ripple=ripple)
+        cls.animClips(offset, mode='Scene', timerange=timerange, ripple=ripple)
         if timelines:
             cls.timelines(offset)
+        cls.metaNodes(offset, timerange=timerange, ripple=ripple)
         print('Scene Offset Successfully')
         
     @classmethod
     def fromSelected(cls, offset, nodes=None, filterSettings=None, flocking=False,
-                     randomize=False, timerange=None):
+                     randomize=False, timerange=None, ripple=True):
         '''
         Process the current selection list and offset as appropriate.
         
@@ -1976,6 +2013,7 @@ class TimeOffset(object):
         :param flocking: wether to sucessively increment nodes during offset
         :param randomize: whether to add a ramdon factor to each succesive nodes offset
         :param timerange: only offset times within a given timerange
+        :param ripple: manage the upper range of data and ripple them with the offset
         :param filterSettings: this is a FilterSettings_Node object used to pass all 
             the filter types into the FilterNode code. Internally the following is true:
 
@@ -1985,8 +2023,8 @@ class TimeOffset(object):
             | settings.hierarchy: bool - process all children from the roots
             | settings.incRoots: bool - include the original root nodes in the filter
         '''
-        log.debug('TimeOffset from Selected : offset=%s, flocking=%i, randomize=%i, timerange=%s' % \
-                  (offset, flocking, randomize, str(timerange)))
+        log.debug('TimeOffset from Selected : offset=%s, flocking=%i, randomize=%i, timerange=%s, ripple:%s' % \
+                  (offset, flocking, randomize, str(timerange), ripple))
         if not nodes:
             nodes=cmds.ls(sl=True, l=True)
 
@@ -2008,23 +2046,30 @@ class TimeOffset(object):
                         rand = random.uniform(0, offset)
                         increment = cachedOffset + rand
                         cachedOffset += rand
-                    cls.animCurves(increment, node)
+                    cls.animCurves(increment, node,
+                                   timerange=timerange,
+                                   ripple=ripple)
                     log.debug('animData randon/flock modified offset : %f on node: %s' % (increment, nodeNameStrip(node)))
             else:
-                cls.animCurves(offset, nodes=nodes, timerange=timerange)
+                print nodes
+                cls.animCurves(offset, nodes=nodes,
+                               timerange=timerange,
+                               ripple=ripple)
                 cls.sound(offset, mode='Selected',
-                          audioNodes=FilterNode().lsSearchNodeTypes('audio', nodes),
-                          timerange=timerange)
+                                audioNodes=FilterNode().lsSearchNodeTypes('audio', nodes),
+                                timerange=timerange,
+                                ripple=ripple)
                 cls.animClips(offset, mode='Selected',
-                              clips=FilterNode().lsSearchNodeTypes('animClip', nodes),
-                              timerange=timerange)
+                                clips=FilterNode().lsSearchNodeTypes('animClip', nodes),
+                                timerange=timerange,
+                                ripple=ripple)
             log.info('Selected Nodes Offset Successfully')
         else:
             raise StandardError('Nothing selected or returned from the Hierarchy filter to offset')
 
     @staticmethod
     @r9General.Timer
-    def animCurves(offset, nodes=None, timerange=None):
+    def animCurves(offset, nodes=None, timerange=None, ripple=True):
         '''
         Shift Animation curves. If nodes are fed in to process then we do
         a number of aggressive searches to find all linked animation data.
@@ -2034,6 +2079,7 @@ class TimeOffset(object):
         :param timerange: if timerange given [start,end] then we cut the keys in that 
             range before shifting associated keys. Now we could just use the 
             keyframe(option='insert') BUT this has a MAJOR crash bug!
+        :param ripple: manage the upper range of keys and ripple them with the offset
         '''
         safeCurves=FilterNode.lsAnimCurves(nodes, safe=True)
         
@@ -2041,22 +2087,29 @@ class TimeOffset(object):
             log.debug('AnimCurve Offset = %s ============================' % offset)
             #log.debug(''.join([('offset: %s\n' % curve) for curve in safeCurves]))
             moved=0
+            
             if timerange:
+                rippleRange=(timerange[0], 1000000000)
                 if offset>0:
                     #if moving positive in time, cutchunk is from the upper timerange + offset
                     cutTimeBlock=(timerange[1] + 0.1, timerange[1] + offset)
                 else:
                     #else it's from the lower timerange - offset
                     cutTimeBlock=(timerange[0] + 0.1, timerange[0] - abs(offset + 1))
+                    
             for curve in safeCurves:
                 try:
                     if timerange:
                         try:
-                            log.debug('cutting moveRange: %f > %f  : %s' % (cutTimeBlock[0], cutTimeBlock[1], curve))
-                            cmds.cutKey(curve, time=cutTimeBlock)
+                            if not ripple or offset<0:
+                                log.debug('cutting moveRange: %f > %f  : %s' % (cutTimeBlock[0], cutTimeBlock[1], curve))
+                                cmds.cutKey(curve, time=cutTimeBlock)
                         except:
                             log.debug('unable to cut keys')
-                        cmds.keyframe(curve, edit=True, r=True, timeChange=offset, time=timerange)
+                        if ripple:
+                            cmds.keyframe(curve, edit=True, r=True, timeChange=offset, time=rippleRange)
+                        else:
+                            cmds.keyframe(curve, edit=True, r=True, timeChange=offset, time=timerange)
                     else:
                         cmds.keyframe(curve, edit=True, r=True, timeChange=offset)
                     log.debug('offsetting: %s' % curve)
@@ -2077,7 +2130,7 @@ class TimeOffset(object):
                              max=cmds.playbackOptions(q=True, max=True) + offset)
         
     @staticmethod
-    def sound(offset, mode='Scene', audioNodes=None, timerange=None):
+    def sound(offset, mode='Scene', audioNodes=None, timerange=None, ripple=True):
         '''
         Offset Audio nodes.
         
@@ -2085,6 +2138,8 @@ class TimeOffset(object):
         :param mode: either process entire scene or selected
         :param audioNodes: optional, given nodes to process
         :param timerange: optional timerange to process (outer bounds only)
+        :param ripple: when shifting nodes ripple the offset to sounds after the range, 
+            if ripple=False we only shift audio that starts in tghe bounds of the timerange
         '''
         if mode=='Scene':
             audioNodes=cmds.ls(type='audio')
@@ -2094,18 +2149,22 @@ class TimeOffset(object):
             for sound in audioNodes:
                 try:
                     audioNode=r9Audio.AudioNode(sound)
-                    if timerange and not audioNode.startFrame>timerange[0]:
-                        log.info('Skipping Sound : %s > sound starts before the timerange begins' % sound)
-                        continue
+                    if timerange:
+                        if not audioNode.startFrame>timerange[0]:
+                            log.info('Skipping Sound : %s > sound starts before the timerange begins' % sound)
+                            continue
+                        if audioNode.startFrame>timerange[1] and not ripple:
+                            log.info('Skipping Sound : %s > sound starts after the timerange ends' % sound)
+                            continue
                     audioNode.offsetTime(offset)
                     nodesOffset+=1
                     log.debug('offset : %s' % sound)
                 except:
-                    pass
+                    log.debug('Failed to offset audio node %s' % sound)
             log.info('%i : SoundNodes were offset' % nodesOffset)
                 
     @staticmethod
-    def animClips(offset, mode='Scene', clips=None, timerange=None):
+    def animClips(offset, mode='Scene', clips=None, timerange=None, ripple=True):
         '''
         Offset Trax Clips
         
@@ -2113,6 +2172,8 @@ class TimeOffset(object):
         :param mode: either process entire scene or selected
         :param clips: optional, given clips to offset
         :param timerange: optional timerange to process (outer bounds only)
+        :param ripple: when shifting nodes ripple the offset to clips after the range, 
+            if ripple=False we only shift clips that starts in tghe bounds of the timerange
         '''
         if mode=='Scene':
             clips=cmds.ls(type='animClip')
@@ -2121,16 +2182,90 @@ class TimeOffset(object):
             for clip in clips:
                 try:
                     startFrame = cmds.getAttr('%s.startFrame' % clip)
-                    if timerange and not startFrame>timerange[0]:
-                        log.info('Skipping Clip : %s > clip starts before the timerange begins' % clip)
-                        continue
+                    if timerange:
+                        if not startFrame>timerange[0]:
+                            log.info('Skipping Clip : %s > clip starts before the timerange begins' % clip)
+                            continue
+                        if startFrame>timerange[1] and not ripple:
+                            log.info('Skipping Clip : %s > clip starts after the timerange begins' % clip)
+                            continue
                     cmds.setAttr('%s.startFrame' % clip, startFrame + offset)
                     log.debug('offset : %s' % clip)
                 except:
                     pass
             log.info('%i : AnimClips were offset' % len(clips))
+          
+    @staticmethod
+    @r9General.Timer
+    def metaNodes(offset, timerange=None, ripple=True):
+        '''
+        Offset special handling for MetaNodes. Inspect the metaNode and see if 
+        the 'timeOffset' method has been implemented and if so, call it.
+        
+        .. note: 
+            ONLY runs in Scene mode and timerange and ripple are down to the metaNode
+            to handle in it's internal implementation
+        
+        :param offset: amount to offset the sounds nodes by
+        :param timerange: optional timerange to process (outer bounds only)
+        :param ripple: when shifting nodes ripple the offset to clips after the range, 
+            if ripple=False we only shift clips that starts in tghe bounds of the timerange
+        '''
+
+        mNodes=r9Meta.getMetaNodes()
+        if mNodes:
+            log.debug('MetaData Offset ============================')
+            for mNode in mNodes:
+                if 'timeOffset' in dir(mNode) and callable(getattr(mNode, 'timeOffset')):
+                    mNode.timeOffset(offset)
+            log.info('%i : MetaData were offset' % len(mNodes))
  
- 
+
+#Math functions ----------------------------------------------------------------------
+
+def floatIsEqual(a, b, tolerance=0.01, allowGimbal=True):
+    '''
+    compare 2 floats with tolerance.
+    
+    :param a: value 1 
+    :param b: value 2 
+    :param tolerance: compare with this tolerance default=0.001 
+    :param allowGimbal: allow values differences to be divisible by 180 compensate for gimbal flips 
+    
+    '''
+    if abs(a - b) < tolerance:
+        return True
+    else:
+        if allowGimbal:
+            mod = abs(a - b) % 180.0
+            if mod < tolerance:
+                log.debug('compare passed with gimbal : %f == %f : diff = %f' % (a, b, mod))
+                return True
+            elif abs(180.0 - mod) < tolerance:
+                log.debug('compare passed with gimbal 180 : %f == %f : diff = %f' % (a, b, abs(180 - mod)))
+                return True
+            elif abs(90.0 - mod) < tolerance:
+                log.debug('compare passed with gimbal 90 : %f == %f diff = %f' % (a, b, abs(90.0 - mod)))
+                return True
+            log.debug('compare with gimbal failed against mod 180: best diff :%f' % (abs(180.0-mod)))
+            log.debug('compare with gimbal failed against mod 90: best diff :%f' % (abs(90.0-mod)))
+    log.debug('float is out of tolerance : %f - %f == %f' % (a, b, abs(a - b)))
+    return False
+
+def valueToMappedRange(value, currentMin, currentMax, givenMin, givenMax):
+    '''
+    we have a min max range, lets say 0.5 - 15 and we want to map the
+    range to a new range say 0-1 and return where the value given is
+    in that new range
+    '''
+    # Figure out how 'wide' each range is
+    currentSpan = currentMax - currentMin
+    givenSpan = givenMax - givenMin
+    # Convert the left range into a 0-1 range (float)
+    valueScaled = float(value - currentMin) / float(currentSpan)
+    # Convert the 0-1 range into a value in the right range.
+    return givenMin + (valueScaled * givenSpan)
+
 def distanceBetween(nodeA, nodeB):
     '''
     simple calculation to return the distance between 2 objects
@@ -2138,7 +2273,6 @@ def distanceBetween(nodeA, nodeB):
     x1, y1, z1, _,_,_ = cmds.xform(nodeA,q=True,ws=True,piv=True)
     x2, y2, z2, _,_,_ = cmds.xform(nodeB,q=True,ws=True,piv=True)
     return math.sqrt(math.pow((x1-x2),2) + math.pow((y1-y2),2) + math.pow((z1-z2),2))
-
 
 class MatrixOffset(object):
     

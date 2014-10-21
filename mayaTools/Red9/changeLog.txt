@@ -118,12 +118,42 @@ New - Red9_Pose - added the ability to load a percentage of a pose via a blend s
 
 v1.42:
 ------
-New - Red9_Audio - Added BWav support to the AudioNode. This allows you to inspect and retrieve Timecode data from any broadcast wav
-New - Red9_Audio - Added a new 'inspect' item to the Red9 sound menu in the Trax for inspecting the internal properties of the selected sound node
+New - Red9_Audio - added BWav support to the AudioNode. This allows you to inspect and retrieve Timecode data from any broadcast wav
+New - Red9_Audio - added a new 'inspect' item to the Red9 sound menu in the Trax for inspecting the internal properties of the selected sound node
 Mod - Red9_Anim - Stabilizer wasn't respecting the keyer groups when you set it to just track 'rots' or 'trans'
 New - Red9_Anim - CopyKeys now deals with animLayer by pre-merging the data to a temp cache before copying the merged data. The original layers are left in tact!
-New - Red9_Audio - Added a function getMediaFileMetaData() which is capable of extracting metaData from most media file types via ffprobe.exe
+New - Red9_Audio - added a function getMediaFileMetaData() which is capable of extracting metaData from most media file types via ffprobe.exe
 Mod - Red9_Pose	- added a filterMap param to the poseCompare call. This can be used as a master core list, only nodes that appear on this will be checked against. Useful for checking core skeleton nodes whilst ingnoring others
-Mod - Red9_Anim - modified the AnimUI behaviour sucj that the 'CTRL' key modifier is now stored with the UI. If you laucnh the UI with ctrl held it'll toggle between launching as docked or not.
+Mod - Red9_Pose - added an ignoreBlocks to the poseCompare call. This allows the code to ignore complete sections of the compare data, we mainly use this for ['missingKeys'] so that the compare skipps them
+Mod - Red9_Anim - modified the AnimUI behaviour such that the 'CTRL' key modifier is now stored with the UI. If you launch the UI with ctrl held it'll toggle between launching as docked or not.
+Mod - Red9_Anim - exposed the snapTranslates and snapRotatesflags to the snap() call in AnimFunctions
+Mod - Red9_Core - Mods to the LockChannels class for better behaviour, set hierarchy flag to false by default.
+NEW - Red9_Meta - new flag exposed at class level '_forceAsMeta'. This forces the code to ALWAYS return instansiated MetaClass objects when dealing with nodes rather than dag paths.
 
+
+v1.43:
+------
+Fix - Red9_Anim - fixes to the poseBlender code so it now handles the undoQueue correctly, as chunks and returns object selection correctly.
+New - Red9_Anim - Pose search now accepts multiple strings, comma separated ie 'walk,run,idle'
+Fix - Red9_Anim - fix's in the way that all the commands wrappers in the UI handle AnimLayers - more info and dialog's added to guide you through.
+New - Red9_Meta - added new call 'getNodeConnections' which will replace the 'getNodeConnectionAttr' in calls, designed to return all connections between a given node and the mNode, with filtering
+Mod - Red9_Core - added double3 handling to the lockChannels call, this was causing issues when passed double3 like 'translate' 
+Fix - Red9_Audio - added correct float conversion to all the timecode and framerate conversion functions
+
+v1.44:
+-----
+Fix - Red9_Anim - MirrorSetup wasn't loading axis data correctly when set to none
+Mod - Red9_Anim - Pose search now allows sort by name or date, sort by name has proper numeric handling
+Mod - Red9_Anim - mods to the way the AnimUI passes and manages the matchMethod flag. PoseLoad now respects the flag, also added matchMethod as an optionMenu and included 'index' method. Index matches hierarchies purely on their hierarchy order like Maya natively does - no filtering or matching carried out.
+Fix - Red9_Anim - Managed the UndoStack for the poseBlender UI so all drag goes to a single undoChunk.
+Fix - Red9_Anim - MirrorMap Load now has dialog set so that it doesn't prompt to over-write
+New - Red9_Core - add a getBlendTargetsFromMesh() call to inspect and return blendshape target data either as a list of targetNames or a dic of blendshape data including indes etc
+Mod - Red9_Meta - Now uses a CACHE to stop it always instantiating the same node multiple times, speeds up the code and means you only get a single instance of a given node back, it's just pulled from the cache when called a second time
+Mod - Red9_Audio - BIG changes to the AudioNode! This now accepts EITHER a maya sound node, or a filepath. Advantage of filepath is that the audio no longer has to be loaded in Maya to be inspected or queried. If the path exisits in a current soundNode then we bind that node to the class
+New - Red9_Audio - Added new OffsetManager for the audio that better handles and wraps offset / offset relative and bwav offset behaviours.
+New - Red9_Meta - Added new timecode HUD class for mionitoring correctly formatted timecode nodes in the scene
+Fix - Red9Setup - MAYA 2015 support put back in for building some of the Red9 sub-menu's that I'd missed off, thought I'd already put the 2015 handlers in, obviously not !!!!!!! sorry!!!!
+Mod - Red9_Core - added more options to the searchUI checkbox lists
+New - Red9_Anim - New handling of timeoffset to allow for 'ripple' mode which will either push, or hold keys / nodes outside of the given timerange. Also new hooks to MetaNodes for those building their own systems
+Mod - Red9_Meta - big upgrades to the MetaNodeUI to allow for more powerful filtering of systems 
 
