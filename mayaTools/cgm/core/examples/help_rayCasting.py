@@ -62,7 +62,7 @@ RayCast.findMeshIntersectionFromObjectAxis(str_castTo,mi_aimObj.mNode)
 #This is gonna return us an empty result because our aim object is not in the sphere and not aiming at, let's aim it...
 
 #2) Cast it again --------------------------------------------------------------------------------
-mi_aimObj.ry = 180#Flip our aim objects
+mi_aimObj.ry = 180#Flip our aim object
 RayCast.findMeshIntersectionFromObjectAxis(str_castTo,mi_aimObj.mNode)
 # Result: {'source': [0.0, 0.0, 20.0], 'uv': [0.7000001072883606, 0.5], 'hit': [0.0, -9.4730781774936761e-17, 10.000000953674316]} # 
 #Now, you'll see we're getting our return dict. We return to a dict because we want a more info
@@ -85,7 +85,7 @@ d_return = RayCast.findMeshIntersectionFromObjectAxis(str_castTo,mi_aimObj.mNode
 for i,hit_point in enumerate(d_return.get('hits')):
     mc.spaceLocator(p = hit_point,name = "hit_{0}".format(i))
 
-#6) Does it work with nurbs?
+#7) Does it work with nurbs?
 str_castTo = str_surface#Link to the surface and let's go back and do the same 1-6 above
 #It does, awesome
 
@@ -124,9 +124,9 @@ mi_aimObj.translate = RayCast.findMeshMidPointFromObject(str_castTo,mi_aimObj.mN
 '''
 This is a curve lathing function. There are a lot of options so let's delve in. 
 '''
-mi_aimObj.translate = 0,0,0#let's reset 
-mi_aimObj.rotate = 0,0,0#let's reset 
-str_castTo = str_mesh #Link our mesh as our current object
+mi_aimObj.translate = 0,0,0#...let's reset 
+mi_aimObj.rotate = 0,0,0#...let's reset 
+str_castTo = str_mesh #...Link our mesh as our current cast to object
 
 reload(ShapeCast)
 reload(cgmGeneral)
@@ -146,7 +146,7 @@ closedCurve = True
 maxDistance = 1000
 initialRotate = 0
 offsetMode = 'vector'
-midMeshCast = False#This mode will force the cast point to be centered in the axis to check. It uses the function we looked at in the previous function
+midMeshCast = False#...This mode will force the cast point to be centered in the axis to check. It uses the function we looked at in the previous function
 l_specifiedRotates = None
 closestInRange = True
 returnDict = False
@@ -156,27 +156,27 @@ axisToCheck = ['x','y']
 ShapeCast.createMeshSliceCurve(str_castTo,mi_aimObj,latheAxis,aimAxis,points,curveDegree,minRotate,maxRotate,rotateRange,posOffset,markHits,rotateBank,closedCurve,maxDistance,initialRotate,offsetMode,midMeshCast,l_specifiedRotates,closestInRange,returnDict,axisToCheck)
 
 #Let's start by changing the markHits
-markHits = True#, then rerun our command
+markHits = True#... then rerun our command
 
 #You're gonna get all the hit points marked along with the step by step build curves of each cast
 #Delete all that...
 
 markHits = False
-posOffset = [0,0,2]#We're gonna set our vector offset and then rerun the caster
+posOffset = [0,0,2]#...We're gonna set our vector offset and then rerun the caster
 #Note, now our curve has off offset  from the surface, the default offsetmode is 'vector' which aims back to the cast point. Let's try the other mode
-offsetMode = 'normal'#then run again. The difference will probably not be much. This will be more apparent with more complicated surfaces. The normal mode uses the normal of the closes face as the offset vector
+offsetMode = 'normal'#...then run again. The difference will probably not be much. This will be more apparent with more complicated surfaces. The normal mode uses the normal of the closes face as the offset vector
 
 #Let's take a loot at specified rotates
-l_specifiedRotates = [5,20,44]#And recast...only those rotate settings will be used. It looks a little odd so...
+l_specifiedRotates = [5,20,44]#...And recast...only those rotate settings will be used. It looks a little odd so...
 
 closedCurve = False#And recast one more time. There that's a little better. We can use this for specific arcs to lathe
 
 #What happens when we have holes in our mesh...select the faces from half the sphere, and let's reset the options using the kw section above
-maxDistance = 50#We're gonna set this so you don't have to zoom out so far in the next bit...
+maxDistance = 50#...We're gonna set this so you don't have to zoom out so far in the next bit...
 #Recast...
 #You'll see that our function wants to make a whole curve so when holes are encountered, it picks the point at the maximum distance along that cast vector and uses that point
 
-#There's lots of other options but that's enough for this first pass on learning these functions....
+#There's lots of other options but that's enough for this first pass on learning these functions....I'll finish when I find another chunk of time
 
 #===============================================================================================
 

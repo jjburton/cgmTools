@@ -554,7 +554,7 @@ def mirrorSetup_verify(*args,**kws):
             #self.d_kws['str_side'],
             #self.str_side = cgmGeneral.verify_mirrorSideArg(self.d_kws['mirrorSideArg'],**kws)	
 
-            l_modes = ['template']
+            l_modes = ['template','anim']
             str_mode = self.d_kws['mode']
             self.str_mode = cgmValid.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
             if self.str_mode not in l_modes:
@@ -638,7 +638,7 @@ def mirrorSetup_verify(*args,**kws):
                                         if mObj.mClass != 'cgmControl':
                                             try:
                                                 mObj.mClass = 'cgmControl'
-                                                mObj = cgmMeta.cgmControl(mObj.mNode,setClass=True)
+                                                mObj = cgmMeta.cgmControl(mObj.mNode)
                                             except Exception,error:raise StandardError,"Set to cgmControl if Not | {0}".format(error)
                                         #log.info("mirrorsetup: {0}".format(mObj.p_nameShort))
 
@@ -649,13 +649,17 @@ def mirrorSetup_verify(*args,**kws):
                                         if str_mirrorSide in l_enum:
                                             log.debug("%s >> %s >> found in : %s"%(self._str_funcCombined, "mirrorSetup", l_enum))		
                                             try:
-                                                mObj.mirrorSide = l_enum.index(str_mirrorSide)
-                                                self.log_debug("mirrorSide set to: %s"%(mObj.mirrorSide))						    
+                                                if not cgmMeta.cgmAttr(mObj,'mirrorSide').getDriver():
+                                                    mObj.mirrorSide = l_enum.index(str_mirrorSide)
+                                                    self.log_debug("mirrorSide set to: %s"%(mObj.mirrorSide))						    
                                             except Exception,error:raise StandardError,"str_mirrorSide : %s | %s"%(str_mirrorSide,error)
                                         if not mObj.getMayaAttr('mirrorAxis'):
                                             mObj.mirrorAxis = 'translateX,rotateZ,rotateY'
                                             #log.debug("str_mirrorAxis set: %s"%(str_mirrorAxis))				    					    
                                         mObj.mirrorIndex = int_idxRunning
+                                        #attributes.doSetAttr(mObj.mNode,'mirrorSide',l_enum.index(str_mirrorSide))
+                                        attributes.doSetAttr(mObj.mNode,'mirrorIndex',int_idxRunning)
+                                        
                                         int_idxRunning += 1
                                         self.d_runningSideIdxes[str_mirrorSide].append(int_idxRunning)					
                                     except Exception,error:raise Exception,"'{0}' fail | error: {1}".format(mObj.p_nameShort,error)

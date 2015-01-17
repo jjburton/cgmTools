@@ -47,7 +47,7 @@ def nodeNameStrip(node):
     return node.split('|')[-1].split(':')[-1]
 
 
-def prioritizeNodeList(nList, priorityList, regex=True, prioritysOnly=False):
+def prioritizeNodeList(inputlist, priorityList, regex=True, prioritysOnly=False):
     '''
     Simple function to force the order of a given nList such that nodes
     in the given priority list are moved to the front of the list.
@@ -55,7 +55,8 @@ def prioritizeNodeList(nList, priorityList, regex=True, prioritysOnly=False):
     :param nList: main input list
     :param priorityList: list which is used to prioritize/order the main nList
     '''
-    stripped = [nodeNameStrip(node) for node in nList]  # stripped back to nodeName
+    stripped = [nodeNameStrip(node) for node in inputlist]  # stripped back to nodeName
+    nList=list(inputlist)  # take a copy so we don't mutate the input list
     reordered = []
     
     if regex:
@@ -72,6 +73,8 @@ def prioritizeNodeList(nList, priorityList, regex=True, prioritysOnly=False):
                 reordered.append(nList[index])
                 nList.pop(index)
                 stripped.pop(index)
+    print nList
+    print reordered
     if not prioritysOnly:
         reordered.extend(nList)
     # [log.debug('Prioritized Index: %i = %s  <: ORIGINALLY :>  %s' % (i,nodeNameStrip(reordered[i]),n))\
@@ -1353,12 +1356,15 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
     
     #take a copy of B as we modify the data here
     hierarchyB=list(nodeListB)
-    
+    if matchMethod == 'mirrorIndex':
+        getMirrorID=r9Anim.MirrorHierarchy().getMirrorCompiledID
     if matchMethod == 'index':
         matchedData = zip(nodeListA,nodeListB)
     else:
         for nodeA in nodeListA:
             strippedA = nodeNameStrip(nodeA)
+            if matchMethod == 'mirrorIndex':
+                indexA=getMirrorID(nodeA)
             for nodeB in hierarchyB:
                 #strip the path off for the compare
                 #strippedA = nodeNameStrip(nodeA)
@@ -1382,7 +1388,16 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
                         matchedData.append((nodeA, nodeB))
                         hierarchyB.remove(nodeB)
                         break
-                
+                    
+                #Compare using the nodes internal mirrorIndex if found
+                elif matchMethod == 'mirrorIndex':
+                    if indexA and indexA==getMirrorID(nodeB):
+                        infoPrint += '\nMatch Method : %s : %s == %s' % \
+                                (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
+                        matchedData.append((nodeA, nodeB))
+                        hierarchyB.remove(nodeB)
+                        break
+                    
     log.debug('\nMatched Log : \n%s' % infoPrint)
     infoPrint = None
     return matchedData
@@ -1889,6 +1904,10 @@ class LockChannels(object):
             attrKws['keyable']=False
         elif mode=='unhide':
             attrKws['keyable']=True
+        elif mode=='nonkeyable':
+            attrKws['cb']=True
+        elif mode=='keyable':
+            attrKws['cb']=False
         elif mode=='fullkey':
             attrKws['keyable']=True
             attrKws['lock']=False
@@ -1907,7 +1926,7 @@ class LockChannels(object):
                     if cmds.attributeQuery(attr, node=node, exists=True):
                         attrString='%s.%s' % (node, attr)
                         if cmds.getAttr(attrString, type=True) in ['double3','float3']:
-                            #why?? Maya fails to set the 'keyable' flag staus for compound attrs!
+                            #why?? Maya fails to set the 'keyable' flag status for compound attrs!
                             childAttrs=cmds.listAttr(attrString, multi=True)
                             childAttrs.remove(attr)
                             log.debug('compoundAttr handler for node: %s.%s' % (node,attr))

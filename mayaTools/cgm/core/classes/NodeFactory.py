@@ -2009,3 +2009,114 @@ def groupToConditionNodeSet(group,chooseAttr = 'switcher', controlObject = None,
 	
 	a.doConnectOut('%s.firstTerm'%buffer)
 	attributes.doConnectAttr('%s.outColorR'%buffer,'%s.%s'%(c,connectTo))
+	
+def rewire_resultAttrs(arg = None, reportOnly = True,**kwargs):
+    """
+    Return 'arg' if 'arg' is an existing, uniquely named Maya object, meeting
+    the optional requirements of mayaType and isTransform, otherwise
+    return False if noneValid or raise an exception.
+
+    :parameters:
+        arg | str
+            The name of the Maya object to be validated
+        mayaType | str, list
+            One or more Maya types - arg must be in this list for the test to pass.
+        isTransform | bool
+            Test whether 'arg' is a transform 
+        noneValid | bool
+            Return False if arg does not pass rather than raise an exception
+
+    :returns:
+        'arg' or False
+
+    :raises:
+        TypeError | if 'arg' is not a string
+        NameError | if more than one object name 'arg' exists in the Maya scene
+        NameError | if 'arg' does not exist in the Maya scene
+        TypeError | if the Maya type of 'arg' is in the list 'mayaType' and noneValid is False
+        TypeError | if isTransform is True, 'arg' is not a transform, and noneValid is False
+    """
+    log.debug("NodeFactory.rewire_resultAttrs arg={0}".format(arg))
+    _str_funcRoot = 'rewire_resultAttrs'
+    _str_funcName = "{0}({1})".format(_str_funcRoot,arg) 
+    
+    l_attrs = []
+    md_objAttrs = {}
+
+    b_reportOnly = cgmValid.boolArg(reportOnly,calledFrom=_str_funcName)
+    
+    try:#Find our objects ------------------------------------------------------------------------
+	ml_objs = cgmMeta.validateObjListArg(arg)
+    except Exception,error:raise Exception,"{0} | {1} finding objects".format(_str_funcRoot,error)
+    
+    try:#Find our attrs ------------------------------------------------------------------------
+	for mObj in ml_objs:
+	    md_objAttrs[mObj] = []
+	    for a in mObj.getUserAttrs():
+		d_buffer = {}		
+		_str_attrCombined = "{0}.{1}".format(mObj.p_nameShort,a)
+		log.debug("Checking {0}".format(_str_attrCombined))
+		if not mc.objExists(_str_attrCombined):
+		    continue
+		
+		#mAttr = cgmMeta.cgmAttr(mObj,a)
+		try:
+		    bfr_driver = attributes.returnDriverAttribute(_str_attrCombined,False)
+		    bfr_driven = attributes.returnDrivenAttribute(_str_attrCombined,False) or []
+		    if bfr_driver in bfr_driven:
+			log.warning("Driver in driven!")
+			bfr_driven.remove(bfr_driver)
+		    if bfr_driver and bfr_driven:
+			#If we have both a driver and driven data, we have a bridge attr we're gonna try to rewire
+			l_attrs.append(_str_attrCombined)
+			log.info("{0}...".format(_str_attrCombined))
+			log.info("Driver: {0}".format(bfr_driver))
+			log.info("Driven:...")
+			for d in bfr_driven:
+			    log.info(">>> {0}".format(d))
+			
+			d_buffer = {'attr':a,
+			            'combinedName':_str_attrCombined,
+			            'driven':bfr_driven,
+			            'driver':bfr_driver}
+			#for k in d_buffer.keys():
+			    #log.info("{0} : {1}".format(k,d_buffer[k]))
+		    if d_buffer:
+			md_objAttrs[mObj].append(d_buffer)
+		except Exception,error:
+		    log.error("{0} | {1} failed to query | error: {2}".format(_str_funcRoot,_str_attrCombined,error))
+    except Exception,error:raise Exception,"{0} | {1} finding attrs".format(_str_funcRoot,error)
+    
+    try:#rewire ------------------------------------------------------------------------
+	if not b_reportOnly:
+	    for mObj in md_objAttrs:
+		if mObj.isReferenced():
+		    log.warning("{0} is referenced. Cannot rewire".format(mObj.p_nameShort))
+		else:
+		    for _d in md_objAttrs[mObj]:
+			#log.info(_d)
+			_str_attrCombined = _d['combinedName']	
+			_plugFrom = _d['driver']
+			try:
+			    attributes.doBreakConnection(mObj.mNode, _d['attr'])
+			except Exception,error:
+			    log.error("{0} | {1} failed to break connection | error: {2}".format(_str_funcRoot,_str_attrCombined,error))
+			for plugTo in _d['driven']:
+			    try:
+				log.info("From >> {0}".format(_plugFrom))
+				log.info("To >> {0}".format(plugTo))					
+				attributes.doConnectAttr(_plugFrom,plugTo)
+			    except Exception,error:
+				log.error("-"*70)
+				log.error("{0} | {1} failed to rewire...".format(_str_funcRoot,_str_attrCombined))
+				log.error("From >> {0}".format(_plugFrom))
+				log.error("To >> {0}".format(plugTo))				
+				log.error("{0} |error: {1}".format(_str_funcRoot,error))	
+				log.error("-"*70)				
+    except Exception,error:raise Exception,"{0} | rewire | error: {1}".format(_str_funcRoot,error)    
+    
+    if l_attrs:
+	log.info("Total Bridge attrs: {0}".format(len(l_attrs)))    
+    
+    
+    

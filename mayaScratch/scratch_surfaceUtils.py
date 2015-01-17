@@ -23,6 +23,10 @@ objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
 
+#>>> normalize uv value
+#=======================================================
+surfUtils.returnNormalizedUV('nurbsSurface1',2.0, 4.328492105359997)
+
 #>>> mirror curve curve list
 #=======================================================
 reload(surfUtils)

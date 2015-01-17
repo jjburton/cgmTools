@@ -76,7 +76,12 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 
         log.debug("In cgmDynamicSwitch.__init__ node: %s"%node)
         super(cgmDynamicSwitch, self).__init__(node = node,name = name,nodeType = 'transform') 
-
+	#>>> TO USE Cached instance ---------------------------------------------------------
+	if self.cached:
+	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.__class__)
+	    return
+	#====================================================================================
+	
         #Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
         self.UNMANAGED.extend(['_str_dynSwitchDriverPlug','d_indexToAttr','l_dynAttrs'])
 
@@ -438,7 +443,12 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
                 __justMade__ = True
 
         super(cgmDynamicMatch, self).__init__(node = node,name = name,nodeType = 'transform') 
-
+	#>>> TO USE Cached instance ---------------------------------------------------------
+	if self.cached:
+	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.__class__)
+	    return
+	#====================================================================================
+	
         #Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
         self.UNMANAGED.extend(['arg_ml_dynMatchTargets','_mi_dynObject','_str_dynMatchDriverPlug','d_indexToAttr','l_dynAttrs'])
         if i_dynObject:self._mi_dynObject = i_dynObject
@@ -800,9 +810,9 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 
                 else:
                     rUtils.matchValue_iterator(i_matchObject,drivenObj=i_drivenObject,driverAttr=mPlug_driverAttr.p_combinedName,minIn=minValue,maxIn=maxValue,maxIterations=maxIter)
-        except StandardError,error:
+        except Exception,error:
             log.error("%s.doIter>> Failure!"%(self.getShortName()))
-            raise StandardError,error
+            raise Exception,error
 
     #======================================================================		
     #>>> Attr match stuff    
@@ -931,16 +941,16 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
                 try:
                     if mPlug_dynObjAttr.value != mPlug_matchAttr.value:
                         return False
-                except StandardError,error:
+                except Exception,error:
                     log.error("%s.go>> failed to set value! | %s"%(self.getShortName(),error))
                     return False
 
                 log.debug("%s.doAttrMatch>> set value: %s"%(self.getShortName(),mPlug_dynObjAttr.value))		
             return True
 
-        except StandardError,error:
+        except Exception,error:
             log.error("%s.doAttrMatch>> Failure!"%(self.getShortName()))
-            raise StandardError,error
+            raise Exception,error
 
     #@cgmGeneral.Timer
     def doAttrMatch(self):
@@ -986,16 +996,16 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 
                 try:
                     mPlug_dynObjAttr.value = mPlug_matchAttr.value
-                except StandardError,error:
+                except Exception,error:
                     log.error("%s.go>> failed to set value! | %s"%(self.getShortName(),error))
                     return False
 
                 log.debug("%s.doAttrMatch>> set value: %s"%(self.getShortName(),mPlug_dynObjAttr.value))		
 
 
-        except StandardError,error:
+        except Exception,error:
             log.error("%s.doAttrMatch>> Failure!"%(self.getShortName()))
-            raise StandardError,error
+            raise Exception,error
     #==============================================================================
     def addDynSnapTarget(self,arg = None, alias = None):
         """
@@ -1296,6 +1306,12 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
                 __justMade__ = True
 
         super(cgmMeta.cgmObject, self).__init__(node = node,name = name,nodeType = 'transform') 
+	#>>> TO USE Cached instance ---------------------------------------------------------
+	if self.cached:
+	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    return
+	#====================================================================================
+	
         self.l_dynAttrs = ['space','follow','orientTo']
 
         #Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
@@ -1322,7 +1338,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         if dynMode is not None:
             try:
                 self.dynMode = dynMode
-            except StandardError,error:
+            except Exception,error:
                 log.error("cgmDynParentGroup.__init__>>mode set fal! | dynMode: %s | error: "%(dynMode,error))
 
         if __justMade__ and i_dynChild and arg_ml_dynParents:
@@ -1353,8 +1369,8 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
                 cgmMeta.cgmAttr(self,attr,lock=False)
             self.doName()
             return True
-        except StandardError,error:
-            raise StandardError, ">>> %s.__verify__() Fail! >> %s"%(self.p_nameShort,error)
+        except Exception,error:
+            raise Exception, ">>> %s.__verify__() Fail! >> %s"%(self.p_nameShort,error)
 
 
     def rebuild(self,*a,**kw):
@@ -1369,6 +1385,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 
         #TODO First scrub nodes and what not
         self._setLocks(False)
+	
         #Check our attrs
         d_attrBuffers = {}
         for a in self.l_dynAttrs:
@@ -1393,9 +1410,9 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             mc.delete(self.getMessage('dynFollow'))
 
         #Verify our parent drivers:
-        for i_p in [cgmMeta.cgmObject(o) for o in l_dynParents]:
-            log.debug("verifyParentDriver: %s"%i_p.getShortName())
-            self.verifyParentDriver(i_p)
+        for o in l_dynParents:
+            log.debug("verifyParentDriver: %s"%o)
+            self.verifyParentDriver(o)
 
         #i_child.addAttr('space',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
 
@@ -1461,112 +1478,113 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         2) are constraints correct - right type, right targets...it's probably faster just to rebuild...
         3) 
         """
-        log.debug(">>> %s.verifyConstraints() >> "%(self.p_nameShort) + "="*75) 		        			
-        l_dynParents = self.msgList_getMessage('dynParents')
-        if len(l_dynParents)<2:
-            log.error("cgmDynParentGroup.verifyConstraints>> Need at least two dynParents. Build failed: '%s'"%self.getShortName())
-            return False
-        if self.dynMode == 2 and not self.getMessage('dynFollow'):
-            raise StandardError, "cgmDynParentGroup.verifyConstraints>> must have follow driver for follow mode: '%s'"%self.getShortName()
-        try:#initialize parents
-            ml_dynParents = cgmMeta.validateObjListArg(l_dynParents,cgmMeta.cgmObject,False)
-            #l_dynDrivers = [i_obj.getMessage('dynDriver')[0] for i_obj in ml_dynParents]
-            l_dynDrivers = self.msgList_getMessage('dynDrivers')
-            i_dynChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],cgmMeta.cgmObject,False)	    
-        except StandardError,error:
-            raise StandardError,"cgmDynParentGroup.verifyConstraints>> dynParent/dynChild initialization failed! | %s"%(error)
-        try:#Check current
-            currentConstraints = self.getConstraintsTo()
-            log.debug("currentConstraints: %s"%currentConstraints)
-            if currentConstraints:mc.delete(currentConstraints)#Delete existing constraints
-            if self.dynMode == 2:
-                followConstraints = self.dynFollow.getConstraintsTo()
-                log.debug("followConstraints: %s"%followConstraints)		
-                if followConstraints:mc.delete(followConstraints)#Delete existing constraints		
-        except StandardError,error:
-            log.error("cgmDynParentGroup.verifyConstraints>> Delete constraints fail! | %s"%(error))
-            raise StandardError
-
-        children = self.getChildren()
-        ml_children = [cgmMeta.cgmObject(c) for c in children]
-        for i_c in ml_children:
-            i_c.parent = self.parent
-
-        try:#Build constraints
-            i_dynParentConst = False
-            i_dynPointConst = False
-            i_dynOrientConst = False
-
-            if self.dynMode == 0:#Parent
-                cBuffer = mc.parentConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
-                i_dynConst = cgmMeta.cgmNode(cBuffer)
-            if self.dynMode == 1:#Orient
-                cBuffer = mc.orientConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
-                i_dynConst = cgmMeta.cgmNode(cBuffer)
-            if self.dynMode == 2:#Follow - needs an extra follow group
-                pBuffer = mc.pointConstraint(self.dynFollow.mNode,self.mNode,maintainOffset = True)[0]
-                cBuffer = mc.parentConstraint(l_dynDrivers,self.dynFollow.mNode,maintainOffset = True)[0]
-                oBuffer = mc.orientConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
-
-                i_dynFollowConst = cgmMeta.cgmNode(cBuffer)
-                i_dynPointConst = cgmMeta.cgmNode(pBuffer)
-                i_dynConst = cgmMeta.cgmNode(oBuffer)
-        except StandardError,error:
-            log.error("cgmDynParentGroup.verifyConstraints>> Build constraints fail! | %s"%(error))
-            raise StandardError
-        try:#Name and store    
-            for i_const in [i_dynParentConst,i_dynPointConst,i_dynOrientConst]:
-                if i_const:
-                    i_const.doStore('cgmName',i_dynChild.mNode) 
-                    i_const.addAttr('cgmTypeModifier','dynDriver')
-                    i_const.addAttr('mClass','cgmNode')	
-                    i_const.doName()
-
-            if i_dynParentConst:self.connectChildNode(i_dynParentConst,'dynParentConstraint','dynMaster')
-            if i_dynPointConst:self.connectChildNode(i_dynPointConst,'dynPointConstraint','dynMaster')	
-            if i_dynOrientConst:self.connectChildNode(i_dynOrientConst,'dynOrientConstraint','dynMaster')	
-        except StandardError,error:
-            log.error("cgmDynParentGroup.verifyConstraints>> Name and store fail! | %s"%(error))
-            raise StandardError
-
-        #Build nodes
-        ml_nodes = []
-        for i,i_p in enumerate(ml_dynParents):
-            if self.dynMode == 2:#Follow
-                i_followCondNode = cgmMeta.cgmNode(nodeType='condition')
-                i_followCondNode.operation = 0
-                mc.connectAttr("%s.follow"%i_dynChild.mNode,"%s.firstTerm"%i_followCondNode.mNode)
-                mc.setAttr("%s.secondTerm"%i_followCondNode.mNode,i)
-                mc.setAttr("%s.colorIfTrueR"%i_followCondNode.mNode,1)
-                mc.setAttr("%s.colorIfFalseR"%i_followCondNode.mNode,0)
-                mc.connectAttr("%s.outColorR"%i_followCondNode.mNode,"%s.w%s"%(i_dynFollowConst.mNode,i))
-
-                i_followCondNode.doStore('cgmName',i_p.mNode) 
-                i_followCondNode.addAttr('cgmTypeModifier','dynFollow')
-                i_followCondNode.addAttr('mClass','cgmNode')	
-                i_followCondNode.doName()
-
-                ml_nodes.append(i_followCondNode)
-
-            i_condNode = cgmMeta.cgmNode(nodeType='condition')
-            i_condNode.operation = 0
-            attr = d_DynParentGroupModeAttrs[self.dynMode][0]
-            mc.connectAttr("%s.%s"%(i_dynChild.mNode,attr),"%s.firstTerm"%i_condNode.mNode)
-            mc.setAttr("%s.secondTerm"%i_condNode.mNode,i)
-            mc.setAttr("%s.colorIfTrueR"%i_condNode.mNode,1)
-            mc.setAttr("%s.colorIfFalseR"%i_condNode.mNode,0)
-            mc.connectAttr("%s.outColorR"%i_condNode.mNode,"%s.w%s"%(i_dynConst.mNode,i))
-
-            i_condNode.doStore('cgmName',"%s_to_%s"%(i_dynChild.getShortName(),i_p.getShortName())) 
-            i_condNode.addAttr('cgmTypeModifier','dynParent')
-            i_condNode.addAttr('mClass','cgmNode')	
-            i_condNode.doName()	 
-
-        self.msgList_connect(ml_nodes,'dynNodes','dynMaster')
-
-        for i_c in ml_children:
-            i_c.parent = self.mNode
-
+	try:
+	    log.debug(">>> %s.verifyConstraints() >> "%(self.p_nameShort) + "="*75) 		        			
+	    l_dynParents = self.msgList_getMessage('dynParents')
+	    if len(l_dynParents)<2:
+		log.error("cgmDynParentGroup.verifyConstraints>> Need at least two dynParents. Build failed: '%s'"%self.getShortName())
+		return False
+	    if self.dynMode == 2 and not self.getMessage('dynFollow'):
+		raise StandardError, "cgmDynParentGroup.verifyConstraints>> must have follow driver for follow mode: '%s'"%self.getShortName()
+	    try:#initialize parents
+		ml_dynParents = cgmMeta.validateObjListArg(l_dynParents,cgmMeta.cgmObject,False)
+		#l_dynDrivers = [i_obj.getMessage('dynDriver')[0] for i_obj in ml_dynParents]
+		l_dynDrivers = self.msgList_getMessage('dynDrivers')
+		i_dynChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],cgmMeta.cgmObject,False)	    
+	    except Exception,error:
+		raise Exception,"cgmDynParentGroup.verifyConstraints>> dynParent/dynChild initialization failed! | %s"%(error)
+	    try:#Check current
+		currentConstraints = self.getConstraintsTo()
+		log.debug("currentConstraints: %s"%currentConstraints)
+		if currentConstraints:mc.delete(currentConstraints)#Delete existing constraints
+		if self.dynMode == 2:
+		    followConstraints = self.dynFollow.getConstraintsTo()
+		    log.debug("followConstraints: %s"%followConstraints)		
+		    if followConstraints:mc.delete(followConstraints)#Delete existing constraints		
+	    except Exception,error:
+		raise Exception,"cgmDynParentGroup.verifyConstraints>> Delete constraints fail! | %s"%(error)
+    
+	    children = self.getChildren()
+	    ml_children = [cgmMeta.cgmObject(c) for c in children]
+	    for i_c in ml_children:
+		i_c.parent = self.parent
+    
+	    try:#Build constraints
+		i_dynParentConst = False
+		i_dynPointConst = False
+		i_dynOrientConst = False
+    
+		if self.dynMode == 0:#Parent
+		    cBuffer = mc.parentConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
+		    i_dynConst = cgmMeta.cgmNode(cBuffer)
+		if self.dynMode == 1:#Orient
+		    cBuffer = mc.orientConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
+		    i_dynConst = cgmMeta.cgmNode(cBuffer)
+		if self.dynMode == 2:#Follow - needs an extra follow group
+		    pBuffer = mc.pointConstraint(self.dynFollow.mNode,self.mNode,maintainOffset = True)[0]
+		    cBuffer = mc.parentConstraint(l_dynDrivers,self.dynFollow.mNode,maintainOffset = True)[0]
+		    oBuffer = mc.orientConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
+    
+		    i_dynFollowConst = cgmMeta.cgmNode(cBuffer)
+		    i_dynPointConst = cgmMeta.cgmNode(pBuffer)
+		    i_dynConst = cgmMeta.cgmNode(oBuffer)
+	    except Exception,error:
+		raise Exception,"cgmDynParentGroup.verifyConstraints>> Build constraints fail! | %s"%(error)
+	    try:#Name and store    
+		for i_const in [i_dynParentConst,i_dynPointConst,i_dynOrientConst]:
+		    if i_const:
+			i_const.doStore('cgmName',i_dynChild.mNode) 
+			i_const.addAttr('cgmTypeModifier','dynDriver')
+			#i_const.addAttr('mClass','cgmNode')	
+			i_const.doName()
+    
+		if i_dynParentConst:self.connectChildNode(i_dynParentConst,'dynParentConstraint','dynMaster')
+		if i_dynPointConst:self.connectChildNode(i_dynPointConst,'dynPointConstraint','dynMaster')	
+		if i_dynOrientConst:self.connectChildNode(i_dynOrientConst,'dynOrientConstraint','dynMaster')	
+	    except Exception,error:
+		raise Exception,"cgmDynParentGroup.verifyConstraints>> Name and store fail! | %s"%(error)
+    
+	    #Build nodes
+	    try:
+		ml_nodes = []
+		for i,i_p in enumerate(ml_dynParents):
+		    if self.dynMode == 2:#Follow
+			i_followCondNode = cgmMeta.cgmNode(nodeType='condition')
+			i_followCondNode.operation = 0
+			mc.connectAttr("%s.follow"%i_dynChild.mNode,"%s.firstTerm"%i_followCondNode.mNode)
+			mc.setAttr("%s.secondTerm"%i_followCondNode.mNode,i)
+			mc.setAttr("%s.colorIfTrueR"%i_followCondNode.mNode,1)
+			mc.setAttr("%s.colorIfFalseR"%i_followCondNode.mNode,0)
+			mc.connectAttr("%s.outColorR"%i_followCondNode.mNode,"%s.w%s"%(i_dynFollowConst.mNode,i))
+	
+			i_followCondNode.doStore('cgmName',i_p.mNode) 
+			i_followCondNode.addAttr('cgmTypeModifier','dynFollow')
+			#i_followCondNode.addAttr('mClass','cgmNode')	
+			i_followCondNode.doName()
+	
+			ml_nodes.append(i_followCondNode)
+	
+		    i_condNode = cgmMeta.cgmNode(nodeType='condition')
+		    i_condNode.operation = 0
+		    attr = d_DynParentGroupModeAttrs[self.dynMode][0]
+		    mc.connectAttr("%s.%s"%(i_dynChild.mNode,attr),"%s.firstTerm"%i_condNode.mNode)
+		    mc.setAttr("%s.secondTerm"%i_condNode.mNode,i)
+		    mc.setAttr("%s.colorIfTrueR"%i_condNode.mNode,1)
+		    mc.setAttr("%s.colorIfFalseR"%i_condNode.mNode,0)
+		    mc.connectAttr("%s.outColorR"%i_condNode.mNode,"%s.w%s"%(i_dynConst.mNode,i))
+	
+		    i_condNode.doStore('cgmName',"%s_to_%s"%(i_dynChild.getShortName(),i_p.getShortName())) 
+		    i_condNode.addAttr('cgmTypeModifier','dynParent')
+		    #i_condNode.addAttr('mClass','cgmNode')	
+		    i_condNode.doName()	 
+	    except Exception,error:
+		raise Exception,"cgmDynParentGroup.verifyConstraints>> Connection fail! | %s"%(error)
+	    self.msgList_connect(ml_nodes,'dynNodes','dynMaster')
+    
+	    for i_c in ml_children:
+		i_c.parent = self.mNode
+	except Exception,error:
+	    raise Exception,"verifyConstraints | {0}".format(error)
     def verifyParentDriver(self,arg):
         """
         1) if arg is a dynParent
@@ -1580,8 +1598,12 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         i_dParent = cgmMeta.validateObjArg(arg,cgmMeta.cgmObject,noneValid=True)
         if not i_dParent:
             raise StandardError, "cgmDynParentGroup.verifyParentDriver>> arg fail: %s"%arg
-
-        index = self.msgList_index(i_dParent,'dynParents')
+	
+	index = False
+	ml_dynParents = self.msgList_get('dynParents')
+	l_dynParents = [obj.mNode for obj in ml_dynParents]
+	if i_dParent.mNode in l_dynParents:
+	    index = l_dynParents.index(i_dParent.mNode)
         if index is False:
             raise StandardError, "cgmDynParentGroup.verifyParentDriver>> not a dynParent: %s"%i_dParent.getShortName()
 
@@ -1717,8 +1739,8 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             l_attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']					
             for a in l_attrs:
                 cgmMeta.cgmAttr(self,a,lock=lock)
-        except StandardError,error:
-            raise StandardError,"%s >>> Fail | %s"%(_str_funcName,error)	
+        except Exception,error:
+            raise Exception,"%s >>> Fail | %s"%(_str_funcName,error)	
 
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  

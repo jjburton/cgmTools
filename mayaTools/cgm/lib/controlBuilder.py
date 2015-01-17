@@ -114,7 +114,6 @@ def createJoystickControl(name,mode='classic',border = True):
         attributes.doSetLockHideKeyableAttr(controlBuffer,True,False,False,['tz','rx','ry','rz','sx','sy','sz','v'])
         mc.transformLimits(controlBuffer, tx = [-1,1], ty = [-1,1], etx = [1,1], ety = [1,1])
         
-        return [controlBuffer,controlTransform]
         
     elif mode == 'horizontalSlider':
         mc.xform(controlTransform,scale = [1,.15,1],ws=True)
@@ -127,7 +126,6 @@ def createJoystickControl(name,mode='classic',border = True):
         attributes.doSetLockHideKeyableAttr(controlBuffer,True,False,False,['ty','tz','rx','ry','rz','sx','sy','sz','v'])
         mc.transformLimits(controlBuffer, tx = [-1,1],  etx = [1,1])
         
-        return [controlBuffer,controlTransform]
         
     elif mode == 'verticalSlider':
         mc.xform(controlTransform,scale = [.15,1,1],ws=True)
@@ -140,7 +138,7 @@ def createJoystickControl(name,mode='classic',border = True):
         attributes.doSetLockHideKeyableAttr(controlBuffer,True,False,False,['tx','tz','rx','ry','rz','sx','sy','sz','v'])
         mc.transformLimits(controlBuffer, ty = [-1,1],  ety = [1,1])
         
-        return [controlBuffer,controlTransform]
+    return [controlBuffer,controlTransform]
    
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

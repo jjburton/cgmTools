@@ -9,7 +9,8 @@ import Red9.core.Red9_Meta as r9Meta
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.rigger import JointFactory as jFactory
-
+from cgm.core.rigger import RigFactory as rFactory
+reload(rFactory)
 from cgm.core import cgm_PuppetMeta as cgmPM
 m1 = r9Meta.MetaClass('r_index_part')
 

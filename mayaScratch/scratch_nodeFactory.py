@@ -19,6 +19,21 @@ objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
 
+
+#>>> connect_controlWiring
+#=======================================================
+reload(NodeF)
+_obj = 'face_attrHolder'
+
+_wiringDict = {'mouth_up':{'driverAttr':'ty'},'mouth_dn':{'driverAttr':'-ty'},'mouth_right':{'driverAttr':'-tx'}}
+
+_wiringDict = {'mouth_up':{'driverAttr':'ty','driverAttr2':'tx','mode':'cornerBlend'}}
+
+NodeF.connect_controlWiring('mouth_anim',_obj,_wiringDict,baseName = 33)
+
+NodeF.connect_controlWiring('upper_lipRoll_anim',_obj,_wiringDict,baseName = 33)
+
+
 #>>> createAndConnectBlendColors
 #=======================================================
 NodeF.createAndConnectBlendColors('l_knee_seg_0_jnt_Transform_anchor','l_knee_seg_0_jnt_Transform_aim','l_knee_seg_0_jnt_Transform_attach','l_knee_ik_1_anim.followRoot','rotate')

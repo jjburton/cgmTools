@@ -1,8 +1,9 @@
 from morpheusRig_v2.core import CustomizationFactory as CustomF
 reload(CustomF)
 
-CustomF.go(reportShow = 1)
-CustomF.go(stopAtStep = 1,reportShow = 1)
+asset = 'M1_customizationNetwork'
+CustomF.go(asset,reportShow = 1)
+CustomF.go(asset,stopAtStep = 1,reportShow = 0)
 help(CustomF.go)
 
 reload(CustomF)
@@ -66,7 +67,10 @@ for str_attr in ['constraintParentTargets']:
             
 #Morpheus Gui ===================================================================================
 import morpheusRig_v2
-from morpheusRig_v2.tools import MorpheusMaker as MorphyMaker
+#from morpheusRig_v2.tools import MorpheusMaker as MorphyMaker
+from morpheusRig_v2.core.tools import MorpheusMaker as MorphyMaker
+from morpheusRig_v2.core.tools.lib import MorpheusMaker_utils as MorphyMakerUtils
+reload(MorphyMakerUtils)
 reload(MorphyMaker)    
 MorphyMaker.go()
 

@@ -24,6 +24,19 @@ objList = []
 objList = mc.ls(sl=True)
 cgmMeta.cgmObject(obj).createTransformFromObj()
 
+
+#>>> connect_singleDriverAttrToMulti
+#=======================================================
+reload(rUtils)
+drivenAttr = 'noseBase_bodyShaper_parentConstraint_grp.scale'
+driverAttrs = ['lwrFace_bodyShaper.sx','mouth_bodyShaper.sx']
+
+drivenAttr = 'l_eyeOrb_bodyShaper_scale_parentConstraint_grp.scale'
+driverAttrs = 'cranium_bodyShaper.sx'
+driverAttrs = ['cranium_bodyShaper.sx']
+rUtils.connect_singleDriverAttrToMulti(drivenAttr ,driverAttrs)
+
+
 #>>> Stretch IK
 #=======================================================
 jointList = mc.ls(sl=True)

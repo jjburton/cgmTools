@@ -17,12 +17,21 @@ reload(Rig)
 nodeF.validateAttrArg(['spine_1_anchorJoint','rz'])
 assert 1==2
 
+#Optimization - 05.01.2014
+part = 'spine_part'
+m1 = r9Meta.MetaClass(part)
+TemplateF.go(m1,True)
+
+
+
 #Get our module
 #=======================================================
+part = 'spine_part'
 part = 'l_leg_part'
 m1 = r9Meta.MetaClass(part)
 m1 = cgmPM.cgmModule('l_eye_part')
 m1.doTemplate()
+m1.isSized()
 m1.getState()
 m1.isTemplated()
 TemplateF.go(m1,True)

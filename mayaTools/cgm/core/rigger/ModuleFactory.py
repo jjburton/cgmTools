@@ -1905,9 +1905,6 @@ def get_controls(*args,**kws):
             ml_controlObjects = []
             try:
                 if str_mode == 'template':
-                    #if not mi_module.isTemplated():
-                        #raise ValueError,"Not templated. No control objects found"
-
                     l_controlAttrs = 'root','orientRootHelper'
                     for str_a in l_controlAttrs:
                         buffer = mi_templateNull.getMessageAsMeta(str_a)
@@ -1933,6 +1930,8 @@ def get_controls(*args,**kws):
                                     raise ValueError,"attr '{0}' failed | buffer: {1}".format(str_a,buffer)
                                 ml_controlObjects.append(buffer)
                     except Exception,error: raise Exception,"Pivot check | error: {0}".format(error)
+                elif str_mode == 'anim':
+                    ml_controlObjects = mi_module.rigNull.moduleSet.getMetaList()
                 else:
                     raise StandardError,"Not done yet"
             except Exception,error: raise Exception,"Mode '{0} fail | error: {1}".format(str_mode,error)

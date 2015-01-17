@@ -40,11 +40,12 @@ from functools import partial
 from functools import wraps
 import sys
 import os
+import uuid
 
 import Red9_General as r9General
 import Red9_CoreUtils as r9Core
 import Red9.startup.setup as r9Setup
-from Red9_AnimationUtils import MirrorHierarchy
+import Red9_AnimationUtils as r9Anim
 
 
 '''
@@ -74,6 +75,9 @@ RED9_META_NODECACHE = {}
 
 global RED9_META_CALLBACKS
 RED9_META_CALLBACKS = {}
+
+global __RED9_META_NODESTORE__
+__RED9_META_NODESTORE__ = []
 
 '''
 CRUCIAL - REGISTER INHERITED CLASSES! ==============================================
@@ -214,8 +218,13 @@ def resetMClassNodeTypes():
     
     
 # NodeCache Management ---------------------------
-  
- 
+
+def generateUUID():
+    '''
+    unique UUID used by the caching system
+    '''
+    return str(uuid.uuid4()).upper()
+    
 def registerMClassNodeCache(mNode):
     '''
     Add a given mNode to the global RED9_META_NODECACHE cache of currently instantiated 
@@ -224,9 +233,58 @@ def registerMClassNodeCache(mNode):
     :param mNode: instantiated mNode to add
     '''
     global RED9_META_NODECACHE
-    if RED9_META_NODECACHE or not mNode.mNode in RED9_META_NODECACHE.keys():
-        log.debug('CACHE : Adding to MetaNode Cache : %s' % mNode.mNode)
-        RED9_META_NODECACHE[mNode.mNode]=mNode
+    try:
+        #if mNode.hasAttr('UUID'):
+        UUID=mNode.setUUID()
+        if RED9_META_NODECACHE or not UUID in RED9_META_NODECACHE.keys():
+            log.debug('CACHE : Adding to MetaNode UUID Cache : %s > %s' % (mNode.mNode, UUID))
+            RED9_META_NODECACHE[UUID]=mNode
+    except:
+        if RED9_META_NODECACHE or not mNode.mNode in RED9_META_NODECACHE.keys():
+            log.debug('CACHE : Adding to MetaNode Cache : %s' % mNode.mNode)
+            RED9_META_NODECACHE[mNode.mNode]=mNode
+            
+def getMetaFromCache(mNode):
+    '''
+    Pull the given mNode from the RED9_META_NODECACHE if it's
+    already be instantiated.
+    
+    :param mNode: str(name) of node from DAG
+    '''
+    try:
+        UUID=cmds.getAttr('%s.UUID' % mNode)
+        if UUID in RED9_META_NODECACHE.keys():
+            try:
+                if RED9_META_NODECACHE[UUID].isValidMObject():
+                    log.debug('CACHE : %s Returning mNode from UUID cache! = %s' % (mNode,UUID))
+                    return RED9_META_NODECACHE[UUID]
+                else:
+                    log.debug('%s being Removed from the cache due to invalid MObject' % mNode)
+                    cleanCache()
+            except:
+                log.debug('CACHE : inspection failure')
+    except:
+        if mNode in RED9_META_NODECACHE.keys():
+            try:
+                if RED9_META_NODECACHE[mNode].isValidMObject():
+                    log.debug('CACHE : %s Returning mNode from nameBased cache!' % mNode)
+                    return RED9_META_NODECACHE[mNode]
+                else:
+                    log.debug('%s being Removed from the cache due to invalid MObject' % mNode)
+                    cleanCache()
+            except:
+                log.debug('CACHE : inspection failure')
+        
+def upgradeSystemsToUUID(*args):
+    '''
+    take a current scene and upgrade all the mNodes to include the new
+    mNode UUID cache support id
+    '''
+    for node in getMetaNodes():
+        if not node.hasAttr('UUID'):
+            node.addAttr('UUID', value='')
+            uuid=node.setUUID()
+            log.info('Upgraded node : %s  to UUID : %s' % (r9Core.nodeNameStrip(node.mNode), uuid))
   
 def printMetaCacheRegistry():
     '''
@@ -237,23 +295,6 @@ def printMetaCacheRegistry():
     cleanCache()
     for k,v in RED9_META_NODECACHE.items():
         print k,v
-
-def getMetaFromCache(mNode):
-    '''
-    Pull the given mNode from the RED9_META_NODECACHE if it's
-    already be instantiated.
-    '''
-    if mNode in RED9_META_NODECACHE.keys():
-        try:
-            if RED9_META_NODECACHE[mNode].isValidMObject():
-                log.debug('CACHE : %s Returning mNode from cache!' % mNode)
-                return RED9_META_NODECACHE[mNode]
-            else:
-                #RED9_META_NODECACHE.pop(mNode)
-                log.debug('%s being Removed from the cache due to invalid MObject' % mNode)
-                cleanCache()
-        except:
-            log.debug('CACHE : inspection failure')
     
 def cleanCache():
     '''
@@ -268,19 +309,34 @@ def cleanCache():
         except:
             log.debug('CACHE : clean failure')
 
-def resetCacheOnSceneNew(*args):
+def resetCache(*args):
     global RED9_META_NODECACHE
     RED9_META_NODECACHE={}
+
+def resetCacheOnSceneNew(*args):
+    resetCache()
     log.info('"file Open" or "file new" called - Red9 MetaCache being cleared')
     
-          
 def getMClassNodeCache():
     '''
     Generic getWrapper for all nodeTypes registered in the Meta_NodeType global
     '''
     return RED9_META_NODECACHE
 
+def __preDuplicateCache(*args):
+    global __RED9_META_NODESTORE__
+    __RED9_META_NODESTORE__= getMetaNodes(dataType='dag')
+    #print 'pre-callback : nodelist :', __RED9_META_NODESTORE__
     
+def __poseDuplicateCache(*args):
+    global __RED9_META_NODESTORE__
+    newNodes=[node for node in getMetaNodes(dataType='dag') if not node in __RED9_META_NODESTORE__]
+    for node in newNodes:
+        #note we set this via cmds so that the node isn't instantiated until the UUID is modified
+        if cmds.attributeQuery('UUID', node=node, exists=True):
+            cmds.setAttr('%s.UUID' % node, generateUUID(), type='string')
+            #MetaClass(node)
+    #print 'post-callback : nodelist :', newNodes
     
 # ====================================================================================
     
@@ -575,6 +631,16 @@ class MClassNodeUI():
         cmds.menuItem(l="Print :Registered MetaClasses",
                       ann='Prints the currently registered MetaClasses from the Meta Registry',
                       c=self.printRegisteredMetaClasses)
+        cmds.menuItem(l="Print :MetaCached Nodes",
+                      ann='Prints all currently cached nodes in the MetaCache',
+                      c=self.printMetaNodeCache)
+        
+        cmds.menuItem(l="Clear Cache",
+                      ann='Prints all currently cached nodes in the MetaCache',
+                      c=resetCache)
+        cmds.menuItem(l="Upgrade mNodes to UUIDs",
+                      ann='Upgrades any current mNodes in the scene to the new UIID system for caching',
+                      c=upgradeSystemsToUUID)
         cmds.scrollLayout('slMetaNodeScroll',rc=lambda *args:self.fitTextScrollFucker())
         cmds.columnLayout(adjustableColumn=True)
         cmds.separator(h=15, style='none')
@@ -615,6 +681,8 @@ class MClassNodeUI():
         else:
             cmds.textScrollList('slMetaNodeList',font="fixedWidthFont", allowMultiSelection=True)
         cmds.popupMenu('r9MetaNodeUI_Popup')
+        cmds.menuItem(label='Graph Selected Networks', command=partial(self.graphNetwork))
+        cmds.menuItem(divider=True)
         cmds.menuItem(label='Select Children', ann='NOTE doubleClick on the UI also runs the selectChildren call"',
                       command=partial(self.doubleClick))
         cmds.menuItem(label='Delete Selected mNodes', ann='call self.delete() on the selected nModes',
@@ -622,9 +690,10 @@ class MClassNodeUI():
         cmds.menuItem(divider=True)
         cmds.menuItem(label='SortBy : ClassName', command=partial(self.fillScroll,'byClass'))
         cmds.menuItem(label='SortBy : NodeName', command=partial(self.fillScroll,'byName'))
-        cmds.menuItem(label='Graph Selected Networks', command=partial(self.graphNetwork))
         cmds.menuItem(divider=True)
         cmds.menuItem(label='Class : All Registered', command=partial(self.fillScroll,'byName'))
+        cmds.menuItem(divider=True)
+        cmds.menuItem(label='Connect Node to System:', command=self.__uiCB_connectNode)
         cmds.button(label='Refresh', command=partial(self.fillScroll))
         cmds.separator(h=15,style='none')
         cmds.iconTextButton(style='iconOnly', bgc=(0.7,0,0), image1='Rocket9_buttonStrap2.bmp',
@@ -757,7 +826,7 @@ class MClassNodeUI():
             #self.mNodes=sorted(self.mNodes, key=lambda x: x.mNode.upper())
             self.mNodes=sorted(self.mNodes, key=lambda x: x.upper())
 
-        #fill the textScroller =========================================     
+        #fill the textScroller =========================================
         if self.mNodes:
             width=len(self.mNodes[0])
             #figure out the width of the first cell
@@ -772,7 +841,45 @@ class MClassNodeUI():
                                         sc=lambda *args:self.selectCmd(),
                                         dcc=lambda *x:self.doubleClick())
                     
-
+    def __uiCB_connectNode(self, *args):
+        '''
+        Given a single selected mNode from the UI and a single selected MAYA node, run
+        connectChild with the given promtString as the attr
+        '''
+        nodes=cmds.ls(sl=True, l=True)
+        if nodes:
+            indexes=cmds.textScrollList('slMetaNodeList',q=True,sii=True)
+            if len(indexes)==1:
+                mNode=MetaClass(self.mNodes[indexes[0]-1])
+                result = cmds.promptDialog(
+                                    title='Connect node to Meta',
+                                    message='Enter Connection Attr:',
+                                    button=['OK', 'Cancel'],
+                                    defaultButton='OK',
+                                    cancelButton='Cancel',
+                                    dismissString='Cancel')
+                if result == 'OK':
+                    attr=cmds.promptDialog(query=True, text=True)
+                    print 'connecting :', nodes[0], ' to:', mNode.mNode
+                    if mNode.hasAttr(attr):
+                        if getattr(mNode, attr):
+                            result = cmds.confirmDialog(
+                                title='Attr Check:',
+                                button=['Yes', 'Cancel'],
+                                message='Confirm Attr is already connected, force connect new node?',
+                                defaultButton='Cancel',
+                                bgc=(0.5,0.1,0.1),
+                                cancelButton='Cancel',
+                                dismissString='Cancel')
+                            if result == 'Yes':
+                                mNode.connectChild(nodes[0],attr)
+                    else:
+                        mNode.connectChild(nodes[0],attr)
+            else:
+                raise StandardError('Connect Call only works with a single selected mNode from the UI')
+        else:
+            raise StandardError('No node selected to connect to MetaNode')
+        
     def printRegisteredNodeTypes(self,*args):
         print '\nRED9_META_NODETYPE_REGISTERY:\n============================='
         print getMClassNodeTypes()
@@ -780,6 +887,12 @@ class MClassNodeUI():
     def printRegisteredMetaClasses(self,*args):
         data = getMClassMetaRegistry()
         print '\nRED9_META_REGISTERY:\n===================='
+        for key, value in sorted(data.items()):
+            print key, ' : ', value
+            
+    def printMetaNodeCache(self,*args):
+        data = getMClassNodeCache()
+        print '\nRED9_META_NODECACHE:\n===================='
         for key, value in sorted(data.items()):
             print key, ' : ', value
 
@@ -805,17 +918,17 @@ def nodeLockManager(func):
         try:
             locked=False
             mNode=args[0]  # args[0] is self
-            #log.debug('nodeLockManager > func : %s : metaNode / self: %s' % (func.__name__,mNode.mNode))
+            log.debug('nodeLockManager > func : %s : metaNode / self: %s' % (func.__name__,mNode.mNode))
             if mNode.mNode and mNode._lockState:
                 locked=True
+                log.debug('nodeLockManager > func : %s : node being unlocked' % func.__name__)
                 cmds.lockNode(mNode.mNode,lock=False)
-                #log.debug( 'nodeLockManager > func : %s : node being unlocked' % func.__name__)
             res=func(*args, **kws)
         except StandardError, error:
             err=error
         finally:
             if locked:
-                #log.debug( 'nodeLockManager > func : %s : node being relocked' % func.__name__)
+                #log.debug('nodeLockManager > func : %s : node being relocked' % func.__name__)
                 cmds.lockNode(mNode.mNode, lock=True)
             if err:
                 traceback = sys.exc_info()[2]  # get the full traceback
@@ -939,7 +1052,9 @@ class MetaClass(object):
             self.mNode=node
             self.addAttr('mClass', value=str(self.__class__.__name__))  # ! MAIN ATTR !: used to know what class to instantiate.
             self.addAttr('mNodeID', value=name)                         # ! MAIN NODE ID !: used by pose systems to ID the node.
-
+            if r9Setup.mayaVersion()<2015:
+                #print '__init__ setting uuid'
+                self.addAttr('UUID', value='')          # ! Cache UUID attr which the Cache itself is in control of
             log.debug('New Meta Node Created')
             registerMClassNodeCache(self)
             cmds.setAttr('%s.%s' % (self.mNode,'mClass'), e=True,l=True)  # lock it
@@ -1007,7 +1122,7 @@ class MetaClass(object):
             return mobjHandle.isValid()
         except:
             log.info('_MObjectHandle not yet setup')
-         
+     
     #Cast the mNode attr to the actual MObject so it's no longer limited by string dagpaths
     #yes I know Pymel does this for us but I don't want the overhead!
     def __get_mNode(self):
@@ -1123,6 +1238,17 @@ class MetaClass(object):
             except:
                 pass
     
+    def setUUID(self):
+        '''
+        unique UUID used by the caching system
+        '''
+        newUUID = generateUUID()
+        self.UUID = newUUID
+        log.debug('setting new UUID : %s on %s' % (newUUID, self.mNode))
+        return newUUID
+    
+    def getUUID(self):
+        return self.UUID
     
     # Attribuite Management block
     #-----------------------------------------------------------------------------------
@@ -1348,7 +1474,7 @@ class MetaClass(object):
         '''
         try:
             if not self.isReferenced():
-                cmds.setAttr('%s.%s' % (self.mNode,attr),l=state)
+                cmds.setAttr('%s.%s' % (self.mNode,attr), l=state)
         except StandardError,error:
             log.debug(error)
             
@@ -1516,7 +1642,10 @@ class MetaClass(object):
             cmds.lockNode(self.mNode,lock=False)
         #clear the node from the cache
         if RED9_META_NODECACHE:
-            if self.mNode in RED9_META_NODECACHE.keys():
+            if self.hasAttr('UUID'):
+                if self.UUID in RED9_META_NODECACHE.keys():
+                    RED9_META_NODECACHE.pop(self.getUUID())
+            elif self.mNode in RED9_META_NODECACHE.keys():
                 RED9_META_NODECACHE.pop(self.mNode)
         #delete the Maya node and this python object
         cmds.delete(self.mNode)
@@ -2128,6 +2257,7 @@ class MetaRig(MetaClass):
         self.addAttr('rigType', '')  # ensure these are added by default
         self.addAttr('renderMeshes', attrType='message')
         self.addAttr('exportSkeletonRoot', attrType='messageSimple')
+        self.addAttr('scaleSystem', attrType='messageSimple')
     
     @property
     def characterSet(self):
@@ -2170,7 +2300,7 @@ class MetaRig(MetaClass):
         
         self.connectChild(node,'%s_%s' % (self.CTRL_Prefix,ctrType))
         if mirrorData:
-            mirror = MirrorHierarchy()
+            mirror = r9Anim.MirrorHierarchy()
             axis=None
             if 'axis' in mirrorData:
                 axis = mirrorData['axis']
@@ -2312,7 +2442,7 @@ class MetaRig(MetaClass):
         :param nodeName: Name of the MetaClass network node created
         :param mClass: the class to be used for the support node - 'MetaRigSubSystem' by default
         '''
-        MirrorHierarchy()._validateMirrorEnum(side)  # ??? do we just let the enum __setattr__ handle this?
+        r9Anim.MirrorHierarchy()._validateMirrorEnum(side)  # ??? do we just let the enum __setattr__ handle this?
 
         if not attr:
             attr='%s_%s_System' % (side[0],systemType)
@@ -2325,7 +2455,7 @@ class MetaRig(MetaClass):
         subSystem.mirrorSide=side
         return subSystem
     
-    def set_ctrlColour(self):       
+    def set_ctrlColour(self):
         for ctrl in self.getChildren(walk=False):
             shapes = cmds.listRelatives(ctrl,type='shape',f=True)
             if shapes:
@@ -2341,7 +2471,7 @@ class MetaRig(MetaClass):
             you must run this binding function before using any of
             the inbuilt mirror functions
         '''
-        self.MirrorClass = MirrorHierarchy(nodes=self.getRigCtrls(walk=True))
+        self.MirrorClass = r9Anim.MirrorHierarchy(nodes=self.getRigCtrls(walk=True))
         self.MirrorClass.getMirrorSets()
         log.debug('Filling the MirrorClass attr on demand')
         return self.MirrorClass
@@ -2354,15 +2484,15 @@ class MetaRig(MetaClass):
             self.MirrorClass = self.getMirrorData()
         if not os.path.exists(mirrorMap):
             raise IOError('Given MirrorMap file not found : %s' % mirrorMap)
-        MirrorHierarchy(self.getChildren()).loadMirrorSetups(mirrorMap)
+        r9Anim.MirrorHierarchy(self.getChildren()).loadMirrorSetups(mirrorMap)
     
-    def getMirror_opposites(self, nodes):
+    def getMirror_opposites(self, nodes, forceRefresh=False):
         '''
         from the given nodes return a map of the opposite pairs of controllers
         so if you pass in a right controller of mirrorIndex 4 you get back the
         left[4] mirror node and visa versa. Centre controllers pass straight through
         '''
-        if not self.MirrorClass:
+        if not self.MirrorClass or forceRefresh:
             self.MirrorClass = self.getMirrorData()
         oppositeNodes=[]
         
@@ -2514,6 +2644,53 @@ class MetaRig(MetaClass):
         '''
         self.poseCacheLoad(nodes=nodes, attr='zeroPose')
     
+    def saveAnimation(self, filepath, output='config'):
+        '''
+        DEV TESTS ONLY TO NOT USE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        test for an animSaver idea, follows the pose formatting, maybe we'll wrap all
+        of this inside the poseHandler, that way all the logic for psoes is maintained and
+        we just overload the actual data block that currnelty just gets the static attr
+        DEV TESTS ONLY TO NOT USE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        '''
+        animData = {}
+        for ctrl in self.getChildren():
+            mapping = self.getNodeConnectionMetaDataMap(ctrl)
+            attrs = r9Anim.getChannelBoxAttrs(node=ctrl, asDict=True, incLocked=False)
+            shortName = r9Core.nodeNameStrip(ctrl)
+            if not attrs['keyable']:
+                continue
+            for attr in attrs['keyable']:
+                channel = '%s.%s' % (ctrl, attr)
+                keyList = cmds.keyframe(channel, q=True, vc=True, tc=True, t=())
+                if keyList:
+                    if not shortName in animData:
+                        animData[shortName] = {}
+                        animData[shortName]['longName'] = ctrl
+                        animData[shortName]['metaData'] = mapping
+                        animData[shortName]['attrs'] = {}
+                    animData[shortName]['attrs'][attr] = ''
+                    
+                    # save key & tangent data
+                    for key, value in zip(keyList[0::2], keyList[1::2]):
+                        tangentData = cmds.keyTangent(channel, q=True, t=(key, key), itt=True, ott=True)
+                        animData[shortName]['attrs'][attr] += '(%.02f,%f,"%s","%s"),' % (key, value, tangentData[0], tangentData[1])
+                        # animData[ctrl][attr].append(('%.02f' % key, value, tangentData[0], tangentData[1]))
+        if animData:
+            print animData
+            if output=='json':
+                animFile = open(filepath, 'w+')
+                json.dump(animData, animFile, indent=0)
+                animFile.close()
+            elif output=='config':
+                import Red9.packages.configobj as configobj
+                ConfigObj = configobj.ConfigObj(indent_type='\t')
+                ConfigObj['poseData']=animData
+                ConfigObj.filename = filepath
+                ConfigObj.write()
+            return animData
+            
+    def loadAnimation(self, filepath):
+        pass
     
 class MetaRigSubSystem(MetaRig):
     '''
@@ -2753,11 +2930,19 @@ def hardKillMetaHUD():
     happens if you'd deleted the MetaHUDNode but left the draw on, meaning
     we now have invalid HUD data drawn.
     '''
+    huds=getMetaNodes(mInstances=MetaHUDNode)
+    if huds:
+        for hud in huds:
+            try:
+                hud.killHud()
+            except:
+                log.debug('failed to remove HUD metanode')
     HUDS=cmds.headsUpDisplay(lh=True)
-    for hud in HUDS:
-        if 'MetaHUDConnector' in hud:
-            cmds.headsUpDisplay(hud,remove=True)
-    
+    if HUDS:
+        for hud in HUDS:
+            if 'MetaHUDConnector' in hud:
+                cmds.headsUpDisplay(hud,remove=True)
+        
 # EXPERIMENTAL CALLS ==========================================================
      
      
@@ -3104,8 +3289,21 @@ to that.
 '''
 #registerMClassInheritanceMapping()
 
-
+def metaData_sceneCleanups(*args):
+    '''
+    Registered on SceneOpen and SceneNew callbacks so that the MetaData Cache is cleared and 
+    any registered HUD is killed off
+    '''
+    hardKillMetaHUD()
+    resetCacheOnSceneNew()
+    
 
 #Setup the callbacks to clear the cache when required
-RED9_META_CALLBACKS['Open'] = OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kBeforeOpen, resetCacheOnSceneNew)
-RED9_META_CALLBACKS['New'] = OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kBeforeNew, resetCacheOnSceneNew)
+RED9_META_CALLBACKS['Open'] = OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kBeforeOpen, metaData_sceneCleanups)
+RED9_META_CALLBACKS['New'] = OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kBeforeNew, metaData_sceneCleanups)
+
+#dulplicate cache callbacks so the UUIDs are managed correctly
+RED9_META_CALLBACKS['DuplicatePre'] = OpenMaya.MModelMessage.addBeforeDuplicateCallback(__preDuplicateCache)
+RED9_META_CALLBACKS['DuplicatePost'] = OpenMaya.MModelMessage.addAfterDuplicateCallback(__poseDuplicateCache)
+
+

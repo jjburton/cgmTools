@@ -332,7 +332,7 @@ class cgmFuncCls(object):
 	if self._b_WIP or self.d_kws.get('reportShow'):
 	    self.report()
 	    
-	if self.d_kws.get('reportToDo'):
+	if self.d_kws.get('reportToDo') or self._l_toDo:
 	    self.report_toDo() 
 		
 	if self.d_kws.get('reportEnv'):

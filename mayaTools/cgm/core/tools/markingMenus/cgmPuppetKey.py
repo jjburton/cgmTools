@@ -551,7 +551,9 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    #MelMenuItem(parent,l="-- Puppets --",en = False)	    
 	    self.l_puppets = lists.returnListNoDuplicates(self.l_puppets)
 	    self.ml_puppets = cgmMeta.validateObjListArg(self.l_puppets)
-	    
+	    log.info("Puppets:")
+	    for p in self.l_puppets:
+		log.info(">>> {0}".format(p))
 	    int_lenPuppets = len(self.ml_puppets)
 	    if int_lenPuppets == 1:
 		use_parent = parent

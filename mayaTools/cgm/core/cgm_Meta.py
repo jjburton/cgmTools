@@ -141,21 +141,96 @@ class cgmMetaFunc(cgmGeneral.cgmFuncCls):
 	
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmNode - subclass to Red9.MetaClass
-#========================================================================= 
-class cgmNode(r9Meta.MetaClass):#Should we do this? 
-    def __bind__(self):
-	"""
-	Setup before maya object initialization
-	"""
-	pass
-	
-    def __init__(self,node = None, name = None,nodeType = 'network',setClass = False, *args,**kws):	
+#=========================================================================
+def isTransform(node):
+    try:
+	def getLongName(arg):
+	    buffer = mc.ls(arg,l=True)        
+	    return buffer[0]  
+	buffer = mc.ls(node,type = 'transform',long = True)
+	if buffer and buffer[0]==getLongName(node):
+	    return True
+	if not mc.objExists(node):
+	    log.error("'{0}' doesn't exist".format(node))
+	return False   
+    except Exception,error:raise Exception,"isTransform({0}) | error: {1}".format(node,error)
+    
+def reinitializeMetaClass(node):
+    try:#See if we have an mNode
+	node.mNode
+	mObj = node
+    except:#initialze
+	mObj = r9Meta.MetaClass(node)
+    _buffer = mObj.mNode
+    
+    _keyCheck = mc.ls(mObj.mNode,long=True)[0]
+    if _keyCheck in r9Meta.RED9_META_NODECACHE.keys():
+	log.debug('Cached already and class to be changed....')
+    
+	try:
+	    r9Meta.RED9_META_NODECACHE.pop(_keyCheck)
+	    log.debug("Pushed from cache: {0}".format(_buffer))
+	except Exception,error:
+	    raise Exception,error
+    
+    return r9Meta.MetaClass(_buffer)
+
+def check_cacheClear(self, str_mClass, setClass = False):
+    try:#>>> TO CHECK IF WE NEED TO CLEAR CACHE ---------------------------------------------------------
+	_reinitialize = False
+	if not self.isReferenced():#...this is because we dont' wanna be changing referenced objects or even trying to
+	    _currentMClass = attributes.doGetAttr(self.mNode,'mClass')#...use to avoid exceptions	
+	    _b_flushCacheInstance = False	    
+	    if setClass:#...if we're going to set the mClass attr...
+		if _currentMClass:#...does it have a current mClass attr value?
+		    if _currentMClass != str_mClass:#...if not the same, replace
+			self.addAttr('mClass',str_mClass,lock=True)	
+			_b_flushCacheInstance = True
+		else:#...if we have no value, set it
+		    self.addAttr('mClass',str_mClass,lock=True)	
+		    _b_flushCacheInstance = True 
+	    else:#...if we're not setting it on call and it was set by some other process?
+		if _currentMClass != str_mClass:
+		    _b_flushCacheInstance = True
+		    
+	    if self.cached and _b_flushCacheInstance:#...if it's cached and we've decided to flush it...
+		log.debug('CACHE : Setclass set, checking instance...')
+		_keyCheck = mc.ls(self.mNode,long=True)[0]
+		try:
+		    if _keyCheck in r9Meta.RED9_META_NODECACHE.keys():
+			_buffer = self
+			r9Meta.RED9_META_NODECACHE.pop(_keyCheck)
+			log.debug("Pushed from cache: {0}".format(_buffer))
+			_reinitialize = True			
+		except Exception,error:
+		    r9Meta.printMetaCacheRegistry()
+		    raise Exception,"pop fail...| {0}".format(error)
+	    return _reinitialize
+    except Exception,error:
+	raise Exception,"check_cacheClear fail >> %s"%error	    
+    
+class cgmTest(r9Meta.MetaClass):
+    def __bind__(self):pass	    
+    def __init__(self,node = None, name = None,nodeType = 'network',setClass = False,**kws):	
+        """ 
+        Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
+        """			
+	super(cgmTest, self).__init__(node=node, name = name, nodeType = nodeType)
+	log.info("cached: {0}".format(self.cached))
+	log.info("setClass: {0}".format(setClass))			
+	log.info("kws: {0}".format(kws))		
+    
+class cgmNode(r9Meta.MetaClass):
+    def __bind__(self):pass	
+    def __init__(self,node = None, name = None,nodeType = 'network',setClass = False,**kws):	
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
+	
 	if node is None or name is not None and mc.objExists(name):
 	    createdState = True
 	else:createdState = False
+	log.debug("setClass: {0}".format(setClass))	
 	
 	#ComponentMode
 	if node is not None and search.returnObjectType(node) in l_componentTypes:
@@ -164,16 +239,28 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	else:
 	    componentMode = False
 	    component = False
-	
+
 	super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
-	self.UNMANAGED.extend(['__justCreatedState__','__componentMode__','__component__'])	
-	self.__dict__['__justCreatedState__'] = createdState
-	self.__dict__['__componentMode__'] = componentMode
-	self.__dict__['__component__'] = component
-	if not self.isReferenced():
-	    if setClass:
-		self.addAttr('mClass','cgmNode',lock=True)
-	    
+	
+	#>>> TO Check the cache if it needs to be cleared ----------------------------------	
+	#if check_cacheClear(self,'cgmNode',setClass):
+	    #super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
+	        
+	#>>> TO USE Cached instance ---------------------------------------------------------
+	if self.cached:
+	    #if issubclass(type(self),cgmNode):
+	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)		
+	    return
+	
+	#====================================================================================
+	try:
+	    self.UNMANAGED.extend(['__justCreatedState__','__componentMode__','__component__'])	
+	    self.__dict__['__justCreatedState__'] = createdState
+	    self.__dict__['__componentMode__'] = componentMode
+	    self.__dict__['__component__'] = component
+	except Exception,error:
+	    r9Meta.printMetaCacheRegistry()
+	    raise Exception,"Failed to extend unmanaged | %s"%error	    
 	    self.update()
         
     def __verify__(self):
@@ -1112,7 +1199,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 	if type(d_attrs) is not dict:
 	    raise StandardError,"Not a dict: %s"%self.p_nameShort
 	
-        for attr in sorted(d_attrs.keys()):#See table just above cgmModule
+        for attr in sorted(d_attrs.keys()):
 	    try:	
 		buffer = d_attrs.get(attr)
 		if ':' in buffer:
@@ -1313,7 +1400,7 @@ class cgmNode(r9Meta.MetaClass):#Should we do this?
 #=========================================================================        
 class cgmObject(cgmNode):  
     #@cgmGeneral.TimerDebug  
-    def __init__(self,node = None, name = 'null',setClass = False,*args,**kws):
+    def __init__(self,node = None, name = 'null',setClass = False,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 
         creates an empty transform
@@ -1333,15 +1420,22 @@ class cgmObject(cgmNode):
 	
 	'''
         super(cgmObject, self).__init__(node = node, name = name,nodeType = 'transform')
+	
+	#>>> TO Check the cache if it needs to be cleared ----------------------------------	
+	#if check_cacheClear(self,'cgmObject',setClass):
+	    #super(cgmObject, self).__init__(node=node, name = name, nodeType = nodeType)
+	    
+	#====================================================================================
         if not self.isTransform():
-            log.error("'%s' has no transform"%self.mNode)
-            raise Exception, "The class was designed to work with objects with transforms"
-	if setClass:
-	    self.addAttr('mClass','cgmObject',lock=True)
-    
-    def __bindData__(self):pass
-        #self.addAttr('test',2)
-    
+	    log.error("'%s' has no transform"%self.mNode)	    
+	    raise StandardError, "The class was designed to work with objects with transforms"
+	    
+	#>>> TO USE Cached instance ---------------------------------------------------------
+	if self.cached:
+	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    return
+	
+
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -1758,7 +1852,7 @@ class cgmObject(cgmNode):
 # cgmObjectSet - subclass to cgmNode
 #=========================================================================  
 class cgmControl(cgmObject): 
-    def __init__(self,node = None, name = 'null',setClass = False,*args,**kws):
+    def __init__(self,node = None, name = 'null',setClass = False,**kws):
 	""" 
 	Class for control specific functions
     
@@ -1769,8 +1863,15 @@ class cgmControl(cgmObject):
 	try: super(cgmControl, self).__init__(node = node, name = name,nodeType = 'transform')
 	except StandardError,error:
 	    raise StandardError, "cgmControl.__init__ fail! | %s"%error
-	if setClass:
-	    self.addAttr('mClass','cgmControl',lock=True)
+	
+	#>>> TO Check the cache if it needs to be cleared ----------------------------------	
+	#if check_cacheClear(self,'cgmControl',setClass):
+	    #super(cgmControl, self).__init__(node=node, name = name)	
+	
+	#>>> TO USE Cached instance ---------------------------------------------------------
+	if self.cached:
+	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    return
 	    
     #>>> Module stuff
     #========================================================================
@@ -1950,7 +2051,7 @@ class cgmObjectSet(cgmNode):
     """ 
     Maya Object Set Class handler
     """ 	
-    def __init__(self,setName = None,setType = False,qssState = None,value = None,**kws):
+    def __init__(self,setName = None,setType = False,qssState = None,value = None,setClass = False,**kws):
         """ 
         Intializes an set factory class handler
         
@@ -1958,16 +2059,27 @@ class cgmObjectSet(cgmNode):
         setName(string) -- name for the set
         
         """
+	__nodeType = 'objectSet'
         ### input check  
 	if setName is not None:
 	    if mc.objExists(setName):
-		assert search.returnObjectType(setName) == 'objectSet',"Not an object set"    
+		assert search.returnObjectType(setName) == __nodeType,"Not an object set"    
 		super(cgmObjectSet, self).__init__(node = setName)  
 	    else:
-		super(cgmObjectSet, self).__init__(node = None,name = setName,nodeType = 'objectSet')
+		super(cgmObjectSet, self).__init__(node = None,name = setName,nodeType = __nodeType)
 	else:
-	    super(cgmObjectSet, self).__init__(node = setName,nodeType = 'objectSet')
-	    
+	    super(cgmObjectSet, self).__init__(node = setName,nodeType = __nodeType)
+	
+	
+	#>>> TO Check the cache if it needs to be cleared ----------------------------------	
+	#if check_cacheClear(self,'cgmObjectSet',setClass):
+	    #super(cgmObjectSet, self).__init__(node=node, name = name, nodeType = __nodeType)	
+	
+	#>>> TO USE Cached instance ---------------------------------------------------------
+	if self.cached:
+	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    return
+	#====================================================================================	
         #log.debug("In cgmObjectSet.__init__ setName is '%s'"%setName)
         #log.debug("In cgmObjectSet.__init__ setType is '%s'"%setType) 
         #log.debug("In cgmObjectSet.__init__ qssState is '%s'"%qssState) 
@@ -2639,7 +2751,7 @@ class cgmOptionVar(object):
 # cgmBuffer - replacement for a multimessage attribute. Stores a list to object
 #=========================================================================
 class cgmBufferNode(cgmNode):
-    def __init__(self,node = None, name = None, value = None, nodeType = 'network', overideMessageCheck = False,**kws):
+    def __init__(self,node = None, name = None, value = None, nodeType = 'network', overideMessageCheck = False,setClass = False, **kws):
         """ 
 	Replacement for a multimessage attribute when you want to be able to link to an attr
 	
@@ -2653,8 +2765,22 @@ class cgmBufferNode(cgmNode):
         #log.debug("In cgmBuffer.__init__ node is '%s'"%node)
 
 	super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
+	
+	#>>> TO Check the cache if it needs to be cleared ----------------------------------	
+	#if check_cacheClear(self,'cgmBufferNode',setClass):
+	    #super(cgmBufferNode, self).__init__(node=node, name = name, nodeType = nodeType)	
+	
+	#>>> TO USE Cached instance ---------------------------------------------------------
+	if self.cached:
+	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    return
+	
+	#====================================================================================
+	
 	self.UNMANAGED.extend(['l_buffer','d_buffer','value','d_indexToAttr','_kw_overrideMessageCheck'])
 	self._kw_overrideMessageCheck = overideMessageCheck
+	
+	
         if not self.isReferenced():
 	    self.__verify__()	    
 	    if not self.__verify__():
@@ -4598,6 +4724,7 @@ def validateObjArg(*args,**kws):
 	    noneValid = self.d_kws['noneValid']
 	    default_mType = self.d_kws['default_mType']
 	    mayaType = self.d_kws['mayaType']		
+	    
 	    #------------------------------------------------------------------------------------
 	    self.mi_arg = False
 	    argType = type(arg)
@@ -4628,20 +4755,28 @@ def validateObjArg(*args,**kws):
 		    if noneValid: return False
 		    else:raise ValueError,"Obj doesn't exist: '%s'"%arg  
 		else:
-		    self.mi_autoInstance = cgmNode(arg)  
+		    if isTransform(arg):
+			try:self.mi_autoInstance = cgmObject(arg) 
+			except Exception,error:
+			    raise Exception,"cgmObject initialization fail | {0}".format(error)			
+		    else:
+			try:
+			    self.mi_autoInstance = cgmNode(arg) 
+			except Exception,error:
+			    raise Exception,"cgmNode initialization fail | {0}".format(error)			
 	    else:
-		self.log_debug("autoInstance linked to arg...")				    
+		self.log_debug("metaArg passed...")				    
 		self.mi_autoInstance = self.mi_arg
 		
 	    self.log_debug("mType: %s"%mType)
+	    
 	    if mType is None:
 		if not self.mi_arg:
-		    self.log_debug("Initializing as defaultType: %s"%default_mType)
-		    self.mi_arg = default_mType(arg)		
+		    self.log_debug("Using auto instance...{0}".format(type(self.mi_autoInstance)))
+		    self.mi_arg = self.mi_autoInstance
 	    else:
-		self.log_debug("checking mType...")		
+		self.log_debug("checking mType: {0}".format(mType))		
 		if type(mType) in [unicode,str]:
-		    self.log_debug("string mType: '%s'"%mType)
 		    self.str_foundClass = str(self.mi_autoInstance).split("'>")[0].split(".")[-1]
 		    if self.mi_autoInstance.getAttr('mClass') == mType:
 			self.mi_arg = self.mi_autoInstance
@@ -4650,7 +4785,6 @@ def validateObjArg(*args,**kws):
 		    else:
 			raise StandardError,"['%s' Not correct mType. Called from string mType]{mType Seeking: %s | mClass : %s | Found Type: %s}"%(self.mi_autoInstance.p_nameShort,mType,self.mi_autoInstance.getAttr('mClass'),self.str_foundClass)			    
 		else:
-		    self.log_debug("mType: '%s'"%mType)		    
 		    if issubclass(self.mi_autoInstance.__class__,mType):#if it's a subclass of our mType, good to go
 			self.log_debug("mType good to go")		    						
 			self.mi_arg = self.mi_autoInstance
@@ -4658,13 +4792,18 @@ def validateObjArg(*args,**kws):
 			self.log_warning("This object is already mClass tagged. Cannot change via this call.")		    									
 			return self.mi_autoInstance
 		    else:
-			try:self.mi_arg = mType(self.mi_autoInstance.mNode)
+			self.log_debug("mType Fail safe")		    									
+			try:
+			    self.mi_arg = mType(self.mi_autoInstance.mNode)
+			    self.log_debug("Initialized as %s"%mType)
+			    self.log_debug(self.mi_arg)
 			except Exception,error:
 			    self.log_debug("obj: %s"%arg)		    
 			    self.log_debug("mType: %s"%mType)
 			    raise StandardError,"[Failed to reinitilize %s to type %s]{%s}"%(self.mi_arg.mNode,mType,error)
 		
 	    if mayaType is not None and len(mayaType):
+		self.log_debug("Checking mayaType...")
 		if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
 		else: l_mayaTypes = mayaType
 		str_type = search.returnObjectType(self.mi_arg.getComponent())
@@ -4673,6 +4812,7 @@ def validateObjArg(*args,**kws):
 			log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(self._str_reportStart,self.mi_arg.p_nameShort,str_type,l_mayaTypes))
 			return False
 		    raise StandardError,"'%s' mayaType: '%s' not in: '%s'"%(self.mi_arg.p_nameShort,str_type,l_mayaTypes)			    	
+	    self.log_debug("Returning...")
 	    return self.mi_arg	    
     return fncWrap(*args,**kws).go()
  
