@@ -175,39 +175,106 @@ def reinitializeMetaClass(node):
     
     return r9Meta.MetaClass(_buffer)
 
-def check_cacheClear(self, str_mClass, setClass = False):
+def set_mClassInline(self, setClass = None):
     try:#>>> TO CHECK IF WE NEED TO CLEAR CACHE ---------------------------------------------------------
 	_reinitialize = False
-	if not self.isReferenced():#...this is because we dont' wanna be changing referenced objects or even trying to
-	    _currentMClass = attributes.doGetAttr(self.mNode,'mClass')#...use to avoid exceptions	
-	    _b_flushCacheInstance = False	    
-	    if setClass:#...if we're going to set the mClass attr...
-		if _currentMClass:#...does it have a current mClass attr value?
-		    if _currentMClass != str_mClass:#...if not the same, replace
-			self.addAttr('mClass',str_mClass,lock=True)	
-			_b_flushCacheInstance = True
-		else:#...if we have no value, set it
-		    self.addAttr('mClass',str_mClass,lock=True)	
-		    _b_flushCacheInstance = True 
-	    else:#...if we're not setting it on call and it was set by some other process?
-		if _currentMClass != str_mClass:
+	_str_func = "set_mClassInline( '{0}' )".format(self.mNode)	
+	
+	if self.isReferenced():
+	    raise ValueError,"Cannot set a referenced node's mClass"
+	
+	_currentMClass = attributes.doGetAttr(self.mNode,'mClass')#...use to avoid exceptions	
+	_b_flushCacheInstance = False
+	
+	if setClass not in r9Meta.RED9_META_REGISTERY:
+	    log.error("{0} | mClass value not registered...".format(_str_func))	
+	    return False
+	
+	if setClass:#...if we're going to set the mClass attr...
+	    if _currentMClass:#...does it have a current mClass attr value?
+		if _currentMClass != setClass:#...if not the same, replace
+		    log.warning("{0} | mClasses don't match. Changing to '{1}'".format(_str_func,setClass))				    
+		    self.addAttr('mClass',setClass,lock=True)	
 		    _b_flushCacheInstance = True
-		    
-	    if self.cached and _b_flushCacheInstance:#...if it's cached and we've decided to flush it...
-		log.debug('CACHE : Setclass set, checking instance...')
-		_keyCheck = mc.ls(self.mNode,long=True)[0]
-		try:
-		    if _keyCheck in r9Meta.RED9_META_NODECACHE.keys():
-			_buffer = self
-			r9Meta.RED9_META_NODECACHE.pop(_keyCheck)
-			log.debug("Pushed from cache: {0}".format(_buffer))
-			_reinitialize = True			
-		except Exception,error:
-		    r9Meta.printMetaCacheRegistry()
-		    raise Exception,"pop fail...| {0}".format(error)
-	    return _reinitialize
+		else:
+		    log.debug("{0} | mClasses match. ignoring...".format(_str_func))				    		
+	    else:#...if we have no value, set it
+		log.warning("{0} | no mClass value, setting to '{1}'".format(_str_func,setClass))				
+		self.addAttr('mClass',setClass,lock=True)	
+		_b_flushCacheInstance = True 
+	#else:#...if we're not setting it on call and it was set by some other process?
+	    #if _currentMClass != str_mClass:
+		#_b_flushCacheInstance = True
+		
+	if _b_flushCacheInstance:#...if it's cached and we've decided to flush it...
+	    log.debug("{0} | Setclass set, checking instance...".format(_str_func))
+	    _keyCheck = attributes.doGetAttr(self.mNode,'UUID')
+	    try:
+		if _keyCheck in r9Meta.RED9_META_NODECACHE.keys():
+		    _buffer = self
+		    r9Meta.RED9_META_NODECACHE.pop(_keyCheck)
+		    log.debug("{0} | Pushed from cache...".format(setClass,_buffer))
+		    _reinitialize = True			
+	    except Exception,error:
+		r9Meta.printMetaCacheRegistry()
+		raise Exception,"{0} pop fail...| {1}".format(_str_func,error)
+	return _reinitialize
     except Exception,error:
-	raise Exception,"check_cacheClear fail >> %s"%error	    
+	raise Exception,"set_mClassInline fail >> %s"%error
+     
+def set_mClass(self, str_mClass):
+    """
+    After Red9's rework with caching, needed a way to change an mClass of an object that has potentially been cached.
+    
+    :parameters:
+        self -- MetaClass instance
+	str_mClass -- the string mClass type
+	
+    :returns:
+        None
+
+    """
+    try:#>>> TO CHECK IF WE NEED TO CLEAR CACHE ---------------------------------------------------------
+	_reinitialize = False
+	_str_func = "set_mClass( '{0}' )".format(self.mNode)
+	log.info("{1} | class: {0}".format(str_mClass,_str_func))
+	
+	if self.isReferenced():
+	    raise ValueError,"Cannot set a referenced node's mClass"
+	
+	_currentMClass = attributes.doGetAttr(self.mNode,'mClass')#...use to avoid exceptions	
+	_b_flushCacheInstance = False
+	
+	if _currentMClass:#...does it have a current mClass attr value?
+	    if _currentMClass != str_mClass:#...if not the same, replace
+		log.info("{0} | mClasses don't match. Changing...".format(_str_func))		
+		self.addAttr('mClass',str_mClass,lock=True)	
+		_b_flushCacheInstance = True
+	else:#...if we have no value, set it
+	    self.addAttr('mClass',str_mClass,lock=True)	
+	    _b_flushCacheInstance = True 
+
+		
+	if _b_flushCacheInstance:#...if it's cached and we've decided to flush it...
+	    log.info("{0} | Setclass set, checking instance...".format(_str_func))
+	    _keyCheck = attributes.doGetAttr(self.mNode,'UUID')
+	    try:
+		#if _keyCheck:
+		    #self.UUID = ''
+		if _keyCheck in r9Meta.RED9_META_NODECACHE.keys():
+		    _buffer = self
+		    r9Meta.RED9_META_NODECACHE.pop(_keyCheck)
+		    log.info("{0} | Pushed from cache...".format(_str_func,_buffer))
+		    _reinitialize = True			
+	    except Exception,error:
+		r9Meta.printMetaCacheRegistry()
+		raise Exception,"pop fail...| {0}".format(error)
+	if _reinitialize:
+	    log.info("{0} | Reinitialize...".format(_str_func))	
+	    self = r9Meta.MetaClass(self.mNode)
+	return self
+    except Exception,error:
+	raise Exception,"set_mClass fail >> %s"%error
     
 class cgmTest(r9Meta.MetaClass):
     def __bind__(self):pass	    
@@ -222,35 +289,41 @@ class cgmTest(r9Meta.MetaClass):
     
 class cgmNode(r9Meta.MetaClass):
     def __bind__(self):pass	
-    def __init__(self,node = None, name = None,nodeType = 'network',setClass = False,**kws):	
+    def __init__(self,node = None, name = None,nodeType = 'network',setClass = None, **kws):
+	#def __init__(self,node = None, name = None,nodeType = 'network',setClass = None,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
-	
 	if node is None or name is not None and mc.objExists(name):
 	    createdState = True
 	else:createdState = False
-	log.debug("setClass: {0}".format(setClass))	
+		
+	#ComponentMode ----------------------------------------------------------------------
+	componentMode = False
+	component = False	
+	if node is not None:
+	    if '.' in node and search.returnObjectType(node) in l_componentTypes:
+		componentMode = True
+		component = node.split('.')[-1]
+ 
+	#log.info("{1} | setClass: {0}".format(setClass,'in cgmNode'))
+	#log.info("{1} | kws: {0}".format(kws,'in cgmNode'))
+	#log.info("{1} | args: {0}".format(args,'in cgmNode'))
 	
-	#ComponentMode
-	if node is not None and search.returnObjectType(node) in l_componentTypes:
-	    componentMode = True
-	    component = node.split('.')[-1]
-	else:
-	    componentMode = False
-	    component = False
-
-	super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
+	super(cgmNode, self).__init__(node,name = name,nodeType = nodeType,**kws)
 	
-	#>>> TO Check the cache if it needs to be cleared ----------------------------------	
-	#if check_cacheClear(self,'cgmNode',setClass):
-	    #super(cgmNode, self).__init__(node=node, name = name, nodeType = nodeType)
-	        
+	#>>> TO Check the cache if it needs to be cleared ----------------------------------
+	if setClass is not None:
+	    #_buffer = self.mNode
+	    if set_mClassInline(self, setClass):
+		r9Meta.MetaClass(self.mNode)
+		    
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    #if issubclass(type(self),cgmNode):
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)		
+	    #log.debug("cgmNode | CACHE : Aborting __init__ on pre-cached '{0}' Object" .format(self.mNode))		
 	    return
+	
+	self.addAttr('UUID',attrType='string')#necessary to enable proper caching
 	
 	#====================================================================================
 	try:
@@ -261,11 +334,11 @@ class cgmNode(r9Meta.MetaClass):
 	except Exception,error:
 	    r9Meta.printMetaCacheRegistry()
 	    raise Exception,"Failed to extend unmanaged | %s"%error	    
-	    self.update()
+	#self.update()
         
     def __verify__(self):
 	pass#For overload
-    
+        
     def testWrap(self,*args,**kws):
 	_mNodeSelf = self
 	class fncWrap(cgmMetaFunc):
@@ -307,7 +380,7 @@ class cgmNode(r9Meta.MetaClass):
 	pBuffer = search.returnParentObject(self.mNode) or False
 	if not pBuffer:
 	    return False
-        return r9Meta.MetaClass(pBuffer)
+        return cgmNode(pBuffer)
 				
     parent = property(getParent)
     p_parent = property(getParent)
@@ -928,10 +1001,10 @@ class cgmNode(r9Meta.MetaClass):
     
     def update(self):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
-        assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
-	if self.hasAttr('mNodeID') and not self.isReferenced():#experiment
+        #assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
+	#if self.hasAttr('mNodeID') and not self.isReferenced():#experiment
 	    #log.debug(self.mNodeID)
-	    attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
+	    #attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
 	self.__dict__['__name__'] = self.getShortName()
 	
     def getCGMNameTags(self):
@@ -1360,7 +1433,7 @@ class cgmNode(r9Meta.MetaClass):
 	    
 	    buffer = mc.duplicate(self.mNode,po=parentOnly,ic=incomingConnections)[0]
 	    #log.debug("doDuplicate>> buffer: %s"%buffer)
-	    i_obj = r9Meta.MetaClass(buffer)
+	    i_obj = cgmNode(buffer)
 	    mc.rename(i_obj.mNode, self.getShortName()+'_DUPLICATE')
 	    #log.debug("doDuplicate>> i_obj: %s"%i_obj)
 	    
@@ -1391,6 +1464,8 @@ class cgmNode(r9Meta.MetaClass):
 			mc.setAttr(str_plug,lock=False)
 		if b_drivenLock:
 		    mc.setAttr(_str_messageCombined,lock=False) 
+	    if i_obj.isTransform():
+		return cgmObject(i_obj.mNode)
 	    return i_obj
 	except Exception,error:raise Exception,"[%s.doDuplicate]{%s}"%(self.p_nameShort,error)
     
@@ -1399,8 +1474,7 @@ class cgmNode(r9Meta.MetaClass):
 # cgmObject - sublass to cgmNode
 #=========================================================================        
 class cgmObject(cgmNode):  
-    #@cgmGeneral.TimerDebug  
-    def __init__(self,node = None, name = 'null',setClass = False,**kws):
+    def __init__(self,node = None, name = 'null', setClass = None,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 
         creates an empty transform
@@ -1419,23 +1493,24 @@ class cgmObject(cgmNode):
 	log.error("'%s' has no transform"%_NodeSelf.mNode)
 	
 	'''
-        super(cgmObject, self).__init__(node = node, name = name,nodeType = 'transform')
-	
+        super(cgmObject, self).__init__(node = node, name = name,nodeType = 'transform',setClass=setClass)
+	#log.info("{1} | setClass: {0}".format(setClass,'in cgmObject'))
+	#log.info("{1} | kws: {0}".format(kws,'in cgmObject'))	
 	#>>> TO Check the cache if it needs to be cleared ----------------------------------	
 	#if check_cacheClear(self,'cgmObject',setClass):
-	    #super(cgmObject, self).__init__(node=node, name = name, nodeType = nodeType)
-	    
+	    #log.info("Reinitialize")	    
+	    #super(cgmObject, self).__init__(node=node, name = name, nodeType = 'transform')
+
 	#====================================================================================
         if not self.isTransform():
 	    log.error("'%s' has no transform"%self.mNode)	    
-	    raise StandardError, "The class was designed to work with objects with transforms"
+	    raise StandardError, "The cgmObject class was designed to work with objects with transforms"
 	    
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	
-
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -1870,7 +1945,7 @@ class cgmControl(cgmObject):
 	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	    
     #>>> Module stuff
@@ -2077,7 +2152,7 @@ class cgmObjectSet(cgmNode):
 	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================	
         #log.debug("In cgmObjectSet.__init__ setName is '%s'"%setName)
@@ -2772,7 +2847,7 @@ class cgmBufferNode(cgmNode):
 	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	
 	#====================================================================================
