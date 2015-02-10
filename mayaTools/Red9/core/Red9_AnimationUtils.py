@@ -93,9 +93,9 @@ import os
 import random
 import sys
 import re
+import shutil
 
 import Red9.packages.configobj as configobj
-#import configobj
 
 import logging
 logging.basicConfig()
@@ -108,10 +108,16 @@ global RED_ANIMATION_UI
 '''
 Callback global so you can fire a command prior to the UI opening,
 we use this internally to fire an asset sync call on our project pose library
+and to setup some additional paths
+
+def myProjectCallback()
+    cls.poseHandlerPaths=['MyProjects/resources/poseHandlers']
+    cls.posePathProject ='My_projects/global/project/pose/lib'
+    
+r9Anim.RED_ANIMATION_UI_OPENCALLBACK = myProjectCallback
 '''
 global RED_ANIMATION_UI_OPENCALLBACK
 RED_ANIMATION_UI_OPENCALLBACK=None
-
 
 
 #===========================================================================
@@ -445,6 +451,7 @@ class AnimationUI(object):
         self.filterSettings = r9Core.FilterNode_Settings()
         self.filterSettings.transformClamp = True
         self.presetDir = r9Setup.red9Presets()  # os.path.join(r9Setup.red9ModulePath(), 'presets')
+        self.basePreset = ''
         
         # Pose Management variables
         self.posePath = None  # working variable
@@ -457,6 +464,8 @@ class AnimationUI(object):
         self.poses = None
         self.poseButtonBGC = [0.27, 0.3, 0.3]
         self.poseButtonHighLight = [0.7, 0.95, 0.75]
+        
+        self.poseHandlerPaths=[]  # ['J:/Games/hf2/Tools/CryMayaCore/core/crycore/resources/poseHandlers']
         
         # Internal config file setup for the UI state
         if self.internalConfigPath:
@@ -476,8 +485,6 @@ class AnimationUI(object):
         if 'ui_docked' in animUI.ANIM_UI_OPTVARS['AnimationUI']:
             animUI.dock = eval(animUI.ANIM_UI_OPTVARS['AnimationUI']['ui_docked'])
 
-        print 'Recorded DOCKED STATUS : ', animUI.dock
-
         if r9General.getModifier() == 'Ctrl':
             if not animUI.dock:
                 print 'switching True'
@@ -487,17 +494,17 @@ class AnimationUI(object):
                 animUI.dock = False
             #animUI.dock = False
    
-        animUI._showUI()
-        animUI.ANIM_UI_OPTVARS['AnimationUI']['ui_docked'] = animUI.dock
-        animUI.__uiCache_storeUIElements()
-        
         RED_ANIMATION_UI=animUI
         if callable(RED_ANIMATION_UI_OPENCALLBACK):
             try:
                 log.debug('calling RED_ANIMATION_UI_OPENCALLBACK')
-                RED_ANIMATION_UI_OPENCALLBACK()
+                RED_ANIMATION_UI_OPENCALLBACK(animUI)
             except:
                 log.warning('RED_ANIMATION_UI_OPENCALLBACK failed')
+                
+        animUI._showUI()
+        animUI.ANIM_UI_OPTVARS['AnimationUI']['ui_docked'] = animUI.dock
+        animUI.__uiCache_storeUIElements()
     
     def __uicloseEvent(self,*args):
         print 'AnimUI close event called'
@@ -1716,7 +1723,7 @@ class AnimationUI(object):
             cmds.menuItem(label='Update : Thumb Only', p=parent, command=partial(self.__uiPoseUpdateThumb))
             
         cmds.menuItem(divider=True, p=parent)
-        cmds.menuItem(label='Make Subfolder', en=enableState, p=parent, command=partial(self.__uiPoseMakeSubFolder))
+        cmds.menuItem(label='Add Subfolder', en=enableState, p=parent, command=partial(self.__uiPoseMakeSubFolder))
         cmds.menuItem(label='Refresh List', en=True, p=parent, command=lambda x: self.__uiCB_fillPoses(rebuildFileList=True))
         cmds.menuItem(label='Open Pose File', p=parent, command=partial(self.__uiPoseOpenFile))
         cmds.menuItem(label='Open Pose Directory', p=parent, command=partial(self.__uiPoseOpenDir))
@@ -1739,8 +1746,30 @@ class AnimationUI(object):
             cmds.menuItem(label='Grid Size: Large', p=parent, command=partial(self.__uiCB_setPoseGrid, 'large'))
             
         if self.posePath:
+            cmds.menuItem(divider=True, p=parent)
             self.addPopupMenusFromFolderConfig(parent)
-                                    
+        if self.poseHandlerPaths:
+            cmds.menuItem(divider=True, p=parent)
+            self.addPopupMenus_PoseHandlers(parent)
+    
+    def addPopupMenus_PoseHandlers(self, parentPopup):
+        '''
+        for a given list of folders containing poseHandler files add these as 
+        default 'make subfolder' types to the main poseUI popup menu
+        '''
+        if self.poseHandlerPaths:
+            for path in self.poseHandlerPaths:
+                if os.path.exists(path):
+                    poseHandlers=os.listdir(path)
+                    if poseHandlers:
+                        for handler in poseHandlers:
+                            if handler.endswith('_poseHandler.py'):
+                                handlerPath=os.path.join(path,handler)
+                                log.debug('poseHandler file being copied into new folder : %s' % handlerPath)
+                                cmds.menuItem(label='Add Subfolder : %s' % handler.replace('_poseHandler.py', '').upper(),
+                                              en=True, p=parentPopup,
+                                              command=partial(self.__uiPoseMakeSubFolder, handlerPath))
+                        
     def addPopupMenusFromFolderConfig(self, parentPopup):
         '''
         if the poseFolder has a poseHandler.py file see if it has the 'posePopupAdditions' func
@@ -1999,7 +2028,7 @@ class AnimationUI(object):
         else:
             raise StandardError('RootNode not Set for Hierarchy Processing')
       
-    def __uiPoseMakeSubFolder(self, *args):
+    def __uiPoseMakeSubFolder(self, handlerFile=None, *args):
         '''
         Insert a new SubFolder to the posePath, makes the dir and sets
         it up in the UI to be the current active path
@@ -2007,8 +2036,11 @@ class AnimationUI(object):
         basePath=cmds.textFieldButtonGrp('uitfgPosePath', query=True, text=True)
         if not os.path.exists(basePath):
             raise StandardError('Base Pose Path is inValid or not yet set')
+        promptstring='New Pose Folder Name'
+        if handlerFile:
+            promptstring='New %s POSE Folder Name' % os.path.basename(handlerFile).replace('_poseHandler.py','').upper()
         result = cmds.promptDialog(
-                title='New Folder Name',
+                title=promptstring,
                 message='Enter Name:',
                 button=['OK', 'Cancel'],
                 defaultButton='OK',
@@ -2019,6 +2051,8 @@ class AnimationUI(object):
             cmds.textFieldButtonGrp('uitfgPoseSubPath', edit=True, text=subFolder)
             self.posePath=os.path.join(basePath, subFolder)
             os.mkdir(self.posePath)
+            if handlerFile and os.path.exists(handlerFile):
+                shutil.copy(handlerFile, self.posePath)
             self.__uiCB_pathSwitchInternals()
                 
     def __uiPoseCopyToProject(self, *args):
@@ -2129,6 +2163,12 @@ class AnimationUI(object):
                 
             AnimationUI = self.ANIM_UI_OPTVARS['AnimationUI']
 
+            if self.basePreset:
+                try:
+                    cmds.textScrollList(self.uitslPresets, e=True, si=self.basePreset)
+                    self.__uiPresetSelection(Read=True)
+                except:
+                    log.debug('given basePreset not found')
             if 'filterNode_preset' in AnimationUI and AnimationUI['filterNode_preset']:
                 cmds.textScrollList(self.uitslPresets, e=True, si=AnimationUI['filterNode_preset'])
                 self.__uiPresetSelection(Read=True)  # ##not sure on this yet????
@@ -2399,7 +2439,7 @@ class AnimationUI(object):
         but only filled by the main __uiCall call
         '''
         mPoseA=r9Pose.PoseData(self.filterSettings)
-        mPoseA.buildInternalPoseData(self.__uiCB_getPoseInputNodes())
+        mPoseA.buildDataMap(self.__uiCB_getPoseInputNodes())
         compare = r9Pose.PoseCompare(mPoseA, self.getPosePath(), compareDict=compareDict)
         
         if not compare.compare():
@@ -2423,8 +2463,8 @@ class AnimationUI(object):
         poseNode = r9Pose.PoseData(self.filterSettings)
         poseNode.filepath = self.getPosePath()
         poseNode.useFilter = cmds.checkBox('uicbPoseHierarchy', q=True, v=True)
-        poseNode.matchMethod=self.matchMethod 
-        poseNode._poseLoad_buildcache(self.__uiCB_getPoseInputNodes())
+        poseNode.matchMethod=self.matchMethod
+        poseNode._matchNodes_to_data(self.__uiCB_getPoseInputNodes())
         self._poseBlendUndoChunkOpen=False
         if objs:
             cmds.select(objs)
@@ -2434,7 +2474,7 @@ class AnimationUI(object):
                 cmds.undoInfo(openChunk=True)
                 self._poseBlendUndoChunkOpen=True
                 log.debug('Opening Undo Chunk for PoseBlender')
-            poseNode._applyPose(percent=cmds.floatSliderGrp('poseBlender', q=True, v=True))
+            poseNode._applyData(percent=cmds.floatSliderGrp('poseBlender', q=True, v=True))
         
         def closeChunk(*args):
             cmds.undoInfo(closeChunk=True)
@@ -3724,6 +3764,19 @@ class MirrorHierarchy(object):
     >>> mirror.settings.printSettings()
     >>> mirror.mirrorData(mode='Anim')
     
+    >>># Useful snippets:
+    >>># offset all selected nodes mirrorID by 5
+    >>>mirror=r9Anim.MirrorHierarchy()
+    >>>mirror.incrementIDs(cmds.ls(sl=True), offset=5)
+    >>>
+    >>># set all the mirror axis on the selected
+    >>>for node in cmds.ls(sl=True):
+    >>>    mirror.setMirrorIDs(node,axis='translateX,rotateY,rotateZ')
+    >>>
+    >>># copy mirrorId's from one node to another
+    >>>for src, dest in zip(srcNodes, destNodes):
+    >>>    mirror.copyMirrorIDs(src,dest)
+    
     TODO: We need to do a UI for managing these marker attrs and the Index lists
     
     TODO: allow the mirror block to include an offset so that if you need to inverse AND offset 
@@ -3816,6 +3869,9 @@ class MirrorHierarchy(object):
             else:
                 mClass.addAttr(self.mirrorAxis, axis)
                 mClass.__setattr__(self.mirrorAxis, axis)
+        else:
+            if mClass.hasAttr(self.mirrorAxis):
+                delattr(mClass, self.mirrorAxis)
         del(mClass)  # cleanup
         
     def deleteMirrorIDs(self, node):
@@ -3840,6 +3896,8 @@ class MirrorHierarchy(object):
     def copyMirrorIDs(self, src, dest):
         '''
         Copy mirrorIDs between nodes, note the nodes list passed in is zipped into pairs
+        This will copy all the mirrorData from src to dest, useful for copying data between 
+        systems when the MirrorMap fails due to naming.
         '''
         pairs=zip(src, dest)
         for src, dest in pairs:
@@ -3855,6 +3913,15 @@ class MirrorHierarchy(object):
                               slot=getattr(src, self.mirrorIndex),
                               axis=axis)
 
+    def incrementIDs(self, nodes, offset):
+        '''
+        offset the mirrorIndex on selected nodes by a given offset
+        '''
+        for node in nodes:
+            current = self.getMirrorIndex(node)
+            if current:
+                cmds.setAttr('%s.%s' % (node, self.mirrorIndex), (int(current) + offset))
+        
     def getNodes(self):
         '''
         Get the list of nodes to start processing
@@ -4207,7 +4274,7 @@ class MirrorSetup(object):
                  
         if cmds.window(self.win, exists=True):
             cmds.deleteUI(self.win, window=True)
-        window = cmds.window(self.win, title="MirrorSetup", s=False, widthHeight=(260, 410))
+        window = cmds.window(self.win, title="MirrorSetup", s=False, widthHeight=(280, 410))
         cmds.menuBarLayout()
         cmds.menu(l="VimeoHelp")
         cmds.menuItem(l="Open Vimeo Help File", \
@@ -4216,7 +4283,7 @@ class MirrorSetup(object):
         cmds.menuItem(l="Contact Me", c=lambda *args: (r9Setup.red9ContactInfo()))
         cmds.columnLayout(adjustableColumn=True, columnAttach=('both', 5))
         cmds.separator(h=15, style='none')
-        cmds.text(l='MirrorSide')
+        cmds.text(l='MirrorSide:')
         cmds.rowColumnLayout(nc=3, columnWidth=[(1, 90), (2, 90), (3, 90)])
         self.uircbMirrorSide = cmds.radioCollection('mirrorSide')
         cmds.radioButton('Right', label='Right')
@@ -4225,17 +4292,21 @@ class MirrorSetup(object):
         cmds.setParent('..')
         cmds.separator(h=15, style='in')
         cmds.rowColumnLayout(nc=2, columnWidth=[(1, 110), (2, 60)])
-        cmds.text(label='MirrorIndex')
+        cmds.text(label='MirrorIndex:')
         cmds.intField('ifg_mirrorIndex', v=1, min=1, w=50)
         cmds.setParent('..')
         cmds.separator(h=15, style='in')
-        cmds.text(l='MirrorAxis')
-        cmds.checkBox('default', l='use default settings', v=True,
-                      onc=lambda x: self.__uicb_default(False),
-                      ofc=lambda x: self.__uicb_default(True))
-#        cmds.checkBox('directCopy',l='directCopy', v=True,
-#                      onc=lambda x:cmds.checkBox('default',e=True, v=False),
-#                      ofc=lambda x:cmds.checkBox('default',e=True, v=True))
+        cmds.text(l='MirrorAxis:')
+        cmds.separator(h=5, style='none')
+        cmds.rowColumnLayout(nc=2, columnWidth=[(1, 130), (2, 130)])
+        cmds.checkBox('default', l='Use Default Axis', v=True,
+                      onc=lambda x: self.__uicb_setDefaults('default'),
+                      ofc=lambda x: self.__uicb_setDefaults('custom'))
+        cmds.checkBox('setDirectCopy',l='No Inversing', v=False,
+                      ann='Set the marker so that data is copied over but NO inversing is done on the data, straight copy from left to right',
+                      onc=lambda x:self.__uicb_setDefaults('direct'),  # cmds.checkBox('default',e=True, v=False),
+                      ofc=lambda x:self.__uicb_setDefaults('default'))  # cmds.checkBox('default',e=True, v=True))
+        cmds.setParent('..')
         cmds.separator(h=5, style='none')
         cmds.rowColumnLayout(ann='attrs', numberOfColumns=3,
                                  columnWidth=[(1, 90), (2, 90), (3, 90)])
@@ -4276,27 +4347,35 @@ class MirrorSetup(object):
         cmds.iconTextButton(style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp',
                              c=r9Setup.red9ContactInfo, h=22, w=200)
         cmds.showWindow(window)
-        self.__uicb_default(False)
+        self.__uicb_setDefaults('default')
+        cmds.window(self.win, e=True, widthHeight=(280, 410))
         cmds.radioCollection('mirrorSide', e=True, select='Centre')
 
     def __uicb_getMirrorIDsFromNode(self):
+        '''
+        set the flags based on the given nodes mirror setup
+        '''
         node = cmds.ls(sl=True)[0]
         axis = None
         index = self.mirrorClass.getMirrorIndex(node)
         side = self.mirrorClass.getMirrorSide(node)
-        if cmds.attributeQuery(self.mirrorClass.mirrorAxis, node=node, exists=True):
-            axis = self.mirrorClass.getMirrorAxis(node)
-            
-        # print side,index,axis
-
+        cmds.checkBox('setDirectCopy', e=True, v=False)
+        cmds.checkBox('default', e=True, v=False)
+        
         if side and index:
             cmds.radioCollection('mirrorSide', e=True, select=side)
             cmds.intField('ifg_mirrorIndex', e=True, v=index)
         else:
             raise StandardError('mirror Data not setup on this node')
+        
+        if cmds.attributeQuery(self.mirrorClass.mirrorAxis, node=node, exists=True):
+            axis = self.mirrorClass.getMirrorAxis(node)
+            if not axis:
+                cmds.checkBox('setDirectCopy', e=True, v=True)
+                return
+            
         if axis:
-            self.__uicb_default(True)
-            cmds.checkBox('default', e=True, v=False)
+            self.__uicb_setDefaults('custom')
             for a in axis:
                 if a == 'translateX':
                     cmds.checkBox('translateX', e=True, v=True)
@@ -4312,7 +4391,7 @@ class MirrorSetup(object):
                     cmds.checkBox('rotateZ', e=True, v=True)
         else:
             cmds.checkBox('default', e=True, v=True)
-            self.__uicb_default(False)
+            self.__uicb_setDefaults('default')
         
     def __printDebugs(self):
         self.mirrorClass.nodes = cmds.ls(sl=True)
@@ -4325,15 +4404,21 @@ class MirrorSetup(object):
                 self.mirrorClass.deleteMirrorIDs(node)
                 log.info('deleted MirrorMarkers from : %s' % r9Core.nodeNameStrip(node))
         
-    def __uicb_default(self, mode):
-        cmds.checkBox('translateX', e=True, en=mode, v=False)
-        cmds.checkBox('translateY', e=True, en=mode, v=False)
-        cmds.checkBox('translateZ', e=True, en=mode, v=False)
-        cmds.checkBox('rotateX', e=True, en=mode, v=False)
-        cmds.checkBox('rotateY', e=True, en=mode, v=False)
-        cmds.checkBox('rotateZ', e=True, en=mode, v=False)
+    def __uicb_setDefaults(self, mode):
+        enable=False
+        if mode =='direct':
+            cmds.checkBox('default', e=True, v=False)
+        if mode =='custom':
+            enable=True
+        cmds.checkBox('translateX', e=True, en=enable, v=False)
+        cmds.checkBox('translateY', e=True, en=enable, v=False)
+        cmds.checkBox('translateZ', e=True, en=enable, v=False)
+        cmds.checkBox('rotateX', e=True, en=enable, v=False)
+        cmds.checkBox('rotateY', e=True, en=enable, v=False)
+        cmds.checkBox('rotateZ', e=True, en=enable, v=False)
         # now set
-        if not mode:
+        if mode=='default':
+            cmds.checkBox('setDirectCopy', e=True, v=False)
             for axis in self.mirrorClass.defaultMirrorAxis:
                 if axis == 'translateX':
                     cmds.checkBox('translateX', e=True, v=True)
@@ -4354,8 +4439,8 @@ class MirrorSetup(object):
         '''
         if cmds.checkBox('default', q=True, v=True):
             return None
-        # elif cmds.checkBox('directCopy', q=True, v=True):
-        #    return 'None'
+        elif cmds.checkBox('setDirectCopy', q=True, v=True):
+            return 'None'
         else:
             axis = []
             if cmds.checkBox('translateX', q=True, v=True):
