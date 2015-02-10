@@ -186,8 +186,11 @@ def set_mClassInline(self, setClass = None):
 	_currentMClass = attributes.doGetAttr(self.mNode,'mClass')#...use to avoid exceptions	
 	_b_flushCacheInstance = False
 	
+	if setClass in [True, 1]:
+	    setClass = type(self).__name__	
+	    
 	if setClass not in r9Meta.RED9_META_REGISTERY:
-	    log.error("{0} | mClass value not registered...".format(_str_func))	
+	    log.error("{0} | mClass value not registered - '{1}'".format(_str_func,setClass))	
 	    return False
 	
 	if setClass:#...if we're going to set the mClass attr...
@@ -218,6 +221,9 @@ def set_mClassInline(self, setClass = None):
 	    except Exception,error:
 		r9Meta.printMetaCacheRegistry()
 		raise Exception,"{0} pop fail...| {1}".format(_str_func,error)
+	    
+	    self.addAttr('UUID',attrType='string')#...necessary to enable proper caching	    
+	    
 	return _reinitialize
     except Exception,error:
 	raise Exception,"set_mClassInline fail >> %s"%error
@@ -276,9 +282,11 @@ def set_mClass(self, str_mClass):
     except Exception,error:
 	raise Exception,"set_mClass fail >> %s"%error
     
+
+
 class cgmTest(r9Meta.MetaClass):
     def __bind__(self):pass	    
-    def __init__(self,node = None, name = None,nodeType = 'network',setClass = False,**kws):	
+    def __init__(self,node = None, name = None,nodeType = 'network',setClass = None,**kws):	
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """			
@@ -287,10 +295,193 @@ class cgmTest(r9Meta.MetaClass):
 	log.info("setClass: {0}".format(setClass))			
 	log.info("kws: {0}".format(kws))		
     
+def dupe(*args, **kws):
+    """
+    Rewrite to get around using mc.duplicate which gets exceedingly slow as a scene gets more dense. Working 
+    on adding features. This is not a full on replacement for duplicate and should be used carefully. 
+    
+    Currently:
+        User attrs are copied over with connections. The rest have no connections. Deciding whether to add that.
+        Joints, Locators and Curves are supported
+    
+    :parameters:
+        object | str/instance
+            Joint to duplicate
+        asMeta | bool
+            What to return as
+
+    :returns:
+        str or instance of new joint
+
+    :raises:
+        TypeError | if 'arg' is not a joint
+	
+    """ 
+    class fncWrap(cgmGeneral.cgmFuncCls):
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'dupe'
+	    #self._b_reportTimes = 1 #..we always want this on so we're gonna set it on
+	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'target',"default":None,"argType":'str/instance','help':"Object to duplicate"},
+	                                 {'kw':'parentOnly',"default":True,"argType":'bool','help':"whether to dup parent only"},
+	                                 {'kw':'incomingConnections',"default":False,"argType":'bool','help':"Whether to duplicate incoming connections"},
+	                                 {'kw':'breakMessagePlugsOut',"default":False,"argType":'bool','help':"Whether to break message out connections"},
+	                                 _d_KWARG_asMeta,
+	                                 ]	    
+	    self.__dataBind__(*args, **kws)
+	    
+	    #Now we're gonna register some steps for our function...
+	    self.l_funcSteps = [{'step':'Validating Args','call':self._validate_},
+	                        {'step':'Process','call':self._process_},
+	                        ]
+
+	def _validate_(self):
+	    self.mi_targetObj = validateObjArg(self.d_kws['target'])    
+	    self.b_po = cgmValid.boolArg(self.d_kws['parentOnly'],noneValid=False)   
+	    self.b_incomingConnections = cgmValid.boolArg(self.d_kws['incomingConnections'],noneValid=False)   
+	    self.b_breakMessageOut = cgmValid.boolArg(self.d_kws['breakMessagePlugsOut'],noneValid=False)
+	    self.b_asMeta = cgmValid.boolArg(self.d_kws['asMeta'],noneValid=False)
+	    self.ml_dupes = []
+	    
+	    self.d_typeToFunc = {'joint':self.duplicateJoint,
+	                         'locator':self.duplicateLocator,
+	                         'nurbsCurve':self.duplicateNurbsCurve}
+	    self.d_typeToAttrList = {'transform':['translateX','translateY','translateZ',
+	                                          'rotateX','rotateY','rotateZ',
+	                                          'scaleX','scaleY','scaleZ','visibility'],
+	                             'joint':['rotateOrder','rotateAxisX','rotateAxisY','rotateAxisZ',
+	                                      'inheritsTransform','drawStyle','radius',
+	                                      'jointTypeX','jointTypeY','jointTypeZ',
+	                                      'stiffnessX','stiffnessY','stiffnessZ',
+	                                      'preferredAngleX','preferredAngleY','preferredAngleZ',
+	                                      'jointOrientX','jointOrientY','jointOrientZ','segmentScaleCompensate'],
+	                             'locatorShape':['localPositionX','localPositionY','localPositionZ',
+	                                             'localScaleX','localScaleY','localScaleZ']
+	                             }	    
+	    if not self.b_po:
+		raise NotImplementedError,"parentOnly False mode not implemented"
+	    if self.b_incomingConnections:
+		raise NotImplementedError,"incomingConnections mode not implemented"
+	    if self.b_breakMessageOut:
+		raise NotImplementedError,"breakMessagePlugsOut mode not implemented"
+	    #self.log_toDo('Implement incoming connections, parentOnly and maybe breakMessagePlugs but that may only be necessary for stuff actually duplicated')
+	def _process_(self):
+	    self.ml_targets = [self.mi_targetObj]
+	    _max = len(self.ml_targets)
+	    
+	    for i,mObj in enumerate(self.ml_targets):
+                self.progressBar_set(status = ("Duplicating Target %i"%i), progress = i, maxValue = _max)
+		self.ml_dupes.append( self.duplicateObj(mObj) )
+		
+	    if self.b_asMeta:
+		return self.ml_dupes
+	    return [mObj.mNode for mObj in self.ml_dupes]	
+	
+	def duplicateObj(self,mObj = None):
+	    _str_mayaType = mObj.getMayaType()#...need our mayatype
+	    if _str_mayaType not in self.d_typeToFunc.keys():
+		raise ValueError,"mayaType not supported: {0}".format(_str_mayaType)
+	    
+	    try:
+		mDup = self.d_typeToFunc[_str_mayaType](mObj)
+	    except Exception,error:raise Exception,"Create | {0}".format(error)
+		
+	    try:
+		mc.rename(mDup.mNode, "{0}_CGMDUPE".format(mObj.getBaseName()))
+	    except Exception,error:raise Exception,"Name | {0}".format(error)
+	    
+	    try:#Positioning...
+		mDup.parent = mObj.parent 
+		#mc.delete(mc.parentConstraint(mObj.mNode,mDup.mNode))
+		if _str_mayaType == 'joint':
+		    mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze	    		
+	    except Exception,error:raise Exception,"Positioning | {0}".format(error)
+		
+	    try:#User Attr copy...
+		l_userAttrs =  mObj.getUserAttrs()
+		_max_userAttrs = len(l_userAttrs)
+		
+		for ii,attr in enumerate(l_userAttrs):
+		    self.progressBar_set(status = ("{0} Copying attr: {1}".format(ii,attr)), progress = ii, maxValue = _max_userAttrs)		    
+		    try:cgmAttr(mObj,attr).doCopyTo(mDup.mNode)	
+		    except Exception,error:
+			self.log_error("Attr failed to transfer : {0} | {1}".format(attr,error))
+	    except Exception,error:raise Exception,"Attr Copy | {0}".format(error)
+	    
+	    try:
+		l_specific = []
+		if mDup.isTransform():#If we have a transform, gonna use that list as our base
+		    l_specific = self.d_typeToAttrList.get('transform')
+		
+		l_specific.extend( self.d_typeToAttrList.get(_str_mayaType) or [])
+
+		_max_Attrs = len(l_specific)		
+		for i,attr in enumerate(l_specific):
+		    self.progressBar_set(status = ("{0} Copying attr: {1}".format(i,attr)), progress = i, maxValue = _max_Attrs)		    
+		    try:
+			_value = attributes.doGetAttr(mObj.mNode,attr)
+			attributes.doSetAttr(mDup.mNode,attr, _value)
+			#tcgmAttr(mObj,attr).doCopyTo(mDup.mNode)	
+		    except Exception,error:
+			self.log_error("Attr failed to set : {0} | {1}".format(attr,error))		    
+	    except Exception,error:raise Exception,"Attr Copy | {0}".format(error)
+		
+	    '''try:#Attr copy...
+		l_buffer =  mObj.getAttrs(settable = True)
+		l_Attrs = []
+		for a in l_buffer:
+		    if a not in l_userAttrs:
+			l_Attrs.append(a)
+		_max_Attrs = len(l_Attrs)
+		for ii,attr in enumerate(l_Attrs):
+		    _value = None		    
+		    self.progressBar_set(status = ("{0} Copying attr: {1}".format(ii,attr)), progress = ii, maxValue = _max_Attrs)		    
+		    try:
+			_value = attributes.doGetAttr(mObj.mNode,attr)
+			attributes.doSetAttr(mDup.mNode,attr, _value)
+		    except Exception,error:
+			self.log_error("Attr failed to set : {0} | {1}".format(attr,error))	
+	    except Exception,error:raise Exception,"Attr Copy | {0}".format(error)'''
+	    
+	    try:#...InverseScale..
+		mAttr_inverseScale = cgmAttr(mObj,'inverseScale')
+		_driver = mAttr_inverseScale.getDriver()
+		if _driver:
+		    cgmAttr(mDup,"inverseScale").doConnectIn(_driver)	
+	    except Exception,error:raise Exception,"Attr Copy | {0}".format(error)
+
+	    return mDup
+	    
+	def duplicateLocator(self,mObj = None):
+	    mDup = cgmObject( mc.spaceLocator()[0])
+	    _dupShapes = mDup.getShapes()
+	    _tarShape = mObj.getShapes()[0]
+	    l_shapeAttrs = self.d_typeToAttrList['locatorShape']
+
+	    _max_Attrs = len(l_shapeAttrs)		
+	    for i,attr in enumerate(l_shapeAttrs):
+		self.progressBar_set(status = ("{0} Copying attr: {1}".format(i,attr)), progress = i, maxValue = _max_Attrs)		    
+		for shape in _dupShapes:
+		    try:
+			_value = attributes.doGetAttr(_tarShape,attr)
+			attributes.doSetAttr(shape,attr, _value)
+		    except Exception,error:
+			self.log_error("Attr failed to set : {0} | {1}".format(attr,error))	    
+	    
+	    return mDup
+	
+	def duplicateJoint(self,mObj = None):
+	    mDup = cgmObject(mc.joint())
+	    return mDup
+	
+	def duplicateNurbsCurve(self,mObj = None):
+	    mDup = cgmObject(mc.duplicateCurve(mObj.mNode)[0])
+	    return mDup	    
+    return fncWrap(*args, **kws).go()
+	
 class cgmNode(r9Meta.MetaClass):
     def __bind__(self):pass	
     def __init__(self,node = None, name = None,nodeType = 'network',setClass = None, **kws):
-	#def __init__(self,node = None, name = None,nodeType = 'network',setClass = None,**kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
         """
@@ -314,16 +505,13 @@ class cgmNode(r9Meta.MetaClass):
 	
 	#>>> TO Check the cache if it needs to be cleared ----------------------------------
 	if setClass is not None:
-	    #_buffer = self.mNode
 	    if set_mClassInline(self, setClass):
-		r9Meta.MetaClass(self.mNode)
+		log.debug('cgmNode init | reinitialize post set_mClass')
+		super(cgmNode, self).__init__(self.mNode)
+	    r9Meta.registerMClassNodeCache(self)#...if we've set the class, we wanna cache
 		    
 	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug("cgmNode | CACHE : Aborting __init__ on pre-cached '{0}' Object" .format(self.mNode))		
-	    return
-	
-	self.addAttr('UUID',attrType='string')#necessary to enable proper caching
+	if self.cached:return
 	
 	#====================================================================================
 	try:
@@ -1506,10 +1694,15 @@ class cgmObject(cgmNode):
 	    log.error("'%s' has no transform"%self.mNode)	    
 	    raise StandardError, "The cgmObject class was designed to work with objects with transforms"
 	    
+	#>>> TO Check the cache if it needs to be cleared ----------------------------------
+	if setClass is not None:
+	    if set_mClassInline(self, setClass):
+		log.debug('cgmObject init | reinitialize post set_mClass')
+		super(cgmObject, self).__init__(self.mNode)
+	    r9Meta.registerMClassNodeCache(self)#...if we've set the class, we wanna cache
+		    
 	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
+	if self.cached:return
 	
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
@@ -1927,7 +2120,7 @@ class cgmObject(cgmNode):
 # cgmObjectSet - subclass to cgmNode
 #=========================================================================  
 class cgmControl(cgmObject): 
-    def __init__(self,node = None, name = 'null',setClass = False,**kws):
+    def __init__(self,node = None, name = 'null',setClass = None,**kws):
 	""" 
 	Class for control specific functions
     
@@ -1939,14 +2132,15 @@ class cgmControl(cgmObject):
 	except StandardError,error:
 	    raise StandardError, "cgmControl.__init__ fail! | %s"%error
 	
-	#>>> TO Check the cache if it needs to be cleared ----------------------------------	
-	#if check_cacheClear(self,'cgmControl',setClass):
-	    #super(cgmControl, self).__init__(node=node, name = name)	
-	
+	#>>> TO Check the cache if it needs to be cleared ----------------------------------
+	if setClass is not None:
+	    if set_mClassInline(self, setClass):
+		log.debug('cgmControl init | reinitialize post set_mClass')
+		super(cgmControl, self).__init__(self.mNode)
+	    r9Meta.registerMClassNodeCache(self)#...if we've set the class, we wanna cache
+		    
 	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
+	if self.cached:return
 	    
     #>>> Module stuff
     #========================================================================
@@ -2126,7 +2320,7 @@ class cgmObjectSet(cgmNode):
     """ 
     Maya Object Set Class handler
     """ 	
-    def __init__(self,setName = None,setType = False,qssState = None,value = None,setClass = False,**kws):
+    def __init__(self,setName = None,setType = False,qssState = None,value = None,setClass = None,**kws):
         """ 
         Intializes an set factory class handler
         
@@ -2146,14 +2340,16 @@ class cgmObjectSet(cgmNode):
 	    super(cgmObjectSet, self).__init__(node = setName,nodeType = __nodeType)
 	
 	
-	#>>> TO Check the cache if it needs to be cleared ----------------------------------	
-	#if check_cacheClear(self,'cgmObjectSet',setClass):
-	    #super(cgmObjectSet, self).__init__(node=node, name = name, nodeType = __nodeType)	
-	
+	#>>> TO Check the cache if it needs to be cleared ----------------------------------
+	if setClass is not None:
+	    if set_mClassInline(self, setClass):
+		log.debug('cgmObjectSet init | reinitialize post set_mClass')
+		super(cgmObjectSet, self).__init__(self.mNode)
+	    r9Meta.registerMClassNodeCache(self)#...if we've set the class, we wanna cache
+		    
 	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
+	if self.cached:return
+	
 	#====================================================================================	
         #log.debug("In cgmObjectSet.__init__ setName is '%s'"%setName)
         #log.debug("In cgmObjectSet.__init__ setType is '%s'"%setType) 
@@ -2208,14 +2404,14 @@ class cgmObjectSet(cgmNode):
         if arg:
             if mc.sets(self.mNode,q=True,text=True)!= 'gCharacterSet':
                 mc.sets(self.mNode, edit = True, text = 'gCharacterSet')
-                log.warning("'%s' is now a qss"%(self.mNode))
+                log.debug("'%s' is now a qss"%(self.mNode))
                 self.qssState = True
 		return True
                 
         else:
             if mc.sets(self.mNode,q=True,text=True)== 'gCharacterSet':
                 mc.sets(self.mNode, edit = True, text = '')            
-                log.warning("'%s' is no longer a qss"%(self.mNode)) 
+                log.debug("'%s' is no longer a qss"%(self.mNode)) 
                 self.qssState = False	
 		return False
 		
@@ -2253,7 +2449,7 @@ class cgmObjectSet(cgmNode):
 	    if search.returnTagInfo(self.mNode,'cgmType') != doSetType:
 		if attributes.storeInfo(self.mNode,'cgmType',doSetType,True):
 		    self.doName()
-		    log.warning("'%s' renamed!"%(self.mNode))  
+		    log.debug("'%s' renamed!"%(self.mNode))  
 		    return self.mNode
 		else:               
 		    log.warning("'%s' failed to store info"%(self.mNode))  
@@ -2261,7 +2457,7 @@ class cgmObjectSet(cgmNode):
         else:
             attributes.doDeleteAttr(self.mNode,'cgmType')
             self.doName()
-            log.warning("'%s' renamed!"%(self.mNode))  
+            log.debug("'%s' renamed!"%(self.mNode))  
             return self.mNode
 
     objectSetType = property(getSetType, doSetType)
@@ -2343,7 +2539,7 @@ class cgmObjectSet(cgmNode):
         
         """
         if not mc.objExists(info):
-	    log.warning("'%s' doesn't exist"%info)
+	    log.warning("'%s' doesn't exist. Cannot add to object set."%info)
 	    return False
         if info == self.mNode:
             return False
@@ -2355,7 +2551,7 @@ class cgmObjectSet(cgmNode):
             mc.sets(info,add = self.mNode)
             #log.debug("'%s' added to '%s'!"%(info,self.mNode))  	    
         except:
-            log.warning("'%s' failed to add to '%s'"%(info,self.mNode))    
+            log.error("'%s' failed to add to '%s'"%(info,self.mNode))    
             
     def addSelected(self): 
         """ Store selected objects """
@@ -2385,14 +2581,14 @@ class cgmObjectSet(cgmNode):
 	info = buffer[0]
 	
         if not self.doesContain(info):
-            log.warning("'%s' isn't already stored '%s'"%(info,self.mNode))    
+            log.debug("'%s' isn't already stored '%s'"%(info,self.mNode))    
             return
         try:
             mc.sets(info,rm = self.mNode)    
-            log.warning("'%s' removed from '%s'!"%(info,self.mNode))  
+            log.debug("'%s' removed from '%s'!"%(info,self.mNode))  
             
         except:
-            log.warning("'%s' failed to remove from '%s'"%(info,self.mNode))    
+            log.error("'%s' failed to remove from '%s'"%(info,self.mNode))    
             
     def removeSelected(self): 
         """ Store elected objects """
@@ -2413,7 +2609,7 @@ class cgmObjectSet(cgmNode):
                 self.remove(item)
                 SelectCheck = True                                
             except:
-                log.warning("Couldn't remove '%s'"%(item)) 
+                log.error("Couldn't remove '%s'"%(item)) 
                 
         if not SelectCheck:
             log.warning("No selection found")   
@@ -2422,15 +2618,15 @@ class cgmObjectSet(cgmNode):
         """ Purge all set memebers from a set """
         try:
             mc.sets( clear = self.mNode)
-            log.warning("'%s' purged!"%(self.mNode))     
+            log.debug("'%s' purged!"%(self.mNode))     
         except:
-            log.warning("'%s' failed to purge"%(self.mNode)) 
+            log.error("'%s' failed to purge"%(self.mNode)) 
         
     def copy(self):
         """ Duplicate a set """
         try:
             buffer = mc.sets(name = ('%s_Copy'%self.mNode), copy = self.mNode)
-            log.warning("'%s' duplicated!"%(self.mNode))
+            log.debug("'%s' duplicated!"%(self.mNode))
 	    
 	    for attr in dictionary.cgmNameTags:
 		if mc.objExists("%s.%s"%(self.mNode,attr)):
@@ -2438,7 +2634,7 @@ class cgmObjectSet(cgmNode):
 		
 	    return buffer
         except:
-            log.warning("'%s' failed to copy"%(self.mNode)) 
+            log.error("'%s' failed to copy"%(self.mNode)) 
             
     def select(self):
         """ 
@@ -2696,7 +2892,7 @@ class cgmOptionVar(object):
 		    #log.debug("Checks out")
                     return                
                 else:
-		    log.warning("Converting optionVar type...")
+		    log.debug("Converting optionVar type...")
                     self.create(requestVarType)
 		    if dataBuffer is not None:
 			#log.debug("Attempting to set with: %s"%dataBuffer)
@@ -2729,7 +2925,7 @@ class cgmOptionVar(object):
     def append(self,value): 
         if type(self.value) is list or type(self.value) is tuple:
             if value in self.value:
-                return log.warning("'%s' already added"%(value))
+                return log.debug("'%s' already added"%(value))
 
         if self.varType == 'int':
             try:
@@ -2820,13 +3016,13 @@ class cgmOptionVar(object):
         for item in self.value:
 	    if not mc.objExists(item):
 		self.remove(item)
-		log.warning("'%s' removed from '%s'"%(item,self.name))
+		log.debug("'%s' removed from '%s'"%(item,self.name))
 			
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmBuffer - replacement for a multimessage attribute. Stores a list to object
 #=========================================================================
 class cgmBufferNode(cgmNode):
-    def __init__(self,node = None, name = None, value = None, nodeType = 'network', overideMessageCheck = False,setClass = False, **kws):
+    def __init__(self,node = None, name = None, value = None, nodeType = 'network', overideMessageCheck = False,setClass = None, **kws):
         """ 
 	Replacement for a multimessage attribute when you want to be able to link to an attr
 	
@@ -2841,14 +3037,15 @@ class cgmBufferNode(cgmNode):
 
 	super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
 	
-	#>>> TO Check the cache if it needs to be cleared ----------------------------------	
-	#if check_cacheClear(self,'cgmBufferNode',setClass):
-	    #super(cgmBufferNode, self).__init__(node=node, name = name, nodeType = nodeType)	
-	
+	#>>> TO Check the cache if it needs to be cleared ----------------------------------
+	if setClass is not None:
+	    if set_mClassInline(self, setClass):
+		log.debug('cgmBufferNode init | reinitialize post set_mClass')
+		super(cgmBufferNode, self).__init__(self.mNode)
+	    r9Meta.registerMClassNodeCache(self)#...if we've set the class, we wanna cache
+		    
 	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
+	if self.cached:return
 	
 	#====================================================================================
 	
@@ -3139,7 +3336,7 @@ class cgmAttr(object):
 		for o in value:
 		    if mc.objExists(o):
 			self.attrType = 'message'		
-			log.warning('Multi message mode!')
+			log.debug('Multi message mode!')
 			break
 		    self.attrType = 'double3'#Need better detection here for json and what not
 	    elif mc.objExists(value):
@@ -3620,13 +3817,13 @@ class cgmAttr(object):
 			    try:
 				mc.addAttr((cInstance.obj.mNode+'.'+cInstance.attr),e=True,defaultValue = value)
 			    except:
-				log.warning("'%s' failed to set a default value"%cInstance.p_combinedName)                
+				log.debug("'%s' failed to set a default value"%cInstance.p_combinedName)                
 		    
 		    else:     
 			try:
 			    mc.addAttr((self.obj.mNode+'.'+self.attr),e=True,defaultValue = value)
 			except:
-			    log.error("'%s.%s' failed to set a default value"%(self.obj.mNode,self.attr))     
+			    log.debug("'%s.%s' failed to set a default value"%(self.obj.mNode,self.attr))     
 	except Exception,error:
 	    fmt_args = [self.obj.p_nameShort, self.p_nameLong, value, error]
 	    s_errorMsg = "{0}.{1}.doDefault() | value: {2} | error: {3}".format(*fmt_args)	    
