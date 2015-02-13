@@ -35,28 +35,46 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=================================================================
 
-attrTypesDict = {'message':['message','msg'],
-                 'double':['float','fl','f','doubleLinear','doubleAngle','double','d'],
-                 'string':['string','s','str'],
-                 'long':['long','int','i','integer'],
-                 'bool':['bool','b','boolean'],
-                 'enum':['enum','options','e'],
-                 'double3':['vector','vec','v','double3','d3'],
-                 'multi':['multi','m']}
+attrTypesDict = {'message':('message','msg'),
+                 'double':('float','fl','f','doubleLinear','doubleAngle','double','d'),
+                 'string':('string','s','str'),
+                 'long':('long','int','i','integer'),
+                 'bool':('bool','b','boolean'),
+                 'enum':('enum','options','e'),
+                 'double3':('vector','vec','v','double3','d3'),
+                 'multi':('multi','m')}
 
-attrCompatibilityDict = {'message':['message'],
-                         'double':['float','doubleLinear','doubleAngle','double'],
-                         'string':['string'],
-                         'long':['long','integer'],
-                         'bool':['bool',],
-                         'enum':['enum'],
-                         'double3':['vector','double3'],
-                         'multi':['multi']}
-
+attrCompatibilityDict = {'message':('message'),
+                         'double':('float','doubleLinear','doubleAngle','double'),
+                         'string':('string'),
+                         'long':('long','integer'),
+                         'bool':('bool',),
+                         'enum':('enum'),
+                         'double3':('vector','double3'),
+                         'multi':('multi')}
 
 dataConversionDict = {'long':int,
                       'string':str,
-                      'double':float}   
+                      'double':float} 
+
+d_attrCategoryLists = {'transform':('translateX','translateY','translateZ',
+                                    'rotateX','rotateY','rotateZ',
+                                    'scaleX','scaleY','scaleZ','visibility'),
+                       'joint':('rotateOrder','rotateAxisX','rotateAxisY','rotateAxisZ',
+                                'inheritsTransform','drawStyle','radius',
+                                'jointTypeX','jointTypeY','jointTypeZ',
+                                'stiffnessX','stiffnessY','stiffnessZ',
+                                'preferredAngleX','preferredAngleY','preferredAngleZ',
+                                'jointOrientX','jointOrientY','jointOrientZ','segmentScaleCompensate','showManipDefault',
+                                'displayHandle','displayLocalAxis','selectHandleX','selectHandleY','selectHandleZ'),
+                       'objectDisplayAttrs':('visibility','template','lodVisibility'),
+                       'curveShapeAttrs':('intermediateObject','dispCV','dispEP','dispHull','dispGeometry'),
+                       'locatorShape':('localPositionX','localPositionY','localPositionZ',
+                                       'localScaleX','localScaleY','localScaleZ'),
+                       'overrideAttrs':('overrideEnabled','overrideDisplayType',
+                                        'overrideLevelOfDetail','overrideShading',
+                                        'overrideTexturing','overridePlayback',
+                                        'overrideVisibility','overrideColor')}
 def validateAttrArg(arg):
     """
     Validate an attr arg to usable info

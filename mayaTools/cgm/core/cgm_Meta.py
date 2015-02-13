@@ -15,6 +15,7 @@ It is uses Mark Jackson (Red 9)'s as a base.
 import maya.cmds as mc
 import maya.mel as mel
 import copy
+import time
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -336,28 +337,21 @@ def dupe(*args, **kws):
 	                        ]
 
 	def _validate_(self):
+	    '''Validate all our args and see if we can continue'''
 	    self.mi_targetObj = validateObjArg(self.d_kws['target'])    
 	    self.b_po = cgmValid.boolArg(self.d_kws['parentOnly'],noneValid=False)   
 	    self.b_incomingConnections = cgmValid.boolArg(self.d_kws['incomingConnections'],noneValid=False)   
 	    self.b_breakMessageOut = cgmValid.boolArg(self.d_kws['breakMessagePlugsOut'],noneValid=False)
 	    self.b_asMeta = cgmValid.boolArg(self.d_kws['asMeta'],noneValid=False)
 	    self.ml_dupes = []
+	    self._str_mayaType = None
 	    
 	    self.d_typeToFunc = {'joint':self.duplicateJoint,
 	                         'locator':self.duplicateLocator,
 	                         'nurbsCurve':self.duplicateNurbsCurve}
-	    self.d_typeToAttrList = {'transform':['translateX','translateY','translateZ',
-	                                          'rotateX','rotateY','rotateZ',
-	                                          'scaleX','scaleY','scaleZ','visibility'],
-	                             'joint':['rotateOrder','rotateAxisX','rotateAxisY','rotateAxisZ',
-	                                      'inheritsTransform','drawStyle','radius',
-	                                      'jointTypeX','jointTypeY','jointTypeZ',
-	                                      'stiffnessX','stiffnessY','stiffnessZ',
-	                                      'preferredAngleX','preferredAngleY','preferredAngleZ',
-	                                      'jointOrientX','jointOrientY','jointOrientZ','segmentScaleCompensate'],
-	                             'locatorShape':['localPositionX','localPositionY','localPositionZ',
-	                                             'localScaleX','localScaleY','localScaleZ']
-	                             }	    
+	    
+	    self.d_attrLists = attributes.d_attrCategoryLists.copy()
+	    
 	    if not self.b_po:
 		raise NotImplementedError,"parentOnly False mode not implemented"
 	    if self.b_incomingConnections:
@@ -365,12 +359,13 @@ def dupe(*args, **kws):
 	    if self.b_breakMessageOut:
 		raise NotImplementedError,"breakMessagePlugsOut mode not implemented"
 	    #self.log_toDo('Implement incoming connections, parentOnly and maybe breakMessagePlugs but that may only be necessary for stuff actually duplicated')
+	
 	def _process_(self):
 	    self.ml_targets = [self.mi_targetObj]
 	    _max = len(self.ml_targets)
 	    
 	    for i,mObj in enumerate(self.ml_targets):
-                self.progressBar_set(status = ("Duplicating Target %i"%i), progress = i, maxValue = _max)
+                #self.progressBar_set(status = ("Duplicating Target %i"%i), progress = i, maxValue = _max)
 		self.ml_dupes.append( self.duplicateObj(mObj) )
 		
 	    if self.b_asMeta:
@@ -379,11 +374,14 @@ def dupe(*args, **kws):
 	
 	def duplicateObj(self,mObj = None):
 	    _str_mayaType = mObj.getMayaType()#...need our mayatype
+	    self._str_mayaType = _str_mayaType
+	    
 	    if _str_mayaType not in self.d_typeToFunc.keys():
 		raise ValueError,"mayaType not supported: {0}".format(_str_mayaType)
 	    
 	    try:
-		mDup = self.d_typeToFunc[_str_mayaType](mObj)
+		self._str_substep = 'create'		
+		mDup = self.subTimer(self.d_typeToFunc[_str_mayaType],mObj)		
 	    except Exception,error:raise Exception,"Create | {0}".format(error)
 		
 	    try:
@@ -391,92 +389,119 @@ def dupe(*args, **kws):
 	    except Exception,error:raise Exception,"Name | {0}".format(error)
 	    
 	    try:#Positioning...
-		mDup.parent = mObj.parent 
-		#mc.delete(mc.parentConstraint(mObj.mNode,mDup.mNode))
-		if _str_mayaType == 'joint':
-		    mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze	    		
+		self._str_substep = 'positioning'		
+		self.subTimer(self.sub_userAttrs,mObj,mDup)				    		
 	    except Exception,error:raise Exception,"Positioning | {0}".format(error)
 		
 	    try:#User Attr copy...
+		self._str_substep = 'userAttr'		
+		self.subTimer(self.sub_userAttrs,mObj,mDup)			
+	    except Exception,error:raise Exception,"UserAttr Call | {0}".format(error)
+	    
+	    try:#Attr copy...
+		self._str_substep = 'attrCopy'		
+		self.subTimer(self.attrCopy,mObj,mDup)	    
+	    except Exception,error:raise Exception,"Attr Copy Call | {0}".format(error)
+	    
+	    try:#...InverseScale..
+		self._str_substep = 'inverseScale'		
+		self.subTimer(self.sub_inverseScale, mObj, mDup)	
+	    except Exception,error:raise Exception,"Inverse Scale Call | {0}".format(error)
+	    
+	    return mDup
+	
+	def sub_positioning(self, mObj, mDup):
+	    _str_mayaType = self._str_mayaType
+	    try:#InverseScale
+		mDup.parent = mObj.parent 
+		if _str_mayaType == 'joint':
+		    mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze  
+	    except Exception,error:raise Exception,"Positioning | {0}".format(error)
+	    
+	def sub_userAttrs(self, mObj, mDup):
+	    _str_mayaType = self._str_mayaType
+	    try:#InverseScale
 		l_userAttrs =  mObj.getUserAttrs()
 		_max_userAttrs = len(l_userAttrs)
 		
 		for ii,attr in enumerate(l_userAttrs):
-		    self.progressBar_set(status = ("{0} Copying attr: {1}".format(ii,attr)), progress = ii, maxValue = _max_userAttrs)		    
 		    try:cgmAttr(mObj,attr).doCopyTo(mDup.mNode)	
 		    except Exception,error:
-			self.log_error("Attr failed to transfer : {0} | {1}".format(attr,error))
-	    except Exception,error:raise Exception,"Attr Copy | {0}".format(error)
+			self.log_error("Attr failed to transfer : {0} | {1}".format(attr,error))   
+	    except Exception,error:raise Exception,"Inverse Scale | {0}".format(error)
 	    
-	    try:
-		l_specific = []
-		if mDup.isTransform():#If we have a transform, gonna use that list as our base
-		    l_specific = self.d_typeToAttrList.get('transform')
+	def sub_inverseScale(self, mObj, mDup):
+	    _str_mayaType = self._str_mayaType
+	    try:#InverseScale
+		if mObj.hasAttr('inverseScale'):
+		    mAttr_inverseScale = cgmAttr(mObj,'inverseScale')
+		    _driver = mAttr_inverseScale.getDriver()
+		    if _driver:
+			cgmAttr(mDup,"inverseScale").doConnectIn(_driver)	   
+	    except Exception,error:raise Exception,"Inverse Scale | {0}".format(error)
+	    
+	def attrCopy(self,mObj,mDup):
+	    _str_mayaType = self._str_mayaType
+	    l_specific = []	    
+	    try:#Attr copy...
+		if mObj.isTransform():#If we have a transform, gonna use that list as our base
+		    l_specific.extend( self.d_attrLists.get('transform') )
+		    
+		l_specific.extend( self.d_attrLists.get(_str_mayaType) or [])
 		
-		l_specific.extend( self.d_typeToAttrList.get(_str_mayaType) or [])
-
-		_max_Attrs = len(l_specific)		
+		_obj = mObj.mNode
+		_dup = mDup.mNode
 		for i,attr in enumerate(l_specific):
-		    self.progressBar_set(status = ("{0} Copying attr: {1}".format(i,attr)), progress = i, maxValue = _max_Attrs)		    
+		    #self.progressBar_set(status = ("{0} Copying attr: {1}".format(i,attr)), progress = i, maxValue = _max_Attrs)		    
+		    #t1 = time.time()
 		    try:
-			_value = attributes.doGetAttr(mObj.mNode,attr)
-			attributes.doSetAttr(mDup.mNode,attr, _value)
-			#tcgmAttr(mObj,attr).doCopyTo(mDup.mNode)	
+			#pass
+			_value = attributes.doGetAttr(_obj,attr)
+			attributes.doSetAttr(_obj, attr, _value)
+			#cgmAttr(mObj,attr).doCopyTo(_dup)	
 		    except Exception,error:
-			self.log_error("Attr failed to set : {0} | {1}".format(attr,error))		    
+			self.log_error("Attr failed to set : {0} | {1}".format(attr,error))
+		    #t2 = time.time()
+		    #_str_time = "%0.3f"%(t2-t1)		    
+		    #log.info("attr: {0} | {1}".format(attr,_str_time))		    
 	    except Exception,error:raise Exception,"Attr Copy | {0}".format(error)
-		
-	    '''try:#Attr copy...
-		l_buffer =  mObj.getAttrs(settable = True)
-		l_Attrs = []
-		for a in l_buffer:
-		    if a not in l_userAttrs:
-			l_Attrs.append(a)
-		_max_Attrs = len(l_Attrs)
-		for ii,attr in enumerate(l_Attrs):
-		    _value = None		    
-		    self.progressBar_set(status = ("{0} Copying attr: {1}".format(ii,attr)), progress = ii, maxValue = _max_Attrs)		    
-		    try:
-			_value = attributes.doGetAttr(mObj.mNode,attr)
-			attributes.doSetAttr(mDup.mNode,attr, _value)
-		    except Exception,error:
-			self.log_error("Attr failed to set : {0} | {1}".format(attr,error))	
-	    except Exception,error:raise Exception,"Attr Copy | {0}".format(error)'''
-	    
-	    try:#...InverseScale..
-		mAttr_inverseScale = cgmAttr(mObj,'inverseScale')
-		_driver = mAttr_inverseScale.getDriver()
-		if _driver:
-		    cgmAttr(mDup,"inverseScale").doConnectIn(_driver)	
-	    except Exception,error:raise Exception,"Attr Copy | {0}".format(error)
-
-	    return mDup
 	    
 	def duplicateLocator(self,mObj = None):
 	    mDup = cgmObject( mc.spaceLocator()[0])
-	    _dupShapes = mDup.getShapes()
-	    _tarShape = mObj.getShapes()[0]
-	    l_shapeAttrs = self.d_typeToAttrList['locatorShape']
-
-	    _max_Attrs = len(l_shapeAttrs)		
-	    for i,attr in enumerate(l_shapeAttrs):
-		self.progressBar_set(status = ("{0} Copying attr: {1}".format(i,attr)), progress = i, maxValue = _max_Attrs)		    
-		for shape in _dupShapes:
-		    try:
-			_value = attributes.doGetAttr(_tarShape,attr)
-			attributes.doSetAttr(shape,attr, _value)
-		    except Exception,error:
-			self.log_error("Attr failed to set : {0} | {1}".format(attr,error))	    
-	    
+	    l_shapeAttrs = []
+	    l_shapeAttrs.extend(self.d_attrLists['locatorShape'])
+	    l_shapeAttrs.extend(self.d_attrLists['overrideAttrs'])
+	    l_shapeAttrs.extend(self.d_attrLists['objectDisplayAttrs'])
+	    self.simpleCopyAttr_shapes(mObj, mDup, l_shapeAttrs)#...copy shape attrs
 	    return mDup
 	
+	def simpleCopyAttr(self, mObj, mDup, attrList):
+	    pass
+	    
 	def duplicateJoint(self,mObj = None):
 	    mDup = cgmObject(mc.joint())
 	    return mDup
 	
 	def duplicateNurbsCurve(self,mObj = None):
-	    mDup = cgmObject(mc.duplicateCurve(mObj.mNode)[0])
-	    return mDup	    
+	    _shapes = mObj.getShapes()
+	    if len(_shapes) == 1:
+		mDup = cgmObject(mc.duplicateCurve(mObj.mNode)[0])
+	    else:
+		from cgm.lib import curves
+		mDup = cgmObject(curves.dupeCurve(mObj.mNode))
+	    return mDup	  
+	
+	def simpleCopyAttr_shapes(self, mObj, mDup, l_attrs):
+	    _dupShapes = mDup.getShapes()
+	    _tarShapes = mObj.getShapes()
+	    for i,attr in enumerate(l_attrs):
+		for ii, shape in enumerate(_dupShapes):
+		    try:
+			_value = attributes.doGetAttr(_tarShapes[ii],attr)
+			attributes.doSetAttr(shape,attr, _value)
+		    except Exception,error:
+			self.log_error("Attr failed to set : {0} | {1}".format(attr,error))	
+			
     return fncWrap(*args, **kws).go()
 	
 class cgmNode(r9Meta.MetaClass):

@@ -87,7 +87,8 @@ def parentShapeInPlace(obj,curve):
     assert mc.objExists(curve) is True,"'%s' doesn't exist."%curve
 
     mc.select (cl=True)
-    workingCurve = mc.duplicate(curve)
+    #workingCurve = dupeCurve(curve)
+    workingCurve = mc.duplicateCurve(curve)[0]    
     parents = search.returnAllParents(obj)
 
     """Check for parents on the curve and get rid of them to alleviate some transform nonsense"""
@@ -572,40 +573,78 @@ def updateTextCurveObject(textCurveObj):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Utility Functions
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def dupeCurve(curve = None):
+    """
+    Maya's duplicate curve doesn't support compound curves and duplicate is crazy slow as things get more complicated
+        
+    :parameters:
+        object | str/instance
+            Joint to duplicate
+        asMeta | bool
+            What to return as
+
+    :returns:
+        str or instance of new joint
+
+    :raises:
+        TypeError | if 'arg' is not a joint
+	
+    """    
+    try:
+        l_tarShapes = mc.listRelatives(curve, shapes=True, fullPath=True)
+        l_transforms = []
+        l_newShapes = []
+        for shape in l_tarShapes:
+            _buffer = mc.duplicateCurve(shape)
+            l_transforms.append(_buffer[0])
+            l_newShapes.append(_buffer[1])
+            
+        _combined = combineCurves(l_transforms)
+        position.moveParentSnap(_combined,curve)
+        
+        _d_attrLists = attributes.d_attrCategoryLists.copy()
+	#l_shapeAttrs = _d_attrLists['curveShapeAttrs']
+	l_shapeAttrs = []
+	l_shapeAttrs.extend(_d_attrLists['overrideAttrs'])
+	l_shapeAttrs.extend(_d_attrLists['objectDisplayAttrs'])
+	l_newShapes = mc.listRelatives(_combined, shapes=True, fullPath=True)
+	
+	for i,attr in enumerate(l_shapeAttrs):
+	    for ii, shape in enumerate(l_newShapes):
+		try:
+		    _value = attributes.doGetAttr(l_tarShapes[ii],attr)		    
+		    attributes.doSetAttr(shape,attr, _value)
+		except Exception,error:
+		    self.log_error("Attr failed to set : {0} | {1}".format(attr,error))  	    
+	return _combined	   
+    except Exception, error:raise Exception,"dupeCurve({0}) | {1}".format(curve,error)
+        
 def duplicateShape(shape):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Duplicates a shape
+    """
+    Maya's duplicate curve move objects and duplicate is crazy slow as things get more complicated
+    
 
-    ARGUMENTS:
-    shape(string)
+    :parameters:
+        shape | str/instance
+            shape to duplicate
 
-    RETURNS:
-    crvName(string)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """     
-    parentObj = mc.listRelatives(shape, p=True, fullPath=True)
-    shapes = mc.listRelatives(parentObj, shapes=True, fullPath=True)
-    matchObjName = mc.ls(shape, long=True)
-    matchIndex = shapes.index(matchObjName[0])
+    :returns:
+        str
 
-    dupBuffer = mc.duplicate(parentObj)
-    children = mc.listRelatives(dupBuffer[0], children = True, fullPath =True)
-    if len(children) > 0:
-        for c in children:
-            if search.returnObjectType(c) != 'shape':
-                mc.delete(c)
-
-    dupShapes = mc.listRelatives(dupBuffer[0], shapes=True, fullPath=True)
-    for shape in dupShapes:
-        if dupShapes.index(shape) != matchIndex:
-            mc.delete(shape)
-            return dupBuffer[0]
-
-
-
+    :raises:
+        TypeError | if 'arg' is not a joint
+	
+    """
+    try:
+        l_return = mc.duplicateCurve(shape)
+        
+        parentObj = mc.listRelatives(shape, p=True, fullPath=True)
+        mc.delete( mc.parentConstraint(parentObj,l_return[0]))
+        
+        return l_return[0]
+    except Exception, error:raise Exception,"duplicateShape({0}) | {1}".format(shape,error)
+               
 def curveToPython(crvName):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
