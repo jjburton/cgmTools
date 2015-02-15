@@ -14,21 +14,27 @@ dependencies and menuItems.
 THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 '''
 
+#from Red9.startup import language_packs
+
 
 __author__ = 'Mark Jackson'
 __buildVersionID__ = 1.5
 installedVersion= False
 
+
 import sys
 import os
+import imp
 import maya.cmds as cmds
 import maya.mel as mel
+from functools import partial
 
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+      
 '''
  Maya Version Mapping History:
  ====================================
@@ -57,6 +63,40 @@ log.setLevel(logging.INFO)
 ------------------------------------------------------------------------------------
 '''
 
+
+#=========================================================================================
+# LANGUAGE MAPPING -----------------------------------------------------------------------
+#=========================================================================================
+   
+global LANGUAGE_MAP
+
+import language_packs.language_english
+LANGUAGE_MAP = language_packs.language_english
+
+def get_language_maps():
+    languages=[]
+    language_path = os.path.join(os.path.dirname(__file__),'language_packs')
+    packs = os.listdir(language_path)
+    for p in packs:
+        if p.startswith('language_') and p.endswith('.py'):
+            languages.append(p.split('.py')[0])
+    return languages
+    
+def set_language(language='language_english', *args):
+    global LANGUAGE_MAP
+    language_path = os.path.join(os.path.dirname(__file__),'language_packs')
+    packs = get_language_maps()
+    if language in packs:
+        print 'Red9 : Importing Language Map : %s' % language
+        LANGUAGE_MAP = imp.load_source('language', os.path.join(language_path, language+'.py'))
+
+set_language()
+
+
+#=========================================================================================
+# MAYA DATA  -----------------------------------------------------------------------------
+#=========================================================================================
+ 
 def mayaVersion():
     #need to manage this better and use the API version,
     #eg: 2013.5 returns 2013
@@ -102,8 +142,11 @@ def getCurrentFPS():
     return  fpsDict[cmds.currentUnit(q=True, fullName=True, time=True)]
 
   
-# Menu Builders ------------------------------------------------------------------------
-   
+
+#=========================================================================================
+# MENU SETUPS ----------------------------------------------------------------------------
+#=========================================================================================
+  
 def menuSetup(parent='MayaWindow'):
     
     #if exists remove all items, means we can update on the fly by restarting the Red9 pack
@@ -125,136 +168,187 @@ def menuSetup(parent='MayaWindow'):
         raise StandardError('given parent for Red9 Menu is invalid %s' % parent)
     try:
         #Add the main Menu items
-        cmds.menuItem('redNineAnimItem',l="AnimationToolkit",
-                      ann="Main Red9 Animation Toolkit - Note: CTRL+click opens this non-docked",
+        cmds.menuItem('redNineAnimItem',
+                      l=LANGUAGE_MAP._MainMenus_.animation_toolkit,
+                      ann=LANGUAGE_MAP._MainMenus_.animation_toolkit_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.AnimationUI.show()")
-        cmds.menuItem('redNineSnapItem',l="Simple Snap",ann="Simple Snap transforms",
+        cmds.menuItem('redNineSnapItem',
+                      l=LANGUAGE_MAP._MainMenus_.simple_snap,
+                      ann=LANGUAGE_MAP._MainMenus_.simple_snap_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.AnimFunctions.snap()")
-        cmds.menuItem('redNineSearchItem',l="SearchUI",ann="Main Red9 Search toolkit",
+        cmds.menuItem('redNineSearchItem',
+                      l=LANGUAGE_MAP._MainMenus_.searchui,
+                      ann=LANGUAGE_MAP._MainMenus_.searchui_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.Red9_CoreUtils as r9Core;r9Core.FilterNode_UI.show()")
-        cmds.menuItem('redNineLockChnsItem',l="LockChannels",ann="Manage Channel States",
+        cmds.menuItem('redNineLockChnsItem',
+                      l=LANGUAGE_MAP._MainMenus_.lockchannels,
+                      ann=LANGUAGE_MAP._MainMenus_.lockchannels_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.Red9_CoreUtils as r9Core;r9Core.LockChannels.UI.show()")
-        cmds.menuItem('redNineMetaUIItem',l="MetaNodeUI",ann="MetaNode Scene Searcher",
+        cmds.menuItem('redNineMetaUIItem',
+                      l=LANGUAGE_MAP._MainMenus_.metanodeui,
+                      ann=LANGUAGE_MAP._MainMenus_.metanodeui_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.Red9_Meta as r9Meta;r9Meta.MClassNodeUI.show()")
-        cmds.menuItem('redNineReporterUIItem',l="Scene Reviewer",ann="Launch the Scene Review Reporter",
+        cmds.menuItem('redNineReporterUIItem',
+                      l=LANGUAGE_MAP._MainMenus_.scene_reviewer,
+                      ann=LANGUAGE_MAP._MainMenus_.scene_reviewer_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.Red9_Tools as r9Tools;r9Tools.SceneReviewerUI.show()")
-        cmds.menuItem('redNineMoCapItem',l="MouseMoCap",ann="Record the Mouse Input to selected object",
+        cmds.menuItem('redNineMoCapItem',
+                      l=LANGUAGE_MAP._MainMenus_.mouse_mocap,
+                      ann=LANGUAGE_MAP._MainMenus_.mouse_mocap_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.Red9_Tools as r9Tools;r9Tools.RecordAttrs.show()")
-        cmds.menuItem('redNineRandomizerItem',l="Randomize Keyframes",
-                      ann="Randomize selected Keys - also available in the GraphEditor>curve menu",
+        cmds.menuItem('redNineRandomizerItem',
+                      l=LANGUAGE_MAP._MainMenus_.randomize_keyframes,
+                      ann=LANGUAGE_MAP._MainMenus_.randomize_keyframes_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()")
-        
-        cmds.menuItem('redNineFilterCurvesItem',l="Interactive Curve Filter",
-                      ann="Interactive Curve Filter - also available in the GraphEditor>curve menu",
+        cmds.menuItem('redNineFilterCurvesItem',
+                      l=LANGUAGE_MAP._MainMenus_.interactive_curve_filter,
+                      ann=LANGUAGE_MAP._MainMenus_.interactive_curve_filter_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.FilterCurves.show()")
-        
-    
-        cmds.menuItem('redNineMirrorUIItem',l="MirrorSetup",
-                      ann="Temp UI to help setup the Mirror Markers on a rig",
+        cmds.menuItem('redNineMirrorUIItem',
+                      l=LANGUAGE_MAP._MainMenus_.mirror_setup,
+                      ann=LANGUAGE_MAP._MainMenus_.mirror_setup_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.MirrorSetup().show()")
-        
-        cmds.menuItem('redNineCameraTrackItem',l='CameraTracker',sm=True,p='redNineMenuItemRoot')
-        cmds.menuItem('redNineCamerTrackFixedItem',l="CameraTracker > panning",
-                      ann="Panning Camera : CameraTrack the current view with the current camera",
+        cmds.menuItem('redNineCameraTrackItem',
+                      l='CameraTracker',sm=True,p='redNineMenuItemRoot')
+        cmds.menuItem('redNineCamerTrackFixedItem',
+                      l=LANGUAGE_MAP._MainMenus_.camera_tracker_pan,
+                      ann=LANGUAGE_MAP._MainMenus_.camera_tracker_pan_ann,
                       p='redNineCameraTrackItem', echoCommand=True,
                       c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack.cameraTrackView(fixed=True)")
         if not mayaVersion()<=2009:
             cmds.menuItem(optionBox=True,
-                      ann="setup the tracker step and tightness",
+                      ann=LANGUAGE_MAP._MainMenus_.tracker_tighness_ann,
                       p='redNineCameraTrackItem', echoCommand=True,
                       c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack(fixed=True)._showUI()")
-        cmds.menuItem('redNineCamerTrackFreeItem',l="CameraTracker > tracking",
-                      ann="Tracking Camera : CameraTrack the current view with the current camera",
+        cmds.menuItem('redNineCamerTrackFreeItem',
+                      l=LANGUAGE_MAP._MainMenus_.camera_tracker_track,
+                      ann=LANGUAGE_MAP._MainMenus_.camera_tracker_track_ann,
                       p='redNineCameraTrackItem', echoCommand=True,
                       c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack.cameraTrackView(fixed=False)")
         if not mayaVersion()<=2009:
             cmds.menuItem(optionBox=True,
-                      ann="setup the tracker step and tightness",
+                      ann=LANGUAGE_MAP._MainMenus_.tracker_tighness_ann,
                       p='redNineCameraTrackItem', echoCommand=True,
                       c="from Red9.core.Red9_AnimationUtils import CameraTracker as camTrack;camTrack(fixed=False)._showUI()")
         
         cmds.menuItem(divider=True,p='redNineMenuItemRoot')
-        cmds.menuItem('redNineAnimBndItem',l="Animation Binder",ann="My Autodesk MasterClass toolset",
+        cmds.menuItem('redNineAnimBndItem',
+                      l=LANGUAGE_MAP._MainMenus_.animation_binder,
+                      ann=LANGUAGE_MAP._MainMenus_.animation_binder_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="import Red9.core.AnimationBinder as animBnd;animBnd.AnimBinderUI()._UI()")
         cmds.menuItem(divider=True,p='redNineMenuItemRoot')
         
-        cmds.menuItem('redNineBlogItem',l="Red9_HomePage",ann="Open Red9Consultancy HomePage",
+        cmds.menuItem('redNineHomepageItem',
+                      l=LANGUAGE_MAP._MainMenus_.red9_homepage,
+                      ann=LANGUAGE_MAP._MainMenus_.red9_homepage_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="Red9.setup.red9_website_home()")
-        cmds.menuItem('redNineBlogItem',l="Red9_Blog",ann="Open Red9Blog",
+        cmds.menuItem('redNineBlogItem',
+                      l=LANGUAGE_MAP._MainMenus_.red9_blog,
+                      ann=LANGUAGE_MAP._MainMenus_.red9_blog_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="Red9.setup.red9_blog()")
-        cmds.menuItem('redNineVimeoItem',l="Red9_Vimeo Channel",ann="Open Red9Vimeo Channel",
+        cmds.menuItem('redNineVimeoItem',
+                      l=LANGUAGE_MAP._MainMenus_.red9_vimeo,
+                      ann=LANGUAGE_MAP._MainMenus_.red9_vimeo_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="Red9.setup.red9_vimeo()")
-        cmds.menuItem('redNineFacebookItem',l="Red9_Facebook",ann="Open Red9Facebook page",
+        cmds.menuItem('redNineFacebookItem',
+                      l=LANGUAGE_MAP._MainMenus_.red9_facebook,
+                      ann=LANGUAGE_MAP._MainMenus_.red9_facebook_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="Red9.setup.red9_facebook()")
-        cmds.menuItem('redNineAPIDocItem',l="Red9_API Docs",ann="Open Red9 API code reference page",
+        cmds.menuItem('redNineAPIDocItem',
+                      l=LANGUAGE_MAP._MainMenus_.red9_api_docs,
+                      ann=LANGUAGE_MAP._MainMenus_.red9_api_docs_ann,
                       p='redNineMenuItemRoot', echoCommand=True,
                       c="Red9.setup.red9_apidocs()")
-        cmds.menuItem(l="Red9_Details",c='Red9.setup.red9ContactInfo()',p='redNineMenuItemRoot')
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.red9_details,
+                      c='Red9.setup.red9ContactInfo()',p='redNineMenuItemRoot')
         cmds.menuItem(divider=True,p='redNineMenuItemRoot')
         
-        cmds.menuItem('redNineDebuggerItem',l='Red9 Debugger',sm=True,p='redNineMenuItemRoot')
-        cmds.menuItem('redNineLostAnimItem',l="Reconnect Lost Anim", p='redNineDebuggerItem',
-                      ann="Reconnect lost animation data via a chSet - see my blog post for more details",
+        cmds.menuItem('redNineDebuggerItem', l=LANGUAGE_MAP._MainMenus_.red9_debugger,sm=True,p='redNineMenuItemRoot')
+        cmds.menuItem('redNineLostAnimItem', p='redNineDebuggerItem',
+                      l=LANGUAGE_MAP._MainMenus_.reconnect_anim,
+                      ann=LANGUAGE_MAP._MainMenus_.reconnect_anim_ann,
                       echoCommand=True, c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.ReconnectAnimData().show()")
-        cmds.menuItem('redNineOpenCrashItem',l="Open last CrashFile", p='redNineDebuggerItem',
-                      ann="Open the last Maya crash file from your temp dir",
+        cmds.menuItem('redNineOpenCrashItem', p='redNineDebuggerItem',
+                      l=LANGUAGE_MAP._MainMenus_.open_last_crash,
+                      ann=LANGUAGE_MAP._MainMenus_.open_last_crash_ann,
                       echoCommand=True, c="import Red9.core.Red9_General as r9General;r9General.os_openCrashFile()")
         cmds.menuItem(divider=True,p='redNineDebuggerItem')
-        cmds.menuItem('redNineDebugItem',l="systems: DEBUG",ann="Turn all the logging to Debug",
+        cmds.menuItem('redNineDebugItem',
+                      l=LANGUAGE_MAP._MainMenus_.systems_debug,
+                      ann=LANGUAGE_MAP._MainMenus_.systems_debug_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_debug()")
-        cmds.menuItem('redNineInfoItem',l="systems: INFO",ann="Turn all the logging to Info only",
+        cmds.menuItem('redNineInfoItem',
+                      l=LANGUAGE_MAP._MainMenus_.systems_info,
+                      ann=LANGUAGE_MAP._MainMenus_.systems_info_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_info()")
         cmds.menuItem(divider=True,p='redNineDebuggerItem')
         
-        cmds.menuItem(l='Individual DEBUG',sm=True,p='redNineDebuggerItem')
-        cmds.menuItem(l="Debug : r9Core",ann="Turn all the logging to Debug",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.individual_debug, sm=True, p='redNineDebuggerItem')
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.debug+" : r9Core",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_debug_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Core')")
-        cmds.menuItem(l="Debug : r9Meta",ann="Turn all the logging to Debug",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.debug+" : r9Meta",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_debug_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Meta')")
-        cmds.menuItem(l="Debug : r9Anim",ann="Turn all the logging to Debug",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.debug+" : r9Anim",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_debug_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Anim')")
-        cmds.menuItem(l="Debug : r9Tools",ann="Turn all the logging to Debug",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.debug+" : r9Tools",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_debug_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Tools')")
-        cmds.menuItem(l="Debug : r9Pose",ann="Turn all the logging to Debug",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.debug+" : r9Pose",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_debug_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Pose')")
-        cmds.menuItem(l="Debug : r9General",ann="Turn all the logging to Debug",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.debug+" : r9General",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_debug_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_debug('r9General')")
-        cmds.menuItem(l="Debug : r9Audio",ann="Turn all the logging to Debug",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.debug+" : r9Audio",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_debug_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_debug('r9Audio')")
-        cmds.menuItem(l='Individual INFO',sm=True,p='redNineDebuggerItem')
-        cmds.menuItem(l="Info : r9Core",ann="Turn all the logging to Info only",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.individual_info,sm=True,p='redNineDebuggerItem')
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.info+" : r9Core",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_info_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_info('r9Core')")
-        cmds.menuItem(l="Info : r9Meta",ann="Turn all the logging to Info only",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.info+" : r9Meta",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_info_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_info('r9Meta')")
-        cmds.menuItem(l="Info : r9Anim",ann="Turn all the logging to Info only",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.info+" : r9Anim",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_info_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_info('r9Anim')")
-        cmds.menuItem(l="Info : r9Tools",ann="Turn all the logging to Info only",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.info+" : r9Tools",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_info_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_info('r9Tools')")
-        cmds.menuItem(l="Info : r9Pose",ann="Turn all the logging to Info only",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.info+" : r9Pose",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_info_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_info('r9Pose')")
-        cmds.menuItem(l="Info : r9General",ann="Turn all the logging to Info only",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.info+" : r9General",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_info_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_info('r9General')")
-        cmds.menuItem(l="Info : r9Audio",ann="Turn all the logging to Info only",
+        cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.info+" : r9Audio",
+                      ann=LANGUAGE_MAP._MainMenus_.individual_info_ann,
                       echoCommand=True, c="Red9.core._setlogginglevel_info('r9Audio')")
         cmds.menuItem(divider=True,p='redNineDebuggerItem')
-        cmds.menuItem('redNineReloadItem',l="systems: reload()", p='redNineDebuggerItem',
-                      ann="Force a complete reload on the core of Red9",
-                      echoCommand=True, c="Red9.core._reload()")
+        cmds.menuItem('redNineReloadItem',l=LANGUAGE_MAP._MainMenus_.systems_reload, p='redNineDebuggerItem',
+                      ann=LANGUAGE_MAP._MainMenus_.systems_reload_ann,
+                      echoCommand=True, c=reload_Red9)  # "Red9.core._reload()")
+        cmds.menuItem(divider=True,p='redNineDebuggerItem')
+        for language in get_language_maps():
+            cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.language+" : %s" % language, c=partial(set_language,language),p='redNineDebuggerItem')
     except:
         raise StandardError('Unable to parent Red9 Menu to given parent %s' % parent)
 
@@ -267,8 +361,8 @@ def addToMayaMenus():
                 mel.eval('buildFileMenu()')
             cmds.menuItem(divider=True,p=mainFileMenu)
             cmds.menuItem('redNineOpenFolderItem',
-                          l="Red9: Open in Explorer",
-                          ann="Open the folder containing the current Maya Scene",
+                          l=LANGUAGE_MAP._MainMenus_.open_in_explorer,
+                          ann=LANGUAGE_MAP._MainMenus_.open_in_explorer_ann,
                           p=mainFileMenu,
                           echoCommand=True,
                           c="import maya.cmds as cmds;import Red9.core.Red9_General as r9General;r9General.os_OpenFileDirectory(cmds.file(q=True,sn=True))")
@@ -279,20 +373,20 @@ def addToMayaMenus():
                 
             TimeSliderMenu='TimeSliderMenu'
             cmds.menuItem(divider=True, p=TimeSliderMenu)
-            cmds.menuItem(subMenu=True, label='Red9: Collapse Range', p=TimeSliderMenu)
-            cmds.menuItem('redNineTimeSliderCollapseItem', label='Collapse : Selected Only',
-                          ann='Collapse the keys in the selected TimeRange (Red highlighted)',
+            cmds.menuItem(subMenu=True, label=LANGUAGE_MAP._MainMenus_.collapse_range, p=TimeSliderMenu)
+            cmds.menuItem('redNineTimeSliderCollapseItem', label=LANGUAGE_MAP._MainMenus_.collapse_selected,
+                          ann=LANGUAGE_MAP._MainMenus_.collapse_selected_ann,
                           c='import Red9.core.Red9_CoreUtils as r9Core;r9Core.timeOffset_collapse(scene=False)')
-            cmds.menuItem(label='Collapse : Full Scene',
-                          ann='Collapse the keys in the selected TimeRange (Red highlighted)',
+            cmds.menuItem(label=LANGUAGE_MAP._MainMenus_.collapse_full,
+                          ann=LANGUAGE_MAP._MainMenus_.collapse_full_ann,
                           c='import Red9.core.Red9_CoreUtils as r9Core;r9Core.timeOffset_collapse(scene=True)')
 
-            cmds.menuItem(subMenu=True, label='Red9: Insert Padding', p=TimeSliderMenu)
-            cmds.menuItem(label='Pad : Selected Only',
-                          ann='Insert time in the selected TimeRange (Red highlighted)',
+            cmds.menuItem(subMenu=True, label=LANGUAGE_MAP._MainMenus_.insert_padding, p=TimeSliderMenu)
+            cmds.menuItem(label=LANGUAGE_MAP._MainMenus_.pad_selected,
+                          ann=LANGUAGE_MAP._MainMenus_.pad_selected_ann,
                           c='import Red9.core.Red9_CoreUtils as r9Core;r9Core.timeOffset_addPadding(scene=False)')
-            cmds.menuItem(label='Pad : Full Scene',
-                          ann='Insert time in the selected TimeRange (Red highlighted)',
+            cmds.menuItem(label=LANGUAGE_MAP._MainMenus_.pad_full_scene,
+                          ann=LANGUAGE_MAP._MainMenus_.pad_full_scene_ann,
                           c='import Red9.core.Red9_CoreUtils as r9Core;r9Core.timeOffset_addPadding(scene=True)')
         else:
             log.debug('Red9 Timeslider menus already built')
@@ -300,7 +394,62 @@ def addToMayaMenus():
         log.debug('gMainFileMenu not found >> catch for unitTesting')
 
 
-# General Pack Data --------------------------------------------------------------------
+def addAudioMenu(parent=None, rootMenu='redNineTraxRoot'):
+    '''
+    Red9 Sound Menu setup
+    '''
+    if not parent:
+        cmds.menu(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, tearOff=True, allowOptionBoxes=True)
+    else:
+        cmds.menu(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, tearOff=True, allowOptionBoxes=True, parent=parent)
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_offset_manager, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_offset_manager_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioToolsWrap().show()")
+    cmds.menuItem(d=True)
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_activate_selected_audio, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_activate_selected_audio_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioHandler().setActive()")
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_set_timeline_to_selected, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_set_timeline_to_selected_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioHandler().setTimelineToAudio()")
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_focus_on_selected, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_focus_on_selected_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioHandler().setTimelineToAudio();r9Audio.AudioHandler().setActive()")
+    cmds.menuItem(d=True)
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_mute_selected, p=rootMenu,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioHandler().muteSelected(True)")
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_unmute_selected, p=rootMenu,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioHandler().muteSelected(False)")
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_lock_selected, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_lock_selected_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioHandler().lockTimeInputs(True)")
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_unlock_selected, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_unlock_selected_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioHandler().lockTimeInputs(False)")
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_delete_selected, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_delete_selected_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioHandler().deleteSelected()")
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_format_soundnode_name, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_format_soundnode_name_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioHandler().formatNodes_to_Path()")
+    cmds.menuItem(d=True)
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_combine_audio, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_combine_audio_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.combineAudio()")
+    cmds.menuItem(d=True)
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_open_audio_path, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_open_audio_path_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioNode().openAudioPath()")
+    cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_inspect_wav, p=rootMenu,
+                  ann=LANGUAGE_MAP._MainMenus_.sound_inspect_wav_ann,
+                  c="import Red9.core.Red9_Audio as r9Audio;r9Audio.inspect_wav()")
+
+
+
+#=========================================================================================
+# GENERAL RED9 DATA ----------------------------------------------------------------------
+#=========================================================================================
+
 
 def red9ButtonBGC(colour):
     '''
@@ -316,7 +465,7 @@ def red9ContactInfo(*args):
     result=cmds.confirmDialog(title='Red9_StudioPack : build %f' % red9_getVersion(),
                        message=("Author: Mark Jackson\r\r"+
                                 "Technical Animation Director\r\r"+
-                                "Contact me at rednineinfo@gmail.com for more information\r\r"+
+                                "Contact me at info@red9Consultancy.com for more information\r\r"+
                                 "thanks for trying the toolset. If you have any\r"+
                                 "suggestions or bugs please let me know!"),
                        button=['Red9Consultancy.com','ChangeLog','Close'],messageAlign='center')
@@ -407,8 +556,11 @@ def get_pro_pack(*args):
     if result =='Red9Consultancy.com':
         r9General.os_OpenFile('http://red9consultancy.com/')
 
-# BOOT FUNCTS - Add and Build --------------------------------------------------------------
-    
+
+#=========================================================================================
+# BOOT FUNCTIONS -------------------------------------------------------------------------
+#=========================================================================================
+
 def addScriptsPath(path):
     '''
     Add additional folders to the ScriptPath
@@ -498,18 +650,22 @@ def has_pro_pack():
     if os.path.exists(os.path.join(red9ModulePath(),'pro_pack')):
         return True
 
-class pro_pack_error(object):
+class ProPack_Error(Exception):
     '''
-    fake stub class to raise the Pro_Pack missing error generically
-    for all UI calls
+    custom exception so we can catch it
     '''
     def __init__(self):
-        pass
-    def __getattribute__(self, name):
-        if not hasattr(self, name):  # would this create a new attribute?
-            get_pro_pack()
-            return
-                
+        get_pro_pack()
+        
+class pro_pack_missing_stub(object):
+    '''
+    Exception to raised when the the Pro_Pack is missing 
+    and the stubs are called
+    '''
+    def __init__(self):
+        raise ProPack_Error()
+
+             
 def has_internal_systems():
     '''
     Red9 Consultancy internal modules only
@@ -517,7 +673,6 @@ def has_internal_systems():
     if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(red9ModulePath())),'Red9_Internals')):
         return True
 
-PRO_PACK_STUBS=pro_pack_error
       
 #=========================================================================================
 # BOOT CALL ------------------------------------------------------------------------------
@@ -587,4 +742,13 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindo
     if has_internal_systems():
         cmds.evalDeferred("import Red9_Internals", lp=True)  # Unresolved Import
            
-    
+def reload_Red9(*args):
+    global LANGUAGE_MAP
+    reload(LANGUAGE_MAP)
+    import Red9.core
+    Red9.core._reload()
+
+
+PRO_PACK_STUBS=pro_pack_missing_stub
+
+
