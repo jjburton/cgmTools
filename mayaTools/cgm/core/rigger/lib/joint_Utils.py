@@ -49,6 +49,51 @@ reload(distance)
 
 #>>> Utilities
 #===================================================================
+def duplicateJointInPlace(joint, asMeta = True):
+    """
+    Rewrite to get around using mc.duplicate which gets exceedingly slow as a scene gets more dense.
+
+    :parameters:
+        joint | str/instance
+            Joint to duplicate
+        asMeta | bool
+            What to return as
+
+    :returns:
+        str or instance of new joint
+
+    :raises:
+        TypeError | if 'arg' is not a joint
+    """ 
+    _str_func_ = 'duplicateJointInPlace'
+    try:
+	mJoint = cgmMeta.validateObjArg(joint, mayaType = 'joint', mType = 'cgmObject')    
+	
+	dup = mc.joint()
+	mDup = cgmMeta.cgmObject(dup)
+	
+	mDup.parent = mJoint.parent 
+	mc.delete(mc.parentConstraint(mJoint.mNode,mDup.mNode))	
+	mDup.rotateOrder = mJoint.rotateOrder
+	mDup.jointOrient = mJoint.jointOrient
+
+	#Inverse scale...
+	mAttr_inverseScale = cgmMeta.cgmAttr(mJoint,'inverseScale')
+	_driver = mAttr_inverseScale.getDriver()
+	if mAttr_inverseScale.getDriver():
+	    cgmMeta.cgmAttr(mDup,"inverseScale").doConnectIn(_driver)
+	
+	mAttr_inverseScale.getDriver(mJoint)
+	
+	for attr in mJoint.getUserAttrs():
+	    cgmMeta.cgmAttr(mJoint,attr).doCopyTo(mDup.mNode)
+	
+	if asMeta:
+	    return mDup
+	return mDup.mNode
+    except Exception,error:
+	raise Exception,"{0} | {1}".format(_str_func_,error)
+
 def mirrorJointOrientation(*args,**kws):
     """
     Function to mirror a joint orientation in place
@@ -120,16 +165,22 @@ def metaFreezeJointOrientation(targetJoints):
 	    So....jointOrient is always in xyz rotate order
 	    dup,rotate order
 	    Unparent, add rotate & joint rotate, push value, zero rotate, parent back, done
-	    """
+	    """    
+	    log.info("parent...")
 	    if i != 0 and d_parent.get(i_jnt):
 		i_jnt.parent = d_parent.get(i_jnt)#parent back first before duping
-	    buffer = mc.duplicate(i_jnt.mNode,po=True,ic=False)[0]#Duplicate the joint
-	    i_dup = cgmMeta.cgmObject(buffer)
+		
+	    log.info("dup...")
+	    i_dup= duplicateJointInPlace(i_jnt)
 	    i_dup.rotateOrder = 0
 	    
 	    #New method  ----
+	    log.info("loc...")
+	    
 	    mi_zLoc = i_jnt.doLoc()#Make some locs
 	    mi_yLoc = i_jnt.doLoc()
+	    
+	    log.info("group...")
 	    str_group = mi_zLoc.doGroup() #group for easy move
 	    mi_yLoc.parent = str_group
 	    
@@ -139,34 +190,16 @@ def metaFreezeJointOrientation(targetJoints):
 	    mc.makeIdentity(i_dup.mNode, apply = 1, jo = 1)#Freeze
 	    
 	    #Aim
+	    log.info("constrain...")
+	    
 	    str_const = mc.aimConstraint(mi_zLoc.mNode,i_dup.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = [0,1,0], worldUpObject = mi_yLoc.mNode, worldUpType = 'object' )[0]
 	    
 	    i_jnt.rotate = [0,0,0] #Move to joint
 	    i_jnt.jointOrient = i_dup.rotate
 	    
+	    log.info("delete...")	    
 	    mc.delete([str_const,str_group])#Delete extra stuff
 	    i_dup.delete()
-	    
-	    #Old method
-	    """
-	    mc.delete(mc.orientConstraint(i_jnt.mNode, i_dup.mNode, w=1, maintainOffset = False))
-    
-	    l_rValue = i_dup.rotate
-	    l_joValue = i_dup.jointOrient
-	    l_added = cgmMath.list_add(l_rValue,l_joValue)	
-	    
-	    i_dup.jointOrientX = l_added[0]
-	    i_dup.jointOrientY = l_added[1]
-	    i_dup.jointOrientZ = l_added[2]	
-	    i_dup.rotate = [0,0,0]
-	    
-	    i_dup.parent = i_jnt.parent
-	    
-	    i_jnt.rotate = [0,0,0]
-	    i_jnt.jointOrient = i_dup.jointOrient
-	    i_dup.delete()
-    
-	    """
 	    
 	#reparent
 	if mi_parent:
@@ -262,7 +295,9 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
 	    log.debug("%s.add_defHelpJoints >> helper exists, no force new : '%s'"%(mi_targetJoint.p_nameShort,i_matchJnt.p_nameShort))	    
 	    
     if not i_matchJnt:
-	i_dupJnt = mi_targetJoint.doDuplicate(incomingConnections = False)#Duplicate
+	#i_dupJnt = mi_targetJoint.doDuplicate(incomingConnections = False)#Duplicate
+	i_dupJnt= duplicateJointInPlace(mi_targetJoint)
+	
 	i_dupJnt.addAttr('cgmTypeModifier',helperType)#Tag
 	i_dupJnt.addAttr('defHelpType',helperType,lock=True)#Tag    
 	i_dupJnt.doName()#Rename

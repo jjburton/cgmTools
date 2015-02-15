@@ -20,11 +20,11 @@
 #
 #   
 #=================================================================================================================================================
-
 import maya.cmds as mc
 import maya.mel as mel
 
 from cgm.lib.classes import NameFactory
+from cgm.core import cgm_General as cgmGeneral
 
 from cgm.lib import (distance,
                      dictionary,
@@ -604,12 +604,10 @@ def dupeCurve(curve = None):
         position.moveParentSnap(_combined,curve)
         
         _d_attrLists = attributes.d_attrCategoryLists.copy()
-	#l_shapeAttrs = _d_attrLists['curveShapeAttrs']
 	l_shapeAttrs = []
 	l_shapeAttrs.extend(_d_attrLists['overrideAttrs'])
 	l_shapeAttrs.extend(_d_attrLists['objectDisplayAttrs'])
 	l_newShapes = mc.listRelatives(_combined, shapes=True, fullPath=True)
-	
 	for i,attr in enumerate(l_shapeAttrs):
 	    for ii, shape in enumerate(l_newShapes):
 		try:

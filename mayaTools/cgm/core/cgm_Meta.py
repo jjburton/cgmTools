@@ -29,6 +29,7 @@ reload(nameTools)
 from cgm.lib.ml import (ml_resetChannels)
 
 from cgm.lib import (lists,
+                     curves,
                      search,
                      attributes,
                      distance,
@@ -37,6 +38,7 @@ from cgm.lib import (lists,
                      rigging,
                      settings,
                      guiFactory,
+                     position,
                      locators)
 
 reload(attributes)
@@ -296,6 +298,7 @@ class cgmTest(r9Meta.MetaClass):
 	log.info("setClass: {0}".format(setClass))			
 	log.info("kws: {0}".format(kws))		
     
+
 def dupe(*args, **kws):
     """
     Rewrite to get around using mc.duplicate which gets exceedingly slow as a scene gets more dense. Working 
@@ -390,7 +393,7 @@ def dupe(*args, **kws):
 	    
 	    try:#Positioning...
 		self._str_substep = 'positioning'		
-		self.subTimer(self.sub_userAttrs,mObj,mDup)				    		
+		self.subTimer(self.sub_positioning,mObj,mDup)				    		
 	    except Exception,error:raise Exception,"Positioning | {0}".format(error)
 		
 	    try:#User Attr copy...
@@ -412,8 +415,9 @@ def dupe(*args, **kws):
 	
 	def sub_positioning(self, mObj, mDup):
 	    _str_mayaType = self._str_mayaType
+	    mDup.parent = mObj.parent
+	    position.moveParentSnap(mDup.mNode,mObj.mNode)
 	    try:#InverseScale
-		mDup.parent = mObj.parent 
 		if _str_mayaType == 'joint':
 		    mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze  
 	    except Exception,error:raise Exception,"Positioning | {0}".format(error)
@@ -444,8 +448,8 @@ def dupe(*args, **kws):
 	    _str_mayaType = self._str_mayaType
 	    l_specific = []	    
 	    try:#Attr copy...
-		if mObj.isTransform():#If we have a transform, gonna use that list as our base
-		    l_specific.extend( self.d_attrLists.get('transform') )
+		#if mObj.isTransform():#If we have a transform, gonna use that list as our base
+		l_specific.extend( self.d_attrLists.get('transform') )
 		    
 		l_specific.extend( self.d_attrLists.get(_str_mayaType) or [])
 		
@@ -479,6 +483,7 @@ def dupe(*args, **kws):
 	    pass
 	    
 	def duplicateJoint(self,mObj = None):
+	    mc.select(cl = True)
 	    mDup = cgmObject(mc.joint())
 	    return mDup
 	
@@ -487,7 +492,6 @@ def dupe(*args, **kws):
 	    if len(_shapes) == 1:
 		mDup = cgmObject(mc.duplicateCurve(mObj.mNode)[0])
 	    else:
-		from cgm.lib import curves
 		mDup = cgmObject(curves.dupeCurve(mObj.mNode))
 	    return mDup	  
 	
@@ -503,7 +507,6 @@ def dupe(*args, **kws):
 			self.log_error("Attr failed to set : {0} | {1}".format(attr,error))	
 			
     return fncWrap(*args, **kws).go()
-	
 class cgmNode(r9Meta.MetaClass):
     def __bind__(self):pass	
     def __init__(self,node = None, name = None,nodeType = 'network',setClass = None, **kws):
@@ -1715,9 +1718,9 @@ class cgmObject(cgmNode):
 	    #super(cgmObject, self).__init__(node=node, name = name, nodeType = 'transform')
 
 	#====================================================================================
-        if not self.isTransform():
-	    log.error("'%s' has no transform"%self.mNode)	    
-	    raise StandardError, "The cgmObject class was designed to work with objects with transforms"
+        #if not self.isTransform():
+	    #log.error("'%s' has no transform"%self.mNode)	    
+	    #raise StandardError, "The cgmObject class was designed to work with objects with transforms"
 	    
 	#>>> TO Check the cache if it needs to be cleared ----------------------------------
 	if setClass is not None:

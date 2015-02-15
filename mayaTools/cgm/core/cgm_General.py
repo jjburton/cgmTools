@@ -68,6 +68,7 @@ class cgmFuncCls(object):
 	self._b_ExceptionInterupt = True#Whether to use the cgmFuncCls Exception Interupt or not
 	self._str_lastLog = None
 	self._int_stopStep = None
+	self._str_substep = None
 	self._l_ARGS_KWS_DEFAULTS = []
 	self._l_ARGS_KWS_BUILTINS = [{'kw':'reportShow',"default":False,'help':"show report at start of log","argType":"bool"},
 	                             {'kw':'reportTimes',"default":False,'help':"show step times in log","argType":"bool"},
@@ -90,7 +91,7 @@ class cgmFuncCls(object):
 	self._l_reportMask = ['_b_ReturnBreak','_b_ExceptionInterupt','_b_pushCleanKWs','_str_lastLog','_l_ARGS_KWS_BUILTINS','_l_toDo','_l_warnings','_l_errors','_str_step','int_max','_Exception','_ExceptionError','_str_failStep','_str_failTime','_str_modPath','_go','l_funcSteps','_str_funcHelp','d_return','_str_funcDebug','_str_funcKWs','_l_reportMask','_l_errorMask',
 	                      '_b_autoProgressBar','_int_stopStep','_b_reportTimes','_str_progressBar','_str_progressBarReportStart',  
 	                      '_str_funcClass','_str_funcName','d_kws','_str_funcCombined','_l_funcArgs','_b_WIP','_l_funcTimes','_l_ARGS_KWS_DEFAULTS',
-	                      '_str_mod','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
+	                      '_str_mod','_str_substep','mod','_str_funcArgs','_d_funcKWs','_str_reportStart','_str_headerDiv','_str_subLine','_str_hardLine']  
 	
     def __updateFuncStrings__(self):
 	self._str_funcCombined = self._str_funcName
@@ -374,6 +375,23 @@ class cgmFuncCls(object):
 	    
 	if self.d_return:return self.d_return
 	
+    def subTimer(self, func, *args, **kws):
+	'''
+	Variation,only outputs on debug
+	-- Taken from red9 and modified. Orignal props to our pal Mark Jackson
+	'''
+	_str_substep = self._str_substep
+	
+	t1 = time.time()
+	res = func(*args,**kws) 
+	t2 = time.time()
+	
+	_str_time = "%0.3f"%(t2-t1)
+	self._l_funcTimes.append([_str_substep,_str_time])	    
+	if self._b_reportTimes:
+	    self.log_info(" [TIME] -- subStep: '{0}' >>  {1} ".format(_str_substep,_str_time))
+	return res	
+    
     def report(self):
 	self.update_moduleData()
 	self.report_base()
@@ -745,7 +763,9 @@ def subTimer(func):
 	log.info("here!")
 	functionTrace=func.__name__ 
 	_str_time = "%0.3f seconds"%(t2-t1)
-	self._l_funcTimes.append([functionTrace,_str_time])	
+	self._l_funcTimes.append([functionTrace,_str_time])
+	if self._b_reportTimes:
+	    self.log_info(" [TIME] -- Step: '{0}' >>  {1} ".format(pair_time[0],pair_time[1]))	
 	return res
     return wrapper  
 

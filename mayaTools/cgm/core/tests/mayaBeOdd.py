@@ -169,8 +169,8 @@ def speedTest_duplicateInPlace(*args, **kws):
 	    return mc.duplicate(root, po = True,un = False,ic = False, rr = True, rc = False)                
 	
 	def test2_func(self,root):
-	    #return cgmMeta.dupe(root) 
-	    return jntUtils.duplicateJointInPlace(root)
+	    return cgmMeta.dupe(root) 
+	    #return jntUtils.duplicateJointInPlace(root)
 	
         def _buildStuff_(self):
             mi_rootJoint = cgmMeta.cgmObject(mc.joint(name = 'root'))
@@ -403,11 +403,11 @@ def speedTest_simpleLocator(iterations = 100):
     l_times = []
     for i in range(iterations):
 	print("On...{0}".format(i))
+	
 	t1 = time.clock()		
 	mc.duplicate(_loc)
 	t2 = time.clock()
 	l_times.append(t2-t1)
-	_hitBreakPoint = False
 	
     for i,t in enumerate(l_times):
 	print("Step {0} |  {1}".format(i,"%0.3f"%t))
