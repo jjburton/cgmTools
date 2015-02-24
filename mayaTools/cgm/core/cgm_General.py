@@ -750,6 +750,9 @@ def report_enviornment():
 	try:print(_str_baseStart + " Maya %s : %s "%(kw, mel.eval( 'about -%s'%kw )))	
 	except Exception,error:log.error("%s | %s"%(kw,error))	
 	
+def report_enviornmentSingleLine():
+    print("Maya: {0} | OS: {1}".format(mel.eval( 'about -%s'%'version'), mel.eval( 'about -%s'%'operatingSystemVersion')))
+	
 #>>> Sub funcs ==============================================================================
 def subTimer(func):
     '''
