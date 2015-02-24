@@ -67,6 +67,7 @@ def parentShape(obj,curve):
     mc.select (cl=True)
     shape = mc.listRelatives (curve, f= True,shapes=True)
     mc.parent (shape,obj,add=True,shape=True)
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def parentShapeInPlace(obj,curve):
     """ 
@@ -88,7 +89,9 @@ def parentShapeInPlace(obj,curve):
 
     mc.select (cl=True)
     #workingCurve = dupeCurve(curve)
-    workingCurve = mc.duplicateCurve(curve)[0]    
+    #workingCurve = mc.duplicateCurve(curve)[0]
+    workingCurve = dupeCurve(curve)
+    #workingCurve = mc.duplicate(curve)
     parents = search.returnAllParents(obj)
 
     """Check for parents on the curve and get rid of them to alleviate some transform nonsense"""
@@ -156,156 +159,6 @@ def parentShapeInPlace(obj,curve):
     mc.delete(workingCurve)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-def parentShapeInPlace3(obj,curve):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Way to parent shape an object's transform node in place. Man this thing
-    sucked figuring out....:) 
-
-    ARGUMENTS:
-    obj(string)
-    curve(string)
-
-    RETURNS:
-    Nothin
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    assert mc.objExists(obj) is True,"'%s' doesn't exist."%obj
-    assert mc.objExists(curve) is True,"'%s' doesn't exist."%curve
-
-    mc.select (cl=True)
-    workingCurve = mc.duplicate(curve)
-    parents = search.returnAllParents(obj)
-
-    """Check for parents on the curve and get rid of them to alleviate some transform nonsense"""
-    curveParents = search.returnAllParents(workingCurve)
-    if curveParents:
-        workingCurve = mc.parent(workingCurve,world=True)
-
-    """copy pivot """
-    rigging.copyPivot(workingCurve,obj)
-    curveScale =  mc.xform(workingCurve,q=True, s=True,r=True)
-    objScale =  mc.xform(obj,q=True, s=True,r=True)
-
-    """account for freezing"""
-    pos = mc.xform(obj, q=True, os=True, rp = True)
-    mc.makeIdentity(workingCurve,apply=True,translate =True, rotate = True, scale=False)
-
-    """ make our zero out group"""
-    group = rigging.groupMeObject(obj,False)
-    mc.move(pos[0],pos[1],pos[2],workingCurve)
-    workingCurve = rigging.doParentReturnName(workingCurve,group)
-
-    """ zero out the group """
-    mc.setAttr((group+'.tx'),0)
-    mc.setAttr((group+'.ty'),0)
-    mc.setAttr((group+'.tz'),0)
-    mc.setAttr((group+'.rx'),0)
-    mc.setAttr((group+'.ry'),0)
-    mc.setAttr((group+'.rz'),0)    
-
-    """main scale fix """
-    baseMultiplier = [0,0,0]
-    baseMultiplier[0] = ( curveScale[0]/objScale[1] )
-    baseMultiplier[1] = ( curveScale[0]/objScale[1] )
-    baseMultiplier[2] = ( curveScale[0]/objScale[1] )
-    mc.setAttr(workingCurve+'.sx',baseMultiplier[0])
-    mc.setAttr(workingCurve+'.sy',baseMultiplier[1])
-    mc.setAttr(workingCurve+'.sz',baseMultiplier[2])
-
-    """ parent scale fix """    
-    if parents:
-        parents.reverse()
-        multiplier = [baseMultiplier[0],baseMultiplier[1],baseMultiplier[2]]
-        for p in parents:
-            scaleBuffer = mc.xform(p,q=True, s=True,r=True)
-            multiplier[0] = ( (objScale[0]/scaleBuffer[0]) * multiplier[0] )
-            multiplier[1] = ( (objScale[1]/scaleBuffer[1]) * multiplier[1] )
-            multiplier[2] = ( (objScale[2]/scaleBuffer[2]) * multiplier[2] )
-        mc.setAttr(workingCurve+'.sx',multiplier[0])
-        mc.setAttr(workingCurve+'.sy',multiplier[1])
-        mc.setAttr(workingCurve+'.sz',multiplier[2])
-
-    workingCurve = mc.parent(workingCurve,world=True)
-    mc.delete(group)
-
-    "freeze for parent shaping """
-    mc.makeIdentity(workingCurve,apply=True,translate =True, rotate = True, scale=True)
-    shape = mc.listRelatives (workingCurve, f= True,shapes=True)
-    mc.parent (shape,obj,add=True,shape=True)
-    mc.delete(workingCurve)
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def parentShapeInPlace2(obj,curve):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Way to parent shape an object's transform node in place
-
-    ARGUMENTS:
-    obj(string)
-    curve(string)
-
-    RETURNS:
-    Nothin
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    mc.select (cl=True)
-    workingCurve = mc.duplicate(curve)
-    shape = mc.listRelatives (workingCurve, f= True,shapes=True)
-    parents = search.returnAllParents(obj)
-
-    """copy pivot """
-    rigging.copyPivot(workingCurve,obj)
-    curveScale =  mc.xform(workingCurve,q=True, s=True,r=True)
-
-    mc.makeIdentity(workingCurve,apply=True,translate =True, rotate = True, scale=True)
-
-    """ make our zero out group"""
-    group = rigging.groupMeObject(obj,False)
-    workingCurve = rigging.doParentReturnName(workingCurve,group)
-    """ zero out the group """
-    mc.setAttr((group+'.tx'),0)
-    mc.setAttr((group+'.ty'),0)
-    mc.setAttr((group+'.tz'),0)
-    mc.setAttr((group+'.rx'),0)
-    mc.setAttr((group+'.ry'),0)
-    mc.setAttr((group+'.rz'),0)
-
-    """ scale fix """
-    objScale = mc.xform(obj,q=True, s=True,r=True)
-    baseMultiplier = [0,0,0]
-    baseMultiplier[0] = ( (1/curveScale[0])*(1/objScale[0]) )
-    baseMultiplier[1] = ( (1/curveScale[1])*(1/objScale[1] ))
-    baseMultiplier[2] = ( (1/curveScale[2])*(1/objScale[2]) )
-
-    mc.setAttr(group+'.sx',baseMultiplier[0])
-    mc.setAttr(group+'.sy',baseMultiplier[1])
-    mc.setAttr(group+'.sz',baseMultiplier[2])
-
-
-    """ parent scale fix """    
-    if parents != None:
-        parents.reverse()
-        multiplier = mc.xform(obj,q=True, s=True,r=True)
-        for p in parents:
-            scaleBuffer = mc.xform(p,q=True, s=True,r=True)
-            multiplier[0] = ( (1/scaleBuffer[0]) * multiplier[0] )
-            multiplier[1] = ( (1/scaleBuffer[1]) * multiplier[1] )
-            multiplier[2] = ( (1/scaleBuffer[2]) * multiplier[2] )
-        mc.setAttr(workingCurve+'.sx',multiplier[0])
-        mc.setAttr(workingCurve+'.sy',multiplier[1])
-        mc.setAttr(workingCurve+'.sz',multiplier[2])
-
-    workingCurve = mc.parent(workingCurve,world=True)
-    mc.delete(group)
-
-    "freeze for parent shaping """
-    mc.makeIdentity(workingCurve,apply=True,translate =True, rotate = True, scale=False)
-    mc.parent (shape,obj,add=True,shape=True)
-    mc.delete(workingCurve)
-
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Color Tools
@@ -602,7 +455,9 @@ def dupeCurve(curve = None):
             
         _combined = combineCurves(l_transforms)
         position.moveParentSnap(_combined,curve)
-        
+        mc.delete(mc.scaleConstraint(curve,_combined))
+	mc.makeIdentity(curve, apply=True,s=1)	
+	
         _d_attrLists = attributes.d_attrCategoryLists.copy()
 	l_shapeAttrs = []
 	l_shapeAttrs.extend(_d_attrLists['overrideAttrs'])
@@ -819,11 +674,16 @@ def combineCurves(curvesToCombine):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """    
     curveShapes = []
-    for curve in curvesToCombine:
-        mc.delete(curve, ch=True)
-        
-    for curve in curvesToCombine[1:]:
-        parentShapeInPlace(curvesToCombine[0],curve)
+    try:
+	for curve in curvesToCombine:
+	    mc.delete(curve, ch=True)
+    except Exception,error:
+	raise Exception,"Delete ch fail | {0}".format(error)
+    try:
+	for curve in curvesToCombine[1:]:
+	    parentShapeInPlace(curvesToCombine[0],curve)
+    except Exception,error:
+	raise Exception,"parentShapeInPlace | {0}".format(error)    
     """
     for curve in curvesToCombine[1:]:
         shapeBuffer = mc.listRelatives (curve, f= True,shapes=True,fullPath=True)
@@ -833,9 +693,11 @@ def combineCurves(curvesToCombine):
     for shape in curveShapes:
         parentShapeInPlace(curvesToCombine[0],shape)
     """
-    for curve in curvesToCombine[1:]:
-        mc.delete(curve)
-
+    try:
+	for curve in curvesToCombine[1:]:
+	    mc.delete(curve)
+    except Exception,error:
+	raise Exception,"Delete extra| {0}".format(error)
     return curvesToCombine[0]
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

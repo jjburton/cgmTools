@@ -508,45 +508,57 @@ class go(object):
             mi_crvBase.scaleZ = .75
             Snap.go(mi_crvBase, tmplRoot) #Snap it
             i_grp = cgmMeta.cgmObject( mi_crvBase.doGroup() )
-
-            for i,rot in enumerate([0,90,90,90]):
-                log.debug(rot)
-                #rot, shoot, move, dup
-                log.debug("curve: %s | rot int: %s | grp: %s"%(mi_crvBase.mNode,i, i_grp.mNode))
-                i_grp.rotateY = i_grp.rotateY + rot
-                #Shoot
-                d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_crvBase.mNode)
-                if not d_return.get('hit'):
-                    raise StandardError,"build_cog>>failed to get hit. Master template object probably isn't in mesh"
-                log.debug("hitDict: %s"%d_return)
-                dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self.f_skinOffset*10)
-                log.debug("dist: %s"%dist)
-                log.debug("crv: %s"%mi_crvBase.mNode)
-                mi_crvBase.__setattr__("tz",dist)
-                mi_tmp = mi_crvBase.doDuplicate(parentOnly=False)
-                log.debug(mi_tmp)
-                mi_tmp.parent = False
-                ml_curvesToCombine.append(mi_tmp)
-                mi_crvBase.__setattr__("tz",0)
+            
+            try:
+                for i,rot in enumerate([0,90,90,90]):
+                    log.debug(rot)
+                    #rot, shoot, move, dup
+                    #log.debug("curve: %s | rot int: %s | grp: %s"%(mi_crvBase.mNode,i, i_grp.mNode))
+                    i_grp.rotateY = i_grp.rotateY + rot
+                    #Shoot
+                    d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_crvBase.mNode)
+                    if not d_return.get('hit'):
+                        raise StandardError,"build_cog>>failed to get hit. Master template object probably isn't in mesh"
+                    #log.debug("hitDict: %s"%d_return)
+                    dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self.f_skinOffset*10)
+                    #log.debug("dist: %s"%dist)
+                    #log.debug("crv: %s"%mi_crvBase.mNode)
+                    mi_crvBase.__setattr__("tz",dist)
+                    #mi_tmp = mi_crvBase.doDuplicate(parentOnly=False)
+                    mi_tmp = cgmMeta.dupe(mi_crvBase,asMeta = True)[0]
+                    #log.debug(mi_tmp)
+                    mi_tmp.parent = False
+                    ml_curvesToCombine.append(mi_tmp)
+                    mi_crvBase.__setattr__("tz",0)
+            except Exception,error:
+                raise Exception,"Rotate dup | {0}".format(error)                    
 
             i_grp.delete()
-            mi_crv = cgmMeta.cgmObject( curves.combineCurves([i_obj.mNode for i_obj in ml_curvesToCombine]) )
-            log.debug("mi_crv: %s"%mi_crv.mNode)
+            
+            try:
+                log.info(ml_curvesToCombine)
+                mi_crv = cgmMeta.cgmObject( curves.combineCurves([i_obj.mNode for i_obj in ml_curvesToCombine]) )
+                #log.debug("mi_crv: %s"%mi_crv.mNode)
+            except Exception,error:
+                raise Exception,"Reinitialize | {0}".format(error)            
 
-            #>>Copy tags and name
-            mi_crv.addAttr('cgmName',attrType='string',value = 'cog',lock=True)        
-            mi_crv.addAttr('cgmType',attrType='string',value = 'controlCurve',lock=True)
-            mi_crv.doName()        
-
-            mc.xform(mi_crv.mNode, cp=True)
-            mc.makeIdentity(mi_crv.mNode, apply=True,s=1,n=0)	
-
-            #>>> Color
-            curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
-            self.d_returnControls['cog'] = mi_crv.mNode
-            self.md_ReturnControls['cog'] = mi_crv
-            self._mi_rigNull.connectChildNode(mi_crv,'shape_cog','owner')
-
+            try:#>>Copy tags and name
+                mi_crv.addAttr('cgmName',attrType='string',value = 'cog',lock=True)        
+                mi_crv.addAttr('cgmType',attrType='string',value = 'controlCurve',lock=True)
+                mi_crv.doName()        
+    
+                mc.xform(mi_crv.mNode, cp=True)
+                mc.makeIdentity(mi_crv.mNode, apply=True,s=1,n=0)	
+            except Exception,error:
+                raise Exception,"Copy tags | {0}".format(error)
+            
+            try:#>>> Color
+                curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])    
+                self.d_returnControls['cog'] = mi_crv.mNode
+                self.md_ReturnControls['cog'] = mi_crv
+                self._mi_rigNull.connectChildNode(mi_crv,'shape_cog','owner')
+            except Exception,error:
+                raise Exception,"Color | {0}".format(error)
             log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 
         except Exception,error:
@@ -915,7 +927,7 @@ class go(object):
         mi_startLoc.__setattr__('r%s'%self.str_jointOrientation[1],rootRotate)
         mi_endLoc.__setattr__('r%s'%self.str_jointOrientation[1],rootRotate)
 
-        mi_castLoc = mi_startLoc.doDuplicate()
+        mi_castLoc = cgmMeta.dupe(mi_startLoc,asMeta = True)[0]
 
         Snap.go(mi_castLoc,self._targetMesh,True,False,midSurfacePos=True, axisToCheck = [self.str_jointOrientation[2]])
 
@@ -1700,7 +1712,7 @@ class go(object):
         if mi_palm:
             mi_palmLoc = mi_palm.doLoc()
         else:
-            mi_palmLoc = mi_wristLoc.doDuplicate()
+            mi_palmLoc = cgmMeta.dupe(mi_wristLoc,asMeta = True)[0]
             mi_palmLoc.doGroup()
             mi_palmLoc.__setattr__('t%s'%self.str_jointOrientation[0],dist_wristSize/4)
 
@@ -2865,13 +2877,13 @@ def shapeCast_eyeball(*args,**kws):
                 Snap.go(mi_tmpCrv,mi_helper.mNode)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * self._f_midMulti)
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
+                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
                 ml_curvesToCombine[-1].parent = False
 
                 #Snap.go(mi_tmpGroup.mNode,self.mi_irisPosLoc.mNode)
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 1.75)
                 mi_tmpCrv.scale = [.75,.75,.75]
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
+                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
                 ml_curvesToCombine[-1].parent = False
 
                 l_trace = ShapeCast.joinCurves(ml_curvesToCombine)
@@ -3065,11 +3077,11 @@ def shapeCast_eyeball(*args,**kws):
                 mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0], .01)
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
+                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
                 ml_curvesToCombine[-1].parent = False
 
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],-.01)
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
+                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
                 ml_curvesToCombine[-1].parent = False
 
                 mi_tmpGroup.delete()
@@ -3121,11 +3133,11 @@ def shapeCast_eyeball(*args,**kws):
                 mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0], .01)
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
+                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
                 ml_curvesToCombine[-1].parent = False
 
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],-.01)
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly=False))
+                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
                 ml_curvesToCombine[-1].parent = False
 
                 mi_tmpGroup.delete()
