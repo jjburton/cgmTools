@@ -429,9 +429,10 @@ def dupe(*args, **kws):
 		_max_userAttrs = len(l_userAttrs)
 		
 		for ii,attr in enumerate(l_userAttrs):
-		    try:cgmAttr(mObj,attr).doCopyTo(mDup.mNode)	
-		    except Exception,error:
-			self.log_error("Attr failed to transfer : {0} | {1}".format(attr,error))   
+		    if attr not in ['UUID']:
+			try:cgmAttr(mObj,attr).doCopyTo(mDup.mNode)	
+			except Exception,error:
+			    self.log_error("Attr failed to transfer : {0} | {1}".format(attr,error))   
 	    except Exception,error:raise Exception,"Inverse Scale | {0}".format(error)
 	    
 	def sub_inverseScale(self, mObj, mDup):
@@ -1625,7 +1626,7 @@ class cgmNode(r9Meta.MetaClass):
 		buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)
 	    if not buffer:
 		return False
-	    i_loc = cgmObject(buffer,setClass=True)
+	    i_loc = cgmObject(buffer)#setClass=True
 	    if nameLink:
 		i_loc.connectChildNode(self,'cgmName')
 	    else:
@@ -1737,8 +1738,14 @@ class cgmObject(cgmNode):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     #parent
     #==============    
-    #def getParent(self):
-        #return search.returnParentObject(self.mNode) or False
+    def getParent(self,asMeta = False):
+	try:
+	    buffer = search.returnParentObject(self.mNode) or False
+	    if buffer and asMeta:
+		return validateObjArg(buffer,mType = cgmObject)
+	    return buffer
+	except Exception,error:raise Exception,"[%s.getParent(asMeta = %s]{%s}"%(self.p_nameShort,asMeta,error)
+    
 		
     def doParent(self,target = False):
         """
@@ -1773,8 +1780,8 @@ class cgmObject(cgmNode):
 		#log.debug("'%s' parented to world"%self.mNode) 
 	except Exception,error:raise Exception,"[%s.doParent(target = %s)]{%s}"%(self.p_nameShort,target,error)
 		
-    parent = property(cgmNode.getParent, doParent)
-    p_parent = property(cgmNode.getParent, doParent)
+    parent = property(getParent, doParent)
+    p_parent = property(getParent, doParent)
     
     #=========================================================================      
     # Get Info
