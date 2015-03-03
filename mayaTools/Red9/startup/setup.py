@@ -68,7 +68,7 @@ log.setLevel(logging.INFO)
 # LANGUAGE MAPPING -----------------------------------------------------------------------
 #=========================================================================================
    
-global LANGUAGE_MAP
+#global LANGUAGE_MAP
 
 import language_packs.language_english
 LANGUAGE_MAP = language_packs.language_english
@@ -96,14 +96,24 @@ set_language()
 #=========================================================================================
 # MAYA DATA  -----------------------------------------------------------------------------
 #=========================================================================================
+
+MAYA_INTERNAL_DATA = {}  # cached Maya internal vars for speed
  
 def mayaVersion():
     #need to manage this better and use the API version,
     #eg: 2013.5 returns 2013
-    return mel.eval('getApplicationVersionAsFloat')
+    if 'version' in MAYA_INTERNAL_DATA and MAYA_INTERNAL_DATA['version']:
+        return MAYA_INTERNAL_DATA['version']
+    else:
+        MAYA_INTERNAL_DATA['version'] = mel.eval('getApplicationVersionAsFloat')
+        return MAYA_INTERNAL_DATA['version']
 
 def mayaVersionRelease():
-    return cmds.about(api=True)
+    if 'api' in MAYA_INTERNAL_DATA and MAYA_INTERNAL_DATA['api']:
+        return MAYA_INTERNAL_DATA['api']
+    else:
+        MAYA_INTERNAL_DATA['api'] = cmds.about(api=True)
+        return MAYA_INTERNAL_DATA['api']
 
 def mayaVersionQT():
     try:
@@ -360,12 +370,19 @@ def addToMayaMenus():
             if not cmds.menu(mainFileMenu, q=True, ni=True):
                 mel.eval('buildFileMenu()')
             cmds.menuItem(divider=True,p=mainFileMenu)
+            cmds.menuItem('redNineCopyPathItem',
+                          l=LANGUAGE_MAP._MainMenus_.copy_to_clipboard,
+                          ann=LANGUAGE_MAP._MainMenus_.copy_to_clipboard_ann,
+                          p=mainFileMenu,
+                          echoCommand=True,
+                          c="import maya.cmds as cmds;import Red9.core.Red9_General as r9General;r9General.Clipboard.setText(cmds.file(q=True,sn=True))")
             cmds.menuItem('redNineOpenFolderItem',
                           l=LANGUAGE_MAP._MainMenus_.open_in_explorer,
                           ann=LANGUAGE_MAP._MainMenus_.open_in_explorer_ann,
                           p=mainFileMenu,
                           echoCommand=True,
                           c="import maya.cmds as cmds;import Red9.core.Red9_General as r9General;r9General.os_OpenFileDirectory(cmds.file(q=True,sn=True))")
+
         # timeSlider additions
         if not cmds.menuItem('redNineTimeSliderCollapseItem',q=True,ex=True):
             if mayaVersion >= 2011:
@@ -743,8 +760,8 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindo
         cmds.evalDeferred("import Red9_Internals", lp=True)  # Unresolved Import
            
 def reload_Red9(*args):
-    global LANGUAGE_MAP
-    reload(LANGUAGE_MAP)
+    #global LANGUAGE_MAP
+    #reload(LANGUAGE_MAP)
     import Red9.core
     Red9.core._reload()
 

@@ -46,8 +46,6 @@ import Red9.startup.setup as r9Setup
 import Red9_General as r9General
 import Red9_CoreUtils as r9Core
 import Red9_AnimationUtils as r9Anim
-from Red9.startup.setup import LANGUAGE_MAP
-from Red9_Meta import LANGUAGE_MAP
 
 # Language map is used for all UI's as a text mapping for languages
 LANGUAGE_MAP = r9Setup.LANGUAGE_MAP
@@ -652,7 +650,7 @@ def  convertNodeToMetaData(nodes,mClass):
     return [MetaClass(node) for node in nodes]
 
         
-class MClassNodeUI():
+class MClassNodeUI(object):
     '''
     Simple UI to display all MetaNodes in the scene
     '''
@@ -677,7 +675,11 @@ class MClassNodeUI():
         self.allowMulti=allowMulti
         
         self.win = 'MetaClassFinder'
-        self.mNodes=None
+        self.mNodes=[]
+        self.cachedforFilter=[]
+        self.stripNamespaces=False
+        self.shortname=False
+        self.sortBy = 'class'
         
     @classmethod
     def show(cls):
@@ -739,8 +741,8 @@ class MClassNodeUI():
         cmds.rowColumnLayout('rc_useMetaFilterUI', numberOfColumns=3,
                              columnWidth=[(1, 120), (2, 120), (3,200)],
                              columnSpacing=[(1, 10), (2, 10), (3,20)])
-        cmds.checkBox('cb_filter_mTypes', label=LANGUAGE_MAP._MetaNodeUI_.mtypes_filter, v=False, onc=partial(self.__uicb_setfilterMode,'mTypes'))
-        cmds.checkBox('cb_filter_mInstances', label=LANGUAGE_MAP._MetaNodeUI_.minstances_filter, v=False, onc=partial(self.__uicb_setfilterMode,'mInstance'))
+        cmds.checkBox('cb_filter_mTypes', label=LANGUAGE_MAP._MetaNodeUI_.mtypes_filter, v=False, cc=partial(self.__uicb_setfilterMode,'mTypes'))
+        cmds.checkBox('cb_filter_mInstances', label=LANGUAGE_MAP._MetaNodeUI_.minstances_filter, v=False, cc=partial(self.__uicb_setfilterMode,'mInstance'))
         cmds.optionMenu('om_MetaUI_Filter', ni=len(RED9_META_REGISTERY),
                         ann=LANGUAGE_MAP._MetaNodeUI_.registered_metaclasses_ann,
                         cc=partial(self.fillScroll))
@@ -749,12 +751,16 @@ class MClassNodeUI():
         cmds.setParent('..')
         
         cmds.separator(h=10, style='in')
-        cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 400), (2, 50)])
+        cmds.rowColumnLayout(numberOfColumns=4,
+                             columnWidth=[(1,70),(2,80),(3, 280), (4, 30)],
+                             columnSpacing=[(1, 10), (2, 10)])
+        cmds.checkBox('cb_shortname', label=LANGUAGE_MAP._MetaNodeUI_.shortname, v=False, cc=self.__filterResults)
+        cmds.checkBox('cb_stripNS', label=LANGUAGE_MAP._MetaNodeUI_.stripnamespace, v=False, cc=self.__filterResults)
         try:
-            cmds.textFieldGrp('filterByName', l=LANGUAGE_MAP._MetaNodeUI_.filter_by_name, text='', tcc=self.filterResults, cw=((1,136),(2,250)))
+            cmds.textFieldGrp('filterByName', l=LANGUAGE_MAP._MetaNodeUI_.filter_by_name, text='', tcc=self.__filterResults, cw=((1,100),(2,170)))
         except:
-            cmds.textFieldGrp('filterByName', l=LANGUAGE_MAP._MetaNodeUI_.filter_by_name, text='', cc=self.filterResults, cw=((1,136),(2,250)))
-        cmds.button(LANGUAGE_MAP._Generic_.clear, c=self.clearFilter)
+            cmds.textFieldGrp('filterByName', l=LANGUAGE_MAP._MetaNodeUI_.filter_by_name, text='', cc=self.__filterResults, cw=((1,100),(2,170)))
+        cmds.button(LANGUAGE_MAP._Generic_.clear, c=self.__clearFilter)
         cmds.setParent('..')
         
         cmds.separator(h=10, style='in')
@@ -883,35 +889,57 @@ class MClassNodeUI():
             log.warning('no child nodes found from given metaNode')
         #cmds.select(self.mNodes[cmds.textScrollList('slMetaNodeList',q=True,sii=True)[0]-1].getChildren(walk=True))
     
-    def filterResults(self, *args):
+    def __fillScrollEntries(self):
+        '''
+        consistant way to fill the text data displayed
+        '''
+        baseNames=[]
+        cmds.textScrollList('slMetaNodeList', edit=True, ra=True)
+        width=len(self.mNodes[0])
+        #figure out the width of the first cell
+        for meta in self.mNodes:
+            name=meta
+            if self.stripNamespaces:
+                name=meta.replace(':','')
+            if self.shortname:
+                name=name.split('|')[-1].split(':')[-1]
+            if len(name)>width:
+                width=len(name)
+            baseNames.append(name)
+        width+=3
+        entries=zip(self.mNodes, baseNames)
+        #fill the scroll list
+        for meta,name in entries:
+            cmds.textScrollList('slMetaNodeList', edit=True,
+                                    append=('{0:<%i}:{1:}' % width).format(name, getMClassDataFromNode(meta)),
+                                    sc=lambda *args:self.selectCmd(),
+                                    dcc=lambda *x:self.doubleClick())
+        
+    def __filterResults(self, *args):
         '''
         rebuild the list based on the filter typed in, Note that results are 
         converted to upper before the match so it's case IN-sensitive
         '''
-        filter=cmds.textFieldGrp('filterByName', q=True, text=True)
-        cmds.textScrollList('slMetaNodeList', edit=True, ra=True)
-        if self.mNodes:
-            width=len(self.mNodes[0])
-            #figure out the width of the first cell
-            for meta in self.mNodes:
-                if len(meta)>width:
-                    width=len(meta)
-            width+=3
-            #fill the scroll list
-            for meta in self.mNodes:
-                if filter.upper() in meta.upper():
-                    cmds.textScrollList('slMetaNodeList', edit=True,
-                                        append=('{0:<%i}:{1:}' % width).format(meta, getMClassDataFromNode(meta)),
-                                        sc=lambda *args:self.selectCmd(),
-                                        dcc=lambda *x:self.doubleClick())
+        self.shortname=False
+        self.stripNamespaces=False
+        filterby=cmds.textFieldGrp('filterByName', q=True, text=True)
+        if filterby:
+            self.mNodes=[]
+            if self.cachedforFilter:
+                #fill the scroll list
+                self.mNodes = r9Core.filterListByString(self.cachedforFilter, filterby, matchcase=False)
+
+        if cmds.checkBox('cb_shortname', q=True, v=True):
+            self.shortname=True
+        if cmds.checkBox('cb_stripNS', q=True, v=True):
+            self.stripNamespaces=True
+        self.__fillScrollEntries()
     
-    def clearFilter(self, *args):
+    def __clearFilter(self, *args):
         cmds.textFieldGrp('filterByName', e=True, text='')
+        self.fillScroll()
         
     def fillScroll(self, sortBy=None, *args):  # , mClassToShow=None, *args):
-        
-        cmds.textScrollList('slMetaNodeList', edit=True, ra=True)
-                          
         states=cmds.radioCollection(self.uircbMetaUIShowStatus, q=True, select=True)
         self.dataType='node'
         if states=='metaUISatusinValids' or states=='metaUISatusValids':
@@ -953,26 +981,14 @@ class MClassNodeUI():
             sortBy=self.sortBy
           
         if sortBy=='byClass':
-            #self.mNodes=sorted(self.mNodes, key=lambda x: x.mClass.upper())
             self.mNodes=sorted(self.mNodes, key=lambda x: getMClassDataFromNode(x).upper())
         elif sortBy=='byName':
-            #self.mNodes=sorted(self.mNodes, key=lambda x: x.mNode.upper())
             self.mNodes=sorted(self.mNodes, key=lambda x: x.upper())
 
         #fill the textScroller =========================================
         if self.mNodes:
-            width=len(self.mNodes[0])
-            #figure out the width of the first cell
-            for meta in self.mNodes:
-                if len(meta)>width:
-                    width=len(meta)
-            width+=3
-            #fill the scroll list
-            for meta in self.mNodes:
-                cmds.textScrollList('slMetaNodeList', edit=True,
-                                        append=('{0:<%i}:{1:}' % width).format(meta, getMClassDataFromNode(meta)),
-                                        sc=lambda *args:self.selectCmd(),
-                                        dcc=lambda *x:self.doubleClick())
+            self.cachedforFilter=list(self.mNodes)  # cache the results so that the filter by name is fast!
+            self.__fillScrollEntries()
  
     def __uiCB_connectNode(self, *args):
         '''
@@ -999,58 +1015,6 @@ class MClassNodeUI():
             raise StandardError('Connect Call only works with a single selected mNode from the UI')
         
         r9Setup.PRO_PACK_STUBS().MetaDataUI.uiCB_disconnectNode(mNode)
-         
-        
-                                 
-#    def __uiCB_connectNode(self, *args):
-#        '''
-#        Given a single selected mNode from the UI and a single selected MAYA node, run
-#        connectChild with the given promtString as the attr
-#        '''
-#        prefix=''
-#        indexes=cmds.textScrollList('slMetaNodeList',q=True,sii=True)
-#        if len(indexes)==1:
-#            mNode=MetaClass(self.mNodes[indexes[0]-1])
-#            if hasattr(mNode,'CTRL_Prefix'):
-#                prefix='%s_' % mNode.CTRL_Prefix
-#        else:
-#            raise StandardError('Connect Call only works with a single selected mNode from the UI')
-#        
-#        r9Setup.PRO_PACK_STUBS().MetaDataUI.uiCB_connectNode(mNode)
-#        
-#        nodes=cmds.ls(sl=True, l=True)
-#        if mNode.mNode in nodes:
-#            nodes.remove(mNode.mNode)  # so we can never connect to ourself!
-#
-#        if nodes:
-#            currentName=r9Core.nodeNameStrip(nodes[0])
-#            result = cmds.promptDialog(
-#                                title='Connect node to Meta',
-#                                message='Enter Connection Attr:',
-#                                button=['OK', 'Cancel'],
-#                                defaultButton='OK',
-#                                text=prefix+currentName,
-#                                cancelButton='Cancel',
-#                                dismissString='Cancel')
-#            if result == 'OK':
-#                attr=cmds.promptDialog(query=True, text=True)
-#                print 'connecting :', nodes[0], ' to:', mNode.mNode
-#                if mNode.hasAttr(attr):
-#                    if getattr(mNode, attr):
-#                        result = cmds.confirmDialog(
-#                            title='Attr Check:',
-#                            button=['Yes', 'Cancel'],
-#                            message='Confirm : Attr is already connected, force connect current selected node?',
-#                            defaultButton='Cancel',
-#                            bgc=(0.5,0.1,0.1),
-#                            cancelButton='Cancel',
-#                            dismissString='Cancel')
-#                        if result == 'Yes':
-#                            mNode.connectChild(nodes[0],attr)
-#                else:
-#                    mNode.connectChild(nodes[0],attr)
-#        else:
-#            raise StandardError('No node selected to connect to MetaNode')
         
     def printRegisteredNodeTypes(self,*args):
         print '\nRED9_META_NODETYPE_REGISTERY:\n============================='
@@ -3164,7 +3128,7 @@ def monitorHUDremoveCBAttrs():
                     pass
         metaHUD.refreshHud()
         
-def hardKillMetaHUD():
+def hardKillMetaHUD(*args):
     '''
     If the MetaNodes are left behind in a scene and you can't remove them
     then this is a hard coded kill to remove the hud element. This situation 
@@ -3477,6 +3441,8 @@ class MetaTimeCodeHUD(MetaHUDNode):
 
         for node in nodes:
             node=MetaClass(node)
+            if not node.hasAttr(self.tc_ref):
+                continue
             if node.nameSpace():
                 monitoredAttr='%s_%s_%s' % (r9Core.nodeNameStrip(node.nameSpace()[0]),
                                         r9Core.nodeNameStrip(node.mNode),
