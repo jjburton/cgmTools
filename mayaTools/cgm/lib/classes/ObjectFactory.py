@@ -58,6 +58,9 @@ class ObjectFactory():
 
         """
         ### input check
+	if type(obj) in [list,tuple]:#make sure it's not a list
+	    obj = obj[0]
+	    
         if not mc.objExists(obj):
             buffer = mc.group(empty=True)
             if len(list(obj)) < 1:
