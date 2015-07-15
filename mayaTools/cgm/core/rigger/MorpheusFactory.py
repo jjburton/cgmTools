@@ -24,6 +24,7 @@ from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.classes import NodeFactory as cgmNodeFactory
 reload(cgmNodeFactory)
 from cgm.core.rigger.lib import morpheus_sharedData as MORPHYDATA
+reload(MORPHYDATA)
 from cgm.lib import (curves,
                      deformers,
                      distance,
@@ -1014,30 +1015,84 @@ def puppet_verifyAll(*args,**kws):
 #============================================================================================================
 #>>> Face Controls
 #============================================================================================================
-_d_faceBufferAttributes = {"nostril":{'attrs':['out','in'],
+__attrHolder = 'face_attrHolder'
+"""'lipCenter_lwr_fwd':{'driverAttr':'fwdBack'},
+    'lipCenter_lwr_back':{'driverAttr':'-fwdBack'},
+    'lipCenter_lwr_up_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+    'lipCenter_lwr_up_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+    'lipCenter_lwr_dn_left':{'driverAttr':'tx','driverAttr2':'-ty','mode':'cornerBlend'},
+    'lipCenter_lwr_dn_right':"""
+_d_faceBufferAttributes = {"nose":{'attrs':['out','in','sneer_up','sneer_dn',
+                                            'seal_up_cntr','seal_up_outr'],
                                    'sideAttrs':'*'},
-                           "cheek":{'attrs':['up','dn','out','in','blow','suck'],
+                           "cheek":{'attrs':['up','dn','blow','suck'],
                                     'sideAttrs':'*'},
-                           "eyeCheek":{'attrs':['up','dn'],
+                           "eyeSqueeze":{'attrs':['up','dn'],
                                        'sideAttrs':'*'},                           
                            "mouth":{'attrs':['up','dn','left','right','fwd','back','twist'],
                                     'sideAttrs':['twist']},
                            "brow":{'attrs':['center_up','center_dn',
-                                            'inner_up','inner_dn','squeeze',
+                                            'inr_up','inr_dn','squeeze',
                                             'mid_up','mid_dn',
                                             'outr_up','outr_dn'],
-                                   'sideAttrs':[ 'inner_up','inner_dn','squeeze',
+                                   'sideAttrs':[ 'inr_up','inr_dn','squeeze',
                                                  'mid_up','mid_dn',
-                                                 'outr_up','outr_dn']},
-                           "sneer":{'attrs':['up','dn'],
-                                      'sideAttrs':'*'},                           
-                           "jaw":{'attrs':['open','compress','left','right','fwd','back']},
-                           "lipRoll":{'attrs':['upr_out','upr_in','lwr_out','lwr_in'],
-                                      'sideAttrs':'*'},
-                           "lip":{'attrs':['smile','smileNarrow','smileWide','wide','narrow',
-                                           'frown','frownNarrow','frownWide'],
-                                  'sideAttrs':'*'}}
+                                                 'outr_up','outr_dn']},                       
+                           "jaw":{'attrs':['dn','clench','left','right','fwd','back']},
+                           "jawDriven":{'attrs':['dn_tz','dn_rx','left_tx','left_ry','left_rz','right_tx','right_ry','right_rz','fwd_tz','back_tz']},
+                           "jawBase":{'attrs':['tx','ty','tz','rx','ry','rz']},
+                           "jawNDV":{'attrs':['tx','ty','tz','rx','ry','rz']},                                                        
+                           "driver":{'attrs':['jaw_dn_tz','jaw_dn_rx',
+                                              'jaw_left_tx','jaw_left_ry','jaw_left_rz',
+                                              'jaw_right_tx','jaw_right_rz','jaw_right_rz',
+                                              'jaw_fwd_tz','jaw_back_tz',
+                                              'smile_dn_pull','frown_dn_pull']},                           
+                           "lipUpr":{'attrs':['rollOut','rollIn','moreIn','moreOut','up','upSeal_outr','upSeal_cntr',
+                                              'seal_out_cntr','seal_out_outr',#'seal_out_cntr_diff','seal_out_outr_diff'
+                                              ],
+                                   'sideAttrs':'*'},
+                           "lipLwr":{'attrs':['rollOut','rollIn','moreIn','moreOut','dn','dnSeal_outr','dnSeal_cntr',
+                                              'seal_out_cntr','seal_out_outr',#'seal_out_cntr_diff','seal_out_outr_diff'
+                                              ],
+                                     'sideAttrs':'*'},                           
+                           "seal":{'attrs':['center','left','right'],
+                                   'sideAttrs':[]},
+                           "jDiff":{'attrs':['dn_frown','dn_smile','dn_seal_outr','dn_seal_cntr','fwd_seal_outr','fwd_seal_cntr',
+                                             'back_seal_outr','back_seal_cntr'],
+                                   'sideAttrs':'*'},
+                           "lips":{'attrs':['smile','wide','narrow','purse','twistUp','twistDn','out','frown'],
+                                   'sideAttrs':'*'},
+                           "lipCntr_upr":{'attrs':['fwd','back','up','dn'],
+                                   'sideAttrs':['up','dn']},
+                           "lipCntr_lwr":{'attrs':['fwd','back','up','dn'],
+                                            'sideAttrs':['up','dn']}}
 
+_d_baseFaceAttrValues = {'driver_jaw_back_tz':-1.177,
+                         'driver_jaw_fwd_tz':1.693,
+                         'driver_jaw_left_ry':0,
+                         'driver_jaw_left_rz':0,
+                         'driver_jaw_left_tx':0.850,
+                         'driver_jaw_dn_rx':24.152,
+                         'driver_jaw_dn_tz':6.366,
+                         'driver_jaw_right_ry':0,
+                         'driver_jaw_right_rz':0,
+                         'driver_jaw_right_tx':0.850,
+                         'jawBase_tx':0,
+                         'jawBase_ty':152.204,
+                         'jawBase_tz':6.806,
+                         'jawBase_rx':0,
+                         'jawBase_ry':0,
+                         'jawBase_rz':0,
+                         'driver_smile_dn_pull':.5,
+                         'driver_frown_dn_pull':.8,
+                         'jaw_dn':1.0,
+                         }
+"""
+"roll":{'attrs':['upr_out','upr_in','lwr_out','lwr_in','upr_moreIn','upr_moreOut','lwr_moreIn','lwr_moreOut','lwr_moreIn','upr_up','lwr_dn',
+                                            'seal_upr_out_cntr','seal_upr_out_outr','seal_lwr_out_cntr','seal_lwr_out_outr',
+                                            'seal_upr_out_cntr_diff','seal_upr_out_outr_diff','seal_lwr_out_cntr_diff','seal_lwr_out_outr_diff'],
+                                   'sideAttrs':'*'},
+"""
 _d_controlToDrivenSetup = {'mouth':{'control':'mouth_anim',
                                     'controlType':'joystickReg',
                                     'dir':{'up':{'driven':'mouth_up',
@@ -1048,41 +1103,111 @@ _d_controlToDrivenSetup = {'mouth':{'control':'mouth_anim',
                                                    'driver':'tx'},
                                            'right':{'driven':'mouth_right',
                                                     'driver':'tx'}}}}
+
+#...this defines how we wire our controls and attributes for the face attr holder
 _d_faceControlsToConnect = {'browCenter':{'control':'center_brow_anim',
                                           'wiringDict':{'brow_center_up':{'driverAttr':'ty'},
                                                         'brow_center_dn':{'driverAttr':'-ty'}}},
-                            'inner_brow_left':{'control':'inner_l_brow_anim',
-                                               'wiringDict':{'brow_inner_up_left':{'driverAttr':'ty'},
-                                                             'brow_inner_dn_left':{'driverAttr':'-ty'},
+                            
+                            'inner_brow_left':{'control':'l_inner_brow_anim',
+                                               'wiringDict':{'brow_inr_up_left':{'driverAttr':'ty'},
+                                                             'brow_inr_dn_left':{'driverAttr':'-ty'},
                                                              'brow_squeeze_left':{'driverAttr':'-tx'}}},                             
-                            'mid_brow_left':{'control':'mid_l_brow_anim',
+                            'mid_brow_left':{'control':'l_mid_brow_anim',
                                              'wiringDict':{'brow_mid_up_left':{'driverAttr':'ty'},
                                                            'brow_mid_dn_left':{'driverAttr':'-ty'}}}, 
-                            'outer_brow_left':{'control':'outer_l_brow_anim',
+                            'outer_brow_left':{'control':'l_ outer_brow_anim',
                                                'wiringDict':{'brow_outr_up_left':{'driverAttr':'ty'},
                                                              'brow_outr_dn_left':{'driverAttr':'-ty'}}},
+                            'inner_brow_right':{'control':'r_inner_brow_anim',
+                                               'wiringDict':{'brow_inr_up_right':{'driverAttr':'ty'},
+                                                             'brow_inr_dn_right':{'driverAttr':'-ty'},
+                                                             'brow_squeeze_right':{'driverAttr':'-tx'}}},                             
+                            'mid_brow_right':{'control':'r_mid_brow_anim',
+                                             'wiringDict':{'brow_mid_up_right':{'driverAttr':'ty'},
+                                                           'brow_mid_dn_right':{'driverAttr':'-ty'}}}, 
+                            'outer_brow_right':{'control':'r_outer_brow_anim',
+                                               'wiringDict':{'brow_outr_up_right':{'driverAttr':'ty'},
+                                                             'brow_outr_dn_right':{'driverAttr':'-ty'}}}, 
+                            
                             'eyeSqueeze_left':{'control':'l_eyeSqueeze_anim',
-                                               'wiringDict':{'eyeCheek_up_left':{'driverAttr':'ty'},
-                                                             'eyeCheek_dn_left':{'driverAttr':'-ty'}}}, 
-                            'sneer_left':{'control':'l_sneer_anim',
-                                          'wiringDict':{'nostril_in_left':{'driverAttr':'-tx'},
-                                                        'nostril_out_left':{'driverAttr':'tx'},
-                                                        'sneer_up_left':{'driverAttr':'ty'},
-                                                        'sneer_dn_left':{'driverAttr':'-ty'}}},                              
+                                               'wiringDict':{'eyeSqueeze_up_left':{'driverAttr':'ty'},
+                                                             'eyeSqueeze_dn_left':{'driverAttr':'-ty'}}}, 
+                            'eyeSqueeze_right':{'control':'r_eyeSqueeze_anim',
+                                               'wiringDict':{'eyeSqueeze_up_right':{'driverAttr':'ty'},
+                                                             'eyeSqueeze_dn_right':{'driverAttr':'-ty'}}}, 
+                            
                             'cheek_left':{'control':'l_cheek_anim',
-                                          'wiringDict':{'cheek_up_left':{'driverAttr':'upDn'},
-                                                        'cheek_dn_left':{'driverAttr':'-upDn'},
-                                                        'cheek_blow_left':{'driverAttr':'ty'},
-                                                        'cheek_suck_left':{'driverAttr':'-ty'},                                                     
-                                                        'cheek_in_left':{'driverAttr':'-tx'},
-                                                        'cheek_out_left':{'driverAttr':'tx'}}},
+                                          'wiringDict':{'cheek_up_left':{'driverAttr':'ty'},
+                                                        'cheek_dn_left':{'driverAttr':'-ty'},
+                                                        'cheek_blow_left':{'driverAttr':'tx'},
+                                                        'cheek_suck_left':{'driverAttr':'-tx'}}},
+                            'cheek_right':{'control':'r_cheek_anim',
+                                          'wiringDict':{'cheek_up_right':{'driverAttr':'ty'},
+                                                        'cheek_dn_right':{'driverAttr':'-ty'},
+                                                        'cheek_blow_right':{'driverAttr':'tx'},
+                                                        'cheek_suck_right':{'driverAttr':'-tx'}}},   
+                            
+                            'nose_left':{'control':'l_nose_anim',
+                                         'wiringDict':{'nose_in_left':{'driverAttr':'-tx'},
+                                                       'nose_out_left':{'driverAttr':'tx'},
+                                                       'nose_sneer_up_left':{'driverAttr':'ty'},
+                                                       'nose_sneer_dn_left':{'driverAttr':'-ty'}},
+                                         'simpleArgs':['{0}.nose_seal_up_cntr_left = {0}.nose_sneer_up_left * {0}.seal_center'.format(__attrHolder),
+                                                       '{0}.nose_seal_up_outr_left = {0}.nose_sneer_up_left * {0}.seal_left'.format(__attrHolder)
+                                                       ]},
+                            'nose_right':{'control':'r_nose_anim',
+                                         'wiringDict':{'nose_in_right':{'driverAttr':'-tx'},
+                                                       'nose_out_right':{'driverAttr':'tx'},
+                                                       'nose_sneer_up_right':{'driverAttr':'ty'},
+                                                       'nose_sneer_dn_right':{'driverAttr':'-ty'}},
+                                         'simpleArgs':['{0}.nose_seal_up_cntr_right = {0}.nose_sneer_up_right * {0}.seal_center'.format(__attrHolder),
+                                                       '{0}.nose_seal_up_outr_right = {0}.nose_sneer_up_right * {0}.seal_right'.format(__attrHolder)
+                                                       ]},                            
+                                                     
+                            
                             'lipCorner_left':{'control':'l_lipCorner_anim',
-                                              'wiringDict':{'lip_smile_left':{'driverAttr':'ty'},
-                                                            'lip_frown_left':{'driverAttr':'-ty'},                                                    
-                                                            'lip_narrow_left':{'driverAttr':'-tx'},
-                                                            'lip_wide_left':{'driverAttr':'tx'}}},                               
+                                              'wiringDict':{'lips_purse_left':{'driverAttr':'purse'},
+                                                            'lips_out_left':{'driverAttr':'out'},
+                                                            'lips_twistUp_left':{'driverAttr':'twist'},
+                                                            'lips_twistDn_left':{'driverAttr':'-twist'},
+                                                            'lips_smile_left':{'driverAttr':'ty'},
+                                                            'lips_frown_left':{'driverAttr':'-ty'},                                                    
+                                                            'lips_narrow_left':{'driverAttr':'-tx'},
+                                                            'lips_wide_left':{'driverAttr':'tx'}}},
+                            'lipCorner_right':{'control':'r_lipCorner_anim',
+                                              'wiringDict':{'lips_purse_right':{'driverAttr':'purse'},
+                                                            'lips_out_right':{'driverAttr':'out'},
+                                                            'lips_twistUp_right':{'driverAttr':'twist'},
+                                                            'lips_twistDn_right':{'driverAttr':'-twist'},
+                                                            'lips_smile_right':{'driverAttr':'ty'},
+                                                            'lips_frown_right':{'driverAttr':'-ty'},                                                    
+                                                            'lips_narrow_right':{'driverAttr':'-tx'},
+                                                            'lips_wide_right':{'driverAttr':'tx'}}},                            
+                            
+                            'lipCenter_upr':{'control':'upper_lipCenter_anim',
+                                             'wiringDict':{'lipCntr_upr_fwd':{'driverAttr':'fwdBack'},
+                                                           'lipCntr_upr_back':{'driverAttr':'-fwdBack'},
+                                                           'lipCntr_upr_up_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                                                           'lipCntr_upr_up_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                                                           'lipCntr_upr_dn_left':{'driverAttr':'tx','driverAttr2':'-ty','mode':'cornerBlend'},
+                                                           'lipCntr_upr_dn_right':{'driverAttr':'-tx','driverAttr2':'-ty','mode':'cornerBlend'},                                                           
+                                                           }},     
+                            'lipCenter_lwr':{'control':'lower_lipCenter_anim',
+                                             'wiringDict':{'lipCntr_lwr_fwd':{'driverAttr':'fwdBack'},
+                                                           'lipCntr_lwr_back':{'driverAttr':'-fwdBack'},
+                                                           'lipCntr_lwr_up_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                                                           'lipCntr_lwr_up_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                                                           'lipCntr_lwr_dn_left':{'driverAttr':'tx','driverAttr2':'-ty','mode':'cornerBlend'},
+                                                           'lipCntr_lwr_dn_right':{'driverAttr':'-tx','driverAttr2':'-ty','mode':'cornerBlend'},                                                           
+                                                           }},                              
+                            
+                            
                             'mouth':{'control':'mouth_anim',
-                                     'wiringDict':{'mouth_twist_left':{'driverAttr':'rz'},
+                                     'wiringDict':{'seal_center':{'driverAttr':'seal_center','noTrack':True},
+                                                   'seal_left':{'driverAttr':'seal_left','noTrack':True},
+                                                   'seal_right':{'driverAttr':'seal_right','noTrack':True},
+                                                   'mouth_twist_left':{'driverAttr':'rz'},
                                                    'mouth_twist_right':{'driverAttr':'-rz'},
                                                    'mouth_fwd':{'driverAttr':'fwdBack'},
                                                    'mouth_back':{'driverAttr':'-fwdBack'},
@@ -1090,20 +1215,146 @@ _d_faceControlsToConnect = {'browCenter':{'control':'center_brow_anim',
                                                    'mouth_dn':{'driverAttr':'-ty'},
                                                    'mouth_left':{'driverAttr':'tx'},
                                                    'mouth_right':{'driverAttr':'-tx'}}},
-                            'upper_lipRoll':{'control':'upper_lipRoll_anim',
-                                             'wiringDict':{'lipRoll_upr_out_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
-                                                           'lipRoll_upr_in_left':{'driverAttr':'tx','driverAttr2':'-ty','mode':'cornerBlend'},
-                                                           }},                                               
+                            
+                            'uprLip_left':{'control':'l_uprLip_anim',
+                                          'wiringDict':{'lipUpr_rollIn_left':{'driverAttr':'-tx'},
+                                                        'lipUpr_rollOut_left':{'driverAttr':'tx','driverAttr2':'{0}.lips_wide_left'.format(__attrHolder),'mode':'negVNeg'},
+                                                        'lipUpr_up_left':{'driverAttr':'ty'},
+                                                        'lipUpr_moreOut_left':{'driverAttr':'roll'},
+                                                        'lipUpr_moreIn_left':{'driverAttr':'-roll'},
+                                                        },
+                                          'simpleArgs':['{0}.lipUpr_upSeal_outr_left = {0}.seal_left * {0}.lipUpr_up_left'.format(__attrHolder),
+                                                        '{0}.lipUpr_upSeal_cntr_left = {0}.seal_center * {0}.lipUpr_up_left'.format(__attrHolder),
+                                                        '{0}.lipUpr_seal_out_cntr_left = {0}.seal_left * {0}.lipUpr_rollOut_left'.format(__attrHolder),
+                                                        '{0}.lipUpr_seal_out_outr_left = {0}.seal_center * {0}.lipUpr_rollOut_left'.format(__attrHolder)                                                        
+                                                        ]}, 
+                            'uprLip_right':{'control':'r_uprLip_anim',
+                                           'wiringDict':{'lipUpr_rollIn_right':{'driverAttr':'-tx'},
+                                                         'lipUpr_rollOut_right':{'driverAttr':'tx','driverAttr2':'{0}.lips_wide_right'.format(__attrHolder),'mode':'negVNeg'},
+                                                         'lipUpr_up_right':{'driverAttr':'ty'},
+                                                         'lipUpr_moreOut_right':{'driverAttr':'roll'},
+                                                         'lipUpr_moreIn_right':{'driverAttr':'-roll'},
+                                                         },
+                                           'simpleArgs':['{0}.lipUpr_upSeal_outr_right = {0}.seal_right * {0}.lipUpr_up_right'.format(__attrHolder),
+                                                         '{0}.lipUpr_upSeal_cntr_right = {0}.seal_center * {0}.lipUpr_up_right'.format(__attrHolder),
+                                                         '{0}.lipUpr_seal_out_cntr_right = {0}.seal_right * {0}.lipUpr_rollOut_right'.format(__attrHolder),
+                                                         '{0}.lipUpr_seal_out_outr_right = {0}.seal_center * {0}.lipUpr_rollOut_right'.format(__attrHolder)                                                        
+                                                         ]},
+                            'lwrLip_left':{'control':'l_lwrLip_anim',
+                                           'wiringDict':{'lipLwr_rollIn_left':{'driverAttr':'-tx'},
+                                                         'lipLwr_rollOut_left':{'driverAttr':'tx','driverAttr2':'{0}.lips_wide_left'.format(__attrHolder),'mode':'negVNeg'},
+                                                         'lipLwr_dn_left':{'driverAttr':'ty'},
+                                                         'lipLwr_moreOut_left':{'driverAttr':'roll'},
+                                                         'lipLwr_moreIn_left':{'driverAttr':'-roll'},
+                                                         },
+                                           'simpleArgs':['{0}.lipLwr_dnSeal_outr_left = {0}.seal_left * {0}.lipLwr_up_left'.format(__attrHolder),
+                                                         '{0}.lipLwr_dnSeal_cntr_left = {0}.seal_center * {0}.lipLwr_up_left'.format(__attrHolder),
+                                                         '{0}.lipLwr_seal_out_cntr_left = {0}.seal_left * {0}.lipLwr_rollOut_left'.format(__attrHolder),
+                                                         '{0}.lipLwr_seal_out_outr_left = {0}.seal_center * {0}.lipLwr_rollOut_left'.format(__attrHolder)                                                        
+                                                         ]}, 
+                            'lwrLip_right':{'control':'r_lwrLip_anim',
+                                            'wiringDict':{'lipLwr_rollIn_right':{'driverAttr':'-tx'},
+                                                          'lipLwr_rollOut_right':{'driverAttr':'tx','driverAttr2':'{0}.lips_wide_right'.format(__attrHolder),'mode':'negVNeg'},
+                                                          'lipLwr_dn_right':{'driverAttr':'ty'},
+                                                          'lipLwr_moreOut_right':{'driverAttr':'roll'},
+                                                          'lipLwr_moreIn_right':{'driverAttr':'-roll'},
+                                                          },
+                                            'simpleArgs':['{0}.lipLwr_dnSeal_outr_right = {0}.seal_right * {0}.lipLwr_dn_right'.format(__attrHolder),
+                                                          '{0}.lipLwr_dnSeal_cntr_right = {0}.seal_center * {0}.lipLwr_dn_right'.format(__attrHolder),
+                                                          '{0}.lipLwr_seal_out_cntr_right = {0}.seal_right * {0}.lipLwr_rollOut_right'.format(__attrHolder),
+                                                          '{0}.lipLwr_seal_out_outr_right = {0}.seal_center * {0}.lipLwr_rollOut_right'.format(__attrHolder)                                                        
+                                                          ]},                             
+                            
+                            
+                            
                             'jaw':{'control':'jaw_anim',
                                    'wiringDict':{'jaw_fwd':{'driverAttr':'fwdBack'},
                                                  'jaw_back':{'driverAttr':'-fwdBack'},
-                                                 'jaw_compress':{'driverAttr':'ty'},
-                                                 'jaw_open':{'driverAttr':'-ty'},
+                                                 'jaw_clench':{'driverAttr':'ty'},
+                                                 'jaw_dn':{'driverAttr':'-ty'},
                                                  'jaw_left':{'driverAttr':'tx'},
-                                                 'jaw_right':{'driverAttr':'-tx'}}}}
+                                                 'jaw_right':{'driverAttr':'-tx'},
+                                                 'jDiff_dn_smile_left':{'driverAttr':'{0}.lips_smile_left'.format(__attrHolder),
+                                                                        'driverAttr2':'{0}.jaw_dn'.format(__attrHolder),
+                                                                        'driverAttr3':'{0}.driver_smile_dn_pull'.format(__attrHolder),
+                                                                        'driverAttr4':'{0}.seal_left'.format(__attrHolder),
+                                                                        'mode':'multMinusFactoredValue'},
+                                                 'jDiff_dn_smile_right':{'driverAttr':'{0}.lips_smile_right'.format(__attrHolder),
+                                                                         'driverAttr2':'{0}.jaw_dn'.format(__attrHolder),
+                                                                         'driverAttr3':'{0}.driver_smile_dn_pull'.format(__attrHolder),
+                                                                         'driverAttr4':'{0}.seal_right'.format(__attrHolder),
+                                                                         'mode':'multMinusFactoredValue'},
+                                                 'jDiff_dn_frown_left':{'driverAttr':'{0}.lips_frown_left'.format(__attrHolder),
+                                                                        'driverAttr2':'{0}.jaw_dn'.format(__attrHolder),
+                                                                        'driverAttr3':'{0}.driver_frown_dn_pull'.format(__attrHolder),
+                                                                        'driverAttr4':'{0}.seal_left'.format(__attrHolder),
+                                                                        'mode':'multMinusFactoredValue'},
+                                                 'jDiff_dn_frown_right':{'driverAttr':'{0}.lips_frown_right'.format(__attrHolder),
+                                                                         'driverAttr2':'{0}.jaw_dn'.format(__attrHolder),
+                                                                         'driverAttr3':'{0}.driver_frown_dn_pull'.format(__attrHolder),
+                                                                         'driverAttr4':'{0}.seal_right'.format(__attrHolder),
+                                                                         'mode':'multMinusFactoredValue'},                                                  
+                                                 },
+                                   'simpleArgs':['{0}.jDiff_fwd_seal_cntr_left = {0}.seal_center * {0}.jaw_fwd'.format(__attrHolder),
+                                                 '{0}.jDiff_fwd_seal_cntr_right = {0}.seal_center * {0}.jaw_fwd'.format(__attrHolder),
+                                                 '{0}.jDiff_fwd_seal_outr_left = {0}.seal_left * {0}.jaw_fwd'.format(__attrHolder),
+                                                 '{0}.jDiff_fwd_seal_outr_right = {0}.seal_right * {0}.jaw_fwd'.format(__attrHolder),
+                                                 '{0}.jDiff_back_seal_cntr_left = {0}.seal_center * {0}.jaw_back'.format(__attrHolder),
+                                                 '{0}.jDiff_back_seal_cntr_right = {0}.seal_center * {0}.jaw_back'.format(__attrHolder),
+                                                 '{0}.jDiff_back_seal_outr_left = {0}.seal_left * {0}.jaw_back'.format(__attrHolder),
+                                                 '{0}.jDiff_back_seal_outr_right = {0}.seal_right * {0}.jaw_back'.format(__attrHolder),
+                                                 '{0}.jDiff_dn_seal_cntr_left = {0}.seal_center * {0}.jaw_dn'.format(__attrHolder),
+                                                 '{0}.jDiff_dn_seal_cntr_right = {0}.seal_center * {0}.jaw_dn'.format(__attrHolder),
+                                                 '{0}.jDiff_dn_seal_outr_left = {0}.seal_left * {0}.jaw_dn'.format(__attrHolder),
+                                                 '{0}.jDiff_dn_seal_outr_right = {0}.seal_right * {0}.jaw_dn'.format(__attrHolder),
+                                                 '{0}.jDiff_left_seal_cntr_left = {0}.seal_center * {0}.jaw_left'.format(__attrHolder),
+                                                 '{0}.jDiff_left_seal_cntr_right = {0}.seal_center * {0}.jaw_left'.format(__attrHolder),
+                                                 '{0}.jDiff_left_seal_outr_left = {0}.seal_left * {0}.jaw_left'.format(__attrHolder),
+                                                 '{0}.jDiff_left_seal_outr_right = {0}.seal_right * {0}.jaw_left'.format(__attrHolder),
+                                                 '{0}.jDiff_right_seal_cntr_left = {0}.seal_center * {0}.jaw_right'.format(__attrHolder),
+                                                 '{0}.jDiff_right_seal_cntr_right = {0}.seal_center * {0}.jaw_right'.format(__attrHolder),
+                                                 '{0}.jDiff_right_seal_outr_left = {0}.seal_left * {0}.jaw_right'.format(__attrHolder),
+                                                 '{0}.jDiff_right_seal_outr_right = {0}.seal_right * {0}.jaw_right'.format(__attrHolder),                                                 
+                                                 ]},
+                            'jawNDVSetup':{'control':__attrHolder,
+                                           'wiringDict':{},
+                                           'simpleArgs':['{0}.jawDriven_back_tz = {0}.jaw_back * {0}.driver_jaw_back_tz'.format(__attrHolder),
+                                                         '{0}.jawDriven_fwd_tz = {0}.jaw_fwd * {0}.driver_jaw_fwd_tz'.format(__attrHolder),                                                                                                  
+                                                         '{0}.jawDriven_dn_tz = {0}.jaw_dn * {0}.driver_jaw_dn_tz'.format(__attrHolder),
+                                                         '{0}.jawDriven_dn_rx = {0}.jaw_dn * {0}.driver_jaw_dn_rx'.format(__attrHolder),
+                                                         '{0}.jawDriven_left_tx = {0}.jaw_left * {0}.driver_jaw_left_tx'.format(__attrHolder),
+                                                         '{0}.jawDriven_left_ry = {0}.jaw_left * {0}.driver_jaw_left_ry'.format(__attrHolder),
+                                                         '{0}.jawDriven_left_rz = {0}.jaw_left * {0}.driver_jaw_left_rz'.format(__attrHolder),                                                          
+                                                         '{0}.jawDriven_right_tx = {0}.jaw_right * {0}.driver_jaw_right_tx'.format(__attrHolder),
+                                                         '{0}.jawDriven_right_ry = {0}.jaw_right * {0}.driver_jaw_right_ry'.format(__attrHolder),
+                                                         '{0}.jawDriven_right_rz = {0}.jaw_right * {0}.driver_jaw_right_rz'.format(__attrHolder),#...
+                                                         '{0}.jawNDV_tx = {0}.jawBase_tx + {0}.jawDriven_left_tx + {0}.jawDriven_right_tx'.format(__attrHolder), 
+                                                         '{0}.jawNDV_tz = {0}.jawBase_tz + {0}.jawDriven_back_tz + {0}.jawDriven_fwd_tz'.format(__attrHolder), 
+                                                         '{0}.jawNDV_rx = {0}.jawBase_rx + {0}.jawDriven_dn_rx'.format(__attrHolder), 
+                                                         '{0}.jawNDV_ry = {0}.jawBase_ry + {0}.jawDriven_left_ry + {0}.jawDriven_right_ry'.format(__attrHolder), 
+                                                         '{0}.jawNDV_rz = {0}.jawBase_rz + {0}.jawDriven_left_rz + {0}.jawDriven_right_rz'.format(__attrHolder), 
+                                                         ]}}
 
-#{'lipRoll_out_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'}}
-#_wiringDict = {'lipRoll_in_left':{'driverAttr':'tx','driverAttr2':'-ty','mode':'cornerBlend'}}
+"""_d_faceControlsToConnect ={'jawNDVSetup':{'control':__attrHolder,
+                                          'wiringDict':{},
+                                          'simpleArgs':['{0}.jawDriven_back_tz = {0}.jaw_back * {0}.driver_jaw_back_tz'.format(__attrHolder),
+                                                        '{0}.jawDriven_fwd_tz = {0}.jaw_fwd * {0}.driver_jaw_fwd_tz'.format(__attrHolder),                                                                                                  
+                                                        '{0}.jawDriven_dn_tz = {0}.jaw_dn * {0}.driver_jaw_dn_tz'.format(__attrHolder),
+                                                        '{0}.jawDriven_dn_rx = {0}.jaw_dn * {0}.driver_jaw_dn_rx'.format(__attrHolder),
+                                                        '{0}.jawDriven_left_tx = {0}.jaw_left * {0}.driver_jaw_left_tx'.format(__attrHolder),
+                                                        '{0}.jawDriven_left_ry = {0}.jaw_left * {0}.driver_jaw_left_ry'.format(__attrHolder),
+                                                        '{0}.jawDriven_left_rz = {0}.jaw_left * {0}.driver_jaw_left_rz'.format(__attrHolder),                                                          
+                                                        '{0}.jawDriven_right_tx = {0}.jaw_right * {0}.driver_jaw_right_tx'.format(__attrHolder),
+                                                        '{0}.jawDriven_right_ry = {0}.jaw_right * {0}.driver_jaw_right_ry'.format(__attrHolder),
+                                                        '{0}.jawDriven_right_rz = {0}.jaw_right * {0}.driver_jaw_right_rz'.format(__attrHolder),#...
+                                                        '{0}.jawNDV_tx = {0}.jawBase_tx + {0}.jawDriven_left_tx + {0}.jawDriven_right_tx'.format(__attrHolder), 
+                                                        '{0}.jawNDV_tz = {0}.jawBase_tz + {0}.jawDriven_back_tz + {0}.jawDriven_fwd_tz'.format(__attrHolder), 
+                                                        '{0}.jawNDV_rx = {0}.jawBase_rx + {0}.jawDriven_dn_rx'.format(__attrHolder), 
+                                                        '{0}.jawNDV_ry = {0}.jawBase_ry + {0}.jawDriven_left_ry + {0}.jawDriven_right_ry'.format(__attrHolder), 
+                                                        '{0}.jawNDV_rz = {0}.jawBase_rz + {0}.jawDriven_left_rz + {0}.jawDriven_right_rz'.format(__attrHolder), 
+
+                                         ]}}"""
+
 def faceControls_verify(*args, **kws):
     """
     Function to split a curve up u positionally 
@@ -1178,15 +1429,24 @@ def faceControls_verify(*args, **kws):
                 for a in l_attrs:
                     l_name = [section,a]                    
                     l_names = []
+                    _d = {'left':[],'right':[]}
                     if a in l_sidesAttrs:
                         for side in ['left','right']:
                             l_buffer = copy.copy(l_name)
                             l_buffer.append(side)
                             l_names.append(l_buffer)
+                            #_d[side].append(l_buffer)
                     if not l_names:l_names = [l_name]
                     for n in l_names:
                         #self.log_info(n)
                         self._mi_obj.addAttr("_".join(n),attrType = 'float',hidden = False)
+            
+            #Set some base values...
+            for k in _d_baseFaceAttrValues.keys():
+                try:
+                    attributes.doSetAttr(self._mi_obj.mNode,k,_d_baseFaceAttrValues[k])
+                except:
+                    pass                    
                         
         def _fncStep_controlWiring_(self):
             for key in _d_faceControlsToConnect.keys():
@@ -1194,17 +1454,31 @@ def faceControls_verify(*args, **kws):
                     _d_control = _d_faceControlsToConnect[key]
                     control = _d_control['control']
                     _d_wiring = _d_control['wiringDict']
-                    
+                    _l_simpleArgs = _d_control.get('simpleArgs') or []
+                    self.log_info(">>>>>>>>>> On {0}...".format(control))
                     if not mc.objExists(control):
-                        self.log_error("Control not found: {0}".format(control))
-                        continue
-                    try:
-                        cgmNodeFactory.connect_controlWiring(control,self._mi_obj,
-                                                             _d_wiring,
-                                                             baseName = key,
-                                                             trackAttr = True)
-                    except Exception,error:
-                        raise Exception,"wire call fail | error: {0}".format(error)                         
+                        raise ValueError,"Control not found: {0}".format(control)
+                    
+                    if _d_wiring:
+                        try:
+                            cgmNodeFactory.connect_controlWiring(control,self._mi_obj,
+                                                                 _d_wiring,
+                                                                 baseName = key,
+                                                                 trackAttr = True,
+                                                                 simpleArgs = _l_simpleArgs )
+                        except Exception,error:
+                            self.log_warning(" Wire call fail | error: {0}".format(error)   ) 
+                    elif _l_simpleArgs:
+                            for arg in _l_simpleArgs:
+                                self.log_info("On arg: {0}".format(arg))
+                                try:
+                                    cgmNodeFactory.argsToNodes(arg).doBuild()			
+                                except Exception,error:
+                                    self.log_error("{0} arg failure | error: {1}".format(arg,error))
+                            
+                    else:
+                        self.log_warning("No wiring data or simpleArgs for key: {0}".format(key))
+                        
                     #self._d_controls[key] = cgmMeta.cgmObject(control)
 
                 except Exception,error:
@@ -1241,4 +1515,95 @@ def get_blendshapeListToMake():
     
     log.info("{0} Blendshapes to create:".format(len(l_allNames)))
     for n in l_allNames:
-        print(n)    
+        print(n)
+        
+def face_connectAttrHolderToBSNodes(*args, **kws):
+    """
+    Function to split a curve up u positionally 
+
+    @kws
+    Arg 0 | kw 'curve'(None)  -- Curve to split
+    Arg 1 | kw 'points'(3)  -- Number of points to generate positions for
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+        def __init__(self,*args, **kws):
+            """
+            """	
+            super(fncWrap, self).__init__(*args, **kws)
+            self._b_reportTimes = True
+            self._str_funcName = 'face_connectAttrHolderToBSNodes'	
+            self._l_ARGS_KWS_DEFAULTS = [{'kw':'attributeHolder',"default":None,
+                                          'help':"Name of the attribute Holder"},]	    
+            self.l_funcSteps = [{'step':'Check Data','call':self._fncStep_checkData_},
+                                {'step':'Wirecheck','call':self._fncStep_wireDataCheck_},
+                                ]	    
+            self.__dataBind__(*args, **kws)
+
+        def _fncStep_checkData_(self):
+            """
+            """
+            try:
+                _obj = False
+                self._mi_obj = False
+                
+                if self.d_kws['attributeHolder'] is not None:
+                    _obj = cgmValid.objString(arg=self.d_kws['attributeHolder'], noneValid=True, 
+                                               calledFrom=self._str_funcName)
+                    if not _obj:
+                       return self._FailBreak_("Bad obj")
+                    self._mi_obj = cgmMeta.cgmNode(_obj)
+                if not self._mi_obj:
+                    return self._FailBreak_("Should have had an object by now")
+                self._str_attrHolder = self._mi_obj.mNode
+            except Exception,error:
+                raise Exception,"attr holder fail | {0}".format(error)
+            
+            try:
+                self._l_bsNodes = []
+                self._d_bsNodeChannels = {}
+                self._d_bsChannelToNode = {}
+                self._l_channels = []
+                self._l_channelsPop = []
+                for bsNode in MORPHYDATA._l_facialRigBSNodes:
+                    if mc.objExists(bsNode):
+                        self._l_bsNodes.append(bsNode)
+                        _l_attrs = search.returnBlendShapeAttributes(bsNode)
+                        _l_attrs = [str(a) for a in _l_attrs]
+                        self._d_bsNodeChannels[bsNode] = _l_attrs
+                        self._l_channels.extend(_l_attrs)
+                        for a in _l_attrs:
+                            self._d_bsChannelToNode[a] = bsNode
+                    else:
+                        self.log_error("bsNode doesn't exist: {0}".format(bsNode))
+            except Exception,error:
+                raise Exception,"blendshape check fail | {0}".format(error)  
+            #self.report_selfStored()
+                        
+        def _fncStep_wireDataCheck_(self):
+            self._d_channelWireMatch = {}
+            self._d_noMatch = {}
+            self._l_channelsPop = copy.copy(self._l_channels)
+            for a,v in MORPHYDATA._d_faceBlendshapeWiring.items():
+                #self.log_info("Checking {0}|{1}...".format(a,m))
+                if not cgmValid.isListArg(v):
+                    v = [v]
+                    
+                for m in v:
+                    if m in self._l_channels:
+                        self._d_channelWireMatch[a] = "{0}.{1}".format(self._d_bsChannelToNode[m],m)
+                        self._l_channelsPop.remove(m)
+                    elif a in self._l_channels:
+                        self._d_channelWireMatch[a] = "{0}.{1}".format(self._d_bsChannelToNode[a],a)    
+                        self._l_channelsPop.remove(a)                    
+                    else:
+                        self._d_noMatch[a] = m                    
+                        #self.log_error("No match for: {0}|{1}".format(a,m))
+                
+            self.log_infoDict(self._d_channelWireMatch,"Matches")
+            self.log_infoDict(self._d_noMatch,"Face attrs with no match")
+            self.log_info("No match found for...")
+            for a in self._l_channelsPop:
+                self.log_info(a)
+
+    return fncWrap(*args,**kws).go()
+    

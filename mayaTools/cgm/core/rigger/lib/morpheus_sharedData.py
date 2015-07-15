@@ -7,3 +7,172 @@ _d_customizationGeoGroupsToCheck = {'body':'baseGeoGroup',
                                     'earRight':'right_earGeoGroup',
                                     'eyeLeft':'left_eyeGeoGroup',
                                     'eyeRight':'right_eyeGeoGroup'}
+
+#Data to assist in connecting blendshape channels to driver attrs on the face attr holder...
+_l_facialRigBSNodes = ['brow_bsNode','cheek_bsNode','mouth_bsNode']#...blendshape nodes to check
+_d_faceBlendshapeWiring = {'brow_center_dn':'',
+                           'brow_center_up':'',
+                           'brow_inr_dn_left':'lf_brow_inr_dn',
+                           'brow_inr_dn_right':'rt_brow_inr_dn',
+                           'brow_inr_up_left':'lf_brow_inr_up',
+                           'brow_inr_up_right':'rt_brow_inr_up',
+                           'brow_mid_dn_left':'lf_brow_mid_dn',
+                           'brow_mid_dn_right':'rt_brow_mid_dn',
+                           'brow_mid_up_left':'lf_brow_mid_up',
+                           'brow_mid_up_right':'rt_brow_mid_up',
+                           'brow_outr_dn_left':'lf_brow_outr_dn',
+                           'brow_outr_dn_right':'rt_brow_outr_dn',
+                           'brow_outr_up_left':'lf_brow_outr_up',
+                           'brow_outr_up_right':'rt_brow_outr_up',
+                           'brow_squeeze_left':'lf_brow_squeeze',
+                           'brow_squeeze_right':'rt_brow_squeeze',
+                           'cheek_blow_left':'lf_cheek_blow',
+                           'cheek_blow_right':'rt_cheek_blow',
+                           'cheek_dn_left':'lf_cheek_dn',
+                           'cheek_dn_right':'rt_cheek_dn',
+                           'cheek_suck_left':'lf_cheek_suck',
+                           'cheek_suck_right':'rt_cheek_suck',
+                           'cheek_up_left':'lf_cheek_up',
+                           'cheek_up_right':'rt_cheek_up',
+                           'eyeSqueeze_dn_left':'lf_eyeSqueeze_dn',
+                           'eyeSqueeze_dn_right':'rt_eyeSqueeze_dn',
+                           'eyeSqueeze_up_left':'lf_eyeSqueeze_up',
+                           'eyeSqueeze_up_right':'rt_eyeSqueeze_up',
+                           'mouth_back':'',
+                           'mouth_dn':'',
+                           'mouth_fwd':'',
+                           'mouth_left':'',
+                           'mouth_right':'',
+                           'mouth_twist_left':'',
+                           'mouth_twist_right':'',
+                           'mouth_up':'',
+                           'seal_center':['lf_lips_close_cntr','rt_lips_close_cntr'],
+                           'seal_left':['lf_lips_close_outr'],
+                           'seal_right':['rt_lips_close_outr'], 
+                           'lips_frown_left':'',
+                           'lips_frown_right':'',
+                           'lips_narrow_left':'',
+                           'lips_narrow_right':'',
+                           'lips_out_left':'',
+                           'lips_out_right':'',
+                           'lips_purse_left':'',
+                           'lips_purse_right':'',
+                           'lips_smile_left':'',
+                           'lips_smile_right':'',
+                           'lips_twistDn_left':'',
+                           'lips_twistDn_right':'',
+                           'lips_twistUp_left':'',
+                           'lips_twistUp_right':'',
+                           'lips_wide_left':'',
+                           'lips_wide_right':'',                           
+                           
+                           }
+
+
+
+"""
+jDiff_back_seal_cntr_left
+jDiff_back_seal_cntr_right
+jDiff_back_seal_outr_left
+jDiff_back_seal_outr_right
+jDiff_dn_frown_left
+jDiff_dn_frown_right
+jDiff_dn_seal_cntr_left
+jDiff_dn_seal_cntr_right
+jDiff_dn_seal_outr_left
+jDiff_dn_seal_outr_right
+jDiff_dn_smile_left
+jDiff_dn_smile_right
+jDiff_fwd_seal_cntr_left
+jDiff_fwd_seal_cntr_right
+jDiff_fwd_seal_outr_left
+jDiff_fwd_seal_outr_right
+jaw_back
+jaw_clench
+jaw_dn
+jaw_fwd
+jaw_left
+jaw_right
+jawBase_rx
+jawBase_ry
+jawBase_rz
+jawBase_tx
+jawBase_ty
+jawBase_tz
+jawDriven_back_tz
+jawDriven_dn_rx
+jawDriven_dn_tz
+jawDriven_fwd_tz
+jawDriven_left_ry
+jawDriven_left_rz
+jawDriven_left_tx
+jawDriven_right_ry
+jawDriven_right_rz
+jawDriven_right_tx
+jawNDV_rx
+jawNDV_ry
+jawNDV_rz
+jawNDV_tx
+jawNDV_ty
+jawNDV_tz
+lipCntr_lwr_back
+lipCntr_lwr_dn_left
+lipCntr_lwr_dn_right
+lipCntr_lwr_fwd
+lipCntr_lwr_up_left
+lipCntr_lwr_up_right
+lipCntr_upr_back
+lipCntr_upr_dn_left
+lipCntr_upr_dn_right
+lipCntr_upr_fwd
+lipCntr_upr_up_left
+lipCntr_upr_up_right
+lipLwr_dn_left
+lipLwr_dn_right
+lipLwr_dnSeal_cntr_left
+lipLwr_dnSeal_cntr_right
+lipLwr_dnSeal_outr_left
+lipLwr_dnSeal_outr_right
+lipLwr_moreIn_left
+lipLwr_moreIn_right
+lipLwr_moreOut_left
+lipLwr_moreOut_right
+lipLwr_rollIn_left
+lipLwr_rollIn_right
+lipLwr_rollOut_left
+lipLwr_rollOut_right
+lipLwr_seal_out_cntr_left
+lipLwr_seal_out_cntr_right
+lipLwr_seal_out_outr_left
+lipLwr_seal_out_outr_right
+lipUpr_moreIn_left
+lipUpr_moreIn_right
+lipUpr_moreOut_left
+lipUpr_moreOut_right
+lipUpr_rollIn_left
+lipUpr_rollIn_right
+lipUpr_rollOut_left
+lipUpr_rollOut_right
+lipUpr_seal_out_cntr_left
+lipUpr_seal_out_cntr_right
+lipUpr_seal_out_outr_left
+lipUpr_seal_out_outr_right
+lipUpr_up_left
+lipUpr_up_right
+lipUpr_upSeal_cntr_left
+lipUpr_upSeal_cntr_right
+lipUpr_upSeal_outr_left
+lipUpr_upSeal_outr_right
+nose_in_left
+nose_in_right
+nose_out_left
+nose_out_right
+nose_seal_up_cntr_left
+nose_seal_up_cntr_right
+nose_seal_up_outr_left
+nose_seal_up_outr_right
+nose_sneer_dn_left
+nose_sneer_dn_right
+nose_sneer_up_left
+nose_sneer_up_right
+"""
