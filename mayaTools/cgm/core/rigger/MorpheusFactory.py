@@ -1058,7 +1058,7 @@ _d_faceBufferAttributes = {"nose":{'attrs':['out','in','sneer_up','sneer_dn',
                            "seal":{'attrs':['center','left','right'],
                                    'sideAttrs':[]},
                            "jDiff":{'attrs':['dn_frown','dn_smile','dn_seal_outr','dn_seal_cntr','fwd_seal_outr','fwd_seal_cntr',
-                                             'back_seal_outr','back_seal_cntr'],
+                                             'back_seal_outr','back_seal_cntr','left_seal_outr','left_seal_cntr','right_seal_outr','right_seal_cntr'],
                                    'sideAttrs':'*'},
                            "lips":{'attrs':['smile','wide','narrow','purse','twistUp','twistDn','out','frown'],
                                    'sideAttrs':'*'},
@@ -1217,8 +1217,8 @@ _d_faceControlsToConnect = {'browCenter':{'control':'center_brow_anim',
                                                    'mouth_right':{'driverAttr':'-tx'}}},
                             
                             'uprLip_left':{'control':'l_uprLip_anim',
-                                          'wiringDict':{'lipUpr_rollIn_left':{'driverAttr':'-tx'},
-                                                        'lipUpr_rollOut_left':{'driverAttr':'tx','driverAttr2':'{0}.lips_wide_left'.format(__attrHolder),'mode':'negVNeg'},
+                                          'wiringDict':{'lipUpr_rollIn_left':{'driverAttr':'tx'},
+                                                        'lipUpr_rollOut_left':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_left'.format(__attrHolder),'mode':'negVNeg'},
                                                         'lipUpr_up_left':{'driverAttr':'ty'},
                                                         'lipUpr_moreOut_left':{'driverAttr':'roll'},
                                                         'lipUpr_moreIn_left':{'driverAttr':'-roll'},
@@ -1229,8 +1229,8 @@ _d_faceControlsToConnect = {'browCenter':{'control':'center_brow_anim',
                                                         '{0}.lipUpr_seal_out_outr_left = {0}.seal_center * {0}.lipUpr_rollOut_left'.format(__attrHolder)                                                        
                                                         ]}, 
                             'uprLip_right':{'control':'r_uprLip_anim',
-                                           'wiringDict':{'lipUpr_rollIn_right':{'driverAttr':'-tx'},
-                                                         'lipUpr_rollOut_right':{'driverAttr':'tx','driverAttr2':'{0}.lips_wide_right'.format(__attrHolder),'mode':'negVNeg'},
+                                           'wiringDict':{'lipUpr_rollIn_right':{'driverAttr':'tx'},
+                                                         'lipUpr_rollOut_right':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_right'.format(__attrHolder),'mode':'negVNeg'},
                                                          'lipUpr_up_right':{'driverAttr':'ty'},
                                                          'lipUpr_moreOut_right':{'driverAttr':'roll'},
                                                          'lipUpr_moreIn_right':{'driverAttr':'-roll'},
@@ -1241,8 +1241,8 @@ _d_faceControlsToConnect = {'browCenter':{'control':'center_brow_anim',
                                                          '{0}.lipUpr_seal_out_outr_right = {0}.seal_center * {0}.lipUpr_rollOut_right'.format(__attrHolder)                                                        
                                                          ]},
                             'lwrLip_left':{'control':'l_lwrLip_anim',
-                                           'wiringDict':{'lipLwr_rollIn_left':{'driverAttr':'-tx'},
-                                                         'lipLwr_rollOut_left':{'driverAttr':'tx','driverAttr2':'{0}.lips_wide_left'.format(__attrHolder),'mode':'negVNeg'},
+                                           'wiringDict':{'lipLwr_rollIn_left':{'driverAttr':'tx'},
+                                                         'lipLwr_rollOut_left':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_left'.format(__attrHolder),'mode':'negVNeg'},
                                                          'lipLwr_dn_left':{'driverAttr':'ty'},
                                                          'lipLwr_moreOut_left':{'driverAttr':'roll'},
                                                          'lipLwr_moreIn_left':{'driverAttr':'-roll'},
@@ -1253,8 +1253,8 @@ _d_faceControlsToConnect = {'browCenter':{'control':'center_brow_anim',
                                                          '{0}.lipLwr_seal_out_outr_left = {0}.seal_center * {0}.lipLwr_rollOut_left'.format(__attrHolder)                                                        
                                                          ]}, 
                             'lwrLip_right':{'control':'r_lwrLip_anim',
-                                            'wiringDict':{'lipLwr_rollIn_right':{'driverAttr':'-tx'},
-                                                          'lipLwr_rollOut_right':{'driverAttr':'tx','driverAttr2':'{0}.lips_wide_right'.format(__attrHolder),'mode':'negVNeg'},
+                                            'wiringDict':{'lipLwr_rollIn_right':{'driverAttr':'tx'},
+                                                          'lipLwr_rollOut_right':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_right'.format(__attrHolder),'mode':'negVNeg'},
                                                           'lipLwr_dn_right':{'driverAttr':'ty'},
                                                           'lipLwr_moreOut_right':{'driverAttr':'roll'},
                                                           'lipLwr_moreIn_right':{'driverAttr':'-roll'},
@@ -1533,9 +1533,12 @@ def face_connectAttrHolderToBSNodes(*args, **kws):
             self._b_reportTimes = True
             self._str_funcName = 'face_connectAttrHolderToBSNodes'	
             self._l_ARGS_KWS_DEFAULTS = [{'kw':'attributeHolder',"default":None,
-                                          'help':"Name of the attribute Holder"},]	    
+                                          'help':"Name of the attribute Holder"},
+                                         {'kw':'wireIt',"default":True,
+                                          'help':"Whether to attempt to wire or not"},]	    
             self.l_funcSteps = [{'step':'Check Data','call':self._fncStep_checkData_},
                                 {'step':'Wirecheck','call':self._fncStep_wireDataCheck_},
+                                {'step':'Wire','call':self._fncStep_wire_},
                                 ]	    
             self.__dataBind__(*args, **kws)
 
@@ -1557,7 +1560,7 @@ def face_connectAttrHolderToBSNodes(*args, **kws):
                 self._str_attrHolder = self._mi_obj.mNode
             except Exception,error:
                 raise Exception,"attr holder fail | {0}".format(error)
-            
+            self._b_wireIt = cgmValid.boolArg(self.d_kws['wireIt'],self._str_funcName)
             try:
                 self._l_bsNodes = []
                 self._d_bsNodeChannels = {}
@@ -1590,10 +1593,11 @@ def face_connectAttrHolderToBSNodes(*args, **kws):
                     
                 for m in v:
                     if m in self._l_channels:
-                        self._d_channelWireMatch[a] = "{0}.{1}".format(self._d_bsChannelToNode[m],m)
+                        #self._d_channelWireMatch[a] = "{0}.{1}".format(self._d_bsChannelToNode[m],m)
+                        self._d_channelWireMatch["{0}.{1}".format(self._d_bsChannelToNode[m],m)] = a
                         self._l_channelsPop.remove(m)
                     elif a in self._l_channels:
-                        self._d_channelWireMatch[a] = "{0}.{1}".format(self._d_bsChannelToNode[a],a)    
+                        self._d_channelWireMatch["{0}.{1}".format(self._d_bsChannelToNode[a],a) ] = a   
                         self._l_channelsPop.remove(a)                    
                     else:
                         self._d_noMatch[a] = m                    
@@ -1604,6 +1608,20 @@ def face_connectAttrHolderToBSNodes(*args, **kws):
             self.log_info("No match found for...")
             for a in self._l_channelsPop:
                 self.log_info(a)
+        
+        def _fncStep_wire_(self):
+            if self._b_wireIt:
+                for bs,a in self._d_channelWireMatch.items():
+                    if self._mi_obj.hasAttr(a):
+                        try:
+                            attributes.doConnectAttr("{0}.{1}".format(self._mi_obj.mNode,a),bs)
+                        except Exception,error:
+                            self.log_error("Failed to connect {0} >> {1}".format(a,bs))
+                            self.log_error("----------------- {0}".format(error))                            
+                    else:
+                        self.log_info("Missing attr: '{0}'".format(a))
+            else:
+                self.log_warning("Not set to wire")
 
     return fncWrap(*args,**kws).go()
     
