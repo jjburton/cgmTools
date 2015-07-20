@@ -50,14 +50,14 @@ import Red9_AnimationUtils as r9Anim
 # Language map is used for all UI's as a text mapping for languages
 LANGUAGE_MAP = r9Setup.LANGUAGE_MAP
 
-'''
-#=============================================
-NOTE: we can't import anything else here that imports this
-Module as it screw the Class Registry and we get Cyclic imports
-hence the r9Anim is LazyLoaded where needed
-import Red9_AnimationUtils as r9Anim
-#=============================================
-'''
+
+# =============================================
+# NOTE: we can't import anything else here that imports this
+# Module as it screw the Class Registry and we get Cyclic imports
+# hence the r9Anim is LazyLoaded where needed
+# import Red9_AnimationUtils as r9Anim
+# =============================================
+
 
 import logging
 logging.basicConfig()
@@ -77,6 +77,11 @@ RED9_META_NODECACHE = {}
 
 global RED9_META_CALLBACKS
 RED9_META_CALLBACKS = {}
+RED9_META_CALLBACKS['Open'] = []
+RED9_META_CALLBACKS['New'] = []
+#RED9_META_CALLBACKS['DuplicatePre'] = []
+#RED9_META_CALLBACKS['DuplicatePost'] = []
+        
 
 global __RED9_META_NODESTORE__
 __RED9_META_NODESTORE__ = []
@@ -147,7 +152,13 @@ def getMClassDataFromNode(node):
     '''
     try:
         if cmds.attributeQuery('mClass', exists=True, node=node):
-            return cmds.getAttr('%s.%s' % (node,'mClass'))
+            mClass=cmds.getAttr('%s.%s' % (node,'mClass'))
+            if mClass in RED9_META_REGISTERY:
+                return mClass
+            elif cmds.attributeQuery('mClassGrp', exists=True, node=node):
+                mClass=cmds.getAttr('%s.%s' % (node,'mClassGrp'))
+                if mClass in RED9_META_REGISTERY:
+                    return mClass
         elif 'Meta%s' % cmds.nodeType(node) in RED9_META_REGISTERY.keys():
             return 'Meta%s' % cmds.nodeType(node)
     except:
@@ -162,7 +173,7 @@ def getMClassDataFromNode(node):
 # NodeType Management ---------------------------
   
  
-def registerMClassNodeMapping(nodeTypes=None):
+def registerMClassNodeMapping(nodeTypes=[]):
     '''
     Hook to allow you to extend the type of nodes included in all the
     getMeta searches. Allows you to expand into using nodes of any type
@@ -187,8 +198,8 @@ def registerMClassNodeMapping(nodeTypes=None):
     if nodeTypes:
         if not type(nodeTypes)==list:
             nodeTypes=[nodeTypes]
-        baseTypes.extend(nodeTypes)
-
+        [baseTypes.append(n) for n in nodeTypes if not n in baseTypes]
+        #baseTypes.extend(nodeTypes)
     try:
         MayaRegisteredNodes=cmds.allNodeTypes()
         
@@ -236,18 +247,26 @@ def registerMClassNodeCache(mNode):
     '''
     global RED9_META_NODECACHE
     version=r9Setup.mayaVersion()
-    #UUID=None
+
     if mNode.hasAttr('UUID') or version>=2015:
         try:
             if version<=2015:
-                UUID=mNode.setUUID()
+                UUID=mNode.UUID
+                if not UUID:
+                    log.debug('CACHE : generating fresh UUID')
+                    UUID=mNode.setUUID()
+                elif UUID in RED9_META_NODECACHE.keys():
+                    log.debug('CACHE : UUID is already registered in cache')
+                    if not mNode.mNode == RED9_META_NODECACHE[UUID]:
+                        log.debug('CACHE : %s : UUID is registered to a different node : modifying UUID: %s' % (UUID, mNode.mNode))
+                        UUID=mNode.setUUID()
             else:
                 UUID=cmds.ls(mNode.mNode, uuid=True)[0]
-            #print 'UUID found from node : ', UUID
             if RED9_META_NODECACHE or not UUID in RED9_META_NODECACHE.keys():
                 log.debug('CACHE : Adding to MetaNode UUID Cache : %s > %s' % (mNode.mNode, UUID))
                 RED9_META_NODECACHE[UUID]=mNode
-        except:
+        except StandardError, err:
+            #print err
             log.debug('CACHE : Failed to set UUID for mNode : %s' % mNode.mNode)
     else:
         log.debug('CACHE : UUID attr not bound to this node, must be an older system')
@@ -270,6 +289,9 @@ def getMetaFromCache(mNode):
         if UUID in RED9_META_NODECACHE.keys():
             try:
                 if RED9_META_NODECACHE[UUID].isValidMObject():
+                    if not RED9_META_NODECACHE[UUID]._MObject == getMObject(mNode):
+                        log.debug('CACHE : %s : UUID is already registered but to a different node : %s' % (UUID,mNode))
+                        return
                     log.debug('CACHE : %s Returning mNode from UUID cache! = %s' % (mNode,UUID))
                     return RED9_META_NODECACHE[UUID]
                 else:
@@ -290,22 +312,30 @@ def getMetaFromCache(mNode):
             except:
                 log.debug('CACHE : inspection failure')
         
-def upgradeSystemsToUUID(*args):
+def upgrade_toLatestBindings(*args):
     '''
-    take a current scene and upgrade all the mNodes to include the new
-    mNode UUID cache support id
+    take a current scene and upgrade all the mNodes to include any new
+    binding attrs that the base class may have been upgraded to use.
     '''
     for node in getMetaNodes():
         try:
+            # mNodeUUID attrs used for the Cache system
             if node.hasAttr('mNodeUUID'):
                 delattr(node, 'mNodeUUID')
             if not node.hasAttr('UUID'):
                 node.addAttr('UUID', value='')
                 uuid=node.setUUID()
                 log.info('Upgraded node : %s  to UUID : %s' % (r9Core.nodeNameStrip(node.mNode), uuid))
+                
+            # mClassGrp attr used to ID systems and search with
             if not node.hasAttr('mClassGrp'):
-                node.addAttr('mClassGrp', value='MetaClass')
+                node.addAttr('mClassGrp', value='MetaClass', hidden=True)
                 log.info('Upgraded node : %s  to mClassGrp' % r9Core.nodeNameStrip(node.mNode))
+                
+            # mSystemRoot - added to mark a node as a root in a system even if it's not physically a root
+            if not node.hasAttr('mSystemRoot'):
+                node.addAttr('mSystemRoot', value=False, hidden=True)
+                log.info('Upgraded node : %s  to mSystemRoot' % r9Core.nodeNameStrip(node.mNode))
         except:
             log.info('Failed to Upgrade mNode : %s' % node)
     resetCache()
@@ -360,7 +390,7 @@ def getMClassNodeCache():
 
 def __preDuplicateCache(*args):
     '''
-    PRE-DUPLICATE : on the duplicate call in Maya (bound to a callback) pre-store all current mNodes
+    DEPRICATED : PRE-DUPLICATE : on the duplicate call in Maya (bound to a callback) pre-store all current mNodes
     '''
     global __RED9_META_NODESTORE__
     __RED9_META_NODESTORE__= getMetaNodes(dataType='dag')
@@ -368,16 +398,31 @@ def __preDuplicateCache(*args):
     
 def __poseDuplicateCache(*args):
     '''
-    POST-DUPLICATE : if we find the duplicate node in the cache re-generate it's UUID
+    DEPRICATED : POST-DUPLICATE : if we find the duplicate node in the cache re-generate it's UUID
     '''
     global __RED9_META_NODESTORE__
+    
+    #no metaNode in the cache so pull out fast
+    if not __RED9_META_NODESTORE__:
+        return
+
     newNodes=[node for node in getMetaNodes(dataType='dag') if not node in __RED9_META_NODESTORE__]
     for node in newNodes:
         #note we set this via cmds so that the node isn't instantiated until the UUID is modified
         if cmds.attributeQuery('UUID', node=node, exists=True):
             cmds.setAttr('%s.UUID' % node, generateUUID(), type='string')
     #print 'post-callback : nodelist :', newNodes
-    
+
+def getMObject(node):
+    '''
+    base wrapper to get the MObject from node
+    '''
+    mobj=OpenMaya.MObject()
+    selList=OpenMaya.MSelectionList()
+    selList.add(node)
+    selList.getDependNode(0,mobj)
+    return mobj
+                    
 # ====================================================================================
     
     
@@ -492,13 +537,19 @@ def isMetaNodeClassGrp(node, mClassGrps=[]):
         return False
     if issubclass(type(node), MetaClass):
         node=node.mNode
+    if not hasattr(mClassGrps,'__iter__'):
+        mClassGrps=[mClassGrps]
     for grp in mClassGrps:
-        print node,'testing: '
-        if cmds.getAttr('%s.mClassGrp' % node) == grp:
-            return True
-       
+        log.debug('mGroup testing: %s' % node)
+        try:
+            if cmds.getAttr('%s.mClassGrp' % node) == grp:
+                return True
+        except:
+            log.debug('mNode has no MClassGrp attr, must be a legacy system and needs updating!! %s' % node)
+
+            
 @r9General.Timer
-def getMetaNodes(mTypes=[], mInstances=[], mClassGrps=[], mAttrs=None, dataType='mClass', nTypes=None, **kws):
+def getMetaNodes(mTypes=[], mInstances=[], mClassGrps=[], mAttrs=None, dataType='mClass', nTypes=None, mSystemRoot=False, **kws):
     '''
     Get all mClass nodes in scene and return as mClass objects if possible
     :param mTypes: only return meta nodes of a given type
@@ -517,20 +568,20 @@ def getMetaNodes(mTypes=[], mInstances=[], mClassGrps=[], mAttrs=None, dataType=
         nodes = cmds.ls(type=getMClassNodeTypes(), l=True)
     else:
         nodes = cmds.ls(type=nTypes, l=True)
-    #if mTypes and not type(mTypes)==list:mTypes=[mTypes]
+    if not nodes:
+        return mNodes
     for node in nodes:
-    #for node in cmds.ls(type=getMClassNodeTypes(), l=True):
         mNode=False
         if not mInstances:
             if isMetaNode(node, mTypes=mTypes):
                 mNode=True
-                #mNodes.append(node)
         else:
             if isMetaNodeInherited(node,mInstances):
                 mNode=True
-                #mNodes.append(node)
         if mNode:
             if mClassGrps:
+                if not hasattr(mClassGrps,'__iter__'):
+                    mClassGrps=[mClassGrps]
                 if isMetaNodeClassGrp(node, mClassGrps):
                     mNodes.append(node)
             else:
@@ -546,6 +597,20 @@ def getMetaNodes(mTypes=[], mInstances=[], mClassGrps=[], mAttrs=None, dataType=
     else:
         return mNodes
 
+
+def getMetaRigs(mInstances='MetaRig', mClassGrps=['MetaRig']):
+    '''
+    Wrapper over the get call to fire back specifically MetaRigs.
+    We use mInstances rather than mTypes directly for MetaRig to 
+    cope with people subclassing, then we clamp the search to the Root MetaRig
+    using the mClassGrps variable. This probably will expand as it's tested
+    '''
+    mRigs=getMetaNodes(mInstances=mInstances, mClassGrps=mClassGrps)
+    if mRigs:
+        return mRigs
+    else:
+        return getMetaNodes(mTypes=mInstances)
+    
 def getUnregisteredMetaNodes():
     '''
     Inspect all nodes for the mClass attrs, then see if those nodes and mClass
@@ -611,28 +676,58 @@ def getConnectedMetaNodes(nodes, source=True, destination=True, mTypes=[], mInst
     else:
         return list(set(mNodes))
         
-def getConnectedMetaSystemRoot(node, **kws):
+def getConnectedMetaSystemRoot(node, mTypes=[], ignoreTypes=[], mSystemRoot=True, **kws):
     '''
     From a given node see if it's part of a MetaData system, if so
     walk up the parent tree till you get to top meta node and return the class.
+    
+    :param ignoreTypes: if the given mClass node types are found to be systemRoots ignore them
+        why, lets say we have a system with several mNodes that are technically the head of the 
+        system and you need to skip a given type.
+    :param mTypes: like the rest of Meta, if you give it a specific mType to find as root it will do 
+        just that if that node is a root node in the system.
+    :param mSystemRoot: whether to respect the mSystemRoot abort bool on the nodes, default=True
+        
+    .. note::
+        this walks upstream only from the given node, so if you effectively have multiple root nodes
+        in the system but wired to different parts of the network, and when walking upstream from the given
+        you only get to one of ththose because of the network wiring, then that is correct.
     '''
     mNodes=getConnectedMetaNodes(node,**kws)
     if not mNodes:
         return
     else:
         mNode=mNodes[0]
-    if type(mNode)==MetaRig:
+    if not mTypes and type(mNode)==MetaRig:
         return mNode
     else:
         runaways=0
-        while mNode and not runaways==100:
-            log.debug('walking network : %s' % mNode.mNode)
-            parent=mNode.getParentMetaNode()
-            if not parent:
-                log.debug('node is top of tree : %s' % mNode)
-                return mNode
+        parents=mNodes
+        while parents and not runaways==100:
+            for mNode in parents:
+                log.debug('Walking network : %s' % mNode.mNode)
+                
+                if mSystemRoot and mNode.hasAttr('mSystemRoot') and mNode.mSystemRoot:
+                    return mNode
+                
+                parent=getConnectedMetaNodes(mNode.mNode,source=True,destination=False)
+                if not parent:
+                    if ignoreTypes and isMetaNode(mNode, mTypes=ignoreTypes):
+                        log.debug('node is top of tree but being ignored by the args : %s' % mNode)
+                        continue
+                    elif mTypes and isMetaNode(mNode, mTypes=mTypes):
+                        log.debug('node is top of tree and of the correct mType match: %s' % mNode)
+                        return mNode
+                    if not mTypes:
+                        log.debug('node is top of tree : %s' % mNode)
+                        return mNode
+                else:
+                    if mTypes and isMetaNode(mNode, mTypes=mTypes):
+                        log.debug('node is not top of the tree but matches the required mType filter: %s' % mNode)
+                        return mNode
             runaways+=1
-            mNode=parent
+            parents=getConnectedMetaNodes(mNode.mNode,source=True,destination=False)
+
 
 def  convertNodeToMetaData(nodes,mClass):
     '''
@@ -732,7 +827,7 @@ class MClassNodeUI(object):
                       c=resetCache)
         cmds.menuItem(l=LANGUAGE_MAP._MetaNodeUI_.update_to_uuids,
                       ann=LANGUAGE_MAP._MetaNodeUI_.update_to_uuids_ann,
-                      c=upgradeSystemsToUUID)
+                      c=upgrade_toLatestBindings)
         cmds.scrollLayout('slMetaNodeScroll',rc=lambda *args:self.fitTextScrollFucker())
         cmds.columnLayout(adjustableColumn=True)
         cmds.separator(h=5, style='none')
@@ -941,6 +1036,7 @@ class MClassNodeUI(object):
         
     def fillScroll(self, sortBy=None, *args):  # , mClassToShow=None, *args):
         states=cmds.radioCollection(self.uircbMetaUIShowStatus, q=True, select=True)
+        cmds.textScrollList('slMetaNodeList', edit=True, ra=True)
         self.dataType='node'
         if states=='metaUISatusinValids' or states=='metaUISatusValids':
             self.dataType='mClass'
@@ -992,7 +1088,7 @@ class MClassNodeUI(object):
  
     def __uiCB_connectNode(self, *args):
         '''
-        Given a single selected mNode from the UI and a single selected MAYA node, run
+        PRO PACK : Given a single selected mNode from the UI and a single selected MAYA node, run
         connectChild with the given promtString as the attr
         '''
         indexes=cmds.textScrollList('slMetaNodeList',q=True,sii=True)
@@ -1005,7 +1101,7 @@ class MClassNodeUI(object):
    
     def __uiCB_disconnectNode(self,*args):
         '''
-        Given a single selected mNode from the UI and selected MAYA nodes, run
+        PRO PACK : Given a single selected mNode from the UI and selected MAYA nodes, run
         disconnectChild to remove them from the metaData system
         '''
         indexes=cmds.textScrollList('slMetaNodeList',q=True,sii=True)
@@ -1186,13 +1282,18 @@ class MetaClass(object):
             if not name:
                 name=self.__class__.__name__
             #no MayaNode passed in so make a fresh network node (default)
+            if not nodeType=='network' and not nodeType in RED9_META_NODETYPE_REGISTERY:
+                raise IOError('nodeType : "%s" : is NOT yet registered in the "RED9_META_NODETYPE_REGISTERY", please use r9Meta.registerMClassNodeCache(nodeTypes=[%s]) to do so before making this node' % (nodeType,nodeType))
+                #raise IOError()
+                #return
             node=cmds.createNode(nodeType,name=name)
             self.mNode=node
             self.addAttr('mClass', value=str(self.__class__.__name__))  # ! MAIN ATTR !: used to know what class to instantiate.
             self.addAttr('mNodeID', value=name)                         # ! MAIN NODE ID !: used by pose systems to ID the node.
-            self.addAttr('mClassGrp', value='MetaClass', l=True)        # ! CLASS GRP  : this is used mainly by MetaRig and other complex
+            self.addAttr('mClassGrp', value='MetaClass', hidden=True)   # ! CLASS GRP  : this is used mainly by MetaRig and other complex
                                                                         #                systems to denote a classes intended system base
-                                                                        
+            self.addAttr('mSystemRoot', value=False, hidden=True)       # ! SYSTEM ROOT : indicates that this node is the root of a system and
+                                                                        #                therefore halts the 'getConnectedMetaSystemRoot' call
             if r9Setup.mayaVersion()<=2015:
                 #print '__init__ setting uuid'
                 self.addAttr('UUID', value='')          # ! Cache UUID attr which the Cache itself is in control of
@@ -1265,6 +1366,17 @@ class MetaClass(object):
         except:
             log.info('_MObjectHandle not yet setup')
      
+    def isSystemRoot(self):
+        '''
+        used by the getConnectedMetaSystemRoot call to identify if this
+        node is a top system node. Having his as an attr allows us to designate
+        certain subsystems as root nodes in their own right. Ie, Facial controlBoard
+        '''
+        if self.hasAttr('mSystemRoot'):
+            return self.mSystemRoot
+        elif self.getParentMetaNode():
+            return False
+        
     #Cast the mNode attr to the actual MObject so it's no longer limited by string dagpaths
     #yes I know Pymel does this for us but I don't want the overhead!
     def __get_mNode(self):
@@ -1693,17 +1805,20 @@ class MetaClass(object):
             # if attr exists do we force the value here?? NOOOO as I'm using this only
             # to ensure that when we initialize certain classes base attrs exist with certain properties.
             log.debug('"%s" :  Attr already exists on the Node' % attr)
-
-            # allow some of the standard edit flags to be run even if the attr exists
-            if kws:
-                if addkwsToEdit:
-                    cmds.addAttr('%s.%s' % (self.mNode, attr), e=True, **addkwsToEdit)
-                    log.debug('addAttr Edit flags run : %s = %s' % (attr, addkwsToEdit))
-                if setKwsToEdit:
-                    cmds.setAttr('%s.%s' % (self.mNode, attr), **setKwsToEdit)
-                    log.debug('setAttr Edit flags run : %s = %s' % (attr, setKwsToEdit))
+            try:
+                # allow some of the standard edit flags to be run even if the attr exists
+                if kws:
+                    if addkwsToEdit:
+                        cmds.addAttr('%s.%s' % (self.mNode, attr), e=True, **addkwsToEdit)
+                        log.debug('addAttr Edit flags run : %s = %s' % (attr, addkwsToEdit))
+                    if setKwsToEdit:
+                        cmds.setAttr('%s.%s' % (self.mNode, attr), **setKwsToEdit)
+                        log.debug('setAttr Edit flags run : %s = %s' % (attr, setKwsToEdit))
+            except:
+                if self.isReferenced():
+                    log.debug('Trying to modify and attr on a reference node')
             return
-        
+            
         #ATTR IS NEW, CREATE IT
         #----------------------
         else:
@@ -1775,7 +1890,10 @@ class MetaClass(object):
     
     # Utity Functions
     #-------------------------------------------------------------------------------------
-                  
+         
+    def shortName(self):
+        return self.mNode.split('|')[-1].split(':')[-1]
+                 
     def select(self, *args, **kws):
         '''
         args and kws are now passed through into the Maya select call
@@ -1845,23 +1963,64 @@ class MetaClass(object):
         else:
             raise StandardError('given class is not in the mClass Registry : %s' % newMClass)
 
+
+    # Reference / Namespace Management Block
+    #---------------------------------------------------------------------------------
+    
     def isReferenced(self):
         '''
         is node.mNode referenced?
         '''
         return cmds.referenceQuery(self.mNode,inr=True)
     
+    def referenceNode(self):
+        '''
+        if referenced return the referenceNode itself
+        '''
+        if self.isReferenced():
+            return cmds.referenceQuery(self.mNode, rfn=True)
+    
+    def referencePath(self, wcn=False):
+        '''
+        if referenced return the referenced filepath
+        '''
+        if self.isReferenced():
+            return cmds.referenceQuery(cmds.referenceQuery(self.mNode, rfn=True), filename=True, wcn=wcn)
+        
     def nameSpace(self):
         '''
-        If the namespace is nested this will return a list where
-        [-1] is the direct namespace of the node
+        This flag has been modified to return just the direct namespace
+        of the node, not all nested namespaces if found. Now returns a string
         '''
-        return self.mNode.split(':')[:-1]
-    
-    def shortName(self):
-        return self.mNode.split('|')[-1].split(':')[-1]
-    
-    
+        if self.isReferenced():
+            return cmds.referenceQuery(self.mNode, ns=True).replace(':','')
+        ns=self.mNode.split(':')
+        if len(ns)>1:
+            return ns[:-1][0]
+        return ''
+
+    def nameSpaceFull(self, asList=False):
+        '''
+        the namespace call has been modified to only return the single 
+        direct namespace of a node, not the nested. This new func will
+        return the namespace in it's entirity either as a list or a 
+        catenated string
+        :param asList: either return the namespaces in a list or as a catenated string (default)
+        '''
+        ns=self.mNode.split(':')
+        if len(ns)>1:
+            if asList:
+                return ns[:-1]
+            else:
+                return ':'.join(ns[:-1])
+        else:
+            if asList:
+                return []
+            else:
+                return ''
+                    
+        
+        
     # Connection Management Block
     #---------------------------------------------------------------------------------
     
@@ -2095,6 +2254,7 @@ class MetaClass(object):
         sPlug=None
         dPlug=None
         sPlugMeta=None
+        returnData=[]
         searchConnection='%s.' % self.mNode.split('|')[-1]
         if attr:
             searchConnection='%s.%s' % (self.mNode.split('|')[-1],attr)
@@ -2112,6 +2272,7 @@ class MetaClass(object):
             if searchConnection in dPlug:
                 log.debug('Disconnecting %s >> %s as %s found in dPlug' % (dPlug,sPlug,searchConnection))
                 cmds.disconnectAttr(dPlug,sPlug)
+                returnData.append((dPlug,sPlug))
 
         if deleteSourcePlug:  # child node
             try:
@@ -2149,7 +2310,8 @@ class MetaClass(object):
             except StandardError,error:
                 log.warning('Failed to Remove Node Connection Attr')
                 log.debug(error)
-
+                
+        return returnData
 
     # Get Nodes Management Block
     #---------------------------------------------------------------------------------
@@ -2247,7 +2409,7 @@ class MetaClass(object):
             return mNodes[0]
 
     @r9General.Timer
-    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False):
+    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False, asMap=False):
         '''
         This finds all UserDefined attrs of type message and returns all connected nodes
         This is now being run in the MetaUI on doubleClick. This is a generic call, implemented
@@ -2260,6 +2422,7 @@ class MetaClass(object):
         :param cAttrs: only pass connected children whos connection to the mNode matches the given attr (accepts wildcards)
         :param nAttrs: search returned MayaNodes for given set of attrs and only return matched nodes
         :param asMeta: return instantiated mNodes regardless of type
+        :param asMap: return the data as a map such that {mNode.plugAttr:[nodes], mNode.plugAttr:[nodes]}
         
         .. note:: 
             mAttrs is only searching attrs on the mNodes themselves, not the children
@@ -2267,6 +2430,7 @@ class MetaClass(object):
         '''
         childMetaNodes=[self]
         children=[]
+        attrMapData={}
         if walk:
             childMetaNodes.extend([node for node in self.getChildMetaNodes(walk=True, mAttrs=mAttrs)])
         for node in childMetaNodes:
@@ -2279,19 +2443,28 @@ class MetaClass(object):
                         if msgLinked:
                             if not nAttrs:
                                 msgLinked = cmds.ls(msgLinked, l=True)  # cast to longNames!
-                                children.extend(msgLinked)
+                                if not asMap:
+                                    children.extend(msgLinked)
+                                else:
+                                    attrMapData['%s.%s' % (node.mNode,attr)]=msgLinked
                             else:
                                 for linkedNode in msgLinked:
                                     for attr in nAttrs:
                                         if cmds.attributeQuery(attr, exists=True, node=linkedNode):
                                             linkedNode = cmds.ls(linkedNode, l=True)  # cast to longNames!
-                                            children.extend(linkedNode)
+                                            #children.extend(linkedNode)
+                                            if not asMap:
+                                                children.extend(linkedNode)
+                                            else:
+                                                attrMapData['%s.%s' % (node.mNode,attr)]=linkedNode
                                             break
                                             break
             else:
                 log.debug('no matching attrs : %s found on node %s' % (cAttrs,node))
-        if self._forceAsMeta or asMeta:
+        if self._forceAsMeta or asMeta and not asMap:
             return [MetaClass(node) for node in children]
+        if asMap:
+            return attrMapData
         return children
     
     @staticmethod
@@ -2408,7 +2581,21 @@ def deleteEntireMetaRigStructure(searchNode=None):
                 cmds.deleteAttr('%s.mirrorAxis' % child)
         metaChild.delete()
 
-
+def wireControlsToNewMetaRig(nodes, name=None, mRig=None):
+    '''
+    fast way to wire nodes to a blank MetaRig to gain some of the support
+    features of the codebase without having to manually build a structured network
+    
+    :param nodes: nodes to wire as controllers to the MetaRig
+    :param name: name of the MetaRig node
+    :param mRig: optional mRig instance to add the controls too
+    '''
+    if not mRig:
+        mRig=MetaRig(name=name)
+    for node in nodes:
+        mRig.addRigCtrl(node, r9Core.nodeNameStrip(node))
+    return mRig
+    
 class MetaRig(MetaClass):
     '''
     Sub-class of Meta used as the back-bone of our internal rigging
@@ -2424,15 +2611,19 @@ class MetaRig(MetaClass):
         if self.cached:
             log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.__class__)
             return
+        # note these are attrs on the mNode itself so we need to be careful when setting 
+        # them to locked if this node is referenced.
+        self.mClassGrp = 'MetaRig'      # get the Grp code marking this as a SystemBase
+        self.mSystemRoot = True         # set this node to be a system root if True
         
-        self.mClassGrp = 'MetaRig'          # get the Grp code marking this as a SystemBase
-        self.CTRL_Prefix='CTRL'             # prefix for all connected CTRL_ links added
-        self.rigGlobalCtrlAttr='CTRL_Main'  # attribute linked to the top globalCtrl in the rig
-        self.lockState = True               # lock the node to avoid accidental removal
-        self.parentSwitchAttr=['parent']    # attr used for parentSwitching
-        self.MirrorClass = None             # capital as this binds to the MirrorClass directly
-        #self.poseSkippedAttrs = []         # attributes which are to be IGNORED by the posesaver
-        
+        # general management vars
+        self.CTRL_Prefix = 'CTRL'       # prefix for all connected CTRL_ links added
+        self.rigGlobalCtrlAttr = 'CTRL_Main'  # attribute linked to the top globalCtrl in the rig
+        self.lockState = True           # lock the node to avoid accidental removal
+        self.parentSwitchAttr = ['parent']  # attr used for parentSwitching
+        self.MirrorClass = None         # capital as this binds to the MirrorClass directly
+        # self.poseSkippedAttrs = []    # attributes which are to be IGNORED by the posesaver, set by you for your needs!
+
     def __bindData__(self):
         self.addAttr('version',1.0)  # ensure these are added by default
         self.addAttr('rigType', '')  # ensure these are added by default
@@ -2501,7 +2692,7 @@ class MetaRig(MetaClass):
         '''
         return self.getChildren(walk, mAttrs)
         
-    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False):
+    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False, asMap=False):
         '''
         Massively important bit of code, this is used by most bits of code
         to find the child controllers linked to this metaRig instance.
@@ -2516,7 +2707,7 @@ class MetaRig(MetaClass):
             if self.getFacialSystem():
                 cAttrs.append('%s_*' % self.FacialCore.CTRL_Prefix)
 
-        return super(MetaRig, self).getChildren(walk=walk, mAttrs=mAttrs, cAttrs=cAttrs, nAttrs=nAttrs, asMeta=asMeta)
+        return super(MetaRig, self).getChildren(walk=walk, mAttrs=mAttrs, cAttrs=cAttrs, nAttrs=nAttrs, asMeta=asMeta, asMap=asMap)
         #return self.getRigCtrls(walk=walk, mAttrs=mAttrs)
        
     def getSkeletonRoots(self):
@@ -2808,6 +2999,37 @@ class MetaRig(MetaClass):
                                dismissString='Close')
         return compare
     
+    def nodeVisibility(self, state, skip=[]):
+        '''
+        simple wrapper to hide all ctrls in the rig via their shapeNodes
+        lodVisibility so it doesn't interfer with any display layers etc
+        
+        :param state: bool to pass to the lodVisibility attr
+        :param skip: [] child attrs on the mNode to skip during the process allowing certain controllers not to be effected
+        
+        '''
+        ctrlMap=self.getChildren(walk=True, asMap=True)
+        for plug, ctrl in ctrlMap.items():
+            #print plug
+            if not plug.split('.')[-1] in skip:
+                shapes=cmds.listRelatives(ctrl,type='shape',f=True)
+                for shape in shapes:
+                    cmds.setAttr('%s.lodVisibility' % shape, state)
+            else:
+                print plug, skip
+    
+    def hideNodes(self):
+        '''
+        wrap over the nodeVisibility to set False
+        '''
+        self.nodeVisibility(state=0,skip=['%s_Main' % self.CTRL_Prefix])
+        
+    def unHideNodes(self):
+        '''
+        wrap over the nodeVisibility to set True
+        '''
+        self.nodeVisibility(state=1,skip=['%s_Main' % self.CTRL_Prefix])
+        
     @nodeLockManager
     def saveAttrMap(self, *args):
         '''
@@ -2846,54 +3068,45 @@ class MetaRig(MetaClass):
         '''
         self.poseCacheLoad(nodes=nodes, attr='zeroPose')
     
-    def saveAnimation(self, filepath, output='config'):
+    def saveAnimation(self, filepath, incRoots=True):
         '''
-        DEV TESTS ONLY TO NOT USE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        test for an animSaver idea, follows the pose formatting, maybe we'll wrap all
-        of this inside the poseHandler, that way all the logic for psoes is maintained and
-        we just overload the actual data block that currnelty just gets the static attr
-        DEV TESTS ONLY TO NOT USE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        PRO_PACK : Binding of the animMap format for storing animation data out to file
         '''
-        animData = {}
-        for ctrl in self.getChildren():
-            mapping = self.getNodeConnectionMetaDataMap(ctrl)
-            attrs = r9Anim.getChannelBoxAttrs(node=ctrl, asDict=True, incLocked=False)
-            shortName = r9Core.nodeNameStrip(ctrl)
-            if not attrs['keyable']:
-                continue
-            for attr in attrs['keyable']:
-                channel = '%s.%s' % (ctrl, attr)
-                keyList = cmds.keyframe(channel, q=True, vc=True, tc=True, t=())
-                if keyList:
-                    if not shortName in animData:
-                        animData[shortName] = {}
-                        animData[shortName]['longName'] = ctrl
-                        animData[shortName]['metaData'] = mapping
-                        animData[shortName]['attrs'] = {}
-                    animData[shortName]['attrs'][attr] = ''
-                    
-                    # save key & tangent data
-                    for key, value in zip(keyList[0::2], keyList[1::2]):
-                        tangentData = cmds.keyTangent(channel, q=True, t=(key, key), itt=True, ott=True)
-                        animData[shortName]['attrs'][attr] += '(%.02f,%f,"%s","%s"),' % (key, value, tangentData[0], tangentData[1])
-                        # animData[ctrl][attr].append(('%.02f' % key, value, tangentData[0], tangentData[1]))
-        if animData:
-            print animData
-            if output=='json':
-                animFile = open(filepath, 'w+')
-                json.dump(animData, animFile, indent=0)
-                animFile.close()
-            elif output=='config':
-                import Red9.packages.configobj as configobj
-                ConfigObj = configobj.ConfigObj(indent_type='\t')
-                ConfigObj['poseData']=animData
-                ConfigObj.filename = filepath
-                ConfigObj.write()
-            return animData
+        if r9Setup.has_pro_pack():
+            from Red9.pro_pack.core.animation import AnimMap
+            self.animMap=AnimMap()
+            self.animMap.filepath=filepath
+            self.animMap.metaPose=True
+            self.animMap.settings.incRoots=incRoots
+            self.animMap.saveData(self.mNode,storeThumbnail=False)
             
-    def loadAnimation(self, filepath):
-        pass
+            print self.animMap.filepath
+            
+    def loadAnimation(self, filepath, offset=0, incRoots=True):
+        '''
+        PRO_PACK : Binding of the animMap format for loading animation data from
+        an r9Anim file
+        '''
+        if r9Setup.has_pro_pack():
+            from Red9.pro_pack.core.animation import AnimMap
+            self.animMap=AnimMap()
+            self.animMap.filepath=filepath
+            self.animMap.metaPose=True
+            self.animMap.settings.incRoots=incRoots
+            self.animMap.offset=offset
+            self.animMap.loadData(self.mNode)
 
+    def getAnimationRange(self, nodes=None, setTimeline=False):
+        '''
+        return the extend of the animation range for this rig and / or the given controllers
+        
+        :param nodes: if given only retunr the extent of the animation data from the given nodes
+        :param setTimeLine: if True set the playback timeranges also, default=False
+        '''
+        if not nodes:
+            nodes=self.getChildren(walk=True)
+        return r9Anim.animRangeFromNodes(nodes,setTimeline=setTimeline)
+    
     
 class MetaRigSubSystem(MetaRig):
     '''
@@ -2903,7 +3116,8 @@ class MetaRigSubSystem(MetaRig):
     def __init__(self,*args,**kws):
         super(MetaRigSubSystem, self).__init__(*args,**kws)
         self.mClassGrp = 'MetaClass'    # set the Grp removing the MetaRig systemBase Grp code
-
+        self.mSystemRoot=False
+        
     def __bindData__(self):
         self.addAttr('systemType', attrType='string')
         self.addAttr('mirrorSide',enumName='Centre:Left:Right',attrType='enum')
@@ -3425,10 +3639,10 @@ class MetaTimeCodeHUD(MetaHUDNode):
         
         import Red9.core.Red9_Audio as r9Audio
         self.func=r9Audio.milliseconds_to_Timecode
-        
-        self.tc_count = r9Audio.Timecode.count
-        self.tc_samplerate = r9Audio.Timecode.samplerate
-        self.tc_ref = r9Audio.Timecode.ref
+        tc=r9Audio.Timecode()
+        self.tc_count = tc.count
+        self.tc_samplerate = tc.samplerate
+        self.tc_ref = tc.ref
         self.attrCache={}
         
 
@@ -3508,12 +3722,16 @@ def metaData_sceneCleanups(*args):
     
 
 #Setup the callbacks to clear the cache when required
-RED9_META_CALLBACKS['Open'] = OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kBeforeOpen, metaData_sceneCleanups)
-RED9_META_CALLBACKS['New'] = OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kBeforeNew, metaData_sceneCleanups)
+if not RED9_META_CALLBACKS['Open']:
+    RED9_META_CALLBACKS['Open'].append(OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kBeforeOpen, metaData_sceneCleanups))
+if not RED9_META_CALLBACKS['New']:
+    RED9_META_CALLBACKS['New'].append(OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kBeforeNew, metaData_sceneCleanups))
 
-if r9Setup.mayaVersion()<=2015:
-    #dulplicate cache callbacks so the UUIDs are managed correctly
-    RED9_META_CALLBACKS['DuplicatePre'] = OpenMaya.MModelMessage.addBeforeDuplicateCallback(__preDuplicateCache)
-    RED9_META_CALLBACKS['DuplicatePost'] = OpenMaya.MModelMessage.addAfterDuplicateCallback(__poseDuplicateCache)
+# if r9Setup.mayaVersion()<=2015:
+#     #dulplicate cache callbacks so the UUIDs are managed correctly
+#     if not RED9_META_CALLBACKS['DuplicatePre']:
+#         RED9_META_CALLBACKS['DuplicatePre'].append(OpenMaya.MModelMessage.addBeforeDuplicateCallback(__preDuplicateCache))
+#     if not RED9_META_CALLBACKS['DuplicatePost']:
+#         RED9_META_CALLBACKS['DuplicatePost'].append(OpenMaya.MModelMessage.addAfterDuplicateCallback(__poseDuplicateCache))
 
 

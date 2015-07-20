@@ -34,6 +34,7 @@ class Test_MetaRegistryCalls():
     
     def teardown(self):
         cmds.file(new=True,f=True)
+        r9Meta.registerMClassNodeMapping()  # reset the nodeTypes registry
         
     def test_registerMClassNodeMapping(self):
         '''
@@ -94,7 +95,10 @@ class Test_MetaCache():
         a=r9Meta.MetaRig(name='rig')
         UUID = a.UUID
         assert UUID in r9Meta.RED9_META_NODECACHE
-        cmds.duplicate(a.mNode)
+        
+        #test the duplicate handler
+        dup=cmds.duplicate(a.mNode)
+        assert not dup == a.mNode
         nodes=r9Meta.getMetaNodes()
         assert len(nodes)==2
         assert len(r9Meta.RED9_META_NODECACHE.keys()) == 2
@@ -117,6 +121,15 @@ class Test_MetaClass():
         assert self.MClass.mNode=='MetaClass_Test'
         assert cmds.nodeType(self.MClass.mNode)=='network'
     
+    def test_unregisteredNodeType(self):
+        #new handler will bail if you try and create with an unRegistered nodeType
+        try:
+            r9Meta.MetaClass(name='new', nodeType='transform')
+            print 'Failed - generated new node with unregistered nodeType!'
+            assert False
+        except:
+            assert True
+            
     def test_functionCalls(self):
         
         #select
@@ -646,8 +659,7 @@ class Test_MetaClass():
         node.fltTest*=2
         assert node.fltTest == 3.0
 
-        
-        
+
     def test_attributeHandling_MessageAttr(self):
         '''
         test the messageLink handling in the __setattr__ block and addAttr
@@ -739,7 +751,25 @@ class Test_MetaClass():
         assert mLambert.color==(1.0, 0.0, 0.5)
         assert cmds.getAttr('lambert1.color')==[(1.0, 0.0, 0.5)]
 
+    def test_referenceHandler(self):
+        #TODO: Fill Test
+        #referenceNode
+        #referencePath
+        #nameSpace
+        #nameSpaceFull
+        #nameSpaceFull(asList=True)
+        pass
+    
+    def test_isSystemRoot(self):
+        #TODO: Fill Test
+        pass
 
+    def test_renameChildLinks(self):
+        #TODO: Fill Test
+        pass
+    
+    
+    
 class Test_Generic_SearchCalls():
     '''
     Basic Generic search calls at scene level
@@ -799,7 +829,6 @@ class Test_Generic_SearchCalls():
         nodes=r9Meta.getMetaNodes(dataType=None, mTypes=[r9Meta.MetaRig])
         assert nodes==['MetaRig_Test']
         
-        
     def test_getMetaNodes_mInstances(self):
         #mInstances tests
         nodes=r9Meta.getMetaNodes(dataType=None, mInstances=['MetaRig'])
@@ -828,6 +857,9 @@ class Test_Generic_SearchCalls():
     def test_getMetaNodes_mAttrs(self):
         assert r9Meta.getMetaNodes(mAttrs='version=1')[0].mNodeID=='MetaRig_Test'
                    
+    def test_getMetaNodes_mGrps(self):
+        #TODO: Fill Test
+        pass
                
 class Test_MetaRig():
     
@@ -1016,13 +1048,22 @@ class Test_MetaRig():
     def test_getNodeConnectionMetaDataMap(self):
         assert self.mRig.getNodeConnectionMetaDataMap('|World_Ctrl|L_Foot_grp|L_Foot_Ctrl') == {'metaAttr': u'CTRL_L_Foot', 'metaNodeID': u'L_LegSystem'}
     
+    def test_getNodeConnectionMetaDataMap_mTypes(self):
+        #TODO: Fill Test
+        #assert self.mRig.getNodeConnectionMetaDataMap(mTypes=??)
+        pass
+                        
     def test_getNodeConnections(self):
         assert self.mRig.L_Leg_System.getNodeConnections('|World_Ctrl|L_Foot_grp|L_Foot_Ctrl') == ['CTRL_L_Foot']
         
     def test_getChildren_mAttrs(self):
         #TODO: Fill Test
         pass
-          
+    
+    def test_getChildren_asMap(self):
+        #TODO: Fill Test
+        pass
+    
     def test_getConnectedMetaNodes(self):
         #TODO: Fill Test
         pass
@@ -1039,7 +1080,45 @@ class Test_MetaRig():
         #TODO: Fill Test
         pass
     
-           
+    def test_getSkeletonRoots(self):
+        #TODO: Fill Test
+        pass
+    
+    def test_addSupportNode(self):
+        #TODO: Fill Test
+        pass
+    
+    def test_set_ctrlColour(self):
+        #TODO: Fill Test
+        pass
+    
+    def test_mirrorDataHandling(self):
+        #TODO: Fill Test
+        #loadMirrorDataMap
+        #getMirrorData
+        #getMirror_opposites
+        #getMirror_ctrlSets
+        #mirror
+        pass
+    
+    def test_poseCache(self):
+        #poseCacheStore
+        #poseCacheLoad
+        #poseCompare
+        pass
+    
+    def test_nodeVisibility(self):
+        #nodeVisibility
+        #hideNodes
+        #unHideNodes
+        pass
+        
+    def test_attrMap(self):
+        #loadAttrMap
+        #saveAttrMap
+        pass
+    
+    
 class Test_MetaNetworks():
     '''
     Test the network walking and get commands on a larger network
@@ -1112,7 +1191,28 @@ class Test_MetaNetworks():
         
         assert self.mRig.C_Spine_System.L_Arm_System.getParentMetaNode().mNodeID=='C_Spine_System'
         assert self.mRig.C_Spine_System.L_Arm_System.L_Arm_Support.getParentMetaNode().mNodeID=='L_Arm_System'
+    
+    def test_getConnectedMetaSystemRoot_args(self):
+        #add in a few additional systemRoots and check the filter args
+        assert r9Meta.getConnectedMetaSystemRoot('L_Fingers_System').mNode=='MetaRig'
+        r_legSys=r9Meta.getConnectedMetaNodes('MetaRig')[0]
+        l_legSys=r9Meta.getConnectedMetaNodes('MetaRig')[2]
         
+        #add 2 new mNodes that are effectively now BOTH additional parents to the system
+        newparent1=r9Meta.MetaClass(name='exportNode')
+        newparent2=r9Meta.MetaFacialRig(name='facial')
+        r_legSys.connectParent(newparent1,attr='ExportRoot')
+        l_legSys.connectParent(newparent2,attr='Facial')
+        
+        assert r9Meta.getConnectedMetaSystemRoot('L_Leg_System').mClass=='MetaRig'
+        assert r9Meta.getConnectedMetaSystemRoot('L_Leg_System', mTypes=['MetaFacialRig']).mClass=='MetaFacialRig'
+        
+        assert r9Meta.getConnectedMetaSystemRoot('R_Fingers_System').mClass=='MetaRig'
+        assert not r9Meta.getConnectedMetaSystemRoot('R_Fingers_System', ignoreTypes='MetaRig')
+        
+        assert r9Meta.getConnectedMetaSystemRoot('R_Toes_System').mClass=='MetaClass'
+        assert r9Meta.getConnectedMetaSystemRoot('R_Toes_System', ignoreTypes=['MetaClass']).mClass=='MetaRig'
+                
     def test_getChildMetaNodes_mAttrs(self):
         #TODO: this code needs fixing and then testing!!!!!!
         #self.mRig.getChildMetaNodes(walk=True,mAttrs='ddddddddddddd')

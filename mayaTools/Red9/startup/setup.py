@@ -18,7 +18,7 @@ THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
 
 
 __author__ = 'Mark Jackson'
-__buildVersionID__ = 1.5
+__buildVersionID__ = 2.0
 installedVersion= False
 
 
@@ -144,6 +144,13 @@ def mayaUpAxis(setAxis=None):
 def mayaIsBatch():
     return cmds.about(batch=True)
 
+def osBuild():
+    build = cmds.about(os=True)
+    if build == 'win64':
+        return 64
+    elif build == 'win32':
+        return 32
+
 def getCurrentFPS():
     '''
     returns the current frames per second as a number, rather than a useless string
@@ -164,19 +171,29 @@ def menuSetup(parent='MayaWindow'):
         cmds.deleteUI('redNineMenuItemRoot')
         log.info("Rebuilding Existing RedNine Menu")
         
+    # parent is an existing window with an existing menuBar?
     if cmds.window(parent, exists=True):
         if not cmds.window(parent, q=True, menuBar=True):
-            #parent=cmds.window(parent, edit=True, menuBar=True)
             raise StandardError('given parent for Red9 Menu has no menuBarlayout %s' % parent)
         else:
             cmds.menu('redNineMenuItemRoot', l="RedNine", p=parent, tearOff=True, allowOptionBoxes=True)
             log.info('new Red9 Menu added to current window : %s' % parent)
+    # parent is a menuBar?
+    elif cmds.menuBarLayout(parent, exists=True):
+        cmds.menu('redNineMenuItemRoot', l='RedNine', p=parent, tearOff=True, allowOptionBoxes=True)
+        log.info('New Red9 Sound Menu added to current windows menuBar : %s' % parent)
+    # parent is an existing menu?
     elif cmds.menu(parent, exists=True):
         cmds.menuItem('redNineMenuItemRoot', l='RedNine', sm=True, p=parent)
         log.info('new Red9 subMenu added to current Menu : %s' % parent)
     else:
         raise StandardError('given parent for Red9 Menu is invalid %s' % parent)
     try:
+        cmds.menuItem('redNineProRootItem',
+                      l='PRO : PACK', sm=True, p='redNineMenuItemRoot', tearOff=True,i='red9.jpg')
+
+        cmds.menuItem(divider=True,p='redNineMenuItemRoot')
+        
         #Add the main Menu items
         cmds.menuItem('redNineAnimItem',
                       l=LANGUAGE_MAP._MainMenus_.animation_toolkit,
@@ -390,13 +407,20 @@ def addToMayaMenus():
                 
             TimeSliderMenu='TimeSliderMenu'
             cmds.menuItem(divider=True, p=TimeSliderMenu)
-            cmds.menuItem(subMenu=True, label=LANGUAGE_MAP._MainMenus_.collapse_range, p=TimeSliderMenu)
-            cmds.menuItem('redNineTimeSliderCollapseItem', label=LANGUAGE_MAP._MainMenus_.collapse_selected,
-                          ann=LANGUAGE_MAP._MainMenus_.collapse_selected_ann,
-                          c='import Red9.core.Red9_CoreUtils as r9Core;r9Core.timeOffset_collapse(scene=False)')
-            cmds.menuItem(label=LANGUAGE_MAP._MainMenus_.collapse_full,
-                          ann=LANGUAGE_MAP._MainMenus_.collapse_full_ann,
-                          c='import Red9.core.Red9_CoreUtils as r9Core;r9Core.timeOffset_collapse(scene=True)')
+            cmds.menuItem(subMenu=True, label=LANGUAGE_MAP._MainMenus_.range_submenu, p=TimeSliderMenu)
+            
+            cmds.menuItem(label=LANGUAGE_MAP._MainMenus_.selectkeys_timerange,
+                          ann=LANGUAGE_MAP._MainMenus_.selectkeys_timerange_ann,
+                          c='import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.selectKeysByRange()')
+            cmds.menuItem(label=LANGUAGE_MAP._MainMenus_.setrangetoo,
+                          ann=LANGUAGE_MAP._MainMenus_.setrangetoo_ann,
+                          c='import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.setTimeRangeToo()')
+
+            cmds.menuItem(divider=True, p=TimeSliderMenu)
+            cmds.menuItem('redNineTimeSliderCollapseItem', label=LANGUAGE_MAP._MainMenus_.collapse_time,
+                          ann=LANGUAGE_MAP._MainMenus_.collapse_time_ann,
+                          c='import Red9.core.Red9_CoreUtils as r9Core;r9Core.timeOffset_collapseUI()',
+                          p=TimeSliderMenu)
 
             cmds.menuItem(subMenu=True, label=LANGUAGE_MAP._MainMenus_.insert_padding, p=TimeSliderMenu)
             cmds.menuItem(label=LANGUAGE_MAP._MainMenus_.pad_selected,
@@ -415,10 +439,36 @@ def addAudioMenu(parent=None, rootMenu='redNineTraxRoot'):
     '''
     Red9 Sound Menu setup
     '''
+    print 'AudioMenu: given parent : ',parent
     if not parent:
         cmds.menu(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, tearOff=True, allowOptionBoxes=True)
+        print 'New r9Sound Menu added - no specific parent given so adding to whatever menu is currently being built!'
     else:
-        cmds.menu(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, tearOff=True, allowOptionBoxes=True, parent=parent)
+        # parent is a window containing a menuBar?
+        if cmds.window(parent, exists=True):
+            if not cmds.window(parent, q=True, menuBar=True):
+                raise StandardError('given parent for Red9 Sound Menu has no menuBarlayout %s' % parent)
+            else:
+                cmds.menu(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, p=parent, tearOff=True, allowOptionBoxes=True)
+                log.info('New Red9 Sound Menu added to current windows menuBar : %s' % parent)
+        # parent is a menuBar?
+        elif cmds.menuBarLayout(parent, exists=True):
+            cmds.menu(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, p=parent, tearOff=True, allowOptionBoxes=True)
+            log.info('New Red9 Sound Menu added to current windows menuBar : %s' % parent)
+        # parent is a menu already?
+        elif cmds.menu(parent, exists=True):
+            cmds.menuItem(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, sm=True, p=parent, allowOptionBoxes=True)
+            log.info('New Red9 Sound subMenu added to current Menu : %s' % parent)
+        else:
+            raise StandardError('given parent for Red9 Sound Menu is invalid %s' % parent)
+    
+#    if not parent:
+#        print 'new r9Sound Menu added'
+#        cmds.menu(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, tearOff=True, allowOptionBoxes=True)
+#    else:
+#        print 'new r9Sound Menu added to parent menu', parent
+#        cmds.menu(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, tearOff=True, allowOptionBoxes=True, parent=parent)
+        
     cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_offset_manager, p=rootMenu,
                   ann=LANGUAGE_MAP._MainMenus_.sound_offset_manager_ann,
                   c="import Red9.core.Red9_Audio as r9Audio;r9Audio.AudioToolsWrap().show()")
@@ -472,10 +522,13 @@ def red9ButtonBGC(colour):
     '''
     Generic setting for the main button colours in the UI's
     '''
-    if colour==1:
-        return [0.6, 0.9, 0.65]
-    if colour==2:
+    if colour==1 or colour=='green':
+        #return [0.6, 0.9, 0.65]
+        return [0.6, 1, 0.6]
+    elif colour==2 or colour=='grey':
         return [0.5, 0.5, 0.5]
+    elif colour==3 or colour=='red':
+        return [1,0.3,0.3]
    
 def red9ContactInfo(*args):
     import Red9.core.Red9_General as r9General  # lazy load
@@ -492,8 +545,23 @@ def red9ContactInfo(*args):
         r9General.os_OpenFile('http://red9consultancy.com/')
         
 def red9Presets():
+    '''
+    get the default presets dir for all filterSettings.cfg files
+    '''
     return os.path.join(red9ModulePath(), 'presets')
-    
+
+def red9Presets_get():
+    '''
+    generic extraction of all cfg presets from the default location above
+    '''
+    try:
+        configs=[p for p in os.listdir(red9Presets()) if p.endswith('.cfg')]
+        configs.sort()
+        return configs
+    except:
+        log.debug('failed to retrieve the presets')
+    return []
+  
 def red9ModulePath():
     '''
     Returns the Main path to the Red9 root module folder
@@ -563,15 +631,23 @@ def red9_getAuthor():
     return __author__
 
 def get_pro_pack(*args):
-    import Red9.core.Red9_General as r9General  # lazy load
-    result=cmds.confirmDialog(title='Red9_StudioPack : build %f' % red9_getVersion(),
-                       message=("Red9_ProPack Not Installed!\r\r"+
-                                "Contact info@red9consultancy.com for more information"),
-                       button=['Red9Consultancy.com','Get_Pro','Close'],messageAlign='center')
-    if result == 'Get_Pro':
-        log.warning('Red9 ProPack systems not yet available - watch this space!')
-    if result =='Red9Consultancy.com':
-        r9General.os_OpenFile('http://red9consultancy.com/')
+    try:
+        #new pro_pack build calls
+        import Red9.pro_pack.r9pro as r9pro
+        r9pro.r9import('r9wtools')
+        import r9wtools
+        r9wtools.MailRegistration().show()
+    except:
+        #legacy
+        import Red9.core.Red9_General as r9General  # lazy load
+        result=cmds.confirmDialog(title='Red9_StudioPack : build %f' % red9_getVersion(),
+                            message=("Red9_ProPack Not Installed!\r\r"+
+                                     "Contact info@red9consultancy.com for more information"),
+                            button=['Red9Consultancy.com','Get_Pro','Close'],messageAlign='center')
+        if result == 'Get_Pro':
+            log.warning('Red9 ProPack systems not yet available - watch this space!')
+        if result =='Red9Consultancy.com':
+            r9General.os_OpenFile('http://red9consultancy.com/')
 
 
 #=========================================================================================
@@ -662,25 +738,46 @@ PRO_PACK_STUBS=None
 
 def has_pro_pack():
     '''
-    Red9 Pro_Pack is available
+    Red9 Pro_Pack is available and activated as user
     '''
     if os.path.exists(os.path.join(red9ModulePath(),'pro_pack')):
-        return True
+        try:
+            #new pro_pack call
+            import Red9.pro_pack.r9pro as r9pro
+            status=r9pro.checkr9user()
+            if status and not issubclass(type(status),str):
+                return True
+            else:
+                return False
+        except:
+            #we have the pro-pack folder so assume we're running legacy build (Dambusters support)
+            return True
+    else:
+        return False
 
-class ProPack_Error(Exception):
+class ProPack_UIError(Exception):
     '''
-    custom exception so we can catch it
+    custom exception so we can catch it, this launched the 
+    get ProPack UI
     '''
-    def __init__(self):
+    def __init__(self, *args):
         get_pro_pack()
         
+class ProPack_Error(Exception):
+    '''
+    custom exception so we can catch it. This is an in-function 
+    error
+    '''
+    def __init__(self, *args):
+        super(ProPack_Error, self).__init__('ProPack missing from setup!')
+           
 class pro_pack_missing_stub(object):
     '''
     Exception to raised when the the Pro_Pack is missing 
     and the stubs are called
     '''
     def __init__(self):
-        raise ProPack_Error()
+        raise ProPack_UIError()
 
              
 def has_internal_systems():
@@ -690,7 +787,7 @@ def has_internal_systems():
     if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(red9ModulePath())),'Red9_Internals')):
         return True
 
-      
+
 #=========================================================================================
 # BOOT CALL ------------------------------------------------------------------------------
 #=========================================================================================
@@ -756,6 +853,13 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindo
     
     if has_pro_pack():
         cmds.evalDeferred("import Red9.pro_pack", lp=True)  # Unresolved Import
+#     if has_pro_pack():
+#         #in new builds we don not need to do this ;)
+#         cmds.evalDeferred("import Red9.pro_pack", lp=True)  # Unresolved Import
+#     else:
+#         cmds.menuItem('redNineGetProItem', l='PRO : Get Pro Pack',
+#                       p='redNineProRootItem', i='red9.jpg',
+#                       c=get_pro_pack)
     if has_internal_systems():
         cmds.evalDeferred("import Red9_Internals", lp=True)  # Unresolved Import
            

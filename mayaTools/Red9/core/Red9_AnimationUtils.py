@@ -106,20 +106,27 @@ log.setLevel(logging.INFO)
 # global var so that the animUI is exposed to anything as a global object
 global RED_ANIMATION_UI
 
+global RED_ANIMATION_UI_OPENCALLBACKS
+RED_ANIMATION_UI_OPENCALLBACKS=[]
 
 '''
-Callback global so you can fire a command prior to the UI opening,
+Callback globals so you can fire in commands prior to the UI opening,
 we use this internally to fire an asset sync call on our project pose library
-and to setup some additional paths
+and to setup some additional paths.
 
-def myProjectCallback()
+def myProjectCallback(cls)
     cls.poseHandlerPaths=['MyProjects/resources/poseHandlers']
     cls.posePathProject ='My_projects/global/project/pose/lib'
     
-r9Anim.RED_ANIMATION_UI_OPENCALLBACK = myProjectCallback
+r9Anim.RED_ANIMATION_UI_OPENCALLBACKS.append(myProjectCallback)
+
+NOTE:: the function calls bound to the callback are passed the current instance of the animUI class 
+as an arg so you can modify as you need. Also when the PoseUI RMB popup menu is built, IF paths in the list
+cls.poseHandlerPaths are valid, then we bind into that popup all valid poseHandler.py files
+found the given path. This allow you to add custom handler types and expose them through the UI directly,
+they will show up in the RMB popup as such: Fingers_poseHandler.py will show as 'Add Subfolder : FINGERS'
 '''
-global RED_ANIMATION_UI_OPENCALLBACK
-RED_ANIMATION_UI_OPENCALLBACK=None
+
 
 # Language map is used for all UI's as a text mapping for languages
 LANGUAGE_MAP = r9Setup.LANGUAGE_MAP
@@ -216,6 +223,7 @@ def getAnimLayersFromGivenNodes(nodes):
         nodes=[nodes]
     return cmds.animLayer(nodes, q=True, affectedLayers=True)
 
+     
 def animLayersConfirmCheck(nodes=None, deleteMerged=True):
     '''
     return all animLayers associated with the given nodes
@@ -286,41 +294,34 @@ def mergeAnimLayers(nodes, deleteBaked=True):
             cmds.optionVar(intValue=('animLayerMergeDeleteLayers',deleteMerged))
     return 'Merged_Layer'
 
-def timeLineRangeGet(always=True):
+def pointOnPolyCmd(nodes):
     '''
-    Return the current PlaybackTimeline OR if a range is selected in the
-    TimeLine, (Highlighted in Red) return that instead.
+    This is a BUG FIX for Maya's command wrapping of the pointOnPolyCon
+    which doesn't support namespaces. This deals with that limitation
+    '''
+    import maya.app.general.pointOnPolyConstraint
+    cmds.select(nodes)
+    sourceName = nodes[0].split('|')[-1]
     
-    :param always: always return a timeline range, if none selected return the playbackRange.
-    :rtype: tuple
-    :return: (start,end)
+    cmdstring = "string $constraint[]=`pointOnPolyConstraint -weight 1`;"
+    assembled = maya.app.general.pointOnPolyConstraint.assembleCmd()
+    
+    if ':' in sourceName:
+        nameSpace = sourceName.replace(sourceName.split(':')[-1], '')
+        assembled = assembled.replace(nameSpace, '')
+    print(cmdstring + assembled)
+    con=mel.eval(cmdstring)
+    mel.eval(assembled)
+    return con
+    
+def eulerSelected():
     '''
-    playbackRange = None
-    PlayBackSlider = mel.eval('$tmpVar=$gPlayBackSlider')
-    if cmds.timeControl(PlayBackSlider, q=True, rangeVisible=True):
-        time = cmds.timeControl(PlayBackSlider, q=True, rangeArray=True)
-        playbackRange = (time[0], time[1])
-    elif always:
-        playbackRange = (cmds.playbackOptions(q=True, min=True), cmds.playbackOptions(q=True, max=True))
-    return playbackRange
+    cheap trick! for selected objects run a Euler Filter and then delete Static curves
+    '''
+    cmds.filterCurve(cmds.ls(sl=True, l=True))
+    cmds.delete(cmds.ls(sl=True, l=True), sc=True)
 
-def timeLineRangeProcess(start, end, step, incEnds=True):
-    '''
-    Simple wrapper function to take a given framerange and return
-    a list[] containing the actual keys required for processing.
-    This manages whether the step is negative, if so it reverses the
-    times. Basically just a wrapper to the python range function.
-    '''
-    startFrm = start
-    endFrm = end
-    if step < 0:
-        startFrm = end
-        endFrm = start
-    rng=[time for time in range(int(startFrm), int(endFrm), int(step))]
-    if incEnds:
-        rng.append(end)
-    return rng
- 
+       
 def animCurveDrawStyle(style='simple', forceBuffer=True,
                    showBufferCurves=False, displayTangents=False, displayActiveKeyTangents=True, *args):
     '''
@@ -353,6 +354,96 @@ def animCurveDrawStyle(style='simple', forceBuffer=True,
         mel.eval('%s graphEditor1GraphEd;' % cmd)
 
 
+    
+# TimeRange / AnimRange Functions -------------------------------------------------
+
+def animRangeFromNodes(nodes, setTimeline=True):
+    '''
+    return the extend of the animation range for the given objects
+    :param nodes: nodes to examine for animation data
+    :param setTimeLine: whether we should set the playback timeline to the extent of the found anim data
+    '''
+    minBounds=None
+    maxBounds=None
+    for anim in r9Core.FilterNode.lsAnimCurves(nodes, safe=True):
+        count=cmds.keyframe(anim, q=True, kc=True)
+        min=cmds.keyframe(anim, q=True, index=[(0,0)], tc=True)
+        max=cmds.keyframe(anim, q=True, index=[(count-1,count-1)], tc=True)
+        if not minBounds or min[0]<minBounds:
+            minBounds=min[0]
+        if not maxBounds or max[0]>maxBounds:
+            maxBounds=max[0]
+    if setTimeline:
+        cmds.playbackOptions(min=minBounds,max=maxBounds)
+    return minBounds,maxBounds
+
+def timeLineRangeGet(always=True):
+    '''
+    Return the current PlaybackTimeline OR if a range is selected in the
+    TimeLine, (Highlighted in Red) return that instead.
+    
+    :param always: always return a timeline range, if none selected return the playbackRange.
+    :rtype: tuple
+    :return: (start,end)
+    '''
+    playbackRange = None
+    PlayBackSlider = mel.eval('$tmpVar=$gPlayBackSlider')
+    if cmds.timeControl(PlayBackSlider, q=True, rangeVisible=True):
+        time = cmds.timeControl(PlayBackSlider, q=True, rangeArray=True)
+        playbackRange = (time[0], time[1])
+    elif always:
+        playbackRange = (cmds.playbackOptions(q=True, min=True), cmds.playbackOptions(q=True, max=True))
+    return playbackRange
+
+def timeLineRangeProcess(start, end, step, incEnds=True):
+    '''
+    Simple wrapper function to take a given framerange and return
+    a list[] containing the actual keys required for processing.
+    This manages whether the step is negative, if so it reverses the
+    times. Basically just a wrapper to the python range function.
+    '''
+    startFrm = start
+    endFrm = end
+    if step < 0:
+        startFrm = end
+        endFrm = start
+    rng=[time for time in range(int(startFrm), int(endFrm), int(step))]
+    if incEnds:
+        rng.append(endFrm)
+    return rng
+
+def selectKeysByRange(nodes=None, animLen=False):
+    '''
+    select the keys from the selected or given nodes within the
+    current timeRange or selectedTimerange
+    '''
+    if not nodes:
+        nodes=cmds.ls(sl=True,type='transform')
+    if not animLen:
+        cmds.selectKey(nodes,time=timeLineRangeGet())
+    else:
+        cmds.selectKey(nodes,time=animRangeFromNodes(nodes, setTimeline=False))
+    
+def setTimeRangeToo(nodes=None, setall=True):
+    '''
+    set the playback timerange to be the animation range of the selected nodes.
+    AnimRange is determined to be the extent of all found animation for a given node
+    '''
+    if not nodes:
+        nodes=cmds.ls(sl=True,type='transform')
+    time=animRangeFromNodes(nodes)
+    if time:
+        cmds.currentTime(time[0])
+        cmds.playbackOptions(min=time[0])
+        cmds.playbackOptions(max=time[1])
+        if setall:
+            cmds.playbackOptions(ast=time[0])
+            cmds.playbackOptions(aet=time[1])
+    else:
+        raise StandardError('given nodes have no found animation data')
+
+     
+
 #def timeLineRangeSet(time):
 #    '''
 #    Return the current PlaybackTimeline OR if a range is selected in the
@@ -362,33 +453,7 @@ def animCurveDrawStyle(style='simple', forceBuffer=True,
 #    time=cmds.timeControl(PlayBackSlider ,e=True, rangeArray=True, v=time)
 
 
-def pointOnPolyCmd(nodes):
-    '''
-    This is a BUG FIX for Maya's command wrapping of the pointOnPolyCon
-    which doesn't support namespaces. This deals with that limitation
-    '''
-    import maya.app.general.pointOnPolyConstraint
-    cmds.select(nodes)
-    sourceName = nodes[0].split('|')[-1]
-    
-    cmdstring = "string $constraint[]=`pointOnPolyConstraint -weight 1`;"
-    assembled = maya.app.general.pointOnPolyConstraint.assembleCmd()
-    
-    if ':' in sourceName:
-        nameSpace = sourceName.replace(sourceName.split(':')[-1], '')
-        assembled = assembled.replace(nameSpace, '')
-    print(cmdstring + assembled)
-    con=mel.eval(cmdstring)
-    mel.eval(assembled)
-    return con
-    
-def eulerSelected():
-    '''
-    cheap trick! for selected objects run a Euler Filter and then delete Static curves
-    '''
-    cmds.filterCurve(cmds.ls(sl=True, l=True))
-    cmds.delete(cmds.ls(sl=True, l=True), sc=True)
-
+# MAIN CALLS -----------------------------------------------------------------
 
 class AnimationLayerContext(object):
     """
@@ -467,9 +532,10 @@ class AnimationUI(object):
         self.poseRootMode = 'RootNode'  # or MetaRig
         self.poses = None
         self.poseButtonBGC = [0.27, 0.3, 0.3]
-        self.poseButtonHighLight = [0.7, 0.95, 0.75]
+        self.poseButtonHighLight = r9Setup.red9ButtonBGC('green')
         
-        self.poseHandlerPaths=[]  # ['J:/Games/hf2/Tools/CryMayaCore/core/crycore/resources/poseHandlers']
+        # Default Red9 poseHandlers now bound here if found, used to extend Clients handling of data
+        self.poseHandlerPaths=[os.path.join(self.presetDir,'poseHandlers')]
         
         # Internal config file setup for the UI state
         if self.internalConfigPath:
@@ -483,7 +549,7 @@ class AnimationUI(object):
     @classmethod
     def show(cls):
         global RED_ANIMATION_UI
-        global RED_ANIMATION_UI_OPENCALLBACK
+        global RED_ANIMATION_UI_OPENCALLBACKS
         animUI=cls()
 
         if 'ui_docked' in animUI.ANIM_UI_OPTVARS['AnimationUI']:
@@ -491,20 +557,22 @@ class AnimationUI(object):
 
         if r9General.getModifier() == 'Ctrl':
             if not animUI.dock:
-                print 'switching True'
+                print 'Switching dockState : True'
                 animUI.dock = True
             else:
-                print 'switching false'
+                print 'Switching dockState : False'
                 animUI.dock = False
             #animUI.dock = False
    
         RED_ANIMATION_UI=animUI
-        if callable(RED_ANIMATION_UI_OPENCALLBACK):
-            try:
-                log.debug('calling RED_ANIMATION_UI_OPENCALLBACK')
-                RED_ANIMATION_UI_OPENCALLBACK(animUI)
-            except:
-                log.warning('RED_ANIMATION_UI_OPENCALLBACK failed')
+        if RED_ANIMATION_UI_OPENCALLBACKS:
+            for func in RED_ANIMATION_UI_OPENCALLBACKS:
+                if callable(func):
+                    try:
+                        log.debug('calling RED_ANIMATION_UI_OPENCALLBACKS')
+                        func(animUI)
+                    except:
+                        log.warning('RED_ANIMATION_UI_OPENCALLBACKS failed')
                 
         animUI._showUI()
         animUI.ANIM_UI_OPTVARS['AnimationUI']['ui_docked'] = animUI.dock
@@ -602,6 +670,8 @@ class AnimationUI(object):
        
         cmds.separator(h=5, style='none')
         cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)], rowSpacing=[(1,5)])
+        #cmds.rowColumnLayout(numberOfColumns=4, columnWidth=[(1, 75), (2, 80), (3, 80), (3, 80)], columnSpacing=[(1, 10), (2, 10)], rowSpacing=[(1,5)])
+       
         self.uicbCKeyHierarchy = cmds.checkBox('uicbCKeyHierarchy', l=LANGUAGE_MAP._Generic_.hierarchy, al='left', v=False,
                                             ann=LANGUAGE_MAP._AnimationUI_.copy_keys_hierarchy_ann,
                                             cc=lambda x: self.__uiCache_addCheckbox('uicbCKeyHierarchy'))
@@ -615,6 +685,11 @@ class AnimationUI(object):
         self.uicbCKeyAnimLay = cmds.checkBox('uicbCKeyAnimLay', l=LANGUAGE_MAP._AnimationUI_.copy_keys_merge_layers, al='left', v=False,
                                             ann=LANGUAGE_MAP._AnimationUI_.copy_keys_merge_layers_ann,
                                             cc=lambda x: self.__uiCache_addCheckbox('uicbCKeyAnimLay'))
+        
+        cmds.setParent('..')
+        cmds.separator(h=10, style='in')
+        cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10)], rowSpacing=[(1,5)])
+        cmds.text(label='Paste Options : ')
         cmds.optionMenu('om_PasteMethod',
                         ann=LANGUAGE_MAP._AnimationUI_.paste_method_ann,
                         cc=partial(self.__uiCB_setCopyKeyPasteMethod))
@@ -629,6 +704,7 @@ class AnimationUI(object):
                        "fitMerge"]:
             cmds.menuItem(l=preset)
         cmds.optionMenu('om_PasteMethod', e=True, v='replace')
+        self.uiffgCKeyStep = cmds.floatFieldGrp('uiffgCKeyStep', l=LANGUAGE_MAP._AnimationUI_.offset, value1=0, cw2=(40, 50))
         cmds.setParent(self.AnimLayout)
 
 
@@ -1229,13 +1305,7 @@ class AnimationUI(object):
         '''
         Fill the Preset TextField with files in the presets Dirs
         '''
-        self.presets = os.listdir(self.presetDir)
-        try:
-            [self.presets.remove(hidden) for hidden in ['__red9config__', '.svn', '__config__'] \
-                                            if hidden in self.presets]
-        except:
-            pass
-        self.presets.sort()
+        self.presets = r9Setup.red9Presets_get()
         cmds.textScrollList(self.uitslPresets, edit=True, ra=True)
         cmds.textScrollList(self.uitslPresets, edit=True, append=self.presets)
         
@@ -1739,13 +1809,14 @@ class AnimationUI(object):
         '''
         if self.poseHandlerPaths:
             for path in self.poseHandlerPaths:
+                log.debug('Inspecting PoseHandlerPath : %s' % path)
                 if os.path.exists(path):
                     poseHandlers=os.listdir(path)
                     if poseHandlers:
                         for handler in poseHandlers:
                             if handler.endswith('_poseHandler.py'):
                                 handlerPath=os.path.join(path,handler)
-                                log.debug('poseHandler file being copied into new folder : %s' % handlerPath)
+                                log.debug('poseHandler file being bound to RMB popup : %s' % handlerPath)
                                 cmds.menuItem(label='Add Subfolder : %s' % handler.replace('_poseHandler.py', '').upper(),
                                               en=True, p=parentPopup,
                                               command=partial(self.__uiPoseMakeSubFolder, handlerPath))
@@ -2078,7 +2149,7 @@ class AnimationUI(object):
                      
     def __uiPoseAddPoseHandler(self, *args):
         '''
-        Copy local pose to the Project Pose Folder
+        PRO_PACK : Copy local pose to the Project Pose Folder
         '''
         r9Setup.PRO_PACK_STUBS().AnimationUI_stubs.uiCB_poseAddPoseHandler(self.posePath)
         
@@ -2225,6 +2296,7 @@ class AnimationUI(object):
         self.kws['toMany'] = cmds.checkBox(self.uicbCKeyToMany, q=True, v=True)
         self.kws['pasteKey']=cmds.optionMenu('om_PasteMethod', q=True, v=True)
         self.kws['mergeLayers']=cmds.checkBox('uicbCKeyAnimLay', q=True, v=True)
+        self.kws['timeOffset']=cmds.floatFieldGrp('uiffgCKeyStep', q=True,v1=True)
         if cmds.checkBox(self.uicbCKeyRange, q=True, v=True):
             self.kws['time'] = timeLineRangeGet()
         if cmds.checkBox(self.uicbCKeyChnAttrs, q=True, v=True):
@@ -2388,7 +2460,7 @@ class AnimationUI(object):
     
     def __PoseCompare(self, compareDict='skeletonDict', *args):
         '''
-        Internal UI call for Pose Compare func, note that filterSettings is bound
+        PRO_PACK : Internal UI call for Pose Compare func, note that filterSettings is bound
         but only filled by the main __uiCall call
         '''
         r9Setup.PRO_PACK_STUBS().AnimationUI_stubs.uiCB_poseCompare(filterSettings=self.filterSettings,
@@ -2407,7 +2479,7 @@ class AnimationUI(object):
         poseNode.filepath = self.getPosePath()
         poseNode.useFilter = cmds.checkBox('uicbPoseHierarchy', q=True, v=True)
         poseNode.matchMethod=self.matchMethod
-        poseNode._matchNodes_to_data(self.__uiCB_getPoseInputNodes())
+        poseNode.processPoseFile(self.__uiCB_getPoseInputNodes())
         self._poseBlendUndoChunkOpen=False
         if objs:
             cmds.select(objs)
@@ -2449,15 +2521,15 @@ class AnimationUI(object):
         meshes=[]
         mRef=r9Meta.MetaClass(self.__uiCB_getPoseInputNodes())
         if mRef.hasAttr('renderMeshes') and mRef.renderMeshes:
-            meshes=mRef.renderMeshes  # [0]
+            meshes=mRef.renderMeshes
         elif len(objs)==2:
             if cmds.nodeType(cmds.listRelatives(objs[1])[0])=='mesh':
                 meshes=objs  # [1]
         if func=='make':
             if not objs:
                 raise StandardError('you need to select a reference object to use as pivot for the PPCloud')
-            if cmds.ls('*posePointCloud', r=True):
-                raise StandardError('PosePointCloud already exists in scsne')
+            #if cmds.ls('*posePointCloud', r=True):
+            #    raise StandardError('PosePointCloud already exists in scsne')
             if not meshes:
                 #turn on locator visibility
                 panel=cmds.getPanel(wf=True)
@@ -2657,7 +2729,7 @@ class AnimFunctions(object):
                
     @r9General.Timer
     def copyKeys(self, nodes=None, time=(), pasteKey='replace', attributes=None,
-                 filterSettings=None, toMany=False, matchMethod=None, mergeLayers=False, **kws):
+                 filterSettings=None, toMany=False, matchMethod=None, mergeLayers=False, timeOffset=0, **kws):
         '''
         Copy Keys is a Hi-Level wrapper function to copy animation data between
         filtered nodes, either in hierarchies or just selected pairs.
@@ -2678,7 +2750,7 @@ class AnimFunctions(object):
         :param mergeLayers: this pre-processes animLayers so that we have a single, temporary merged
             animLayer to extract a compiled version of the animData from. This gets deleted afterwards.
         
-        TODO: this needs to support 'skipAttrs' param liek the copyAttrs does - needed for the snapTransforms calls
+        TODO: this needs to support 'skipAttrs' param like the copyAttrs does - needed for the snapTransforms calls
         '''
         if not matchMethod:
             matchMethod=self.matchMethod
@@ -2693,31 +2765,7 @@ class AnimFunctions(object):
         
         srcNodes=[src for src, _ in nodeList]
         
-        # FUCKING ANIM LAYERS ARE SATAN'S TESTICLES!!
-        # with very poor wrapper code in mel only!
-        #-------------------------------------------------
-#         animLayers=getAnimLayersFromGivenNodes(srcNodes)
-#         if animLayers:
-#             if mergeLayers:
-#                 try:
-#                     layerCache={}
-#                     for layer in animLayers:
-#                         layerCache[layer]={'mute':cmds.animLayer(layer, q=True, mute=True),
-#                                            'locked':cmds.animLayer(layer, q=True, lock=True)}
-#                     mergeAnimLayers(srcNodes, deleteBaked=False)
-# 
-#                     #return the original mute and lock states and select the new
-#                     #MergedLayer ready for the rest of the copy code to deal with
-#                     for layer,cache in layerCache.items():
-#                         for layer,cache in layerCache.items():
-#                             cmds.animLayer(layer, edit=True, mute=cache['mute'])
-#                             cmds.animLayer(layer, edit=True, mute=cache['locked'])
-#                     mel.eval("source buildSetAnimLayerMenu")
-#                     mel.eval('selectLayer("Merged_Layer")')
-#                 except:
-#                     log.debug('CopyKeys internal : AnimLayer Merge Failed')
-#             else:
-#                 log.warning('SrcNodes have animLayers, results may be eratic unless Baked!')
+        # Manage AnimLayers - note to Autodesk, this should be internal to the cmds!
         with AnimationLayerContext(srcNodes, mergeLayers=mergeLayers, restoreOnExit=True):
             if nodeList:
                 with r9General.HIKContext([d for _, d in nodeList]):
@@ -2727,18 +2775,14 @@ class AnimFunctions(object):
                                 #copy only specific attributes
                                 for attr in attributes:
                                     if cmds.copyKey(src, attribute=attr, hierarchy=False, time=time):
-                                        cmds.pasteKey(dest, attribute=attr, option=pasteKey)
+                                        cmds.pasteKey(dest, attribute=attr, option=pasteKey, timeOffset=timeOffset)
                             else:
                                 if cmds.copyKey(src, hierarchy=False, time=time):
-                                    cmds.pasteKey(dest, option=pasteKey)
+                                    cmds.pasteKey(dest, option=pasteKey, timeOffset=timeOffset)
                         except:
                             log.debug('Failed to copyKeys between : %s >> %s' % (src, dest))
             else:
                 raise StandardError('Nothing found by the Hierarchy Code to process')
-        
-#         if mergeLayers:
-#             if animLayers and cmds.animLayer('Merged_Layer', query=True, exists=True):
-#                 cmds.delete('Merged_Layer')
         return True
     
     
@@ -2911,7 +2955,7 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
                     #maybe do a channel attr pass to get non-keyed data over too?
                     if preCopyKeys:
                         self.copyKeys(nodes=nodeList, time=time, filterSettings=filterSettings, **kws)
-                     
+                    
                     progressBar = r9General.ProgressBarContext(time[1]-time[0])
                     progressBar.setStep(step)
                     count=0
@@ -3443,7 +3487,10 @@ class RandomizeKeys(object):
                     # figure the upper and lower value bounds
                     randomRange = self.__calcualteRangeValue(cmds.keyframe(curve, q=True, vc=True, t=time))
                     log.debug('Percent data : randomRange=%f>%f, percentage=%f' % (randomRange[0], randomRange[1], damp))
-                connection = cmds.listConnections(curve, source=False, d=True, p=True)[0]
+                    
+                connection=[con for con in cmds.listConnections(curve, source=False, d=True, p=True)
+                            if not cmds.nodeType(con)=='hyperLayout'][0]
+                            
                 for t in timeLineRangeProcess(time[0], time[1], step, incEnds=True):
                     value = self.noiseFunc(cmds.getAttr(connection, t=t), randomRange, damp)
                     cmds.setKeyframe(connection, v=value, t=t)
@@ -3915,7 +3962,8 @@ class MirrorHierarchy(object):
             if not axis:
                 return []
             else:
-                return axis.split(',')
+                #make sure we remove any trailing ',' also so we don't end up with empty entries
+                return axis.rstrip(',').split(',')
         else:
             return self.defaultMirrorAxis
         
