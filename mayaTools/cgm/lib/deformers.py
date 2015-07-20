@@ -503,7 +503,21 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
     mc.select(sourceObject,tgl=True)
     mel.eval('AddWrapInfluence')
     mc.select(cl=True)
-
+    
+    _d = {'envelope':1,
+          'weightThreshold':1,
+          'maxDistance':100,
+          'autoWeightThreshold':1,
+          'falloffMode':0}
+    
+    for k in _d.keys():
+	try:
+	    _v = _d[k]
+	    attributes.doSetAttr(wrapDeformer,k,_v)
+	    log.info("wrapDeformObject >> {0} Set {1} - {2}".format(wrapDeformer,k,_v))	    
+	except Exception,error:
+	    log.error("wrapDeformObject >> failed to set {0}-{1} | error: {2}".format(k,_v,error))
+    
     return ([wrapDeformer,wrappedTargetObject])
 
 
@@ -842,7 +856,7 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
         blendShapeConnections.append(attributes.returnDriverAttribute(blendShapeBuffer))
         """break it """
         attributes.doBreakConnection(blendShapeBuffer)
-        attributes.doSetAttr(blendShapeBuffer,0)
+        attributes.doSetAttr(blendShapeNode,shape,0)
 
     """ Find pairs """
     blendshapePairs = lists.returnMatchedStrippedEndList(blendShapeNodeChannels,directions)
@@ -873,8 +887,8 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
         shape2 = blendShapeNodeChannelsBuffer[1]
         blendShape1Buffer = (blendShapeNode+'.'+shape1)
         blendShape2Buffer = (blendShapeNode+'.'+shape2)
-        attributes.doSetAttr(blendShape1Buffer,1)
-        attributes.doSetAttr(blendShape2Buffer,1)
+        attributes.doSetAttr(blendShapeNode,shape1,1)
+        attributes.doSetAttr(blendShapeNode,shape2,1)
         dupBuffer = mc.duplicate(sourceObject)
 
 
@@ -892,8 +906,8 @@ def bakeCombinedBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = Fal
         mc.xform(dupBuffer,r=True,t=[((sizeX*(t+1.2))*1.5),(sizeY*row*-1.5),0])
         bakedGeo.append(dupBuffer)
 
-        attributes.doSetAttr(blendShape1Buffer,0)
-        attributes.doSetAttr(blendShape2Buffer,0)
+        attributes.doSetAttr(blendShapeNode,shape1,0)
+        attributes.doSetAttr(blendShapeNode,shape2,0)
         pair +=1
         t+=1
 
@@ -983,7 +997,7 @@ def bakeBlendShapeNode(sourceObject, blendShapeNode, baseNameToUse = False, stri
         print blendShapeConnections
         """break it """
         attributes.doBreakConnection(blendShapeBuffer)
-        attributes.doSetAttr(blendShapeBuffer,0)
+        attributes.doSetAttr(blendShapeNode,shape,0)
 
 
     # Bake it
