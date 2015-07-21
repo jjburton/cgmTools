@@ -227,9 +227,14 @@ def connect_controlWiring(*args, **kws):
 			mode: }
 	    modes
 	    'singleChannel'
-	    cornerBlend 
+	    'cornerBlend'
+	    'negVNeg' -- driven = clamp(0,1, -clamp(-1,0,driver) - driver2)
+	    'multMinusFactoredValue' -- driven = clamp(0,1, (driver * driver2) - (driver3 * driver4) )
+
 	    --positive
 	    negative
+	    
+	    simpleArgs -- list of args to push to argsToNodes
     
 	    """	
 	    super(fncWrap, self).__init__(self,*args,**kws)
@@ -257,6 +262,7 @@ def connect_controlWiring(*args, **kws):
 	    self.mi_controlObject = cgmMeta.validateObjArg(self.d_kws['controlObject'])
 	    self.mi_targetObject = cgmMeta.validateObjArg(self.d_kws['targetObject'])
 	    self._d_wiringData = self.d_kws['wiringDict']
+	    self._l_simpleArgs = self.d_kws.get('simpleArgs') or []
 	    
 	    self._b_trackAttr = cgmValid.boolArg(self.d_kws['trackAttr'],calledFrom=self._str_funcName)
 	    
@@ -294,22 +300,28 @@ def connect_controlWiring(*args, **kws):
 		    _driver = _d_sub['driverAttr']
 		    self.d_drivenToDriverKeys[a_driven] = _driver
 		    
+		    #Driven...
 		    if not self.mi_targetObject.hasAttr(a_driven):
 			raise AttributeError,"Missing driven attr!"
 		    else:
 			self.d_drivenPlugs[a_driven] = cgmMeta.cgmAttr(self.mi_targetObject,a_driven)
-			    
+		    
+		    """#Driver...
 		    if '-' in _driver:
 			if not self.mi_controlObject.hasAttr(_driver.split('-')[-1]):
 			    raise AttributeError,"Missing driver attr! | {0}".format(_driver)
 		    elif not self.mi_controlObject.hasAttr(_driver):
-			raise AttributeError,"Missing driver attr! | {0}".format(_driver)
+			raise AttributeError,"Missing driver attr! | {0}".format(_driver)"""
 
 		except Exception,error:
 		    raise Exception, "{0} failure | error: {1}".format(a_driven,error)
 		
 	    self.log_infoNestedDict('d_drivenPlugs')
-	    self.log_infoNestedDict('d_drivenToDriverKeys')	
+	    self.log_infoNestedDict('d_drivenToDriverKeys')
+	    if self._l_simpleArgs:
+		self.log_info("Simple args...")
+		for arg in self._l_simpleArgs:
+		    self.log_info(arg)
 	    
 	def add_negative_mdNode(self):
 	    mNode = cgmMeta.cgmNode(nodeType='multiplyDivide')
@@ -333,9 +345,11 @@ def connect_controlWiring(*args, **kws):
 	
 	def get_positiveDriver(self, driver = None):
 	    if '-' in driver:
-		return self.get_negativeConnection("{0}.{1}".format(self.mi_controlObject.mNode, driver.split('-')[-1]))
+		return self.get_negativeConnection( self.get_driverPlug(driver) )
 	    else:
-		return cgmMeta.cgmAttr(self.mi_controlObject,driver)
+		plug = self.get_driverPlug(driver)
+		l_plug = plug.split('.')
+		return cgmMeta.cgmAttr(l_plug[0],l_plug[1])
 		   
 	def get_negativeConnection(self, driver = None):
 	    '''
@@ -389,7 +403,22 @@ def connect_controlWiring(*args, **kws):
 	    _l_out = ['outputR','outputG','outputB']
 	    raise NotImplementedError,"Clamp not implemeted"
 	
-	    
+	def get_driverPlug(self,arg):
+	    """
+	    Return driver plug -- whether on control object or splitting attribute
+	    """
+	    if '-' in arg:
+		arg = arg.split('-')[-1]
+		
+	    if '.' in arg:
+		if mc.objExists(arg):
+		    return arg
+		else:
+		    raise ValueError,"Driver attr does not exist: {0}".format(arg)
+	    else:
+		return ( "{0}.{1}".format(self.mi_controlObject.p_nameShort,arg) )
+		
+	
 	def _fncStep_wire(self):
 	    l_nodes = []
 	    mi_controlObject = self.mi_controlObject
@@ -398,34 +427,38 @@ def connect_controlWiring(*args, **kws):
 	    for a_driven in self.d_drivenPlugs.keys():
 		try:
 		    _d_sub = self._d_wiringData[a_driven]
+		    
 		    _driver = _d_sub['driverAttr']
 		    _mode = _d_sub.get('mode') or 'singleChannel'
 		    self.log_info("{0} | mode: '{1}' | driver: {2}".format(a_driven,_mode,_driver))
 		    _drivenPlug = "{0}.{1}".format(self.mi_targetObject.p_nameShort,a_driven)
 		    _mPlug_driven = cgmMeta.cgmAttr(self.mi_targetObject,a_driven)
+		    _noTrack = _d_sub.get('noTrack') or False
 		    
-		    if self._b_trackAttr:
+		    #...setup track attr if needed
+		    if self._b_trackAttr and _noTrack is not True:
 			cgmMeta.cgmAttr(self.mi_controlObject,a_driven,attrType = 'float',lock = True,hidden=False).doConnectIn(_mPlug_driven)
 			#_mPlug_driven.doCopyTo(self.mi_controlObject.mNode, connectToSource = True)
 			
 		    if _mode is 'singleChannel':
+			_driverPlug = self.get_driverPlug(_driver)			
 			if '-' in _driver:
-			    _driverPlug = "{0}.{1}".format(self.mi_controlObject.p_nameShort,_driver.split('-')[-1])
+			    mPlug_negative = self.get_negativeConnection(_driverPlug)
+			    #mPlug_negative = self.get_negativeConnection("{0}.{1}".format(self.mi_controlObject.mNode, _driver.split('-')[-1]))
 
-			    mPlug_negative = self.get_negativeConnection("{0}.{1}".format(self.mi_controlObject.mNode, _driver.split('-')[-1]))
-			    
 			    arg_negative = "{0} = if {1} <= 0:{2} else 0".format(_drivenPlug,_driverPlug,mPlug_negative.p_combinedShortName)
 			    self.log_info(arg_negative)
 			    argsToNodes(arg_negative).doBuild()
 			    
 			else:
-			    _driverPlug = "{0}.{1}".format(self.mi_controlObject.p_nameShort,_driver)
 			    
 			    arg_positive = "{0} = if {1} >= 0:{1} else 0".format(_drivenPlug,_driverPlug)
 			    self.log_info(arg_positive)
 			    argsToNodes(arg_positive).doBuild()
+			    
 		    elif _mode is 'cornerBlend':
-			try:_driver2 = _d_sub['driverAttr2']
+			try:
+			    _driver2 = _d_sub['driverAttr2']
 			except:raise ValueError,"Missing driverAttr2"
 			
 			ml_plugs = []
@@ -466,6 +499,85 @@ def connect_controlWiring(*args, **kws):
 			attributes.doConnectAttr("{0}.outputG".format(mNode_clamp.mNode), "{0}.input2X".format(mNode_md.mNode))
 			attributes.doConnectAttr("{0}.outputX".format(mNode_md.mNode),_drivenPlug)
 			
+		    elif _mode is 'negVNeg':
+			'''
+			result = clamp(0,1, -clamp(-1,0,driver1) - driver2)
+			'''
+			try:
+			    _driver2 = _d_sub['driverAttr2']
+			except:raise ValueError,"Missing driverAttr2"
+			
+			ml_plugs = []
+			for plug in [_driver, _driver2]:
+			    try:
+				ml_plugs.append(self.get_positiveDriver(plug))
+			    except Exception,error:
+				raise Exception,"attr validation fail | attr {0}".format(plug)
+			
+			self.log_info("building: {0} = clamp(0,1, -clamp(-1,0,{1}) - {2})".format(_mPlug_driven.p_combinedShortName,ml_plugs[0].p_combinedShortName,ml_plugs[1].p_combinedShortName))
+			#                                                   1
+			#Clamp Add
+			mNode_clamp = cgmMeta.cgmNode(nodeType='clamp')
+			mNode_clamp.addAttr('cgmName','{0}'.format(self._str_baseName))
+			mNode_clamp.doName()	
+			mNode_clamp.minR = 0
+			mNode_clamp.maxR = 1
+			mNode_clamp.minG = 0
+			mNode_clamp.maxG = 1
+			
+			attributes.doConnectAttr(ml_plugs[0].p_combinedShortName, "{0}.inputG".format(mNode_clamp.mNode))			
+			
+			#add
+			#print "{0}.inputR = -{0}.outputG - {1}".format(mNode_clamp.getShortName(), ml_plugs[1].p_combinedShortName )
+			argsToNodes("{0}.inputR = {0}.outputG - {1}".format(mNode_clamp.getShortName(), ml_plugs[1].p_combinedShortName )).doBuild()
+			
+			attributes.doConnectAttr("{0}.outputR".format(mNode_clamp.mNode), _mPlug_driven.p_combinedShortName)	
+			_mPlug_driven.p_lock = True
+			
+		    elif _mode is 'multMinusFactoredValue':
+			'''
+			driven = clamp(0,1, (driver * driver2) - (driver3 * driver4) )
+			'''
+			_l_drivers = [_driver]
+			for k in ['driverAttr2','driverAttr3','driverAttr4']: 
+			    try:
+				_l_drivers.append(_d_sub[k])
+			    except:raise ValueError,"{0}".format(k)
+			
+			ml_plugs = []
+			for plug in _l_drivers:
+			    try:
+				ml_plugs.append(self.get_positiveDriver(plug))
+			    except Exception,error:
+				raise Exception,"attr validation fail | attr {0}".format(plug)
+			    
+			self.log_info("building: {0} = clamp(0,1, ({1} * {2}) - ({3} * {4}))".format(_mPlug_driven.p_combinedShortName,ml_plugs[0].p_combinedShortName,ml_plugs[1].p_combinedShortName,ml_plugs[2].p_combinedShortName,ml_plugs[3].p_combinedShortName))
+			
+			#Clamp Add
+			mNode_clamp = cgmMeta.cgmNode(nodeType='clamp')
+			mNode_clamp.addAttr('cgmName','{0}'.format(self._str_baseName))
+			mNode_clamp.doName()	
+			mNode_clamp.minR = 0
+			mNode_clamp.maxR = 1
+			
+			#Create Add Node
+			mNode_add = cgmMeta.cgmNode(nodeType='plusMinusAverage')
+			mNode_add.addAttr('cgmName','{0}'.format(self._str_baseName))
+			mNode_add.doName()
+			mNode_add.operation = 2
+			#input1D
+			
+			#Our two mults
+			argsToNodes("{0}.input1D[0] = {1} * {2}".format(mNode_add.getShortName(),ml_plugs[0].p_combinedShortName,ml_plugs[1].p_combinedShortName )).doBuild()
+			argsToNodes("{0}.input1D[1] = {1} * {2}".format(mNode_add.getShortName(),ml_plugs[2].p_combinedShortName,ml_plugs[3].p_combinedShortName )).doBuild()
+			
+			#Wire
+			attributes.doConnectAttr("{0}.output1D".format(mNode_add.mNode), "{0}.inputR".format(mNode_clamp.mNode))	
+			attributes.doConnectAttr("{0}.outputR".format(mNode_clamp.mNode), _mPlug_driven.p_combinedShortName)	
+			#Lock
+			_mPlug_driven.p_lock = True	  
+
+		    
 		    elif _mode is 'This is old stuff':
 			if '-' in _driver:
 			    self.log_info(_driver + ' need to do')
@@ -478,7 +590,15 @@ def connect_controlWiring(*args, **kws):
 			    self.d_driverPlugs[_driver] = cgmMeta.cgmAttr(mi_controlObject,_driver)
 
 		except Exception,error:
-		    raise Exception, "{0} failure | error: {1}".format(a_driven,error)
+		    raise Exception, "{0} Wiring failure | error: {1}".format(a_driven,error)
+		
+	    for arg in self._l_simpleArgs:
+		self.log_info("On arg: {0}".format(arg))
+		try:
+		    argsToNodes(arg).doBuild()			
+		except Exception,error:
+		    self.log_error("{0} arg failure | error: {1}".format(arg,error))
+			
 	    self.log_infoNestedDict('d_driverPlugs')
 	    
     return fncWrap(*args,**kws).go()
@@ -1706,6 +1826,7 @@ def test_argsToNodes(deleteObj = True):
 	assert i_obj.condResult == 1,"condResult should be 1"
 	
     except StandardError,error:
+	log.info(d_return)
 	log.error("test_argsToNodes>>Condition Failure! '%s'"%(error))
 	raise StandardError,error  
     
