@@ -67,7 +67,9 @@ def _reload():
     
     
     #Red9_Meta.registerMClassInheritanceMapping()#shouldn't be necessary as they do this per mdodule
-    Red9_Meta.registerMClassNodeMapping(nodeTypes = ['network','transform','objectSet'])#What node types to look for    
+    #Red9_Meta.registerMClassNodeMapping(nodeTypes = ['network','transform','objectSet'])#What node types to look for    
+    Red9_Meta.registerMClassNodeMapping(nodeTypes = ['transform','objectSet','clamp','setRange',
+                                                     'addDoubleLinear','condition','multiplyDivide','plusMinusAverage'])
 
     print('CGM Core Reloaded and META REGISTRY updated') 
     print '============================================='  
@@ -104,8 +106,8 @@ def _setlogginglevel_info():
 # This HAS to be at the END of this module so that the RED9_META_REGISTRY
 # picks up all inherited subclasses when Red9.core is imported
 #========================================================================   
-Red9_Meta.registerMClassInheritanceMapping()#Pushes our classes in
-Red9_Meta.registerMClassNodeMapping(nodeTypes = ['network','transform','objectSet'])#What node types to look for
+#Red9_Meta.registerMClassInheritanceMapping()#Pushes our classes in
+#Red9_Meta.registerMClassNodeMapping(nodeTypes = ['network','transform','objectSet'])#What node types to look for
 
 def returnPyFilesFromFolder():
         import os

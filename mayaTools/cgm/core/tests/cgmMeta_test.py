@@ -121,6 +121,7 @@ def ut_cgmMeta(*args, **kws):
 	    self.l_funcSteps = [{'step':'r9Meta Tests','call':self._r9MetaTests_},
 	                        {'step':'Setup','call':self._setup_},	                     
 	                        {'step':'cgmNode function calls','call':self._cgmNodeCalls_},
+	                        {'step':'Change mClass calls','call':self._changeClassCalls_},
 	                        {'step':'Attribute Handling','call':self._attributeHandling_},
 	                        {'step':'Maya Message attribute handling','call':self._messageAttrHandling_},	                        
 	                        {'step':'validateObj tests','call':self._validateObjArg_},
@@ -226,7 +227,7 @@ def ut_cgmMeta(*args, **kws):
 	    self.MetaInstance.select()
 	    assert mc.ls(sl=True)[0]== _str_name
     
-	    try:#rrename
+	    try:#rename
 		self.MetaInstance.rename('FooBar')
 		assert self.MetaInstance.getShortName() =='FooBar',"mNode is '%s'"%self.MetaInstance.mNode
 		self.MetaInstance.select()
@@ -251,7 +252,7 @@ def ut_cgmMeta(*args, **kws):
 	    #Assert some info
 	    #----------------------------------------------------------   
 	    assert self.MetaNode.p_referencePrefix is not None
-    
+     
 	    #cgmNode functions
 	    #---------------------------------------------------------- 
 	    self.MetaNode.addAttr('cgmName','badabing')
@@ -266,6 +267,55 @@ def ut_cgmMeta(*args, **kws):
     
 	    self.MetaNode.doRemove('stored')
 	    assert self.MetaNode.hasAttr('stored') is False
+	    
+	    try:#cgmNode...
+		_l = ['transform','objectSet','clamp','setRange',
+		      'addDoubleLinear','condition','multiplyDivide','plusMinusAverage']
+		for t in _l:
+		    mNode_ = cgmMeta.cgmNode(nodeType = t)
+		    if mNode_.getMayaType() != t:
+			raise Exception,"'{0}' nodeType not created. Type is '{1}'".format(t,mNode_.getMayaType())
+	    except Exception,error:raise Exception,"[nodeType calls]{%s}"%error	 	    
+	    
+	    
+	def _changeClassCalls_(self,**kws): 
+	    #Test for set class calls to make sure class can be changed on call whether created or new.
+	    try:#cgmNode...
+		n1 = cgmMeta.cgmNode(name='test_setClass',nodeType = 'transform')
+		assert issubclass(type(n1),cgmMeta.cgmNode),"Not a cgmNode"
+	    except Exception,error:raise Exception,"[cgmNode initial call]{%s}"%error	    
+	    
+	    try:#cgmObject...
+		try:
+		    n1 = n1.convertMClassType('cgmObject')
+		    assert issubclass(type(n1),cgmMeta.cgmObject),"Not a cgmObject. Type :{0}".format(type(n1))
+		except Exception,error:
+		    raise Exception,"[cgmNode>>cgmObject]{%s}"%error	    
+		try:
+		    n1 = n1.convertMClassType('cgmControl')
+		    #log.info(n1)
+		    assert issubclass(type(n1),cgmMeta.cgmControl),"Not a cgmControl. Type :{0}".format(type(n1))
+		except Exception,error:raise Exception,"[cgmObject>>cgmControl]{%s}"%error	    
+		
+		n1.delete()
+	    except Exception,error:raise Exception,"[Conversions of cgmNode created obj]{%s}"%error
+	    
+	    try:#Existing transform
+		try:
+		    _str_grp = mc.group(em=True)		    
+		    n1 = cgmMeta.cgmNode(_str_grp)
+		    n1 = n1.convertMClassType('cgmControl')
+		    assert issubclass(type(n1),cgmMeta.cgmControl),"Not a cgmControl. Type :{0}".format(type(n1))
+		except Exception,error:raise Exception,"[null1>>cgmControl]{%s}"%error	    
+		try:
+		    n1 = n1.convertMClassType('cgmNode')
+		    assert issubclass(type(n1),cgmMeta.cgmNode),"Not a cgmNode"
+		except Exception,error:raise Exception,"[cgmControl>>cgmNode]{%s}"%error	
+		
+		n1.delete()
+	
+	    except Exception,error:raise Exception,"[Conversions of cgmNode obj]{%s}"%error	    
+	    
 	    
 	def _validateObjArg_(self,**kws):
 	    try:
@@ -623,18 +673,22 @@ def ut_cgmMeta(*args, **kws):
 	    except Exception,error:raise Exception,"[cube creation]{%s}"%error
     
 	    try:
-		node.addAttr('msgMultiTest', value=[cube1.mNode,cube2.mNode,cube3.mNode], attrType='message')   #multi Message attr
-		node.addAttr('msgSingleTest', value=cube3.mNode, attrType='messageSimple')    #non-multi message attr
-		node.addAttr('msgSingleTest2', value=cube3.mNode, attrType='messageSimple')    #non-multi message attr
+		try:
+		    node.addAttr('msgMultiTest', value=[cube1.mNode,cube2.mNode,cube3.mNode], attrType='message')   #multi Message attr
+		    node.addAttr('msgSingleTest', value=cube3.mNode, attrType='messageSimple')    #non-multi message attr
+		    node.addAttr('msgSingleTest2', value=cube3.mNode, attrType='messageSimple')    #non-multi message attr
+		except Exception,error:raise Exception,"[Initial add]{%s}"%error
+	    
+		try:
+		    assert node.hasAttr('msgMultiTest')
+		    assert node.hasAttr('msgSingleTest')
+		    assert node.hasAttr('msgSingleTest2')
+		except Exception,error:raise Exception,"[Has attr fail]{%s}"%error
 	
-		assert node.hasAttr('msgMultiTest')
-		assert node.hasAttr('msgSingleTest')
-		assert node.hasAttr('msgSingleTest2')
-	
-		assert mc.getAttr('%s.msgMultiTest' % node.mNode, type=True)=='message'
-		assert mc.getAttr('%s.msgSingleTest' % node.mNode, type=True)=='message'
-		assert mc.attributeQuery('msgMultiTest',node=node.mNode, multi=True)==True
-		assert mc.attributeQuery('msgSingleTest',node=node.mNode, multi=True)==False
+		assert mc.getAttr('%s.msgMultiTest' % node.mNode, type=True)=='message',"msgMultiTest not message"
+		assert mc.getAttr('%s.msgSingleTest' % node.mNode, type=True)=='message',"msgSingleTest not message"
+		assert mc.attributeQuery('msgMultiTest',node=node.mNode, multi=True)==True,"msgMultiTest not multi"
+		assert mc.attributeQuery('msgSingleTest',node=node.mNode, multi=True)==False,"msgSingleTest not single message"
 	    except Exception,error:raise Exception,"[attr creation]{%s}"%error
     
 	    #NOTE : cmds returns shortName, but all MetaClass attrs are always longName
@@ -985,7 +1039,7 @@ def ut_cgmMeta(*args, **kws):
 		    i_trans1b.parent = i_parent.mNode
 		except Exception,error:
 		    raise Exception,"parent | {0}".format(error)		    
-		assert i_trans1b.mNode in i_trans1a.getSiblings(),"In getSiblins? %s"%i_trans1a.getSiblings()
+		assert i_trans1b in i_trans1a.getSiblings(asMeta = True),"In getSiblins? %s"%i_trans1a.getSiblings()
 		#assert nf(i_trans1a).getMatchedSiblings() == [i_trans1b],"%s"%nf(i_trans1a).getMatchedSiblings()
 		#assert nf(i_trans1b).getMatchedSiblings() == [i_trans1a],"%s"%nf(i_trans1b).getMatchedSiblings()        
 		#assert nf(i_trans1b).returnUniqueGeneratedName(fastIterate = False) == nf(i_trans1a).returnUniqueGeneratedName(fastIterate = False),"Not returning same name buffer"

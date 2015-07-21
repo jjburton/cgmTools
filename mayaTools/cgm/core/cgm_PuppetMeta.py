@@ -103,7 +103,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	#====================================================================================	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.info('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(node))
 	    return
 	#====================================================================================
 	
@@ -663,7 +663,7 @@ class cgmMasterNull(cgmMeta.cgmObject):
         super(cgmMasterNull, self).__init__(node=node, name = name)
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================	
 
@@ -722,7 +722,7 @@ class cgmInfoNode(cgmMeta.cgmNode):
         super(cgmInfoNode, self).__init__(node=node, name = name,*args,**kws)
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================	
 
@@ -778,7 +778,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         super(cgmMorpheusMakerNetwork, self).__init__(*args,**kws)
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================	
 
@@ -1208,7 +1208,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
         super(cgmMasterControl, self).__init__(*args,**kws)
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================	
 
@@ -1367,7 +1367,7 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         super(cgmModuleBufferNode, self).__init__(node=node, name = name,*args,**kws)
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================	
 
@@ -1516,7 +1516,7 @@ class cgmModule(cgmMeta.cgmObject):
         super(cgmModule, self).__init__(*args,**kws) 
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================	
 
@@ -2257,7 +2257,7 @@ class cgmLimb(cgmModule):
         super(cgmLimb, self).__init__(*args,**kws) 
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================
 
@@ -2332,7 +2332,7 @@ class cgmEyeball(cgmModule):
 	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================	
 
@@ -2388,7 +2388,7 @@ class cgmEyelids(cgmModule):
         super(cgmEyelids, self).__init__(*args,**kws) 
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================	
 
@@ -2444,7 +2444,7 @@ class cgmEyebrow(cgmModule):
         super(cgmEyebrow, self).__init__(*args,**kws) 
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================
     def __verify__(self,**kws):
@@ -2494,7 +2494,7 @@ class cgmRigBlock(cgmMeta.cgmObject):
         super(cgmRigBlock, self).__init__(*args,**kws) 
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================
         #Keywords - need to set after the super call
@@ -2653,7 +2653,7 @@ class cgmEyeballBlock(cgmRigBlock):
         super(cgmEyeballBlock, self).__init__(*args,**kws) 
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================
     def __verify__(self,**kws):
@@ -2720,7 +2720,7 @@ class cgmEyeballBlock(cgmRigBlock):
         md_curves = {}
         for k in l_buildOrder:
             str_return = d_buildCurves.get(k)
-            mi_obj = cgmMeta.cgmObject(str_return,setClass=True)#instance
+            mi_obj = cgmMeta.cgmNode(str_return).convertMClassType('cgmObject')#instance
             mi_obj.addAttr('cgmName',k)#tag
             mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)		    
             curves.setCurveColorByName(mi_obj.mNode,self.color[0])#Set the color	    			
@@ -2990,7 +2990,7 @@ class cgmEyebrowBlock(cgmRigBlock):
         super(cgmEyebrowBlock, self).__init__(*args,**kws) 
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================
     def __verify__(self,**kws):
@@ -3061,7 +3061,7 @@ class cgmEyebrowBlock(cgmRigBlock):
         md_curves = {}
         for k in l_buildOrder:
             str_return = d_buildCurves.get(k)
-            mi_obj = cgmMeta.cgmObject(str_return,setClass=True)#instance
+            mi_obj = cgmMeta.cgmNode(str_return).convertMClassType('cgmObject')#instance
             mi_obj.addAttr('cgmName',k)#tag
             mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)
             if 'left' in k:
@@ -3185,7 +3185,7 @@ class cgmMouthNose(cgmModule):
         super(cgmMouthNose, self).__init__(*args,**kws) 
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================
     def __verify__(self,*args,**kws):
@@ -3251,7 +3251,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
         super(cgmMouthNoseBlock, self).__init__(*args,**kws) 
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================
     def __verify__(self,*args,**kws):
@@ -3353,7 +3353,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
                             str_return = d.get('build')
                             self.str_return = str_return
 
-                            mi_obj = cgmMeta.cgmObject(str_return,setClass=True)#instance
+                            mi_obj = cgmMeta.cgmNode(str_return).convertMClassType('cgmObject')#instance
                             mi_obj.addAttr('cgmName',str_name)#tag
                             mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)
                             if 'left' in str_name or 'Left' in str_name:
