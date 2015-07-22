@@ -5044,6 +5044,7 @@ def validateObjArg(*args,**kws):
     2 - 'noneValid'(bool - False) -- Whether None is a valid argument or not
     3 - 'default_mType'(mClass - <class 'cgm.core.cgm_Meta.cgmNode'>) -- What type to initialize as if no mClass is set
     4 - 'mayaType'(str/list - None) -- If the object needs to be a certain object type
+    5 - 'setClass'
     """    
     class fncWrap(cgmGeneral.cgmFuncCls):
 	def __init__(self,*args,**kws):
@@ -5055,7 +5056,8 @@ def validateObjArg(*args,**kws):
 	                                 {'kw':'mType',"default":None,'help':"what mType to be looking for","argType":"mClass"},
 	                                 {'kw':'noneValid',"default":False,'help':"Whether None is a valid argument or not","argType":"bool"},
 	                                 {'kw':'default_mType',"default":cgmNode,'help':"What type to initialize as if no mClass is set","argType":"mClass"},
-	                                 {'kw':'mayaType',"default":None,'help':"If the object needs to be a certain object type","argType":"str/list"}]	                                 
+	                                 {'kw':'mayaType',"default":None,'help':"If the object needs to be a certain object type","argType":"str/list"},
+	                                 {'kw':'setClass',"default":None,'help':"Flag for reinitialization to this class","argType":"bool"}]	                                 
 	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	    
@@ -5066,6 +5068,7 @@ def validateObjArg(*args,**kws):
 	    noneValid = self.d_kws['noneValid']
 	    default_mType = self.d_kws['default_mType']
 	    mayaType = self.d_kws['mayaType']		
+	    setClass = self.d_kws['setClass']	
 	    
 	    #------------------------------------------------------------------------------------
 	    self.mi_arg = False
@@ -5075,7 +5078,7 @@ def validateObjArg(*args,**kws):
 		    arg = arg[0]
 		elif arg == []:
 		    arg = None
-		else:raise ValueError,"arg cannot be list or tuple: %s"%arg	
+		else:raise ValueError,"arg cannot be list or tuple or longer than 1 length: %s"%arg	
 	    if not noneValid:
 		if arg in [None,False]:
 		    raise ValueError,"arg cannot be None"
@@ -5117,24 +5120,29 @@ def validateObjArg(*args,**kws):
 		    self.log_debug("Using auto instance...{0}".format(type(self.mi_autoInstance)))
 		    self.mi_arg = self.mi_autoInstance
 	    else:
-		self.log_debug("checking mType: {0}".format(mType))		
+		self.log_debug("checking mType: {0}".format(mType))
+		
 		if type(mType) in [unicode,str]:
+		    self.log_debug("string mType...")
 		    self.str_foundClass = str(self.mi_autoInstance).split("'>")[0].split(".")[-1]
 		    if self.mi_autoInstance.getAttr('mClass') == mType:
 			self.mi_arg = self.mi_autoInstance
 		    elif self.str_foundClass == mType:
 			self.mi_arg = self.mi_autoInstance			
 		    else:
+			self.log_debug("Converting to {0}.".format(mType))	
 			self.mi_arg = self.mi_autoInstance.convertMClassType(mType)
 			#raise StandardError,"['%s' Not correct mType. Called from string mType]{mType Seeking: %s | mClass : %s | Found Type: %s}"%(self.mi_autoInstance.p_nameShort,mType,self.mi_autoInstance.getAttr('mClass'),self.str_foundClass)			    
 		else:
-		    if issubclass(self.mi_autoInstance.__class__,mType):#if it's a subclass of our mType, good to go
+		    self.log_debug("class mType...")		    
+		    if issubclass(type(self.mi_autoInstance),mType) and mType.__name__ == self.mi_autoInstance.getMayaAttr('mClass'):#if it's a subclass of our mType, good to go
 			self.log_debug("mType good to go")		    						
 			self.mi_arg = self.mi_autoInstance
-		    elif self.mi_autoInstance.getAttr('mClass'):
-			self.log_warning("This object is already mClass tagged. Cannot change via this call.")		    									
-			return self.mi_autoInstance
-		    else:
+		    else :#convert
+			#self.log_warning("This object is already mClass tagged. Cannot change via this call.")
+			self.log_warning("Converting to {0}.".format(mType))	
+			self.mi_arg = self.mi_autoInstance.convertMClassType(mType.__name__)
+		    '''else:
 			self.log_debug("mType Fail safe")		    									
 			try:
 			    self.mi_arg = mType(self.mi_autoInstance.mNode)
@@ -5143,7 +5151,16 @@ def validateObjArg(*args,**kws):
 			except Exception,error:
 			    self.log_debug("obj: %s"%arg)		    
 			    self.log_debug("mType: %s"%mType)
-			    raise StandardError,"[Failed to reinitilize %s to type %s]{%s}"%(self.mi_arg.mNode,mType,error)
+			    raise StandardError,"[Failed to reinitilize %s to type %s]{%s}"%(self.mi_arg.mNode,mType,error)'''
+		
+	    if setClass:
+		if not self.mi_arg.hasAttr('mClass'):
+		    self.log_debug("Adding mClass attr")
+		    self.mi_arg.addAttr('mClass',type(self.mi_arg).__name__,lock = True)
+	    
+	    if not self.mi_arg.cached:
+		self.log_debug("Caching...")
+		r9Meta.registerMClassNodeCache(self.mi_arg)
 		
 	    if mayaType is not None and len(mayaType):
 		self.log_debug("Checking mayaType...")
@@ -5180,7 +5197,9 @@ def validateObjListArg(*args,**kws):
 	                                 {'kw':'mType',"default":None,'help':"what mType to be looking for","argType":"mClass"},
 	                                 {'kw':'noneValid',"default":False,'help':"Whether None is a valid argument or not","argType":"bool"},
 	                                 {'kw':'default_mType',"default":cgmNode,'help':"What type to initialize as if no mClass is set","argType":"mClass"},
-	                                 {'kw':'mayaType',"default":None,'help':"If the object needs to be a certain object type","argType":"str/list"}]	                                 
+	                                 {'kw':'mayaType',"default":None,'help':"If the object needs to be a certain object type","argType":"str/list"},
+	                                 {'kw':'setClass',"default":None,'help':"Flag for reinitialization to this class","argType":"bool"}]	                                 
+	                                 
 	    self.__dataBind__(*args,**kws)
 	    #=================================================================
 	    
