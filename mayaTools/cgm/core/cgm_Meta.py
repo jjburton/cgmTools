@@ -5125,7 +5125,8 @@ def validateObjArg(*args,**kws):
 		    elif self.str_foundClass == mType:
 			self.mi_arg = self.mi_autoInstance			
 		    else:
-			raise StandardError,"['%s' Not correct mType. Called from string mType]{mType Seeking: %s | mClass : %s | Found Type: %s}"%(self.mi_autoInstance.p_nameShort,mType,self.mi_autoInstance.getAttr('mClass'),self.str_foundClass)			    
+			self.mi_arg = self.mi_autoInstance.convertMClassType(mType)
+			#raise StandardError,"['%s' Not correct mType. Called from string mType]{mType Seeking: %s | mClass : %s | Found Type: %s}"%(self.mi_autoInstance.p_nameShort,mType,self.mi_autoInstance.getAttr('mClass'),self.str_foundClass)			    
 		else:
 		    if issubclass(self.mi_autoInstance.__class__,mType):#if it's a subclass of our mType, good to go
 			self.log_debug("mType good to go")		    						

@@ -692,7 +692,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		l_pos.append(hit)
 		d_processedHitFromValue[rotateValue] = hit
 	    else:#Gonna mark our max distance if no hit
-		mi_dup = cgmMeta.dupe(mi_loc,asMeta = True)[0]#dup loc
+		mi_dup = mi_loc.doDuplicate()#dup loc
 		mi_dup.doGroup()#zero
 		if '-' == aimAxis[1]:
 		    mi_dup.__setattr__("t%s"%aimAxis[0],-maxDistance)#mve		

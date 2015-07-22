@@ -524,8 +524,7 @@ class go(object):
                     #log.debug("dist: %s"%dist)
                     #log.debug("crv: %s"%mi_crvBase.mNode)
                     mi_crvBase.__setattr__("tz",dist)
-                    #mi_tmp = mi_crvBase.doDuplicate(parentOnly=False)
-                    mi_tmp = cgmMeta.dupe(mi_crvBase,asMeta = True)[0]
+                    mi_tmp = mi_crvBase.doDuplicate(parentOnly=False)
                     #log.debug(mi_tmp)
                     mi_tmp.parent = False
                     ml_curvesToCombine.append(mi_tmp)
@@ -927,8 +926,9 @@ class go(object):
         mi_startLoc.__setattr__('r%s'%self.str_jointOrientation[1],rootRotate)
         mi_endLoc.__setattr__('r%s'%self.str_jointOrientation[1],rootRotate)
 
-        mi_castLoc = cgmMeta.dupe(mi_startLoc,asMeta = True)[0]
-
+        #mi_castLoc = cgmMeta.dupe(mi_startLoc,asMeta = True)[0]
+        mi_castLoc = mi_startLoc.doDuplicate()
+        
         Snap.go(mi_castLoc,self._targetMesh,True,False,midSurfacePos=True, axisToCheck = [self.str_jointOrientation[2]])
 
         #Distance stuff    
@@ -1712,7 +1712,7 @@ class go(object):
         if mi_palm:
             mi_palmLoc = mi_palm.doLoc()
         else:
-            mi_palmLoc = cgmMeta.dupe(mi_wristLoc,asMeta = True)[0]
+            mi_palmLoc = mi_wristLoc.doDuplicate()
             mi_palmLoc.doGroup()
             mi_palmLoc.__setattr__('t%s'%self.str_jointOrientation[0],dist_wristSize/4)
 
@@ -2877,13 +2877,13 @@ def shapeCast_eyeball(*args,**kws):
                 Snap.go(mi_tmpCrv,mi_helper.mNode)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * self._f_midMulti)
-                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
+                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
                 ml_curvesToCombine[-1].parent = False
 
                 #Snap.go(mi_tmpGroup.mNode,self.mi_irisPosLoc.mNode)
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 1.75)
                 mi_tmpCrv.scale = [.75,.75,.75]
-                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
+                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
                 ml_curvesToCombine[-1].parent = False
 
                 l_trace = ShapeCast.joinCurves(ml_curvesToCombine)
@@ -3077,11 +3077,11 @@ def shapeCast_eyeball(*args,**kws):
                 mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0], .01)
-                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
+                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
                 ml_curvesToCombine[-1].parent = False
 
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],-.01)
-                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
+                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
                 ml_curvesToCombine[-1].parent = False
 
                 mi_tmpGroup.delete()
@@ -3133,11 +3133,11 @@ def shapeCast_eyeball(*args,**kws):
                 mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0], .01)
-                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
+                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
                 ml_curvesToCombine[-1].parent = False
 
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],-.01)
-                ml_curvesToCombine.append(cgmMeta.dupe(mi_tmpCrv,asMeta = True)[0])
+                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
                 ml_curvesToCombine[-1].parent = False
 
                 mi_tmpGroup.delete()

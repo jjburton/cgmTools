@@ -51,7 +51,8 @@ reload(distance)
 #===================================================================
 def duplicateJointInPlace(joint, asMeta = True):
     """
-    Rewrite to get around using mc.duplicate which gets exceedingly slow as a scene gets more dense.
+    Rewrite to get around using mc.duplicate which gets exceedingly slow as a scene gets more dense. 
+    Note - no connections are transferred!
 
     :parameters:
         joint | str/instance
@@ -73,9 +74,27 @@ def duplicateJointInPlace(joint, asMeta = True):
 	mDup = cgmMeta.cgmObject(dup)
 	
 	mDup.parent = mJoint.parent 
-	mc.delete(mc.parentConstraint(mJoint.mNode,mDup.mNode))	
+	mc.delete(mc.parentConstraint(mJoint.mNode,mDup.mNode))
+	'''
+	('rotateOrder','rotateAxisX','rotateAxisY','rotateAxisZ',
+	'inheritsTransform','drawStyle','radius',
+	'jointTypeX','jointTypeY','jointTypeZ',
+	'stiffnessX','stiffnessY','stiffnessZ',
+	'preferredAngleX','preferredAngleY','preferredAngleZ',
+	'jointOrientX','jointOrientY','jointOrientZ','segmentScaleCompensate','showManipDefault',
+	'displayHandle','displayLocalAxis','selectHandleX','selectHandleY','selectHandleZ'),
+	'''
 	mDup.rotateOrder = mJoint.rotateOrder
 	mDup.jointOrient = mJoint.jointOrient
+	mDup.rotateAxis = mJoint.rotateAxis
+	mDup.inheritsTransform = mJoint.inheritsTransform
+	mDup.radius = mJoint.radius
+	mDup.stiffness = mJoint.stiffness
+	mDup.preferredAngle = mJoint.preferredAngle
+	mDup.segmentScaleCompensate = mJoint.segmentScaleCompensate
+	#mDup.displayHandle = mJoint.displayHandle
+	#mDup.selectHandle = mJoint.selectHandle
+	
 
 	#Inverse scale...
 	mAttr_inverseScale = cgmMeta.cgmAttr(mJoint,'inverseScale')
@@ -166,21 +185,21 @@ def metaFreezeJointOrientation(targetJoints):
 	    dup,rotate order
 	    Unparent, add rotate & joint rotate, push value, zero rotate, parent back, done
 	    """    
-	    log.info("parent...")
+	    log.debug("parent...")
 	    if i != 0 and d_parent.get(i_jnt):
 		i_jnt.parent = d_parent.get(i_jnt)#parent back first before duping
 		
-	    log.info("dup...")
+	    log.debug("dup...")
 	    i_dup= duplicateJointInPlace(i_jnt)
 	    i_dup.rotateOrder = 0
 	    
 	    #New method  ----
-	    log.info("loc...")
+	    log.debug("loc...")
 	    
 	    mi_zLoc = i_jnt.doLoc()#Make some locs
 	    mi_yLoc = i_jnt.doLoc()
 	    
-	    log.info("group...")
+	    log.debug("group...")
 	    str_group = mi_zLoc.doGroup() #group for easy move
 	    mi_yLoc.parent = str_group
 	    
@@ -190,14 +209,14 @@ def metaFreezeJointOrientation(targetJoints):
 	    mc.makeIdentity(i_dup.mNode, apply = 1, jo = 1)#Freeze
 	    
 	    #Aim
-	    log.info("constrain...")
+	    log.debug("constrain...")
 	    
 	    str_const = mc.aimConstraint(mi_zLoc.mNode,i_dup.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = [0,1,0], worldUpObject = mi_yLoc.mNode, worldUpType = 'object' )[0]
 	    
 	    i_jnt.rotate = [0,0,0] #Move to joint
 	    i_jnt.jointOrient = i_dup.rotate
 	    
-	    log.info("delete...")	    
+	    log.debug("delete...")	    
 	    mc.delete([str_const,str_group])#Delete extra stuff
 	    i_dup.delete()
 	    

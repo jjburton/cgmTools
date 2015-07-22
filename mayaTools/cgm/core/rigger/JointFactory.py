@@ -1912,8 +1912,7 @@ def build_limbSkeleton(*args, **kws):
 
             #>>> Set its radius and toggle axis visbility on
             jointSize = (distance.returnDistanceBetweenObjects (l_moduleJoints[0],
-                                                                l_moduleJoints[-1])/len(
-                                                                                                         l_moduleJoints))
+                                                                l_moduleJoints[-1])/len(l_moduleJoints))
             attributes.doMultiSetAttr(l_moduleJoints,'radi',3)
 
             #>>> Flag our handle joints
@@ -2024,15 +2023,18 @@ def doOrientSegment(*args, **kws):
                     #>>>per segment stuff
                     assert len(mi_go.l_jointSegmentIndexSets) == len(mi_go._mi_module.coreNames.value)#quick check to make sure we've got the stuff we need
                     cnt = 0
-                    self.log_debug("Segment Index sets: %s"%mi_go.l_jointSegmentIndexSets)
+                    self.log_info("Segment Index sets: %s"%mi_go.l_jointSegmentIndexSets)
                     for cnt,segment in enumerate(mi_go.l_jointSegmentIndexSets):#for each segment
                         try:
-                            self.log_debug("On segment: %s"%segment)	    
-                            lastCnt = len(mi_go.l_jointSegmentIndexSets)-1
-                            segmentHelper = mi_go._ml_controlObjects[cnt].getMessage('helper')[0]
-                            helperObjectCurvesShapes =  mc.listRelatives(segmentHelper,shapes=True)
-                            upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)   
-
+                            self.log_debug("On segment: %s"%segment)
+                            try:
+                                lastCnt = len(mi_go.l_jointSegmentIndexSets)-1
+                                segmentHelper = mi_go._ml_controlObjects[cnt].getMessage('helper')[0]
+                                helperObjectCurvesShapes =  mc.listRelatives(segmentHelper,shapes=True,path = True)
+                                upLoc = locators.locMeCvFromCvIndex(helperObjectCurvesShapes[0],30)   
+                            except Exception,error: 
+                                raise Exception,"Initial data | error: {0}".format(error)
+                            
                             if not mc.objExists(segmentHelper) and search.returnObjectType(segmentHelper) != 'nurbsCurve':
                                 raise StandardError,"doOrientSegment>>> No helper found"
 
@@ -2077,13 +2079,15 @@ def doOrientSegment(*args, **kws):
                                 mc.delete(upLoc)
 
                         except Exception,error:
-                            self.log_error,"ml_moduleJoints = {0}".format(self.ml_moduleJoints)
-                            raise Exception,"Segment fail| cnt: {0} | segment: [1]| error: {2} ".format(cnt,segment,error)
+                            self.log_error("ml_moduleJoints = {0}".format(self.ml_moduleJoints))
+                            raise Exception,"Segment fail| cnt: {0} | segment: {1}| error: {2} ".format(cnt,segment,error)
 
-                    #>>>Reconnect the joints
-                    for cnt,mJnt in enumerate(self.ml_moduleJoints[1:]):#parent each to the one before it
-                        mJnt.parent = self.ml_moduleJoints[cnt].mNode
-                        cgmMeta.cgmAttr(mJnt,"inverseScale").doConnectIn("%s.scale"%mJnt.parent)
+                    try:#>>>Reconnect the joints
+                        for cnt,mJnt in enumerate(self.ml_moduleJoints[1:]):#parent each to the one before it
+                            mJnt.parent = self.ml_moduleJoints[cnt].mNode
+                            cgmMeta.cgmAttr(mJnt,"inverseScale").doConnectIn("%s.scale"%mJnt.parent)
+                    except Exception,error: 
+                        raise Exception,"Reconnect fail | error: {0}".format(error)
                 except Exception,error:raise Exception,"Normal mode orient fail | {0} ".format(error)
 
             if mi_go._mi_module.moduleType in ['foot']:
