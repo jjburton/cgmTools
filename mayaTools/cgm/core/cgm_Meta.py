@@ -574,6 +574,7 @@ class cgmNode(r9Meta.MetaClass):
 		    
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
+	    log.debug("using cache: {0}".format(self))
 	    return
 	elif _setClass:
 	    log.error("Do not use 'setClass' flag - Object '{0}'".format(self.mNode))
@@ -600,8 +601,6 @@ class cgmNode(r9Meta.MetaClass):
 	_bfr_mClass = attributes.doGetAttr(self.mNode,'mClass') or None#...buffer to push back if conversion fails
 	_str_mNode = self.mNode#buffer...to have should converion fail
 	
-	if not self.hasAttr('mClass'):#...must have a mClass attr for this to work
-	    self.addAttr('mClass',attrType = 'string',lock=True)   	
 	try:
 	    return r9Meta.MetaClass.convertMClassType(self, newMClass, **kws)
 	except Exception,error:
@@ -5034,6 +5033,36 @@ def SampleFunc(*args,**kws):
 		
     return fncWrap(*args,**kws).go()
 '''
+#>>>>> Validation stuff...
+
+def asMeta(*args,**kws):
+    '''
+    Simple pass through for validate meta objects. Rather than having to call for validateObjListArg or validateObjArg. It returns what it is passed.
+    
+    @kws
+    See validateObjArg
+    '''  
+    try:
+	if args:
+	    arg = args[0]
+	elif kws:
+	    arg = kws['arg']
+	    
+	if type(arg) in [list,tuple]:#make sure it's not a list
+	    return validateObjListArg(*args,**kws)
+	return validateObjListArg(*args,**kws)
+    except Exception,error:
+	log.error("cgmMeta.asMeta failure... --------------------------------------------------")
+	if args:
+	    for i,arg in enumerate(args):
+		log.error("arg {0}: {1}".format(i,arg))
+	if kws:
+	    for items in kws.items():
+		log.error("kw: {0}".format(items))	
+	log.error("...cgmMeta.asMeta failure --------------------------------------------------")
+	raise Exception,error
+
+    
 def validateObjArg(*args,**kws):
     """
     validate an objArg to be able to get instance of the object
@@ -5064,14 +5093,23 @@ def validateObjArg(*args,**kws):
 	def __func__(self,*args,**kws):
 	    #Pull kws local ====================================================================
 	    arg = self.d_kws['arg']
-	    mType = self.d_kws['mType']	    
+	    mType = self.d_kws['mType']
 	    noneValid = self.d_kws['noneValid']
 	    default_mType = self.d_kws['default_mType']
 	    mayaType = self.d_kws['mayaType']		
 	    setClass = self.d_kws['setClass']	
 	    
+	    if mType is not None:
+		if not type(mType) in [unicode,str]:
+		    try: mType = mType.__name__
+		    except Exception,error:
+			raise ValueError,"mType not a string and not a usable class name. mType: {0}".format(mType)	
+		if mType not in r9Meta.getMClassMetaRegistry():
+		    raise ValueError,"mType not found in class registry. mType: {0}".format(mType)	
+		
 	    #------------------------------------------------------------------------------------
 	    self.mi_arg = False
+
 	    argType = type(arg)
 	    if argType in [list,tuple]:#make sure it's not a list
 		if len(arg) ==1:
@@ -5089,78 +5127,89 @@ def validateObjArg(*args,**kws):
 	    try:
 		arg.mNode
 		self.mi_arg = arg
-		self.log_debug("instance already...")
+		arg = arg.mNode
+		self.log_debug("instance already...")		
 	    except:
 		self.mi_arg = False
 	    
-	    self.log_debug("Checking: %s"%arg)	
+	    self.log_debug("Checking: '{0}'".format(arg))	
 	    
 	    if not self.mi_arg:
+		#if we don't have an mi_arg so we're gonna get one
+		self.log_debug("non metaArg passed...")		
+		
 		if not mc.objExists(arg):
-		    if noneValid: return False
-		    else:raise ValueError,"Obj doesn't exist: '%s'"%arg  
-		else:
-		    if isTransform(arg):
-			try:self.mi_autoInstance = cgmObject(arg) 
+		    if noneValid:
+			self.log_debug("Valid none arg...")
+			return False
+		    else:raise ValueError,"Obj doesn't exist: '{0}'".format(arg) 
+		    
+		if mType is None:
+		    self.log_debug("no mType...")
+		    if default_mType:
+			self.log_debug("no mType.Using default...")
+			if not type(default_mType) in [unicode,str]:
+			    try: default_mType = default_mType.__name__
+			    except Exception,error:
+				raise ValueError,"mType not a string and not a usable class name. default_mType: {0}".format(default_mType)				
+
+			try:self.mi_arg = r9Meta.getMClassMetaRegistry().get(default_mType)(arg)
 			except Exception,error:
-			    raise Exception,"cgmObject initialization fail | {0}".format(error)			
+			    raise Exception,"default mType ({1}) initialization fail | {0}".format(error,default_mType)				
+		    elif isTransform(arg):
+			try:self.mi_arg = cgmObject(arg) 
+			except Exception,error:
+			    raise Exception,"cgmObject initialization fail | {0}".format(error)	
 		    else:
-			try:
-			    self.mi_autoInstance = cgmNode(arg) 
+			try:self.mi_arg = cgmNode(arg) 
 			except Exception,error:
-			    raise Exception,"cgmNode initialization fail | {0}".format(error)			
-	    else:
-		self.log_debug("metaArg passed...")				    
-		self.mi_autoInstance = self.mi_arg
-		
-	    self.log_debug("mType: %s"%mType)
+			    raise Exception,"cgmNode initialization fail | {0}".format(error)	
+							    
+	    try:#...mType check
+		if mType is not None:
+		    self.log_debug("checking mType: {0}".format(mType))
+		    self.log_debug("Obj: {0}".format(self.mi_arg))
+		    
+		    if arg is None:
+			if self.mi_arg:
+			    arg = self.mi_arg.mNode
+			else:
+			    raise Exception,"We need an arg by now."
+	
+		    self.str_foundMClass = attributes.doGetAttr(arg,'mClass')
+		    
+		    if self.str_foundMClass == mType:
+			self.log_debug("mType Matches")
+			if not self.mi_arg:
+			    self.mi_arg = r9Meta.MetaClass(arg)
+		    elif not self.str_foundMClass and not setClass:
+			self.log_debug("Class works...")
+			if not self.mi_arg:
+			    self.mi_arg = r9Meta.getMClassMetaRegistry().get(mType)(arg)			
+		    else:
+			self.log_debug("Converting to {0}.".format(mType))
+			_bfr = r9Meta.MetaClass(arg).convertMClassType(mType)
+			self.mi_arg = _bfr
+			
+	    except Exception,error:
+		raise Exception,"mType check fail | {0}".format(error)
 	    
-	    if mType is None:
-		if not self.mi_arg:
-		    self.log_debug("Using auto instance...{0}".format(type(self.mi_autoInstance)))
-		    self.mi_arg = self.mi_autoInstance
-	    else:
-		self.log_debug("checking mType: {0}".format(mType))
-		
-		if type(mType) in [unicode,str]:
-		    self.log_debug("string mType...")
-		    self.str_foundClass = str(self.mi_autoInstance).split("'>")[0].split(".")[-1]
-		    if self.mi_autoInstance.getAttr('mClass') == mType:
-			self.mi_arg = self.mi_autoInstance
-		    elif self.str_foundClass == mType:
-			self.mi_arg = self.mi_autoInstance			
-		    else:
-			self.log_debug("Converting to {0}.".format(mType))	
-			self.mi_arg = self.mi_autoInstance.convertMClassType(mType)
-			#raise StandardError,"['%s' Not correct mType. Called from string mType]{mType Seeking: %s | mClass : %s | Found Type: %s}"%(self.mi_autoInstance.p_nameShort,mType,self.mi_autoInstance.getAttr('mClass'),self.str_foundClass)			    
-		else:
-		    self.log_debug("class mType...")		    
-		    if issubclass(type(self.mi_autoInstance),mType) and mType.__name__ == self.mi_autoInstance.getMayaAttr('mClass'):#if it's a subclass of our mType, good to go
-			self.log_debug("mType good to go")		    						
-			self.mi_arg = self.mi_autoInstance
-		    else :#convert
-			#self.log_warning("This object is already mClass tagged. Cannot change via this call.")
-			self.log_warning("Converting to {0}.".format(mType))	
-			self.mi_arg = self.mi_autoInstance.convertMClassType(mType.__name__)
-		    '''else:
-			self.log_debug("mType Fail safe")		    									
-			try:
-			    self.mi_arg = mType(self.mi_autoInstance.mNode)
-			    self.log_debug("Initialized as %s"%mType)
-			    self.log_debug(self.mi_arg)
-			except Exception,error:
-			    self.log_debug("obj: %s"%arg)		    
-			    self.log_debug("mType: %s"%mType)
-			    raise StandardError,"[Failed to reinitilize %s to type %s]{%s}"%(self.mi_arg.mNode,mType,error)'''
-		
+	    if not self.mi_arg:
+		raise Exception,"We should have an instance by now!"
+	    
 	    if setClass:
 		if not self.mi_arg.hasAttr('mClass'):
 		    self.log_debug("Adding mClass attr")
 		    self.mi_arg.addAttr('mClass',type(self.mi_arg).__name__,lock = True)
 	    
-	    if not self.mi_arg.cached:
-		self.log_debug("Caching...")
-		r9Meta.registerMClassNodeCache(self.mi_arg)
+		if not self.mi_arg.cached:
+		    #Only cache if setClass...???
+		    try:
+			self.log_debug("Caching...")
+			self.mi_arg.addAttr('UUID',attrType = 'string',lock = True)
+			r9Meta.registerMClassNodeCache(self.mi_arg)
+		    except Exception,error:
+			raise Exception,"Caching fail | {0}".format(error)
 		
 	    if mayaType is not None and len(mayaType):
 		self.log_debug("Checking mayaType...")
