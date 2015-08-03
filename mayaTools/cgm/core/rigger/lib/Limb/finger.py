@@ -559,7 +559,7 @@ def build_FKIK(goInstance = None):
 		#Create a orient group that tracks the  module constrain null
 		if self._go._partType == 'finger':
 		    buffer_fkGroup = ml_fkJoints[0].parent
-		    i_orientGroup = cgmMeta.cgmObject( ml_fkJoints[1].doGroup(True),setClass=True )
+		    i_orientGroup = cgmMeta.asMeta( ml_fkJoints[1].doGroup(True),'cgmObject',setClass=True )
 		    i_orientGroup.addAttr('cgmTypeModifier','toOrient')
 		    i_orientGroup.doName()
 		    
@@ -570,7 +570,7 @@ def build_FKIK(goInstance = None):
 		    
 		    attributes.doSetLockHideKeyableAttr(i_orientGroup.mNode)#lockNHide
 		    
-		    i_parentGroup = cgmMeta.cgmObject( i_orientGroup.doGroup(True),setClass=True )
+		    i_parentGroup = cgmMeta.asMeta( i_orientGroup.doGroup(True),'cgmObject',setClass=True )
 		    i_parentGroup.addAttr('cgmTypeModifier','toParent')
 		    i_parentGroup.doName()	
 		    str_prntConst = mc.parentConstraint( ml_fkJoints[0].mNode,i_parentGroup.mNode,maintainOffset = True)[0]

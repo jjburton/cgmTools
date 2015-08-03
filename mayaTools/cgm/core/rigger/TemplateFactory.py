@@ -518,7 +518,8 @@ def build_limbTemplate(*args, **kws):
                         sizeMultiplier = .75
 
                     #>>> Create and set attributes on the object
-                    i_obj = cgmMeta.cgmObject( curves.createControlCurve('sphere',(f_size * sizeMultiplier)),setClass=True )
+                    i_obj = cgmMeta.asMeta( curves.createControlCurve('sphere',(f_size * sizeMultiplier)),'cgmObject',setClass=True )
+                    #i_obj = cgmMeta.cgmObject( curves.createControlCurve('sphere',(f_size * sizeMultiplier)),'cgmObject' ,setLogLevel = 'debug')                    
                     curves.setCurveColorByName(i_obj.mNode,mi_go.moduleColors[0])
                     i_obj.doStore('cgmName',mi_go.l_coreNames[i]) 
                     #i_obj.doStore('cgmName','%s.%s'%(mi_go._mi_module.coreNames.mNode,mi_go.d_coreNamesAttrs[i]))        
@@ -531,10 +532,8 @@ def build_limbTemplate(*args, **kws):
                     i_obj.parent = mi_go._mi_templateNull
 
                     #>>> Loc it and store the loc
-                    #i_loc = cgmMeta.cgmObject( i_obj.doLoc() )
                     i_loc =  i_obj.doLoc()
                     i_loc.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
-                    #i_loc.addAttr('cgmName',value = mi_go._mi_module.getShortName(), attrType = 'string', lock=True) #Add name tag
                     i_loc.addAttr('cgmType',value = 'templateCurveLoc', attrType = 'string', lock=True) #Add Type
                     i_loc.v = False # Turn off visibility
                     i_loc.doName()
@@ -554,7 +553,7 @@ def build_limbTemplate(*args, **kws):
             #>> Make the curve
             #============================= 
             try:
-                self._mi_crv = cgmMeta.cgmObject( mc.curve (d=mi_go.doCurveDegree, p = mi_go.corePosList , os=True),setClass=True )
+                self._mi_crv = cgmMeta.asMeta( mc.curve (d=mi_go.doCurveDegree, p = mi_go.corePosList , os=True),'cgmObject',setClass=True )
             except Exception,error:raise Exception,"Create | {0} ".format(error)
 
             try:
@@ -955,7 +954,7 @@ def doParentControlObjects(mModule):
 	    """
         for i_obj in ml_controlObjects:
             pBuffer = i_obj.doGroup(maintain=True)
-            i_parent = cgmMeta.cgmObject(i_obj.parent,setClass=True)
+            i_parent = cgmMeta.asMeta(i_obj.parent,'cgmObject',setClass=True)
             i_obj.addAttr('owner',i_parent.mNode,attrType = 'messageSimple',lock=True)
 
     except Exception,error:raise Exception,"doParentControlObjects | {0}".format(error)
@@ -1046,8 +1045,12 @@ def returnGeneralDirections(self,objList):
     """
     try:
         log.debug(">>> returnGeneralDirections")
-
-        self.generalDirection = logic.returnHorizontalOrVertical(objList)
+        
+        try:
+            self.generalDirection = logic.returnHorizontalOrVertical(objList)
+        except Exception,error:
+            raise Exception,"[logic fail| error: {0}]".format(error)
+        
         if self.generalDirection == 'vertical' and 'leg' not in self._mi_module.moduleType:
             self.worldUpVector = [0,0,-1]
         elif self.generalDirection == 'vertical' and 'leg' in self._mi_module.moduleType:
@@ -1055,6 +1058,8 @@ def returnGeneralDirections(self,objList):
         else:
             self.worldUpVector = [0,1,0]    
         return [self.generalDirection,self.worldUpVector]
-    except Exception,error:raise Exception,"returnGeneralDirections | {0}".format(error)
+    except Exception,error:
+        log.error(objList)
+        raise Exception,"[returnGeneralDirections fail | error: {0}]".format(error)
 
 

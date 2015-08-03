@@ -472,7 +472,7 @@ def create_distanceMeasure(*args, **kws):
                 try:
                     mi_buffer = cgmMeta.validateObjArg(self.d_kws[_d_check[str_key]['key']], mType = cgmMeta.cgmObject, noneValid = True)
                     if not mi_buffer:
-                        mi_buffer = cgmMeta.cgmObject(mc.spaceLocator()[0],setClass=1)
+                        mi_buffer = cgmMeta.asMeta(mc.spaceLocator()[0],'cgmObject',setClass=1)
                         mi_buffer.addAttr('cgmName',"%s_%s"%(self._str_baseName,str_key))
                         mi_buffer.doName()
 
@@ -741,12 +741,12 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
         try:#>>>Transforms     
             #Create group
             grp = i_obj.doGroup()
-            i_followGroup = cgmMeta.cgmObject(grp,setClass=True)
+            i_followGroup = cgmMeta.asMeta(grp,'cgmObject',setClass=True)
             i_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
             i_followGroup.doName()
 
             grp = i_obj.doGroup(True)	
-            i_orientGroup = cgmMeta.cgmObject(grp,setClass=True)
+            i_orientGroup = cgmMeta.asMeta(grp,'cgmObject',setClass=True)
             i_orientGroup.addAttr('cgmTypeModifier','orient',lock=True)
             i_orientGroup.doName()
 
@@ -822,7 +822,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             cBuffer = mc.pointConstraint([i_splineFollowNull.mNode,i_linearPosNull.mNode],
                                          i_followGroup.mNode,
                                          maintainOffset = True, weight = 1)[0]
-            i_pointConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
+            i_pointConstraint = cgmMeta.asMeta(cBuffer,'cgmNode',setClass=True)	
 
             #Blendsetup
             log.debug("i_pointConstraint: %s"%i_pointConstraint)
@@ -871,7 +871,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                                        worldUpType = 'vector' )[0]
 
 
-            i_startAimConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
+            i_startAimConstraint = cgmMeta.asMeta(cBuffer,'cgmNode', setClass=True)
             #attributes.doConnectAttr(i_upStart.mNode,'inputMatrix')
 
 
@@ -882,11 +882,11 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                                        upVector = upVector,
                                        worldUpType = 'vector' )[0]
 
-            i_endAimConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)            
+            i_endAimConstraint = cgmMeta.asMeta(cBuffer,'cgmNode', setClass=True)            
             cBuffer = mc.orientConstraint([i_aimEndNull.mNode,i_aimStartNull.mNode],
                                           i_orientGroup.mNode,
                                           maintainOffset = False, weight = 1)[0]
-            i_orientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
+            i_orientConstraint = cgmMeta.asMeta(cBuffer,'cgmNode', setClass=True)	
             i_orientConstraint.interpType = 2
 
             #Blendsetup
@@ -1226,12 +1226,12 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
         try:#>>>Transforms     
             #Create group
             grp = i_obj.doGroup()
-            i_followGroup = cgmMeta.cgmObject(grp,setClass=True)
+            i_followGroup = cgmMeta.asMeta(grp,'cgmObject',setClass=True)
             i_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
             i_followGroup.doName()
 
             grp = i_obj.doGroup(True)	
-            i_orientGroup = cgmMeta.cgmObject(grp,setClass=True)
+            i_orientGroup = cgmMeta.asMeta(grp,'cgmObject',setClass=True)
             i_orientGroup.addAttr('cgmTypeModifier','orient',lock=True)
             i_orientGroup.doName()
 
@@ -1307,7 +1307,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
             cBuffer = mc.pointConstraint([i_splineFollowNull.mNode,i_linearPosNull.mNode],
                                          i_followGroup.mNode,
                                          maintainOffset = True, weight = 1)[0]
-            i_pointConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
+            i_pointConstraint = cgmMeta.asMeta(cBuffer,'cgmNode',setClass=True)	
 
             #Blendsetup
             log.debug("i_pointConstraint: %s"%i_pointConstraint)
@@ -1341,7 +1341,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
                                        worldUpObject = i_upStart.mNode,
                                        worldUpType = 'object' )[0]
 
-            i_startAimConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
+            i_startAimConstraint = cgmMeta.asMeta(cBuffer,'cgmNode',setClass=True)
 
             cBuffer = mc.aimConstraint(i_endParent.mNode,
                                        i_aimEndNull.mNode,
@@ -1351,12 +1351,12 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
                                        worldUpObject = i_upEnd.mNode,
                                        worldUpType = 'object' )[0]
 
-            i_endAimConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
+            i_endAimConstraint = cgmMeta.asMeta(cBuffer,'cgmNode',setClass=True)
 
             cBuffer = mc.orientConstraint([i_aimEndNull.mNode,i_aimStartNull.mNode],
                                           i_orientGroup.mNode,
                                           maintainOffset = False, weight = 1)[0]
-            i_orientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
+            i_orientConstraint = cgmMeta.asMeta(cBuffer,'cgmNode', setClass=True)	
             i_orientConstraint.interpType = 0
 
 
@@ -1719,13 +1719,13 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         cBuffer = mc.orientConstraint([i_anchorStart.mNode,i_aimStartNull.mNode],
                                       i_attachStartNull.mNode,
                                       maintainOffset = True, weight = 1)[0]
-        i_startOrientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
+        i_startOrientConstraint = cgmMeta.asMeta(cBuffer,'cgmNode',setClass=True)
         i_startOrientConstraint.interpType = 0
 
         cBuffer = mc.orientConstraint([i_anchorEnd.mNode,i_aimEndNull.mNode],
                                       i_attachEndNull.mNode,
                                       maintainOffset = True, weight = 1)[0]
-        i_endOrientConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)
+        i_endOrientConstraint = cgmMeta.asMeta(cBuffer,'cgmNode',setClass=True)
         i_endOrientConstraint.interpType = 0
 
 
@@ -1912,7 +1912,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
                                    upVector = upVector,
                                    worldUpObject = i_startUpNull.mNode,
                                    worldUpType = 'object' ) 
-        i_startAimConstraint = cgmMeta.cgmNode(cBuffer[0],setClass=True)
+        i_startAimConstraint = cgmMeta.asMeta(cBuffer[0],'cgmNode',setClass=True)
 
         cBuffer = mc.aimConstraint(endAimTarget,
                                    i_aimEndNull.mNode,
@@ -1921,7 +1921,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
                                    upVector = upVector,
                                    worldUpObject = i_endUpNull.mNode,
                                    worldUpType = 'object' ) 
-        i_endAimConstraint = cgmMeta.cgmNode(cBuffer[0],setClass=True)  
+        i_endAimConstraint = cgmMeta.asMeta(cBuffer[0],'cgmNode',setClass=True)  
 
     except Exception,error:
         log.error("createCGMSegment>>Build aim constraints! | start joint: %s"%ml_jointList[0].getShortName())
@@ -2266,7 +2266,7 @@ def createSegmentCurve(*args,**kws):
                 ml_driverJoints = []
                 for i,j in enumerate(l_driverJoints):
                     #self.progressBar_set(status = "Creating driver joints... ", progress = i, maxValue = self.int_lenJoints)		    				    		    		    
-                    mJnt = cgmMeta.cgmObject(j,setClass=True)
+                    mJnt = cgmMeta.asMeta(j,'cgmObject',setClass=True)
                     mJnt.doCopyNameTagsFromObject(self.ml_joints[i].mNode,ignore=['cgmTypeModifier','cgmType'])
                     mJnt.addAttr('cgmTypeModifier','splineIK',attrType='string')
                     mJnt.doName()
@@ -2299,7 +2299,7 @@ def createSegmentCurve(*args,**kws):
                                           createCurve = True,snapHandleFlagToggle=True )  
                 except Exception,error:raise Exception,"[Spline IK | build curve | error: {0}".format(error) 	
 
-                mi_segmentCurve = cgmMeta.cgmObject( buffer[2],setClass=True )
+                mi_segmentCurve = cgmMeta.asMeta( buffer[2],'cgmObject',setClass=True )
                 mi_segmentCurve.addAttr('cgmName',self.str_baseName,attrType='string',lock=True)    
                 mi_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
                 mi_segmentCurve.doName()
@@ -2319,13 +2319,13 @@ def createSegmentCurve(*args,**kws):
 
 
             try:#>> Handle/Effector =======================================================================================
-                mi_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
+                mi_ikHandle = cgmMeta.asMeta( buffer[0],'cgmObject',setClass=True )
                 mi_ikHandle.addAttr('cgmName',self.str_baseName,attrType='string',lock=True)    		
                 mi_ikHandle.doName()
                 mi_ikHandle.parent = self.mi_grp
                 self.mi_ikHandle = mi_ikHandle
 
-                mi_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
+                mi_ikEffector = cgmMeta.asMeta( buffer[1],'cgmObject',setClass=True )
                 mi_ikEffector.addAttr('cgmName',self.str_baseName,attrType='string',lock=True)  
                 mi_ikEffector.doName()
 
@@ -2484,7 +2484,7 @@ def createSegmentCurve(*args,**kws):
 
                     #Store the rotate group to the joint
                     mJnt.connectChildNode(mi_locRotateGroup,'rotateUpGroup','drivenJoint')
-                    mi_zeroGrp = cgmMeta.cgmObject( mi_locRotateGroup.doGroup(True),setClass=True )
+                    mi_zeroGrp = cgmMeta.asMeta( mi_locRotateGroup.doGroup(True),'cgmObject',setClass=True )
                     mi_zeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
                     mi_zeroGrp.doName()
 
@@ -2545,7 +2545,7 @@ def createSegmentCurve(*args,**kws):
                                                  setupForRPsolver = True, solver = 'ikRPsolver',
                                                  enableHandles=True )
                         #Handle
-                        mi_IK_Handle = cgmMeta.cgmObject(ik_buffer[0],setClass=True)
+                        mi_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
                         mi_IK_Handle.parent = ml_driverJoints[i+1].mNode
                         mi_IK_Handle.doStore('cgmName',mJnt.mNode)    
                         mi_IK_Handle.doName()
@@ -2841,7 +2841,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
         l_driverJoints = mc.duplicate(jointList,po=True,ic=True,rc=True)
         ml_driverJoints = []
         for i,j in enumerate(l_driverJoints):
-            i_j = cgmMeta.cgmObject(j,setClass=True)
+            i_j = cgmMeta.asMeta(j,'cgmObject',setClass=True)
             i_j.doCopyNameTagsFromObject(ml_jointList[i].mNode,ignore=['cgmTypeModifier','cgmType'])
             i_j.addAttr('cgmTypeModifier','splineIK',attrType='string')
             i_j.doName()
@@ -2854,7 +2854,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
                               solver = 'ikSplineSolver', ns = 4, rootOnCurve=True,forceSolver = True,
                               createCurve = True,snapHandleFlagToggle=True )  
 
-        i_segmentCurve = cgmMeta.cgmObject( buffer[2],setClass=True )
+        i_segmentCurve = cgmMeta.asMeta( buffer[2],'cgmObject',setClass=True )
         i_segmentCurve.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
         i_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
         i_segmentCurve.doName()
@@ -2864,9 +2864,9 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
             cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideDisplayType'))    
 
-        i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
+        i_ikHandle = cgmMeta.asMeta( buffer[0],'cgmObject',setClass=True )
         i_ikHandle.doName()
-        i_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
+        i_ikEffector = cgmMeta.asMeta( buffer[1],'cgmObject',setClass=True )
         i_ikHandle.parent = i_grp.mNode
 
         i_segmentCurve.connectChildNode(i_grp,'segmentGroup','owner')
@@ -3035,7 +3035,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
 
             #Store the rotate group to the joint
             i_jnt.connectChildNode(i_locRotateGroup,'rotateUpGroup','drivenJoint')
-            i_zeroGrp = cgmMeta.cgmObject( i_locRotateGroup.doGroup(True),setClass=True )
+            i_zeroGrp = cgmMeta.asMeta( i_locRotateGroup.doGroup(True),'cgmObject',setClass=True )
             i_zeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
             i_zeroGrp.doName()
 
@@ -3077,7 +3077,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
                                      setupForRPsolver = True, solver = 'ikRPsolver',
                                      enableHandles=True )
             #Handle
-            i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0],setClass=True)
+            i_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
             i_IK_Handle.parent = ml_driverJoints[i+1].mNode
             i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
             i_IK_Handle.doName()
@@ -3345,7 +3345,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
     l_driverJoints = mc.duplicate(jointList,po=True,ic=True,rc=True)
     ml_driverJoints = []
     for i,j in enumerate(l_driverJoints):
-        i_j = cgmMeta.cgmObject(j,setClass=True)
+        i_j = cgmMeta.asMeta(j,'cgmObject',setClass=True)
         i_j.doCopyNameTagsFromObject(ml_jointList[i].mNode,ignore=['cgmTypeModifier','cgmType'])
         #i_j.addAttr('cgmName',baseName,lock=True)
         i_j.addAttr('cgmTypeModifier','splineIK',attrType='string')
@@ -3354,12 +3354,12 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
         ml_driverJoints.append(i_j)
 
     #Create Curve
-    i_splineSolver = cgmMeta.cgmNode(nodeType = 'ikSplineSolver',setClass=True)
+    i_splineSolver = cgmMeta.cgmNode(nodeType = 'ikSplineSolver')
     buffer = mc.ikHandle( sj=ml_driverJoints[0].mNode, ee=ml_driverJoints[-1].mNode,simplifyCurve=False,
                           solver = i_splineSolver.mNode, ns = 4, rootOnCurve=True,forceSolver = True,
                           createCurve = True,snapHandleFlagToggle=True )  
 
-    i_segmentCurve = cgmMeta.cgmObject( buffer[2],setClass=True )
+    i_segmentCurve = cgmMeta.asMeta( buffer[2],'cgmObject',setClass=True )
     i_segmentCurve.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
     i_segmentCurve.doName()
@@ -3369,9 +3369,9 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
         cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
         cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideDisplayType'))    
 
-    i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
+    i_ikHandle = cgmMeta.asMeta( buffer[0],'cgmObject',setClass=True )
     i_ikHandle.doName()
-    i_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
+    i_ikEffector = cgmMeta.asMeta( buffer[1],'cgmObject',setClass=True )
     i_ikHandle.parent = i_grp.mNode
 
     i_segmentCurve.connectChildNode(i_grp,'segmentGroup','owner')
@@ -3412,7 +3412,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
 
             #Store the rotate group to the joint
             i_jnt.connectChildNode(i_locRotateGroup,'rotateUpGroup','drivenJoint')
-            i_zeroGrp = cgmMeta.cgmObject( i_locRotateGroup.doGroup(True),setClass=True )
+            i_zeroGrp = cgmMeta.asMeta( i_locRotateGroup.doGroup(True),'cgmObject',setClass=True )
             i_zeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
             i_zeroGrp.doName()
             #connect some other data
@@ -3446,7 +3446,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
                                  setupForRPsolver = True, solver = 'ikRPsolver',
                                  enableHandles=True )
         #Handle
-        i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0],setClass=True)
+        i_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
         i_IK_Handle.parent = ml_driverJoints[i+1].mNode
         i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
         i_IK_Handle.doName()
@@ -3665,7 +3665,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
 
     try:#>>>Create #====================================================
-        i_control = cgmMeta.cgmObject(curves.createControlCurve('pivotLocator',size),setClass=True)
+        i_control = cgmMeta.asMeta(curves.createControlCurve('pivotLocator',size),'cgmObject',setClass=True)
         try:l_color = curves.returnColorsFromCurve(i_obj.mNode)
         except Exception,error:raise Exception,"color | %s"%(error)          
         log.debug("l_color: %s"%l_color)
@@ -3744,7 +3744,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     try:#parent
         if i_parent:
             i_control.parent = i_parent.mNode
-            i_constraintGroup = (cgmMeta.cgmObject(i_control.doGroup(True),setClass=True))
+            i_constraintGroup = (cgmMeta.asMeta(i_control.doGroup(True),'cgmObject',setClass=True))
             i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
             i_constraintGroup.doName()
             i_control.connectChildNode(i_constraintGroup,'constraintGroup','groupChild')	
@@ -3753,7 +3753,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     except Exception,error:raise Exception,"%s >> parent | %s"%(_str_funcName,error) 
 
     try:#change to cgmControl
-        i_control = cgmMeta.cgmControl(i_control.mNode, setClass=1)
+        i_control = cgmMeta.asMeta(i_control.mNode,'cgmControl', setClass=1)
     except Exception,error:raise Exception,"%s >> cgmControl conversion | %s"%(_str_funcName,error) 
 
     return i_control
@@ -4245,13 +4245,13 @@ def IKHandle_create(startJoint,endJoint,solverType = 'ikRPsolver',rpHandle = Fal
 
     #>>> Name
     log.debug(buffer)
-    i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+    i_ik_handle = cgmMeta.asMeta(buffer[0],'cgmObject',setClass=True)
     i_ik_handle.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_ik_handle.doName()
 
     ml_rigObjectsToConnect.append(i_ik_handle)
 
-    i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+    i_ik_effector = cgmMeta.asMeta(buffer[1],'cgmNode',setClass=True)
     i_ik_effector.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_ik_effector.doName()
 
@@ -4853,8 +4853,8 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
         log.debug("%s : %s"%(i_jnt.mNode,l_closestInfo))
         #>>> Follicle =======================================================
         l_follicleInfo = nodes.createFollicleOnMesh(i_controlSurface.mNode)
-        i_follicleTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
-        i_follicleShape = cgmMeta.cgmNode(l_follicleInfo[0])
+        i_follicleTrans = cgmMeta.asMeta(l_follicleInfo[1],'cgmObject',setClass=True)
+        i_follicleShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')
         #> Name
         i_follicleTrans.doStore('cgmName',i_jnt.mNode)
         i_follicleTrans.doName()
@@ -4887,7 +4887,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
 
             #Store the rotate group to the joint
             i_jnt.connectChildNode(i_locRotateGroup,'rotateUpGroup','drivenJoint')
-            i_zeroGrp = cgmMeta.cgmObject( i_locRotateGroup.doGroup(True),setClass=True )
+            i_zeroGrp = cgmMeta.asMeta( i_locRotateGroup.doGroup(True),'cgmObject',setClass=True )
             i_zeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
             i_zeroGrp.doName()
             #connect some other data
@@ -5198,8 +5198,8 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
         log.debug("%s : %s"%(i_jnt.mNode,l_closestInfo))
         #>>> Follicle =======================================================
         l_follicleInfo = nodes.createFollicleOnMesh(i_controlSurface.mNode)
-        i_follicleTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
-        i_follicleShape = cgmMeta.cgmNode(l_follicleInfo[0])
+        i_follicleTrans = cgmMeta.asMeta(l_follicleInfo[1],'cgmObject',setClass=True)
+        i_follicleShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')
         #> Name
         i_follicleTrans.doStore('cgmName',i_jnt.mNode)
         i_follicleTrans.doName()
@@ -5226,7 +5226,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
 
             #Store the rotate group to the joint
             i_jnt.connectChildNode(i_locRotateGroup,'rotateUpGroup','drivenJoint')
-            i_zeroGrp = cgmMeta.cgmObject( i_locRotateGroup.doGroup(True),setClass=True )
+            i_zeroGrp = cgmMeta.asMeta( i_locRotateGroup.doGroup(True),'cgmObject',setClass=True )
             i_zeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
             i_zeroGrp.doName()
             #connect some other data
@@ -5271,13 +5271,13 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
                                  setupForRPsolver = True, solver = 'ikRPsolver',
                                  enableHandles=True )
         #Handle
-        i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0],setClass=True)
+        i_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
         i_IK_Handle.parent = ml_follicleTransforms[i+1].mNode
         i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
         i_IK_Handle.doName()
 
         #Effector
-        i_IK_Effector = cgmMeta.cgmObject(ik_buffer[1],setClass=True)        
+        i_IK_Effector = cgmMeta.asMeta(ik_buffer[1],'cgmObject',setClass=True)        
         i_IK_Effector.doName()
 
         l_iIK_handles.append(i_IK_Handle)
@@ -6596,7 +6596,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
     l_splineIKJoints = mc.duplicate(jointList,po=True,ic=True,rc=True)
     ml_splineIKJoints = []
     for i,j in enumerate(l_splineIKJoints):
-        i_j = cgmMeta.cgmObject(j,setClass=True)
+        i_j = cgmMeta.asMeta(j,'cgmObject',setClass=True)
         i_j.addAttr('cgmName',baseName,lock=True)
         i_j.addAttr('cgmTypeModifier','splineIK',attrType='string')
         i_j.doName()
@@ -6604,7 +6604,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
         ml_splineIKJoints.append(i_j)
 
     #Create Curve
-    i_splineSolver = cgmMeta.cgmNode(nodeType = 'ikSplineSolver',setClass=True)
+    i_splineSolver = cgmMeta.cgmNode(nodeType = 'ikSplineSolver')
     buffer = mc.ikHandle( sj=ml_splineIKJoints[0].mNode, ee=ml_splineIKJoints[-1].mNode,simplifyCurve=False,
                           solver = i_splineSolver.mNode, ns = 4, rootOnCurve=True,forceSolver = True,
                           createCurve = True,snapHandleFlagToggle=True )  
@@ -6618,8 +6618,8 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
         cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideVisibility'))    
         cgmMeta.cgmAttr(i_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_segmentCurve.mNode,'overrideDisplayType'))    
 
-    i_ikHandle = cgmMeta.cgmObject( buffer[0],setClass=True )
-    i_ikEffector = cgmMeta.cgmObject( buffer[1],setClass=True )
+    i_ikHandle = cgmMeta.asMeta( buffer[0],'cgmObject',setClass=True )
+    i_ikEffector = cgmMeta.asMeta( buffer[1],'cgmObject',setClass=True )
 
     #Joints
     #=========================================================================
@@ -6661,7 +6661,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
 
             #Store the rotate group to the joint
             i_jnt.connectChildNode(i_locRotateGroup,'rotateUpGroup','drivenJoint')
-            i_zeroGrp = cgmMeta.cgmObject( i_locRotateGroup.doGroup(True),setClass=True )
+            i_zeroGrp = cgmMeta.asMeta( i_locRotateGroup.doGroup(True),'cgmObject',setClass=True )
             i_zeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
             i_zeroGrp.doName()
             #connect some other data
@@ -6694,7 +6694,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
                                  setupForRPsolver = True, solver = 'ikRPsolver',
                                  enableHandles=True )
         #Handle
-        i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0],setClass=True)
+        i_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
         i_IK_Handle.parent = ml_splineIKJoints[i+1].mNode
         i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
         i_IK_Handle.doName()

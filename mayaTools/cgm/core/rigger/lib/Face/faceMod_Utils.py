@@ -1179,7 +1179,7 @@ def create_influenceJoints(self,d_build):
 				except Exception,error:raise Exception,"[Status update] | error: {0}".format(error)	
 
 				try:#Create----------------------------------------------------------------------
-				    mi_influenceJoint = cgmMeta.cgmObject( mc.joint(),setClass = 1)
+				    mi_influenceJoint = cgmMeta.cgmNode( mc.joint()).convertMClassType('cgmObject')
 				    Snap.go(mi_influenceJoint,mJnt.mNode,orient=True)
 				    mi_influenceJoint.rotateOrder = mJnt.rotateOrder
 				    mi_influenceJoint.doCopyNameTagsFromObject(mJnt.mNode,ignore=['cgmType'])	
@@ -1192,7 +1192,7 @@ def create_influenceJoints(self,d_build):
 				except Exception,error:raise Exception,"[influence joint for '{0}'! | error: {1}]".format(str_mObj,error)				    
 
 				try:#Create offsetgroup for the mid
-				    mi_offsetGroup = cgmMeta.cgmObject( mi_influenceJoint.doGroup(True),setClass=True)	 
+				    mi_offsetGroup = cgmMeta.asMeta( mi_influenceJoint.doGroup(True),'cgmObject',setClass=True)	 
 				    mi_offsetGroup.doStore('cgmName',mi_influenceJoint.mNode)
 				    mi_offsetGroup.addAttr('cgmTypeModifier','master',lock=True)
 				    mi_offsetGroup.doName()
@@ -1291,7 +1291,7 @@ def create_specialLocsFromDict(self,d_build):
 
 				elif str_mode == 'surfTrackLoc':	
 				    mi_loc.parent = mi_go._i_rigNull
-				    mi_masterGroup = (cgmMeta.cgmObject(mi_loc.doGroup(True),setClass=True))
+				    mi_masterGroup = (cgmMeta.asMeta(mi_loc.doGroup(True),'cgmObject',setClass=True))
 				    mi_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
 				    mi_masterGroup.doName()
 				    mi_loc.connectChildNode(mi_masterGroup,'masterGroup','groupChild')
@@ -1488,7 +1488,7 @@ def aim_fromDict(self,d_build):
 					    self.log_warning("'%s' | No offset group found. Using object"%str_mObj)					
 					    mi_offsetTarget = mObj
 
-				mi_aimOffsetGroup = cgmMeta.cgmObject(mi_offsetTarget.doGroup(True),setClass=True)
+				mi_aimOffsetGroup = cgmMeta.asMeta(mi_offsetTarget.doGroup(True),'cgmObject',setClass=True)
 				mi_aimOffsetGroup.doStore('cgmName',mObj.mNode)
 				mi_aimOffsetGroup.addAttr('cgmTypeModifier','AimOffset',lock=True)
 				mi_aimOffsetGroup.doName()
@@ -1749,7 +1749,7 @@ def skin_fromDict(self,d_build):
 
 		try:#Cluster
 		    ret_cluster = mc.skinCluster([mObj.mNode for mObj in [__target] + __bindJoints], tsb = True, normalizeWeights = True, mi = __mi, dr = __dr)
-		    i_cluster = cgmMeta.cgmNode(ret_cluster[0],setClass=True)
+		    i_cluster = cgmMeta.asMeta(ret_cluster[0],'cgmNode',setClass=True)
 		    i_cluster.doStore('cgmName',__target.mNode)
 		    i_cluster.doName()		
 		except Exception,error:raise Exception,"[Cluster |error: {0}]".format(error)
@@ -1923,7 +1923,7 @@ def create_curvesFromDict(self,d_build):
 		    try:#Curve -----------------------------------------------------------------------
 			ml_objs = d_buffer['pointTargets']
 			str_curve = mc.curve(d = 3,ep = [mObj.getPosition() for mObj in ml_objs], os = True)
-			mi_obj = cgmMeta.cgmObject(str_curve,setClass=True)
+			mi_obj = cgmMeta.asMeta(str_curve,'cgmObject',setClass=True)
 		    except Exception,error:raise Exception,"[Regular curve | error: {0}]".format(error)
 		try:
 		    self.__dict__['mi_%sCrv'%(str_name)] = mi_obj

@@ -381,7 +381,7 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 class cgmDynamicMatch(cgmMeta.cgmObject):
     def __init__(self,node = None, name = None, dynNull = None, dynSuffix = None, dynPrefix = None,
                  dynMatchTargets = None, dynSnapTargets = None, dynObject = None,
-                 dynMode = None, setClass = False,*args,**kws):
+                 dynMode = None, *args,**kws):
         """
         Dynamic Match Setup. Inspiration for this comes from Jason Schleifer's great AFR work. Retooling for our own purposes.
         The basic idea is a class based match setup for matching fk ik or whatever kind of matching that needs to happen.
@@ -1257,7 +1257,7 @@ d_DynParentGroupModeAttrs = {0:['space'],
 class cgmDynParentGroup(cgmMeta.cgmObject):
     def __init__(self,node = None, name = None, dynGroup = None,
                  dynParents = None,dynChild = None,
-                 dynMode = None, setClass = False,*args,**kws):
+                 dynMode = None,*args,**kws):
         """ 
         Dynamic parent group class. This is a rework of the great work done by our talented
         friend John Doublestein and is done with permission.

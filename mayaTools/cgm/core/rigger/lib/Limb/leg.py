@@ -2745,7 +2745,7 @@ def build_twistDriver_hip(self):
 
         #>>> Name
         str_baseName = self._partName + "_startTwistDriver"
-        i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+        i_ik_handle = cgmMeta.asMeta(buffer[0],'cgmObject',setClass=True)
         i_ik_handle.addAttr('cgmName',str_baseName ,attrType='string',lock=True)    
         i_ik_handle.doName()
         i_ik_handle.parent = self._i_rigNull.mNode
@@ -2753,7 +2753,7 @@ def build_twistDriver_hip(self):
 
         ml_twistObjects.append(i_ik_handle)
 
-        i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+        i_ik_effector = cgmMeta.asMeta(buffer[1],'cgmNode',setClass=True)
         i_ik_effector.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
         i_ik_effector.doName()
 
@@ -2873,14 +2873,14 @@ def build_twistDriver_ankle(self):
                               snapHandleFlagToggle=True )  
 
         #>>> Name
-        i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+        i_ik_handle = cgmMeta.asMeta(buffer[0],'cgmObject',setClass=True)
         i_ik_handle.addAttr('cgmName',str_baseName ,attrType='string',lock=True)    
         i_ik_handle.doName()
         i_ik_handle.parent = self._i_rigNull.mNode
         mc.pointConstraint(ml_blendJoints[1].mNode,i_ik_handle.mNode)
         ml_twistObjects.append(i_ik_handle)
 
-        i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+        i_ik_effector = cgmMeta.asMeta(buffer[1],'cgmNode',setClass=True)
         i_ik_effector.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
         i_ik_effector.doName()
 

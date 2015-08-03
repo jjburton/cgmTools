@@ -1835,7 +1835,7 @@ def build_twistDriver_shoulder(goInstance = None):
 
                 ml_twistObjects.append(i_ik_handle)
 
-                i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+                i_ik_effector = cgmMeta.asMeta(buffer[1],'cgmNode',setClass=True)
                 i_ik_effector.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
                 i_ik_effector.doName()
 
@@ -1947,7 +1947,7 @@ def build_twistDriver_wrist(goInstance = None):
 
                 #>>> Name
                 str_baseName = self._go._partName + "_endTwistDriver"
-                i_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+                i_ik_handle = cgmMeta.asMeta(buffer[0],'cgmObject',setClass=True)
                 i_ik_handle.addAttr('cgmName',str_baseName ,attrType='string',lock=True)    
                 i_ik_handle.doName()
                 i_ik_handle.parent = self._go._i_rigNull.mNode
@@ -1955,7 +1955,7 @@ def build_twistDriver_wrist(goInstance = None):
 
                 ml_twistObjects.append(i_ik_handle)
 
-                i_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+                i_ik_effector = cgmMeta.asMeta(buffer[1],'cgmNode',setClass=True)
                 i_ik_effector.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
                 i_ik_effector.doName()
 

@@ -157,7 +157,7 @@ def build_rigSkeleton(*args, **kws):
 		    for i,pos in enumerate(l_pos):
 			try:#Create and name
 			    mc.select(cl=True)
-			    mi_end = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+			    mi_end = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject',setClass=True )
 			    mi_end.parent = False
 			    ml_buffer = [mi_end]
 			    mi_end.doCopyNameTagsFromObject( mi_go._mi_module.mNode,ignore=['cgmTypeModifier','cgmType','cgmIterator'] )#copy Tags
@@ -218,7 +218,7 @@ def build_rigSkeleton(*args, **kws):
 		ml_rootJoints = []
 		for mObj in ml_rigJoints:
 		    mc.select(cl=True)#clear so joints to parent to one another
-		    mi_root = cgmMeta.cgmObject( mc.joint(p = mi_helper.getPosition()),setClass=True )
+		    mi_root = cgmMeta.asMeta( mc.joint(p = mi_helper.getPosition()),'cgmObject',setClass=True )
 		    mi_root.doCopyNameTagsFromObject(mObj.mNode)#copy tags
 		    mi_root.addAttr('cgmTypeModifier','rigRoot',lock=True)#Tag as root
 		    joints.doCopyJointOrient(mObj.mNode,mi_root.mNode)
@@ -625,7 +625,7 @@ def build_rig(*args, **kws):
 		ml_curves = []
 		try:#Upr driven curve
 		    _str_uprDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in ml_rigUprLidJoints],os =True)
-		    mi_uprDrivenCrv = cgmMeta.cgmObject(_str_uprDrivenCurve,setClass=True)
+		    mi_uprDrivenCrv = cgmMeta.asMeta(_str_uprDrivenCurve,'cgmObject',setClass=True)
 		    mi_uprDrivenCrv.doCopyNameTagsFromObject(mi_go._mi_module.mNode,ignore=['cgmType'])
 		    mi_uprDrivenCrv.addAttr('cgmName','uprLid',lock=True)
 		    mi_uprDrivenCrv.addAttr('cgmTypeModifier','driven',lock=True)
@@ -640,7 +640,7 @@ def build_rig(*args, **kws):
 		
 		try:#Upper driver curve
 		    _str_uprDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_uprLidHandles],os =True)
-		    mi_uprDriverCrv = cgmMeta.cgmObject(_str_uprDriverCurve,setClass=True)
+		    mi_uprDriverCrv = cgmMeta.asMeta(_str_uprDriverCurve,'cgmObject',setClass=True)
 		    mi_uprDriverCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode,ignore=['cgmTypeModifier'])
 		    mi_uprDriverCrv.addAttr('cgmTypeModifier','driver',lock=True)
 		    mi_uprDriverCrv.doName()
@@ -649,7 +649,7 @@ def build_rig(*args, **kws):
 		
 		try:#Lwr driven curve
 		    _str_lwrDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in [ml_rigUprLidJoints[0]] + ml_rigLwrLidJoints + [ml_rigUprLidJoints[-1]]],os =True)
-		    mi_lwrDrivenCrv = cgmMeta.cgmObject(_str_lwrDrivenCurve,setClass=True)
+		    mi_lwrDrivenCrv = cgmMeta.asMeta(_str_lwrDrivenCurve,'cgmObject',setClass=True)
 		    mi_lwrDrivenCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode)
 		    mi_lwrDrivenCrv.addAttr('cgmName','lwrLid',lock=True)	    
 		    mi_lwrDrivenCrv.doName()
@@ -663,7 +663,7 @@ def build_rig(*args, **kws):
 		
 		try:#Lwr driver curve
 		    _str_lwrDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in [ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]],os =True)
-		    mi_lwrDriverCrv = cgmMeta.cgmObject(_str_lwrDriverCurve,setClass=True)
+		    mi_lwrDriverCrv = cgmMeta.asMeta(_str_lwrDriverCurve,'cgmObject',setClass=True)
 		    mi_lwrDriverCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
 		    mi_lwrDriverCrv.addAttr('cgmName','lwrLid',lock=True)	    
 		    mi_lwrDriverCrv.doName()
@@ -672,7 +672,7 @@ def build_rig(*args, **kws):
 		
 		try:#SmartBlink curve
 		    _str_smartBlinkCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in [ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]],os =True)
-		    mi_smartBlinkCrv = cgmMeta.cgmObject(_str_smartBlinkCurve,setClass=True)
+		    mi_smartBlinkCrv = cgmMeta.asMeta(_str_smartBlinkCurve,'cgmObject',setClass=True)
 		    mi_smartBlinkCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
 		    mi_smartBlinkCrv.addAttr('cgmName','smartBlink',lock=True)	    
 		    mi_smartBlinkCrv.doName()
@@ -775,7 +775,7 @@ def build_rig(*args, **kws):
 		
 		try:#Blendshape the smart blink curve ---------------------------------------------
 		    _str_bsNode = mc.blendShape([mi_uprDriverCrv.mNode,mi_lwrDriverCrv.mNode],mi_smartBlinkCrv.mNode)[0]
-		    mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
+		    mi_bsNode = cgmMeta.asMeta(_str_bsNode,'cgmNode',setClass=True)
 		    mi_bsNode.doStore('cgmName',mi_smartBlinkCrv.mNode)
 		    mi_bsNode.doName()
 		    
@@ -825,7 +825,7 @@ def build_rig(*args, **kws):
 			mi_target = d_buffer['mi_target']
 			mi_driven = d_buffer['mi_driven']
 			_str_bsNode = mc.blendShape(mi_target.mNode,mi_driven.mNode)[0]
-			mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
+			mi_bsNode = cgmMeta.asMeta(_str_bsNode,'cgmNode',setClass=True)
 			mi_bsNode.doStore('cgmName',mi_uprDrivenCrv.mNode)
 			mi_bsNode.doName()
 			l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)

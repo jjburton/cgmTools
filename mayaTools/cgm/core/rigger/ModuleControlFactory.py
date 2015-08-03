@@ -131,8 +131,7 @@ def registerControl(*args,**kws):
             assert type(self.d_kws['addSpacePivots']) in [int,bool]
 
             i_obj = self.mi_control
-            i_obj.addAttr('mClass','cgmControl',lock=True)
-            self.mi_control = cgmMeta.cgmControl(i_obj.mNode,setClass=True)
+            self.mi_control = cgmMeta.asMeta(i_obj,'cgmControl', setClass=True)
 
             self.str_mirrorAxis = cgmValid.stringArg(self.d_kws['mirrorAxis'],calledFrom = self._str_funcCombined)
             self.str_mirrorSide = cgmValid.stringArg(self.d_kws['mirrorSide'],calledFrom = self._str_funcCombined)
@@ -165,7 +164,7 @@ def registerControl(*args,**kws):
                     attributes.doCopyAttr(self.mi_control.mNode,a,i_newTransform.mNode)
                 curves.parentShapeInPlace(i_newTransform.mNode,self.mi_control.mNode)#Parent shape
                 i_newTransform.parent = self.mi_control.parent#Copy parent
-                self.mi_control = cgmMeta.cgmControl(i_newTransform.mNode,setClass=True)
+                self.mi_control = cgmMeta.asMeta(i_newTransform,'cgmControl', setClass=True)
                 mc.delete(mBuffer.mNode)
 
         def _shapeParent(self):		    
@@ -174,8 +173,7 @@ def registerControl(*args,**kws):
                 try:
                     i_target = cgmMeta.validateObjArg(shapeParentTo,cgmMeta.cgmObject)
                     curves.parentShapeInPlace(i_target.mNode,self.mi_control.mNode)
-                    i_target.addAttr('mClass','cgmControl',lock=True)
-                    i_target = cgmMeta.cgmControl(i_target.mNode)
+                    i_target = cgmMeta.asMeta(i_target,'cgmControl',setClass = True)
                     #self.mi_control.delete()
                     self.mi_control = i_target#replace the control with the joint    
                 except Exception,error:raise StandardError,"shapeParentTo | %s"%error
@@ -259,7 +257,7 @@ def registerControl(*args,**kws):
             if not shapeParentTo:
                 #First our master group:
                 try:
-                    i_masterGroup = (cgmMeta.cgmObject(self.mi_control.doGroup(True),setClass=True))
+                    i_masterGroup = (cgmMeta.asMeta(self.mi_control.doGroup(True), 'cgmObject', setClass=True))
                     i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
                     i_masterGroup.doName()
                     self.mi_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')
@@ -280,7 +278,7 @@ def registerControl(*args,**kws):
                 if addExtraGroups:
                     try:
                         for i in range(addExtraGroups):
-                            i_group = (cgmMeta.cgmObject(self.mi_control.doGroup(True),setClass=True))
+                            i_group = (cgmMeta.asMeta(self.mi_control.doGroup(True),'cgmObject',setClass=True))
                             if type(addExtraGroups)==int and addExtraGroups>1:#Add iterator if necessary
                                 i_group.addAttr('cgmIterator',str(i+1),lock=True)
                                 i_group.doName()
@@ -290,7 +288,7 @@ def registerControl(*args,**kws):
 
                 if addConstraintGroup:#ConstraintGroups
                     try:
-                        i_constraintGroup = (cgmMeta.cgmObject(self.mi_control.doGroup(True),setClass=True))
+                        i_constraintGroup = (cgmMeta.asMeta(self.mi_control.doGroup(True),'cgmObject',setClass=True))
                         i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
                         i_constraintGroup.doName()
                         self.ml_constraintGroups.append(i_constraintGroup)
@@ -410,5 +408,8 @@ def registerControl(*args,**kws):
                     attributes.doSetLockHideKeyableAttr(self.mi_control.mNode,channels=['sx','sy','sz'])
                 cgmMeta.cgmAttr(self.mi_control,'visibility',lock=True,hidden=True)   
         def _returnBuild(self):
-            return {'instance':self.mi_control,'self.ml_groups':self.ml_groups,'self.ml_constraintGroups':self.ml_constraintGroups}	   
+            return {'instance':self.mi_control,'self.ml_groups':self.ml_groups,'self.ml_constraintGroups':self.ml_constraintGroups}	
+        #def _return_(self):
+            #self.log_info("in Return....")
+            #return {'instance':self.mi_control,'self.ml_groups':self.ml_groups,'self.ml_constraintGroups':self.ml_constraintGroups}	            
     return fncWrap(*args,**kws).go()

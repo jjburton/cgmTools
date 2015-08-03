@@ -163,7 +163,7 @@ def build_rigSkeleton(*args, **kws):
 		ml_skinJoints = self.md_sortedJoints[k_name][k_direction]['skin']	
 		ml_segJoints = []
 		for i,mJnt in enumerate(ml_skinJoints):
-		    mNewJnt = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
+		    mNewJnt = cgmMeta.asMeta( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],'cgmObject',setClass=True )
 		    mNewJnt.parent = False#Parent to world		
 		    mNewJnt.cgmName = mNewJnt.cgmName + "Seg"			
 		    mNewJnt.addAttr('cgmTypeModifier', 'segJoint',attrType='string',lock=True)
@@ -222,7 +222,7 @@ def build_rigSkeleton(*args, **kws):
 				    raise StandardError,"Step: '%s' '%s' | failed to find use curve"%(k_name,k_direction)
 				pos = crvUtils.getMidPoint(useCurve)
 				mc.select(cl=True)
-				mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+				mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject',setClass=True )
 				mi_jnt.parent = False
 				mi_jnt.addAttr('cgmName',k_name,lock=True)	
 				mi_jnt.addAttr('cgmDirection',k_direction,lock=True)
@@ -231,7 +231,7 @@ def build_rigSkeleton(*args, **kws):
 				mi_jnt.doName()
 				ml_handleJoints.append(mi_jnt)
 			    else:
-				mi_jnt = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
+				mi_jnt = cgmMeta.asMeta( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],'cgmObject',setClass=True )
 				mi_jnt.parent = False#Parent to world				
 				mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
 				if len(self.l_build)>1:
@@ -269,7 +269,7 @@ def build_rigSkeleton(*args, **kws):
 			
 			for mJnt in ml_influenceJoints:
 			    try:#Create offsetgroup for the mid
-				mi_offsetGroup = cgmMeta.cgmObject( mJnt.doGroup(True),setClass=True)	 
+				mi_offsetGroup = cgmMeta.asMeta( mJnt.doGroup(True),'cgmObject',setClass=True)	 
 				mi_offsetGroup.doStore('cgmName',mJnt.mNode)
 				mi_offsetGroup.addAttr('cgmTypeModifier','master',lock=True)
 				mi_offsetGroup.doName()
@@ -949,7 +949,7 @@ def build_rig(*args, **kws):
 		    
 		try:#Setup the offset group which will take half the left/right handles
 		    #Create offsetgroup for the mid
-		    mi_offsetGroup = cgmMeta.cgmObject( mi_centerHandle.doGroup(True),setClass=True)	 
+		    mi_offsetGroup = cgmMeta.asMeta( mi_centerHandle.doGroup(True),'cgmObject',setClass=True)	 
 		    mi_offsetGroup.doStore('cgmName',mi_centerHandle.mNode)
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
@@ -992,7 +992,7 @@ def build_rig(*args, **kws):
 				except Exception,error:raise StandardError,"[handle query | {0}]".format(error) 
 		
 				if ii == 1:#Create offsetgroup for the mid
-				    mi_offsetGroup = cgmMeta.cgmObject( mHandle.doGroup(True),setClass=True)	 
+				    mi_offsetGroup = cgmMeta.asMeta( mHandle.doGroup(True),'cgmObject',setClass=True)	 
 				    mi_offsetGroup.doStore('cgmName',mHandle.mNode)
 				    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 				    mi_offsetGroup.doName()
@@ -1137,7 +1137,7 @@ def build_rig(*args, **kws):
 		    
 		try:#Setup the offset group which will take half the left/right handles
 		    #Create offsetgroup for the mid
-		    mi_offsetGroup = cgmMeta.cgmObject( mi_centerHandle.doGroup(True),setClass=True)	 
+		    mi_offsetGroup = cgmMeta.asMeta( mi_centerHandle.doGroup(True),'cgmObject',setClass=True)	 
 		    mi_offsetGroup.doStore('cgmName',mi_centerHandle.mNode)
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
@@ -1184,7 +1184,7 @@ def build_rig(*args, **kws):
 		    
 		try:#Create our curves ------------------------------------------------------------------------------------
 		    str_crv = mc.curve(d=1,ep=[mObj.getPosition() for mObj in ml_rigJoints],os =True)
-		    mi_crv = cgmMeta.cgmObject(str_crv,setClass=True)
+		    mi_crv = cgmMeta.asMeta(str_crv,'cgmObject',setClass=True)
 		    mi_crv.doCopyNameTagsFromObject(ml_rigJoints[0].mNode,ignore=['cgmIterator','cgmTypeModifier','cgmType'])
 		    mi_crv.addAttr('cgmTypeModifier','driver',lock=True)
 		    mi_crv.doName()
@@ -1289,7 +1289,7 @@ def build_rig(*args, **kws):
 		    except Exception,error:raise StandardError,"[Query]{%s}"%(error) 
 
 		    #Create offsetgroup for the mid
-		    mi_offsetGroup = cgmMeta.cgmObject( mi_midHandle.doGroup(True),setClass=True)	 
+		    mi_offsetGroup = cgmMeta.asMeta( mi_midHandle.doGroup(True),'cgmObject',setClass=True)	 
 		    mi_offsetGroup.doStore('cgmName',mi_midHandle.mNode)
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
@@ -1341,7 +1341,7 @@ def build_rig(*args, **kws):
 		    
 		    #Create aim offsetgroup for the mid
 		    
-		    mi_aimGroup = cgmMeta.cgmObject( mi_midHandle.doGroup(True),setClass=True)	 
+		    mi_aimGroup = cgmMeta.asMeta( mi_midHandle.doGroup(True),'cgmObject',setClass=True)	 
 		    mi_aimGroup.doStore('cgmName',mi_midHandle.mNode)
 		    mi_aimGroup.addAttr('cgmTypeModifier','aim',lock=True)
 		    mi_midHandle.connectChildNode(mi_aimGroup,'aimGroup','groupChild')		    
@@ -1516,7 +1516,7 @@ def build_rig(*args, **kws):
 			except Exception,error:raise Exception,"[Query]{%s}"%error
 			
 			try:# Offset ----------------------------------------------------------------------------------
-			    mi_offsetGroup = cgmMeta.cgmObject( mi_follicleOffsetGroup.doGroup(True),setClass=True)	 
+			    mi_offsetGroup = cgmMeta.asMeta( mi_follicleOffsetGroup.doGroup(True),'cgmObject',setClass=True)	 
 			    mi_offsetGroup.doStore('cgmName',mi_handle.mNode)
 			    mi_offsetGroup.addAttr('cgmTypeModifier','pushOffset',lock=True)
 			    mi_offsetGroup.doName()
@@ -1770,7 +1770,7 @@ def build_rig(*args, **kws):
 		    
 		try:#Create our curves ------------------------------------------------------------------------------------
 		    str_crv = mc.curve(d=1,ep=[mObj.getPosition() for mObj in ml_rigJoints],os =True)
-		    mi_crv = cgmMeta.cgmObject(str_crv,setClass=True)
+		    mi_crv = cgmMeta.asMeta(str_crv,'cgmObject',setClass=True)
 		    mi_crv.doCopyNameTagsFromObject(ml_rigJoints[0].mNode,ignore=['cgmIterator','cgmTypeModifier','cgmType'])
 		    mi_crv.addAttr('cgmTypeModifier','driver',lock=True)
 		    mi_crv.doName()

@@ -634,13 +634,9 @@ def mirrorSetup_verify(*args,**kws):
                                 self.progressBar_set(status = "Verifying '{0}' ".format(md_buffer['str_name']),progress = len(ml_cull), maxValue = self.int_lenModules)		    				    
 
                                 for i,mObj in enumerate(md_buffer['ml_controls']):
-                                    try:					
-                                        if mObj.mClass != 'cgmControl':
-                                            try:
-                                                mObj.mClass = 'cgmControl'
-                                                mObj = cgmMeta.cgmControl(mObj.mNode)
-                                            except Exception,error:raise StandardError,"Set to cgmControl if Not | {0}".format(error)
-                                        #log.info("mirrorsetup: {0}".format(mObj.p_nameShort))
+                                    try:
+                                        mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)
+                                        md_buffer[i] = mObj#...push back
 
                                         try:mObj._verifyMirrorable()
                                         except Exception,error:raise StandardError,"_mirrorSetup | {0}".format(error)

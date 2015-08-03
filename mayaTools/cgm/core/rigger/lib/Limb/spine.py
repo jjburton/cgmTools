@@ -148,7 +148,7 @@ def build_rigSkeleton(*args, **kws):
                 l_segmentJoints = mc.duplicate(mi_go._l_moduleJoints[1:-1],po=True,ic=True,rc=True)
                 ml_segmentJoints = []
                 for i,j in enumerate(l_segmentJoints):
-                    i_j = cgmMeta.cgmObject(j)
+                    i_j = cgmMeta.asMeta(j,'cgmObject',setClass = True)
                     i_j.addAttr('cgmTypeModifier','segment',attrType='string')
                     i_j.addAttr('cgmIterator',i,lock = 1)	    
                     i_j.doName()
@@ -323,7 +323,7 @@ def build_controls(*args, **kws):
             #>>>Set up structure
             try:#>>>> Cog
                 i_cog = mi_cogShape
-                d_buffer = mControlFactory.registerControl(i_cog.mNode,addExtraGroups = True,addConstraintGroup=True,
+                d_buffer = mControlFactory.registerControl(i_cog,addExtraGroups = True,addConstraintGroup=True,
                                                            mirrorSide=mi_go._str_mirrorDirection,mirrorAxis="translateX,translateZ,rotateY,rotateZ",
                                                            freezeAll=True,makeAimable=True,autoLockNHide=True,
                                                            controlType='cog')
@@ -401,7 +401,7 @@ def build_controls(*args, **kws):
                                                            typeModifier = 'ik',addSpacePivots = 2, addDynParentGroup = True, addConstraintGroup=True,
                                                            makeAimable = True,setRotateOrder=5)
                 i_IKEnd = d_buffer['instance']	
-
+                self.log_error("IK END HERE: {0}".format(i_IKEnd))
                 i_loc.delete()#delete
                 mi_go._i_rigNull.connectChildNode(i_IKEnd,'handleIK','rigNull')#connect
                 ml_controlsAll.append(i_IKEnd)	
@@ -434,7 +434,7 @@ def build_controls(*args, **kws):
 
             except Exception,error:raise Exception,"hips fail | error: {0}".format(error)
 
-            try:#Connect all controls	
+            '''try:#Connect all controls	
                 ml_extraControls = []
                 for i,mCtrl in enumerate(ml_controlsAll):
                     try:
@@ -453,7 +453,7 @@ def build_controls(*args, **kws):
                 #Push connections
                 mi_go._i_rigNull.msgList_connect(ml_controlsAll,'controlsAll')
                 mi_go._i_rigNull.moduleSet.extend(ml_controlsAll)
-            except Exception,error:raise Exception,"connect fail | error: {0}".format(error)
+            except Exception,error:raise Exception,"connect fail | error: {0}".format(error)'''
 
             return True	    
 
@@ -612,11 +612,11 @@ def build_rig(*args, **kws):
                 orientation = modules.returnSettingsData('jointOrientation')
 
                 mi_segmentCurve = mi_go._i_rigNull.msgList_get('segmentCurves',asMeta = True)[0]
-                mi_segmentAnchorStart = mi_segmentCurve.anchorStart
-                mi_segmentAnchorEnd = mi_segmentCurve.anchorEnd
-                mi_segmentAttachStart = mi_segmentCurve.attachStart
-                mi_segmentAttachEnd = mi_segmentCurve.attachEnd 
-                mi_distanceBuffer = mi_segmentCurve.scaleBuffer
+                mi_segmentAnchorStart = cgmMeta.validateObjArg(mi_segmentCurve.anchorStart,'cgmObject')
+                mi_segmentAnchorEnd = cgmMeta.validateObjArg(mi_segmentCurve.anchorEnd,'cgmObject')
+                mi_segmentAttachStart = cgmMeta.validateObjArg(mi_segmentCurve.attachStart,'cgmObject')
+                mi_segmentAttachEnd = cgmMeta.validateObjArg(mi_segmentCurve.attachEnd,'cgmObject') 
+                mi_distanceBuffer = cgmMeta.validateObjArg(mi_segmentCurve.scaleBuffer,'cgmBufferNode')
 
                 log.debug("mi_segmentAnchorStart: %s"%mi_segmentAnchorStart.mNode)
                 log.debug("mi_segmentAnchorEnd: %s"%mi_segmentAnchorEnd.mNode)
@@ -794,8 +794,10 @@ def build_rig(*args, **kws):
             try:#Vis/locks	
                 attributes.doSetLockHideKeyableAttr(mi_handleIK.mNode,lock=True, visible=False, keyable=False, channels=['sx','sy','sz'])
                 for mCtrl in (ml_controlsFK + [mi_cog,mi_hips,mi_handleIK] + ml_segmentHandles):
-                    mCtrl._setControlGroupLocks()	
-
+                    try:
+                        mCtrl._setControlGroupLocks()	
+                    except Exception,error:
+                        raise Exception,"mCtrl: {0}".format(mCtrl)
                 for mCtrl in ml_segmentHandles:
                     cgmMeta.cgmAttr(mCtrl,"s%s"%orientation[0],lock=True,hidden=True,keyable=False)
 
@@ -948,7 +950,7 @@ def build_rigOLDSurface(self):
 
 
     #Create an point/aim group
-    i_midFollowGrp = cgmMeta.cgmObject( self._i_rigNull.msgList_get('segmentHandles')[1].doGroup(True),setClass=True)
+    i_midFollowGrp = cgmMeta.asMeta( self._i_rigNull.msgList_get('segmentHandles')[1].doGroup(True),'cgmObject',setClass=True)
     i_midFollowGrp.addAttr('cgmTypeModifier','follow')
     i_midFollowGrp.doName()
     i_midFollowGrp.rotateOrder = 0
@@ -1024,7 +1026,7 @@ def build_rigOLDSurface(self):
     """
 
     #Create an point/aim group
-    i_baseFollowGrp = cgmMeta.cgmObject( self._i_rigNull.msgList_get('segmentHandles')[0].doGroup(True),setClass=True)
+    i_baseFollowGrp = cgmMeta.asMeta( self._i_rigNull.msgList_get('segmentHandles')[0].doGroup(True),'cgmObject',setClass=True)
     i_baseFollowGrp.addAttr('cgmTypeModifier','follow')
     i_baseFollowGrp.doName()
     i_baseFollowGrp.rotateOrder = 0

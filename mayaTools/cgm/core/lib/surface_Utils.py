@@ -184,8 +184,8 @@ def attachObjToSurface(*args,**kws):
 	    if self.b_attachControlLoc or not self.b_createControlLoc:
 		try:#>>> Follicle ============================================================================	    
 		    l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
-		    mi_follicleAttachTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
-		    mi_follicleAttachShape = cgmMeta.cgmNode(l_follicleInfo[0])	    
+		    mi_follicleAttachTrans = cgmMeta.asMeta(l_follicleInfo[1],'cgmObject',setClass=True)
+		    mi_follicleAttachShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')	    
 		    
 		    #> Name ----------------------------------------------------------------------------------
 		    mi_follicleAttachTrans.doStore('cgmName',self.mi_obj.mNode)
@@ -240,8 +240,8 @@ def attachObjToSurface(*args,**kws):
 	    else:#Setup control loc stuff
 		try:#>>> Follicle ============================================================================
 		    l_follicleInfo = nodes.createFollicleOnMesh(self.mi_targetSurface.mNode)
-		    mi_follicleFollowTrans = cgmMeta.cgmObject(l_follicleInfo[1],setClass=True)
-		    mi_follicleFollowShape = cgmMeta.cgmNode(l_follicleInfo[0])
+		    mi_follicleFollowTrans = cgmMeta.asMeta(l_follicleInfo[1],'cgmObject',setClass=True)
+		    mi_follicleFollowShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')
 		    
 		    #> Name ----------------------------------------------------------------------------------
 		    mi_follicleFollowTrans.doStore('cgmName',self.mi_obj.mNode)
@@ -280,7 +280,7 @@ def attachObjToSurface(*args,**kws):
 		
 		if self.b_attachControlLoc:mi_follicleFollowTrans.connectChildNode(mi_offsetGroup,"followOffsetGroup","follicle")
 	
-		mi_zeroGroup = cgmMeta.cgmObject( mi_offsetGroup.doGroup(True),setClass=True)	 
+		mi_zeroGroup = cgmMeta.asMeta( mi_offsetGroup.doGroup(True),'cgmObject',setClass=True)	 
 		mi_zeroGroup.doStore('cgmName',self.mi_obj.mNode)
 		mi_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
 		mi_zeroGroup.doName()	    
@@ -308,7 +308,7 @@ def attachObjToSurface(*args,**kws):
 		self.md_return["controlLoc"] = mi_controlLoc
 		
 		if self.b_attachControlLoc:
-		    mi_group = cgmMeta.cgmObject( mi_controlLoc.doGroup(),setClass=True )
+		    mi_group = cgmMeta.asMeta( mi_controlLoc.doGroup(),'cgmObject',setClass=True )
 		    mi_group.parent = mi_follicleAttachTrans
 		    
 		#Create decompose node --------------------------------------------------------------

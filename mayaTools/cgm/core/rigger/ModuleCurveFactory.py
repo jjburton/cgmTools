@@ -182,7 +182,7 @@ class go(object):
 	    
 	    size = max(l_size)/2.5
 	    ml_curvesToCombine = []
-	    mi_crvBase = cgmMeta.cgmObject( curves.createControlCurve('arrowSingleFat3d',direction = 'y-',size = size,absoluteSize=False),setClass=True)
+	    mi_crvBase = cgmMeta.asMeta( curves.createControlCurve('arrowSingleFat3d',direction = 'y-',size = size,absoluteSize=False),'cgmObject', setClass=True)
 	    mi_crvBase.scaleY = 2
 	    mi_crvBase.scaleZ = .75
 	    Snap.go(mi_crvBase, tmplRoot) #Snap it

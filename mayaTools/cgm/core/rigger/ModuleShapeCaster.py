@@ -297,7 +297,7 @@ class go(object):
                     if mObj.getAttr('isSubControl') or mObj in [ml_uprLidHandles[0],ml_uprLidHandles[-1]]:
                         _size = __baseDistance * .6
                     else:_size = __baseDistance
-                    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_jointOrientation[0]+'+'),setClass=True)	
+                    mi_crv =  cgmMeta.asMeta(curves.createControlCurve('circle',size = _size,direction=self.str_jointOrientation[0]+'+'),'cgmObject', setClass=True)	
                     Snap.go(mi_crv,mObj.mNode,move=True,orient=False)
                     str_grp = mi_crv.doGroup()
                     mi_crv.__setattr__("t%s"%self.str_jointOrientation[0],__baseDistance)
@@ -334,10 +334,10 @@ class go(object):
             mi_helper = self._mi_module.helper
             _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)
 
-            mi_crv = cgmMeta.cgmObject( curves.createControlCurve('gear',
+            mi_crv = cgmMeta.asMeta( curves.createControlCurve('gear',
                                                                   direction = 'z+',
                                                                   size = _baseDistance*.5,
-                                                                  absoluteSize=False),setClass=True)
+                                                                  absoluteSize=False),'cgmObject',setClass=True)
             Snap.go(mi_crv,mi_helper.mNode)
             mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
             mi_crv.__setattr__('t%s'%self.str_jointOrientation[0],_baseDistance * 2)
@@ -417,10 +417,10 @@ class go(object):
         try:
             mi_helper = self._mi_module.helper
             _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)	    	    
-            mi_crv = cgmMeta.cgmObject( curves.createControlCurve('fatCross',
+            mi_crv = cgmMeta.asMeta( curves.createControlCurve('fatCross',
                                                                   direction = 'z+',
                                                                   size = _baseDistance*.75,
-                                                                  absoluteSize=False),
+                                                                  absoluteSize=False),'cgmObject',
                                         setClass=True)
             Snap.go(mi_crv,mi_helper.mNode)
             mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
@@ -452,10 +452,10 @@ class go(object):
         try:#we need to find an eye module/head module
             mi_helper = self._mi_module.helper
             _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)	    	    
-            mi_crv = cgmMeta.cgmObject( curves.createControlCurve('arrow4Fat',
+            mi_crv = cgmMeta.asMeta( curves.createControlCurve('arrow4Fat',
                                                                   direction = 'z+',
                                                                   size = _baseDistance * 1.5,
-                                                                  absoluteSize=False),setClass=True)	    
+                                                                  absoluteSize=False),'cgmObject',setClass=True)	    
             Snap.go(mi_crv,mi_helper.mNode)
             mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
             mi_crv.__setattr__('t%s'%self.str_jointOrientation[0],_baseDistance * 6)
@@ -503,7 +503,7 @@ class go(object):
             mc.delete(mi_loc.parent)#delete loc	    
             size = fl_size/2.5
             ml_curvesToCombine = []
-            mi_crvBase = cgmMeta.cgmObject( curves.createControlCurve('arrowSingleFat3d',direction = 'y-',size = size,absoluteSize=False),setClass=True)
+            mi_crvBase = cgmMeta.asMeta( curves.createControlCurve('arrowSingleFat3d',direction = 'y-',size = size,absoluteSize=False),'cgmObject',setClass=True)
             mi_crvBase.scaleY = 2
             mi_crvBase.scaleZ = .75
             Snap.go(mi_crvBase, tmplRoot) #Snap it
@@ -2099,7 +2099,7 @@ def shapeCast_eyebrow(*args,**kws):
                         if str_direction == 'center':
                             _size = __baseDistance * 1			    
 
-                        mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
+                        mi_crv =  cgmMeta.asMeta(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),'cgmObject',setClass=True)	
                         Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
                         str_grp = mi_crv.doGroup()
                         if str_direction == 'right':
@@ -2204,7 +2204,7 @@ def shapeCast_eyebrow(*args,**kws):
                             _size = __baseDistance * 1.1
                             _color = l_colors[0]
 
-                        mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),setClass=True)	
+                        mi_crv =  cgmMeta.asMeta(curves.createControlCurve('circle',size = _size,direction=self.str_orientation[0]+'+'),'cgmObject',setClass=True)	
                         Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
                         str_grp = mi_crv.doGroup()
                         if str_direction == 'right':
@@ -2254,7 +2254,7 @@ def shapeCast_eyebrow(*args,**kws):
                 for i,mObj in enumerate(ml_jointList):
                     self.progressBar_set(status = "shaping : '%s'... "%mObj.p_nameShort, progress = i, maxValue = int_lenMax)		    				    		    		    
                     try:
-                        mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('semiSphere',size = _size,direction=str_cast),setClass=True)	
+                        mi_crv =  cgmMeta.asMeta(curves.createControlCurve('semiSphere',size = _size,direction=str_cast),'cgmObject',setClass=True)	
                         try:
                             d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],mObj.mNode,axis=str_cast)
                             if d_return:
@@ -2518,7 +2518,7 @@ def shapeCast_mouthNose(*args,**kws):
                     str_shape = d_buffer['shape']
                     f_multi = d_buffer.get('shapeMulti') or 1
                     b_centerPivot = d_buffer.get('centerPivot') or False
-                    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve(str_shape,size = (_size * f_multi),direction=self.str_orientation[0]+'+'),setClass=True)	
+                    mi_crv =  cgmMeta.asMeta(curves.createControlCurve(str_shape,size = (_size * f_multi),direction=self.str_orientation[0]+'+'),'cgmObject',setClass=True)	
                     if b_centerPivot:
                         mc.xform(mi_crv.mNode,ws = True, piv = distance.returnCenterPivotPosition(mi_crv.mNode))
                     Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
@@ -2551,7 +2551,7 @@ def shapeCast_mouthNose(*args,**kws):
             f_multi = .4
 
             #b_centerPivot = d_buffer.get('centerPivot') or False
-            mi_crv =  cgmMeta.cgmObject(curves.createControlCurve(str_shape,size = (_size * f_multi),direction=self.str_orientation[0]+'+'),setClass=True)	
+            mi_crv =  cgmMeta.asMeta(curves.createControlCurve(str_shape,size = (_size * f_multi),direction=self.str_orientation[0]+'+'),'cgmObject',setClass=True)	
             #if b_centerPivot:
                 #mc.xform(mi_crv.mNode,ws = True, piv = distance.returnCenterPivotPosition(mi_crv.mNode))
 
@@ -2595,7 +2595,7 @@ def shapeCast_mouthNose(*args,**kws):
                                                      maxDistance=f_castDistance,
                                                      points=8,returnDict = False,latheAxis=self.str_orientation[0],
                                                      aimAxis=self.str_orientation[1]+'-')
-            mi_crv =  cgmMeta.cgmObject(str_crv,setClass=True)	
+            mi_crv =  cgmMeta.asMeta(str_crv,'cgmObject',setClass=True)	
             mi_castLoc.delete()
             #b_centerPivot = d_buffer.get('centerPivot') or False
             #if b_centerPivot:
@@ -2625,7 +2625,7 @@ def shapeCast_mouthNose(*args,**kws):
             f_multi = .5
 
             #b_centerPivot = d_buffer.get('centerPivot') or False
-            mi_crv =  cgmMeta.cgmObject(curves.createControlCurve(str_shape,size = (_size * f_multi),direction=self.str_orientation[0]+'+'),setClass=True)	
+            mi_crv =  cgmMeta.asMeta(curves.createControlCurve(str_shape,size = (_size * f_multi),direction=self.str_orientation[0]+'+'),'cgmObject',setClass=True)	
             #if b_centerPivot:
                 #mc.xform(mi_crv.mNode,ws = True, piv = distance.returnCenterPivotPosition(mi_crv.mNode))
 
@@ -2690,7 +2690,7 @@ def shapeCast_mouthNose(*args,**kws):
                     except Exception,error:
                         raise StandardError,"%s info fail | %s"%(i,error)
 
-                    mi_crv =  cgmMeta.cgmObject(curves.createControlCurve(_shape,size = _size, direction=self.str_orientation[0]+'+'),setClass=True)	
+                    mi_crv =  cgmMeta.asMeta(curves.createControlCurve(_shape,size = _size, direction=self.str_orientation[0]+'+'),'cgmObject',setClass=True)	
                     Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
                     str_grp = mi_crv.doGroup()
                     if str_direction == 'right':
@@ -2742,7 +2742,7 @@ def shapeCast_mouthNose(*args,**kws):
 
                     if mObj not in self.ml_rigCull:
                         try:
-                            mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('semiSphere',size = _size,direction=str_cast),setClass=True)	
+                            mi_crv =  cgmMeta.asMeta(curves.createControlCurve('semiSphere',size = _size,direction=str_cast),'cgmObject',setClass=True)	
                             try:
                                 d_return = RayCast.findMeshIntersectionFromObjectAxis(self.mi_go._targetMesh[0],mObj.mNode,axis=str_cast)
                                 if d_return:
@@ -2870,10 +2870,10 @@ def shapeCast_eyeball(*args,**kws):
 
             try:#Curve creation ===========================================================
                 ml_curvesToCombine = []
-                mi_tmpCrv = cgmMeta.cgmObject( curves.createControlCurve('circle',
-                                                                         direction = 'z+',
-                                                                         size = _irisSize * .75,
-                                                                         absoluteSize=False),setClass=True)
+                mi_tmpCrv = cgmMeta.asMeta( curves.createControlCurve('circle',
+                                                                      direction = 'z+',
+                                                                      size = _irisSize * .75,
+                                                                      absoluteSize=False),'cgmObject',setClass=True)
                 Snap.go(mi_tmpCrv,mi_helper.mNode)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * self._f_midMulti)
@@ -2933,10 +2933,10 @@ def shapeCast_eyeball(*args,**kws):
             except Exception,error: raise Exception,"!Query]{%s}"%error
 
             try:#Curve creation ===========================================================
-                mi_crv = cgmMeta.cgmObject( curves.createControlCurve('fatCross',
+                mi_crv = cgmMeta.asMeta( curves.createControlCurve('fatCross',
                                                                       direction = 'z+',
                                                                       size = _irisSize * 1,
-                                                                      absoluteSize=False),
+                                                                      absoluteSize=False),'cgmObject',
                                             setClass=True)
                 Snap.go(mi_crv,mi_helper.mNode)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
@@ -2971,10 +2971,10 @@ def shapeCast_eyeball(*args,**kws):
             except Exception,error: raise Exception,"!Query]{%s}"%error
 
             try:#Curve creation ===========================================================		
-                mi_crv = cgmMeta.cgmObject( curves.createControlCurve('gear',
-                                                                      direction = 'z+',
-                                                                      size = _irisSize*.5,
-                                                                      absoluteSize=False),setClass=True)
+                mi_crv = cgmMeta.asMeta( curves.createControlCurve('gear',
+                                                                   direction = 'z+',
+                                                                   size = _irisSize*.5,
+                                                                   absoluteSize=False),'cgmObject',setClass=True)
                 Snap.go(mi_crv,mi_helper.mNode)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
                 mi_crv.__setattr__('t%s'%self.str_orientation[0],f_baseDistance * self._f_midMulti)
@@ -3069,10 +3069,10 @@ def shapeCast_eyeball(*args,**kws):
 
             try:#Curve creation ===========================================================
                 ml_curvesToCombine = []
-                mi_tmpCrv = cgmMeta.cgmObject( curves.createControlCurve('circle',
-                                                                         direction = 'z+',
-                                                                         size = _irisSize,
-                                                                         absoluteSize=False),setClass=True)
+                mi_tmpCrv = cgmMeta.asMeta( curves.createControlCurve('circle',
+                                                                      direction = 'z+',
+                                                                      size = _irisSize,
+                                                                      absoluteSize=False),'cgmObject',setClass=True)
                 Snap.go(mi_tmpCrv,mi_irisCrv.mNode)
                 mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
@@ -3125,10 +3125,10 @@ def shapeCast_eyeball(*args,**kws):
 
             try:#Curve creation ===========================================================
                 ml_curvesToCombine = []
-                mi_tmpCrv = cgmMeta.cgmObject( curves.createControlCurve('circle',
-                                                                         direction = 'z+',
-                                                                         size = _pupilSize,
-                                                                         absoluteSize=False),setClass=True)
+                mi_tmpCrv = cgmMeta.asMeta( curves.createControlCurve('circle',
+                                                                      direction = 'z+',
+                                                                      size = _pupilSize,
+                                                                      absoluteSize=False),'cgmObject',setClass=True)
                 Snap.go(mi_tmpCrv,mi_pupilCrv.mNode)
                 mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
@@ -3248,7 +3248,7 @@ def shapeCast_eyelids(*args,**kws):
                         if mObj.getAttr('isSubControl') or mObj in [ml_uprLidHandles[0],ml_uprLidHandles[-1]]:
                             _size = __baseDistance * .6
                         else:_size = __baseDistance
-                        mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('circle',size = _size,direction=mi_go.str_jointOrientation[0]+'+'),setClass=True)	
+                        mi_crv =  cgmMeta.asMeta(curves.createControlCurve('circle',size = _size,direction=mi_go.str_jointOrientation[0]+'+'),'cgmObject',setClass=True)	
                         Snap.go(mi_crv,mObj.mNode,move=True,orient=False)
                         str_grp = mi_crv.doGroup()
                         mi_crv.__setattr__("t%s"%mi_go.str_jointOrientation[0],__baseDistance)
@@ -3319,10 +3319,10 @@ def shapeCast_eyeLook(*args,**kws):
             except Exception,error: raise Exception,"[Query]{%s}"%error
 
             try:#Curve creation ===========================================================
-                mi_crv = cgmMeta.cgmObject( curves.createControlCurve('arrow4Fat',
-                                                                      direction = 'z+',
-                                                                      size = __baseDistance * 1.5,
-                                                                      absoluteSize=False),setClass=True)	    
+                mi_crv = cgmMeta.asMeta( curves.createControlCurve('arrow4Fat',
+                                                                   direction = 'z+',
+                                                                   size = __baseDistance * 1.5,
+                                                                   absoluteSize=False),'cgmObject',setClass=True)	    
                 Snap.go(mi_crv,mi_helper.mNode)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
                 mi_crv.__setattr__('t%s'%mi_go.str_jointOrientation[0],__baseDistance * 6)
@@ -3361,10 +3361,10 @@ def build_eyeLook(self):
     try:#we need to find an eye module/head module
         mi_helper = self._mi_module.helper
         _baseDistance = distance.returnDistanceBetweenObjects(mi_helper.mNode, mi_helper.pupilHelper.mNode)	    	    
-        mi_crv = cgmMeta.cgmObject( curves.createControlCurve('arrow4Fat',
-                                                              direction = 'z+',
-                                                              size = _baseDistance * 1.5,
-                                                              absoluteSize=False),setClass=True)	    
+        mi_crv = cgmMeta.asMeta( curves.createControlCurve('arrow4Fat',
+                                                           direction = 'z+',
+                                                           size = _baseDistance * 1.5,
+                                                           absoluteSize=False),'cgmObject',setClass=True)	    
         Snap.go(mi_crv,mi_helper.mNode)
         mi_tmpGroup = cgmMeta.cgmObject( mi_crv.doGroup())
         mi_crv.__setattr__('t%s'%self.str_jointOrientation[0],_baseDistance * 6)

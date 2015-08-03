@@ -276,7 +276,7 @@ def go(*args, **kws):
                     if self._partType in ['eyebrow', 'mouthnose']:
                         #Make it and link it ------------------------------------------------------
                         buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
-                        i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+                        i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
                         i_grp.addAttr('cgmName',self._partName,lock=True)
                         i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
                         i_grp.doName()
@@ -291,7 +291,7 @@ def go(*args, **kws):
                         else:
                             buffer = rigging.groupMeObject(self._ml_skinJoints[0].mNode,False)
 
-                        i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+                        i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
                         i_grp.addAttr('cgmName',self._partName,lock=True)
                         i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
                         i_grp.doName()
@@ -309,7 +309,7 @@ def go(*args, **kws):
                     if self._partType not in __l_faceModules__ or self._partType in ['eyelids']:
                         #Make it and link it
                         buffer = rigging.groupMeObject(self._i_deformNull.mNode,False)
-                        i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+                        i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
                         i_grp.addAttr('cgmName',self._partName,lock=True)
                         i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
                         i_grp.doName()
@@ -447,7 +447,7 @@ def go(*args, **kws):
 
             #Make it and link it ------------------------------------------------------
             buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
-            i_grp = cgmMeta.cgmObject(buffer,setClass=True)
+            i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
             i_grp.addAttr('cgmName','face',lock=True)
             i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
             i_grp.doName()
@@ -505,7 +505,7 @@ def go(*args, **kws):
                 if mi_buffer:
                     return mi_buffer
                 else:
-                    mi_offsetGroup = cgmMeta.cgmObject( mObj.doGroup(True),setClass=True)	 
+                    mi_offsetGroup = cgmMeta.asMeta( mObj.doGroup(True),'cgmObject',setClass=True)	 
                     mi_offsetGroup.doStore('cgmName',mObj.mNode)
                     mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
                     mi_offsetGroup.doName()
@@ -541,7 +541,7 @@ def go(*args, **kws):
                     if mObj.getMayaType() == objType:
                         ml_objs.append(mObj)
                 if ml_objs:
-                    mi_group = cgmMeta.cgmObject(name = objType,setClass=1)
+                    mi_group = cgmMeta.asMeta(mc.group(em=True),'cgmObject',setClass=1)
                     mi_group.addAttr('cgmName',objType)
                     mi_group.doName()
                     mi_group.parent = self._i_rigNull		    
@@ -981,7 +981,7 @@ def go(*args, **kws):
                         l_new_chain = joints.insertRollJointsSegment(l_tmpChain[0].mNode,l_tmpChain[1].mNode,1)
                         #Let's name our new joints
                         for ii,jnt in enumerate(l_new_chain):
-                            i_jnt = cgmMeta.cgmObject(jnt,setClass=True)
+                            i_jnt = cgmMeta.asMeta(jnt,'cgmObject',setClass=True)
                             i_jnt.doCopyNameTagsFromObject(m_pair[0].mNode)
                             i_jnt.addAttr('cgmName','%s_mid_%s'%(m_pair[0].cgmName,ii),lock=True)
                             i_jnt.addAttr('cgmNameModifier',str_nameModifier,attrType='string',lock=True)		

@@ -296,7 +296,7 @@ def build_rigSkeleton(*args, **kws):
 
                 ml_stretchJoints = []
                 for i,jnt in enumerate(l_joints):
-                    mi_jnt = cgmMeta.cgmObject(jnt,setClass=True)
+                    mi_jnt = cgmMeta.asMeta(jnt,'cgmObject',setClass=True)
                     if i == 0:
                         mi_jnt.addAttr('cgmPosition','lower')
                         mi_jnt.addAttr('cgmName','stretchSegment')
@@ -313,7 +313,7 @@ def build_rigSkeleton(*args, **kws):
                                     'end':ml_stretchJoints[-1]}
                 for str_k in d_segmentHandles.keys():
                     mi_target = d_segmentHandles[str_k]
-                    mi_jnt = cgmMeta.cgmObject( mc.duplicate(mi_target.mNode,po=True,ic=True,rc=True)[0],setClass=True )
+                    mi_jnt = cgmMeta.asMeta( mc.duplicate(mi_target.mNode,po=True,ic=True,rc=True)[0],'cgmObject',setClass=True )
                     mi_jnt.addAttr('cgmTypeModifier',str_k,attrType='string',lock=True)
                     mi_jnt.doName()		
                     mi_jnt.connectChildNode
@@ -336,8 +336,8 @@ def build_rigSkeleton(*args, **kws):
                     mi_rootTarget = d_buffer['skinRootTarget'].rigJoint
                     for str_tag in 'uprDriver','lwrDriver':
                         try:
-                            mi_root = cgmMeta.cgmObject( mc.duplicate(mi_rootTarget.mNode,po=True,ic=True,rc=True)[0],setClass=True )
-                            mi_end = cgmMeta.cgmObject( mc.duplicate(d_buffer[str_tag].mNode,po=True,ic=True,rc=True)[0],setClass=True )
+                            mi_root = cgmMeta.asMeta( mc.duplicate(mi_rootTarget.mNode,po=True,ic=True,rc=True)[0],'cgmObject',setClass=True )
+                            mi_end = cgmMeta.asMeta( mc.duplicate(d_buffer[str_tag].mNode,po=True,ic=True,rc=True)[0],'cgmObject',setClass=True )
                             mi_end.parent = mi_root			    				    			    
                             mi_root.addAttr('cgmTypeModifier',str_tag,attrType='string',lock=True)
                             mi_root.doName(nameChildren=True)
@@ -386,7 +386,7 @@ def build_rigSkeleton(*args, **kws):
                                 self.ml_build = ml_skinJoints
                             #Build ----------------------------------------------------------
                             if str_mode in ['simpleDuplicate','zeroDuplicate']:
-                                mi_jnt = cgmMeta.cgmObject( mc.duplicate(self.ml_build[0].mNode,po=True,ic=True,rc=True)[0],setClass=True )
+                                mi_jnt = cgmMeta.asMeta( mc.duplicate(self.ml_build[0].mNode,po=True,ic=True,rc=True)[0],'cgmObject',setClass=True )
                                 mi_jnt.parent = False#Parent to world	
                                 if l_tags:
                                     mi_jnt.addAttr('cgmName',l_tags[0],attrType='string',lock=True)				    				    			    
@@ -403,7 +403,7 @@ def build_rigSkeleton(*args, **kws):
                                     self.ml_build = d_buffer['ml_targets']
                                 ml_segJoints = []
                                 for i,mJnt in enumerate(self.ml_build):
-                                    mNewJnt = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
+                                    mNewJnt = cgmMeta.asMeta( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],'cgmObject',setClass=True )
                                     mNewJnt.parent = False#Parent to world		
                                     mNewJnt.cgmName = mNewJnt.cgmName + "Seg"			
                                     mNewJnt.addAttr('cgmTypeModifier', 'segJoint',attrType='string',lock=True)
@@ -441,7 +441,7 @@ def build_rigSkeleton(*args, **kws):
                                 pos = distance.returnAveragePointPosition([pos_left,pos_right])
                                 #self.log_info("pos >> %s"%pos)
 
-                                mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                                mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject',setClass=True )
                                 mi_jnt.parent = False
                                 mi_jnt.addAttr('cgmName',k_name,lock=True)										
                                 mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)				    
@@ -458,7 +458,7 @@ def build_rigSkeleton(*args, **kws):
                                                                                self.md_jointList['cornerLipRight'][0].getPosition()])
                                 except Exception,error:raise Exception,"[mouthMove pos fail]{%s}"%error
 
-                                mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                                mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject',setClass=True )
                                 mi_jnt.parent = False
                                 mi_jnt.addAttr('cgmName',k_name,lock=True)										
                                 mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)				    
@@ -492,7 +492,7 @@ def build_rigSkeleton(*args, **kws):
                                 try:#Create
                                     pos = crvUtils.returnSplitCurveList(mi_crv.mNode, 1, minU = minU, maxU = maxU, reverseCurve = b_reverse, rebuildForSplit=True)[0]				
                                     mc.select(cl=True)
-                                    mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                                    mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject',setClass=True )
                                     mi_jnt.parent = False
                                     mi_jnt.addAttr('cgmName',k_name,lock=True)										
                                     mi_jnt.addAttr('cgmDirection',k_direction,lock=True)
@@ -580,7 +580,7 @@ def build_rigSkeleton(*args, **kws):
                                         else:
                                             pos = crvUtils.getMidPoint(mi_crv)
                                         mc.select(cl=True)
-                                        mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                                        mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject',setClass=True )
                                         mi_jnt.parent = False
                                         mi_jnt.addAttr('cgmDirection',k_direction,lock=True)
                                         if l_tags:
@@ -602,7 +602,7 @@ def build_rigSkeleton(*args, **kws):
 					                               '''
                                         jntUtils.freezeJointOrientation(mi_jnt)
                                     else:
-                                        i_j = cgmMeta.cgmObject( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],setClass=True )
+                                        i_j = cgmMeta.asMeta( mc.duplicate(mJnt.mNode,po=True,ic=True,rc=True)[0],'cgmObject',setClass=True )
                                         i_j.parent = False#Parent to world				
                                         i_j.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
                                         if len(self.ml_build)>1:
@@ -1219,7 +1219,7 @@ def build_rig(*args, **kws):
                         except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
 
                         if d_sub.get('toDup'):
-                            mJoint = cgmMeta.cgmObject(mc.joint(p = d_sub['toDup'].getPosition()),setClass=True)
+                            mJoint = cgmMeta.asMeta(mc.joint(p = d_sub['toDup'].getPosition()),'cgmObject',setClass=True)
                             mJoint.addAttr('cgmName',d_sub.get('name') or k_tag,lock=True)			
                             if _skin:mJoint.doStore('cgmTypeModifier','skullDef',True)
                             mJoint.doName()
@@ -1244,7 +1244,7 @@ def build_rig(*args, **kws):
                             for i,pos in enumerate(l_offsets):
                                 self.log_info(pos) 
                                 mi_loc.translate = pos
-                                mObj = cgmMeta.cgmObject(mc.joint(p = mi_loc.getPosition()),setClass=True)
+                                mObj = cgmMeta.asMeta(mc.joint(p = mi_loc.getPosition()),'cgmObject',setClass=True)
                                 mObj.parent = mJoint
                                 ml_children.append(mObj)
                                 mObj.doName()
@@ -1427,8 +1427,8 @@ def build_rig(*args, **kws):
 				try:#>>Create --------------------------------------------------------------------
 				    ml_buffer = []
 				    
-				    mi_start = cgmMeta.cgmObject(mc.joint(p = d_sub['start'].getPosition()),setClass=True)
-				    mi_end = cgmMeta.cgmObject(mc.joint(p = d_sub['end'].getPosition()),setClass=True)
+				    mi_start = cgmMeta.asMeta(mc.joint(p = d_sub['start'].getPosition()),'cgmObject',setClass=True)
+				    mi_end = cgmMeta.asMeta(mc.joint(p = d_sub['end'].getPosition()),'cgmObject',setClass=True)
 				    ml_buffer = [mi_start,mi_end]
 	    
 				    mi_start.parent = d_sub.get('parent') or d_sub['start']
@@ -1455,11 +1455,11 @@ def build_rig(*args, **kws):
 					                  snapHandleFlagToggle=True )  	
 				    #>>> Name --------------------------------------------------------------------
 				    log.debug(buffer)
-				    mi_ik_handle = cgmMeta.cgmObject(buffer[0],setClass=True)
+				    mi_ik_handle = cgmMeta.asMeta(buffer[0],'cgmObject',setClass=True)
 				    mi_ik_handle.addAttr('cgmName',k_tag,attrType='string',lock=True)    
 				    mi_ik_handle.doName()
 							
-				    mi_ik_effector = cgmMeta.cgmNode(buffer[1],setClass=True)
+				    mi_ik_effector = cgmMeta.asMeta(buffer[1],'cgmNode',setClass=True)
 				    mi_ik_effector.addAttr('cgmName',k_tag,attrType='string',lock=True)    
 				    mi_ik_effector.doName()   
 				    
@@ -1587,7 +1587,7 @@ def build_rig(*args, **kws):
                         except Exception,error:raise Exception,"[Query! | error: {0}]".format(error)
 
                         if d_sub.get('toDup'):
-                            mJoint = cgmMeta.cgmObject(mc.joint(p = d_sub['toDup'].getPosition()),setClass=True)
+                            mJoint = cgmMeta.asMeta(mc.joint(p = d_sub['toDup'].getPosition()),'cgmObject',setClass=True)
                             mJoint.addAttr('cgmName',d_sub.get('name') or k_tag,lock=True)			
                             if _skin:mJoint.doStore('cgmTypeModifier','skullDef',True)
                             mJoint.doName()
@@ -1612,7 +1612,7 @@ def build_rig(*args, **kws):
                             for i,pos in enumerate(l_offsets):
                                 self.log_info(pos) 
                                 mi_loc.translate = pos
-                                mObj = cgmMeta.cgmObject(mc.joint(p = mi_loc.getPosition()),setClass=True)
+                                mObj = cgmMeta.asMeta(mc.joint(p = mi_loc.getPosition()),'cgmObject',setClass=True)
                                 mObj.parent = mJoint
                                 ml_children.append(mObj)
                                 mObj.doName()
@@ -1995,7 +1995,7 @@ def build_rig(*args, **kws):
             try:#Special Locs --------------------------------------------------------------------------------------
                 try:#Make a noseMove track loc
                     mi_noseMoveTrackLoc = self.md_rigList['noseMoveHandle'][0].doLoc()
-                    i_masterGroup = (cgmMeta.cgmObject(mi_noseMoveTrackLoc.doGroup(True),setClass=True))
+                    i_masterGroup = (cgmMeta.asMeta(mi_noseMoveTrackLoc.doGroup(True),'cgmObject',setClass=True))
                     i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
                     i_masterGroup.doName()
                     mi_noseMoveTrackLoc.connectChildNode(i_masterGroup,'masterGroup','groupChild')
@@ -2074,7 +2074,7 @@ def build_rig(*args, **kws):
                 except Exception,error:raise Exception,"[build list |error: {0}]".format(error)
 
                 ret_cluster = mc.skinCluster(l_toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
-                i_cluster = cgmMeta.cgmNode(ret_cluster[0],setClass=True)
+                i_cluster = cgmMeta.asMeta(ret_cluster[0],'cgmNode',setClass=True)
                 i_cluster.doStore('cgmName',str_nosePlate)
                 i_cluster.doName()
 
@@ -2095,7 +2095,7 @@ def build_rig(*args, **kws):
                 except Exception,error:raise Exception,"[build list |error: {0}]".format(error)
 
                 ret_cluster = mc.skinCluster(l_toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
-                i_cluster = cgmMeta.cgmNode(ret_cluster[0],setClass=True)
+                i_cluster = cgmMeta.asMeta(ret_cluster[0],'cgmNode',setClass=True)
                 i_cluster.doStore('cgmName',str_nostrilRibbon)
                 i_cluster.doName()
 
@@ -2136,7 +2136,7 @@ def build_rig(*args, **kws):
 
                         try:#Setup the offset to push handle rotation to the rig joint control
                             #Create offsetgroup for the mid
-                            mi_offsetGroup = cgmMeta.cgmObject( mi_rigJoint.doGroup(True),setClass=True)	 
+                            mi_offsetGroup = cgmMeta.asMeta( mi_rigJoint.doGroup(True),'cgmObject',setClass=True)	 
                             mi_offsetGroup.doStore('cgmName',mi_rigJoint.mNode)
                             mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
                             mi_offsetGroup.doName()
@@ -2207,7 +2207,7 @@ def build_rig(*args, **kws):
                     mi_mouthMoveTrackLoc.addAttr('cgmTypeModifier','track',lock=True)
                     mi_mouthMoveTrackLoc.doName()		
 
-                    mi_masterGroup = (cgmMeta.cgmObject(mi_mouthMoveTrackLoc.doGroup(True),setClass=True))
+                    mi_masterGroup = (cgmMeta.asMeta(mi_mouthMoveTrackLoc.doGroup(True),'cgmObject',setClass=True))
                     mi_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
                     mi_masterGroup.doName()
                     mi_mouthMoveTrackLoc.connectChildNode(mi_masterGroup,'masterGroup','groupChild')
@@ -2224,7 +2224,7 @@ def build_rig(*args, **kws):
                     mi_mouthMoveJawTrackLoc.addAttr('cgmTypeModifier','trackJaw',lock=True)
                     mi_mouthMoveJawTrackLoc.doName()		
 
-                    mi_masterGroup = (cgmMeta.cgmObject(mi_mouthMoveJawTrackLoc.doGroup(True),setClass=True))
+                    mi_masterGroup = (cgmMeta.asMeta(mi_mouthMoveJawTrackLoc.doGroup(True),'cgmObject',setClass=True))
                     mi_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
                     mi_masterGroup.doName()
                     mi_mouthMoveJawTrackLoc.connectChildNode(mi_masterGroup,'masterGroup','groupChild')
@@ -2241,7 +2241,7 @@ def build_rig(*args, **kws):
                     mi_chinTrackLoc.addAttr('cgmTypeModifier','track',lock=True)
                     mi_chinTrackLoc.doName()		
 
-                    mi_masterGroup = (cgmMeta.cgmObject(mi_chinTrackLoc.doGroup(True),setClass=True))
+                    mi_masterGroup = (cgmMeta.asMeta(mi_chinTrackLoc.doGroup(True),'cgmObject',setClass=True))
                     mi_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
                     mi_masterGroup.doName()
                     mi_chinTrackLoc.connectChildNode(mi_masterGroup,'masterGroup','groupChild')
@@ -2307,7 +2307,7 @@ def build_rig(*args, **kws):
             
             try:#>> UprLip Center follow  =======================================================================================
                 mObj = self.md_rigList['lipUprHandle']['center'][0]
-                mi_offsetGroup = cgmMeta.cgmObject(mObj.doGroup(True),setClass=True)
+                mi_offsetGroup = cgmMeta.asMeta(mObj.doGroup(True),'cgmObject',setClass=True)
                 mi_offsetGroup.doStore('cgmName',mObj.mNode)
                 mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
                 mi_offsetGroup.doName()
@@ -2360,7 +2360,7 @@ def build_rig(*args, **kws):
                     self.d_buffer['mObj'] = mi_obj
                     self.d_buffer['ml_targets'] = ml_targets
 
-                    mi_offsetGroup = cgmMeta.cgmObject(mi_obj.doGroup(True),setClass=True)
+                    mi_offsetGroup = cgmMeta.asMeta(mi_obj.doGroup(True),'cgmObject',setClass=True)
                     mi_offsetGroup.doStore('cgmName',mi_obj.mNode)
                     mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
                     mi_offsetGroup.doName()
@@ -2463,7 +2463,7 @@ def build_rig(*args, **kws):
                                         mi_target = self.md_rigList['lipLwrHandle']['center'][0]
 
                                     #Make a group
-                                    mi_aimOffsetGroup = cgmMeta.cgmObject(mDriver.doGroup(True),setClass=True)
+                                    mi_aimOffsetGroup = cgmMeta.asMeta(mDriver.doGroup(True),'cgmObject',setClass=True)
                                     mi_aimOffsetGroup.doStore('cgmName',mDriver.mNode)
                                     mi_aimOffsetGroup.addAttr('cgmTypeModifier','aimOffset',lock=True)
                                     mi_aimOffsetGroup.doName()
@@ -2479,7 +2479,7 @@ def build_rig(*args, **kws):
                             for i,mDriver in enumerate([mi_uprDriver,mi_lwrDriver]):
                                 try:#For loop
                                     #Make a group
-                                    mi_rotOffsetGroup = cgmMeta.cgmObject(mDriver.doGroup(True),setClass=True)
+                                    mi_rotOffsetGroup = cgmMeta.asMeta(mDriver.doGroup(True),'cgmObject',setClass=True)
                                     mi_rotOffsetGroup.doStore('cgmName',mDriver.mNode)
                                     mi_rotOffsetGroup.addAttr('cgmTypeModifier','rotOffset',lock=True)
                                     mi_rotOffsetGroup.doName()
@@ -2539,7 +2539,7 @@ def build_rig(*args, **kws):
 
                     try:#Upr driven curve
                         _str_uprDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in ml_uprLipRigJoints],os =True)
-                        mi_uprDrivenCrv = cgmMeta.cgmObject(_str_uprDrivenCurve,setClass=True)
+                        mi_uprDrivenCrv = cgmMeta.asMeta(_str_uprDrivenCurve,'cgmObject',setClass=True)
                         mi_uprDrivenCrv.addAttr('cgmName','uprLip',lock=True)
                         mi_uprDrivenCrv.addAttr('cgmTypeModifier','driven',lock=True)
                         mi_uprDrivenCrv.doName()
@@ -2553,7 +2553,7 @@ def build_rig(*args, **kws):
 
                     try:#Upper driver curve
                         _str_uprDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_uprLipHandles],os =True)
-                        mi_uprDriverCrv = cgmMeta.cgmObject(_str_uprDriverCurve,setClass=True)
+                        mi_uprDriverCrv = cgmMeta.asMeta(_str_uprDriverCurve,'cgmObject',setClass=True)
                         mi_uprDriverCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode,ignore=['cgmTypeModifier'])
                         mi_uprDriverCrv.addAttr('cgmTypeModifier','driver',lock=True)
                         mi_uprDriverCrv.doName()
@@ -2562,7 +2562,7 @@ def build_rig(*args, **kws):
 
                     try:#Lwr driven curve
                         _str_lwrDrivenCurve = mc.curve(d=3,ep=[mi_obj.getPosition() for mi_obj in self.md_rigList['lipCornerRig']['left'] + ml_lwrLipRigJoints + self.md_rigList['lipCornerRig']['right']],os =True)
-                        mi_lwrDrivenCrv = cgmMeta.cgmObject(_str_lwrDrivenCurve,setClass=True)
+                        mi_lwrDrivenCrv = cgmMeta.asMeta(_str_lwrDrivenCurve,'cgmObject',setClass=True)
                         mi_lwrDrivenCrv.doCopyNameTagsFromObject(mi_uprDrivenCrv.mNode)
                         mi_lwrDrivenCrv.addAttr('cgmName','lwrLip',lock=True)	    
                         mi_lwrDrivenCrv.doName()
@@ -2576,7 +2576,7 @@ def build_rig(*args, **kws):
 
                     try:#Lwr driver curve
                         _str_lwrDriverCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_lwrLipHandles],os =True)
-                        mi_lwrDriverCrv = cgmMeta.cgmObject(_str_lwrDriverCurve,setClass=True)
+                        mi_lwrDriverCrv = cgmMeta.asMeta(_str_lwrDriverCurve,'cgmObject',setClass=True)
                         mi_lwrDriverCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
                         mi_lwrDriverCrv.addAttr('cgmName','lwrLip',lock=True)	    
                         mi_lwrDriverCrv.doName()
@@ -2585,7 +2585,7 @@ def build_rig(*args, **kws):
 
                     try:#SmartLipSeal curve
                         _str_smartLipSealCurve = mc.curve(d=1,ep=[mi_obj.getPosition() for mi_obj in ml_lwrLipHandles],os =True)
-                        mi_smartLipSealCrv = cgmMeta.cgmObject(_str_smartLipSealCurve,setClass=True)
+                        mi_smartLipSealCrv = cgmMeta.asMeta(_str_smartLipSealCurve,'cgmObject',setClass=True)
                         mi_smartLipSealCrv.doCopyNameTagsFromObject(mi_uprDriverCrv.mNode)
                         mi_smartLipSealCrv.addAttr('cgmName','smartLipSeal',lock=True)	    
                         mi_smartLipSealCrv.doName()
@@ -2695,7 +2695,7 @@ def build_rig(*args, **kws):
                         self.progressBar_set(status = 'Smart Seal - Blendshape...')
 
                         _str_bsNode = mc.blendShape([mi_uprDriverCrv.mNode,mi_lwrDriverCrv.mNode],mi_smartLipSealCrv.mNode)[0]
-                        mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
+                        mi_bsNode = cgmMeta.asMeta(_str_bsNode,'cgmNode',setClass=True)
                         mi_bsNode.doStore('cgmName',mi_smartLipSealCrv.mNode)
                         mi_bsNode.doName()
                         mi_sealAttrHolder = self.md_rigList['mouthMove'][0]
@@ -2746,7 +2746,7 @@ def build_rig(*args, **kws):
                             mi_target = d_buffer['mi_target']
                             mi_driven = d_buffer['mi_driven']
                             _str_bsNode = mc.blendShape(mi_target.mNode,mi_driven.mNode)[0]
-                            mi_bsNode = cgmMeta.cgmNode(_str_bsNode,setClass=True)
+                            mi_bsNode = cgmMeta.asMeta(_str_bsNode,'cgmNode',setClass=True)
                             mi_bsNode.doStore('cgmName',mi_uprDrivenCrv.mNode)
                             mi_bsNode.doName()
                             l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
@@ -2765,7 +2765,7 @@ def build_rig(*args, **kws):
                            'lwrLipDrivenReverse':mi_lwrDrivenCrv}	
 
                 for str_k in d_toDup.iterkeys():
-                    mi_dup = cgmMeta.cgmObject( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=1,rc=True)[0],setClass=True )
+                    mi_dup = cgmMeta.asMeta( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=1,rc=True)[0],'cgmObject',setClass=True )
                     mi_dup.addAttr('cgmTypeModifier','ReverseDriven')
                     mi_dup.doName()
 
@@ -2964,7 +2964,7 @@ def build_rig(*args, **kws):
                             raise Exception,"[Failed to find upLoc: %s | %s]{%s}"%(str_k,i,error)	
                     try:
                         #Dup with connections for maintaining toggles
-                        mi_loc = cgmMeta.cgmObject( mc.duplicate(ml_locs[0].mNode,po=False,ic=True,rc=True)[0],setClass=True )
+                        mi_loc = cgmMeta.asMeta( mc.duplicate(ml_locs[0].mNode,po=False,ic=True,rc=True)[0],'cgmObject',setClass=True )
                         mi_loc.parent = mi_go._i_rigNull
                         mi_loc.addAttr('cgmTypeModifier','midLoc')
                         mi_loc.doName()
@@ -3006,7 +3006,7 @@ def build_rig(*args, **kws):
 		d_toDup = {'mouthTopTrace':self.mi_mouthTopCastCrv,
 	                   'mouthBaseTrace':self.mi_mouthLowCastCrv}
 		for str_k in d_toDup.iterkeys():
-		    mi_dup = cgmMeta.cgmObject( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],setClass=True )
+		    mi_dup = cgmMeta.asMeta( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],'cgmObject',setClass=True )
 		    mi_dup.cgmType = 'traceCrv'
 		    mi_dup.cgmName = mi_dup.cgmName.replace('Cast','')
 		    mi_dup.doName()
@@ -3213,7 +3213,7 @@ def build_rig(*args, **kws):
 		d_toDup = {'mouthTopTrace':self.mi_mouthTopCastCrv,
 	                   'mouthBaseTrace':self.mi_mouthLowCastCrv}
 		for str_k in d_toDup.iterkeys():
-		    mi_dup = cgmMeta.cgmObject( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],setClass=True )
+		    mi_dup = cgmMeta.asMeta( mc.duplicate(d_toDup[str_k].mNode,po=False,ic=True,rc=True)[0],'cgmObject',setClass=True )
 		    mi_dup.cgmType = 'traceCrv'
 		    mi_dup.cgmName = mi_dup.cgmName.replace('Cast','')
 		    mi_dup.doName()

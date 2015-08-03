@@ -300,7 +300,7 @@ def doSkeletonizeEyeball(self):
 
     #Parent, tag
     for i,j in enumerate(l_initialJoints):
-        i_j = cgmMeta.cgmObject(j,setClass=True)
+        i_j = cgmMeta.asMeta(j,'cgmObject',setClass = True)
         i_j.doCopyNameTagsFromObject( ml_buildObjects[i].mNode,ignore=['cgmTypeModifier','cgmType'] )#copy Tags
         i_j.parent = False
         ml_moduleJoints.append(i_j)
@@ -310,7 +310,7 @@ def doSkeletonizeEyeball(self):
     #Make our up loc
     try:
         _str_upLoc = locators.locMeCvFromCvIndex(mi_helper.getShapes()[0],2)   
-        mi_upLoc = cgmMeta.cgmObject(_str_upLoc)
+        mi_upLoc = cgmMeta.asMeta(_str_upLoc,'cgmObject')
         mi_aimLoc = mi_helper.pupilHelper.doLoc()
         v_aim = cgmValid.simpleAxis(_str_orientation[0]).p_vector
         v_up = cgmValid.simpleAxis(_str_orientation[1]).p_vector
@@ -405,7 +405,7 @@ def doSkeletonizeEyelids(self):
 
         #Orient info
         _str_upLoc = locators.locMeCvFromCvIndex(mi_helper.getShapes()[0],2)   
-        mi_upLoc = cgmMeta.cgmObject(_str_upLoc)	
+        mi_upLoc = cgmMeta.asMeta(_str_upLoc,'cgmObject')	
 
     except Exception,error:
         raise StandardError,"Data gather fail! | error: %s "%(error)       
@@ -427,8 +427,7 @@ def doSkeletonizeEyelids(self):
             for i,pos in enumerate(l_pos):
                 try:#Create and name
                     mc.select(cl=True)
-                    #mi_root = cgmMeta.cgmObject( mc.joint(p = mi_helper.getPosition()),setClass=True )
-                    mi_end = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                    mi_end = cgmMeta.asMeta(mc.joint(p = pos),'cgmObject',setClass = True)
                     mi_end.parent = False
                     ml_buffer = [mi_end]
                     mi_end.doCopyNameTagsFromObject( self._mi_module.mNode,ignore=['cgmTypeModifier','cgmType'] )#copy Tags
@@ -622,7 +621,7 @@ def doSkeletonizeEyebrow(goInstance = None):
                 log.debug("%s >>> Squash stretch cast. key: %s | cast: %s | pos:%s"%(self._str_reportStart,k, str_cast,pos))
                 try:#Create and name
                     mc.select(cl=True)
-                    mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                    mi_jnt = cgmMeta.asMeta(mc.joint(p = pos),'cgmObject',setClass = True)
                     mi_jnt.parent = False
                     mi_jnt.addAttr('cgmDirection',k ,lock=True)			    
                     mi_jnt.addAttr('cgmName',"head",lock=True)	
@@ -651,7 +650,7 @@ def doSkeletonizeEyebrow(goInstance = None):
 
             try:#Create and name --------------------------------------------------------------------------------
                 mc.select(cl=True)
-                mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                mi_jnt = cgmMeta.asMeta(mc.joint(p = pos),'cgmObject',setClass = True)
                 mi_jnt.parent = False
                 mi_jnt.addAttr('cgmName',"brow",lock=True)
                 mi_jnt.addAttr('cgmDirection',"center",lock=True)		    					
@@ -702,7 +701,7 @@ def doSkeletonizeEyebrow(goInstance = None):
                 for i,pos in enumerate(l_pos):
                     try:#Create and name
                         mc.select(cl=True)
-                        mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                        mi_jnt = cgmMeta.asMeta(mc.joint(p = pos),'cgmObject',setClass = True)
                         mi_jnt.parent = False
                         mi_jnt.addAttr('cgmName',"brow",lock=True)		    			
                         mi_jnt.addAttr('cgmDirection',"%s"%(k),lock=True)		    
@@ -786,7 +785,7 @@ def doSkeletonizeEyebrow(goInstance = None):
                 for i,pos in enumerate(l_pos):
                     try:#Create and name
                         mc.select(cl=True)
-                        mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                        mi_jnt = cgmMeta.asMeta(mc.joint(p = pos),'cgmObject',setClass = True)
                         mi_jnt.parent = False
                         mi_jnt.addAttr('cgmName',"uprCheek",lock=True)		    			
                         mi_jnt.addAttr('cgmDirection',"%s"%(k),lock=True)		    
@@ -839,7 +838,7 @@ def doSkeletonizeEyebrow(goInstance = None):
                 for i,pos in enumerate(l_pos):
                     try:#Create and name
                         mc.select(cl=True)
-                        mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                        mi_jnt = cgmMeta.asMeta(mc.joint(p = pos),'cgmObject',setClass = True)
                         mi_jnt.parent = False
                         mi_jnt.addAttr('cgmName',"temple",lock=True)		    			
                         mi_jnt.addAttr('cgmDirection',"%s"%(k),lock=True)		    
@@ -959,7 +958,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                 mi_crv = self.mi_jawPivotCrv
                 tag = 'jaw'
                 try:#Create an name -------------------------------------------------------------------------
-                    mi_root = cgmMeta.cgmObject( mc.joint(p = mi_crv.getPosition()),setClass=True )
+                    mi_root = cgmMeta.asMeta(mc.joint(p = mi_crv.getPosition()),'cgmObject',setClass = True)
                     mi_root.addAttr('cgmName',tag,lock=True)		    			
                     mi_root.doName()
                     self.ml_moduleJoints.append(mi_root)
@@ -1006,7 +1005,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 
                             mc.select(cl=True)
                             str_mdTag = "%s_%s_%s"%(str_direction,tag,i)
-                            mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                            mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject',setClass=True )
                             mi_jnt.addAttr('cgmName',tag,lock=True)
                             if str_direction is not None:
                                 mi_jnt.addAttr('cgmDirection',str_direction,lock=True)
@@ -1105,7 +1104,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                     try:#Create an name -------------------------------------------------------------------------
                         self.progressBar_set(status = "Creating %s '%s'"%(tag,i), progress = i, maxValue = int_lenMax)						    								    
                         mc.select(cl=True)
-                        mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                        mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject', setClass=True )
                         if i in [0,int_last] and tag == 'lipUpr':
                             mi_jnt.addAttr('cgmName','lipCorner',lock=True)			    			    
                         else:
@@ -1256,7 +1255,7 @@ def doSkeletonizeMouthNose(*args,**kws):
 
                     pos = distance.returnAveragePointPosition(l_pos)
 
-                    mi_root = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                    mi_root = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject', setClass=True )
                     mi_root.addAttr('cgmName',tag,lock=True)		    			
                     mi_root.doName()
                     self.ml_moduleJoints.append(mi_root)
@@ -1291,7 +1290,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                         str_loc = locators.doLocPos( distance.returnWorldSpacePosition(l_components[idx]) )[0]
                         d_ret = distance.returnNearestPointOnCurveInfo(str_loc,mi_crv.mNode)
                         mc.delete(str_loc)#Delete the loc
-                        mi_jnt = cgmMeta.cgmObject( mc.joint(p = d_ret['position']),setClass=True )
+                        mi_jnt = cgmMeta.asMeta( mc.joint(p = d_ret['position']),'cgmObject', setClass=True )
                         mi_jnt.addAttr('cgmName',tag,lock=True)		    			
                         mi_jnt.doName()
                         self.ml_moduleJoints.append(mi_jnt)
@@ -1351,7 +1350,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                         try:#Create an name -------------------------------------------------------------------------
                             str_mdTag = "%s_%s_%s"%(str_direction,tag,i)
                             self.progressBar_set(status = "Creating %s '%s'"%(str_direction,tag), progress = i, maxValue = int_lenMax)						    								    
-                            mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                            mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject', setClass=True )
                             mi_jnt.addAttr('cgmName',tag,lock=True)		    						    
                             mi_jnt.addAttr('cgmDirection',str_direction,lock=True)
                             mi_jnt.addAttr('cgmIterator',i,lock=True,hidden = True)		    			
@@ -1423,7 +1422,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                     self.progressBar_set(status = "Creating '%s' %s"%(k,i), progress = i, maxValue = int_lenMax)						    
                     try:#Create and name -----------------------------------------------------------------------------------------------
                         mc.select(cl=True)
-                        mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                        mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject', setClass=True )
                         mi_jnt.parent = False
                         mi_jnt.addAttr('cgmName',"smileLine",lock=True)		    			
                         mi_jnt.addAttr('cgmDirection',"%s"%(k),lock=True)		    
@@ -1493,7 +1492,7 @@ def doSkeletonizeMouthNose(*args,**kws):
             for i,pos in enumerate(l_pos):
                 try:#Create and name -----------------------------------------------------------------------------------------------
                     mc.select(cl=True)
-                    mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                    mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject', setClass=True )
                     mi_jnt.addAttr('cgmName',"tongue",lock=True)		    			
                     mi_jnt.addAttr('cgmIterator',i,lock=True,hidden=True)			
                     mi_jnt.doName()
@@ -1558,7 +1557,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                         self.progressBar_set(status = "Creating '%s' %s"%(k,i), progress = i, maxValue = int_lenMax)						    
 
                         mc.select(cl=True)
-                        mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                        mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject', setClass=True )
                         mi_jnt.parent = False
                         mi_jnt.addAttr('cgmName',"uprCheek",lock=True)		    			
                         mi_jnt.addAttr('cgmDirection',"%s"%(k),lock=True)		    
@@ -1639,7 +1638,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                     try:#Create and name
                         self.progressBar_set(status = "Creating '%s' %s"%(k,i), progress = i, maxValue = int_lenMax)						    
                         mc.select(cl=True)
-                        mi_jnt = cgmMeta.cgmObject( mc.joint(p = pos),setClass=True )
+                        mi_jnt = cgmMeta.asMeta( mc.joint(p = pos),'cgmObject', setClass=True )
                         mi_jnt.parent = False
                         mi_jnt.addAttr('cgmName',"cheek",lock=True)		    			
                         mi_jnt.addAttr('cgmDirection',"%s"%(k),lock=True)		    
@@ -1770,7 +1769,7 @@ def build_limbSkeleton(*args, **kws):
 
                     self.log_debug("Equivalent: %s"%cgmMath.isVectorEquivalent(pos,parent_pos))
                     if cgmMath.isVectorEquivalent(pos,parent_pos):#if they're equivalent
-                        self.mi_parentJointToUse = cgmMeta.cgmObject(self.l_parentJoints[-1])
+                        self.mi_parentJointToUse = cgmMeta.asMeta(self.l_parentJoints[-1],'cgmObject')
 
             except Exception,error:raise Exception,"Parent check fail | {0} ".format(error)
 
@@ -1882,7 +1881,7 @@ def build_limbSkeleton(*args, **kws):
 
             #>>>Store these joints and rename the heirarchy
             try:#Metaclassing our objects
-                ml_moduleJoints = [cgmMeta.cgmObject(o,setClass=1) for o in self.l_limbJoints]
+                ml_moduleJoints = [cgmMeta.asMeta(o,'cgmObject',setClass=True) for o in self.l_limbJoints]
                 for i,mObj in enumerate(ml_moduleJoints):
                     mObj.addAttr('d_jointFlags', '{}',attrType = 'string', lock=True, hidden=True) 
             except Exception,error:raise Exception,"Joint flag/metaing fail | {0} ".format(error)
@@ -1993,7 +1992,7 @@ def doOrientSegment(*args, **kws):
                         constBuffer = mc.orientConstraint( helper,l_cull[0],maintainOffset = False)
                         mc.delete (constBuffer[0])  
                         #Push rotate to jointOrient
-                        i_jnt = cgmMeta.cgmObject(l_cull[0])
+                        i_jnt = cgmMeta.asMeta(l_cull[0],'cgmObject')
                 except Exception,error:raise Exception,"Single joint orient fail | {0} ".format(error)
 
             else:#Normal mode
@@ -2172,7 +2171,7 @@ def deleteSkeleton(*args,**kws):
                 for c in buffer:
                     if c not in l_skinJoints:
                         try:
-                            i_c = cgmMeta.cgmObject(c)
+                            i_c = cgmMeta.asMeta(c,'cgmObject')
                             i_c.parent = False
                             l_strayChildren.append(i_c.mNode)
                             if not i_c.getMessage('rigNull'):

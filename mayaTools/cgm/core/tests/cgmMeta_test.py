@@ -287,12 +287,12 @@ def ut_cgmMeta(*args, **kws):
 	    
 	    try:#cgmObject...
 		try:
-		    n1 = n1.convertMClassType('cgmObject')
+		    n1 = r9Meta.convertMClassType(n1,'cgmObject')
 		    assert issubclass(type(n1),cgmMeta.cgmObject),"Not a cgmObject. Type :{0}".format(type(n1))
 		except Exception,error:
 		    raise Exception,"[cgmNode>>cgmObject]{%s}"%error	    
 		try:
-		    n1 = n1.convertMClassType('cgmControl')
+		    n1 = r9Meta.convertMClassType(n1,'cgmControl')
 		    #log.info(n1)
 		    assert issubclass(type(n1),cgmMeta.cgmControl),"Not a cgmControl. Type :{0}".format(type(n1))
 		except Exception,error:raise Exception,"[cgmObject>>cgmControl]{%s}"%error	    
@@ -304,11 +304,15 @@ def ut_cgmMeta(*args, **kws):
 		try:
 		    _str_grp = mc.group(em=True)		    
 		    n1 = cgmMeta.cgmNode(_str_grp)
-		    n1 = n1.convertMClassType('cgmControl')
+		    n1 = r9Meta.convertMClassType(n1,'cgmControl')
 		    assert issubclass(type(n1),cgmMeta.cgmControl),"Not a cgmControl. Type :{0}".format(type(n1))
 		except Exception,error:raise Exception,"[null1>>cgmControl]{%s}"%error	    
 		try:
-		    n1 = n1.convertMClassType('cgmNode')
+		    cgmMeta.validateObjArg(n1.mNode,'cgmObject')
+		except Exception,error:raise Exception,"[cgmControl subClass check]{%s}"%error			
+		
+		try:
+		    n1 = r9Meta.convertMClassType(n1,'cgmNode')
 		    assert issubclass(type(n1),cgmMeta.cgmNode),"Not a cgmNode"
 		except Exception,error:raise Exception,"[cgmControl>>cgmNode]{%s}"%error	
 		
@@ -329,28 +333,43 @@ def ut_cgmMeta(*args, **kws):
 		except:self.log_debug("Empty arg should have failed and did")
 		else:raise StandardError,"Empty arg should have failed and did NOT"
 		
-		assert i_obj == cgmMeta.validateObjArg(i_obj.mNode),"string arg failed"
-		self.log_debug("String arg passed!")
-		assert i_obj == cgmMeta.validateObjArg(i_obj),"instance arg failed"
-		self.log_debug("instance arg passed!")
+		try:
+		    assert i_obj == cgmMeta.validateObjArg(i_obj.mNode),"string arg failed"
+		    self.log_debug("String arg passed!")
+		except Exception,error:raise Exception,"String arg. | {0}".format(error)
 		
-		i_returnObj = cgmMeta.validateObjArg(i_obj.mNode,cgmMeta.cgmObject)
-		assert issubclass(type(i_returnObj),cgmMeta.cgmObject),"String + mType arg failed!"
-		self.log_debug("String + mType arg passed!")
+		try:
+		    assert i_obj == cgmMeta.validateObjArg(i_obj),"instance arg failed"
+		    self.log_debug("instance arg passed!")
+		except Exception,error:raise Exception,"Instance arg. | {0}".format(error)
 		
-		assert i_obj == cgmMeta.validateObjArg(i_obj,cgmMeta.cgmObject),"Instance + mType arg failed!"
-		self.log_debug("Instance + mType arg passed!")
+		try:
+		    i_returnObj = cgmMeta.validateObjArg(i_obj.mNode,'cgmObject')
+		    assert issubclass(type(i_returnObj),cgmMeta.cgmObject),"String + mType arg failed!"
+		    self.log_debug("String + mType arg passed!")
+		except Exception,error:raise Exception,"String arg. String mType| {0}".format(error)
 		
-		try:validateObjArg(i_node.mNode,cgmMeta.cgmObject)
-		except:self.log_debug("Validate cgmNode as cgmObject should have failed and did")
+		try:
+		    assert i_obj == cgmMeta.validateObjArg(i_obj,'cgmObject'),"Instance + mType arg failed!"
+		    self.log_debug("Instance + mType arg passed!")
+		except Exception,error:raise Exception,"Instance arg. string mType| {0}".format(error)
 		
-		assert issubclass(type(cgmMeta.validateObjArg(null)),cgmMeta.cgmNode),"Null string failed!"
-		self.log_debug("Null string passed!")
+		try:cgmMeta.validateObjArg(i_node.mNode,'cgmObject')
+		except Exception,error:
+		    self.log_debug("Validate cgmNode as cgmObject should have failed and did")
+		    #raise Exception,"Wrong mType check| {0}".format(error)
 		
-		i_null = cgmMeta.validateObjArg(null,cgmMeta.cgmObject)
-		self.log_info(i_null)
-		assert issubclass(type(i_null),cgmMeta.cgmObject),"Null as cgmObject failed! | %s"%type(i_null)
-		self.log_debug("Null as cgmObjectpassed!")
+		try:
+		    assert issubclass(type(cgmMeta.validateObjArg(null)),cgmMeta.cgmNode),"Null string failed!"
+		    self.log_debug("Null string passed!")
+		except Exception,error:raise Exception,"Null String arg. String mType| {0}".format(error)
+		
+		try:
+		    i_null = cgmMeta.validateObjArg(null,'cgmObject')
+		    self.log_info(i_null)
+		    assert issubclass(type(i_null),cgmMeta.cgmObject),"Null as cgmObject failed! | %s"%type(i_null)
+		    self.log_debug("Null as cgmObjectpassed!")
+		except Exception,error:raise Exception,"Null string. Change type| {0}".format(error)
 		
 		i_null.delete()
 		i_node.delete()
@@ -364,7 +383,23 @@ def ut_cgmMeta(*args, **kws):
 		except:self.log_debug("Validate puppet")
 		
 		miPuppet.delete()
-	    except Exception,error:raise Exception,"mClass Changes"
+	    except Exception,error:raise Exception,"validate puppet"
+	    
+	    try:
+		_objs = [mc.joint(), mc.group(em=True), mc.createNode('multiplyDivide')]
+		for i,obj in enumerate(_objs):
+		    try:
+			n1 = cgmMeta.validateObjArg(obj,'cgmObject')
+			if i == 2:
+			    assert issubclass(type(n1),cgmMeta.cgmNode),"Not a cgmNode"
+			else:
+			    assert issubclass(type(n1),cgmMeta.cgmObject),"Not a cgmObject"   
+			n1.delete()
+			
+		    except Exception,error:
+			raise Exception,"{0} failed. | {1}".format(obj,error)
+		    
+	    except Exception,error:raise Exception,"nodetype series |{0}".format(error)	    
 	    
 	def _cgmAttr_(self,**kws):    
 	    self.cgmAttrNull = cgmMeta.cgmObject(name = 'cgmAttrNull',nodeType = 'transform')

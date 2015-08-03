@@ -103,7 +103,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 	#====================================================================================	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(node))
+	    log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
 	    return
 	#====================================================================================
 	
@@ -1735,7 +1735,7 @@ class cgmModule(cgmMeta.cgmObject):
         #if log.getEffectiveLevel() == 10:log.debug(">>> %s.__verifyAttributesOn__ >> "%(self.p_nameShort) + "="*75)            	        	
         if type(dictToUse) is not dict:
             raise StandardError,"Not a dict: %s"%null
-        i_null = cgmMeta.validateObjArg(null)
+        i_null = cgmMeta.asMeta(null)
         if not i_null:
             raise StandardError,"Not a valid object: %s"%dictToUse	
 
@@ -2720,7 +2720,7 @@ class cgmEyeballBlock(cgmRigBlock):
         md_curves = {}
         for k in l_buildOrder:
             str_return = d_buildCurves.get(k)
-            mi_obj = cgmMeta.cgmNode(str_return).convertMClassType('cgmObject')#instance
+	    mi_obj = cgmMeta.asMeta(str_return,'cgmObject',setClass = True)
             mi_obj.addAttr('cgmName',k)#tag
             mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)		    
             curves.setCurveColorByName(mi_obj.mNode,self.color[0])#Set the color	    			
@@ -3061,7 +3061,7 @@ class cgmEyebrowBlock(cgmRigBlock):
         md_curves = {}
         for k in l_buildOrder:
             str_return = d_buildCurves.get(k)
-            mi_obj = cgmMeta.cgmNode(str_return).convertMClassType('cgmObject')#instance
+            mi_obj = cgmMeta.asMeta(str_return,'cgmObject',setClass = True)
             mi_obj.addAttr('cgmName',k)#tag
             mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)
             if 'left' in k:
@@ -3353,7 +3353,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
                             str_return = d.get('build')
                             self.str_return = str_return
 
-                            mi_obj = cgmMeta.cgmNode(str_return).convertMClassType('cgmObject')#instance
+                            mi_obj = cgmMeta.asMeta(str_return,'cgmObject',setClass = True)#instance
                             mi_obj.addAttr('cgmName',str_name)#tag
                             mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)
                             if 'left' in str_name or 'Left' in str_name:
