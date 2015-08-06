@@ -22,7 +22,7 @@ Necessary variables:
 3) __l_jointAttrs__
 ================================================================
 """
-__version__ = 01.05142014
+__version__ = 'beta.08032015'
 
 # From Python =============================================================
 import copy
@@ -43,14 +43,11 @@ from Red9.core import Red9_Meta as r9Meta
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
-
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.rigger.lib import module_Utils as modUtils
 from cgm.core.rigger.lib import cgmRigs_sharedData as cgmRigsData
-
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
-reload(mShapeCast)
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
 
@@ -434,7 +431,7 @@ def build_controls(*args, **kws):
 
             except Exception,error:raise Exception,"hips fail | error: {0}".format(error)
 
-            '''try:#Connect all controls	
+            try:#Connect all controls	
                 ml_extraControls = []
                 for i,mCtrl in enumerate(ml_controlsAll):
                     try:
@@ -453,7 +450,7 @@ def build_controls(*args, **kws):
                 #Push connections
                 mi_go._i_rigNull.msgList_connect(ml_controlsAll,'controlsAll')
                 mi_go._i_rigNull.moduleSet.extend(ml_controlsAll)
-            except Exception,error:raise Exception,"connect fail | error: {0}".format(error)'''
+            except Exception,error:raise Exception,"connect fail | error: {0}".format(error)
 
             return True	    
 

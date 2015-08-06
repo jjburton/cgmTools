@@ -45,39 +45,13 @@ reload(constraints)
 #l_modulesToDoOrder = ['torso','clavicle_left','clavicle_right','arm_left','arm_right']
 #l_modulesToDoOrder = ['torso','clavicle_left']
 #l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right']
-'''
 l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
                       'clavicle_left','arm_left',
                       'thumb_left','index_left','middle_left','ring_left','pinky_left',                   
                       'clavicle_right','arm_right',
                       'thumb_right','index_right','middle_right','ring_right','pinky_right',
-                      ]'''
-'''
-l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
-                      'clavicle_left','arm_left',
-                      'clavicle_right','arm_right',
-                      ]'''
-l_modulesToDoOrder = ['torso']
-"""
-
-l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right']
-
-l_modulesToDoOrder = ['torso',
-                      'clavicle_left','arm_left',
-                      'thumb_left','index_left','middle_left','ring_left','pinky_left'
                       ]
-l_modulesToDoOrder = ['torso',
-                      'clavicle_left','arm_left',
-                      'thumb_left','index_left','middle_left','ring_left','pinky_left',
-                      ]
-"""
-'''l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
-                      'clavicle_left','arm_left',
-                      'thumb_left','index_left','middle_left','ring_left','pinky_left',                     
-                      'clavicle_right','arm_right',
-                      'thumb_right','index_right','middle_right','ring_right','pinky_right'
-                      ]'''
-
+#l_modulesToDoOrder = ['torso']
 
 #This is the parent info for each module
 d_moduleParents = {'torso':False,

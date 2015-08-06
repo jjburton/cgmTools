@@ -90,8 +90,8 @@ def parentShapeInPlace(obj,curve):
     mc.select (cl=True)
     #workingCurve = dupeCurve(curve)
     #workingCurve = mc.duplicateCurve(curve)[0]
-    workingCurve = dupeCurve(curve)
-    #workingCurve = mc.duplicate(curve)
+    #workingCurve = dupeCurve(curve)
+    workingCurve = mc.duplicate(curve)
     parents = search.returnAllParents(obj)
 
     """Check for parents on the curve and get rid of them to alleviate some transform nonsense"""
@@ -444,6 +444,7 @@ def dupeCurve(curve = None):
         TypeError | if 'arg' is not a joint
 	
     """    
+    raise DeprecationWarning,"DO NOT USE THIS: curves.dupeCurve"
     try:
         l_tarShapes = mc.listRelatives(curve, shapes=True, fullPath=True)
         l_transforms = []

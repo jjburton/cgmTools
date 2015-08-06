@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 leg rig builder
 ================================================================
 """
-__version__ = 'beta.06112014'
+__version__ = 'beta.08032015'
 
 # From Python =============================================================
 import copy
@@ -261,7 +261,7 @@ def build_rigSkeleton(*args, **kws):
                 i_ballWigglePivot.doName()
                 mi_go._i_rigNull.connectChildNode(i_ballWigglePivot,"pivot_ballWiggle","rigNull") 
 
-                mi_toePivot = mi_go._i_rigNull.pivot_toe or False 
+                mi_toePivot = mi_go._i_rigNull.getMessageAsMeta('pivot_toe') 
                 if not mi_toePivot:
                     raise Exception,"%s.build_rigSkeleton>>> missing our toe pivot"%mi_go._strShortName
 
@@ -347,6 +347,8 @@ def build_rigSkeleton(*args, **kws):
             try:#>>Make our toe #=====================================================================
                 #Do the toe
                 i_toeJoint = ml_ikJoints[-1].doDuplicate()
+                log.info("i_toeJoint: {0}".format(i_toeJoint))
+                log.info("mi_toePivot: {0}".format(mi_toePivot))                
                 Snap.go(i_toeJoint, mi_toePivot.mNode,True,False)
                 joints.doCopyJointOrient(ml_ikJoints[-1].mNode,i_toeJoint.mNode)
                 i_toeJoint.addAttr('cgmName','toe',attrType='string',lock=True)	
@@ -1513,11 +1515,11 @@ def build_deformation(*args, **kws):
                     #>>> Attach stuff
                     #==============================================================================================
                     try:#We're gonna attach to the blend chain
-                        mi_segmentAnchorStart = i_curve.anchorStart
-                        mi_segmentAnchorEnd = i_curve.anchorEnd
-                        mi_segmentAttachStart = i_curve.attachStart
-                        mi_segmentAttachEnd = i_curve.attachEnd 
-                        mi_distanceBuffer = i_curve.scaleBuffer
+                        mi_segmentAnchorStart = cgmMeta.validateObjArg(i_curve.anchorStart,'cgmObject')
+                        mi_segmentAnchorEnd = cgmMeta.validateObjArg(i_curve.anchorEnd,'cgmObject')
+                        mi_segmentAttachStart = cgmMeta.validateObjArg(i_curve.attachStart,'cgmObject')
+                        mi_segmentAttachEnd = cgmMeta.validateObjArg(i_curve.attachEnd,'cgmObject') 
+                        mi_distanceBuffer = cgmMeta.validateObjArg(i_curve.scaleBuffer)
 
                         log.debug("mi_segmentAnchorStart: %s"%mi_segmentAnchorStart.mNode)
                         log.debug("mi_segmentAnchorEnd: %s"%mi_segmentAnchorEnd.mNode)
@@ -2907,7 +2909,7 @@ def build_twistDriver_ankle(self):
         NodeF.argsToNodes("%s.rz = -%s.rz"%(i_rotGroup.p_nameShort,
                                             mi_controlIK.p_nameShort)).doBuild()	
 
-        i_rotGroup.parent = self._i_rigNull.pivot_ball.mNode
+        i_rotGroup.parent = self._i_rigNull.pivot_ball
 
         #>>> Connect in
         mPlug_worldIKEndIn.doConnectIn("%s.r%s"%(i_startRoot.mNode,self._jointOrientation[0]))

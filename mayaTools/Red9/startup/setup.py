@@ -11,7 +11,7 @@ MarkJ blog: http://markj3d.blogspot.co.uk
 This is the heart of the Red9 StudioPack's boot sequence, managing folder structures,
 dependencies and menuItems.
 
-THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules
+#########  THIS SHOULD NOT REQUIRE ANY OF THE RED9.core modules  ##########
 '''
 
 #from Red9.startup import language_packs
@@ -39,8 +39,8 @@ log.setLevel(logging.INFO)
  Maya Version Mapping History:
  ====================================
 
- Release         -version    -api     python    -qt       prefs      release    info
- -----------------------------------------------------------------------------------
+ Release         -version    -api     python    -qt       prefs      release    extra info
+ -----------------------------------------------------------------------------------------
  
   2008          .  2008  .  ??????  .  2.5.1     na    .  2008    . 2007-09-01
   2009          .  2009  .  ??????  .  2.5.1     na    .  2009    . 2008-10-01
@@ -60,7 +60,9 @@ log.setLevel(logging.INFO)
 
   2014          .  2014  .  201400  .  2.6.4    4.8.2  .  2014    . 2013-04-10
   2015          .  2015  .  201500  .  2.7      4.8.5  .  2015    . 2014-04-15
-------------------------------------------------------------------------------------
+  2016          .  2016  .  201600  .  2.7      4.8.5  .  2016    . 2015-04-15
+  
+------------------------------------------------------------------------------------------
 '''
 
 
@@ -98,7 +100,16 @@ set_language()
 #=========================================================================================
 
 MAYA_INTERNAL_DATA = {}  # cached Maya internal vars for speed
- 
+
+def mayaFullSpecs():
+    print 'Maya version : ', mayaVersion()
+    print 'Maya API version: ', mayaVersionRelease()
+    print 'QT build: ', mayaVersionQT()
+    print 'Prefs folder: ',mayaPrefs()
+    print 'OS build: ', osBuild()
+    
+    print MAYA_INTERNAL_DATA
+     
 def mayaVersion():
     #need to manage this better and use the API version,
     #eg: 2013.5 returns 2013
@@ -117,7 +128,11 @@ def mayaVersionRelease():
 
 def mayaVersionQT():
     try:
-        return cmds.about(qt=True)
+        if 'qt' in MAYA_INTERNAL_DATA and MAYA_INTERNAL_DATA['qt']:
+            return MAYA_INTERNAL_DATA['qt']
+        else:
+            MAYA_INTERNAL_DATA['qt'] = cmds.about(qt=True)
+            return MAYA_INTERNAL_DATA['qt']
     except:
         pass
     
@@ -125,7 +140,11 @@ def mayaPrefs():
     '''
     Root of Maya prefs folder
     '''
-    return os.path.dirname(cmds.about(env=True))
+    if 'prefs' in MAYA_INTERNAL_DATA and MAYA_INTERNAL_DATA['prefs']:
+        return MAYA_INTERNAL_DATA['prefs']
+    else:
+        MAYA_INTERNAL_DATA['prefs'] = os.path.dirname(cmds.about(env=True))
+        return MAYA_INTERNAL_DATA['prefs']
 
 def mayaUpAxis(setAxis=None):
     import maya.OpenMaya as OpenMaya
@@ -736,11 +755,15 @@ def sourceMelFolderContents(path):
 
 PRO_PACK_STUBS=None
 
+
+def pro_pack_path():
+    return os.path.join(red9ModulePath(),'pro_pack')
+
 def has_pro_pack():
     '''
     Red9 Pro_Pack is available and activated as user
     '''
-    if os.path.exists(os.path.join(red9ModulePath(),'pro_pack')):
+    if os.path.exists(pro_pack_path()):
         try:
             #new pro_pack call
             import Red9.pro_pack.r9pro as r9pro
@@ -778,14 +801,62 @@ class pro_pack_missing_stub(object):
     '''
     def __init__(self):
         raise ProPack_UIError()
+    
 
-             
+
+#=========================================================================================
+# RED9 PRODUCTION MODULES ----------------------------------------------------------------
+#=========================================================================================
+            
 def has_internal_systems():
     '''
     Red9 Consultancy internal modules only
     '''
-    if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(red9ModulePath())),'Red9_Internals')):
+    if os.path.exists(internal_module_path()):
         return True
+
+def internal_module_path():
+    return os.path.join(os.path.dirname(os.path.dirname(red9ModulePath())),'Red9_Internals')
+
+
+#=========================================================================================
+# CLIENT MODULES -------------------------------------------------------------------------
+#=========================================================================================
+
+def client_core_path():
+    return os.path.join(os.path.dirname(os.path.dirname(red9ModulePath())),'Red9_ClientCore')
+
+def has_client_modules():
+    '''
+    Red9 Client Modules is the distribution of bespoke code to clients
+    that tightly integrates into our ProPack core
+    '''
+    if os.path.exists(client_core_path()):
+        return True
+
+def get_client_modules():
+    '''
+    get all client modules ready for the boot sequence
+    
+    #TODO: link this up with a management setup so we can determine
+    which client to boot if we have multiple client repositories in the system.
+    '''
+    clients=[]
+    if has_client_modules():
+        for f in os.listdir(client_core_path()):
+            if os.path.isdir(os.path.join(client_core_path(), f)):
+                if not f.startswith('.'):
+                    clients.append(f)
+    return clients
+                
+def boot_client_projects():
+    '''
+    Boot all Client modules found in the Red9_ClientCore dir
+    '''
+    for client in get_client_modules():
+        log.info('Booting Client Module : %s' % client)
+        cmds.evalDeferred("import Red9_ClientCore.%s" % client, lp=True)  # Unresolved Import
+        
 
 
 #=========================================================================================
@@ -851,17 +922,22 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindo
 
     log.info('Red9 StudioPack Complete!')
     
+    # Rearrangement of the Boot core systems to better structure the boot sequence
+    
+    # Boot main Red9.core
+    cmds.evalDeferred("import Red9.core", lp=True)
+
+    # Boot the Pro_Pack
     if has_pro_pack():
         cmds.evalDeferred("import Red9.pro_pack", lp=True)  # Unresolved Import
-#     if has_pro_pack():
-#         #in new builds we don not need to do this ;)
-#         cmds.evalDeferred("import Red9.pro_pack", lp=True)  # Unresolved Import
-#     else:
-#         cmds.menuItem('redNineGetProItem', l='PRO : Get Pro Pack',
-#                       p='redNineProRootItem', i='red9.jpg',
-#                       c=get_pro_pack)
+    # Boot the Red9_Internal systems
     if has_internal_systems():
         cmds.evalDeferred("import Red9_Internals", lp=True)  # Unresolved Import
+    # Boot Client Codebases
+    if has_client_modules():
+        boot_client_projects()
+        #cmds.evalDeferred("import Red9_ClientCore", lp=True)  # Unresolved Import
+           
            
 def reload_Red9(*args):
     #global LANGUAGE_MAP

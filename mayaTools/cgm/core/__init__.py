@@ -66,15 +66,13 @@ def _reload():
     reload(lib.shapeCaster)
     
     
-    #Red9_Meta.registerMClassInheritanceMapping()#shouldn't be necessary as they do this per mdodule
-    #Red9_Meta.registerMClassNodeMapping(nodeTypes = ['network','transform','objectSet'])#What node types to look for    
-    Red9_Meta.registerMClassNodeMapping(nodeTypes = ['transform','objectSet','clamp','setRange',
-                                                     'addDoubleLinear','condition','multiplyDivide','plusMinusAverage'])
+    Red9_Meta.registerMClassNodeMapping(nodeTypes = ['transform','objectSet','clamp','setRange','pointOnCurveInfo','decomposeMatrix',
+                                                     'ikSplineSolver','blendColors','blendTwoAttr','addDoubleLinear','condition','multiplyDivide','plusMinusAverage'])
 
     print('CGM Core Reloaded and META REGISTRY updated') 
-    print '============================================='  
+    print '=============================================================================='  
     Red9_Meta.printSubClassRegistry()  
-    print '============================================='    
+    print '=============================================================================='    
     
 def _setlogginglevel_debug():
     '''

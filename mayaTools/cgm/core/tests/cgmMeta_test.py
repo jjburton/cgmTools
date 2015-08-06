@@ -1019,6 +1019,7 @@ def ut_cgmMeta(*args, **kws):
 		#self.log_info('>'*3 + " String varType test and initValue Test...")   
 		self.OptionVarString = cgmMeta.cgmOptionVar('cgmVar_stringTest', defaultValue='batman')#String type
 	    except Exception,error:raise Exception,"[float init value]{%s}"%error
+	    
 	def _cgmBufferNodeCalls_(self,**kws):
 	    self.BufferNode = cgmMeta.cgmBufferNode(name = 'testBuffer',value = ['test1','test2'],overideMessageCheck = True)#No arg should default to int
     
@@ -1298,6 +1299,9 @@ def ut_cgmPuppet(*args, **kws):
 	    
 	    try:#Initializations via other calls
 		#----------------------------------------------------------
+		try:self.mi_puppet._UTILS
+		except Exception,error:
+		    raise Exception,"No _Utils found | error: {0}".format(error)
 		try:
 		    mInstance = cgmMeta.cgmNode(Puppet.mNode)
 		    if not issubclass(type(mInstance),cgmPM.cgmPuppet):
@@ -1533,7 +1537,9 @@ def ut_cgmLimb(*args, **kws):
 			kw_name = _d.get('cgmName') or False 		
 			mModule = mPuppet.addModule(mClass = 'cgmLimb',mType = kw_mType,name = kw_name, direction = kw_direction)
 			self.md_modules[str_tag] = mModule#store back
-		    
+			try:mModule._UTILS
+			except Exception,error:
+			    raise Exception,"No _Utils found | error: {0}".format(error)		    
 			try:
 			    for key in _d.keys():
 				i_templateNull = mModule.templateNull

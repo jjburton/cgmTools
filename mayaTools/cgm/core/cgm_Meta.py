@@ -573,7 +573,9 @@ class cgmNode(r9Meta.MetaClass):
 		log.info('cgmNode init | reinitialize post set_mClass')
 		super(cgmNode, self).__init__(self.mNode)'''
 		    
+		    
 	#>>> TO USE Cached instance ---------------------------------------------------------
+	#log.info(self)
 	if self.cached:
 	    log.debug("using cache: {0}".format(self))
 	    return
@@ -583,7 +585,6 @@ class cgmNode(r9Meta.MetaClass):
 		log.info('cgmNode init | reinitialize post set_mClass')
 		#super(cgmNode, self).__init__(self.mNode)
 		r9Meta.registerMClassNodeCache(self)'''
-	    
 	#====================================================================================
 	try:
 	    self.UNMANAGED.extend(['__justCreatedState__','__componentMode__','__component__'])	
@@ -592,7 +593,8 @@ class cgmNode(r9Meta.MetaClass):
 	    self.__dict__['__component__'] = component
 	except Exception,error:
 	    r9Meta.printMetaCacheRegistry()
-	    raise Exception,"Failed to extend unmanaged | %s"%error	    
+	    raise Exception,"Failed to extend unmanaged | %s"%error	
+    
 	#self.update()
 	
     def convertMClassType(self, newMClass, **kws):
@@ -697,6 +699,25 @@ class cgmNode(r9Meta.MetaClass):
 	elif mc.objExists('%s.%s' % (self.mNode,attr)):
 	    return cgmAttr(self,attr).getMessage()
 	return []
+    
+    def __getMessageAttr__(self, attr):
+	'''
+	Overloaded Red9's for a default cgmNode
+	'''
+	msgLinks=mc.listConnections('%s.%s' % (self.mNode,attr),destination=True,source=True)
+	if msgLinks:
+	    msgLinks=mc.ls(msgLinks,l=True)
+	    if not mc.attributeQuery(attr, node=self.mNode, m=True):  # singular message
+		if r9Meta.isMetaNode(msgLinks[0]):
+		    return cgmNode(msgLinks[0])
+	    for i,link in enumerate(msgLinks):
+		if r9Meta.isMetaNode(link) or self._forceAsMeta:
+		    msgLinks[i]=cgmNode(link)
+		    log.debug('%s :  Connected data is an mClass Object, returning the Class' % link)    
+	    return msgLinks
+	else:
+	    log.debug('nothing connected to msgLink %s.%s' % (self.mNode,attr))
+	    return []
     
     def getMessageAsMeta(self,attr):
 	"""
@@ -1714,7 +1735,7 @@ class cgmNode(r9Meta.MetaClass):
 	    
 	    buffer = mc.duplicate(self.mNode,po=parentOnly,ic=incomingConnections)[0]
 	    #log.debug("doDuplicate>> buffer: %s"%buffer)
-	    i_obj = cgmNode(buffer)
+	    i_obj = validateObjArg(buffer)
 	    mc.rename(i_obj.mNode, self.getShortName()+'_DUPLICATE')
 	    #log.debug("doDuplicate>> i_obj: %s"%i_obj)
 	    
@@ -1745,8 +1766,6 @@ class cgmNode(r9Meta.MetaClass):
 			mc.setAttr(str_plug,lock=False)
 		if b_drivenLock:
 		    mc.setAttr(_str_messageCombined,lock=False) 
-	    if i_obj.isTransform():
-		return cgmObject(i_obj.mNode)
 	    return i_obj
 	except Exception,error:raise Exception,"[%s.doDuplicate]{%s}"%(self.p_nameShort,error)
     
@@ -5242,9 +5261,10 @@ def validateObjArg(*args,**kws):
 		#if not self.mi_arg.cached:
 		    #Only cache if setClass...???
 		try:
-		    self.log_debug("Caching...")
-		    self.mi_arg.addAttr('UUID',attrType = 'string',lock = True)				    
-		    r9Meta.registerMClassNodeCache(self.mi_arg)
+		    if not self.mi_arg.cached or not self.mi_arg.hasAttr('UUID'):
+			self.log_debug("Caching...")
+			self.mi_arg.addAttr('UUID',attrType = 'string',lock = True)				
+			r9Meta.registerMClassNodeCache(self.mi_arg)
 		except Exception,error:
 		    raise Exception,"Caching fail | {0}".format(error)
 		

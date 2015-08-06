@@ -104,6 +104,27 @@ class Test_MetaCache():
         assert len(r9Meta.RED9_META_NODECACHE.keys()) == 2
         assert r9Meta.RED9_META_NODECACHE[UUID]==a
         assert r9Meta.MetaClass(a.mNode).UUID == UUID
+    
+    def test_wrappedMayaNodes(self):
+        '''
+        test how the cache handles non mClass nodes
+        '''
+        cmds.polyCube(name='cube1')
+        n1 = r9Meta.MetaClass('|cube1')
+        r9Meta.registerMClassNodeCache(n1)
+        assert r9Meta.RED9_META_NODECACHE['|cube1']==n1
+        n1.rename('renamedCube1')
+        assert n1.mNode=='|renamedCube1'
+        
+        #because in this case we have no UUID's we only store the
+        #cache against the node name. Theres now a test against
+        #the MOBject to ensure that things are still correct in the pull
+        cmds.polyCube(name='cube1')
+        n2 = r9Meta.MetaClass('|cube1')
+        assert n2.mNode=='|cube1'
+        assert not n2.mNode=='renamedCube1'
+        r9Meta.registerMClassNodeCache(n2)
+        assert r9Meta.RED9_META_NODECACHE['|cube1']==n2
        
 
 class Test_MetaClass():
@@ -144,7 +165,7 @@ class Test_MetaClass():
         assert cmds.ls(sl=True)[0]=='FooBar'
         
         #convert
-        new=self.MClass.convertMClassType('MetaRig')
+        new=r9Meta.convertMClassType(self.MClass,'MetaRig')
         assert isinstance(new,r9Meta.MetaRig)
         assert self.MClass.mClass=='MetaRig'
         
@@ -750,6 +771,20 @@ class Test_MetaClass():
         print mLambert.color
         assert mLambert.color==(1.0, 0.0, 0.5)
         assert cmds.getAttr('lambert1.color')==[(1.0, 0.0, 0.5)]
+
+    def test_convertMClassType(self):
+        '''
+        test the class convert call, designed to mutate a given
+        metaClass to another and re-instantiate it
+        '''
+        # MClass Mutation
+        assert type(self.MClass)==r9Meta.MetaClass
+        converted=r9Meta.convertMClassType(self.MClass,'MetaRig')
+        assert type(converted)==r9Meta.MetaRig
+        assert converted.mClass=='MetaRig'
+        mNodes=r9Meta.getMetaNodes()
+        assert len(mNodes)==1
+        
 
     def test_referenceHandler(self):
         #TODO: Fill Test

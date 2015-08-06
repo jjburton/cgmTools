@@ -47,39 +47,60 @@ def nodeNameStrip(node):
     '''
     return node.split('|')[-1].split(':')[-1]
 
-
+@r9General.Timer
 def prioritizeNodeList(inputlist, priorityList, regex=True, prioritysOnly=False):
     '''
     Simple function to force the order of a given nList such that nodes
     in the given priority list are moved to the front of the list.
     
-    :param nList: main input list
+    :param inputlist: main input list
     :param priorityList: list which is used to prioritize/order the main nList
+    :param regex: Switches from regex search to simple exact node name
+    :param prioritysOnly: return just the priorityList matches or the entire list sorted
+    
+    #Known issue, if Regex=True and you have 2 similar str's in the priority list then there's 
+    a chance that matching may be erractic... 
+    
+    priorityList=['upperLip','l_upperLip']
+    nodes=['|my|dag|path|jaw',|my|dag|path|l_upperLip','|my|dag|path|upperLip','|my|dag|path|lowerLip']
+    returns: ['|my|dag|path|l_upperLip','|my|dag|path|upperLip',|my|dag|path|jaw,'|my|dag|path|lowerLip]
+    
+    as in regex 'l_upperLip'=='upperLip' as well as 'upperLip'=='upperLip' 
+    
+    really in regex you'd need to be more specific:  priorityList=['^upperLip','l_upperLip']
     '''
-    stripped = [nodeNameStrip(node) for node in inputlist]  # stripped back to nodeName
+    #stripped = [nodeNameStrip(node) for node in inputlist]  # stripped back to nodeName
     nList=list(inputlist)  # take a copy so we don't mutate the input list
     reordered = []
     
     if regex:
+        # this will match all partial matches within the inputList
+        #print 'pList : ',priorityList
         for pNode in priorityList:
-            for index, node in enumerate(stripped):
-                if re.search(pNode, node):
-                    reordered.append(nList[index])
-                    nList.pop(index)
-                    stripped.remove(node)
+            for node in inputlist:
+                if re.search(pNode, nodeNameStrip(node)):
+                    #print 'matched : ', nodeNameStrip(node), pNode, node
+                    reordered.append(node)
+                    try:
+                        nList.remove(node)
+                    except:
+                        log.debug('node not in list or already removed: %s>> priority str : %s' % (nodeNameStrip(node), node))
+
     else:
+        # this is setup to match exact only
+        stripped = [nodeNameStrip(node) for node in inputlist]  # stripped back to nodeName
         for pNode in priorityList:
             if pNode in stripped:
                 index = stripped.index(pNode)
                 reordered.append(nList[index])
                 nList.pop(index)
                 stripped.pop(index)
-    print nList
-    print reordered
+
     if not prioritysOnly:
         reordered.extend(nList)
-    # [log.debug('Prioritized Index: %i = %s  <: ORIGINALLY :>  %s' % (i,nodeNameStrip(reordered[i]),n))\
-    #     for i,n in enumerate(stripped)]
+        
+    #[log.debug('Prioritized Index: %i = %s  <: ORIGINALLY :>  %s' % (i,nodeNameStrip(reordered[i]),n)) for i,n in enumerate(stripped)]
+    
     return reordered
 
 

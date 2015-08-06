@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 arm rig builder
 ================================================================
 """
-__version__ = 'beta.06112014'
+__version__ = 'beta.08032015'
 
 # From Python =============================================================
 import copy
@@ -34,20 +34,14 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core.rigger.lib import module_Utils as modUtils
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.rigger.lib import cgmRigs_sharedData as cgmRigsData
-
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
-reload(NodeF)
-
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
-reload(mShapeCast)
-reload(mControlFactory)
 from cgm.core.rigger.lib import rig_Utils as rUtils
-reload(rUtils)
 from cgm.lib import (attributes,
                      joints,
                      skinning,
@@ -58,7 +52,6 @@ from cgm.lib import (attributes,
                      search,
                      curves,
                      )
-reload(joints)
 
 
 #>>> Skeleton
@@ -66,8 +59,6 @@ reload(joints)
 __l_jointAttrs__ = ['rigJoints','influenceJoints','fkJoints','ikJoints','blendJoints']   
 __d_preferredAngles__ = {'shoulder':[0,-10,10],'elbow':[0,-10,0]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
 __d_controlShapes__ = {'shape':['segmentIK','controlsFK','midIK','settings','hand']}
-
-
 
 def __bindSkeletonSetup__(self):
     """
@@ -889,227 +880,241 @@ def build_deformation(goInstance = None):
 
             mPlug_worldIKEndIn.doConnectOut(mPlug_worldIKEndOut.p_combinedShortName)
 
-            #Control Segment
-            #====================================================================================
-            ml_segmentCurves = []
-            ml_segmentReturns = []
-            ml_segmentJointChainsReset = []
-
-            log.debug(self._go._jointOrientation)
-            capAim = self._go._jointOrientation[0].capitalize()
-            log.debug("capAim: %s"%capAim)
-            for i,ml_segmentHandles in enumerate(ml_segmentHandleChains):
-                i_startControl = ml_segmentHandles[0]
-                i_midControl = ml_segmentHandles[1]
-                i_endControl = ml_segmentHandles[-1]
-                l_jointChain = [i_jnt.mNode for i_jnt in ml_segmentChains[i]]
-                l_infuenceJoints = [ml_influenceChains[i][0].getShortName(),ml_influenceChains[i][-1].getShortName()]
-                log.info("startControl: %s"%i_startControl.getShortName())
-                log.info("endControl: %s"%i_endControl.getShortName())
-                log.info("jointChain: %s"%l_jointChain)
-                log.info("influenceJoints: %s"%l_infuenceJoints)
-                str_baseName = self._go._partName+"_seg%s"%i
-                str_segCount = "seg%s"%i
-                #Create segment ========================================================================================
-                curveSegmentReturn = rUtils.createCGMSegment(l_jointChain,
-                                                             addSquashStretch=True,
-                                                             addTwist=True,
-                                                             influenceJoints=[l_infuenceJoints[0],l_infuenceJoints[-1]],
-                                                             startControl= i_startControl,
-                                                             endControl= i_endControl,
-                                                             orientation=self._go._jointOrientation,
-                                                             additiveScaleSetup=True,
-                                                             connectAdditiveScale=True,                                                 
-                                                             baseName = str_baseName,
-                                                             moduleInstance=self._go._mi_module)
-
-                ml_segmentReturns.append(curveSegmentReturn)
-
-                i_curve = curveSegmentReturn['mi_segmentCurve']
-                i_curve.parent = self._go._i_rigNull.mNode
-                i_curve.segmentGroup.parent = self._go._i_rigNull.mNode
-                ml_segmentCurves.append(i_curve)
-
-                midReturn = rUtils.addCGMSegmentSubControl(ml_influenceChains[i][1],
-                                                           segmentCurve = i_curve,
-                                                           baseParent = l_infuenceJoints[0],
-                                                           endParent = l_infuenceJoints[-1],
-                                                           midControls = ml_segmentHandles[1].mNode,
-                                                           baseName = str_baseName,
-                                                           orientation = self._go._jointOrientation,
-                                                           controlTwistAxis =  'r'+self._go._jointOrientation[0],	                                               
-                                                           moduleInstance=self._go._mi_module)
-
-                for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
-                    i_grp.parent = self._go._i_constrainNull.mNode
-
-                #Parent our joint chains
-                i_curve.msgList_get('driverJoints',asMeta = True)[0].parent = ml_blendJoints[i].mNode#driver chain
-                ml_segmentChains[i][0].parent = ml_blendJoints[i].mNode#segment chain    
-
-                #>>> Attach stuff
-                #==============================================================================================
-                try:#We're gonna attach to the blend chain
-                    mi_segmentAnchorStart = i_curve.anchorStart
-                    mi_segmentAnchorEnd = i_curve.anchorEnd
-                    mi_segmentAttachStart = i_curve.attachStart
-                    mi_segmentAttachEnd = i_curve.attachEnd 
-                    mi_distanceBuffer = i_curve.scaleBuffer
-
-                    log.debug("mi_segmentAnchorStart: %s"%mi_segmentAnchorStart.mNode)
-                    log.debug("mi_segmentAnchorEnd: %s"%mi_segmentAnchorEnd.mNode)
-                    log.debug("mi_segmentAttachStart: %s"%mi_segmentAttachStart.mNode)
-                    log.debug("mi_segmentAttachEnd: %s"%mi_segmentAttachEnd.mNode)
-                    log.debug("mi_distanceBuffer: %s"%mi_distanceBuffer.mNode)
-
-                    #>>> parent the anchors to the deform null
-                    mi_segmentAnchorStart.parent =  self._go._i_constrainNull.mNode
-                    mi_segmentAnchorEnd.parent =  self._go._i_constrainNull.mNode	
-
-                    #>>> parent handle anchors
-                    mi_segmentAnchorStart.parent = ml_blendJoints[i].mNode
-                    if i == 0:
-                        #mi_segmentAnchorEnd.parent = self._go._i_rigNull.mainSegmentHandle.mNode
-                        mi_segmentAnchorEnd.parent = ml_blendJoints[i].mNode		
-                        mc.parentConstraint(self._go._i_rigNull.mainSegmentHandle.mNode,mi_segmentAnchorEnd.mNode)
-                        #...was point before beta
-                    else:
-                        mi_segmentAnchorEnd.parent = ml_blendJoints[i+1].mNode	
-
-                    #segment handles to influence parents
-                    i_startControl.masterGroup.parent = ml_influenceChains[i][0].parent
-                    i_endControl.masterGroup.parent = ml_influenceChains[i][-1].parent
-
-                except Exception,error:
-                    log.error("Failed to connect anchor: %s"%(mi_segmentAnchorStart.getShortName()))
-                    raise Exception,error
-
-
-                #Influence joint to segment handles		
-                ml_influenceChains[i][0].parent = i_startControl.mNode
-                ml_influenceChains[i][-1].parent = i_endControl.mNode
-
-
-                #>>> Build fk and ik drivers
-
-                #fk result = fk1 + fk2 + fk3 + -fk4
-                #ik result = ik.y + knee twist?
-                #Need sums, multiply by the fk/ikon
-
-                #>>> Setup a vis blend result
-                mPlug_FKon = cgmMeta.cgmAttr(mi_settings,'result_FKon')	
-                mPlug_IKon = cgmMeta.cgmAttr(mi_settings,'result_IKon')	
-
-                #>>>Attrs
-                mPlug_TwistStartResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistStart'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
-                mPlug_TwistEndResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistEnd'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
-
-                mPlug_TwistStartFKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistStartFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
-                mPlug_TwistEndFKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistEndFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
-                mPlug_TwistStartFKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistStartFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
-                mPlug_TwistEndFKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistEndFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
-
-                mPlug_TwistStartIKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistStartIK'%str_segCount ,hidden=True, attrType='float' , defaultValue = 1 , lock = True)
-                mPlug_TwistEndIKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistEndIK'%str_segCount ,hidden=True, attrType='float' , defaultValue = 1 , lock = True)
-                mPlug_TwistStartIKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistStartIK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
-                mPlug_TwistEndIKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistEndIK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
-
-                #start twist driver
-                l_startDrivers = ["%s.%s"%(i_startControl.getShortName(),str_twistOrientation)]
-                l_startDrivers.append("%s"%mPlug_TwistStartFKResult.p_combinedShortName )
-                l_startDrivers.append("%s"%mPlug_TwistStartIKResult.p_combinedShortName )	    
-                l_fkStartDrivers = []
-                l_ikStartDrivers = []
-
-                #end twist driver
-                l_endDrivers = ["%s.%s"%(i_endControl.getShortName(),str_twistOrientation)]	    
-                l_endDrivers.append("%s"%mPlug_TwistEndFKResult.p_combinedShortName )
-                l_endDrivers.append("%s"%mPlug_TwistEndIKResult.p_combinedShortName )		    
-                l_fkEndDrivers = []
-                l_ikEndDrivers = []
-
-                l_fkEndDrivers.append("%s.%s"%(self.ml_driversFK[i+1].getShortName(),str_twistOrientation))    
-
-                if i == 0:#if seg 0
-                    l_ikStartDrivers.append(mPlug_worldIKStartIn.p_combinedShortName)
-                    l_fkStartDrivers.append(mPlug_worldIKStartIn.p_combinedShortName)
-                    str_mainHandleTwist = "%s.%s"%(self._go._i_rigNull.mainSegmentHandle.getShortName(),str_twistOrientation)
-                    l_ikEndDrivers.append(str_mainHandleTwist)
-                    l_fkEndDrivers.append(str_mainHandleTwist)
-                if i == 1:#if seg 1	
-                    l_ikEndDrivers.append(mPlug_worldIKEndOut.p_combinedShortName)
-
-                log.info("#>>> %s "%str_segCount+"="*70)
-                log.info("startDrivers %s: %s"%(i,l_startDrivers))
-                str_ArgStartDrivers_Result = "%s = %s"%(mPlug_TwistStartResult.p_combinedShortName," + ".join(l_startDrivers))
-                log.info("start sum arg: '%s'"%(str_ArgStartDrivers_Result))
-                NodeF.argsToNodes(str_ArgStartDrivers_Result).doBuild()		
-
-                log.info("ikStart Drivers %s: %s"%(i,l_ikStartDrivers))
-                if l_ikStartDrivers:
-                    str_ArgIKStart_Sum = "%s = %s"%(mPlug_TwistStartIKSum.p_combinedShortName," + ".join(l_ikStartDrivers))
-                    log.info("start IK sum arg: '%s'"%(str_ArgIKStart_Sum))
-                    NodeF.argsToNodes(str_ArgIKStart_Sum).doBuild()		
-                    str_ArgIKStart_Result = "%s = %s * %s"%(mPlug_TwistStartIKResult.p_combinedShortName,mPlug_TwistStartIKSum.p_combinedShortName,mPlug_IKon.p_combinedShortName)
-                    log.info("start IK result arg: '%s'"%(str_ArgIKStart_Result))
-                    NodeF.argsToNodes(str_ArgIKStart_Result).doBuild()		
-
-                log.info("fkStart Drivers %s: %s"%(i,l_fkStartDrivers))
-                if l_fkStartDrivers:
-                    str_ArgFKStart_Sum = "%s = %s"%(mPlug_TwistStartFKSum.p_combinedShortName," + ".join(l_fkStartDrivers))
-                    log.info("start FK sum arg: '%s'"%(str_ArgFKStart_Sum))
-                    NodeF.argsToNodes(str_ArgFKStart_Sum).doBuild()		
-                    str_ArgFKStart_Result = "%s = %s * %s"%(mPlug_TwistStartFKResult.p_combinedShortName,mPlug_TwistStartFKSum.p_combinedShortName,mPlug_FKon.p_combinedShortName)
-                    log.info("start FK result arg: '%s'"%(str_ArgFKStart_Result))
-                    NodeF.argsToNodes(str_ArgFKStart_Result).doBuild()		
-
-                #><
-                log.info("#"+"-"*70)
-                log.info("endDrivers %s: %s"%(i,l_endDrivers))	    
-                str_ArgEndDrivers = "%s = %s"%(mPlug_TwistEndResult.p_combinedShortName," + ".join(l_endDrivers))
-                log.info("end sum arg: '%s'"%(str_ArgEndDrivers))	    
-                log.info("ikEnd Drivers %s: %s"%(i,l_ikEndDrivers))
-                NodeF.argsToNodes(str_ArgEndDrivers).doBuild()		
-
-                if l_ikEndDrivers:
-                    str_ArgIKEnd_Sum = "%s = %s"%(mPlug_TwistEndIKSum.p_combinedShortName," + ".join(l_ikEndDrivers))
-                    log.info("end IK sum arg: '%s'"%(str_ArgIKEnd_Sum))
-                    NodeF.argsToNodes(str_ArgIKEnd_Sum).doBuild()				
-                    str_ArgIKEnd_Result = "%s = %s * %s"%(mPlug_TwistEndIKResult.p_combinedShortName,mPlug_TwistEndIKSum.p_combinedShortName,mPlug_IKon.p_combinedShortName)
-                    log.info("end IK result arg: '%s'"%(str_ArgIKEnd_Result))
-                    NodeF.argsToNodes(str_ArgIKEnd_Result).doBuild()				
-
-                log.info("fkEnd Drivers %s: %s"%(i,l_fkEndDrivers))
-                if l_fkEndDrivers:
-                    str_ArgFKEnd_Sum = "%s = %s"%(mPlug_TwistEndFKSum.p_combinedShortName," + ".join(l_fkEndDrivers))
-                    log.info("end FK sum arg: '%s'"%(str_ArgFKEnd_Sum))
-                    NodeF.argsToNodes(str_ArgFKEnd_Sum).doBuild()				
-                    str_ArgFKEnd_Result = "%s = %s * %s"%(mPlug_TwistEndFKResult.p_combinedShortName,mPlug_TwistEndFKSum.p_combinedShortName,mPlug_FKon.p_combinedShortName)
-                    log.info("end FK result arg: '%s'"%(str_ArgFKEnd_Result))
-                    NodeF.argsToNodes(str_ArgFKEnd_Result).doBuild()				
-
-                log.info("#"+"="*70)
-                mPlug_TwistStartResult.doConnectOut("%s.twistStart"%i_curve.mNode)
-                mPlug_TwistEndResult.doConnectOut("%s.twistEnd"%i_curve.mNode)
-
-                #>>> Attributes 
-                #================================================================================================================
-                #Connect master scale
-                cgmMeta.cgmAttr(i_curve.scaleBuffer,'masterScale',lock=True).doConnectIn("%s.%s"%(self._go._i_masterControl.mNode,'scaleY'))    	    
-
-                #Push squash and stretch multipliers to head
-                i_buffer = i_curve.scaleBuffer	    
-                for ii,k in enumerate(i_buffer.d_indexToAttr.keys()):
-                    attrName = "seg_%s_%s_mult"%(i,ii)
-                    cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_settings.mNode,attrName,connectSourceToTarget = True)
-                    cgmMeta.cgmAttr(mi_settings.mNode,attrName,defaultValue = 1,keyable=True)
-
-                #Segement scale 
-                cgmMeta.cgmAttr(i_buffer,'segmentScaleMult').doCopyTo(mi_settings.mNode,"segmentScaleMult_%s"%i,connectSourceToTarget=True)	    
-
-                #Other attributes transfer
-                cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
-                cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
+            try:#Control Segment
+                #====================================================================================
+                ml_segmentCurves = []
+                ml_segmentReturns = []
+                ml_segmentJointChainsReset = []
+    
+                log.debug(self._go._jointOrientation)
+                capAim = self._go._jointOrientation[0].capitalize()
+                log.debug("capAim: %s"%capAim)
+                for i,ml_segmentHandles in enumerate(ml_segmentHandleChains):
+                    try:
+                        try:
+                            i_startControl = ml_segmentHandles[0]
+                            i_midControl = ml_segmentHandles[1]
+                            i_endControl = ml_segmentHandles[-1]
+                            l_jointChain = [i_jnt.mNode for i_jnt in ml_segmentChains[i]]
+                            l_infuenceJoints = [ml_influenceChains[i][0].getShortName(),ml_influenceChains[i][-1].getShortName()]
+                            log.info("startControl: %s"%i_startControl.getShortName())
+                            log.info("endControl: %s"%i_endControl.getShortName())
+                            log.info("jointChain: %s"%l_jointChain)
+                            log.info("influenceJoints: %s"%l_infuenceJoints)
+                            str_baseName = self._go._partName+"_seg%s"%i
+                            str_segCount = "seg%s"%i
+                        except Exception,error:
+                            raise Exception,"[Initial Get | {0}]".format(error)
+                        
+                        #Create segment ========================================================================================
+                        curveSegmentReturn = rUtils.createCGMSegment(l_jointChain,
+                                                                     addSquashStretch=True,
+                                                                     addTwist=True,
+                                                                     influenceJoints=[l_infuenceJoints[0],l_infuenceJoints[-1]],
+                                                                     startControl= i_startControl,
+                                                                     endControl= i_endControl,
+                                                                     orientation=self._go._jointOrientation,
+                                                                     additiveScaleSetup=True,
+                                                                     connectAdditiveScale=True,                                                 
+                                                                     baseName = str_baseName,
+                                                                     moduleInstance=self._go._mi_module)
+        
+                        ml_segmentReturns.append(curveSegmentReturn)
+        
+                        i_curve = curveSegmentReturn['mi_segmentCurve']
+                        i_curve.parent = self._go._i_rigNull.mNode
+                        i_curve.segmentGroup.parent = self._go._i_rigNull.mNode
+                        ml_segmentCurves.append(i_curve)
+        
+                        midReturn = rUtils.addCGMSegmentSubControl(ml_influenceChains[i][1],
+                                                                   segmentCurve = i_curve,
+                                                                   baseParent = l_infuenceJoints[0],
+                                                                   endParent = l_infuenceJoints[-1],
+                                                                   midControls = ml_segmentHandles[1].mNode,
+                                                                   baseName = str_baseName,
+                                                                   orientation = self._go._jointOrientation,
+                                                                   controlTwistAxis =  'r'+self._go._jointOrientation[0],	                                               
+                                                                   moduleInstance=self._go._mi_module)
+        
+                        for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
+                            i_grp.parent = self._go._i_constrainNull.mNode
+        
+                        #Parent our joint chains
+                        i_curve.msgList_get('driverJoints',asMeta = True)[0].parent = ml_blendJoints[i].mNode#driver chain
+                        ml_segmentChains[i][0].parent = ml_blendJoints[i].mNode#segment chain    
+        
+                        #>>> Attach stuff
+                        #==============================================================================================
+                        try:#We're gonna attach to the blend chain
+                            mi_segmentAnchorStart = cgmMeta.validateObjArg(i_curve.anchorStart,'cgmObject')
+                            mi_segmentAnchorEnd = cgmMeta.validateObjArg(i_curve.anchorEnd,'cgmObject')
+                            mi_segmentAttachStart = cgmMeta.validateObjArg(i_curve.attachStart,'cgmObject')
+                            mi_segmentAttachEnd = cgmMeta.validateObjArg(i_curve.attachEnd,'cgmObject') 
+                            mi_distanceBuffer = cgmMeta.validateObjArg(i_curve.scaleBuffer)
+        
+                            log.debug("mi_segmentAnchorStart: %s"%mi_segmentAnchorStart.mNode)
+                            log.debug("mi_segmentAnchorEnd: %s"%mi_segmentAnchorEnd.mNode)
+                            log.debug("mi_segmentAttachStart: %s"%mi_segmentAttachStart.mNode)
+                            log.debug("mi_segmentAttachEnd: %s"%mi_segmentAttachEnd.mNode)
+                            log.debug("mi_distanceBuffer: %s"%mi_distanceBuffer.mNode)
+        
+                            #>>> parent the anchors to the deform null
+                            mi_segmentAnchorStart.parent =  self._go._i_constrainNull.mNode
+                            mi_segmentAnchorEnd.parent =  self._go._i_constrainNull.mNode	
+        
+                            #>>> parent handle anchors
+                            mi_segmentAnchorStart.parent = ml_blendJoints[i].mNode
+                            if i == 0:
+                                #mi_segmentAnchorEnd.parent = self._go._i_rigNull.mainSegmentHandle.mNode
+                                mi_segmentAnchorEnd.parent = ml_blendJoints[i].mNode		
+                                mc.parentConstraint(self._go._i_rigNull.mainSegmentHandle.mNode,mi_segmentAnchorEnd.mNode)
+                                #...was point before beta
+                            else:
+                                mi_segmentAnchorEnd.parent = ml_blendJoints[i+1].mNode	
+        
+                            #segment handles to influence parents
+                            i_startControl.masterGroup.parent = ml_influenceChains[i][0].parent
+                            i_endControl.masterGroup.parent = ml_influenceChains[i][-1].parent
+        
+                        except Exception,error:
+                            log.error("Failed to connect anchor: %s"%(mi_segmentAnchorStart))
+                            raise Exception,error
+        
+        
+                        #Influence joint to segment handles		
+                        ml_influenceChains[i][0].parent = i_startControl.mNode
+                        ml_influenceChains[i][-1].parent = i_endControl.mNode
+        
+                        #>>> Build fk and ik drivers
+        
+                        #fk result = fk1 + fk2 + fk3 + -fk4
+                        #ik result = ik.y + knee twist?
+                        #Need sums, multiply by the fk/ikon
+        
+                        try:#>>>Attrs
+                            #>>> Setup a vis blend result
+                            mPlug_FKon = cgmMeta.cgmAttr(mi_settings,'result_FKon')	
+                            mPlug_IKon = cgmMeta.cgmAttr(mi_settings,'result_IKon')	                    
+                            mPlug_TwistStartResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistStart'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+                            mPlug_TwistEndResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistEnd'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+            
+                            mPlug_TwistStartFKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistStartFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+                            mPlug_TwistEndFKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistEndFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+                            mPlug_TwistStartFKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistStartFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+                            mPlug_TwistEndFKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistEndFK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+            
+                            mPlug_TwistStartIKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistStartIK'%str_segCount ,hidden=True, attrType='float' , defaultValue = 1 , lock = True)
+                            mPlug_TwistEndIKResult = cgmMeta.cgmAttr(mi_settings,'result_%s_twistEndIK'%str_segCount ,hidden=True, attrType='float' , defaultValue = 1 , lock = True)
+                            mPlug_TwistStartIKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistStartIK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+                            mPlug_TwistEndIKSum = cgmMeta.cgmAttr(mi_settings,'sum_%s_twistEndIK'%str_segCount , attrType='float' , defaultValue = 1 , lock = True)
+        
+                            #start twist driver
+                            l_startDrivers = ["%s.%s"%(i_startControl.getShortName(),str_twistOrientation)]
+                            l_startDrivers.append("%s"%mPlug_TwistStartFKResult.p_combinedShortName )
+                            l_startDrivers.append("%s"%mPlug_TwistStartIKResult.p_combinedShortName )	    
+                            l_fkStartDrivers = []
+                            l_ikStartDrivers = []
+            
+                            #end twist driver
+                            l_endDrivers = ["%s.%s"%(i_endControl.getShortName(),str_twistOrientation)]	    
+                            l_endDrivers.append("%s"%mPlug_TwistEndFKResult.p_combinedShortName )
+                            l_endDrivers.append("%s"%mPlug_TwistEndIKResult.p_combinedShortName )		    
+                            l_fkEndDrivers = []
+                            l_ikEndDrivers = []
+            
+                            l_fkEndDrivers.append("%s.%s"%(self.ml_driversFK[i+1].getShortName(),str_twistOrientation))    
+                        except Exception,error:
+                            raise Exception,["Get Plugs | error: {0}".format(error)]
+                    
+                        try:
+                            if i == 0:#if seg 0
+                                l_ikStartDrivers.append(mPlug_worldIKStartIn.p_combinedShortName)
+                                l_fkStartDrivers.append(mPlug_worldIKStartIn.p_combinedShortName)
+                                str_mainHandleTwist = "%s.%s"%(self._go._i_rigNull.mainSegmentHandle.getShortName(),str_twistOrientation)
+                                l_ikEndDrivers.append(str_mainHandleTwist)
+                                l_fkEndDrivers.append(str_mainHandleTwist)
+                            if i == 1:#if seg 1	
+                                l_ikEndDrivers.append(mPlug_worldIKEndOut.p_combinedShortName)
+            
+                            log.info("#>>> %s "%str_segCount+"="*70)
+                            log.info("startDrivers %s: %s"%(i,l_startDrivers))
+                            str_ArgStartDrivers_Result = "%s = %s"%(mPlug_TwistStartResult.p_combinedShortName," + ".join(l_startDrivers))
+                            log.info("start sum arg: '%s'"%(str_ArgStartDrivers_Result))
+                            NodeF.argsToNodes(str_ArgStartDrivers_Result).doBuild()		
+            
+                            log.info("ikStart Drivers %s: %s"%(i,l_ikStartDrivers))
+                            if l_ikStartDrivers:
+                                str_ArgIKStart_Sum = "%s = %s"%(mPlug_TwistStartIKSum.p_combinedShortName," + ".join(l_ikStartDrivers))
+                                log.info("start IK sum arg: '%s'"%(str_ArgIKStart_Sum))
+                                NodeF.argsToNodes(str_ArgIKStart_Sum).doBuild()		
+                                str_ArgIKStart_Result = "%s = %s * %s"%(mPlug_TwistStartIKResult.p_combinedShortName,mPlug_TwistStartIKSum.p_combinedShortName,mPlug_IKon.p_combinedShortName)
+                                log.info("start IK result arg: '%s'"%(str_ArgIKStart_Result))
+                                NodeF.argsToNodes(str_ArgIKStart_Result).doBuild()		
+            
+                            log.info("fkStart Drivers %s: %s"%(i,l_fkStartDrivers))
+                            if l_fkStartDrivers:
+                                str_ArgFKStart_Sum = "%s = %s"%(mPlug_TwistStartFKSum.p_combinedShortName," + ".join(l_fkStartDrivers))
+                                log.info("start FK sum arg: '%s'"%(str_ArgFKStart_Sum))
+                                NodeF.argsToNodes(str_ArgFKStart_Sum).doBuild()		
+                                str_ArgFKStart_Result = "%s = %s * %s"%(mPlug_TwistStartFKResult.p_combinedShortName,mPlug_TwistStartFKSum.p_combinedShortName,mPlug_FKon.p_combinedShortName)
+                                log.info("start FK result arg: '%s'"%(str_ArgFKStart_Result))
+                                NodeF.argsToNodes(str_ArgFKStart_Result).doBuild()		
+            
+                            #><
+                            log.info("#"+"-"*70)
+                            log.info("endDrivers %s: %s"%(i,l_endDrivers))	    
+                            str_ArgEndDrivers = "%s = %s"%(mPlug_TwistEndResult.p_combinedShortName," + ".join(l_endDrivers))
+                            log.info("end sum arg: '%s'"%(str_ArgEndDrivers))	    
+                            log.info("ikEnd Drivers %s: %s"%(i,l_ikEndDrivers))
+                            NodeF.argsToNodes(str_ArgEndDrivers).doBuild()		
+            
+                            if l_ikEndDrivers:
+                                str_ArgIKEnd_Sum = "%s = %s"%(mPlug_TwistEndIKSum.p_combinedShortName," + ".join(l_ikEndDrivers))
+                                log.info("end IK sum arg: '%s'"%(str_ArgIKEnd_Sum))
+                                NodeF.argsToNodes(str_ArgIKEnd_Sum).doBuild()				
+                                str_ArgIKEnd_Result = "%s = %s * %s"%(mPlug_TwistEndIKResult.p_combinedShortName,mPlug_TwistEndIKSum.p_combinedShortName,mPlug_IKon.p_combinedShortName)
+                                log.info("end IK result arg: '%s'"%(str_ArgIKEnd_Result))
+                                NodeF.argsToNodes(str_ArgIKEnd_Result).doBuild()				
+            
+                            log.info("fkEnd Drivers %s: %s"%(i,l_fkEndDrivers))
+                            if l_fkEndDrivers:
+                                str_ArgFKEnd_Sum = "%s = %s"%(mPlug_TwistEndFKSum.p_combinedShortName," + ".join(l_fkEndDrivers))
+                                log.info("end FK sum arg: '%s'"%(str_ArgFKEnd_Sum))
+                                NodeF.argsToNodes(str_ArgFKEnd_Sum).doBuild()				
+                                str_ArgFKEnd_Result = "%s = %s * %s"%(mPlug_TwistEndFKResult.p_combinedShortName,mPlug_TwistEndFKSum.p_combinedShortName,mPlug_FKon.p_combinedShortName)
+                                log.info("end FK result arg: '%s'"%(str_ArgFKEnd_Result))
+                                NodeF.argsToNodes(str_ArgFKEnd_Result).doBuild()				
+            
+                            log.info("#"+"="*70)
+                            mPlug_TwistStartResult.doConnectOut("%s.twistStart"%i_curve.mNode)
+                            mPlug_TwistEndResult.doConnectOut("%s.twistEnd"%i_curve.mNode)
+                        except Exception,error:
+                            raise Exception,["Wire | error: {0}".format(error)]
+                        
+                        try:#>>> Attributes 
+                            #================================================================================================================
+                            #Connect master scale
+                            cgmMeta.cgmAttr(i_curve.scaleBuffer,'masterScale',lock=True).doConnectIn("%s.%s"%(self._go._i_masterControl.mNode,'scaleY'))    	    
+            
+                            #Push squash and stretch multipliers to head
+                            i_buffer = i_curve.scaleBuffer	    
+                            for ii,k in enumerate(i_buffer.d_indexToAttr.keys()):
+                                attrName = "seg_%s_%s_mult"%(i,ii)
+                                cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_settings.mNode,attrName,connectSourceToTarget = True)
+                                cgmMeta.cgmAttr(mi_settings.mNode,attrName,defaultValue = 1,keyable=True)
+            
+                            #Segement scale 
+                            cgmMeta.cgmAttr(i_buffer,'segmentScaleMult').doCopyTo(mi_settings.mNode,"segmentScaleMult_%s"%i,connectSourceToTarget=True)	    
+            
+                            #Other attributes transfer
+                            cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
+                            cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
+                        except Exception,error:
+                            raise Exception,["Attributes fail | error: {0}".format(error)]
+                    except Exception,error:
+                        raise Exception,["Segment {0} |  {1}".format(i,error)]                    
+            except Exception,error:
+                raise Exception,["Control Segment | error: {0}".format(error)]            
     return fncWrap(goInstance).go()
 
 def build_deformationOLD(self):

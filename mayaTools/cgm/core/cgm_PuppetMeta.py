@@ -98,6 +98,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         #if log.getEffectiveLevel() == 10:log.debug("Puppet is '%s'"%name)
         if puppet is None:puppetCreatedState = True
         else:puppetCreatedState = False'''
+	
         super(cgmPuppet, self).__init__(node = node, name = name, nodeType = 'network') 
 	
 	#====================================================================================	
@@ -108,14 +109,16 @@ class cgmPuppet(cgmMeta.cgmNode):
 	#====================================================================================
 	
         self.UNMANAGED.extend(['i_masterNull','_UTILS'])	
+	self._UTILS = pFactory
 
         #self.__justCreatedState__ = puppetCreatedState
 
         try:#>>> Puppet Network Initialization Procedure ==================       
-	    if self.isReferenced() or initializeOnly:
-		if not self.initialize():
+	    if self.isReferenced():# or initializeOnly:
+		pass
+		#if not self.initialize():
 		    #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
-		    raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
+		    #raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
 	    elif self.__justCreatedState__ or doVerify:
 		#if log.getEffectiveLevel() == 10:log.debug("Verifying...")
 		try:
@@ -125,7 +128,6 @@ class cgmPuppet(cgmMeta.cgmNode):
 		except Exception,error:
 		    raise Exception,"%s >>> verify fail | error : %s"%(self.p_nameShort,error) 
     
-	    self._UTILS = pFactory
 	except Exception,error:raise Exception,"verify checks...| {0}".format(error)
 
     #====================================================================================
@@ -1514,11 +1516,14 @@ class cgmModule(cgmMeta.cgmObject):
         # Verify or Initialize
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
         super(cgmModule, self).__init__(*args,**kws) 
+	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
 	#====================================================================================	
+	self.UNMANAGED.extend(['_UTILS'])	
+	self._UTILS = mFactory
 
 	#====================================================================================
         #Keywords - need to set after the super call
@@ -1545,12 +1550,9 @@ class cgmModule(cgmMeta.cgmObject):
                     raise StandardError,"'%s' failed to verify!"%self.mNode 
                 return
 
-        #if log.getEffectiveLevel() == 10:log.debug("'%s' Initializing only..."%self.mNode)
-        if not self.initialize():
-            log.critical("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.mNode)
-            raise StandardError,"'%s' failed to initialize!"%self.mNode
-        #if log.getEffectiveLevel() == 10:log.debug("'%s' Checks out!"%self.getShortName())
-        self._UTILS = mFactory
+        #if not self.initialize():
+            #log.critical("'%s' failed to initialize. Please go back to the non referenced file to repair!"%self.mNode)
+            #raise StandardError,"'%s' failed to initialize!"%self.mNode
 
     ##@r9General.Timer
     def atMFactory(self,func,*args,**kws):

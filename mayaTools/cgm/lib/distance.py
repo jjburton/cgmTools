@@ -551,7 +551,7 @@ def returnBoundingBoxSize (meshGrp,objOnly = False):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if type(meshGrp) is list:
-	for o in meshGrp: assert mc.objExists(o),"returnBoundingBoxSize: meshGrp object doesn't exist: '%s'"%meshGrp
+	for o in meshGrp: assert mc.objExists(o),"returnBoundingBoxSize: meshGrp object doesn't exist: '%s'"%o
     else:
 	assert mc.objExists(meshGrp),"returnBoundingBoxSize: meshGrp doesn't exist: '%s'"%meshGrp
     returnList = []

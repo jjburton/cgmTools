@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 neckHead rig builder
 ================================================================
 """
-__version__ = 01.09142013
+__version__ = 'beta.08032015'
 
 
 # From Python =============================================================
@@ -33,20 +33,14 @@ from Red9.core import Red9_Meta as r9Meta
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
-
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.rigger.lib import module_Utils as modUtils
 from cgm.core.rigger.lib import cgmRigs_sharedData as cgmRigsData
-
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
-reload(mShapeCast)
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
-reload(mControlFactory)
 from cgm.core.lib import nameTools
-
 from cgm.core.rigger.lib import rig_Utils as rUtils
-
 from cgm.lib import (attributes,
                      joints,
                      skinning,
@@ -736,11 +730,11 @@ def build_rig(*args, **kws):
             try:#>>>Get data
                 orientation = modules.returnSettingsData('jointOrientation')
                 mi_segmentCurve = mi_go._i_rigNull.msgList_get('segmentCurves')[0]
-                mi_segmentAnchorStart = mi_segmentCurve.anchorStart
-                mi_segmentAnchorEnd = mi_segmentCurve.anchorEnd
-                mi_segmentAttachStart = mi_segmentCurve.attachStart
-                mi_segmentAttachEnd = mi_segmentCurve.attachEnd 
-                mi_distanceBuffer = mi_segmentCurve.scaleBuffer
+                mi_segmentAnchorStart = cgmMeta.validateObjArg(mi_segmentCurve.anchorStart,'cgmObject')
+                mi_segmentAnchorEnd = cgmMeta.validateObjArg(mi_segmentCurve.anchorEnd,'cgmObject')
+                mi_segmentAttachStart = cgmMeta.validateObjArg(mi_segmentCurve.attachStart,'cgmObject')
+                mi_segmentAttachEnd = cgmMeta.validateObjArg(mi_segmentCurve.attachEnd ,'cgmObject')
+                mi_distanceBuffer = cgmMeta.validateObjArg(mi_segmentCurve.scaleBuffer,'cgmNode')
                 mi_moduleParent = False
                 if mi_go._mi_module.getMessage('moduleParent'):
                     mi_moduleParent = mi_go._mi_module.moduleParent

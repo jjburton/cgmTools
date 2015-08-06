@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 clavicle rig builder
 ================================================================
 """
-__version__ = 'beta.06102014'
+__version__ = 'beta.08032015'
 
 # From Python =============================================================
 import copy
@@ -31,22 +31,16 @@ from Red9.core import Red9_Meta as r9Meta
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.rigger.lib import module_Utils as modUtils
-reload(modUtils)
 from cgm.core.rigger.lib import cgmRigs_sharedData as cgmRigsData
-
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
-reload(NodeF)
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
-reload(mShapeCast)
-reload(mControlFactory)
 from cgm.core.rigger.lib import rig_Utils as rUtils
-reload(rUtils)
 from cgm.lib import (attributes,
                      joints,
                      skinning,
@@ -57,7 +51,6 @@ from cgm.lib import (attributes,
                      search,
                      curves,
                      )
-reload(joints)
 
 #>>> Skeleton
 #=========================================================================================================

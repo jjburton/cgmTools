@@ -136,7 +136,6 @@ def returnLinearDirection(rootObj,aimObj):
     log.warning("Remove this call of returnLinearDirection from logic. Moved to distance")
     return distance.returnLinearDirection(rootObj,aimObj)
 
-@r9General.Timer
 def returnHorizontalOrVertical(objList):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -151,18 +150,21 @@ def returnHorizontalOrVertical(objList):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     #make locators in case we're using something like joints
-    locList = []
-    for obj in objList:
-        locList.append(locators.locMeObject(obj))
-    box = distance.returnBoundingBoxSize(locList)
-
-    maxIndex = box.index(max(box))
-    if maxIndex == 1:
-        generalDirection = 'vertical'
-    else:
-        generalDirection = 'horizontal'
-
-    #delete our locators
-    for loc in locList:
-        mc.delete(loc)
-    return generalDirection
+    try:
+        #locList = []
+        #for obj in objList:
+            #locList.append(locators.locMeObject(obj))
+        box = distance.returnBoundingBoxSize(objList)
+    
+        maxIndex = box.index(max(box))
+        if maxIndex == 1:
+            generalDirection = 'vertical'
+        else:
+            generalDirection = 'horizontal'
+    
+        #delete our locators
+        '''for loc in locList:
+            mc.delete(loc)'''
+        return generalDirection
+    except Exception,error:
+        raise Exception,"[returnHorizontalOrVertical fail | error:{0}]".format(error)

@@ -28,11 +28,8 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger.lib import cgmRigs_sharedData as cgmRigsData
-reload(cgmRigsData)
-
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
-reload(mControlFactory)
 from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.rigger.lib.Limb import (spine,neckHead,leg,clavicle,arm,finger)

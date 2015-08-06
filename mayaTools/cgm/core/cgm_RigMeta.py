@@ -64,42 +64,47 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
         if dynPrefix is not None:
             l_plugBuffer.insert(0,str(dynPrefix))  
         str_dynSwitchDriverPlug = '_'.join(l_plugBuffer)
-
-        ### input check  
-        i_dynOwner = cgmMeta.validateObjArg(dynOwner,cgmMeta.cgmObject,noneValid=True)
-
-        if i_dynOwner:
-            pBuffer = i_dynOwner.getMessage(str_dynSwitchDriverPlug) or False
-            log.debug("pBuffer: %s"%pBuffer)
-            if pBuffer:
-                node = pBuffer[0]	
+	
+        if dynOwner is not None:
+	    if mc.objExists(dynOwner):
+		node = attributes.returnMessageObject(dynOwner, str_dynSwitchDriverPlug) or None
+		#log.debug("pBuffer: %s"%pBuffer)
+		#if pBuffer:
+		    #node = pBuffer[0]
 
         log.debug("In cgmDynamicSwitch.__init__ node: %s"%node)
-        super(cgmDynamicSwitch, self).__init__(node = node,name = name,nodeType = 'transform') 
+	log.debug("In cgmDynamicSwitch.__init__ name: %s"%name)	
+	
+        super(cgmDynamicSwitch, self).__init__(node = node, name = name) 
+	
+	#====================================================================================
+    
+	#Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
+	self.UNMANAGED.extend(['_str_dynSwitchDriverPlug','d_indexToAttr','l_dynAttrs'])	
+	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
 	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.__class__)
 	    return
-	#====================================================================================
-	
-        #Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
-        self.UNMANAGED.extend(['_str_dynSwitchDriverPlug','d_indexToAttr','l_dynAttrs'])
 
         if kws:log.debug("kws: %s"%str(kws))
         if args:log.debug("args: %s"%str(args)) 	
         doVerify = kws.get('doVerify') or False
+	
         self._str_dynSwitchDriverPlug = str_dynSwitchDriverPlug
 
         if not self.isReferenced():
             if not self.__verify__(*args,**kws):
                 raise StandardError,"cgmDynamicSwitch.__init__>> failed to verify!"
-
+	    
+	#>>>dynOwner
+	i_dynOwner = cgmMeta.validateObjArg(dynOwner,'cgmObject',noneValid=True)#...this must be after the super. If before, it blows things up...not sure why...
         if i_dynOwner:
             self.setDynOwner(i_dynOwner)
 
         log.debug("self._str_dynSwitchDriverPlug>> '%s'"%self._str_dynSwitchDriverPlug)
 
-    def __verify__(self):
+    def __verify__(self,*args,**kws):
         log.debug("In %s.__verify__ "%self.getShortName())	
         if self.hasAttr('mClass') and self.mClass!='cgmDynamicSwitch':
             raise StandardError, "cgmDynamicSwitch.__verify__>> This object has a another mClass and setClass is not set to True"
@@ -443,14 +448,16 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
                 __justMade__ = True
 
         super(cgmDynamicMatch, self).__init__(node = node,name = name,nodeType = 'transform') 
+	
+	#Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
+	self.UNMANAGED.extend(['arg_ml_dynMatchTargets','_mi_dynObject','_str_dynMatchDriverPlug','d_indexToAttr','l_dynAttrs'])	
+
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
 	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.__class__)
 	    return
 	#====================================================================================
 	
-        #Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
-        self.UNMANAGED.extend(['arg_ml_dynMatchTargets','_mi_dynObject','_str_dynMatchDriverPlug','d_indexToAttr','l_dynAttrs'])
         if i_dynObject:self._mi_dynObject = i_dynObject
         else:self._mi_dynObject = False
 
