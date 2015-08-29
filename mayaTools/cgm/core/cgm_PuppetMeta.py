@@ -785,10 +785,6 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
 	#====================================================================================	
 
 	#====================================================================================	
-        if not 'initializeOnly' in kws.keys():initializeOnly = False
-        else:initializeOnly = kws.get('initializeOnly')
-        #if log.getEffectiveLevel() == 10:log.debug("initOnly: '%s'"%initializeOnly)
-
         if self.__justCreatedState__ or doVerify:
             if not self.__verify__():
                 raise StandardError,"Failed!"
@@ -804,37 +800,49 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('cgmType','customizationNetwork',attrType='string',lock=True)
 
         self.addAttr('meshClass',initialValue = 'm1',attrType='string',lock=True)
-        self.addAttr('version',initialValue = 0.0,attrType='float',lock=True)
+        self.addAttr('version',initialValue = '',attrType='string',lock=True)
 
         self.addAttr('masterNull',attrType='messageSimple',lock=True)
         self.addAttr('masterControl',attrType='messageSimple',lock=True)
 
         self.addAttr('mPuppet',attrType='messageSimple',lock=True)
-
+	self.addAttr('mFaceModule',attrType='messageSimple',lock=True)#...testing this
 
         #>>> Necessary attributes
         #===============================================================
+	#> Helpers
+	#self.addAttr('helper_eyeLeft',attrType = 'messageSimple',lock=True)#...connection to base body
+	#self.addAttr('helper_eyeRight',attrType = 'messageSimple',lock=True)#...connection to base body
+	#self.addAttr('helper_tongue',attrType = 'messageSimple',lock=True)#...connection to base body
+	
+	
         #> Curves and joints
         self.addAttr('controlCurves',attrType = 'message')
-        self.addAttr('leftJoints',attrType = 'message',lock=True)
-        self.addAttr('rightJoints',attrType = 'message',lock=True)	
-        self.addAttr('leftRoots',attrType = 'message',lock=True)
-        self.addAttr('rightRoots',attrType = 'message',lock=True)
+        self.addAttr('joints_left',attrType = 'message',lock=True)
+        self.addAttr('joints_right',attrType = 'message',lock=True)	
+        self.addAttr('roots_left',attrType = 'message',lock=True)
+        self.addAttr('roots_right',attrType = 'message',lock=True)
         self.addAttr('jointList',attrType = 'message',lock=True)
 
         #>>> Geo =======================================================
-        self.addAttr('baseBodyGeo',attrType = 'messageSimple',lock=True)
+        self.addAttr('geo_baseBody',attrType = 'messageSimple',lock=True)#...connection to base body
+	self.addAttr('geo_baseHead',attrType = 'messageSimple',lock=True)#...connection to base head
+	self.addAttr('geo_unified',attrType = 'messageSimple',lock=True)#...connection to unified geo for easy skinning tranfer, etc
+	self.addAttr('geo_resetHead',attrType = 'messageSimple',lock=True)#...
+	self.addAttr('geo_resetBody',attrType = 'messageSimple',lock=True)#...
+	self.addAttr('geo_resetUnified',attrType = 'messageSimple',lock=True)#...
+	
         #>>> Bridges
-        self.addAttr('bridgeMainGeo',attrType = 'messageSimple',lock=True)
-        self.addAttr('bridgeFaceGeo',attrType = 'messageSimple',lock=True)	
-        self.addAttr('bridgeBodyGeo',attrType = 'messageSimple',lock=True)	
+        self.addAttr('geo_bridgeMain',attrType = 'messageSimple',lock=True)
+        self.addAttr('geo_bridgeFace',attrType = 'messageSimple',lock=True)	
+        self.addAttr('geo_bridgeBody',attrType = 'messageSimple',lock=True)	
 
         #>>> Nodes =====================================================
-        self.addAttr('bodyBlendshapeNodes',attrType = 'messageSimple',lock=True)
-        self.addAttr('faceBlendshapeNodes',attrType = 'messageSimple',lock=True)
-        self.addAttr('bridgeMainBlendshapeNode',attrType = 'messageSimple',lock=True)
-        self.addAttr('bridgeFaceBlendshapeNode',attrType = 'messageSimple',lock=True)
-        self.addAttr('bridgeBodyBlendshapeNode',attrType = 'messageSimple',lock=True)
+        #self.addAttr('bodyBlendshapeNodes',attrType = 'messageSimple',lock=True)
+        #self.addAttr('faceBlendshapeNodes',attrType = 'messageSimple',lock=True)
+        self.addAttr('bsNode_bridgeMain',attrType = 'messageSimple',lock=True)
+        self.addAttr('bsNode_bridgeFace',attrType = 'messageSimple',lock=True)
+        self.addAttr('bsNode_bridgeBody',attrType = 'messageSimple',lock=True)
 
         #self.addAttr('skinCluster',attrType = 'messageSimple',lock=True)
 
@@ -972,9 +980,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
             self.mi_masterControl.mClass = 'cgmMasterControl'
 
         else:#Make it
-            #if log.getEffectiveLevel() == 10:log.debug('Creating masterControl')                                    
             self.mi_masterControl = cgmMasterControl(puppet = self)#Create and initialize
-            #self.masterControl = self.mi_masterControl.mNode
             self.mi_masterControl.__verify__()
         self.mi_masterControl.parent = self.i_masterNull.mNode
         self.mi_masterControl.doName()
