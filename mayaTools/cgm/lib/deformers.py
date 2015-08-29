@@ -495,7 +495,7 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
         wrappedTargetObject = targetObject
 
     """ wrap deformer"""
-    wrapDeformerBuffer = mc.deformer(wrappedTargetObject,type='wrap',n=(targetObject+'_wrapDeformer'))
+    wrapDeformerBuffer = mc.deformer(wrappedTargetObject,type='wrap',n=(mc.ls(targetObject,shortNames=True)[0]+'_wrapDeformer'))
     wrapDeformer = wrapDeformerBuffer[0]
 
     """ cause maya is stupid and doesn't have a python equivalent"""
