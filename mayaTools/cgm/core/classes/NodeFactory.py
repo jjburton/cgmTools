@@ -1883,9 +1883,9 @@ def test_argsToNodes(deleteObj = True):
     try:#Test direct connect
 	arg = "%s.directConnect = %s.ty"%(str_obj,str_obj)
 	argsToNodes(arg).doBuild()
-	log.debug(mc.listConnections("%s.directConnect"%str_obj,source = True))
-	plugCall = mc.listConnections("%s.directConnect"%(i_obj.mNode),plugs=True)	
-	assert plugCall[0] == '%s.translateY'%i_obj.getShortName(),log.error("Direct connect failed")
+	log.debug(mc.listConnections("%s.directConnect"%str_obj,source = True,scn = True))
+	plugCall = mc.listConnections("%s.directConnect"%(i_obj.mNode),plugs=True,scn = False)	
+	assert plugCall[0] == '%s.translateY'%i_obj.getShortName(),log.error("Direct connect failed. Plug call:{0}".format(plugCall))
     except StandardError,error:
 	log.error("test_argsToNodes>>Single Connect Failure! '%s'"%(error))
 	raise StandardError,error   
@@ -1893,8 +1893,8 @@ def test_argsToNodes(deleteObj = True):
     try:#Multi direct connect
 	arg = "%s.directConnect, %s.ry = %s.ty"%(str_obj,str_obj,str_obj)
 	argsToNodes(arg).doBuild()
-	log.debug(mc.listConnections("%s.directConnect"%str_obj,source = True))
-	plugCall = mc.listConnections("%s.directConnect"%(i_obj.mNode),plugs=True)	
+	log.debug(mc.listConnections("%s.directConnect"%str_obj,source = True,scn = True))
+	plugCall = mc.listConnections("%s.directConnect"%(i_obj.mNode),plugs=True,scn = True)	
 	assert plugCall[0] == '%s.translateY'%i_obj.getShortName(),log.error("Direct connect failed: directConnect")
 	plugCall = mc.listConnections("%s.rotateY"%(i_obj.mNode),plugs=True,scn = True)	
 	log.debug(plugCall)
