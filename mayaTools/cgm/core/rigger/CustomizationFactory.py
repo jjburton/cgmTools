@@ -38,6 +38,7 @@ reload(constraints)
 reload(rigging)
 reload(nFactory)
 reload(search)
+reload(deformers)
 
 _d_customizationGeoGroupsToCheck = {'body':'baseGeoGroup',
                                     'tongue':'tongueGeoGroup',
@@ -100,12 +101,12 @@ def go(*args, **kws):
 	    doLockNHide(self,p)
 	    '''
             self.l_funcSteps = [{'step':'Gather Info','call':self._validate_},
-                                {'step':'Mirror Template','call':self._mirrorBridge_},
-                                {'step':'Rig Body','call':self._rigBodyBridge_},
-                                {'step':'Constraints','call':self._do_setupConstraints_},
+                                #{'step':'Mirror Template','call':self._mirrorBridge_},
+                                #{'step':'Rig Body','call':self._rigBodyBridge_},
+                                #{'step':'Constraints','call':self._do_setupConstraints_},
                                 {'step':'Blendshape Bridge','call':self._do_bsNodeBridge_},
-                                {'step':'Blendshape Body','call':self._do_bsNodeBody_},
-                                {'step':'Blendshape Face','call':self._do_bsNodeFace_},
+                                #{'step':'Blendshape Body','call':self._do_bsNodeBody_},
+                                #{'step':'Blendshape Face','call':self._do_bsNodeFace_},
                                 {'step':'Skincluster','call':self._do_skinBody_},
                                 {'step':'Wraps','call':self._do_setupWraps_},	                        
                                 {'step':'Connect Vis','call':self._do_connectVis_},
@@ -141,9 +142,11 @@ def go(*args, **kws):
                         self.log_info("Checking : '{0}' | msgAttr: '{1}'".format(key,d_geoGroupsToCheck[key]))
                         buffer = self.mi_network.masterNull.getMessage(d_geoGroupsToCheck[key])
                         if not buffer:raise RuntimeError,"Group not found"			    
-                        mi_group = cgmMeta.validateObjArg(buffer,mayaType = ['group'])
+                        mi_group = cgmMeta.validateObjArg(buffer,mayaType = ['group','transform'])
                         l_geoGroupObjs = mi_group.getAllChildren()
                         if not l_geoGroupObjs:
+                            if key == 'body':
+                                raise ValueError,"No body geo in base_geo_grp!"                               
                             self.log_warning("Empty group: '{0}'".format(mi_group.p_nameShort))
                         else:
                             l_toSkin = []
@@ -283,23 +286,23 @@ def _mirrorTemplate_(self):
 
             self.l_leftJoints = lists.returnListNoDuplicates(self.l_leftJoints)
             self.l_leftRoots = lists.returnListNoDuplicates(self.l_leftRoots)
-            p.leftJoints = self.l_leftJoints
-            p.leftRoots = self.l_leftRoots
+            p.joints_left = self.l_leftJoints
+            p.roots_left = self.l_leftRoots
         except Exception,error:raise Exception,"left side gather fail | {0}".format(error)
 
         #>>> Customization network node
         self.log_info("ShaperJoints: %s"%self.mi_network.getMessage('jointList',False))
-        self.log_info("leftJoints: %s"%self.mi_network.getMessage('leftJoints',False))
-        self.log_info("leftRoots: %s"%self.mi_network.getMessage('leftRoots',False))
+        self.log_info("leftJoints: %s"%self.mi_network.getMessage('joints_left',False))
+        self.log_info("leftRoots: %s"%self.mi_network.getMessage('roots_left',False))
 
         try:#Mirror our joints, make mirror controls and store them appropriately
             #====================================================================
-            self.l_leftJoints = self.mi_network.getMessage('leftJoints',False)
+            self.l_leftJoints = self.mi_network.getMessage('joints_left',False)
             self.l_rightJoints = []
             self.l_rightRoots = []
             segmentBuffers = []
 
-            for r,i_root in enumerate(self.mi_network.leftRoots):
+            for r,i_root in enumerate(self.mi_network.roots_left):
                 try:
                     l_mirrored = mc.mirrorJoint(i_root.mNode,mirrorBehavior = True, mirrorYZ = True)
 
@@ -501,10 +504,10 @@ def _mirrorTemplate_(self):
 
         except Exception,error:raise Exception,"actual mirror fail | {0}".format(error)
 
-        p.rightRoots = self.l_rightRoots#store the roots to our network	
+        p.roots_right = self.l_rightRoots#store the roots to our network	
 
         #p.addAttr('rightJoints',attrType = 'message',value = self.l_rightJoints,lock=True)
-        p.rightJoints = self.l_rightJoints
+        p.joints_right = self.l_rightJoints
 
 
         #>>> 
@@ -822,7 +825,7 @@ def _skinBody_(self):
                     mi_cluster.doCopyNameTagsFromObject(self.md_geoGroups[key].mNode,ignore=['cgmTypeModifier','cgmType'])
                     mi_cluster.addAttr('mClass','cgmNode',attrType='string',lock=True)
                     mi_cluster.doName()
-        except Exception,error:raise Exception,"{0} | {1}".format(key,error)	
+        except Exception,error:raise Exception,"Skinning {0} fail! | {1}".format(key,error)	
 
 def _setupWraps_(self):
     p = self.mi_network
@@ -836,8 +839,9 @@ def _setupWraps_(self):
 
             for g in l_geo:
                 #Wrap
-                self.log_info("Wrapping: '{0}'".format(g))		
-                mGeo = cgmMeta.cgmObject(g)
+                self.log_info("Wrapping: '{0}'".format(g))
+                deformers.wrapDeformObject(g, self.mi_baseGeo.mNode)
+                '''mGeo = cgmMeta.cgmObject(g)
                 wrapDeformerBuffer = mc.deformer(mGeo.mNode,type='wrap',n=(mGeo.p_nameShort+'_wrapDeformer'))
                 wrapDeformer = wrapDeformerBuffer[0]
 
@@ -845,7 +849,7 @@ def _setupWraps_(self):
                 mc.select(mGeo.mNode,r=True)
                 mc.select(self.mi_baseGeo.mNode,tgl=True)
                 mel.eval('AddWrapInfluence')
-                mc.select(cl=True)
+                mc.select(cl=True)'''
         except Exception,error:raise Exception,"{0} | {1}".format(key,error)		
 
 def _connectVis_(self):
@@ -1319,7 +1323,7 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
                 if str_name in ['upr_arm']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['tx','ty','tz'])	 		
                 #>>> tx
-                if str_name in ['quad','hamstring','torsoMid','pelvis','sternum','shoulders','trapezius',
+                if str_name in ['quad','hamstring','lwr_leg','torsoMid','pelvis','sternum','shoulders','trapezius',
                                 'foreArm','lwr_arm','hand','neck',
                                 'thumb_1', 'thumb_mid', 'thumb_2',
                                 'index_1', 'index_mid', 'index_2',
