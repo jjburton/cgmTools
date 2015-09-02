@@ -40,8 +40,7 @@ reload(nFactory)
 reload(search)
 reload(deformers)
 
-_d_customizationGeoGroupsToCheck = {'body':'baseGeoGroup',
-                                    'tongue':'tongueGeoGroup',
+_d_customizationGeoGroupsToCheck = {'tongue':'tongueGeoGroup',
                                     'uprTeeth':'uprTeethGeoGroup',
                                     'lwrTeeth':'lwrTeethGeoGroup',
                                     'eyebrow':'eyebrowGeoGroup',
@@ -49,6 +48,16 @@ _d_customizationGeoGroupsToCheck = {'body':'baseGeoGroup',
                                     'earRight':'right_earGeoGroup',
                                     'eyeLeft':'left_eyeGeoGroup',
                                     'eyeRight':'right_eyeGeoGroup'}
+
+_d_main_geoInfo = {'unified':{'msg':'geo_unified',
+                              'msg_reset':'geo_resetUnified',
+                              'msg_bridge':'geo_bridgeUnified'},
+                   'body':{'msg':'geo_baseBody',
+                           'msg_reset':'geo_resetBody',
+                           'msg_bridge':'geo_bridgeBody'},
+                   'head':{'msg':'geo_baseHead',
+                           'msg_reset':'geo_resetHead',
+                           'msg_bridge':'geo_bridgeHead'},}
 
 #======================================================================
 # Functions for a cgmMorpheusMakerNetwork
@@ -104,13 +113,14 @@ def go(*args, **kws):
                                 #{'step':'Mirror Template','call':self._mirrorBridge_},
                                 #{'step':'Rig Body','call':self._rigBodyBridge_},
                                 #{'step':'Constraints','call':self._do_setupConstraints_},
-                                {'step':'Blendshape Bridge','call':self._do_bsNodeBridge_},
+                                {'step':'Check Reset/Bridge Geo','call':self._do_check_resetAndBridgeGeo_},                                
+                                #{'step':'Blendshape Bridge','call':self._do_bsNodeBridge_},
                                 #{'step':'Blendshape Body','call':self._do_bsNodeBody_},
                                 #{'step':'Blendshape Face','call':self._do_bsNodeFace_},
-                                {'step':'Skincluster','call':self._do_skinBody_},
-                                {'step':'Wraps','call':self._do_setupWraps_},	                        
-                                {'step':'Connect Vis','call':self._do_connectVis_},
-                                {'step':'LockNHide','call':self._do_lockNHide_},
+                                #{'step':'Skincluster','call':self._do_skinBody_},
+                                #{'step':'Wraps','call':self._do_setupWraps_},	                        
+                                #{'step':'Connect Vis','call':self._do_connectVis_},
+                                #{'step':'LockNHide','call':self._do_lockNHide_},
 
                                 ]
 
@@ -120,19 +130,25 @@ def go(*args, **kws):
             except Exception,error:
                 raise Exception,"customizationNode is invalid | {0}".format(error)
 
-            d_messagesToCheck = {'baseBodyGeo':"Repair base body geo connection"}
-
-            for k in d_messagesToCheck.keys():
-                if not self.mi_network.getMessage(k,False):
-                    raise ValueError,d_messagesToCheck.get(k)
-                else:self.log_debug("{0} found".format(k))
-
             try:#> Gather geo ------------------------------------------------------------------------------------------
-                baseGeo = self.mi_network.getMessage('baseBodyGeo')
-                if not baseGeo:
-                    raise RuntimeError,"No base geo found"
-                self.mi_baseGeo = cgmMeta.validateObjArg(baseGeo,mayaType = ['mesh'])
-
+                self.md_coreGeo = {}
+                for k in _d_main_geoInfo.keys():
+                    try:
+                        _bfr = self.mi_network.getMessage(_d_main_geoInfo[k]['msg'],False)
+                        if not _bfr:
+                            raise ValueError,"Repair {0} connection | {1}".format(k,_d_main_geoInfo[k]['msg'])
+                        else:self.log_debug("{0} found".format(k))   
+                        
+                        self.md_coreGeo[k] = {'mi_base':cgmMeta.validateObjArg(_bfr,mayaType = ['mesh'])}
+                    except Exception,error:
+                        raise Exception,"Core geo check failed on {0} | {1}".format(k,error)
+                
+                
+                #geo_unified = self.mi_network.getMessage('geo_unified')
+                #if not geo_unified:
+                    #raise RuntimeError,"No base geo found"
+                #self.mi_geo_unified = cgmMeta.validateObjArg(geo_unified,mayaType = ['mesh'])
+                
                 self.md_geoGroups = {}
                 self.d_skinTargets = {}
                 d_geoGroupsToCheck = _d_customizationGeoGroupsToCheck
@@ -228,6 +244,7 @@ def go(*args, **kws):
         def _do_connectVis_(self):_connectVis_(self)   
         def _do_setupWraps_(self):_setupWraps_(self)    	
         def _do_lockNHide_(self):doLockNHide(self,self.mi_network.mNode,False)    
+        def _do_check_resetAndBridgeGeo_(self):_check_resetAndBridgeGeo_(self)            
 
     return fncWrap(*args, **kws).go()
 
@@ -643,9 +660,9 @@ def _rigBody_(self):
     iRight.doStore('cgmMirrorMatch',iLeft.mNode)
 
     #Store sets
-    self.mi_network.objSetAll = i_controlSet.mNode
-    self.mi_network.objSetLeft = i_controlSetLeft.mNode
-    self.mi_network.objSetRight = i_controlSetRight.mNode
+    self.mi_network.objSet_all = i_controlSet.mNode
+    self.mi_network.objSet_left = i_controlSetLeft.mNode
+    self.mi_network.objSet_right = i_controlSetRight.mNode
 
     guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
     self.mi_network.controlsLeft = i_controlSetLeft.value
@@ -840,14 +857,14 @@ def _setupWraps_(self):
             for g in l_geo:
                 #Wrap
                 self.log_info("Wrapping: '{0}'".format(g))
-                deformers.wrapDeformObject(g, self.mi_baseGeo.mNode)
+                deformers.wrapDeformObject(g, self.mi_geo_unified.mNode)
                 '''mGeo = cgmMeta.cgmObject(g)
                 wrapDeformerBuffer = mc.deformer(mGeo.mNode,type='wrap',n=(mGeo.p_nameShort+'_wrapDeformer'))
                 wrapDeformer = wrapDeformerBuffer[0]
 
                 #cause maya is stupid and doesn't have a python equivalent
                 mc.select(mGeo.mNode,r=True)
-                mc.select(self.mi_baseGeo.mNode,tgl=True)
+                mc.select(self.mi_geo_unified.mNode,tgl=True)
                 mel.eval('AddWrapInfluence')
                 mc.select(cl=True)'''
         except Exception,error:raise Exception,"{0} | {1}".format(key,error)		
@@ -855,7 +872,7 @@ def _setupWraps_(self):
 def _connectVis_(self):
     p = self.mi_network
     iVis = p.masterControl.controlVis
-    for c in self.mi_network.objSetAll.value:
+    for c in self.mi_network.objSet_all.value:
         if '.' not in c:
             i_c = cgmMeta.cgmNode(c)
             i_attr = cgmMeta.cgmAttr(i_c,'visibility',hidden = True,lock = True)
@@ -879,7 +896,42 @@ def _connectVis_(self):
                     i_attr.doConnectIn("%s.controls"%iVis.mNode)
 
 
+#>>>GEO Stuff
+def _check_resetAndBridgeGeo_(self):
+    """ 
+    Checks the reset and Bridge geo exists. Creates it if not.
+    """ 
+    # Get our base info
+    #==================	        
+    log.info(">>> go._check_resetAndBridgeGeo_") 
+    p = self.mi_network
 
+    #>>> Check Resetter
+    #=================================================
+    for k in _d_main_geoInfo.keys():
+        _d = _d_main_geoInfo[k]
+        try:
+            try:
+                _bfr = p.getMessage(_d['msg_reset'])
+                if _bfr:
+                    log.info('{0} Reset Geo exists!'.format(k))
+                else:
+                    mi_newMesh = self.md_coreGeo[k]['mi_base'].doDuplicate(False)
+                    self.md_coreGeo[k]['mi_reset'] = mi_newMesh
+                    mi_newMesh.addAttr('cgmName','{0}_DONOTTOUCH_RESET'.format(k),attrType='string',lock=True)
+                    mi_newMesh.doName()
+                    mi_newMesh.parent =  p.masterNull.bsGeoGroup
+                    
+                    p.doStore(_d['msg_reset'],mi_newMesh.mNode)
+                    
+                    mi_newMesh.v = False
+                    log.info('{0} Reset Geo created!'.format(k))     
+            except Exception,error:
+                raise Exception,"!Reset Check!| {1}".format(error)
+            
+        except Exception,error:
+            raise Exception,"Failed on {0} | {1}".format(k,error)
+            
 def _bs_bridge_(self):
     """ 
     Sets up main,face and body blendshape bridges
@@ -888,8 +940,7 @@ def _bs_bridge_(self):
     #==================	        
     log.info(">>> go.doBridge_bsNode") 
     p = self.mi_network
-
-    baseGeo = self.mi_baseGeo.mNode 
+    geo_unified = self.mi_geo_unified.mNode 
 
     #>>> Check Resetter
     #=================================================
@@ -898,12 +949,12 @@ def _bs_bridge_(self):
     if resetGeo:#if we have one, we're good to go
         log.info('Reset Geo exists!')
     else:
-        newMesh = mc.duplicate(baseGeo)
+        newMesh = mc.duplicate(geo_unified)
         i_target = cgmMeta.cgmObject(newMesh[0])
         i_target.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
         i_target.doName()
         i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
-        p.doStore('resetGeo',i_target.mNode)
+        p.doStore('reset_',i_target.mNode)
         i_target.visibility = False
 
         log.info('Reset good!')
@@ -916,7 +967,7 @@ def _bs_bridge_(self):
     if bridgeMainBlendshapeNode and bridgeBody:#if we have one, we're good to go
         log.info('Main Bridge exists!')
     else:
-        newMesh = mc.duplicate(baseGeo)
+        newMesh = mc.duplicate(geo_unified)
         i_target = cgmMeta.cgmObject(newMesh[0])
         i_target.addAttr('cgmName','mainBridge',attrType='string',lock=True)
         i_target.doName()
@@ -925,7 +976,7 @@ def _bs_bridge_(self):
         i_target.visibility = False
 
         #Blendshape	
-        bsNode = deformers.buildBlendShapeNode(baseGeo,[i_target.mNode],'tmp')
+        bsNode = deformers.buildBlendShapeNode(geo_unified,[i_target.mNode],'tmp')
 
         i_bsNode = cgmMeta.cgmNode(bsNode)
         i_bsNode.addAttr('cgmName','bridge',attrType='string',lock=True)    
@@ -942,7 +993,7 @@ def _bs_bridge_(self):
     bridgeBodyBlendshapeNode = p.getMessage('bridgeBodyBlendshapeNode')
 
     if not p.getMessage('bridgeBodyGeo'):
-        newMesh = mc.duplicate(baseGeo)
+        newMesh = mc.duplicate(geo_unified)
         i_target = cgmMeta.cgmObject(newMesh[0])
         i_target.addAttr('cgmName','bodyBridge',attrType='string',lock=True)
         i_target.doName()
@@ -958,7 +1009,7 @@ def _bs_bridge_(self):
     bridgeFace= p.getMessage('bridgeFaceGeo')
 
     if not p.getMessage('bridgeFaceGeo'):
-        newMesh = mc.duplicate(baseGeo)
+        newMesh = mc.duplicate(geo_unified)
         i_target = cgmMeta.cgmObject(newMesh[0])
         i_target.addAttr('cgmName','faceBridge',attrType='string',lock=True)
         i_target.doName()
@@ -985,60 +1036,6 @@ def _bs_bridge_(self):
 
     return True    
 
-    '''
-    #>>> Check Body Bridge
-    #================================================= 
-    bridgeBodyBlendshapeNode = p.getMessage('bridgeBodyBlendshapeNode')
-    bridgeBody = p.getMessage('bridgeBodyGeo')
-    if bridgeBodyBlendshapeNode and bridgeBody:#if we have one, we're good to go
-	log.info('Body Bridge exists!') 
-    else:
-	newMesh = mc.duplicate(baseGeo)
-	i_target = cgmMeta.cgmObject(newMesh[0])
-	i_target.addAttr('cgmName','bodyBridge',attrType='string',lock=True)
-	i_target.doName()
-	i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
-	p.bridgeBodyGeo = i_target.mNode
-	i_target.visibility = False
-	#Blendshape	
-	bsNode = deformers.buildBlendShapeNode(p.bridgeMainGeo,[i_target.mNode],'tmp')
-
-	i_bsNode = cgmMeta.cgmNode(bsNode)
-	i_bsNode.addAttr('cgmName','bodyBridge',attrType='string',lock=True)    
-	i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
-	i_bsNode.doName()
-	p.bridgeBodyBlendshapeNode = i_bsNode.mNode	
-	attributes.doSetAttr(i_bsNode.mNode,i_target.getShortName(),1)#Turn it on
-	log.info('Body Bridge good!')
-
-    #>>> Check Face Bridge
-    #================================================= 
-    bridgeFaceBlendshapeNode = p.getMessage('bridgeFaceBlendshapeNode')
-    bridgeFace= p.getMessage('bridgeFaceGeo')
-    if bridgeFaceBlendshapeNode and bridgeFace:#if we have one, we're good to go
-	log.info('Face Bridge exists!') 
-    else:
-	newMesh = mc.duplicate(baseGeo)
-	i_target = cgmMeta.cgmObject(newMesh[0])
-	i_target.addAttr('cgmName','faceBridge',attrType='string',lock=True)
-	i_target.doName()
-	i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
-	p.bridgeFaceGeo = i_target.mNode
-	i_target.visibility = False
-
-	#Blendshape	
-	bsNode = deformers.buildBlendShapeNode(p.bridgeMainGeo,[i_target.mNode],'tmp')
-
-	i_bsNode = cgmMeta.cgmNode(bsNode)
-	i_bsNode.addAttr('cgmName','faceBridge',attrType='string',lock=True)    
-	i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
-	i_bsNode.doName()
-	p.bridgeFaceBlendshapeNode = i_bsNode.mNode
-	attributes.doSetAttr(i_bsNode.mNode,i_target.getShortName(),1)#Turn it on	
-	log.info('Face Bridge good!')
-
-    return True'''
-
 def _bs_body_(self):
     """ 
     Sets up body blendshapes
@@ -1047,7 +1044,7 @@ def _bs_body_(self):
     #==================	        
     log.info(">>> go._bs_body_") 
     p = self.mi_network
-    baseGeo = self.mi_baseGeo.mNode 
+    geo_unified = self.mi_geo_unified.mNode 
     l_targets = self.d_bsGeoTargets['body']
 
     if not l_targets:
@@ -1071,10 +1068,10 @@ def _bs_body_(self):
     p.bodyBlendshapeNodes = i_bsNode.mNode
 
     #Add these to our obj set as well as the bsNode
-    p.objSetAll.addObj(i_bsNode.mNode)
+    p.objSet_all.addObj(i_bsNode.mNode)
     attrs = deformers.returnBlendShapeAttributes(i_bsNode.mNode)
     for a in attrs:
-        p.objSetAll.addObj("{0}.{1}".format(i_bsNode.mNode,a))
+        p.objSet_all.addObj("{0}.{1}".format(i_bsNode.mNode,a))
 
 def _bs_face_(self):
     """ 
@@ -1084,7 +1081,7 @@ def _bs_face_(self):
     #==================	        
     log.info(">>> go._bs_face_") 
     p = self.mi_network
-    baseGeo = self.mi_baseGeo.mNode 
+    geo_unified = self.mi_geo_unified.mNode 
     l_targets = self.d_bsGeoTargets['face']
 
     if not l_targets:
@@ -1109,10 +1106,10 @@ def _bs_face_(self):
     p.faceBlendshapeNodes = i_bsNode.mNode
 
     #Add these to our obj set as well as the bsNode
-    p.objSetAll.addObj(i_bsNode.mNode)
+    p.objSet_all.addObj(i_bsNode.mNode)
     attrs = deformers.returnBlendShapeAttributes(i_bsNode.mNode)
     for a in attrs:
-        p.objSetAll.addObj("{0}.{1}".format(i_bsNode.mNode,a))
+        p.objSet_all.addObj("{0}.{1}".format(i_bsNode.mNode,a))
 
 
 @r9General.Timer
@@ -1247,7 +1244,7 @@ def doConnectVis(self):
 
     iVis = p.masterControl.controlVis
 
-    for c in self.p.objSetAll.value:
+    for c in self.p.objSet_all.value:
         if '.' not in c:
             i_c = cgmMeta.cgmNode(c)
             i_attr = cgmMeta.cgmAttr(i_c,'visibility',hidden = True,lock = True)
@@ -1286,8 +1283,8 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
         else:
             p = cgmPM.cgmMorpheusMakerNetwork(name = customizationNode)
 
-    mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(self.mi_network.objSetAll.value))    
-    for c in self.mi_network.objSetAll.value:        
+    mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(self.mi_network.objSet_all.value))    
+    for c in self.mi_network.objSet_all.value:        
         if '.' not in c and mc.ls(c, type='transform'):
             i_c = cgmMeta.cgmNode(c)
             if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :

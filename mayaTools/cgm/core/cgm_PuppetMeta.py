@@ -806,7 +806,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('masterControl',attrType='messageSimple',lock=True)
 
         self.addAttr('mPuppet',attrType='messageSimple',lock=True)
-	self.addAttr('mFaceModule',attrType='messageSimple',lock=True)#...testing this
+	self.addAttr('mSimpleFaceModule',attrType='messageSimple',lock=True)#...testing this
 
         #>>> Necessary attributes
         #===============================================================
@@ -852,9 +852,9 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('controlsCenter',attrType = 'message',lock=True)
 
         #>>> Object Sets ===============================================
-        self.addAttr('objSetAll',attrType = 'messageSimple',lock=True)
-        self.addAttr('objSetLeft',attrType = 'messageSimple',lock=True)
-        self.addAttr('objSetRight',attrType = 'messageSimple',lock=True)
+        self.addAttr('objSet_all',attrType = 'messageSimple',lock=True)
+        self.addAttr('objSet_left',attrType = 'messageSimple',lock=True)
+        self.addAttr('objSet_right',attrType = 'messageSimple',lock=True)
 
         #>>> Watch groups
         self.addAttr('autoPickerWatchGroups',attrType = 'message',lock=True)#These groups will setup pickers for all sub groups of them	
@@ -865,18 +865,14 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         if not mc.objExists(attributes.returnMessageObject(self.mNode,'masterNull')):#If we don't have a masterNull, make one
             self.i_masterNull = cgmMeta.cgmObject()
             self.addAttr('masterNull',self.i_masterNull.mNode,attrType = 'messageSimple',lock=True)
-            #if log.getEffectiveLevel() == 10:log.debug('Master created.')
         else:
-            #if log.getEffectiveLevel() == 10:log.debug('Master null exists. linking....')            
             self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
 
         self.i_masterNull.doStore('cgmName', self.mNode + '.cgmName')	
         self.i_masterNull.doStore('cgmTypeModifier', 'customizationAsset')	
 
-        #self.masterNull.addAttr('cgmName',self.cgmName,attrType = 'string',lock=True)
         self.i_masterNull.doName()
         attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
-        #if log.getEffectiveLevel() == 10:log.debug("Master Null good...")
 
         # Groups
         #======================================================================
@@ -891,11 +887,11 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         l_bsBodyTargets = ['torsoTargets','fullBodyTargets',
                            'left_armTargets','right_armTargets','left_handTargets','right_handTargets',
                            'left_legTargets','right_legTargets']
+        
         l_autoPickerWatchAttrs = ['left_earGeo','right_earGeo','left_eyeGeo','right_eyeGeo']
         l_autoPickerWatchGroups = []
         for attr in l_baseGroups + l_customGeoGroups+ l_bsTargetGroups + l_bsBodyTargets + l_bsFaceTargets + l_earGeoGroups + l_eyeGeoGroups:
             try:
-                #if log.getEffectiveLevel() == 10:log.debug('On attr: %s'%attr)
                 self.i_masterNull.addAttr(attr+'Group',attrType = 'messageSimple', lock = True)
                 grp = attributes.returnMessageObject(self.masterNull.mNode,attr+'Group')# Find the group
                 Attr = 'i_' + attr+'Group'#Get a better attribute store string           
@@ -1585,22 +1581,9 @@ class cgmModule(cgmMeta.cgmObject):
             Attr = 'i_' + attr#Get a better attribute store string   
             obj = attributes.returnMessageObject(self.mNode,attr)# Find the object
             if not obj:return False
-            """
-	    try: 		
-		i_buffer = r9Meta.MetaClass(obj)
-	    except Exception,error:
-		log.error("buffer failed ('%s') failed: %s"%(attr,error))		
-		return False
-
-	    if not issubclass(type(i_buffer),cgmModuleBufferNode):
-		return False	
-	    #If we get here, link it
-
-	    self.__dict__[Attr] = i_buffer"""
 
         return True # Experimetning, Don't know that we need to check this stuff as it's for changing info, not to be used in process
 
-    ##@r9General.Timer
     def __verify__(self,**kws):
         """"""
         """ 
@@ -1609,9 +1592,7 @@ class cgmModule(cgmMeta.cgmObject):
         RETURNS:
         success(bool)
         """
-        _str_funcName = "cgmModule.__verify__(%s)"%(self.p_nameShort)
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  	
-        #>>> Module Null ==================                   
+        _str_funcName = "cgmModule.__verify__(%s)"%(self.p_nameShort)      
         self.addAttr('mClass', initialValue='cgmModule',lock=True) 
         self.addAttr('cgmType',value = 'module',lock=True)
 
@@ -1628,12 +1609,7 @@ class cgmModule(cgmMeta.cgmObject):
         #==============  
         for k in self.kw_callNameTags.keys():
             if self.kw_callNameTags.get(k):
-                #if log.getEffectiveLevel() == 10:log.debug(k + " : " + str(self.kw_callNameTags.get(k)))                
                 self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
-                #if log.getEffectiveLevel() == 10:log.debug(str(self.getNameDict()))
-                #if log.getEffectiveLevel() == 10:log.debug(self.__dict__[k])
-            #elif k in self.parentTagDict.keys():
-                #   self.store(k,'%s.%s'%(self.msgModuleParent.value,k))
         self.doName()  
 
         #Attributes
@@ -1658,24 +1634,19 @@ class cgmModule(cgmMeta.cgmObject):
         #Initialization
         #==============      
         for attr in moduleNulls_toMake:
-            #if log.getEffectiveLevel() == 10:log.debug(attr)
             grp = attributes.returnMessageObject(self.mNode,attr+'Null')# Find the group
             Attr = 'i_' + attr+'Null'#Get a better attribute store string           
             if mc.objExists( grp ):
-                #If exists, initialize it
                 try:     
                     self.__dict__[Attr] = r9Meta.MetaClass(grp)#Initialize if exists  
-                    #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized to 'self.%s'"%(grp,Attr))                    
                 except:
                     log.error("'%s' group failed. Please verify puppet."%attr)                    
                     return False   
 
             else:#Make it
-                #if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmMeta.cgmObject(name=attr)#Create and initialize
                 self.__dict__[Attr].connectParentNode(self.mNode,'module', attr+'Null')                
                 self.__dict__[Attr].addAttr('cgmType',attr+'Null',lock=True)
-                #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized to 'self.%s'"%(grp,Attr))                    
 
             self.__dict__[Attr].doParent(self.mNode)
             self.__dict__[Attr].doName()
@@ -1683,22 +1654,16 @@ class cgmModule(cgmMeta.cgmObject):
             attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
 
         for attr in moduleBuffers_toMake:
-            #if log.getEffectiveLevel() == 10:log.debug(attr)
             obj = attributes.returnMessageObject(self.mNode,attr)# Find the object
             Attr = 'i_' + attr#Get a better attribute store string           
             if mc.objExists( obj ):
-                #If exists, initialize it
                 try:     
                     self.__dict__[Attr]  = r9Meta.MetaClass(obj)#Initialize if exists  
-                    #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized to 'self.%s'"%(obj,Attr))                    
                 except:
                     log.error("'%s' null failed. Please verify modules."%attr)                    
                     return False               
             else:#Make it
-                #if log.getEffectiveLevel() == 10:log.debug('Creating %s'%attr)                                    
                 self.__dict__[Attr]= cgmModuleBufferNode(module = self, name = attr, bufferType = attr, overideMessageCheck = True)#Create and initialize
-                #if log.getEffectiveLevel() == 10:log.debug("'%s' initialized to 'self.%s'"%(attr,Attr))  
-
             self.__dict__[Attr].__verify__()
 
         #Attrbute checking
@@ -1706,29 +1671,6 @@ class cgmModule(cgmMeta.cgmObject):
         self.__verifyAttributesOn__(self.i_rigNull,rigNullAttrs_toMake)
         self.__verifyAttributesOn__(self.i_templateNull,templateNullAttrs_toMake)
 
-        """
-        for attr in sorted(rigNullAttrs_toMake.keys()):#See table just above cgmModule
-            log.debug("Checking '%s' on rig Null"%attr)
-            self.i_rigNull.addAttr(attr,attrType = rigNullAttrs_toMake[attr],lock = True )
-
-        for attr in sorted(templateNullAttrs_toMake.keys()):#See table just above cgmModule
-            log.debug("Checking '%s' on template Null"%attr)	
-            if attr == 'rollJoints':
-                log.debug(self.kw_rollJoints)
-                if self.kw_rollJoints == 0:
-                    self.i_templateNull.addAttr(attr,initialValue = self.kw_rollJoints, attrType = templateNullAttrs_toMake[attr],lock = True )                
-                else:
-                    self.i_templateNull.addAttr(attr,value = self.kw_rollJoints, attrType = templateNullAttrs_toMake[attr],lock = True )                		    	    
-            elif attr == 'handles':
-                if self.kw_handles == 1:
-                    self.i_templateNull.addAttr(attr,initialValue = self.kw_handles, attrType = templateNullAttrs_toMake[attr],lock = True,min = 1 )                
-                else:
-                    self.i_templateNull.addAttr(attr,value = self.kw_handles, attrType = templateNullAttrs_toMake[attr],lock = True,min = 1 )                
-            elif attr == 'rollOverride':
-                self.i_templateNull.addAttr(attr,initialValue = '{}', attrType = templateNullAttrs_toMake[attr],lock = True )                                
-            else:
-                self.i_templateNull.addAttr(attr,attrType = templateNullAttrs_toMake[attr],lock = True )        
-		"""
         #Set Module Parent if we have that kw
         #=================		
         if self.kw_moduleParent:
@@ -1740,7 +1682,6 @@ class cgmModule(cgmMeta.cgmObject):
     def __verifyAttributesOn__(self,null,dictToUse):
         #Attrbute checking
         #=================
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s.__verifyAttributesOn__ >> "%(self.p_nameShort) + "="*75)            	        	
         if type(dictToUse) is not dict:
             raise StandardError,"Not a dict: %s"%null
         i_null = cgmMeta.asMeta(null)
@@ -2300,6 +2241,49 @@ class cgmLimb(cgmModule):
                 self.templateNull.addAttr(attr, initialValue = settings[attr],lock = True) 
 
         return True
+    
+#>>> SimpleFace  =====================================================================================================
+d_simpleFace_rigNullAttrs_toMake = {'gui_main':'messageSimple',
+                                    'gui_cam':'messageSimple',
+                                    'jnt_jaw':'messageSimple',
+                                    'geo_head':'messageSimple',
+                                    'geo_bsBridge':'messageSimple',
+                                    'geo_reset':'messageSimple',
+                                    }
+
+d_simpleFace_templateNullAttrs_toMake = {}
+
+class cgmSimpleFace(cgmModule):
+    def __init__(self,*args,**kws):
+	""" 
+	Intializes an simpleFace master class handler
+	"""
+	_str_funcName = "cgmSimpleFace.__init__"    
+	if 'name' not in kws.keys() and 'mType' in kws.keys():
+	    kws['name'] = kws['mType']
+	    
+	super(cgmSimpleFace, self).__init__(*args,**kws) 
+	
+	#>>> TO USE Cached instance ---------------------------------------------------------
+	if self.cached:
+	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    return
+	#====================================================================================
+	
+    def __verify__(self,**kws):
+	cgmModule.__verify__(self,**kws)
+
+	self.moduleType = 'simpleFace'
+
+	#>>> Attributes ...
+	self.__verifyAttributesOn__(self.rigNull,d_simpleFace_rigNullAttrs_toMake)
+	self.__verifyAttributesOn__(self.templateNull,d_simpleFace_templateNullAttrs_toMake)
+
+	#settings = {'handles': 3}
+	#if settings:
+	 #   for attr in settings.keys():
+         #		self.templateNull.addAttr(attr, value = settings[attr],lock = True)   
+	return True
 
 #>>> Eyeball =====================================================================================================
 d_eyeball_rigNullAttrs_toMake = {'irisControl':'bool',#Whether we should have a iris setup
