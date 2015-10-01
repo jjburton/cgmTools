@@ -495,9 +495,9 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
         wrappedTargetObject = targetObject
 
     """ wrap deformer"""
-    wrapDeformerBuffer = mc.deformer(wrappedTargetObject,type='wrap',n=(mc.ls(targetObject,shortNames=True)[0]+'_wrapDeformer'))
+    wrapDeformerBuffer = mc.deformer(wrappedTargetObject,type='wrap')
     wrapDeformer = wrapDeformerBuffer[0]
-
+    wrapDeformer = mc.rename(wrapDeformer,(mc.ls(targetObject,shortNames=True)[0]+'_wrapDeformer'))
     """ cause maya is stupid and doesn't have a python equivalent"""
     mc.select(wrappedTargetObject,r=True)
     mc.select(sourceObject,tgl=True)
@@ -1066,17 +1066,17 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
     # Make the blendshape node
     blendShapeNode = mc.blendShape(baseTargets,targetObject, n = blendShapeNodeName)
 
-    blendShapeChannels = returnBlendShapeAttributes(blendShapeNode[0])
-
-    # Handle the inbetweens
-    for object in inbetweenTargets:
-        objAttrs = attributes.returnUserAttrsToDict(object)
-
-        targetParent = objAttrs.get('cgmBlendShapeTargetParent')
-        targetValue = float(objAttrs.get('cgmBlendShapeInbetweenWeight'))
-        bsIndice = blendShapeChannels.index(targetParent)
-
-        mc.blendShape(blendShapeNode[0], edit = True, ib = True , target = [targetObject,bsIndice,object,targetValue])
+    if inbetweenTargets:
+	blendShapeChannels = returnBlendShapeAttributes(blendShapeNode[0])	
+	# Handle the inbetweens
+	for object in inbetweenTargets:
+	    objAttrs = attributes.returnUserAttrsToDict(object)
+    
+	    targetParent = objAttrs.get('cgmBlendShapeTargetParent')
+	    targetValue = float(objAttrs.get('cgmBlendShapeInbetweenWeight'))
+	    bsIndice = blendShapeChannels.index(targetParent)
+    
+	    mc.blendShape(blendShapeNode[0], edit = True, ib = True , target = [targetObject,bsIndice,object,targetValue])
 
     return blendShapeNode[0]
 

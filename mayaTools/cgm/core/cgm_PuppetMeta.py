@@ -828,6 +828,7 @@ class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
         self.addAttr('geo_baseBody',attrType = 'messageSimple',lock=True)#...connection to base body
 	self.addAttr('geo_baseHead',attrType = 'messageSimple',lock=True)#...connection to base head
 	self.addAttr('geo_unified',attrType = 'messageSimple',lock=True)#...connection to unified geo for easy skinning tranfer, etc
+	self.addAttr('geo_unifiedHeadWrapBridge',attrType = 'messageSimple',lock=True)#...	
 	self.addAttr('geo_resetHead',attrType = 'messageSimple',lock=True)#...
 	self.addAttr('geo_resetBody',attrType = 'messageSimple',lock=True)#...
 	self.addAttr('geo_resetUnified',attrType = 'messageSimple',lock=True)#...
@@ -2245,24 +2246,29 @@ class cgmLimb(cgmModule):
 #>>> SimpleFace  =====================================================================================================
 d_simpleFace_rigNullAttrs_toMake = {'gui_main':'messageSimple',
                                     'gui_cam':'messageSimple',
-                                    'jnt_jaw':'messageSimple',
-                                    'geo_head':'messageSimple',
-                                    'geo_bsBridge':'messageSimple',
+                                    #'jnt_jaw':'messageSimple',
+                                    'geo_head':'messageSimple',                                    
+                                    'geo_bridgeHead':'messageSimple',
                                     'geo_reset':'messageSimple',
+                                    'bsNode_bridge':'messageSimple',                                    
                                     }
 
-d_simpleFace_templateNullAttrs_toMake = {}
+d_simpleFace_templateNullAttrs_toMake = {'rigBlock_eye_left':'messageSimple',
+                                         'rigBlock_eye_right':'messageSimple',
+                                         'rigBlock_face_lwr':'messageSimple',
+                                         'rigBlock_face_upr':'messageSimple',                                         
+                                         }
 
-class cgmSimpleFace(cgmModule):
+class cgmSimpleBSFace(cgmModule):
     def __init__(self,*args,**kws):
 	""" 
 	Intializes an simpleFace master class handler
 	"""
-	_str_funcName = "cgmSimpleFace.__init__"    
+	_str_funcName = "cgmSimpleBSFace.__init__"    
 	if 'name' not in kws.keys() and 'mType' in kws.keys():
 	    kws['name'] = kws['mType']
 	    
-	super(cgmSimpleFace, self).__init__(*args,**kws) 
+	super(cgmSimpleBSFace, self).__init__(*args,**kws) 
 	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
@@ -2278,11 +2284,6 @@ class cgmSimpleFace(cgmModule):
 	#>>> Attributes ...
 	self.__verifyAttributesOn__(self.rigNull,d_simpleFace_rigNullAttrs_toMake)
 	self.__verifyAttributesOn__(self.templateNull,d_simpleFace_templateNullAttrs_toMake)
-
-	#settings = {'handles': 3}
-	#if settings:
-	 #   for attr in settings.keys():
-         #		self.templateNull.addAttr(attr, value = settings[attr],lock = True)   
 	return True
 
 #>>> Eyeball =====================================================================================================

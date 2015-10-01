@@ -44,6 +44,8 @@ _d_customizationGeoGroupsToCheck = {'tongue':'tongueGeoGroup',
                                     'uprTeeth':'uprTeethGeoGroup',
                                     'lwrTeeth':'lwrTeethGeoGroup',
                                     'eyebrow':'eyebrowGeoGroup',
+                                    'hair':'hairGeoGroup',
+                                    'clothes':'clothesGeoGroup',
                                     'earLeft':'left_earGeoGroup',
                                     'earRight':'right_earGeoGroup',
                                     'eyeLeft':'left_eyeGeoGroup',
@@ -51,13 +53,16 @@ _d_customizationGeoGroupsToCheck = {'tongue':'tongueGeoGroup',
 
 _d_main_geoInfo = {'unified':{'msg':'geo_unified',
                               'msg_reset':'geo_resetUnified',
-                              'msg_bridge':'geo_bridgeUnified'},
+                              'msg_bridge':'geo_bridgeUnified',
+                              'msg_bsBridge':'bsNode_bridgeMain'},
                    'body':{'msg':'geo_baseBody',
                            'msg_reset':'geo_resetBody',
-                           'msg_bridge':'geo_bridgeBody'},
+                           'msg_bridge':'geo_bridgeBody',
+                           'msg_bsBridge':'bsNode_bridgeBody'},
                    'head':{'msg':'geo_baseHead',
                            'msg_reset':'geo_resetHead',
-                           'msg_bridge':'geo_bridgeHead'},}
+                           'msg_bridge':'geo_bridgeHead',
+                           'msg_bsBridge':'bsNode_bridgeFace'},}
 
 #======================================================================
 # Functions for a cgmMorpheusMakerNetwork
@@ -110,17 +115,17 @@ def go(*args, **kws):
 	    doLockNHide(self,p)
 	    '''
             self.l_funcSteps = [{'step':'Gather Info','call':self._validate_},
-                                #{'step':'Mirror Template','call':self._mirrorBridge_},
-                                #{'step':'Rig Body','call':self._rigBodyBridge_},
-                                #{'step':'Constraints','call':self._do_setupConstraints_},
+                                {'step':'Mirror Template','call':self._mirrorBridge_},
+                                {'step':'Rig Body','call':self._rigBodyBridge_},
+                                {'step':'Constraints','call':self._do_setupConstraints_},
                                 {'step':'Check Reset/Bridge Geo','call':self._do_check_resetAndBridgeGeo_},                                
-                                #{'step':'Blendshape Bridge','call':self._do_bsNodeBridge_},
+                                {'step':'Blendshape Bridge','call':self._do_bsNodeBridge_},
                                 #{'step':'Blendshape Body','call':self._do_bsNodeBody_},
                                 #{'step':'Blendshape Face','call':self._do_bsNodeFace_},
-                                #{'step':'Skincluster','call':self._do_skinBody_},
-                                #{'step':'Wraps','call':self._do_setupWraps_},	                        
-                                #{'step':'Connect Vis','call':self._do_connectVis_},
-                                #{'step':'LockNHide','call':self._do_lockNHide_},
+                                {'step':'Skincluster','call':self._do_skinBody_},
+                                {'step':'Wraps','call':self._do_setupWraps_},	                        
+                                {'step':'Connect Vis','call':self._do_connectVis_},
+                                {'step':'LockNHide','call':self._do_lockNHide_},
 
                                 ]
 
@@ -314,10 +319,16 @@ def _mirrorTemplate_(self):
 
         try:#Mirror our joints, make mirror controls and store them appropriately
             #====================================================================
-            self.l_leftJoints = self.mi_network.getMessage('joints_left',False)
-            self.l_rightJoints = []
-            self.l_rightRoots = []
-            segmentBuffers = []
+            try:
+                self.l_leftJoints = self.mi_network.getMessage('joints_left',False)
+                if not self.l_leftJoints:
+                    raise ValueError,"No left joints found."
+                if not self.mi_network.roots_left:
+                    raise ValueError,"No left roots found."            
+                self.l_rightJoints = []
+                self.l_rightRoots = []
+                segmentBuffers = []
+            except Exception,error:raise Exception,"Initial checks fail. {0}".format(error)
 
             for r,i_root in enumerate(self.mi_network.roots_left):
                 try:
@@ -370,8 +381,8 @@ def _mirrorTemplate_(self):
 
                         try:#>>> Make curve
                             index = self.l_leftJoints.index(l_base[i]) #Find our main index
-                            i_mirror = self.mi_network.leftJoints[index] #store that mirror instance so we're not calling it every line
-
+                            i_mirror = self.mi_network.joints_left[index] #store that mirror instance so we're not calling it every line
+                            #if not i_mirror:raise ValueError,"Should have an i_mirror here"
                             buffer = mc.duplicate(i_mirror.getMessage('controlCurve')) #Duplicate curve
                             i_crv = cgmMeta.cgmObject( buffer[0] )
                             i_crv.cgmDirection = 'right'#Change direction
@@ -825,21 +836,28 @@ def _skinBody_(self):
 
     #>>> Main skin 
     #> Gather geo and skin
-
-
     for key in d_skinJoints.keys():
         try:
             log.info("Working to skin: {0}".format(key))
-            l_toSkin = self.d_skinTargets[key]
+            if key == 'body':
+                l_toSkin = [self.md_coreGeo['unified']['mi_base'].mNode,
+                            self.md_coreGeo['head']['mi_base'].mNode]
+            else:
+                l_toSkin = self.d_skinTargets[key]
+            if not l_toSkin:
+                raise ValueError,"No skin targets found!"
             if not d_skinJoints[key]:
-                self.log_warning("No skin joints for : {0}".format(key))		    
+                raise ValueError,"No skin joints"	    
             else:
                 for geo in l_toSkin:
                     self.log_info("Skinning: '{0}'".format(geo))
-                    toBind = d_skinJoints[key] + [geo]
+                    toBind = d_skinJoints[key] + [geo]#...combine
                     cluster = mc.skinCluster(toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
                     mi_cluster = cgmMeta.cgmNode(cluster[0])
-                    mi_cluster.doCopyNameTagsFromObject(self.md_geoGroups[key].mNode,ignore=['cgmTypeModifier','cgmType'])
+                    if key == 'body':
+                        pass
+                    else:
+                        mi_cluster.doCopyNameTagsFromObject(self.md_geoGroups[key].mNode,ignore=['cgmTypeModifier','cgmType'])
                     mi_cluster.addAttr('mClass','cgmNode',attrType='string',lock=True)
                     mi_cluster.doName()
         except Exception,error:raise Exception,"Skinning {0} fail! | {1}".format(key,error)	
@@ -849,15 +867,15 @@ def _setupWraps_(self):
 
     #>>> Main skin 
     #> Gather geo and skin
-    l_wrapKeys = ['eyebrow']
+    l_wrapKeys = ['eyebrow','hair','clothes']
     for key in l_wrapKeys:
         try:
-            l_geo = self.d_skinTargets[key]
+            l_geo = self.d_skinTargets.get(key) or []
 
             for g in l_geo:
                 #Wrap
                 self.log_info("Wrapping: '{0}'".format(g))
-                deformers.wrapDeformObject(g, self.mi_geo_unified.mNode)
+                deformers.wrapDeformObject(g, self.md_coreGeo['unified']['mi_base'].mNode)
                 '''mGeo = cgmMeta.cgmObject(g)
                 wrapDeformerBuffer = mc.deformer(mGeo.mNode,type='wrap',n=(mGeo.p_nameShort+'_wrapDeformer'))
                 wrapDeformer = wrapDeformerBuffer[0]
@@ -918,7 +936,8 @@ def _check_resetAndBridgeGeo_(self):
                 else:
                     mi_newMesh = self.md_coreGeo[k]['mi_base'].doDuplicate(False)
                     self.md_coreGeo[k]['mi_reset'] = mi_newMesh
-                    mi_newMesh.addAttr('cgmName','{0}_DONOTTOUCH_RESET'.format(k),attrType='string',lock=True)
+                    mi_newMesh.addAttr('cgmName',k,attrType='string',lock=True)
+                    mi_newMesh.addAttr('cgmTypeModifier','DONOTTOUCH_RESET',attrType='string',lock=True)                    
                     mi_newMesh.doName()
                     mi_newMesh.parent =  p.masterNull.bsGeoGroup
                     
@@ -929,6 +948,24 @@ def _check_resetAndBridgeGeo_(self):
             except Exception,error:
                 raise Exception,"!Reset Check!| {1}".format(error)
             
+            try:
+                _bfr = p.getMessage(_d['msg_bridge'])
+                if _bfr:
+                    log.info('{0} Bridge Geo exists!'.format(k))
+                else:
+                    mi_newMesh = self.md_coreGeo[k]['mi_base'].doDuplicate(False)
+                    self.md_coreGeo[k]['mi_bridge'] = mi_newMesh
+                    mi_newMesh.addAttr('cgmName', k,attrType='string',lock=True)
+                    mi_newMesh.addAttr('cgmTypeModifier','bsBridge',lock = True)
+                    mi_newMesh.doName()
+                    mi_newMesh.parent =  p.masterNull.bsGeoGroup
+                    
+                    p.doStore(_d['msg_bridge'],mi_newMesh.mNode)
+                    mi_newMesh.v = False
+                    
+                    log.info('{0} Bridge Geo created!'.format(k))     
+            except Exception,error:
+                raise Exception,"!Bridge Check!| {1}".format(error)            
         except Exception,error:
             raise Exception,"Failed on {0} | {1}".format(k,error)
             
@@ -940,57 +977,169 @@ def _bs_bridge_(self):
     #==================	        
     log.info(">>> go.doBridge_bsNode") 
     p = self.mi_network
-    geo_unified = self.mi_geo_unified.mNode 
+    l_targets = []  
+    
+    try:#>>> Facewrap geo bridge (shape pushed back into main bridge from wrapped unified geo to face)
+        #=================================================
+        #1) dup unified
+        #2) wrap to head
+        #3) add to body blendshape
+        self.log_info('Facewrap bridge setup')
+        bridgeFaceBlendshapeNode = p.getMessage('bsNode_bridgeFace')
+        bridgeFace= p.getMessage('geo_bridgeHead')
+    
+        if not bridgeFace:
+            raise ValueError,"Should have 'geo_bridgeHead'" 
+        if not bridgeFaceBlendshapeNode:
+            raise ValueError,"Should have a 'bsNode_bridgeFace'"
+        
+        try:#create and connect
+            _d = self.md_coreGeo['unified']
+            mi_newMesh = self.md_coreGeo['unified']['mi_reset'].doDuplicate(False)#....dup
+            _d['mi_faceWrapBridge'] = mi_newMesh
+            mi_newMesh.addAttr('cgmTypeModifier','faceWrapBridge',attrType='string',lock=True)                    
+            mi_newMesh.doName()
+            mi_newMesh.parent =  p.masterNull.bsGeoGroup
+            p.doStore('geo_unifiedHeadWrapBridge',mi_newMesh.mNode)  
+            mi_newMesh.v = False
+        except Exception,error:
+            raise Exception,"Create fail | {0}".format(error)    
+        
+        try:#wrap
+            deformers.wrapDeformObject(mi_newMesh.mNode, bridgeFace)
+        except Exception,error:
+            raise Exception,"wrap fail | {0}".format(error)          
+    except Exception,error:
+        raise Exception,"Facewrap bridge fail | {0}".format(error)  
+    
+    try:#>>> Check Main bridge
+        #=================================================
+        bridgeMainBlendshapeNode = p.getMessage('bsNode_bridgeMain')
+        mi_bridgeBody = p.getMessageAsMeta('geo_bridgeUnified')
+    
+        if bridgeMainBlendshapeNode and mi_bridgeBody:#if we have one, we're good to go
+            log.info('Main Bridge exists!')
+        else:
+            try:
+                #Blendshape	
+                bsNode_unified = deformers.buildBlendShapeNode( self.md_coreGeo['unified']['mi_base'].mNode,
+                                                                [mi_bridgeBody.mNode, mi_newMesh.mNode],'tmp')
+                mi_bsNode = cgmMeta.validateObjArg(bsNode_unified,'cgmNode',setClass = True)
+                mi_bsNode.addAttr('cgmName','unifiedBridge',attrType='string',lock=True)    
+                mi_bsNode.doName()
+                p.bsNode_bridgeMain = mi_bsNode.mNode	
+                log.info('Unified Bridge good!')
+            except Exception,error:
+                self.log_warning('miBase: {0}'.format( self.md_coreGeo['unified']['mi_base']))
+                #self.log_warning('mi_bridgeBody: {0}'.format( mi_bridgeBody))            
+                raise Exception,"build fail | {0}".format(error) 
+            
+        attrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
+        for a in attrs:
+            self.log_info("Setting: {0}".format(a))
+            attributes.doSetAttr(mi_bsNode.mNode,a,1)#...turn it on the bridge targets            
+    except Exception,error:
+        raise Exception,"Unified bridge fail | {0}".format(error) 
+    
+    try:#>>> Set the correct weights on the unified bridge facewrap target to keep it from pushing over
+        #=================================================
+        self.log_info('Facewrap bridge blendshapeNode setup')        
+        try:#clear 
+            str_unified = self.md_coreGeo['unified']['mi_base'].mNode
+            str_unifedBSNode = mi_bsNode.mNode
+            str_head =  self.md_coreGeo['head']['mi_base'].mNode
+            vtx_max = mc.polyEvaluate(str_unified,v=True)
+            for i,vtx in enumerate(range(0,vtx_max)):
+                self.progressBar_set( status = "Clearing {0}".format(i), progress = i, maxValue = vtx_max)		    				    		    		                    
+                mc.setAttr('{0}.inputTarget[0].inputTargetGroup[1].targetWeights[{1}]'.format(str_unifedBSNode,vtx),0.0)  
+        except Exception,error:
+            raise Exception,"clear fail | {0}".format(error)  
+        
+        try:#clear 
+            vtx_max = mc.polyEvaluate(str_head,v=True)
+            
+            for i,vtx in enumerate(range(0,vtx_max)):
+                self.progressBar_set( status = "Setting {0}".format(i), progress = i, maxValue = vtx_max)		    				    		    		                                    
+                pos = distance.returnWorldSpacePosition('{0}.vtx[{1}]'.format(str_head,vtx))
+                val = distance.returnClosestPointOnMeshInfoFromPos(pos,str_unified)['closestVertexIndex']
+                mc.setAttr('{0}.inputTarget[0].inputTargetGroup[1].targetWeights[{1}]'.format(str_unifedBSNode,val),1.0)  
+        except Exception,error:
+            raise Exception,"set fail | {0}".format(error)              
+    except Exception,error:
+        raise Exception,"facewrap target weights per vertex | {0}".format(error)       
+    return True
+    
+    try:#>>> Setup the bridge blendshape node
+        #=================================================
+        self.log_info('Facewrap bridge blendshapeNode setup')        
+        try:#create 
+            #Blendshape	
+            bsNode_unified = deformers.buildBlendShapeNode( mi_bridgeBody.mNode,[mi_newMesh.mNode],'tmp')
+            mi_bsNode = cgmMeta.validateObjArg(bsNode_unified,'cgmNode',setClass = True)
+            mi_bsNode.addAttr('cgmName','bodyBridge',attrType='string',lock=True)    
+            mi_bsNode.doName()
+            attributes.doSetAttr(mi_bsNode.mNode,mi_newMesh.getShortName(),1)
+            p.bsNode_bridgeBody = mi_bsNode.mNode	
+            log.info('Body Bridge good!')
+        except Exception,error:
+            raise Exception,"Create fail | {0}".format(error)    
+                
+    except Exception,error:
+        raise Exception,"bridge bsNode fail | {0}".format(error)       
 
-    #>>> Check Resetter
-    #=================================================
-    resetGeo = p.getMessage('resetGeo')
+    """#Blendshape	
+    bsNode = deformers.buildBlendShapeNode(p.bridgeMainGeo,l_targets,'tmp')
 
-    if resetGeo:#if we have one, we're good to go
-        log.info('Reset Geo exists!')
-    else:
-        newMesh = mc.duplicate(geo_unified)
-        i_target = cgmMeta.cgmObject(newMesh[0])
-        i_target.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
-        i_target.doName()
-        i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
-        p.doStore('reset_',i_target.mNode)
-        i_target.visibility = False
+    i_bsNode = cgmMeta.cgmNode(bsNode)
+    i_bsNode.addAttr('cgmName','bridgeTargets',attrType='string',lock=True)    
+    i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
+    i_bsNode.doName()
+    attributes.doSetAttr(i_bsNode.mNode,i_target.getShortName(),1)#Turn it on	
 
-        log.info('Reset good!')
+    attrs = deformers.returnBlendShapeAttributes(i_bsNode.mNode)
+    for a in attrs:
+        self.log_info(a)
+        attributes.doSetAttr(i_bsNode.mNode,a,1)#Turn it on	the bridge targets
+    log.info('Bridge good!')
 
-    #>>> Check Main bridge
-    #=================================================
-    bridgeMainBlendshapeNode = p.getMessage('bridgeMainBlendshapeNode')
-    bridgeBody = p.getMessage('bridgeMainGeo')
+    return True       
 
-    if bridgeMainBlendshapeNode and bridgeBody:#if we have one, we're good to go
-        log.info('Main Bridge exists!')
-    else:
-        newMesh = mc.duplicate(geo_unified)
-        i_target = cgmMeta.cgmObject(newMesh[0])
-        i_target.addAttr('cgmName','mainBridge',attrType='string',lock=True)
-        i_target.doName()
-        i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
-        p.bridgeMainGeo = i_target.mNode
-        i_target.visibility = False
+    #>>> Check Face Bridge
+    #================================================= 
+    '''
+    Make sure we have a faceBridge, create and connect 
+    '''
+    bridgeFaceBlendshapeNode = p.getMessage('bsNode_bridgeFace')
+    bridgeFace= p.getMessage('geo_bridgeHead')
 
-        #Blendshape	
-        bsNode = deformers.buildBlendShapeNode(geo_unified,[i_target.mNode],'tmp')
+    if not bridgeFace:
+        raise ValueError,"Should have geo_bridgeHead"
+    
+    try:#Create a bridge for the facial stuff to be wrapped to
+        _d = self.md_coreGeo['unified']
+        mi_newMesh = self.md_coreGeo['unified']['mi_reset'].doDuplicate(False)
+        _d['mi_faceWrapBridge'] = mi_newMesh
+        mi_newMesh.addAttr('cgmTypeModifier','faceWrapBridge',attrType='string',lock=True)                    
+        mi_newMesh.doName()
+        mi_newMesh.parent =  p.masterNull.bsGeoGroup
+        p.doStore(_d['msg_reset'],mi_newMesh.mNode)  
+        mi_newMesh.v = False
+    except Exception,error:
+        self.log_warning('miBase: {0}'.format( self.md_coreGeo['unified']['mi_base']))
+        self.log_warning('mi_bridgeBody: {0}'.format( mi_bridgeBody))            
+        raise Exception,"Face wrap bridge fail | {0}".format(error)        
+    #Connect add that to the list of the blendshapes for the unified bsNOde
+    #Create that unified bsNode
+    #Weighting so only the face is affected
 
-        i_bsNode = cgmMeta.cgmNode(bsNode)
-        i_bsNode.addAttr('cgmName','bridge',attrType='string',lock=True)    
-        i_bsNode.addAttr('mClass','cgmNode',attrType='string',lock=True)
-        #i_bsNode.addAttr('targetsGroup',targetGeoGroup,attrType='messageSimple',lock=True)
-        i_bsNode.doName()
-        attributes.doSetAttr(i_bsNode.mNode,i_target.getShortName(),1)
-        p.bridgeMainBlendshapeNode = i_bsNode.mNode	
-        log.info('Main Bridge good!')
+
+    l_targets.extend(p.getMessage('bridgeFaceGeo'))
+    
+    return
 
     #>>> Check Body Bridge
     #================================================= 
-    l_targets = []
-    bridgeBodyBlendshapeNode = p.getMessage('bridgeBodyBlendshapeNode')
+    bridgeBodyBlendshapeNode = p.getMessage('bsNode_bridgeBody')
 
     if not p.getMessage('bridgeBodyGeo'):
         newMesh = mc.duplicate(geo_unified)
@@ -1003,21 +1152,7 @@ def _bs_bridge_(self):
 
     l_targets.extend(p.getMessage('bridgeBodyGeo'))
 
-    #>>> Check Face Bridge
-    #================================================= 
-    bridgeFaceBlendshapeNode = p.getMessage('bridgeFaceBlendshapeNode')
-    bridgeFace= p.getMessage('bridgeFaceGeo')
 
-    if not p.getMessage('bridgeFaceGeo'):
-        newMesh = mc.duplicate(geo_unified)
-        i_target = cgmMeta.cgmObject(newMesh[0])
-        i_target.addAttr('cgmName','faceBridge',attrType='string',lock=True)
-        i_target.doName()
-        i_target.parent = p.masterNull.bsGeoGroup.mNode#parent it
-        p.bridgeFaceGeo = i_target.mNode
-        i_target.visibility = False
-
-    l_targets.extend(p.getMessage('bridgeFaceGeo'))
 
     #Blendshape	
     bsNode = deformers.buildBlendShapeNode(p.bridgeMainGeo,l_targets,'tmp')
@@ -1034,7 +1169,7 @@ def _bs_bridge_(self):
         attributes.doSetAttr(i_bsNode.mNode,a,1)#Turn it on	the bridge targets
     log.info('Bridge good!')
 
-    return True    
+    return True    """
 
 def _bs_body_(self):
     """ 

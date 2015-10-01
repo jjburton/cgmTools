@@ -5236,10 +5236,14 @@ def validateObjArg(*args,**kws):
 			self.log_debug("Converting to {0}.".format(mType))
 			try: 
 			    #_bfr = cgmNode(arg).convertMClassType(mType)
-			    _node = r9Meta.MetaClass(arg)
+			    try:_node = r9Meta.MetaClass(arg)
+			    except Exception,error:raise Exception,"Intial! | {0}".format(error)			    
 			    self.log_debug(_node)
-			    r9Meta.removeFromCache(_node)
-			    _bfr = r9Meta.convertMClassType(_node,mType)
+			    try:r9Meta.removeFromCache(_node)
+			    except Exception,error:raise Exception,"remove! | {0} | node: {1}".format(error,_node)			    
+
+			    try:_bfr = r9Meta.convertMClassType(_node,mType)
+			    except Exception,error:raise Exception,"conversion! | {0}".format(error)			    			    
 			except Exception,error:
 			    raise Exception,"Convsersion fail! | {0}".format(error)
 			self.mi_arg = _bfr

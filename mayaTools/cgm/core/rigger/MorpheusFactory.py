@@ -1334,11 +1334,9 @@ _d_faceControlsToConnect = {'browCenter':{'control':'center_brow_anim',
 
 def faceControls_verify(*args, **kws):
     """
-    Function to split a curve up u positionally 
 
     @kws
-    Arg 0 | kw 'curve'(None)  -- Curve to split
-    Arg 1 | kw 'points'(3)  -- Number of points to generate positions for
+    Arg 0 | kw 'attributeHolder'(None)  -- AttributeHolder to wire
     """
     class fncWrap(cgmGeneral.cgmFuncCls):
         def __init__(self,*args, **kws):
@@ -1496,11 +1494,10 @@ def get_blendshapeListToMake():
         
 def face_connectAttrHolderToBSNodes(*args, **kws):
     """
-    Function to split a curve up u positionally 
 
     @kws
-    Arg 0 | kw 'curve'(None)  -- Curve to split
-    Arg 1 | kw 'points'(3)  -- Number of points to generate positions for
+    Arg 0 | kw 'attributeHolder'(None)  -- AttributeHolder to wire
+    Arg 1 | kw 'wireIt'(True)  -- Whether to attempt to wire or not
     """
     class fncWrap(cgmGeneral.cgmFuncCls):
         def __init__(self,*args, **kws):
