@@ -5165,7 +5165,7 @@ def validateObjArg(*args,**kws):
 		    else:raise ValueError,"Obj doesn't exist: '{0}'".format(arg) 
 		    
 		if mType is None:
-		    self.log_debug("no mType...")
+		    self.log_debug("no mType arg...")
 		    if default_mType:
 			self.log_debug("no mType.Using default...")
 			if not type(default_mType) in [unicode,str]:
@@ -5177,14 +5177,16 @@ def validateObjArg(*args,**kws):
 			except Exception,error:
 			    raise Exception,"default mType ({1}) initialization fail | {0}".format(error,default_mType)				
 		    elif isTransform(arg):
+			self.log_debug("Transform...")
 			try:self.mi_arg = cgmObject(arg) 
 			except Exception,error:
 			    raise Exception,"cgmObject initialization fail | {0}".format(error)	
 		    else:
+			self.log_debug("Node")
 			try:self.mi_arg = cgmNode(arg) 
 			except Exception,error:
 			    raise Exception,"cgmNode initialization fail | {0}".format(error)	
-							    
+		    self.log_debug("leaving mType None...")
 	    try:#...mType check
 		if mType is not None:
 		    self.log_debug("checking mType: {0}".format(mType))

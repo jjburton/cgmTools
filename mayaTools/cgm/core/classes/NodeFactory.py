@@ -1884,7 +1884,7 @@ def test_argsToNodes(deleteObj = True):
 	arg = "%s.directConnect = %s.ty"%(str_obj,str_obj)
 	argsToNodes(arg).doBuild()
 	log.debug(mc.listConnections("%s.directConnect"%str_obj,source = True,scn = True))
-	plugCall = mc.listConnections("%s.directConnect"%(i_obj.mNode),plugs=True,scn = False)	
+	plugCall = mc.listConnections("%s.directConnect"%(i_obj.mNode),plugs=True,scn = True)	
 	assert plugCall[0] == '%s.translateY'%i_obj.getShortName(),log.error("Direct connect failed. Plug call:{0}".format(plugCall))
     except StandardError,error:
 	log.error("test_argsToNodes>>Single Connect Failure! '%s'"%(error))

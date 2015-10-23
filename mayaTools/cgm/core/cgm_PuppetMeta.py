@@ -648,7 +648,17 @@ class cgmMorpheusPuppet(cgmPuppet):
     """
     def __init__(self, node = None, name = None, initializeOnly = False, *args,**kws):
 	cgmPuppet.__init__(self, node = node, name = name, initializeOnly = initializeOnly, *args,**kws)
-        """	
+        """
+    
+    def get_customizationNetwork(self):
+	"""
+	Call to check message connections for a customization network
+	"""
+	for plug in mc.listConnections("{0}.message".format(self.mNode)):
+	    #log.info("Checking {0}".format(plug))
+	    if attributes.doGetAttr(plug,'mClass') == 'cgmMorpheusMakerNetwork':
+		return cgmMeta.asMeta(plug)
+	return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
@@ -1519,13 +1529,14 @@ class cgmModule(cgmMeta.cgmObject):
         # Verify or Initialize
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
         super(cgmModule, self).__init__(*args,**kws) 
-	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
 	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
+	log.debug("cgmModule.__init__ ...")	
 	#====================================================================================	
-	self.UNMANAGED.extend(['_UTILS'])	
+	self.UNMANAGED.extend(['_UTILS','kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly',
+	                       'kw_handles','kw_rollJoints','kw_callNameTags'])	
 	self._UTILS = mFactory
 
 	#====================================================================================
@@ -2478,23 +2489,28 @@ class cgmRigBlock(cgmMeta.cgmObject):
         name = treated as a base name
 
         """
-        _str_funcName = "cgmRigBlock.__init__"    
+        _str_funcName = "cgmRigBlock.__init__"   
+	log.debug("{0}...".format(_str_funcName))		
         #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
         #if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
         #if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args)))    
 
         #>>Verify or Initialize
         super(cgmRigBlock, self).__init__(*args,**kws) 
+	log.debug("{0} cache check...".format(_str_funcName))			
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
 	    return
+	log.debug("{0} cache check fail...".format(_str_funcName))		
+	
 	#====================================================================================
         #Keywords - need to set after the super call
         #==============         
         __doVerify__ = kws.get('doVerify') or False
 
-
+	self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly',
+	                       'kw_callNameTags'])	
         self.kw_name= kws.get('name') or False        
         self.kw_moduleParent = kws.get('moduleParent') or False
         self.kw_forceNew = kws.get('forceNew') or False
@@ -2506,7 +2522,8 @@ class cgmRigBlock(cgmMeta.cgmObject):
 
         #>>> Initialization Procedure ================== 
         if not self.isReferenced():
-            if self.__justCreatedState__ or __doVerify__:	    
+            if self.__justCreatedState__ or __doVerify__:	
+		log.debug("{0} verify...".format(_str_funcName))				
                 if not self.__verify__(**kws):
                     log.critical("'%s' failed to verify!"%self.mNode)
                     raise StandardError,"'%s' failed to verify!"%self.mNode 
@@ -3238,6 +3255,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
     def __init__(self,*args,**kws):
         """ 
         """
+	log.debug("cgmMouthNoseBlock.__init__...")
         if not kws:kws = {}
         if 'name' not in kws.keys():
             kws['name'] = 'mouthNose'  

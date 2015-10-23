@@ -53,6 +53,7 @@ l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
                       ]
 #l_modulesToDoOrder = ['torso']
 
+
 #This is the parent info for each module
 d_moduleParents = {'torso':False,
                    'neckHead':'torso',
@@ -73,7 +74,10 @@ d_moduleParents = {'torso':False,
                    'index_right':'arm_right',
                    'middle_right':'arm_right',
                    'ring_right':'arm_right',
-                   'pinky_right':'arm_right',                   }
+                   'pinky_right':'arm_right',
+                   'left_eye':'neckHead',
+                   'right_eye':'neckHead',
+                   'mouthNose':'neckHead'}
 
 d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
                  'neckHead':{'moduleType':'neckHead','cgmName':'neck'},
@@ -312,7 +316,32 @@ def verifyMorpheusNodeStructure(mMorpheus):
                         else:
                             log.debug("'{0}' | moduleParent not found from key: '{1}'".format(str_moduleKey,d_moduleParents.get(str_moduleKey)))
                 except Exception,error:
-                    raise Exception,"'{0}' | {1}".format(str_moduleKey,error)		    
+                    raise Exception,"'{0}' | {1}".format(str_moduleKey,error)		
+            try:#Face Modules
+                mi_customizationNetwork = mMorpheus.get_customizationNetwork()
+                if not mi_customizationNetwork:
+                    log.error("No customization network found to get facial helpers")
+                else:
+                    d_rigBlocks = {'left_eye':'rigBlock_eye_left',
+                                   'right_eye':'rigBlock_eye_right',
+                                   'mouthNose':'rigBlock_face_lwr'}
+                    mi_templateNull = mi_customizationNetwork.mSimpleFaceModule.templateNull
+                    for k in d_rigBlocks.keys():
+                        mi_block = mi_templateNull.getMessageAsMeta(d_rigBlocks[k])
+                        if not mi_block:
+                            log.error("No rig block for {0}".format(k))
+                        else:
+                            log.info("'{0}' rig block: {1}".format(k,mi_block))
+                            mi_block.__verifyModule__()
+                            mi_module = mi_block.moduleTarget
+                            try:#Parent
+                                mi_module.doSetParentModule(d_moduleInstances[d_moduleParents[k]])
+                            except Exception,error:
+                                raise Exception,"Parent fail | {0}".format(error)                
+                #Gather modules
+                mMorpheus.gatherModules()
+            except Exception,error:
+                raise Exception,"Face modules fail | {0}".format(error)
         except Exception,error:raise Exception,"{0} create modules fail | {1}".format(_str_funcName,error)
 
         # For each module
@@ -347,8 +376,8 @@ def setState(mAsset,state = 0,
 
     try:#connect our geo to our unified mesh geo
         '''
-	if mAsset.getMessage('baseBodyGeo'):
-	    mi_Morpheus.connectChildNode(mAsset.getMessage('baseBodyGeo')[0],'unifiedGeo')
+	if mAsset.getMessage('geo_unified'):
+	    mi_Morpheus.connectChildNode(mAsset.getMessage('geo_unified')[0],'unifiedGeo')
 	else:
 	    log.error("{0} no baseBody geo linked to mAsset".format(_str_funcName))
 	    return False	
@@ -517,9 +546,9 @@ def puppet_updateGeoFromAsset(*args,**kws):
             self._mi_puppetMasterNull = self._mi_puppet.masterNull
             self._mi_puppetGeoGroup = self._mi_puppetMasterNull.geoGroup
 
-            self.l_baseBodyGeo = self._mi_asset.getMessage('baseBodyGeo')
+            self.l_baseBodyGeo = self._mi_asset.getMessage('geo_unified')
             if not self.l_baseBodyGeo:
-                raise ValueError,"Missing baseBodyGeo"		
+                raise ValueError,"Missing geo_unified"		
 
             d_AssetGeo = get_assetActiveGeo(self._mi_asset) or {}
             if not d_AssetGeo.get('d_geoTargets'):
@@ -606,9 +635,9 @@ def puppet_purgeGeo(*args,**kws):
             self._mi_puppetMasterNull = self._mi_puppet.masterNull
             self._mi_puppetGeoGroup = self._mi_puppetMasterNull.geoGroup
 
-            self.l_baseBodyGeo = self._mi_asset.getMessage('baseBodyGeo')
+            self.l_baseBodyGeo = self._mi_asset.getMessage('geo_unified')
             if not self.l_baseBodyGeo:
-                raise ValueError,"Missing baseBodyGeo"	
+                raise ValueError,"Missing geo_unified"	
 
             try:
                 mi_puppet = self._mi_puppet
@@ -740,10 +769,10 @@ def get_assetActiveGeo(*args,**kws):
         def _fncStep_baseBodyCheck_(self):
             self.log_warning("This is a wip function. This needs to resolve what final geo is being used better")
             try:
-                self.log_info("Base body geo: {0}".format(self._mi_asset.baseBodyGeo))
+                self.log_info("Base body geo: {0}".format(self._mi_asset.geo_unified))
             except Exception,error: raise Exception,"gather fail | error: {0}".format(error)
             #self._returnDict['baseBody']
-            self._returnDict['baseBody'] = self._mi_asset.baseBodyGeo
+            self._returnDict['baseBody'] = self._mi_asset.geo_unified
 
         def _fncStep_searchGeoGroups_(self):
             try:#> Gather geo ------------------------------------------------------------------------------------------	    

@@ -958,8 +958,8 @@ def returnClosestVert(targetVert, vertList):
     Get the closest object from an list to a target object
 
     ARGUMENTS:
-    targetObject(string) - object you want to check distance to
-    objectList(list) - list of objects to pick from
+    targetVert(string) - object you want to check distance to
+    vertList(list) - list of objects to pick from
 
     RETURNS:
     closestObject(string)

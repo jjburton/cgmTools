@@ -39,6 +39,7 @@ reload(rigging)
 reload(nFactory)
 reload(search)
 reload(deformers)
+from cgm.lib.zoo.zooPyMaya import skinWeights
 
 _d_customizationGeoGroupsToCheck = {'tongue':'tongueGeoGroup',
                                     'uprTeeth':'uprTeethGeoGroup',
@@ -117,7 +118,8 @@ def go(*args, **kws):
             self.l_funcSteps = [{'step':'Gather Info','call':self._validate_},
                                 {'step':'Mirror Template','call':self._mirrorBridge_},
                                 {'step':'Rig Body','call':self._rigBodyBridge_},
-                                {'step':'Constraints','call':self._do_setupConstraints_},
+                                {'step':'Constraints','call':self._do_setupConstraints_},                                
+                                {'step':'RigBlocks','call':self._do_rigBlocks_},
                                 {'step':'Check Reset/Bridge Geo','call':self._do_check_resetAndBridgeGeo_},                                
                                 {'step':'Blendshape Bridge','call':self._do_bsNodeBridge_},
                                 #{'step':'Blendshape Body','call':self._do_bsNodeBody_},
@@ -134,6 +136,11 @@ def go(*args, **kws):
                 self.mi_network = cgmMeta.validateObjArg(self.d_kws['customizationNode'],mType = cgmPM.cgmMorpheusMakerNetwork,noneValid = False)
             except Exception,error:
                 raise Exception,"customizationNode is invalid | {0}".format(error)
+            
+            _bfr = self.mi_network.getMessageAsMeta('mSimpleFaceModule')
+            if not _bfr:
+                raise ValueError,"Repair mSimpleFace connection"
+            self.mi_simpleFaceModule = _bfr
 
             try:#> Gather geo ------------------------------------------------------------------------------------------
                 self.md_coreGeo = {}
@@ -244,6 +251,7 @@ def go(*args, **kws):
         def _do_setupConstraints_(self):_setupConstraints_(self) 
         def _do_bsNodeBridge_(self):_bs_bridge_(self)    	
         def _do_bsNodeBody_(self):_bs_body_(self)    
+        def _do_rigBlocks_(self):_rigBlocks_(self)    	        
         def _do_bsNodeFace_(self):_bs_face_(self)    
         def _do_skinBody_(self):_skinBody_(self)    
         def _do_connectVis_(self):_connectVis_(self)   
@@ -846,7 +854,7 @@ def _skinBody_(self):
                 l_toSkin = self.d_skinTargets[key]
             if not l_toSkin:
                 raise ValueError,"No skin targets found!"
-            if not d_skinJoints[key]:
+            if not d_skinJoints.get(key):
                 raise ValueError,"No skin joints"	    
             else:
                 for geo in l_toSkin:
@@ -861,13 +869,25 @@ def _skinBody_(self):
                     mi_cluster.addAttr('mClass','cgmNode',attrType='string',lock=True)
                     mi_cluster.doName()
         except Exception,error:raise Exception,"Skinning {0} fail! | {1}".format(key,error)	
+        
+        try:
+            unified_base = self.md_coreGeo['unified']['mi_base'].mNode
+            l_geo =  self.d_skinTargets.get('hair') or []
+            for g in l_geo:
+                #Wrap
+                
+                skinWeights.transferSkinning( unified_base, g )
+                cgmMeta.cgmNode(g).doStore('skinMaster',unified_base)
+                self.log_info("Skinning: '{0}'".format(g))
+                
+        except Exception,error:raise Exception,"Skin hair stuff | {1}".format(error)	        
 
 def _setupWraps_(self):
     p = self.mi_network
 
     #>>> Main skin 
     #> Gather geo and skin
-    l_wrapKeys = ['eyebrow','hair','clothes']
+    l_wrapKeys = ['eyebrow','clothes']
     for key in l_wrapKeys:
         try:
             l_geo = self.d_skinTargets.get(key) or []
@@ -876,15 +896,6 @@ def _setupWraps_(self):
                 #Wrap
                 self.log_info("Wrapping: '{0}'".format(g))
                 deformers.wrapDeformObject(g, self.md_coreGeo['unified']['mi_base'].mNode)
-                '''mGeo = cgmMeta.cgmObject(g)
-                wrapDeformerBuffer = mc.deformer(mGeo.mNode,type='wrap',n=(mGeo.p_nameShort+'_wrapDeformer'))
-                wrapDeformer = wrapDeformerBuffer[0]
-
-                #cause maya is stupid and doesn't have a python equivalent
-                mc.select(mGeo.mNode,r=True)
-                mc.select(self.mi_geo_unified.mNode,tgl=True)
-                mel.eval('AddWrapInfluence')
-                mc.select(cl=True)'''
         except Exception,error:raise Exception,"{0} | {1}".format(key,error)		
 
 def _connectVis_(self):
@@ -968,7 +979,88 @@ def _check_resetAndBridgeGeo_(self):
                 raise Exception,"!Bridge Check!| {1}".format(error)            
         except Exception,error:
             raise Exception,"Failed on {0} | {1}".format(k,error)
+        
+def _rigBlocks_(self):
+    """ 
+    Checks the reset and Bridge geo exists. Creates it if not.
+    """ 
+    # Get our base info
+    #==================	        
+    log.info(">>> go._rigBlocks_") 
+    d_joints = {}
+    for i_jnt in self.l_skinJoints:
+        tag_name = i_jnt.cgmName
+        if tag_name == 'eye':
+            if i_jnt.cgmDirection == 'left':
+                d_joints['eye_left'] = i_jnt
+            else:
+                d_joints['eye_right'] = i_jnt
+        elif tag_name == 'head':
+            d_joints['head'] = i_jnt
+        elif tag_name == 'mouthCavity':
+            d_joints['mouthCavity'] = i_jnt
+        elif tag_name == 'brow':
+            d_joints['brow'] = i_jnt
+             
+    mi_template = self.mi_simpleFaceModule.templateNull
+    mi_template.rigBlock_eye_left.parent = d_joints['eye_left']
+    mi_template.rigBlock_eye_right.parent = d_joints['eye_right']
+    mi_template.rigBlock_face_upr.parent = d_joints['brow']
+    mi_template.rigBlock_face_lwr.parent = d_joints['mouthCavity']
+    
+    mi_template.rigBlock_eye_left.v = False
+    mi_template.rigBlock_eye_right.v = False
+    mi_template.rigBlock_face_upr.v = False
+    mi_template.rigBlock_face_lwr.v = False  
+    
+    
+
+    return
+    #>>> Check Resetter
+    #=================================================
+    for k in _d_main_geoInfo.keys():
+        _d = _d_main_geoInfo[k]
+        try:
+            try:
+                _bfr = p.getMessage(_d['msg_reset'])
+                if _bfr:
+                    log.info('{0} Reset Geo exists!'.format(k))
+                else:
+                    mi_newMesh = self.md_coreGeo[k]['mi_base'].doDuplicate(False)
+                    self.md_coreGeo[k]['mi_reset'] = mi_newMesh
+                    mi_newMesh.addAttr('cgmName',k,attrType='string',lock=True)
+                    mi_newMesh.addAttr('cgmTypeModifier','DONOTTOUCH_RESET',attrType='string',lock=True)                    
+                    mi_newMesh.doName()
+                    mi_newMesh.parent =  p.masterNull.bsGeoGroup
+                    
+                    p.doStore(_d['msg_reset'],mi_newMesh.mNode)
+                    
+                    mi_newMesh.v = False
+                    log.info('{0} Reset Geo created!'.format(k))     
+            except Exception,error:
+                raise Exception,"!Reset Check!| {1}".format(error)
             
+            try:
+                _bfr = p.getMessage(_d['msg_bridge'])
+                if _bfr:
+                    log.info('{0} Bridge Geo exists!'.format(k))
+                else:
+                    mi_newMesh = self.md_coreGeo[k]['mi_base'].doDuplicate(False)
+                    self.md_coreGeo[k]['mi_bridge'] = mi_newMesh
+                    mi_newMesh.addAttr('cgmName', k,attrType='string',lock=True)
+                    mi_newMesh.addAttr('cgmTypeModifier','bsBridge',lock = True)
+                    mi_newMesh.doName()
+                    mi_newMesh.parent =  p.masterNull.bsGeoGroup
+                    
+                    p.doStore(_d['msg_bridge'],mi_newMesh.mNode)
+                    mi_newMesh.v = False
+                    
+                    log.info('{0} Bridge Geo created!'.format(k))     
+            except Exception,error:
+                raise Exception,"!Bridge Check!| {1}".format(error)            
+        except Exception,error:
+            raise Exception,"Failed on {0} | {1}".format(k,error)    
+        
 def _bs_bridge_(self):
     """ 
     Sets up main,face and body blendshape bridges
@@ -1436,7 +1528,7 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
             elif i_c.hasAttr('cgmName'):
                 #Special Stuff
                 str_name = i_c.cgmName
-                if str_name in ['arm','head','face','eye']:
+                if str_name in ['arm','head','face','eye','eyeOrb']:
                     attributes.doConnectAttr(('%s.scaleZ'%i_c.mNode),('%s.scaleX'%i_c.mNode),True)
                     attributes.doConnectAttr(('%s.scaleZ'%i_c.mNode),('%s.scaleY'%i_c.mNode),True)
                     cgmMeta.cgmAttr(i_c,'scaleX',lock=True,hidden=True)
@@ -1507,10 +1599,11 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
                 if str_name in ['arm']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sx'])                           
                 #>>>sy
-                if str_name in ['ankleMeat','quad','hamstring','torsoMid','arm','calf','sternum','neckTop','noseTop']:
+                if str_name in ['ankleMeat','quad','hamstring','torsoMid','cranium','pelvis','lwrFace',
+                                'arm','calf','sternum','neckTop','noseTop']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sy'])            
                 #>>>sz
-                if str_name in ['lwr_leg','hipMeat','lwr_arm','noseTop']:
+                if str_name in ['lwr_leg','hipMeat','wristMeat','lwr_arm','noseTop','lwrFace','upr_arm','ball']:
                     attributes.doSetLockHideKeyableAttr(i_c.mNode,channels = ['sz']) 
 
                 if i_c.hasAttr('radius'):
@@ -1521,7 +1614,8 @@ def doLockNHide(self, customizationNode = 'MorpheusCustomization', unlock = Fals
                 #>>> all
                 if str_name in ['eye']:
                     mc.transformLimits(i_c.mNode, sz = [-1,1], esz = [0,1])
-
+                if str_name in ['lwrFace']:
+                    mc.transformLimits(i_c.mNode, ty = [-2,0], ety = [1,0])
     for loc in mc.ls(type='locator'):
         mShape = cgmMeta.cgmNode(loc)
         str_transform =  mShape.getTransform()
