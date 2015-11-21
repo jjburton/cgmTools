@@ -108,6 +108,11 @@ def go(*args, **kws):
             self._str_reportStart = "{0}('{1}')".format(self._str_reportStart,self._mi_module.p_nameShort)
             self.cls = "JointFactory.go"
             self._cgmClass = "JointFactory.go"
+            
+            try:#>>> Instances and joint stuff ----------------------------------------------------
+                self._mi_orientation = cgmValid.simpleOrientation(str(modules.returnSettingsData('jointOrientation')) or 'zyx')
+                self._jointOrientation = self._mi_orientation.p_string  
+            except Exception,error:raise Exception,"Vectors | error: {0}".format(error)            
 
         def _step_buildNeed_(self):
             mi_module = self._mi_module
@@ -187,7 +192,7 @@ def go(*args, **kws):
                 doSkeletonizeEyebrow(self)
             elif self._mi_module.mClass == 'cgmMouthNose':
                 log.info(">>> %s.go >> mouthNose mode!"%(self._mi_module.p_nameShort))
-                try:doSkeletonizeMouthNose(self,**kws)
+                try:doSkeletonizeMouthNose(self)
                 except Exception,error:log.warning(">>> %s.go >> build failed: %s"%(self._mi_module.p_nameShort,error)) 	    
             else:
                 raise NotImplementedError,"haven't implemented '{0}' skeletonizing yet yet".format(self._mi_module.mClass)
@@ -216,10 +221,13 @@ class JointFactoryFunc(cgmGeneral.cgmFuncCls):
         try:
             try:goInstance = args[0]
             except:goInstance = kws['goInstance']
-            if not issubclass(type(goInstance),go):
+            if not goInstance._cgmClass == "JointFactory.go":
                 raise StandardError,"Not a JointFactory.go instance: '%s'"%goInstance
             assert mc.objExists(goInstance._mi_module.mNode),"Module no longer exists"
-        except Exception,error:raise StandardError,error
+        except Exception,error:
+            if args:self.log_info("args: {0}".format(args))
+            if kws:self.log_info("kws: {0}".format(kws))            
+            raise Exception,("JointFactoryFunc fail: {0}".format(error))
 
         super(JointFactoryFunc, self).__init__(*args,**kws)
 
@@ -889,24 +897,25 @@ def doSkeletonizeMouthNose(*args,**kws):
                                 {'step':'Build Jaw','call':self._buildJaw_},
                                 {'step':'Build Cheek','call':self._buildCheek_},	                        	                        
                                 {'step':'Build Lips','call':self._buildLips_},
-                                {'step':'Build Tongue','call':self._buildTongue_},	                        
+                                {'step':'Build Tongue','call':self._buildTongue_},
+                                {'step':'Build Teeth','call':self._buildTeeth_},	                                                        
                                 {'step':'Connect','call':self._connect_}]
 
 
             assert self.mi_module.mClass == 'cgmMouthNose',"%s >>> Module is not type: 'cgmMouthNose' | type is: '%s'"%(self._str_funcName,self.mi_module.mClass)
-
+            
             #The idea is to register the functions needed to be called
             #=================================================================
 
         def _gatherInfo_(self): 
             self.str_orientation = self.mi_go.str_jointOrientation #Link
             self.str_partName = self.mi_go._partName	
-
+            
             try:
                 self.l_targetMesh = self.mi_go._mi_puppet.getUnifiedGeo() or self.mi_go._mi_puppet.getGeo() or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
             except Exception,error:
                 raise error
-
+            
             #Find our head attach joint ------------------------------------------------------------------------------------------------
             self.str_rootJoint = False
             if self.mi_module.getMessage('moduleParent'):
@@ -917,7 +926,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                     else:self.str_rootJoint = mi_end.mNode
                 except Exception,error:
                     log.error("%s failed to find root joint from moduleParent | %s"%(self._str_reportStart,error))
-
+            
             #Orient info ------------------------------------------------------------------------------------------------
             self.v_aimNegative = cgmValid.simpleAxis(self.str_orientation[0]+"-").p_vector
             self.v_aim = cgmValid.simpleAxis(self.str_orientation[0]).p_vector	
@@ -925,18 +934,19 @@ def doSkeletonizeMouthNose(*args,**kws):
             self.v_upNegative = cgmValid.simpleAxis(self.str_orientation[1]+"-").p_vector	
             self.v_out = cgmValid.simpleAxis(self.str_orientation[2]).p_vector	
             self.v_outNegative = cgmValid.simpleAxis(self.str_orientation[2]+"-").p_vector
-
+            
             #Find our helpers -------------------------------------------------------------------------------------------
             self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
             if not self.mi_helper:raise StandardError,"No suitable helper found"
-
+            
             for attr in self.mi_helper.getAttrs(userDefined = True):#Get allof our Helpers
                 if "Helper" in attr:
                     try:self.__dict__["mi_%s"%attr.replace('Helper','Crv')] = cgmMeta.validateObjArg(self.mi_helper.getMessage(attr),noneValid=False)
                     except Exception,error:raise StandardError, " Failed to find '%s' | %s"%(attr,error)
-            self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=False)
+            #...using skull plate self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=False)
+            self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_go._mi_puppet.getMessage('unifiedGeo'),noneValid=False)            
             self.str_skullPlate = self.mi_skullPlate.mNode
-
+            
             #Get some data from helpers --------------------------------------------------------------------------------------
             self.int_lipCount = self.mi_helper.lipJoints
             self.int_cheekLoftCount = self.mi_helper.cheekLoftCount
@@ -982,6 +992,9 @@ def doSkeletonizeMouthNose(*args,**kws):
             except Exception,error:raise StandardError,"jaw root | %s "%(error) 
 
             try:#JawLine ==============================================================================================
+                if not self.mi_helper.buildJawLine:
+                    self.log_warning("buildJawLine is off")
+                    return True
                 mi_crv = self.mi_jawLineCrv
                 tag = 'jawLine'
                 l_build = [{'direction':'center','minU':None,'maxU':None, 'reverse':False, 'count':1},
@@ -1076,6 +1089,10 @@ def doSkeletonizeMouthNose(*args,**kws):
             return True	
 
         def _buildLips_(self):
+            if not self.mi_helper.buildJawLine:
+                self.log_warning("buildJawLine is off. Not building Lips")
+                return True            
+            
             str_skullPlate = self.str_skullPlate
 
             l_build = [{'tag':'lipUpr','crv':self.mi_lipUprCrv, 'minU':None, 'maxU':None, 'count':self.int_lipCount, 'startSplitFactor':.05, 'parent':self.str_rootJoint},
@@ -1235,6 +1252,10 @@ def doSkeletonizeMouthNose(*args,**kws):
             return True	
 
         def _buildNose_(self):
+            if not self.mi_helper.buildNose:
+                self.log_warning("buildNose is off.")
+                return True    
+            
             str_skullPlate = self.str_skullPlate
             md_noseBuilt = {} #We're gonna use this as a running list 
             int_lenNoseSteps = 4
@@ -1398,6 +1419,10 @@ def doSkeletonizeMouthNose(*args,**kws):
             return True
 
         def _buildSmile_(self):
+            if not self.mi_helper.buildCheek:
+                self.log_warning("buildCheek is off. Not building smile line ")
+                return True      
+            
             md_smileBuilt = {} #We're gonna use this as a running list 
             self.md_smileBuilt = md_smileBuilt#link it
             d_buildCurves = {'left':{'crv':self.mi_smileLeftCrv},
@@ -1473,6 +1498,10 @@ def doSkeletonizeMouthNose(*args,**kws):
             return True
 
         def _buildTongue_(self):
+            if not self.mi_helper.buildTongue:
+                self.log_warning("buildTongue is off.")
+                return True 
+            
             md_smileBuilt = {} #We're gonna use this as a running list 
             self.md_smileBuilt = md_smileBuilt#link it                            	
 
@@ -1526,11 +1555,46 @@ def doSkeletonizeMouthNose(*args,**kws):
             #Store it...		    
             self.mi_go._mi_rigNull.msgList_connect(ml_tongueJoints,"%sJoint"%('tongue'))		    
             return True	
+        
+        def _buildTeeth_(self):
+            str_skullPlate = self.str_skullPlate
+
+            try:#teeth Root ==============================================================================================
+                mi_crv = self.mi_go._mi_module.helper.mouthMidCastHelper
+                
+                tag = 'teeth'
+                try:
+                    pos =  crvUtils.returnSplitCurveList(mi_crv.mNode,1)[0]
+                except Exception,error:raise StandardError,"Position get fail | {0}".format(error)
+                
+                l_positionsTags = ['upper','lower']
+                for p in l_positionsTags: 
+                    try:#Create an name -------------------------------------------------------------------------
+                        mi_jnt = cgmMeta.asMeta(mc.joint(p = pos),'cgmObject',setClass = True)
+                        mi_jnt.addAttr('cgmName',tag,lock=True)	
+                        mi_jnt.addAttr('cgmPosition',p,lock=True)		    			                        
+                        mi_jnt.doName()
+                        self.ml_moduleJoints.append(mi_jnt)
+                        
+                        if p is 'upper':
+                            mi_jnt.parent = self.str_rootJoint
+                        else:
+                            mi_jnt.parent = self.md_moduleJoints['jaw']                     
+                    except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)
+                    
+                    try:#Orient -------------------------------------------------------------------------
+                        joints.orientJoint(mi_jnt.mNode, orientation=self.mi_go._mi_orientation.p_string, 
+                                          up=self.mi_go._mi_orientation.p_string[1])
+                        jntUtils.metaFreezeJointOrientation(mi_jnt.mNode)
+                    except Exception,error:raise StandardError,"{0} create and name fail | {1} ".format(tag,error) 
+                    
+
+            except Exception,error:raise StandardError,"Teeth | {0} ".format(error) 
 
         def _buildUprCheek_(self): 
             if not self.mi_helper.buildUprCheek:
-                #log.info("%s >>> Build upr cheek toggle: off"%(self._str_reportStart))
-                return True
+                self.log_warning("buildUprCheek is off.")
+                return True             
 
             d_buildCurves = {'left':{'crv':self.mi_leftUprCheekCrv},
                              'right':{'crv':self.mi_rightUprCheekCrv}}	
@@ -1584,8 +1648,9 @@ def doSkeletonizeMouthNose(*args,**kws):
 
         def _buildCheek_(self): 
             if not self.mi_helper.buildCheek:
-                #log.info("%s >>> Build cheek toggle: off"%(self._str_reportStart))
-                return True
+                self.log_warning("buildCheek is off.")
+                return True  
+            
             int_jointCnt = self.int_cheekCount
             int_loftCnt = self.int_cheekLoftCount
 

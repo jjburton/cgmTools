@@ -2797,12 +2797,12 @@ def shapeCast_eyeball(*args,**kws):
             self.__dataBind__(*args,**kws)
             self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
                                 {'step':'Build Iris','call':self._buildIris_},
-                                {'step':'Build Pupil','call':self._buildPupil_},	                        
-                                {'step':'Build FK','call':self._buildFK_},
-                                {'step':'Build IK','call':self._buildIK_},
-                                {'step':'Build Settings','call':self._buildSettings_},
-                                {'step':'Build Eye Move','call':self._buildEyeMove_},
-                                {'step':'Clean up','call':self._cleanUp_},
+                                #{'step':'Build Pupil','call':self._buildPupil_},	                        
+                                #{'step':'Build FK','call':self._buildFK_},
+                                #{'step':'Build IK','call':self._buildIK_},
+                                #{'step':'Build Settings','call':self._buildSettings_},
+                                #{'step':'Build Eye Move','call':self._buildEyeMove_},
+                                #{'step':'Clean up','call':self._cleanUp_},
                                 ]
             assert self.mi_module.mClass == 'cgmEyeball',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(self._str_funcName,self.mi_module.mClass)
             #The idea is to register the functions needed to be called
@@ -2843,11 +2843,14 @@ def shapeCast_eyeball(*args,**kws):
             #>> calculate ------------------------------------------------------------------------
             self.f_baseDistance = distance.returnDistanceBetweenObjects(self.mi_helper.mNode,
                                                                         self.mi_helper.pupilHelper.mNode)
-            _tmpScale = distance.returnBoundingBoxSize(self.mi_irisCrv.mNode)
-            self.f_irisSize = (_tmpScale[0]+_tmpScale[1])/2
-
-            _tmpScale = distance.returnBoundingBoxSize(self.mi_pupilCrv.mNode)
-            self.f_pupilSize = (_tmpScale[0]+_tmpScale[1])/2
+            
+            #_tmpScale = distance.returnBoundingBoxSize(self.mi_irisCrv.mNode)
+            #self.f_irisSize = (_tmpScale[0]+_tmpScale[1])/2
+            self.f_irisSize = distance.returnCurveDiameter(self.mi_irisCrv.mNode) 
+            
+            #_tmpScale = distance.returnBoundingBoxSize(self.mi_pupilCrv.mNode)
+            #self.f_pupilSize = (_tmpScale[0]+_tmpScale[1])/2
+            self.f_pupilSize = distance.returnCurveDiameter(self.mi_pupilCrv.mNode)
 
             #>> Get the iris/pupil base position
             mi_loc = cgmMeta.cgmNode("%s|curveShape2.ep[3]"%self.mi_helper.mNode).doLoc()
@@ -3066,37 +3069,40 @@ def shapeCast_eyeball(*args,**kws):
                 _baseDistance = self.f_baseDistance  
                 _baseIrisPos = self._baseIrisPos
             except Exception,error: raise Exception,"!Query]{%s}"%error
-
+            
             try:#Curve creation ===========================================================
                 ml_curvesToCombine = []
-                mi_tmpCrv = cgmMeta.asMeta( curves.createControlCurve('circle',
-                                                                      direction = 'z+',
-                                                                      size = _irisSize,
-                                                                      absoluteSize=False),'cgmObject',setClass=False)
-                Snap.go(mi_tmpCrv,mi_irisCrv.mNode)
-                mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
-                mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
-                mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0], .01)
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
-                ml_curvesToCombine[-1].parent = False
-
-                mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],-.01)
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
-                ml_curvesToCombine[-1].parent = False
-
-                mi_tmpGroup.delete()
-
+                try:
+                    mi_tmpCrv = cgmMeta.asMeta( curves.createControlCurve('circle',
+                                                                          direction = 'z+',
+                                                                          size = _irisSize,
+                                                                          absoluteSize=False),'cgmObject',setClass=False)
+                except Exception,error: raise Exception,"Initial create | {0}".format(error)
+                
+                try:
+                    Snap.go(mi_tmpCrv,mi_irisCrv.mNode)
+                    
+                    mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
+                    mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
+                    mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0], .01)
+                    ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly = False))
+                    ml_curvesToCombine[-1].parent = False
+                    
+                    mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],-.01)
+                    ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly = False))
+                    ml_curvesToCombine[-1].parent = False
+    
+                    mi_tmpGroup.delete()
+                    return
+                except Exception,error: raise Exception,"Move | {0}".format(error)
+                
                 #>>>Combine the curves
                 try:newCurve = curves.combineCurves([mObj.mNode for mObj in ml_curvesToCombine]) 
                 except Exception,error:raise StandardError,"!Failed to combine]{%s}"%error
-
-                #mi_crv = cgmMeta.cgmObject( rigging.groupMeObject(mi_irisCrv.mNode,False) )
-
-                #try:curves.parentShapeInPlace(mi_crv.mNode,newCurve)#Parent shape
-                #except Exception,error:raise StandardError,"Parent shape in place fail | error: %s"%error
-
-                #mc.delete(newCurve)
-                mi_crv = cgmMeta.cgmObject(newCurve)
+                try:
+                    mi_crv = cgmMeta.cgmObject(newCurve)
+                except Exception,error: raise Exception,"New curve | {0}".format(error)
+                
             except Exception,error: raise Exception,"!Curve create]{%s}"%error
 
             try:#Tag,name, color ===========================================================
@@ -3229,8 +3235,9 @@ def shapeCast_eyelids(*args,**kws):
 
             #>> calculate ------------------------------------------------------------------------
             #self.f_baseDistance = distance.returnCurveLength(self.mi_helper.lwrLidHelper.mNode) /4
-            _tmpScale = distance.returnBoundingBoxSize(self.mi_helper.pupilHelper.mNode)
-            self.f_baseDistance = (_tmpScale[0]+_tmpScale[1])/3
+            #_tmpScale = distance.returnBoundingBoxSize(self.mi_helper.pupilHelper.mNode)
+            #self.f_baseDistance = (_tmpScale[0]+_tmpScale[1])/3
+            self.f_baseDistance = ( distance.returnCurveDiameter(self.mi_helper.pupilHelper.mNode))/1
 
         def _buildShapes_(self):
             try:#query ===========================================================

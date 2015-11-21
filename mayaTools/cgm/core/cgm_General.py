@@ -131,11 +131,14 @@ class cgmFuncCls(object):
 		    try:
 			self.d_kws[str_kw] = kws[str_kw]#Then we try a kw call
 		    except:
-			try:
-			    self.d_kws[d_buffer['kw']] = args[ int_argIdx ]#First we try the arg index			
-			except:
-			    #self.log_info("Using default [%s] = %s"%(str_kw,d_buffer.get("default")))
-			    self.d_kws[str_kw] = d_buffer.get("default")#Lastly, we use the default value
+			if d_buffer not in self._l_ARGS_KWS_BUILTINS:
+			    try:
+				self.d_kws[d_buffer['kw']] = args[ int_argIdx ]#First we try the arg index			
+			    except:
+				#self.log_info("Using default [%s] = %s"%(str_kw,d_buffer.get("default")))
+				self.d_kws[str_kw] = d_buffer.get("default")#Lastly, we use the default value
+			else:
+			    self.d_kws[str_kw] = d_buffer.get("default")#Lastly, we use the default value				
 		else:
 		    self.d_kws[str_kw] = self._d_funcKWs[str_kw]
 		    int_argIdx -=1 #We'll be keep pushing down the arg start as we find kws

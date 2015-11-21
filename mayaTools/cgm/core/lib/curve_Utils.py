@@ -120,8 +120,10 @@ def returnSplitCurveList(*args, **kws):
 		log.debug("%s >> u list : %s"%(_str_funcName,str_bufferU))       
 		f_maxU = float(str_bufferU.split(':')[-1].split(']')[0])
 		l_uValues = [0]
-	
-		if f_startSplitFactor is not False:
+		
+		if points == 1:
+		    l_uValues = [f_maxU/2]
+		elif f_startSplitFactor is not False:
 		    if points < 5:
 			raise StandardError,"Need at least 5 points for startSplitFactor. Points : %s"%(points)
 		    log.debug("%s >> f_startSplitFactor : %s"%(_str_funcName,f_startSplitFactor))  

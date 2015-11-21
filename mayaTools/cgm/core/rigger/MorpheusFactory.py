@@ -50,6 +50,7 @@ l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
                       'thumb_left','index_left','middle_left','ring_left','pinky_left',                   
                       'clavicle_right','arm_right',
                       'thumb_right','index_right','middle_right','ring_right','pinky_right',
+                      'eye_left','eye_right','eyelids_left','eyelids_right','mouthNose',
                       ]
 #l_modulesToDoOrder = ['torso']
 
@@ -75,8 +76,8 @@ d_moduleParents = {'torso':False,
                    'middle_right':'arm_right',
                    'ring_right':'arm_right',
                    'pinky_right':'arm_right',
-                   'left_eye':'neckHead',
-                   'right_eye':'neckHead',
+                   'eye_left':'neckHead',
+                   'eye_right':'neckHead',
                    'mouthNose':'neckHead'}
 
 d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
@@ -99,8 +100,13 @@ d_moduleCheck = {'torso':{'moduleType':'torso'},#This is the intialization info
                  'index_right':{'moduleType':'finger','cgmDirection':'right','cgmName':'index'}, 
                  'middle_right':{'moduleType':'finger','cgmDirection':'right','cgmName':'middle'}, 
                  'ring_right':{'moduleType':'finger','cgmDirection':'right','cgmName':'ring'}, 
-                 'pinky_right':{'moduleType':'finger','cgmDirection':'right','cgmName':'pinky'},                 
-                 }
+                 'pinky_right':{'moduleType':'finger','cgmDirection':'right','cgmName':'pinky'},  
+                 'eye_left':{'moduleType':'eyeball','cgmDirection':'left'},
+                 'eye_right':{'moduleType':'eyeball','cgmDirection':'right'},
+                 'eyelids_left':{'moduleType':'eyelids','cgmDirection':'left'},
+                 'eyelids_right':{'moduleType':'eyelids','cgmDirection':'right'},
+                 'mouthNose':{'moduleType':'mouthNose'}}                 
+
 
 #This is the template settings info
 d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}','curveDegree':2,'rollJoints':1},
@@ -148,7 +154,12 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
                                   'r_ring_mid_bodyShaper','r_ring_2_bodyShaper','r_ring_2_shaperCurve1_shape2.cv[4]'], 
                     'pinky_right':['r_root_pinky_loc','r_pinky_1_bodyShaper',
                                    'r_pinky_mid_bodyShaper','r_pinky_2_bodyShaper',
-                                   'r_pinky_1_shaperCurve3_shape2.cv[4]'],                         
+                                   'r_pinky_1_shaperCurve3_shape2.cv[4]'],
+                    'eye_left':False,
+                    'eye_right':False,
+                    'eyelids_left':False,
+                    'eyelids_right':False,
+                    'mouthNose':False,
                     }
 
 
@@ -182,11 +193,15 @@ def verify_sizingData(mAsset = None, skinDepth = .75):
                 mc.progressBar(mayaMainProgressBar, edit=True, status = "On {0} | '{1}'...".format(_str_funcName,str_moduleKey), step=1)
 
                 if str_moduleKey not in d_moduleControls.keys():
-                    log.warning("Missing controls info for: '%s'"%str_moduleKey)
+                    log.warning("{0} Missing controls info for: '{1}'".format(_str_funcName,str_moduleKey))
                     return False
+                
                 log.debug("{0} >> On str_moduleKey: '{1}'...".format(_str_funcName,str_moduleKey))
                 controls = d_moduleControls.get(str_moduleKey)
                 posBuffer = []
+                if controls is False:
+                    log.info("{0} No controls data.: '{1}'".format(_str_funcName,str_moduleKey))
+                    continue
                 for c in controls:
                     if not mc.objExists(c):
                         log.warning("Necessary positioning control not found: '%s'"%c)
