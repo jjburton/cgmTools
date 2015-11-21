@@ -221,44 +221,34 @@ def valueArg(numberToCheck = None,inRange = None, minValue = None, maxValue = No
     if calledFrom: _str_funcName = "%s.valueArg"%(calledFrom)
     else:_str_funcName = "valueArg"  
     try:
-	if numberToCheck is None:raise StandardError,"numberToCheck cannot be none."
+	if numberToCheck is None:raise Exception,"numberToCheck cannot be none."
 	if type(numberToCheck) not in [float,int]:
-	    raise StandardError,"%s not a number. Type: %s"%(numberToCheck,type(numberToCheck))
+	    raise ValueError,"%s not a number. Type: %s"%(numberToCheck,type(numberToCheck))
 	if inRange is not None:
-	    try:#Range check
-		if numberToCheck < min(inRange) or numberToCheck > max(inRange):
-		    return False
-	    except StandardError,error:raise StandardError,"Range arg failed. error: %s"%(inRange,error)
+	    if numberToCheck < min(inRange) or numberToCheck > max(inRange):
+		raise ValueError,"{0} is not in range {1}".format(numberToCheck,inRange)
 	if type(minValue) in [float,int]:
-	    try:#Min check
-		if not numberToCheck >= minValue:
-		    if autoClamp:
-			return minValue		    
-		    return False
-	    except StandardError,error:raise StandardError,"min value check fail. error: %s"%(error)
+	    if not numberToCheck >= minValue:
+		if autoClamp:
+		    return minValue		    
+		raise ValueError,"{0} is less than minValue {1}".format(numberToCheck,minValue)
 	if type(maxValue) in [float,int]:
-	    try:#Max check
-		if not numberToCheck <= maxValue:
-		    if autoClamp:
-			return maxValue
-		    return False
-	    except StandardError,error:raise StandardError,"max value check fail. error: %s"%(error)		
+	    if not numberToCheck <= maxValue:
+		if autoClamp:
+		    return maxValue
+		raise ValueError,"{0} is more than maxValue {1}".format(numberToCheck,minValue)
 	if type(isEquivalent) in [float,int]:
-	    try:#Equivalent check
-		if not isFloatEquivalent(isEquivalent,numberToCheck):
-		    return False
-	    except StandardError,error:raise StandardError,"isEquivalent check fail. error: %s"%(error)	    
+	    if not isFloatEquivalent(isEquivalent,numberToCheck):
+		raise ValueError,"{0} is not equivalent {1}".format(numberToCheck,numberToCheck)
 	if type(isValue) in [float,int]:
-	    try:#isValue check
-		if numberToCheck != isValue:
-		    return False
-	    except StandardError,error:raise StandardError,"isValue check fail. error: %s"%(error)	 
+	    if numberToCheck != isValue:
+		raise ValueError,"{0} is not the value {1}".format(numberToCheck,isValue)
 	return numberToCheck
-    except StandardError,error:
+    except Exception,error:
 	if noneValid:
 	    return False
-	log.error("%s >>Failure! int: %s | range: %s | min: %s | max: %s | isValue: %s"%(_str_funcName,numberToCheck,inRange,minValue,maxValue,isValue))
-	raise StandardError,error 
+	log.error("{0} >>Failure! int: {1} | range: {2} | min: {3} | max: {4} | isValue: {5} | calledFrom: '{6}'".format(_str_funcName,numberToCheck,inRange,minValue,maxValue,isValue,calledFrom))
+	raise Exception,error 
     
 #>>> Maya orientation ============================================================================
 d_rotateOrder = {'xyz':0,

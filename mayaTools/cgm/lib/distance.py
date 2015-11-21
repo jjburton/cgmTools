@@ -26,6 +26,7 @@
 #   6) returnBoundingBoxSize (meshGrp/mesh/obj)
 #
 #=================================================================================================================================================
+import math
 import maya.cmds as mc
 import maya.OpenMaya as om
 
@@ -729,6 +730,25 @@ def returnCurveLength(curve):
         shapeLengths.append(mc.getAttr(infoNode+'.arcLength'))
         mc.delete(infoNode)
     return sum(shapeLengths)
+
+def returnCurveDiameter(curve):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Assuming a given curve is a circle, return it's diameter. This is mainly to account for hidden objects with which
+    bounding box size fails to handle properly.
+    
+    cir = pi * 2 * r
+
+    ARGUMENTS:
+    curve(string)
+
+    RETURNS:
+    diamter(float)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    return (returnCurveLength(curve) / 2) / math.pi
+
 
 def returnMidU(curve):
     """
