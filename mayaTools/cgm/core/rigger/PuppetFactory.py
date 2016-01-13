@@ -268,7 +268,11 @@ def getModuleFromDict(*args,**kws):
             args = self._l_funcArgs
             kws = copy.copy(self._d_funcKWs)
             if 'checkDict' in kws.keys():
+                self.log_debug("checkDict")                
                 checkDict = kws.get('checkDict')
+            elif len(args) == 1 and issubclass(type(args[0]),dict):
+                self.log_debug("One arg, is dict")
+                checkDict = args[0]
             else:
                 try:
                     '''

@@ -323,7 +323,7 @@ def build_controls(*args, **kws):
 		    else:_str_key = 'lwr'
 		    for ii,mi_handle in enumerate(ml):
 			try:
-			    mi_crv = mi_handle.controlCurve
+			    mi_crv = mi_handle.getMessageAsMeta('controlCurve')
 			    #log.info("On %s | '%s' >> '%s'"%(ii,mi_handle.p_nameShort,mi_crv.p_nameShort))
 			    mi_crv.parent = mi_go._i_constrainNull#Parent to constrainNull
 			    try:
@@ -838,7 +838,7 @@ def build_rig(*args, **kws):
 		    mPlug_autoFollow = cgmMeta.cgmAttr(mi_settings,"autoFollow",attrType = 'float', value = 1.0, hidden = False,keyable=True,maxValue=1.0,minValue=0)	    
 		    self.mPlug_autoFollow = mPlug_autoFollow
 		    
-		    mi_blendLoc = mi_go._mi_moduleParent.rigNull.locBlend
+		    mi_blendLoc = mi_go._mi_moduleParent.rigNull.getMessageAsMeta('locBlend')
 		    
 		    mi_zeroLoc = mi_blendLoc.doLoc()
 		    mi_zeroLoc.addAttr('cgmName','zero')

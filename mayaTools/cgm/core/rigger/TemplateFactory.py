@@ -335,7 +335,7 @@ def doCastPivots(mModule):
                 raise StandardError,"%s.doCastPivots>>> failure! | %s"%(_str_shortName,error)
 
         return False
-    except Exception,error:raise Exception,"doCastPivots | {0}".format(error)
+    except Exception,error:raise Exception,"doCastPivots | arg: {0} | {1}".format(mModule, error)
 
 #@r9General.Timer
 def doTagChildren(self): 

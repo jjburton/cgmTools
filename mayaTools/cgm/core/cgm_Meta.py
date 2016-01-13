@@ -1831,30 +1831,46 @@ class cgmObject(cgmNode):
         parent(string) -- Target parent
         """
 	try:
-	    if target == self.getParent():
-		return True
-	    #log.debug("Parenting '%s' to '%s'"%(self.mNode,target))
-    
 	    if target: #if we have a target parent
+		if cgmValid.isListArg(target):
+		    target = target[0]
+		    log.info("Target arg is list, using first entry")
 		try:
-		    #If we have an Object Factory instance, link it
-		    self.parent = target.mNode
-		    #log.debug("Parent is an instance")   		
+		    bfr_target = target.p_nameLong
 		except:
-		    #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
-		    assert mc.objExists(target) is True, "'%s' - parent object doesn't exist" %target    
+		    try:
+			bfr_target = cgmNode(target).p_nameLong
+		    except Exception,error:
+			if not mc.objExists(target):
+			    raise Exception,"'{0}' - target object doesn't exist" .format(target) 
+			raise Exception,error
+			#raise Exception,error
+		    
+		if bfr_target == self.getParent():
+		    return True
+		    
+		try:#...simply try 		
+		    mc.parent(self.mNode,bfr_target)
+		    return True
+		except:pass
 		
-		#log.debug("Parent is '%s'"%target)
-		try: 		
-		    mc.parent(self.mNode,target)
-		except:
-		    #log.debug("'%s' already has target as parent"%self.mNode)
-		    return False
-	    
+		try:
+		    mc.parent(self.mNode, bfr_target)
+		    return True
+		except Exception,error:
+		    #log.error("target: {0}".format(target))
+		    #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+		    #assert mc.objExists(target) is True, "'%s' - parent object doesn't exist" %target    
+		    #log.info(target.mNode)
+		    raise Exception,error
+		raise StandardError,"Failed to parent"
 	    else:#If not, do so to world
+		#log.info("parenting to world")
 		rigging.doParentToWorld(self.mNode)
+		return True
 		#log.debug("'%s' parented to world"%self.mNode) 
-	except Exception,error:raise Exception,"[%s.doParent(target = %s)]{%s}"%(self.p_nameShort,target,error)
+	except Exception,error:
+	    raise Exception,"doParent fail | self: {0} | target: {1} | error: {2}".format(self.p_nameShort,target,error)
 		
     parent = property(getParent, doParent)
     p_parent = property(getParent, doParent)
@@ -2627,7 +2643,8 @@ class cgmObjectSet(cgmNode):
 		else:log.debug("%s >> already contain : %s"%(_str_funcName,o.p_nameShort))
 	except StandardError,error:
 	    raise StandardError,"%s >>  error : %s"%(_str_funcName,error) 
-    def addObj(self,info,*a,**kw):
+	
+    def append(self,info,*a,**kws):
         """ 
         Store information to a set in maya via case specific attribute.
         
@@ -2647,9 +2664,12 @@ class cgmObjectSet(cgmNode):
         try:
             mc.sets(info,add = self.mNode)
             #log.debug("'%s' added to '%s'!"%(info,self.mNode))  	    
-        except:
-            log.error("'%s' failed to add to '%s'"%(info,self.mNode))    
-            
+        except Exception, error:
+            log.error("'append fail | {0}' failed to add to '{1}' | {2}"%(info,self.mNode,error))    
+	    
+    def addObj(self,info,*a,**kws):  
+	self.append(info,*a,**kws)
+	
     def addSelected(self): 
         """ Store selected objects """
         # First look for attributes in the channel box

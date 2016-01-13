@@ -36,7 +36,7 @@ from cgm.lib.ml import (ml_breakdownDragger,
 # Shared libraries
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 _l_moduleStates = cgmGeneral._l_moduleStates
-__l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow','cgmMouthNose']
+__l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow','cgmMouthNose','cgmSimpleBSFace']
 __l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthNose']
 
 #KWS ================================================================================================================

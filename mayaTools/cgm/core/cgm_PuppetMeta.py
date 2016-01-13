@@ -2836,6 +2836,7 @@ class cgmEyeballBlock(cgmRigBlock):
 
             mi_pupilMirror.ty = self.pupilHelper.ty
             mi_pupilMirror.tz = self.pupilHelper.tz
+	    mi_pupilMirror.sy = self.pupilHelper.sy
         except Exception,error:raise StandardError,"[{0} - iris/pupil] | error: {1} ".format(_str_funcName,error)
 
         try:

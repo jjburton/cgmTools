@@ -52,6 +52,7 @@ l_modulesToDoOrder = ['torso','neckHead','leg_left','leg_right',
                       'thumb_right','index_right','middle_right','ring_right','pinky_right',
                       'eye_left','eye_right','eyelids_left','eyelids_right','mouthNose',
                       ]
+l_faceModules = ['eye_left','eye_right','eyelids_left','eyelids_right','mouthNose']
 #l_modulesToDoOrder = ['torso']
 
 
@@ -77,6 +78,8 @@ d_moduleParents = {'torso':False,
                    'ring_right':'arm_right',
                    'pinky_right':'arm_right',
                    'eye_left':'neckHead',
+                   'eyelids_left':'eye_left',
+                   'eyelids_right':'eye_right',
                    'eye_right':'neckHead',
                    'mouthNose':'neckHead'}
 
@@ -118,6 +121,11 @@ d_moduleTemplateSettings = {'torso':{'handles':5,'rollOverride':'{"-1":0,"0":0}'
                             'thumb':{'handles':4,'rollOverride':'{}','curveDegree':1,'rollJoints':0},   
                             'finger':{'handles':5,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
                             'clavicle':{'handles':2,'rollOverride':'{}','curveDegree':1,'rollJoints':0},
+                            'eye_left':{},
+                            'eye_right':{},
+                            'eyelids_left':{},
+                            'eyelids_right':{},
+                            'mouthNose':{}
                             }                            
 
 #This dict is for which controls map to which keys
@@ -263,6 +271,8 @@ def verifyMorpheusNodeStructure(mMorpheus):
             mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
             for str_moduleKey in l_modulesToDoOrder:
                 try:
+                    if str_moduleKey in l_faceModules:
+                        continue
                     if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
                         break
                     mc.progressBar(mayaMainProgressBar, edit=True, status = "On '%s'..."%(str_moduleKey), step=1)
@@ -278,7 +288,8 @@ def verifyMorpheusNodeStructure(mMorpheus):
                     elif d_moduleCheck[str_moduleKey]['moduleType'] in d_moduleTemplateSettings.keys():
                         d_settingsDict = d_moduleTemplateSettings[ d_moduleCheck[str_moduleKey]['moduleType'] ]            
                     else:
-                        log.debug("Missing limb info for: '%s'"%str_moduleKey)
+                        log.info("Missing limb info for: '%s'"%str_moduleKey)
+                        d_settingsDict = {}
                         return False
 
                     log.debug("'{0}' structure check...".format(str_moduleKey))                
@@ -331,14 +342,16 @@ def verifyMorpheusNodeStructure(mMorpheus):
                         else:
                             log.debug("'{0}' | moduleParent not found from key: '{1}'".format(str_moduleKey,d_moduleParents.get(str_moduleKey)))
                 except Exception,error:
-                    raise Exception,"'{0}' | {1}".format(str_moduleKey,error)		
+                    gui.doEndMayaProgressBar(mayaMainProgressBar)
+                    raise Exception,"'{0}' | {1}".format(str_moduleKey,error)
+                
             try:#Face Modules
                 mi_customizationNetwork = mMorpheus.get_customizationNetwork()
                 if not mi_customizationNetwork:
                     log.error("No customization network found to get facial helpers")
                 else:
-                    d_rigBlocks = {'left_eye':'rigBlock_eye_left',
-                                   'right_eye':'rigBlock_eye_right',
+                    d_rigBlocks = {'eye_left':'rigBlock_eye_left',
+                                   'eye_right':'rigBlock_eye_right',
                                    'mouthNose':'rigBlock_face_lwr'}
                     mi_templateNull = mi_customizationNetwork.mSimpleFaceModule.templateNull
                     for k in d_rigBlocks.keys():
@@ -353,10 +366,11 @@ def verifyMorpheusNodeStructure(mMorpheus):
                                 mi_module.doSetParentModule(d_moduleInstances[d_moduleParents[k]])
                             except Exception,error:
                                 raise Exception,"Parent fail | {0}".format(error)                
-                #Gather modules
-                mMorpheus.gatherModules()
+
             except Exception,error:
                 raise Exception,"Face modules fail | {0}".format(error)
+            #Gather modules
+            mMorpheus.gatherModules()            
         except Exception,error:raise Exception,"{0} create modules fail | {1}".format(_str_funcName,error)
 
         # For each module
@@ -527,6 +541,21 @@ class MorpheusNetworkFunc(cgmGeneral.cgmFuncCls):
         self._b_ExceptionInterupt = False
         self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset]	
         #=================================================================
+        
+_d_main_geoInfo = {#'unified':{'msg':'geo_unified',
+                              #'msg_reset':'geo_resetUnified',
+                              #'msg_bridge':'geo_bridgeUnified',
+                              #'msg_bsBridge':'bsNode_bridgeMain'},
+                   'body':{'msg':'geo_baseBody',
+                           'msg_reset':'geo_resetBody',
+                           'msg_bridge':'geo_bridgeBody',
+                           #'msg_bsBridge':'bsNode_bridgeBody'
+                           },
+                   'head':{'msg':'geo_baseHead',
+                           'msg_reset':'geo_resetHead',
+                           'msg_bridge':'geo_bridgeHead',
+                           #'msg_bsBridge':'bsNode_bridgeFace'},
+                           }}
 
 def puppet_updateGeoFromAsset(*args,**kws):
     '''
@@ -576,27 +605,51 @@ def puppet_updateGeoFromAsset(*args,**kws):
         def _fncStep_process_(self):
             try:
                 mi_puppet = self._mi_puppet
+                mi_asset = self._mi_asset
+                mi_geoGroup = self._mi_puppet.masterNull.geoGroup
             except Exception,error:
                 raise Exception,"Bring local fail | {0}".format(error)
 
             self.log_warning("This is a wip function. This needs to resolve what final geo is being used better")
 
-            try:
-                if not self._mi_puppet.getMessage('unifiedGeo'):
-                    self.log_warning("Creating unified geo...THIS NEEDS TO BE A BETTER METHOD AT SOME POINT USING REAL UNIFED GEO CALL")
-                    newMesh = mc.duplicate(self.l_baseBodyGeo[0])
-                    mMesh = cgmMeta.cgmObject(newMesh[0])
-                    mMesh.doStore('cgmName',"{0}.cgmName".format(mi_puppet.mNode))
-                    attributes.doSetLockHideKeyableAttr(mMesh.mNode,False,True,True)
-                    #mMesh.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
-                    mMesh.parent = self._mi_puppetGeoGroup.unifiedGeoGroup#...parent it		    
-                    mMesh.doName()		
-                    self._mi_puppet.doStore('unifiedGeo',mMesh.mNode)
-
-                    mMesh.setDrawingOverrideSettings(pushToShapes=False)
-
-                else:
-                    self.log_info("Unified geo found")
+            try:            
+                #>>> Check Resetter
+                #=================================================
+                self.md_coreGeo = {}
+                
+                for k in _d_main_geoInfo.keys():
+                    try:
+                        _d = _d_main_geoInfo[k]
+                        for k1 in _d.keys():
+                            try:#...loop
+                                mi_base = mi_asset.getMessageAsMeta(_d[k1])
+                                if not mi_base:
+                                    self.log_info("Creating from base")
+                                    mi_base = mi_geoGroup.getMessageAsMeta(_d['msg'])
+                                    self.log_info("mi_base: {0} | {1}".format(mi_base.p_nameShort,mi_base))
+                                if not mi_base:
+                                    raise ValueError,"No value on asset"
+                                
+                                mi_newMesh = mi_base.doDuplicate(False,incomingConnections = False)
+                                try:
+                                    mi_newMesh.parent = mi_geoGroup.bodyGeoGroup
+                                except:
+                                    self.log_error("mi_newMesh: {0} | {1}".format(mi_newMesh.p_nameShort,mi_newMesh))
+                                    self.log_error("parent: {0}".format(mi_geoGroup.bodyGeoGroup))
+                                mi_newMesh.addAttr('cgmName',k,attrType='string',lock=True)
+                                if '_' in k1:
+                                    mi_newMesh.addAttr('cgmTypeModifier',k1.split('_')[-1],attrType = 'string', lock = True)
+                                mi_newMesh.doName()
+                                mi_geoGroup.doStore(_d[k1],mi_newMesh.mNode)
+                                if k1 == 'msg':
+                                    mi_newMesh.v = True
+                                    self.md_coreGeo[k] = mi_newMesh
+                                else:
+                                    mi_newMesh.v = False
+                            except Exception,error:
+                                raise Exception,"!{0} Check!| {1}".format(k1, error)  
+                    except Exception,error:
+                        raise Exception,"!{0} Check!| {1}".format(k, error)                          
             except Exception,error:raise Exception,"Base Geo fail | {0}".format(error)		
                 #i_target.visibility = False	
 
@@ -611,7 +664,6 @@ def puppet_updateGeoFromAsset(*args,**kws):
                             mMesh = cgmMeta.cgmObject(newMesh[0])
                             mMesh.doCopyNameTagsFromObject(obj)
                             attributes.doSetLockHideKeyableAttr(mMesh.mNode,False,True,True)			    
-                            #mMesh.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
                             mMesh.parent = False
                             self.log_debug("'{0}' |  parenting to: '{1}'".format(str_key,d_geoStoreKeyToGeoGroups.get(str_key)))
                             mMesh.parent = self._mi_puppetGeoGroup.getMessageAsMeta(d_geoStoreKeyToGeoGroups.get(str_key))#...parent it		    
@@ -619,7 +671,27 @@ def puppet_updateGeoFromAsset(*args,**kws):
 
                             mMesh.setDrawingOverrideSettings(pushToShapes=False)
 
-            except Exception,error:raise Exception,"Geo duplication | {0}".format(error)	    
+            except Exception,error:raise Exception,"Geo duplication | {0}".format(error)	
+            
+            try:#...Unified
+                if not self._mi_puppet.getMessage('unifiedGeo'):
+                    newMesh = deformers.polyUniteGeo([self.md_coreGeo['body'].mNode,
+                                                      self.md_coreGeo['head'].mNode])
+                    mi_united_geo = cgmMeta.cgmObject(newMesh[0])
+                    mi_united_geo.doStore('cgmName',"{0}.cgmName".format(mi_puppet.mNode))
+                    
+                    attributes.doSetLockHideKeyableAttr(mi_united_geo.mNode,False,True,True)
+                    mi_united_geo.addAttr('cgmTypeModifier','unitedGeo',attrType = 'string', lock = True)
+                    mi_united_geo.doName()		
+                    
+                    mi_united_geo.parent = self._mi_puppetGeoGroup.unifiedGeoGroup#...parent it		    
+                    self._mi_puppet.doStore('unifiedGeo',mi_united_geo.mNode)
+                    mi_united_geo.setDrawingOverrideSettings(pushToShapes=False)
+
+                else:
+                    self.log_info("Unified geo found")                
+            except Exception,error:raise Exception,"Unified Geo | {0}".format(error)
+                
             return True
 
     return fncWrap(*args,**kws).go()
@@ -862,32 +934,36 @@ def get_puppetGeo(*args,**kws):
             try:#> Gather geo ------------------------------------------------------------------------------------------	    
                 self._returnDict['md_geoGroups'] = {}
                 self._returnDict['d_geoTargets']= {}
-
-
-                for key in d_geoStoreKeyToGeoGroups.keys():
+                l_keys = d_geoStoreKeyToGeoGroups.keys() + ['head']
+                
+                for key in l_keys:
                     try:
-                        self.log_debug("Checking : '{0}' | msgAttr: '{1}'".format(key,d_geoStoreKeyToGeoGroups[key]))
-                        buffer = self._mi_puppetGeoGroup.getMessage(d_geoStoreKeyToGeoGroups[key])
-                        if not buffer:raise RuntimeError,"Group not found"			    
-                        mi_group = cgmMeta.validateObjArg(buffer,mayaType = ['group','transform'])
-                        l_geoGroupObjs = mi_group.getAllChildren(fullPath = True)
-                        if not l_geoGroupObjs:
-                            self.log_debug("Empty group: '{0}'".format(mi_group.p_nameShort))
+                        if key in ['head','body']:
+                            self.log_info("Checking : '{0}' ".format(key))                            
+                            l_geoGroupObjs =  self._mi_puppetGeoGroup.getMessage( _d_main_geoInfo[key]['msg'] )
                         else:
-                            l_toSkin = []
-                            for o in l_geoGroupObjs:
-                                if search.returnObjectType(o) in ['mesh','nurbsSurface']:
-                                    l_toSkin.append(cgmMeta.cgmObject(o)) 
-                                else:
-                                    self.log_debug("Not skinnable: '{0}'".format(o))				    
-                            if not l_toSkin:
-                                self.log_warning("No skinnable objects found")
+                            self.log_info("Checking : '{0}' | msgAttr: '{1}'".format(key,d_geoStoreKeyToGeoGroups[key]))                            
+                            buffer = self._mi_puppetGeoGroup.getMessage(d_geoStoreKeyToGeoGroups[key])
+                            if not buffer:raise RuntimeError,"Group not found"			    
+                            mi_group = cgmMeta.validateObjArg(buffer,mayaType = ['group','transform'])
+                            l_geoGroupObjs = mi_group.getAllChildren(fullPath = True)
+                            if not l_geoGroupObjs:
+                                self.log_info("Empty group: '{0}'".format(mi_group.p_nameShort))
+                            self._returnDict['md_geoGroups'][key]  = mi_group
+
+                        l_toSkin = []
+                        for o in l_geoGroupObjs:
+                            if search.returnObjectType(o) in ['mesh','nurbsSurface']:
+                                l_toSkin.append(cgmMeta.cgmObject(o)) 
                             else:
-                                self._returnDict['d_geoTargets'][key] = l_toSkin 
-                                self.log_debug("--- Good Geo for {0}:".format(key))			    
-                                for o in l_toSkin:
-                                    self.log_debug("     '{0}'".format(o))				
-                        self._returnDict['md_geoGroups'][key]  = mi_group
+                                self.log_info("Not skinnable: '{0}'".format(o))				    
+                        if not l_toSkin:
+                            self.log_warning("No skinnable objects found")
+                        else:
+                            self._returnDict['d_geoTargets'][key] = l_toSkin 
+                            self.log_info("--- Good Geo for {0}:".format(key))			    
+                            for o in l_toSkin:
+                                self.log_info("     '{0}'".format(o))				
                     except Exception,error:raise Exception,"{0} | {1}".format(key,error)			
             except Exception,error:
                 raise Exception,"Geo gather fail | {0}".format(error)	    
@@ -1378,7 +1454,7 @@ _d_faceControlsToConnect = {'browCenter':{'control':'center_brow_anim',
 
 def faceControls_verify(*args, **kws):
     """
-
+    Function to verify the wiring on the facial joystick controls for Morpheus
     @kws
     Arg 0 | kw 'attributeHolder'(None)  -- AttributeHolder to wire
     """
@@ -1641,5 +1717,69 @@ def face_connectAttrHolderToBSNodes(*args, **kws):
             else:
                 self.log_warning("Not set to wire")
 
+    return fncWrap(*args,**kws).go()
+
+def joystickFaceControls_morphyConnect(*args, **kws):
+    """
+    Function to verify the finalization setup  on the facial joystick controls for Morpheus asset
+    @kws
+    Arg 0 | kw 'attributeHolder'(None)  -- AttributeHolder to wire
+    """
+    class fncWrap(cgmGeneral.cgmFuncCls):
+        def __init__(self,*args, **kws):
+            """
+            """	
+            super(fncWrap, self).__init__(*args, **kws)
+            self._b_reportTimes = True
+            self._str_funcName = 'faceControls_verify'	
+            self._l_ARGS_KWS_DEFAULTS = [{'kw':'facePart',"default":'m1_face_part',
+                                          'help':"Name of the face module"},
+                                         {'kw':'parentPart',"default":'neck_part',
+                                          'help':"Name of the parent module"}]	    
+            self.l_funcSteps = [{'step':'Get Info','call':self._fncStep_gatherInfo_},
+                                {'step':'Setup','call':self._fncStep_setup_},
+                                ]	    
+            self.__dataBind__(*args, **kws)
+
+        def _fncStep_gatherInfo_(self):
+            """
+            """
+            try:
+                self._mi_obj = cgmMeta.validateObjArg(self.d_kws.get('facePart'), mType = 'cgmSimpleBSFace')
+            except Exception,error:
+                raise Exception,"Object validate fail! | {0}".format(error)  
+            
+            
+        def _fncStep_setup_(self):
+            try:#Make sure face part module has a module parent
+                try:
+                    self._mi_parentModule = cgmMeta.validateObjArg(self.d_kws.get('parentPart'))
+                except Exception,error:
+                    raise Exception,"Parent part validate fail! | {0}".format(error)    
+                
+                self._mi_obj.doSetParentModule(self._mi_parentModule.mNode)
+            except Exception,error:
+                self.log_error("Module parent set fail | {0}".format(error) )
+            try:#Make sure we have our object set
+                self._mi_obj.__verifyObjectSet__()
+            except Exception,error:
+                raise Exception,"ObjectSet fail | {0}".format(error)               
+            try:#Verify msglist
+                ml_buffer = self._mi_obj.rigNull.msgList_get('controlsAll')
+                self._mi_obj.rigNull.msgList_connect(ml_buffer,'controlsAll','rigNull')#...push back
+            except Exception,error:
+                raise Exception,"msgList verify fail | {0}".format(error)                
+            try:#Verify mirrorable
+                for mObj in ml_buffer:
+                    mObj._verifyMirrorable()
+                    if mObj.mirrorSide is 0:
+                        mObj.mirrorAxis = 'translateX,rotateZ'
+                    self._mi_obj.rigNull.moduleSet.addObj(mObj.mNode)#...objects need to be added to object set
+            except Exception,error:
+                raise Exception,"Verify mirrorable | {0}".format(error)                                            
+            try:#Index
+                pass
+            except Exception,error:
+                raise Exception,"Mirror indices | {0}".format(error)                
     return fncWrap(*args,**kws).go()
     

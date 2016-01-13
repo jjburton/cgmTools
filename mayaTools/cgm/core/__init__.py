@@ -66,7 +66,7 @@ def _reload():
     reload(lib.shapeCaster)
     
     
-    Red9_Meta.registerMClassNodeMapping(nodeTypes = ['transform','objectSet','clamp','setRange','pointOnCurveInfo','decomposeMatrix',
+    Red9_Meta.registerMClassNodeMapping(nodeTypes = ['transform','objectSet','clamp','setRange','pointOnCurveInfo','decomposeMatrix','remapValue',
                                                      'ikSplineSolver','blendColors','blendTwoAttr','addDoubleLinear','condition','multiplyDivide','plusMinusAverage'])
 
     print('CGM Core Reloaded and META REGISTRY updated') 

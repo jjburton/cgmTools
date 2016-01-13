@@ -126,7 +126,7 @@ class go(object):
             self._baseModuleDistance = self._returnBaseThickness()
 
         except Exception,error:
-            raise StandardError,"%s >> [Module data gather fail] error: %s"%(self._strShortName,error)	
+            raise StandardError,"{0} >> [Module data gather fail] error: {1}".format(self._strShortName,error)	
 
         #>>> We need to figure out which control to make
         #===================================================================================
@@ -143,9 +143,18 @@ class go(object):
             log.debug("No arguments for shapes to cast.Initializing only.")
         for key in self.l_controlsToMakeArg:
             try:
-                self.d_controlBuildFunctions[key]()#Run it
-            except:
-                self.d_controlBuildFunctions[key](self)
+                if kws:
+                    try:
+                        self.d_controlBuildFunctions[key](kws)#Run it
+                    except Exception,error:
+                        raise Exception,"kws: {0} | error: {1}".format(kws,error)
+                else:
+                    try:
+                        self.d_controlBuildFunctions[key](self)
+                    except:
+                        self.d_controlBuildFunctions[key]()
+            except Exception,error:
+                raise Exception,"controlBuildFunction Call {0} fail | error: {1}".format(key,error)
             #if key not in self.d_returnControls:
                 #log.warning("Necessary control shape(s) was not built: '%s'"%key)
                 #raise StandardError,"Did not get all necessary controls built"
@@ -2305,14 +2314,16 @@ def shapeCast_mouthNose(*args,**kws):
             super(fncWrap, self).__init__(*args,**kws)
             self._str_funcName = 'shapeCast_mouthNose(%s)'%self.mi_module.p_nameShort
             self._b_autoProgressBar = 1	    
+            self._b_reportTimes = 1
             self.__dataBind__(*args,**kws)
             self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
-                                {'step':'Jaw Shapes','call':self._jawShapes_},	                        
+                                #{'step':'Jaw Shapes','call':self._jawShapes_},	                        
                                 {'step':'Tongue Shapes','call':self._tongueShapes_},
-                                {'step':'Basic Shapes','call':self._simpleShapeCasts_},	                        
-                                {'step':'MouthMove Shapes','call':self._mouthMoveShape_},
-                                {'step':'Nose Move Shape','call':self._noseMoveShape_},	                        	                        
-                                {'step':'Face Pins','call':self._facePins_},
+                                {'step':'Teeth Shapes','call':self._teethShapes_},                                
+                                #{'step':'Basic Shapes','call':self._simpleShapeCasts_},	                        
+                                #{'step':'MouthMove Shapes','call':self._mouthMoveShape_},
+                                #{'step':'Nose Move Shape','call':self._noseMoveShape_},	                        	                        
+                                #{'step':'Face Pins','call':self._facePins_},
                                 #may not be needed{'step':'Connect','call':self._connect_},
                                 ]
 
@@ -2338,122 +2349,130 @@ def shapeCast_mouthNose(*args,**kws):
             self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
             if not self.mi_helper:raise StandardError,"%s >>> No suitable helper found"%(_str_funcName)
 
-            self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=False)
-            self.str_skullPlate = self.mi_skullPlate.mNode
+            #self.mi_skullPlate = cgmMeta.validateObjArg(self.mi_helper.getMessage('skullPlate'),noneValid=False)
+            #self.str_skullPlate = self.mi_skullPlate.mNode
 
             #>> Find our joint lists ===================================================================
             ml_handleJoints = self.mi_module.rigNull.msgList_get('handleJoints')
             ml_rigJoints = self.mi_module.rigNull.msgList_get('rigJoints')
             self.md_handles = {}
             d_ = self.md_handles#short version	 
-
-            #Mouth --------------------------------------------------------------------------
-            d_['lipUprCenter'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                       cgmDirection = 'center',
-                                                                       cgmName = 'lipUpr')	    
-            d_['lipUprLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                     cgmDirection = 'left',
-                                                                     cgmName = 'lipUpr')
-            d_['lipUprRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                      cgmDirection = 'right',
-                                                                      cgmName = 'lipUpr')
-            d_['lipLwrCenter'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                       cgmDirection = 'center',
-                                                                       cgmName = 'lipLwr')	    	    
-            d_['lipLwrLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                     cgmDirection = 'left',
-                                                                     cgmName = 'lipLwr')
-            d_['lipLwrRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                      cgmDirection = 'right',
-                                                                      cgmName = 'lipLwr') 
-            d_['lipCornerLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+            
+            if True is False:#OLD STUFF...from joint build method
+                #Mouth --------------------------------------------------------------------------
+                d_['lipUprCenter'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                           cgmDirection = 'center',
+                                                                           cgmName = 'lipUpr')	    
+                d_['lipUprLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                         cgmDirection = 'left',
+                                                                         cgmName = 'lipUpr')
+                d_['lipUprRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                          cgmDirection = 'right',
+                                                                          cgmName = 'lipUpr')
+                d_['lipLwrCenter'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                           cgmDirection = 'center',
+                                                                           cgmName = 'lipLwr')	    	    
+                d_['lipLwrLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                         cgmDirection = 'left',
+                                                                         cgmName = 'lipLwr')
+                d_['lipLwrRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                          cgmDirection = 'right',
+                                                                          cgmName = 'lipLwr') 
+                d_['lipCornerLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                            cgmDirection = 'left',
+                                                                            cgmName = 'lipCorner')
+                d_['lipCornerRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                             cgmDirection = 'right',
+                                                                             cgmName = 'lipCorner')  
+                d_['mouthMove'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                        cgmName = 'mouthMove')  	    
+                #Smile Line --------------------------------------------------------------------------
+                d_['sneerLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
                                                                         cgmDirection = 'left',
-                                                                        cgmName = 'lipCorner')
-            d_['lipCornerRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                        cgmName = 'sneer')
+                d_['sneerRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
                                                                          cgmDirection = 'right',
-                                                                         cgmName = 'lipCorner')  
-            d_['mouthMove'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                    cgmName = 'mouthMove')  	    
-            #Smile Line --------------------------------------------------------------------------
-            d_['sneerLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                    cgmDirection = 'left',
-                                                                    cgmName = 'sneer')
-            d_['sneerRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                     cgmDirection = 'right',
-                                                                     cgmName = 'sneer') 
-            d_['smileLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                    cgmDirection = 'left',
-                                                                    cgmName = 'smile')
-            d_['smileRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                     cgmDirection = 'right',
-                                                                     cgmName = 'smile')  
-            d_['uprSmileLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                       cgmDirection = 'left',
-                                                                       cgmName = 'uprSmile')
-            d_['uprSmileRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                        cgmDirection = 'right',
-                                                                        cgmName = 'uprSmile') 	    
-            d_['smileBaseLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                         cgmName = 'sneer') 
+                d_['smileLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
                                                                         cgmDirection = 'left',
-                                                                        cgmName = 'smileBase')
-            d_['smileBaseRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                        cgmName = 'smile')
+                d_['smileRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
                                                                          cgmDirection = 'right',
-                                                                         cgmName = 'smileBase') 
-
-            #>> nose --------------------------------------------------------------------------
-            d_['noseTip'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                  cgmName = 'noseTip')
-            d_['noseUnder'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                    cgmName = 'noseUnder')	
-            d_['nostrilLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                      cgmDirection = 'left',
-                                                                      cgmName = 'nostril')	
-            d_['nostrilRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                       cgmDirection = 'right',
-                                                                       cgmName = 'nostril')	
-            d_['nose'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                               cgmName = 'noseMove')		    
-            d_['noseTop'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                  cgmName = 'noseTop')		    
-            #>> Cheek --------------------------------------------------------------------------
-            d_['uprCheekOuterLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                            cgmDirection = 'left',cgmPosition = 'outer',
-                                                                            cgmName = 'uprCheek')
-            d_['uprCheekOuterRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                             cgmDirection = 'right',cgmPosition = 'outer',
-                                                                             cgmName = 'uprCheek')
-            d_['uprCheekInnerLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                            cgmDirection = 'left',cgmPosition = 'inner',
-                                                                            cgmName = 'uprCheek')
-            d_['uprCheekInnerRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                             cgmDirection = 'right',cgmPosition = 'inner',
-                                                                             cgmName = 'uprCheek')	    
-            d_['cheekAnchorLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                         cgmName = 'smile')  
+                d_['uprSmileLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                           cgmDirection = 'left',
+                                                                           cgmName = 'uprSmile')
+                d_['uprSmileRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                            cgmDirection = 'right',
+                                                                            cgmName = 'uprSmile') 	    
+                d_['smileBaseLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                            cgmDirection = 'left',
+                                                                            cgmName = 'smileBase')
+                d_['smileBaseRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                             cgmDirection = 'right',
+                                                                             cgmName = 'smileBase') 
+    
+                #>> nose --------------------------------------------------------------------------
+                d_['noseTip'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                      cgmName = 'noseTip')
+                d_['noseUnder'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                        cgmName = 'noseUnder')	
+                d_['nostrilLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
                                                                           cgmDirection = 'left',
-                                                                          cgmName = 'cheekAnchor')	
-            d_['cheekAnchorRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                          cgmName = 'nostril')	
+                d_['nostrilRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
                                                                            cgmDirection = 'right',
-                                                                           cgmName = 'cheekAnchor')	    
-            #>> Jaw --------------------------------------------------------------------------	    
-            d_['jaw'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                              cgmName = 'jaw')
-            '''
-	    d_['jawAnchorLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                cgmDirection = 'left',
-	                                                                cgmName = 'jawAnchor')	
-	    d_['jawAnchorRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-	                                                                cgmDirection = 'right',
-	                                                                cgmName = 'jawAnchor')	
-									'''
-            d_['chin'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                               cgmName = 'chin')	    
+                                                                           cgmName = 'nostril')	
+                d_['nose'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                   cgmName = 'noseMove')		    
+                d_['noseTop'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                      cgmName = 'noseTop')		    
+                #>> Cheek --------------------------------------------------------------------------
+                d_['uprCheekOuterLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                                cgmDirection = 'left',cgmPosition = 'outer',
+                                                                                cgmName = 'uprCheek')
+                d_['uprCheekOuterRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                                 cgmDirection = 'right',cgmPosition = 'outer',
+                                                                                 cgmName = 'uprCheek')
+                d_['uprCheekInnerLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                                cgmDirection = 'left',cgmPosition = 'inner',
+                                                                                cgmName = 'uprCheek')
+                d_['uprCheekInnerRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                                 cgmDirection = 'right',cgmPosition = 'inner',
+                                                                                 cgmName = 'uprCheek')	    
+                d_['cheekAnchorLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                              cgmDirection = 'left',
+                                                                              cgmName = 'cheekAnchor')	
+                d_['cheekAnchorRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                               cgmDirection = 'right',
+                                                                               cgmName = 'cheekAnchor')	    
+                #>> Jaw --------------------------------------------------------------------------	    
+                d_['jaw'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                  cgmName = 'jaw')
+                '''
+                d_['jawAnchorLeft'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                            cgmDirection = 'left',
+                                                                            cgmName = 'jawAnchor')	
+                d_['jawAnchorRight'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                            cgmDirection = 'right',
+                                                                            cgmName = 'jawAnchor')	
+                                                                            '''
+                d_['chin'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+                                                                   cgmName = 'chin')	    	
+                d_['jawLineCenter'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+                                                                            cgmDirection = 'center',
+                                                                            cgmName = 'jawLine')
+                
             d_['tongueTip'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
                                                                     cgmName = 'tongueTip')
             d_['tongueBase'] = metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
-                                                                     cgmName = 'tongueBase')	
-            d_['jawLineCenter'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
-                                                                        cgmDirection = 'center',
-                                                                        cgmName = 'jawLine')	    	    
+                                                                     cgmName = 'tongueBase')  
+            d_['teethUpr'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+                                                                     cgmName = 'teeth',
+                                                                     cgmPosition = 'upper')  
+            d_['teethLwr'] = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+                                                                     cgmName = 'teeth',
+                                                                     cgmPosition = 'lower')              
             for k in d_.iterkeys():
                 buffer = d_.get(k)
                 if not buffer:raise StandardError,"Failed to find %s handle joints"%k
@@ -2468,13 +2487,13 @@ def shapeCast_mouthNose(*args,**kws):
             self.ml_centerRigJoints = metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
                                                                             cgmDirection = 'center')
 
-            for tag in ['noseTip','noseTop','noseUnder','noseBase']:
+            '''for tag in ['noseTip','noseTop','noseUnder','noseBase']:
                 self.ml_centerRigJoints.extend(metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
                                                                                      cgmName = tag))
 
             if not self.ml_leftRigJoints:raise StandardError,"Failed to find left rig joints"
             if not self.ml_rightRigJoints:raise StandardError,"Failed to find right rig joints"
-            if not self.ml_centerRigJoints:raise StandardError,"Failed to find center rig joints"
+            if not self.ml_centerRigJoints:raise StandardError,"Failed to find center rig joints"'''
 
             self.ml_rigCull = []
             self.ml_rigCull.extend(metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
@@ -2488,13 +2507,16 @@ def shapeCast_mouthNose(*args,**kws):
                 #log.info(">>> " + mJnt.p_nameShort)
 
             try:#>> calculate ------------------------------------------------------------------------
-                ml_measureJointList = [d_['smileBaseLeft'],d_['smileLeft'],d_['sneerLeft']]
-                self.f_baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_measureJointList]) /4 		
-                self.f_mouthWidth = distance.returnDistanceBetweenObjects(self.md_handles['lipCornerRight'].mNode,self.md_handles['lipCornerLeft'].mNode)
-            except Exception,error:raise StandardError,"Calculation | %s"%error
+                #ml_measureJointList = [d_['smileBaseLeft'],d_['smileLeft'],d_['sneerLeft']]
+                #self.f_baseDistance = distance.returnAverageDistanceBetweenObjects([mObj.mNode for mObj in ml_measureJointList]) /4 		
+                #self.f_mouthWidth = distance.returnDistanceBetweenObjects(self.md_handles['lipCornerRight'].mNode,self.md_handles['lipCornerLeft'].mNode)
+                self.f_mouthWidth = distance.returnCurveLength(self.mi_helper.getMessage('mouthMidCastHelper'))                                
+                self.f_baseDistance = self.f_mouthWidth / 4
+            except Exception,error:raise StandardError,"Initial distance calculation | %s"%error
             #>> Running lists --------------------------------------------------------------------
             self.ml_handles = []
             self.ml_pinHandles = []
+            self.report()
             return True
 
         def _tongueShapes_(self): 
@@ -2538,7 +2560,54 @@ def shapeCast_mouthNose(*args,**kws):
                 except Exception,error:
                     raise StandardError,"%s create fail! | error: %s"%(str_name,error)  
             self.ml_handles.extend(ml_handleCrvs)
+            
+        def _teethShapes_(self): 
+            #if not self.md_handles['tongue']:
+                #return False
+            #self.mi_helper.getMessage('mouthMidCastHelper')
+            ml_handleCrvs = []		
 
+            l_colors = self.d_colors['center']
+            __baseDistance = self.f_baseDistance
+            _size = self.f_mouthWidth
+            _mi_baseCurve = self.mi_helper.getMessageAsMeta('mouthMidCastHelper')
+            ml_handleCrvs = []		
+            d_build = {'teethUpr':{'mi_obj': self.md_handles['teethUpr'],'shape':'U','shapeMulti':.1,'offset_up':.5},
+                       'teethLwr':{'mi_obj': self.md_handles['teethLwr'],'shape':'L','shapeMulti':.1,'offset_up':-.5}}
+
+            for str_name in d_build.keys():
+                d_buffer = d_build[str_name]
+                try: 
+                    mObj = d_buffer['mi_obj']
+                    f_multi = d_buffer.get('shapeMulti') or 1
+                    str_shape = d_buffer['shape']                    
+                    b_centerPivot = d_buffer.get('centerPivot') or False
+                    f_offset_up = d_buffer.get('offset_up') or 0.0
+                    #mi_crv =  cgmMeta.asMeta(curves.createControlCurve(str_shape,size = (_size * f_multi),direction=self.str_orientation[0]+'+'),'cgmObject',setClass=False)	
+                    mi_crv =  cgmMeta.asMeta(curves.createTextCurve(str_shape,size = (_size * f_multi)),'cgmObject',setClass=False)	
+                    
+                    if b_centerPivot:
+                        mc.xform(mi_crv.mNode,ws = True, piv = distance.returnCenterPivotPosition(mi_crv.mNode))
+                    Snap.go(mi_crv,mObj.mNode,move=True,orient=True)
+
+                    #mi_crv.__setattr__("s%s"%self.str_orientation[1], .2)
+                    mc.xform(mi_crv.mNode, t = [0,f_offset_up,0], r = True)
+                    
+                    mc.makeIdentity(mi_crv.mNode, apply=True,s=1,n=0)	
+
+                    #>>Color curve --------------------------------------------------------------------------------		    		    
+                    curves.setCurveColorByName(mi_crv.mNode,l_colors[0])  
+
+                    #>>Copy tags and name --------------------------------------------------------------------------------		    
+                    mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+                    mi_crv.doName()
+                    mi_crv.connectChildNode(mObj,'handleJoint','controlShape')
+                    ml_handleCrvs.append(mi_crv)
+
+                except Exception,error:
+                    raise StandardError,"%s create fail! | error: %s"%(str_name,error)  
+            self.ml_handles.extend(ml_handleCrvs)
+            
         def _mouthMoveShape_(self): 	    
             ml_handleCrvs = []		
 
@@ -2797,12 +2866,12 @@ def shapeCast_eyeball(*args,**kws):
             self.__dataBind__(*args,**kws)
             self.l_funcSteps = [{'step':'Gather Info','call':self._gatherInfo_},
                                 {'step':'Build Iris','call':self._buildIris_},
-                                #{'step':'Build Pupil','call':self._buildPupil_},	                        
-                                #{'step':'Build FK','call':self._buildFK_},
-                                #{'step':'Build IK','call':self._buildIK_},
-                                #{'step':'Build Settings','call':self._buildSettings_},
-                                #{'step':'Build Eye Move','call':self._buildEyeMove_},
-                                #{'step':'Clean up','call':self._cleanUp_},
+                                {'step':'Build Pupil','call':self._buildPupil_},	                        
+                                {'step':'Build FK','call':self._buildFK_},
+                                {'step':'Build IK','call':self._buildIK_},
+                                {'step':'Build Settings','call':self._buildSettings_},
+                                {'step':'Build Eye Move','call':self._buildEyeMove_},
+                                {'step':'Clean up','call':self._cleanUp_},
                                 ]
             assert self.mi_module.mClass == 'cgmEyeball',"%s >>> Module is not type: 'cgmEyeball' | type is: '%s'"%(self._str_funcName,self.mi_module.mClass)
             #The idea is to register the functions needed to be called
@@ -2880,13 +2949,13 @@ def shapeCast_eyeball(*args,**kws):
                 Snap.go(mi_tmpCrv,mi_helper.mNode)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * self._f_midMulti)
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
+                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly = False))
                 ml_curvesToCombine[-1].parent = False
 
                 #Snap.go(mi_tmpGroup.mNode,self.mi_irisPosLoc.mNode)
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],_baseDistance * 1.75)
                 mi_tmpCrv.scale = [.75,.75,.75]
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
+                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly = False))
                 ml_curvesToCombine[-1].parent = False
 
                 l_trace = ShapeCast.joinCurves(ml_curvesToCombine)
@@ -3093,7 +3162,6 @@ def shapeCast_eyeball(*args,**kws):
                     ml_curvesToCombine[-1].parent = False
     
                     mi_tmpGroup.delete()
-                    return
                 except Exception,error: raise Exception,"Move | {0}".format(error)
                 
                 #>>>Combine the curves
@@ -3139,11 +3207,11 @@ def shapeCast_eyeball(*args,**kws):
                 mc.move(_baseIrisPos[0],_baseIrisPos[1],_baseIrisPos[2], mi_tmpCrv.mNode,  a = True)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_tmpCrv.doGroup())
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0], .01)
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
+                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly = False))
                 ml_curvesToCombine[-1].parent = False
 
                 mi_tmpCrv.__setattr__('t%s'%self.str_orientation[0],-.01)
-                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate())
+                ml_curvesToCombine.append(mi_tmpCrv.doDuplicate(parentOnly = False))
                 ml_curvesToCombine[-1].parent = False
 
                 mi_tmpGroup.delete()

@@ -1578,8 +1578,10 @@ def doSkeletonizeMouthNose(*args,**kws):
                         
                         if p is 'upper':
                             mi_jnt.parent = self.str_rootJoint
+                            self.mi_go._mi_rigNull.msgList_connect(mi_jnt,'teethUprJoint')		                            
                         else:
-                            mi_jnt.parent = self.md_moduleJoints['jaw']                     
+                            mi_jnt.parent = self.md_moduleJoints['jaw']      
+                            self.mi_go._mi_rigNull.msgList_connect(mi_jnt,'teethLwrJoint')		                                                        
                     except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)
                     
                     try:#Orient -------------------------------------------------------------------------

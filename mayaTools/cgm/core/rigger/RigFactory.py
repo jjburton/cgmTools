@@ -52,7 +52,7 @@ from cgm.lib import (cgmMath,
                      lists,
                      )
 reload(rigging)
-l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball','eyelids','eyebrow']
+l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball','eyelids','eyebrow','mouthnose']
 __l_faceModules__ = cgmRigsData.__l_faceModules__
 
 #>>> Register rig functions
@@ -1790,7 +1790,7 @@ def verify_eyeLook(*args,**kws):
 
             try:mShapeCast.go(mi_buildModule,['eyeLook'])
             except Exception,error:raise Exception,"shapeCast | %s"%(error)	    
-            try:mi_eyeLookShape = mi_rigNull.shape_eyeLook
+            try:mi_eyeLookShape = mi_rigNull.getMessageAsMeta('shape_eyeLook')
             except Exception,error:raise Exception,"grabShape | %s"%(error)	    
             mi_rigNull.doRemove('shape_eyeLook')
             try:d_buffer = mControlFactory.registerControl(mi_eyeLookShape.mNode,addDynParentGroup=True,
