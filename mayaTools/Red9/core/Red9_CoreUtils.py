@@ -20,6 +20,7 @@ from functools import partial
 import re
 import random
 import math
+import os
 
 import Red9.packages.configobj as configobj
 import Red9.startup.setup as r9Setup
@@ -274,15 +275,15 @@ class FilterNode_Settings(object):
             activeFilters.append('searchAttrs=%s' % self.searchAttrs)
         if self.searchPattern:
             activeFilters.append('searchPattern=%s' % self.searchPattern)
-        if self.hierarchy:
-            activeFilters.append('hierarchy=%s' % self.hierarchy)
+        #if self.hierarchy:
+        activeFilters.append('hierarchy=%s' % self.hierarchy)
         if self.filterPriority:
             activeFilters.append('filterPriority=%s' % self.filterPriority)
-        if self.incRoots:
-            activeFilters.append('incRoots=%s' % self.incRoots)
-        if self.transformClamp:
-            activeFilters.append('transformClamp=%s' % self.transformClamp)
-        return '%s(ActiveFilters: %s)' % (self.__class__.__name__, (',').join(activeFilters))
+        #if self.incRoots:
+        activeFilters.append('incRoots=%s' % self.incRoots)
+        #if self.transformClamp:
+        activeFilters.append('transformClamp=%s' % self.transformClamp)
+        return '%s(ActiveFilters: %s)' % (self.__class__.__name__, (', ').join(activeFilters))
     
     def filterIsActive(self):
         if self.nodeTypes or self.searchAttrs or self.searchPattern or self.hierarchy or self.metaRig:
@@ -312,6 +313,7 @@ class FilterNode_Settings(object):
     def resetFilters(self, rigData=True):
         '''
         reset the MAIN filter args only
+        
         :param rigData: this is a cached attr and not fully handled 
         by the UI hence the option NOT to reset, used by the UI presetFill calls
         '''
@@ -330,6 +332,7 @@ class FilterNode_Settings(object):
     def write(self, filepath):
         '''
         write the filterSettings attribute out to a ConfigFile
+        
         :param filepath: file path to write the configFile out to
         '''
         ConfigObj = configobj.ConfigObj(indent_type='\t')
@@ -341,9 +344,20 @@ class FilterNode_Settings(object):
     def read(self, filepath):
         '''
         Read a given ConfigFile and fill this object instance with the data
+        
         :param filepath: file path to write the configFile out to
+        
+        ::note ..
+            If filepath doesn't exists or you pass in just the short name of the config you 
+            want to load then we try and find a matching config in the default presets dir in Red9
         '''
         self.resetFilters()
+        
+        # have we passed in just the short name of an existing preset in the default dir?
+        if not os.path.exists(filepath):
+            if os.path.exists(os.path.join(r9Setup.red9Presets(),filepath)):
+                filepath=os.path.join(r9Setup.red9Presets(),filepath)
+                
         for key, val in configobj.ConfigObj(filepath)['filterNode_settings'].items():
             #because config is built from string data
             #we need to deal with specific types here
@@ -1208,10 +1222,9 @@ class FilterNode(object):
             log.debug('processing found MetaSystsem Nodes : %s' % ','.join([x.mNode for x in metaNodes]))
             for meta in metaNodes:
                 ctrls=meta.getChildren(walk=walk)
-                if ctrls and not incMain and meta.hasAttr(meta.rigGlobalCtrlAttr):
-                    ctrl_main=meta.__getattribute__(meta.rigGlobalCtrlAttr)[0]
-                    if ctrl_main in ctrls:
-                        ctrls.remove(ctrl_main)
+                if ctrls and not incMain:
+                    if meta.ctrl_main in ctrls:
+                        ctrls.remove(meta.ctrl_main)
                 rigCtrls.extend(ctrls)
         return rigCtrls
             
@@ -1220,15 +1233,15 @@ class FilterNode(object):
     #---------------------------------------------------------------------------------
     
     
-    def processFilter(self):
+    def ProcessFilter(self):
         '''
         replace the 'P' in the function call but not depricating it just yet
         as too much code both internally and externally relies on this method
         '''
-        return self.ProcessFilter()
+        return self.processFilter()
         
     #@r9General.Timer
-    def ProcessFilter(self):
+    def processFilter(self):
             '''
             Uses intersection to allow you to process multiple search flags for
             more accurate filtering.
@@ -1501,7 +1514,7 @@ class MatchedNodeInputs(object):
         | settings.hierarchy: bool - process all children from the roots
         | settings.incRoots: bool - include the original root nodes in the filter
         
-    :return: list of matched pairs [(a1,b2),[(a2,b2)]   
+    :return: list of matched pairs [(a1,b2),[(a2,b2)]  
             
     .. note:: 
         with all the search and hierarchy keywords OFF the code performs

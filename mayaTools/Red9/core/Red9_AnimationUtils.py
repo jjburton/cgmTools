@@ -41,37 +41,29 @@ Code examples:
     >>> import maya.cmds as cmds
     >>> 
     >>> #===========================
-    >>> #When Processing hierarchies:
+    >>> # When Processing hierarchies:
     >>> #===========================
-    >>> #Make a settings object and set the internal filter to find all
-    >>> #child nurbsCurves that have an attr called 'Control_Marker'
-    >>> settings = r9Core.FilterNode_Settings()
-    >>> settings.nodeTypes ='nurbsCurve'
-    >>> settings.searchAttrs = 'Control_Marker'
-    >>> settings.printSettings()
+    >>> # The Filter_Settings object required for hierarchy processing is now bound to 
+    >>> # the class directly so you no longer need to create a filterSettigns object directly!
+    >>> # Lets set the filter to process nodes with a given attr 'myControl' who's type is 'nurbscurve'
+    >>> animFunc=r9Anim.AnimFunctions()
+    >>> animFunc.settings = r9Core.FilterNode_Settings()
+    >>> animFunc.settings.nodeTypes ='nurbsCurve'
+    >>> animFunc.settings.searchAttrs = 'myControl'
+    >>> animFunc.settings.printSettings()
     >>> 
-    >>> #Option 1: Run the snap using the settings object you just made
-    >>> #'nodes' will be the two roots of the rig hierarchies to snap.
-    >>> anim = r9Anim.AnimFunctions()
-    >>> anim.snapTransform(nodes=cmds.ls(sl=True), time=r9Anim.timeLineRangeGet(), filterSettings=settings)
+    >>> # now run any of the AnimFunctions and pass in nodes which with the filter active
+    >>> # as above would be the 2 root nodes of the hierarchies to filter
     >>> 
-    >>> #Option 2: Run the snap by passing in an already processed MatchedNodeInput object
-    >>> #Make the MatchedNode object and process the hierarchies by passing the settings object in
-    >>> matched = r9Core.MatchedNodeInputs(nodes=cmds.ls(sl=True), filterSettings=settings)
-    >>> matched.processMatchedPairs()
-    >>> #see what's been filtered
-    >>> for n in matched.MatchedPairs:
-    >>>     print n 
+    >>> animFunc.copyAttributes(cmds.ls(sl=True,l=True))
     >>> 
-    >>> #Rather than passing in the settings or nodes, pass in the already processed MatchedNode
-    >>> anim.snapTransform(nodes=matched, time=r9Anim.timeLineRangeGet())
-    >>>
-    >>>
+    >>> animFunc.snapTransform(nodes=cmds.ls(sl=True), time=r9Anim.timeLineRangeGet())
+    >>> 
     >>> #==============================
-    >>> #When processing simple objects:
+    >>> # When processing simple objects:
     >>> #==============================
-    >>> #If you simple ignore the filterSettings you can just process given nodes directly
-    >>> #the nodes are zipped into selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
+    >>> # If you simply ignore the filterSettings you can just process given nodes directly
+    >>> # the nodes are zipped into selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
     >>> anim = r9Anim.AnimFunctions()
     >>> anim.snapTransform(nodes=cmds.ls(sl=True), time=r9Anim.timeLineRangeGet())
         
@@ -533,6 +525,7 @@ class AnimationUI(object):
         self.poses = None
         self.poseButtonBGC = [0.27, 0.3, 0.3]
         self.poseButtonHighLight = r9Setup.red9ButtonBGC('green')
+        self.poseProjectMute = False  # whether to disable the save and update funcs in Project mode
         
         # Default Red9 poseHandlers now bound here if found, used to extend Clients handling of data
         self.poseHandlerPaths=[os.path.join(self.presetDir,'poseHandlers')]
@@ -1177,7 +1170,8 @@ class AnimationUI(object):
 #             cmds.dockControl(self.dockCnt, edit=True, floating=True)
 #             cmds.dockControl(self.dockCnt, edit=True, width=360, height=740)
 
-    # UI Callbacks
+    #------------------------------------------------------------------------------
+    # UI Callbacks ---
     #------------------------------------------------------------------------------
         
     def __uiCB_manageSnapHierachy(self, *args):
@@ -1284,7 +1278,8 @@ class AnimationUI(object):
             cmds.checkBox('uicbSnapPriorityOnly', e=True, v=False)
             return
         
-    # Preset FilterSettings Object Management
+    #------------------------------------------------------------------------------    
+    # Preset FilterSettings Management ---
     #------------------------------------------------------------------------------
     
     def __uiPresetReset(self):
@@ -1441,9 +1436,10 @@ class AnimationUI(object):
         self.__uiCache_storeUIElements()
     
     
-    # ------------------------------------------------------------------------------
-    # PoseSaver Path Management Callbacks ------------------------------------------
-   
+    # -----------------------------------------------------------------------------
+    # PoseSaver Path Management ---
+    #------------------------------------------------------------------------------
+    
     def setPoseSelected(self, val=None, *args):
         '''
         set the PoseSelected cache for the UI calls
@@ -1499,10 +1495,27 @@ class AnimationUI(object):
     
     def __validatePoseFunc(self, func):
         '''
-        called in some of the funcs so that they raise an error when called in 'Project' mode
+        called in some of the funcs so that they either raise an error when called in 'Project' mode
+        or raise a Confirm Dialog to let teh user decide. This behaviour is controlled by the var
+        self.poseProjectMute
         '''
         if self.posePathMode == 'projectPoseMode':
-            raise StandardError('%s : function disabled in Project Pose Mode!' % func)
+            if self.poseProjectMute:
+                raise StandardError('%s : function disabled in Project Pose Mode!' % func)
+            else:
+                result = cmds.confirmDialog(
+                    title='Project Pose Modifications',
+                    button=['Continue', 'Cancel'],
+                    message='You are trying to modify a Project Pose\n\nPlease Confirm Action!',  #  "%s"' % self.poseSelected,
+                    defaultButton='Cancel',
+                    icon='warning',
+                    cancelButton='Cancel',
+                    bgc=r9Setup.red9ButtonBGC('red'),
+                    dismissString='Cancel')
+                if result == 'Continue':
+                    return True
+                else:
+                    log.info('Pose Project function : "%s" : aborted by user' % func)
         else:
             return True
          
@@ -1520,6 +1533,7 @@ class AnimationUI(object):
         '''
         Switch the Pose mode from Project to Local. In project mode save is disabled.
         Both have different caches to store the 2 mapped root paths
+        
         :param mode: 'local' or 'project', in project the poses are load only, save=disabled
         '''
         if mode == 'local' or mode =='localPoseMode':
@@ -1530,8 +1544,10 @@ class AnimationUI(object):
                 self.posePath = self.posePathLocal
                 
             self.posePathMode = 'localPoseMode'
-            cmds.button('savePoseButton', edit=True, en=True, bgc=r9Setup.red9ButtonBGC(1))
+            if self.poseProjectMute:
+                cmds.button('savePoseButton', edit=True, en=True, bgc=r9Setup.red9ButtonBGC(1))
             cmds.textFieldButtonGrp('uitfgPosePath', edit=True, text=self.posePathLocal)
+            
         elif mode == 'project' or mode =='projectPoseMode':
             self.posePath = os.path.join(self.posePathProject, self.getPoseSubFolder())
             if not os.path.exists(self.posePath):
@@ -1540,7 +1556,8 @@ class AnimationUI(object):
                 self.posePath = self.posePathProject
                 
             self.posePathMode = 'projectPoseMode'
-            cmds.button('savePoseButton', edit=True, en=False, bgc=r9Setup.red9ButtonBGC(2))
+            if self.poseProjectMute:
+                cmds.button('savePoseButton', edit=True, en=False, bgc=r9Setup.red9ButtonBGC(2))
             cmds.textFieldButtonGrp('uitfgPosePath', edit=True, text=self.posePathProject)
         cmds.scrollLayout('uiglPoseScroll', edit=True, sp='up')  # scroll the layout to the top!
         
@@ -1643,7 +1660,8 @@ class AnimationUI(object):
          
 
     # ----------------------------------------------------------------------------
-    # Build Pose UI calls  -------------------------------------------------------
+    # Build Pose UI calls  ---
+    # ----------------------------------------------------------------------------
      
     def getPoseSubFolder(self):
         '''
@@ -1749,7 +1767,7 @@ class AnimationUI(object):
         RMB popup menu for the Pose functions
         '''
         enableState=True
-        if self.posePathMode=='projectPoseMode':
+        if self.posePathMode=='projectPoseMode' and self.poseProjectMute:
             enableState=False
             
         if self.poseGridMode=='thumb':
@@ -1875,7 +1893,8 @@ class AnimationUI(object):
     
     
     # ------------------------------------------------------------------------------
-    # Main Pose Function Wrappers --------------------------------------------------
+    # Main Pose Function Wrappers ---
+    # ------------------------------------------------------------------------------
     
     def __uiCB_switchPoseMode(self, *args):
         '''
@@ -1981,12 +2000,12 @@ class AnimationUI(object):
         self.__uiCache_addCheckbox('uicbPoseRelative')
         state = cmds.checkBox(self.uicbPoseRelative, q=True, v=True)
         cmds.checkBox('uicbPoseSpace', e=True, en=False)
-        #if cmds.checkBox('uicbMetaRig',q=True,v=True):
         cmds.checkBox('uicbPoseSpace', e=True, en=state)
         cmds.frameLayout(self.uiflPoseRelativeFrame, e=True, en=state)
-             
+     
     def __uiPoseDelete(self, *args):
-        self.__validatePoseFunc('DeletePose')
+        if not self.__validatePoseFunc('DeletePose'):
+            return
         result = cmds.confirmDialog(
                 title='Confirm Pose Delete',
                 button=['Yes', 'Cancel'],
@@ -2006,6 +2025,8 @@ class AnimationUI(object):
             self.__uiCB_fillPoses(rebuildFileList=True)
         
     def __uiPoseRename(self, *args):
+        if not self.__validatePoseFunc('PoseRename'):
+            return
         try:
             newName=self.__uiCB_savePosePath(self.getPoseSelected())
         except ValueError, error:
@@ -2030,7 +2051,8 @@ class AnimationUI(object):
         subprocess.Popen('explorer "%s"' % path)
      
     def __uiPoseUpdate(self, storeThumbnail, *args):
-        self.__validatePoseFunc('UpdatePose')
+        if not self.__validatePoseFunc('UpdatePose'):
+            return
         result = cmds.confirmDialog(
                 title='PoseUpdate',
                 message=('<< Replace & Update Pose file >>\n\n%s' % self.poseSelected),
@@ -2152,10 +2174,12 @@ class AnimationUI(object):
         PRO_PACK : Copy local pose to the Project Pose Folder
         '''
         r9Setup.PRO_PACK_STUBS().AnimationUI_stubs.uiCB_poseAddPoseHandler(self.posePath)
+
         
         
     # ------------------------------------------------------------------------------
-    # UI Elements ConfigStore Callbacks --------------------------------------------
+    # UI Elements ConfigStore Callbacks ---
+    # ------------------------------------------------------------------------------
 
     def __uiCache_storeUIElements(self, *args):
         '''
@@ -2179,7 +2203,6 @@ class AnimationUI(object):
         try:
             log.debug('Loading UI Elements from the config file')
             def __uiCache_LoadCheckboxes():
-                #if self.ANIM_UI_OPTVARS['AnimationUI'].has_key('checkboxes'):
                 if 'checkboxes' in self.ANIM_UI_OPTVARS['AnimationUI'] and \
                             self.ANIM_UI_OPTVARS['AnimationUI']['checkboxes']:
                     for cb, status in self.ANIM_UI_OPTVARS['AnimationUI']['checkboxes'].items():
@@ -2262,7 +2285,8 @@ class AnimationUI(object):
             self.__uiCache_loadUIElements()
         
         
-    # MAIN UI FUNCTION CALLS
+    # -----------------------------------------------------------------------------
+    # MAIN UI FUNCTION CALLS ---
     #------------------------------------------------------------------------------
     
     def __CopyAttrs(self):
@@ -2324,7 +2348,7 @@ class AnimationUI(object):
         self.kws['iterations'] = cmds.intFieldGrp('uiifSnapIterations', q=True, v=True)[0]
         self.kws['step'] = cmds.intFieldGrp('uiifgSnapStep', q=True, v=True)[0]
         self.kws['pasteKey'] = cmds.optionMenu('om_PasteMethod', q=True, v=True)
-        self.kws['mergeLayers'] = True
+        self.kws['mergeLayers'] = cmds.checkBox('uicbCKeyAnimLay', q=True, v=True)
         self.kws['snapTranslates'] = cmds.checkBox('uicbStanTrans', q=True, v=True)
         self.kws['snapRotates'] = cmds.checkBox('uicbStanRots', q=True, v=True)
 
@@ -2371,8 +2395,6 @@ class AnimationUI(object):
         else:
             self.kws['flocking']= cmds.checkBox(self.uicbTimeOffsetFlocking, q=True, v=True)
             self.kws['randomize'] = cmds.checkBox(self.uicbTimeOffsetRandom, q=True, v=True)
-
-            #self.kws['option'] = "insert" #, "segmentOver"
             if cmds.checkBox(self.uicbTimeOffsetHierarchy, q=True, v=True):
                 r9Core.TimeOffset.fromSelected(offset, filterSettings=self.filterSettings, **self.kws)
             else:
@@ -2400,11 +2422,15 @@ class AnimationUI(object):
         Internal UI call for PoseLibrary Save func, note that filterSettings is bound
         but only filled by the main __uiCall call
         '''
+        #test the code behaviour under Project mode
+        if not self.__validatePoseFunc('PoseSave'):
+            return
         if not path:
             try:
                 path=self.__uiCB_savePosePath()
             except ValueError, error:
                 raise ValueError(error)
+
         poseHierarchy = cmds.checkBox('uicbPoseHierarchy', q=True, v=True)
 
 #         #Work to hook the poseSave directly to the metaRig.poseCacheStore func directly
@@ -2524,12 +2550,10 @@ class AnimationUI(object):
             meshes=mRef.renderMeshes
         elif len(objs)==2:
             if cmds.nodeType(cmds.listRelatives(objs[1])[0])=='mesh':
-                meshes=objs  # [1]
+                meshes=objs
         if func=='make':
             if not objs:
                 raise StandardError('you need to select a reference object to use as pivot for the PPCloud')
-            #if cmds.ls('*posePointCloud', r=True):
-            #    raise StandardError('PosePointCloud already exists in scsne')
             if not meshes:
                 #turn on locator visibility
                 panel=cmds.getPanel(wf=True)
@@ -2545,7 +2569,6 @@ class AnimationUI(object):
         elif func=='delete':
             self.ppc.delete()
         elif func=='snap':
-            #self.ppc.applyPosePointCloud()
             self.ppc.applyPosePointCloud()
         elif func=='update':
             self.ppc.updatePosePointCloud()
@@ -2602,6 +2625,7 @@ class AnimationUI(object):
         #issue : up to v2011 Maya puts each action into the UndoQueue separately
         #when called by lambda or partial - Fix is to open an UndoChunk to catch
         #everything in one block
+        objs=cmds.ls(sl=True, l=True)
         self.kws = {}
 
         #If below 2011 then we need to store the undo in a chunk
@@ -2611,10 +2635,7 @@ class AnimationUI(object):
         # Main Hierarchy Filters =============
         self.__uiPresetFillFilter()  # fill the filterSettings Object
         self.matchMethod = cmds.optionMenu('om_MatchMethod', q=True, v=True)
-#         if cmds.checkBox('uicbMatchMethod', q=True, v=True):
-#             self.matchMethod='stripPrefix'
-#         else:
-#             self.matchMethod='base'
+
         #self.filterSettings.transformClamp = True
          
         try:
@@ -2664,7 +2685,8 @@ class AnimationUI(object):
         except StandardError, error:
             traceback = sys.exc_info()[2]  # get the full traceback
             raise StandardError(StandardError(error), traceback)
-
+        if objs:
+            cmds.select(objs)
         # close chunk
         if mel.eval('getApplicationVersionAsFloat') < 2011:
             cmds.undoInfo(closeChunk=True)
@@ -2699,12 +2721,40 @@ class AnimFunctions(object):
         a dumb copy, no matching and no Hierarchy filtering, copies using
         selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
 
+    .. note::
+        filterSettings is also now bound to the class and if no filterSettings object
+        is passed into any of the calls we use the classes instance instead. Makes coding
+        a lot more simple as you can take an instance of AnimFunctions and just fill it
+        directly before running the functions.
 
+    >>> # new functionality
+    >>> animFunc=AnimFunctions()
+    >>> animFunc.settings.nodeTypes=['nurbsCurve']
+    >>> animFunc.settings.searchPattern=['ctrl']
+    >>> animFunc.copyKeys([srcRootNode, destRootNode])
+    >>>
+    >>> # old functionality
+    >>> settings=r9Core.FilterSettings()
+    >>> settings.nodeTypes=['nurbsCurve']
+    >>> settings.searchPattern=['ctrl']
+    >>> animFunc.copyKeys([srcRootNode, destRootNode], filterSettigns=settings)
+    
     '''
-    def __init__(self, **kws):
-        kws.setdefault('matchMethod', 'stripPrefix')
+    def __init__(self, filterSettings=None, **kws):
         
+        kws.setdefault('matchMethod', 'stripPrefix')
         self.matchMethod=kws['matchMethod']  # gives you the ability to modify the nameMatching method
+        
+        # make sure we have a settings object
+        if filterSettings:
+            if issubclass(type(filterSettings), r9Core.FilterNode_Settings):
+                self.settings=filterSettings
+            else:
+                raise StandardError('filterSettings param requires an r9Core.FilterNode_Settings object')
+            self.settings.printSettings()
+        else:
+            self.settings=r9Core.FilterNode_Settings()
+            
               
     #===========================================================================
     # Copy Keys
@@ -2717,6 +2767,13 @@ class AnimFunctions(object):
         it works well enough. Really we need to process the nodes more intelligently
         prior to sending data to the copyKeys calls
         '''
+
+        # this is so it carries on the legacy behaviour where these are always passed in
+        if not filterSettings:
+            filterSettings=self.settings
+        if not matchMethod:
+            matchMethod=self.matchMethod
+            
         for node in nodes[1:]:
             self.copyKeys(nodes=[nodes[0], node],
                           time=time,
@@ -2737,8 +2794,10 @@ class AnimFunctions(object):
         :param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call,
             making it capable of powerful hierarchy filtering and node matching methods.
-        :param filterSettings: Passed into the decorator and onto the FilterNode code
-            to setup the hierarchy filters - See docs on the FilterNode_Settings class
+        :param filterSettings: Passed into the FilterNode code to setup the hierarchy filters
+            see docs on the FilterNode_Settings class'
+            Note that this is also now bound to the class instance and if not passed in
+            we use this classes instance of filterSettings cls.settings
         :param pasteKey: Uses the standard pasteKey option methods - merge,replace,
             insert etc. This is fed to the internal pasteKey method. Default=replace
         :param time: Copy over a given timerange - time=(start,end). Default is
@@ -2752,10 +2811,16 @@ class AnimFunctions(object):
         
         TODO: this needs to support 'skipAttrs' param like the copyAttrs does - needed for the snapTransforms calls
         '''
+        
+        # this is so it carries on the legacy behaviour where these are always passed in
+        if not filterSettings:
+            filterSettings=self.settings
         if not matchMethod:
             matchMethod=self.matchMethod
-        log.debug('CopyKey params : nodes=%s : time=%s : pasteKey=%s : attributes=%s : filterSettings=%s : matchMethod=%s'\
-                   % (nodes, time, pasteKey, attributes, filterSettings, matchMethod))
+            
+        log.debug('CopyKey params : \n \
+\tnodes=%s \t\n:time=%s \t\n: pasteKey=%s \t\n: attributes=%s \t\n: filterSettings=%s \t\n: matchMethod=%s \t\n: mergeLayers=%s \t\n: timeOffset=%s' \
+                   % (nodes, time, pasteKey, attributes, filterSettings, matchMethod, mergeLayers, timeOffset))
                 
         #Build up the node pairs to process
         nodeList = r9Core.processMatchedNodes(nodes,
@@ -2797,6 +2862,12 @@ class AnimFunctions(object):
         it works well enough. Really we need to process the nodes more intelligently
         prior to sending data to the copyKeys calls
         '''
+        # this is so it carries on the legacy behaviour where these are always passed in
+        if not filterSettings:
+            filterSettings=self.settings
+        if not matchMethod:
+            matchMethod=self.matchMethod
+               
         for node in nodes[1:]:
             self.copyAttributes(nodes=[nodes[0], node],
                           attributes=attributes,
@@ -2815,8 +2886,10 @@ class AnimFunctions(object):
         :param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call,
             making it capable of powerful hierarchy filtering and node matching methods.
-        :param filterSettings: Passed into the decorator and onto the FilterNode code
-            to setup the hierarchy filters - See docs on the FilterNode_Settings class
+        :param filterSettings: Passed into the FilterNode code to setup the hierarchy filters
+            see docs on the FilterNode_Settings class'
+            Note that this is also now bound to the class instance and if not passed in
+            we use this classes instance of filterSettings cls.settings
         :param attributes: Only copy the given attributes[]
         :param skipAttrs: Copy all Settable Attributes OTHER than the given, not
             used if an attributes list is passed
@@ -2825,6 +2898,10 @@ class AnimFunctions(object):
         '''
         if not matchMethod:
             matchMethod=self.matchMethod
+        # this is so it carries on the legacy behaviour where these are always passed in
+        if not filterSettings:
+            filterSettings=self.settings
+            
         log.debug('CopyAttributes params : nodes=%s\n : attributes=%s\n : filterSettings=%s\n : matchMethod=%s\n'
                    % (nodes, attributes, filterSettings, matchMethod))
         
@@ -2833,7 +2910,7 @@ class AnimFunctions(object):
                                               filterSettings,
                                               toMany,
                                               matchMethod=matchMethod).MatchedPairs
-        
+                                              
         if nodeList:
             with r9General.HIKContext([d for _, d in nodeList]):
                 for src, dest in nodeList:
@@ -2888,8 +2965,10 @@ class AnimFunctions(object):
         :param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call,
             making it capable of powerful hierarchy filtering and node matching methods.
-        :param filterSettings: Passed into the decorator and onto the FilterNode code
-            to setup the hierarchy filters - See docs on the FilterNode_Settings class
+        :param filterSettings: Passed into the FilterNode code to setup the hierarchy filters
+            see docs on the FilterNode_Settings class'
+            Note that this is also now bound to the class instance and if not passed in
+            we use this classes instance of filterSettings cls.settings
         :param time: Copy over a given timerange - time=(start,end). Default is
             to use no timeRange. If time is passed in via the timeLineRange() function
             then it will consider the current timeLine PlaybackRange, OR if you have a
@@ -2918,8 +2997,13 @@ class AnimFunctions(object):
         self.snapCacheData = {}  # TO DO - Cache the data and check after first run data is all valid
         self.nodesToSnap = []
         skipAttrs = ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ']
+        
+        # this is so it carries on the legacy behaviour where these are always passed in
+        if not filterSettings:
+            filterSettings=self.settings
         if not matchMethod:
-            matchMethod = self.matchMethod
+            matchMethod=self.matchMethod
+            
         try:
             checkRunTimeCmds()
         except StandardError, error:
@@ -3139,16 +3223,22 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
         :param nodes: List of Maya nodes to process. This combines the filterSettings
             object and the MatchedNodeInputs.processMatchedPairs() call,
             making it capable of powerful hierarchy filtering and node matching methods.
-        :param filterSettings: Passed into the decorator and onto the FilterNode code
-            to setup the hierarchy filters - See docs on the FilterNode_Settings class
+        :param filterSettings: Passed into the FilterNode code to setup the hierarchy filters
+            see docs on the FilterNode_Settings class'
+            Note that this is also now bound to the class instance and if not passed in
+            we use this classes instance of filterSettings cls.settings
         :param attributes: Only copy the given attributes[]
         :param bindMethod: method of binding the data
         :param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
         #TODO: expose this to the UI's!!!!
         '''
         
+        # this is so it carries on the legacy behaviour where these are always passed in
+        if not filterSettings:
+            filterSettings=self.settings
         if not matchMethod:
             matchMethod=self.matchMethod
+            
         log.debug('bindNodes params : nodes=%s : attributes=%s : filterSettings=%s : matchMethod=%s' \
                    % (nodes, attributes, filterSettings, matchMethod))
 
