@@ -206,29 +206,20 @@ class cgmFuncCls(object):
 	    self.log_error("FAILURE >> {0}".format(res))	    
 	    self.d_return[self._str_step] = res
 	    
-    def _ExceptionHook_(self, etype, value, tb, detail=2):
+    def _ExceptionHook_(self, etype = None, value = None, tb = None, detail=2):
 	# do something here...
 	try:
+	    if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
+	    
 	    str_lastLogBuffer = self._str_lastLog#Buffer this
 	    if detail == 2:	
 		report_enviornment()
 		try:db_file = tb.tb_frame.f_code.co_filename
 		except:db_file = "<maya console>"
 		self.report_base()
-		self.log_info(_str_headerDiv + " Exception " + _str_headerDiv + _str_subLine)		
+		self.log_info(_str_headerDiv + " Exception Log " + _str_headerDiv + _str_subLine)		
 		self.log_info("Step: '{0}'".format(self._str_failStep))
 		self.log_info("Time: {0} sec".format(self._str_failTime))
-		if db_file != "<maya console>":
-		    linecache.clearcache()		
-		    lineno = tb.tb_lineno
-		    line = linecache.getline(db_file, lineno)
-		    self.log_info("Traceback File: %s"%db_file)
-		    self.log_info("Line#: %d"%lineno)
-		    self.log_info("Line: %s"%line)		
-		self.log_info("Exception Type: %s"%etype)
-		self.log_info("Exception value: %s"%value)
-		#self.log_info("Traceback Obj: %s"%tb)
-		#self.log_info("Detail: %s"%detail)		
 		self.report_selfStored()
 		self.report_warnings()		
 		self.report_errors()
@@ -236,12 +227,35 @@ class cgmFuncCls(object):
 		    try:self.log_info("Last log entry: %s"%str_lastLogBuffer)
 		    except Exception, error:
 			log.error("This failed")
-			log.error("Failed to report last log: {0}".format(error))
+			log.error("Failed to report last log: {0}".format(error))		
+		for item in reversed(inspect.getouterframes(tb.tb_frame)[1:]):
+		    print ' File "{1}", line {2}, in {3}\n'.format(*item),
+		    for item in inspect.getinnerframes(tb):
+			print ' File "{1}", line {2}, in {3}\n'.format(*item),
+		    if item[4] is not None:
+			for line in item[4]:
+			    print ' ' + line.lstrip(),			
+		    #for line in item[4]:
+			#print ' ' + line.lstrip(),		
+		'''if db_file != "<maya console>":
+		    linecache.clearcache()		
+		    lineno = tb.tb_lineno
+		    line = linecache.getline(db_file, lineno)
+		    self.log_info("Traceback File: %s"%db_file)
+		    self.log_info("Line#: %d"%lineno)
+		    self.log_info("Line: %s"%line)'''		
+				
+		#self.log_info("Exception Type: %s"%etype)
+		#self.log_info("Exception value: %s"%value)
+		#self.log_info("Exception: {0}".format(self._Exception))		
+		self.log_info("Exception error: {0}".format(self._ExceptionError))
+		#self.log_info("Traceback Obj: %s"%tb)
+		#self.log_info("Detail: %s"%detail)		
 	    else:self.log_error("[Step: '{0}' | time: {1} | error: {2}".format(self._str_failStep,self._str_failTime,self._ExceptionError))
 	    if detail == 2:self.log_info(_str_hardBreak)
 	    self.progressBar_end()
 	    mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
-	    return cgmExceptCB(etype,value,tb,detail,True)
+	    #return cgmExceptCB(etype,value,tb,detail,True)
 	    #return mUtils._formatGuiException(etype, value, tb, detail)	
 	except Exception,error:
 	    mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload	    
@@ -286,13 +300,13 @@ class cgmFuncCls(object):
 	    if self._int_stopStep is not None and i >= self._int_stopStep:
 		self.log_info("Stop at step reached ({0}) | Skipped the following...".format(self._int_stopStep))
 		for ii,d_step in enumerate(self.l_funcSteps[self._int_stopStep:]):
-		    _str_step = d_step.get('step') or False
+		    _str_step = d_step.get('step', False)
 		    self.log_info("Step: {0} | {1}".format(ii + self._int_stopStep, _str_step))		    
 		break
 	    t1 = time.clock()	    
 	    try:
 		try:
-		    _str_step = d_step.get('step') or False
+		    _str_step = d_step.get('step',False)
 		    if _str_step:
 			self._str_progressBarReportStart = self._str_reportStart #+ " %s "%_str_step
 		    else: _str_step = 'Process'
@@ -316,7 +330,7 @@ class cgmFuncCls(object):
 		if goTo.lower() == str_name:
 		    log.debug("%s.doBuild >> Stopped at step : %s"%(self._strShortName,str_name))
 		    break"""
-	    except Exception,error:
+	    except Exception, error:
 		self._str_failStep = _str_step
 		self._str_failTime = "%0.3f"%(time.clock()-t1)
 		self._Exception = Exception
@@ -357,10 +371,12 @@ class cgmFuncCls(object):
 	if self._Exception is not None:
 	    if self._b_ExceptionInterupt:
 		self.update_moduleData()			
-		mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   
-		raise self._Exception,"{0} >> {1}".format(self._str_funcCombined,str(self._ExceptionError))
-	    else:
-		raise self._Exception,"{0} | {1} | {2}".format(self._str_reportStart,self._str_step,self._ExceptionError)
+		#mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   
+	    self._ExceptionHook_(self._Exception,self._ExceptionError)
+	    return
+		#raise self._Exception,"{0} >> {1}".format(self._str_funcCombined,str(self._ExceptionError))
+	    #else:
+		#raise self._Exception,"{0} | {1} | {2}".format(self._str_reportStart,self._str_step,self._ExceptionError)
 	    
 	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
 	return self._return_()
@@ -775,9 +791,21 @@ def subTimer(func):
 	return res
     return wrapper  
 
+def myFirstFuncCls(*args, **kws):
+    class fncWrap(cgmFuncCls):
+	def __init__(self,*args, **kws):
+	    super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'myFirstFuncCls'	
+	    self.__dataBind__(*args, **kws)#...this needs to be here
+	def __func__(self):
+	    raise ValueError, "no"
+    return fncWrap(*args, **kws).go()
+
 def cgmExceptCB(etype, value, tb, detail=2, processed = False):
     # @param processed -- whether this exception has already been processed
     try:
+	if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
+	
 	try:db_file = tb.tb_frame.f_code.co_filename
 	except:db_file = "<maya console>"
 	#print("-- db_file: %s"%db_file)	
@@ -787,11 +815,19 @@ def cgmExceptCB(etype, value, tb, detail=2, processed = False):
 	if detail == 2:	    
 	    if not processed:
 		if db_file != "<maya console>":
-		    lineno = tb.tb_lineno
-		    line = linecache.getline(db_file, lineno)
-		    print("-- Traceback File: %s"%db_file)
-		    print("-- Traceback Line #: %d"%lineno)
-		    print("-- Traceback Line: %s"%line)
+		    for item in reversed(inspect.getouterframes(tb.tb_frame)[1:]):
+			print ' File "{1}", line {2}, in {3}\n'.format(*item),
+			for line in item[4]:
+			    print ' ' + line.lstrip(),
+			for item in inspect.getinnerframes(tb):
+			    print ' File "{1}", line {2}, in {3}\n'.format(*item),
+			for line in item[4]:
+			    print ' ' + line.lstrip()		    
+		    #lineno = tb.tb_lineno
+		    #line = linecache.getline(db_file, lineno)
+		    #print("-- Traceback File: %s"%db_file)
+		    #print("-- Traceback Line #: %d"%lineno)
+		    #print("-- Traceback Line: %s"%line)
 		print(_str_headerDiv + "Exception encountered..." + _str_headerDiv + _str_hardLine)	    		
 		print("-- Coming from cgmExceptCB")		
 		print("-- etype: %s"%etype)
