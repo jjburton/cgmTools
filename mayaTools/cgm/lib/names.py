@@ -27,6 +27,12 @@
 
 import maya.cmds as mc
 
+#>>>======================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
 # ====================================================================================================================
 # FUNCTION - 1
 #
@@ -61,23 +67,8 @@ def initializeDictionary(file):
             else:
                 nameDictionary[colonSplit[0]] = colonSplit[1]
     return nameDictionary
-# ====================================================================================================================
-# FUNCTION - 2
-#
-# SIGNATURE:
-#	returnShortName(longName)
-#
-# DESCRIPTION:
-#   Returns a short name for an input long one
-# 
-# ARGUMENTS:
-# 	longName
-#
-# RETURNS:
-#	[True/False,shortName/errorMessage]
-#
-# ====================================================================================================================
-def returnShortName(longName):
+
+def returnShortNameOLD(longName):
     returnedDictionary = initializeDictionary('C:\Users\Josh\Documents\maya\python/namePrefs.conf')
     nameDictionary = returnedDictionary
     returnList = []
@@ -91,6 +82,24 @@ def returnShortName(longName):
         returnList.append ('%s%s%s' %('No match for >>',objectType,'<<, add it to the dictionary or check your spelling/case'))
     return returnList
 
+def getShortName(obj):
+    buffer = mc.ls(obj,shortNames=True) 
+    if buffer:return buffer[0]
+    log.error("No object exists: {0}".format(obj))        
+    return False
+
+def getBaseName(obj):
+    buffer = mc.ls(obj,l=True)      
+    if buffer:return buffer[0].split('|')[-1].split(':')[-1] 
+    log.error("No object exists: {0}".format(obj))        
+    return False
+
+
+def getLongName(obj):
+    buffer = mc.ls(obj,l=True)        
+    if buffer:return buffer[0]
+    log.error("No object exists: {0}".format(obj)) 
+    return False
 # ====================================================================================================================
 # FUNCTION - 3
 #
