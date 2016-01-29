@@ -1834,7 +1834,7 @@ class cgmObject(cgmNode):
 	    if target: #if we have a target parent
 		if cgmValid.isListArg(target):
 		    target = target[0]
-		    log.info("Target arg is list, using first entry")
+		    print("Target arg is list, using first entry")
 		try:
 		    bfr_target = target.p_nameLong
 		except:
@@ -1863,7 +1863,7 @@ class cgmObject(cgmNode):
 		    #assert mc.objExists(target) is True, "'%s' - parent object doesn't exist" %target    
 		    #log.info(target.mNode)
 		    raise Exception,error
-		raise StandardError,"Failed to parent"
+		raise Exception,"Failed to parent"
 	    else:#If not, do so to world
 		#log.info("parenting to world")
 		rigging.doParentToWorld(self.mNode)

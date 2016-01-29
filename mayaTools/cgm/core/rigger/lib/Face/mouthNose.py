@@ -205,7 +205,7 @@ def build_rigSkeleton(*args, **kws):
 
             self.md_handleBuildInfo = {#'teethUpr':{"center":{'skinKey':'teethUpr','mode':'simpleDuplicate'}},
 	                               "tongue":{"center":{'skinKey':'tongue'},'mode':'startEnd','orientToSurface':False, 'tags':['tongueBase','tongueTip']},
-                                       #"jaw":{"center":{'skinKey':'jaw'},'mode':'simpleDuplicate'},
+                                       "jaw":{"center":{'skinKey':'jaw'},'mode':'zeroDuplicate'},
 	                               }
 
 
@@ -229,6 +229,8 @@ def build_rigSkeleton(*args, **kws):
         def build_specialJoints(self):
             #We'll have a rig joint for every joint
             mi_go = self._go#Rig Go instance link
+	    
+	    return
 
             try:#>>Stretch Chain ===================================================================
                 str_crv = mc.curve(d = 1,ep = [self.mi_squashStartCrv.getPosition(),self.mi_squashEndCrv.getPosition()], os = True)
@@ -333,9 +335,17 @@ def build_rigSkeleton(*args, **kws):
                                 mi_jnt.parent = False#Parent to world	
                                 if l_tags:
                                     mi_jnt.addAttr('cgmName',l_tags[0],attrType='string',lock=True)				    				    			    
-                                mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
-                                mi_jnt.doName()
-                                ml_handleJoints.append(mi_jnt)	
+                                ml_handleJoints.append(mi_jnt)
+				if str_mode == 'zeroDuplicate':
+				    #mi_jnt.parent = self.ml_build[0].parent
+				    self.ml_build[0].rigJoint.parent = mi_jnt
+				    mi_jnt.addAttr('cgmNameModifier','zero',attrType='string',lock=True)
+				    mi_jnt.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)				    				    
+				    mi_jnt.connectParentNode(self.ml_build[0],'sourceJoint','zeroJoint')
+				else:
+				    mi_jnt.addAttr('cgmTypeModifier','handle',attrType='string',lock=True)
+				mi_jnt.doName()
+				    
                                 """if str_mode == 'zeroDuplicate':
                                     mc.delete( mc.normalConstraint(self.mi_skullPlate.mNode,mi_jnt.mNode,
                                                                    weight = 1, aimVector = mi_go._vectorAim,
@@ -835,7 +845,12 @@ def build_rig(*args, **kws):
             try:#Build dicts to check ==================================================================================================
 		#>> Jaw --------------------------------------------------------------------------------------------------
 		b_buildJawLine = True	    
-		d_jawBuild = {'jawRig':{'check':ml_rigJoints,'tag':'jaw'}}
+		d_jawBuild = {'jawRig':{'bypass': metaUtils.get_matchedListFromAttrDict(ml_rigJoints,
+		                                                                        cgmName = 'jaw',
+		                                                                        cgmTypeModifier = 'rig')},
+		              'jawZero':{'bypass': metaUtils.get_matchedListFromAttrDict(ml_handleJoints,
+		                                                                         cgmName = 'jaw',
+		                                                                         cgmNameModifier = 'zero')},}
 		_l_buildDicts.append(d_jawBuild)
 
                 #>> tongue --------------------------------------------------------------------------------------------------
@@ -927,7 +942,8 @@ def build_rig(*args, **kws):
             try:#>> Get some data =======================================================================================
                 mi_go = self._go
                 l_keys = self._l_baseHandleKeys
-		l_keys.remove('tongueRig')
+		for k in ['tongueRig','jawRig','jawZero']:
+		    l_keys.remove(k)
 		_d_directionToMirrorSide = {'left':'Left','right':'Right','center':'Centre'}
 		_d_sideIndices = {'Left':0,'Right':0,'Centre':0}
 		_d_matchTest = {'Left':{},'Right':{},'Center':{}}
@@ -3649,9 +3665,9 @@ def build_rig(*args, **kws):
 	def _lockNHide_(self):
 	    try:
 		mi_go = self._go#Rig Go instance link		
-		mi_jawRig = self.md_rigList['jawRig'][0]
+		mi_jawZero = self.md_rigList['jawZero'][0]
 		mi_constrainNull =  mi_go._i_faceDeformNull		
-		mi_jawRig.parent = mi_constrainNull
+		mi_jawZero.parent = mi_constrainNull
 	    except Exception,error:
 		self.log_error("Jaw parent fail! {0}".format(error))
 		
@@ -3662,7 +3678,7 @@ def build_rig(*args, **kws):
 			cgmMeta.cgmAttr(mHandle,'scale',lock = True, hidden = True)
 		    cgmMeta.cgmAttr(mHandle,'v',lock = True, hidden = True)		
 		    mHandle._setControlGroupLocks()	
-		except Exception,error:self.log_error("[mHandle: '%s']{%s}"%(mJoint.p_nameShort,error))
+		except Exception,error:self.log_error("[mHandle: '%s']{%s}"%(mHandle.p_nameShort,error))
     
 	    for mJoint in self.ml_rigJoints:
 		try:

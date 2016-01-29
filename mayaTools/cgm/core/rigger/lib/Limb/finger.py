@@ -99,10 +99,10 @@ def __bindSkeletonSetup__(self,addHelpers = True):
 	ml_handleJoints = self._mi_module.rig_getHandleJoints()
 	
 	if addHelpers:
-	    ml_pairs = lists.parseListToPairs(ml_moduleJoints)
-	    jUtils.add_defHelpJoint(ml_pairs[1][0],ml_pairs[1][1],helperType = 'childRootHold',orientation=self.str_jointOrientation)
+	    ml_pairs = lists.parseListToPairs(ml_moduleJoints)#...halfHold
+	    #jUtils.add_defHelpJoint(ml_pairs[1][0],ml_pairs[1][1],helperType = 'childRootHold',orientation=self.str_jointOrientation)
 	    for ml_pair in ml_pairs[1:]:
-		#jUtils.add_defHelpJoint(ml_pair[0],ml_pair[1],helperType = 'halfPush',
+		#jUtils.add_defHelpJoint(ml_pair[0],ml_pair[1],helperType = 'halfHold',
 		                        #orientation=self.str_jointOrientation)
 		jUtils.add_defHelpJoint(ml_pair[0],ml_pair[1],helperType = 'childRootHold',
 		                        orientation=self.str_jointOrientation)		

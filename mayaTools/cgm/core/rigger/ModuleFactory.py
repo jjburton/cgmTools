@@ -37,8 +37,8 @@ from cgm.lib.ml import (ml_breakdownDragger,
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 _l_moduleStates = cgmGeneral._l_moduleStates
 __l_modulesClasses__ = ['cgmModule','cgmLimb','cgmEyeball','cgmEyelids','cgmEyebrow','cgmMouthNose','cgmSimpleBSFace']
-__l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthNose']
-
+__l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthNose','simpleFace']
+__l_passThroughModules__ = ['simpleFace']
 #KWS ================================================================================================================
 _d_KWARG_mModule = {'kw':'mModule',"default":None,'help':"cgmModule mNode or str name","argType":"cgmModule"}
 _d_KWARG_force = {'kw':'force',"default":False,'help':"Whether to force the given function or not","argType":"bool"}
@@ -114,6 +114,10 @@ def isSized(*args,**kws):
             #=================================================================
         def __func__(self): 
             mi_module = self._mi_module
+            
+            if mi_module.moduleType in __l_passThroughModules__:
+                self.log_debug("Pass through module found...")
+                return True
             try:
                 if mi_module.moduleType in __l_faceModules__:
                     if mi_module.getMessage('helper'):
@@ -519,6 +523,10 @@ def isRigged(*args,**kws):
             kws = self.d_kws
             mi_module = self._mi_module
             
+            if mi_module.moduleType in __l_passThroughModules__:
+                self.log_debug("Pass through module found...")
+                return True
+            
             mi_rigNull = mi_module.rigNull
             str_shortName = self._str_moduleName
             
@@ -894,7 +902,9 @@ def isTemplated(*args,**kws):
                 mi_module = self._mi_module
                 kws = self.d_kws		
             except Exception,error:raise StandardError,"[Query]{%s}"%error
-
+            if mi_module.moduleType in __l_passThroughModules__:
+                self.log_debug("Pass through module found...")
+                return True
             if mi_module.moduleType in __l_faceModules__:
                 if mi_module.getMessage('helper'):
                     self.log_debug("%s has size helper, good to go."%self._str_reportStart)	    
@@ -1169,7 +1179,9 @@ def isSkeletonized(*args,**kws):
                 mi_module = self._mi_module
                 kws = self.d_kws		
             except Exception,error:raise StandardError,"[Query]{%s}"%error
-
+            if mi_module.moduleType in __l_passThroughModules__:
+                self.log_debug("Pass through module found...")
+                return True
             l_moduleJoints = mi_module.rigNull.msgList_get('moduleJoints',asMeta=False)
             if not l_moduleJoints:
                 self.log_debug("No skin joints found")
@@ -1905,33 +1917,40 @@ def get_controls(*args,**kws):
             ml_controlObjects = []
             try:
                 if str_mode == 'template':
-                    l_controlAttrs = 'root','orientRootHelper'
-                    for str_a in l_controlAttrs:
-                        buffer = mi_templateNull.getMessageAsMeta(str_a)
-                        if not buffer:
-                            raise ValueError,"attr '{0}' failed | buffer: {1}".format(str_a,buffer)
-                        ml_controlObjects.append(buffer)
+                    if mi_module.moduleType not in __l_faceModules__:
+                        l_controlAttrs = 'root','orientRootHelper'
+                        for str_a in l_controlAttrs:
+                            buffer = mi_templateNull.getMessageAsMeta(str_a)
+                            if not buffer:
+                                raise ValueError,"attr '{0}' failed | buffer: {1}".format(str_a,buffer)
+                            if str_a == 'root':
+                                ml_controlObjects.append(cgmMeta.asMeta(buffer.parent))
+                            ml_controlObjects.append(buffer)
+    
+                        l_msgLists = 'controlObjects','orientHelpers'
+                        for str_a in l_msgLists:
+                            buffer = mi_templateNull.msgList_get(str_a)
+                            if not buffer:
+                                raise ValueError,"attr '{0}' failed | buffer: {1}".format(str_a,buffer)
+                            ml_controlObjects.extend(buffer)	
 
-                    l_msgLists = 'controlObjects','orientHelpers'
-                    for str_a in l_msgLists:
-                        buffer = mi_templateNull.msgList_get(str_a)
-                        if not buffer:
-                            raise ValueError,"attr '{0}' failed | buffer: {1}".format(str_a,buffer)
-                        ml_controlObjects.extend(buffer)	
-
-                    #Pivot check
-                    try:
-                        l_userAttrs = mi_templateNull.getAttrs(userDefined = True)
-                        for str_a in l_userAttrs:
-                            #log.info("Checking user attr '{0}'".format(str_a))
-                            if 'pivot_' in str_a:
-                                buffer = mi_templateNull.getMessageAsMeta(str_a)
-                                if not buffer:
-                                    raise ValueError,"attr '{0}' failed | buffer: {1}".format(str_a,buffer)
-                                ml_controlObjects.append(buffer)
-                    except Exception,error: raise Exception,"Pivot check | error: {0}".format(error)
+                            #Pivot check
+                            try:
+                                l_userAttrs = mi_templateNull.getAttrs(userDefined = True)
+                                for str_a in l_userAttrs:
+                                    #log.info("Checking user attr '{0}'".format(str_a))
+                                    if 'pivot_' in str_a:
+                                        buffer = mi_templateNull.getMessageAsMeta(str_a)
+                                        if not buffer:
+                                            raise ValueError,"attr '{0}' failed | buffer: {1}".format(str_a,buffer)
+                                        ml_controlObjects.append(buffer)
+                            except Exception,error: raise Exception,"Pivot check | error: {0}".format(error)
                 elif str_mode == 'anim':
-                    ml_controlObjects = mi_module.rigNull.moduleSet.getMetaList()
+                    try:ml_controlObjects = mi_module.rigNull.moduleSet.getMetaList()
+                    except:
+                        self.log_error("No controls found.")
+                        self.log_error("Rig Status: {0}".format(mi_module.isRigged()))
+                        return False
                 else:
                     raise StandardError,"Not done yet"
             except Exception,error: raise Exception,"Mode '{0} fail | error: {1}".format(str_mode,error)

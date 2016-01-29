@@ -493,7 +493,7 @@ def templateSettings_do(*args,**kws):
             self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
                                          {'kw':'mode',"default":None,'help':"Special mode for this fuction","argType":"varied"}] 
             self.__dataBind__(*args,**kws)
-            self._str_funcName = "puppet.templateSettings_do('{0}',mode = {1})".format(self._mi_puppet.cgmName,self.d_kws.get('mode') or None)		    	    
+            self._str_funcName = "puppet.templateSettings_do('{0}',mode = {1})".format(self._mi_puppet.cgmName,self.d_kws.get('mode',None))		    	    
             self.__updateFuncStrings__()
 
         def __func__(self):
@@ -549,7 +549,7 @@ def mirrorSetup_verify(*args,**kws):
                                 {'step':'Module data','call':self._moduleData_},
                                 {'step':'Process','call':self._process}]
 
-            self._str_funcName = "puppet.templateSettings_mirrorVerify('{0}',mode = '{1}')".format(self._mi_puppet.cgmName,self.d_kws.get('mode') or None)		    	    
+            self._str_funcName = "mirrorSetup_verify('{0}',mode = '{1}')".format(self._mi_puppet.cgmName,self.d_kws.get('mode',None))		    	    
             self.__updateFuncStrings__()
 
         def _verifyData(self):
@@ -962,9 +962,29 @@ def get_jointsBindDict(*args,**kws):
                                     'body':{'faceModuleOK':False},
                                     'face':{'ignoreCheck':True},
                                     'bodyNoEyes':{'l_ignore':['eyeball']},
-                                    'eyeball':{'isModule':'eyeball'},
+                                    'bodyWithLids':{'l_ignore':['eyeball','mouthNose']},
+                                    'eyeballs':{'isModule':'eyeball'},
+                                    'eyeballLeft':{'isModule':'eyeball',
+                                                   'hasAttrs':{'cgmDirection':'left'}},
+                                    'irisLeft':{'isModule':'eyeball',
+                                                'hasAttrs':{'cgmName':'iris','cgmDirection':'left'}},  
+                                    'pupilLeft':{'isModule':'eyeball',
+                                                 'hasAttrs':{'cgmName':'pupil','cgmDirection':'left'}},                                    
+                                    'eyeballRight':{'isModule':'eyeball',
+                                                   'hasAttrs':{'cgmDirection':'right'}}, 
+                                    'irisRight':{'isModule':'eyeball',
+                                                 'hasAttrs':{'cgmName':'iris','cgmDirection':'right'}},  
+                                    'pupilRight':{'isModule':'eyeball',
+                                                  'hasAttrs':{'cgmName':'pupil','cgmDirection':'right'}},                                    
                                     'head':{'indexArgs':[['neckHead',-1]]},
-                                    'tongue':{'isModule':'tongue'}}    
+                                    'teethUpr':{'isModule':'mouthNose',
+                                                'hasAttrs':{'cgmName':'teeth','cgmPosition':'upper'}},
+                                    'jaw':{'isModule':'mouthNose',
+                                                'hasAttrs':{'cgmName':'jaw'}},                                    
+                                    'teethLwr':{'isModule':'mouthNose',
+                                                'hasAttrs':{'cgmName':'teeth','cgmPosition':'lower'}},                                                
+                                    'tongue':{'isModule':'mouthNose',
+                                              'hasAttrs':{'cgmName':'tongue'}}}   
     '''
     'tongue':['tongue','jaw','head'],
     'unified':['bodySansEyes'],
@@ -1012,46 +1032,79 @@ def get_jointsBindDict(*args,**kws):
                         if b_isFaceModule:
                             self._d_return['face'].extend(l_buffer)
                         if not l_buffer:
-                            raise StandardError,"No joints found"
+                            self.log_error("No joints found on {0}".format(mModule.p_nameShort))
+                            continue
+                        
                         self.log_info("Module : {0} | type: {1} | isFaceModule {2}".format(mModule.p_nameShort,mModule.moduleType, b_isFaceModule)) 			
 
                         for key in d_bindJointKeys_to_matchData.keys():
+                            l_use = copy.copy(l_buffer)
+                            self.log_debug("--- Checking {0}...".format(key))
                             if key in l_stopMatch:#...if we already matched this one specifically
+                                self.log_debug("--- {0} in stop match".format(key))
                                 continue
+                            
                             #self.log_info("checking {0}".format(key))
                             d_buffer = d_bindJointKeys_to_matchData[key]
+                            for k1 in d_buffer.keys():
+                                self.log_debug("--- {0} : {1}".format(k1,d_buffer[k1]))
+                            self.log_debug(cgmGeneral._str_subLine)
+                            
                             if d_buffer.get('ignoreCheck'):
+                                self.log_debug("--- ignoreCheck hit")                                
                                 continue
 
-                            l_ignore = d_buffer.get('l_ignore') or []
-                            is_module = d_buffer.get('isModule') or None
-                            l_indexArgs = d_buffer.get('indexArgs') or []
+                            l_ignore = d_buffer.get('l_ignore', [])
+                            is_module = d_buffer.get('isModule', None)
+                            l_indexArgs = d_buffer.get('indexArgs', [])
+                            hasAttrs = d_buffer.get('hasAttrs',{})
 
-                            _faceModuleOK = d_buffer.get('faceModuleOK') or True
-                            _faceModuleOnly = d_buffer.get('faceModuleOnly') or False
-
-                            if not _faceModuleOK and b_isFaceModule:
-                                #self.log_info("Face modules not okay. This one is.")				    				
+                            _faceModuleOK = d_buffer.get('faceModuleOK', True)
+                            _faceModuleOnly = d_buffer.get('faceModuleOnly', False)                          
+                            if _faceModuleOK == False and b_isFaceModule:
+                                self.log_debug("--- Face modules not okay. This one is.")				    				
                                 continue
 
                             if _faceModuleOnly and not b_isFaceModule:
-
+                                self.log_debug("--- Not a face module. Face Module only")				    				                                
                                 continue
 
-                            if is_module and is_module != str_partType:
-                                #self.log_info("Wrong module type. isModule check on")
+                            if is_module is not None and is_module != str_partType:
+                                self.log_debug("--- Wrong module type. isModule check on")
                                 continue
+                            
                             if l_ignore:
                                 if str_partType in l_ignore:
-                                    #self.log_info("Module type in igore list.")				    
+                                    self.log_debug("--- Module type in ignore list.")				    
                                     continue
-
-                            self._d_return[key].extend(l_buffer)
+                                
+                            if hasAttrs:
+                                l_ = []
+                                for mJnt in l_use:
+                                    _good = False                                    
+                                    for a1 in hasAttrs.keys():
+                                        if mJnt.getMayaAttr(a1) == hasAttrs[a1]:
+                                            self.log_debug("--- '{0}' hasAttrs match '{1}' == '{2}'".format(mJnt.p_nameShort,a1,hasAttrs[a1]))                                            
+                                            _good = True
+                                        elif search.findRawTagInfo(mJnt.mNode, a1) == hasAttrs[a1]:
+                                            self.log_debug("--- '{0}' tag check hasAttrs match '{1}' == '{2}'".format(mJnt.p_nameShort,a1,hasAttrs[a1]))                                            
+                                            _good = True                                            
+                                        else:
+                                            #self.log_info("--- '{0}' hasAttrs !match! '{1}' != '{2}'".format(mJnt.p_nameShort,a1,hasAttrs[a1]))                                                                                        
+                                            _good = False
+                                            break
+                                    if _good:l_.append(mJnt)
+                                l_use = l_
+                                
+                            if self.d_kws['asMeta']:
+                                self._d_return[key].extend(l_use)
+                            else:
+                                self._d_return[key].extend([mJnt.mNode for mJnt in l_use])
 
                             for a in l_indexArgs:
                                 if str_partType == a[0]:
-                                    self._d_return[key] = [(l_buffer[int(a[1])])]
-                                    self.log_info("indexArg match found for {0}".format(key))				    
+                                    self._d_return[key] = [(l_use[int(a[1])])]
+                                    self.log_debug("--- indexArg match found for {0}".format(key))				    
                                     l_stopMatch.append(key)
                     except Exception,error:
                         self.log_error("Module '{0}' | error: {1}".format(mModule.p_nameShort,error))	
@@ -1075,7 +1128,7 @@ def mirror_do(*args,**kws):
                                          {'kw':'mode',"default":'anim','help':"Special mode for this fuction","argType":"string"},
                                          {'kw':'mirrorMode',"default":'symLeft','help':"Special mode for this fuction","argType":"string"}] 
             self.__dataBind__(*args,**kws)
-            self._str_funcName = "puppet.mirror_do('{0}')".format(self._mi_puppet.cgmName,self.d_kws.get('mode') or None)		    	    
+            self._str_funcName = "puppet.mirror_do('{0}')".format(self._mi_puppet.cgmName,self.d_kws.get('mode', None))		    	    
             self.__updateFuncStrings__()
             self.l_funcSteps = [{'step':'Verify','call':self._fncStep_validate_},
                                 {'step':'Process','call':self._fncStep_process_}]	
@@ -1108,8 +1161,9 @@ def mirror_do(*args,**kws):
                     try:
                         ml_moduleControls = mModule.get_controls(mode = self.d_kws['mode'])
                         if not ml_moduleControls:
-                            raise StandardError,"No controls found"
-                        ml_controls.extend(ml_moduleControls)
+                            self.log_warning("No controls found on '{0}".format(mModule.p_nameShort))
+                        else:
+                            ml_controls.extend(ml_moduleControls)
                     except Exception,error:
                         raise Exception,"Module '{0}' | error: {1}".format(mModule.p_nameShort,error)		
             except Exception,error:raise Exception,"Gather controls | error: {0}".format(error)		

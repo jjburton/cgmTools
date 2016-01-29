@@ -339,7 +339,7 @@ def go(*args, **kws):
                 mayaMainProgressBar = gui.doStartMayaProgressBar(len(int_keys))
                 for k in int_keys:
                     try:	
-                        str_name = d_build[k].get('name') or 'noName'
+                        str_name = d_build[k].get('name','noName')
                         func_current = d_build[k].get('function')
                         _str_subFunc = str_name
 

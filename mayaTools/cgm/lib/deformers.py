@@ -22,22 +22,23 @@
 #=================================================================================================================================================
 import maya.cmds as mc
 import maya.mel as mel
+import copy
 
 from maya.OpenMayaAnim import MFnBlendShapeDeformer
 from zooPyMaya import apiExtensions
 
-from cgm.lib import distance
-from cgm.lib import dictionary
-from cgm.lib import guiFactory
-from cgm.lib import settings
-from cgm.lib import search
-from cgm.lib import attributes
+from cgm.lib import(distance,
+                    names,
+                    dictionary,
+                    guiFactory,
+                    settings,
+                    search,
+                    attributes,
+                    lists,
+                    nodes,
+                    rigging)
+reload(names)
 from cgm.lib.classes import NameFactory
-from cgm.lib import lists
-from cgm.lib import nodes
-from cgm.lib import rigging
-
-
 
 typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFile())
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())
@@ -524,6 +525,136 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Baking
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes, baseNameToUse = False, stripPrefix = False,ignoreInbetweens = False, ignoreTargets = False, transferConnections = True):
+    """
+    Update 01.15.2016
+    DESCRIPTION:
+    Function for baking a series of blendshapes from one object to another
+
+    ARGUMENTS:
+    targetObject(string)
+    sourceObject(string)
+    blendShapeNodes(list) the nodes to bake from
+    baseNameToUse(bool/string) - if it's False, it uses the target Object name, else, it uses what is supplied
+    stripPrefix(bool)
+    ignoreInbetweens(bool)
+    ignoreTargets(list) - list of targets to ignore
+    transferConnections(bool) - if True, builds a new blendshape node and transfers the connections from our base objects
+
+    RETURNS:
+    Success(bool)
+    """
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Prep
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """ declare variables """
+    blendShapeNamesBaked = []
+    l_bakedGeo = []
+
+    """ size """
+    sizeBuffer = distance.returnBoundingBoxSize(targetObject)
+    sizeX = sizeBuffer[0]
+    sizeY = sizeBuffer[1]
+
+    """ base name """
+    if baseNameToUse == False:
+        baseName = ''
+    else:
+        baseName = baseNameToUse + '_'
+
+    """ wrap deform object """
+    attributes.doSetLockHideKeyableAttr(targetObject, lock = False, visible = True, keyable=True)#...make sure our target geo can be wrapped
+    wrapBuffer = wrapDeformObject(targetObject,sourceObject,True)
+    targetObjectBaked = wrapBuffer[1]
+
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Meat of it
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    d_blendshapeData = {}
+    l_blendshapeKeys = []#...list to index well
+    int_cnt = 0
+    for bsn in blendShapeNodes:
+	try:
+	    l_bsChannels = returnBlendShapeAttributes(bsn)
+	    d_blendShapeConnections = {}
+	    d_currentConnections = {}
+	    """ first loop stores and sets everything to 0 """
+	    for shape in l_bsChannels:
+		blendShapeBuffer = (bsn + '.' + shape)
+		""" get the connection """
+		d_blendShapeConnections[shape] = attributes.returnDriverAttribute(blendShapeBuffer)	
+		
+		d_blendshapeData[int_cnt] = {'shape':shape,
+		                             'fullShape':blendShapeBuffer,
+		                             'connection':d_blendShapeConnections[shape]}#...establish our subdict						
+		int_cnt += 1#...advance our count
+		
+		if ignoreTargets and shape in ignoreTargets:
+		    continue
+		
+		log.info('breaking connection on: {0}'.format(blendShapeBuffer))
+		attributes.doBreakConnection(blendShapeBuffer)
+		attributes.doSetAttr(bsn,shape,0)
+	
+	    # Bake it
+	    bakedGeo = bakeBlendShapes(sourceObject, targetObjectBaked, bsn, baseNameToUse, stripPrefix, ignoreInbetweens, ignoreTargets)
+	    l_bakedGeo.extend(bakedGeo)
+	
+	    """ restore connections """
+	    for shape in l_bsChannels:
+		if ignoreTargets and shape in ignoreTargets:
+		    continue
+	
+		blendShapeBuffer = (bsn+'.'+shape)
+		""" Restore the connection """
+		log.info('connecting {0} | {1}'.format(shape,d_blendShapeConnections[shape]))
+		if d_blendShapeConnections[shape]:
+		    attributes.doConnectAttr(d_blendShapeConnections[shape],blendShapeBuffer)
+	except Exception,error:
+	    raise Exception,"{0} | error: {1}".format(bsn, error)
+	
+    # Need to build a new blendshape node?
+    newBlendShapeNode = False
+    if transferConnections:
+	try:
+	    # Build it
+	    newBlendShapeNode = buildBlendShapeNode(targetObject, l_bakedGeo)
+	    newBlendShapeChannels = returnBlendShapeAttributes(newBlendShapeNode)
+	    if len(newBlendShapeChannels)!= len(d_blendshapeData.keys()):
+		log.warning("Cannot transfer connections. Lengths of data lists do not match")
+	    else:
+		for i,shape in enumerate(newBlendShapeChannels):
+		    blendShapeBuffer = (newBlendShapeNode+'.'+shape)
+		    currentIndex = newBlendShapeChannels.index(shape)
+		    if d_blendshapeData[i]['connection'] != False:
+			attributes.doConnectAttr(d_blendshapeData[i]['connection'],blendShapeBuffer)
+	except Exception,error:
+	    raise Exception,"Transfer connection fail | error: {0}".format(error)
+    """delete the wrap"""
+    mc.delete(wrapBuffer[0])
+
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Finish out
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """ group for geo """
+    meshGroup = mc.group( em=True)
+    if baseNameToUse is False:
+        attributes.storeInfo(meshGroup,'cgmName', baseNameToUse)
+    else:
+	attributes.storeInfo(meshGroup,'cgmName',names.getBaseName(targetObject))
+    attributes.storeInfo(meshGroup,'cgmTypeModifier', 'blendShapeGeo')
+    meshGroup = NameFactory.doNameObject(meshGroup)
+
+    for i,geo in enumerate(l_bakedGeo):
+        l_bakedGeo[i] = rigging.doParentReturnName(geo,meshGroup)
+
+    l_return = [meshGroup,
+                l_bakedGeo]
+    if newBlendShapeNode:
+	l_return.append(newBlendShapeNode)
+    mc.delete(targetObjectBaked)
+    return l_return
+
 def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, baseNameToUse = False, stripPrefix = False,ignoreInbetweens = False, ignoreTargets = False, transferConnections = True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1049,10 +1180,10 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     # Name stuff
-    if nameBlendShape != False:
+    if nameBlendShape:
         blendShapeNodeName = (str(nameBlendShape) + '_bsNode')
     else:
-        blendShapeNodeName = (targetObject + '_bsNode')
+        blendShapeNodeName = (names.getBaseName(targetObject) + '_bsNode')
 
     #First look through the targetObjects for inbetween shapes
     baseTargets = []
@@ -1064,8 +1195,9 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
             baseTargets.append(object)
 
     # Make the blendshape node
-    blendShapeNode = mc.blendShape(baseTargets,targetObject, n = blendShapeNodeName)
-
+    try:blendShapeNode = mc.blendShape(baseTargets,targetObject, n = blendShapeNodeName)
+    except Exception,error:
+	raise Exception,"blendshape build fail | name: {0} | targetObject: {1} | error: {2}".format(blendShapeNodeName,targetObject,error)
     if inbetweenTargets:
 	blendShapeChannels = returnBlendShapeAttributes(blendShapeNode[0])	
 	# Handle the inbetweens

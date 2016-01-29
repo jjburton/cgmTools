@@ -423,7 +423,7 @@ def setup_defHelpJoint(targetJoint,orientation = 'zyx'):
                              driverValue = 110,value = f_sdkTransValue)	
 	    
     elif str_helperType == 'childRootHold':
-	mi_helperJoint.__setattr__("t%s"%orientation[1],(-mi_childJoint.tz *.2))
+	'''mi_helperJoint.__setattr__("t%s"%orientation[1],(-mi_childJoint.getMayaAttr("t%s"%(orientation[0])) *.2))
 	mi_helperJoint.parent = mi_targetJoint.parent
 	if not mi_posLoc:mi_posLoc = mi_helperJoint.doLoc()#Make sure we have a loc
 	mi_posLoc.parent = mi_helperJoint.mNode#Parent loc to i_dup to make sure we're in same space
@@ -432,7 +432,18 @@ def setup_defHelpJoint(targetJoint,orientation = 'zyx'):
 	f_sdkUpTransValue = mi_childJoint.getAttr("t%s"%(orientation[0])) * -.25
 	
 	f_baseAimTransValue = mi_helperJoint.getAttr("t%s"%(orientation[0]))
-	f_sdkAimTransValue = mi_childJoint.getAttr("t%s"%(orientation[0])) * -.5	
+	f_sdkAimTransValue = mi_childJoint.getAttr("t%s"%(orientation[0])) * -.5'''
+	mi_helperJoint.__setattr__("t%s"%orientation[1],(-mi_childJoint.getMayaAttr("t%s"%(orientation[0])) *.2))
+	mi_helperJoint.__setattr__("t%s"%orientation[0],(-mi_childJoint.getMayaAttr("t%s"%(orientation[0])) *.1))	
+	mi_helperJoint.parent = mi_targetJoint.parent
+	if not mi_posLoc:mi_posLoc = mi_helperJoint.doLoc()#Make sure we have a loc
+	mi_posLoc.parent = mi_helperJoint.mNode#Parent loc to i_dup to make sure we're in same space
+	
+	f_baseUpTransValue = mi_helperJoint.getAttr("t%s"%(orientation[1]))
+	f_sdkUpTransValue = mi_targetJoint.getAttr("t%s"%(orientation[0])) * -.25
+	
+	f_baseAimTransValue = mi_helperJoint.getAttr("t%s"%(orientation[0]))
+	f_sdkAimTransValue = mi_targetJoint.getAttr("t%s"%(orientation[0])) * -.25	
 	
 	#Move the pos loc for our pose ----------------------------------
 	mi_posLoc.__setattr__("t%s"%orientation[0],f_sdkAimTransValue)
@@ -450,7 +461,7 @@ def setup_defHelpJoint(targetJoint,orientation = 'zyx'):
 	                     driverValue = 0,value = f_baseUpTransValue)
 	mc.setDrivenKeyframe(str_drivenTransUp,
 	                     currentDriver = str_driverRot,
-	                     driverValue = 150,value = mi_posLoc.getAttr("t%s"%orientation[1]))	
+	                     driverValue = 120,value = mi_posLoc.getAttr("t%s"%orientation[1]))	
 
 	#Aim ---------------------------------------------------------------
 	str_drivenTransAim = "%s.t%s"%(mi_helperJoint.mNode,orientation[0])	
@@ -460,7 +471,7 @@ def setup_defHelpJoint(targetJoint,orientation = 'zyx'):
 	                     driverValue = 0,value = f_baseAimTransValue)
 	mc.setDrivenKeyframe(str_drivenTransAim,
 	                     currentDriver = str_driverRot,
-	                     driverValue = 150,value = mi_posLoc.getAttr("t%s"%orientation[0]))	
+	                     driverValue = 120,value = mi_posLoc.getAttr("t%s"%orientation[0]))	
 			
 	
     if mi_posLoc:mi_posLoc.delete()

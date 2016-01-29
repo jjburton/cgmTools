@@ -738,7 +738,7 @@ def returnCurveDiameter(curve):
     Assuming a given curve is a circle, return it's diameter. This is mainly to account for hidden objects with which
     bounding box size fails to handle properly.
     
-    cir = pi * 2 * r
+    cir = pi * d
 
     ARGUMENTS:
     curve(string)
@@ -747,7 +747,7 @@ def returnCurveDiameter(curve):
     diamter(float)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    return (returnCurveLength(curve) / 2) / math.pi
+    return returnCurveLength(curve) / math.pi
 
 
 def returnMidU(curve):
@@ -1323,7 +1323,7 @@ def returnClosestPointOnMeshInfoFromPos(pos, mesh):
 
     pointInfo = returnClosestPointOnMeshInfo(locBuffer[0],mesh)
     
-    mc.delete(locBuffer[0])
+    mc.delete(locBuffer[0],closestPointNode)
     return pointInfo
 
 def returnClosestPointOnMeshInfo(targetObj, mesh):

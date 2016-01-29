@@ -22,20 +22,27 @@ from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.classes import NodeFactory as cgmNodeFactory
+from cgm.core.cgmPy import os_Utils as cgmOS_UTILS
+reload(cgmOS_UTILS)
 reload(cgmNodeFactory)
 from cgm.core.rigger.lib import morpheus_sharedData as MORPHYDATA
 reload(MORPHYDATA)
+
+import morpheusRig_v2.assets.gui as mGUIFolder
+
 from cgm.lib import (curves,
                      deformers,
                      distance,
                      search,
                      lists,
+                     names,
                      modules,
                      constraints,
                      rigging,
                      attributes,
                      joints)
 reload(constraints)
+reload(deformers)
 #======================================================================
 # Processing factory
 #======================================================================
@@ -490,8 +497,8 @@ def updateTemplate(mAsset,**kws):
 
 #Shared Settings
 #========================= 
+def flag_geoStuffs():pass
 _d_KWARG_mMorpheusAsset = {'kw':'mMorpheusAsset',"default":None,'help':"cgmMorpheusMakerNetwork mNode or str name","argType":"cgmPuppet"}
-
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Asset Wrapper
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -502,8 +509,8 @@ l_teethGeoGroups = ['upper_teethGeo','lower_teethGeo']
 l_bsTargetGroups = ['faceTargets','bodyTargets']	
 d_geoStoreKeyToGeoGroups = {'tongue':'tongueGeoGroup',
                             'unified':'unifiedGeoGroup',
-                            'uprTeeth':'upper_teethGeoGroup',
-                            'lwrTeeth':'lower_teethGeoGroup',
+                            'teethUpr':'upper_teethGeoGroup',
+                            'teethLwr':'lower_teethGeoGroup',
                             'eyebrow':'eyebrowGeoGroup',
                             'earLeft':'left_earGeoGroup',
                             'earRight':'right_earGeoGroup',
@@ -513,15 +520,16 @@ d_geoStoreKeyToGeoGroups = {'tongue':'tongueGeoGroup',
 
 #List of priorities of tags to look for joint data for
 d_geoGroupTagToSkinClusterTag = {'tongue':['tongue','jaw','head'],
-                                 'unified':['bodyNoEyes'],
-                                 'uprTeeth':['head','uprTeeth'],
-                                 'lwrTeeth':['lowerTeeth','jaw','head'],
+                                 'unified':['bodyWithLids'],
+                                 'teethUpr':['teethUpr'],
+                                 'teethLwr':['teethLwr'],
                                  'eyebrow':['eyebrow','uprHead','head'],
                                  'earLeft':['earLeft','uprHead','head'],
                                  'earRight':['earRight','uprHead','head'],
-                                 'eyeLeft':['eyeLeft','uprHead','head'],
-                                 'eyeRight':['eyeRight','uprHead','head'],
-                                 'body':['bodySansEyes']}
+                                 'eyeLeft':['eyeballLeft','uprHead','head'],
+                                 'eyeRight':['eyeballRight','uprHead','head'],
+                                 'body':['bodyWithLids'],
+                                 'head':['bodyWithLids']}
 
 class MorpheusNetworkFunc(cgmGeneral.cgmFuncCls):
     def __init__(self,*args,**kws):
@@ -531,10 +539,10 @@ class MorpheusNetworkFunc(cgmGeneral.cgmFuncCls):
             try:asset = kws['mMorpheusAsset']
             except:
                 try:asset = args[0]
-                except:raise StandardError,"No kw or arg asset found'"
+                except:raise Exception,"No kw or arg asset found'"
             if asset.mClass not in ['cgmMorpheusMakerNetwork']:
-                raise StandardError,"[mMorpheusAsset: '%s']{Not a asset!}"%asset.mNode
-        except Exception,error:raise StandardError,"MorpheusNetworkFunc failed to initialize | %s"%error
+                raise Exception,"[mMorpheusAsset: '{0}']{Not a asset!}".format(asset.mNode)
+        except Exception,error:raise Exception,"MorpheusNetworkFunc failed to initialize | {0}".format(error)
         self._str_funcName= "testMorpheusNetworkFunc"		
         super(MorpheusNetworkFunc, self).__init__(*args, **kws)
         self._mi_asset = asset
@@ -665,7 +673,7 @@ def puppet_updateGeoFromAsset(*args,**kws):
                             mMesh.doCopyNameTagsFromObject(obj)
                             attributes.doSetLockHideKeyableAttr(mMesh.mNode,False,True,True)			    
                             mMesh.parent = False
-                            self.log_debug("'{0}' |  parenting to: '{1}'".format(str_key,d_geoStoreKeyToGeoGroups.get(str_key)))
+                            self.log_info("'{0}' |  parenting to: '{1}'".format(str_key,d_geoStoreKeyToGeoGroups.get(str_key)))
                             mMesh.parent = self._mi_puppetGeoGroup.getMessageAsMeta(d_geoStoreKeyToGeoGroups.get(str_key))#...parent it		    
                             mMesh.doName()	
 
@@ -759,6 +767,8 @@ def puppet_verifyGeoDeformation(*args,**kws):
             self._str_funcName = "morphyAsset.puppet_verifyGeoDeformation('{0}')".format(self._mi_asset.cgmName)		    	    
             self.__updateFuncStrings__()
             self.l_funcSteps = [{'step':'Verify','call':self._fncStep_validate_},
+                                {'step':'Blendshapes','call':self._fncStep_blendshapes_},
+                                {'step':'Facial Rig','call':self._fncStep_facialRig_},                                
                                 {'step':'Skinning','call':self._fncStep_skinning_},
                                 ]	
 
@@ -779,7 +789,77 @@ def puppet_verifyGeoDeformation(*args,**kws):
             if not d_puppetGeo.get('d_geoTargets'):
                 raise ValueError,"get_puppetGeo failed to find any geo"
             self.d_puppetGeo = d_puppetGeo
-
+            
+        def _fncStep_blendshapes_(self):
+            try:
+                mi_asset = self._mi_asset
+                mi_puppet = self._mi_puppet
+            except Exception,error:
+                raise Exception,"Bring local fail | {0}".format(error)
+            
+            try:#...get asset stuff
+                mi_asset_faceModule = mi_asset.mSimpleFaceModule
+                mi_asset_geo_bridgeHead = mi_asset.getMessageAsMeta('geo_bridgeHead')
+                mi_asset_faceModule = mi_asset.getMessageAsMeta('mSimpleFaceModule')
+                ml_asset_bsNodes = mi_asset_faceModule.rigNull.msgList_get('bsNodes')
+                for bsn in ml_asset_bsNodes:
+                    self.log_info(bsn.mNode)
+                                    
+            except Exception,error:
+                raise Exception,"Get asset stuff fail | {0}".format(error)
+            
+            try:#...get puppet geo
+                mi_p_geo_head = cgmMeta.validateObjArg( mi_puppet.masterNull.geoGroup.getMessage('geo_baseHead'))
+                mi_p_geo_headBridge = cgmMeta.validateObjArg( mi_puppet.masterNull.geoGroup.getMessageAsMeta('geo_bridgeHead'))
+            except Exception,error:
+                raise Exception,"Get puppet geo fail | {0}".format(error) 
+                
+            
+            #...setup blendshape bridge
+            try:#...bake shapes
+                l_return = deformers.bakeBlendShapeNodesToTargetObject(mi_p_geo_head.mNode,
+                                                                       mi_asset_geo_bridgeHead.mNode, 
+                                                                       [bsn.mNode for bsn in ml_asset_bsNodes],
+                                                                       transferConnections = True
+                                                                       )
+                try:
+                    for shape in l_return[1]:
+                        rigging.doParentReturnName(shape,mi_puppet.masterNull.geoGroup.getMessage('faceTargetsGroup')[0])
+                except Exception,error:
+                    raise Exception,"Parent shape fail! | {0}".format(error)
+                mc.delete(l_return[0])
+                mi_puppet.masterNull.geoGroup.bsGeoGroup.v = False#...hide the geo group
+                
+            except Exception,error:
+                raise Exception,"Bake targets fail! | {0}".format(error) 
+        
+        def _fncStep_facialRig_(self):
+            try:
+                mi_asset = self._mi_asset
+                mi_puppet = self._mi_puppet
+                #FaceAttr holder
+            except Exception,error:
+                raise Exception,"Bring local fail | {0}".format(error)
+            
+            puppet_importFaceSetup(mi_asset)
+            
+            #...wire facial
+            try:#...connect jaw
+                #jawBase jawNDV
+                mi_jaw = self._d_skinBindDict['jaw'][0]
+                mi_rigJaw = mi_jaw.getMessageAsMeta('rigJoint')
+                mi_attrHolder = mi_puppet.face_attrHolder
+                
+                for attr in ['tx','ty','tz','rx','ry','rz']:
+                    attributes.doSetAttr(mi_attrHolder.mNode, 'jawBase_{0}'.format(attr), mi_rigJaw.getMayaAttr(attr))
+                    #mi_attrHolder.__dict__['jawBase_{0}'.format(attr)] = mi_rigJaw.__dict__[attr]
+                    attributes.doConnectAttr("{0}.jawNDV_{1}".format(mi_attrHolder.mNode,attr),
+                                             "{0}.{1}".format(mi_rigJaw.mNode,attr),)
+                                
+            except Exception,error:
+                raise Exception,"Jaw setup | {0}".format(error)                
+        
+            
         def _fncStep_skinning_(self):
             try:
                 mi_puppet = self._mi_puppet
@@ -787,9 +867,11 @@ def puppet_verifyGeoDeformation(*args,**kws):
                 raise Exception,"Bring local fail | {0}".format(error)
 
             try:
-                reload(deformers)
                 for str_key in self.d_puppetGeo.get('d_geoTargets'):
                     try:
+                        if str_key in ['unified']:
+                            self.log_warning("Skipping: {0}".format(str_key))
+                            continue
                         __ml_skinJoints = False
                         l_geo = self.d_puppetGeo.get('d_geoTargets')[str_key]
                         if l_geo:
@@ -813,17 +895,17 @@ def puppet_verifyGeoDeformation(*args,**kws):
                                             raise ValueError,"No skin joints found"
                                         self.log_info("Skinning: '{0}'".format(mObj))
                                         toBind = [mJnt.mNode for mJnt in __ml_skinJoints] + [mObj.mNode]
-                                        cluster = mc.skinCluster(toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
-                                        mi_cluster = cgmMeta.cgmNode(cluster[0])
-                                        mi_cluster.doStore('cgmName',mObj.mNode)					
-                                        #mi_cluster.doCopyNameTagsFromObject(mObj.mNode,ignore=['cgmTypeModifier','cgmType'])
-                                        mi_cluster.addAttr('mClass','cgmNode',attrType='string',lock=True)
-                                        mi_cluster.doName()
+                                        skin = mc.skinCluster(toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
+                                        mi_skin = cgmMeta.cgmNode(skin[0])
+                                        mi_skin.doStore('cgmName',mObj.mNode)					
+                                        #mi_skin.doCopyNameTagsFromObject(mObj.mNode,ignore=['cgmTypeModifier','cgmType'])
+                                        mi_skin.addAttr('mClass','cgmNode',attrType='string',lock=True)
+                                        mi_skin.doName()
                                 except Exception,error:
                                     raise Exception,"mObj fail {0} | {1}".format(mObj,error)
                     except Exception,error:
                         raise Exception,"key {0} | {1}".format(str_key,error)
-            except Exception,error:raise Exception,"Geo duplication | {0}".format(error)	    
+            except Exception,error:raise Exception,"Geo Skinning | {0}".format(error)	    
             return True
 
     return fncWrap(*args,**kws).go()
@@ -1109,6 +1191,7 @@ def puppet_verifyAll(*args,**kws):
 #============================================================================================================
 #>>> Face Controls
 #============================================================================================================
+def flag_faceWiring():pass
 __attrHolder = 'face_attrHolder'
 """'lipCenter_lwr_fwd':{'driverAttr':'fwdBack'},
     'lipCenter_lwr_back':{'driverAttr':'-fwdBack'},
@@ -1629,7 +1712,9 @@ def face_connectAttrHolderToBSNodes(*args, **kws):
             self._l_ARGS_KWS_DEFAULTS = [{'kw':'attributeHolder',"default":None,
                                           'help':"Name of the attribute Holder"},
                                          {'kw':'wireIt',"default":True,
-                                          'help':"Whether to attempt to wire or not"},]	    
+                                          'help':"Whether to attempt to wire or not"},
+                                         {'kw':'l_blendshapes',"default":MORPHYDATA._l_facialRigBSNodes,
+                                          'help':"Blendshape Node list to search"}]	    
             self.l_funcSteps = [{'step':'Check Data','call':self._fncStep_checkData_},
                                 {'step':'Wirecheck','call':self._fncStep_wireDataCheck_},
                                 {'step':'Wire','call':self._fncStep_wire_},
@@ -1661,7 +1746,7 @@ def face_connectAttrHolderToBSNodes(*args, **kws):
                 self._d_bsChannelToNode = {}
                 self._l_channels = []
                 self._l_channelsPop = []
-                for bsNode in MORPHYDATA._l_facialRigBSNodes:
+                for bsNode in self.d_kws['l_blendshapes']:
                     if mc.objExists(bsNode):
                         self._l_bsNodes.append(bsNode)
                         _l_attrs = search.returnBlendShapeAttributes(bsNode)
@@ -1782,4 +1867,109 @@ def joystickFaceControls_morphyConnect(*args, **kws):
             except Exception,error:
                 raise Exception,"Mirror indices | {0}".format(error)                
     return fncWrap(*args,**kws).go()
-    
+
+def puppet_importFaceSetup(*args,**kws):
+    '''
+    Function to :
+    1) Import face gui/camera etc
+    2) Read imported data to identify correct components
+    3) Parent and wire said nodes to the puppet
+    '''
+    class fncWrap(MorpheusNetworkFunc):
+        def __init__(self,*args,**kws):
+            """
+            """	
+            super(fncWrap, self).__init__(*args,**kws)
+            self._b_reportTimes = True
+            self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mMorpheusAsset,
+                                         #{'kw':'clean',"default":'Morphy_customizationNetwork',"argType":'morpheusBipedCustomizationAsset','help':"This should be a customization asset"},
+                                         ]
+            self.__dataBind__(*args,**kws)
+            self._str_funcName = "morphyAsset.puppet_importFaceSetup('{0}')".format(self._mi_asset.cgmName)		    	    
+            self.__updateFuncStrings__()
+            self.l_funcSteps = [{'step':'Verify','call':self._fncStep_validate_},
+                                {'step':'Import','call':self._fncStep_import_},
+                                {'step':'Wire','call':self._fncStep_wire_}
+                                ]	
+
+        def _fncStep_validate_(self):
+            if not self._mi_asset.getMessage('mPuppet'):
+                raise ValueError,"Missing Puppet"
+
+            self._mi_puppet = self._mi_asset.mPuppet
+            self._mi_puppetMasterNull = self._mi_puppet.masterNull
+            self._path_folderGUI = mGUIFolder.__pathHere__
+            self.log_info("GUI folder: {0}".format(self._path_folderGUI))
+            
+            self._mi_neckHead = self._mi_puppet.getModuleFromDict(moduleType = 'neckHead')
+            if not self._mi_neckHead:
+                raise ValueError,"No neck head found"
+            
+            _bfrImportList = self._mi_puppet.getMessage('faceRigImportList')
+            if _bfrImportList:
+                self.log_info("Purging existing face import")
+                mc.delete(_bfrImportList)
+            
+        def _fncStep_import_(self):
+            mFile = cgmOS_UTILS.DIR_SEPARATOR.join([self._path_folderGUI,'faceGUI.mb'])
+            self.log_info("mFile: {0}".format(mFile))
+            #
+            self.d_importedStuff = {'m1_face_part':{'connectTo':'moduleAdd'},
+                                    'faceCam':{'connectTo':self._mi_puppet},
+                                    'facialRig_gui_grp':{'connectTo':self._mi_puppet},
+                                    'face_attrHolder':{'connectTo':self._mi_puppet}}
+            try:
+                l_nodes = mc.file(mFile, i = True, pr = True, force = True,prompt = False, returnNewNodes = True, gr = True, gn = 'IMPORTSTUFFS')   
+            except Exception,error:
+                raise Exception,"Import fail! | {0}".format(error)
+            
+            #...wire all our nodes back to something for easy deletion
+            #self.d_importedStuff['facialRig_gui_grp']['mObj'].__setMessageAttr__('importList',l_nodes)
+            self._mi_puppet.__setMessageAttr__('faceRigImportList',l_nodes)
+            
+            #...find our nodes on first loop...
+            for k in self.d_importedStuff.keys():
+                _match = False
+                for o in self._mi_puppet.getMessage('faceRigImportList'):
+                    if names.getBaseName(o) == k:
+                        log.info("'{0}' is a match...".format(o))
+                        mObj = cgmMeta.validateObjArg(o,'cgmObject')
+                        self.d_importedStuff[k]['mObj'] = mObj
+                        _match = True
+                        continue
+                if not _match:
+                    self.d_importedStuff[k]['mObj'] = False
+                    self.log_error("Didn't find match for {0}".format(k))
+            
+            self.log_infoDict(self.d_importedStuff)
+            
+            for k in self.d_importedStuff.keys():
+                #print self.d_importedStuff[k]['mObj']
+                if self.d_importedStuff[k].get('connectTo') == 'moduleAdd':
+                    self.d_importedStuff[k]['mObj'].doSetParentModule(self._mi_neckHead.mNode)
+                elif self.d_importedStuff[k].get('connectTo'):
+                    self.d_importedStuff[k]['mObj'].connectParentNode(self._mi_puppet,'puppet',k)
+                    
+                self.d_importedStuff[k]['mObj'].parent = self._mi_puppet.masterNull.noTransformGroup.mNode
+            
+            #Let's lose that face import group...
+            for o in self._mi_puppet.getMessage('faceRigImportList'):
+                if 'IMPORTSTUFFS' in names.getBaseName(o):
+                    self.log_info("Found group. Deleting: {0}".format(o))
+                    mc.delete(o)
+
+        def _fncStep_wire_(self):
+            #...get Controls
+            mi_p_geo_head = cgmMeta.validateObjArg( self._mi_puppet.masterNull.geoGroup.getMessage('geo_baseHead'))            
+            l_blendshapesNodes = deformers.returnObjectDeformers(mi_p_geo_head.mNode, deformerTypes='blendShape')
+            if not l_blendshapesNodes:
+                raise ValueError,"No blendshapes found on head!"
+            face_connectAttrHolderToBSNodes(self.d_importedStuff['face_attrHolder']['mObj'].mNode,
+                                            l_blendshapes = l_blendshapesNodes )
+            pass
+            
+    return fncWrap(*args,**kws).go()
+
+
+
+            
