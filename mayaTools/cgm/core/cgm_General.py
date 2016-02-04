@@ -760,13 +760,21 @@ def verify_mirrorSideArg(*args,**kws):
 	    except Exception,error:raise StandardError,"[ str_side: %s]{%s}"%(arg,error)	
     return fncWrap(*args,**kws).go()	
 
-def report_enviornment():
-    print(_str_headerDiv + " Enviornment Info " + _str_headerDiv + _str_subLine)	
-    #print(_str_headerDiv + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
+def get_mayaEnviornmentDict():
+    _d = {}
     for kw in ['cutIdentifier','version','apiVersion','file','product','date',
                'application','buildDirectory','environmentFile','operatingSystem',
                'operatingSystemVersion']:#'codeset'
-	try:print(_str_baseStart + " Maya %s : %s "%(kw, mel.eval( 'about -%s'%kw )))	
+	try:_d[kw] = mel.eval( 'about -%s'%kw )	
+	except Exception,error:log.error("%s | %s"%(kw,error))	
+    return _d
+	
+def report_enviornment():
+    print(_str_headerDiv + " Enviornment Info " + _str_headerDiv + _str_subLine)	
+    #print(_str_headerDiv + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
+    _d = get_mayaEnviornmentDict()
+    for kw,item in _d.iteritems():
+	try:print(_str_baseStart + " Maya %s : %s "%(kw,item))	
 	except Exception,error:log.error("%s | %s"%(kw,error))	
 	
 def report_enviornmentSingleLine():

@@ -46,6 +46,7 @@ reload(deformers)
 #======================================================================
 # Processing factory
 #======================================================================
+def flag_initializationStuff():pass
 #l_modulesToDoOrder = ['torso','neckHead']
 #This is the main key for data tracking. It is also the processing order
 #l_modulesToDoOrder = ['torso','neckHead','leg_left']
@@ -178,7 +179,7 @@ d_moduleControls = {'torso':['pelvis_bodyShaper','shoulders_bodyShaper'],
                     }
 
 
-def verify_sizingData(mAsset = None, skinDepth = .75):
+def verify_sizingData(mAsset = None, skinDepth = .75, locPos = False):
     """
     Gather info from customization asset
     """
@@ -200,7 +201,8 @@ def verify_sizingData(mAsset = None, skinDepth = .75):
         #raise Exception,"{0}Initial buffer fail | {1}".format(_str_funcName,error)
     try:
         mayaMainProgressBar = gui.doStartMayaProgressBar(len(l_modulesToDoOrder))
-
+        if locPos:
+            mi_null = cgmMeta.cgmObject(name = 'posGroup')
         for str_moduleKey in l_modulesToDoOrder:
             try:
                 if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
@@ -237,6 +239,11 @@ def verify_sizingData(mAsset = None, skinDepth = .75):
                             pos = i_c.getPosition()
                         if not pos:return False
                         posBuffer.append(pos)
+                        if locPos:
+                            mi_loc = cgmMeta.asMeta(mc.spaceLocator(p = pos,n = "{0}_loc".format(c))[0])
+                            if mi_loc:
+                                mc.parent(mi_loc.mNode,mi_null.mNode)
+                            
                 d_initialData[str_moduleKey] = posBuffer
             except Exception,error:
                 raise Exception,"'{0}' key fail | {1}".format(str_moduleKey,error)
