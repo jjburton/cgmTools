@@ -537,31 +537,39 @@ def doGetAttr(obj,attr,*a, **kw):
     attrInfo(varies)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    if not mc.objExists(obj+'.'+attr):
-        return False
-    else:
-        attrType = mc.getAttr((obj+'.'+attr),type=True)
-        objAttributes =(mc.listAttr (obj))
-        messageBuffer = []
-        messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
-        if messageQuery == True:
-            query = (mc.listConnections(obj+'.'+attr))
-            if not query == None:
-                return query[0]
-            else:
-                return False        
-        elif attrType == 'double3':
-            childrenAttrs = mc.attributeQuery(attr, node =obj, listChildren = True)
-            dataBuffer = []
-            for childAttr in childrenAttrs:
-                dataBuffer.append(mc.getAttr(obj+'.'+childAttr))
-            return dataBuffer
-        elif attrType == 'double':
-            parentAttr = mc.attributeQuery(attr, node =obj, listParent = True)
-            return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
-
-        else:
-            return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
+    try:
+	if not mc.objExists(obj+'.'+attr):
+	    return False
+	else:
+	    if "[" in attr:
+		log.debug("Indexed attr")
+		return mc.listConnections(obj+'.'+attr)
+	    
+	    attrType = mc.getAttr((obj+'.'+attr),type=True)
+	    if attrType in ['TdataCompound']:
+		return mc.listConnections(obj+'.'+attr)		
+	    objAttributes =(mc.listAttr (obj))
+	    messageBuffer = []
+	    messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
+	    if messageQuery == True:
+		query = (mc.listConnections(obj+'.'+attr))
+		if not query == None:
+		    return query[0]
+		else:
+		    return False        
+	    elif attrType == 'double3':
+		childrenAttrs = mc.attributeQuery(attr, node =obj, listChildren = True)
+		dataBuffer = []
+		for childAttr in childrenAttrs:
+		    dataBuffer.append(mc.getAttr(obj+'.'+childAttr))
+		return dataBuffer
+	    elif attrType == 'double':
+		parentAttr = mc.attributeQuery(attr, node =obj, listParent = True)
+		return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
+	    else:
+		return mc.getAttr("%s.%s"%(obj,attr),*a, **kw)
+    except Exception,error:
+	raise Exception("doGetError Fail! | obj:'{0}' | attr:'{1}' | {2}".format(obj,attr,error))
 
 
 
@@ -665,7 +673,7 @@ def doSetAttr(obj, attribute, value, forceLock = False, *a, **kw):
             if wasLocked == True or forceLock == True:
                 mc.setAttr(attrBuffer,lock=True)
             log.debug("'%s' set to '%s'"%(attrBuffer,value))
-        except StandardError,error:
+        except Exception,error:
             log.error(error)
             log.warning("Failed to set '%s' with '%s'"%(attrBuffer,value))
 

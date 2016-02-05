@@ -25,7 +25,8 @@ log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
-from maya import OpenMaya
+import maya.OpenMaya as OM
+import maya.OpenMayaAnim as OMA
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -52,7 +53,7 @@ class data(object):
     :todo
     -- import config
     -- deal with variable influence/vertc count scenarios
-    '''
+    '''    
     _configToStored = {'source':'d_source',
                        'general':'d_general',
                        'skin':'d_sourceSkin',
@@ -68,10 +69,11 @@ class data(object):
         self.d_sourceSkin = {}        
         self.d_target = {}
         self.d_sourceInfluences = {}
+        self.d_weights = {}
         self.d_general = cgmGeneral.get_mayaEnviornmentDict()
         self.d_general['file'] = mc.file(q = True, sn = True)            
            
-        if sourceMesh is not None:
+        if sourceMesh is not None or mc.ls(sl=True):
             self.validateSourceMesh(sourceMesh)
         if targetMesh is not None:
             self.d_target = self.validateTargetMesh(targetMesh)
@@ -176,6 +178,9 @@ class data(object):
             self.d_source.update(_d['mesh'])#...update source dict
             self.d_sourceSkin = _d['skin']
             self.d_sourceInfluences = _d['influences']
+            self.d_weights = _d['weights']
+            return True
+        return False
             
     def write(self, filepath = None):
         '''
@@ -190,7 +195,7 @@ class data(object):
         ConfigObj['general']=self.d_general
         ConfigObj['skin']=self.d_sourceSkin
         ConfigObj['influences']=self.d_sourceInfluences        
-    
+        ConfigObj['weights']=self.d_weights
         ConfigObj.filename = filepath
         ConfigObj.write()
         return True
@@ -258,22 +263,22 @@ def applySkin(*args,**kws):
     class fncWrap(cgmGeneral.cgmFuncCls):
         def __init__(self,*args, **kws):	    
             super(fncWrap, self).__init__(*args, **kws)
-            self._str_funcName = 'data_import'
+            self._str_funcName = 'applySkin'
             self._b_reportTimes = True
             self._l_ARGS_KWS_DEFAULTS = [{'kw':'data',"default":None,
                                           'help':"data instance"},
                                          ]
             self.__dataBind__(*args,**kws)
-            self.l_funcSteps = [{'step':'Gather Info','call':self._info},
-                                {'step':'Process Joints','call':self._processJoints}, 
-                                {'step':'Process Components','call':self._processComponents},                                                                
-                                {'step':'Verify Skincluster','call':self._skinCluster},
-                                #{'step':'Apply Weights','call':self._applyWeights},                                                                                                
+            self.l_funcSteps = [{'step':'Gather Info','call':self._fnc_info},
+                                {'step':'Process Joints','call':self._fnc_processJoints}, 
+                                {'step':'Process Data','call':self._fnc_processData},                                                                
+                                {'step':'Verify Skincluster','call':self._fnc_skinCluster},
+                                {'step':'Apply Weights Data','call':self._fnc_applyData},                                                                                                
                                 #{'step':'Set up skinCluster','call':self._skin},
                                 ]
             #=================================================================
 
-        def _info(self):
+        def _fnc_info(self):
             #>> validate ============================================================================
             #_validate our source
             _data = self.d_kws['data']
@@ -289,8 +294,11 @@ def applySkin(*args,**kws):
             if not _data.d_sourceInfluences:
                 return self._FailBreak_("No influence data. Read a config file to the data object.")
             #self.report()
+            self._d_jointToWeighting = {}
+            self._d_vertToWeighting = {}
+            self._l_processed = []
             
-        def _processJoints(self):
+        def _fnc_processJoints(self):
             '''
             Sort out the joint data
             '''
@@ -299,7 +307,7 @@ def applySkin(*args,**kws):
             #md_joints = {}
             
             l_dataJoints = []
-            _d_influenceData = self.mData.d_sourceInfluences['influenceData']
+            _d_influenceData = self.mData.d_sourceInfluences['data']
             _l_idxKeys = [int(k) for k in _d_influenceData.keys()]#...int them to sort them properly
             _l_idxKeys.sort()
             
@@ -319,8 +327,7 @@ def applySkin(*args,**kws):
                 
             self.l_jointsToUse = _l_jointsToUse
 
-        
-        def _processComponents(self):
+        def _fnc_processData(self):
             '''
             Sort out the components
             '''            
@@ -336,10 +343,53 @@ def applySkin(*args,**kws):
                 return self._FailBreak_("Haven't implemented non matching component counts | source: {0} | target: {1}".format(_int_sourceCnt,_int_targetCnt))              
             if not _type_source == _type_target:
                 return self._FailBreak_("Haven't implemented non matching mesh types | source: {0} | target: {1}".format(_type_source,_type_target))              
-            #...generate a component list...
-            pass
+            
+            #...generate a processed list...
+            #[[jntIdx,v],[jntIdx,v]....] -- the count in the list is the vert count
+            _raw_componentWeights = self.mData.d_sourceInfluences['componentWeights']
+            _raw_blendweights = self.mData.d_sourceInfluences['blendWeights']
+            
+            _l = []
+            self._l_processed = _l
+            
+            #...only the simplest processing is in place now
+            for i in range(_int_targetCnt):#...for each vert
+                _str_i = str(i)
+                _subL = []
+                
+                _bfr_raw = _raw_componentWeights[_str_i]
+                _bfr_clean = {}
+                for k,value in _bfr_raw.iteritems():
+                    _bfr_clean[int(k)] = float(value)
+                #self.log_info("vert {0} : {1}".format(i,_bfr_clean))
+                _l.append(_bfr_clean)
+                
+                
+                
+            self._refineProcessedData()
+            
         
-        def _skinCluster(self):
+        def _refineProcessedData(self):
+            """
+            Push the processed data to dicts for easier calling...
+            """
+            #self._d_jointToWeighting = {jIdx:{vIDX:v}}
+            #self._d_vertToWeighting = {vIdx:{jIdx:v...}} 
+            
+            for i in range(len(self.l_jointsToUse)):
+                self._d_jointToWeighting[i] = {}
+            
+            for i,d_pair in enumerate(self._l_processed):
+                self._d_vertToWeighting[i] = d_pair
+                
+                for j_idx in d_pair.keys():
+                    self._d_jointToWeighting[j_idx][i] = d_pair[j_idx] 
+            
+            #self.log_infoDict(self._d_vertToWeighting,'Vert To Weighting')
+            #self.log_infoDict(self._d_jointToWeighting,'Joint To Weighting')
+                    
+        
+        def _fnc_skinCluster(self):
             self.log_toDo("Add ability to check exisiting targets skin")
             self.log_toDo("Add more than just skincluster ability?...")  
             #..........................................................
@@ -360,20 +410,59 @@ def applySkin(*args,**kws):
             self.mData.d_target['skin'] = _targetSkin#...update the stored data
             self.log_info("Created '{0}'".format(_targetSkin) + cgmGeneral._str_subLine)
             
-            #...apply our settings from our skin
+            #...Does this skin cluster have our expected targets?
+            
+        def _fnc_applyData(self):
+            '''
+            '''    
+            _targetSkin = self.mData.d_target['skin']   
+                    
+            mi_skinCluster = cgmMeta.cgmNode(_targetSkin)
+            skinFn = OMA.MFnSkinCluster( mi_skinCluster.mNodeMObject )
+                
+            #...Set our weights ------------------------------------------------------------------------------------
+            weightListP = skinFn.findPlug( "weightList" )
+            weightListObj = weightListP.attribute()
+            weightsP = skinFn.findPlug( "weights" )
+        
+            tmpIntArray = OM.MIntArray()
+            baseFmtStr = mi_skinCluster.mNode +'.weightList[%d]'  #pre build this string: fewer string ops == faster-ness!
+            
+            self.progressBar_start(stepMaxValue=self.mData.d_target['pointCount'], 
+                                   statusMessage='Calculating....', 
+                                   interruptableState=False)        
+            
+            for vertIdx in self._d_vertToWeighting.keys():
+                self.progressBar_iter(status = 'Setting {0}'.format(vertIdx))                
+                _d_vert = self._d_vertToWeighting[vertIdx]#...{0:value,...}
+                
+                #we need to use the api to query the physical indices used
+                weightsP.selectAncestorLogicalIndex( vertIdx, weightListObj )
+                weightsP.getExistingArrayAttributeIndices( tmpIntArray )
+        
+                weightFmtStr = baseFmtStr % vertIdx +'.weights[%d]'
+            
+                #clear out any existing skin data - and awesomely we cannot do this with the api - so we need to use a weird ass mel command
+                for n in range( tmpIntArray.length() ):
+                    mc.removeMultiInstance( weightFmtStr % tmpIntArray[n] )            
+            
+                #at this point using the api or mel to set the data is a moot point...  we have the strings already so just use mel
+                for jointIdx in _d_vert.keys():
+                    mc.setAttr( weightFmtStr % jointIdx, _d_vert[jointIdx] )              
+            self.progressBar_end()
+            
+            #...blendWeights
+            
+            #self.setBlendWeights(dagPath, components)
+                    
+            #...apply our settings from our skin...
             for k in _skinclusterAttributesToCopy:
                 _value = _skinclusterAttributesToCopy[k](self.mData.d_sourceSkin[k])
                 self.log_info("Setting '{0}' to {1}".format(k,_value))
                 try:attributes.doSetAttr(_targetSkin,k,_value)
                 except Exception,error:
                     self.log_error("{0} failed | {1}".format(k,error))
-
-            #...Does this skin cluster have our expected targets?
-            
-        def _applyWeights(self):
-            '''
-            '''            
-            pass           
+                    
     return fncWrap(*args,**kws).go()
 
 def gather_skinning_dict(*args,**kws):
@@ -399,7 +488,11 @@ def gather_skinning_dict(*args,**kws):
         def _validate(self):
             #>> validate ============================================================================
             self._d_data = {"mesh": {},
-                            "skin": {}}
+                            "skin": {},
+                            "weights":{},
+                            "blendWeights":[],
+                            "influences":{}}
+            
             #_validate our source
             _source = self.d_kws['source']
             _d = data().validateSourceMesh(_source)
@@ -407,11 +500,21 @@ def gather_skinning_dict(*args,**kws):
             self._mesh = _d['mesh']
             self._skin = _d['skin']  
             self.mi_mesh = cgmMeta.cgmObject(self._mesh)
-            
-            
             self.mi_cluster = cgmMeta.cgmNode(self._skin)
+            
+            # Get the skinCluster MObject
+            self.selectionList = OM.MSelectionList()
+            self.selectionList.add(self._skin, True)
+            self.mobject = OM.MObject()
+            self.selectionList.getDependNode(0, self.mobject)
+            self.fn = OMA.MFnSkinCluster(self.mobject)            
+            """self.data = {'weights' : {},
+                         'blendWeights' : [],
+                         }"""
+            
             _d['name'] = self.mi_mesh.mNode
             _d['d_vertPositions'] = {}
+            
             self._d_data['mesh'] = _d
                         
         def _gather_skin(self):
@@ -430,48 +533,101 @@ def gather_skinning_dict(*args,**kws):
                                
             self._d_skin = _d#...link back
             self._d_data['skin'] = _d            
-            self.log_infoNestedDict('_d_skin')
+            #self.log_infoNestedDict('_d_skin')
+            
 
             #...gather weighting data -------------------------------------------------------------------
             _d = {}
-            
-            _vtx = self._d_data['mesh']['component']#...link to the component type      
-            
+            dagPath, components = self.__getGeometryComponents()
+            #self.log_info('dagPath: {0}'.format(dagPath))
+            #self.log_info('components: {0}'.format(components))
+            self.gatherInfluenceData(dagPath, components)
+            self.gatherBlendWeightData(dagPath, components)
+            _vtx = self._d_data['mesh']['component']#...link to the component type 
             l_sourceComponent = (mc.ls ("{0}.{1}[*]".format(self._mesh,_vtx),flatten=True))
             l_influences = self._d_skin['matrix']
-            
-            _d_influenceData = {}
-            for i,obj in enumerate(l_influences):
-                _key = str(i)
-                _d_influenceData[_key] = {'name': obj,
-                                          'position':distance.returnWorldSpacePosition(obj)}
-            _d['influenceData'] = _d_influenceData
             
             self.progressBar_start(stepMaxValue=len(l_sourceComponent), 
                                    statusMessage='Calculating....', 
                                    interruptableState=False)
             
-            _d_componentWeights = {}
+            _d_componentWeights = {}            
+
             for i,vertice in enumerate(l_sourceComponent):
                 self.progressBar_iter(status = 'Getting {0}'.format(vertice))
                 skinValues = {}
                 _key = str(i)
                 
                 self._d_data['mesh']['d_vertPositions'][_key] = mc.pointPosition("{0}.{1}[{2}]".format(self._mesh,_vtx,i),w=True)
-                
-                for ii,influence in enumerate(l_influences):
+                                
+                """for ii,influence in enumerate(l_influences):
                     influenceValue = mc.skinPercent(self._skin, vertice, transform = influence, query = True)
                     if influenceValue != 0:
-                        skinValues[str(ii)] = influenceValue
-                        
-                _d_componentWeights[_key] = skinValues 
+                        skinValues[str(ii)] = influenceValue"""
                 
-                #self.log_info("Vertice {0} | Component: '{1}'".format(i,vertice))
-                #for v in _d_componentWeights[str(i)].keys():
-                    #self.log_info(">   {0} : {1}".format(v,_d_componentWeights[_key][v]))  
+                for ii,influence in enumerate(l_influences):
+                    _bfr = self._d_data['weights'][str(ii)][i]#...pull from our weights data to be much much faster...
+                    if _bfr != 0:
+                        skinValues[str(ii)] = _bfr
+                
+                _d_componentWeights[_key] = skinValues 
+
             self.progressBar_end()
-            _d['componentWeights'] = _d_componentWeights
-            
-            self._d_data['influences'] = _d
+            #self.log_infoDict( _d_componentWeights, "Component Weights...")            
+            self._d_data['influences']['componentWeights'] = _d_componentWeights
             return self._d_data
+        
+        def __getGeometryComponents(self):
+            # Has jurisdiction over what is allowed to be influenced.
+            fnSet = OM.MFnSet(self.fn.deformerSet())
+            members = OM.MSelectionList()
+            fnSet.getMembers(members, False)
+            dagPath = OM.MDagPath()
+            components = OM.MObject()
+            members.getDagPath(0, dagPath, components)
+            return dagPath, components
+    
+        def __getCurrentWeights(self, dagPath, components):
+            weights = OM.MDoubleArray()
+            util = OM.MScriptUtil()
+            util.createFromInt(0)
+            pUInt = util.asUintPtr()
+            self.fn.getWeights(dagPath, components, weights, pUInt)
+            return weights
+    
+        def gatherInfluenceData(self, dagPath, components):
+            """
+            Get the influence data
+            """
+            weights = self.__getCurrentWeights(dagPath, components)
+    
+            influencePaths = OM.MDagPathArray()
+            numInfluences = self.fn.influenceObjects(influencePaths)
+            numComponentsPerInfluence = weights.length() / numInfluences
+            
+            self.progressBar_start(stepMaxValue=influencePaths.length(), 
+                                   statusMessage='Calculating....', 
+                                   interruptableState=False)
+            _d_influenceData = {}            
+            for i in range(influencePaths.length()):
+                _k = str(i)
+                influenceName = influencePaths[i].partialPathName()
+                influenceWithoutNamespace = names.getBaseName(influenceName)
+                
+                _d_influenceData[_k] = {'name': influenceWithoutNamespace,
+                                        'position':distance.returnWorldSpacePosition(influenceName)}
+                
+                # store weights by influence & not by namespace so it can be imported with different namespaces.
+                self.progressBar_iter(status = 'Getting {0}...data'.format(influenceName))                                
+                self._d_data['weights'][_k] = \
+                    [weights[jj*numInfluences+i] for jj in range(numComponentsPerInfluence)]
+                
+            self._d_data['influences']['data'] = _d_influenceData  
+            self.progressBar_end()
+    
+        def gatherBlendWeightData(self, dagPath, components):
+            weights = OM.MDoubleArray()
+            self.fn.getBlendWeights(dagPath, components, weights)
+            self._d_data['influences']['blendWeights'] = [weights[i] for i in range(weights.length())]  
+            
     return fncWrap(*args,**kws).go()
