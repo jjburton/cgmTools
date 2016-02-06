@@ -673,7 +673,7 @@ class cgmFuncCls(object):
 			except:str_key = k
 			buffer = self.__dict__[atr][k]
 			if type(buffer) is dict:
-			    self.log_info('%s '%self._str_funcCombined + ">" + " Nested Dict: '%s' "%(str_key) + _str_subLine)
+			    self.log_info(">" + " Nested Dict: '%s' "%(str_key) + _str_subLine)
 			    l_bufferKeys = buffer.keys()
 			    l_bufferKeys.sort()
 			    for k2 in l_bufferKeys:

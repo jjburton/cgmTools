@@ -1,5 +1,5 @@
 """
-skin Utils
+skinDat
 Josh Burton 
 www.cgmonks.com
 
@@ -9,6 +9,12 @@ Storing joint positions and vert positions so at some point can implement a meth
 to apply a skin without a reference object in scene if geo or joint counts don't match
 
 Currently only regular skin clusters are storing...
+
+Features...
+- Skin data gather
+- Read/write skin data to a readable config file
+- Apply skinning data to geo of different vert count
+- 
 
 Thanks to Alex Widener for some ideas on how to set things up.
 
@@ -50,9 +56,6 @@ class data(object):
     
     :param mInstanes: given metaClass to test inheritance - cls or [cls]
     
-    :todo
-    -- import config
-    -- deal with variable influence/vertc count scenarios
     '''    
     _configToStored = {'source':'d_source',
                        'general':'d_general',
@@ -142,9 +145,9 @@ class data(object):
         return _d_Mesh
         
     def validateTargetMesh(self, targetMesh = None):
-        if not self.d_source:
-            log.error("No source specified. Cannot validate target")
-            return False
+        #if not self.d_source:
+            #log.error("No source specified. Cannot validate target")
+            #return False
         _d_Mesh = self.validateMeshArg(targetMesh)
         self.d_target = _d_Mesh
         log.info("Target Mesh validated...")
@@ -200,7 +203,7 @@ class data(object):
         ConfigObj.write()
         return True
         
-    def read(self, filepath = None, report = True):
+    def read(self, filepath = None, report = False):
         '''
         Read the Data ConfigObj from file and report the data if so desired.
         '''        
@@ -211,6 +214,7 @@ class data(object):
         _config = configobj.ConfigObj(filepath)
         if _config.get('configType') != 'cgmSkinConfig':
             raise ValueError,"This isn't a cgmSkinConfig config | {0}".format(filepath)
+                
         for k in data._configToStored.keys():
             if _config.has_key(k):
                 self.__dict__[data._configToStored[k]] = _config[k]
@@ -258,23 +262,33 @@ def applySkin(*args,**kws):
     '''
     Gathers skinning information - most likely for export to a file.
     
-    :param mInstanes: given metaClass to test inheritance - cls or [cls]
+    :param data: data instance
+    :param influenceMode: string arg of which mode to use for the influence data
+       :target - Uses existing target objects skin cluster influences
+       :source - Uses source mesh's skin cluster influences
+       :config - Uses config files joint names
     '''
+    _d_influenceModes = {'target':{'expectedKWs':[],'skinned':True,'indexMatch':True},#...use the target influences
+                         'config':{},
+                         'source':{},
+                         'list':{}
+                         }    
     class fncWrap(cgmGeneral.cgmFuncCls):
+
         def __init__(self,*args, **kws):	    
             super(fncWrap, self).__init__(*args, **kws)
             self._str_funcName = 'applySkin'
             self._b_reportTimes = True
             self._l_ARGS_KWS_DEFAULTS = [{'kw':'data',"default":None,
                                           'help':"data instance"},
-                                         ]
+                                         {'kw':'influenceMode',"default":'Exisiting',
+                                          'help':"Mode by which to map influence data"},                                                                                  ]
             self.__dataBind__(*args,**kws)
             self.l_funcSteps = [{'step':'Gather Info','call':self._fnc_info},
-                                {'step':'Process Joints','call':self._fnc_processJoints}, 
+                                {'step':'Process Influence Mode','call':self._fnc_processInfluenceMode}, 
                                 {'step':'Process Data','call':self._fnc_processData},                                                                
                                 {'step':'Verify Skincluster','call':self._fnc_skinCluster},
                                 {'step':'Apply Weights Data','call':self._fnc_applyData},                                                                                                
-                                #{'step':'Set up skinCluster','call':self._skin},
                                 ]
             #=================================================================
 
@@ -293,54 +307,100 @@ def applySkin(*args,**kws):
                 raise ValueError,"No target data on data object"
             if not _data.d_sourceInfluences:
                 return self._FailBreak_("No influence data. Read a config file to the data object.")
+            
+            _influenceMode = self.d_kws.get('influenceMode')
+            if _influenceMode in _d_influenceModes.keys():
+                self._influenceMode = _influenceMode
+                self.log_info("influenceMode: '{0}'".format(_influenceMode))
+            else:
+                return self._FailBreak_("Unknown influenceMode arg ['{0}'] | Valid args{1}".format(_influenceMode,_d_influenceModes.keys()))                
+            
             #self.report()
             self._d_jointToWeighting = {}
             self._d_vertToWeighting = {}
             self._l_processed = []
+            self._b_smooth = False#...whether to smooth at the end of the weight copy
             
-        def _fnc_processJoints(self):
+        def _fnc_processInfluenceMode(self):
             '''
             Sort out the joint data
-            '''
-            #...starting joint list
-            #...get from influence data
-            #md_joints = {}
             
-            l_dataJoints = []
+            If joitn list is passed, try to use that, if not,
+            Try skin cluster on target, cluster on source
+            '''
+            _mode = self._influenceMode
+            _l_configInfluenceList = self.get_ConfigJointList()#...get our config influence list
+            
+            
+            _targetMesh = self.mData.d_target['mesh']
+            #...See if we have a skin cluster...
+            _targetSkin = skinning.querySkinCluster(_targetMesh) or False            
+            
+            if _mode == 'config':
+                _l_jointTargets = _l_configInfluenceList
+                
+            elif _mode == 'list':
+                _l_joints = self.d_kws.get('jointList')
+                if not _l_joints:
+                    return self._FailBreak_("jointList kw required. '{0}' influenceMode".format(_mode))                
+                if not cgmValid.isListArg(_l_joints):
+                    return self._FailBreak_("jointList is not a list. '{0}' influenceMode".format(_mode))                
+                if len(_l_joints) != len(_l_configInfluenceList):
+                    return self._FailBreak_("Non matching counts on target influences({0}) and config data({1}) | Cannot use '{2}' influenceMode".format(len(_l_joints),len(_l_configInfluenceList),_mode))                
+                _l_jointTargets = _l_joints
+               
+
+            elif _mode == 'target':
+                if not _targetSkin:
+                    return self._FailBreak_("Target mesh not skinned, cannot use '{0}' influenceMode".format(_mode))                
+                _l_targetInfluences = mc.listConnections(_targetSkin+'.matrix') or []
+                
+                if len(_l_targetInfluences) != len(_l_configInfluenceList):
+                    return self._FailBreak_("Non matching counts on target influences({0}) and config data({1}) | Cannot use '{2}' influenceMode".format(len(_l_targetInfluences),len(_l_configInfluenceList),_mode))                
+                    
+                _l_jointTargets = _l_targetInfluences
+                
+            #...see if they exist with no conflicts
+            #_l_jointTargets = l_dataJoints#...this will change
+            try:_l_jointsToUse = cgmValid.objStringList(_l_jointTargets, mayaType = 'joint')
+            except Exception,Error:return self._FailBreak_("influenceMode '{0}' joint check fail | {1}".format(_mode,Error))
+            
+            #self.log_info("Joints to use....")
+            #for i,j in enumerate(_l_jointsToUse):
+                #self.log_info("{0} : {1} | config idxed to: {2}".format(i,j,_l_configInfluenceList[i]))
+                
+            self.l_jointsToUse = _l_jointsToUse
+            
+        def get_ConfigJointList(self):
+            _l = []
             _d_influenceData = self.mData.d_sourceInfluences['data']
             _l_idxKeys = [int(k) for k in _d_influenceData.keys()]#...int them to sort them properly
             _l_idxKeys.sort()
-            
+
             for idx in _l_idxKeys:
                 _bfr = _d_influenceData[str(idx)]['name']
-                l_dataJoints.append(_bfr)
-                #md_joints[int(idx)] = {obj:,
-                #                      mObj:}
-                
-                
-            #...see if they exist with no conflicts
-            _l_jointTargets = l_dataJoints#...this will change
-            _l_jointsToUse = cgmValid.objStringList(_l_jointTargets, mayaType = 'joint')
-            self.log_info("Joints to use....")
-            for i,j in enumerate(_l_jointsToUse):
-                self.log_info("{0} : {1}".format(i,j))
-                
-            self.l_jointsToUse = _l_jointsToUse
-
+                _l.append(_bfr)                
+            return _l
+        
         def _fnc_processData(self):
             '''
             Sort out the components
             '''            
             #...check if our vtx counts match...
             self.log_toDo("Non matching components")
-            self.log_toDo("Non matching mesh types")            
-            _int_sourceCnt = self.mData.d_source['pointCount']
-            _int_targetCnt = self.mData.d_target['pointCount']
+            self.log_toDo("Non matching mesh types")   
+            self.mData.d_target = data.validateMeshArg(self.mData.d_target['mesh'])#...update
+            
+            _int_sourceCnt = int(self.mData.d_source['pointCount'])
+            _int_targetCnt = int(self.mData.d_target['pointCount'])
             _type_source = self.mData.d_source['meshType']
             _type_target = self.mData.d_target['meshType']
+            _target = self.mData.d_target['mesh']
+            _component = self.mData.d_target['component']
             self.log_infoDict(self.mData.d_target,'target dict...')
-            if int(_int_sourceCnt) != int(_int_targetCnt):
-                return self._FailBreak_("Haven't implemented non matching component counts | source: {0} | target: {1}".format(_int_sourceCnt,_int_targetCnt))              
+            
+            #if int(_int_sourceCnt) != int(_int_targetCnt):
+                #return self._FailBreak_("Haven't implemented non matching component counts | source: {0} | target: {1}".format(_int_sourceCnt,_int_targetCnt))              
             if not _type_source == _type_target:
                 return self._FailBreak_("Haven't implemented non matching mesh types | source: {0} | target: {1}".format(_type_source,_type_target))              
             
@@ -349,11 +409,10 @@ def applySkin(*args,**kws):
             _raw_componentWeights = self.mData.d_sourceInfluences['componentWeights']
             _raw_blendweights = self.mData.d_sourceInfluences['blendWeights']
             
-            _l = []
-            self._l_processed = _l
+            _l_cleanData = []
             
-            #...only the simplest processing is in place now
-            for i in range(_int_targetCnt):#...for each vert
+            #...First loop is to only initially clean the data...
+            for i in range(_int_sourceCnt):#...for each vert
                 _str_i = str(i)
                 _subL = []
                 
@@ -362,10 +421,47 @@ def applySkin(*args,**kws):
                 for k,value in _bfr_raw.iteritems():
                     _bfr_clean[int(k)] = float(value)
                 #self.log_info("vert {0} : {1}".format(i,_bfr_clean))
-                _l.append(_bfr_clean)
+                _l_cleanData.append(_bfr_clean)
+            self._l_processed = _l_cleanData#...initiall push data
                 
                 
-                
+            if int(_int_sourceCnt) != int(_int_targetCnt):
+                try:#closest to remap ------------------------------------------------------------------------
+                    self.log_warning("Non matching component counts. Using closestTo method to remap")
+                    _l_closestRetarget = []
+                    #...generate a posList of the source data
+                    l_source_pos = []
+                    _d_pos = self.mData.d_source['d_vertPositions']
+                    for i in range(_int_sourceCnt):
+                        l_source_pos.append([float(v) for v in _d_pos[str(i)]])#...turn our strings to values
+                       
+                    self.progressBar_start(stepMaxValue=_int_targetCnt, 
+                                           statusMessage='Calculating....', 
+                                           interruptableState=False)  
+                    
+                    for i in range(_int_targetCnt):
+                        _str_vert = "{0}.{1}[{2}]".format(_target,_component,i)
+                        self.progressBar_iter(status = "Finding closest to '{0}'".format(_str_vert))                                        
+                        
+                        #self.log_info(_str_vert)
+                        _pos = distance.returnWorldSpacePosition(_str_vert)#...get position       
+                        _closestPos = distance.returnClosestPoint(_pos, l_source_pos)#....get closest
+                        _closestIdx = l_source_pos.index(_closestPos)
+                        #self.log_info("target idx: {0} | Closest idx: {0} | pos:{1}".format(i,_closestIdx,_closestPos))
+                        _l_closestRetarget.append(_l_cleanData[_closestIdx])
+                    self.progressBar_end()
+                        
+                    self._l_processed = _l_closestRetarget#...push it backs
+                    self._b_smooth = True
+                    
+                    if _int_targetCnt >= _int_sourceCnt:
+                        self._f_smoothWeightsValue = .00005
+                    else:
+                        self._f_smoothWeightsValue = .5
+                        
+                    self.log_info("closestTo remap complete...")
+                except Exception,error:
+                    raise Exception,"closestTo remap failure | {0}".format(error)
             self._refineProcessedData()
             
         
@@ -394,19 +490,20 @@ def applySkin(*args,**kws):
             self.log_toDo("Add more than just skincluster ability?...")  
             #..........................................................
             _targetMesh = self.mData.d_target['mesh']
-            
 
             #...See if we have a skin cluster...
             _targetSkin = skinning.querySkinCluster(_targetMesh) or False
             if _targetSkin:
                 self.log_info("Skincluster exists, recreating...")
-                try:mc.delete(_targetSkin)
-                except:pass
+                #try:mc.delete(_targetSkin)
+                #except:pass
+            else:
+                #...create our skin cluster                
+                _l_bind = copy.copy(self.l_jointsToUse)
+                _l_bind.append(_targetMesh)                
+                _targetSkin = mc.skinCluster(_l_bind,tsb=True,n=(names.getBaseName(_targetMesh)+'_skinCluster'))[0]                
             
-            #...create our skin cluster
-            _l_bind = copy.copy(self.l_jointsToUse)
-            _l_bind.append(_targetMesh)
-            _targetSkin = mc.skinCluster(_l_bind,tsb=True,n=(names.getBaseName(_targetMesh)+'_skinCluster'))[0]
+
             self.mData.d_target['skin'] = _targetSkin#...update the stored data
             self.log_info("Created '{0}'".format(_targetSkin) + cgmGeneral._str_subLine)
             
@@ -440,15 +537,16 @@ def applySkin(*args,**kws):
                 weightsP.selectAncestorLogicalIndex( vertIdx, weightListObj )
                 weightsP.getExistingArrayAttributeIndices( tmpIntArray )
         
-                weightFmtStr = baseFmtStr % vertIdx +'.weights[%d]'
+                weightFmtStr = baseFmtStr % vertIdx +'.weights[{0}]'
             
                 #clear out any existing skin data - and awesomely we cannot do this with the api - so we need to use a weird ass mel command
                 for n in range( tmpIntArray.length() ):
-                    mc.removeMultiInstance( weightFmtStr % tmpIntArray[n] )            
+                    mc.removeMultiInstance( weightFmtStr.format(tmpIntArray[n]) )            
             
                 #at this point using the api or mel to set the data is a moot point...  we have the strings already so just use mel
                 for jointIdx in _d_vert.keys():
-                    mc.setAttr( weightFmtStr % jointIdx, _d_vert[jointIdx] )              
+                    #self.log_info(" vtx: {0} | jnt:{1} | value:{2}".format(vertIdx,jointIdx, _d_vert[jointIdx]))
+                    mc.setAttr( weightFmtStr.format(jointIdx), _d_vert[jointIdx] )              
             self.progressBar_end()
             
             #...blendWeights
@@ -463,6 +561,11 @@ def applySkin(*args,**kws):
                 except Exception,error:
                     self.log_error("{0} failed | {1}".format(k,error))
                     
+            #...smooth process
+            if self._b_smooth:
+                self.log_warning("Smoothing weights ({0})...".format(self._f_smoothWeightsValue))
+                mc.skinCluster(_targetSkin,e = True, smoothWeights = self._f_smoothWeightsValue ,smoothWeightsMaxIterations = 2)
+                #mc.skinCluster(_targetSkin,e = True, smoothWeights = .0005,smoothWeightsMaxIterations = 10)
     return fncWrap(*args,**kws).go()
 
 def gather_skinning_dict(*args,**kws):
