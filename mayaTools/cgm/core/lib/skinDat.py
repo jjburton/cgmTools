@@ -19,6 +19,8 @@ Features...
 Thanks to Alex Widener for some ideas on how to set things up.
 
 """
+__version__ = "02.06.2016"
+
 # From Python =============================================================
 import copy
 import os
@@ -44,6 +46,7 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.lib import (search,
                      names,
+                     cgmMath,
                      attributes,
                      rigging,
                      distance,
@@ -54,7 +57,9 @@ class data(object):
     Class to handle skin data. Utilizes red9.packages.ConfigObj for storage format. Storing what might be an excess of info
     to make it more useful down the road for applying skinning data to meshes that don't have the same vert counts or joint counts.
     
-    :param mInstanes: given metaClass to test inheritance - cls or [cls]
+    :param sourchMesh: Mesh to export data from
+    :param targetMesh: Mesh to import data to
+    :param filepath: File to read on call or via self.read() call to browse to one
     
     '''    
     _configToStored = {'source':'d_source',
@@ -73,6 +78,7 @@ class data(object):
         self.d_target = {}
         self.d_sourceInfluences = {}
         self.d_weights = {}
+        self.str_filepath = None
         self.d_general = cgmGeneral.get_mayaEnviornmentDict()
         self.d_general['file'] = mc.file(q = True, sn = True)            
            
@@ -176,14 +182,12 @@ class data(object):
         if not self.d_source:
             raise ValueError, "No source found. Cannot write data"
         
-        if not self.d_sourceSkin:
-            _d = gather_skinning_dict(self.d_source['mesh'])      
-            self.d_source.update(_d['mesh'])#...update source dict
-            self.d_sourceSkin = _d['skin']
-            self.d_sourceInfluences = _d['influences']
-            self.d_weights = _d['weights']
-            return True
-        return False
+        _d = gather_skinning_dict(self.d_source['mesh'])      
+        self.d_source.update(_d['mesh'])#...update source dict
+        self.d_sourceSkin = _d['skin']
+        self.d_sourceInfluences = _d['influences']
+        self.d_weights = _d['weights']
+        return True
             
     def write(self, filepath = None):
         '''
@@ -267,6 +271,7 @@ def applySkin(*args,**kws):
        :target - Uses existing target objects skin cluster influences
        :source - Uses source mesh's skin cluster influences
        :config - Uses config files joint names
+       :list - Uses a list of joints (must match config data set len and be indexed how you want it mapped)
     '''
     _d_influenceModes = {'target':{'expectedKWs':[],'skinned':True,'indexMatch':True},#...use the target influences
                          'config':{},
@@ -281,7 +286,7 @@ def applySkin(*args,**kws):
             self._b_reportTimes = True
             self._l_ARGS_KWS_DEFAULTS = [{'kw':'data',"default":None,
                                           'help':"data instance"},
-                                         {'kw':'influenceMode',"default":'Exisiting',
+                                         {'kw':'influenceMode',"default":'target',
                                           'help':"Mode by which to map influence data"},                                                                                  ]
             self.__dataBind__(*args,**kws)
             self.l_funcSteps = [{'step':'Gather Info','call':self._fnc_info},
@@ -349,7 +354,6 @@ def applySkin(*args,**kws):
                     return self._FailBreak_("Non matching counts on target influences({0}) and config data({1}) | Cannot use '{2}' influenceMode".format(len(_l_joints),len(_l_configInfluenceList),_mode))                
                 _l_jointTargets = _l_joints
                
-
             elif _mode == 'target':
                 if not _targetSkin:
                     return self._FailBreak_("Target mesh not skinned, cannot use '{0}' influenceMode".format(_mode))                
@@ -359,6 +363,17 @@ def applySkin(*args,**kws):
                     return self._FailBreak_("Non matching counts on target influences({0}) and config data({1}) | Cannot use '{2}' influenceMode".format(len(_l_targetInfluences),len(_l_configInfluenceList),_mode))                
                     
                 _l_jointTargets = _l_targetInfluences
+                
+            elif _mode == 'source':
+                if not self.mData.d_source:
+                    return self._FailBreak_("No source data found, cannot use '{0}' influenceMode".format(_mode))                
+                _sourceSkin = skinning.querySkinCluster(self.mData.d_source['mesh']) or False
+                _l_sourceInfluences = mc.listConnections(_sourceSkin+'.matrix') or []
+                
+                if len(_l_sourceInfluences) != len(_l_configInfluenceList):
+                    return self._FailBreak_("Non matching counts on source influences({0}) and config data({1}) | Cannot use '{2}' influenceMode".format(len(_l_sourceInfluences),len(_l_configInfluenceList),_mode))                
+                
+                _l_jointTargets = _l_sourceInfluences
                 
             #...see if they exist with no conflicts
             #_l_jointTargets = l_dataJoints#...this will change
@@ -417,13 +432,25 @@ def applySkin(*args,**kws):
                 _subL = []
                 
                 _bfr_raw = _raw_componentWeights[_str_i]
+                _bfr_toNormalize = []
                 _bfr_clean = {}
                 for k,value in _bfr_raw.iteritems():
                     _bfr_clean[int(k)] = float(value)
-                #self.log_info("vert {0} : {1}".format(i,_bfr_clean))
-                _l_cleanData.append(_bfr_clean)
-            self._l_processed = _l_cleanData#...initiall push data
+                    
+                #normalize the values...
+                for k,value in _bfr_clean.iteritems():
+                    _bfr_toNormalize.append(value)
+                _bfr_normalized = cgmMath.normSumList(_bfr_toNormalize,1.0)
                 
+                for ii,k in enumerate(_bfr_clean.keys()):
+                    _bfr_clean[k] = _bfr_normalized[ii]
+                    
+                if not cgmMath.isFloatEquivalent(1.0, sum(_bfr_normalized) ):
+                    self.log_info("vert {0} not normalized".format(i))
+                #self.log_info("vert {0} base: {1}".format(i,_bfr_toNormalize))
+                #self.log_info("vert {0} norm: {1}".format(i,_bfr_normalized))
+                _l_cleanData.append(_bfr_clean)
+            self._l_processed = _l_cleanData#...initial push data
                 
             if int(_int_sourceCnt) != int(_int_targetCnt):
                 try:#closest to remap ------------------------------------------------------------------------
@@ -447,7 +474,7 @@ def applySkin(*args,**kws):
                         _pos = distance.returnWorldSpacePosition(_str_vert)#...get position       
                         _closestPos = distance.returnClosestPoint(_pos, l_source_pos)#....get closest
                         _closestIdx = l_source_pos.index(_closestPos)
-                        #self.log_info("target idx: {0} | Closest idx: {0} | pos:{1}".format(i,_closestIdx,_closestPos))
+                        #self.log_info("target idx: {0} | Closest idx: {1} | value{2}".format(i,_closestIdx,_l_cleanData[_closestIdx]))
                         _l_closestRetarget.append(_l_cleanData[_closestIdx])
                     self.progressBar_end()
                         
@@ -512,48 +539,86 @@ def applySkin(*args,**kws):
         def _fnc_applyData(self):
             '''
             '''    
-            _targetSkin = self.mData.d_target['skin']   
-                    
+            _targetSkin = self.mData.d_target['skin']      
             mi_skinCluster = cgmMeta.cgmNode(_targetSkin)
             skinFn = OMA.MFnSkinCluster( mi_skinCluster.mNodeMObject )
+            
+            #...get some api stuff
+            fnSet = OM.MFnSet(skinFn.deformerSet())
+            members = OM.MSelectionList()
+            fnSet.getMembers(members, False)
+            dagPath = OM.MDagPath()
+            components = OM.MObject()
+            members.getDagPath(0, dagPath, components)         
+            influencePaths = OM.MDagPathArray()
+            numInfluences = skinFn.influenceObjects(influencePaths)
+            if numInfluences != len(self.l_jointsToUse):
+                return self._FailBreak_("Influences don't match data")              
+            
+            #...get weights
+            weights = OM.MDoubleArray()
+            util = OM.MScriptUtil()
+            util.createFromInt(0)
+            pUInt = util.asUintPtr()
+            skinFn.getWeights(dagPath, components, weights, pUInt)  
+                
+            numComponentsPerInfluence = weights.length() / numInfluences   
+            
+            influenceIndices = OM.MIntArray(numInfluences)
+            for i in range(numInfluences):
+                influenceIndices.set(i, i)   
                 
             #...Set our weights ------------------------------------------------------------------------------------
-            weightListP = skinFn.findPlug( "weightList" )
-            weightListObj = weightListP.attribute()
-            weightsP = skinFn.findPlug( "weights" )
+            #weightListP = skinFn.findPlug( "weightList" )
+            #weightListObj = weightListP.attribute()
+            #weightsP = skinFn.findPlug( "weights" )
         
-            tmpIntArray = OM.MIntArray()
-            baseFmtStr = mi_skinCluster.mNode +'.weightList[%d]'  #pre build this string: fewer string ops == faster-ness!
+            #tmpIntArray = OM.MIntArray()
+            #baseFmtStr = mi_skinCluster.mNode +'.weightList[{0}]'  #pre build this string: fewer string ops == faster-ness!
             
             self.progressBar_start(stepMaxValue=self.mData.d_target['pointCount'], 
                                    statusMessage='Calculating....', 
-                                   interruptableState=False)        
+                                   interruptableState=False)    
+            
+            
+            for i in range(numInfluences):
+                for c in range(numComponentsPerInfluence):
+                    weights.set(0.0, c*numInfluences+i)                    
             
             for vertIdx in self._d_vertToWeighting.keys():
                 self.progressBar_iter(status = 'Setting {0}'.format(vertIdx))                
                 _d_vert = self._d_vertToWeighting[vertIdx]#...{0:value,...}
                 
                 #we need to use the api to query the physical indices used
-                weightsP.selectAncestorLogicalIndex( vertIdx, weightListObj )
-                weightsP.getExistingArrayAttributeIndices( tmpIntArray )
+                #weightsP.selectAncestorLogicalIndex( vertIdx, weightListObj )
+                #weightsP.getExistingArrayAttributeIndices( tmpIntArray )
         
-                weightFmtStr = baseFmtStr % vertIdx +'.weights[{0}]'
+                #weightFmtStr = baseFmtStr.format(vertIdx) +'.weights[{0}]'
             
                 #clear out any existing skin data - and awesomely we cannot do this with the api - so we need to use a weird ass mel command
-                for n in range( tmpIntArray.length() ):
-                    mc.removeMultiInstance( weightFmtStr.format(tmpIntArray[n]) )            
+                #for n in range( tmpIntArray.length() ):
+                    #mc.removeMultiInstance( weightFmtStr.format(tmpIntArray[n]) )            
             
                 #at this point using the api or mel to set the data is a moot point...  we have the strings already so just use mel
+                    
                 for jointIdx in _d_vert.keys():
-                    #self.log_info(" vtx: {0} | jnt:{1} | value:{2}".format(vertIdx,jointIdx, _d_vert[jointIdx]))
-                    mc.setAttr( weightFmtStr.format(jointIdx), _d_vert[jointIdx] )              
+                    #self.log_debug(" vtx: {0} | jnt:{1} | value:{2}".format(vertIdx,jointIdx, _d_vert[jointIdx]))
+                    #self.log_info("{0} | {1}".format( weightFmtStr.format(jointIdx),_d_vert[jointIdx]))
+                    #mc.setAttr( weightFmtStr.format(jointIdx), _d_vert[jointIdx] ) 
+                    #weights.set(self.data['weights'][src][j], j*numInfluences+1)
+                    #weights.set(_d_vert[jointIdx], vertIdx)
+                    weights.set(_d_vert[jointIdx], vertIdx*numInfluences+jointIdx)#...this was a bugger to get to, 
             self.progressBar_end()
             
+            skinFn.setWeights(dagPath, components, influenceIndices, weights, False)
+            
+
             #...blendWeights
             
             #self.setBlendWeights(dagPath, components)
                     
             #...apply our settings from our skin...
+            
             for k in _skinclusterAttributesToCopy:
                 _value = _skinclusterAttributesToCopy[k](self.mData.d_sourceSkin[k])
                 self.log_info("Setting '{0}' to {1}".format(k,_value))
@@ -562,9 +627,9 @@ def applySkin(*args,**kws):
                     self.log_error("{0} failed | {1}".format(k,error))
                     
             #...smooth process
-            if self._b_smooth:
-                self.log_warning("Smoothing weights ({0})...".format(self._f_smoothWeightsValue))
-                mc.skinCluster(_targetSkin,e = True, smoothWeights = self._f_smoothWeightsValue ,smoothWeightsMaxIterations = 2)
+            #if self._b_smooth:
+                #self.log_warning("Smoothing weights ({0})...".format(self._f_smoothWeightsValue))
+                #mc.skinCluster(_targetSkin,e = True, smoothWeights = self._f_smoothWeightsValue ,smoothWeightsMaxIterations = 2)
                 #mc.skinCluster(_targetSkin,e = True, smoothWeights = .0005,smoothWeightsMaxIterations = 10)
     return fncWrap(*args,**kws).go()
 

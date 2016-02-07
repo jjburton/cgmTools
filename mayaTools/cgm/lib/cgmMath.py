@@ -129,6 +129,15 @@ def normList(L, normalizeTo=1):
     vMax = max(L)
     return [ x/(vMax*1.0)*normalizeTo for x in L]
 
+def normSumList(L, normalizeTo=1.0):
+    """normalize values of a list to make sum = normalizeTo
+    
+    For example [.2, .5] becomes [0.33333333333333331, 0.66666666666666663] for a sum of 1.0
+    
+    Thanks to:
+    http://stackoverflow.com/questions/26785354/normalizing-a-list-of-numbers-in-python
+    """
+    return [float(i)/normalizeTo for i in [float(i)/sum(L) for i in L]]
 # ====================================================================================================================
 # FUNCTION - 2
 #
