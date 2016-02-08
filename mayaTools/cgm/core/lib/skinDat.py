@@ -82,10 +82,12 @@ class data(object):
         self.d_general = cgmGeneral.get_mayaEnviornmentDict()
         self.d_general['file'] = mc.file(q = True, sn = True)            
            
-        if sourceMesh is not None or mc.ls(sl=True):
+        if sourceMesh is not None:
             self.validateSourceMesh(sourceMesh)
         if targetMesh is not None:
-            self.d_target = self.validateTargetMesh(targetMesh)
+            self.validateTargetMesh(targetMesh)
+        if sourceMesh is None and targetMesh is None and mc.ls(sl=True):
+            self.validateSourceMesh(sourceMesh)            
         if filepath is not None:
             try:self.read(filepath)
             except:log.error("Filepath failed to read.")
@@ -272,6 +274,7 @@ def applySkin(*args,**kws):
        :source - Uses source mesh's skin cluster influences
        :config - Uses config files joint names
        :list - Uses a list of joints (must match config data set len and be indexed how you want it mapped)
+    :param nameMatch: Whether to attempt to baseName match skinning joints to the config file
     '''
     _d_influenceModes = {'target':{'expectedKWs':[],'skinned':True,'indexMatch':True},#...use the target influences
                          'config':{},
@@ -287,11 +290,14 @@ def applySkin(*args,**kws):
             self._l_ARGS_KWS_DEFAULTS = [{'kw':'data',"default":None,
                                           'help':"data instance"},
                                          {'kw':'influenceMode',"default":'target',
-                                          'help':"Mode by which to map influence data"},                                                                                  ]
+                                          'help':"Mode by which to map influence data"},
+                                         {'kw':'nameMatch',"default":False,
+                                          'help':"Whether to attempt a base name match to stored data"}                                         
+                                         ]
             self.__dataBind__(*args,**kws)
             self.l_funcSteps = [{'step':'Gather Info','call':self._fnc_info},
                                 {'step':'Process Influence Mode','call':self._fnc_processInfluenceMode}, 
-                                {'step':'Process Data','call':self._fnc_processData},                                                                
+                                {'step':'Process Data','call':self._fnc_processData},                                   
                                 {'step':'Verify Skincluster','call':self._fnc_skinCluster},
                                 {'step':'Apply Weights Data','call':self._fnc_applyData},                                                                                                
                                 ]
@@ -320,6 +326,7 @@ def applySkin(*args,**kws):
             else:
                 return self._FailBreak_("Unknown influenceMode arg ['{0}'] | Valid args{1}".format(_influenceMode,_d_influenceModes.keys()))                
             
+            self._b_nameMatch = cgmValid.boolArg(self.d_kws.get('nameMatch',False))
             #self.report()
             self._d_jointToWeighting = {}
             self._d_vertToWeighting = {}
@@ -335,7 +342,7 @@ def applySkin(*args,**kws):
             '''
             _mode = self._influenceMode
             _l_configInfluenceList = self.get_ConfigJointList()#...get our config influence list
-            
+            self.l_configInfluenceList = _l_configInfluenceList#...store it
             
             _targetMesh = self.mData.d_target['mesh']
             #...See if we have a skin cluster...
@@ -360,6 +367,10 @@ def applySkin(*args,**kws):
                 _l_targetInfluences = mc.listConnections(_targetSkin+'.matrix') or []
                 
                 if len(_l_targetInfluences) != len(_l_configInfluenceList):
+                    for i,jnt in enumerate(_l_configInfluenceList):
+                        try:_bfr = _l_targetInfluences[i]
+                        except:_bfr = False
+                        self.log_info("{0} | Config: {1} | target: {2}".format(i,jnt,_bfr))
                     return self._FailBreak_("Non matching counts on target influences({0}) and config data({1}) | Cannot use '{2}' influenceMode".format(len(_l_targetInfluences),len(_l_configInfluenceList),_mode))                
                     
                 _l_jointTargets = _l_targetInfluences
@@ -379,6 +390,7 @@ def applySkin(*args,**kws):
             #_l_jointTargets = l_dataJoints#...this will change
             try:_l_jointsToUse = cgmValid.objStringList(_l_jointTargets, mayaType = 'joint')
             except Exception,Error:return self._FailBreak_("influenceMode '{0}' joint check fail | {1}".format(_mode,Error))
+            
             
             #self.log_info("Joints to use....")
             #for i,j in enumerate(_l_jointsToUse):
@@ -402,7 +414,7 @@ def applySkin(*args,**kws):
             Sort out the components
             '''            
             #...check if our vtx counts match...
-            self.log_toDo("Non matching components")
+            self.log_toDo("Remap dictionary argument")
             self.log_toDo("Non matching mesh types")   
             self.mData.d_target = data.validateMeshArg(self.mData.d_target['mesh'])#...update
             
@@ -451,7 +463,39 @@ def applySkin(*args,**kws):
                 #self.log_info("vert {0} norm: {1}".format(i,_bfr_normalized))
                 _l_cleanData.append(_bfr_clean)
             self._l_processed = _l_cleanData#...initial push data
+            
+            #...nameMatch ------------------------------------------------------------------------
+            if self._b_nameMatch:
+                self.log_info("nameMatch attempt...")
+                _l_configInfluenceList = self.l_configInfluenceList
+                _l_jointsToUseBaseNames = [names.getBaseName(n) for n in self.l_jointsToUse]
                 
+                for n in _l_jointsToUseBaseNames:#...see if all our names are there
+                    if not n in _l_configInfluenceList:
+                        return self._FailBreak_("nameMatch... joint '{0}' from joints to use list not in config list".format(n))              
+                 
+                _d_rewire = {}       
+                for i,n in enumerate(_l_configInfluenceList):
+                    if _l_jointsToUseBaseNames[i] != n:
+                        self.log_error("Name mismatch. idx:{0} | config:{1} | useJoint:{2}".format(i,n,_l_jointsToUseBaseNames[i]))
+                        _d_rewire[i] = _l_configInfluenceList.index(_l_jointsToUseBaseNames[i])
+                        
+                self.log_infoDict(_d_rewire,"Rewire...")
+                for i,d in enumerate(self._l_processed):
+                    _d_dup = copy.copy(d)
+                    #self.log_info("{0} before remap: {1}".format(i,d))                    
+                    for r1,r2 in _d_rewire.iteritems():#...{1:2, 2:1}
+                        if r1 in _d_dup.keys():#...1,2
+                            if r2 in _d_dup.keys():
+                                _bfr1 = _d_dup[r1]
+                                _bfr2 = _d_dup[r2]
+                                d[r1] = _bfr2
+                                d[r2] = _bfr1
+                            else:
+                                d[r2] = d.pop(r1)
+                    #self.log_info("{0} after remap: {1}".format(i,d))
+
+                    
             if int(_int_sourceCnt) != int(_int_targetCnt):
                 try:#closest to remap ------------------------------------------------------------------------
                     self.log_warning("Non matching component counts. Using closestTo method to remap")
@@ -489,6 +533,8 @@ def applySkin(*args,**kws):
                     self.log_info("closestTo remap complete...")
                 except Exception,error:
                     raise Exception,"closestTo remap failure | {0}".format(error)
+            
+                
             self._refineProcessedData()
             
         
