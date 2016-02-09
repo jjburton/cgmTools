@@ -82,7 +82,7 @@ class data(object):
         self.d_general = cgmGeneral.get_mayaEnviornmentDict()
         self.d_general['file'] = mc.file(q = True, sn = True)            
            
-        if sourceMesh is not None:
+        if sourceMesh is not None and targetMesh is not None:
             self.validateSourceMesh(sourceMesh)
         if targetMesh is not None:
             self.validateTargetMesh(targetMesh)
@@ -275,6 +275,7 @@ def applySkin(*args,**kws):
        :config - Uses config files joint names
        :list - Uses a list of joints (must match config data set len and be indexed how you want it mapped)
     :param nameMatch: Whether to attempt to baseName match skinning joints to the config file
+    :param addMissingInfluences: Attempt to add missing influences
     '''
     _d_influenceModes = {'target':{'expectedKWs':[],'skinned':True,'indexMatch':True},#...use the target influences
                          'config':{},
@@ -292,7 +293,9 @@ def applySkin(*args,**kws):
                                          {'kw':'influenceMode',"default":'target',
                                           'help':"Mode by which to map influence data"},
                                          {'kw':'nameMatch',"default":False,
-                                          'help':"Whether to attempt a base name match to stored data"}                                         
+                                          'help':"Whether to attempt a base name match to stored data"},
+                                         {'kw':'addMissingInfluences',"default":True,
+                                          'help':"Attempt to add missing influences"}                                         
                                          ]
             self.__dataBind__(*args,**kws)
             self.l_funcSteps = [{'step':'Gather Info','call':self._fnc_info},
@@ -327,6 +330,10 @@ def applySkin(*args,**kws):
                 return self._FailBreak_("Unknown influenceMode arg ['{0}'] | Valid args{1}".format(_influenceMode,_d_influenceModes.keys()))                
             
             self._b_nameMatch = cgmValid.boolArg(self.d_kws.get('nameMatch',False))
+            self._b_addMissingInfluences = cgmValid.boolArg(self.d_kws.get('addMissingInfluences',False))
+            self._b_case_addMissingInfluences = False
+            self._l_missingInfluences = []
+            
             #self.report()
             self._d_jointToWeighting = {}
             self._d_vertToWeighting = {}
@@ -343,7 +350,7 @@ def applySkin(*args,**kws):
             _mode = self._influenceMode
             _l_configInfluenceList = self.get_ConfigJointList()#...get our config influence list
             self.l_configInfluenceList = _l_configInfluenceList#...store it
-            
+            _len_configList = len(_l_configInfluenceList)
             _targetMesh = self.mData.d_target['mesh']
             #...See if we have a skin cluster...
             _targetSkin = skinning.querySkinCluster(_targetMesh) or False            
@@ -367,11 +374,15 @@ def applySkin(*args,**kws):
                 _l_targetInfluences = mc.listConnections(_targetSkin+'.matrix') or []
                 
                 if len(_l_targetInfluences) != len(_l_configInfluenceList):
-                    for i,jnt in enumerate(_l_configInfluenceList):
-                        try:_bfr = _l_targetInfluences[i]
-                        except:_bfr = False
-                        self.log_info("{0} | Config: {1} | target: {2}".format(i,jnt,_bfr))
-                    return self._FailBreak_("Non matching counts on target influences({0}) and config data({1}) | Cannot use '{2}' influenceMode".format(len(_l_targetInfluences),len(_l_configInfluenceList),_mode))                
+                    #for i,jnt in enumerate(_l_configInfluenceList):
+                        #try:_bfr = _l_targetInfluences[i]
+                        #except:
+                        #    _bfr = False    
+                        #self.log_info("{0} | Config: {1} | target: {2}".format(i,jnt,_bfr))
+                    
+                    if self._b_addMissingInfluences:
+                        self._b_case_addMissingInfluences = True#...set our case
+                    else: return self._FailBreak_("Non matching counts on target influences({0}) and config data({1}) | Cannot use '{2}' influenceMode".format(len(_l_targetInfluences),len(_l_configInfluenceList),_mode))                
                     
                 _l_jointTargets = _l_targetInfluences
                 
@@ -386,16 +397,44 @@ def applySkin(*args,**kws):
                 
                 _l_jointTargets = _l_sourceInfluences
                 
+            
+            if self._b_case_addMissingInfluences:#Missing Influence Add...
+                self.log_info("addMissingInfluencesAttempt... "+ cgmGeneral._str_subLine)
+                if _len_configList < len(_l_jointTargets):
+                    self.log_warning("More targetJoints({0}) than config joints({1}). Not implemented".format(len(_l_jointTargets),_len_configList))
+                else:
+                    _d = {}
+                    
+                    for i,v in enumerate(_l_jointTargets):_d[i] = v#...push stuff to a list
+                    
+                    for i,jnt in enumerate(_l_configInfluenceList):
+                        try:_bfr = _l_jointTargets[i]
+                        except:
+                            _l_search = [jnt, self.mData.d_sourceSkin['matrix'][i]]
+                            self.log_info("{0} | Config: {1} | missing joint. Attempting to find: {2}".format(i,jnt,_l_search))
+                            for o in _l_search:
+                                foundJnt = cgmValid.objString(o, mayaType = 'joint', noneValid=True)
+                                if foundJnt:
+                                    _d[i] = foundJnt
+                                    self._l_missingInfluences.append(foundJnt)
+                                    self.log_info("Found {0}".format(foundJnt))
+                                    break
+                                return self._FailBreak_("{0} | Not able to fo find joint ({1})".format(i,jnt))                
+                    #...push back to our list
+                    _l_jointTargets = []
+                    for i in range(_len_configList):_l_jointTargets.append(False)
+                    for i,v in _d.iteritems():
+                        _l_jointTargets[i] = v
+                        #self.log_info("{0} | Config: {1} | target: {2}".format(i,jnt,_bfr))     
+                #self.log_info("Joints to use....")
+                #for i,j in enumerate(_l_jointsToUse):
+                    #self.log_info("{0} : {1} | config idxed to: {2}".format(i,j,_l_configInfluenceList[i]))
+                
             #...see if they exist with no conflicts
             #_l_jointTargets = l_dataJoints#...this will change
             try:_l_jointsToUse = cgmValid.objStringList(_l_jointTargets, mayaType = 'joint')
             except Exception,Error:return self._FailBreak_("influenceMode '{0}' joint check fail | {1}".format(_mode,Error))
             
-            
-            #self.log_info("Joints to use....")
-            #for i,j in enumerate(_l_jointsToUse):
-                #self.log_info("{0} : {1} | config idxed to: {2}".format(i,j,_l_configInfluenceList[i]))
-                
             self.l_jointsToUse = _l_jointsToUse
             
         def get_ConfigJointList(self):
@@ -472,7 +511,8 @@ def applySkin(*args,**kws):
                 
                 for n in _l_jointsToUseBaseNames:#...see if all our names are there
                     if not n in _l_configInfluenceList:
-                        return self._FailBreak_("nameMatch... joint '{0}' from joints to use list not in config list".format(n))              
+                        #return self._FailBreak_
+                        self.log_warning("nameMatch... joint '{0}' from joints to use list not in config list".format(n))              
                  
                 _d_rewire = {}       
                 for i,n in enumerate(_l_configInfluenceList):
@@ -567,7 +607,10 @@ def applySkin(*args,**kws):
             #...See if we have a skin cluster...
             _targetSkin = skinning.querySkinCluster(_targetMesh) or False
             if _targetSkin:
-                self.log_info("Skincluster exists, recreating...")
+                if self._l_missingInfluences:
+                    self.log_info("Adding influences...")                    
+                    for infl in self._l_missingInfluences:
+                        mc.skinCluster(_targetSkin, edit = True, ai = infl)
                 #try:mc.delete(_targetSkin)
                 #except:pass
             else:
