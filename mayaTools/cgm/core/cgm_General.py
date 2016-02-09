@@ -228,7 +228,8 @@ class cgmFuncCls(object):
 		    except Exception, error:
 			log.error("This failed")
 			log.error("Failed to report last log: {0}".format(error))		
-		for item in reversed(inspect.getouterframes(tb.tb_frame)[1:]):
+		for i,item in enumerate(reversed(inspect.getouterframes(tb.tb_frame)[1:])):
+		    print("traceback frame[{0}]".format(i) + _str_subLine)		    
 		    print ' File "{1}", line {2}, in {3}\n'.format(*item),
 		    for item in inspect.getinnerframes(tb):
 			print ' File "{1}", line {2}, in {3}\n'.format(*item),
@@ -248,17 +249,17 @@ class cgmFuncCls(object):
 		#self.log_info("Exception Type: %s"%etype)
 		#self.log_info("Exception value: %s"%value)
 		#self.log_info("Exception: {0}".format(self._Exception))		
-		self.log_info("Exception error: {0}".format(self._ExceptionError))
+		#self.log_info("Exception error: {0}".format(self._ExceptionError))
 		#self.log_info("Traceback Obj: %s"%tb)
 		#self.log_info("Detail: %s"%detail)		
 	    else:self.log_error("[Step: '{0}' | time: {1} | error: {2}".format(self._str_failStep,self._str_failTime,self._ExceptionError))
 	    if detail == 2:self.log_info(_str_hardBreak)
 	    self.progressBar_end()
-	    mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
-	    #return cgmExceptCB(etype,value,tb,detail,True)
+	    #mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
+	    return cgmExceptCB(etype,value,tb,detail,True)
 	    #return mUtils._formatGuiException(etype, value, tb, detail)	
 	except Exception,error:
-	    mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload	    
+	    #mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload	    
 	    print("[{0}._ExceptionHook_ Exception | {1}".format(self._str_funcCombined,error))
 	        
     def go(self,*args,**kws):
@@ -315,7 +316,8 @@ class cgmFuncCls(object):
 		    try:self.log_debug(_str_headerDiv + " Step : %s "%_str_step + _str_headerDiv + _str_subLine)
 		    except Exception,error:
 			if self._b_ExceptionInterupt:
-			    mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   			
+			    pass
+			    #mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   			
 			self.log_warning("[debug info! | error: {0}]".format(error))		    
 		except Exception,error:raise Exception,"[strStep query]{%s}"%error 
 		
@@ -372,13 +374,14 @@ class cgmFuncCls(object):
 	    if self._b_ExceptionInterupt:
 		self.update_moduleData()			
 		#mUtils.formatGuiException = self._ExceptionHook_#Link our exception hook   
+	    
 	    self._ExceptionHook_(self._Exception,self._ExceptionError)
-	    return
-		#raise self._Exception,"{0} >> {1}".format(self._str_funcCombined,str(self._ExceptionError))
+	    raise self._Exception, self._ExceptionError
+	    #raise self._Exception,"{0} >> {1}".format(self._str_funcCombined,str(self._ExceptionError))
 	    #else:
 		#raise self._Exception,"{0} | {1} | {2}".format(self._str_reportStart,self._str_step,self._ExceptionError)
 	    
-	mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
+	#mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
 	return self._return_()
 
     def _return_(self):
@@ -850,7 +853,7 @@ def cgmExceptCB(etype, value, tb, detail=2, processed = False):
     except Exception,error:
 	log.info("Exception Exception....{%s}"%error)
 	
-mUtils.formatGuiException = cgmExceptCB
+#mUtils.formatGuiException = cgmExceptCB
 
 def reset_mayaException():
     reload(mUtils)    
