@@ -1862,7 +1862,7 @@ def verify_eyeLook(*args,**kws):
                 int_start = mi_puppet.get_nextMirrorIndex('centre')#"Centre"...really, Mark? :)
                 for i,mCtrl in enumerate(self.ml_controlsAll):
                     try:mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
-                    except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
+                    except Exception,error: raise Exception,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 
                 #try:mi_go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll')
                 #except Exception,error: raise StandardError,"!Controls all connect!| %s"%error	    
@@ -1875,9 +1875,9 @@ def verify_eyeLook(*args,**kws):
                     try:
                         for mCtrl in self.ml_controlsAll:
                             mi_parentRigNull.msgList_append(mCtrl,'controlsAll')
-                    except Exception,error: raise StandardError,"!Controls all connect!| %s"%error	    
+                    except Exception,error: raise Exception,"!Controls all connect!| %s"%error	    
                     try:mi_parentRigNull.moduleSet.extend(self.ml_controlsAll)
-                    except Exception,error: raise StandardError,"!Failed to set module objectSet! | %s"%error
+                    except Exception,error: raise Exception,"!Failed to set module objectSet! | %s"%error
             except Exception,error:raise Exception,"!Module Parent registration! | %s"%(error)	
 
     return fncWrap(*args,**kws).go()

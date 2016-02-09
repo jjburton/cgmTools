@@ -16,7 +16,8 @@ from Red9.core import Red9_General as r9General
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.lib.classes import NameFactory as nFactory
+from cgm.core.lib import skinDat as SKINDAT
+from cgm.core.classes import NameFactory as nFactory
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger import TemplateFactory as tFactory
@@ -29,6 +30,7 @@ from cgm.core.rigger.lib import morpheus_sharedData as MORPHYDATA
 reload(MORPHYDATA)
 
 import morpheusRig_v2.assets.gui as mGUIFolder
+import morpheusRig_v2.assets.skinData as mSKINDATFolder
 
 from cgm.lib import (curves,
                      deformers,
@@ -525,18 +527,23 @@ d_geoStoreKeyToGeoGroups = {'tongue':'tongueGeoGroup',
                             'eyeRight':'right_eyeGeoGroup',
                             'body':'bodyGeoGroup'}
 
-#List of priorities of tags to look for joint data for
-d_geoGroupTagToSkinClusterTag = {'tongue':['tongue','jaw','head'],
-                                 'unified':['bodyWithLids'],
+#List of tags for skinning
+d_geoGroupTagToSkinClusterTag = {'tongue':['tongue'],
+                                 'unified':['bodyWithLids','eyeOrbLeft','eyeOrbRight'],
                                  'teethUpr':['teethUpr'],
                                  'teethLwr':['teethLwr'],
-                                 'eyebrow':['eyebrow','uprHead','head'],
-                                 'earLeft':['earLeft','uprHead','head'],
-                                 'earRight':['earRight','uprHead','head'],
-                                 'eyeLeft':['eyeballLeft','uprHead','head'],
-                                 'eyeRight':['eyeballRight','uprHead','head'],
-                                 'body':['bodyWithLids'],
-                                 'head':['bodyWithLids']}
+                                 'earLeft':['head'],
+                                 'earRight':['head'],
+                                 'eyeLeft':['eyeballLeft'],
+                                 'eyeRight':['eyeballRight'],
+                                 'body':['bodyWithLids','eyeOrbLeft','eyeOrbRight'],
+                                 'head':['bodyWithLids','eyeOrbLeft','eyeOrbRight']}
+
+d_geoGroupToWrapTag = {'eyebrow':'head'}
+
+d_geoGroupTagToSkinData = {'tongue':'M1_tongue',
+                           'body':'M1_body',
+                           'head':'M1_head'}
 
 class MorpheusNetworkFunc(cgmGeneral.cgmFuncCls):
     def __init__(self,*args,**kws):
@@ -882,34 +889,60 @@ def puppet_verifyGeoDeformation(*args,**kws):
                         __ml_skinJoints = False
                         l_geo = self.d_puppetGeo.get('d_geoTargets')[str_key]
                         if l_geo:
-                            try:l_skinKeyBuffer = d_geoGroupTagToSkinClusterTag[str_key]
-                            except Exception,error:raise Exception,"Skin key list fail | {0}".format(str_key)
-                            self.log_info("...looking to skin to one of {0}".format(l_skinKeyBuffer))
-                            for k in l_skinKeyBuffer:
-                                buffer = self._d_skinBindDict.get(k)
-                                if buffer:
-                                    self.log_info("found skin joints on key: {0} | cnt : {1}".format(k,len(buffer)))
-                                    __ml_skinJoints = buffer
-                                    break			    
-                            for mObj in l_geo:
-                                try:
-                                    str_shortName = mObj.p_nameShort			    
-                                    self.log_info("'{0}' | Checking: '{1}'".format(str_key,str_shortName))			    
-                                    if deformers.isSkinned(mObj.mNode):
-                                        self.log_info("... is skinned")
+                            if str_key in d_geoGroupTagToSkinClusterTag.keys():
+                                l_skinKeyBuffer = d_geoGroupTagToSkinClusterTag[str_key]
+                                self.log_debug("...looking to skin to one of {0}".format(l_skinKeyBuffer))
+                                __ml_skinJoints = []                            
+                                for k in l_skinKeyBuffer:
+                                    buffer = self._d_skinBindDict.get(k)
+                                    if buffer:
+                                        self.log_debug("found skin joints on key: {0} | cnt : {1}".format(k,len(buffer)))
+                                        __ml_skinJoints.extend(buffer)   
                                     else:
-                                        if not __ml_skinJoints:
-                                            raise ValueError,"No skin joints found"
-                                        self.log_info("Skinning: '{0}'".format(mObj))
-                                        toBind = [mJnt.mNode for mJnt in __ml_skinJoints] + [mObj.mNode]
-                                        skin = mc.skinCluster(toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
-                                        mi_skin = cgmMeta.cgmNode(skin[0])
-                                        mi_skin.doStore('cgmName',mObj.mNode)					
-                                        #mi_skin.doCopyNameTagsFromObject(mObj.mNode,ignore=['cgmTypeModifier','cgmType'])
-                                        mi_skin.addAttr('mClass','cgmNode',attrType='string',lock=True)
-                                        mi_skin.doName()
-                                except Exception,error:
-                                    raise Exception,"mObj fail {0} | {1}".format(mObj,error)
+                                        self.log_error("No skin joints on key: {0} ".format(k))                                    		    
+                                for mObj in l_geo:
+                                    try:
+                                        str_shortName = mObj.p_nameShort			    
+                                        self.log_debug("'{0}' | Checking: '{1}'".format(str_key,str_shortName))			    
+                                        if deformers.isSkinned(mObj.mNode):
+                                            self.log_info("... is skinned")
+                                        else:
+                                            if not __ml_skinJoints:
+                                                raise ValueError,"No skin joints found"
+                                            self.log_info("Skinning: '{0}'".format(mObj))
+                                            toBind = [mJnt.mNode for mJnt in __ml_skinJoints] + [mObj.mNode]
+                                            skin = mc.skinCluster(toBind, tsb = True, normalizeWeights = True, mi = 4, dr = 5)
+                                            mi_skin = cgmMeta.cgmNode(skin[0])
+                                            mi_skin.doStore('cgmName',mObj.mNode)					
+                                            #mi_skin.doCopyNameTagsFromObject(mObj.mNode,ignore=['cgmTypeModifier','cgmType'])
+                                            mi_skin.addAttr('mClass','cgmNode',attrType='string',lock=True)
+                                            mi_skin.doName()
+                                            
+                                        try:#Bring in skin data
+                                            _bfr = d_geoGroupTagToSkinData.get(str_key,False)
+                                            if _bfr:
+                                                mFile = cgmOS_UTILS.DIR_SEPARATOR.join([mSKINDATFolder.__pathHere__  ,'{0}.cfg'.format(_bfr)])                                                  
+                                                self.log_info(mFile)
+                                                SKINDAT.data(targetMesh = mObj.mNode, filepath=mFile).applySkin(influenceMode = 'target', nameMatch = True)
+                                        except Exception,error:
+                                            raise Exception,"SkinDat fail | {0}".format(error)
+                                    except Exception,error:
+                                        raise Exception,"mObj fail {0} | {1}".format(mObj.mNode,error)
+                            elif str_key in d_geoGroupToWrapTag.keys():
+                                _tagKey = d_geoGroupToWrapTag[str_key]
+                                _wrapTo = False
+                                if _tagKey == 'head':
+                                    _wrapTo = cgmMeta.validateObjArg( mi_puppet.masterNull.geoGroup.getMessage('geo_baseHead'))
+
+                                if _wrapTo:
+                                    for mObj in l_geo:
+                                        if deformers.returnObjectDeformers(mObj.mNode,'wrap'):
+                                            self.log_info("... is wrapped")
+                                        else:
+                                            _wrap = deformers.wrapDeformObject(mObj.mNode,
+                                                                               _wrapTo.mNode)
+                            else:
+                                raise Exception,"Skin key list fail | {0}".format(str_key)                            
                     except Exception,error:
                         raise Exception,"key {0} | {1}".format(str_key,error)
             except Exception,error:raise Exception,"Geo Skinning | {0}".format(error)	    
@@ -1954,6 +1987,8 @@ def puppet_importFaceSetup(*args,**kws):
                 #print self.d_importedStuff[k]['mObj']
                 if self.d_importedStuff[k].get('connectTo') == 'moduleAdd':
                     self.d_importedStuff[k]['mObj'].doSetParentModule(self._mi_neckHead.mNode)
+                    self._mi_puppet.gatherModules()#...do this before verifying Object Set                    
+                    self.d_importedStuff[k]['mObj'].__verifyObjectSet__()
                 elif self.d_importedStuff[k].get('connectTo'):
                     self.d_importedStuff[k]['mObj'].connectParentNode(self._mi_puppet,'puppet',k)
                     

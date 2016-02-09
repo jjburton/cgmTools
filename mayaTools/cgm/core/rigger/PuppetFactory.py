@@ -248,7 +248,7 @@ def gatherModules(*args,**kws):
                 _str_module = mModule.p_nameShort
                 self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)		    				    				
                 try:self._mi_puppet.connectModule(mModule,**kws)
-                except Exception,error:raise StandardError,"[mModule : %s]{%s}"%(_str_module,error)	
+                except Exception,error:raise Exception,"[mModule : %s]{%s}"%(_str_module,error)	
     return fncWrap(*args,**kws).go()
 
 def getModuleFromDict(*args,**kws):
@@ -982,7 +982,11 @@ def get_jointsBindDict(*args,**kws):
                                     'jaw':{'isModule':'mouthNose',
                                                 'hasAttrs':{'cgmName':'jaw'}},                                    
                                     'teethLwr':{'isModule':'mouthNose',
-                                                'hasAttrs':{'cgmName':'teeth','cgmPosition':'lower'}},                                                
+                                                'hasAttrs':{'cgmName':'teeth','cgmPosition':'lower'}},
+                                    'eyeOrbLeft':{'isModule':'eyeball',
+                                                 'hasAttrs':{'cgmName':'eyeOrb','cgmDirection':'left'}},
+                                    'eyeOrbRight':{'isModule':'eyeball',
+                                                   'hasAttrs':{'cgmName':'eyeOrb','cgmDirection':'right'}},                                      
                                     'tongue':{'isModule':'mouthNose',
                                               'hasAttrs':{'cgmName':'tongue'}}}   
     '''
