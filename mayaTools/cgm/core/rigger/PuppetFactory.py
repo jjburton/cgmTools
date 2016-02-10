@@ -549,7 +549,7 @@ def mirrorSetup_verify(*args,**kws):
                                 {'step':'Module data','call':self._moduleData_},
                                 {'step':'Process','call':self._process}]
 
-            self._str_funcName = "mirrorSetup_verify('{0}',mode = '{1}')".format(self._mi_puppet.cgmName,self.d_kws.get('mode',None))		    	    
+            #self._str_funcName = "mirrorSetup_verify('{0}',mode = '{1}')".format(self._mi_puppet.cgmName,self.d_kws.get('mode',None))		    	    
             self.__updateFuncStrings__()
 
         def _verifyData(self):
@@ -566,8 +566,10 @@ def mirrorSetup_verify(*args,**kws):
 
             self.md_data = {}
             self.ml_modules = getOrderedModules(self._mi_puppet)
-
-            self.d_runningSideIdxes = {}
+            self.ml_noMatch = []
+            self.d_runningSideIdxes = {'Centre':[0],
+                                       'Left':[0],
+                                       'Right':[0]}
 
         def _moduleData_(self):
             ml_modules = self.ml_modules
@@ -586,8 +588,8 @@ def mirrorSetup_verify(*args,**kws):
 
                     if _d['str_side'] not in self.d_runningSideIdxes.keys():
                         self.d_runningSideIdxes[_d['str_side']] = [0]
-                    self.log_infoDict(_d,_str_module)
-                self.log_infoDict(self.d_runningSideIdxes,"Side idxs")
+                    #self.log_infoDict(_d,_str_module)
+                #self.log_infoDict(self.d_runningSideIdxes,"Side idxs")
             except Exception,error:raise Exception,"Control Gather fail | error: {0}".format(error)
 
         def _process(self):
@@ -597,75 +599,198 @@ def mirrorSetup_verify(*args,**kws):
             3) see if has a mirror
             4) register 
             """
-            ml_cull = copy.copy(self.ml_modules)
+            ml_processed = []
 
-            while ml_cull:
-                for mModule in ml_cull:		
-                    try:#>>>Controls map
-                        self.log_info("On: {0}".format(mModule.p_nameShort))
+            #for our first loop, we're gonna create our cull dict of sides of data to then match 
+            for mModule in self.ml_modules:		
+                try:#>>>Controls map
+                    #self.log_info("On: {0}".format(mModule.p_nameShort))
+                    if mModule in ml_processed:
+                        #self.log_info("Already processed: {0}".format(mModule.p_nameShort))
+                        continue       
+                    
+                    try:md_buffer = self.md_data[mModule.mNode]#...get the modules dict
+                    except Exception,error:raise Exception,"metaDict query | error: {0}".format(error)
 
-                        try:md_buffer = self.md_data[mModule.mNode]#...get the modules dict
-                        except Exception,error:raise Exception,"metaDict query | error: {0}".format(error)
+                    ml_modulesToDo = [mModule]#...append
+                    mi_mirror = md_buffer.get('mi_mirror',False)
+                    if mi_mirror:
+                        try:
+                            try:md_mirror = self.md_data[mi_mirror.mNode]
+                            except Exception,error:raise Exception,"Failed to pull mirror from metaDict | {0}".format(error)			    
+                            int_controls = len(md_buffer['ml_controls'])
+                            int_mirrorControls = len(self.md_data[mi_mirror.mNode]['ml_controls'])
+                            if int_controls != int_mirrorControls:
+                                raise ValueError,"Control lengths of mirrors do not match | mModule: {0} | mMirror: {1}".format(md_buffer['str_name'],md_mirror['str_name'])
+                            
+                            ml_modulesToDo.append(mi_mirror)#...append if we have it
+                        except Exception,error:raise Exception,"mirror check fail | error: {0}".format(error)
 
-                        ml_modulesToDo = [mModule]#...append
-                        mi_mirror = md_buffer.get('mi_mirror') or False
+                    md_culling_controlLists = {'Centre':[],
+                                                'Left':[],
+                                                'Right':[]}
+                    
+                    for mi_module in ml_modulesToDo:
+                        #self.log_info("Sub on: {0}".format(mi_module.p_nameShort))	                        
+                        try:
+                            try:md_buffer = self.md_data[mi_module.mNode]#...get the modules dict	
+                            except Exception,error:raise Exception,"metaDict query | error: {0}".format(error)
 
-                        if mi_mirror:
-                            try:
-                                try:md_mirror = self.md_data[mi_mirror.mNode]
-                                except Exception,error:raise Exception,"Failed to pull mirror from metaDict | {0}".format(error)			    
-                                int_controls = len(md_buffer['ml_controls'])
-                                int_mirrorControls = len(self.md_data[mi_mirror.mNode]['ml_controls'])
-                                if int_controls != int_mirrorControls:
-                                    raise ValueError,"Control lengths of mirrors do not match | mModule: {0} | mMirror: {1}".format(md_buffer['str_name'],md_mirror['str_name'])
-                                ml_modulesToDo.append(mi_mirror)#...append if we have it
+                            #int_idxStart = max(self.d_runningSideIdxes[str_mirrorSide])
+                            #int_idxRunning = int_idxStart + 1
+                            #self.log_info("mModule: {0} | starting mirror index: {1}".format(md_buffer['str_name'],int_idxStart))
 
-                            except Exception,error:raise Exception,"mirror check fail | error: {0}".format(error)
-
-                        for mi_module in ml_modulesToDo:
-                            self.log_debug("Sub on: {0}".format(mi_module.p_nameShort))	
-
-                            try:
-                                try:md_buffer = self.md_data[mi_module.mNode]#...get the modules dict	
-                                except Exception,error:raise Exception,"metaDict query | error: {0}".format(error)
-
-                                ml_cull.remove(mi_module)#...remove this one as being processed
-                                str_mirrorSide = md_buffer['str_side']
-                                int_idxStart = max(self.d_runningSideIdxes[str_mirrorSide])
-                                int_idxRunning = int_idxStart + 1
-                                self.log_info("mModule: {0} | starting mirror index: {1}".format(md_buffer['str_name'],int_idxStart))
-
-                                self.progressBar_set(status = "Verifying '{0}' ".format(md_buffer['str_name']),progress = len(ml_cull), maxValue = self.int_lenModules)		    				    
-
-                                for i,mObj in enumerate(md_buffer['ml_controls']):
-                                    try:
-                                        mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)
-                                        md_buffer[i] = mObj#...push back
-
-                                        try:mObj._verifyMirrorable()
-                                        except Exception,error:raise StandardError,"_mirrorSetup | {0}".format(error)
-
-                                        l_enum = cgmMeta.cgmAttr(mObj,'mirrorSide').p_enum
-                                        if str_mirrorSide in l_enum:
-                                            log.debug("%s >> %s >> found in : %s"%(self._str_funcCombined, "mirrorSetup", l_enum))		
-                                            try:
-                                                if not cgmMeta.cgmAttr(mObj,'mirrorSide').getDriver():
-                                                    mObj.mirrorSide = l_enum.index(str_mirrorSide)
-                                                    self.log_debug("mirrorSide set to: %s"%(mObj.mirrorSide))						    
-                                            except Exception,error:raise StandardError,"str_mirrorSide : %s | %s"%(str_mirrorSide,error)
-                                        if not mObj.getMayaAttr('mirrorAxis'):
-                                            mObj.mirrorAxis = 'translateX,rotateZ,rotateY'
-                                            #log.debug("str_mirrorAxis set: %s"%(str_mirrorAxis))				    					    
-                                        mObj.mirrorIndex = int_idxRunning
-                                        #attributes.doSetAttr(mObj.mNode,'mirrorSide',l_enum.index(str_mirrorSide))
-                                        attributes.doSetAttr(mObj.mNode,'mirrorIndex',int_idxRunning)
+                            self.progressBar_set(status = "Verifying '{0}' ".format(md_buffer['str_name']),progress = len(ml_processed), maxValue = self.int_lenModules)		    				    
+                            #str_mirrorSide = (md_buffer['str_side'])                                    
+                            str_mirrorSide = cgmGeneral.verify_mirrorSideArg(mi_module.getMayaAttr('cgmDirection') or 'center')
+                            #self.log_info("module: {0} | str_mirrorSide: {1}".format(mi_module.p_nameShort,str_mirrorSide))
+                            for i,mObj in enumerate(md_buffer['ml_controls']):
+                                try:
+                                    #make sure it's a control
+                                    mObj = cgmMeta.asMeta(mObj,'cgmControl')#,setClass = True
+                                    md_buffer[i] = mObj#...push back
+                                    
+                                    #before doing anything...see if we have a mirrorSide value on this object already
+                                    #str_mirrorSide_obj = False                                    
+                                    #if mObj.hasAttr('mirrorSide'):
+                                        #str_mirrorSide_obj = mObj.getEnumValueString('mirrorSide')
+                                        #if str_mirrorSide_obj != str_mirrorSide:
+                                            #self.log_info("{0} has differnt mirrorSide value than module".format(mObj.p_nameShort))
                                         
-                                        int_idxRunning += 1
-                                        self.d_runningSideIdxes[str_mirrorSide].append(int_idxRunning)					
-                                    except Exception,error:raise Exception,"'{0}' fail | error: {1}".format(mObj.p_nameShort,error)
-                            except Exception,error:raise Exception,"{0} fail | error: {1}".format(mi_module.p_nameShort,error)	
-                    except Exception,error:raise Exception,"'{0}' fail | error: {1}".format(self.md_data[mModule.mNode]['str_name'],error)
+                                    try:mObj._verifyMirrorable()#...veryify the mirrorsetup
+                                    except Exception,error:raise Exception,"_mirrorSetup | {0}".format(error)
+                                    
+                                    _mirrorSideFromCGMDirection = cgmGeneral.verify_mirrorSideArg(mObj.getMayaAttr('cgmDirection'))
+                                    _mirrorSideCurrent = cgmGeneral.verify_mirrorSideArg(mObj.getEnumValueString('mirrorSide'))
+                                    #self.log_info("_mirrorSideFromCGMDirection: {0} ".format(_mirrorSideFromCGMDirection))
+                                    #self.log_info("_mirrorSideCurrent: {0}".format(_mirrorSideCurrent))
+                                    
+                                    _setMirrorSide = False
+                                    if _mirrorSideFromCGMDirection:
+                                        if _mirrorSideFromCGMDirection != _mirrorSideCurrent:
+                                            self.log_info("{0}'s cgmDirection ({1}) is not it's mirror side({2}). Resolving...".format(mObj.p_nameShort,_mirrorSideFromCGMDirection,_mirrorSideCurrent))
+                                            _setMirrorSide = _mirrorSideFromCGMDirection                                            
+                                    else:
+                                        _setMirrorSide = str_mirrorSide
+                                        
+                                    if _setMirrorSide:
+                                        try:
+                                            if not cgmMeta.cgmAttr(mObj,'mirrorSide').getDriver():
+                                                mObj.mirrorSide = _setMirrorSide
+                                                #self.log_info("{0} mirrorSide set to: {1}".format(mObj.p_nameShort,_setMirrorSide))
+                                            else:
+                                                pass
+                                                #self.log_info("{0} mirrorSide driven".format(mObj.p_nameShort))
+                                        except Exception,error:raise Exception,"_setMirrorSide : %s | %s"%(_setMirrorSide,error)
+                                       
+                                    #append the control to our lists to process                                    
+                                    md_culling_controlLists[mObj.getEnumValueString('mirrorSide')].append(mObj)
+                                        #mObj.mirrorIndex = int_idxRunning
+                                    #else:
+                                        #mObj.mirrorIndex = max(self.d_runningSideIdxes[str_mirrorSide_obj]) + 1
+                                    
+                                    #if not mObj.getMayaAttr('mirrorAxis'):
+                                        #mObj.mirrorAxis = 'translateX,rotateZ,rotateY'
+                                        #log.info("str_mirrorAxis set: %s"%('translateX,rotateZ,rotateY'))	
+                                        
+                                    #attributes.doSetAttr(mObj.mNode,'mirrorSide',l_enum.index(str_mirrorSide))
+                                    #attributes.doSetAttr(mObj.mNode,'mirrorIndex',int_idxRunning)
+                                    
+                                    #int_idxRunning += 1
+                                    #self.d_runningSideIdxes[str_mirrorSide].append(int_idxRunning)					
+                                except Exception,error:raise Exception,"'{0}' fail | error: {1}".format(mObj.p_nameShort,error)
+                                
+                        except Exception,error:raise Exception,"{0} fail | error: {1}".format(mi_module.p_nameShort,error)	
+                        ml_processed.append(mi_module)#...append
+                    
+                    #...Map...
+                    _d_mapping = {'Centre':{'ml':md_culling_controlLists['Centre'],
+                                            'startIdx':max(self.d_runningSideIdxes['Centre'])+1},
+                                  'Sides':{'Left':{'ml':md_culling_controlLists['Left'],
+                                                   'startIdx':max(self.d_runningSideIdxes['Left'])+1},
+                                           'Right':{'ml':md_culling_controlLists['Right'],
+                                                   'startIdx':max(self.d_runningSideIdxes['Right'])+1}}}                                            
+                    for key,_d in _d_mapping.iteritems():
+                        if key is 'Centre':
+                            int_idxRunning = _d['startIdx']
+                            _ml = _d['ml']
+                            for mObj in _ml:
+                                self.log_info("'{0}' idx:{1}".format(mObj.p_nameShort,int_idxRunning))
+                                attributes.doSetAttr(mObj.mNode,'mirrorIndex',int_idxRunning)
+                                self.d_runningSideIdxes['Centre'].append(int_idxRunning)
+                                int_idxRunning+=1
+                        else:
+                            _ml_left = _d['Left']['ml']
+                            _ml_right = _d['Right']['ml']
+                            _ml_left_cull = copy.copy(_ml_left)
+                            _ml_right_cull = copy.copy(_ml_right)                            
+                            int_idxRun_left = _d['Left']['startIdx']
+                            int_idxRun_right = _d['Right']['startIdx']
+                            _md_tags_l = {}
+                            _md_tags_r = {}
+                            for mObj in _ml_left:
+                                _md_tags_l[mObj] = mObj.getCGMNameTags(['cgmDirection'])
+                            for mObj in _ml_right:
+                                _md_tags_r[mObj] = mObj.getCGMNameTags(['cgmDirection'])
+                                
+                            for mObj in _ml_left:
+                                #See if we can find a match
+                                _match = []
+                                l_tags = _md_tags_l[mObj]
+                                for mObj2, r_tags in _md_tags_r.iteritems():#first try to match by tags
+                                    if l_tags == r_tags:
+                                        _match.append(mObj2)
+                                        
+                                if not _match:
+                                    #Match by name
+                                    _str_l_nameBase = str(mObj.p_nameBase)
+                                    if _str_l_nameBase.startswith('l_'):
+                                        _lookfor = 'r_' + ''.join(_str_l_nameBase.split('l_')[1:])
+                                        self.log_info("Startwith check. Looking for {0}".format(_lookfor))                                        
+                                        for mObj2 in _ml_right:
+                                            if str(mObj2.p_nameBase) == _lookfor:
+                                                _match.append(mObj2)
+                                                self.log_info("Found startswithNameMatch: {0}".format(_lookfor))
+                                    elif _str_l_nameBase.count('left'):
+                                        _lookfor = _str_l_nameBase.replace('left','right')
+                                        self.log_info("Contains 'left' check. Looking for {0}".format(_lookfor))                                                                                                                        
+                                        for mObj2 in _ml_right:
+                                            if str(mObj2.p_nameBase) == _lookfor:
+                                                _match.append(mObj2)
+                                                self.log_info("Found contains 'left name match: {0}".format(_lookfor))                                        
+                                if len(_match) == 1:
+                                    while int_idxRun_left in self.d_runningSideIdxes['Left'] or int_idxRun_right in self.d_runningSideIdxes['Right']:
+                                        self.log_info("Finding available indexes...")
+                                        int_idxRun_left+=1
+                                        int_idxRun_right+=1
+                                        
+                                    attributes.doSetAttr(mObj.mNode,'mirrorIndex',int_idxRun_left)
+                                    attributes.doSetAttr(_match[0].mNode,'mirrorIndex',int_idxRun_right)                                    
+                                    self.d_runningSideIdxes['Left'].append(int_idxRun_left)
+                                    self.d_runningSideIdxes['Right'].append(int_idxRun_right)
+                                    _ml_left_cull.remove(mObj)
+                                    _ml_right_cull.remove(_match[0])
+                                    self.log_info("'{0}' idx:{1} <---Match--> '{2}' idx:{3}".format(mObj.p_nameShort,int_idxRun_left,_match[0].p_nameShort,int_idxRun_right))
+                                elif len(_match)>1:
+                                    raise ValueError,"Too many matches! mObj:{0} | Matches:{1}".format(mObj.p_nameShort,[mObj2.p_nameShort for mObj2 in _match])
+                            for mObj in _ml_left_cull + _ml_right_cull:
+                                self.ml_noMatch.append(mObj)
+                                #self.log_info("NO MATCH >>>> mObj:'{0}' NO MATCH".format(mObj.p_nameShort))
+                    #_l_centre = md_culling_controlLists['Centre']
+                    #_l_right = md_culling_controlLists['Left']
+                    #_l_left = md_culling_controlLists['Right']
+                    #Centre
+                    #int_idxStart = max(self.d_runningSideIdxes['Centre'])
+                    #int_idxStart = max(self.d_runningSideIdxes[str_mirrorSide])
+                    #int_idxRunning = int_idxStart + 1                    
+                    
+                    
+                    #self.log_infoDict(md_culling_controlLists, "Culling lists")                        
+                    #for k in md_culling_controlLists.keys():
+                except Exception,error:raise Exception,"'{0}' fail | error: {1}".format(self.md_data[mModule.mNode]['str_name'],error)
 
+            for mObj in self.ml_noMatch:
+                self.log_info("NO MATCH >>>> mObj:'{0}' NO MATCH".format(mObj.p_nameShort))
             return True
     return fncWrap(*args,**kws).go()
 

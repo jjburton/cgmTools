@@ -1946,7 +1946,9 @@ def get_controls(*args,**kws):
                                         ml_controlObjects.append(buffer)
                             except Exception,error: raise Exception,"Pivot check | error: {0}".format(error)
                 elif str_mode == 'anim':
-                    try:ml_controlObjects = mi_module.rigNull.moduleSet.getMetaList()
+                    try:
+                        #ml_controlObjects = mi_module.rigNull.moduleSet.getMetaList()
+                        ml_controlObjects = mi_module.rigNull.msgList_get('controlsAll')
                     except:
                         self.log_error("No controls found.")
                         self.log_error("Rig Status: {0}".format(mi_module.isRigged()))

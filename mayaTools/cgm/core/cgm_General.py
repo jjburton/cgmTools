@@ -755,12 +755,15 @@ def verify_mirrorSideArg(*args,**kws):
 		self.log_error("str_side cannot be None")
 		return False
 	    try:
+		arg = str(arg)
 		if arg.lower() in ['right','left']:
 		    return arg.capitalize()
 		elif arg.lower() in ['center','centre']:
 		    return 'Centre'
-		else:raise StandardError,"Failed to find match"
-	    except Exception,error:raise StandardError,"[ str_side: %s]{%s}"%(arg,error)	
+		else:
+		    return False
+		    #raise Exception,"Failed to find match"
+	    except Exception,error:raise Exception,"[ str_side: %s]{%s}"%(arg,error)	
     return fncWrap(*args,**kws).go()	
 
 def get_mayaEnviornmentDict():

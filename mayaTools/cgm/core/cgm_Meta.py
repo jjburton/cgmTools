@@ -1305,13 +1305,14 @@ class cgmNode(r9Meta.MetaClass):
 	    #attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
 	self.__dict__['__name__'] = self.getShortName()
 	
-    def getCGMNameTags(self):
+    def getCGMNameTags(self,ignore=[False]):
         """
         Get the cgm name tags of an object.
         """
         self.cgm = {}
         for tag in l_cgmNameTags:
-            self.cgm[tag] = search.findRawTagInfo(self.mNode,tag)
+	    if tag not in ignore:
+		self.cgm[tag] = search.findRawTagInfo(self.mNode,tag)
         return self.cgm    
         
     def getAttrs(self,**kws):
