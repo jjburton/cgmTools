@@ -51,9 +51,6 @@ reload(distance)
 #===================================================================
 def duplicateJointInPlace(joint, asMeta = True):
     """
-    Rewrite to get around using mc.duplicate which gets exceedingly slow as a scene gets more dense. 
-    Note - no connections are transferred!
-
     :parameters:
         joint | str/instance
             Joint to duplicate
@@ -70,11 +67,11 @@ def duplicateJointInPlace(joint, asMeta = True):
     try:
 	mJoint = cgmMeta.validateObjArg(joint, mayaType = 'joint', mType = 'cgmObject')    
 	
-	dup = mc.joint()
-	mDup = cgmMeta.cgmObject(dup)
+	#dup = mc.joint()
+	mDup = mJoint.doDuplicate(parentOnly=True)
 	
-	mDup.parent = mJoint.parent 
-	mc.delete(mc.parentConstraint(mJoint.mNode,mDup.mNode))
+	#mDup.parent = mJoint.parent 
+	#mc.delete(mc.parentConstraint(mJoint.mNode,mDup.mNode))
 	'''
 	('rotateOrder','rotateAxisX','rotateAxisY','rotateAxisZ',
 	'inheritsTransform','drawStyle','radius',
@@ -309,11 +306,11 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
 	    log.debug("%s.add_defHelpJoints >> helper exists, no force new : '%s'"%(mi_targetJoint.p_nameShort,i_matchJnt.p_nameShort))	    	    
 	    ml_dynDefHelpJoints.remove(i_matchJnt)	    
 	    mc.delete(i_matchJnt.mNode)
-	    
 	else:
 	    log.debug("%s.add_defHelpJoints >> helper exists, no force new : '%s'"%(mi_targetJoint.p_nameShort,i_matchJnt.p_nameShort))	    
 	    
     if not i_matchJnt:
+	log.debug("No match joint")
 	#i_dupJnt = mi_targetJoint.doDuplicate(incomingConnections = False)#Duplicate
 	i_dupJnt= duplicateJointInPlace(mi_targetJoint)
 	
@@ -440,7 +437,7 @@ def setup_defHelpJoint(targetJoint,orientation = 'zyx'):
 	mi_posLoc.parent = mi_helperJoint.mNode#Parent loc to i_dup to make sure we're in same space
 	
 	f_baseUpTransValue = mi_helperJoint.getAttr("t%s"%(orientation[1]))
-	f_sdkUpTransValue = mi_targetJoint.getAttr("t%s"%(orientation[0])) * -.25
+	f_sdkUpTransValue = mi_targetJoint.getAttr("t%s"%(orientation[0])) * -.05
 	
 	f_baseAimTransValue = mi_helperJoint.getAttr("t%s"%(orientation[0]))
 	f_sdkAimTransValue = mi_targetJoint.getAttr("t%s"%(orientation[0])) * -.25	
