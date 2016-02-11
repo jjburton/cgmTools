@@ -342,7 +342,7 @@ def build_controls(goInstance = None):
 
             for i,i_obj in enumerate(ml_controlsFK):
                 d_buffer = mControlFactory.registerControl(i_obj,shapeParentTo=ml_fkJoints[i],
-                                                           mirrorSide=self._go._str_mirrorDirection, mirrorAxis="",		                                           
+                                                           mirrorSide=self._go._str_mirrorDirection, mirrorAxis="translateX",		                                           
                                                            makeAimable=True,typeModifier='fk',) 	    
 
                 i_obj = d_buffer['instance']
@@ -415,6 +415,7 @@ def build_controls(goInstance = None):
                 ml_controlChain =[]
                 for i_obj in chain:
                     d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,typeModifier='segIK',
+                                                               mirrorSide=self._go._str_mirrorDirection,mirrorAxis="translateX, rotateY, rotateZ",
                                                                setRotateOrder=2)       
                     i_obj = d_buffer['instance']
                     i_obj.masterGroup.parent = self._go._i_constrainNull.mNode

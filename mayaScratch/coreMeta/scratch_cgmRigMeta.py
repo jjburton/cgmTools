@@ -18,7 +18,7 @@ orientation[1]
 
 #>>>cgmControl
 obj = 'hips_controlCurve'
-i_c = cgmMeta.cgmControl(obj,setClass=True)
+i_c = cgmMeta.asMeta(obj,'cgmControl',setClass=True)
 
 cgmRigMeta.log.setLevel(cgmRigMeta.logging.INFO)
 cgmRigMeta.log.setLevel(cgmRigMeta.logging.DEBUG)

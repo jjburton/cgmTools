@@ -395,7 +395,7 @@ def build_controls(goInstance = None):
 			
 		for i,i_obj in enumerate(ml_controlsFK):
 		    d_buffer = mControlFactory.registerControl(i_obj,shapeParentTo=ml_fkJoints[i],setRotateOrder=3,
-		                                               mirrorSide=self._go._str_mirrorDirection, mirrorAxis="",		                                           		                                               
+		                                               mirrorSide=self._go._str_mirrorDirection, mirrorAxis="translateX",		                                           		                                               
 			                                       makeAimable=True,typeModifier='fk',) 	    
 		    
 		    i_obj = d_buffer['instance']

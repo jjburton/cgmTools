@@ -63,20 +63,20 @@ def __bindSkeletonSetup__(self):
     try:
 	if not self._cgmClass == 'JointFactory.go':
 	    log.error("Not a JointFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
+	    raise Exception
+    except Exception,error:
 	log.error("clavicle.__bindSkeletonSetup__>>bad self!")
-	raise StandardError,error
+	raise Exception,error
 
     #>>> Re parent joints
     #=============================================================  
     #ml_skinJoints = self.rig_getSkinJoints() or []
     if not self._mi_module.isSkeletonized():
-	raise StandardError, "%s is not skeletonized yet."%self._strShortName
+	raise Exception, "%s is not skeletonized yet."%self._strShortName
     try:pass
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_clavicle>>__bindSkeletonSetup__ fail!")
-	raise StandardError,error   
+	raise Exception,error   
     '''
 def build_rigSkeleton(goInstance = None):
     class fncWrap(modUtils.rigStep):
@@ -107,7 +107,7 @@ def build_rigSkeleton(goInstance = None):
             ml_fkJoints = []
             for i,i_ctrl in enumerate(self._go._i_templateNull.msgList_get('controlObjects')):
                 if not i_ctrl.getMessage('handleJoint'):
-                    raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._go._mi_module.getShortName(),i_ctrl.getShortName())
+                    raise Exception,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._go._mi_module.getShortName(),i_ctrl.getShortName())
                 i_new = cgmMeta.cgmObject((i_ctrl.getMessage('handleJoint')[0])).doDuplicate()
                 i_new.addAttr('cgmTypeModifier','fk',attrType='string',lock=True)
                 i_new.doName()
@@ -168,9 +168,9 @@ def build_shapes(goInstance = None):
 
         def verify(self):
             if self._go._i_templateNull.handles > 2:
-                raise StandardError, "Too many handles. don't know how to rig"
+                raise Exception, "Too many handles. don't know how to rig"
             if not self._go.isRigSkeletonized():
-                raise StandardError, "Must be rig skeletonized to shape"
+                raise Exception, "Must be rig skeletonized to shape"
 
         def build_shapes(self):
             l_toBuild = ['clavicle']
@@ -197,7 +197,7 @@ def build_controls(goInstance = None):
             self.ml_fkJoints = cgmMeta.validateObjListArg(self._go._i_rigNull.msgList_getMessage('fkJoints'),cgmMeta.cgmObject,noneValid=False)
 
             if len(  self.ml_controlsFK  ) != 1:
-                raise StandardError,"Must have at least one fk control"
+                raise Exception,"Must have at least one fk control"
 
             self.ml_controlsAll = []
 
@@ -222,7 +222,7 @@ def build_controls(goInstance = None):
             log.info(" %s controlFK : %s"%(self._str_reportStart,ml_fkJoints[0].p_nameShort))	    
             try:
                 d_buffer = mControlFactory.registerControl(i_obj.mNode,shapeParentTo=ml_fkJoints[0].mNode,
-                                                           mirrorSide=self._go._str_mirrorDirection, mirrorAxis="",		                                           
+                                                           mirrorSide=self._go._str_mirrorDirection, mirrorAxis="translateX",		                                           
                                                            makeAimable=True,typeModifier='fk') 
             except Exception,error: raise Exception,"Register control | %s"%error
 

@@ -670,7 +670,7 @@ def mirrorSetup_verify(*args,**kws):
                                         if _mirrorSideFromCGMDirection != _mirrorSideCurrent:
                                             self.log_info("{0}'s cgmDirection ({1}) is not it's mirror side({2}). Resolving...".format(mObj.p_nameShort,_mirrorSideFromCGMDirection,_mirrorSideCurrent))
                                             _setMirrorSide = _mirrorSideFromCGMDirection                                            
-                                    else:
+                                    elif not _mirrorSideCurrent:
                                         _setMirrorSide = str_mirrorSide
                                         
                                     if _setMirrorSide:
@@ -703,6 +703,7 @@ def mirrorSetup_verify(*args,**kws):
                         except Exception,error:raise Exception,"{0} fail | error: {1}".format(mi_module.p_nameShort,error)	
                         ml_processed.append(mi_module)#...append
                     
+                    self.log_infoDict(md_culling_controlLists, "Culling lists")                        
                     #...Map...
                     _d_mapping = {'Centre':{'ml':md_culling_controlLists['Centre'],
                                             'startIdx':max(self.d_runningSideIdxes['Centre'])+1},
@@ -760,7 +761,7 @@ def mirrorSetup_verify(*args,**kws):
                                                 self.log_info("Found contains 'left name match: {0}".format(_lookfor))                                        
                                 if len(_match) == 1:
                                     while int_idxRun_left in self.d_runningSideIdxes['Left'] or int_idxRun_right in self.d_runningSideIdxes['Right']:
-                                        self.log_info("Finding available indexes...")
+                                        #self.log_info("Finding available indexes...")
                                         int_idxRun_left+=1
                                         int_idxRun_right+=1
                                         
@@ -784,13 +785,11 @@ def mirrorSetup_verify(*args,**kws):
                     #int_idxStart = max(self.d_runningSideIdxes[str_mirrorSide])
                     #int_idxRunning = int_idxStart + 1                    
                     
-                    
-                    #self.log_infoDict(md_culling_controlLists, "Culling lists")                        
                     #for k in md_culling_controlLists.keys():
                 except Exception,error:raise Exception,"'{0}' fail | error: {1}".format(self.md_data[mModule.mNode]['str_name'],error)
 
             for mObj in self.ml_noMatch:
-                self.log_info("NO MATCH >>>> mObj:'{0}' NO MATCH".format(mObj.p_nameShort))
+                self.log_info("NO MATCH >>>> mObj:'{0}' NO MATCH".format(mObj.p_nameBase))
             return True
     return fncWrap(*args,**kws).go()
 

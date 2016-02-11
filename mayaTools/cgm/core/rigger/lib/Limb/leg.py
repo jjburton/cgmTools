@@ -1233,7 +1233,7 @@ def build_controls(*args, **kws):
 
                 for i,i_obj in enumerate(ml_controlsFK):
                     d_buffer = mControlFactory.registerControl(i_obj,shapeParentTo = ml_fkJoints[i],
-                                                               mirrorSide=mi_go._str_mirrorDirection, mirrorAxis="",
+                                                               mirrorSide=mi_go._str_mirrorDirection, mirrorAxis="translateX",
                                                                makeAimable=True,typeModifier='fk',) 	    
                     i_obj = d_buffer['instance']
                     i_obj.axisAim = "%s+"%mi_go._jointOrientation[0]
@@ -1320,7 +1320,7 @@ def build_controls(*args, **kws):
                     ml_controlChain =[]
                     for i_obj in chain:
                         d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,typeModifier='segIK',
-                                                                   mirrorSide=mi_go._str_mirrorDirection, mirrorAxis="translateX,rotateY,rotateZ",
+                                                                    mirrorSide=self._go._str_mirrorDirection,mirrorAxis="translateX, rotateY, rotateZ",
                                                                    setRotateOrder=2)       
                         i_obj = d_buffer['instance']
                         i_obj.masterGroup.parent = mi_go._i_constrainNull.mNode

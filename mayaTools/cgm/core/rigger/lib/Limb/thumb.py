@@ -68,16 +68,16 @@ def __bindSkeletonSetup__(self,addHelpers = True):
     try:
 	if not self._cgmClass == 'JointFactory.go':
 	    log.error("Not a JointFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
+	    raise Exception
+    except Exception,error:
 	log.error("f.__bindSkeletonSetup__>>bad self!")
-	raise StandardError,error
+	raise Exception,error
     
     #>>> Re parent joints
     #=============================================================  
     #ml_skinJoints = self.rig_getSkinJoints() or []
     if not self._mi_module.isSkeletonized():
-	raise StandardError, "%s is not skeletonized yet."%self._strShortName
+	raise Exception, "%s is not skeletonized yet."%self._strShortName
     
     try:#Reparent joints
 	"""
@@ -102,9 +102,9 @@ def __bindSkeletonSetup__(self,addHelpers = True):
 	#self._i_rigNull.msgList_connect(ml_moduleJoints,'skinJoints','module')	
 	#self._mi_module.rig_getReport()#report
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_thumb>>__bindSkeletonSetup__ fail!")
-	raise StandardError,error   
+	raise Exception,error   
 
 def build_rigSkeleton(goInstance = None):
     class fncWrap(modUtils.rigStep):
@@ -132,16 +132,16 @@ def build_rigSkeleton(goInstance = None):
 		ml_rigJoints[0].parent = False#Parent to deformGroup
 		
 		self._go._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints',"rigNull")
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("build_rigSkeleton>>Build rig joints fail!")
-		raise StandardError,error   
+		raise Exception,error   
 	    
 	    try:#>>FK chain
 		#=====================================================================		
 		ml_fkJoints = []
 		for i,i_ctrl in enumerate(self._go._i_templateNull.msgList_get('controlObjects')):
 		    if not i_ctrl.getMessage('handleJoint'):
-			raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._go._mi_module.getShortName(),i_ctrl.getShortName())
+			raise Exception,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._go._mi_module.getShortName(),i_ctrl.getShortName())
 		    i_new = cgmMeta.cgmObject(mc.duplicate(i_ctrl.getMessage('handleJoint')[0],po=True,ic=True)[0])
 		    i_new.addAttr('cgmTypeModifier','fk',attrType='string',lock=True)
 		    i_new.doName()
@@ -150,9 +150,9 @@ def build_rigSkeleton(goInstance = None):
 		    else:i_new.parent = False
 		    i_new.rotateOrder = self._go._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
 		    ml_fkJoints.append(i_new)	
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("build_rigSkeleton>>Build fk joints fail!")
-		raise StandardError,error   
+		raise Exception,error   
 	    
 	    #==================================================================
 
@@ -166,9 +166,9 @@ def build_rigSkeleton(goInstance = None):
 		    if ml_blendJoints:#if we have data, parent to last
 			i_new.parent = ml_blendJoints[-1]
 		    ml_blendJoints.append(i_new)	
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("build_rigSkeleton>>Build blend joints fail!")
-		raise StandardError,error  
+		raise Exception,error  
 	    
 	    try:#>>IK chain
 		#=====================================================================	
@@ -185,9 +185,9 @@ def build_rigSkeleton(goInstance = None):
 		    if ml_ikJoints:#if we have data, parent to last
 			i_new.parent = ml_ikJoints[-1]
 		    ml_ikJoints.append(i_new)	
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("build_rigSkeleton>>Build ik joints fail!")
-		raise StandardError,error  
+		raise Exception,error  
 	    
 	    try:#mirror stuff
 		if self._go._str_mirrorDirection == 'Right':#mirror control setup
@@ -198,7 +198,7 @@ def build_rigSkeleton(goInstance = None):
 			log.info("Mirror connect: %s | %s"%(i,mJoint.p_nameShort))
 			mJoint.connectChildNode(ml_fkDriverJoints[i],"attachJoint","rootJoint")
 			cgmMeta.cgmAttr(mJoint.mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkDriverJoints[i].mNode)
-	    except Exception,error: raise StandardError,"Failed to create mirror chain | %s"%error
+	    except Exception,error: raise Exception,"Failed to create mirror chain | %s"%error
 	    
 	    
 	    try:#>>> Store em all to our instance
@@ -209,9 +209,9 @@ def build_rigSkeleton(goInstance = None):
 		self._go._i_rigNull.msgList_connect(ml_blendJoints,'blendJoints',"rigNull")
 		self._go._i_rigNull.msgList_connect(ml_ikJoints,'ikJoints',"rigNull")
 	
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("build_finger>>StoreJoints fail!")
-		raise StandardError,error   
+		raise Exception,error   
 	    
 	    try:#>>> Connect vis
 		#=====================================================================	
@@ -222,9 +222,9 @@ def build_rigSkeleton(goInstance = None):
 		self._go.connect_toRigGutsVis(ml_jointsToConnect,vis = True)#connect to guts vis switches
 		self._go.connect_toRigGutsVis(ml_blendJoints,vis = False)#connect to guts vis switches
 		    
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("build_finger>>Connect to guts fail!")
-		raise StandardError,error   
+		raise Exception,error   
     return fncWrap(goInstance).go()
     
 def build_rigSkeleton2(self):
@@ -234,10 +234,10 @@ def build_rigSkeleton2(self):
     try:#===================================================
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
+	    raise Exception
+    except Exception,error:
 	log.error("thumb.build_deformationRig>>bad self!")
-	raise StandardError,error
+	raise Exception,error
     	
     #>>>Create joint chains
     #=============================================================    
@@ -255,16 +255,16 @@ def build_rigSkeleton2(self):
 	ml_rigJoints[0].parent = False#Parent to deformGroup
 	
 	self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints',"rigNull")
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_rigSkeleton>>Build rig joints fail!")
-	raise StandardError,error   
+	raise Exception,error   
     
     try:#>>FK chain
 	#=====================================================================		
 	ml_fkJoints = []
 	for i,i_ctrl in enumerate(self._i_templateNull.msgList_get('controlObjects')):
 	    if not i_ctrl.getMessage('handleJoint'):
-		raise StandardError,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._mi_module.getShortName(),i_ctrl.getShortName())
+		raise Exception,"%s.build_rigSkeleton>>> failed to find a handle joint from: '%s'"%(self._mi_module.getShortName(),i_ctrl.getShortName())
 	    i_new = cgmMeta.cgmObject(mc.duplicate(i_ctrl.getMessage('handleJoint')[0],po=True,ic=True)[0])
 	    i_new.addAttr('cgmTypeModifier','fk',attrType='string',lock=True)
 	    i_new.doName()
@@ -273,9 +273,9 @@ def build_rigSkeleton2(self):
 	    else:i_new.parent = False
 	    i_new.rotateOrder = self._jointOrientation#<<<<<<<<<<<<<<<<This would have to change for other orientations
 	    ml_fkJoints.append(i_new)	
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_rigSkeleton>>Build fk joints fail!")
-	raise StandardError,error   
+	raise Exception,error   
     
     #==================================================================
     """
@@ -284,9 +284,9 @@ def build_rigSkeleton2(self):
 	for i_obj in ml_fkJoints:
 	    i_obj.rotateOrder = 2   		
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s.build_controls>>> Rotate orders fail!"%self._strShortName)		
-	raise StandardError,error
+	raise Exception,error
     """
     try:#>>Blend chain
 	#=====================================================================
@@ -298,9 +298,9 @@ def build_rigSkeleton2(self):
 	    if ml_blendJoints:#if we have data, parent to last
 		i_new.parent = ml_blendJoints[-1]
 	    ml_blendJoints.append(i_new)	
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_rigSkeleton>>Build blend joints fail!")
-	raise StandardError,error  
+	raise Exception,error  
     
     try:#>>IK chain
 	#=====================================================================	
@@ -317,9 +317,9 @@ def build_rigSkeleton2(self):
 	    if ml_ikJoints:#if we have data, parent to last
 		i_new.parent = ml_ikJoints[-1]
 	    ml_ikJoints.append(i_new)	
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_rigSkeleton>>Build ik joints fail!")
-	raise StandardError,error   
+	raise Exception,error   
  
     try:#>>> Store em all to our instance
 	#=====================================================================	
@@ -329,9 +329,9 @@ def build_rigSkeleton2(self):
 	self._i_rigNull.msgList_connect(ml_blendJoints,'blendJoints',"rigNull")
 	self._i_rigNull.msgList_connect(ml_ikJoints,'ikJoints',"rigNull")
 
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_finger>>StoreJoints fail!")
-	raise StandardError,error   
+	raise Exception,error   
 
     try:#>>> Connect vis
 	#=====================================================================	
@@ -342,9 +342,9 @@ def build_rigSkeleton2(self):
 	self.connect_toRigGutsVis(ml_jointsToConnect,vis = True)#connect to guts vis switches
 	self.connect_toRigGutsVis(ml_blendJoints,vis = False)#connect to guts vis switches
 	    
-    except StandardError,error:
+    except Exception,error:
 	log.error("build_finger>>Connect to guts fail!")
-	raise StandardError,error   
+	raise Exception,error   
     
 #>>> Shapes
 #===================================================================
@@ -360,10 +360,10 @@ def build_shapes(goInstance = None):
 	def build(self):#================================================================================   	
 	    
 	    if self._go._i_templateNull.handles not in range(4,6):
-		raise StandardError, "%s.build_shapes>>> Too many handles. don't know how to rig"%(self._go._strShortName)
+		raise Exception, "%s.build_shapes>>> Too many handles. don't know how to rig"%(self._go._strShortName)
 	    
 	    if not self._go.isRigSkeletonized():
-		raise StandardError, "%s.build_shapes>>> Must be rig skeletonized to shape"%(self._go._strShortName)	
+		raise Exception, "%s.build_shapes>>> Must be rig skeletonized to shape"%(self._go._strShortName)	
 	    
 	    #>>> Get our segment influence joints
 	    #=============================================================    
@@ -403,9 +403,9 @@ def build_shapes(goInstance = None):
 		self._go._i_rigNull.connectChildNode(self._go._md_controlShapes['settings'],'shape_settings',"rigNull")		
 		self._go._i_rigNull.connectChildNode(self._go._md_controlShapes['moduleCap'],'shape_cap',"rigNull")
 		
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("%s.build_shapes>>Build shapes fail!"%self._go._strShortName)
-		raise StandardError,error  
+		raise Exception,error  
     return fncWrap(goInstance).go()
 
 def build_shapes2(self):
@@ -414,16 +414,16 @@ def build_shapes2(self):
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
+	    raise Exception
+    except Exception,error:
 	log.error("thumb.build_rig>>bad self!")
-	raise StandardError,error
+	raise Exception,error
     
     if self._i_templateNull.handles not in range(4,6):
-	raise StandardError, "%s.build_shapes>>> Too many handles. don't know how to rig"%(self._strShortName)
+	raise Exception, "%s.build_shapes>>> Too many handles. don't know how to rig"%(self._strShortName)
     
     if not self.isRigSkeletonized():
-	raise StandardError, "%s.build_shapes>>> Must be rig skeletonized to shape"%(self._strShortName)	
+	raise Exception, "%s.build_shapes>>> Must be rig skeletonized to shape"%(self._strShortName)	
     
     #>>> Get our segment influence joints
     #=============================================================    
@@ -463,9 +463,9 @@ def build_shapes2(self):
 	self._i_rigNull.connectChildNode(self._md_controlShapes['settings'],'shape_settings',"rigNull")		
 	self._i_rigNull.connectChildNode(self._md_controlShapes['moduleCap'],'shape_cap',"rigNull")
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s.build_shapes>>Build shapes fail!"%self._strShortName)
-	raise StandardError,error  
+	raise Exception,error  
     
 #>>> Controls
 #===================================================================
@@ -482,9 +482,9 @@ def build_controls(goInstance = None):
 	def build_old(self):#================================================================================   	
 	    
 	    if not self._go.isShaped():
-		raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._go._strShortName
+		raise Exception,"%s.build_controls>>> needs shapes to build controls"%self._go._strShortName
 	    if not self._go.isRigSkeletonized():
-		raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._go._strShortName
+		raise Exception,"%s.build_controls>>> needs shapes to build controls"%self._go._strShortName
 	    """
 	    __d_controlShapes__ = {'shape':['controlsFK','midIK','settings','hand'],
 			     'pivot':['toe','heel','ball','inner','outer
@@ -526,7 +526,7 @@ def build_controls(goInstance = None):
 	    #==================================================================
 	    try:#>>>> FK Segments
 		if len( ml_controlsFK )<3:
-		    raise StandardError,"%s.build_controls>>> Must have at least three fk controls"%self._go._strShortName	    
+		    raise Exception,"%s.build_controls>>> Must have at least three fk controls"%self._go._strShortName	    
 		
 		#for i,i_obj in enumerate(ml_controlsFK[1:]):#parent
 		    #i_obj.parent = ml_controlsFK[i].mNode
@@ -534,7 +534,7 @@ def build_controls(goInstance = None):
 			
 		for i,i_obj in enumerate(ml_controlsFK):
 		    d_buffer = mControlFactory.registerControl(i_obj,shapeParentTo=ml_fkJoints[i],setRotateOrder=3,
-		                                               mirrorSide=self._go._str_mirrorDirection, mirrorAxis="",		                                           		                                               
+		                                               mirrorSide=self._go._str_mirrorDirection, mirrorAxis="translateX",		                                           		                                               
 			                                       makeAimable=True,typeModifier='fk',) 	    
 		    
 		    i_obj = d_buffer['instance']
@@ -552,9 +552,9 @@ def build_controls(goInstance = None):
 		self._go._i_rigNull.msgList_connect(ml_fkJoints,'controlsFK',"rigNull")
 		l_controlsAll.extend(ml_fkJoints[:-1])	
 	    
-	    except StandardError,error:	
+	    except Exception,error:	
 		log.error("%s.build_controls>>> Build fk fail!"%self._go._strShortName)
-		raise StandardError,error
+		raise Exception,error
 	    
 	    #==================================================================    
 	    try:#>>>> IK Handle
@@ -576,9 +576,9 @@ def build_controls(goInstance = None):
 		i_IKEnd.axisAim = 'z+'
 		i_IKEnd.axisUp= 'y+'
 		
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("%s.build_controls>>> Build ik handle fail!"%self._go._strShortName)	
-		raise StandardError,error   
+		raise Exception,error   
 	    
 	    try:#>>>> Settings
 		d_buffer = mControlFactory.registerControl(mi_settings,addExtraGroups=0,typeModifier='settings',autoLockNHide=True,
@@ -593,9 +593,9 @@ def build_controls(goInstance = None):
 		
 		self.mPlug_result_moduleSubDriver = self._go.build_visSub()	
 		
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("%s.build_controls>>> Build settings fail!"%self._go._strShortName)		
-		raise StandardError,error    
+		raise Exception,error    
 	    
 
 	    #==================================================================    
@@ -607,7 +607,7 @@ def build_controls(goInstance = None):
 		mPlug_lengthUpr= cgmMeta.cgmAttr(i_IKEnd,'lengthUpr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
 		mPlug_lengthLwr = cgmMeta.cgmAttr(i_IKEnd,'lengthLwr',attrType='float',defaultValue = 1,minValue=0,keyable = True)	
 		
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("%s.build_controls>>> Add Control Attrs Fail!"%self._go._strShortName)	
 	
 	    self.ml_controlsAll = l_controlsAll
@@ -618,12 +618,12 @@ def build_controls(goInstance = None):
 	    for i,mCtrl in enumerate(self.ml_controlsAll):
 		try:
 		    mCtrl.addAttr('mirrorIndex', value = (int_strt + i))		
-		except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
+		except Exception,error: raise Exception,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 
 	    try:self._go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll','rigNull')
-	    except Exception,error: raise StandardError,"Controls all connect| %s"%error	    
+	    except Exception,error: raise Exception,"Controls all connect| %s"%error	    
 	    try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
-	    except Exception,error: raise StandardError,"Failed to set module objectSet | %s"%error
+	    except Exception,error: raise Exception,"Failed to set module objectSet | %s"%error
 	    
 	    return True
 	
@@ -635,15 +635,15 @@ def build_controls2(self):
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
+	    raise Exception
+    except Exception,error:
 	log.error("%s.build_rig>>bad self!"%self._strShortName)
-	raise StandardError,error
+	raise Exception,error
     
     if not self.isShaped():
-	raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
+	raise Exception,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
     if not self.isRigSkeletonized():
-	raise StandardError,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
+	raise Exception,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
     """
     __d_controlShapes__ = {'shape':['controlsFK','midIK','settings','hand'],
 	             'pivot':['toe','heel','ball','inner','outer
@@ -685,7 +685,7 @@ def build_controls2(self):
     #==================================================================
     try:#>>>> FK Segments
 	if len( ml_controlsFK )<3:
-	    raise StandardError,"%s.build_controls>>> Must have at least three fk controls"%self._strShortName	    
+	    raise Exception,"%s.build_controls>>> Must have at least three fk controls"%self._strShortName	    
 	
 	#for i,i_obj in enumerate(ml_controlsFK[1:]):#parent
 	    #i_obj.parent = ml_controlsFK[i].mNode
@@ -710,9 +710,9 @@ def build_controls2(self):
 	self._i_rigNull.msgList_connect(ml_fkJoints,'controlsFK',"rigNull")
 	l_controlsAll.extend(ml_fkJoints)	
     
-    except StandardError,error:	
+    except Exception,error:	
 	log.error("%s.build_controls>>> Build fk fail!"%self._strShortName)
-	raise StandardError,error
+	raise Exception,error
     
     #==================================================================    
     try:#>>>> IK Handle
@@ -733,9 +733,9 @@ def build_controls2(self):
 	i_IKEnd.axisAim = 'z+'
 	i_IKEnd.axisUp= 'y+'
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s.build_controls>>> Build ik handle fail!"%self._strShortName)	
-	raise StandardError,error   
+	raise Exception,error   
     
     #==================================================================  
     """
@@ -752,9 +752,9 @@ def build_controls2(self):
 	self._i_rigNull.connectChildNode(i_IKmid,'midIK',"rigNull")#connect
 	l_controlsAll.append(i_IKmid)	
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s.build_controls>>> Build ik handle fail!"%self._strShortName)	
-	raise StandardError,error   """
+	raise Exception,error   """
         
     #==================================================================
     try:#>>>> Settings
@@ -784,9 +784,9 @@ def build_controls2(self):
 	           'drivers':[[iVis,"subControls_out"],[mi_settings,mPlug_moduleSubDriver.attr]]}]
 	NodeF.build_mdNetwork(visArg)
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s.build_controls>>> Build settings fail!"%self._strShortName)		
-	raise StandardError,error    
+	raise Exception,error    
     
     #==================================================================  
     """
@@ -810,9 +810,9 @@ def build_controls2(self):
 		curves.setCurveColorByName(i_mainHandle.mNode,self._mi_module.getModuleColors()[0])    
 		attributes.doBreakConnection(i_mainHandle.mNode,'visibility')
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s.build_controls>>> IK segments fail!"%self._strShortName)		
-	raise StandardError,error"""
+	raise Exception,error"""
     #==================================================================    
     try:#>>>> Add all of our Attrs
 	#Add driving attrs
@@ -824,7 +824,7 @@ def build_controls2(self):
 	mPlug_lengthLwr = cgmMeta.cgmAttr(i_IKEnd,'lengthLwr',attrType='float',defaultValue = 1,minValue=0,keyable = True)	
 	#mPlug_lockMid = cgmMeta.cgmAttr(i_IKmid,'lockMid',attrType='float',defaultValue = 0,keyable = True,minValue=0,maxValue=1.0)
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("%s.build_controls>>> Add Control Attrs Fail!"%self._strShortName)	
 	
     #Connect all controls
@@ -906,8 +906,8 @@ def build_FKIK(goInstance = None):
 		    mc.orientConstraint(ml_fkJoints[0].mNode,ml_ikJoints[0].mNode,maintainOffset = True)
 		    ml_fkJoints[0].parent = self._go._i_constrainNull.mNode
 	
-	    except StandardError,error:
-		raise StandardError,"%s.build_FKIK>>> Finger Root Control error: %s"%(self._go._strShortName,error)
+	    except Exception,error:
+		raise Exception,"%s.build_FKIK>>> Finger Root Control error: %s"%(self._go._strShortName,error)
 	    
 	    #=============================================================    
 	    try:#>>>FK Length connector
@@ -923,8 +923,8 @@ def build_FKIK(goInstance = None):
 		#IK
 		rUtils.addJointLengthAttr(ml_ikJoints[-2],[mi_controlIK,'length'],orientation=self._go._jointOrientation)
 		
-	    except StandardError,error:
-		raise StandardError,"%s.build_FKIK>>> fk length connect error: %s"%(self._go._strShortName,error)
+	    except Exception,error:
+		raise Exception,"%s.build_FKIK>>> fk length connect error: %s"%(self._go._strShortName,error)
 	    
 	    #=============================================================  
 	    try:#>>>IK No Flip Chain
@@ -985,16 +985,16 @@ def build_FKIK(goInstance = None):
 		#poleVector = mc.poleVectorConstraint (mi_rpHandleNF.mNode,mi_fingerIKHandleNF.mNode)  		
 		rUtils.IKHandle_fixTwist(mi_fingerIKHandleNF)#Fix the twist
 	
-	    except StandardError,error:
-		raise StandardError,"%s.build_FKIK>>> IK No Flip error: %s"%(self._go._strShortName,error)
+	    except Exception,error:
+		raise Exception,"%s.build_FKIK>>> IK No Flip error: %s"%(self._go._strShortName,error)
 	    
 	    #=============================================================   
 	    try:#>>>Constrain IK Finger
 		#Create hand IK
 		mc.orientConstraint(mi_controlIK.mNode,mi_ikEnd.mNode, maintainOffset = True)
 	
-	    except StandardError,error:
-		raise StandardError,"%s.build_FKIK>>> IK No Flip error: %s"%(self._go._strShortName,error)
+	    except Exception,error:
+		raise Exception,"%s.build_FKIK>>> IK No Flip error: %s"%(self._go._strShortName,error)
 	    
 	    #=============================================================    
 	    try:#>>>Connect Blend Chains and connections
@@ -1035,8 +1035,8 @@ def build_FKIK(goInstance = None):
 		mPlug_FKon.doConnectOut("%s.visibility"%self._go._i_constrainNull.controlsFK.mNode)
 		mPlug_IKon.doConnectOut("%s.visibility"%self._go._i_constrainNull.controlsIK.mNode)
 		
-	    except StandardError,error:
-		raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._go._strShortName,error)
+	    except Exception,error:
+		raise Exception,"%s.build_FKIK>>> blend connect error: %s"%(self._go._strShortName,error)
 	    log.info("%s.build_FKIK complete!"%self._go._mi_module.getShortName())
 	    return True
     return fncWrap(goInstance).go()
@@ -1047,10 +1047,10 @@ def build_FKIK2(self):
     try:#===================================================
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
+	    raise Exception
+    except Exception,error:
 	log.error("thumb.build_FKIK>>bad self!")
-	raise StandardError,error
+	raise Exception,error
     
     #>>>Get data
     ml_controlsFK =  self._i_rigNull.msgList_get('controlsFK')   
@@ -1110,8 +1110,8 @@ def build_FKIK2(self):
 	
 	ml_fkJoints[0].parent = self._i_constrainNull.mNode
 
-    except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> Finger Root Control error: %s"%(self._strShortName,error)
+    except Exception,error:
+	raise Exception,"%s.build_FKIK>>> Finger Root Control error: %s"%(self._strShortName,error)
     
     return
     #=============================================================    
@@ -1122,8 +1122,8 @@ def build_FKIK2(self):
 	#IK
 	rUtils.addJointLengthAttr(ml_ikJoints[-2],[mi_controlIK,'length'],orientation=self._jointOrientation)
 	
-    except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> fk length connect error: %s"%(self._strShortName,error)
+    except Exception,error:
+	raise Exception,"%s.build_FKIK>>> fk length connect error: %s"%(self._strShortName,error)
     
     #=============================================================  
     try:#>>>IK No Flip Chain
@@ -1184,8 +1184,8 @@ def build_FKIK2(self):
 	#poleVector = mc.poleVectorConstraint (mi_rpHandleNF.mNode,mi_fingerIKHandleNF.mNode)  		
 	rUtils.IKHandle_fixTwist(mi_fingerIKHandleNF)#Fix the twist
 	
-    except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> IK No Flip error: %s"%(self._strShortName,error)
+    except Exception,error:
+	raise Exception,"%s.build_FKIK>>> IK No Flip error: %s"%(self._strShortName,error)
     
     #=============================================================   
     try:#>>>Constrain IK Finger
@@ -1195,8 +1195,8 @@ def build_FKIK2(self):
 	#mc.pointConstraint(mi_controlIK.mNode,ml_ikJoints[-2].mNode, maintainOffset = True)
 
 	
-    except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> IK No Flip error: %s"%(self._strShortName,error)
+    except Exception,error:
+	raise Exception,"%s.build_FKIK>>> IK No Flip error: %s"%(self._strShortName,error)
     
     #=============================================================    
     try:#>>>Connect Blend Chains and connections
@@ -1223,8 +1223,8 @@ def build_FKIK2(self):
 	mPlug_FKon.doConnectOut("%s.visibility"%self._i_constrainNull.controlsFK.mNode)
 	mPlug_IKon.doConnectOut("%s.visibility"%self._i_constrainNull.controlsIK.mNode)
 	
-    except StandardError,error:
-	raise StandardError,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
+    except Exception,error:
+	raise Exception,"%s.build_FKIK>>> blend connect error: %s"%(self._strShortName,error)
     log.info("%s.build_FKIK complete!"%self._mi_module.getShortName())
     return True
 
@@ -1284,9 +1284,9 @@ def build_rig(goInstance = None):
 		for mCtrl in self._go._i_rigNull.msgList_get('controlsAll'):
 		    try:mCtrl._setControlGroupLocks()	
 		    except Exception,error:log.error("%s _setControlGroupLocks failed on object: %s"%(self._str_reportStart,mCtrl.p_nameShort))
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("finger.build_rig>> Gather data fail!")
-		raise StandardError,error
+		raise Exception,error
 	    
 
 	    #Dynamic parent groups
@@ -1334,9 +1334,9 @@ def build_rig(goInstance = None):
 		    i_dynGroup.addDynParent(o)
 		i_dynGroup.rebuild()
 		
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("finger.build_rig>> finger ik dynamic parent setup fail!")
-		raise StandardError,error
+		raise Exception,error
 	
 	    #Make some connections
 	    #====================================================================================
@@ -1394,8 +1394,8 @@ def build_rig(goInstance = None):
 		mPlug_autoStretch.p_defaultValue = 1.0
 		mPlug_autoStretch.value =  1
 	   
-	    except StandardError,error:
-		raise StandardError,"%s.build_rig >> failed to setup defaults | %s"%(self._go._strShortName,error)	     
+	    except Exception,error:
+		raise Exception,"%s.build_rig >> failed to setup defaults | %s"%(self._go._strShortName,error)	     
 	     
 	    #Final stuff
 	    self._go._set_versionToCurrent()
@@ -1411,10 +1411,10 @@ def build_rig2(self):
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
+	    raise Exception
+    except Exception,error:
 	log.error("thumb.build_deformationRig>>bad self!")
-	raise StandardError,error
+	raise Exception,error
     
     try:#>>>Get data
 	orientation = self._jointOrientation or modules.returnSettingsData('jointOrientation')
@@ -1451,9 +1451,9 @@ def build_rig2(self):
 	"""
 	if not l_constrainTargetJoints:
 	    l_constrainTargetJoints = [i_jnt.mNode for i_jnt in ml_blendJoints]
-    except StandardError,error:
+    except Exception,error:
 	log.error("thumb.build_rig>> Gather data fail!")
-	raise StandardError,error
+	raise Exception,error
     
     #Constrain to pelvis
     #if mi_moduleParent:
@@ -1501,9 +1501,9 @@ def build_rig2(self):
 	    i_dynGroup.addDynParent(o)
 	i_dynGroup.rebuild()
 	
-    except StandardError,error:
+    except Exception,error:
 	log.error("thumb.build_rig>> thumb ik dynamic parent setup fail!")
-	raise StandardError,error
+	raise Exception,error
 
     #Make some connections
     #====================================================================================
@@ -1683,10 +1683,10 @@ def build_matchSystem2(self):
     try:
 	if not self._cgmClass == 'RigFactory.go':
 	    log.error("Not a RigFactory.go instance: '%s'"%self)
-	    raise StandardError
-    except StandardError,error:
+	    raise Exception
+    except Exception,error:
 	log.error("thumb.build_deformationRig>>bad self!")
-	raise StandardError,error
+	raise Exception,error
     
     #Base info
     mi_moduleParent = False
