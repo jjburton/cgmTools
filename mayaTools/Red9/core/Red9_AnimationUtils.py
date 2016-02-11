@@ -3151,17 +3151,19 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
         #can't use the anim context manager here as that resets the currentTime
         autokeyState = cmds.autoKeyframe(query=True, state=True)
         cmds.autoKeyframe(state=False)
-        
+        duration=step
         try:
             checkRunTimeCmds()
         except StandardError, error:
             raise StandardError(error)
         
         if time:
-            timeRange = timeLineRangeProcess(time[0], time[1], step, incEnds=True)
+            timeRange = timeLineRangeProcess(time[0], time[1], step, incEnds=True)  # this is a LIST of frames
             cmds.currentTime(timeRange[0], e=True)  # ensure that the initial time is updated
+            duration=time[1]-time[0]
         else:
-            timeRange = [cmds.currentTime(q=True) + step]
+            timeRange = [cmds.currentTime(q=True) + step]  # no time specified so move forward by the step
+            duration=1
         log.debug('timeRange : %s', timeRange)
         
         if not nodes:
@@ -3194,28 +3196,39 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
 
         #Now run the snap against the reference node we've just made
         #==========================================================
-        for time in timeRange:
-            #Switched to using the Commands time query to stop  the viewport updates
-            cmds.currentTime(time, e=True, u=False)
-            cmds.SnapTransforms(source=snapRef, destination=destObj, timeEnabled=True, snapTranslates=trans, snapRotates=rots)
-            try:
-                if trans:
-                    cmds.setKeyframe(destObj, at='translate')
-            except:
-                log.debug('failed to set translate key on %s' % destObj)
-            try:
-                if rots:
-                    cmds.setKeyframe(destObj, at='rotate')
-            except:
-                log.debug('failed to set rotate key on %s' % destObj)
-                      
+
+        progressBar = r9General.ProgressBarContext(duration)
+        progressBar.setStep(step)
+        count=0
+                    
+        with progressBar:
+            for time in timeRange:
+                if progressBar.isCanceled():
+                    break
+
+                #Switched to using the Commands time query to stop  the viewport updates
+                cmds.currentTime(time, e=True, u=False)
+                cmds.SnapTransforms(source=snapRef, destination=destObj, timeEnabled=True, snapTranslates=trans, snapRotates=rots)
+                try:
+                    if trans:
+                        cmds.setKeyframe(destObj, at='translate')
+                except:
+                    log.debug('failed to set translate key on %s' % destObj)
+                try:
+                    if rots:
+                        cmds.setKeyframe(destObj, at='rotate')
+                except:
+                    log.debug('failed to set rotate key on %s' % destObj)
+                progressBar.setProgress(count)
+                count+=step
+                
         cmds.delete(deleteMe)
         cmds.autoKeyframe(state=autokeyState)
         cmds.select(nodes)
         
         
     def bindNodes(self, nodes=None, attributes=None, filterSettings=None,
-                  bindMethod='connect', matchMethod=None, **kws):
+                  bindMethod='connect', matchMethod=None, mo=True, **kws):
         '''
         bindNodes is a Hi-Level wrapper function to bind animation data between
         filtered nodes, either in hierarchies or just selected pairs.
@@ -3228,8 +3241,9 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
             Note that this is also now bound to the class instance and if not passed in
             we use this classes instance of filterSettings cls.settings
         :param attributes: Only copy the given attributes[]
-        :param bindMethod: method of binding the data
+        :param bindMethod: method of binding the data, supported : connect, constraint, constraintMO
         :param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
+        :param mo: passed to the constraint call if chosen as the maintainOffset flag
         #TODO: expose this to the UI's!!!!
         '''
         
@@ -3238,6 +3252,7 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
             filterSettings=self.settings
         if not matchMethod:
             matchMethod=self.matchMethod
+
             
         log.debug('bindNodes params : nodes=%s : attributes=%s : filterSettings=%s : matchMethod=%s' \
                    % (nodes, attributes, filterSettings, matchMethod))
@@ -3262,8 +3277,10 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
                             except:
                                 log.info('bindNode from %s to>> %s' %(r9Core.nodeNameStrip(src),
                                                                       r9Core.nodeNameStrip(dest)))
-                    if bindMethod=='constraint':
-                        cmds.parentConstraint(src, dest, mo=True)
+                    elif bindMethod=='constraint':
+                        log.info('BindNode constrain from %s to>> %s' % (r9Core.nodeNameStrip(src),
+                                                                          r9Core.nodeNameStrip(dest)))
+                        cmds.parentConstraint(src, dest, maintainOffset=mo)
                 except:
                     pass
         else:
@@ -4368,9 +4385,9 @@ class MirrorSetup(object):
         cmds.text(l=LANGUAGE_MAP._Mirror_Setup_.side)
         cmds.rowColumnLayout(nc=3, columnWidth=[(1, 90), (2, 90), (3, 90)])
         self.uircbMirrorSide = cmds.radioCollection('mirrorSide')
-        cmds.radioButton('Right', label=LANGUAGE_MAP._Generic_.right)
-        cmds.radioButton('Centre', label=LANGUAGE_MAP._Generic_.centre)
-        cmds.radioButton('Left', label=LANGUAGE_MAP._Generic_.left)
+        cmds.radioButton('Right', label=LANGUAGE_MAP._Generic_.right, cc=self.__uicb_setupIndex)
+        cmds.radioButton('Centre', label=LANGUAGE_MAP._Generic_.centre, cc=self.__uicb_setupIndex)
+        cmds.radioButton('Left', label=LANGUAGE_MAP._Generic_.left, cc=self.__uicb_setupIndex)
         cmds.setParent('..')
         cmds.separator(h=15, style='in')
         cmds.rowColumnLayout(nc=2, columnWidth=[(1, 110), (2, 60)])
@@ -4432,6 +4449,24 @@ class MirrorSetup(object):
         self.__uicb_setDefaults('default')
         cmds.window(self.win, e=True, widthHeight=(280, 410))
         cmds.radioCollection('mirrorSide', e=True, select='Centre')
+        self.__uicb_setupIndex()
+
+    def __uicb_setupIndex(self, *args):
+        '''
+        New for MetaRig: If the node selected is part of an MRig when we switch 
+        the side we automatically bump the index counter to the next available index slot ;)
+        '''
+        nodes=cmds.ls(sl=True,l=True)
+        if nodes:
+            try:
+                mRig=r9Meta.getConnectedMetaSystemRoot(nodes[0],mInstances=r9Meta.MetaRig)
+                if mRig:
+                    index=mRig.getMirror_nextSlot(side=cmds.radioCollection('mirrorSide', q=True, select=True), forceRefresh=True)
+                    log.info('Setting up Next Available Index slot from connected MetaRig systems mirrorNodes')
+                    cmds.intField('ifg_mirrorIndex', e=True, v=index)
+            except:
+                log.debug('No MetaRig systems found to debug index lists from')
+                cmds.intField('ifg_mirrorIndex', e=True, v=1)
 
     def __uicb_getMirrorIDsFromNode(self):
         '''
@@ -4455,7 +4490,6 @@ class MirrorSetup(object):
             if not axis:
                 cmds.checkBox('setDirectCopy', e=True, v=True)
                 return
-            
         if axis:
             self.__uicb_setDefaults('custom')
             for a in axis:

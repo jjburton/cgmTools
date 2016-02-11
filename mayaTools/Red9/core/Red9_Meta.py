@@ -42,6 +42,7 @@ import sys
 import os
 import uuid
 
+
 import Red9.startup.setup as r9Setup
 import Red9_General as r9General
 import Red9_CoreUtils as r9Core
@@ -745,13 +746,19 @@ def getMetaRigs(mInstances='MetaRig', mClassGrps=['MetaRig']):
     cope with people subclassing, then we clamp the search to the Root MetaRig
     using the mClassGrps variable. This probably will expand as it's tested
     '''
+    # try the Red9 Production Rig nodes first
+    mRigs=getMetaNodes(mInstances=['Red9_MetaRig', 'MetaRig'], mClassGrps=['Pro_BodyRig','Pro_FacialUI','MetaRig'])
+    if mRigs:
+        return mRigs
+    
+    # not found, lets widen to all instances of MetaRig with mClassGrp also set
     mRigs=getMetaNodes(mInstances=mInstances, mClassGrps=mClassGrps)
     if mRigs:
-        # main return, instances of MetaRig with mClassGrp also set
         return mRigs
+    
+    # ok widen again to all instances of MetaRig, ignoring the mClassGroup
     mRigs=getMetaNodes(mTypes=mInstances)
     if mRigs:
-        # secondary try, pure MetaRigs
         return getMetaNodes(mTypes=mInstances)
     else:
         # final try, mInstances of MetaRig
@@ -1083,6 +1090,7 @@ class MClassNodeUI(object):
         cmds.menuItem(label=LANGUAGE_MAP._MetaNodeUI_.sort_by_nodename, command=partial(self.fillScroll,'byName'))
         cmds.menuItem(divider=True)
         cmds.menuItem(label=LANGUAGE_MAP._MetaNodeUI_.class_all_registered, command=partial(self.fillScroll,'byName'))
+        cmds.menuItem(label=LANGUAGE_MAP._MetaNodeUI_.class_print_inheritance, command=self.__uiCB_printInheritance)
         cmds.menuItem(divider=True)
         cmds.menuItem(label=LANGUAGE_MAP._MetaNodeUI_.pro_connect_node, command=self.__uiCB_connectNode)
         cmds.menuItem(label=LANGUAGE_MAP._MetaNodeUI_.pro_disconnect_node, command=self.__uiCB_disconnectNode)
@@ -1278,6 +1286,16 @@ class MClassNodeUI(object):
             self.cachedforFilter=list(self.mNodes)  # cache the results so that the filter by name is fast!
             self.__fillScrollEntries()
  
+    def __uiCB_printInheritance(self,*args):
+        '''
+        show the inheritance of the given MClass
+        '''
+        indexes=cmds.textScrollList('slMetaNodeList',q=True,sii=True)
+        if len(indexes)==1:
+            mNode=MetaClass(self.mNodes[indexes[0]-1])
+            for c in mNode.getInheritanceMap():
+                print 'Class Inheritance : ', c
+        
     def __uiCB_connectNode(self, *args):
         '''
         PRO PACK : Given a single selected mNode from the UI and a single selected MAYA node, run
@@ -1630,7 +1648,14 @@ class MetaClass(object):
                 return object.__getattribute__(self, "_MObject")
             except StandardError,error:
                 raise StandardError(error)
-        
+    
+    def getInheritanceMap(self):
+        '''
+        return the inheritance mapping of this class instance
+        '''
+        import inspect
+        return inspect.getmro(self.__class__)
+    
     @property
     def lockState(self):
         '''
@@ -2536,12 +2561,16 @@ class MetaClass(object):
             return mChild
         
     @r9General.Timer
-    def getChildMetaNodes(self, walk=False, mAttrs=None, **kws):
+    def getChildMetaNodes(self, walk=False, mAttrs=None, stepover=False, **kws):
         '''
         Find any connected Child MetaNodes to this mNode.
         
         :param walk: walk the connected network and return ALL children conntected in the tree 
         :param mAttrs: only return connected nodes that pass the given attribute filter 
+        :param stepover: if you're passing in 'mTypes' or 'mInstances' flags then this dictates if 
+            we continue to walk down a tree if it's parent didn't match the given type, default is False
+            which will abort a tree who's parent didn't match. With stepover=True we siomply stepover
+            that node and continue down all child nodes
         
         .. note:: 
             mAttrs is only searching attrs on the mNodes themselves, not all children
@@ -2552,19 +2581,15 @@ class MetaClass(object):
             Because the **kws are passed directly to the getConnectedMetaNods func, it will
             also take ALL of that functions **kws functionality in the initial search:
             source=True, destination=True, mTypes=[], mInstances=[], mAttrs=None, dataType='mClass'
-        
-        :TODO: allow this to walk over nodes, at the moment if the direct child isn't of the correct 
-            type (if using the mTypes flag) then the walk will stop. This should continue over non matching 
-            nodes down the hierarchy so all children are tested.
-            !!!!!!!!!!!!!! THIS NEEDS FIXING ASAP !!!!!!!!!!!!!! or at least a flag to 'skip_over_unmatched'
         '''
-
         if not walk:
             return getConnectedMetaNodes(self.mNode, source=False, destination=True, mAttrs=mAttrs, dataType='mClass', **kws)
         else:
             metaNodes=[]
-            children=getConnectedMetaNodes(self.mNode, source=False, destination=True, mAttrs=mAttrs, dataType='unicode', **kws)
- 
+            if stepover:
+                children=getConnectedMetaNodes(self.mNode, source=False, destination=True, mAttrs=mAttrs, dataType='unicode')  #, **kws)
+            else:
+                children=getConnectedMetaNodes(self.mNode, source=False, destination=True, mAttrs=mAttrs, dataType='unicode', **kws)
             if children:
                 runaways=0
                 depth=0
@@ -2583,7 +2608,11 @@ class MetaClass(object):
                         children.remove(child)
                         processed.append(mNode)
                         #log.info( 'connections too : %s' % mNode)
-                        extendedChildren.extend(getConnectedMetaNodes(mNode,source=False,destination=True,mAttrs=mAttrs, dataType='unicode', **kws))
+                        if stepover:
+                            # if we're stepping over unmatched children then we remove the kws and deal with the match later
+                            extendedChildren.extend(getConnectedMetaNodes(mNode,source=False,destination=True,mAttrs=mAttrs, dataType='unicode'))  # , **kws))
+                        else:
+                            extendedChildren.extend(getConnectedMetaNodes(mNode,source=False,destination=True,mAttrs=mAttrs, dataType='unicode', **kws))
                         #log.info('left to process : %s' % ','.join([c.mNode for c in children]))
                         if not children:
                             if extendedChildren:
@@ -2593,7 +2622,24 @@ class MetaClass(object):
                                 extendedChildren=[]
                                 depth+=1
                         runaways+=1
-                return [MetaClass(node) for node in metaNodes]
+                childmNodes=[MetaClass(node) for node in metaNodes]
+                typematched=[]
+                if stepover:
+                    if 'mTypes' in kws:
+                        for node in childmNodes:
+                            if isMetaNodeInherited(node, kws['mTypes']):
+                                log.debug('getChildMetaNodes : mTypes matched : %s' % node)
+                                if not node in typematched:
+                                    typematched.append(node)
+                    if 'mInstances' in kws:
+                        for node in childmNodes:
+                            if isMetaNodeInherited(node, kws['mInstances']):
+                                log.debug('getChildMetaNodes : mInstances matched : %s' % node)
+                                if not node in typematched:
+                                    typematched.append(node)
+                    return typematched
+                else:
+                    return childmNodes
         return []
     
     def getParentMetaNode(self, **kws):

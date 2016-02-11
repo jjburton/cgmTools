@@ -395,6 +395,7 @@ class AudioHandler(object):
         TODO: Deal with offset start and end data + silence
         '''
         status=True
+        failed=[]
         if not len(self.audioNodes)>1:
             raise ValueError('We need more than 1 audio node in order to compile')
 
@@ -409,7 +410,7 @@ class AudioHandler(object):
                     break
                 else:
                     raise IOError('Combined Audio path is already imported into Maya')
-            
+        
         frmrange = self.getOverallRange()
         neg_adjustment=0
         if frmrange[0] < 0:
@@ -420,10 +421,16 @@ class AudioHandler(object):
         baseTrack = audio_segment.AudioSegment.silent(duration)
 
         for audio in self.audioNodes:
+            if not os.path.exists(audio.path):
+                log.warning('Audio file not found!  : "%s" == %s' % (audio.audioNode, audio.path))
+                status = False
+                failed.append(audio)
+                continue
             sound = audio_segment.AudioSegment.from_wav(audio.path)
             if sound.sample_width not in [1, 2, 4]:
                 log.warning('24bit Audio is NOT supported in Python audioop lib!  : "%s" == %i' % (audio.audioNode, sound.sample_width))
                 status = False
+                failed.append(audio)
                 continue
             insertFrame = (audio.startFrame + abs(neg_adjustment))
             log.info('inserting sound : %s at %f adjusted to %f' % \
@@ -706,7 +713,7 @@ class AudioNode(object):
         If the audionode is NOT loaded and we just have a pth check if that path exists
         '''
         if self.isLoaded:
-            return (self.audioNode and cmds.objExists(self.audioNode)) or False
+            return (self.audioNode and cmds.objExists(self.audioNode) and os.path.exists(self.path)) or False
         else:
             return os.path.exists(self.path)
     
@@ -940,9 +947,9 @@ class AudioToolsWrap(object):
             else:
                 raise IOError("selected Audio node is NOT a Bwav so can't be used as reference")
         else:
-            selectedNode = cmds.ls(sl=True)
+            selectedNode = cmds.ls(sl=True,l=True)
             if len(selectedNode)==1:
-                relativeTC = self.pro_audio.Timecode().getTimecode_from_node(selectedNode[0])
+                relativeTC = self.pro_audio.Timecode(selectedNode[0]).getTimecode_from_node()
                 actualframe = cmds.currentTime(q=True)
                 self.__cached_tc_offset = actualframe - self.pro_audio.timecode_to_frame(relativeTC)
                 cmds.text('bwavRefTC', edit=True,
