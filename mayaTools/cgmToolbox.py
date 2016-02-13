@@ -108,7 +108,7 @@ class AutoStartInstaller(object):
     def getUserSetupFile( self ):
         pyUserSetup, melUserSetup = None, None
         try:
-            pyUserSetup = findInPyPath( 'userSetup.py' )
+            pyUserSetup = findFirstInEnv( 'userSetup.py' )#findInPyPath
         except: print ('No py user setup')
 
         try:
@@ -135,10 +135,14 @@ class AutoStartInstaller(object):
     def install( self ):
         success = False
         pyUserSetup, melUserSetup = self.getUserSetupFile()
+        log.info("pyUserSetup: {0}".format(pyUserSetup))
+        log.info("melUserSetup: {0}".format(melUserSetup))        
         if pyUserSetup is None and melUserSetup is None:
             print 'No py or mel user setup files found.Creating py'
             if not self.createPyUserSetup():#if we can't make a user file, break
+                self.log_error("Failed to create Py User File")
                 return False
+            pyUserSetup, melUserSetup = self.getUserSetupFile()
 
         success = False
         errors = []
@@ -168,7 +172,6 @@ class AutoStartInstaller(object):
             for line in f:
                 if 'import' in line and 'cgmToolbox' in line:
                     return True
-
         return False
 
     def installPy( self, pyUserSetup ):
@@ -180,6 +183,7 @@ class AutoStartInstaller(object):
                 f.write( '\n\nimport cgmToolbox\n' )
         else:
             raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup )
+        
     def isInstalledMel( self, melUserSetup ):
         l_lines = ['import cgmToolbox','import cgm.core','cgm.core._reload()']
         l_found = []
@@ -569,6 +573,7 @@ class ToolboxWindow(mUI.BaseMelWindow):
         self.UI_menu = mUI.MelMenu( l='Setup', pmc=self.buildSetupMenu )
         ToolboxTabs( self )
         self.show()
+        
     def buildSetupMenu( self, *a ):
 
         self.UI_menu.clear()
@@ -582,5 +587,4 @@ class ToolboxWindow(mUI.BaseMelWindow):
 
 #always attempt to setup the toolbox on import
 setupCGMToolBox()
-
 #end
