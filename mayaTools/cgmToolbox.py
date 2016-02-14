@@ -25,6 +25,10 @@ from maya.mel import eval as evalMel
 from cgm import cgmInitialize
 reload(cgmInitialize)
 cgmInitialize.setupContributorPaths()
+
+import cgm.lib.zoo.zooPyMaya.baseMelUI as zooUI
+import cgm.core.classes.HotkeyFactory as HKEY
+
 #>>>>>
 
 from cgm.lib import guiFactory
@@ -376,6 +380,11 @@ def unittest_cgmLimb( *a ):
 
 
 #Help stuff =====================================================================
+def reset_hotkeys( *a ):
+    from cgm.core.classes import HotkeyFactory as HKEY
+    reload(HKEY)
+    HKEY.hotkeys_resetAll()
+        
 def goTo_keyframeCoop( *a ):
     try:
         import webbrowser
@@ -471,28 +480,38 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
 
               ('hotkeys', (('Zoo Set Menu - selection set menu',
                             'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
-                            ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
+                            zooUI.Callback(HKEY.cgmHotkeyer, 'zooSetMenu', 'zooSetMenu;', 'zooSetMenuKillUI;','zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface','mel','y')),                            
+                            #ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
                            ('Set Menu - menu for cgm.setTools',
                             'Menu for working with cgm.SetTools. There are a wide fariety of tools for them..',
-                            ToolCB( "zooHotkeyer cgmSetToolsMM \"cgmSetToolsMM;\" \"cgmSetToolsMMKillUI;\" \"-default d -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
+                            zooUI.Callback(HKEY.cgmHotkeyer, 'cgmSetToolsMM', 'cgmSetToolsMM;', 'cgmSetToolsMMKillUI;','cgmSnap marking menu', 'mel','d')),                            
+                            #ToolCB( "zooHotkeyer cgmSetToolsMM \"cgmSetToolsMM;\" \"cgmSetToolsMMKillUI;\" \"-default d -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
                            ('Tangent Works - tangency manipulation menu',
                             'zooTangentWks is a marking menu script that provides super fast access to common tangent based operations.  Tangent tightening, sharpening, change tangent types, changing default tangents etc...',
-                            ToolCB( "zooHotkeyer zooTangentWks \"zooTangentWks;\" \"zooTangentWksKillUI;\" \"-default q -enableMods 0 -ann tangent works is a marking menu script to speed up working with the graph editor\";" )),
+                            zooUI.Callback(HKEY.cgmHotkeyer, 'zooTangentWks',  'zooTangentWks;', 'zooTangentWksKillUI;','tangent works is a marking menu script to speed up working with the graph editor','mel','q')),                            
+                            #ToolCB( "zooHotkeyer zooTangentWks \"zooTangentWks;\" \"zooTangentWksKillUI;\" \"-default q -enableMods 0 -ann tangent works is a marking menu script to speed up working with the graph editor\";" )),
 
                            ('Snap Tools - snap tools menu',
                             'cgmSnapToolsMM is a tool for accessing snapping tools from a marking menu...',
-                            ToolCB( "zooHotkeyer cgmSnapMM \"cgmSnapMM;\" \"cgmSnapMMKillUI;\" \"-default t -enableMods 0 -ann Tools for snapping stuff around\";" )),
+                            zooUI.Callback(HKEY.cgmHotkeyer, 'cgmSnap',  'cgmSnapMM;', 'cgmSnapMMKillUI;','cgmSnap marking menu','mel','t')),
+                           
+                           #('Snap Tools - snap tools menu',
+                           # 'cgmSnapToolsMM is a tool for accessing snapping tools from a marking menu...',
+                           # ToolCB( "zooHotkeyer cgmSnapMM \"cgmSnapMM;\" \"cgmSnapMMKillUI;\" \"-default t -enableMods 0 -ann Tools for snapping stuff around\";" )),
 
                            ('NEW Set Key Menu - key creation menu',
                             'cgmPuppet key menu - wip',
-                            ToolCB( "zooHotkeyer cgmPuppetKeyMM \"cgmPuppetKeyMM;\" \"cgmPuppetKeyMMKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
+                            zooUI.Callback(HKEY.cgmHotkeyer, 'cgmPuppetKey', 'cgmPuppetKeyMM;', 'cgmPuppetKillUI;','New moduler marking menu for the s key','mel','s')),
 
                            ('Set Key Menu - key creation menu',
                             'cgmLibrary tools for dealing with keys',
-                            ToolCB( "zooHotkeyer cgmSetKeyMM \"cgmSetKeyMM;\" \"cgmSetKeyMMKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
+                            zooUI.Callback(HKEY.cgmHotkeyer, 'cgmSetKeyMM',  'cgmSetKeyMM;', 'cgmSetKeyMMKillUI;','designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations', 'mel','s')),                            
+                            #ToolCB( "zooHotkeyer cgmSetKeyMM \"cgmSetKeyMM;\" \"cgmSetKeyMMKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
 
+                           ('Reset Hotkeys', "Reset all hotkeys in current hotkeySet(2016+) or in maya for below 2016",
+                            reset_hotkeys),                            
                            )),
 
               ('dev', (('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",

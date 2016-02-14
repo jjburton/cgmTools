@@ -739,6 +739,40 @@ def returnCallerFunctionName():
 	log.exception("Failed to inspect function name")
     return result
 
+def log_info_dict(arg = None,tag = 'Stored Dict'):
+    '''
+    Log a dictionary.
+    
+    :parameters:
+	arg | dict
+	tag | string
+	    label for the dict to log.
+
+    :raises:
+	TypeError | if not passed a dict
+    '''
+    try:
+	if not isinstance(arg,dict):
+	    raise TypeError,"[Not a dict. arg: {0}]".format(arg)
+	try:
+	    l_keys = arg.keys()
+	    log.info('Dict: {0} '.format(tag) + _str_subLine)			    
+	    l_keys.sort()
+	    for k in l_keys:
+		try:str_key = k.p_nameShort
+		except:str_key = k
+		buffer = arg[k]
+		if isinstance(buffer,dict):
+		    log.info(">" + " Nested Dict: '{0}' ".format(str_key) + _str_subLine)
+		    l_bufferKeys = buffer.keys()
+		    l_bufferKeys.sort()
+		    for k2 in l_bufferKeys:
+			log.info("-"*2 +'>' + " '{0}' : {1} ".format(k2,buffer[k2]))			
+		else:
+		    log.info(">" + " '{0}' : {1} ".format(str_key,arg[k]))		    
+	except Exception,error:
+	    log.warning("[Not a dict. arg: {0} | error: {1} ]".format(arg,error))
+    except:pass	
 def verify_mirrorSideArg(*args,**kws):
     class fncWrap(cgmFuncCls):
 	def __init__(self,*args,**kws):
