@@ -36,7 +36,6 @@ import cgm_Meta as cgmMeta
 from cgm.core.lib import nameTools
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import PuppetFactory as pFactory
-from cgm.core.rigger import MorpheusFactory as morphyF
 from cgm.core.classes import NodeFactory as nodeF
 from cgm.lib import (modules,
                      distance,
@@ -777,7 +776,7 @@ class cgmInfoNode(cgmMeta.cgmNode):
     def __bindData__(self):
         pass
 
-class cgmMorpheusMakerNetwork(cgmMeta.cgmNode):
+class cgmMorpheusMakerNetworkOLD(cgmMeta.cgmNode):
     """"""
     def __init__(self,*args,**kws):
         """Constructor"""

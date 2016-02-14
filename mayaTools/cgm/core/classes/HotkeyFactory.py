@@ -39,7 +39,7 @@ __toolName__ = 'cgmHotkeyer'
 #__author__ = 'Josh Burton'
 #__owner__ = 'CG Monks'
 #__website__ = 'www.cgmonks.com'
-#__defaultSize__ = 200, 100
+__defaultSize__ = 200, 100
 
 def hotkeys_resetAll():
     """
