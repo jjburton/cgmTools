@@ -1721,7 +1721,7 @@ class cgmNode(r9Meta.MetaClass):
 	    return i_loc
 	except Exception,error:raise Exception,"[%s.doLoc]{%s}"%(self.p_nameShort,error)
     
-    def doDuplicate(self,parentOnly = True, incomingConnections = True, breakMessagePlugsOut = False,**kws):
+    def doDuplicate(self, breakMessagePlugsOut = False,**kws):
         """
         Return a duplicated object instance
 
@@ -1729,12 +1729,13 @@ class cgmNode(r9Meta.MetaClass):
         incomingConnections(bool) -- whether to do incoming connections (default True)
 	breakMessagePlugsOut(bool) -- whether to break the outgoing message connections because Maya duplicates regardless of duplicate flags
         """
+	#parentOnly = True, incomingConnections = True,
 	try:
 	    if self.isComponent():
 		log.warning("doDuplicate fail. Cannot duplicate components")
 		raise StandardError,"doDuplicate fail. Cannot duplicate component: '%s'"%self.getShortName()
 	    
-	    buffer = mc.duplicate(self.mNode,po=parentOnly,ic=incomingConnections)[0]
+	    buffer = mc.duplicate(self.mNode,**kws)[0]
 	    #log.debug("doDuplicate>> buffer: %s"%buffer)
 	    i_obj = validateObjArg(buffer)
 	    mc.rename(i_obj.mNode, self.getShortName()+'_DUPLICATE')
