@@ -45,11 +45,12 @@ class PuppetFunc(cgmGeneral.cgmFuncCls):
         except Exception,error:raise StandardError,"PuppetFunc failed to initialize | %s"%error
         self._str_funcName= "testPuppetFunc"		
         super(PuppetFunc, self).__init__(*args, **kws)
+        self._l_callSelection = mc.ls(sl=True) or []
         self._mi_puppet = puppet
         self._b_ExceptionInterupt = False
         self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet]	
         #=================================================================
-
+        
 def exampleWrap(*args,**kws):
     class clsPuppetFunc(PuppetFunc):
         def __init__(self,*args,**kws):
@@ -965,8 +966,10 @@ def mirrorMe(*args,**kws):
             log.info(l_controls)
             if l_controls:
                 r9Anim.MirrorHierarchy().mirrorData(l_controls,mode = '')		
-                mc.select(l_controls)
-                return True	    
+                #mc.select(l_controls)
+                if self._l_callSelection:mc.select(self._l_callSelection)
+                return True
+            if self._l_callSelection:mc.select(self._l_callSelection)            
             return False
     return fncWrap(*args,**kws).go()
 
@@ -1263,18 +1266,18 @@ def mirror_do(*args,**kws):
 
         def _fncStep_validate_(self):
             try:		
-                l_modes = ['template']
+                l_modes = ['template','anim']
                 str_mode = self.d_kws['mode']
                 self.str_mode = cgmValid.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
                 if self.str_mode not in l_modes:
-                    raise ValueError,"Mode : {0} not in list: {1}".format(str_mode,l_modes)
+                    raise ValueError,"Mode : '{0}' not in list: {1}".format(str_mode,l_modes)
             except Exception,error: raise Exception,"Mode validate | error: {0}".format(error)
 
             try:
                 l_mirrorModes = ['symLeft','symRight']
                 self.str_mirrorMode = cgmValid.stringArg(self.d_kws['mirrorMode'],noneValid=False,calledFrom = self._str_funcName)
                 if self.str_mirrorMode not in l_mirrorModes:
-                    raise ValueError,"Mode : {0} not in list: {1}".format(self.str_mirrorMode,l_mirrorModes)
+                    raise ValueError,"Mode : '{0}' not in list: {1}".format(self.str_mirrorMode,l_mirrorModes)
             except Exception,error: raise Exception,"Mirror Mode validate | error: {0}".format(error)	    
 
             self.ml_modules = getModules(self._mi_puppet)
@@ -1292,7 +1295,7 @@ def mirror_do(*args,**kws):
                             self.log_warning("No controls found on '{0}".format(mModule.p_nameShort))
                         else:
                             ml_controls.extend(ml_moduleControls)
-                    except Exception,error:
+                    except Exception,errors:
                         raise Exception,"Module '{0}' | error: {1}".format(mModule.p_nameShort,error)		
             except Exception,error:raise Exception,"Gather controls | error: {0}".format(error)		
 
@@ -1302,11 +1305,13 @@ def mirror_do(*args,**kws):
                 if _str_mrrMd == 'symLeft':
                     r9Anim.MirrorHierarchy().makeSymmetrical(l_controls,mode = '',primeAxis = "Left" )
                 elif _str_mrrMd == 'symRight':
-                    r9Anim.MirrorHierarchy().makeSymmetrical(l_controls,mode = '',primeAxis = "Left" )
+                    r9Anim.MirrorHierarchy().makeSymmetrical(l_controls,mode = '',primeAxis = "Right" )
                 else:
                     raise StandardError,"Don't know what to do with this mode: {0}".format(self.str_mirrorMode)
-                mc.select(l_controls)
+                #mc.select(l_controls)
+                if self._l_callSelection:mc.select(self._l_callSelection)                
                 return True
+            if self._l_callSelection:mc.select(self._l_callSelection)            
             return False	    
 
     return fncWrap(*args,**kws).go()
@@ -1496,6 +1501,8 @@ def animSetAttr(*args,**kws):
                             attributes.doSetAttr(o,self.d_kws['attr'],self.d_kws['value'])
                 except Exception,error:
                     self.log_error("[Module: %s ]{%s}"%(_str_module,error))
+            if self._l_callSelection:mc.select(self._l_callSelection)                
+            
     return fncWrap(*args,**kws).go()
 
 def controlSettings_setModuleAttrs(*args,**kws):
@@ -1540,6 +1547,7 @@ def controlSettings_setModuleAttrs(*args,**kws):
                             self.log_error("[Attr not found on masterSettings | attr: '%s'| value: %s]"%(_str_attrToFind,_value))	
                     except Exception,error:
                         self.log_error(" mModule: '%s' | %s"%(mModule.getShortName(),error))
+                if self._l_callSelection:mc.select(self._l_callSelection)                                    
                 return True
             except Exception,error:
                 self.log_error(error)  

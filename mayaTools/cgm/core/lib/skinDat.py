@@ -264,6 +264,7 @@ _skinclusterAttributesToCopy = {'envelope':float,#...dictionary for pulling conf
                                 'normalizeWeights':int,
                                 "deformUserNormals":bool}
 
+_validObjTypes = 'joint','nurbsCurve'
 def applySkin(*args,**kws):
     '''
     Gathers skinning information - most likely for export to a file.
@@ -294,13 +295,15 @@ def applySkin(*args,**kws):
                                           'help':"Mode by which to map influence data"},
                                          {'kw':'nameMatch',"default":False,
                                           'help':"Whether to attempt a base name match to stored data"},
+                                         {'kw':'forceClosestComponent',"default":False,
+                                          'help':"Whether to force closest component match"},                                         
                                          {'kw':'addMissingInfluences',"default":True,
                                           'help':"Attempt to add missing influences"}                                         
                                          ]
             self.__dataBind__(*args,**kws)
             self.l_funcSteps = [{'step':'Gather Info','call':self._fnc_info},
                                 {'step':'Process Influence Mode','call':self._fnc_processInfluenceMode}, 
-                                {'step':'Process Data','call':self._fnc_processData},                                   
+                                {'step':'Process Data','call':self._fnc_processData}, 
                                 {'step':'Verify Skincluster','call':self._fnc_skinCluster},
                                 {'step':'Apply Weights Data','call':self._fnc_applyData},                                                                                                
                                 ]
@@ -330,6 +333,7 @@ def applySkin(*args,**kws):
                 return self._FailBreak_("Unknown influenceMode arg ['{0}'] | Valid args{1}".format(_influenceMode,_d_influenceModes.keys()))                
             
             self._b_nameMatch = cgmValid.boolArg(self.d_kws.get('nameMatch',False))
+            self._b_forceClosestComponent = cgmValid.boolArg(self.d_kws.get('forceClosestComponent',False))            
             self._b_addMissingInfluences = cgmValid.boolArg(self.d_kws.get('addMissingInfluences',False))
             self._b_case_addMissingInfluences = False
             self._l_missingInfluences = []
@@ -413,7 +417,7 @@ def applySkin(*args,**kws):
                             _l_search = [jnt, self.mData.d_sourceSkin['matrix'][i]]
                             self.log_info("{0} | Config: {1} | missing joint. Attempting to find: {2}".format(i,jnt,_l_search))
                             for o in _l_search:
-                                foundJnt = cgmValid.objString(o, mayaType = 'joint', noneValid=True)
+                                foundJnt = cgmValid.objString(o, mayaType = _validObjTypes, noneValid=True)#...mayaType = 'joint', 
                                 if foundJnt:
                                     _d[i] = foundJnt
                                     self._l_missingInfluences.append(foundJnt)
@@ -432,7 +436,7 @@ def applySkin(*args,**kws):
                 
             #...see if they exist with no conflicts
             #_l_jointTargets = l_dataJoints#...this will change
-            try:_l_jointsToUse = cgmValid.objStringList(_l_jointTargets, mayaType = 'joint')
+            try:_l_jointsToUse = cgmValid.objStringList(_l_jointTargets,mayaType = _validObjTypes)#...mayaType = 'joint'
             except Exception,Error:return self._FailBreak_("influenceMode '{0}' joint check fail | {1}".format(_mode,Error))
             
             self.l_jointsToUse = _l_jointsToUse
@@ -536,7 +540,7 @@ def applySkin(*args,**kws):
                     #self.log_info("{0} after remap: {1}".format(i,d))
 
                     
-            if int(_int_sourceCnt) != int(_int_targetCnt):
+            if int(_int_sourceCnt) != int(_int_targetCnt) or self._b_forceClosestComponent:
                 try:#closest to remap ------------------------------------------------------------------------
                     self.log_warning("Non matching component counts. Using closestTo method to remap")
                     _l_closestRetarget = []
@@ -584,6 +588,7 @@ def applySkin(*args,**kws):
             """
             #self._d_jointToWeighting = {jIdx:{vIDX:v}}
             #self._d_vertToWeighting = {vIdx:{jIdx:v...}} 
+            if not self.l_jointsToUse:raise ValueError,"No joints to use found"
             
             for i in range(len(self.l_jointsToUse)):
                 self._d_jointToWeighting[i] = {}
@@ -691,7 +696,7 @@ def applySkin(*args,**kws):
                 #at this point using the api or mel to set the data is a moot point...  we have the strings already so just use mel
                     
                 for jointIdx in _d_vert.keys():
-                    #self.log_debug(" vtx: {0} | jnt:{1} | value:{2}".format(vertIdx,jointIdx, _d_vert[jointIdx]))
+                    #self.log_info(" vtx: {0} | jnt:{1} | value:{2}".format(vertIdx,jointIdx, _d_vert[jointIdx]))
                     #self.log_info("{0} | {1}".format( weightFmtStr.format(jointIdx),_d_vert[jointIdx]))
                     #mc.setAttr( weightFmtStr.format(jointIdx), _d_vert[jointIdx] ) 
                     #weights.set(self.data['weights'][src][j], j*numInfluences+1)

@@ -461,6 +461,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         _str_funcName = "%s.animKey()"%self.p_nameShort  
         start = time.clock()
         b_return = None
+	_l_callSelection = mc.ls(sl=True) or []
         try:
             try:buffer = self.puppetSet.getList()
             except:buffer = []
@@ -470,6 +471,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 b_return =  True
             b_return = False
             log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+	    if _l_callSelection:mc.select(_l_callSelection)                	    
             return b_return
         except Exception,error:
             log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
@@ -479,9 +481,9 @@ class cgmPuppet(cgmMeta.cgmNode):
         kws['mPuppet'] = self			
         return pFactory.mirrorMe(*args,**kws)
 
-    def mirror_do(self,**kws):
+    def mirror_do(self,*args,**kws):
         kws['mPuppet'] = self			
-        return pFactory.mirror_do(**kws)
+        return pFactory.mirror_do(*args,**kws)
 
     def mirrorSetup_verify(self,**kws):
         kws['mPuppet'] = self			
@@ -642,7 +644,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 
         return True
 
-class cgmMorpheusPuppet(cgmPuppet):
+class cgmMorpheusPuppetOLD(cgmPuppet):
     pass
     """
     def __init__(self, node = None, name = None, initializeOnly = False, *args,**kws):
@@ -2031,12 +2033,17 @@ class cgmModule(cgmMeta.cgmObject):
     #========================================================================
     def animKey(self,**kws):
         try:
+	    
+	    _result = False
+	    _l_callSelection = mc.ls(sl=True) or []
+	    
             buffer = self.rigNull.moduleSet.getList()
             if buffer:
                 mc.select(buffer)
                 mc.setKeyframe(**kws)
-                return True
-            return False
+                _result = True
+	    if _l_callSelection:mc.select(_l_callSelection)
+            return _result
         except Exception,error:
             log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
             return False
@@ -2087,7 +2094,7 @@ class cgmModule(cgmMeta.cgmObject):
         kws['mModule'] = self		
         return mFactory.animReset_children(*args,**kws) 
 
-    def animKey_children(self,**kws):
+    def animKey_children(self,*args,**kws):
         kws['mModule'] = self		
         return mFactory.animKey_children(*args,**kws)
 

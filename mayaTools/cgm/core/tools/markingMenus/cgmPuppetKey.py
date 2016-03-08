@@ -121,36 +121,47 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    """
 	    execute a command and let the menu know not do do the default button action but just kill the ui
 	    """		
+	    l_slBuffer = mc.ls(sl=True) or []		    
 	    func_multiModuleSelect()
 	    setKey()
+	    if l_slBuffer:mc.select(l_slBuffer)
 	    killUI()	
 	    
 	def func_multiDynSwitch(arg):
 	    """
 	    execute a command and let the menu know not do do the default button action but just kill the ui
 	    """		
+	    l_slBuffer = mc.ls(sl=True) or []		    	    
 	    if self.ml_modules:
 		for i_m in self.ml_modules:
 		    try:i_m.rigNull.dynSwitch.go(arg)
 		    except Exception,error:log.error(error)
+	    if l_slBuffer:mc.select(l_slBuffer)		    
 	    killUI()	
+	    
 	def func_setPuppetControlSetting(mPuppet,attr,arg):
 	    """
 	    execute a command and let the menu know not do do the default button action but just kill the ui
-	    """		
+	    """	
+	    l_slBuffer = mc.ls(sl=True) or []		    	    	    
 	    try:
 		mPuppet.controlSettings_setModuleAttrs(attr,arg)
 	    except Exception,error:
 		log.error("[func_setPuppetControlSetting fail!]{%s}"%error)
+	    if l_slBuffer:mc.select(l_slBuffer)		    
 	    killUI()	
+	    
 	def func_multiReset():
 	    """
 	    execute a command and let the menu know not do do the default button action but just kill the ui
-	    """		
+	    """	
+	    l_slBuffer = mc.ls(sl=True) or []		    	    	    	    
 	    if self.ml_modules:
 		for i_m in self.ml_modules:
 		    i_m.animReset(self.ResetModeOptionVar.value)
-	    killUI()		    
+	    if l_slBuffer:mc.select(l_slBuffer)		    	    
+	    killUI()		
+	    
 	def func_multiChangeDynParent(attr,option):
 	    """
 	    execute a command and let the menu know not do do the default button action but just kill the ui
@@ -158,12 +169,11 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    l_objects = [i_o.getShortName() for i_o in self.d_objectsInfo.keys()]
 	    log.info("func_multiChangeDynParent>> attr: '%s' | option: '%s' | objects: %s"%(attr,option,l_objects))
 	    timeStart_tmp = time.clock()
-	    
 	    for i_o in self.d_objectsInfo.keys():
 		try:
 		    mi_dynParent = self.d_objectsInfo[i_o]['dynParent'].get('mi_dynParent')
 		    mi_dynParent.doSwitchSpace(attr,option)
-		except StandardError,error:
+		except Exception,error:
 		    log.error("func_multiChangeDynParent>> '%s' failed. | %s"%(i_o.getShortName(),error))    
 	    
 	    log.info(">"*10  + ' func_multiChangeDynParent =  %0.3f seconds  ' % (time.clock()-timeStart_tmp) + '<'*10)  
@@ -171,57 +181,69 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    
 	def aimObjects(self):
 	    _str_funcName = "%s.aimObjects"%puppetKeyMarkingMenu._str_funcName
-	    log.debug(">>> %s "%(_str_funcName) + "="*75)  	    
+	    log.debug(">>> %s "%(_str_funcName) + "="*75) 
+	    l_slBuffer = mc.ls(sl=True) or []		    	    	    	    	    
 	    for i_obj in self.ml_objList[1:]:
 		try:
 		    if i_obj.hasAttr('mClass') and i_obj.mClass == 'cgmControl':
 			if i_obj._isAimable():
 			    i_obj.doAim(self.i_target)
-		except StandardError,error:
+		except Exception,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,i_obj.p_nameShort,error))
+	    if l_slBuffer:mc.select(l_slBuffer)		    	    
 		
 	def mirrorObjects(self):
 	    _str_funcName = "%s.mirrorObjects"%puppetKeyMarkingMenu._str_funcName
 	    log.debug(">>> %s "%(_str_funcName) + "="*75)  	    
+	    l_slBuffer = mc.ls(sl=True) or []		    	    	    	    	    	    
 	    for i_obj in self.ml_objList:
 		try:i_obj.doMirrorMe()
-		except StandardError,error:
+		except Exception,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,i_obj.p_nameShort,error))
+	    if l_slBuffer:mc.select(l_slBuffer)		    	    
 		
 	def children_mirror(self,module):
 	    _str_funcName = "%s.children_mirror"%puppetKeyMarkingMenu._str_funcName
 	    log.debug(">>> %s "%(_str_funcName) + "="*75)  
+	    l_slBuffer = mc.ls(sl=True) or []		    	    	    	    	    	    	    
 	    try:module.mirrorMe()
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,module.p_nameShort,error))	    
 
 	    for mMod in module.get_allModuleChildren():
 		try:mMod.mirrorMe()
-		except StandardError,error:
+		except Exception,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))
+	    if l_slBuffer:mc.select(l_slBuffer)		    	    
+	    
 	def children_mirrorPush(self,module):
 	    _str_funcName = "%s.children_mirror"%puppetKeyMarkingMenu._str_funcName
 	    log.debug(">>> %s "%(_str_funcName) + "="*75)
+	    l_slBuffer = mc.ls(sl=True) or []		    	    	    	    	    	    	    	    
 	    try:module.mirrorPush()
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,module.p_nameShort,error))
 		
 	    for mMod in module.get_allModuleChildren():
 		try:mMod.mirrorPush()
-		except StandardError,error:
+		except Exception,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))
+	    if l_slBuffer:mc.select(l_slBuffer)		    	    
 	
 	def children_mirrorPull(self,module):
 	    _str_funcName = "%s.children_mirror"%puppetKeyMarkingMenu._str_funcName
 	    log.debug(">>> %s "%(_str_funcName) + "="*75)  
+	    
+	    l_slBuffer = mc.ls(sl=True) or []		    	    	    	    	    	    	    	    	    
 	    try:module.mirrorPull()
-	    except StandardError,error:
+	    except Exception,error:
 		log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,module.p_nameShort,error))
 		
 	    for mMod in module.get_allModuleChildren():
 		try:mMod.mirrorPull()
-		except StandardError,error:
+		except Exception,error:
 		    log.error("%s >> obj: '%s' | error: %s"%(_str_funcName,mMod.p_nameShort,error))
+	    if l_slBuffer:mc.select(l_slBuffer)		    	    
 	
 	IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked',value = 0)
 	IsClickedOptionVar.value = 1
@@ -326,26 +348,27 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    if i_o.getMessage('rigNull'):
 			_mi_rigNull = i_o.rigNull			
 			try:_mi_module = _mi_rigNull.module
-			except StandardError:_mi_module = False
+			except Exception:_mi_module = False
 			
 			if self.BuildModuleOptionVar.value:
 			    try:
 				self.ml_modules.append(_mi_module)
-			    except StandardError,error:
+			    except Exception,error:
 				log.info("Failed to append module for: %s | %s"%(i_o.getShortName(),error))
+				
 		    if self.BuildPuppetOptionVar.value:
 			try:
 			    if _mi_module:
 				buffer = _mi_module.getMessage('modulePuppet')
 				if buffer:
 				    self.l_puppets.append(buffer[0])
-			except StandardError,error:
+			except Exception,error:
 			    log.info("Failed to append puppet for: %s | %s"%(i_o.getShortName(),error))
 			try:
 			    buffer = i_o.getMessage('puppet')
 			    if buffer:
 				self.l_puppets.append(buffer[0])
-			except StandardError,error:
+			except Exception,error:
 			    log.info("Failed to append puppet for: %s | %s"%(i_o.getShortName(),error))			
 	    log.info(">"*10  + ' Object list build =  %0.3f seconds  ' % (time.clock()-timeStart_objectList) + '<'*10)  
 	    for k in self.d_objectsInfo.keys():
@@ -462,7 +485,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    for a in i_switch.l_dynSwitchAlias:
 			MelMenuItem( use_parent, l="%s"%a,
 		                     c = Callback(i_switch.go,a))						
-		except StandardError,error:
+		except Exception,error:
 		    log.info("Failed to build dynSwitch for: %s | %s"%(i_module.getShortName(),error))	
 		try:#module basic menu
 		    MelMenuItem( use_parent, l="Key",
@@ -486,7 +509,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			
 		    MelMenuItem( use_parent, l="Toggle Sub",
 		                 c = Callback(i_module.toggle_subVis))			    
-		except StandardError,error:
+		except Exception,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 		try:#module children
 		    if i_module.getMessage('moduleChildren'):
@@ -513,7 +536,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		                     c = Callback(i_module.animSetAttr_children,'visSub',1,True,False))				
 			MelMenuItem( iSubM_Children, l="visSub Hide",
 		                     c = Callback(i_module.animSetAttr_children,'visSub',0,True,False))			
-		except StandardError,error:
+		except Exception,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 		try:#module siblings
 		    if i_module.getModuleSiblings():
@@ -539,7 +562,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 				         c = Callback(i_module.mirrorPush_siblings,False))
 			    MelMenuItem( iSubM_Siblings, l="Mirror Pull",
 				         c = Callback(i_module.mirrorPull_siblings,False))
-		except StandardError,error:
+		except Exception,error:
 		    log.info("Failed to build basic module menu for: %s | %s"%(i_o.getShortName(),error))					
 
 		MelMenuItemDiv(parent)						
@@ -575,8 +598,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    for i_puppet in self.ml_puppets:
 		if state_multiPuppet:
 		    iTmpPuppetSub = MelMenuItem(iSubM_puppets,l=" %s  "%i_puppet.cgmName,subMenu = True)
-		    use_parent = iTmpPuppetSub
-			    
+		    use_parent = iTmpPuppetSub    
 		else:
 		    MelMenuItem(parent,l="-- %s --"%i_puppet.cgmName,en = False)
 		'''
@@ -585,19 +607,17 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		    for a in i_switch.l_dynSwitchAlias:
 			MelMenuItem( use_parent, l="%s"%a,
 		                     c = Callback(i_switch.go,a))						
-		except StandardError,error:
+		except Exception,error:
 		    log.info("Failed to build dynSwitch for: %s | %s"%(i_puppet.getShortName(),error))	
 		'''
 		try:#puppet basic menu
-		    MelMenuItem( use_parent, l="Key",
-		                 c = Callback(i_puppet.anim_key))							
-		    MelMenuItem( use_parent, l="Select",
-		                 c = Callback(i_puppet.anim_select))	
-		    MelMenuItem( use_parent, l="Reset",
-		                 c = Callback(i_puppet.anim_reset,self.ResetModeOptionVar.value))
-		    MelMenuItem( use_parent, l="Mirror",
-		                 c = Callback(i_puppet.mirrorMe))	    		    
-		except StandardError,error:
+		    MelMenuItem( use_parent, l="Key",c = Callback(i_puppet.anim_key))							
+		    MelMenuItem( use_parent, l="Select",c = Callback(i_puppet.anim_select))	
+		    MelMenuItem( use_parent, l="Reset",c = Callback(i_puppet.anim_reset,self.ResetModeOptionVar.value))
+		    MelMenuItem( use_parent, l="Mirror",c = Callback(i_puppet.mirrorMe))
+		    MelMenuItem( use_parent, l="PushRight",c = Callback(i_puppet.mirror_do,'anim','symLeft'))
+		    MelMenuItem( use_parent, l="PushLeft",c = Callback(i_puppet.mirror_do,'anim','symRight'))		    
+		except Exception,error:
 		    log.info("Failed to build basic puppet menu for: %s | %s"%(i_o.getShortName(),error))
 		    
 		try:#puppet settings ===========================================================================
@@ -623,7 +643,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 				    mi_collectionMenu.createButton(mi_tmpMenu,l=' %s '%str_option,
 					                           c = Callback(mc.setAttr,"%s"%mi_attr.p_combinedName,i),
 					                           rb = b_state )					
-			except StandardError,error:
+			except Exception,error:
 			    log.info("option failed: %s | %s"%(attr,error))	
 			    
 		    _d_moduleSettings = {'templates':{'options':['off','on'],'attr':'_tmpl'},
@@ -636,9 +656,9 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 			    for i,str_option in enumerate(_l_options):
 				MelMenuItem( mi_tmpMenu, l=str_option,
 				             c = Callback(func_setPuppetControlSetting,i_puppet,_attr,i))				
-			except StandardError,error:
+			except Exception,error:
 			    log.info("option failed: %s | %s"%(attr,error))
-		except StandardError,error:
+		except Exception,error:
 		    log.info("Failed to build puppet settings menu for: %s | %s"%(i_o.getShortName(),error))	
 
 
@@ -747,7 +767,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	    self.mmActionOptionVar.value=1						
 	    optionVar.toggle()
 	    log.info("PuppetKey.toggleVarAndReset>>> %s : %s"%(optionVar.name,optionVar.value))
-	except StandardError,error:
+	except Exception,error:
 	    log.error(error)
 	    print "MM change var and reset failed!"
 

@@ -248,7 +248,9 @@ def connect_controlWiring(*args, **kws):
 	                                 {'kw':'trackAttr',"default":False,
 	                                  'help':"Whether to 'ghost' the driven attrs on the control to make them easier to see what the controls do"},	                                 
 	                                 {'kw':'baseName',"default":None,
-	                                  'help':"baseName for created nodes"}]	    
+	                                  'help':"baseName for created nodes"},
+	                                 {'kw':'defaultMaxValue',"default":1.0,
+	                                  'help':"Default maxValue for newly created attrs"}]	    
 	    self.__dataBind__(*args,**kws)
 	    self.l_funcSteps = [{'step':'Validate Args','call':self._validate},
 		                {'step':'Validate Drivers','call':self._fncStep_wire},
@@ -263,8 +265,9 @@ def connect_controlWiring(*args, **kws):
 	    self.mi_targetObject = cgmMeta.validateObjArg(self.d_kws['targetObject'])
 	    self._d_wiringData = self.d_kws['wiringDict']
 	    self._l_simpleArgs = self.d_kws.get('simpleArgs') or []
-	    
+	    self._f_defaultMaxValue = cgmValid.valueArg(self.d_kws['defaultMaxValue'])
 	    self._b_trackAttr = cgmValid.boolArg(self.d_kws['trackAttr'],calledFrom=self._str_funcName)
+	    self._l_addedAttrs = []
 	    
 	    self._str_baseName = cgmValid.stringArg(self.d_kws['baseName'],calledFrom=self._str_funcName)
 	    if not self._str_baseName:
@@ -286,6 +289,18 @@ def connect_controlWiring(*args, **kws):
 	    self._d_negative_mdConnections = {}
 	    self._d_negative_results = {}
 	    
+	    
+	    #Make sure driver attrs exist
+	    l_drivers = []
+	    for a_driven in self._d_wiringData.keys():
+		l_drivers.append(self._d_wiringData[a_driven]['driverAttr'])
+	    l_drivers = [o.split('-')[-1] for o in l_drivers]
+	    l_drivers = lists.returnListNoDuplicates(l_drivers)
+	    l_drivers.sort()
+	    for o in l_drivers:
+		self.get_driverPlug(o)	
+		
+	    #Split	    
 	    if self._b_trackAttr:
 		_trackSplitAttr = "XXX_Driven_XXX"
 		if not self.mi_controlObject.hasAttr(_trackSplitAttr):
@@ -407,15 +422,26 @@ def connect_controlWiring(*args, **kws):
 	    """
 	    Return driver plug -- whether on control object or splitting attribute
 	    """
+	    _neg = False
 	    if '-' in arg:
 		arg = arg.split('-')[-1]
-		
+		if arg in self._l_addedAttrs:
+		    #Verify min value
+		    cgmMeta.cgmAttr(self.mi_controlObject, arg, minValue = -self._f_defaultMaxValue)			
+		    
 	    if '.' in arg:
 		if mc.objExists(arg):
 		    return arg
 		else:
 		    raise ValueError,"Driver attr does not exist: {0}".format(arg)
 	    else:
+		if not self.mi_controlObject.hasAttr(arg):
+		    #cgmMeta.cgmAttr(self.mi_controlObject, arg, 'float', keyable = True, hidden = False, minValue = -self._f_defaultMaxValue, maxValue = self._f_defaultMaxValue)			
+		    
+		    if arg not in self._l_addedAttrs:
+			cgmMeta.cgmAttr(self.mi_controlObject, arg, 'float', keyable = True, hidden = False, minValue = 0, maxValue = self._f_defaultMaxValue, lock = False)						
+			self._l_addedAttrs.append(arg)
+			
 		return ( "{0}.{1}".format(self.mi_controlObject.p_nameShort,arg) )
 		
 	

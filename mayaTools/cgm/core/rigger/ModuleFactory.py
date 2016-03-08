@@ -69,6 +69,7 @@ class ModuleFunc(cgmGeneral.cgmFuncCls):
         super(ModuleFunc, self).__init__(*args, **kws)
         self._mi_module = mModule	
         self._str_moduleName = mModule.p_nameShort	
+        self._l_callSelection = mc.ls(sl=True) or []
         self._b_ExceptionInterupt = False
         self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule]	
         #=================================================================
@@ -2086,12 +2087,14 @@ def animReset(*args,**kws):
             try:#Query ========================================================
                 mi_module = self._mi_module
                 kws = self.d_kws		
+                _result = False
             except Exception,error:raise StandardError,"[Query]{%s}"%error
             mi_module.rigNull.moduleSet.select()
             if mc.ls(sl=True):
                 ml_resetChannels.main(transformsOnly = kws['transformsOnly'])
-                return True
-            return False	    
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result	    
     return fncWrap(*args,**kws).go()
 
 def mirrorPush(*args,**kws):
@@ -2108,7 +2111,8 @@ def mirrorPush(*args,**kws):
         def __func__(self): 
             try:#Query ========================================================
                 mi_module = self._mi_module
-                kws = self.d_kws		
+                kws = self.d_kws	
+                _result = False
             except Exception,error:raise StandardError,"[Query]{%s}"%error
             l_buffer = mi_module.rigNull.moduleSet.getList()
             mi_mirror = get_mirror(**kws)
@@ -2119,8 +2123,9 @@ def mirrorPush(*args,**kws):
             if l_buffer:
                 r9Anim.MirrorHierarchy().makeSymmetrical(l_buffer,mode = '',primeAxis = mi_module.cgmDirection.capitalize() )
                 mc.select(l_buffer)
-                return True
-            return False	 
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result	 
 
     return fncWrap(*args,**kws).go()   
 
@@ -2137,7 +2142,8 @@ def mirrorPull(*args,**kws):
         def __func__(self): 
             try:#Query ========================================================
                 mi_module = self._mi_module
-                kws = self.d_kws		
+                kws = self.d_kws
+                _result = False
             except Exception,error:raise StandardError,"[Query]{%s}"%error
 
             l_buffer = mi_module.rigNull.moduleSet.getList()
@@ -2149,8 +2155,9 @@ def mirrorPull(*args,**kws):
             if l_buffer:
                 r9Anim.MirrorHierarchy().makeSymmetrical(l_buffer,mode = '',primeAxis = mi_mirror.cgmDirection.capitalize() )
                 mc.select(l_buffer)
-                return True
-            return False	 
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result	 
     return fncWrap(*args,**kws).go()
 
 def mirrorMe(*args,**kws):
@@ -2164,7 +2171,8 @@ def mirrorMe(*args,**kws):
         def __func__(self): 
             try:#Query ========================================================
                 mi_module = self._mi_module
-                kws = self.d_kws		
+                kws = self.d_kws	
+                _result = False
             except Exception,error:raise StandardError,"[Query]{%s}"%error
 
             l_buffer = mi_module.rigNull.moduleSet.getList()
@@ -2175,8 +2183,9 @@ def mirrorMe(*args,**kws):
             if l_buffer:
                 r9Anim.MirrorHierarchy().mirrorData(l_buffer,mode = '')
                 mc.select(l_buffer)
-                return True
-            return False  
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result
 
     return fncWrap(*args,**kws).go()
 
@@ -2192,7 +2201,8 @@ def mirrorSymLeft(*args,**kws):
         def __func__(self): 
             try:#Query ========================================================
                 mi_module = self._mi_module
-                kws = self.d_kws		
+                kws = self.d_kws	
+                _result = False
             except Exception,error:raise StandardError,"[Query]{%s}"%error
 
             l_buffer = mi_module.rigNull.moduleSet.getList()
@@ -2203,8 +2213,9 @@ def mirrorSymLeft(*args,**kws):
             if l_buffer:
                 r9Anim.MirrorHierarchy().makeSymmetrical(l_buffer,mode = '',primeAxis = "Left" )
                 mc.select(l_buffer)
-                return True
-            return False	 
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result	 
     return fncWrap(*args,**kws).go() 
 
 def mirrorSymRight(*args,**kws):
@@ -2219,7 +2230,8 @@ def mirrorSymRight(*args,**kws):
         def __func__(self): 
             try:#Query ========================================================
                 mi_module = self._mi_module
-                kws = self.d_kws		
+                kws = self.d_kws	
+                _result = False
             except Exception,error:raise StandardError,"[Query]{%s}"%error
 
             l_buffer = mi_module.rigNull.moduleSet.getList()
@@ -2230,8 +2242,9 @@ def mirrorSymRight(*args,**kws):
             if l_buffer:
                 r9Anim.MirrorHierarchy().makeSymmetrical(l_buffer,mode = '',primeAxis = "Right" )
                 mc.select(l_buffer)
-                return True
-            return False	 
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result 
     return fncWrap(*args,**kws).go() 
 
 
@@ -2276,7 +2289,8 @@ def mirror_do(*args,**kws):
             """
             try:
                 mi_module = self._mi_module
-                mi_templateNull = mi_module.templateNull   
+                mi_templateNull = mi_module.templateNull  
+                _result = False
             except Exception,error: raise Exception,"Link meta fail | error: {0}".format(error)
 
             try:
@@ -2306,8 +2320,9 @@ def mirror_do(*args,**kws):
                 else:
                     raise StandardError,"Don't know what to do with this mode: {0}".format(self.str_mirrorMode)
                 mc.select(l_controls)
-                return True
-            return False	    
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result	    
 
     return fncWrap(*args,**kws).go()
 
@@ -2329,7 +2344,8 @@ def mirrorMe_siblings(*args,**kws):
         def __func__(self): 
             try:#Query ========================================================
                 mi_module = self._mi_module
-                kws = self.d_kws		
+                kws = self.d_kws
+                _result = False
             except Exception,error:raise StandardError,"[Query]{%s}"%error
 
             mi_moduleParent = mi_module.moduleParent
@@ -2354,8 +2370,9 @@ def mirrorMe_siblings(*args,**kws):
             if l_controls:
                 r9Anim.MirrorHierarchy().mirrorData(l_controls,mode = '')		    
                 mc.select(l_controls) 
-                return True
-            return False
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result
     return fncWrap(*args,**kws).go()
 
 def animReset_siblings(*args,**kws):
@@ -2374,7 +2391,7 @@ def animReset_siblings(*args,**kws):
             try:#Query ========================================================
                 mi_module = self._mi_module
                 kws = self.d_kws
-
+                _result = False
                 ml_buffer = get_moduleSiblings(**kws)
                 int_lenMax = len(ml_buffer)		
             except Exception,error:raise StandardError,"[Query]{%s}"%error	    
@@ -2391,8 +2408,9 @@ def animReset_siblings(*args,**kws):
             if l_controls:
                 mc.select(l_controls)
                 ml_resetChannels.main(transformsOnly = self.d_kws['transformsOnly'])
-                return True
-            return False
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result
 
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()
@@ -2413,7 +2431,7 @@ def animReset_children(*args,**kws):
             try:#Query ========================================================
                 mi_module = self._mi_module
                 kws = self.d_kws
-
+                _result = False
                 ml_buffer = get_allModuleChildren(**kws)
                 int_lenMax = len(ml_buffer)		
             except Exception,error:raise StandardError,"[Query]{%s}"%error	    
@@ -2430,8 +2448,9 @@ def animReset_children(*args,**kws):
             if l_controls:
                 mc.select(l_controls)
                 ml_resetChannels.main(transformsOnly = self.d_kws['transformsOnly'])
-                return True
-            return False
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result
 
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()
@@ -2452,6 +2471,7 @@ def mirrorPush_siblings(*args,**kws):
             try:#Query ========================================================
                 mi_module = self._mi_module
                 kws = self.d_kws
+                _result = False
                 ml_buffer = get_moduleSiblings(**kws)
                 int_lenMax = len(ml_buffer)		
             except Exception,error:raise StandardError,"[Query]{%s}"%error	    
@@ -2470,8 +2490,9 @@ def mirrorPush_siblings(*args,**kws):
 
             if l_controls:
                 mc.select(l_controls)
-                return True
-            return False
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result
 
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()
@@ -2493,6 +2514,7 @@ def mirrorPull_siblings(*args,**kws):
                 mi_module = self._mi_module
                 kws = self.d_kws
                 ml_buffer = get_moduleSiblings(**kws)
+                _result = False
                 int_lenMax = len(ml_buffer)		
             except Exception,error:raise StandardError,"[Query]{%s}"%error	    
 
@@ -2510,8 +2532,9 @@ def mirrorPull_siblings(*args,**kws):
 
             if l_controls:
                 mc.select(l_controls)
-                return True
-            return False
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)                        
+            return _result
 
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()
@@ -2617,7 +2640,7 @@ def animKey_children(*args,**kws):
                 mi_module = self._mi_module
                 kws = self._d_funcKWs
             except Exception,error:raise StandardError,"[Query]{%s}"%error
-
+            _result = False
             ml_buffer = get_allModuleChildren(**kws)
             int_lenMax = len(ml_buffer)		
             l_controls = []
@@ -2632,8 +2655,10 @@ def animKey_children(*args,**kws):
                 mc.select(l_controls)
                 kws = self.get_cleanKWS()#We use this to get non registered kws -- maya one's more than likely
                 mc.setKeyframe(**kws)
-                return True
-            return False  
+                _result = True
+                
+            if self._l_callSelection:mc.select(self._l_callSelection)            
+            return _result
     return fncWrap(*args,**kws).go()
 
 def animKey_siblings(*args,**kws):
@@ -2653,7 +2678,7 @@ def animKey_siblings(*args,**kws):
                 kws = self._d_funcKWs
                 self.log_info(kws)
             except Exception,error:raise StandardError,"[Query]{%s}"%error
-
+            _result = False
             ml_buffer = get_moduleSiblings(**kws)
             int_lenMax = len(ml_buffer)		
             l_controls = []
@@ -2668,8 +2693,9 @@ def animKey_siblings(*args,**kws):
                 mc.select(l_controls)
                 kws = self.get_cleanKWS()#We use this to get non registered kws -- maya one's more than like
                 mc.setKeyframe(**kws)
-                return True
-            return False  
+                _result = True
+            if self._l_callSelection:mc.select(self._l_callSelection)            
+            return _result
     return fncWrap(*args,**kws).go()
 
 def animSelect_children(*args,**kws):
@@ -2689,7 +2715,7 @@ def animSelect_children(*args,**kws):
                 mi_module = self._mi_module
                 kws = self.d_kws		
             except Exception,error:raise StandardError,"[Query]{%s}"%error
-
+            
             l_controls = mi_module.rigNull.msgList_getMessage('controlsAll') or []
             ml_children = get_allModuleChildren(**kws)
             int_lenMax = len(ml_children)
@@ -2772,7 +2798,7 @@ def animPushPose_siblings(*args,**kws):
                     log.error("%s  child: %s | %s"%(self._str_reportStart,_str_child,error))	    
             if l_controls:
                 mc.select(l_controls)
-
+            if self._l_callSelection:mc.select(self._l_callSelection)            
             return True  
     return fncWrap(*args,**kws).go()
 
@@ -2809,9 +2835,11 @@ def dynSwitch_children(*args,**kws):
                         i_c.rigNull.dynSwitch.go(_dynSwitchArg)
                     except Exception,error:
                         self.log_error(" child: %s | %s"%(i_c.getShortName(),error))
+                if self._l_callSelection:mc.select(self._l_callSelection)                            
                 return True
             except Exception,error:
                 self.log_error(error)  
+                if self._l_callSelection:mc.select(self._l_callSelection)                            
                 return False	    
     return fncWrap(*args,**kws).go()
 
@@ -2844,9 +2872,11 @@ def dynSwitch_siblings(*args,**kws):
                         i_c.rigNull.dynSwitch.go(_dynSwitchArg)
                     except Exception,error:
                         self.log_error(" child: %s | %s"%(i_c.getShortName(),error))
+                if self._l_callSelection:mc.select(self._l_callSelection)                        
                 return True
             except Exception,error:
-                self.log_error(error)  
+                self.log_error(error)
+                if self._l_callSelection:mc.select(self._l_callSelection)                            
                 return False	    
     return fncWrap(*args,**kws).go()
 
@@ -2931,6 +2961,7 @@ def animSetAttr_children(*args,**kws):
                             attributes.doSetAttr(o,self.d_kws['attr'],self.d_kws['value'])
                 except Exception,error:
                     self.log_error("[child: %s]{%s}"%(self._str_moduleName,error))
+            if self._l_callSelection:mc.select(self._l_callSelection)                                
             return False
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()
