@@ -38,18 +38,44 @@ from cgm.lib import attributes
 from cgm.lib.classes import NameFactory as NameFactoryOld
 from cgm.lib import lists
 from cgm.lib import cgmMath
+from cgm.lib import names
 
 # Maya version check
 mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
 
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Geo stuff
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import maya.cmds as mc
 
 
-
-
+def sortChildrenByName(obj):
+    _l = search.returnChildrenObjects(obj,fullPath = True)
+    if not _l:
+        log.error("sortChildrenByName>> No children found.")
+        return False
+    
+    _d = {}
+    for i,o in enumerate(_l):
+        _bfr = names.getBaseName(o)
+        if _bfr not in _d.keys():
+            _d[_bfr] = o
+        else:
+            _d[names.getShortName(o)] = o
+    
+    l_keys = _d.keys()
+    l_keys.sort()
+    
+    for k in l_keys:
+        o = _d[k]
+        o = doParentToWorld(o)
+        mc.parent(o,obj)
+    
+    return True
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Pivot Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
