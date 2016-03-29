@@ -195,7 +195,7 @@ class AudioHandler(object):
         all BWav and Timecode support is in the Red9 ProPack
     '''
     def __init__(self, audio=None):
-        self._audioNodes = None
+        self._audioNodes = []
         if audio:
             self.audioNodes = audio
         else:
@@ -215,17 +215,39 @@ class AudioHandler(object):
     
     @audioNodes.setter
     def audioNodes(self, val):
-        #print val, type(val)
         if not val:
             raise StandardError('No AudioNodes selected or given to process')
         if not type(val)==list:
             val = [val]
-        self._audioNodes = [AudioNode(audio) for audio in val]
+        for a in val:
+            if issubclass(type(a), AudioNode):
+                log.debug('Instantiated AudioNode passed in  : %s' % a)
+                self._audioNodes.append(a)
+            else:
+                log.debug('unicode audio str passed in  : %s' % a)
+                self._audioNodes.append(AudioNode(a))
+        #self._audioNodes = [AudioNode(audio) for audio in val]
     
     @property
     def mayaNodes(self):
         return [audio.audioNode for audio in self.audioNodes]
-    
+
+    def getAudioInRange(self, time=(), asNodes=True):
+        '''
+        return any audio in the handler within a given timerange
+        
+        @param time: tuple, (min,max) timerange within which returned audio has 
+        fall within else it's ignored.
+        '''
+        audio_in_range=[]
+        for a in self.audioNodes:
+            if not a.startFrame>time[0] or not a.endFrame<time[1]:
+                continue
+            audio_in_range.append(a)
+        if not asNodes:
+            return [a.audioNode for a in audio_in_range]
+        return audio_in_range
+       
     def getOverallRange(self):
         '''
         return the overall frame range of the given audioNodes (min/max)
@@ -260,7 +282,7 @@ class AudioHandler(object):
             return (minV,maxV)
         else:
             return (self.pro_audio.milliseconds_to_Timecode(minV), self.pro_audio.milliseconds_to_Timecode(maxV))
-         
+               
     def setTimelineToAudio(self, audioNodes=None):
         '''
         set the current TimeSlider to the extent of the given audioNodes
@@ -426,7 +448,11 @@ class AudioHandler(object):
                 status = False
                 failed.append(audio)
                 continue
-            sound = audio_segment.AudioSegment.from_wav(audio.path)
+            #deal with any trimming of the audio node in Maya (thanks JanR)
+            sourceStart = cmds.getAttr(audio.audioNode + '.sourceStart')
+            sourceEnd = cmds.getAttr(audio.audioNode + '.sourceEnd')
+            sound = audio_segment.AudioSegment.from_wav(audio.path)[(sourceStart / r9General.getCurrentFPS()) * 1000:(sourceEnd / r9General.getCurrentFPS()) * 1000]
+            #sound = audio_segment.AudioSegment.from_wav(audio.path)
             if sound.sample_width not in [1, 2, 4]:
                 log.warning('24bit Audio is NOT supported in Python audioop lib!  : "%s" == %i' % (audio.audioNode, sound.sample_width))
                 status = False
@@ -637,7 +663,19 @@ class AudioNode(object):
     def endTime(self, val):
         if self.isLoaded:
             cmds.setAttr('%s.offset' % self.audioNode, self.pro_audio.milliseconds_to_frame(val, framerate=None))
+            
+    @property
+    def offset(self):
+        '''
+        simply get the offset
+        '''
+        return cmds.getAttr('%s.offset' % self.audioNode)
     
+    @offset.setter
+    def offset(self, offset):
+        if self.isLoaded:
+            cmds.setAttr('%s.offset' % self.audioNode, offset)
+            
     # ---------------------------------------------------------------------------------
     # PRO_PACK : BWAV support ---
     # ---------------------------------------------------------------------------------
@@ -703,6 +741,13 @@ class AudioNode(object):
         else:
             raise r9Setup.ProPack_Error()
 
+    def isConnected_AudioGrp(self):
+        '''
+        PRO_PACK : is this audioNode connected to a Pro_ AudioGrp metaNode 
+        for asset management in the Pro systems
+        '''
+        return r9Meta.getConnectedMetaNodes(self.audioNode,mTypes='AudioGroup')
+        
     # ---------------------------------------------------------------------------------
     # General utils ---
     # ---------------------------------------------------------------------------------
