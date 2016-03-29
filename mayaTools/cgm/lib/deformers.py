@@ -494,6 +494,18 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
         mc.delete(wrappedTargetObject,ch=True)
     else:
         wrappedTargetObject = targetObject
+	
+    #Buffer render flags
+    '''have to buffer these as when you wrap deform, they get screwy on the source object'''
+    _l_sourceAttrs = ['castsShadows','receivesShadows','motionBlur','primaryVisibility','smoothShading',
+                      'smoothShading','visibleInReflections','visibleInRefractions','doubleSided']
+    _d_sourceAttrs = {}
+    _d_targetAttrs = {}
+    _sourceShape = mc.listRelatives(sourceObject,shapes=True,fullPath=True)[0]
+    _targetShape = mc.listRelatives(wrappedTargetObject,shapes=True,fullPath=True)[0]
+    for a in _l_sourceAttrs:
+	_d_sourceAttrs[a] = attributes.doGetAttr(_sourceShape,a)
+	_d_targetAttrs[a] = attributes.doGetAttr(_targetShape,a)
 
     """ wrap deformer"""
     wrapDeformerBuffer = mc.deformer(wrappedTargetObject,type='wrap')
@@ -505,6 +517,7 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
     mel.eval('AddWrapInfluence')
     mc.select(cl=True)
     
+    #...deformer attriputes
     _d = {'envelope':1,
           'weightThreshold':1,
           'maxDistance':100,
@@ -518,7 +531,18 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
 	    log.info("wrapDeformObject >> {0} Set {1} - {2}".format(wrapDeformer,k,_v))	    
 	except Exception,error:
 	    log.error("wrapDeformObject >> failed to set {0}-{1} | error: {2}".format(k,_v,error))
-    
+	    
+    #...restore shape attrs
+    for a,v in _d_sourceAttrs.iteritems():
+	try:
+	    attributes.doSetAttr(_sourceShape,a,v)      
+	except Exception,error:
+	    log.error("wrapDeformObject >> failed to restore {0}-{1} | error: {2}".format(a,v,error))
+    for a,v in _d_targetAttrs.iteritems():
+	try:
+	    attributes.doSetAttr(_targetShape,a,v)      
+	except Exception,error:
+	    log.error("wrapDeformObject >> failed to restore {0}-{1} | error: {2}".format(a,v,error))	    
     return ([wrapDeformer,wrappedTargetObject])
 
 
