@@ -936,14 +936,17 @@ def animReset(*args,**kws):
         def _process(self):
             """
             """
+            _result = False
             self._mi_puppet.puppetSet.select()
             try:
                 if mc.ls(sl=True):
                     ml_resetChannels.main(transformsOnly = self._d_funcKWs.get('transformsOnly'))		    
-                    return True
-                return False  
+                    _result = True
+                if self._l_callSelection:mc.select(self._l_callSelection)
+                return _result
             except Exception,error:
                 self.log_error("Failed to reset | errorInfo: {%s}"%error)
+                if self._l_callSelection:mc.select(self._l_callSelection)                
                 return False
     return fncWrap(*args,**kws).go()
 

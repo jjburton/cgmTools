@@ -517,13 +517,24 @@ def applySkin(*args,**kws):
                     if not n in _l_configInfluenceList:
                         #return self._FailBreak_
                         self.log_warning("nameMatch... joint '{0}' from joints to use list not in config list".format(n))              
-                 
+                        return False
+                    
                 _d_rewire = {}       
+                
+                for i,n in enumerate(_l_configInfluenceList):
+                    _idx_base = _l_jointsToUseBaseNames.index(n)
+                    
+                    #self.log_error("Rewire. Name:{0} | config idx:{1} ===> currentIdx: {2}".format(n,_idx_config,i))
+                    _d_rewire[i] = _idx_base
+                    
+                """
                 for i,n in enumerate(_l_configInfluenceList):
                     if _l_jointsToUseBaseNames[i] != n:
                         self.log_error("Name mismatch. idx:{0} | config:{1} | useJoint:{2}".format(i,n,_l_jointsToUseBaseNames[i]))
-                        _d_rewire[i] = _l_configInfluenceList.index(_l_jointsToUseBaseNames[i])
                         
+                        #_d_rewire[i] = _l_configInfluenceList.index(_l_jointsToUseBaseNames[i])
+                        _d_rewire[i] = _l_configInfluenceList.index(_l_jointsToUseBaseNames[_l_jointsToUseBaseNames.index(n)])
+                        """
                 self.log_infoDict(_d_rewire,"Rewire...")
                 for i,d in enumerate(self._l_processed):
                     _d_dup = copy.copy(d)

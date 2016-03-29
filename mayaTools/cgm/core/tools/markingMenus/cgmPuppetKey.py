@@ -474,6 +474,7 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	                     c = Callback(func_multiReset))			
 		
 	    for i_module in self.ml_modules:
+		_side = cgmGeneral.verify_mirrorSideArg(i_module.getMayaAttr('cgmDirection') or 'center')
 		if state_multiModule:
 		    iTmpModuleSub = MelMenuItem(iSubM_modules,l=" %s  "%i_module.getBaseName(),subMenu = True)
 		    use_parent = iTmpModuleSub
@@ -496,10 +497,13 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 		                 c = Callback(i_module.animReset,self.ResetModeOptionVar.value))
 		    MelMenuItem( use_parent, l="Mirror",
 		                 c = Callback(i_module.mirrorMe))
+		    
 		    if i_module.moduleType not in cgmPM.__l_faceModuleTypes__:
-			MelMenuItem( use_parent, l="Mirror Push",
+			_enable = True
+			if _side == 'Centre':_enable = False
+			MelMenuItem( use_parent, l="Mirror Push",en = _enable,
 			             c = Callback(i_module.mirrorPush))	
-			MelMenuItem( use_parent, l="Mirror Pull",
+			MelMenuItem( use_parent, l="Mirror Pull",en = _enable,
 			             c = Callback(i_module.mirrorPull))
 		    else:#Face module....
 			MelMenuItem( use_parent, l="Mirror Left",
@@ -596,71 +600,74 @@ class puppetKeyMarkingMenu(BaseMelWindow):
 	                     c = Callback(func_multiDynSwitch,1))	
 		"""
 	    for i_puppet in self.ml_puppets:
-		if state_multiPuppet:
-		    iTmpPuppetSub = MelMenuItem(iSubM_puppets,l=" %s  "%i_puppet.cgmName,subMenu = True)
-		    use_parent = iTmpPuppetSub    
-		else:
-		    MelMenuItem(parent,l="-- %s --"%i_puppet.cgmName,en = False)
-		'''
-		try:#To build dynswitch
-		    i_switch = i_puppet.rigNull.dynSwitch
-		    for a in i_switch.l_dynSwitchAlias:
-			MelMenuItem( use_parent, l="%s"%a,
-		                     c = Callback(i_switch.go,a))						
-		except Exception,error:
-		    log.info("Failed to build dynSwitch for: %s | %s"%(i_puppet.getShortName(),error))	
-		'''
-		try:#puppet basic menu
-		    MelMenuItem( use_parent, l="Key",c = Callback(i_puppet.anim_key))							
-		    MelMenuItem( use_parent, l="Select",c = Callback(i_puppet.anim_select))	
-		    MelMenuItem( use_parent, l="Reset",c = Callback(i_puppet.anim_reset,self.ResetModeOptionVar.value))
-		    MelMenuItem( use_parent, l="Mirror",c = Callback(i_puppet.mirrorMe))
-		    MelMenuItem( use_parent, l="PushRight",c = Callback(i_puppet.mirror_do,'anim','symLeft'))
-		    MelMenuItem( use_parent, l="PushLeft",c = Callback(i_puppet.mirror_do,'anim','symRight'))		    
-		except Exception,error:
-		    log.info("Failed to build basic puppet menu for: %s | %s"%(i_o.getShortName(),error))
-		    
-		try:#puppet settings ===========================================================================
-		    mi_puppetSettingsMenu = MelMenuItem( parent, l='Settings', subMenu=True)
-		    mi_puppetControlSettings = i_puppet.masterControl.controlSettings 
-		    l_settingsUserAttrs = mi_puppetControlSettings.getUserAttrs()
-		    
-		    MelMenuItem( mi_puppetSettingsMenu, l="visSub Show",
-		                 c = Callback(i_puppet.animSetAttr,'visSub',1,True))				
-		    MelMenuItem( mi_puppetSettingsMenu, l="visSub Hide",
-		                 c = Callback(i_puppet.animSetAttr,'visSub',0,True))		    
-		    
-		    for attr in ['skeleton','geo','geoType']:
-			try:#Skeleton
-			    if mi_puppetControlSettings.hasAttr(attr):
+		try:
+		    if state_multiPuppet:
+			iTmpPuppetSub = MelMenuItem(iSubM_puppets,l=" %s  "%i_puppet.cgmName,subMenu = True)
+			use_parent = iTmpPuppetSub    
+		    else:
+			MelMenuItem(parent,l="-- %s --"%i_puppet.cgmName,en = False)
+		    '''
+		    try:#To build dynswitch
+			i_switch = i_puppet.rigNull.dynSwitch
+			for a in i_switch.l_dynSwitchAlias:
+			    MelMenuItem( use_parent, l="%s"%a,
+					 c = Callback(i_switch.go,a))						
+		    except Exception,error:
+			log.info("Failed to build dynSwitch for: %s | %s"%(i_puppet.getShortName(),error))	
+		    '''
+		    try:#puppet basic menu
+			MelMenuItem( use_parent, l="Key",c = Callback(i_puppet.anim_key))							
+			MelMenuItem( use_parent, l="Select",c = Callback(i_puppet.anim_select))	
+			MelMenuItem( use_parent, l="Reset",c = Callback(i_puppet.anim_reset,self.ResetModeOptionVar.value))
+			MelMenuItem( use_parent, l="Mirror",c = Callback(i_puppet.mirrorMe))
+			MelMenuItem( use_parent, l="PushRight",c = Callback(i_puppet.mirror_do,'anim','symLeft'))
+			MelMenuItem( use_parent, l="PushLeft",c = Callback(i_puppet.mirror_do,'anim','symRight'))		    
+		    except Exception,error:
+			log.info("Failed to build basic puppet menu for: %s | %s"%(i_o.getShortName(),error))
+			
+		    try:#puppet settings ===========================================================================
+			mi_puppetSettingsMenu = MelMenuItem( parent, l='Settings', subMenu=True)
+			mi_puppetControlSettings = i_puppet.masterControl.controlSettings 
+			l_settingsUserAttrs = mi_puppetControlSettings.getUserAttrs()
+			
+			MelMenuItem( mi_puppetSettingsMenu, l="visSub Show",
+			             c = Callback(i_puppet.animSetAttr,'visSub',1,True))				
+			MelMenuItem( mi_puppetSettingsMenu, l="visSub Hide",
+			             c = Callback(i_puppet.animSetAttr,'visSub',0,True))		    
+			
+			for attr in ['skeleton','geo','geoType']:
+			    try:#Skeleton
+				if mi_puppetControlSettings.hasAttr(attr):
+				    mi_tmpMenu = MelMenuItem( mi_puppetSettingsMenu, l=attr, subMenu=True)			    
+				    mi_collectionMenu = MelRadioMenuCollection()#build our collection instance			    
+				    mi_attr = cgmMeta.cgmAttr(mi_puppetControlSettings,attr)
+				    l_options = mi_attr.getEnum()
+				    for i,str_option in enumerate(l_options):
+					if i == mi_attr.value:b_state = True
+					else:b_state = False
+					mi_collectionMenu.createButton(mi_tmpMenu,l=' %s '%str_option,
+					                               c = Callback(mc.setAttr,"%s"%mi_attr.p_combinedName,i),
+					                               rb = b_state )					
+			    except Exception,error:
+				log.info("option failed: %s | %s"%(attr,error))	
+				
+			_d_moduleSettings = {'templates':{'options':['off','on'],'attr':'_tmpl'},
+			                     'rigGuts':{'options':['off','lock','on'],'attr':'_rig'}}
+			for attr in _d_moduleSettings.keys():
+			    try:#Skeleton
+				_l_options = _d_moduleSettings[attr]['options']
+				_attr = _d_moduleSettings[attr]['attr']
 				mi_tmpMenu = MelMenuItem( mi_puppetSettingsMenu, l=attr, subMenu=True)			    
-				mi_collectionMenu = MelRadioMenuCollection()#build our collection instance			    
-				mi_attr = cgmMeta.cgmAttr(mi_puppetControlSettings,attr)
-				l_options = mi_attr.getEnum()
-				for i,str_option in enumerate(l_options):
-				    if i == mi_attr.value:b_state = True
-				    else:b_state = False
-				    mi_collectionMenu.createButton(mi_tmpMenu,l=' %s '%str_option,
-					                           c = Callback(mc.setAttr,"%s"%mi_attr.p_combinedName,i),
-					                           rb = b_state )					
-			except Exception,error:
-			    log.info("option failed: %s | %s"%(attr,error))	
-			    
-		    _d_moduleSettings = {'templates':{'options':['off','on'],'attr':'_tmpl'},
-		                         'rigGuts':{'options':['off','lock','on'],'attr':'_rig'}}
-		    for attr in _d_moduleSettings.keys():
-			try:#Skeleton
-			    _l_options = _d_moduleSettings[attr]['options']
-			    _attr = _d_moduleSettings[attr]['attr']
-			    mi_tmpMenu = MelMenuItem( mi_puppetSettingsMenu, l=attr, subMenu=True)			    
-			    for i,str_option in enumerate(_l_options):
-				MelMenuItem( mi_tmpMenu, l=str_option,
-				             c = Callback(func_setPuppetControlSetting,i_puppet,_attr,i))				
-			except Exception,error:
-			    log.info("option failed: %s | %s"%(attr,error))
-		except Exception,error:
-		    log.info("Failed to build puppet settings menu for: %s | %s"%(i_o.getShortName(),error))	
+				for i,str_option in enumerate(_l_options):
+				    MelMenuItem( mi_tmpMenu, l=str_option,
+					         c = Callback(func_setPuppetControlSetting,i_puppet,_attr,i))				
+			    except Exception,error:
+				log.info("option failed: %s | %s"%(attr,error))
+		    except Exception,error:
+			log.info("Failed to build puppet settings menu for: %s | %s"%(i_o.getShortName(),error))	
 
+		except Exception,error:
+		    log.info("Puppet failure: {0} | {1}".format(i_puppet.mNode,error))	
 
 		MelMenuItemDiv(parent)						
 	log.info(">"*10  + ' Puppet options build =  %0.3f seconds  ' % (time.clock()-timeStart_PuppetStuff) + '<'*10)  		

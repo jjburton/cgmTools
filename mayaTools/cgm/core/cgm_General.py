@@ -581,7 +581,8 @@ class cgmFuncCls(object):
 	    log.warning("%s%s"%(self._str_reportStart,str(arg)))
 	    self._str_lastLog = arg	    
 	    #print("[WARNING]%s%s"%(self._str_reportStart,str(arg)))	    
-	except:pass	
+	except Exception,error:
+	    log.error(error)	
     def log_debug(self,arg):
 	try:
 	    if self._str_step:

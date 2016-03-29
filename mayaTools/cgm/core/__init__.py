@@ -38,6 +38,9 @@ import lib.rayCaster
 import lib.meta_Utils
 import lib.shapeCaster
 
+try:import morpheusRig_v2.core.morpheus_meta
+except:print("Morpheus Rig core not found.")
+
 import os
 from cgm.core.lib.zoo.path import Path
 
@@ -64,6 +67,8 @@ def _reload():
     reload(lib.rayCaster)
     reload(lib.meta_Utils)
     reload(lib.shapeCaster)
+    try:reload(morpheusRig_v2.core.morpheus_meta)
+    except:print("Morpheus Rig core not found.")
     
     
     Red9_Meta.registerMClassNodeMapping(nodeTypes = ['transform','objectSet','clamp','setRange','pointOnCurveInfo','decomposeMatrix','remapValue',

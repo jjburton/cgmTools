@@ -94,12 +94,13 @@ def getBaseName(obj):
     log.error("No object exists: {0}".format(obj))        
     return False
 
-
 def getLongName(obj):
     buffer = mc.ls(obj,l=True)        
     if buffer:return buffer[0]
     log.error("No object exists: {0}".format(obj)) 
     return False
+
+ 
 # ====================================================================================================================
 # FUNCTION - 3
 #
