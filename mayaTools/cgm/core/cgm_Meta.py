@@ -1191,7 +1191,7 @@ class cgmNode(r9Meta.MetaClass):
 		    value = initialValue
 		    	    
 	    validatedAttrType = attributes.validateRequestedAttrType(attrType)
-	    if attrType is not None and validatedAttrType in ['string','float','long'] and mc.objExists("%s.%s"%(self.mNode,attr)):
+	    if attrType is not None and validatedAttrType in ['string','float','double','long'] and mc.objExists("%s.%s"%(self.mNode,attr)):
 		currentType = mc.getAttr('%s.%s'%(self.mNode,attr),type=True)
 		if currentType != validatedAttrType:
 		    log.info("cgmNode.addAttr >> %s != %s : %s.%s. Converting."%(validatedAttrType,currentType,self.getShortName(),attr))
