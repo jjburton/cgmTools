@@ -2644,6 +2644,7 @@ class cgmEyeballBlock(cgmRigBlock):
     d_attrsToMake = {'buildIris':'bool',
                      'buildPupil':'bool',
                      'buildLids':'bool',
+                     'componentJoints':'bool',
                      'uprLidJoints':'int',
                      'lwrLidJoints':'int',
                      'pupilHelper':'messageSimple',
@@ -2651,7 +2652,7 @@ class cgmEyeballBlock(cgmRigBlock):
                      'uprLidHelper':'messageSimple',
                      'lwrLidHelper':'messageSimple',
                      'moduleEyelids':'messageSimple'} 
-    d_defaultSettings = {'buildIris':True,'buildPupil':True,'buildLids':True,
+    d_defaultSettings = {'buildIris':True,'buildPupil':True,'buildLids':True,'componentJoints':False,
                          'uprLidJoints':5,'lwrLidJoints':5}
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
@@ -3229,6 +3230,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
                      'nostrilJoints':'int',
                      'cheekLoftCount':'int',
                      'smileLineCount':'int',
+                     'componentJoints':'bool',                     
                      'cheekJoints':'int',
                      'tongueJoints':'int',                     
                      'lipJoints':'int',                       
@@ -3254,7 +3256,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
                      'squashEndHelper':'messageSimple',                      
                      'skullPlate':'messageSimple', 
                      'moduleNose':'messageSimple'} 
-    d_defaultSettings = {'buildNose':True,'buildNostril':True,'buildUprCheek':True,'buildTongue':True,'buildSquashStretch':True,'buildJawLine':True,
+    d_defaultSettings = {'buildNose':True,'buildNostril':True,'buildUprCheek':True,'componentJoints':False,'buildTongue':True,'buildSquashStretch':True,'buildJawLine':True,
                          'uprCheekJoints':3,'nostrilJoints':1,'cheekLoftCount':2,'smileLineCount':6,'lipJoints':7,'cheekJoints':3,'tongueJoints':5}
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
