@@ -332,6 +332,8 @@ def applySkin(*args,**kws):
             else:
                 return self._FailBreak_("Unknown influenceMode arg ['{0}'] | Valid args{1}".format(_influenceMode,_d_influenceModes.keys()))                
             
+            if not self.mData.d_target:
+                raise ValueError,"No target mesh"
             self._b_nameMatch = cgmValid.boolArg(self.d_kws.get('nameMatch',False))
             self._b_forceClosestComponent = cgmValid.boolArg(self.d_kws.get('forceClosestComponent',False))            
             self._b_addMissingInfluences = cgmValid.boolArg(self.d_kws.get('addMissingInfluences',False))
