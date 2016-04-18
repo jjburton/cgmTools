@@ -177,6 +177,76 @@ def compare_points(sourceObj = None,targetList = None, shouldMatch = True):
                 
     return result
 
+def is_equivalent(sourceObj = None, target = None):
+    """
+    Compares points of geo mesh. Most likely used for culling out unecessary blend targets that don't do anything.
+    Can work of selection as well when no arguments are passed for source and target in a source then targets selection format.
     
+    :parameters:
+        sourceObj | Object to base comparison on
+        target | List of objects to compare with
+
+    :returns
+        list of objects matching conditions
+    """      
+    result = []
+    
+    #Get our objects if we don't have them
+    if sourceObj is None and target is None:
+        _sel = mc.ls(sl=True)
+        sourceObj = _sel[0]
+        target = _sel[1]
+        
+    #Maya OpenMaya 2.0 came in 2012 and is better but we want this to work in previous versions...
+    if mel.eval('getApplicationVersionAsFloat') <2012:
+        sel = OM.MSelectionList()#..make selection list
+        for o in sourceObj,target:
+            sel.add(o)#...add objs
+    
+        meshPath = OM.MDagPath()#...mesh path holder
+        sel.getDagPath(0,meshPath)#...get source dag path
+        fnMesh  = OM.MFnMesh(meshPath)#...fnMesh holder
+        basePoints = OM.MFloatPointArray() #...data array
+        fnMesh.getPoints(basePoints)#...get our data
+        
+        sel.remove(0)#...remove the source form our list
+        
+        morph = OM.MDagPath()#...dag path holder
+        morphPoints = OM.MFloatPointArray()#...data array
+        targets = OM.MSelectionList()#...new list for found matches
+        
+        for i in xrange(sel.length()):
+            sel.getDagPath(i, morph)#...get the target
+            fnMesh.setObject(morph)#...get it to our fnMesh obj
+            fnMesh.getPoints(morphPoints)#...get comparing data
+            _match = True                    
+            for j in xrange(morphPoints.length()):
+                if (morphPoints[j] - basePoints[j]).length() > 0.0001:#...if they're different   
+                    return False 
+        return True
+    
+    else:#We can use the new OpenMaya 2.0
+        from maya.api import OpenMaya as OM2   
+        
+        sel = OM2.MSelectionList()#...make selection list
+        for o in sourceObj,target:
+            sel.add(o)#...add them to our lists        
+            
+        basePoints = OM2.MFnMesh(sel.getDagPath(0)).getPoints()#..base points data
+        sel.remove(0)#...remove source obj
+        
+        count = sel.length()
+        targets = OM2.MSelectionList()#...target selection list
+        
+        for i in xrange(count):
+            comparable = OM2.MFnMesh(sel.getDagPath(i)).getPoints()#...target points data
+            compareMesh = sel.getDagPath(i)#...dag path for target
+            _match = True
+            for ii in xrange(basePoints.__len__()):
+                if (basePoints[ii] - comparable[ii]).length() > 0.0001:#...if they're different
+                    return False
+
+    return True
+
 
 
