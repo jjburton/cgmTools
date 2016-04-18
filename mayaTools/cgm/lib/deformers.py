@@ -34,6 +34,7 @@ from cgm.lib import(distance,
                     settings,
                     search,
                     attributes,
+                    skinning,
                     lists,
                     nodes,
                     rigging)
@@ -467,6 +468,87 @@ def returnBlendShapeNodeFromPoseBuffer(poseBuffer):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Wrap Deformers
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def influenceWrapObject(targetObject,sourceObject,duplicateObject = False, polySmoothness = 0):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Function to influence wrap one object to another rather than 
+
+    ARGUMENTS:
+    targetObject(string)
+    sourceObject(string)
+    duplicateObject(bool) whether to duplicate the object or not
+    polySmoothness(float) - amount of smoothness on the deformed object
+
+    RETURNS:
+    returnList(list) - [skinCluster,wrappedTargetObject,joint]
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+
+    #...make a dup to bake
+    if duplicateObject == True:
+        wrappedTargetObject = mc.duplicate(targetObject)
+        wrappedTargetObject = rigging.doParentToWorld(wrappedTargetObject)
+        wrappedTargetObject = mc.rename(wrappedTargetObject,(targetObject+'_baked'))
+
+        mc.delete(wrappedTargetObject,ch=True)#...delete the history
+    else:
+        wrappedTargetObject = targetObject
+	
+    if isSkinned(targetObject):
+	raise ValueError,"Target object is skinned! Can't contineue | {0}".format(targetObject)
+	
+    try:#Buffer render flags
+	'''have to buffer these as when you wrap deform, they get screwy on the source object'''
+	_l_sourceAttrs = ['castsShadows','receivesShadows','motionBlur','primaryVisibility','smoothShading',
+	                  'smoothShading','visibleInReflections','visibleInRefractions','doubleSided']
+	_d_sourceAttrs = {}
+	_d_targetAttrs = {}
+	_sourceShape = mc.listRelatives(sourceObject,shapes=True,fullPath=True)[0]
+	_targetShape = mc.listRelatives(wrappedTargetObject,shapes=True,fullPath=True)[0]
+	for a in _l_sourceAttrs:
+	    _d_sourceAttrs[a] = attributes.doGetAttr(_sourceShape,a)
+	    _d_targetAttrs[a] = attributes.doGetAttr(_targetShape,a)
+    except Exception,err:
+	raise Exception,"influenceWrapObject >> Render flag query | {0}".format(err)
+
+    try:#...inluence wrap
+	#create joint
+	#Skincluster
+	#add influence (use geometry) with influence
+	mc.select(cl=1)
+	_jnt = mc.joint(p = [0,0,0], n = "{0}_influenceWrap_{1}_jnt".format(names.getBaseName(targetObject),
+	                                                                    names.getBaseName(sourceObject)))
+	_cluster = mc.skinCluster([_jnt,wrappedTargetObject],
+	                          tsb = True,
+	                          normalizeWeights = True,
+	                          mi = 4, dr = 5,
+	                          n = "{0}_influenceWrap_skinCluster".format(names.getBaseName(targetObject)))[0]
+	mc.skinCluster(_cluster, e = True,
+	               addInfluence = sourceObject,
+	               wt = 100.0, useGeometry = 1,
+	               polySmoothness = polySmoothness)
+	attributes.doSetAttr(_cluster,'useComponents',True)
+
+    except Exception,err:
+	raise Exception,"influenceWrapObject >> influence wrap apply | {0}".format(err)	
+    
+    try:#...restore shape attrs
+	for a,v in _d_sourceAttrs.iteritems():
+	    try:
+		attributes.doSetAttr(_sourceShape,a,v)      
+	    except Exception,error:
+		log.error("failed to restore {0}-{1} | error: {2}".format(a,v,error))
+	for a,v in _d_targetAttrs.iteritems():
+	    try:
+		attributes.doSetAttr(_targetShape,a,v)      
+	    except Exception,error:
+		log.error("failed to restore {0}-{1} | error: {2}".format(a,v,error))
+    except Exception,err:
+	raise Exception,"influenceWrapObject >> Render flag apply | {0}".format(err)		
+    return ([_cluster,wrappedTargetObject,_jnt])
+
+
 def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
