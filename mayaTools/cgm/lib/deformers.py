@@ -631,7 +631,11 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Baking
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes, baseNameToUse = False, stripPrefix = False,ignoreInbetweens = False, ignoreTargets = False, transferConnections = True):
+def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes,
+                                      baseNameToUse = False, stripPrefix = False,
+                                      ignoreInbetweens = False, ignoreTargets = False,
+                                      wrapMethod = 'wrap', polySmoothness = 0,
+                                      transferConnections = True):
     """
     Update 01.15.2016
     DESCRIPTION:
@@ -645,6 +649,8 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     stripPrefix(bool)
     ignoreInbetweens(bool)
     ignoreTargets(list) - list of targets to ignore
+    wrapMethod(int) -- 0 > wrap, 1 > influence wrap
+    polySmoothness(float) -- only valid for influence wrap method
     transferConnections(bool) - if True, builds a new blendshape node and transfers the connections from our base objects
 
     RETURNS:
@@ -663,16 +669,24 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     sizeY = sizeBuffer[1]
 
     """ base name """
-    if baseNameToUse == False:
-        baseName = ''
-    else:
-        baseName = baseNameToUse + '_'
+    #if not baseNameToUse:
+    #    baseNameToUse = ''
+    #else:
+    #    baseNameToUse = baseNameToUse + '_'
+	
 
     """ wrap deform object """
     attributes.doSetLockHideKeyableAttr(targetObject, lock = False, visible = True, keyable=True)#...make sure our target geo can be wrapped
-    wrapBuffer = wrapDeformObject(targetObject,sourceObject,True)
+    
+    l_delete = []
+    if wrapMethod is 0:
+	wrapBuffer = wrapDeformObject(targetObject,sourceObject,True)
+	l_delete = [wrapBuffer[0]]
+    else:
+	wrapBuffer = influenceWrapObject(targetObject,sourceObject,True,polySmoothness)
+	l_delete = [wrapBuffer[0],wrapBuffer[2]]
     targetObjectBaked = wrapBuffer[1]
-
+    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Meat of it
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -737,8 +751,8 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
 	except Exception,error:
 	    raise Exception,"Transfer connection fail | error: {0}".format(error)
     """delete the wrap"""
-    mc.delete(wrapBuffer[0])
-
+    mc.delete(l_delete)
+    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Finish out
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -761,7 +775,9 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     mc.delete(targetObjectBaked)
     return l_return
 
-def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, baseNameToUse = False, stripPrefix = False,ignoreInbetweens = False, ignoreTargets = False, transferConnections = True):
+def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, baseNameToUse = False, 
+                                     stripPrefix = False,ignoreInbetweens = False, ignoreTargets = False, 
+                                     transferConnections = True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:

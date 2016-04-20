@@ -26,6 +26,8 @@ import maya.mel as mel
 import maya.OpenMaya as OM
 
 from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.cgmPy import OM_Utils as cgmOM
+from cgm.lib import attributes
 import re
 
 import logging
@@ -247,6 +249,128 @@ def is_equivalent(sourceObj = None, target = None):
                     return False
 
     return True
+
+def get_contained(sourceObj= None, targets = None, mode = 0, returnMode = 0, selectReturn = True,
+                  bbMultiplier = None):
+    """
+    Method for checking targets componeents or entirty are within a source object.
+
+    :parameters:
+        sourceObj | Object to check against
+        targets | list of objects to check
+        mode | search by
+           0: bounding box
+           TODO -- make it work on the actual mesh
+        returnMode | 
+           0:obj
+           1:face
+           2:edge
+           3:verts/cv
+        selectReturn | whether to select the return or not
+        bbMultiplier | bounding box multiplier to grow or shrink the bounding box
+
+    :returns
+        list items matching conditions
+        
+    :acknowledgements
+    http://forums.cgsociety.org/archive/index.php?t-904223.html
+    """      
+    __l_returnModes = ['obj/transform','face','edge/span','vert/cv']
+    result = []
+    
+    if mode is not 0:
+        raise ValueError,"Unrecognized mode: {0}".format(mode)
+    
+    _returnMode = cgmValid.valueArg(returnMode, inRange=[0,3],noneValid=False, calledFrom = 'get_contained')
+    log.info("returnMode: {0}".format(_returnMode))
+    
+    _selectReturn = cgmValid.boolArg(selectReturn, calledFrom='get_contained')
+    
+    #Get our objects if we don't have them
+    if sourceObj is None and targets is None:
+        _sel = mc.ls(sl=True)
+        sourceObj = _sel[0]
+        targets = _sel[1:]
+        
+        
+    targets = cgmValid.listArg(targets)#...Validate our targets as a list
+    sel = OM.MSelectionList()#..make selection list
+    for i,o in enumerate([sourceObj] + targets):
+        try:
+            sel.add(o)#...add objs
+        except Exception,err:   
+            raise Exception,"{0} fail. {1}".format(o,err)
+
+    _dagPath = OM.MDagPath()#...mesh path holder
+    
+    try:#Get our source bb info
+        sel.getDagPath(0,_dagPath)
+        fnMesh_source = OM.MFnMesh(_dagPath)
+        matrix_source = OM.MMatrix(_dagPath.inclusiveMatrix())    
+        
+        if bbMultiplier is not None:
+            box = mc.exactWorldBoundingBox(sourceObj)      
+            box = mc.xform(sourceObj, q= True, bb = True)
+            log.info("bbMuliplier: {0} | box: {1}".format(bbMultiplier,box))
+            bb_source = OM.MBoundingBox(cgmOM.Point(box[0] * bbMultiplier, box[1] * bbMultiplier, box[2] * bbMultiplier, ),
+                                        cgmOM.Point(box[3] * bbMultiplier, box[4] * bbMultiplier, box[5] * bbMultiplier, ))            
+            
+        else:
+            bb_source = fnMesh_source.boundingBox()
+        bb_source.transformUsing(matrix_source) 
+            
+        sel.remove(0)#...remove the source
+        
+    except Exception,err:
+        raise Exception,"Source validation fail | {0}".format(err)
+
+    _l_found = OM.MSelectionList()#...new list for found matches
+        
+    for i in xrange(sel.length()):
+        _tar = targets[i]
+        log.info("Checking '{0}'".format(_tar))
+        sel.getDagPath(i, _dagPath)#...get the target
+        
+        fnMesh_target = OM.MFnMesh(_dagPath)#...get the FnMesh for the target
+        fnMesh_target.setObject(_dagPath)
+        pArray_target = OM.MPointArray()#...data array  
+        fnMesh_target.getPoints(pArray_target)#...get comparing data
+        
+        matrix_target = OM.MMatrix(_dagPath.inclusiveMatrix())    
+        fnMesh_target = OM.MFnMesh(_dagPath)
+        bb_target = fnMesh_source.boundingBox()
+        bb_target.transformUsing(matrix_target)         
+        
+        if bb_source.contains( cgmOM.Point(mc.xform(_tar, q=True, ws=True, t=True))) or bb_source.intersects(bb_target):
+            log.info("'{0}' intersects, checking further...".format(_tar))                        
+            if _returnMode is 0:#...object
+                _l_found.add(_dagPath)
+                
+            #else :#...get our verts
+        iter = OM.MItGeometry(_dagPath)
+        while not iter.isDone():
+            vert = iter.position(OM.MSpace.kWorld)
+            if bb_source.contains(vert):
+                #if (point-vert).length()<tolerance:
+                _l_found.add(_dagPath, iter.currentItem())
+            iter.next()                
+            
+        else:continue
+        
+    #Post processing...
+    matching = []
+    _l_found.getSelectionStrings(matching) 
+    
+    if _returnMode > 0 and _returnMode is not 3 and matching:#...need to convert
+        log.info("Return conversion necessary")
+        if _returnMode is 1:#...face
+            matching = mc.polyListComponentConversion(matching, fv=True, tf=True, internal = True)
+        elif _returnMode is 2:#...edge
+            matching = mc.polyListComponentConversion(matching, fv=True, te=True, internal = True )
+
+    if _selectReturn and matching:
+        mc.select(matching)
+    return matching        
 
 
 
