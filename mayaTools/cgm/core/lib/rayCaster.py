@@ -15,15 +15,14 @@ import copy
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
 from zooPyMaya import apiExtensions
-from cgm.core.lib import surface_Utils as surfUtils
 from cgm.core.cgmPy import validateArgs as cgmValid
-from cgm.lib import (locators,
-                     dictionary,
-                     search,
-                     cgmMath,
-                     lists,
-                     geo,
-                     distance)
+
+from cgm.lib import locators
+from cgm.lib import dictionary
+from cgm.lib import search
+from cgm.lib import cgmMath
+from cgm.lib import lists
+from cgm.lib import distance
 import os
 
 #========================================================================
@@ -301,7 +300,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
 		else:
 		    uRaw = mPoint_u.value()
 		    vRaw = mPoint_v.value()
-		    __d = surfUtils.returnNormalizedUV(mesh,uRaw,vRaw)#normalize data
+		    __d = returnNormalizedUV(mesh,uRaw,vRaw)#normalize data
 		    
 		    d_return['l_rawUV'] = [uRaw,vRaw]
 		    d_return['uv'] = __d['uv']
@@ -486,7 +485,7 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance
 		else:#Nurbs
 		    uRaw = mPointArray_u[i]
 		    vRaw =  mPointArray_v[i]
-		    __d = surfUtils.returnNormalizedUV(mesh,uRaw,vRaw)#normalize data
+		    __d = returnNormalizedUV(mesh,uRaw,vRaw)#normalize data
 		    
 		    l_rawUV.append([uRaw,vRaw])
 		    l_uv.append(__d['uv'])
@@ -618,4 +617,73 @@ def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
         raise StandardError, "%s >> error: %s"%(_str_funcName,error)
 
 
+def returnNormalizedUV(mesh, uValue, vValue):
+    """
+    uv Values from many functions need to be normalized to be correct when using those values for other functions
+
+    The calculcaion for doing so is 
+    size = maxV - minV
+    sum = rawV + minV
+    normalValue = sum / size
+
+    :parameters:
+    mesh(string) | Surface to normalize to
+    uValue(float) | uValue to normalize 
+    vValue(float) | vValue to normalize 
+
+    :returns:
+    Dict ------------------------------------------------------------------
+    'uv'(double2) |  point from which we cast
+    'uValue'(float) | normalized uValue
+    'vValue'(float) | normalized vValue
+
+    :raises:
+    Exception | if reached
+
+    """      
+    try:
+	_str_funcName = 'returnNormalizedUV'
+
+	try:#Validation ----------------------------------------------------------------
+	    mesh = cgmValid.objString(mesh,'nurbsSurface', calledFrom = _str_funcName)
+	    if len(mc.ls(mesh))>1:
+		raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
+	    _str_objType = search.returnObjectType(mesh)
+
+	    l_shapes = mc.listRelatives(mesh, shapes=True)
+	    if len(l_shapes)>1:
+		log.debug( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(mesh,l_shapes) )
+	    #mi_shape = cgmMeta.validateObjArg(l_shapes[0],cgmMeta.cgmNode,noneValid=False)
+
+	    uMin = attributes.doGetAttr(l_shapes[0],'mnu')
+	    uMax = attributes.doGetAttr(l_shapes[0],'mxu')
+	    vMin = attributes.doGetAttr(l_shapes[0],'mnv')
+	    vMax = attributes.doGetAttr(l_shapes[0],'mxv')         
+	    """uMin = mi_shape.mnu
+            uMax = mi_shape.mxu
+            vMin = mi_shape.mnv
+            vMax = mi_shape.mxv"""
+
+	except Exception,error:raise Exception,"Validation failure | {0}".format(error) 		
+
+	try:#Calculation ----------------------------------------------------------------
+	    uSize = uMax - uMin
+	    vSize = vMax - vMin
+
+	    uSum = uMin + uValue
+	    vSum = vMin + vValue
+
+	    uNormal = uSum / uSize
+	    vNormal = vSum / vSize
+	except Exception,error:raise Exception,"Calculation |{0}".format(error) 		
+
+	try:
+	    d_return = {'uv':[uNormal,vNormal],'uValue':uNormal,'vValue':vNormal}
+	    return d_return 
+	except Exception,error:raise Exception,"Return prep |{0}".format(error) 		
+
+    except Exception,error:
+	log.error(">>> {0} >> Failure! mesh: '{1}' | uValue: {2} | vValue {3}".format(_str_funcName,mesh,uValue,vValue))
+	log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
+	return None
 

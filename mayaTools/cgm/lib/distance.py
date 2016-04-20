@@ -695,6 +695,14 @@ def returnFaceArea(polyFace):
     length(float)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
+    """_split = polyface.split('.')
+    mesh =_split[0]
+    _split = _split.split('f[')[-1]
+    _split = _split.split(']')[0]
+    poly = _split
+    face = polyface.split
+    log.info(poly)
+    log.info(face)"""
     faceVerts = search.returnVertsFromFace(polyFace)
     posList = []
     for vtx in faceVerts:

@@ -25,8 +25,16 @@ import maya.mel as mel
 
 from cgm.lib.classes import NameFactory
 from cgm.core import cgm_General as cgmGeneral
-
-from cgm.lib import (distance,
+from cgm.lib import distance
+from cgm.lib import dictionary
+from cgm.lib import cgmMath
+from cgm.lib import attributes
+from cgm.lib import search
+from cgm.lib import rigging
+from cgm.lib import guiFactory
+from cgm.lib import locators
+from cgm.lib import position
+"""from cgm.lib import (distance,
                      dictionary,
                      cgmMath,
                      attributes,
@@ -34,7 +42,7 @@ from cgm.lib import (distance,
                      rigging,
                      guiFactory,
                      locators,
-                     position)
+                     position)"""
 
 import re
 #========================================================================

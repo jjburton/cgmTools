@@ -25,10 +25,21 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.lib import nameTools
-reload(nameTools)
-from cgm.lib.ml import (ml_resetChannels)
+from cgm.lib.ml import ml_resetChannels
+from cgm.lib import lists
+from cgm.lib import curves
+from cgm.lib import search
+from cgm.lib import attributes
+from cgm.lib import distance
+from cgm.lib import constraints
+from cgm.lib import dictionary
+from cgm.lib import rigging
+from cgm.lib import settings
+from cgm.lib import guiFactory
+from cgm.lib import position
+from cgm.lib import locators
 
-from cgm.lib import (lists,
+"""from cgm.lib import (lists,
                      curves,
                      search,
                      attributes,
@@ -39,10 +50,7 @@ from cgm.lib import (lists,
                      settings,
                      guiFactory,
                      position,
-                     locators)
-
-reload(attributes)
-reload(search)
+                     locators)"""
 
 # Shared Defaults ========================================================
 drawingOverrideAttrsDict = {'overrideEnabled':0,
