@@ -21,7 +21,6 @@ import maya.mel as mel
 # From cgm ==============================================================
 from cgm.lib import search
 from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
 
 # Shared Defaults ========================================================
 
@@ -631,3 +630,56 @@ class simpleAxis():
     @property
     def p_vector(self):
         return self.__v_axis
+    
+    
+#>>> Transforms ==========================================================================
+def getTransform(arg):
+    """Find the transform of the object"""
+    buffer = mc.ls(arg, type = 'transform') or False
+    if buffer:
+        return buffer[0]
+    else:
+        buffer = mc.listRelatives(arg,parent=True,type='transform') or False
+    if buffer:
+        return buffer[0]
+    return False
+
+def MeshDict(mesh = None, pointCounts = True):
+    '''
+    Validates a mesh and returns a dict of data
+
+    :param mesh: mesh to evaluate
+
+    '''        
+    _mesh = None 
+    _skin = None
+    
+    if mesh is None:
+        log.info("No source specified, checking if selection found")
+        _bfr = mc.ls(sl=True)
+        if not _bfr:raise ValueError,"No selection found and no source arg"
+        mesh = _bfr[0]
+        
+
+    _type = search.returnObjectType(mesh)
+
+    if _type in ['mesh']:
+        _mesh = mesh
+    elif _type in ['shape']:
+        _mesh = getTransform(mesh)
+    else:
+        raise ValueError,"Not a usable mesh type : {0}".format(_type)
+
+    _shapes = mc.listRelatives(_mesh,shapes=True,fullPath=False)
+    _return = {'mesh':_mesh,
+               'meshType':_type,
+               'shapes':_shapes,
+               }
+    
+    if pointCounts:
+        _l_counts = []
+        for s in _return['shapes']:
+            _l_counts.append( mc.polyEvaluate(s, vertex=True))
+        _return['pointCountPerShape'] = _l_counts
+        _return['pointCount'] = sum(_l_counts)
+    return _return   
