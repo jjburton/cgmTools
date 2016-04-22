@@ -33,6 +33,9 @@ from cgm.core.lib import rayCaster as cgmRAYS
 import re
 
 from cgm.lib import search
+from cgm.lib import distance
+from cgm.lib import names
+from cgm.lib import attributes
 
 import logging
 logging.basicConfig()
@@ -229,8 +232,8 @@ def is_equivalent(sourceObj = None, target = None):
 
     return True
 
-def get_contained(sourceObj= None, targets = None, mode = 0, returnMode = 0, selectReturn = True,
-                  expandBy = None, expandAmount = 0):
+def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0, selectReturn = True,
+                     expandBy = None, expandAmount = 0):
     """
     Method for checking targets componeents or entirty are within a source object.
 
@@ -245,6 +248,7 @@ def get_contained(sourceObj= None, targets = None, mode = 0, returnMode = 0, sel
            1:face
            2:edge
            3:verts/cv
+           4:proximity mesh -- proxmity mesh of the faces of the target mesh affected
         selectReturn(bool): whether to select the return or not
         expandBy(str): None
                        expandSelection: uses polyTraverse to grow selection
@@ -262,7 +266,7 @@ def get_contained(sourceObj= None, targets = None, mode = 0, returnMode = 0, sel
     :TODO
     Only works with mesh currently
     """      
-    __l_returnModes = ['obj/transform','face','edge/span','vert/cv']
+    __l_returnModes = ['obj/transform','face','edge/span','vert/cv','proximity mesh']
     __l_modes = ['raycast interior','bounding box']
     __l_expandBy = [None, 'expandSelection','softSelect']
     result = []
@@ -270,7 +274,7 @@ def get_contained(sourceObj= None, targets = None, mode = 0, returnMode = 0, sel
     _mode = cgmValid.valueArg(mode, inRange=[0,1], noneValid=False, calledFrom = 'get_contained')    
     log.info("mode: {0}".format(_mode))
     
-    _returnMode = cgmValid.valueArg(returnMode, inRange=[0,3], noneValid=False, calledFrom = 'get_contained')
+    _returnMode = cgmValid.valueArg(returnMode, inRange=[0,4], noneValid=False, calledFrom = 'get_contained')
     log.info("returnMode: {0}".format(_returnMode))
     
     _selectReturn = cgmValid.boolArg(selectReturn, calledFrom='get_contained')
@@ -281,6 +285,10 @@ def get_contained(sourceObj= None, targets = None, mode = 0, returnMode = 0, sel
             _expandBy = expandBy
         else:
             raise ValueError,"'{0}' expandBy arg not found in : {1}".format(expandBy, __l_expandBy)
+        
+    #Validate our expand amount =======================================================================================================
+    if expandAmount is 'default':
+        expandAmount = distance.returnBoundingBoxSizeToAverage(sourceObj)    
         
     #Get our objects if we don't have them
     if sourceObj is None and targets is None:
@@ -442,10 +450,113 @@ def get_contained(sourceObj= None, targets = None, mode = 0, returnMode = 0, sel
             matching = mc.polyListComponentConversion(matching, fv=True, tf=True, internal = True)
         elif _returnMode is 2:#...edge
             matching = mc.polyListComponentConversion(matching, fv=True, te=True, internal = True )
-
+        elif _returnMode is 4:#...proximity mesh
+            #Get our faces
+            matching = mc.polyListComponentConversion(matching, fv=True, tf=True, internal = True)
+            
+            #Sort out the list to the objects to a new dict
+            _d_sort = {}
+            #d[obj] = [list of .f entries]
+            for o in matching:
+                _split = o.split('.')#...split our obj from the f data obj.f[1] format
+                if _split[0] not in _d_sort.keys():
+                    _d_sort[_split[0]] = []
+                _d_sort[_split[0]].append( _split[1] )
+                
+            _l_created = []
+            for o,l in _d_sort.iteritems():
+                #Dupliate the mesh =======================================================================================================
+                _dup = mc.duplicate(o, po = False, n = "{0}_to_{1}_proximesh".format(names.getBaseName(o),
+                                                                                     names.getBaseName(sourceObj)))[0]
+                log.debug("Dup: {0}".format(_dup))
+                
+                _longNameDup = names.getShortName(_dup)
+                
+                #Split out the faces we want =======================================================================================================
+                _datNew = ["{0}.{1}".format(_longNameDup,f) for f in l]    
+                
+                log.debug("Faces:")
+                for i,o in enumerate(l):
+                    log.debug(''*4 + o + "  >  " + _datNew[i])   
+                    
+                mc.select(_datNew)
+                mel.eval('invertSelection')
+                if mc.ls(sl=True):
+                    mc.delete(mc.ls(sl=True))   
+                _l_created.append(_dup)
+            if len(_l_created) == 1:
+                attributes.storeInfo(sourceObj, 'proximityMesh', _dup)
+            matching = _l_created
+            
     if _selectReturn and matching:
         mc.select(matching)
-    return matching        
+    return matching  
 
+def create_proximityMeshFromTarget(sourceObj= None, target = None, mode = 1, expandBy = 'softSelect', expandAmount = 'default'):
+    """
+    Create a proximity mesh from another one
+
+    :parameters:
+        sourceObj(str): Object to check against
+        target(str): object to check
+        mode(int):search by
+           0: rayCast interior
+           1: bounding box -- THIS IS MUCH FASTER
+        expandBy(str): None
+                       expandSelection: uses polyTraverse to grow selection
+                       softSelect: use softSelection with linear falloff by the expandAmount Distance
+        expandAmount(float/int): amount to expand. if it's 
+
+    :returns
+        New Mesh
+        
+    """
+    raise DeprecationWarning, "Not gonna use this"
+    _result = []
+    
+    #Get our objects if we don't have them
+    if sourceObj is None and target is None:
+        _sel = mc.ls(sl=True)
+        sourceObj = _sel[0]
+        targets = _sel[1]
+
+    
+    #Validate our expand amount =======================================================================================================
+    _expandAmount = expandAmount
+    if expandAmount is 'default':
+        _expandAmount = distance.returnBoundingBoxSizeToAverage(sourceObj)
+    
+    #Get our faces =======================================================================================================
+    _dat = get_contained(sourceObj, target, mode = mode, returnMode = 1, expandBy = expandBy, expandAmount = _expandAmount)
+    
+    if not _dat:
+        raise ValueError,"No data found on get_contained call!"
+    
+    #Dupliate the mesh =======================================================================================================
+    _dup = mc.duplicate(target, po = False, n = "{0}_proximesh".format(names.getBaseName(target)))[0]
+    log.debug("Dup: {0}".format(_dup))
+    
+    _key = _dat[0].split('.')[0]
+    _longNameDup = names.getShortName(_dup)
+    
+    #Split out the faces we want =======================================================================================================
+    _datNew = [ o.replace(_key, _longNameDup) for o in _dat]    
+    
+    log.debug("Faces:")
+    for i,o in enumerate(_dat):
+        log.debug(''*4 + o + "  >  " + _datNew[i])   
+        
+    mc.select(_datNew)
+    mel.eval('invertSelection')
+    if mc.ls(sl=True):
+        mc.delete(mc.ls(sl=True))
+    mc.select(_dup)
+    
+    attributes.storeInfo(sourceObj, 'proximityMesh', _dup)
+    return _dup
+    
+    
+    
+    
 
 

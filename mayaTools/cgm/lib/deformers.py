@@ -26,6 +26,7 @@ import copy
 
 from maya.OpenMayaAnim import MFnBlendShapeDeformer
 from zooPyMaya import apiExtensions
+from cgm.core.lib import geo_Utils as GEOUTILS
 
 from cgm.lib import(distance,
                     names,
@@ -285,10 +286,10 @@ def returnObjectDeformers(obj, deformerTypes = 'all'):
             if len(foundDeformers)>0:
                 return foundDeformers
             else:
-                return False
+                return []
 
     else:
-        return False
+        return []
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def reorderDeformersByType(obj, deformerOrder = ['skinCluster','blendShape','tweak']):
@@ -546,33 +547,32 @@ def influenceWrapObject(targetObject,sourceObject,duplicateObject = False, polyS
 		log.error("failed to restore {0}-{1} | error: {2}".format(a,v,error))
     except Exception,err:
 	raise Exception,"influenceWrapObject >> Render flag apply | {0}".format(err)		
-    return ([_cluster,wrappedTargetObject,_jnt])
+    return [_cluster,wrappedTargetObject,_jnt]
 
 
-def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
+def wrapDeformObject(targetObject, sourceObject, duplicateObject = False):
     """
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
+    --- Updated - 04.21.2016
+    
     Function for baking a series of blendshapes from one object to another
 
-    ARGUMENTS:
-    targetObject(string)
-    sourceObject(string)
-    duplicateObject(bool) whether to duplicate the object or not
+    :parameters:
+	targetObject(str): Object to wrap
+	sourceObject(str): Object to wrap to
+	duplicateObject(bool):whether to duplicate object or not
 
-    RETURNS:
-    returnList(list) - [wrapDeformer,wrappedTargetObject]
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
+    :returns
+	returnList(list) - [wrapDeformer,wrappedTargetObject]
+    """    
 
-    """ make a dup to bake """
+    #Make a dup to bake
     if duplicateObject == True:
         wrappedTargetObject = mc.duplicate(targetObject)
         wrappedTargetObject = rigging.doParentToWorld(wrappedTargetObject)
         wrappedTargetObject = mc.rename(wrappedTargetObject,(targetObject+'_baked'))
 
         """ Freeze """
-        mc.makeIdentity(wrappedTargetObject,apply=True, t=True,r=True,s=True)
+        #mc.makeIdentity(wrappedTargetObject,apply=True, t=True,r=True,s=True)
         mc.delete(wrappedTargetObject,ch=True)
     else:
         wrappedTargetObject = targetObject
@@ -589,15 +589,32 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
 	_d_sourceAttrs[a] = attributes.doGetAttr(_sourceShape,a)
 	_d_targetAttrs[a] = attributes.doGetAttr(_targetShape,a)
 
-    """ wrap deformer"""
-    wrapDeformerBuffer = mc.deformer(wrappedTargetObject,type='wrap')
+    #Wrap deformer"""
+    _l_wrapBuffer = returnObjectDeformers(wrappedTargetObject, deformerTypes = 'wrap')
+    mc.select([wrappedTargetObject,sourceObject])
+    mc.CreateWrap()#...this doesn't return our wrap...thanks maya
+    _l_wrapBufferPost = returnObjectDeformers(wrappedTargetObject, deformerTypes = 'wrap')
+    for o in _l_wrapBufferPost:
+	if o not in _l_wrapBuffer:
+	    wrapDeformer = o
+	    continue
+    
+    wrapDeformer = mc.rename(wrapDeformer, (names.getBaseName(targetObject)+'_wrapDeformer'))
+    
+    """"wrapDeformerBuffer = mc.deformer(wrappedTargetObject, type='wrap')
     wrapDeformer = wrapDeformerBuffer[0]
     wrapDeformer = mc.rename(wrapDeformer,(mc.ls(targetObject,shortNames=True)[0]+'_wrapDeformer'))
-    """ cause maya is stupid and doesn't have a python equivalent"""
+    #cause maya is stupid and doesn't have a python equivalent
     mc.select(wrappedTargetObject,r=True)
     mc.select(sourceObject,tgl=True)
     mel.eval('AddWrapInfluence')
-    mc.select(cl=True)
+    mc.select(cl=True)"""
+    
+    """
+    CreateWrap;
+    performCreateWrap false;
+    deformer -type wrap pSphere1;
+    """
     
     #...deformer attriputes
     _d = {'envelope':1,
@@ -627,6 +644,57 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
 	    log.error("wrapDeformObject >> failed to restore {0}-{1} | error: {2}".format(a,v,error))	    
     return ([wrapDeformer,wrappedTargetObject])
 
+def proximityWrapObject(targetObject, sourceObject, duplicateObject = False,
+                        proximityMode = 1, expandBy = 'softSelect', expandAmount = 'default'):
+    """
+    --- Updated - 04.21.2016
+    
+    Function for proximity 
+    
+    See cgm.core.lib.geo_Utils.get_proximityGeo for more details on the mesh creation
+
+    :parameters:
+	targetObject(str): Object to wrap
+	sourceObject(str): Object to wrap to
+	duplicateObject(bool):whether to duplicate target or not
+	proximityMode(int):search by
+           0: rayCast interior
+           1: bounding box -- THIS IS MUCH FASTER
+        expandBy(str): None
+                       expandSelection: uses polyTraverse to grow selection
+                       softSelect: use softSelection with linear falloff by the expandAmount Distance
+        expandAmount(float/int): amount to expand.
+
+    :returns
+	returnList(list) - [wrapDeformer,wrappedTargetObject,proximeshWrapDeformer,proximesh]
+    """    
+    #Make a dup to bake
+    if duplicateObject == True:
+        wrappedTargetObject = mc.duplicate(targetObject)
+        wrappedTargetObject = rigging.doParentToWorld(wrappedTargetObject)
+        wrappedTargetObject = mc.rename(wrappedTargetObject,(targetObject+'_baked'))
+
+        """ Freeze """
+        #mc.makeIdentity(wrappedTargetObject,apply=True, t=True,r=True,s=True)
+        mc.delete(wrappedTargetObject,ch=True)
+    else:
+        wrappedTargetObject = targetObject
+	
+    #Generate proximity Mesh
+    _proxiMesh = GEOUTILS.get_proximityGeo(wrappedTargetObject, sourceObject,
+                                           returnMode = 4,
+                                           mode=proximityMode, 
+                                           expandBy=expandBy, 
+                                           expandAmount=expandAmount)[0]
+    
+    #Create wraps
+    _mainWrap = wrapDeformObject (wrappedTargetObject, _proxiMesh)
+    _proxiWrap = wrapDeformObject(_proxiMesh, sourceObject)
+    
+    return [_mainWrap[0],wrappedTargetObject,_proxiWrap[0],_proxiMesh]
+    
+    
+	
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Baking
@@ -634,10 +702,11 @@ def wrapDeformObject(targetObject,sourceObject,duplicateObject = False):
 def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes,
                                       baseNameToUse = False, stripPrefix = False,
                                       ignoreInbetweens = False, ignoreTargets = False,
-                                      wrapMethod = 'wrap', polySmoothness = 0,
+                                      wrapMethod = 'wrap', proximityMode = 1, expandBy = 'softSelect',expandAmount = 'default',
+                                      polySmoothness = 0,
                                       transferConnections = True):
     """
-    Update 01.15.2016
+    Update 04.21.2016
     DESCRIPTION:
     Function for baking a series of blendshapes from one object to another
 
@@ -649,7 +718,17 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     stripPrefix(bool)
     ignoreInbetweens(bool)
     ignoreTargets(list) - list of targets to ignore
-    wrapMethod(int) -- 0 > wrap, 1 > influence wrap
+    wrapMethod(int):
+            0:wrap
+	    1:influence wrap
+	    2:proximity wrap
+    proximityMode(int):search by
+       0: rayCast interior
+       1: bounding box -- THIS IS MUCH FASTER
+    expandBy(str): None
+		   expandSelection: uses polyTraverse to grow selection
+		   softSelect: use softSelection with linear falloff by the expandAmount Distance
+    expandAmount(float/int): amount to expand.
     polySmoothness(float) -- only valid for influence wrap method
     transferConnections(bool) - if True, builds a new blendshape node and transfers the connections from our base objects
 
@@ -682,9 +761,14 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     if wrapMethod is 0:
 	wrapBuffer = wrapDeformObject(targetObject,sourceObject,True)
 	l_delete = [wrapBuffer[0]]
-    else:
+    elif wrapMethod is 1:
 	wrapBuffer = influenceWrapObject(targetObject,sourceObject,True,polySmoothness)
 	l_delete = [wrapBuffer[0],wrapBuffer[2]]
+    elif wrapMethod is 2:
+	wrapBuffer = proximityWrapObject(targetObject, sourceObject, 
+	                                 True, proximityMode, expandBy,expandAmount)
+	l_delete = [wrapBuffer[0], wrapBuffer[2], wrapBuffer[3]]
+	
     targetObjectBaked = wrapBuffer[1]
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -751,6 +835,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
 	except Exception,error:
 	    raise Exception,"Transfer connection fail | error: {0}".format(error)
     """delete the wrap"""
+    log.info("Delete: {0}".format(l_delete))
     mc.delete(l_delete)
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
