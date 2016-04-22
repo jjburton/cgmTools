@@ -701,7 +701,8 @@ def proximityWrapObject(targetObject, sourceObject, duplicateObject = False,
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes,
                                       baseNameToUse = False, stripPrefix = False,
-                                      ignoreInbetweens = False, ignoreTargets = False, cullNoChangeGeo = True,
+                                      ignoreInbetweens = False, ignoreTargets = False,
+                                      cullNoChangeGeo = True, tolerance = .002,
                                       wrapMethod = 'wrap', proximityMode = 1, expandBy = 'softSelect',expandAmount = 'default',
                                       polySmoothness = 0,
                                       transferConnections = True):
@@ -719,6 +720,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     ignoreInbetweens(bool)
     ignoreTargets(list) - list of targets to ignore
     cullNoChangeGeo(bool) - Remove shapes that don't change the base
+    tolearance(float) - amount of tolerance for the cull check
     wrapMethod(int):
             0:wrap
 	    1:influence wrap
@@ -778,6 +780,8 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     d_blendshapeData = {}
     l_blendshapeKeys = []#...list to index well
+    l_bakedShapeKeys = []
+    l_culled = []
     int_cnt = 0
     
     for bsn in blendShapeNodes:
@@ -799,14 +803,26 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
 		if ignoreTargets and shape in ignoreTargets:
 		    continue
 		
-		log.info('breaking connection on: {0}'.format(blendShapeBuffer))
+		log.debug('breaking connection on: {0}'.format(blendShapeBuffer))
 		attributes.doBreakConnection(blendShapeBuffer)
 		attributes.doSetAttr(bsn,shape,0)
 	
 	    # Bake it
 	    bakedGeo = bakeBlendShapes(sourceObject, targetObjectBaked, bsn, baseNameToUse, stripPrefix, ignoreInbetweens, ignoreTargets)
+	    l_bakedShapeKeys.extend([names.getBaseName(o) for o in bakedGeo])
+	
+	    if cullNoChangeGeo:
+		l_good = []
+		for i,o in enumerate(bakedGeo):
+		    if GEOUTILS.is_equivalent(targetObject,o, tolerance):
+			l_culled.append(o)
+			mc.delete(o)
+		    else:l_good.append(o)
+		if l_good:
+		    bakedGeo = l_good
+		    
 	    l_bakedGeo.extend(bakedGeo)
-	    
+		    
 	    """ restore connections """
 	    for shape in l_bsChannels:
 		if ignoreTargets and shape in ignoreTargets:
@@ -814,7 +830,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
 	
 		blendShapeBuffer = (bsn+'.'+shape)
 		""" Restore the connection """
-		log.info('connecting {0} | {1}'.format(shape,d_blendShapeConnections[shape]))
+		log.debug('connecting {0} | {1}'.format(shape,d_blendShapeConnections[shape]))
 		if d_blendShapeConnections[shape]:
 		    attributes.doConnectAttr(d_blendShapeConnections[shape],blendShapeBuffer)
 	except Exception,error:
@@ -822,35 +838,30 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
 	
     # Need to build a new blendshape node?
     newBlendShapeNode = False
+    
     if transferConnections:
 	try:
 	    # Build it			
 	    newBlendShapeNode = buildBlendShapeNode(targetObject, l_bakedGeo)
 	    newBlendShapeChannels = returnBlendShapeAttributes(newBlendShapeNode)
-	    if len(newBlendShapeChannels)!= len(d_blendshapeData.keys()):
-		log.warning("Cannot transfer connections. Lengths of data lists do not match")
-	    else:
-		for i,shape in enumerate(newBlendShapeChannels):
-		    blendShapeBuffer = (newBlendShapeNode+'.'+shape)
-		    currentIndex = newBlendShapeChannels.index(shape)
-		    if d_blendshapeData[i]['connection'] != False:
-			attributes.doConnectAttr(d_blendshapeData[i]['connection'],blendShapeBuffer)
+	    #if len(newBlendShapeChannels)!= len(d_blendshapeData.keys()):
+		#log.warning("Cannot transfer connections. Lengths of data lists do not match")
+		
+	    for i,shape in enumerate(newBlendShapeChannels):
+		blendShapeBuffer = (newBlendShapeNode+'.'+shape)
+		currentIndex = newBlendShapeChannels.index(shape)
+		currentIndex = l_bakedShapeKeys.index(shape)
+		if d_blendshapeData[currentIndex]['connection'] != False:
+		    attributes.doConnectAttr(d_blendshapeData[currentIndex]['connection'],blendShapeBuffer)
+		else:
+		    log.warning("Couldn't find connection data for {0}".format(blendShapeBuffer))
 	except Exception,error:
 	    raise Exception,"Transfer connection fail | error: {0}".format(error)
 	
-    if cullNoChangeGeo:
-	
-	l_cull = []
-	for i,o in enumerate(l_bakedGeo):
-	    if GEOUTILS.is_equivalent(targetObject,o):
-		log.info("{0} is the same. Removing".format(o)) 
-		l_cull.append(o)
-		attributes.doBreakConnection("{0}.{1}".format(newBlendShapeNode,names.getBaseName(o)))		
-	if l_cull:
-	    mc.blendShape(newBlendShapeNode, edit = True,  t = l_cull, remove = True )
+   
 	    #blendShape -e  -tc 0 -rm -t pSphere1 152 pSphere1_bsGeo_grp|l_fingers_facet 1 -t pSphere1 152 pSphere1 1 pSphere1_bsNode;
 	
-    log.info("Delete: {0}".format(l_delete))
+    log.debug("Delete: {0}".format(l_delete))
     mc.delete(l_delete)
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -858,16 +869,21 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #Group geo ----------------------------------------------------------------------------------------------------
     meshGroup = mc.group( em=True)
+    _tar_baseName = names.getBaseName(targetObject)
     if baseNameToUse is not False:
         attributes.storeInfo(meshGroup,'cgmName', baseNameToUse)
     else:
-	attributes.storeInfo(meshGroup,'cgmName',names.getBaseName(targetObject))
+	attributes.storeInfo(meshGroup,'cgmName', _tar_baseName)
     attributes.storeInfo(meshGroup,'cgmTypeModifier', 'blendShapeGeo')
     meshGroup = NameFactory.doNameObject(meshGroup)
 
     for i,geo in enumerate(l_bakedGeo):
         l_bakedGeo[i] = rigging.doParentReturnName(geo,meshGroup)
-
+	
+    if l_culled:
+	log.info("Culled the following ({0}) targets for '{1}':".format(len(l_culled),_tar_baseName))
+	for o in l_culled:
+	    log.info("    " + o)
     #return prep ----------------------------------------------------------------------------------------------------
     l_return = [meshGroup,
                 l_bakedGeo]
