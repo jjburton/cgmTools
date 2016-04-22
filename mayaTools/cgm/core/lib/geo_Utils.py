@@ -5,7 +5,7 @@
 #=================================================================================================================================================
 # 
 # DESCRIPTION:
-#	Series of tools for working with attributes
+#	Series of tools for working with geo
 # 
 # ARGUMENTS:
 # 	Maya
@@ -15,10 +15,6 @@
 #	http://www.cgmonks.com
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 # 
-# CHANGELOG:
-#	0.1 - 02/09/2011 - added documenation
-#
-#   
 #=================================================================================================================================================
 
 import maya.cmds as mc

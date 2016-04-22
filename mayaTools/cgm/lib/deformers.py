@@ -27,7 +27,7 @@ import copy
 from maya.OpenMayaAnim import MFnBlendShapeDeformer
 from zooPyMaya import apiExtensions
 from cgm.core.lib import geo_Utils as GEOUTILS
-
+from cgm.core.cgmPy import validateArgs as cgmVALID
 from cgm.lib import(distance,
                     names,
                     dictionary,
@@ -691,7 +691,7 @@ def proximityWrapObject(targetObject, sourceObject, duplicateObject = False,
     _mainWrap = wrapDeformObject (wrappedTargetObject, _proxiMesh)
     _proxiWrap = wrapDeformObject(_proxiMesh, sourceObject)
     
-    return [_mainWrap[0],wrappedTargetObject,_proxiWrap[0],_proxiMesh]
+    return [_mainWrap[0], wrappedTargetObject ,_proxiWrap[0],_proxiMesh]
     
     
 	
@@ -701,7 +701,7 @@ def proximityWrapObject(targetObject, sourceObject, duplicateObject = False,
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes,
                                       baseNameToUse = False, stripPrefix = False,
-                                      ignoreInbetweens = False, ignoreTargets = False,
+                                      ignoreInbetweens = False, ignoreTargets = False, cullNoChangeGeo = True,
                                       wrapMethod = 'wrap', proximityMode = 1, expandBy = 'softSelect',expandAmount = 'default',
                                       polySmoothness = 0,
                                       transferConnections = True):
@@ -718,6 +718,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     stripPrefix(bool)
     ignoreInbetweens(bool)
     ignoreTargets(list) - list of targets to ignore
+    cullNoChangeGeo(bool) - Remove shapes that don't change the base
     wrapMethod(int):
             0:wrap
 	    1:influence wrap
@@ -738,14 +739,15 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Prep
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """ declare variables """
     blendShapeNamesBaked = []
     l_bakedGeo = []
-
+    
+    blendShapeNodes = cgmVALID.listArg(blendShapeNodes)
+    
     """ size """
-    sizeBuffer = distance.returnBoundingBoxSize(targetObject)
-    sizeX = sizeBuffer[0]
-    sizeY = sizeBuffer[1]
+    #sizeBuffer = distance.returnBoundingBoxSize(targetObject)
+    #sizeX = sizeBuffer[0]
+    #sizeY = sizeBuffer[1]
 
     """ base name """
     #if not baseNameToUse:
@@ -754,7 +756,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     #    baseNameToUse = baseNameToUse + '_'
 	
 
-    """ wrap deform object """
+    #Wrap
     attributes.doSetLockHideKeyableAttr(targetObject, lock = False, visible = True, keyable=True)#...make sure our target geo can be wrapped
     
     l_delete = []
@@ -777,6 +779,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     d_blendshapeData = {}
     l_blendshapeKeys = []#...list to index well
     int_cnt = 0
+    
     for bsn in blendShapeNodes:
 	try:
 	    l_bsChannels = returnBlendShapeAttributes(bsn)
@@ -803,7 +806,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
 	    # Bake it
 	    bakedGeo = bakeBlendShapes(sourceObject, targetObjectBaked, bsn, baseNameToUse, stripPrefix, ignoreInbetweens, ignoreTargets)
 	    l_bakedGeo.extend(bakedGeo)
-	
+	    
 	    """ restore connections """
 	    for shape in l_bsChannels:
 		if ignoreTargets and shape in ignoreTargets:
@@ -821,7 +824,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     newBlendShapeNode = False
     if transferConnections:
 	try:
-	    # Build it
+	    # Build it			
 	    newBlendShapeNode = buildBlendShapeNode(targetObject, l_bakedGeo)
 	    newBlendShapeChannels = returnBlendShapeAttributes(newBlendShapeNode)
 	    if len(newBlendShapeChannels)!= len(d_blendshapeData.keys()):
@@ -834,16 +837,28 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
 			attributes.doConnectAttr(d_blendshapeData[i]['connection'],blendShapeBuffer)
 	except Exception,error:
 	    raise Exception,"Transfer connection fail | error: {0}".format(error)
-    """delete the wrap"""
+	
+    if cullNoChangeGeo:
+	
+	l_cull = []
+	for i,o in enumerate(l_bakedGeo):
+	    if GEOUTILS.is_equivalent(targetObject,o):
+		log.info("{0} is the same. Removing".format(o)) 
+		l_cull.append(o)
+		attributes.doBreakConnection("{0}.{1}".format(newBlendShapeNode,names.getBaseName(o)))		
+	if l_cull:
+	    mc.blendShape(newBlendShapeNode, edit = True,  t = l_cull, remove = True )
+	    #blendShape -e  -tc 0 -rm -t pSphere1 152 pSphere1_bsGeo_grp|l_fingers_facet 1 -t pSphere1 152 pSphere1 1 pSphere1_bsNode;
+	
     log.info("Delete: {0}".format(l_delete))
     mc.delete(l_delete)
     
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Finish out
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """ group for geo """
+    #Group geo ----------------------------------------------------------------------------------------------------
     meshGroup = mc.group( em=True)
-    if baseNameToUse is False:
+    if baseNameToUse is not False:
         attributes.storeInfo(meshGroup,'cgmName', baseNameToUse)
     else:
 	attributes.storeInfo(meshGroup,'cgmName',names.getBaseName(targetObject))
@@ -853,6 +868,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     for i,geo in enumerate(l_bakedGeo):
         l_bakedGeo[i] = rigging.doParentReturnName(geo,meshGroup)
 
+    #return prep ----------------------------------------------------------------------------------------------------
     l_return = [meshGroup,
                 l_bakedGeo]
     if newBlendShapeNode:
@@ -1442,7 +1458,7 @@ def bakeBlendShapes(sourceObject, targetObject, blendShapeNode, baseNameToUse = 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     targetDict = returnBlendShapeTargetsAndWeights(sourceObject,blendShapeNode)
-
+    
     """ size """
     sizeBuffer = distance.returnBoundingBoxSize(targetObject)
     sizeX = sizeBuffer[0]
@@ -1675,4 +1691,6 @@ def returnBlendShapeTargetsAndWeights(sourceObject, blendShapeNodeName):
         targetDict[i] = targetsReturnBuffer
 
     return targetDict
+
+
 
