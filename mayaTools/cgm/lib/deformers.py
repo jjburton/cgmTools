@@ -1427,27 +1427,27 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
     #First look through the targetObjects for inbetween shapes
     baseTargets = []
     inbetweenTargets = []
-    for object in blendShapeTargets:
-        if mc.objExists(object+'.cgmBlendShapeTargetParent'):
-            inbetweenTargets.append(object)
+    for obj in blendShapeTargets:
+        if mc.objExists(obj+'.cgmBlendShapeTargetParent'):
+            inbetweenTargets.append(obj)
         else:
-            baseTargets.append(object)
+            baseTargets.append(obj)
 
     # Make the blendshape node
-    try:blendShapeNode = mc.blendShape(baseTargets,targetObject, n = blendShapeNodeName)
+    try:blendShapeNode = mc.blendShape(baseTargets,targetobj, n = blendShapeNodeName)
     except Exception,error:
-	raise Exception,"blendshape build fail | name: {0} | targetObject: {1} | error: {2}".format(blendShapeNodeName,targetObject,error)
+	raise Exception,"blendshape build fail | name: {0} | targetobj: {1} | error: {2}".format(blendShapeNodeName,targetobj,error)
     if inbetweenTargets:
 	blendShapeChannels = returnBlendShapeAttributes(blendShapeNode[0])	
 	# Handle the inbetweens
-	for object in inbetweenTargets:
-	    objAttrs = attributes.returnUserAttrsToDict(object)
+	for obj in inbetweenTargets:
+	    objAttrs = attributes.returnUserAttrsToDict(obj)
     
 	    targetParent = objAttrs.get('cgmBlendShapeTargetParent')
 	    targetValue = float(objAttrs.get('cgmBlendShapeInbetweenWeight'))
 	    bsIndice = blendShapeChannels.index(targetParent)
     
-	    mc.blendShape(blendShapeNode[0], edit = True, ib = True , target = [targetObject,bsIndice,object,targetValue])
+	    mc.blendShape(blendShapeNode[0], edit = True, ib = True , target = [targetobj,bsIndice,obj,targetValue])
 
     return blendShapeNode[0]
 

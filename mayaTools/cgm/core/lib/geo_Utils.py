@@ -157,7 +157,7 @@ def compare_points(sourceObj = None,targetList = None, shouldMatch = True):
                 
     return result
 
-def is_equivalent(sourceObj = None, target = None):
+def is_equivalent(sourceObj = None, target = None, tolerance = .0001):
     """
     Compares points of geo mesh. Most likely used for culling out unecessary blend targets that don't do anything.
     Can work of selection as well when no arguments are passed for source and target in a source then targets selection format.
@@ -201,7 +201,7 @@ def is_equivalent(sourceObj = None, target = None):
             fnMesh.getPoints(morphPoints)#...get comparing data
             _match = True                    
             for j in xrange(morphPoints.length()):
-                if (morphPoints[j] - basePoints[j]).length() > 0.0001:#...if they're different   
+                if (morphPoints[j] - basePoints[j]).length() > tolerance:#...if they're different   
                     return False 
         return True
     
@@ -423,6 +423,12 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0, 
     #Post processing =============================================================================
     _l_found.getSelectionStrings(matching)#...push data to strings    
     log.info("Found {0} vers contained...".format(len(matching)))
+    
+    if not matching:
+        log.warning("No geo found in the provided proximity")
+        log.warning("Source: {0}".format(sourceObj))
+        log.warning("Targets: {0}".format(targets))
+        return False
     
     #Expand ========================================================================================
     if _expandBy is not None and returnMode > 0:

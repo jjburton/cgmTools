@@ -51,3 +51,22 @@ class Point(OM.MPoint, object):
 
     def asTuple(self):
         return (self.x, self.y, self.z)
+    
+    
+def mObjectArray_get_list(mArray = None):
+    result = []
+
+    for i in xrange(mArray.length()):
+        objFn = OM.MFnDagNode( mArray[i])
+        result.append( objFn.fullPathName() )
+        
+    return result
+
+def mObject_getNameString(mObject = None):
+    result = []
+    
+    objFn = OM.MFnDagNode( mObject )
+    return objFn.fullPathName()
+
+
+   
