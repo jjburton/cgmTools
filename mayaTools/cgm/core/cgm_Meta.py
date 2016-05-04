@@ -5534,7 +5534,7 @@ class cgmBlendShape(cgmNode):
 	
 	self._MFN = OMANIM.MFnBlendShapeDeformer(self._MObject)
 	
-    def get_shapes(self, asMData = False):
+    def bsShapes_get(self, asMData = False):
 	result = []
 	bsFn = self._MFN
 	
@@ -5562,7 +5562,29 @@ class cgmBlendShape(cgmNode):
 	if asMData:
 	    return mArray_targets
 	return cgmOM.mObjectArray_get_list(mArray_targets)
+    
+    def bsShapes_delete(self, asMData = False):
+	_shapes = self.bsShapes_get()
+	_dags = []
+	for o in _shapes:
+	    _dags.extend(mc.listRelatives(_shapes,parent=True,type='transform'))
+	mc.delete(_dags)
+	log.warning('cgmBlendshape.bsShapes_delete: deleted {0}'.format(_dags))
+	return True
+    
+    def bsShapes_rebuild(self):
+	"""
+	If any shapes have been deleted: rebuild and rewire them
 
+	:parameters:
+	    target | Node to check
+
+	:returns
+	    list of created shapes| False
+	"""  	
+	_shapes = self.bsShapes_get()
+
+    
     def get_indices(self):
 	weightListIntArray = OM.MIntArray()
 	self._MFN.weightIndexList(weightListIntArray)
@@ -5658,6 +5680,7 @@ class cgmBlendShape(cgmNode):
 	if asMData:return baseObjects
 	return cgmOM.mObjectArray_get_list(baseObjects)
     
+    
     def get_targetWeightsDict(self):
 	"""
 	Get the target data in a nested dict format.
@@ -5668,15 +5691,18 @@ class cgmBlendShape(cgmNode):
 	    dict
 	    
 	"""    	
+	_str_funcName = 'cgmBlendshape.get_targetWeightsDict: '
 	int_indices = self.get_indices()
 
 	bsFn = self._MFN
     
 	#Declare variables
-	mBaseObjects = OM.MObjectArray()
+	#mBaseObjects = OM.MObjectArray()
 	#>>>>May need better logic for detecting the base
-	bsFn.getBaseObjects(mBaseObjects)
+	#bsFn.getBaseObjects(mBaseObjects)
 	#base =  apiExtensions.asMObject( (baseObjects[0]) )
+	mBaseObjects = self.get_baseObjects(True)
+	_array_weights_raw = OM.MIntArray() 
     
 	targetDict = {}
     
@@ -5684,11 +5710,40 @@ class cgmBlendShape(cgmNode):
 	# Meat
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	for i in int_indices:
+	    log.debug(_str_funcName + "idx: {0}".format(i))
 	    d_targetsBuffer = {}
 	    targetsObjArray = OM.MObjectArray()
 	    bsFn.getTargets(mBaseObjects[0],i,targetsObjArray)
+	    bsFn.targetItemIndexList(i,mBaseObjects[0],_array_weights_raw)
 	    
 	    for t in range( targetsObjArray.length() ):
+		log.info(_str_funcName + "t: {0}".format(t))		
+		d_targetBuffer = {}
+		shapeNameBuffer = ( cgmOM.mObject_getNameString(targetsObjArray[t]) )
+		geoNameBuffer = mc.listRelatives(shapeNameBuffer, parent = True, fullPath = True)
+		d_targetBuffer['dag'] = geoNameBuffer[0]
+		d_targetBuffer['shape'] = shapeNameBuffer
+		log.info(d_targetBuffer)
+	    return 
+	    for ii,rawWeight in enumerate( _array_weights_raw ):
+		d_targetBuffer = {}		
+		# Calculate inbetween weight using Maya's index = weight * 1000 + 5000 formula		
+		inbetweenWeight = float( (rawWeight-5000) * .001 )
+		
+		d_targetBuffer['dag'] = False
+		d_targetBuffer['shape'] = False		
+		try:
+		    shapeNameBuffer = ( cgmOM.mObject_getNameString(targetsObjArray[ii]))
+		    geoNameBuffer = mc.listRelatives(shapeNameBuffer, parent = True, fullPath = True)
+		except:
+		    log.warning(_str_funcName +"It appears the shape geo for index: {0}| weight: {1} is missing.".format(ii,inbetweenWeight))
+	    
+		#Prep data
+		log.debug(_str_funcName + "inbetweenWeight: {0} | raw:{1} | buffer:{2}".format(inbetweenWeight,rawWeight, d_targetBuffer))			
+		d_targetsBuffer[inbetweenWeight] = d_targetBuffer
+	    
+		"""for t in range( targetsObjArray.length() ):
+		log.info(_str_funcName + "t: {0}".format(t))		
 		d_targetBuffer = {}
 		shapeNameBuffer = ( cgmOM.mObject_getNameString(targetsObjArray[t]) )
 		geoNameBuffer = mc.listRelatives(shapeNameBuffer, parent = True, fullPath = True)
@@ -5696,18 +5751,18 @@ class cgmBlendShape(cgmNode):
 		d_targetBuffer['shape'] = shapeNameBuffer
 		
 		# Get the destination attr from which to calculate the inbetween weight
-		shapeConnectionAttr = mc.connectionInfo((shapeNameBuffer+'.worldMesh'),destinationFromSource=True)
-		targetBuffer = shapeConnectionAttr[0].split('.',)
-		indexOneBuffer = targetBuffer[-2].split('[',)
-		indexTwoBuffer = indexOneBuffer[1].split(']',)
-		rawIndex = int(indexTwoBuffer[0])
-		
+		#shapeConnectionAttr = mc.connectionInfo((shapeNameBuffer+'.worldMesh'),destinationFromSource=True)
+		#targetBuffer = shapeConnectionAttr[0].split('.',)
+		#indexOneBuffer = targetBuffer[-2].split('[',)
+		#indexTwoBuffer = indexOneBuffer[1].split(']',)
+		#rawIndex = int(indexTwoBuffer[0])
+		rawIndex = _array_weights_raw[t]
 		# Calculate inbetween weight using Maya's index = weight * 1000 + 5000 formula
 		inbetweenWeight = float( (rawIndex-5000) * .001 )
     
 		#Prep data
 		d_targetsBuffer[inbetweenWeight] = d_targetBuffer
-		#targetsReturnBuffer.append(d_targetBuffer)
+		#targetsReturnBuffer.append(d_targetBuffer)"""
 	    targetDict[i] = d_targetsBuffer
     
 	return targetDict
@@ -5757,6 +5812,8 @@ class cgmBlendShape(cgmNode):
 	_d_result = {'index':False,
 	             'shape':False,
 	             'dag':False,
+	             'alias':False,
+	             'plug':False,
 	             'weight':False}
 	
 	_type = type(shapeOrIndex)
@@ -5766,7 +5823,8 @@ class cgmBlendShape(cgmNode):
 	    if shapeOrIndex in _l_indices:
 		_index = shapeOrIndex
 	    else:
-		raise ValueError, _str_func + "Not a valid index: {0}".format(shapeOrIndex)
+		log.warning(_str_func + "Not a valid index: {0}".format(shapeOrIndex))
+		return {}
 	    
 	    _buffer = _d_targetsData[_index]	
 	    log.info("Found index: {0}".format(_index))
@@ -5777,7 +5835,8 @@ class cgmBlendShape(cgmNode):
 		    _shape = _buffer[weight]['shape']
 		    _dag = _buffer[weight]['dag']
 		else:
-		    raise ValueError, _str_func + "Invalid weight specified. No data on: {0}".format(weight)
+		    log.warning( _str_func + "Invalid weight specified. No data on: {0}".format(weight))
+		    return {}
 		
 	    elif len(_buffer.keys()) == 1:
 		log.info(_str_func + "One key at index. Can resolve.")
@@ -5787,7 +5846,8 @@ class cgmBlendShape(cgmNode):
 		    _dag = _buffer[k]['dag']	
 		    continue
 	    else:
-		raise ValueError, _str_func + "No weight specified and more than one shape on the index: {0}. Can't resolve".format(_index)
+		log.warning(_str_func + "No weight specified and more than one shape on the index: {0}. Can't resolve".format(_index))
+		return {}
 		
 	    
 	elif self.is_bsShape(shapeOrIndex):#if we have a string
@@ -5806,7 +5866,9 @@ class cgmBlendShape(cgmNode):
 			_dag = _indexBuffer['dag']
 			continue
 		if not _match:
-		    raise ValueError, _str_func + "Found no data for this shape at this weight: {0}. Can't resolve".format(weight)
+		    log.warning(_str_func + "Found no data for this shape at this weight: {0}. Can't resolve".format(weight))
+		    return {}
+		
 			
 	    elif len(_buffer) == 1:
 		_index = _buffer[0][0]
@@ -5815,26 +5877,86 @@ class cgmBlendShape(cgmNode):
 		_shape = _indexBuffer['shape']
 		_dag = _indexBuffer['dag']
 	    else:
-		raise ValueError, _str_func + "Too many weight values found and none specified".format(_index)
+		log.warning(_str_func + "Too many weight values found and none specified".format(_index))
+		return {}
 		
 	    _index = _buffer[0][0]
 	    _currentWeight = _buffer[0][1]
 	    #weight?
 	else:
-	    raise ValueError, _str_func + "invalid shapeOrIndex ({0})".format(shapeOrIndex)
+	    log.warning(_str_func + "invalid shapeOrIndex ({0})".format(shapeOrIndex))
+	    return {}
 	
 	_d_result['index'] = _index
 	_d_result['shape'] = _shape
 	_d_result['dag'] = _dag
 	_d_result['weight'] = _weight
+	_d_result['alias'] = mc.aliasAttr('{0}.w[{1}]'.format(self.mNode,_index), q = True)
+	_d_result['plug'] = '{0}.w[{1}]'.format(self.mNode,_index)
 	
 	for k in _d_result.keys():
 	    if _d_result.get(k) is False:
 		log.info(_d_result)
-		raise ValueError, _str_func + "Missing validated data on ({0})".format(k)
+		log.warning(_str_func + "Missing validated data on ({0})".format(k))
+		_d_result = False
 		
 	return _d_result
-	    	    
+    
+    def bsShape_nameWeightAlias(self, name = None, shapeOrIndex = None, weight = 1.0):
+	"""
+	Rename a shape's alias on the bsNode
+    
+	:parameters:
+	    name(str): name to use. If none, will attempt to use the target shapes name
+	    shapeOrIndex(str/int): name of bsShape or index
+	    weight(float): weight of the target to use. Only needed if we are passed an index arg
+
+	:returns
+	    name
+	""" 
+	_str_func = "cgmBlendshape.bsShape_nameWeightAlias: "
+	if shapeOrIndex is None and name is None:
+	    raise ValueError, _str_func + "Must have shape or index and weight args"
+    
+	_l_indices = self.get_indices()
+	_index = False
+	_currentName = False
+
+	_d_validShape = self.bsShape_validateShapeArg(shapeOrIndex, weight)
+	
+	_name = self.bsShape_getAvailableAlias(name)
+	mc.aliasAttr(_name, _d_validShape['plug'])
+	return _name
+
+    def bsShape_getAvailableAlias(self, name = None):
+	"""
+	Get an available alias for the 
+    
+	:parameters:
+	    shapeOrIndex(str/int) | name of bsShape or index
+    
+	:returns
+	    {index, shape, dag, weight }
+	""" 
+	_str_func = "cgmBlendshape.bsShape_getAvailableAlias: "
+	
+	if name is None:
+	    raise ValueError, _str_func + "Must have a name arg"
+	
+	_name = str(name)#...just to make sure we're on the same playing field
+	_l_attrs = [str(n) for n in self.get_weight_attrs()]
+	
+	if _name not in _l_attrs:
+	    return _name
+	else:
+	    _cnt = 1
+	    _name_iter = "{0}_{1}".format(_name, _cnt)	    
+	    while _name_iter in _l_attrs:
+		_cnt +=1
+		_name_iter = "{0}_{1}".format(_name, _cnt)
+	    return _name_iter
+			
+    
     def bsShape_replace(self, targetShape = None, shapeToReplace = None, weight = 1.0):
 	"""
 	Get base objects
@@ -5901,8 +6023,8 @@ class cgmBlendShape(cgmNode):
 	#    if k == weight:
 	_d_new_arg[weight] = {'shape':targetShape}
 	
-	log.info("currentArgs: {0}".format(_d_targetsData[_index]))
-	log.info("newArgs: {0}".format(_d_new_arg))
+	log.debug("currentArgs: {0}".format(_d_targetsData[_index]))
+	log.debug("newArgs: {0}".format(_d_new_arg))
 	
 	#Get the data for rebuilding
 	plug_in = attributes.returnDriverAttribute("{0}.{1}".format(self.mNode, self.get_weight_attrs()[_index]))
@@ -5910,36 +6032,37 @@ class cgmBlendShape(cgmNode):
 	#Remove the existing targets on that index
 	for w in _d_targetsData[_index]:
 	    self.bsShape_remove(_d_targetsData[_index][w]['shape'], index = _index, weight = w)
-	return
-	for w in _d_new_arg:
-	    self.bsShape_add(_d_new_arg[w]['shape'], index = _index, weight = w)
+	
+	#Need to rebuild in 1.0 order
+	l_keys = _d_new_arg.keys()
+	l_keys.sort()
+	l_keys.reverse()
+	
+	for w in l_keys:
+	    self.bsShape_add(_d_new_arg[w]['shape'], index = _index, weight = w)   
 	    
 	if plug_in:
 	    attributes.doConnectAttr(plug_in, "{0}.{1}".format(self.mNode, self.get_weight_attrs()[_index]))
 	
-	log.info(cgmGeneral._str_subLine)	
-	log.info("cgmBlendshape.bsShape_replace...")
-	log.info("index: {0}".format(_index))	
-	log.info("baseObject: {0}".format(_baseObject))	
-	log.info("targetShape: {0}".format(targetShape))
-	log.info("weight: {0}".format(weight))		
-	log.info("shapeToReplace: {0}".format(shapeToReplace))
-	log.info("currentWeight: {0}".format(_currentWeight))	
-	log.info("driverPlug: {0}".format(plug_in))	
-	log.info(cgmGeneral._str_subLine)
-	#log.info("currentArgs: {0}".format(_d_targetsData[_index]))
-	#log.info("newArgs: {0}".format(_d_new_arg))
+	log.debug(cgmGeneral._str_subLine)	
+	log.debug("cgmBlendshape.bsShape_replace...")
+	log.debug("index: {0}".format(_index))	
+	log.debug("baseObject: {0}".format(_baseObject))	
+	log.debug("targetShape: {0}".format(targetShape))
+	log.debug("weight: {0}".format(weight))		
+	log.debug("shapeToReplace: {0}".format(shapeToReplace))
+	log.debug("currentWeight: {0}".format(_currentWeight))	
+	log.debug("driverPlug: {0}".format(plug_in))	
+	log.debug(cgmGeneral._str_subLine)
+	#log.debug("currentArgs: {0}".format(_d_targetsData[_index]))
+	#log.debug("newArgs: {0}".format(_d_new_arg))
 	
-	log.info("pre data: {0}".format(_d_targetsData[_index]))
-	log.info("post data: {0}".format(self.get_targetWeightsDict()[_index]))	
+	#log.debug("pre data: {0}".format(_d_targetsData[_index]))
+	#log.debug("post data: {0}".format(self.get_targetWeightsDict()[_index]))	
 	
-	log.info(cgmGeneral._str_hardBreak)	
+	log.debug(cgmGeneral._str_hardBreak)	
 	
-	
-	return
-    
-	#Rebuild
-	pass
+	return True
     
     def bsShape_add(self, targetShape = None, index = None, weight = 1.0):
 	if targetShape is None:
@@ -5965,11 +6088,12 @@ class cgmBlendShape(cgmNode):
 	    raise ValueError,"cgmBlendshape.bsShape_add: Must have valid index value for inbetween setup. Valid indices: {0}".format(_l_indices)	    
 		
 	_baseObject = self.get_baseObjects()[0]
-	log.info("cgmBlendshape.bsShape_add...")
-	log.info("baseObject: {0}".format(_baseObject))	
-	log.info("targetShape: {0}".format(targetShape))
-	log.info("index: {0}".format(index))
-	log.info("weight: {0}".format(weight))
+	log.debug("cgmBlendshape.bsShape_add...")
+	log.debug("baseObject: {0}".format(_baseObject))	
+	log.debug("targetShape: {0}".format(targetShape))
+	log.debug("index: {0}".format(index))
+	log.debug("weight: {0}".format(weight))
+	log.debug(cgmGeneral._str_subLine)
 
 	if weight == 1.0:
 	    mc.blendShape(self.mNode, edit = True, ib = False , target = [_baseObject,index,targetShape,weight])
@@ -5994,11 +6118,12 @@ class cgmBlendShape(cgmNode):
 	_baseObject = self.get_baseObjects()[0]
 	_args = self.bsShape_getTargetArgs(targetShape)
 	
-	log.info("cgmBlendshape.bsShape_remove...")
-	log.info("baseObject: {0}".format(_baseObject))	
-	log.info("targetShape: {0}".format(targetShape))
-	log.info("index: {0}".format(index))
-	log.info("Shape args: {0}".format(_args))
+	log.debug("cgmBlendshape.bsShape_remove...")
+	log.debug("baseObject: {0}".format(_baseObject))	
+	log.debug("targetShape: {0}".format(targetShape))
+	log.debug("index: {0}".format(index))
+	log.debug("Shape args: {0}".format(_args))
+	log.debug(cgmGeneral._str_subLine)
 	
 	if index is not None and weight is None:
 	    mc.blendShape(self.mNode, edit = True, remove = True, target = [_baseObject,index,targetShape,1.0])	
@@ -6008,8 +6133,7 @@ class cgmBlendShape(cgmNode):
 	    for arg in _args:
 		mc.blendShape(self.mNode, edit = True, remove = True, target = [_baseObject] + arg)	
 	
-	#log.info("weight: {0}".format(weight))
-	#mc.blendShape(self.mNode, edit = True, remove = True, target = [_baseObject,index,targetShape,weight])	
+	return True
 
     def bsShape_reset(self):
 	raise NotImplementedError
