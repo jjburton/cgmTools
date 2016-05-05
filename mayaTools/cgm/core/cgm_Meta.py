@@ -28,6 +28,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.cgmPy import OM_Utils as cgmOM
+reload(cgmOM)
 from cgm.core.lib import nameTools
 from cgm.lib.ml import ml_resetChannels
 from cgm.lib import lists
@@ -35,6 +36,7 @@ from cgm.lib import curves
 from cgm.lib import search
 from cgm.lib import attributes
 from cgm.lib import distance
+from cgm.lib import deformers
 from cgm.lib import constraints
 from cgm.lib import dictionary
 from cgm.lib import rigging
@@ -2031,6 +2033,32 @@ class cgmObject(cgmNode):
             #log.debug("Match object found")
             return matchObject
         return False
+    
+    def getDeformers(self,deformerTypes = 'all',asMeta = False):
+	deformers = []
+	_result = []	
+	objHistory = mc.listHistory(self.mNode,pruneDagObjects=True)
+	if objHistory:
+	    for node in objHistory:
+		typeBuffer = mc.nodeType(node, inherited=True)
+		if 'geometryFilter' in typeBuffer:
+		    deformers.append(node)
+	if len(deformers)>0:
+	    if deformerTypes == 'all':
+		_result = deformers
+	    else:
+		foundDeformers = []
+		#Do a loop to figure out if the types are there
+		deformers = [str(d).lower() for d in deformers]
+		deformerTypes = [str(d).lower() for d in deformerTypes]		
+		for deformer in deformers:
+		    if search.returnObjectType(deformer) in deformerTypes:
+			foundDeformers.append(deformer)
+		if foundDeformers:
+		    _result = foundDeformers
+	if asMeta:
+	    return validateObjListArg(_result,mType = cgmNode)
+	return _result	
 
     #=========================================================================  
     # Rigging Functions
@@ -5572,19 +5600,290 @@ class cgmBlendShape(cgmNode):
 	log.warning('cgmBlendshape.bsShapes_delete: deleted {0}'.format(_dags))
 	return True
     
-    def bsShapes_rebuild(self):
+    def bsShapes_restore(self):
 	"""
-	If any shapes have been deleted: rebuild and rewire them
-
-	:parameters:
-	    target | Node to check
+	So you inadvertantly deleted some targets? No problem!
+	If any shapes have been deleted: rebuild and rewire them.
 
 	:returns
 	    list of created shapes| False
 	"""  	
-	_shapes = self.bsShapes_get()
+	_str_funcName = 'cgmBlendshape.bsShapes_restoreMissing: '
+	
+	#...for our first loop, we're gonna find missing shapes and their deltas to compare in case two use the same
+	_d_targetsData = self.get_targetWeightsDict()
+	_d_deltas = []	
+	_created = []
+	for i in _d_targetsData.keys():
+	    for ii in _d_targetsData[i].keys():
+		_d_buffer = self.bsShape_validateShapeArg(i, ii)
+		#_d_buffer = _d_targetsData[i][ii]
+		if not _d_buffer['shape']:
+		    try:
+			_created = self.bsShape_createGeoFromIndex(i,ii)
+			_shapes = mc.listRelatives(_created,shapes = True)
+			#log.info(_str_funcName + "Missing: {0},{1} | created '{2}'".format(i,ii,_created))
+			#log.info(_shapes[0] + '.worldMesh[0]')
+			log.info(self.mNode + '.inputTarget[0].inputTargetGroup[{0}].inputTargetItem[{1}].inputGeomTarget'.format(_d_buffer['index'],_d_buffer['weightIndex']))
+			attributes.doConnectAttr(_shapes[0] + '.worldMesh[0]',
+			                         self.mNode + '.inputTarget[0].inputTargetGroup[{0}].inputTargetItem[{1}].inputGeomTarget'.format(_d_buffer['index'],_d_buffer['weightIndex']))
+			#_data = mc.getAttr(self.mNode + '.inputTarget[0].inputTargetGroup[{0}].inputTargetItem[{1}].inputPointsTarget'.format(_d_buffer['index'],_d_buffer['weightIndex']))
+		    except Exception,err:
+			raise Exception, err
+		    #self.bsShape_replace(self.bsShape_createGeoFromIndex(i,ii), i, ii)
+		    
 
+	
+    def bsShape_createGeoFromIndex(self, shapeOrIndex = None,  weight = 1.0, multiplier = None):
+	"""
+	Creates a mesh duplicate of a target index and weight. 
+	
+	:parameters:
+	    shapeOrIndex(str/int): name of bsShape or index
+	    weight(float): the weight of the target
+	    multiplier(float):factor to multiply the delta by
+	    
+	:returns
+	    name of new mesh
+	"""  
+	_str_funcName = 'cgmBlendshape.bsShape_createGeoFromIndex: '
+	
+	_d_buffer = self.bsShape_validateShapeArg(shapeOrIndex, weight)
+	if not _d_buffer:
+	    raise ValueError, _str_funcName + "shapeOrIndex({0}) and weight ({1}) found no data.".format(shapeOrIndex,weight)
+	
+	#mc.getAttr('pSphere1_bsNode.inputTarget[0].inputTargetGroup[0].inputTargetItem[6000].inputPointsTarget')
+	_data = mc.getAttr(self.mNode + '.inputTarget[0].inputTargetGroup[{0}].inputTargetItem[{1}].inputPointsTarget'.format(_d_buffer['index'],_d_buffer['weightIndex']))
+	_components = mc.getAttr(self.mNode + '.inputTarget[0].inputTargetGroup[{0}].inputTargetItem[{1}].inputComponentsTarget'.format(_d_buffer['index'],_d_buffer['weightIndex']))
+	
+	_baseObject = self.get_baseObjects()[0]    
+	_dup = mc.duplicate(_baseObject)
+	_dup = mc.rename(_dup, _d_buffer['alias'] + '_' + str(_d_buffer['weight']))
+	_l_deltaBaseLine = self.get_deltaBaseLine()
+
+	idx = 0
+	for componentSet in _components:
+	    if ':' in componentSet:
+		_buffer = mc.ls("{0}.{1}".format(_dup,componentSet), flatten = True)
+	    else:
+		_buffer = ["{0}.{1}".format(_dup,componentSet)]
+	    for c in _buffer:
+		_idx = int(c.split('[')[1].split(']')[0])
+		if multiplier is not None:
+		    _c_data = [multiplier*v for v in _data[idx][:-1]]
+		else:
+		    _c_data = _data[idx][:-1]
+		    
+		_deltaPlus_base = cgmMath.list_add(_l_deltaBaseLine[_idx], _c_data)
+		#log.info(_str_funcName + c)
+		mc.xform(c, t =_deltaPlus_base, os = True, a=True)
+		#mc.xform(c, t = [-v for v in _data[idx][:-1]], r = True, os = True)		
+		idx +=1   
+	return _dup
     
+    def bsShape_createTargetBase(self):
+	"""
+	Create a clean target base
+
+	:returns
+	    name of new mesh
+	"""  
+	_str_funcName = 'cgmBlendshape.bsShape_createTargetBase: '
+	#cgmNode().getTransform(asMeta = True)
+	_baseShape = self.get_baseObjects(asMeta = True)[0]
+	_baseTrans = validateObjArg(_baseShape.getTransform(),cgmObject)
+	_deformers = _baseTrans.getDeformers(asMeta = True)
+	
+	_d_wiring = {}
+	#...go through and zero out the envelops on the deformers
+	for mDef in _deformers:
+	    _d = {}
+	    _envelopeAttr = "{0}.envelope".format(mDef.mNode)
+	    _plug = attributes.returnDriverAttribute(_envelopeAttr) or False
+	    if _plug:
+		attributes.doBreakConnection(_envelopeAttr)
+	    _d['plug'] = _plug
+	    _d['value'] = mDef.envelope
+	    _d['attr'] = _envelopeAttr
+	    _d_wiring[mDef] = _d
+	    mDef.envelope = 0
+	_dup = mc.duplicate(_baseTrans.mNode)	
+ 
+	#...rewire
+	for mDef in _d_wiring.keys():
+	    _d = _d_wiring[mDef]
+	    if _d.get('plug'):
+		attributes.doConnectAttr( _d.get('plug'),_d['attr'])
+	    else:
+		mDef.envelope = _d.get('value')
+	return _dup
+    
+    def get_deltaBaseLine(self):
+	"""
+	I know there must be a better way to do this...
+
+	:returns
+	    list of base line values
+	"""  
+	_str_funcName = 'cgmBlendshape.get_deltaBaseLine: '
+	_baseShape = self.get_baseObjects(asMeta = True)[0]
+	_baseTrans = validateObjArg(_baseShape.getTransform(),cgmObject)
+	_deformers = _baseTrans.getDeformers(asMeta = True)
+	
+	_d_wiring = {}
+	#...go through and zero out the envelops on the deformers
+	for mDef in _deformers:
+	    _d = {}
+	    _envelopeAttr = "{0}.envelope".format(mDef.mNode)
+	    _plug = attributes.returnDriverAttribute(_envelopeAttr) or False
+	    if _plug:
+		attributes.doBreakConnection(_envelopeAttr)
+	    _d['plug'] = _plug
+	    _d['value'] = mDef.envelope
+	    _d['attr'] = _envelopeAttr
+	    _d_wiring[mDef] = _d
+	    mDef.envelope = 0
+	    
+	#meat...
+	_result = []
+	_dict = cgmValid.MeshDict(_baseTrans.mNode)
+	for i in range(_dict['pointCount']):
+	    _result.append(mc.xform("{0}.vtx[{1}]".format(_baseTrans.mNode,i), t = True, os = True, q=True))
+ 
+	#...rewire
+	for mDef in _d_wiring.keys():
+	    _d = _d_wiring[mDef]
+	    if _d.get('plug'):
+		attributes.doConnectAttr( _d.get('plug'),_d['attr'])
+	    else:
+		mDef.envelope = _d.get('value')
+	return _result
+    
+    def bsShape_getDelta(self, shapeOrIndex = None, weight = 1.0):
+	
+	#Props to Daniel Lima
+	#https://github.com/Bumpybox/Tapp/blob/master/Maya/rigging/sculptInbetweenEditor/dslReverseShape.py
+	
+	_d_buffer = self.bsShape_validateShapeArg(shapeOrIndex, weight)
+	#mc.getAttr('pSphere1_bsNode.inputTarget[0].inputTargetGroup[0].inputTargetItem[6000].inputPointsTarget')
+
+	_buffer = mc.getAttr(self.mNode + '.inputTarget[0].inputTargetGroup[{0}].inputTargetItem[{1}].inputPointsTarget'.format(_d_buffer['index'],_d_buffer['weightIndex']))
+	_components = mc.getAttr(self.mNode + '.inputTarget[0].inputTargetGroup[{0}].inputTargetItem[{1}].inputComponentsTarget'.format(_d_buffer['index'],_d_buffer['weightIndex']))
+	
+	#mc.setAttr(gatherInfoFrom, type='pointArray', *resultPointArray)
+	#mc.setAttr(iTg + iTgGr + iTi + iCt, type='componentList', *resultComponentList)	
+	return _buffer
+	
+	_baseObject = self.get_baseObjects()[0]
+	_baseDict = cgmValid.MeshDict(_baseObject)
+	_i_verts = _baseDict['pointCount']
+		
+	defaultPointArray = ([_i_verts] + [(0,0,0,1)] * _i_verts)
+	return defaultPointArray
+    
+	t = time.time()
+	if correctiveItem == None:
+	    correctiveItem = int(6000)
+	crPercentage = (correctiveItem - 5000) / 10
+	print "crPercentage: " + str(crPercentage) + '%'
+	numVtx = cmds.getAttr (skinGeo + '.vrts', s=True )
+	defaultPointArray = ([numVtx] + [(0,0,0,1)] * numVtx)
+	#print defaultPointArray
+	###################################
+	xSculp = cmds.xform(sculptGeo + '.pnts[*]', q=True, os=True, t=True)
+	sculptPts = zip(xSculp[0::3], xSculp[1::3], xSculp[2::3])
+	#####################################
+	iTg = '%s.inputTarget[0]' %blendShapeNode
+	iTgGr = '.inputTargetGroup[%s]' %correctiveGroup
+	iTi = '.inputTargetItem[%s]' %correctiveItem
+	iPt = '.inputPointsTarget'
+	iCt = '.inputComponentsTarget'
+	cr6000 = iTg + iTgGr + '.inputTargetItem[6000].inputPointsTarget'
+	cri6000 = iTg + iTgGr + '.inputTargetItem[6000].inputComponentsTarget'
+	gatherInfoFrom = iTg + iTgGr + iTi + iPt
+	cmds.setAttr(gatherInfoFrom, type='pointArray', *defaultPointArray)
+	xSkin = cmds.xform(skinGeo + '.pnts[*]', q=True, os=True, t=True)
+	skinPts = zip(xSkin[0::3], xSkin[1::3], xSkin[2::3])
+	offsetPointArray = []
+	offsetPointArray.append([numVtx] + [(1,0,0,1)] * numVtx)
+	offsetPointArray.append([numVtx] + [(0,1,0,1)] * numVtx)
+	offsetPointArray.append([numVtx] + [(0,0,1,1)] * numVtx)
+	axis = 'XYZ'
+	unityDeltaXYZ = []
+	unitDeltaX = []
+	unitDeltaY = []
+	unitDeltaZ = []
+	for pArray in offsetPointArray:
+	    cmds.setAttr(gatherInfoFrom, type='pointArray', *pArray)
+	    tmpXform = cmds.xform(skinGeo + '.pnts[*]', q=True, os=True, t=True)
+	    unityDeltaXYZ.append(zip(tmpXform[0::3], tmpXform[1::3], tmpXform[2::3]))
+	    eval('unitDelta' + axis[offsetPointArray.index(pArray)]).append(unityDeltaXYZ[offsetPointArray.index(pArray)])
+	if not keepSculpt:
+	    cmds.delete(sculptGeo)
+	resultPointArray = []
+	resultComponentList=[]
+	calculated = []
+	for v in range(numVtx):
+	    vectorSkin = om.MVector(*skinPts[v])
+	    vectorScpt = om.MVector(*sculptPts[v])
+	    disOnPose = vectorScpt - vectorSkin
+	    dispResult = (disOnPose.x, disOnPose.y, disOnPose.z)
+	    if dispResult != (0.0, 0.0, 0.0):
+		resultComponentList.append('vtx[%s]' %v)
+		calculated.append(1)
+		dispOffset = vectorScpt - vectorSkin
+		vectorunitDeltaX = om.MVector(*unitDeltaX[0][v])
+		vectorunitDeltaY = om.MVector(*unitDeltaY[0][v])
+		vectorunitDeltaZ = om.MVector(*unitDeltaZ[0][v])
+		dispX = vectorunitDeltaX - vectorSkin
+		dispY = vectorunitDeltaY - vectorSkin
+		dispZ = vectorunitDeltaZ - vectorSkin
+		listMatrix = (dispX.x, dispX.y, dispX.z, 0,
+	                      dispY.x, dispY.y, dispY.z, 0,
+	                      dispZ.x, dispZ.y, dispZ.z, 0,
+	                      0,0,0,1)
+		matrix = om.MMatrix()
+		om.MScriptUtil.createMatrixFromList(listMatrix, matrix)
+		matrixInverted = om.MMatrix.inverse(matrix)
+		vectorResult = (dispOffset * matrixInverted)
+		if inBetweenMode != True:
+		    vectorRlist = (float((vectorResult.x / crPercentage ) * 100),
+		                   float((vectorResult.y / crPercentage ) * 100),
+		                   float((vectorResult.z / crPercentage ) * 100))
+		else:
+		    vectorRlist = (float(vectorResult.x), float(vectorResult.y), float(vectorResult.z), int(1))
+		resultPointArray.append(vectorRlist)
+    
+	#print 'resultPointtList ----> ',resultPointArray
+	#print 'resultComponentList ----> ',resultComponentList
+	#===========================================================================
+	# ADDING FIRST VALUE TO THE RESULTS TO BE USED WITH SETATTR -TYPE
+	#===========================================================================
+	resultComponentList.insert(0, len(resultPointArray))
+	resultPointArray.insert(0, len(resultPointArray))
+    
+	#allData = [resultPointArray, resultComponentList]
+    
+    
+	if inBetweenMode != True:
+	    print '--------------IF'
+	    cmds.setAttr(cr6000, type='pointArray', *resultPointArray)
+	    cmds.setAttr(cri6000, type='componentList', *resultComponentList)
+	    if correctiveItem != 6000:
+		cmds.removeMultiInstance(iTg + iTgGr + iTi, b=True)
+    
+	else:
+    
+	    cmds.setAttr(gatherInfoFrom, type='pointArray', *resultPointArray)
+	    cmds.setAttr(iTg + iTgGr + iTi + iCt, type='componentList', *resultComponentList)
+    
+	    if cmds.listAttr(cr6000) == None:
+		print 'cmds.listAttr(cr6000) == None:'
+		cmds.setAttr(cr6000, type='pointArray', *resultPointArray)
+		cmds.setAttr(iTg + iTgGr + iTi + iCt, type='componentList', *resultComponentList)
+	    if flatten:
+		cmds.setAttr(cr6000, type='pointArray', *resultPointArray)
+		cmds.setAttr(cri6000, type='componentList', *resultComponentList)
     def get_indices(self):
 	weightListIntArray = OM.MIntArray()
 	self._MFN.weightIndexList(weightListIntArray)
@@ -5610,7 +5909,7 @@ class cgmBlendShape(cgmNode):
 		raise ValueError,"cgmBlendshape.is_bsShape: No object selected and no arg passed!"
 	    target = _sel[0]
 	
-	_targets = self.get_shapes()
+	_targets = self.bsShapes_get()
 	_match = []
 	if isTransform(target):
 	    for shape in mc.listRelatives(target,shapes=True,fullPath=True):
@@ -5663,7 +5962,7 @@ class cgmBlendShape(cgmNode):
 	    return False
 	return _match
     
-    def get_baseObjects(self, asMData = False):
+    def get_baseObjects(self, asMData = False, asMeta = False):
 	"""
 	Get base objects
 
@@ -5677,13 +5976,14 @@ class cgmBlendShape(cgmNode):
 	
 	self._MFN.getBaseObjects(baseObjects)	
 	
+	if asMeta:return validateObjListArg(cgmOM.mObjectArray_get_list(baseObjects),cgmNode)
 	if asMData:return baseObjects
 	return cgmOM.mObjectArray_get_list(baseObjects)
     
     
     def get_targetWeightsDict(self):
 	"""
-	Get the target data in a nested dict format.
+	Get the target data in a nested dict format. 
 	
 	{index : {weightValue: {shape: , dag:}}}
 
@@ -5692,80 +5992,72 @@ class cgmBlendShape(cgmNode):
 	    
 	"""    	
 	_str_funcName = 'cgmBlendshape.get_targetWeightsDict: '
-	int_indices = self.get_indices()
-
-	bsFn = self._MFN
+	try:
+	    int_indices = self.get_indices()
     
-	#Declare variables
-	#mBaseObjects = OM.MObjectArray()
-	#>>>>May need better logic for detecting the base
-	#bsFn.getBaseObjects(mBaseObjects)
-	#base =  apiExtensions.asMObject( (baseObjects[0]) )
-	mBaseObjects = self.get_baseObjects(True)
-	_array_weights_raw = OM.MIntArray() 
-    
-	targetDict = {}
-    
-	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	# Meat
-	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	for i in int_indices:
-	    log.debug(_str_funcName + "idx: {0}".format(i))
-	    d_targetsBuffer = {}
-	    targetsObjArray = OM.MObjectArray()
-	    bsFn.getTargets(mBaseObjects[0],i,targetsObjArray)
-	    bsFn.targetItemIndexList(i,mBaseObjects[0],_array_weights_raw)
-	    
-	    for t in range( targetsObjArray.length() ):
-		log.info(_str_funcName + "t: {0}".format(t))		
-		d_targetBuffer = {}
-		shapeNameBuffer = ( cgmOM.mObject_getNameString(targetsObjArray[t]) )
-		geoNameBuffer = mc.listRelatives(shapeNameBuffer, parent = True, fullPath = True)
-		d_targetBuffer['dag'] = geoNameBuffer[0]
-		d_targetBuffer['shape'] = shapeNameBuffer
-		log.info(d_targetBuffer)
-	    return 
-	    for ii,rawWeight in enumerate( _array_weights_raw ):
-		d_targetBuffer = {}		
-		# Calculate inbetween weight using Maya's index = weight * 1000 + 5000 formula		
-		inbetweenWeight = float( (rawWeight-5000) * .001 )
+	    #bsFn = self._MFN
+	    bsFn = OMANIM.MFnBlendShapeDeformer(self._MObject)
+	    mBaseObjects = self.get_baseObjects(True)
+	    _array_weights_raw = OM.MIntArray() 
+	
+	    targetDict = {}
+	
+	    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	    # Meat
+	    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	    for i in int_indices:
+		log.debug(_str_funcName + "idx: {0}".format(i))
+		d_targetsBuffer = {}
+		targetsObjArray = OM.MObjectArray()
+		bsFn.getTargets(mBaseObjects[0],i,targetsObjArray)
+		bsFn.targetItemIndexList(i,mBaseObjects[0],_array_weights_raw)
 		
-		d_targetBuffer['dag'] = False
-		d_targetBuffer['shape'] = False		
-		try:
-		    shapeNameBuffer = ( cgmOM.mObject_getNameString(targetsObjArray[ii]))
-		    geoNameBuffer = mc.listRelatives(shapeNameBuffer, parent = True, fullPath = True)
-		except:
-		    log.warning(_str_funcName +"It appears the shape geo for index: {0}| weight: {1} is missing.".format(ii,inbetweenWeight))
-	    
-		#Prep data
-		log.debug(_str_funcName + "inbetweenWeight: {0} | raw:{1} | buffer:{2}".format(inbetweenWeight,rawWeight, d_targetBuffer))			
-		d_targetsBuffer[inbetweenWeight] = d_targetBuffer
-	    
+    
+		for ii,rawWeight in enumerate( _array_weights_raw ):
+		    
+		    d_targetBuffer = {'dag':False,
+			              'shape':False}
+		    inbetweenWeight = float( (rawWeight-5000) * .001 )
+		    
+		    #try:
+		    if targetsObjArray.length()>=ii +1:
+			shapeNameBuffer = ( cgmOM.mObject_getNameString(targetsObjArray[ii]))
+			geoNameBuffer = mc.listRelatives(shapeNameBuffer, parent = True, fullPath = True)
+			d_targetBuffer['dag'] = geoNameBuffer[0]
+			d_targetBuffer['shape'] = shapeNameBuffer
+		    #except Exception, err:
+			#log.debug(_str_funcName +"It appears the shape geo for index: {0}| weight: {1} is missing. err: {2}".format(ii,inbetweenWeight,err))
+			
+		    #Prep data
+		    log.debug(_str_funcName + "inbetweenWeight: {0} | raw:{1} | buffer:{2}".format(inbetweenWeight,rawWeight, d_targetBuffer))			
+		    d_targetsBuffer[inbetweenWeight] = d_targetBuffer
+		
 		"""for t in range( targetsObjArray.length() ):
-		log.info(_str_funcName + "t: {0}".format(t))		
-		d_targetBuffer = {}
-		shapeNameBuffer = ( cgmOM.mObject_getNameString(targetsObjArray[t]) )
-		geoNameBuffer = mc.listRelatives(shapeNameBuffer, parent = True, fullPath = True)
-		d_targetBuffer['dag'] = geoNameBuffer[0]
-		d_targetBuffer['shape'] = shapeNameBuffer
-		
-		# Get the destination attr from which to calculate the inbetween weight
-		#shapeConnectionAttr = mc.connectionInfo((shapeNameBuffer+'.worldMesh'),destinationFromSource=True)
-		#targetBuffer = shapeConnectionAttr[0].split('.',)
-		#indexOneBuffer = targetBuffer[-2].split('[',)
-		#indexTwoBuffer = indexOneBuffer[1].split(']',)
-		#rawIndex = int(indexTwoBuffer[0])
-		rawIndex = _array_weights_raw[t]
-		# Calculate inbetween weight using Maya's index = weight * 1000 + 5000 formula
-		inbetweenWeight = float( (rawIndex-5000) * .001 )
-    
-		#Prep data
-		d_targetsBuffer[inbetweenWeight] = d_targetBuffer
-		#targetsReturnBuffer.append(d_targetBuffer)"""
-	    targetDict[i] = d_targetsBuffer
-    
-	return targetDict
+		    log.info(_str_funcName + "t: {0}".format(t))		
+		    d_targetBuffer = {}
+		    shapeNameBuffer = ( cgmOM.mObject_getNameString(targetsObjArray[t]) )
+		    geoNameBuffer = mc.listRelatives(shapeNameBuffer, parent = True, fullPath = True)
+		    d_targetBuffer['dag'] = geoNameBuffer[0]
+		    d_targetBuffer['shape'] = shapeNameBuffer
+		    
+		    # Get the destination attr from which to calculate the inbetween weight
+		    #shapeConnectionAttr = mc.connectionInfo((shapeNameBuffer+'.worldMesh'),destinationFromSource=True)
+		    #targetBuffer = shapeConnectionAttr[0].split('.',)
+		    #indexOneBuffer = targetBuffer[-2].split('[',)
+		    #indexTwoBuffer = indexOneBuffer[1].split(']',)
+		    #rawIndex = int(indexTwoBuffer[0])
+		    rawIndex = _array_weights_raw[t]
+		    # Calculate inbetween weight using Maya's index = weight * 1000 + 5000 formula
+		    inbetweenWeight = float( (rawIndex-5000) * .001 )
+	
+		    #Prep data
+		    d_targetsBuffer[inbetweenWeight] = d_targetBuffer
+		    #targetsReturnBuffer.append(d_targetBuffer)"""
+		targetDict[i] = d_targetsBuffer
+	 
+	    return targetDict
+	except Exception,err:
+	    raise Exception,err
     
     def bsShape_get(self, index = None, weight = None):
 	"""
@@ -5793,7 +6085,8 @@ class cgmBlendShape(cgmNode):
 	Validate a shape arg
 
 	:parameters:
-	    arg(str/int) | name of bsShape or index
+	    shapeOrIndex(str/int): name of bsShape or index
+	    weight(float): the weight of the target
 	    
 	:returns
 	    {index, shape, dag, weight }
@@ -5809,11 +6102,13 @@ class cgmBlendShape(cgmNode):
 	_shape = False
 	_dag = False
 	_weight = False
+	_noFalse = ['index','alias','plug','weight']
 	_d_result = {'index':False,
 	             'shape':False,
 	             'dag':False,
 	             'alias':False,
 	             'plug':False,
+	             'weightIndex':False,
 	             'weight':False}
 	
 	_type = type(shapeOrIndex)
@@ -5827,7 +6122,7 @@ class cgmBlendShape(cgmNode):
 		return {}
 	    
 	    _buffer = _d_targetsData[_index]	
-	    log.info("Found index: {0}".format(_index))
+	    log.debug("Found index: {0} | {1}".format(_index,_buffer))
 	    
 	    if weight:
 		if _buffer.get(weight):
@@ -5841,7 +6136,7 @@ class cgmBlendShape(cgmNode):
 	    elif len(_buffer.keys()) == 1:
 		log.info(_str_func + "One key at index. Can resolve.")
 		for k in _buffer.keys():
-		    _weight = weight
+		    _weight = _buffer.keys()[0]
 		    _shape = _buffer[k]['shape']
 		    _dag = _buffer[k]['dag']	
 		    continue
@@ -5893,8 +6188,9 @@ class cgmBlendShape(cgmNode):
 	_d_result['weight'] = _weight
 	_d_result['alias'] = mc.aliasAttr('{0}.w[{1}]'.format(self.mNode,_index), q = True)
 	_d_result['plug'] = '{0}.w[{1}]'.format(self.mNode,_index)
+	_d_result['weightIndex'] = int(_weight * 1000 + 5000)
 	
-	for k in _d_result.keys():
+	for k in _noFalse:
 	    if _d_result.get(k) is False:
 		log.info(_d_result)
 		log.warning(_str_func + "Missing validated data on ({0})".format(k))
@@ -6111,7 +6407,7 @@ class cgmBlendShape(cgmNode):
 	    
 	if targetShape is None:
 	    try:
-		targetShape = self.get_shapes()[index]
+		targetShape = self.bsShapes_get()[index]
 	    except Exception, err:
 		raise Exception,"cgmBlendshape.bsShape_remove: invalid index most likely | {0}".format(err)
 	    
