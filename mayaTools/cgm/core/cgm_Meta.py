@@ -2035,25 +2035,25 @@ class cgmObject(cgmNode):
         return False
     
     def getDeformers(self,deformerTypes = 'all',asMeta = False):
-	deformers = []
+	_deformers = []
 	_result = []	
+	_deformerTypes = cgmValid.listArg(deformerTypes)
 	objHistory = mc.listHistory(self.mNode,pruneDagObjects=True)
 	if objHistory:
 	    for node in objHistory:
 		typeBuffer = mc.nodeType(node, inherited=True)
 		if 'geometryFilter' in typeBuffer:
-		    deformers.append(node)
-	if len(deformers)>0:
-	    if deformerTypes == 'all':
-		_result = deformers
+		    _deformers.append(node)
+	if len(_deformers)>0:
+	    if _deformerTypes == ['all']:
+		_result = _deformers
 	    else:
 		foundDeformers = []
 		#Do a loop to figure out if the types are there
-		deformers = [str(d).lower() for d in deformers]
-		deformerTypes = [str(d).lower() for d in deformerTypes]		
-		for deformer in deformers:
-		    if search.returnObjectType(deformer) in deformerTypes:
-			foundDeformers.append(deformer)
+		_deformerTypes = [str(d).lower() for d in _deformerTypes]		
+		for d in _deformers:
+		    if str(search.returnObjectType(d)).lower() in _deformerTypes:
+			foundDeformers.append(d)
 		if foundDeformers:
 		    _result = foundDeformers
 	if asMeta:
@@ -6255,7 +6255,7 @@ class cgmBlendShape(cgmNode):
     
     def bsShape_replace(self, targetShape = None, shapeToReplace = None, weight = 1.0):
 	"""
-	Get base objects
+	Replace a givin shape with another one
 
 	:parameters:
 	    targetShape(str) | name of new shape
@@ -6263,7 +6263,7 @@ class cgmBlendShape(cgmNode):
 	    weight(float) | weight at which the shape is at full value
     
 	:returns
-	    list
+	    [index,weight]
 	""" 
 	#Validate
 	_d_targetsData = self.get_targetWeightsDict()
@@ -6358,9 +6358,20 @@ class cgmBlendShape(cgmNode):
 	
 	log.debug(cgmGeneral._str_hardBreak)	
 	
-	return True
+	return [_index,weight]
     
     def bsShape_add(self, targetShape = None, index = None, weight = 1.0):
+	"""
+	Add a shape
+
+	:parameters:
+	    targetShape(str) | name of new shape
+	    index(int) | index to use -- None will use the next available
+	    weight(float) | weight at which the shape is at full value
+
+	:returns
+	    [index,weight]
+	""" 	
 	if targetShape is None:
 	    _sel = mc.ls(sl=True)
 	    if not _sel:
@@ -6396,7 +6407,7 @@ class cgmBlendShape(cgmNode):
 	else:
 	    mc.blendShape(self.mNode, edit = True, ib = True , target = [_baseObject,index,targetShape,weight])	   
 	    
-	return True
+	return [index,weight]
 
     def bsShape_remove(self, targetShape = None, index = None, weight = None):
 	if index is None and targetShape is None:
