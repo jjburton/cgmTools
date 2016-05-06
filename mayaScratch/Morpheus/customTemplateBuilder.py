@@ -1,11 +1,11 @@
-from morpheusRig_v2.core import CustomizationFactory as CustomF
+from cgm.core.rigger import CustomizationFactory as CustomF
 reload(CustomF)
 
 asset = 'M1_customizationNetwork'
 CustomF.go(asset,reportShow = 1)
 CustomF.go(asset,stopAtStep = 1,reportShow = 0)
 help(CustomF.go)
-
+ 
 reload(CustomF)
 CustomF.log.setLevel(CustomF.logging.DEBUG)
 CustomF.go(stopAtStep = 1,setLogLevel = 'debug' )

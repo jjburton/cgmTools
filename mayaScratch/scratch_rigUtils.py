@@ -266,7 +266,7 @@ def doMid(jnt='driverMid',curve = 'testSegment_splineIKCurve',influenceJnts = ['
     for i_obj in [i_obj]:
         #Create group
         grp = i_obj.doGroup()
-        i_followGroup = cgmMeta.cgmObject(grp,setClass=True)
+        i_followGroup = cgmMeta.asMeta(grp,'cgmObject',setClass=True)
 	
 	#>>>Transforms 
 	#=============================================================	
@@ -308,7 +308,7 @@ def doMid(jnt='driverMid',curve = 'testSegment_splineIKCurve',influenceJnts = ['
 	cBuffer = mc.pointConstraint([i_linearFollowNull.mNode,i_splineFollowNull.mNode],
 	                              i_followGroup.mNode,
 	                              maintainOffset = False, weight = 1)[0]
-	i_pointConstraint = cgmMeta.cgmNode(cBuffer,setClass=True)	
+	i_pointConstraint = cgmMeta.asMeta(cBuffer,'cgmNode',setClass=True)	
 	
         #Make aim groups since one will be aiming backwards
         #Aim
@@ -335,7 +335,7 @@ rUtils.createSegmentCurve(jointList,secondaryAxis='zdown'moduleInstance=m1,conne
 rUtils.createCGMSegment(jointList,influenceJoints = ['driverBase','driverTop'],secondaryAxis = 'zdown')
 
 rUtils.createControlCurveSegment(jointList,secondaryAxis='zdown')
-cgmMeta.cgmObject('topAim',setClass=True).doDuplicate()
+cgmMeta.asMeta('topAim','cgmObject',setClass=True).doDuplicate()
 from cgm.lib import distance
 reload(distance)
 distance.returnNearestPointOnCurveInfo('worldCenter_loc','curve1')

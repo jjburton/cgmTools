@@ -19,49 +19,6 @@ mFactory.log.setLevel(mFactory.logging.DEBUG)
 m1.modulePuppet.__verify__()
 m1.getState()
 
-b = cgmPM.cgmEyebrow(name = 'brow')
-m1 = cgmPM.cgmModule('brow_part')
-m1.getNameAlias()
-m1.get_allModuleChildren()
-m1.isSized()
-m1.doTemplate()
-m1.isTemplated()
-m1.doSkeletonize()
-m1.modulePuppet._verifyMasterControl()
-
-
-m1 = cgmPM.cgmModule('l_eye_part')
-m1.__verify__()
-
-m1.modulePuppet._verifyMasterControl()
-m1.helper.__storeNames__()
-
-m1.rigConnect()
-m1.rig_getReport()
-i_rig = Rig.go(m1,forceNew=False,autoBuild = False)#call to do general rig
-
-i_rig = Rig.go(m1,forceNew=False)#call to do general rig
-m1.templateNull.handles
-
-rUtils.createEyeballRig('l_eye_rigHelper',aimTargetObject = 'l_eye_ik_anim', buildIK=True)
-
-i_rig.build(i_rig,buildTo = 'controls')
-i_rig.buildModule.build_rigSkeleton(i_rig)
-i_rig.buildModule.build_shapes(i_rig)
-i_rig.buildModule.build_controls(i_rig)
-i_rig.buildModule.build_FKIK(i_rig)
-i_rig.buildModule.build_deformation(i_rig)
-i_rig.buildModule.build_rig(i_rig)
-i_rig.buildModule.build_matchSystem(i_rig)
-
-i_rig.doBuild()
-
-#Queries	
-m1.isSized()
-m1.setState('skeleton',forceNew=True)
-m1.skeletonDelete()
-m1.doRig()
-
 
 #>>> Rig Block - mouthNose
 #=======================================================
@@ -84,12 +41,13 @@ p.gatherModules()
 
 m1.mNode
 
-a = r9Meta.MetaClass('mouthNose_part')
-a.getState()
-a.doSetParentModule('neck_part')
+m1 = r9Meta.MetaClass('mouthNose_part')
+m1.getState()
+m1.doSetParentModule('neck_part')
 m1.doSetParentModule('neck_part')
 p.gatherModules()
 
-m1.getState()
+m1.isSkeletonized()
+m1.doSkeletonize()
 
 

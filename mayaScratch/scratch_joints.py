@@ -15,7 +15,7 @@ orientation[1]
 
 #>>>cgmControl
 obj = 'hips_controlCurve'
-i_c = cgmMeta.cgmControl(obj,setClass=True)
+i_c = cgmMeta.asMeta(obj,'cgmControl',setClass=True)
 
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 reload(jntUtils)

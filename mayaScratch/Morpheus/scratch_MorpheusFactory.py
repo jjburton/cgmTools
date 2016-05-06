@@ -196,3 +196,11 @@ m2.rigNull.skinJoints
 m2.moduleParent.rigNull.skinJoints
 m2.templateNull.controlObjects
 m2 = r9Meta.MetaClass('l_hand_part')
+
+
+
+#Face Stuff
+from cgm.core.rigger import MorpheusFactory as morphyF
+reload(morphyF)
+morphyF.faceControls_verify('face_attrHolder',reportTimes = True)
+morphyF.face_connectAttrHolderToBSNodes('face_attrHolder',True, reportTimes = True)

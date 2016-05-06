@@ -45,7 +45,7 @@ cgmMeta.cgmNode(name = 'test').verifyAttrDict(d_test,hidden = False,keyable= Fal
 
 #>>>cgmControl
 obj = 'hips_controlCurve'
-i_c = cgmMeta.cgmControl(obj,setClass=True)
+i_c = cgmMeta.asMeta(obj,'cgmControl',setClass=True)
 
 #>>> Dynamic Match
 dynObject = 'nurbsSphere1'
