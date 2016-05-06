@@ -29,9 +29,6 @@ from cgm.lib.classes import NameFactory as NameFactoryOld
 from cgm.lib import curves
 from cgm.lib import position
 
-reload(distance)
-
-
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Naming Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -79,9 +76,6 @@ def basicEyeJointSurfaceSetup(jointList, jointRoot, surface):
         indexCount = controls.index(control)
         attachAimedObjectToSurface (jointList[indexCount], surface, control, 'constrain')
     
-    
-        
-
 
 def attachAimedObjectToSurface (obj, surface, aimObject, parent = True):
     """ 

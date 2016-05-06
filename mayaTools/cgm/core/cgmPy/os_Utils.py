@@ -27,6 +27,10 @@ import maya.cmds as mc
 # From cgm ==============================================================
 from cgm.core.cgmPy import validateArgs as cgmValid
 
+
+DIR_SEPARATOR = '/' 
+
+
 #>>> Utilities
 #===================================================================
 def get_lsFromPath(str_path = None, 
