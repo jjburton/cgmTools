@@ -10,7 +10,6 @@ Website : http://www.cgmonks.com
 ================================================================
 """
 from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
 import maya.cmds as mc
 from cgm.lib import curves
 
@@ -18,7 +17,6 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as cgmValid
 import time
 from cgm.core.rigger.lib import joint_Utils as jntUtils
-reload(jntUtils)
 
 def duplicateJointChain(joint):
     mJoint = cgmMeta.cgmObject(joint)
@@ -169,8 +167,8 @@ def speedTest_duplicateInPlace(*args, **kws):
 	    return mc.duplicate(root, po = True,un = False,ic = False, rr = True, rc = False)                
 	
 	def test2_func(self,root):
-	    return cgmMeta.dupe(root) 
-	    #return jntUtils.duplicateJointInPlace(root)
+	    #return cgmMeta.dupe(root) 
+	    return jntUtils.duplicateJointInPlace(root)
 	
         def _buildStuff_(self):
             mi_rootJoint = cgmMeta.cgmObject(mc.joint(name = 'root'))
@@ -214,19 +212,27 @@ def speedTest_duplicateInPlace(*args, **kws):
 	    _m1_time = sum(self.l_times_1)
 	    _m2_time = sum(self.l_times_2)
 	    
-	    cgmGeneral.report_enviornment()
-	    _hitBreakPoint = False
+	    _hitBreakPoint = None
 	    for i,t in enumerate(self.l_times_1):
 		_dif = t - self.l_times_2[i]
-		if _hitBreakPoint is False and _dif > 0:
+		if _hitBreakPoint is None and _dif > 0:
 		    _hitBreakPoint = i
 		self.log_info("Step {0} | Method 1: {1}| Method 2: {2} | Difference: {3}".format(i,"%0.3f"%t,"%0.3f"%self.l_times_2[i],"%0.3f"%_dif))
-	    self.log_info(cgmGeneral._str_headerDiv + " Times " + cgmGeneral._str_headerDiv + cgmGeneral._str_subLine)	
-	    self.log_info("Iterations: {0} | Method 1: {1} | Method 2: {2} | Breakpoint: Iteration {3}".format(self.int_iterations,
-	                                                                                                       "%0.3f"%_m1_time,
-	                                                                                                       "%0.3f"%_m2_time,
-	                                                                                                       _hitBreakPoint))
-    
+	    
+	    self.log_info("Iterations: {0} | Breakpoint Step: {1}".format(self.int_iterations,
+	                                                                  _hitBreakPoint))
+	    self.log_info("Method 1 | Start: {0} | End: {1} | Difference: {2} | Total: {3} ".format("%0.3f"%self.l_times_1[0],
+	                                                                                            "%0.3f"%self.l_times_1[-1],
+	                                                                                            "%0.3f"%(self.l_times_1[-1] - self.l_times_1[0]),
+	                                                                                            "%0.3f"%_m1_time))
+	    self.log_info("Method 2 | Start: {0} | End: {1} | Difference: {2} | Total: {3} ".format("%0.3f"%self.l_times_2[0],
+	                                                                                            "%0.3f"%self.l_times_2[-1],
+	                                                                                            "%0.3f"%(self.l_times_2[-1] - self.l_times_2[0]),
+	                                                                                            "%0.3f"%_m2_time))    
+	    self.log_info("Compare  |   Dif: {0} | Dif: {1} |                    Total: {2} ".format("%0.3f"%(self.l_times_2[0] - self.l_times_1[0]),
+	                                                                                            "%0.3f"%(self.l_times_2[-1] - self.l_times_1[-1]),
+	                                                                                            "%0.3f"%(_m2_time - _m1_time)))   
+	    cgmGeneral.report_enviornmentSingleLine()
     return fncWrap(*args, **kws).go()
 
 def speedTest_duplicateCurve(*args, **kws):
@@ -297,18 +303,26 @@ def speedTest_duplicateCurve(*args, **kws):
 	    _m1_time = sum(self.l_times_1)
 	    _m2_time = sum(self.l_times_2)
 	    
-	    cgmGeneral.report_enviornment()	
-	    _hitBreakPoint = False
+	    _hitBreakPoint = None
 	    for i,t in enumerate(self.l_times_1):
 		_dif = t - self.l_times_2[i]
-		if _hitBreakPoint is False and _dif > 0:
+		if _hitBreakPoint is None and _dif > 0:
 		    _hitBreakPoint = i		
 		self.log_info("Step {0} | Method 1: {1}| Method 2: {2} | Difference: {3}".format(i,"%0.3f"%t,"%0.3f"%self.l_times_2[i],"%0.3f"%_dif))
-	    self.log_info(cgmGeneral._str_headerDiv + " Times " + cgmGeneral._str_headerDiv + cgmGeneral._str_subLine)	
-	    self.log_info("Iterations: {0} | Method 1: {1} | Method 2: {2} | Breakpoint: Iteration {3}".format(self.int_iterations,
-	                                                                                                       "%0.3f"%_m1_time,
-	                                                                                                       "%0.3f"%_m2_time,
-	                                                                                                       _hitBreakPoint))
+	    self.log_info("Iterations: {0} | Breakpoint Step: {1}".format(self.int_iterations,
+	                                                                  _hitBreakPoint))
+	    self.log_info("Method 1 | Start: {0} | End: {1} | Difference: {2} | Total: {3} ".format("%0.3f"%self.l_times_1[0],
+	                                                                                            "%0.3f"%self.l_times_1[-1],
+	                                                                                            "%0.3f"%(self.l_times_1[-1] - self.l_times_1[0]),
+	                                                                                            "%0.3f"%_m1_time))
+	    self.log_info("Method 2 | Start: {0} | End: {1} | Difference: {2} | Total: {3} ".format("%0.3f"%self.l_times_2[0],
+	                                                                                            "%0.3f"%self.l_times_2[-1],
+	                                                                                            "%0.3f"%(self.l_times_2[-1] - self.l_times_2[0]),
+	                                                                                            "%0.3f"%_m2_time))    
+	    self.log_info("Compare  |   Dif: {0} | Dif: {1} |                    Total: {2} ".format("%0.3f"%(self.l_times_2[0] - self.l_times_1[0]),
+	                                                                                            "%0.3f"%(self.l_times_2[-1] - self.l_times_1[-1]),
+	                                                                                            "%0.3f"%(_m2_time - _m1_time)))   
+	    cgmGeneral.report_enviornmentSingleLine()
     
     return fncWrap(*args, **kws).go()
 
@@ -379,33 +393,41 @@ def speedTest_duplicateLocator(*args, **kws):
 	    _m1_time = sum(self.l_times_1)
 	    _m2_time = sum(self.l_times_2)
 	    
-	    cgmGeneral.report_enviornment()	
-	    _hitBreakPoint = False
+	    _hitBreakPoint = None
 	    for i,t in enumerate(self.l_times_1):
 		_dif = t - self.l_times_2[i]
-		if _hitBreakPoint is False and _dif > 0:
+		if _hitBreakPoint is None and _dif > 0:
 		    _hitBreakPoint = i		
 		self.log_info("Step {0} | Method 1: {1}| Method 2: {2} | Difference: {3}".format(i,"%0.3f"%t,"%0.3f"%self.l_times_2[i],"%0.3f"%_dif))
-	    self.log_info(cgmGeneral._str_headerDiv + " Times " + cgmGeneral._str_headerDiv + cgmGeneral._str_subLine)	
-	    self.log_info("Iterations: {0} | Method 1: {1} | Method 2: {2} | Breakpoint: Iteration {3}".format(self.int_iterations,
-	                                                                                                       "%0.3f"%_m1_time,
-	                                                                                                       "%0.3f"%_m2_time,
-	                                                                                                       _hitBreakPoint))
-    
+	    self.log_info("Iterations: {0} | Breakpoint Step: {1}".format(self.int_iterations,
+	                                                                  _hitBreakPoint))
+	    self.log_info("Method 1 | Start: {0} | End: {1} | Difference: {2} | Total: {3} ".format("%0.3f"%self.l_times_1[0],
+	                                                                                            "%0.3f"%self.l_times_1[-1],
+	                                                                                            "%0.3f"%(self.l_times_1[-1] - self.l_times_1[0]),
+	                                                                                            "%0.3f"%_m1_time))
+	    self.log_info("Method 2 | Start: {0} | End: {1} | Difference: {2} | Total: {3} ".format("%0.3f"%self.l_times_2[0],
+	                                                                                            "%0.3f"%self.l_times_2[-1],
+	                                                                                            "%0.3f"%(self.l_times_2[-1] - self.l_times_2[0]),
+	                                                                                            "%0.3f"%_m2_time))    
+	    self.log_info("Compare  |   Dif: {0} | Dif: {1} |                    Total: {2} ".format("%0.3f"%(self.l_times_2[0] - self.l_times_1[0]),
+	                                                                                            "%0.3f"%(self.l_times_2[-1] - self.l_times_1[-1]),
+	                                                                                            "%0.3f"%(_m2_time - _m1_time)))   
+	    cgmGeneral.report_enviornmentSingleLine()   
     return fncWrap(*args, **kws).go()
 
+import maya.cmds as mc
+import maya.mel as mel
+import time
 def speedTest_simpleLocator(iterations = 100):
-    import maya.cmds as mc
-    import time
-    
     mc.file(new=True,f=True)
     _loc = mc.spaceLocator()[0]
     l_times = []
+    
     for i in range(iterations):
 	print("On...{0}".format(i))
 	
 	t1 = time.clock()		
-	mc.duplicate(_loc)
+	mc.duplicate(_loc, po = False, ic = False, un = False)
 	t2 = time.clock()
 	l_times.append(t2-t1)
 	
@@ -413,7 +435,8 @@ def speedTest_simpleLocator(iterations = 100):
 	print("Step {0} |  {1}".format(i,"%0.3f"%t))
 	
     _str_dif = l_times[-1] - l_times[0] 
-    print(" [TOTAL TIME] Just maya -- {0} | Start -- {1} | End -- {2} | [Diff] -- {3} ".format("%0.3f"%(sum(l_times)),"%0.3f"%l_times[0],"%0.3f"%l_times[-1],"%0.3f"%_str_dif))
+    print(" CGM Simple loc duplication -- {0} | Start -- {1} | End -- {2} | [Diff] -- {3} ".format("%0.3f"%(sum(l_times)),"%0.3f"%l_times[0],"%0.3f"%l_times[-1],"%0.3f"%_str_dif))
+    print(" Maya: {0} | OS: {1}".format(mel.eval( 'about -%s'%'version'), mel.eval( 'about -%s'%'operatingSystemVersion')))
 			                   
 #==============================================================================================
 def speedTest_mNodeCall(*args, **kws):
