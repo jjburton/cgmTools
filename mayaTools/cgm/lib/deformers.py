@@ -627,7 +627,7 @@ def wrapDeformObject(targetObject, sourceObject, duplicateObject = False):
 	try:
 	    _v = _d[k]
 	    attributes.doSetAttr(wrapDeformer,k,_v)
-	    log.info("wrapDeformObject >> {0} Set {1} - {2}".format(wrapDeformer,k,_v))	    
+	    log.debug("wrapDeformObject >> {0} Set {1} - {2}".format(wrapDeformer,k,_v))	    
 	except Exception,error:
 	    log.error("wrapDeformObject >> failed to set {0}-{1} | error: {2}".format(k,_v,error))
 	    
@@ -818,8 +818,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
 			l_culled.append(o)
 			mc.delete(o)
 		    else:l_good.append(o)
-		if l_good:
-		    bakedGeo = l_good
+		bakedGeo = l_good
 		    
 	    l_bakedGeo.extend(bakedGeo)
 		    
@@ -835,11 +834,13 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
 		    attributes.doConnectAttr(d_blendShapeConnections[shape],blendShapeBuffer)
 	except Exception,error:
 	    raise Exception,"{0} | error: {1}".format(bsn, error)
+
+
 	
     # Need to build a new blendshape node?
     newBlendShapeNode = False
     
-    if transferConnections:
+    if transferConnections and l_bakedGeo:
 	try:
 	    # Build it			
 	    newBlendShapeNode = buildBlendShapeNode(targetObject, l_bakedGeo)
@@ -863,13 +864,22 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
 	
     log.debug("Delete: {0}".format(l_delete))
     mc.delete(l_delete)
+    mc.delete(targetObjectBaked) 
     
+    _tar_baseName = names.getBaseName(targetObject)
+    
+    if l_culled:
+	log.info("Culled the following ({0}) targets for '{1}' on '{2}':".format(len(l_culled),_tar_baseName,blendShapeNodes))
+	for o in l_culled:
+	    log.info("    " + o)
+	    
+    if not l_bakedGeo:
+	return []    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Finish out
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     #Group geo ----------------------------------------------------------------------------------------------------
     meshGroup = mc.group( em=True)
-    _tar_baseName = names.getBaseName(targetObject)
     if baseNameToUse is not False:
         attributes.storeInfo(meshGroup,'cgmName', baseNameToUse)
     else:
@@ -880,16 +890,11 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     for i,geo in enumerate(l_bakedGeo):
         l_bakedGeo[i] = rigging.doParentReturnName(geo,meshGroup)
 	
-    if l_culled:
-	log.info("Culled the following ({0}) targets for '{1}':".format(len(l_culled),_tar_baseName))
-	for o in l_culled:
-	    log.info("    " + o)
     #return prep ----------------------------------------------------------------------------------------------------
     l_return = [meshGroup,
                 l_bakedGeo]
     if newBlendShapeNode:
 	l_return.append(newBlendShapeNode)
-    mc.delete(targetObjectBaked)
     return l_return
 
 def bakeBlendShapeNodeToTargetObject(targetObject,sourceObject, blendShapeNode, baseNameToUse = False, 
@@ -1434,9 +1439,9 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
             baseTargets.append(obj)
 
     # Make the blendshape node
-    try:blendShapeNode = mc.blendShape(baseTargets,targetobj, n = blendShapeNodeName)
+    try:blendShapeNode = mc.blendShape(baseTargets,targetObject, n = blendShapeNodeName)
     except Exception,error:
-	raise Exception,"blendshape build fail | name: {0} | targetobj: {1} | error: {2}".format(blendShapeNodeName,targetobj,error)
+	raise Exception,"blendshape build fail | name: {0} | targetObject: {1} | error: {2}".format(blendShapeNodeName,targetobj,error)
     if inbetweenTargets:
 	blendShapeChannels = returnBlendShapeAttributes(blendShapeNode[0])	
 	# Handle the inbetweens
