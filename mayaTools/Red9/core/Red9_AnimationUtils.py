@@ -355,22 +355,19 @@ def animRangeFromNodes(nodes, setTimeline=True):
     :param nodes: nodes to examine for animation data
     :param setTimeLine: whether we should set the playback timeline to the extent of the found anim data
     '''
-    minBounds=None
-    maxBounds=None
+    minBounds=[]
+    maxBounds=[]
     for anim in r9Core.FilterNode.lsAnimCurves(nodes, safe=True):
         count=cmds.keyframe(anim, q=True, kc=True)
-        min=cmds.keyframe(anim, q=True, index=[(0,0)], tc=True)
-        max=cmds.keyframe(anim, q=True, index=[(count-1,count-1)], tc=True)
-        if not minBounds or min[0]<minBounds:
-            minBounds=min[0]
-        if not maxBounds or max[0]>maxBounds:
-            maxBounds=max[0]
-    if not minBounds and not maxBounds:
-        minBounds=0
-        maxBounds=1
+        minBounds.append(cmds.keyframe(anim, q=True, index=[(0,0)], tc=True)[0])
+        maxBounds.append(cmds.keyframe(anim, q=True, index=[(count-1,count-1)], tc=True)[0])
+    if not minBounds:
+        minBounds=[0]
+    if not maxBounds:
+        maxBounds=[1]
     if setTimeline:
-        cmds.playbackOptions(min=minBounds,max=maxBounds)
-    return minBounds,maxBounds
+        cmds.playbackOptions(min=min(minBounds),max=max(maxBounds))
+    return min(minBounds),max(maxBounds)
 
 def timeLineRangeGet(always=True):
     '''
@@ -3152,86 +3149,87 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
         deleteMe = []
         
         #can't use the anim context manager here as that resets the currentTime
-        autokeyState = cmds.autoKeyframe(query=True, state=True)
-        cmds.autoKeyframe(state=False)
+        #autokeyState = cmds.autoKeyframe(query=True, state=True)
+        #cmds.autoKeyframe(state=False)
         duration=step
         try:
             checkRunTimeCmds()
         except StandardError, error:
             raise StandardError(error)
         
-        if time:
-            timeRange = timeLineRangeProcess(time[0], time[1], step, incEnds=True)  # this is a LIST of frames
-            cmds.currentTime(timeRange[0], e=True)  # ensure that the initial time is updated
-            duration=time[1]-time[0]
-        else:
-            timeRange = [cmds.currentTime(q=True) + step]  # no time specified so move forward by the step
-            duration=1
-        log.debug('timeRange : %s', timeRange)
-        
-        if not nodes:
-            nodes = cmds.ls(sl=True, l=True)
-             
-        destObj = nodes[-1]
-        snapRef = cmds.spaceLocator()[0]
-        deleteMe.append(snapRef)
-        
-        # Generate the reference node that we'll use to snap too
-        # ==========================================================
-        if len(nodes) == 2:
-            # Tracker Mode 2 nodes passed in - Reference taken against the source node position
-            offsetRef = nodes[0]
+        with r9General.AnimationContext(time=False):
+            if time:
+                timeRange = timeLineRangeProcess(time[0], time[1], step, incEnds=True)  # this is a LIST of frames
+                cmds.currentTime(timeRange[0], e=True)  # ensure that the initial time is updated
+                duration=time[1]-time[0]
+            else:
+                timeRange = [cmds.currentTime(q=True) + step]  # no time specified so move forward by the step
+                duration=1
+            log.debug('timeRange : %s', timeRange)
             
-            if cmds.nodeType(nodes[0]) == 'mesh':  # Component level selection method
-                if r9Setup.mayaVersion() >= 2011:
-                    offsetRef = cmds.spaceLocator()[0]
-                    deleteMe.append(offsetRef)
-                    cmds.select([nodes[0], offsetRef])
-                    pointOnPolyCmd([nodes[0], offsetRef])
-                else:
-                    raise StandardError('Component Level Tracking is only available in Maya2011 upwards')
+            if not nodes:
+                nodes = cmds.ls(sl=True, l=True)
+                 
+            destObj = nodes[-1]
+            snapRef = cmds.spaceLocator()[0]
+            deleteMe.append(snapRef)
             
-            cmds.parent(snapRef, offsetRef)
-            cmds.SnapTransforms(source=destObj, destination=snapRef, snapTranslates=trans, snapRotates=rots)
-        else:
-            # Stabilizer Mode - take the reference from the node position itself
-            cmds.SnapTransforms(source=destObj, destination=snapRef, snapTranslates=trans, snapRotates=rots)
-
-        #Now run the snap against the reference node we've just made
-        #==========================================================
-
-        progressBar = r9General.ProgressBarContext(duration)
-        progressBar.setStep(step)
-        count=0
-                    
-        with progressBar:
-            for time in timeRange:
-                if progressBar.isCanceled():
-                    break
-
-                #Switched to using the Commands time query to stop  the viewport updates
-                cmds.currentTime(time, e=True, u=False)
-                cmds.SnapTransforms(source=snapRef, destination=destObj, timeEnabled=True, snapTranslates=trans, snapRotates=rots)
-                try:
-                    if trans:
-                        cmds.setKeyframe(destObj, at='translate')
-                except:
-                    log.debug('failed to set translate key on %s' % destObj)
-                try:
-                    if rots:
-                        cmds.setKeyframe(destObj, at='rotate')
-                except:
-                    log.debug('failed to set rotate key on %s' % destObj)
-                progressBar.setProgress(count)
-                count+=step
+            # Generate the reference node that we'll use to snap too
+            # ==========================================================
+            if len(nodes) == 2:
+                # Tracker Mode 2 nodes passed in - Reference taken against the source node position
+                offsetRef = nodes[0]
+                
+                if cmds.nodeType(nodes[0]) == 'mesh':  # Component level selection method
+                    if r9Setup.mayaVersion() >= 2011:
+                        offsetRef = cmds.spaceLocator()[0]
+                        deleteMe.append(offsetRef)
+                        cmds.select([nodes[0], offsetRef])
+                        pointOnPolyCmd([nodes[0], offsetRef])
+                    else:
+                        raise StandardError('Component Level Tracking is only available in Maya2011 upwards')
+                
+                cmds.parent(snapRef, offsetRef)
+                cmds.SnapTransforms(source=destObj, destination=snapRef, snapTranslates=trans, snapRotates=rots)
+            else:
+                # Stabilizer Mode - take the reference from the node position itself
+                cmds.SnapTransforms(source=destObj, destination=snapRef, snapTranslates=trans, snapRotates=rots)
+    
+            #Now run the snap against the reference node we've just made
+            #==========================================================
+    
+            progressBar = r9General.ProgressBarContext(duration)
+            progressBar.setStep(step)
+            count=0
+                        
+            with progressBar:
+                for time in timeRange:
+                    if progressBar.isCanceled():
+                        break
+    
+                    #Switched to using the Commands time query to stop  the viewport updates
+                    cmds.currentTime(time, e=True, u=False)
+                    cmds.SnapTransforms(source=snapRef, destination=destObj, timeEnabled=True, snapTranslates=trans, snapRotates=rots)
+                    try:
+                        if trans:
+                            cmds.setKeyframe(destObj, at='translate')
+                    except:
+                        log.debug('failed to set translate key on %s' % destObj)
+                    try:
+                        if rots:
+                            cmds.setKeyframe(destObj, at='rotate')
+                    except:
+                        log.debug('failed to set rotate key on %s' % destObj)
+                    progressBar.setProgress(count)
+                    count+=step
                 
         cmds.delete(deleteMe)
-        cmds.autoKeyframe(state=autokeyState)
+        #cmds.autoKeyframe(state=autokeyState)
         cmds.select(nodes)
         
         
     def bindNodes(self, nodes=None, attributes=None, filterSettings=None,
-                  bindMethod='connect', matchMethod=None, mo=True, **kws):
+                  bindMethod='connect', matchMethod=None, **kws):
         '''
         bindNodes is a Hi-Level wrapper function to bind animation data between
         filtered nodes, either in hierarchies or just selected pairs.
@@ -3244,9 +3242,8 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
             Note that this is also now bound to the class instance and if not passed in
             we use this classes instance of filterSettings cls.settings
         :param attributes: Only copy the given attributes[]
-        :param bindMethod: method of binding the data, supported : connect, constraint, constraintMO
+        :param bindMethod: method of binding the data
         :param matchMethod: arg passed to the match code, sets matchMethod used to match 2 node names
-        :param mo: passed to the constraint call if chosen as the maintainOffset flag
         #TODO: expose this to the UI's!!!!
         '''
         
@@ -3255,7 +3252,6 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
             filterSettings=self.settings
         if not matchMethod:
             matchMethod=self.matchMethod
-
             
         log.debug('bindNodes params : nodes=%s : attributes=%s : filterSettings=%s : matchMethod=%s' \
                    % (nodes, attributes, filterSettings, matchMethod))
@@ -3280,10 +3276,8 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
                             except:
                                 log.info('bindNode from %s to>> %s' %(r9Core.nodeNameStrip(src),
                                                                       r9Core.nodeNameStrip(dest)))
-                    elif bindMethod=='constraint':
-                        log.info('BindNode constrain from %s to>> %s' % (r9Core.nodeNameStrip(src),
-                                                                          r9Core.nodeNameStrip(dest)))
-                        cmds.parentConstraint(src, dest, maintainOffset=mo)
+                    if bindMethod=='constraint':
+                        cmds.parentConstraint(src, dest, mo=True)
                 except:
                     pass
         else:
