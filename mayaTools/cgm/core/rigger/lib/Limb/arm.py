@@ -1770,18 +1770,18 @@ def build_twistDriver_shoulder(goInstance = None):
                 mi_mainSegmentHandle = self._go._i_rigNull.mainSegmentHandle
 
                 #Create joints -------------------------------------------------------------------
-                i_startRoot = ml_handleJoints[0].doDuplicate(incomingConnections = False)
+                i_startRoot = ml_handleJoints[0].doDuplicate(inputConnections = False)
                 i_startRoot.addAttr('cgmName',self._go._partName)	
                 i_startRoot.addAttr('cgmTypeModifier','twistDriver')
                 i_startRoot.doName()
                 i_startRoot.parent = self._go._i_constrainNull.mNode
 
-                i_startEnd = ml_handleJoints[0].doDuplicate(incomingConnections = False)
+                i_startEnd = ml_handleJoints[0].doDuplicate(inputConnections = False)
                 i_startEnd.addAttr('cgmTypeModifier','twistDriverEnd')
                 i_startEnd.doName() 
                 i_startEnd.parent = i_startRoot.mNode
 
-                i_driver = ml_handleJoints[0].doDuplicate(incomingConnections = False)
+                i_driver = ml_handleJoints[0].doDuplicate(inputConnections = False)
                 i_driver.addAttr('cgmName',self._go._partName)	
                 i_driver.addAttr('cgmTypeModifier','twistDriverResult')
                 i_driver.doName()
@@ -1896,11 +1896,11 @@ def build_twistDriver_wrist(goInstance = None):
                     raise Exception,"blend target not wrist? | %s"%(i_blendWrist.p_nameShort)	
 
                 #Create joints
-                i_startRoot = i_targetJoint.doDuplicate(incomingConnections = False)
+                i_startRoot = i_targetJoint.doDuplicate(inputConnections = False)
                 i_startRoot.addAttr('cgmName',self._go._partName)	
                 i_startRoot.addAttr('cgmTypeModifier','endtwistDriver')
                 i_startRoot.doName()
-                i_startEnd = i_targetJoint.doDuplicate(incomingConnections = False)
+                i_startEnd = i_targetJoint.doDuplicate(inputConnections = False)
                 i_startEnd.addAttr('cgmTypeModifier','endtwistDriverEnd')
                 i_startEnd.doName()    
 

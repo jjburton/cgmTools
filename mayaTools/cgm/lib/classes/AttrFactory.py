@@ -824,7 +824,7 @@ class AttrFactory():
                           attribute oft the fromAttr name on the toObject if it doesn't exist
         convertToMatch(bool) -- whether to convert if necessary.default True        
         values(bool) -- copy values. default True
-        incomingConnections(bool) -- default False
+        inputConnections(bool) -- default False
         outGoingConnections(bool) -- default False
         keepSourceConnections(bool)-- keeps connections on source. default True
         copyAttrSettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
@@ -839,7 +839,7 @@ class AttrFactory():
         
         convertToMatch = kw.pop('convertToMatch',True)
         values = kw.pop('values',True)
-        incomingConnections = kw.pop('incomingConnections',False)
+        inputConnections = kw.pop('inputConnections',False)
         outgoingConnections = kw.pop('outgoingConnections',False)
         keepSourceConnections = kw.pop('keepSourceConnections',True)
         copyAttrSettings = kw.pop('copyAttrSettings',True)
@@ -851,7 +851,7 @@ class AttrFactory():
             guiFactory.report("AttrFactory instance: '%s'"%self.nameCombined)
             guiFactory.report("convertToMatch: '%s'"%convertToMatch)
             guiFactory.report("targetAttrName: '%s'"%targetAttrName)
-            guiFactory.report("incomingConnections: '%s'"%incomingConnections)
+            guiFactory.report("inputConnections: '%s'"%inputConnections)
             guiFactory.report("outgoingConnections: '%s'"%outgoingConnections)
             guiFactory.report("keepSourceConnections: '%s'"%keepSourceConnections)
             guiFactory.report("copyAttrSettings: '%s'"%copyAttrSettings)
@@ -862,7 +862,7 @@ class AttrFactory():
             
 
                 
-        copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
+        copyTest = [values,inputConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
         
         if sum(copyTest) < 1:
             guiFactory.warning("You must have at least one option for copying selected. Otherwise, you're looking for the 'doDuplicate' function.")            
@@ -876,7 +876,7 @@ class AttrFactory():
                                       targetBuffer[0],
                                       targetBuffer[1],
                                       convertToMatch = convertToMatch,
-                                      values=values, incomingConnections = incomingConnections,
+                                      values=values, inputConnections = inputConnections,
                                       outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
                                       copyAttrSettings = copyAttrSettings, connectSourceToTarget = connectSourceToTarget)               
 
@@ -888,7 +888,7 @@ class AttrFactory():
                                   target,
                                   targetAttrName,
                                   convertToMatch = convertToMatch,
-                                  values=values, incomingConnections = incomingConnections,
+                                  values=values, inputConnections = inputConnections,
                                   outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
                                   copyAttrSettings = copyAttrSettings, connectSourceToTarget = connectSourceToTarget)                                                 
         if debug:
@@ -917,7 +917,7 @@ class AttrFactory():
                               target,
                               self.nameLong,
                               convertToMatch = True,
-                              values = True, incomingConnections = True,
+                              values = True, inputConnections = True,
                               outgoingConnections = True, keepSourceConnections = False,
                               copyAttrSettings = True, connectSourceToTarget = False)
         self.doDelete()

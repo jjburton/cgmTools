@@ -2684,11 +2684,11 @@ def build_twistDriver_hip(self):
         #Create joints
         #i_startAim = self.duplicate_moduleJoint(0,'startAim')
         #i_startEnd = self.duplicate_moduleJoint(0,'startAimEnd')
-        i_startRoot = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False,)
+        i_startRoot = self._ml_moduleJoints[0].doDuplicate(inputConnections = False,)
         i_startRoot.addAttr('cgmName',self._partName)	
         i_startRoot.addAttr('cgmTypeModifier','twistDriver')
         i_startRoot.doName()
-        i_startEnd = self._ml_moduleJoints[0].doDuplicate(incomingConnections = False,)
+        i_startEnd = self._ml_moduleJoints[0].doDuplicate(inputConnections = False,)
         i_startEnd.addAttr('cgmTypeModifier','twistDriverEnd')
         i_startEnd.doName()    
 
@@ -2831,11 +2831,11 @@ def build_twistDriver_ankle(self):
         #Create joints
         #i_startAim = self.duplicate_moduleJoint(0,'startAim')
         #i_startEnd = self.duplicate_moduleJoint(0,'startAimEnd')
-        i_startRoot = i_targetJoint.doDuplicate(incomingConnections = False,)
+        i_startRoot = i_targetJoint.doDuplicate(inputConnections = False,)
         i_startRoot.addAttr('cgmName',str_baseName)
         i_startRoot.addAttr('cgmTypeModifier','twistDriver')
         i_startRoot.doName()
-        i_startEnd = i_targetJoint.doDuplicate(incomingConnections = False,)
+        i_startEnd = i_targetJoint.doDuplicate(inputConnections = False,)
         i_startEnd.addAttr('cgmTypeModifier','twistDriverEnd')
         i_startEnd.doName()    
 

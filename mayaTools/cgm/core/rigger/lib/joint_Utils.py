@@ -311,7 +311,7 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
 	    
     if not i_matchJnt:
 	log.debug("No match joint")
-	#i_dupJnt = mi_targetJoint.doDuplicate(incomingConnections = False)#Duplicate
+	#i_dupJnt = mi_targetJoint.doDuplicate(inputConnections = False)#Duplicate
 	i_dupJnt= duplicateJointInPlace(mi_targetJoint)
 	
 	i_dupJnt.addAttr('cgmTypeModifier',helperType)#Tag

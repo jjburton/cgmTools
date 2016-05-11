@@ -377,7 +377,7 @@ def dupe(*args, **kws):
 	    #self._b_reportTimes = 1 #..we always want this on so we're gonna set it on
 	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'target',"default":None,"argType":'str/instance','help':"Object to duplicate"},
 	                                 {'kw':'parentOnly',"default":True,"argType":'bool','help':"whether to dup parent only"},
-	                                 {'kw':'incomingConnections',"default":False,"argType":'bool','help':"Whether to duplicate incoming connections"},
+	                                 {'kw':'inputConnections',"default":False,"argType":'bool','help':"Whether to duplicate incoming connections"},
 	                                 {'kw':'breakMessagePlugsOut',"default":False,"argType":'bool','help':"Whether to break message out connections"},
 	                                 _d_KWARG_asMeta,
 	                                 ]	    
@@ -392,7 +392,7 @@ def dupe(*args, **kws):
 	    '''Validate all our args and see if we can continue'''
 	    self.mi_targetObj = validateObjArg(self.d_kws['target'])    
 	    self.b_po = cgmValid.boolArg(self.d_kws['parentOnly'],noneValid=False)   
-	    self.b_incomingConnections = cgmValid.boolArg(self.d_kws['incomingConnections'],noneValid=False)   
+	    self.b_inputConnections = cgmValid.boolArg(self.d_kws['inputConnections'],noneValid=False)   
 	    self.b_breakMessageOut = cgmValid.boolArg(self.d_kws['breakMessagePlugsOut'],noneValid=False)
 	    self.b_asMeta = cgmValid.boolArg(self.d_kws['asMeta'],noneValid=False)
 	    self.ml_dupes = []
@@ -406,8 +406,8 @@ def dupe(*args, **kws):
 	    
 	    if not self.b_po:
 		raise NotImplementedError,"parentOnly False mode not implemented"
-	    if self.b_incomingConnections:
-		raise NotImplementedError,"incomingConnections mode not implemented"
+	    if self.b_inputConnections:
+		raise NotImplementedError,"inputConnections mode not implemented"
 	    if self.b_breakMessageOut:
 		raise NotImplementedError,"breakMessagePlugsOut mode not implemented"
 	    #self.log_toDo('Implement incoming connections, parentOnly and maybe breakMessagePlugs but that may only be necessary for stuff actually duplicated')
@@ -1742,10 +1742,9 @@ class cgmNode(r9Meta.MetaClass):
         Return a duplicated object instance
 
         @Keyword arguments:
-        incomingConnections(bool) -- whether to do incoming connections (default True)
 	breakMessagePlugsOut(bool) -- whether to break the outgoing message connections because Maya duplicates regardless of duplicate flags
         """
-	#parentOnly = True, incomingConnections = True,
+	#parentOnly = True, inputConnections = True,
 	try:
 	    if self.isComponent():
 		log.warning("doDuplicate fail. Cannot duplicate components")
@@ -4534,7 +4533,7 @@ class cgmAttr(object):
                           attribute oft the fromAttr name on the toObject if it doesn't exist
         convertToMatch(bool) -- whether to convert if necessary.default True        
         values(bool) -- copy values. default True
-        incomingConnections(bool) -- default False
+        inputConnections(bool) -- default False
         outGoingConnections(bool) -- default False
         keepSourceConnections(bool)-- keeps connections on source. default True
         copyAttrSettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
@@ -4550,7 +4549,7 @@ class cgmAttr(object):
 	    if targetAttrName is None: targetAttrName = self.attr
 	    convertToMatch = kw.pop('convertToMatch',True)
 	    values = kw.pop('values',True)
-	    incomingConnections = kw.pop('incomingConnections',False)
+	    inputConnections = kw.pop('inputConnections',False)
 	    outgoingConnections = kw.pop('outgoingConnections',False)
 	    keepSourceConnections = kw.pop('keepSourceConnections',True)
 	    copyAttrSettings = kw.pop('copyAttrSettings',True)
@@ -4558,7 +4557,7 @@ class cgmAttr(object):
 	    connectTargetToSource = kw.pop('connectTargetToSource',False)  
 	    
 		
-	    copyTest = [values,incomingConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
+	    copyTest = [values,inputConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
 	    
 	    if sum(copyTest) < 1:
 		log.warning("You must have at least one option for copying selected. Otherwise, you're looking for the 'doDuplicate' function.")            
@@ -4572,7 +4571,7 @@ class cgmAttr(object):
 			                  targetBuffer[0],
 			                  targetBuffer[1],
 			                  convertToMatch = convertToMatch,
-			                  values=values, incomingConnections = incomingConnections,
+			                  values=values, inputConnections = inputConnections,
 			                  outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
 			                  copyAttrSettings = copyAttrSettings, 
 			                  connectTargetToSource = connectTargetToSource, connectSourceToTarget = connectSourceToTarget)               
@@ -4585,7 +4584,7 @@ class cgmAttr(object):
 		                      target,
 		                      targetAttrName,
 		                      convertToMatch = convertToMatch,
-		                      values=values, incomingConnections = incomingConnections,
+		                      values=values, inputConnections = inputConnections,
 		                      outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
 		                      copyAttrSettings = copyAttrSettings, 
 		                      connectTargetToSource = connectTargetToSource, connectSourceToTarget = connectSourceToTarget)                                                      
@@ -4621,7 +4620,7 @@ class cgmAttr(object):
 		                  mi_target.mNode,
 		                  self.p_nameLong,
 		                  convertToMatch = True,
-		                  values = True, incomingConnections = True,
+		                  values = True, inputConnections = True,
 		                  outgoingConnections = True, keepSourceConnections = False,
 		                  copyAttrSettings = True, connectSourceToTarget = False)
 	    self.doDelete()

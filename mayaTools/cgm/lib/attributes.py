@@ -944,7 +944,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
                       attribute of the fromAttr name on the toObject if it doesn't exist
     convertToMatch(bool) -- whether to automatically convert attribute if they need to be. Default True                  
     values(bool) -- copy values. default True
-    incomingConnections(bool) -- default False
+    inputConnections(bool) -- default False
     outGoingConnections(bool) -- default False
     keepSourceConnections(bool)-- keeps connections on source. default True
     copyAttrSettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
@@ -957,7 +957,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
     #>>>Keyword args
     convertToMatch = kw.pop('convertToMatch',True)
     values = kw.pop('values',True)
-    incomingConnections = kw.pop('incomingConnections',False)
+    inputConnections = kw.pop('inputConnections',False)
     outgoingConnections = kw.pop('outgoingConnections',False)
     keepSourceConnections = kw.pop('keepSourceConnections',True)
     copyAttrSettings = kw.pop('copyAttrSettings',True)
@@ -1079,7 +1079,7 @@ def doCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
         else:
             doSetAttr(toObject,toAttr,dataDict.get('value'))
 
-    if incomingConnections and not connectSourceToTarget:
+    if inputConnections and not connectSourceToTarget:
         buffer = dataDict['incoming']
         if buffer:
             try:

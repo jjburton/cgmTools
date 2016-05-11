@@ -82,7 +82,7 @@ def uiTransferAttributes(self):
 		                       convertToMatch = self.TransferConvertStateOptionVar.value,
 		                       copyAttrSettings = self.CopyAttrOptionsOptionVar.value, 		                       
 		                       values = self.TransferValueOptionVar.value,
-		                       incomingConnections = self.TransferIncomingOptionVar.value,
+		                       inputConnections = self.TransferIncomingOptionVar.value,
 		                       outgoingConnections = self.TransferOutgoingOptionVar.value,
 		                       keepSourceConnections = self.TransferKeepSourceOptionVar.value,
 		                       connectSourceToTarget = self.TransferDriveSourceStateOptionVar.value,
