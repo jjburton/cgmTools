@@ -75,9 +75,9 @@ def _reload():
                                                      'ikSplineSolver','blendColors','blendTwoAttr','addDoubleLinear','condition','multiplyDivide','plusMinusAverage'])
 
     print('CGM Core Reloaded and META REGISTRY updated') 
-    print '=============================================================================='  
+    print '=' * 100
     Red9_Meta.printSubClassRegistry()  
-    print '=============================================================================='    
+    print '=' * 100    
     
 def _setlogginglevel_debug():
     '''
