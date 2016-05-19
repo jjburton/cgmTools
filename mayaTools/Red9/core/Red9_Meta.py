@@ -265,7 +265,7 @@ def resetMClassNodeTypes():
     registerMClassNodeMapping(nodeTypes=None)
   
 
-# ----------------------------------------------------------------------------    
+# ----------------------------------------------------------------------------
 # --- NodeCache management --- ---------------------------
 # ----------------------------------------------------------------------------
 
@@ -288,6 +288,7 @@ def registerMClassNodeCache(mNode):
     if version>=2016:
         UUID=cmds.ls(mNode.mNode, uuid=True)[0]
     elif mNode.hasAttr('UUID'):
+        # 2015 and below only -------------------
         try:
             UUID=mNode.UUID
             if not UUID:
@@ -295,7 +296,7 @@ def registerMClassNodeCache(mNode):
                 UUID=mNode.setUUID()
             elif UUID in RED9_META_NODECACHE.keys():
                 log.debug('CACHE : UUID is already registered in cache')
-                if not mNode.mNode == RED9_META_NODECACHE[UUID]:
+                if not mNode == RED9_META_NODECACHE[UUID]:
                     log.debug('CACHE : %s : UUID is registered to a different node : modifying UUID: %s' % (UUID, mNode.mNode))
                     UUID=mNode.setUUID()
         except StandardError, err:
@@ -971,6 +972,7 @@ class MClassNodeUI(object):
         self.stripNamespaces=False
         self.shortname=False
         self.sortBy = 'class'
+        self.selected = []
         
     @classmethod
     def show(cls):
@@ -1081,6 +1083,7 @@ class MClassNodeUI(object):
         cmds.popupMenu('r9MetaNodeUI_Popup')
         cmds.menuItem(label=LANGUAGE_MAP._MetaNodeUI_.graph_selected, command=partial(self.graphNetwork))
         cmds.menuItem(divider=True)
+        cmds.menuItem(label=LANGUAGE_MAP._MetaNodeUI_.rename_mNode, command=partial(self.__uiCB_renameNode))
         cmds.menuItem(label=LANGUAGE_MAP._MetaNodeUI_.select_children,
                       ann=LANGUAGE_MAP._MetaNodeUI_.select_children_ann,
                       command=partial(self.doubleClick))
@@ -1135,11 +1138,13 @@ class MClassNodeUI(object):
         callback run on select in the UI, allows you to run the func passed
         in by the funcOnSelection arg
         '''
+        self.selected=[]
         indexes=cmds.textScrollList('slMetaNodeList',q=True,sii=True)
         if indexes:
             cmds.select(cl=True)
         for i in indexes:
             node=MetaClass(self.mNodes[i - 1])
+            self.selected.append(node)
             log.debug('selected : %s' % node)
             
             #func is a function passed into the UI via the funcOnSelection arg
@@ -1324,6 +1329,21 @@ class MClassNodeUI(object):
         
         r9Setup.PRO_PACK_STUBS().MetaDataUI.uiCB_disconnectNode(mNode)
         
+    def __uiCB_renameNode(self, *args):
+        '''
+        rename the selected mNode
+        '''
+        result = cmds.promptDialog(title=LANGUAGE_MAP._MetaNodeUI_.rename_mNode,
+                                   message=LANGUAGE_MAP._Generic_.name,
+                                   button=[LANGUAGE_MAP._Generic_.apply, LANGUAGE_MAP._Generic_.cancel],
+                                   defaultButton=LANGUAGE_MAP._Generic_.apply,
+                                   text=self.selected[0].shortName(),
+                                   cancelButton='Cancel',
+                                   dismissString='Cancel')
+        if result == LANGUAGE_MAP._Generic_.apply:
+            self.selected[0].rename(cmds.promptDialog(query=True, text=True))
+            self.fillScroll()
+            
     def __uiCB_connectChildMetaNode(self, mClass, *args):
         '''
         PRO PACK : Given a single selected mNode from the UI and selected MAYA nodes, run
@@ -1725,9 +1745,11 @@ class MetaClass(object):
         return newUUID
     
     def getUUID(self):
+        if r9Setup.mayaVersion()>=2016:
+            return cmds.ls(self.mNode, uuid=True)[0]
         return self.UUID
     
-    # Attribuite Management block
+    # Attribute Management block
     #-----------------------------------------------------------------------------------
            
     def __setEnumAttr__(self, attr, value):
@@ -3531,6 +3553,28 @@ class MetaRigSubSystem(MetaRig):
         self.addAttr('systemType', attrType='string')
         self.addAttr('mirrorSide',enumName='Centre:Left:Right',attrType='enum')
         self.addAttr('buildFlags', attrType='string', value={}, hidden=True)
+        
+    @property
+    def SupportNode(self):
+        '''
+        return the connected Support mNode regardless of the wire used to connect it
+        
+        .. note::
+            this is setup to use the Red9Pro Puppet wire conventions when multiple connected
+            support nodes are found. The idea being that there is always 1 main support for a system
+            and the naming convention of the mNodeID reflects that ie: L_ArmSystem and L_ArmSupport
+        '''
+        try:
+            subsystems=getConnectedMetaNodes(self.mNode,mInstances=MetaRigSupport,asMeta=True)
+            print subsystems
+            if len(subsystems)>1:
+                for s in subsystems:
+                    if s.mNodeID==self.mNodeID.replace('System', 'Support'):
+                        return s
+            else:
+                return subsystems[0]
+        except:
+            return []
  
  
 class MetaRigSupport(MetaClass):
