@@ -52,7 +52,7 @@ mi_sphere.isComponent()#Nope...it's a sphere
 mi_sphere.getComponents('cv')#List of cv's
 mi_sphere.getPosition()#Get our position,arg is world space or not, default is worldspace(True)
 mi_cv.getPosition()#Get the position of the cv
-mi_cv.getTransform()#Ger the transform of the component
+mi_cv.getTransform()#Get the transform of the component
 #==============================================================================================
 
 #>>Properties =================================================================================
