@@ -12,6 +12,7 @@ It is uses Mark Jackson (Red 9)'s as a base.
 """
 import sys
 import inspect
+import os.path
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -683,3 +684,42 @@ def MeshDict(mesh = None, pointCounts = True):
         _return['pointCountPerShape'] = _l_counts
         _return['pointCount'] = sum(_l_counts)
     return _return   
+
+def filepath(filepath = None, fileMode = 0, fileFilter = 'Config file (*.cfg)', startDir = None):
+    '''
+    Validates a given filepath or generates one with dialog if necessary
+    
+    :parameters:
+        filepath | string
+        fileMode | int
+            0: open
+            1: save
+            2:find dir (not using currently)
+        fileFilter | string
+            Descriptor and starred prefix -- 'Config file (*.cfg)'
+        startDir | string, None
+    '''        
+    _d_modes = {0:'save',
+                1:'open'}
+    
+    if filepath is None:
+        if startDir is None:
+            startDir = mc.workspace(q=True, rootDirectory=True)
+        filepath = mc.fileDialog2(dialogStyle=2,
+                                  fileMode=fileMode,
+                                  startingDirectory=startDir,
+                                  fileFilter= fileFilter)
+        if filepath:filepath = filepath[0]
+
+    _result = False
+    if filepath:
+        if fileMode == 1:
+            if os.path.exists(filepath):
+                log.info("{0} mode | filepath validated... {1}".format(_d_modes.get(fileMode),filepath))                    
+                _result = filepath
+            else:
+                log.info("Invalid filepath ... {0}".format(filepath))                    
+        elif fileMode == 0:
+            log.info("{0} mode | filepath validated... {1}".format(_d_modes.get(fileMode),filepath))                    
+            _result = filepath
+    return _result

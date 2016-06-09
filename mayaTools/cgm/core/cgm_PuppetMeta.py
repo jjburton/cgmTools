@@ -514,12 +514,22 @@ class cgmPuppet(cgmMeta.cgmNode):
         #kws['mPuppet'] = self			
         #return pFactory.poseLoad_templateSettings(*args,**kws)
 
-    def templateSettingsCall(self,*args,**kws):
+    def templateSettings_call(self,*args,**kws):
         '''
-        Call for doing multiple functions with templateSettings
+        Call for doing multiple functions with templateSettings.
+	
+	:parameters:
+            mode | string
+	        reset:reset controls
+		store:store data to modules
+		load:load data from modules
+		query:get current data
+		export:export to a pose file
+		import:import from a  pose file
+            filepath | string/None -- if None specified, user will be prompted
         '''
         kws['mPuppet'] = self			
-        return pFactory.templateSettings_do(*args,**kws)
+        return pFactory.templateSettings_call(*args,**kws)
 
     def isSized(self,*args,**kws):
         kws['mPuppet'] = self			
@@ -1860,8 +1870,16 @@ class cgmModule(cgmMeta.cgmObject):
         help(mFactory.template_update)
         """
         kws['mModule'] = self	
-        return mFactory.template_update(*args,**kws)    
-
+        return mFactory.template_update(*args,**kws) 
+    
+    def templateSettings_call(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.template_call)
+        """
+        kws['mModule'] = self	
+        return mFactory.templateSettings_call(*args,**kws) 
+    
     def doTemplate(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
@@ -1877,30 +1895,7 @@ class cgmModule(cgmMeta.cgmObject):
         """
         kws['mModule'] = self	
         return mFactory.deleteTemplate(*args,**kws) 
-
-    def storeTemplatePose(self,*args,**kws):
-        """
-        from cgm.core.rigger import ModuleFactory as mFactory
-        help(mFactory.poseStore_templateSettings)
-        """
-        kws['mModule'] = self	
-        return mFactory.poseStore_templateSettings(*args,**kws)   
-
-    def loadTemplatePose(self,*args,**kws):
-        """
-        from cgm.core.rigger import ModuleFactory as mFactory
-        help(mFactory.poseRead_templateSettings)
-        """
-        kws['mModule'] = self	
-        return mFactory.poseRead_templateSettings(*args,**kws)
-
-    def poseReset_templateSettings(self,*args,**kws):
-        """
-        from cgm.core.rigger import ModuleFactory as mFactory
-        help(mFactory.poseRead_templateSettings)
-        """
-        kws['mModule'] = self	
-        return mFactory.poseReset_templateSettings(*args,**kws)   
+ 
 
     #>>> Skeletonize
     #===========================================================  
@@ -2483,8 +2478,12 @@ d_rigBlockAttrs_toMake = {'version':'string',#Attributes to be initialzed for an
                           'moduleTarget':'messageSimple',
                           'blockMirror':'messageSimple'}
 
-class cgmRigBlock(cgmMeta.cgmObject):
+class cgmRigBlock(cgmMeta.cgmControl):
     ##@r9General.Timer
+    #These lists should be set up per rigblock as a way to get controls from message links
+    _l_controlLinks = []
+    _l_controlmsgLists = []
+    
     def __init__(self,*args,**kws):
         """ 
         The root of the idea of cgmRigBlock is to be a sizing mechanism and build options for
@@ -2517,14 +2516,14 @@ class cgmRigBlock(cgmMeta.cgmObject):
 
 	self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly',
 	                       'kw_callNameTags'])	
-        self.kw_name= kws.get('name') or False        
-        self.kw_moduleParent = kws.get('moduleParent') or False
-        self.kw_forceNew = kws.get('forceNew') or False
-        self.kw_initializeOnly = kws.get('initializeOnly') or False  
-        self.kw_callNameTags = {'cgmPosition':kws.get('position') or False, 
-                                'cgmDirection':kws.get('direction') or False, 
-                                'cgmDirectionModifier':kws.get('directionModifier') or False,
-                                'cgmNameModifier':kws.get('nameModifier') or False}
+        self.kw_name= kws.get('name',False)        
+        self.kw_moduleParent = kws.get('moduleParent',False)
+        self.kw_forceNew = kws.get('forceNew',False)
+        self.kw_initializeOnly = kws.get('initializeOnly',False)  
+        self.kw_callNameTags = {'cgmPosition':kws.get('position',False), 
+                                'cgmDirection':kws.get('direction',False), 
+                                'cgmDirectionModifier':kws.get('directionModifier',False),
+                                'cgmNameModifier':kws.get('nameModifier',False)}
 
         #>>> Initialization Procedure ================== 
         if not self.isReferenced():
@@ -2614,6 +2613,38 @@ class cgmRigBlock(cgmMeta.cgmObject):
 
         self._d_buildKWS = d_kws    
 
+    def get_controls(self, asMeta = False):
+        """
+        Function which MUST be overloaded
+        """	
+        #>>> Gather basic info for module build
+	_str_func = "{0}.get_controls() >> ".format(self.p_nameShort)
+	if asMeta:
+	    _result = [self]
+	else:
+	    _result = [self.mNode]
+	for plug in self.__class__._l_controlLinks:
+	    if asMeta:
+		_buffer = self.getMessageAsMeta(plug)
+		if _buffer:
+		    _result.append(_buffer)
+	    else:
+		_buffer = self.getMessage(plug)
+		if _buffer:
+		    _result.extend(_buffer)
+		else:
+		    log.error("{2} Failed to find message on: {0}.{1}".format(self.p_nameShort,plug,_str_func))
+	if not self.__class__._l_controlmsgLists:
+	    log.debug("{0} No msgList attrs registered".format(_str_func))
+	else:
+	    for plug in self.__class__._l_controlmsgLists:
+		_buffer = self.msgList_get(plug, asMeta = asMeta)
+		if _buffer:
+		    _result.extend(_buffer)
+		else:
+		    log.error("{2} Failed to find msgList on: {0}.{1}".format(self.p_nameShort,plug,_str_func))	    
+	return _result
+    
     def __buildSimplePuppet__(self):
         """
         Build a simple puppet for itself
@@ -2656,7 +2687,11 @@ class cgmEyeballBlock(cgmRigBlock):
                          'uprLidJoints':5,'lwrLidJoints':5}
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
-
+    
+    #These lists should be set up per rigblock as a way to get controls from message links
+    _l_controlLinks = ['pupilHelper','irisHelper','uprLidHelper','lwrLidHelper']
+    _l_controlmsgLists = []
+    
     def __init__(self,*args,**kws):
         """ 
         """
@@ -2994,7 +3029,11 @@ class cgmEyebrowBlock(cgmRigBlock):
                          'browJoints':4,'templeJoints':2,'cheekJoints':2}
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
-
+    _l_controlLinks = ['leftBrowHelper','rightBrowHelper',
+                       'leftTempleHelper','rightTempleHelper',
+                       'leftUprCheekHelper','rightUprCheekHelper',
+                       'squashCastHelper','uprFacePivotHelper']
+    _l_controlmsgLists = []
     def __init__(self,*args,**kws):
         """ 
         """
@@ -3260,7 +3299,24 @@ class cgmMouthNoseBlock(cgmRigBlock):
                          'uprCheekJoints':3,'nostrilJoints':1,'cheekLoftCount':2,'smileLineCount':6,'lipJoints':7,'cheekJoints':3,'tongueJoints':5}
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
-
+    _l_controlLinks = ['noseProfileHelper','noseMidCastHelper','noseBaseCastHelper',
+                       'lipUprHelper',  
+                       'lipLwrHelper',                   
+                       'lipOverTraceHelper',
+                       'lipUnderTraceHelper',                                          
+                       'mouthTopCastHelper',
+                       'mouthMidCastHelper',                                                               
+                       'mouthLowCastHelper',
+                       'leftUprCheekHelper',                     
+                       'rightUprCheekHelper',                     
+                       'jawLineHelper',
+                       'smileLeftHelper',                                                                                    
+                       'smileRightHelper',
+                       'jawPivotHelper',
+                       'tongueHelper',                     
+                       'squashStartHelper',
+                       'squashEndHelper',                       ]
+    _l_controlmsgLists = []
     def __init__(self,*args,**kws):
         """ 
         """

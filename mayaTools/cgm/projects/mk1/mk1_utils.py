@@ -440,7 +440,7 @@ def updateTemplate(mAsset,**kws):
                     log.warning("Cannot find Module: '%s'"%str_moduleKey)
                     return False
 
-                i_module.storeTemplatePose()		
+                i_module.templateSettings_call('store')		
                 i_module.doSize(sizeMode = 'manual',
                                 posList = d_customizationData.get(str_moduleKey))
                 i_module.doTemplate(tryTemplateUpdate = True,forceNew = True,

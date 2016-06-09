@@ -121,7 +121,7 @@ def go(*args, **kws):
             #>>> store template settings
             if self.d_kws['saveTemplatePose'] and not self._mi_module.getMessage('helper'):
                 self.log_debug("Saving template pose..")
-                self._mi_module.storeTemplatePose()
+                self._mi_module.templateSettings_call('store')
 
             if self._mi_module.isSkeletonized():
                 if self.d_kws['forceNew']:
@@ -203,7 +203,7 @@ def go(*args, **kws):
 
         def _step_poseLoad_(self):
             #>>> store template settings
-            self._mi_module.loadTemplatePose()	
+            self._mi_module.templateSettings_call('load')	
 
 
 

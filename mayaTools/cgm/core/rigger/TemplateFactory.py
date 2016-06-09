@@ -129,11 +129,11 @@ def go(*args, **kws):
 
             if self.d_kws['tryTemplateUpdate']:
                 self.log_info("Trying template update...")
-                if self._mi_module.template_update(**kws):
+                if self._mi_module.templateSettings_call('update'):
                     self.log_info("Template update...")		    
                     if self.d_kws['loadTemplatePose']:
                         self.log_info("Trying loadTemplatePose...")                                    
-                        self._mi_module.loadTemplatePose()                
+                        self._mi_module.templateSettings_call('load')               
                     return self._SuccessReturn_()
 
             if self._mi_module.isTemplated():
@@ -217,7 +217,7 @@ def go(*args, **kws):
 
         def _step_poseLoad_(self):
             #>>> store template settings
-            self._mi_module.loadTemplatePose()	
+            self._mi_module.templateSettings_call('load')
 
 
 
@@ -268,10 +268,10 @@ def store_baseLength(mModule):
         mi_templateNull = mModule.templateNull
         ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
         if not ml_controlObjects:
-            raise StandardError,"No control objects on msgList"
-        f_distance = distance.returnDistanceBetweenPoints(ml_controlObjects[0].getParent(asMeta = 1).getPosition(),ml_controlObjects[-1].getParent(asMeta = 1).getPosition())		
-        mi_templateNull.doStore('moduleBaseLength',f_distance )
-        log.info("Base Length: {0}".format(f_distance))
+            raise ValueError,"No control objects on msgList"
+        #f_distance = distance.returnDistanceBetweenPoints(ml_controlObjects[0].getParent(asMeta = 1).getPosition(),ml_controlObjects[-1].getParent(asMeta = 1).getPosition())		
+        #mi_templateNull.doStore('moduleBaseLength',f_distance )
+        #log.info("Base Length: {0}".format(f_distance))
 
         if mi_templateNull.getMessage('curve'):
             try:
@@ -282,7 +282,9 @@ def store_baseLength(mModule):
                 return True
             except Exception,error:self.log_error("Failed to get curve length | {0}".format(error))
 
-        return f_distance  
+        else:
+            log.error("No curve on {0} found. Cannot store_baseLength".format(mModule.p_nameShort))
+            return False
     except Exception,error:raise Exception,"{0} | {1}".format(_str_funcName,error)
 
 #>>>> Pivots stuff 
@@ -977,7 +979,7 @@ def updateTemplate2(mModule = None, saveTemplatePose = False, **kws):
             return False
 
         if saveTemplatePose:
-            mModule.storeTemplatePose()#Save our pose before destroying anything
+            mModule.templateSettings_call('store')#Save our pose before destroying anything
 
         mi_templateNull = mModule.templateNull
 
@@ -1008,7 +1010,7 @@ def updateTemplate2(mModule = None, saveTemplatePose = False, **kws):
         doParentControlObjects(mModule)
         doCastPivots(mModule)
 
-        mModule.loadTemplatePose()#Restore the pose
+        mModule.templateSettings_call('load')#Restore the pose
         return True
     except Exception,error:raise Exception,"updateTemplate | {0}".format(error)
 

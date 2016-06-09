@@ -1680,6 +1680,27 @@ class cgmNode(r9Meta.MetaClass):
 	except Exception,error:raise Exception,"[%s.returnPositionOutPlug]{%s}"%(self.p_nameShort,error)
 
 	
+    def resetAttrs(self, attrs = None):
+	try:
+	    obj = self.mNode
+	    
+	    if attrs == None:
+		attrs = mc.listAttr(obj, keyable=True, unlocked=True) or False
+	    _reset = []
+	    if attrs:
+		for attr in attrs:
+		    try:
+			default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
+			attributes.doSetAttr(obj, attr, default)
+			_reset.append(attr)
+		    except Exception,err:
+			#attributes.doSetAttr(obj, attr, 0)
+			log.error("{0}.{1} resetAttrs | error: {2}".format(self.p_nameShort, attr,err))   	
+	    return _reset
+	except Exception,err:
+	    log.error("{0} resetAttrs | error: {1}".format(self.p_nameShort,err))   		    
+	    return False
+	
     def getPosition(self,worldSpace = True):
 	try:
 	    if self.isComponent():

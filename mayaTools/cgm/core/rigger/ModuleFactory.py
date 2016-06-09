@@ -973,6 +973,10 @@ def doTemplate(*args,**kws):
                 mi_module = self._mi_module
                 kws = self.d_kws		
             except Exception,error:raise StandardError,"[Query]{%s}"%error
+            
+            if mi_module.getMessage('helper'):
+                self.log_info("Have helper object, am templated.")
+                return True
 
             if not isSized(**kws):
                 self.log_warning("Not sized")
@@ -1042,7 +1046,7 @@ def template_update(*args,**kws):
                 return False
 
             if self.d_kws['saveTemplatePose']:
-                mi_module.storeTemplatePose()#Save our pose before destroying anything
+                mi_module.templateSettings_call('store')#Save our pose before destroying anything
 
             mi_templateNull = mi_module.templateNull
             corePosList = mi_templateNull.templateStarterData
@@ -1103,7 +1107,7 @@ def template_update(*args,**kws):
             tFactory.doCastPivots(mi_module)
             #tFactory.store_curveLength(mi_module)#Store our base length before we move stuff around
             return True	    
-            mi_module.loadTemplatePose()#Restore the pose
+            mi_module.templateSettings_call('load')#Restore the pose
             return True	    
     return fncWrap(*args,**kws).go()
 
@@ -1627,6 +1631,338 @@ def changeState(*args,**kws):
                     return True	    
     return fncWrap(*args,**kws).go()
 
+def templateSettings_call(*args,**kws):
+    _l_modes = 'reset','store','load','query','update','markStarterData'
+    class fncWrap(ModuleFunc):    
+        def __init__(self,*args,**kws):
+            """
+            All encompassing function for dealing with templateSettings
+            
+            d_pose = {'root':{'test':[0,1,0]},
+                        'orientRootHelper':{'test':[0,1,0]},
+                        'controlObjects':{0:[1,1,1]},
+                        'helperObjects':{0:[]}}  
+            modes:
+               reset -- reset the controls to base
+               store -- store current pose
+               load -- load stored pose
+               query -- query the pose
+               update -- this mode is if the base data has been updated
+               markStarterData -- this mode is for testing and will mark the base point data
+            """
+            super(fncWrap, self).__init__(*args, **kws)
+            self._str_funcHelp = "Call to store,reset, upate, load template settings"
+            self._str_funcName= "templateSettings_call({0})".format(self._str_moduleName)
+            self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mModule,
+                                         {'kw':'mode',"default":None,'help':"What mode this function is in","argType":"string"}]	            
+            self.__dataBind__(*args,**kws)	    
+            #=================================================================
+
+        def buildDict_AnimAttrsOfObject(self, node,ignore = ['visibility']):
+            attrDict = {}
+            attrs = r9Anim.getSettableChannels(node,incStatics=True)
+            if attrs:
+                for attr in attrs:
+                    if attr not in ignore:
+                        try:attrDict[attr]=mc.getAttr('%s.%s' % (node,attr))
+                        except:self.log_debug('%s : attr is invalid in this instance' % attr)
+            return attrDict
+        
+        def _resetTransform_(self,obj,attr):
+            try:
+                default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
+                mc.setAttr(obj+'.'+attr, default)
+            except Exception,error:
+                mc.setAttr(obj+'.'+attr, 0)	         
+
+        def __func__(self):
+            """
+            """
+            #>> Initial
+            mi_module = self._mi_module
+            kws = self.d_kws		
+            mi_templateNull = mi_module.templateNull   
+            
+            _mode = kws.get('mode',None)
+            if _mode not in _l_modes:
+                self.log_error("Mode : {0} not in list: {1}".format(str_mode,_l_modes))
+                return False            
+            if _mode is None:
+                raise ValueError,"{1} Must have a mode | {0}".format(_l_modes,self._str_funcName)
+            self.log_debug("mode: '{0}'".format(_mode))
+            #---------------------------------------------------------------------------------------    
+            
+            #if _mode in ['load','update']:
+            try:#>>> We need to setup our value normalizer value
+                #self.log_info("Distance between : {0} and {1}".format(ml_controlObjects[0].getParent(asMeta = 1).p_nameShort,ml_controlObjects[-1].getParent(asMeta = 1).p_nameShort))
+                #self.f_crvLength_current = distance.returnDistanceBetweenPoints(ml_controlObjects[0].getParent(asMeta = 1).getPosition(),ml_controlObjects[-1].getParent(asMeta = 1).getPosition())		
+                #self.f_crvLength_stored =  mi_templateNull.getAttr('moduleBaseLength') or None
+                self.f_crvLength_stored =  mi_templateNull.getAttr('curveBaseLength') or None
+                #...we'll get the current values after initial reset
+            except Exception,error:raise Exception,"[Validate normalize data | {0}]".format(error)                
+            
+            #Build our pose dict...
+            if mi_module.getMessage('helper'):
+                self.log_debug("Cannot currently store pose with rigBlocks")
+                return True            
+
+            if _mode in ['query','store']:
+                d_pose = self._get_poseDict()
+                if _mode == 'query':
+                    self.log_infoDict(d_pose,"Pose Dict")
+                if _mode == 'store':
+                    mi_templateNull.controlObjectTemplatePose = d_pose
+                return d_pose
+            elif _mode == 'markStarterData':
+                return self._markStarterData()
+            
+            elif _mode == 'reset':
+                return self._resetPose()
+            
+            elif _mode == 'load':
+                return self._loadPose()
+            
+            elif _mode == 'update':
+                return self._updatePose()
+            
+        def _markStarterData(self):
+            try:#Query ========================================================
+                mi_module = self._mi_module 
+                mi_templateNull = mi_module.templateNull                                   
+                ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
+                if not ml_controlObjects:
+                    log.error("No control objects found")
+                    return False
+                l_storedPosList = mi_templateNull.templateStarterData
+
+            except Exception,err:raise Exception,"[Query]{0}".format(err)
+
+            _locs = []
+            
+            for i,mObj in enumerate(ml_controlObjects):
+                _locs.append(mc.spaceLocator(p=l_storedPosList[i], n = "{0}_basePos".format(mObj.p_nameBase))[0])
+
+            return _locs           
+        def _updatePose(self):
+            """
+            1) Reset roots to start data
+            2) Get normalized values from the change
+            """
+            try:#Query ========================================================
+                mi_module = self._mi_module
+                mi_templateNull = mi_module.templateNull                   
+                d_pose = mi_templateNull.controlObjectTemplatePose
+                ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
+                if not ml_controlObjects:
+                    log.error("No control objects found")
+                    return False	
+                l_storedPosList = mi_templateNull.templateStarterData
+
+            except Exception,err:raise Exception,"[Query]{0}".format(err)
+            
+            if self.d_kws.get('saveTemplatePose'):
+                d_pose = self._get_poseDict()
+                mi_templateNull.controlObjectTemplatePose = d_pose
+
+            corePosList = mi_templateNull.templateStarterData
+            mi_root = mi_templateNull.root
+
+            mc.xform(mi_root.parent, translation = corePosList[0],worldSpace = True)
+            mi_root.resetAttrs()
+
+            try:#Reset each control
+                for i,i_obj in enumerate(ml_controlObjects):
+                    try:
+                        #self.log_debug("On {0}...".format(i_obj.p_nameShort))
+                        '''try:
+                            if i_obj.parent:
+                                objConstraints = constraints.returnObjectConstraints(i_obj.parent)
+                                if objConstraints:mc.delete(objConstraints) 
+                        except Exception,error:raise Exception,"Constraints clear fail | {0}".format(error)'''
+
+                        try:mc.xform(i_obj.parent, translation = corePosList[i],worldSpace = True)
+                        except Exception,err:raise Exception,"final Move fail | {0}".format(err)
+                        
+                        i_obj.resetAttrs()
+
+                    except Exception,err:
+                        self.log_error("current obj : {0}".format(i_obj))
+                        self.log_error("current parent : {0}".format(i_obj.parent))			
+                        self.log_error("ml_controlObjects: {0}".format(ml_controlObjects))
+                        raise Exception,"obj {0} fail | {1}".format(i,err)
+
+            except Exception,error:raise Exception,"objects move fail | {0}".format(error)
+
+            tFactory.doCastPivots(mi_module)
+            
+            self.f_crvLength_current = distance.returnCurveLength(mi_templateNull.getMessage('curve')[0])           
+            
+            #tFactory.store_curveLength(mi_module)#Store our base length before we move stuff around
+            return self._loadPose()	    
+        
+        def _loadPose(self):
+            try:#Query ========================================================
+                mi_module = self._mi_module
+                mi_templateNull = mi_module.templateNull                   
+                d_pose = mi_templateNull.controlObjectTemplatePose
+                ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
+                if not ml_controlObjects:
+                    log.error("No control objects found")
+                    return False	
+                l_storedPosList = mi_templateNull.templateStarterData
+
+            except Exception,err:raise Exception,"[Query]{0}".format(err)
+
+            if type(d_pose) is not dict:
+                self.log_error("Pose dict is not a dict: {0}".format(d_pose))
+                return False
+
+            self._resetPose()#...reset our pose first of all
+
+            #>>> Get the root
+            l_translates = ['translateX','translateY','translateZ']#Flag our
+            for key in ['root','orientRootHelper']:
+                try:
+                    if d_pose[key]:
+                        for attr, val in d_pose[key].items():
+                            #Don't think we need  to do this anymore...
+                            """try:
+                                val=eval(val)
+                            except Exception,err:
+                                self.log_error("{0} failed to eval | {1}".format(val,err))
+                                pass """
+                            try:
+                                if attr in l_translates:
+                                    mc.setAttr('%s.%s' % (mi_templateNull.getMessage(key)[0],attr), self.__normalizeValue__(val,attr,key))
+                                else:
+                                    mc.setAttr('%s.%s' % (mi_templateNull.getMessage(key)[0],attr), val)
+                            except Exception,err:
+                                self.log_error(err)   
+                except Exception,error:raise Exception,"key fail : {0} | {1}".format(key,error)
+
+            for key in d_pose['controlObjects']:
+                for attr, val in d_pose['controlObjects'][key].items():
+                    try:
+                        val=eval(val)
+                    except:pass      
+                    try:
+                        if attr in l_translates:
+                            mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].mNode, attr), self.__normalizeValue__(val,attr,("obj{0}".format(key))))
+                        else:
+                            mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].mNode, attr), val)
+
+                    except Exception,err:
+                        self.log_error(err) 
+
+            for key in d_pose['helperObjects']:
+                for attr, val in d_pose['helperObjects'][key].items():
+                    try:
+                        val=eval(val)
+                    except:pass      
+                    try:
+                        if ml_controlObjects[int(key)].getMessage('helper'):
+                            mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].getMessage('helper')[0], attr), val)
+                    except Exception,err:
+                        self.log_error("helperObjects '{0}' | {1}".format(attr,err))     
+                        
+            return True
+
+
+        def _get_poseDict(self):
+            mi_module = self._mi_module
+            kws = self.d_kws		
+            mi_templateNull = mi_module.templateNull   
+            
+            d_pose = {}
+            mi_templateNull = mi_module.templateNull
+            mi_templateNull.addAttr('controlObjectTemplatePose',attrType = 'string')#make sure attr exists
+            #>>> Get the root
+            d_pose['root'] = self.buildDict_AnimAttrsOfObject(mi_templateNull.getMessage('root')[0])
+            d_pose['orientRootHelper'] = self.buildDict_AnimAttrsOfObject(mi_templateNull.getMessage('orientRootHelper')[0])
+            d_pose['controlObjects'] = {}
+            d_pose['helperObjects'] = {}
+
+            for i,mi_node in enumerate(mi_templateNull.msgList_get('controlObjects')):
+                d_pose['controlObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.mNode)
+                if mi_node.getMessage('helper'):
+                    d_pose['helperObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.helper.mNode)
+
+            return d_pose    
+
+        def _resetPose(self):
+            mi_module = self._mi_module
+            mi_templateNull = mi_module.templateNull  
+            
+            d_pose = self._get_poseDict()
+        
+
+            #>>> Get the root
+            for key in ['root','orientRootHelper']:
+                try:
+                    if d_pose.get(key):
+                        for attr, val in d_pose[key].items():
+                            try:
+                                val=eval(val)
+                            except:pass 
+                            try:
+                                self._resetTransform_(mi_templateNull.getMessage(key)[0],attr)
+                            except Exception,err:
+                                self.log_error(err)   
+                    else:
+                        self.log_error("Missing data on {0}".format(key))
+                except Exception,error:raise Exception,"key fail : {0} | {1}".format(key,error)
+
+            ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
+            if not ml_controlObjects:
+                log.error("No control objects found")
+                return False
+
+            for key in d_pose['controlObjects'].keys():
+                for attr, val in d_pose['controlObjects'][key].items():
+                    try:
+                        val=eval(val)
+                    except:pass      
+
+                    try:
+                        self._resetTransform_(ml_controlObjects[int(key)].mNode,attr)
+                    except Exception,err:
+                        self.log_error(err) 
+
+            for key in d_pose['helperObjects']:
+                for attr, val in d_pose['helperObjects'][key].items():
+                    try:
+                        val=eval(val)
+                    except:pass      
+                    try:
+                        if ml_controlObjects[int(key)].getMessage('helper'):
+                            self._resetTransform_(ml_controlObjects[int(key)].getMessage('helper')[0],attr)			    
+                    except Exception,err:
+                        self.log_error("helperObjects '{0}' | {1}".format(attr,err))    
+            return True
+        
+        def __normalizeValue__(self,value,attr = 'no attr name',obj = 'obj'):
+                '''
+                New concept for normalizing our values to the differential between a stored curve length and a current one
+                '''
+                try:
+                    if self.f_crvLength_stored is not None:
+                        self.log_info("Found stored crv length. Processing...")
+                        # base/value | current/x
+                        # (value * current)/stored
+                        buffer = ((value * self.f_crvLength_current)/self.f_crvLength_stored)
+                        self.log_info("'{0}.{1}' ...".format(obj,attr))
+                        self.log_info("Math : ({0} * {1}) / {2} = {3}".format(value,self.f_crvLength_current,self.f_crvLength_stored,buffer))
+                        self.log_info("Old: {0} | New: {1}".format(value,buffer))		    
+                        return buffer
+    
+                    else:
+                        self.log_info("No stored crv length. Using value: {0}".format(value))
+                        return value
+    
+                except Exception,error:raise Exception,"[__normalizeValue__ | {0}]".format(error)
+
+    return fncWrap(*args,**kws).go()
+
 def poseStore_templateSettings(*args,**kws):
     class fncWrap(ModuleFunc):
         def __init__(self,*args,**kws):
@@ -1652,6 +1988,7 @@ def poseStore_templateSettings(*args,**kws):
         def __func__(self):
             """
             """
+            raise DeprecationWarning,"Removing {0}".format(self._str_funcName)
             try:#Query ========================================================
                 mi_module = self._mi_module
                 kws = self.d_kws		
@@ -1665,23 +2002,23 @@ def poseStore_templateSettings(*args,**kws):
                            'controlObjects':{0:[1,1,1]},
                            'helperObjects':{0:[]}}    
             try:
-                poseDict = {}
+                d_pose = {}
                 mi_templateNull = mi_module.templateNull
                 mi_templateNull.addAttr('controlObjectTemplatePose',attrType = 'string')#make sure attr exists
                 #>>> Get the root
-                poseDict['root'] = self.buildDict_AnimAttrsOfObject(mi_templateNull.getMessage('root')[0])
-                poseDict['orientRootHelper'] = self.buildDict_AnimAttrsOfObject(mi_templateNull.getMessage('orientRootHelper')[0])
-                poseDict['controlObjects'] = {}
-                poseDict['helperObjects'] = {}
+                d_pose['root'] = self.buildDict_AnimAttrsOfObject(mi_templateNull.getMessage('root')[0])
+                d_pose['orientRootHelper'] = self.buildDict_AnimAttrsOfObject(mi_templateNull.getMessage('orientRootHelper')[0])
+                d_pose['controlObjects'] = {}
+                d_pose['helperObjects'] = {}
 
                 for i,mi_node in enumerate(mi_templateNull.msgList_get('controlObjects')):
-                    poseDict['controlObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.mNode)
+                    d_pose['controlObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.mNode)
                     if mi_node.getMessage('helper'):
-                        poseDict['helperObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.helper.mNode)
+                        d_pose['helperObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.helper.mNode)
 
                 #Store it        
-                mi_templateNull.controlObjectTemplatePose = poseDict
-                return poseDict
+                mi_templateNull.controlObjectTemplatePose = d_pose
+                return d_pose
             except Exception,error:
                 if not mi_module.isTemplated():
                     raise StandardError,"Not templated"
@@ -1725,6 +2062,7 @@ def poseRead_templateSettings(*args,**kws):
         def __func__(self):
             """
             """
+            raise DeprecationWarning,"Removing {0}".format(self._str_funcName)            
             try:#Query ========================================================
                 mi_module = self._mi_module
                 kws = self.d_kws
@@ -1820,6 +2158,7 @@ def poseReset_templateSettings(*args,**kws):
         def __func__(self):
             """
             """
+            raise DeprecationWarning,"Removing {0}".format(self._str_funcName)            
             try:#Query ========================================================
                 mi_module = self._mi_module
                 kws = self.d_kws
@@ -1918,7 +2257,9 @@ def get_controls(*args,**kws):
             ml_controlObjects = []
             try:
                 if str_mode == 'template':
-                    if mi_module.moduleType not in __l_faceModules__:
+                    if  mi_module.getMessage('helper'):
+                        return mi_module.helper.get_controls(asMeta = self.d_kws['asMeta'])
+                    elif mi_module.moduleType not in __l_faceModules__:
                         l_controlAttrs = 'root','orientRootHelper'
                         for str_a in l_controlAttrs:
                             buffer = mi_templateNull.getMessageAsMeta(str_a)
@@ -1935,17 +2276,17 @@ def get_controls(*args,**kws):
                                 raise ValueError,"attr '{0}' failed | buffer: {1}".format(str_a,buffer)
                             ml_controlObjects.extend(buffer)	
 
-                            #Pivot check
-                            try:
-                                l_userAttrs = mi_templateNull.getAttrs(userDefined = True)
-                                for str_a in l_userAttrs:
-                                    #log.info("Checking user attr '{0}'".format(str_a))
-                                    if 'pivot_' in str_a:
-                                        buffer = mi_templateNull.getMessageAsMeta(str_a)
-                                        if not buffer:
-                                            raise ValueError,"attr '{0}' failed | buffer: {1}".format(str_a,buffer)
-                                        ml_controlObjects.append(buffer)
-                            except Exception,error: raise Exception,"Pivot check | error: {0}".format(error)
+                        #Pivot check
+                        try:
+                            l_userAttrs = mi_templateNull.getAttrs(userDefined = True)
+                            for str_a in l_userAttrs:
+                                if 'pivot_' in str_a:
+                                    buffer = mi_templateNull.getMessageAsMeta(str_a)
+                                    self.log_info("Pivot attr {0}: {1}".format(str_a,buffer))
+                                    if not buffer:
+                                        raise ValueError,"attr '{0}' failed | buffer: {1}".format(str_a,buffer)
+                                    else:ml_controlObjects.append(buffer)
+                        except Exception,error: raise Exception,"Pivot check | error: {0}".format(error)
                 elif str_mode == 'anim':
                     try:
                         #ml_controlObjects = mi_module.rigNull.moduleSet.getMetaList()

@@ -12,11 +12,12 @@ log.setLevel(logging.INFO)
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
 from Red9.core import Red9_AnimationUtils as r9Anim
+from Red9.core import Red9_CoreUtils as r9Core
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as cgmValid
-from cgm.lib import (search,attributes,lists)
+from cgm.lib import (search,attributes,lists,cgmMath)
 from cgm.core import cgm_General as cgmGeneral
 from cgm.lib.ml import ml_resetChannels
 
@@ -480,9 +481,19 @@ def getOrderedModules(*args,**kws):
 #=====================================================================================================
 #>>> Template functions
 #=====================================================================================================
-def templateSettings_do(*args,**kws):
+def templateSettings_call(*args,**kws):
     '''
-    Simple factory for template settings functions
+    Call for doing multiple functions with templateSettings.
+
+    :parameters:
+        mode | string
+            reset:reset controls
+            store:store data to modules
+            load:load data from modules
+            query:get current data
+            export:export to a pose file
+            import:import from a  pose file
+        filepath | string/None -- if None specified, user will be prompted
     '''
     class fncWrap(PuppetFunc):
         def __init__(self,*args,**kws):
@@ -490,44 +501,65 @@ def templateSettings_do(*args,**kws):
             """	
             super(fncWrap, self).__init__(*args,**kws)
             self._b_reportTimes = True
-            self._str_funcName = "puppet.templateSettings_do('{0}')".format(self._mi_puppet.cgmName)		    	    
+            self._str_funcName = "puppet.templateSettings_call('{0}')".format(self._mi_puppet.cgmName)		    	    
             self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
-                                         {'kw':'mode',"default":None,'help':"Special mode for this fuction","argType":"varied"}] 
+                                         {'kw':'mode',"default":None,'help':"Special mode for this fuction","argType":"varied"},
+                                         {'kw':'filepath',"default":None,'help':"File path","argType":"string"}] 
             self.__dataBind__(*args,**kws)
-            self._str_funcName = "puppet.templateSettings_do('{0}',mode = {1})".format(self._mi_puppet.cgmName,self.d_kws.get('mode',None))		    	    
+            self._str_funcName = "puppet.templateSettings_call('{0}',mode = {1})".format(self._mi_puppet.cgmName,self.d_kws.get('mode',None))		    	    
             self.__updateFuncStrings__()
 
         def __func__(self):
             """
             """
-            l_modes = 'reset','store','load'
+            l_modes = 'reset','store','load','query','export','import','update','markStarterData'
             str_mode = self.d_kws['mode']
             str_mode = cgmValid.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
+            
             if str_mode not in l_modes:
-                raise ValueError,"Mode : {0} not in list: {1}".format(str_mode,l_modes)
+                self.log_error("Mode : {0} not in list: {1}".format(str_mode,l_modes))
+                return False
             if str_mode is None:
                 self.log_error("Mode is None. Don't know what to do with this")
                 return False
+            
+            if str_mode in ['export','import']:
+                if str_mode == 'import':
+                    fileMode = 1
+                else:fileMode = 0
+                _filepath = cgmValid.filepath(self.d_kws.get('filepath'), fileMode = fileMode, fileFilter = 'Template Config file (*.pose)')
+                if not _filepath:
+                    self.log_error("Invalid filepath")
+                    return False
+                
+                l_nodes = get_controls(self._mi_puppet, mode = 'template',asMeta = False)
+                if not l_nodes:
+                    raise ValueError,"No controls found"   
+                
+                if str_mode == 'import':
+                    try: r9Anim.r9Pose.PoseData().poseLoad(l_nodes,_filepath,useFilter=False)#this useFilter flag 
+                    except Exception,error:"import failure | {0}".format(error)  
+                else:
+                    try: r9Anim.r9Pose.PoseData().poseSave(l_nodes,_filepath,useFilter=False,storeThumbnail = False)#this useFilter flag 
+                    except Exception,error:
+                        raise Exception,"export failure | {0}".format(error)            
+                return True
 
             ml_modules = getModules(self._mi_puppet)	    
             if not ml_modules:
                 self.log_warning("'%s' has no modules"%self.cgmName)
                 return False
-
+            
             int_lenModules = len(ml_modules)
             for i,mModule in enumerate(ml_modules):
                 try:
                     _str_module = mModule.p_nameShort
-                    d_modesToCalls = {'reset':mModule.poseReset_templateSettings,
-                                      'store':mModule.storeTemplatePose,
-                                      'load':mModule.loadTemplatePose,
-                                      }
                     self.progressBar_set(status = "{0} Module: '{1}' ".format(str_mode,_str_module),progress = i, maxValue = int_lenModules)	    		
-
-                    if not d_modesToCalls[str_mode](**kws):
+                    if not mModule._UTILS.templateSettings_call(mModule,str_mode):
                         self.log_error("{0} failed".format(mModule.p_nameShort))
                         return False
-                except Exception,error:raise Exception,"Module : '{0}' | Mode : {1} | error: {2}".format(mModule.p_nameShort,str_mode,error)
+                except Exception,error:
+                    raise Exception,"Module : '{0}' | Mode : {1} | error: {2}".format(mModule.p_nameShort,str_mode,error)
             return True
     return fncWrap(*args,**kws).go()
 
@@ -632,7 +664,7 @@ def mirrorSetup_verify(*args,**kws):
                                                 'Right':[]}
                     
                     for mi_module in ml_modulesToDo:
-                        #self.log_info("Sub on: {0}".format(mi_module.p_nameShort))	                        
+                        #self.log_info("Sub on: {0}".format(mi_module.p_nameShort))	
                         try:
                             try:md_buffer = self.md_data[mi_module.mNode]#...get the modules dict	
                             except Exception,error:raise Exception,"metaDict query | error: {0}".format(error)
@@ -648,8 +680,12 @@ def mirrorSetup_verify(*args,**kws):
                             for i,mObj in enumerate(md_buffer['ml_controls']):
                                 try:
                                     #make sure it's a control
-                                    mObj = cgmMeta.asMeta(mObj,'cgmControl')#,setClass = True
-                                    md_buffer[i] = mObj#...push back
+                                    #if not mObj.getMayaAttr('mClass') == 'cgmControl':
+                                        #self.log_warning("Not a control: '{0}'".format(mObj.p_nameShort))
+                                        #continue
+                                    if not issubclass(type(mObj), cgmMeta.cgmControl):
+                                        mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)#,setClass = True
+                                        md_buffer[i] = mObj#...push back
                                     
                                     #before doing anything...see if we have a mirrorSide value on this object already
                                     #str_mirrorSide_obj = False                                    
@@ -661,7 +697,12 @@ def mirrorSetup_verify(*args,**kws):
                                     try:mObj._verifyMirrorable()#...veryify the mirrorsetup
                                     except Exception,error:raise Exception,"_mirrorSetup | {0}".format(error)
                                     
-                                    _mirrorSideFromCGMDirection = cgmGeneral.verify_mirrorSideArg(mObj.getMayaAttr('cgmDirection'))
+                                    if self.str_mode == 'template':
+                                        if mObj.getMayaAttr('cgmType') in ['templateObject','templateOrientHelper','templateOrientRoot']:
+                                            mObj.mirrorAxis = 'translateX,translateZ,rotateZ'                                        
+                                    
+                                    
+                                    _mirrorSideFromCGMDirection = cgmGeneral.verify_mirrorSideArg(mObj.getNameDict().get('cgmDirection','centre'))
                                     _mirrorSideCurrent = cgmGeneral.verify_mirrorSideArg(mObj.getEnumValueString('mirrorSide'))
                                     #self.log_info("_mirrorSideFromCGMDirection: {0} ".format(_mirrorSideFromCGMDirection))
                                     #self.log_info("_mirrorSideCurrent: {0}".format(_mirrorSideCurrent))
@@ -686,19 +727,7 @@ def mirrorSetup_verify(*args,**kws):
                                        
                                     #append the control to our lists to process                                    
                                     md_culling_controlLists[mObj.getEnumValueString('mirrorSide')].append(mObj)
-                                        #mObj.mirrorIndex = int_idxRunning
-                                    #else:
-                                        #mObj.mirrorIndex = max(self.d_runningSideIdxes[str_mirrorSide_obj]) + 1
-                                    
-                                    #if not mObj.getMayaAttr('mirrorAxis'):
-                                        #mObj.mirrorAxis = 'translateX,rotateZ,rotateY'
-                                        #log.info("str_mirrorAxis set: %s"%('translateX,rotateZ,rotateY'))	
-                                        
-                                    #attributes.doSetAttr(mObj.mNode,'mirrorSide',l_enum.index(str_mirrorSide))
-                                    #attributes.doSetAttr(mObj.mNode,'mirrorIndex',int_idxRunning)
-                                    
-                                    #int_idxRunning += 1
-                                    #self.d_runningSideIdxes[str_mirrorSide].append(int_idxRunning)					
+				
                                 except Exception,error:raise Exception,"'{0}' fail | error: {1}".format(mObj.p_nameShort,error)
                                 
                         except Exception,error:raise Exception,"{0} fail | error: {1}".format(mi_module.p_nameShort,error)	
@@ -772,6 +801,7 @@ def mirrorSetup_verify(*args,**kws):
                                     self.d_runningSideIdxes['Right'].append(int_idxRun_right)
                                     _ml_left_cull.remove(mObj)
                                     _ml_right_cull.remove(_match[0])
+                                    mObj.connectChildNode(_match[0],'cgmMirrorMatch','cgmMirrorMatch')
                                     self.log_info("'{0}' idx:{1} <---Match--> '{2}' idx:{3}".format(mObj.p_nameShort,int_idxRun_left,_match[0].p_nameShort,int_idxRun_right))
                                 elif len(_match)>1:
                                     raise ValueError,"Too many matches! mObj:{0} | Matches:{1}".format(mObj.p_nameShort,[mObj2.p_nameShort for mObj2 in _match])
@@ -812,7 +842,7 @@ def poseStore_templateSettings(*args,**kws):
                 return False
 
             for i,mModule in enumerate(ml_modules):
-                if not mModule.storeTemplatePose(**kws):
+                if not mModule.templateSettings_call('store',*kws):
                     self.log_error("{0} failed".format(mModule.p_nameShort))
                     return False
             self.log_info("Template Pose Saved")
@@ -831,13 +861,14 @@ def poseLoad_templateSettings(*args,**kws):
         def __func__(self):
             """
             """
+            raise DeprecationWarning,"Removing {0}".format(self._str_funcName)                        
             ml_modules = getModules(self._mi_puppet)	    
             if not ml_modules:
                 self.log_warning("'%s' has no modules"%self.cgmName)
                 return False
 
             for i,mModule in enumerate(ml_modules):
-                if not mModule.loadTemplatePose(**kws):
+                if not mModule.templateSettings_call('load'):
                     self.log_error("{0} failed".format(mModule.p_nameShort))
                     return False
             self.log_info("Template Pose Loaded")
@@ -863,6 +894,8 @@ def template_saveConfig(*args,**kws):
         def __func__(self):
             """
             """
+            raise DeprecationWarning,"Removing {0}".format(self._str_funcName)            
+            
             str_path = self.d_kws['destination']
             
             if not isinstance(str_path, basestring):
@@ -900,6 +933,7 @@ def template_loadConfig(*args,**kws):
         def __func__(self):
             """
             """
+            raise DeprecationWarning,"Removing {0}".format(self._str_funcName)                        
             str_path = self.d_kws['filePath']
             
             if not isinstance(str_path, basestring):
@@ -918,6 +952,7 @@ def template_loadConfig(*args,**kws):
             except Exception,error:"poseLoad | {0}".format(error)                
 
     return fncWrap(*args,**kws).go()
+
 #=====================================================================================================
 #>>> Anim functions functions
 #=====================================================================================================
@@ -1075,7 +1110,7 @@ def get_controls(*args,**kws):
                     except Exception,error:
                         self.log_error("Module '{0}' | error: {1}".format(mModule.p_nameShort,error))	
             except Exception,error:raise Exception,"Gather controls | error: {0}".format(error)		
-
+            l_return = lists.returnListNoDuplicates(l_return)
             if not l_return:
                 return False
             '''
@@ -1311,11 +1346,74 @@ def mirror_do(*args,**kws):
                     r9Anim.MirrorHierarchy().makeSymmetrical(l_controls,mode = '',primeAxis = "Right" )
                 else:
                     raise StandardError,"Don't know what to do with this mode: {0}".format(self.str_mirrorMode)
+                
+                if self.str_mode == 'template':#after that pass, we'll do our template xform pass
+                    self.log_info("Template mirror mode!")
+                    if _str_mrrMd == 'symLeft':
+                        _lookingFor = 1
+                    else:
+                        _lookingFor = 2#right
+                    for mObj in ml_controls:
+                        if mObj.mirrorSide == _lookingFor:
+                            dag_match = mObj.getMessage('cgmMirrorMatch')
+                            if not dag_match:
+                                self.log_error("Failed to find cgmMirrorMatch for: {0}".format(mObj.p_nameShort))
+                                continue
+                            _xDat = mc.xform(mObj.mNode,q = True, ws= True, t = True)
+                            _xDat = cgmMath.multiplyLists([_xDat,[-1,1,1]])
+                            mc.xform(dag_match, ws=True, t = _xDat)
+
+                
                 #mc.select(l_controls)
                 if self._l_callSelection:mc.select(self._l_callSelection)                
                 return True
+            
             if self._l_callSelection:mc.select(self._l_callSelection)            
-            return False	    
+            return False
+        
+        def templateMirror(self, nodes = None, mode = None, primeAxis = None):
+            self.log_info("templateMirror Mode!")
+            mi_mirror = r9Anim.MirrorHierarchy()#...get our instantiation
+            
+            mi_mirror.getMirrorSets(nodes)
+                
+            if not mi_mirror.indexednodes:
+                raise IOError('No nodes mirrorIndexed nodes found from given / selected nodes')
+            
+            if mode == 'Anim':
+                transferCall = mi_mirror.transferCallKeys  # AnimFunctions().copyKeys
+                inverseCall = r9Anim.AnimFunctions.inverseAnimChannels
+                mi_mirror.mergeLayers=True
+            else:
+                transferCall = mi_mirror.transferCallAttrs  # AnimFunctions().copyAttributes
+                inverseCall = r9Anim.AnimFunctions.inverseAttributes
+                mi_mirror.mergeLayers=False
+                
+            if primeAxis == 'Left':
+                masterAxis = 'Left'
+                slaveAxis = 'Right'
+            else:
+                masterAxis = 'Right'
+                slaveAxis = 'Left'
+                
+            with r9Anim.AnimationLayerContext(mi_mirror.indexednodes, mergeLayers=mi_mirror.mergeLayers, restoreOnExit=False):
+                for index, masterSide in mi_mirror.mirrorDict[masterAxis].items():
+                    log.info("{0} | {1}".format(index, masterSide))
+                    if not index in mi_mirror.mirrorDict[slaveAxis].keys():
+                        log.warning('No matching Index Key found for %s mirrorIndex : %s >> %s' % \
+                                    (masterAxis, index, r9Core.nodeNameStrip(masterSide['node'])))
+                    else:
+                        slaveData = mi_mirror.mirrorDict[slaveAxis][index]
+                        log.debug('SymmetricalPairs : %s >> %s' % (r9Core.nodeNameStrip(masterSide['node']), \
+                                             r9Core.nodeNameStrip(slaveData['node'])))
+                        transferCall([masterSide['node'], slaveData['node']], **mi_mirror.kws)
+                        
+                        log.debug('Symmetrical Axis Inversion: %s' % ','.join(slaveData['axis']))
+                        if slaveData['axis']:
+                            inverseCall(slaveData['node'], slaveData['axis'])
+                            
+            #For the master side, get the xform translate data, flip it, push it back
+            
 
     return fncWrap(*args,**kws).go()
 

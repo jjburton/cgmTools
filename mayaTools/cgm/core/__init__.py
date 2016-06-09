@@ -31,7 +31,6 @@ import rigger.PuppetFactory
 import rigger.RigFactory
 import rigger.ModuleShapeCaster
 import rigger.ModuleControlFactory
-
 import classes.DraggerContextFactory
 import classes.SnapFactory
 import lib.rayCaster

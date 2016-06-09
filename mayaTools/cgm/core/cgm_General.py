@@ -652,11 +652,11 @@ class cgmFuncCls(object):
 		    except:str_key = k
 		    buffer = arg[k]
 		    if isinstance(buffer,dict):
-			self.log_info('%s '%self._str_funcCombined + ">" + " Nested Dict: '{0}' ".format(str_key) + _str_subLine)
+			self.log_info(" Nested Dict: '{0}' ".format(str_key) + _str_subLine)
 			l_bufferKeys = buffer.keys()
 			l_bufferKeys.sort()
 			for k2 in l_bufferKeys:
-			    self.log_info("-"*2 +'>' + " '{0}' : {1} ".format(k2,buffer[k2]))			
+			    self.log_info("-"*3 +'>' + " '{0}' : {1} ".format(k2,buffer[k2]))			
 		    else:
 			self.log_info(">" + " '{0}' : {1} ".format(str_key,arg[k]))		    
 	    except Exception,error:
