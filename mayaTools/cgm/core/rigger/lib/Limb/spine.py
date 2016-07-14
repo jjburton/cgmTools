@@ -101,7 +101,7 @@ def __bindSkeletonSetup__(self):
                 #ml_handleJoints.append(i_jnt)		
                 if i_jnt.cgmName in ['sternum','pelvis']:
                     i_jnt.parent = ml_moduleJoints[0].mNode#Parent sternum to root
-                    i_dupJnt = i_jnt.doDuplicate()#Duplicate
+                    i_dupJnt = i_jnt.doDuplicate(parentOnly = True)#Duplicate
                     i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
                     i_jnt.doName()#Rename
                     i_dupJnt.doName()#Rename
@@ -587,7 +587,6 @@ def build_deformation(*args, **kws):
                 cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
                 cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
             except Exception,error:raise Exception,"Attribute connections fail! | error : {0}".format(error)  
-
             return True	    
 
     return fncWrap(*args, **kws).go()

@@ -94,7 +94,7 @@ def build_rigSkeleton(goInstance = None):
             go = self.d_kws['goInstance']
             ml_rigJoints = []
             for i,j in enumerate(self._go._ml_skinJoints):
-                i_j = j.doDuplicate()
+                i_j = j.doDuplicate(parentOnly = True)
                 i_j.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
                 i_j.doName()
                 ml_rigJoints.append(i_j)

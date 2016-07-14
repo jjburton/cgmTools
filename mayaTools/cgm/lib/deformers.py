@@ -699,7 +699,7 @@ def proximityWrapObject(targetObject, sourceObject, duplicateObject = False,
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Blendshape Baking
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes,
+def bakeBlendShapeNodesToTargetObject(targetObject = None,sourceObject = None, blendShapeNodes= None,
                                       baseNameToUse = False, stripPrefix = False,
                                       ignoreInbetweens = False, ignoreTargets = False,
                                       cullNoChangeGeo = True, tolerance = .002,
@@ -707,7 +707,7 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
                                       polySmoothness = 0,
                                       transferConnections = True):
     """
-    Update 04.21.2016
+    Update 07.14.2016
     DESCRIPTION:
     Function for baking a series of blendshapes from one object to another
 
@@ -738,6 +738,23 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     RETURNS:
     Success(bool)
     """
+    _wrapMethods = ['wrap','influence wrap','proximity wrap']
+    if cgmVALID.stringArg(wrapMethod):
+	if wrapMethod not in _wrapMethods:
+	    raise ValueError,"{0} not in wrapMethods: {1}".format(wrapMethod,_wrapMethods)
+	_wrapMethod = _wrapMethods.index(wrapMethod)
+    elif wrapMethod > len(_wrapMethods):
+	raise ValueError,"{0} not valid value for wrapMethod. Greater than length of possible values: {1}".format(wrapMethod,_wrapMethods)
+    else:
+	_wrapMethod = wrapMethod
+		
+    if targetObject is None:
+	raise ValueError,"'targetObject' cannot be None"
+    elif sourceObject is None:	
+	raise ValueError,"'sourceObject' cannot be None"
+    elif blendShapeNodes is None:   
+	raise ValueError,"'blendShapeNodes' cannot be None"
+	
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Prep
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -762,13 +779,13 @@ def bakeBlendShapeNodesToTargetObject(targetObject,sourceObject, blendShapeNodes
     attributes.doSetLockHideKeyableAttr(targetObject, lock = False, visible = True, keyable=True)#...make sure our target geo can be wrapped
     
     l_delete = []
-    if wrapMethod is 0:
+    if _wrapMethod is 0:
 	wrapBuffer = wrapDeformObject(targetObject,sourceObject,True)
 	l_delete = [wrapBuffer[0]]
-    elif wrapMethod is 1:
+    elif _wrapMethod is 1:
 	wrapBuffer = influenceWrapObject(targetObject,sourceObject,True,polySmoothness)
 	l_delete = [wrapBuffer[0],wrapBuffer[2]]
-    elif wrapMethod is 2:
+    elif _wrapMethod is 2:
 	wrapBuffer = proximityWrapObject(targetObject, sourceObject, 
 	                                 True, proximityMode, expandBy,expandAmount)
 	l_delete = [wrapBuffer[0], wrapBuffer[2], wrapBuffer[3]]
@@ -1441,7 +1458,7 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
     # Make the blendshape node
     try:blendShapeNode = mc.blendShape(baseTargets,targetObject, n = blendShapeNodeName)
     except Exception,error:
-	raise Exception,"blendshape build fail | name: {0} | targetObject: {1} | error: {2}".format(blendShapeNodeName,targetobj,error)
+	raise Exception,"blendshape build fail | name: {0} | targetObject: {1} | error: {2}".format(blendShapeNodeName,targetObject,error)
     if inbetweenTargets:
 	blendShapeChannels = returnBlendShapeAttributes(blendShapeNode[0])	
 	# Handle the inbetweens
@@ -1452,7 +1469,7 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
 	    targetValue = float(objAttrs.get('cgmBlendShapeInbetweenWeight'))
 	    bsIndice = blendShapeChannels.index(targetParent)
     
-	    mc.blendShape(blendShapeNode[0], edit = True, ib = True , target = [targetobj,bsIndice,obj,targetValue])
+	    mc.blendShape(blendShapeNode[0], edit = True, ib = True , target = [targetObject,bsIndice,obj,targetValue])
 
     return blendShapeNode[0]
 

@@ -133,7 +133,10 @@ def go(*args, **kws):
                     self.log_info("Template update...")		    
                     if self.d_kws['loadTemplatePose']:
                         self.log_info("Trying loadTemplatePose...")                                    
-                        self._mi_module.templateSettings_call('load')               
+                        try:self._mi_module.templateSettings_call('load')
+                        except Exception,err:
+                            self.log_error("Load pose fail: {0}".format(err))
+                            return False
                     return self._SuccessReturn_()
 
             if self._mi_module.isTemplated():
@@ -263,7 +266,7 @@ def store_baseLength(mModule):
     """
     If a module needs pivots and has them, returns them. Checks if a module has necessary pivots.
     """
-    _str_funcName = "store_curveLength"
+    _str_funcName = "{0}.store_curveLength".format(mModule.p_nameShort)
     try:
         mi_templateNull = mModule.templateNull
         ml_controlObjects = mi_templateNull.msgList_get('controlObjects')

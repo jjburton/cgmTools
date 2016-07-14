@@ -489,25 +489,37 @@ def applySkin(*args,**kws):
                 _subL = []
                 
                 _bfr_raw = _raw_componentWeights[_str_i]
+                
                 _bfr_toNormalize = []
                 _bfr_clean = {}
+                _d_normalized = {}
                 for k,value in _bfr_raw.iteritems():
                     _bfr_clean[int(k)] = float(value)
+                    _d_normalized[int(k)] = None
                     
                 #normalize the values...
                 for k,value in _bfr_clean.iteritems():
                     _bfr_toNormalize.append(value)
+                    
                 _bfr_normalized = cgmMath.normSumList(_bfr_toNormalize,1.0)
+                #self.log_info("To Normalize: {0}".format(_bfr_toNormalize))                
+                #self.log_info("Normalized: {0}".format(_bfr_normalized))
+                #self.log_info("{0} pre sum: {1}".format(i,sum(_bfr_toNormalize)))                
+                #self.log_info("{0} sum: {1}".format(i,sum(_bfr_normalized)))
                 
-                for ii,k in enumerate(_bfr_clean.keys()):
-                    _bfr_clean[k] = _bfr_normalized[ii]
+                for ii,k in enumerate(_d_normalized.keys()):
+                    _d_normalized[k] = _bfr_normalized[ii]
+                #self.log_info("clean: {0}".format(_bfr_clean))                
+                #self.log_info("norm:  {0}".format(_d_normalized))                
                     
                 if not cgmMath.isFloatEquivalent(1.0, sum(_bfr_normalized) ):
                     self.log_info("vert {0} not normalized".format(i))
                 #self.log_info("vert {0} base: {1}".format(i,_bfr_toNormalize))
                 #self.log_info("vert {0} norm: {1}".format(i,_bfr_normalized))
-                _l_cleanData.append(_bfr_clean)
+                _l_cleanData.append(_d_normalized)
+                #if i == 3:return self._FailBreak_("stop")
             self._l_processed = _l_cleanData#...initial push data
+            
             
             #...nameMatch ------------------------------------------------------------------------
             if self._b_nameMatch:
@@ -518,8 +530,10 @@ def applySkin(*args,**kws):
                 for n in _l_jointsToUseBaseNames:#...see if all our names are there
                     if not n in _l_configInfluenceList:
                         #return self._FailBreak_
-                        self.log_warning("nameMatch... joint '{0}' from joints to use list not in config list".format(n))              
-                        return False
+                        self.log_warning("nameMatch... joint '{0}' from joints to use list not in config list".format(n))                        
+                        #self._FailBreak_("nameMatch... joint '{0}' from joints to use list not in config list".format(n))              
+                        #return False
+                        #return False
                     
                 _d_rewire = {}       
                 
@@ -603,6 +617,49 @@ def applySkin(*args,**kws):
             #self._d_vertToWeighting = {vIdx:{jIdx:v...}} 
             if not self.l_jointsToUse:raise ValueError,"No joints to use found"
             
+            #...normalize data
+            _l_cleanData = []
+            #{{index:value, index:value}}
+            
+            for i,_bfr_raw in enumerate(self._l_processed):#...for each vert
+                _bfr_toNormalize = []
+                _bfr_clean = {}
+                _d_normalized = {}
+                
+                for k,value in _bfr_raw.iteritems():
+                    _bfr_clean[int(k)] = float(value)
+                    _d_normalized[int(k)] = float(value)
+                    
+                #normalize the values...
+                for k,value in _bfr_clean.iteritems():
+                    _bfr_toNormalize.append(value)
+                    
+                _bfr_normalized = cgmMath.normSumList(_bfr_toNormalize,1.0)
+                #self.log_info("To Normalize: {0}".format(_bfr_toNormalize))                
+                #self.log_info("Normalized: {0}".format(_bfr_normalized))
+                #self.log_info("{0} pre sum: {1}".format(i,sum(_bfr_toNormalize)))                
+                #self.log_info("{0} sum: {1}".format(i,sum(_bfr_normalized)))
+                
+                """
+                if _bfr_normalized != _bfr_toNormalize:
+                    self.log_info("{0} normalized".format(i))
+                    self.log_info("{0} toNorm: {1}".format(i,_bfr_toNormalize))                
+                    self.log_info("{0} norm:  {1}".format(i,_bfr_normalized)) """
+                    
+                for ii,k in enumerate(_d_normalized.keys()):
+                    _d_normalized[k] = _bfr_normalized[ii]
+                #self.log_info("{0} clean: {1}".format(i,_bfr_clean))                
+                #self.log_info("{0} norm:  {1}".format(i,_d_normalized))                
+                    
+                if not cgmMath.isFloatEquivalent(1.0, sum(_bfr_normalized) ):
+                    self.log_info("vert {0} not normalized".format(i))
+                #self.log_info("vert {0} base: {1}".format(i,_bfr_toNormalize))
+                #self.log_info("vert {0} norm: {1}".format(i,_bfr_normalized))
+                _l_cleanData.append(_d_normalized)
+                #if i == 3:return self._FailBreak_("stop")
+            self._l_processed = _l_cleanData#...initial push data  
+            
+            #            
             for i in range(len(self.l_jointsToUse)):
                 self._d_jointToWeighting[i] = {}
             

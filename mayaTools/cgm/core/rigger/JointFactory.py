@@ -334,7 +334,7 @@ def doSkeletonizeEyeball(self):
             joints.doCopyJointOrient(ml_moduleJoints[0].mNode,[jnt.mNode for jnt in ml_moduleJoints[1:]])
 
         try:#Create eye orb joint
-            i_dupJnt = ml_moduleJoints[0].doDuplicate()#Duplicate
+            i_dupJnt = ml_moduleJoints[0].doDuplicate(parentOnly = True)#Duplicate
             i_dupJnt.addAttr('cgmName','eyeOrb')#Tag
             ml_moduleJoints[0].parent = i_dupJnt#Parent
             ml_moduleJoints.insert(0,i_dupJnt)

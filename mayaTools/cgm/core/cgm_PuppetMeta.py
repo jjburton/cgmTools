@@ -2814,7 +2814,7 @@ class cgmEyeballBlock(cgmRigBlock):
         try:
             try:#Mirror Block =====================================================================
                 if not self.getMessage('blockMirror'):
-                    mi_dup = self.doDuplicate(False)
+                    mi_dup = self.doDuplicate(po = False)
                     l_pivot = mc.xform(self.mNode,q=True, sp = True,ws=True)
                     self.connectChildNode(mi_dup,"blockMirror","blockMirror")
                     attributes.doBreakConnection(mi_dup.mNode,'moduleTarget')

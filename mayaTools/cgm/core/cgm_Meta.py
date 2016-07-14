@@ -1758,7 +1758,7 @@ class cgmNode(r9Meta.MetaClass):
 	    return i_loc
 	except Exception,error:raise Exception,"[%s.doLoc]{%s}"%(self.p_nameShort,error)
     
-    def doDuplicate(self, breakMessagePlugsOut = False,**kws):
+    def doDuplicate(self, **kws):
         """
         Return a duplicated object instance
 
@@ -1769,8 +1769,13 @@ class cgmNode(r9Meta.MetaClass):
 	try:
 	    if self.isComponent():
 		log.warning("doDuplicate fail. Cannot duplicate components")
-		raise StandardError,"doDuplicate fail. Cannot duplicate component: '%s'"%self.getShortName()
+		raise ValueError,"doDuplicate fail. Cannot duplicate component: '%s'"%self.getShortName()
 	    
+	    breakMessagePlugsOut = kws.pop('breakMessagePlugsOut',False) 
+	    _keys = kws.keys()
+	    if 'po' not in _keys and 'parentOnly' not in _keys:
+		kws['parentOnly'] = True
+		
 	    buffer = mc.duplicate(self.mNode,**kws)[0]
 	    #log.debug("doDuplicate>> buffer: %s"%buffer)
 	    i_obj = validateObjArg(buffer)
@@ -2174,7 +2179,7 @@ class cgmObject(cgmNode):
 		i_obj.doName()
 	    elif i_obj.hasAttr('cgmName'):
 		i_obj.doRemove('cgmName')
-		mc.rename(i_obj.mNode, self.getShortName()+'_Transform')
+		mc.rename(i_obj.mNode, self.p_nameBase+'_Transform')
 	    return i_obj
 	except StandardError,error:
 	    log.error("doDuplicateTransform fail! | %s"%error) 

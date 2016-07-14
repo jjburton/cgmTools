@@ -255,7 +255,7 @@ def build_rigSkeleton(*args, **kws):
                 mi_go._i_rigNull.connectChildNode(i_ballJointPivot,"pivot_ballJoint","rigNull")
 
                 #Ball wiggle pivot
-                i_ballWigglePivot = i_ballJointPivot.doDuplicate(True,)#dup ball in place
+                i_ballWigglePivot = i_ballJointPivot.doDuplicate(po = True)#dup ball in place
                 i_ballWigglePivot.parent = False
                 i_ballWigglePivot.cgmName = 'ballWiggle'
                 i_ballWigglePivot.doName()

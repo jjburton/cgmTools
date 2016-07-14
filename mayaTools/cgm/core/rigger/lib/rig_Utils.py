@@ -666,7 +666,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
     try:#Create Constraint  Curve =============================================================================
         #Spline -----------------------------------------------------------------
         if i_segmentCurve:#If we have a curve, duplicate it
-            i_constraintSplineCurve = i_segmentCurve.doDuplicate(False,False)
+            i_constraintSplineCurve = i_segmentCurve.doDuplicate(po = False, ic = False)
         else:
             l_pos = [i_baseParent.getPosition()]
             l_pos.expand([i_obj.getPosition() for i_obj in ml_newJoints])
@@ -1146,7 +1146,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
         #Spline
         #====================================================================	
         if i_segmentCurve:#If we have a curve, duplicate it
-            i_constraintSplineCurve = i_segmentCurve.doDuplicate(False,False)
+            i_constraintSplineCurve = i_segmentCurve.doDuplicate(po=False,ic=False)
         else:
             l_pos = [i_baseParent.getPosition()]
             l_pos.expand([i_obj.getPosition() for i_obj in ml_newJoints])
@@ -1882,7 +1882,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
             raise NotImplementedError,"createCGMSegment>>Haven't implemented having more than one mid influence object in a single chain yet!"
         if ml_midObjects:
             #Create a dup constraint curve
-            i_constraintCurve = mi_segmentCurve.doDuplicate(True)
+            i_constraintCurve = mi_segmentCurve.doDuplicate(po = True)
             i_constraintCurve.addAttr('cgmTypeModifier','constraint')
 
             #Skin it

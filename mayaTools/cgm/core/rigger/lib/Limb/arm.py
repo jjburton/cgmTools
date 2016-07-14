@@ -96,7 +96,7 @@ def __bindSkeletonSetup__(self):
             ml_skinJoints.append(i_jnt)		
             if i_jnt in ml_handleJoints and i_jnt.getAttr('cgmName') not in ['ball']:
                 if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
-                i_dupJnt = i_jnt.doDuplicate()#Duplicate
+                i_dupJnt = i_jnt.doDuplicate(parentOnly = True)#Duplicate
                 i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
                 i_jnt.doName()#Rename
                 i_dupJnt.doName()#Rename

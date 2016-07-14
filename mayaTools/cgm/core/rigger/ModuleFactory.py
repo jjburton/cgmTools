@@ -22,7 +22,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.rigger import JointFactory as jFactory
 from cgm.core.rigger import RigFactory as mRig
-from cgm.lib import (modules,curves,distance,attributes,search,constraints,lists)
+from cgm.lib import (modules,curves,distance,cgmMath,attributes,search,constraints,lists)
 from cgm.lib.ml import ml_resetChannels
 
 from cgm.core.lib import (nameTools)
@@ -1674,15 +1674,19 @@ def templateSettings_call(*args,**kws):
                 mc.setAttr(obj+'.'+attr, default)
             except Exception,error:
                 mc.setAttr(obj+'.'+attr, 0)	         
-
+                
         def __func__(self):
             """
             """
             #>> Initial
             mi_module = self._mi_module
             kws = self.d_kws		
-            mi_templateNull = mi_module.templateNull   
+            mi_templateNull = mi_module.templateNull 
             
+            if not mi_module.isTemplated():
+                self.log_info("Not templated. Cannot call.")
+                return False
+                        
             _mode = kws.get('mode',None)
             if _mode not in _l_modes:
                 self.log_error("Mode : {0} not in list: {1}".format(str_mode,_l_modes))
@@ -1691,27 +1695,30 @@ def templateSettings_call(*args,**kws):
                 raise ValueError,"{1} Must have a mode | {0}".format(_l_modes,self._str_funcName)
             self.log_debug("mode: '{0}'".format(_mode))
             #---------------------------------------------------------------------------------------    
-            
+            if mi_module.getMessage('helper'):
+                self.log_debug("Cannot currently store pose with rigBlocks")
+                return True               
             #if _mode in ['load','update']:
             try:#>>> We need to setup our value normalizer value
                 #self.log_info("Distance between : {0} and {1}".format(ml_controlObjects[0].getParent(asMeta = 1).p_nameShort,ml_controlObjects[-1].getParent(asMeta = 1).p_nameShort))
                 #self.f_crvLength_current = distance.returnDistanceBetweenPoints(ml_controlObjects[0].getParent(asMeta = 1).getPosition(),ml_controlObjects[-1].getParent(asMeta = 1).getPosition())		
                 #self.f_crvLength_stored =  mi_templateNull.getAttr('moduleBaseLength') or None
                 self.f_crvLength_stored =  mi_templateNull.getAttr('curveBaseLength') or None
+                self.f_crvLength_current = distance.returnCurveLength(mi_templateNull.getMessage('curve')[0]) 
                 #...we'll get the current values after initial reset
             except Exception,error:raise Exception,"[Validate normalize data | {0}]".format(error)                
             
-            #Build our pose dict...
-            if mi_module.getMessage('helper'):
-                self.log_debug("Cannot currently store pose with rigBlocks")
-                return True            
-
+            #Build our pose dict...        
             if _mode in ['query','store']:
                 d_pose = self._get_poseDict()
+                l_offsets = self._get_offsetData()
                 if _mode == 'query':
                     self.log_infoDict(d_pose,"Pose Dict")
+                    for i,d in enumerate(l_offsets):
+                        self.log_debug("{0} offset: {1}".format(i,d))
                 if _mode == 'store':
                     mi_templateNull.controlObjectTemplatePose = d_pose
+                    mi_templateNull.doStore('offsetsData',str(l_offsets))
                 return d_pose
             elif _mode == 'markStarterData':
                 return self._markStarterData()
@@ -1742,11 +1749,13 @@ def templateSettings_call(*args,**kws):
             for i,mObj in enumerate(ml_controlObjects):
                 _locs.append(mc.spaceLocator(p=l_storedPosList[i], n = "{0}_basePos".format(mObj.p_nameBase))[0])
 
-            return _locs           
+            return _locs  
+        
         def _updatePose(self):
             """
             1) Reset roots to start data
             2) Get normalized values from the change
+            3) Push back the offsets
             """
             try:#Query ========================================================
                 mi_module = self._mi_module
@@ -1757,48 +1766,124 @@ def templateSettings_call(*args,**kws):
                     log.error("No control objects found")
                     return False	
                 l_storedPosList = mi_templateNull.templateStarterData
+                mi_root = mi_templateNull.root
 
             except Exception,err:raise Exception,"[Query]{0}".format(err)
             
             if self.d_kws.get('saveTemplatePose'):
                 d_pose = self._get_poseDict()
                 mi_templateNull.controlObjectTemplatePose = d_pose
+                
+            
+            try:#Our first pass of positioning
+                mc.xform(mi_root.parent, translation = l_storedPosList[0],worldSpace = True)
+                mi_root.resetAttrs()
+    
+                try:#Initial positioning...
+                    for i,i_obj in enumerate(ml_controlObjects):
+                        try:
+                            #self.log_debug("On {0}...".format(i_obj.p_nameShort))
+                            '''try:
+                                if i_obj.parent:
+                                    objConstraints = constraints.returnObjectConstraints(i_obj.parent)
+                                    if objConstraints:mc.delete(objConstraints) 
+                            except Exception,error:raise Exception,"Constraints clear fail | {0}".format(error)'''
+    
+                            try:mc.xform(i_obj.parent, translation = l_storedPosList[i],worldSpace = True)
+                            except Exception,err:raise Exception,"final Move fail | {0}".format(err)
+                            
+                            i_obj.resetAttrs()
+    
+                        except Exception,err:
+                            self.log_error("current obj : {0}".format(i_obj))
+                            self.log_error("current parent : {0}".format(i_obj.parent))			
+                            self.log_error("ml_controlObjects: {0}".format(ml_controlObjects))
+                            raise Exception,"obj {0} fail | {1}".format(i,err)
+    
+                except Exception,error:raise Exception,"objects move fail | {0}".format(error)
+            except Exception,error:raise Exception,"First pass | {0}".format(error)
 
-            corePosList = mi_templateNull.templateStarterData
-            mi_root = mi_templateNull.root
-
-            mc.xform(mi_root.parent, translation = corePosList[0],worldSpace = True)
-            mi_root.resetAttrs()
-
-            try:#Reset each control
+            self._resetPose()#...reset our pose first of all
+            self.f_crvLength_current = distance.returnCurveLength(mi_templateNull.getMessage('curve')[0])              
+            
+            try:#Get our new starter data
+                try:
+                    l_newPosList = []
+                    l_offsets = mi_templateNull.offsetsData
+                    for i,pos in enumerate(l_storedPosList):
+                        __normalized = [self.__normalizeValue__(v) for v in l_offsets[i]]
+                        l_newPosList.append(cgmMath.list_subtract(pos,__normalized))
+                        
+                except Exception,err:raise Exception,"Data conversion | {0}".format(err)    
+                
+                mc.xform(mi_root.parent, translation = l_newPosList[0] ,worldSpace = True)
+                
                 for i,i_obj in enumerate(ml_controlObjects):
                     try:
-                        #self.log_debug("On {0}...".format(i_obj.p_nameShort))
-                        '''try:
-                            if i_obj.parent:
-                                objConstraints = constraints.returnObjectConstraints(i_obj.parent)
-                                if objConstraints:mc.delete(objConstraints) 
-                        except Exception,error:raise Exception,"Constraints clear fail | {0}".format(error)'''
+                        #self.log_info("On {0}...".format(i_obj.p_nameShort))
 
-                        try:mc.xform(i_obj.parent, translation = corePosList[i],worldSpace = True)
-                        except Exception,err:raise Exception,"final Move fail | {0}".format(err)
+                        try:mc.xform(i_obj.parent, translation = l_newPosList[i],worldSpace = True)
+                        except Exception,err:raise Exception,"Initial fail | {0}".format(err)
                         
                         i_obj.resetAttrs()
+    
+                    except Exception,err:
+                        raise Exception,"obj {0} fail | {1}".format(i,err)                    
+                    
+            except Exception,err:raise Exception,"New starter data | {0}".format(err)    
+            
+            #...this shouldn't happen now tFactory.store_baseLength(mi_module)#Store our base length before we move stuff around
+            #self._loadPose()#...this doesn't work because of order of operations
+
+            #>>> Get the root
+            l_translates = ['translateX','translateY','translateZ']#Flag our
+            for key in ['orientRootHelper']:
+                try:
+                    if d_pose.get(key):
+                        for attr, val in d_pose[key].items():
+                            #Don't think we need  to do this anymore...
+                            """try:
+                                val=eval(val)
+                            except Exception,err:
+                                self.log_error("{0} failed to eval | {1}".format(val,err))
+                                pass """
+                            try:
+                                if attr not in l_translates:
+                                    #mc.setAttr('%s.%s' % (mi_templateNull.getMessage(key)[0],attr), self.__normalizeValue__(val,attr,key))
+                                #else:
+                                    mc.setAttr('%s.%s' % (mi_templateNull.getMessage(key)[0],attr), val)
+                            except Exception,err:
+                                self.log_error(err)   
+                except Exception,error:raise Exception,"key fail : {0} | {1}".format(key,error)
+
+            for key in d_pose['controlObjects']:
+                for attr, val in d_pose['controlObjects'][key].items():
+                    try:
+                        val=eval(val)
+                    except:pass      
+                    try:
+                        if attr not in l_translates:
+                            #mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].mNode, attr), self.__normalizeValue__(val,attr,("obj{0}".format(key))))
+                        #else:
+                            mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].mNode, attr), val)
 
                     except Exception,err:
-                        self.log_error("current obj : {0}".format(i_obj))
-                        self.log_error("current parent : {0}".format(i_obj.parent))			
-                        self.log_error("ml_controlObjects: {0}".format(ml_controlObjects))
-                        raise Exception,"obj {0} fail | {1}".format(i,err)
+                        self.log_error(err) 
 
-            except Exception,error:raise Exception,"objects move fail | {0}".format(error)
-
-            tFactory.doCastPivots(mi_module)
-            
-            self.f_crvLength_current = distance.returnCurveLength(mi_templateNull.getMessage('curve')[0])           
-            
-            #tFactory.store_curveLength(mi_module)#Store our base length before we move stuff around
-            return self._loadPose()	    
+            for key in d_pose['helperObjects']:
+                for attr, val in d_pose['helperObjects'][key].items():
+                    try:
+                        val=eval(val)
+                    except:pass      
+                    try:
+                        if ml_controlObjects[int(key)].getMessage('helper'):
+                            mc.setAttr('%s.%s' % (ml_controlObjects[int(key)].getMessage('helper')[0], attr), val)
+                    except Exception,err:
+                        self.log_error("helperObjects '{0}' | {1}".format(attr,err))     
+                        
+            tFactory.doCastPivots(mi_module)#...cast our pivots 
+            tFactory.store_baseLength(mi_module)#Store our base length before we move stuff around
+            return True            
         
         def _loadPose(self):
             try:#Query ========================================================
@@ -1816,7 +1901,8 @@ def templateSettings_call(*args,**kws):
             if type(d_pose) is not dict:
                 self.log_error("Pose dict is not a dict: {0}".format(d_pose))
                 return False
-
+            
+            self.f_crvLength_current = distance.returnCurveLength(mi_templateNull.getMessage('curve')[0])           
             self._resetPose()#...reset our pose first of all
 
             #>>> Get the root
@@ -1887,8 +1973,43 @@ def templateSettings_call(*args,**kws):
                 if mi_node.getMessage('helper'):
                     d_pose['helperObjects'][str(i)] = self.buildDict_AnimAttrsOfObject(mi_node.helper.mNode)
 
-            return d_pose    
+            return d_pose   
+        
+        def _get_offsetData(self):
+            """
+            """
+            try:#Query ========================================================
+                mi_module = self._mi_module
+                mi_templateNull = mi_module.templateNull                   
+                ml_controlObjects = mi_templateNull.msgList_get('controlObjects')
+                if not ml_controlObjects:
+                    log.error("No control objects found")
+                    return False	
+                l_storedPosList = mi_templateNull.templateStarterData
 
+            except Exception,err:raise Exception,"[Query]{0}".format(err)
+            
+            l_offsets = []
+
+            for i,i_obj in enumerate(ml_controlObjects):
+                try:
+                    self.log_info("On {0}...".format(i_obj.p_nameShort))
+                    try:
+                        #mc.xform(i_obj.parent, translation = corePosList[i],worldSpace = True)
+                        _data = mc.xform(i_obj.mNode, q = True, translation = True, worldSpace = True)
+                        _base = l_storedPosList[i]
+                        _offset = cgmMath.list_subtract(_base,_data)
+                        l_offsets.append(_offset)
+                        self.log_info("{0} | base: {1} - current:{2} = {3}".format(i_obj.p_nameShort,_base,_data,_offset))
+                    except Exception,err:raise Exception,"xform query | {0}".format(err)
+                    
+                except Exception,err:
+                    self.log_error("current obj : {0}".format(i_obj))
+                    self.log_error("ml_controlObjects: {0}".format(ml_controlObjects))
+                    raise Exception,"obj {0} fail | {1}".format(i,err)
+
+            return l_offsets    
+        
         def _resetPose(self):
             mi_module = self._mi_module
             mi_templateNull = mi_module.templateNull  
@@ -1946,17 +2067,17 @@ def templateSettings_call(*args,**kws):
                 '''
                 try:
                     if self.f_crvLength_stored is not None:
-                        self.log_info("Found stored crv length. Processing...")
+                        #self.log_info("Found stored crv length. Processing...")
                         # base/value | current/x
                         # (value * current)/stored
                         buffer = ((value * self.f_crvLength_current)/self.f_crvLength_stored)
-                        self.log_info("'{0}.{1}' ...".format(obj,attr))
-                        self.log_info("Math : ({0} * {1}) / {2} = {3}".format(value,self.f_crvLength_current,self.f_crvLength_stored,buffer))
-                        self.log_info("Old: {0} | New: {1}".format(value,buffer))		    
+                        #self.log_info("'{0}.{1}' ...".format(obj,attr))
+                        #self.log_info("Math : ({0} * {1}) / {2} = {3}".format(value,self.f_crvLength_current,self.f_crvLength_stored,buffer))
+                        #self.log_info("Old: {0} | New: {1}".format(value,buffer))		    
                         return buffer
     
                     else:
-                        self.log_info("No stored crv length. Using value: {0}".format(value))
+                        #self.log_info("No stored crv length. Using value: {0}".format(value))
                         return value
     
                 except Exception,error:raise Exception,"[__normalizeValue__ | {0}]".format(error)

@@ -632,7 +632,7 @@ def build_rig(*args, **kws):
 		    mi_uprDrivenCrv.doName()
 		    ml_curves.append(mi_uprDrivenCrv)
 		    
-		    mi_uprBlinkCrv = mi_uprDrivenCrv.doDuplicate(False)
+		    mi_uprBlinkCrv = mi_uprDrivenCrv.doDuplicate(po = False)
 		    mi_uprBlinkCrv.addAttr('cgmTypeModifier','blink',lock=True)
 		    mi_uprBlinkCrv.doName()
 		    ml_curves.append(mi_uprBlinkCrv)
@@ -655,7 +655,7 @@ def build_rig(*args, **kws):
 		    mi_lwrDrivenCrv.doName()
 		    ml_curves.append(mi_lwrDrivenCrv)	
 		    
-		    mi_lwrBlinkCrv = mi_lwrDrivenCrv.doDuplicate(False)
+		    mi_lwrBlinkCrv = mi_lwrDrivenCrv.doDuplicate(po = False)
 		    mi_lwrBlinkCrv.addAttr('cgmTypeModifier','blink',lock=True)
 		    mi_lwrBlinkCrv.doName()
 		    ml_curves.append(mi_lwrBlinkCrv)

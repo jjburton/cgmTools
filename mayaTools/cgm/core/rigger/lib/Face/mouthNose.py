@@ -2428,7 +2428,7 @@ def build_rig(*args, **kws):
                         mi_uprDrivenCrv.doName()
                         ml_curves.append(mi_uprDrivenCrv)
 
-                        mi_uprLipSealCrv = mi_uprDrivenCrv.doDuplicate(False)
+                        mi_uprLipSealCrv = mi_uprDrivenCrv.doDuplicate(po = False)
                         mi_uprLipSealCrv.addAttr('cgmTypeModifier','lipSeal',lock=True)
                         mi_uprLipSealCrv.doName()
                         ml_curves.append(mi_uprLipSealCrv)
@@ -2451,7 +2451,7 @@ def build_rig(*args, **kws):
                         mi_lwrDrivenCrv.doName()
                         ml_curves.append(mi_lwrDrivenCrv)	
 
-                        mi_lwrLipSealCrv = mi_lwrDrivenCrv.doDuplicate(False)
+                        mi_lwrLipSealCrv = mi_lwrDrivenCrv.doDuplicate(po = False)
                         mi_lwrLipSealCrv.addAttr('cgmTypeModifier','lipSeal',lock=True)
                         mi_lwrLipSealCrv.doName()
                         ml_curves.append(mi_lwrLipSealCrv)

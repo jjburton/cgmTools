@@ -102,8 +102,8 @@ def duplicateJointInPlace(joint, asMeta = True):
 	mAttr_inverseScale.getDriver(mJoint)
 	
 	for attr in mJoint.getUserAttrs():
-	    cgmMeta.cgmAttr(mJoint,attr).doCopyTo(mDup.mNode)
-	
+	    try:cgmMeta.cgmAttr(mJoint,attr).doCopyTo(mDup.mNode)
+	    except Exception,err:log.error("duplicateJointInPlace({0}) .{1} failed << {2} >>".format(mJoint.p_nameShort,attr,err))
 	if asMeta:
 	    return mDup
 	return mDup.mNode
@@ -162,7 +162,7 @@ def metaFreezeJointOrientation(targetJoints):
 	d_children = {}
 	d_parent = {}
 	mi_parent = cgmMeta.validateObjArg(ml_targetJoints[0].parent,noneValid=True)
-	
+	#log.info('validate')
 	for i_jnt in ml_targetJoints:
 	    d_children[i_jnt] = cgmMeta.validateObjListArg( mc.listRelatives(i_jnt.mNode, path=True, c=True),cgmMeta.cgmObject,True) or []
 	    d_parent[i_jnt] = cgmMeta.validateObjArg(i_jnt.parent,noneValid=True)
@@ -171,9 +171,9 @@ def metaFreezeJointOrientation(targetJoints):
 		#log.debug(i_c.getShortName())
 		#log.debug("freezeJointOrientation>> parented '%s' to world to orient parent"%i_c.mNode)
 		i_c.parent = False
-		
 	if mi_parent:
 	    ml_targetJoints[0].parent = False
+	#log.info('gather data')
 	    
 	#Orient
 	for i,i_jnt in enumerate(ml_targetJoints):
@@ -185,7 +185,8 @@ def metaFreezeJointOrientation(targetJoints):
 	    log.debug("parent...")
 	    if i != 0 and d_parent.get(i_jnt):
 		i_jnt.parent = d_parent.get(i_jnt)#parent back first before duping
-		
+	    #log.info('{0} parent'.format(i))
+	
 	    log.debug("dup...")
 	    i_dup= duplicateJointInPlace(i_jnt)
 	    i_dup.rotateOrder = 0
@@ -195,10 +196,12 @@ def metaFreezeJointOrientation(targetJoints):
 	    
 	    mi_zLoc = i_jnt.doLoc()#Make some locs
 	    mi_yLoc = i_jnt.doLoc()
+	    #log.info('{0} loc'.format(i))
 	    
 	    log.debug("group...")
 	    str_group = mi_zLoc.doGroup() #group for easy move
 	    mi_yLoc.parent = str_group
+	    #log.info('{0} group'.format(i))
 	    
 	    mi_zLoc.tz = 1#Move
 	    mi_yLoc.ty = 1
@@ -209,14 +212,16 @@ def metaFreezeJointOrientation(targetJoints):
 	    log.debug("constrain...")
 	    
 	    str_const = mc.aimConstraint(mi_zLoc.mNode,i_dup.mNode,maintainOffset = False, weight = 1, aimVector = [0,0,1], upVector = [0,1,0], worldUpVector = [0,1,0], worldUpObject = mi_yLoc.mNode, worldUpType = 'object' )[0]
+	    #log.info('{0} constrain'.format(i))
 	    
 	    i_jnt.rotate = [0,0,0] #Move to joint
 	    i_jnt.jointOrient = i_dup.rotate
+	    #log.info('{0} delete'.format(i))
 	    
 	    log.debug("delete...")	    
 	    mc.delete([str_const,str_group])#Delete extra stuff
 	    i_dup.delete()
-	    
+	#log.info('orient')
 	#reparent
 	if mi_parent:
 	    try:ml_targetJoints[0].parent = mi_parent
@@ -226,6 +231,7 @@ def metaFreezeJointOrientation(targetJoints):
 		log.debug("freezeJointOrientation>> parented '%s' back"%i_c.getShortName())
 		i_c.parent = i_jnt.mNode 
 		cgmMeta.cgmAttr(i_c,"inverseScale").doConnectIn("%s.scale"%i_jnt.mNode )
+	#log.info('reparent')
     
 	    
 	return True
