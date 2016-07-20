@@ -559,6 +559,10 @@ def dupe(*args, **kws):
     return fncWrap(*args, **kws).go()
 
 class cgmNode(r9Meta.MetaClass):
+    #...see if extending unmanaged is necessary
+    for a in '__justCreatedState__','__componentMode__','__component__':
+	if a not in r9Meta.MetaClass.UNMANAGED:
+	    r9Meta.MetaClass.UNMANAGED.append(a)        
     def __bind__(self):pass	
     def __init__(self,node = None, name = None,nodeType = 'network', **kws):
         """ 
@@ -577,11 +581,12 @@ class cgmNode(r9Meta.MetaClass):
 		component = node.split('.')[-1]
 	
 	_setClass = kws.get('setClass')
+	_autofill = kws.get('autofill',False)
 	#log.info("{1} | setClass: {0}".format(_setClass,'in cgmNode'))
 	#log.info("{1} | kws: {0}".format(kws,'in cgmNode'))
 	#log.info("{1} | args: {0}".format(args,'in cgmNode'))
 	
-	super(cgmNode, self).__init__(node,name = name,nodeType = nodeType,**kws)
+	super(cgmNode, self).__init__(node,name = name,nodeType = nodeType,autofill = _autofill, **kws)
 	
 	#>>> TO Check the cache if it needs to be cleared ----------------------------------
 	'''if _setClass is not None:
@@ -603,10 +608,9 @@ class cgmNode(r9Meta.MetaClass):
 		r9Meta.registerMClassNodeCache(self)'''
 	#====================================================================================
 	try:
-	    self.UNMANAGED.extend(['__justCreatedState__','__componentMode__','__component__'])	
-	    self.__dict__['__justCreatedState__'] = createdState
-	    self.__dict__['__componentMode__'] = componentMode
-	    self.__dict__['__component__'] = component
+	    object.__setattr__(self, '__componentMode__', componentMode)
+	    object.__setattr__(self, '__component__', component)
+	    object.__setattr__(self, '__justCreatedState__', createdState)	    
 	except Exception,error:
 	    r9Meta.printMetaCacheRegistry()
 	    raise Exception,"Failed to extend unmanaged | %s"%error	
@@ -688,9 +692,8 @@ class cgmNode(r9Meta.MetaClass):
 	else:
 	    attributes.storeObjectToMessage(value,self.mNode,attr)
 	    
-    def __setattr__(self,attr,value, force = True, lock = None, **kws):
-	"""Overload for our own purposes to allow multiple connections"""
-	#log.debug("In cgmNode.__setattr__...")
+    """def __setattr__(self,attr,value, force = True, lock = None, **kws):
+	r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
 	if lock is None:
 	    try:
 		if self.attrIsLocked(attr):
@@ -701,7 +704,7 @@ class cgmNode(r9Meta.MetaClass):
 	    raise StandardError, "%s.__setattr__(attr  = %s,value= %s) | error: %s"%(self.getShortName(),attr,value,error)
 	
 	if lock is not None and not self.isReferenced():
-	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	  
+	    mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	"""  
 	    
     def getMessage(self,attr,longNames = True):
 	"""
@@ -2508,7 +2511,7 @@ setTypes = {'animation':'animSet',
 class cgmObjectSet(cgmNode):
     """ 
     Maya Object Set Class handler
-    """ 	
+    """ 	   
     def __init__(self,setName = None,setType = False,qssState = None,value = None,**kws):
         """ 
         Intializes an set factory class handler
@@ -2537,7 +2540,10 @@ class cgmObjectSet(cgmNode):
         #log.debug("In cgmObjectSet.__init__ setType is '%s'"%setType) 
         #log.debug("In cgmObjectSet.__init__ qssState is '%s'"%qssState) 
 	
-	self.UNMANAGED.extend(['objectSetType','qssState','mayaSetState'])
+	#self.UNMANAGED.extend(['objectSetType','qssState','mayaSetState'])
+	for a in 'objectSetType','qssState','mayaSetState':
+	    if a not in self.UNMANAGED:
+		self.UNMANAGED.append(a)   	
 	self.mayaSetState = False
 	
 	#Maya Set?
@@ -3228,7 +3234,10 @@ class cgmBufferNode(cgmNode):
 	
 	#====================================================================================
 	
-	self.UNMANAGED.extend(['l_buffer','d_buffer','value','d_indexToAttr','_kw_overrideMessageCheck'])
+	#self.UNMANAGED.extend(['l_buffer','d_buffer','value','d_indexToAttr','_kw_overrideMessageCheck'])
+	for a in 'l_buffer','d_buffer','value','d_indexToAttr','_kw_overrideMessageCheck':
+	    if a not in self.UNMANAGED:
+		self.UNMANAGED.append(a)  	
 	self._kw_overrideMessageCheck = overideMessageCheck
 	
 	
@@ -5190,7 +5199,7 @@ def validateObjArg(*args,**kws):
 	    """
 	    """	
 	    super(fncWrap, self).__init__(*args, **kws)
-	    self._str_funcName= "validateObjArg"			    
+	    self._str_funcName= "validateObjArg"
 	    self._l_ARGS_KWS_DEFAULTS = [{'kw':'arg',"default":None,'help':"mObject instance or string","argType":"mObject"},
 	                                 {'kw':'mType',"default":None,'help':"what mType to be looking for","argType":"mClass"},
 	                                 {'kw':'noneValid',"default":False,'help':"Whether None is a valid argument or not","argType":"bool"},
@@ -5240,7 +5249,9 @@ def validateObjArg(*args,**kws):
 		self.log_debug("instance already...")		
 	    except:
 		self.mi_arg = False
-	    
+		#if noneValid:
+		    #self.log_debug("Valid none arg...")
+		    #return False	    
 	    self.log_debug("Checking: '{0}'".format(arg))	
 	    
 	    if not self.mi_arg:
@@ -5251,7 +5262,7 @@ def validateObjArg(*args,**kws):
 		    if noneValid:
 			self.log_debug("Valid none arg...")
 			return False
-		    else:raise ValueError,"Obj doesn't exist: '{0}'".format(arg) 
+		    else:raise ValueError,"Obj doesn't exist: '{0}'".format(arg)
 		    
 		if mType is None:
 		    self.log_debug("no mType arg...")
@@ -5327,7 +5338,7 @@ def validateObjArg(*args,**kws):
 			self.log_debug("Converting to {0}.".format(mType))
 			try: 
 			    #_bfr = cgmNode(arg).convertMClassType(mType)
-			    try:_node = r9Meta.MetaClass(arg)
+			    try:_node = cgmNode(arg)
 			    except Exception,error:raise Exception,"Intial! | {0}".format(error)			    
 			    self.log_debug(_node)
 			    try:r9Meta.removeFromCache(_node)

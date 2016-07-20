@@ -80,8 +80,10 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 	#====================================================================================
     
 	#Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
-	self.UNMANAGED.extend(['_str_dynSwitchDriverPlug','d_indexToAttr','l_dynAttrs'])	
-	
+	#self.UNMANAGED.extend(['_str_dynSwitchDriverPlug','d_indexToAttr','l_dynAttrs'])	
+	for a in '_str_dynSwitchDriverPlug','d_indexToAttr','l_dynAttrs':
+	    if a not in self.UNMANAGED:
+		self.UNMANAGED.append(a)  	
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
 	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.__class__)
@@ -450,8 +452,10 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
         super(cgmDynamicMatch, self).__init__(node = node,name = name,nodeType = 'transform') 
 	
 	#Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
-	self.UNMANAGED.extend(['arg_ml_dynMatchTargets','_mi_dynObject','_str_dynMatchDriverPlug','d_indexToAttr','l_dynAttrs'])	
-
+	#self.UNMANAGED.extend(['arg_ml_dynMatchTargets','_mi_dynObject','_str_dynMatchDriverPlug','d_indexToAttr','l_dynAttrs'])	
+	for a in 'arg_ml_dynMatchTargets','_mi_dynObject','_str_dynMatchDriverPlug','d_indexToAttr','l_dynAttrs':
+	    if a not in self.UNMANAGED:
+		self.UNMANAGED.append(a)  
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	if self.cached:
 	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.__class__)
@@ -1322,7 +1326,10 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         self.l_dynAttrs = ['space','follow','orientTo']
 
         #Unmanaged extend to keep from erroring out metaclass with our object spectific attrs
-        self.UNMANAGED.extend(['arg_ml_dynParents','_mi_dynChild','_mi_followDriver','d_indexToAttr','l_dynAttrs'])
+        #self.UNMANAGED.extend(['arg_ml_dynParents','_mi_dynChild','_mi_followDriver','d_indexToAttr','l_dynAttrs'])
+	for a in 'arg_ml_dynParents','_mi_dynChild','_mi_followDriver','d_indexToAttr','l_dynAttrs':
+	    if a not in self.UNMANAGED:
+		self.UNMANAGED.append(a)          
         if i_dynChild:self._mi_dynChild=i_dynChild
         else:self._mi_dynChild=False
 

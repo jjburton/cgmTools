@@ -107,7 +107,10 @@ class cgmPuppet(cgmMeta.cgmNode):
 	    return
 	#====================================================================================
 	
-        self.UNMANAGED.extend(['i_masterNull','_UTILS'])	
+        #self.UNMANAGED.extend(['i_masterNull','_UTILS'])
+	for a in 'i_masterNull','_UTILS':
+	    if a not in self.UNMANAGED:
+		self.UNMANAGED.append(a) 	
 	self._UTILS = pFactory
 
         #self.__justCreatedState__ = puppetCreatedState
@@ -1546,8 +1549,10 @@ class cgmModule(cgmMeta.cgmObject):
 	    return
 	log.debug("cgmModule.__init__ ...")	
 	#====================================================================================	
-	self.UNMANAGED.extend(['_UTILS','kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly',
-	                       'kw_handles','kw_rollJoints','kw_callNameTags'])	
+	#self.UNMANAGED.extend(['_UTILS','kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly', 'kw_handles','kw_rollJoints','kw_callNameTags'])	
+	for a in '_UTILS','kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_handles','kw_rollJoints','kw_callNameTags':
+	    if a not in self.UNMANAGED:
+		self.UNMANAGED.append(a)  		
 	self._UTILS = mFactory
 
 	#====================================================================================
@@ -2514,8 +2519,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #==============         
         __doVerify__ = kws.get('doVerify') or False
 
-	self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly',
-	                       'kw_callNameTags'])	
+	#self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags'])	
+	for a in 'kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags':
+	    if a not in self.UNMANAGED:
+		self.UNMANAGED.append(a) 	
         self.kw_name= kws.get('name',False)        
         self.kw_moduleParent = kws.get('moduleParent',False)
         self.kw_forceNew = kws.get('forceNew',False)
