@@ -576,6 +576,7 @@ class cgmNode(r9Meta.MetaClass):
 	componentMode = False
 	component = False	
 	if node is not None:
+	    node = names.getShortName(node)
 	    if '.' in node and search.returnObjectType(node) in l_componentTypes:
 		componentMode = True
 		component = node.split('.')[-1]
@@ -617,7 +618,7 @@ class cgmNode(r9Meta.MetaClass):
     
 	#self.update()
 	
-    def convertMClassType(self, newMClass, **kws):
+    """def convertMClassType(self, newMClass, **kws):
 	'''
 	Overload for Mark's function to buffer the set class value and handle conversion fail
 	'''
@@ -633,7 +634,7 @@ class cgmNode(r9Meta.MetaClass):
 	    else:#...otherwise, delete the attr to default
 		attributes.doDeleteAttr(_str_mNode,'mClass')
 	    raise Exception,"Failed to convert to mClass type: {0} . Reverting to {1}| {2}".format(newMClass,_bfr_mClass, error)
-	#return cgmNode(self.mNode, **kws)#...reinitialize as cgmNode
+	#return cgmNode(self.mNode, **kws)#...reinitialize as cgmNode"""
     
     def __verify__(self):
 	pass#For overload
@@ -1781,8 +1782,8 @@ class cgmNode(r9Meta.MetaClass):
 		
 	    buffer = mc.duplicate(self.mNode,**kws)[0]
 	    #log.debug("doDuplicate>> buffer: %s"%buffer)
-	    i_obj = validateObjArg(buffer)
-	    mc.rename(i_obj.mNode, self.getShortName()+'_DUPLICATE')
+	    buffer = mc.rename(buffer, self.getBaseName()+'_DUPLICATE')
+	    i_obj = validateObjArg(buffer)	    
 	    #log.debug("doDuplicate>> i_obj: %s"%i_obj)
 	    
 	    if breakMessagePlugsOut:
@@ -5255,7 +5256,7 @@ def validateObjArg(*args,**kws):
 		self.log_debug("instance already...")		
 	    except:
 		self.log_debug("not an instance arg...")
-		_arg = names.getLongName(arg)
+		_arg = names.getShortName(arg)
 	    if not _arg:
 		if noneValid:return False
 		else:
@@ -5273,41 +5274,61 @@ def validateObjArg(*args,**kws):
 	    _keys = r9Meta.RED9_META_NODECACHE.keys()
 	    _cacheKey = None
 	    _cached = None
-	    _unicodeArg = unicode(_arg)
+	    _unicodeArg = unicode( names.getLongName(_arg))
 	    if _UUID in _keys:
 		_cacheKey = _UUID
 		_cached = r9Meta.RED9_META_NODECACHE.get(_UUID)
 	    elif _unicodeArg in _keys:
 		_cacheKey = _unicodeArg
-		_cached = r9Meta.RED9_META_NODECACHE.get(_unicodeArg)		
+		_cached = r9Meta.RED9_META_NODECACHE.get(_unicodeArg)	
+		
 	    #_cached = r9Meta.RED9_META_NODECACHE.get(_UUID,None) or r9Meta.RED9_META_NODECACHE.get(_arg,None)
 	    self.log_debug("cacheKey: {0}".format(_cacheKey))
+	    
 	    if _cached is not None:
 		t1 = time.clock()		
 		self.log_debug("Already cached")
 		_cachedMClass = attributes.doGetAttr(_arg,'mClass') or False
 		_cachedType = type(_cached)
+		self.log_debug("Cached mNode: {0}".format(_cached.mNode))		
 		self.log_debug("Cached mClass: {0}".format(_cachedMClass))
 		self.log_debug("Cached Type: {0}".format(_cachedType))
-		
 		_change = False
-		if _cachedMClass:#...check our types and subclass stuff
+		_redo = False
+		#...gonna see if our cache is obviously wrong
+		if _arg != _cached.mNode:
+		    self.log_debug("mNodes don't match. Need new UUID our our new arg")
+		    self.log_debug("Clearing UUID...")
+		    #attributes.doDeleteAttr(_arg,'UUID')	
+		    try:attributes.doSetAttr(_arg,'UUID','')
+		    except:pass		    
+		    _redo = True
+		    
+		elif _cachedType == mTypeClass:
+		    self.log_debug("cachedType({0}) match ({1})".format(_cachedType,mTypeClass))
+		    if setClass and not _cachedMClass:
+			self.log_debug("...ensuring proper categorization next time")
+			try:attributes.doAddAttr(_arg, 'mClass','string')
+			except:pass		    
+			try:attributes.doAddAttr(_arg,'UUID','string')
+			except:pass
+			attributes.doSetAttr(_arg,'mClass',mType,True)
+		    return _cached
+			
+		elif _cachedMClass:#...check our types and subclass stuff
 		    if mType is not None:
 			if _cachedType != mTypeClass:
-			    self.log_debug("cachedType({0}). doesn't match({1})".format(_cachedType,mTypeClass))
+			    self.log_debug("cached Type({0}). doesn't match({1})".format(_cachedType,mTypeClass))			    			
 			    _change = True
 			elif _cachedMClass != mType:
 			    self.log_debug("mClass value ({0}). doesn't match({1})".format(_cachedMClass,mType))
 			    _change = True
-		elif _cachedType == mTypeClass:
-		    self.log_debug("cachedType({0}) match ({1})".format(_cachedType,mTypeClass))
-		    if setClass and not _cachedMClass:
-			_change = True
+		
 			#attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
 			#attributes.doAddAttr(_arg,'UUID','string')
 		    
 		else:
-		    self.log_debug("cachedType({0}). doesn't match({1})".format(_cachedType,mTypeClass))
+		    self.log_debug("No cached mClass or type")
 		    _change = True
 		
 		    if issubclass(type(_cached), mTypeClass ):
@@ -5325,11 +5346,19 @@ def validateObjArg(*args,**kws):
 			self.log_debug('bad')
 			raise Exception,"[setClass False. mTypeClass: {0} | type:{1}]".format(mTypeClass,
 					                                                      type( _cached))	"""	
-		if not _change:
+		if _change:
+		    self.log_debug("..subclass check")
+		    if issubclass(_cachedType, mTypeClass) and not setClass:
+			self.log_debug("...but is subclass")
+			_change = False
+		    else:
+			self.log_debug("...not a subclass")			
+		
+		if not _change and not _redo:
 		    t2 = time.clock()
 		    self.log_debug("Cache good %0.6f"%(t2-t1))		    
 		    return _cached
-		else:
+		elif _change:
 		    self.log_debug("conversion necessary.removing from cache")
 		    if _cachedMClass:
 			self.log_debug("Clearing mClass...")

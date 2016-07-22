@@ -151,7 +151,7 @@ def metaFreezeJointOrientation(targetJoints):
     try:
 	if type(targetJoints) not in [list,tuple]:targetJoints=[targetJoints]
     
-	ml_targetJoints = cgmMeta.validateObjListArg(targetJoints,cgmMeta.cgmObject,mayaType='joint')
+	ml_targetJoints = cgmMeta.validateObjListArg(targetJoints,'cgmObject',mayaType='joint')
 	'''
 	for i_jnt in ml_targetJoints:
 	    if i_jnt.getConstraintsTo():
@@ -163,8 +163,10 @@ def metaFreezeJointOrientation(targetJoints):
 	d_parent = {}
 	mi_parent = cgmMeta.validateObjArg(ml_targetJoints[0].parent,noneValid=True)
 	#log.info('validate')
-	for i_jnt in ml_targetJoints:
-	    d_children[i_jnt] = cgmMeta.validateObjListArg( mc.listRelatives(i_jnt.mNode, path=True, c=True),cgmMeta.cgmObject,True) or []
+	for i,i_jnt in enumerate(ml_targetJoints):
+	    _relatives = mc.listRelatives(i_jnt.mNode, path=True, c=True)
+	    log.debug("{0} relatives: {1}".format(i,_relatives))
+	    d_children[i_jnt] = cgmMeta.validateObjListArg( _relatives ,'cgmObject',True) or []
 	    d_parent[i_jnt] = cgmMeta.validateObjArg(i_jnt.parent,noneValid=True)
 	for i_jnt in ml_targetJoints:
 	    for i,i_c in enumerate(d_children[i_jnt]):
@@ -174,7 +176,7 @@ def metaFreezeJointOrientation(targetJoints):
 	if mi_parent:
 	    ml_targetJoints[0].parent = False
 	#log.info('gather data')
-	    
+	
 	#Orient
 	for i,i_jnt in enumerate(ml_targetJoints):
 	    """
@@ -188,7 +190,11 @@ def metaFreezeJointOrientation(targetJoints):
 	    #log.info('{0} parent'.format(i))
 	
 	    log.debug("dup...")
-	    i_dup= duplicateJointInPlace(i_jnt)
+	    #i_dup = duplicateJointInPlace(i_jnt)
+	    i_dup = i_jnt.doDuplicate(parentOnly = True)
+	    #log.debug("{0} | UUID: {1}".format(i_jnt.mNode,i_jnt.getMayaAttr('UUID')))
+	    #log.debug("{0} | UUID: {1}".format(i_dup.mNode,i_dup.getMayaAttr('UUID')))
+	    i_dup.parent = i_jnt.parent
 	    i_dup.rotateOrder = 0
 	    
 	    #New method  ----
@@ -221,21 +227,23 @@ def metaFreezeJointOrientation(targetJoints):
 	    log.debug("delete...")	    
 	    mc.delete([str_const,str_group])#Delete extra stuff
 	    i_dup.delete()
+	    
 	#log.info('orient')
 	#reparent
 	if mi_parent:
 	    try:ml_targetJoints[0].parent = mi_parent
 	    except Exception,error: raise StandardError,"Failed to parent back %s"%error
-	for i_jnt in ml_targetJoints:
-	    for i_c in d_children[i_jnt]:
+	for i,i_jnt in enumerate(ml_targetJoints):
+	    for ii,i_c in enumerate(d_children[i_jnt]):
+		log.info("{0} | {1}".format(i,ii))
+		log.info(i_c)
 		log.debug("freezeJointOrientation>> parented '%s' back"%i_c.getShortName())
 		i_c.parent = i_jnt.mNode 
 		cgmMeta.cgmAttr(i_c,"inverseScale").doConnectIn("%s.scale"%i_jnt.mNode )
 	#log.info('reparent')
-    
 	    
 	return True
-    except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
+    except Exception,error:raise Exception,"metaFreezeJointOrientation | {0} ".format(error)
 
 def freezeJointOrientation(targetJoints):
     return metaFreezeJointOrientation(targetJoints)
@@ -317,8 +325,8 @@ def add_defHelpJoint(targetJoint,childJoint = None, helperType = 'halfPush',
 	    
     if not i_matchJnt:
 	log.debug("No match joint")
-	#i_dupJnt = mi_targetJoint.doDuplicate(inputConnections = False)#Duplicate
-	i_dupJnt= duplicateJointInPlace(mi_targetJoint)
+	i_dupJnt = mi_targetJoint.doDuplicate(inputConnections = False)#Duplicate
+	#i_dupJnt= duplicateJointInPlace(mi_targetJoint)
 	
 	i_dupJnt.addAttr('cgmTypeModifier',helperType)#Tag
 	i_dupJnt.addAttr('defHelpType',helperType,lock=True)#Tag    
