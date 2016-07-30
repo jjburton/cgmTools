@@ -61,7 +61,8 @@ d_moduleTypeToBuildModule = {'torso':spine,
                              'mouthnose':mouthNose,
                              } 
 for module in d_moduleTypeToBuildModule.keys():
-    reload(d_moduleTypeToBuildModule[module])
+    try:reload(d_moduleTypeToBuildModule[module])
+    except Exception,err:raise Exception,"Failed to reload: {0} | {1}".format(module,err)
 
 typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFile())
 namesDictionary = dictionary.initializeDictionary( settings.getNamesDictionaryFile())

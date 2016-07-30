@@ -563,7 +563,7 @@ class cgmNode(r9Meta.MetaClass):
     for a in '__justCreatedState__','__componentMode__','__component__':
 	if a not in r9Meta.MetaClass.UNMANAGED:
 	    r9Meta.MetaClass.UNMANAGED.append(a)        
-    def __bind__(self):pass	
+    #def __bind__(self):pass	
     def __init__(self,node = None, name = None,nodeType = 'network', **kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
@@ -599,7 +599,7 @@ class cgmNode(r9Meta.MetaClass):
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	#log.info(self)
 	if self.cached:
-	    log.debug("using cache: {0}".format(self))
+	    log.debug("using cache: {0}".format(self._LastDagPath))
 	    return
 	elif _setClass:
 	    log.error("Do not use 'setClass' flag - Object '{0}'".format(self.mNode))
@@ -714,12 +714,22 @@ class cgmNode(r9Meta.MetaClass):
 	connecting the attribute you want to connect to that attribute and then when you call an attribute as getMessage, if it is not a message attr
 	it tries to trace back that connection to an attribute.
 	"""
-	if mc.objExists('%s.%s' % (self.mNode,attr)) and mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
+	try:
+	    if mc.objExists('%s.%s' % (self.mNode,attr)):#self.hasAttr(attr):
+		if mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
+		    return attributes.returnMessageData(self.mNode,attr,longNames) or []
+		else:
+		    return cgmAttr(self,attr).getMessage()
+	    return []
+	except Exception,err:
+	    log.error("getMessage fail | {0} | err:{1}".format(Exception,err))
+	    return []
+	"""if mc.objExists('%s.%s' % (self.mNode,attr)) and mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
 	    return attributes.returnMessageData(self.mNode,attr,longNames) or []
 	elif mc.objExists('%s.%s' % (self.mNode,attr)):
 	    return cgmAttr(self,attr).getMessage()
-	return []
-    
+	return [] """
+	
     def __getMessageAttr__(self, attr):
 	'''
 	Overloaded Red9's for a default cgmNode
@@ -1194,12 +1204,7 @@ class cgmNode(r9Meta.MetaClass):
     #Attr stuff =========================================================================
     def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
 	#log.debug(">>> %s.addAttr(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)            		        
-        if attr not in self.UNMANAGED and not attr=='UNMANAGED':
-	    #enum special handling
-	    #valueCarry = None #Special handling for enum and value at the same time
-	    #if enum is not None:
-		#valueCarry = value
-		#value = enum	    
+        if attr not in self.UNMANAGED and not attr=='UNMANAGED':  
 	    if mc.objExists("%s.%s"%(self.mNode,attr)):#Quick create check for initial value
 		initialCreate = False
 		if self.isReferenced():
@@ -1232,18 +1237,11 @@ class cgmNode(r9Meta.MetaClass):
 	                      #'double3':[0,0,0],
 	                      #'enum': "off:on",
 	                      #'message':''} 
-	    
-	    #if value is None and attrType is not None:
-		#value = DataTypeDefaults.get(attrType)
+
 	    if enumName is None and attrType is 'enum':
-		enumName = "off:on"
-	    #log.debug("In mNode.addAttr attr is '%s'"%attr)
-	    #log.debug("In mNode.addAttr attrType is '%s'"%str(attrType))	    
-	    #log.debug("In mNode.addAttr value is '%s'"%str(value)) 		
-	    #if valueCarry is not None:log.debug("In mNode.addAttr valueCarry is '%s'"%str(valueCarry)) 		
+		enumName = "off:on"		
 	    
 	    #Pass to Red9
-	    #MetaClass.addAttr(self,attr=attr,value=value,attrType = attrType,*args,**kws)
 	    if attrType == 'enum':
 		r9Meta.MetaClass.addAttr(self,attr,value=value,attrType = attrType,enumName = enumName, *args,**kws)
 	    else:
@@ -1257,15 +1255,6 @@ class cgmNode(r9Meta.MetaClass):
 		#attributes.doSetAttr(self.mNode,attr,value)
 		#cgmAttr(self, attrName = attr, value=value)#Swictched back to cgmAttr to deal with connected attrs
 		    
-	    #if valueCarry is not None:
-		#self.__setattr__(attr,valueCarry)
-		
-	    #if initialValue is not None and initialCreate:
-		#log.info("In mNode.addAttr, setting initialValue of '%s'"%str(initialValue)) 
-		#self.__setattr__(attr,initialValue)
-	    
-	    #if value and attrType is not 'enum':#Want to be able to really set attr on addAttr call if attr exists
-		#self.__setattr__(attr,value)
 	    
 	    #Easy carry for flag handling - until implemented
 	    #==============  
@@ -1317,13 +1306,13 @@ class cgmNode(r9Meta.MetaClass):
 	    return False
 	except Exception,error:raise Exception,"[%s.returnNextAvailableAttrCnt(attr = %s]{%s}"%(self.p_nameShort,attr,error)
     
-    def update(self):
+    #def update(self):
         """ Update the instance with current maya info. For example, if another function outside the class has changed it. """ 
         #assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
 	#if self.hasAttr('mNodeID') and not self.isReferenced():#experiment
 	    #log.debug(self.mNodeID)
 	    #attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
-	self.__dict__['__name__'] = self.getShortName()
+	#self.__dict__['__name__'] = self.getShortName()
 	
     def getCGMNameTags(self,ignore=[False]):
         """
@@ -5244,7 +5233,7 @@ def validateObjArg(*args,**kws):
 		else:raise ValueError,"arg cannot be list or tuple or longer than 1 length: %s"%arg	
 	    if not noneValid:
 		if arg in [None,False]:
-		    raise ValueError,"arg cannot be None"
+		    raise ValueError,"Invalid arg({0}). noneValid = False".format(arg)
 	    else:
 		if arg in [None,False]:
 		    if arg not in [None,False]:log.warning("%s arg fail: %s"%(self._str_reportStart,arg))
@@ -5256,25 +5245,61 @@ def validateObjArg(*args,**kws):
 		self.log_debug("instance already...")		
 	    except:
 		self.log_debug("not an instance arg...")
-		_arg = names.getShortName(arg)
+		try:_arg = names.getLongName(arg)
+		except Exception,err:
+		    if noneValid:return False
+		    raise Exception,err
 	    if not _arg:
 		if noneValid:return False
 		else:
 		    raise ValueError,"'{0}' is not a valid arg. Validated to {1}".format(arg,_arg)
 		
+	    _argShort = names.getShortName(_arg)
+		
 	    self.log_debug("Checking: '{0} | mType: {1}'".format(_arg,mType))
 	    mTypeClass = _r9ClassRegistry.get(mType)
 	    
+	    if mayaType is not None and len(mayaType):
+		t1 = time.clock()		
+		self.log_debug("Checking mayaType...")
+		if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
+		else: l_mayaTypes = mayaType
+		#str_type = search.returnObjectType(self.mi_arg.getComponent())
+		str_type = search.returnObjectType(_arg)
+		if str_type not in l_mayaTypes:
+		    if noneValid:
+			log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(self._str_reportStart,_argShort,str_type,l_mayaTypes))
+			return False
+		    raise StandardError,"'%s' mayaType: '%s' not in: '%s'"%(_argShort,str_type,l_mayaTypes)			    	
+		t2 = time.clock()
+		self.log_debug("mayaType not None time... %0.6f"%(t2-t1))		    
+	    
 	    #Get our cache key
-	    _mClass = attributes.doGetAttr(_arg,'mClass')
-	    _UUID = attributes.doGetAttr(_arg,'UUID')
-	    self.log_debug("Cache keys|| UUID: {0} | mCLass: {1}".format(_UUID,_mClass))
+	    _mClass = attributes.doGetAttr(_argShort,'mClass')
+	    
+	    _UUID2016 = False#...a flag to see if we need a reg UUID attr 
+	    try:_UUID2016= mc.ls(_argShort, uuid=True)[0]
+	    except:pass
+	    
+	    if _UUID2016:
+		self.log_debug(">2016 UUID: {0}...".format(_UUID2016))
+		_UUID = _UUID2016
+		try:
+		    attributes.doDeleteAttr(_argShort,'UUID')				    
+		    self.log_debug("Clearing attr UUID...")
+		except:pass
+	    else:
+		_UUID = attributes.doGetAttr(_argShort,'UUID')
+		
+	    self.log_debug("Cache keys|| UUID: {0} | mClass: {1}".format(_UUID,_mClass))
+	    _wasCached = False
 	    
 	    #See if it's in the cache
 	    _keys = r9Meta.RED9_META_NODECACHE.keys()
 	    _cacheKey = None
 	    _cached = None
-	    _unicodeArg = unicode( names.getLongName(_arg))
+	    _unicodeArg = unicode( _arg)
+	    
 	    if _UUID in _keys:
 		_cacheKey = _UUID
 		_cached = r9Meta.RED9_META_NODECACHE.get(_UUID)
@@ -5300,7 +5325,7 @@ def validateObjArg(*args,**kws):
 		    self.log_debug("mNodes don't match. Need new UUID our our new arg")
 		    self.log_debug("Clearing UUID...")
 		    #attributes.doDeleteAttr(_arg,'UUID')	
-		    try:attributes.doSetAttr(_arg,'UUID','')
+		    try:attributes.doSetAttr(_argShort,'UUID','')
 		    except:pass		    
 		    _redo = True
 		    
@@ -5308,17 +5333,17 @@ def validateObjArg(*args,**kws):
 		    self.log_debug("cachedType({0}) match ({1})".format(_cachedType,mTypeClass))
 		    if setClass and not _cachedMClass:
 			self.log_debug("...ensuring proper categorization next time")
-			try:attributes.doAddAttr(_arg, 'mClass','string')
+			try:attributes.doAddAttr(_argShort, 'mClass','string')
 			except:pass		    
-			try:attributes.doAddAttr(_arg,'UUID','string')
+			try:attributes.doAddAttr(_argShort,'UUID','string')
 			except:pass
-			attributes.doSetAttr(_arg,'mClass',mType,True)
+			attributes.doSetAttr(_argShort,'mClass',mType,True)
 		    return _cached
 			
 		elif _cachedMClass:#...check our types and subclass stuff
 		    if mType is not None:
 			if _cachedType != mTypeClass:
-			    self.log_debug("cached Type({0}). doesn't match({1})".format(_cachedType,mTypeClass))			    			
+			    self.log_debug("cached Type doesn't match({0})".format(mTypeClass))			    			
 			    _change = True
 			elif _cachedMClass != mType:
 			    self.log_debug("mClass value ({0}). doesn't match({1})".format(_cachedMClass,mType))
@@ -5360,13 +5385,14 @@ def validateObjArg(*args,**kws):
 		    return _cached
 		elif _change:
 		    self.log_debug("conversion necessary.removing from cache")
+		    _wasCached = True
 		    if _cachedMClass:
 			self.log_debug("Clearing mClass...")
 			#_cached.mClass = ''
-			attributes.doDeleteAttr(_arg,'mClass')
+			attributes.doDeleteAttr(_argShort,'mClass')
 		    if _UUID:
 			self.log_debug("Clearing UUID...")
-			attributes.doDeleteAttr(_arg,'UUID')			
+			attributes.doDeleteAttr(_argShort,'UUID')			
 			#_cached.UUID = ''			
 		    r9Meta.RED9_META_NODECACHE.pop(_cacheKey)
 		    
@@ -5375,29 +5401,32 @@ def validateObjArg(*args,**kws):
 		
 	    if mType:
 		t1 = time.clock()				    		
-		if setClass:
-		    t1 = time.clock()				    
+		if setClass or _wasCached:
 		    self.log_debug("setClass...")
 		    #attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
-		    try:attributes.doAddAttr(_arg, 'mClass','string')
+		    t_attr = time.clock()				    		
+		    try:attributes.doAddAttr(_argShort, 'mClass','string')
 		    except:pass		    
-		    try:attributes.doAddAttr(_arg,'UUID','string')
+		    try:
+			if not _UUID2016:
+			    attributes.doAddAttr(_argShort,'UUID','string')
 		    except:pass
-		    attributes.doSetAttr(_arg,'mClass',mType,True)
-		    t2 = time.clock()
+		    attributes.doSetAttr(_argShort,'mClass',mType,True)
+		    t2 = time.clock()		    
+		    self.log_debug("attrSet %0.6f"%(t2-t_attr))	
 		    self.log_debug("setClass %0.6f"%(t2-t1))	
-		    self.mi_arg =  mTypeClass(_arg)		    
+		    self.mi_arg =  mTypeClass(_argShort)		    
 		else:
 		    t2 = time.clock()
 		    self.log_debug("no setClass. Returning %0.6f"%(t2-t1))			    
-		    self.mi_arg =  mTypeClass(_arg)
+		    self.mi_arg =  mTypeClass(_argShort)
 	    else:
 		t1 = time.clock()				    				
 		self.log_debug("no mType arg...")
 		if _mClass:
 		    mTypeClass = _r9ClassRegistry.get(_mClass)
-		    self.log_debug("mClass registered... '{0}' | {1}".format(_arg,mTypeClass))		    
-		    self.mi_arg =  mTypeClass(_arg)
+		    self.log_debug("mClass registered... '{0}' | {1}".format(_argShort,mTypeClass))		    
+		    self.mi_arg =  mTypeClass(_argShort)
 		else:
 		    if default_mType:
 			self.log_debug("no mType.Using default...")
@@ -5405,39 +5434,24 @@ def validateObjArg(*args,**kws):
 			    try: default_mType = default_mType.__name__
 			    except Exception,error:
 				raise ValueError,"mType not a string and not a usable class name. default_mType: {0}".format(default_mType)				
-			try:self.mi_arg =  _r9ClassRegistry.get(default_mType)(_arg)
+			try:self.mi_arg =  _r9ClassRegistry.get(default_mType)(_argShort)
 			except Exception,error:
 			    raise Exception,"default mType ({1}) initialization fail | {0}".format(error,default_mType)				
-		    elif isTransform(_arg):
+		    elif isTransform(_argShort):
 			self.log_debug("Transform...")
-			try:self.mi_arg = cgmObject(_arg) 
+			try:self.mi_arg = cgmObject(_argShort) 
 			except Exception,error:
 			    raise Exception,"cgmObject initialization fail | {0}".format(error)	
 		    else:
 			self.log_debug("Node...")
-			try:self.mi_arg = cgmNode(_arg) 
+			try:self.mi_arg = cgmNode(_argShort) 
 			except Exception,error:
 			    raise Exception,"cgmNode initialization fail | {0}".format(error)	
 		self.log_debug("leaving mType None...")
 		t2 = time.clock()
 		self.log_debug("... %0.6f"%(t2-t1))				
 	    
-			    
-	    if mayaType is not None and len(mayaType):
-		t1 = time.clock()		
-		self.log_debug("Checking mayaType...")
-		if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
-		else: l_mayaTypes = mayaType
-		str_type = search.returnObjectType(self.mi_arg.getComponent())
-		if str_type not in l_mayaTypes:
-		    if noneValid:
-			log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(self._str_reportStart,self.mi_arg.p_nameShort,str_type,l_mayaTypes))
-			return False
-		    raise StandardError,"'%s' mayaType: '%s' not in: '%s'"%(self.mi_arg.p_nameShort,str_type,l_mayaTypes)			    	
-		t2 = time.clock()
-		self.log_debug("mayaType not None time... %0.6f"%(t2-t1))	
-		
-	    self.log_debug("Returning...")
+	    self.log_debug("Returning...{0}".format(self.mi_arg))
 	    return self.mi_arg	  
 
     return fncWrap(*args,**kws).go()  
@@ -5874,9 +5888,6 @@ def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**
 	raise StandardError,error    
     
 class cgmBlendShape(cgmNode):  
-    """
-    Placeholder...to be finished later
-    """
     def __init__(self,node = None, name = 'null', **kws):
 	if not search.returnObjectType(node) == 'blendShape':
 	    raise ValueError, "Not a blendshape"

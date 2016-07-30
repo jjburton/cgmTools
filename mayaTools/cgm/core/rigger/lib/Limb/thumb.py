@@ -541,8 +541,8 @@ def build_controls(goInstance = None):
 		    i_obj.axisAim = "%s+"%self._go._jointOrientation[0]
 		    i_obj.axisUp= "%s+"%self._go._jointOrientation[1]	
 		    i_obj.axisOut= "%s+"%self._go._jointOrientation[2]
-		    i_obj.drawStyle = 6#Stick joint draw style
-		    
+		    try:i_obj.drawStyle = 2#Stick joint draw style	    
+		    except:self.log_error("{0} Failed to set drawStyle".format(i_obj.p_nameShort))		    
 		    cgmMeta.cgmAttr(i_obj,'radius',hidden=True)
 		    
 		for i_obj in ml_controlsFK:
@@ -699,8 +699,8 @@ def build_controls2(self):
 	    i_obj.axisAim = "%s+"%self._jointOrientation[0]
 	    i_obj.axisUp= "%s+"%self._jointOrientation[1]	
 	    i_obj.axisOut= "%s+"%self._jointOrientation[2]
-	    i_obj.drawStyle = 6#Stick joint draw style
-	    
+	    try:i_obj.drawStyle = 2#Stick joint draw style	    
+	    except:self.log_error("{0} Failed to set drawStyle".format(i_obj.p_nameShort))	    
 	    cgmMeta.cgmAttr(i_obj,'radius',hidden=True)
 	    
 	for i_obj in ml_controlsFK:

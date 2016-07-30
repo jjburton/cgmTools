@@ -1179,7 +1179,8 @@ def create_influenceJoints(self,d_build):
 				except Exception,error:raise Exception,"[Status update] | error: {0}".format(error)	
 
 				try:#Create----------------------------------------------------------------------
-				    mi_influenceJoint = cgmMeta.cgmNode( mc.joint()).convertMClassType('cgmObject')
+				    #mi_influenceJoint = cgmMeta.cgmNode( mc.joint()).convertMClassType('cgmObject')
+				    mi_influenceJoint = cgmMeta.cgmObject( mc.joint(),setClass = True)
 				    Snap.go(mi_influenceJoint,mJnt.mNode,orient=True)
 				    mi_influenceJoint.rotateOrder = mJnt.rotateOrder
 				    mi_influenceJoint.doCopyNameTagsFromObject(mJnt.mNode,ignore=['cgmType'])	

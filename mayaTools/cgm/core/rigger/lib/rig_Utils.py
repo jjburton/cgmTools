@@ -16,7 +16,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -1791,11 +1791,14 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 
         try:#Additive Scale 
             if additiveScaleSetup:
+                log.info('additiveScaleSetup...')
                 addAdditiveScaleToSegmentCurveSetup(mi_segmentCurve.mNode,orientation=orientation)
+                log.info('additiveScaleSetup done...')
 
                 if connectAdditiveScale:
                     l_plugs = ['scaleStartUp','scaleStartOut','scaleEndUp','scaleEndOut']
                     for attr in l_plugs: 
+                        log.info(attr)
                         if not mi_segmentCurve.hasAttr(attr):
                             mi_segmentCurve.select()
                             raise StandardError, "Segment curve missing attr: %s"%attr
@@ -1803,6 +1806,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
                     l_attrPrefix = ['Start','End']
                     int_runningTally = 0
                     for i,i_ctrl in enumerate([i_startControl,i_endControl]):
+                        log.info("{0} | {1}".format(i,i_ctrl.p_nameShort))
                         mPlug_outDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%controlOrientation[2])
                         mPlug_upDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%controlOrientation[1])
                         mPlug_scaleOutDriver = cgmMeta.cgmAttr(i_ctrl,"out_scale%sOutNormal"%l_attrPrefix[i],attrType='float')
@@ -1815,13 +1819,17 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
                         arg_up2 = "%s = -1 * %s"%(mPlug_out_scaleUp.p_combinedShortName,mPlug_scaleUpDriver.p_combinedShortName)
                         arg_out2 = "%s = -1 * %s"%(mPlug_out_scaleOut.p_combinedShortName,mPlug_scaleOutDriver.p_combinedShortName)
                         for arg in [arg_up1,arg_out1,arg_up2,arg_out2]:
-                            NodeF.argsToNodes(arg).doBuild()
+                            try:
+                                NodeF.argsToNodes(arg).doBuild()
+                            except Exception,err:
+                                raise Exception,"arg fail {0} | error: {1}".format(arg,err)
 
                         mPlug_out_scaleUp.doConnectOut("%s.%s"%(mi_segmentCurve.mNode,l_plugs[int_runningTally]))
                         int_runningTally+=1
                         mPlug_out_scaleOut.doConnectOut("%s.%s"%(mi_segmentCurve.mNode,l_plugs[int_runningTally]))	    
                         int_runningTally+=1
-        except Exception,error:raise Exception,"[Additive scale]{%s}"%error
+        except Exception,error:
+            raise Exception,"[Additive scale]{%s}"%error
 
         try:#Twist
             if addTwist:
@@ -6200,7 +6208,7 @@ def addAdditiveScaleToSegmentCurveSetup(segmentCurve, orientation = 'zyx', modul
     -1 * ((1-driver1) + (1-driver2)) and connected back to the out/up in's
     """
     #>>> Validate info
-    mi_segmentCurve = cgmMeta.validateObjArg(segmentCurve,cgmMeta.cgmObject,False)
+    mi_segmentCurve = cgmMeta.validateObjArg(segmentCurve,'cgmObject',False)
     try:ml_drivenJoints = cgmMeta.validateObjListArg( mi_segmentCurve.msgList_get('drivenJoints',asMeta = True)[:-1],cgmMeta.cgmObject,False)
     except Exception,error:
         log.error("addAdditiveScaleToSegmentCurveSetup >> '%s' lacks driven joints"%mi_segmentCurve.getShortName())
@@ -6310,6 +6318,7 @@ def addAdditiveScaleToSegmentCurveSetup(segmentCurve, orientation = 'zyx', modul
     d_jointDrivers = {}
     for i_jnt in ml_drivenJoints:
         #Break our current plugs
+        log.debug("driven: {0}".format(i_jnt.mNode))
         outScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%outChannel)
         upScalePlug = attributes.doBreakConnection(i_jnt.mNode,"scale%s"%upChannel)	
         d_jointDrivers[i_jnt] = {'up':[upScalePlug],'out':[outScalePlug]}#build a dict of lists for each joint indexed to joint instance

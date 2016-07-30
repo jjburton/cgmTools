@@ -162,7 +162,7 @@ def doAddAttr(obj,attrName,attrType,*a, **kw):
     attrName(string) -- attribute name
     attrType(string) -- must be valid type. Type 'print attrTypesDict' for search dict  
     """          
-    assert mc.objExists(obj) is True,"'%s' doesn't exists!. Can't add attribute"%obj
+    #assert mc.objExists(obj) is True,"'%s' doesn't exists!. Can't add attribute"%obj
     assert mc.objExists('%s.%s'%(obj,attrName)) is not True,"'%s.%s' already exists. "%(obj,attrName)
 
     attrTypeReturn = validateRequestedAttrType(attrType)
@@ -1592,7 +1592,7 @@ def doBreakConnection(obj,attr=None):
 
     if (mc.connectionInfo (attrBuffer,isDestination=True)):             
         #Get the driven for a vector connection
-        sourceBuffer = mc.listConnections (attrBuffer, scn = False, s = True, plugs = True)
+        sourceBuffer = mc.listConnections (attrBuffer, scn = False, d = False, s = True, plugs = True)
         if not sourceBuffer:
             #Parent mode
             family = returnAttrFamilyDict(obj,attr)           
@@ -1603,8 +1603,10 @@ def doBreakConnection(obj,attr=None):
         if not sourceBuffer:
             return log.warning("No source for '%s.%s' found!"%(obj,attr))
         try:
+	    log.debug('sourceBuffer: {0}'.format(sourceBuffer))
             drivenAttr = '%s.%s'%(obj,attr)
             if family and family.get('parent'):
+		log.debug('family: {0}'.format(family))
                 drivenAttr = '%s.%s'%(obj,family.get('parent'))
 
             log.debug ("Breaking '%s' to '%s'"%(sourceBuffer,drivenAttr))
@@ -1629,8 +1631,8 @@ def doBreakConnection(obj,attr=None):
                 mc.setAttr(sourceBuffer,lock=True)
 
             return sourceBuffer
-        except:
-            log.warning('Unable to break connection. See script dump')
+        except Exception,err:
+	    raise Exception, "doBreakConnection fail | {0}".format(err)
     else:
         return False
 
@@ -1651,7 +1653,7 @@ def returnDriverAttribute(attribute,skipConversionNodes = False,longNames = True
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if (mc.connectionInfo (attribute,isDestination=True)) == True:
-        sourceBuffer = mc.listConnections (attribute, scn = skipConversionNodes, s = True, plugs = True)
+        sourceBuffer = mc.listConnections (attribute, scn = skipConversionNodes, d = False, s = True, plugs = True)
         if not sourceBuffer:
             sourceBuffer = [mc.connectionInfo (attribute,sourceFromDestination=True)]   
         if sourceBuffer:
@@ -1675,7 +1677,7 @@ def returnDriverObject(attribute,skipConversionNodes = False,longNames = True):
     Success - driverObj(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    objectBuffer =  mc.listConnections (attribute, scn = skipConversionNodes, s = True, plugs = False)
+    objectBuffer =  mc.listConnections (attribute, scn = skipConversionNodes, d = False, s = True, plugs = False)
     if not objectBuffer:
         return False
     if longNames:		    
@@ -1698,7 +1700,7 @@ def returnDrivenAttribute(attribute,skipConversionNodes = False,longNames = True
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if (mc.connectionInfo (attribute,isSource=True)) == True:
-        destinationBuffer = mc.listConnections (attribute, scn = skipConversionNodes, d = True, plugs = True)
+        destinationBuffer = mc.listConnections (attribute, scn = skipConversionNodes, s = False, d = True, plugs = True)
         if not destinationBuffer:
             destinationBuffer = mc.connectionInfo (attribute,destinationFromSource=True) 
         if destinationBuffer:
@@ -1725,7 +1727,7 @@ def returnDrivenObject(attribute,skipConversionNodes = True,longNames = True):
     Success - drivenObj(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    objectBuffer =  mc.listConnections (attribute, scn = skipConversionNodes, d = True, plugs = False)
+    objectBuffer =  mc.listConnections (attribute, scn = skipConversionNodes, s = False, d = True, plugs = False)
     if not objectBuffer:
         return False
     if attribute in objectBuffer:

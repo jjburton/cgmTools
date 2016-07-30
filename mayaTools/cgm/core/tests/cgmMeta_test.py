@@ -1519,7 +1519,7 @@ def ut_cgmLimb(*args, **kws):
 		self.mi_puppet = cgmPM.cgmPuppet(name =  'Charlie')
 		mPuppet = self.mi_puppet
 		self.md_modules = {}
-	    except Exception,error:raise Exception,"[module creation]{%s}"%(error)
+	    except Exception,error:raise Exception,"[Puppet creation]{%s}"%(error)
 	
 	    try:#Module Creation -----------------------------------------------------
 		for str_tag in l_limbOrder:

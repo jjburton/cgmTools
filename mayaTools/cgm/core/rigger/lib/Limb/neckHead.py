@@ -350,7 +350,10 @@ def build_controls(*args, **kws):
                                                                    ) 
                         log.info(d_buffer)
                         i_obj = d_buffer['instance']
-                        i_obj.drawStyle = 6#Stick joint draw style
+                        try:
+                            i_obj.drawStyle = 2#Stick joint draw style	    
+                        except:
+                            self.log_error("{0} Failed to set drawStyle".format(i_obj.p_nameShort))
                         ml_segmentsFK[i] = i_obj
                     except Exception,error:
                         raise Exception,"%s failed | error: %s"%(i_obj.mNode,error)

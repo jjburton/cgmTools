@@ -1239,8 +1239,8 @@ def build_controls(*args, **kws):
                     i_obj.axisAim = "%s+"%mi_go._jointOrientation[0]
                     i_obj.axisUp= "%s+"%mi_go._jointOrientation[1]	
                     i_obj.axisOut= "%s+"%mi_go._jointOrientation[2]
-                    i_obj.drawStyle = 6#Stick joint draw style	    
-
+                    try:i_obj.drawStyle = 2#Stick joint draw style	    
+                    except:self.log_error("{0} Failed to set drawStyle".format(i_obj.p_nameShort))
                     cgmMeta.cgmAttr(i_obj,'radius',hidden=True)
 
                 for i_obj in ml_controlsFK:

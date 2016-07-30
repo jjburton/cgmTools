@@ -213,7 +213,7 @@ class cgmFuncCls(object):
 	    
 	    str_lastLogBuffer = self._str_lastLog#Buffer this
 	    if detail == 2:	
-		report_enviornment()
+		#report_enviornment()
 		try:db_file = tb.tb_frame.f_code.co_filename
 		except:db_file = "<maya console>"
 		self.report_base()
@@ -229,10 +229,11 @@ class cgmFuncCls(object):
 			log.error("This failed")
 			log.error("Failed to report last log: {0}".format(error))		
 		for i,item in enumerate(reversed(inspect.getouterframes(tb.tb_frame)[1:])):
-		    print("traceback frame[{0}]".format(i) + _str_subLine)		    
+		    print("traceback frame[{0}]".format(i+1) + _str_subLine)		    
 		    print ' File "{1}", line {2}, in {3}\n'.format(*item),
 		    for item in inspect.getinnerframes(tb):
-			print ' File "{1}", line {2}, in {3}\n'.format(*item),
+			if 'go' not in item:#Path to get our wrapper stuff out of the traceback report
+			    if '__func__' not in item:print ' File "{1}", line {2}, in {3}\n'.format(*item),
 		    if item[4] is not None:
 			for line in item[4]:
 			    print ' ' + line.lstrip(),			
@@ -251,7 +252,7 @@ class cgmFuncCls(object):
 		#self.log_info("Exception: {0}".format(self._Exception))		
 		#self.log_info("Exception error: {0}".format(self._ExceptionError))
 		#self.log_info("Traceback Obj: %s"%tb)
-		#self.log_info("Detail: %s"%detail)		
+		self.log_info("Detail: %s"%detail)		
 	    else:self.log_error("[Step: '{0}' | time: {1} | error: {2}".format(self._str_failStep,self._str_failTime,self._ExceptionError))
 	    if detail == 2:self.log_info(_str_hardBreak)
 	    self.progressBar_end()
@@ -431,12 +432,12 @@ class cgmFuncCls(object):
 	self.log_info(_str_headerDiv  + " ArgsKws " + _str_headerDiv + _str_subLine)		
 	if self._str_funcArgs:self.log_info(" Args: %s"%self._str_funcArgs)
 	if self._str_funcKWs:self.log_info(" KWs: %s"%self._str_funcKWs)	  
-	if self.d_kws:
+	"""if self.d_kws:
 	    self.log_info(" Active Dict: "+_str_subLine)							    
 	    l_keys = self.d_kws.keys()
 	    l_keys.sort()	    
 	    for k in l_keys:
-		self.log_info(_str_baseStart *2 + "['%s'] = %s "%(k,self.d_kws[k]))
+		self.log_info(_str_baseStart *2 + "['%s'] = %s "%(k,self.d_kws[k]))"""
 		
     def report_selfStored(self):
 	l_keys = self.__dict__.keys()

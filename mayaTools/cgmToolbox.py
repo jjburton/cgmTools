@@ -356,7 +356,7 @@ def loadMorpheusMaker( *a ):
 
 
 def loadLocalCGMPythonSetup( *a ):
-    evalMel('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_General as cgmGeneral;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as cgmValid")')
+    evalMel('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_General as cgmGeneral;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;from cgm.core import cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as cgmValid")')
 #Unittest =====================================================================
 def unittest_All( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
