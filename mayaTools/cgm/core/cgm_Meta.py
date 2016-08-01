@@ -227,114 +227,6 @@ def set_mClassInline(self, setClass = None):
     except Exception,error:
 	raise Exception,"set_mClassInline fail >> %s"%error
     
-def set_mClassInlineBAK(self, setClass = None):
-    try:#>>> TO CHECK IF WE NEED TO CLEAR CACHE ---------------------------------------------------------
-	_reinitialize = False
-	_str_func = "set_mClassInline( '{0}' )".format(self.mNode)	
-	
-	if self.isReferenced():
-	    raise ValueError,"Cannot set a referenced node's mClass"
-	
-	_currentMClass = attributes.doGetAttr(self.mNode,'mClass')#...use to avoid exceptions	
-	_b_flushCacheInstance = False
-	
-	if setClass in [True, 1]:
-	    setClass = type(self).__name__	
-	    
-	if setClass not in r9Meta.RED9_META_REGISTERY:
-	    log.error("{0} | mClass value not registered - '{1}'".format(_str_func,setClass))	
-	    return False
-	
-	if setClass:#...if we're going to set the mClass attr...
-	    if _currentMClass:#...does it have a current mClass attr value?
-		if _currentMClass != setClass:#...if not the same, replace
-		    log.warning("{0} | mClasses don't match. Changing to '{1}'".format(_str_func,setClass))				    
-		    self.addAttr('mClass',setClass,lock=True)	
-		    _b_flushCacheInstance = True
-		else:
-		    log.debug("{0} | mClasses match. ignoring...".format(_str_func))				    		
-	    else:#...if we have no value, set it
-		log.warning("{0} | no mClass value, setting to '{1}'".format(_str_func,setClass))				
-		self.addAttr('mClass',setClass,lock=True)	
-		_b_flushCacheInstance = True 
-	#else:#...if we're not setting it on call and it was set by some other process?
-	    #if _currentMClass != str_mClass:
-		#_b_flushCacheInstance = True
-		
-	if _b_flushCacheInstance:#...if it's cached and we've decided to flush it...
-	    log.debug("{0} | Setclass set, checking instance...".format(_str_func))
-	    _keyCheck = attributes.doGetAttr(self.mNode,'UUID')
-	    try:
-		if _keyCheck in r9Meta.RED9_META_NODECACHE.keys():
-		    _buffer = self
-		    r9Meta.RED9_META_NODECACHE.pop(_keyCheck)
-		    log.debug("{0} | Pushed from cache...".format(setClass,_buffer))
-		    _reinitialize = True			
-	    except Exception,error:
-		r9Meta.printMetaCacheRegistry()
-		raise Exception,"{0} pop fail...| {1}".format(_str_func,error)
-	    
-	    self.addAttr('UUID',attrType='string')#...necessary to enable proper caching	    
-	    
-	return _reinitialize
-    except Exception,error:
-	raise Exception,"set_mClassInline fail >> %s"%error   
-def set_mClass(self, str_mClass):
-    """
-    After Red9's rework with caching, needed a way to change an mClass of an object that has potentially been cached.
-    
-    :parameters:
-        self -- MetaClass instance
-	str_mClass -- the string mClass type
-	
-    :returns:
-        None
-
-    """
-    try:#>>> TO CHECK IF WE NEED TO CLEAR CACHE ---------------------------------------------------------
-	_reinitialize = False
-	_str_func = "set_mClass( '{0}' )".format(self.mNode)
-	log.info("{1} | class: {0}".format(str_mClass,_str_func))
-	
-	if self.isReferenced():
-	    raise ValueError,"Cannot set a referenced node's mClass"
-	
-	_currentMClass = attributes.doGetAttr(self.mNode,'mClass')#...use to avoid exceptions	
-	_b_flushCacheInstance = False
-	
-	if _currentMClass:#...does it have a current mClass attr value?
-	    if _currentMClass != str_mClass:#...if not the same, replace
-		log.info("{0} | mClasses don't match. Changing...".format(_str_func))		
-		self.addAttr('mClass',str_mClass,lock=True)	
-		_b_flushCacheInstance = True
-	else:#...if we have no value, set it
-	    self.addAttr('mClass',str_mClass,lock=True)	
-	    _b_flushCacheInstance = True 
-
-		
-	if _b_flushCacheInstance:#...if it's cached and we've decided to flush it...
-	    log.info("{0} | Setclass set, checking instance...".format(_str_func))
-	    _keyCheck = attributes.doGetAttr(self.mNode,'UUID')
-	    try:
-		#if _keyCheck:
-		    #self.UUID = ''
-		if _keyCheck in r9Meta.RED9_META_NODECACHE.keys():
-		    _buffer = self
-		    r9Meta.RED9_META_NODECACHE.pop(_keyCheck)
-		    log.info("{0} | Pushed from cache...".format(_str_func,_buffer))
-		    _reinitialize = True			
-	    except Exception,error:
-		r9Meta.printMetaCacheRegistry()
-		raise Exception,"pop fail...| {0}".format(error)
-	if _reinitialize:
-	    log.info("{0} | Reinitialize...".format(_str_func))	
-	    self = r9Meta.MetaClass(self.mNode)
-	return self
-    except Exception,error:
-	raise Exception,"set_mClass fail >> %s"%error
-    
-
-
 class cgmTest(r9Meta.MetaClass):
     def __bind__(self):pass	    
     def __init__(self,node = None, name = None,nodeType = 'network',**kws):	
@@ -617,28 +509,31 @@ class cgmNode(r9Meta.MetaClass):
 	    raise Exception,"Failed to extend unmanaged | %s"%error	
     
 	#self.update()
-	
-    """def convertMClassType(self, newMClass, **kws):
-	'''
-	Overload for Mark's function to buffer the set class value and handle conversion fail
-	'''
-	#raise NotImplementedError,"No longer good"
-	_bfr_mClass = attributes.doGetAttr(self.mNode,'mClass') or None#...buffer to push back if conversion fails
-	_str_mNode = self.mNode#buffer...to have should converion fail
-	
-	try:
-	    return r9Meta.convertMClassType(self, newMClass, **kws)
-	except Exception,error:
-	    if _bfr_mClass is not None:#...if we had a value push it back before reinitialize
-		attributes.doSetAttr(_str_mNode, 'mClass', _bfr_mClass, forceLock=True)
-	    else:#...otherwise, delete the attr to default
-		attributes.doDeleteAttr(_str_mNode,'mClass')
-	    raise Exception,"Failed to convert to mClass type: {0} . Reverting to {1}| {2}".format(newMClass,_bfr_mClass, error)
-	#return cgmNode(self.mNode, **kws)#...reinitialize as cgmNode"""
-    
+	   
     def __verify__(self):
 	pass#For overload
-    	
+    
+    def hasAttr(self, attr):
+	'''
+	simple wrapper check for attrs on the mNode itself.
+	Note this is not run in some of the core internal calls in this baseClass
+	'''
+	if self.isValidMObject():
+	    try:
+		_result = self._MFnDependencyNode.hasAttribute(attr)
+		if not _result:#..this pass gets the alias
+		    #Must rewrap the mobj, if you don't it kills the existing mNode and corrupts its cache entry
+		    #2011 bails because it lacks the api call anyway, 2012 and up work with this
+		    mobj=OM.MObject()
+		    selList=OM.MSelectionList()
+		    selList.add(self._MObject)
+		    selList.getDependNode(0,mobj)		    
+		    _result = self._MFnDependencyNode.findAlias(attr,mobj)
+		return _result
+	    except Exception,err:
+		#log.error('hasAttr failure...{0}'.format(err))#...this was just to see if I had an error
+		return mc.objExists("{0}.{1}".format(self.mNode, attr))
+	    
     def testWrap(self,*args,**kws):
 	_mNodeSelf = self
 	class fncWrap(cgmMetaFunc):
@@ -730,7 +625,7 @@ class cgmNode(r9Meta.MetaClass):
 	    return cgmAttr(self,attr).getMessage()
 	return [] """
 	
-    def __getMessageAttr__(self, attr):
+    def __getMessageAttr__OLD(self, attr):
 	'''
 	Overloaded Red9's for a default cgmNode
 	'''
@@ -1742,7 +1637,7 @@ class cgmNode(r9Meta.MetaClass):
 		buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)
 	    if not buffer:
 		return False
-	    i_loc = cgmObject(buffer)#setClass=True
+	    i_loc = validateObjArg(buffer,'cgmObject',setClass = True)#setClass=True
 	    if nameLink:
 		i_loc.connectChildNode(self,'cgmName')
 	    else:
