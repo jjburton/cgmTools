@@ -233,7 +233,7 @@ def doMid(jnt='driverMid',curve = 'testSegment_splineIKCurve',influenceJnts = ['
     i_controlSurfaceCluster = cgmMeta.cgmNode('testSegment_segmentCurve_skinNode')
     
     #Create ConstraintCurves
-    i_constraintSplineCurve = mi_splineCurve.doDuplicate(False,False)
+    i_constraintSplineCurve = mi_splineCurve.doDuplicate(po = False,ic=False)
     i_constraintSplineCurve.addAttr('cgmTypeModifier','constraintSpline')
     i_constraintSplineCurve.doName()
     
