@@ -3727,9 +3727,8 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         #>>>Name stuff
         #====================================================
         cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
-
+        i_control = cgmMeta.validateObjArg(i_control,'cgmControl',setClass = True)
         i_control.doStore('cgmName',i_obj.mNode)
-        i_control.addAttr('mClass','cgmControl',lock=True)
         i_control.addAttr('cgmType','controlAnim',lock=True)    
         i_control.addAttr('cgmIterator',"%s"%i,lock=True)        
         i_control.addAttr('cgmTypeModifier','spacePivot',lock=True)
@@ -3792,7 +3791,6 @@ def create_traceCurve(control,targetObject,parentTo = False, lock = True):
     ml_locs = []
     for i,i_obj in enumerate([i_control,i_target]):#Connect each of our handles ot the cv's of the curve we just made
         i_loc = i_obj.doLoc()
-        i_loc.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
         i_loc.doStore('cgmName',i_obj.mNode) #Add name tag
         i_loc.addAttr('cgmTypeModifier',value = 'traceCurve', attrType = 'string', lock=True) #Add Type
         i_loc.v = False # Turn off visibility
@@ -3806,7 +3804,7 @@ def create_traceCurve(control,targetObject,parentTo = False, lock = True):
 
     #>>>Name
     #====================================================  
-    i_crv.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+    i_crv = cgmMeta.validateObjArg(i_crv,'cgmObject',setClass = True)
     i_crv.doStore('cgmName',i_target.mNode)
     i_crv.addAttr('cgmTypeModifier',value = 'trace', attrType = 'string', lock=True)
     i_crv.doName()
@@ -4827,11 +4825,10 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
     #Create surface
     l_surfaceReturn = joints.loftSurfaceFromJointList(jointList,outChannel)
 
-    i_controlSurface = cgmMeta.cgmObject( l_surfaceReturn[0] )
+    i_controlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
     i_controlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_controlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
     i_controlSurface.doName()
-    i_controlSurface.addAttr('mClass','cgmObject')
 
     if i_module:#if we have a module, connect vis
         i_controlSurface.overrideEnabled = 1		
@@ -5089,11 +5086,10 @@ def createConstraintSurfaceSegmentTranslatePosition(jointList,orientation = 'zyx
     #Create surface
     l_surfaceReturn = joints.loftSurfaceFromJointList(jointList,outChannel)
 
-    i_controlSurface = cgmMeta.cgmObject( l_surfaceReturn[0] )
+    i_controlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
     i_controlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_controlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
     i_controlSurface.doName()
-    i_controlSurface.addAttr('mClass','cgmObject')
 
     ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]
     #Create folicles
@@ -5188,11 +5184,10 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
     #Create surface
     l_surfaceReturn = joints.loftSurfaceFromJointList(jointList,outChannel)
 
-    i_controlSurface = cgmMeta.cgmObject( l_surfaceReturn[0] )
+    i_controlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
     i_controlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_controlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
     i_controlSurface.doName()
-    i_controlSurface.addAttr('mClass','cgmObject')
 
     ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]
     #Create folicles
@@ -5414,11 +5409,10 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
     #Create surface
     l_surfaceReturn = joints.loftSurfaceFromJointList(jointList,outChannel)
 
-    i_controlSurface = cgmMeta.cgmObject( l_surfaceReturn[0] )
+    i_controlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
     i_controlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
     i_controlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
     i_controlSurface.doName()
-    i_controlSurface.addAttr('mClass','cgmObject')
 
     ml_jointList = [cgmMeta.cgmObject(j) for j in jointList]
     #Create folicles

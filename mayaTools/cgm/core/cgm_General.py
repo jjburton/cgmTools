@@ -206,11 +206,13 @@ class cgmFuncCls(object):
 	    self.log_error("FAILURE >> {0}".format(res))	    
 	    self.d_return[self._str_step] = res
 	    
-    def _ExceptionHook_(self, etype = None, value = None, tb = None, detail=2):
+    def _ExceptionHook_(self, etype = None, value = None, tb = None, detail=None):
 	# do something here...
 	try:
 	    if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
-	    
+	    if detail == None:
+		if mel.eval('stackTrace -q -state;') == 1:
+		    detail = 2
 	    str_lastLogBuffer = self._str_lastLog#Buffer this
 	    if detail == 2:	
 		#report_enviornment()
@@ -253,7 +255,9 @@ class cgmFuncCls(object):
 		#self.log_info("Exception error: {0}".format(self._ExceptionError))
 		#self.log_info("Traceback Obj: %s"%tb)
 		self.log_info("Detail: %s"%detail)		
-	    else:self.log_error("[Step: '{0}' | time: {1} | error: {2}".format(self._str_failStep,self._str_failTime,self._ExceptionError))
+	    else:
+		pass
+		#self.log_error("[Step: '{0}' | time: {1} | error: {2}".format(self._str_failStep,self._str_failTime,self._ExceptionError))
 	    if detail == 2:self.log_info(_str_hardBreak)
 	    self.progressBar_end()
 	    #mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload

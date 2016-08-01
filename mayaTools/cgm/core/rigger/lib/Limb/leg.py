@@ -2986,14 +2986,14 @@ def build_matchSystem(self):
         _str_subFunc = "Toe iter"
         time_sub = time.clock() 
         log.info(">>> %s >> %s "%(_str_funcName,_str_subFunc) + "="*50)  
-
+        log.info(1)
         i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[-1],
                                               matchTarget = ml_blendJoints[-1],#Make a new one
                                               minValue=-90,
                                               maxValue=90,
                                               maxIter=15,
                                               driverAttr='toeWiggle')
-
+        log.info(2)
         i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[1],#knee
                                               matchObject = ml_blendJoints[1],
                                               drivenAttr= 't%s'%self._jointOrientation[0],
@@ -3001,7 +3001,8 @@ def build_matchSystem(self):
                                               minValue=0.001,
                                               maxValue=30,
                                               maxIter=15,
-                                              driverAttr='lengthUpr')    
+                                              driverAttr='lengthUpr')   
+        log.info(3)
         i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikJoints[2],#ankle
                                               matchObject= ml_blendJoints[2],#Make a new one
                                               drivenAttr='t%s'%self._jointOrientation[0],
@@ -3010,22 +3011,23 @@ def build_matchSystem(self):
                                               maxValue=30,
                                               maxIter=15,
                                               driverAttr='lengthLwr')  
-
+        log.info(4)
         i_ikFootMatch_noKnee.addDynIterTarget(drivenObject =ml_ikNoFlipJoints[1],#knee
                                               matchTarget = ml_blendJoints[1],#Make a new one
                                               minValue=-179,
                                               maxValue=179,
                                               maxIter=15,
                                               driverAttr='kneeSpin') 
-
+        log.info(5)
 
         i_ikFootMatch_noKnee.addDynAttrMatchTarget(dynObjectAttr='ikScale',
                                                    matchAttrArg= [ml_blendJoints[-2].mNode,'s%s'%self._jointOrientation[0]],#Make a new one
                                                    )
-
+        log.info('end')
+        
         log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:
-        raise Exception,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+        raise Exception,"{0} >> {1} | {2}".format(_str_funcName,_str_subFunc,error)
 
     try:#>> Mid...
         _str_subFunc = "Mid"
@@ -3041,7 +3043,7 @@ def build_matchSystem(self):
 
         log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:
-        raise Exception,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+        raise Exception,"{0} >> {1} | {2}".format(_str_funcName,_str_subFunc,error)
 
     try:#>>> FK to IK
         _str_subFunc = "FK to IK"
@@ -3089,7 +3091,7 @@ def build_matchSystem(self):
 
         log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:
-        raise Exception,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+        raise Exception,"{0} >> {1} | {2}".format(_str_funcName,_str_subFunc,error)
 
     try:#>>> Register the switches
         _str_subFunc = "Register switches"
@@ -3112,7 +3114,7 @@ def build_matchSystem(self):
 
         log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:
-        raise Exception,"%s >> %s | %s"(_str_funcName,_str_subFunc,error)
+        raise Exception,"{0} >> {1} | {2}".format(_str_funcName,_str_subFunc,error)
 
     log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	    
     return True

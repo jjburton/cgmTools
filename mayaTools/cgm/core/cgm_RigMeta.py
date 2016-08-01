@@ -681,12 +681,12 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 
         if not i_matchObject and i_matchTarget:#see if we need to make a match object
             i_matchObject = i_drivenObject.doDuplicateTransform()
+	    i_matchObject = cgmMeta.validateObjArg(i_matchObject,'cgmObject',setClass = True)
             i_matchObject.parent = i_matchTarget.mNode
             i_matchObject.doStore('cgmName',"%s_toMatch_%s"%(i_drivenObject.getNameAlias(),i_matchTarget.getNameAlias())) 
             i_matchObject.addAttr('cgmType','dynIterMatchObject')
-            i_matchObject.addAttr('mClass','cgmObject')	
             i_matchObject.doName()	    
-            log.debug("%s.addDynIterTarget>> match object created: %s"%(self.getShortName(),i_matchObject.getShortName()))
+            log.info("%s.addDynIterTarget>> match object created: %s"%(self.getShortName(),i_matchObject.getShortName()))
         elif not i_matchObject:
             raise StandardError, "%s.addDynIterTarget>> if no match object is provided, a match target is necessary"%self.getShortName()
 
@@ -858,7 +858,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
         #>>> Validate
         i_dynObject = cgmMeta.validateObjArg(self.getMessage('dynObject')[0],cgmMeta.cgmObject,noneValid=True) 
         if not i_dynObject:raise StandardError, "cgmDynamicMatch.addDynAttrMatchTarget>> Must have dynObject. None found"	    
-        if not i_dynObject.hasAttr(dynObjectAttr): raise StandardError, "%s.addDynAttrMatchTarget>> dynObject lacks attr: %s.%s "%(self.getShortName(),i_dynObject.getShortName,dynObjectAttr)
+        if not i_dynObject.hasAttr(dynObjectAttr): raise StandardError, "{0}.addDynAttrMatchTarget>> dynObject lacks attr: {1}.{2} ".format(self.getShortName(),i_dynObject.getShortName(),dynObjectAttr)
 
         mPlug_dynObj = cgmMeta.cgmAttr(i_dynObject,dynObjectAttr)
 
@@ -1128,10 +1128,10 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
             l_dynDrivers.insert(index,i_driver.mNode)
             self.msgList_connect(l_dynDrivers,'dynDrivers','dynMaster')
 
+        i_driver = cgmMeta.validateObjArg(i_driver,'cgmObject',setClass = True)
         i_driver.parent = i_dMatchTarget.mNode
         i_driver.doStore('cgmName',"%s_toMatch_%s"%(i_dMatchTarget.getNameAlias(),i_dynObject.getNameAlias())) 
         i_driver.addAttr('cgmType','dynDriver')
-        i_driver.addAttr('mClass','cgmObject')	
         i_driver.addAttr('dynMatchAttrs',attrType='string',lock=True)	
         i_driver.doName()
 
@@ -1644,9 +1644,9 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             #i_driver = i_dParent.doDuplicateTransform()
 
         i_driver.parent = i_dParent.mNode
+	i_driver = cgmMeta.validateObjArg(i_driver,'cgmObject',setClass = True)
         i_driver.doStore('cgmName',"%s_driving_%s"%(i_dParent.getNameAlias(),i_dynChild.getNameAlias())) 
         i_driver.addAttr('cgmType','dynDriver')
-        i_driver.addAttr('mClass','cgmObject')	
         i_driver.doName()
 
         i_driver.rotateOrder = i_dynChild.rotateOrder#Match rotate order
@@ -1666,10 +1666,10 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             i_followDriver = cgmMeta.validateObjArg(gBuffer[0],cgmMeta.cgmObject,noneValid=True)
         else:
             i_followDriver = i_dynChild.doDuplicateTransform()
-
+	    
+	i_followDriver = cgmMeta.validateObjArg(i_followDriver,'cgmObject',setClass = True)
         i_followDriver.doStore('cgmName',i_dynChild.mNode) 
         i_followDriver.addAttr('cgmType','dynFollow')
-        i_followDriver.addAttr('mClass','cgmObject')		
         i_followDriver.doName()
 
         i_followDriver.rotateOrder = i_dynChild.rotateOrder#Match rotate order

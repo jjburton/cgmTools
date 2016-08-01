@@ -433,6 +433,7 @@ def ut_cgmMeta(*args, **kws):
 		self.cgmTx = cgmMeta.cgmAttr(node,'tx')
 		self.cgmTx.p_nameAlias = 'thatWay'
 		assert self.cgmTx.p_nameAlias == 'thatWay'
+		assert node.hasAttr('thatWay'),"attr alias 'thatWay'--{0} not recognized".format(self.cgmTx.p_combinedShortName)
 	    except Exception,error:raise Exception,"[name flags]{%s}"%error
     
 	    try:#Int test

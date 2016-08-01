@@ -538,7 +538,6 @@ def build_limbTemplate(*args, **kws):
 
                     #>>> Loc it and store the loc
                     i_loc =  i_obj.doLoc()
-                    i_loc.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
                     i_loc.addAttr('cgmType',value = 'templateCurveLoc', attrType = 'string', lock=True) #Add Type
                     i_loc.v = False # Turn off visibility
                     i_loc.doName()
@@ -588,8 +587,7 @@ def build_limbTemplate(*args, **kws):
             #=============================  
 
             rootSize = (distance.returnBoundingBoxSizeToAverage(self.l_tmplHandles[0],True)*1.25)    
-            self._mi_rootControl = cgmMeta.cgmObject( curves.createControlCurve('cube',rootSize) )
-            self._mi_rootControl.addAttr('mClass','cgmObject',lock=True)
+            self._mi_rootControl = cgmMeta.validateObjArg( curves.createControlCurve('cube',rootSize),'cgmObject',setClass = True )
 
             curves.setCurveColorByName(self._mi_rootControl.mNode,mi_go.moduleColors[0])
             self._mi_rootControl.addAttr('cgmName',value = str(mi_go._mi_module.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug    
@@ -695,8 +693,7 @@ def doMakeLimbTemplate2(self):
                 sizeMultiplier = .75
 
             #>>> Create and set attributes on the object
-            i_obj = cgmMeta.cgmObject( curves.createControlCurve('sphere',(size * sizeMultiplier)) )
-            i_obj.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+            i_obj = cgmMeta.validateObjArg( curves.createControlCurve('sphere',(size * sizeMultiplier)),'cgmObject',setClass = True )
 
             curves.setCurveColorByName(i_obj.mNode,self.moduleColors[0])
 
@@ -713,7 +710,6 @@ def doMakeLimbTemplate2(self):
             #>>> Loc it and store the loc
             #i_loc = cgmMeta.cgmObject( i_obj.doLoc() )
             i_loc =  i_obj.doLoc()
-            i_loc.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
             i_loc.addAttr('cgmName',value = self._mi_module.getShortName(), attrType = 'string', lock=True) #Add name tag
             i_loc.addAttr('cgmType',value = 'templateCurveLoc', attrType = 'string', lock=True) #Add Type
             i_loc.v = False # Turn off visibility
@@ -732,8 +728,7 @@ def doMakeLimbTemplate2(self):
     try:#>> Make the curve
         #============================= 
         mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[2]), progress=2)    					        
-        i_crv = cgmMeta.cgmObject( mc.curve (d=doCurveDegree, p = self.corePosList , os=True) )
-        i_crv.addAttr('mClass','cgmObject',lock=True)#tag it so it can initialize later
+        i_crv = cgmMeta.validateObjArg( mc.curve (d=doCurveDegree, p = self.corePosList , os=True),'cgmObject',setClass = True )
 
         i_crv.addAttr('cgmName',value = str(self._mi_module.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug
         if self.direction != None:
@@ -758,8 +753,7 @@ def doMakeLimbTemplate2(self):
         mc.progressBar(self.str_progressBar, edit=True, status = "%s >>Template>> step:'%s' "%(self._strShortName,self.l_strSteps[3]), progress=3)    					        
 
         rootSize = (distance.returnBoundingBoxSizeToAverage(templHandleList[0],True)*1.25)    
-        i_rootControl = cgmMeta.cgmObject( curves.createControlCurve('cube',rootSize) )
-        i_rootControl.addAttr('mClass','cgmObject',lock=True)
+        i_rootControl = cgmMeta.validateObjArg( curves.createControlCurve('cube',rootSize),'cgmObject',setClass = True )
 
         curves.setCurveColorByName(i_rootControl.mNode,self.moduleColors[0])
         i_rootControl.addAttr('cgmName',value = str(self._mi_module.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug    
@@ -849,8 +843,7 @@ def doCreateOrientationHelpers(self):
         try:#>> Create orient root control
             #=============================     
             orientRootSize = (distance.returnBoundingBoxSizeToAverage(root,True)*2.5)    
-            i_orientRootControl = cgmMeta.cgmObject( curves.createControlCurve('circleArrow1',orientRootSize) )
-            i_orientRootControl.addAttr('mClass','cgmObject',lock=True)
+            i_orientRootControl = cgmMeta.validateObjArg( curves.createControlCurve('circleArrow1',orientRootSize),'cgmObject',setClass = True )
 
             curves.setCurveColorByName(i_orientRootControl.mNode,self.moduleColors[0])
             i_orientRootControl.addAttr('cgmName',value = str(self._mi_module.getShortName()), attrType = 'string', lock=True)#<<<<<<<<<<<FIX THIS str(call) when Mark fixes bug    
@@ -883,8 +876,7 @@ def doCreateOrientationHelpers(self):
                 for i,obj in enumerate(objects):
                     #>>> Create and color      
                     size = (distance.returnBoundingBoxSizeToAverage(obj,True)*2) # Get size
-                    i_obj = cgmMeta.cgmObject(curves.createControlCurve('circleArrow2Axis',size))#make the curve
-                    i_obj.addAttr('mClass','cgmObject',lock=True)
+                    i_obj = cgmMeta.validateObjArg(curves.createControlCurve('circleArrow2Axis',size),'cgmObject',setClass = True)#make the curve
                     curves.setCurveColorByName(i_obj.mNode,self.moduleColors[1])
                     #>>> Tag and name
                     i_obj.doCopyNameTagsFromObject(obj)
