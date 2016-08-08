@@ -259,7 +259,6 @@ mi_catcherObj.msgList_get('msgAttr',False)
 #Say we wanna purge this data...
 mi_catcherObj.msgList_purge('msgAttr')#Our attrs are gone... so sad....
 
-
 #==============================================================================================
 #>> Message Walking/Node Linking
 #==============================================================================================
@@ -286,27 +285,78 @@ c2.parentConnection#...and back
 #...and walk
 p1.childConnection2.parentConnection.mNode
 
+#==============================================================================================
+#>> Data Searching
+#==============================================================================================
+mc.file(new=True,f=True)#...let's start with a clean file
+#...let's make some stuff
+n1 = r9Meta.MetaClass(name = 'MetaClass_1', nodeType='network')
+n2 = r9Meta.MetaClass(name = 'MetaClass_child', nodeType = 'network')
+c1 = cgmMeta.cgmNode(name = 'cgmNode_1')
+c2 = cgmMeta.cgmObject(name = 'cgmObject_1')
+
+#Let's set some attrs so we can search with an enumerated loop
+for i,o in enumerate([n1,n2,c1,c2]):
+    o.addAttr('testAttr',i)
+    
+n1.connectChild(n2, 'childNode', srcAttr='parentNode')#...wire this so we can see some stuff later
+n1.connectChild(c1, 'childNode2', srcAttr='parentNode')#...and another
+
+#>>Instance query =========================================================================
+#Okay, now let's search some stuff
+#First, a call just to see some info about meta class inheritance as registered in the subclass registry
+r9Meta.getMClassInstances(r9Meta.MetaClass)
+
+#...make it more readable
+for o in r9Meta.getMClassInstances(r9Meta.MetaClass):print o
+#...as you can see there are a lot of subclasses. What if we just wanted to see subclasses to cgmObject
+for o in r9Meta.getMClassInstances(cgmMeta.cgmObject):print o#...quite a few less
+
+#>>getMetaNodes =========================================================================
+#...just to make seeing stuff a little easier, we're gonna make a little pass through function
+def _res(l):
+    for o in l:print o
+
+_res(r9Meta.getMetaNodes())#...returns all metaNodes in the scene
+_res(r9Meta.getMetaNodes(dataType = ''))#...returns as dag strings
+_res(r9Meta.getMetaNodes(mTypes = 'cgmObject'))#...only returns a given meta type
+_res(r9Meta.getMetaNodes(mTypes = r9Meta.MetaClass))#...only returns a given meta type
+_res(r9Meta.getMetaNodes(mInstances = 'cgmNode'))#...returns both the cgmNode in the scene and the cgmObject as it's a subclass to cgmNode
+
+_res(r9Meta.getMetaNodes(mAttrs = 'tx=0'))#...get any nodes with a tx value of 1
+_res(r9Meta.getMetaNodes(mAttrs = 'testAttr=2'))#...get our set attr
+_res(r9Meta.getMetaNodes(mAttrs = 'NOT:testAttr=2'))#...get any nodes that don't have this value
+
+
+#...relational 
+_res(n1.getChildren())#...can see all our children of our 'parent' node
+_res(n1.getChildren(asMeta = True))#...can get data as meta
+n1.getChildren(cAttrs = ['childNode'])#....cAttrs checks the wiring
+n1.getChildren(cAttrs = ['childNode2'])
+
+n1.getChildren(nAttrs = ['testAttr'])#...both have the attribute so both are returned
+
+c1.getParentMetaNode()#...get a parent node from a child
+
+#...connections
+n1.getNodeConnections(c1.mNode)#...get connects between two nodes 
+c1.getNodeConnections(n1.mNode)
+n2.getNodeConnections(n1.mNode)
+
+
+
+
+
+
+
+
+
+
+
 
 #==============================================================================================
-#>> Overloading
+#>> Extra
 #==============================================================================================
-
-
-
-
-#>>msgList ====================================================================================
-#Let's look at the concept of the msgList
-mi_catcherObj = cgmMeta.cgmObject(name = 'msgListCather')
-
-#First we're gonna make some objects to deal with, say 5
-md_msgListObjs = {}
-ml_msgListObjs = []
-for i in range(5):
-    try:mObj= cgmMeta.cgmObject('msgListObj_%i'%i)
-    except:mObj= cgmMeta.cgmObject(name = 'msgListObj_%i'%i)
-    md_msgListObjs[i] = mObj
-    ml_msgListObjs.append(mObj)
-
 
 #>>Other Calls ================================================================================
 mi_cv.getMayaType()#Because maya's type return thing isn't so hot....

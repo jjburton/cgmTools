@@ -410,3 +410,104 @@ def speedTest_objectCount(iterations = 100,):
     log.info(" Maya: {0} | OS: {1}".format(mel.eval( 'about -%s'%'version'), mel.eval( 'about -%s'%'operatingSystemVersion')))
 			      
 			      
+			      
+			      
+def speedTest_attrExists(*args, **kws):
+    """
+    Test for seeing how substantiation speeds are affected
+    """
+    _d_build = {'network':'network'}    
+    class fncWrap(cgmGeneral.cgmFuncCls):
+        def __init__(self,*args, **kws):
+            super(fncWrap, self).__init__(*args, **kws)
+	    self._str_funcName = 'speedTest_attrExists'
+            self._b_reportTimes = 1 #..we always want this on so we're gonna set it on
+            self._b_autoProgressBar = True
+            self._l_ARGS_KWS_DEFAULTS = [{'kw':'targetCount',"default":10,"argType":'int','help':"How many objects to create"},
+                                         {'kw':'build',"default":'network',"argType":'string','help':"What kind of base node to build to test"},
+                                         ]	    
+            self.__dataBind__(*args, **kws)
+            
+            #Now we're gonna register some steps for our function...
+            self.l_funcSteps = [{'step':'Validating Args','call':self._validate_},
+	                        {'step':'Iterate','call':self._iterate_},
+	                        {'step':'Report','call':self._reportHowMayaIsStupid_}]
+
+        def _validate_(self):
+	    mc.file(new=True,f=True)
+            #self.int_iterations = int(cgmValid.valueArg(self.d_kws['iterations'],noneValid=False))
+            self.int_targetCount = int(self.d_kws['targetCount'])
+	    self.str_nodeType = self.d_kws['build']
+	    
+            #self.l_valueBuffer = [i for i in range(self.int_iterations)]
+            #self.log_debug("Debug in _validate_")
+            #For each of our test values, we're gonna create a transform and store it
+            #self.md_rootToChildren = {}
+            self.l_times_1 = []
+	    self.l_times_2 = []
+	    self.l_times_3 = []
+	    self.l_times_4 = []
+	    self.l_roots_1  = []
+	    self.l_roots_2 = []
+	    self.l_roots_3 = []
+	    self.l_roots_4 = []
+	    self.l_objects = []
+	    
+	def test1_func(self,mObj):
+	    #return mc.attributeQuery('test_0', exists=True, node=mObj.mNode)        
+	    return mc.objExists("{0}.test_0".format(mObj.mNode))
+	def test2_func(self,mObj):
+	    return mObj._MFnDependencyNode.hasAttribute('test_0')
+	
+        def _iterate_(self):	
+	    self.call2_func = self.test2_func
+	    mObj = r9Meta.MetaClass(name = "obj",nodeType = 'transform')	    
+            for i in range(self.int_targetCount):
+                self.progressBar_set(status = ("Pass 1: Substantiating Call %i"%i), progress = i, maxValue = self.int_targetCount)		
+		mObj.addAttr('test_{0}'.format(i),attrType='string')
+		
+		t1 = time.clock()	
+		n1 = self.test1_func(mObj)              
+		t2 = time.clock()
+		self.l_times_1.append(t2-t1)
+				
+		t1 = time.clock()	
+		#self.l_roots_2.extend( [self.test2_func(self._toCall)] )  
+		self.call2_func(mObj)              
+		t2 = time.clock()
+		self.l_times_2.append(t2-t1)	
+			
+		
+		
+	def _reportHowMayaIsStupid_(self):
+	    _m1_time = sum(self.l_times_1)
+	    _m2_time = sum(self.l_times_2)
+	    
+	    #cgmGeneral.report_enviornment()	    	    
+	    for i,t in enumerate(self.l_times_1):
+		_dif1 = t - self.l_times_2[i]
+		
+		self.log_info("Step {0} | call: {1}| api: {2}(d{3}) ".format(i,"%0.3f"%t,
+		                                                                "%0.3f"%self.l_times_2[i],
+		                                                                "%0.3f"%_dif1,
+		                                                                ))
+	    
+	    self.log_info(cgmGeneral._str_headerDiv + " Times " + cgmGeneral._str_headerDiv + cgmGeneral._str_subLine)	
+	    self.log_info("Count: {0} | call: {1} | api: {2}".format(self.int_targetCount,
+	                                                                                      "%0.3f"%_m1_time,
+	                                                                                      "%0.3f"%_m2_time))
+	    self.log_info("Method 1 | Start: {0} | End: {1} | Difference: {2} | Total: {3} ".format("%0.3f"%self.l_times_1[0],
+	                                                                                            "%0.3f"%self.l_times_1[-1],
+	                                                                                            "%0.3f"%(self.l_times_1[-1] - self.l_times_1[0]),
+	                                                                                            "%0.3f"%_m1_time))
+
+	    self.log_info("Method 2 | Start: {0} | End: {1} | Difference: {2} | Total: {3} ".format("%0.3f"%self.l_times_2[0],
+	                                                                                            "%0.3f"%self.l_times_2[-1],
+	                                                                                            "%0.3f"%(self.l_times_2[-1] - self.l_times_2[0]),
+	                                                                                            "%0.3f"%_m2_time))	    
+	    self.log_info("Compare 2:1| Dif: {0} | Dif: {1} |                    Total: {2} ".format("%0.3f"%(self.l_times_1[0] - self.l_times_2[0]),
+                                                                                                    "%0.3f"%(self.l_times_1[-1] - self.l_times_2[-1]),
+                                                                                                    "%0.3f"%(_m1_time - _m2_time)))  
+	    
+    
+    return fncWrap(*args, **kws).go()

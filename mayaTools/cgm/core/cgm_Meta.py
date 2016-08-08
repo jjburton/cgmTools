@@ -491,7 +491,7 @@ class cgmNode(r9Meta.MetaClass):
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	#log.info(self)
 	if self.cached:
-	    log.debug("using cache: {0}".format(self._LastDagPath))
+	    log.debug("using cache: {0}".format(self._lastDagPath))
 	    return
 	elif _setClass:
 	    log.error("Do not use 'setClass' flag - Object '{0}'".format(self.mNode))
@@ -575,7 +575,7 @@ class cgmNode(r9Meta.MetaClass):
 	pBuffer = search.returnParentObject(self.mNode) or False
 	if not pBuffer:
 	    return False
-        return cgmNode(pBuffer)
+        return validateObjArg(pBuffer)
 				
     parent = property(getParent)
     p_parent = property(getParent)
@@ -5348,7 +5348,6 @@ def validateObjArg(*args,**kws):
 	    
 	    self.log_debug("Returning...{0}".format(self.mi_arg))
 	    return self.mi_arg	  
-
     return fncWrap(*args,**kws).go()  
 
 def validateObjArgOLD(*args,**kws):
