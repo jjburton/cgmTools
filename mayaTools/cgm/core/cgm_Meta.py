@@ -451,10 +451,6 @@ def dupe(*args, **kws):
     return fncWrap(*args, **kws).go()
 
 class cgmNode(r9Meta.MetaClass):
-    #...see if extending unmanaged is necessary
-    for a in '__justCreatedState__','__componentMode__','__component__':
-	if a not in r9Meta.MetaClass.UNMANAGED:
-	    r9Meta.MetaClass.UNMANAGED.append(a)        
     #def __bind__(self):pass	
     def __init__(self,node = None, name = None,nodeType = 'network', **kws):
         """ 
@@ -481,12 +477,6 @@ class cgmNode(r9Meta.MetaClass):
 	
 	super(cgmNode, self).__init__(node,name = name,nodeType = nodeType,autofill = _autofill, **kws)
 	
-	#>>> TO Check the cache if it needs to be cleared ----------------------------------
-	'''if _setClass is not None:
-	    if set_mClassInline(self, _setClass):
-		log.info('cgmNode init | reinitialize post set_mClass')
-		super(cgmNode, self).__init__(self.mNode)'''
-		    
 		    
 	#>>> TO USE Cached instance ---------------------------------------------------------
 	#log.info(self)
@@ -500,6 +490,10 @@ class cgmNode(r9Meta.MetaClass):
 		#super(cgmNode, self).__init__(self.mNode)
 		r9Meta.registerMClassNodeCache(self)'''
 	#====================================================================================
+	#...see if extending unmanaged is necessary    	
+	for a in '__justCreatedState__','__componentMode__','__component__':
+	    if a not in self.UNMANAGED:
+		self.UNMANAGED.append(a)   	
 	try:
 	    object.__setattr__(self, '__componentMode__', componentMode)
 	    object.__setattr__(self, '__component__', component)
@@ -1100,7 +1094,7 @@ class cgmNode(r9Meta.MetaClass):
     def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
 	#log.debug(">>> %s.addAttr(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)            		        
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':  
-	    if mc.objExists("%s.%s"%(self.mNode,attr)):#Quick create check for initial value
+	    if self.hasAttr(attr):#Quick create check for initial value
 		initialCreate = False
 		if self.isReferenced():
 		    log.warning('This is a referenced node, cannot add attr: %s.%s'%(self.getShortName(),attr))
