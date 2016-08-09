@@ -657,8 +657,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 
         return True
 
-class cgmMorpheusPuppetOLD(cgmPuppet):
-    pass
+class cgmMorpheusPuppet(cgmPuppet):
     """
     def __init__(self, node = None, name = None, initializeOnly = False, *args,**kws):
 	cgmPuppet.__init__(self, node = node, name = name, initializeOnly = initializeOnly, *args,**kws)
@@ -673,6 +672,7 @@ class cgmMorpheusPuppetOLD(cgmPuppet):
 	    if attributes.doGetAttr(plug,'mClass') == 'cgmMorpheusMakerNetwork':
 		return cgmMeta.asMeta(plug)
 	return False
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  

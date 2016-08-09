@@ -5304,15 +5304,20 @@ def validateObjArg(*args,**kws):
 		    t2 = time.clock()		    
 		    self.log_debug("attrSet %0.6f"%(t2-t_attr))	
 		    self.log_debug("setClass %0.6f"%(t2-t1))	
-		    self.mi_arg =  mTypeClass(_argShort)		    
 		else:
 		    t2 = time.clock()
-		    self.log_debug("no setClass. Returning %0.6f"%(t2-t1))			    
-		    self.mi_arg =  mTypeClass(_argShort)
+		    self.log_debug("no setClass. Returning %0.6f"%(t2-t1))	
+		   
+		_mClass = attributes.doGetAttr(_argShort,'mClass')
+		if _mClass not in _r9ClassRegistry:
+		    raise ValueError,"stored mClass not found in class registry. mClass: {0}".format(_mClass)		
+		self.mi_arg =  mTypeClass(_argShort)
 	    else:
 		t1 = time.clock()				    				
 		self.log_debug("no mType arg...")
 		if _mClass:
+		    if _mClass not in _r9ClassRegistry:
+			raise ValueError,"stored mClass not found in class registry. mClass: {0}".format(_mClass)			
 		    mTypeClass = _r9ClassRegistry.get(_mClass)
 		    self.log_debug("mClass registered... '{0}' | {1}".format(_argShort,mTypeClass))		    
 		    self.mi_arg =  mTypeClass(_argShort)
