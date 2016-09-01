@@ -21,10 +21,12 @@ import maya.cmds as mc
 import maya.mel as mel
 import maya.OpenMaya as OM
 
+from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.lib import selection_Utils as cgmSELECT
 from cgm.core.cgmPy import OM_Utils as cgmOM
 from cgm.lib import guiFactory
+from cgm.lib import cgmMath
 from cgm.core.lib import rayCaster as cgmRAYS
 import re
 
@@ -231,7 +233,7 @@ def is_equivalent(sourceObj = None, target = None, tolerance = .0001):
 def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0, selectReturn = True,
                      expandBy = None, expandAmount = 0):
     """
-    Method for checking targets componeents or entirty are within a source object.
+    Method for checking targets components or entirty are within a source object.
 
     :parameters:
         sourceObj(str): Object to check against
@@ -556,6 +558,204 @@ def create_proximityMeshFromTarget(sourceObj= None, target = None, mode = 1, exp
     
     attributes.storeInfo(sourceObj, 'proximityMesh', _dup)
     return _dup
+
+def get_deltaBaseLine(mNode = None, excludeDeformers = True):
+    """
+    Get the base positional informaton against which to do other functions.
+    I know there must be a better way to do this...
+
+    :parameters:
+        sourceObj(str): Must be a cgmObject or subclass
+        noDeformers(bool): Whether to 
+
+    :returns
+        
+    """
+    _str_funcName = 'get_deltaBaseLine: '
+    
+    if excludeDeformers:
+        _deformers = mNode.getDeformers(asMeta = True)
+        
+    else:
+        _deformers = []
+        
+    _d_wiring = {}
+    #...go through and zero out the envelops on the deformers
+    for mDef in _deformers:
+        _d = {}
+        _envelopeAttr = "{0}.envelope".format(mDef.mNode)
+        _plug = attributes.returnDriverAttribute(_envelopeAttr) or False
+        if _plug:
+            attributes.doBreakConnection(_envelopeAttr)
+        _d['plug'] = _plug
+        _d['value'] = mDef.envelope
+        _d['attr'] = _envelopeAttr
+        _d_wiring[mDef] = _d
+        mDef.envelope = 0
+
+    #meat...
+    _result = []
+    _dict = cgmValid.MeshDict(mNode.mNode)
+    for i in range(_dict['pointCount']):
+        _result.append(mc.xform("{0}.vtx[{1}]".format(mNode.mNode,i), t = True, os = True, q=True))
+
+    #...rewire
+    for mDef in _d_wiring.keys():
+        _d = _d_wiring[mDef]
+        if _d.get('plug'):
+            attributes.doConnectAttr( _d.get('plug'),_d['attr'])
+        else:
+            mDef.envelope = _d.get('value')
+    return _result
+
+def get_shapePosData(meshShape = None, space = 'os'):
+    _str_funcName = 'get_shapePosData'
+    
+    __space__ = {'world':['w','ws'],'object':['o','os']}
+    _space = cgmValid.kw_fromDict(space, __space__, calledFrom=_str_funcName)    
+    
+    _result = []
+    _dict = cgmValid.MeshDict(meshShape)
+    #cgmGeneral.log_info_dict(_dict,'get_shapePosData: {0}'.format(meshShape))
+    for i in range(_dict['pointCount']):
+        if _space == 'world':
+            _result.append(mc.xform("{0}.vtx[{1}]".format(_dict['shape'],i), t = True, ws = True, q=True))                
+        else:
+            _result.append(mc.xform("{0}.vtx[{1}]".format(_dict['shape'],i), t = True, os = True, q=True))    
+    return _result
+
+def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object', createNew = True, multiplier = None):
+    """
+    Create a new mesh by adding,subtracting etc the positional info of one mesh to another
+
+    :parameters:
+        sourceObj(str): The mesh we're using to change our target
+        target(str): Mesh to be modified itself or by duplication
+        mode(str)
+            add : (target + source) * multiplier
+            subtract : (target - source) * multiplier
+            multiply : (target * source) * multiplier
+            average: ((target + source) /2 ) * multiplier
+            difference: delta
+            addDiff: target + (delta * multiplier)
+            subtractDiff: target + (delta * multiplier)
+            blend: pretty much blendshape result if you added as a target using multiplier as weight
+            copyTo: resets to target to the source
+        space(str): object,world
+        createNew(bool):whether to create a new mesh result or apply result to target
+        multiplier(float): default 1 -- value to use as a multiplier during the different modes. 
+
+    :returns
+        mesh(str) -- which has been modified
+        
+    """
+    _sel = mc.ls(sl=True)
+    _str_funcName = 'meshMath'
+    __modes__ = ['add','subtract','multiply','average','difference','addDiff','subtractDiff','blend','copyTo']
+    __space__ = {'world':['w','ws'],'object':['o','os']}
+    _mode = cgmValid.kw_fromList(mode, __modes__, calledFrom=_str_funcName)
+    _space = cgmValid.kw_fromDict(space, __space__, calledFrom=_str_funcName)
+    _multiplier = cgmValid.valueArg(multiplier, calledFrom=_str_funcName)
+    if not _multiplier:
+        if _mode == 'blend':
+            _multiplier = .5
+        else:
+            _multiplier = 1
+    
+    #>> Get our objects if we don't have them...
+    if sourceObj is None or target is None:
+        _sel = mc.ls(sl=True)
+        if not _sel:
+            raise ValueError,"{0} must have a sourceObj or selection".format(_str_funcName)
+        
+        if sourceObj is None:
+            sourceObj = _sel[0]
+            
+        if target is None:
+            try:
+                target = _sel[1]
+            except:
+                raise ValueError,"{0} must have a target".format(_sel)
+            
+    _d_source = cgmValid.MeshDict(sourceObj,False, calledFrom=_str_funcName)
+    _d_target = cgmValid.MeshDict(target,False, calledFrom=_str_funcName)
+
+    for k in ['meshType']:
+        if _d_source[k] != _d_target[k]:
+            raise ValueError,"{0} Mesh dicts keys must match. {1} failed".format(_str_funcName,k)
+    
+    log.debug(cgmGeneral._str_subLine)	
+    log.debug("{0}...".format(_str_funcName))
+    #cgmGeneral.log_info_dict(_d_source,'Source')
+    #cgmGeneral.log_info_dict(_d_target,'Target')
+    log.debug("sourceObj: {0}".format(sourceObj))	
+    log.debug("target: {0}".format(target))	
+    log.debug("mode: {0}".format(_mode))	
+    log.debug("space: {0}".format(_space))
+    log.debug("multiplier: {0}".format(_multiplier))
+
+    #meat...
+    _l_pos_obj = get_shapePosData(_d_source['shape'],space)
+    _l_pos_targ = get_shapePosData(_d_target['shape'],space)
+    _len_obj = len(_l_pos_obj)
+    _len_target = len(_l_pos_targ) 
+    assert _len_obj == _len_target, "{0} Must have same vert count. lenSource> {1} != {2} <lenTarget".format(_str_funcName,_len_obj, _len_target)
+        
+    log.debug("obj pos: {0}".format(_l_pos_obj))	
+    log.debug("tar pos: {0}".format(_l_pos_targ))   
+    _l_toApply = []
+    
+    if _mode == 'copyTo':
+        _l_toApply = _l_pos_obj  
+    else:
+        
+        for i,pos in enumerate(_l_pos_targ):
+            _nPos = []
+            if _mode == 'add':
+                _nPos = cgmMath.list_add(pos, _l_pos_obj[i]) * _multiplier
+            elif _mode == 'subtract':
+                _nPos = cgmMath.list_subtract(pos, _l_pos_obj[i]) * _multiplier  
+            elif _mode == 'multiply':
+                for ii,p in enumerate(pos):
+                    _nPos.append((p * _l_pos_obj[i][ii]) * _multiplier)
+            elif _mode == 'average':
+                for ii,p in enumerate(pos):
+                    _nPos.append(((p + _l_pos_obj[i][ii])/2) * _multiplier)
+            elif _mode == 'difference':
+                for ii,p in enumerate(pos):
+                    _nPos.append((p - _l_pos_obj[i][ii]) * _multiplier) 
+            elif _mode == 'addDiff':
+                for ii,p in enumerate(pos):
+                    #_nPos.append(_l_pos_obj[i][ii] + ((_l_pos_obj[i][ii] - p) * _multiplier))                  
+                    _nPos.append(p + (((p - _l_pos_obj[i][ii])) * _multiplier))  
+            elif _mode == 'subtractDiff':
+                for ii,p in enumerate(pos):
+                    _nPos.append(p - (((p - _l_pos_obj[i][ii])) * _multiplier))    
+            elif _mode == 'blend':
+                for ii,p in enumerate(pos):
+                    _nPos.append(p - ((p - _l_pos_obj[i][ii]) * (_multiplier)))  
+            else:
+                raise NotImplementedError,"{0} mode not implemented: '{1}'".format(_str_funcName,_mode)
+            _l_toApply.append(_nPos)
+            
+    log.debug("res pos: {0}".format(_l_toApply))   
+    log.debug(cgmGeneral._str_subLine)  
+    
+    if createNew:
+        _result = mc.duplicate(target)[0]
+        _result = mc.rename(_result,"{0}_from_{1}_{2}_x{3}_result".format(target,sourceObj,_mode,_multiplier))
+        
+    else:
+        _result = target
+        
+    for i,pos in enumerate(_l_toApply):
+        if _space == 'world':
+            mc.xform("{0}.vtx[{1}]".format(_result,i), t = pos, ws = True)             
+        else:
+            mc.xform("{0}.vtx[{1}]".format(_result,i), t = pos, os = True)      
+            
+    if _sel:mc.select(_sel)
+    return _result
     
     
     
