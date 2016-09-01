@@ -70,6 +70,20 @@ def isVectorEquivalent(lhs, rhs, **kwargs):
 
     return result
 
+def isStringEquivalent(str1,str2):
+    """
+    Return true if two strings are the same word regardless of case.
+
+    :parameters:
+        str1 | 
+        str2 |
+
+    :returns
+        bool
+    """ 
+    if str(str1).lower() == str(str2).lower():return True
+    return False
+
 #>>> Basics ============================================================== 
 def stringArg(arg=None, noneValid=True, calledFrom = None, **kwargs):
     """
@@ -645,44 +659,65 @@ def getTransform(arg):
         return buffer[0]
     return False
 
-def MeshDict(mesh = None, pointCounts = True):
-    '''
-    Validates a mesh and returns a dict of data
+def MeshDict(mesh = None, pointCounts = True, calledFrom = None):
+    """
+    Validates a mesh and returns a dict of data.
+    If a shape is the calling object, it will be the shape returned, otherwise, the first shape in the chain will be
 
     :param mesh: mesh to evaluate
+    
+    :returns:
+    dict -- mesh,meshType,shapes,shape,pointCount,pointCountPerShape
+    
 
-    '''        
+    """        
+    _str_funcName = 'MeshDict'
+    if calledFrom: _str_funcName = "{0} calling {1}".format(calledFrom,_str_funcName) 
+    
     _mesh = None 
-    _skin = None
     
     if mesh is None:
-        log.info("No source specified, checking if selection found")
         _bfr = mc.ls(sl=True)
         if not _bfr:raise ValueError,"No selection found and no source arg"
         mesh = _bfr[0]
-        
-
+        log.info("{0}>> No source specified, found: '{1}'".format(_str_funcName,mesh))
+           
     _type = search.returnObjectType(mesh)
-
+    _shape = None
+    _callObjType = None
+    
     if _type in ['mesh']:
         _mesh = mesh
+        _callObjType = 'meshCall'
     elif _type in ['shape']:
+        _shape = mesh
+        _callObjType = 'shapeCall'
         _mesh = getTransform(mesh)
     else:
-        raise ValueError,"Not a usable mesh type : {0}".format(_type)
+        raise ValueError,"{0} error. Not a usable mesh type : obj: '{1}' | type: {2}".format(_str_funcName, mesh, _type)
 
     _shapes = mc.listRelatives(_mesh,shapes=True,fullPath=False)
+    
+    if _shape is None:
+        _shape = _shapes[0]
+        
     _return = {'mesh':_mesh,
                'meshType':_type,
                'shapes':_shapes,
+               'shape':_shape,
+               'callType':_callObjType,
                }
     
     if pointCounts:
-        _l_counts = []
-        for s in _return['shapes']:
-            _l_counts.append( mc.polyEvaluate(s, vertex=True))
-        _return['pointCountPerShape'] = _l_counts
-        _return['pointCount'] = sum(_l_counts)
+        if _callObjType == 'shapeCall':
+            _return['pointCount'] = mc.polyEvaluate(_shape, vertex=True)
+        else:
+            _l_counts = []
+            for s in _return['shapes']:
+                _l_counts.append( mc.polyEvaluate(s, vertex=True))
+            _return['pointCountPerShape'] = _l_counts
+            _return['pointCount'] = sum(_l_counts)
+
     return _return   
 
 def filepath(filepath = None, fileMode = 0, fileFilter = 'Config file (*.cfg)', startDir = None):
@@ -723,3 +758,65 @@ def filepath(filepath = None, fileMode = 0, fileFilter = 'Config file (*.cfg)', 
             log.info("{0} mode | filepath validated... {1}".format(_d_modes.get(fileMode),filepath))                    
             _result = filepath
     return _result
+
+def kw_fromDict(arg = None ,d = None, indexCallable = True,  noneValid = False, calledFrom = None):
+    """
+    Returns valid kw if it matches a key of a dict or a list of possible options provided.
+    
+    :parameters:
+        arg | string
+        d | dict -- Example: {'k1':['KONE','k1']...}
+        indexCallable | bool -- if an index value for a list is acceptable or not
+        noneValid | bool -- if False and it fails, raise valueError
+        calledFrom | string -- calling function for error reporting
+
+    """        
+    _str_funcName = 'kw_fromDict'
+    if calledFrom: _str_funcName = "{0} calling {1}".format(calledFrom,_str_funcName) 
+       
+    if arg is None or d is None:
+        raise ValueError,"{0}: Must have k and d arguments | arg: {1} | d: {2}".format(_str_funcName, arg, d)
+    
+    if not isinstance(d, dict):
+        raise ValueError,"{0}: d arg must be a dict | d: {1}".format(_str_funcName,d)
+    
+    for k in d.keys():
+        if isStringEquivalent(k,arg):return k
+        _l = d[k]
+        if not isListArg(_l):
+            raise ValueError,"{0}: Invalid list on dict key | k: {1} | Not a list: {2}".format(_str_funcName,k,_l)
+        for o in _l:
+            if isStringEquivalent(o,arg):return k 
+            
+    if not noneValid:
+        raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, l)
+
+def kw_fromList(arg = None ,l = None, noneValid = False, calledFrom = None):
+    """
+    Returns valid kw if it matches a list of possible options provided.
+    
+    :parameters:
+        arg | string
+        l | list -- Example: {'k1':['KONE','k1']...}
+        noneValid | bool -- if False and it fails, raise valueError
+        calledFrom | string -- calling function for error reporting
+
+    """        
+    _str_funcName = 'kw_fromDict'
+    if calledFrom: _str_funcName = "{0} calling {1}".format(calledFrom,_str_funcName) 
+       
+    if arg is None or l is None:
+        raise ValueError,"{0}: Must have k and l arguments | arg: {1} | l: {2}".format(_str_funcName, arg, l)
+    
+    if not isListArg(l):
+        raise ValueError,"{0}: l arg must be a dict | l: {1}".format(_str_funcName,l)
+    
+    for o in l:
+        if isStringEquivalent(o,arg):return o 
+        
+    if not noneValid:
+        raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, l)
+
+        
+    
+    
