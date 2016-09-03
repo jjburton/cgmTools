@@ -37,42 +37,122 @@ from cgm.lib.zoo.zooPyMaya import baseMelUI as mUI
 from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
 import Red9
 
-def setupCGMScriptPaths():
-    thisFile = Path( __file__ )
-    thisPath = thisFile.up()
-
+def clean_scriptPaths():
+    _str_func = 'clean_scriptPaths'
+    _buffer = maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' )
     mayaScriptPaths = map( Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
     mayaScriptPathsSet = set( mayaScriptPaths )
-
-    for path in '/cgm/mel','/cgm/images','/cgm/lib/zoo','/Red9':
-        fullPath = thisPath / path
+    
+    _l_good = []
+    _l_bad = []
+    try:
+        for path in mayaScriptPathsSet:
+	    log.debug("{0}>> Checking {1}".format(_str_func,path))	    
+            if path.count('/') == 0:
+                log.info("{0}>>Bad path? {1}".format(_str_func,path))
+		
+            if path not in _l_good:
+		if path.count('.git') == 0:
+		    _l_good.append(path)		    
+		else:
+		    log.info("{0}>> .git in path??: {1}".format(_str_func,path))		    
+            else:
+                log.info("{0}>> Duplicate path: {1}".format(_str_func,path))
+                
+        _loadable = []        
+        for i,_p in enumerate(_l_good):
+            try:
+		maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % _p )
+		_loadable.append(_p)
+		log.info("{0}>> {1}".format(_str_func,_p))				
+            except:
+                log.error("{0}>> Failed to load: {1}".format(_str_func,_p))
+                
+        newScriptPath = os.pathsep.join( [ p for p in _loadable ] )
+	maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
+	return True
+    except:
+        log.error('clean_scriptPaths failure. Restoring: {0}'.format(_buffer))
+        maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % _buffer )
+	
+def clean_pluginPaths():
+    _str_func = 'clean_pluginPaths'
+    _buffer = maya.mel.eval( 'getenv MAYA_PLUG_IN_PATH' )
+    mayaScriptPaths = map( Path, maya.mel.eval( 'getenv MAYA_PLUG_IN_PATH' ).split( os.pathsep ) )
+    mayaScriptPathsSet = set( mayaScriptPaths )
+    
+    _l_good = []
+    _l_bad = []
+    try:
+        for path in mayaScriptPathsSet:
+	    log.debug("{0}>> Checking {1}".format(_str_func,path))
+            if path.count('/') == 0:
+                log.info("{0}>>Bad path? {1}".format(_str_func,path))
+            if path not in _l_good:
+                _l_good.append(path)
+            else:
+                log.info("{0}>> Duplicate path: {1}".format(_str_func,path))
+                
+        _loadable = []        
+        for i,_p in enumerate(_l_good):
+            try:
+		maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s"' % _p )
+		_loadable.append(_p)
+		log.info("{0}>> {1}".format(_str_func,_p))		
+            except:
+                log.error("{0}>> Failed to load: {1}".format(_str_func,_p))
+                
+        newScriptPath = os.pathsep.join( [ p for p in _loadable ] )
+	maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s"' % newScriptPath )
+	return True
+    except:
+        log.error('clean_pluginPaths failure. Restoring: {0}'.format(_buffer))
+        maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s"' % _buffer )
+	
+def setupCGMScriptPaths():
+    thisFile = Path(__file__)
+    #thisPath = os.sep.join(__file__.split(os.sep)[:-1])
+    thisPath = thisFile.up().osPath()
+    
+    mayaScriptPaths = map( Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
+    mayaScriptPathsSet = set( mayaScriptPaths )
+    _paths = [os.path.join('cgm','mel','zooPy'),
+              os.path.join('cgm','mel'),
+              os.path.join('cgm','images'),
+              os.path.join('cgm','lib','zoo'),
+              'Red9']
+    
+    for path in _paths:
+        fullPath = Path( os.path.join(thisPath, path) )
         if fullPath not in mayaScriptPathsSet:
-            mayaScriptPaths.append( fullPath )
+            log.info("setupCGMScriptPaths>> Path not found. Appending: {}".format(fullPath))            
+            mayaScriptPaths.append( Path(fullPath.asFriendly()) )
             mayaScriptPaths.extend( fullPath.dirs( recursive=True ) )
 
             mayaScriptPaths = mUI.removeDupes( mayaScriptPaths )
-            newScriptPath = os.pathsep.join( [ p.unresolved() for p in mayaScriptPaths ] )
-
+            newScriptPath = os.pathsep.join( [ p for p in mayaScriptPaths ] )
+            #for p in mayaScriptPaths:
+                #print ("{0} >> {1}".format(p,p.unresolved()))
             maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
-
-
 
 def setupCGMPlugins():
     thisFile = Path( __file__ )
-    thisPath = thisFile.up()
+    thisPath = thisFile.up().osPath()
 
     existingPlugPathStr = maya.mel.eval( 'getenv MAYA_PLUG_IN_PATH;' )
     existingPlugPaths = map( Path, existingPlugPathStr.split( os.pathsep ) )
     existingPlugPathsSet = set( existingPlugPaths )
 
-    cgmPyPath = thisPath / 'cgm/plugins'
-
+    #cgmPyPath = thisPath / 'cgm/plugins'
+    cgmPyPath = Path( os.path.join(thisPath, 'cgm','plugins') )
     if cgmPyPath not in existingPlugPathsSet:
+        log.info("setupCGMPlugins>> cgmPyPath not found. Appending: {0}".format(cgmPyPath))            
         existingPlugPaths.append( cgmPyPath )
 
         existingPlugPaths = mUI.removeDupes( existingPlugPaths )
-        newPlugPathStr = os.pathsep.join( [ p.unresolved() for p in existingPlugPaths ] )
-
+        newPlugPathStr = os.pathsep.join( [ p for p in existingPlugPaths ] )
+	for p in existingPlugPaths:
+	    print p
         maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s";' % newPlugPathStr )
 
 """

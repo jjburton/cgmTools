@@ -27,6 +27,7 @@ from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import PuppetFactory as pFactory
 import cgm.core.tests.test_validateArgs as test_validateArgs
+from cgm.core.cgmPy import os_Utils as cgmOS
 reload(test_validateArgs)
 
 import maya.cmds as mc
@@ -1499,16 +1500,18 @@ def ut_cgmLimb(*args, **kws):
 	    try:
 		_str_fileName = 'morphyTestTorso.ma'
 		self._str_geo = 'Morphy_Body_GEO'
-		import cgm.core.tests as fldr_cgmTests
-		reload(fldr_cgmTests)		
-		l_mayaTestFiles = fldr_cgmTests.returnMayaFilesFromFolder()
+		#import cgm.core.tests as fldr_cgmTests
+		#reload(fldr_cgmTests)
+		_path_folder = cgmOS.Path(cgm.core.tests.__file__).up()		
+		l_mayaTestFiles = cgmOS.get_lsFromPath(cgm.core.tests.__file__)
+		_path_folder = cgmOS.Path(cgm.core.tests.__file__).up()
 	    except Exception,error:raise Exception,"[Query]{%s}"%error
 
 	    try:mc.file(new=True,f=True)
 	    except Exception,error:raise Exception,"[File New]{%s}"%error
 	    
 	    try:
-		mFile = DIR_SEPARATOR.join([fldr_cgmTests.__pathHere__,_str_fileName])
+		mFile = DIR_SEPARATOR.join([_path_folder,_str_fileName])
 		mc.file(mFile, i = True, pr = True, force = True,prompt = False) 		
 
 	    except Exception,error:

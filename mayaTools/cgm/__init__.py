@@ -7,47 +7,25 @@ from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
 import sys
 
 def setupContributorPaths():
-        thisFile = Path( __file__ )
-        thisPath = thisFile.up()
-
-        mayaSysPaths = sys.path
-
-        for folder in 'mel','images','lib/zoo','lib/zoo/zooMel','lib/zoo/zooPy','lib/zoo/zooPyMaya','lib/bo','lib/ml':
-                bufferFolderPath = thisPath / folder
-                if bufferFolderPath not in mayaSysPaths:
-                        try:
-                                sys.path.append("%s" %bufferFolderPath)
-                        except:
-                                print ('%s Failed to append' %bufferFolderPath)
-setupContributorPaths()
+        try:
+                thisFile = Path( __file__ )
+                thisPath = thisFile.up().osPath()
+        
+                mayaSysPaths = sys.path
+                #'lib/zoo/zooMel','lib/zoo/zooPy','lib/zoo/zooPyMaya','lib/bo','lib/ml':
+                _l = ['mel','images',os.path.join('lib','zoo'),
+                      os.path.join('lib','zoo','zooPy'),
+                      os.path.join('lib','zoo','zooPyMaya'),
+                      os.path.join('lib','bo'),
+                      os.path.join('lib','ml')]
+                for folder in _l:
+                        bufferFolderPath = os.path.join(thisPath,folder)
+                        if bufferFolderPath not in mayaSysPaths:
+                                try:
+                                        sys.path.append("%s" %bufferFolderPath)
+                                except:
+                                        print ('%s Failed to append' %bufferFolderPath)
+        except Exception,err:
+                raise Exception,"setupContributorPaths FAILURE || {0}".format(err)
+#setupContributorPaths()
 #=======================================================================================
-
-def returnPyFilesFromFolder():
-        import os
-        thisFile = Path( __file__ )
-        thisPath = thisFile.up()
-
-
-        bufferList = find_files(thisPath, '*.py')
-        returnList = []
-        
-        for file in bufferList:
-                if '__' not in file:
-                        splitBuffer = file.split('.')
-                        returnList.append(splitBuffer[0])               
-        if returnList:
-                return returnList
-        else:
-                return False
-        
-def find_files(base, pattern):
-        import fnmatch
-        import os
-        
-        '''Return list of files matching pattern in base folder.'''
-        """ http://stackoverflow.com/questions/4296138/use-wildcard-with-os-path-isfile"""
-        return [n for n in fnmatch.filter(os.listdir(base), pattern) if
-                os.path.isfile(os.path.join(base, n))]
-        
-        
-__all__ = returnPyFilesFromFolder()

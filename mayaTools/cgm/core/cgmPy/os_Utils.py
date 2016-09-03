@@ -26,15 +26,12 @@ import maya.cmds as mc
 
 # From cgm ==============================================================
 from cgm.core.cgmPy import validateArgs as cgmValid
-
-
-DIR_SEPARATOR = '/' 
-
+from cgm.lib.zoo.zooPy.path import Path
 
 #>>> Utilities
 #===================================================================
 def get_lsFromPath(str_path = None, 
-                   matchArg = None, 
+                   matchArg = 'maya', 
                    calledFrom = None,**kwargs):
     """
     Return files or folders of a specific type from a given path
@@ -65,6 +62,9 @@ def get_lsFromPath(str_path = None,
     #>> Check the str_path
     if not isinstance(str_path, basestring):
         raise TypeError('path must be string | str_path = {0}'.format(str_path))
+    if os.path.isfile(str_path):
+        str_path = Path(str_path).up()
+        log.info("{0} >> passed file. using dir: {1}".format(_str_funcName,str_path))        
     if not os.path.isdir(str_path):
         raise ValueError('path must validate as os.path.isdir | str_path = {0}'.format(str_path))
     
@@ -102,3 +102,30 @@ def get_lsFromPath(str_path = None,
 						if f.hasExtension( clipType.EXT ):
 							localeClips.append( clipType( locale, library, f.name() ) )
 '''
+
+def returnPyFilesFromFolder():
+    import os
+    thisFile = Path( __file__ )
+    thisPath = thisFile.up()
+
+
+    bufferList = find_files(thisPath, '*.py')
+    returnList = []
+
+    for file in bufferList:
+        if '__' not in file:
+            splitBuffer = file.split('.')
+            returnList.append(splitBuffer[0])               
+    if returnList:
+        return returnList
+    else:
+        return False
+
+def find_files(base, pattern):
+    import fnmatch
+    import os
+
+    '''Return list of files matching pattern in base folder.'''
+    """ http://stackoverflow.com/questions/4296138/use-wildcard-with-os-path-isfile"""
+    return [n for n in fnmatch.filter(os.listdir(base), pattern) if
+            os.path.isfile(os.path.join(base, n))]
