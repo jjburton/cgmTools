@@ -21,11 +21,12 @@ def setupContributorPaths():
                 for folder in _l:
                         bufferFolderPath = os.path.join(thisPath,folder)
                         if bufferFolderPath not in mayaSysPaths:
+                                log.info()
                                 try:
                                         sys.path.append("%s" %bufferFolderPath)
                                 except:
                                         print ('%s Failed to append' %bufferFolderPath)
         except Exception,err:
                 raise Exception,"setupContributorPaths FAILURE || {0}".format(err)
-#setupContributorPaths()
+setupContributorPaths()
 #=======================================================================================
