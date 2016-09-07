@@ -125,7 +125,7 @@ def setupCGMScriptPaths():
     for path in _paths:
         fullPath = Path( os.path.join(thisPath, path) )
         if fullPath not in mayaScriptPathsSet:
-            log.info("setupCGMScriptPaths>> Path not found. Appending: {}".format(fullPath))            
+            log.info("setupCGMScriptPaths>> Path not found. Appending: {0}".format(fullPath))            
             mayaScriptPaths.append( Path(fullPath.asFriendly()) )
             mayaScriptPaths.extend( fullPath.dirs( recursive=True ) )
 
