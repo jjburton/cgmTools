@@ -624,7 +624,17 @@ def get_shapePosData(meshShape = None, space = 'os'):
             _result.append(mc.xform("{0}.vtx[{1}]".format(_dict['shape'],i), t = True, os = True, q=True))    
     return _result
 
-def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object', createNew = True, multiplier = None):
+
+_d_meshMathModes_ = {'add':['a','+'],'subtract':['s','sub','-'],
+                     'multiply':['mult','m'],
+                     'average':['avg'],'difference':['d','diff'],
+                     'addDiff':['addDifference','+diff','ad'],
+                     'subtractDiff':['subtractDifference','sd','-diff'],
+                     'blend':['b','blendshape'],
+                     'copyTo':['transfer','reset']}
+
+def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
+             resultMode = 'new', multiplier = None):
     """
     Create a new mesh by adding,subtracting etc the positional info of one mesh to another
 
@@ -642,7 +652,10 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object', 
             blend: pretty much blendshape result if you added as a target using multiplier as weight
             copyTo: resets to target to the source
         space(str): object,world
-        createNew(bool):whether to create a new mesh result or apply result to target
+        resultMode(str):
+            new: apply new duplicate of target
+            modify: modify the existing target
+            values: just get the values 
         multiplier(float): default 1 -- value to use as a multiplier during the different modes. 
 
     :returns
@@ -651,10 +664,11 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object', 
     """
     _sel = mc.ls(sl=True)
     _str_funcName = 'meshMath'
-    __modes__ = ['add','subtract','multiply','average','difference','addDiff','subtractDiff','blend','copyTo']
     __space__ = {'world':['w','ws'],'object':['o','os']}
-    _mode = cgmValid.kw_fromList(mode, __modes__, calledFrom=_str_funcName)
+    __resultTypes__ = {'new':['n'],'modify':['self','m'],'values':['v']}
+    _mode = cgmValid.kw_fromDict(mode, _d_meshMathModes_, calledFrom=_str_funcName)
     _space = cgmValid.kw_fromDict(space, __space__, calledFrom=_str_funcName)
+    _resultType = cgmValid.kw_fromDict(resultMode, __resultTypes__, calledFrom=_str_funcName)
     _multiplier = cgmValid.valueArg(multiplier, calledFrom=_str_funcName)
     if not _multiplier:
         if _mode == 'blend':
@@ -693,6 +707,7 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object', 
     log.debug("mode: {0}".format(_mode))	
     log.debug("space: {0}".format(_space))
     log.debug("multiplier: {0}".format(_multiplier))
+    log.debug("resultType: {0}".format(_resultType))
 
     #meat...
     _l_pos_obj = get_shapePosData(_d_source['shape'],space)
@@ -704,8 +719,8 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object', 
     log.debug("obj pos: {0}".format(_l_pos_obj))	
     log.debug("tar pos: {0}".format(_l_pos_targ))   
     _l_toApply = []
-    
-    if _mode == 'copyTo':
+    _l_toApply = meshMath_values(_l_pos_obj,_l_pos_targ,_mode,_multiplier)
+    """if _mode == 'copyTo':
         _l_toApply = _l_pos_obj  
     else:
         
@@ -736,25 +751,124 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object', 
                     _nPos.append(p - ((p - _l_pos_obj[i][ii]) * (_multiplier)))  
             else:
                 raise NotImplementedError,"{0} mode not implemented: '{1}'".format(_str_funcName,_mode)
-            _l_toApply.append(_nPos)
+            _l_toApply.append(_nPos)"""
             
     log.debug("res pos: {0}".format(_l_toApply))   
     log.debug(cgmGeneral._str_subLine)  
     
-    if createNew:
-        _result = mc.duplicate(target)[0]
-        _result = mc.rename(_result,"{0}_from_{1}_{2}_x{3}_result".format(target,sourceObj,_mode,_multiplier))
-        
+    if _resultType == 'values':
+        _result = _l_toApply
     else:
-        _result = target
+        if _resultType == 'new':
+            _result = mc.duplicate(target)[0]
+            _result = mc.rename(_result,"{0}_from_{1}_{2}_x{3}_result".format(target,sourceObj,_mode,_multiplier))
         
-    for i,pos in enumerate(_l_toApply):
-        if _space == 'world':
-            mc.xform("{0}.vtx[{1}]".format(_result,i), t = pos, ws = True)             
         else:
-            mc.xform("{0}.vtx[{1}]".format(_result,i), t = pos, os = True)      
+            _result = target
+        guiFactory.doProgressWindow(winName=_str_funcName, 
+                                    statusMessage='Progress...', 
+                                    startingProgress=1, 
+                                    interruptableState=True)            
+        for i,pos in enumerate(_l_toApply):
+            guiFactory.doUpdateProgressWindow("Moving -- [{0}]".format(i), i,  
+                                              _len_target, reportItem=False)                
+            if _space == 'world':
+                mc.xform("{0}.vtx[{1}]".format(_result,i), t = pos, ws = True)             
+            else:
+                mc.xform("{0}.vtx[{1}]".format(_result,i), t = pos, os = True)    
+        guiFactory.doCloseProgressWindow()
             
     if _sel:mc.select(_sel)
+    return _result
+
+
+def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', multiplier = None):
+    """
+    The values portion of of meshMath. See it for more information about what this is about.
+
+    :parameters:
+        sourceValues(list): Nested list of point values with which to do our math
+        targetValues(list): Nested list of point values for our target
+        mode(str)
+            add : (target + source) * multiplier
+            subtract : (target - source) * multiplier
+            multiply : (target * source) * multiplier
+            average: ((target + source) /2 ) * multiplier
+            difference: delta
+            addDiff: target + (delta * multiplier)
+            subtractDiff: target + (delta * multiplier)
+            blend: pretty much blendshape result if you added as a target using multiplier as weight
+            copyTo: resets to target to the source
+        multiplier(float): default 1 -- value to use as a multiplier during the different modes. 
+
+    :returns
+        values list(list) -- the result of our math
+        
+    """
+    _str_funcName = 'meshMath_values'
+    _mode = cgmValid.kw_fromDict(mode, _d_meshMathModes_, calledFrom=_str_funcName)
+    _multiplier = cgmValid.valueArg(multiplier, calledFrom=_str_funcName)
+    
+    if not _multiplier:
+        if _mode == 'blend':
+            _multiplier = .5
+        else:
+            _multiplier = 1
+       
+    log.debug(cgmGeneral._str_subLine)	
+    log.debug("{0}...".format(_str_funcName))
+    log.debug("sourceValues: {0}".format(sourceValues))	
+    log.debug("targetValues: {0}".format(targetValues))	
+    log.debug("mode: {0}".format(_mode))	
+    log.debug("multiplier: {0}".format(_multiplier))
+
+    #meat...
+    _len_obj = len(sourceValues)
+    _len_target = len(targetValues) 
+    assert _len_obj == _len_target, "{0} Must have same vert count. lenSource> {1} != {2} <lenTarget".format(_str_funcName,_len_obj, _len_target)
+         
+    _result = []
+    guiFactory.doProgressWindow(winName=_str_funcName, 
+                                statusMessage='Progress...', 
+                                startingProgress=1, 
+                                interruptableState=True)    
+    if _mode == 'copyTo':
+        _result = sourceValues  
+    else:
+        for i,pos in enumerate(targetValues):
+            guiFactory.doUpdateProgressWindow("{0} -- [{1}]".format(_mode,i), i,  
+                                              _len_target, reportItem=False)                
+            _nPos = []
+            if _mode == 'add':
+                _nPos = cgmMath.list_add(pos, sourceValues[i]) * _multiplier
+            elif _mode == 'subtract':
+                _nPos = cgmMath.list_subtract(pos, sourceValues[i]) * _multiplier  
+            elif _mode == 'multiply':
+                for ii,p in enumerate(pos):
+                    _nPos.append((p * sourceValues[i][ii]) * _multiplier)
+            elif _mode == 'average':
+                for ii,p in enumerate(pos):
+                    _nPos.append(((p + sourceValues[i][ii])/2) * _multiplier)
+            elif _mode == 'difference':
+                for ii,p in enumerate(pos):
+                    _nPos.append((p - sourceValues[i][ii]) * _multiplier) 
+            elif _mode == 'addDiff':
+                for ii,p in enumerate(pos):
+                    #_nPos.append(_l_pos_obj[i][ii] + ((_l_pos_obj[i][ii] - p) * _multiplier))                  
+                    _nPos.append(p + (((p - sourceValues[i][ii])) * _multiplier))  
+            elif _mode == 'subtractDiff':
+                for ii,p in enumerate(pos):
+                    _nPos.append(p - (((p - sourceValues[i][ii])) * _multiplier))    
+            elif _mode == 'blend':
+                for ii,p in enumerate(pos):
+                    _nPos.append(p - ((p - sourceValues[i][ii]) * (_multiplier)))  
+            else:
+                raise NotImplementedError,"{0} mode not implemented: '{1}'".format(_str_funcName,_mode)
+            _result.append(_nPos)
+            
+    log.debug("res pos: {0}".format(_result))   
+    log.debug(cgmGeneral._str_subLine)  
+    guiFactory.doCloseProgressWindow()
     return _result
     
     

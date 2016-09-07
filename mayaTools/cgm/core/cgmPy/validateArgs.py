@@ -789,7 +789,7 @@ def kw_fromDict(arg = None ,d = None, indexCallable = True,  noneValid = False, 
             if isStringEquivalent(o,arg):return k 
             
     if not noneValid:
-        raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, l)
+        raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, d)
 
 def kw_fromList(arg = None ,l = None, noneValid = False, calledFrom = None):
     """
