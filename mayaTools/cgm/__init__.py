@@ -13,7 +13,7 @@ def setupContributorPaths():
         
                 mayaSysPaths = sys.path
                 #'lib/zoo/zooMel','lib/zoo/zooPy','lib/zoo/zooPyMaya','lib/bo','lib/ml':
-                _l = ['mel','images',os.path.join('lib','zoo'),
+                _l = ['mel','images','lib',os.path.join('lib','zoo'),
                       os.path.join('lib','zoo','zooPy'),
                       os.path.join('lib','zoo','zooPyMaya'),
                       os.path.join('lib','bo'),
@@ -21,7 +21,6 @@ def setupContributorPaths():
                 for folder in _l:
                         bufferFolderPath = os.path.join(thisPath,folder)
                         if bufferFolderPath not in mayaSysPaths:
-                                log.info()
                                 try:
                                         sys.path.append("%s" %bufferFolderPath)
                                 except:
