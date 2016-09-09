@@ -21,6 +21,7 @@ from Red9.core import (Red9_General,
                        Red9_PoseSaver) 
 import cgm_General
 import cgm_Meta
+import cgm_Deformers
 import cgm_PuppetMeta
 import cgm_RigMeta
 import cgmPy.validateArgs
@@ -50,6 +51,7 @@ def _reload():
     Red9.core._reload()
     reload(cgm_General)    
     reload(cgm_Meta)
+    reload(cgm_Deformers)
     reload(cgm_PuppetMeta)
     reload(cgm_RigMeta)
     reload(cgmPy.validateArgs)
