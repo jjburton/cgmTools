@@ -20,6 +20,7 @@
 import maya.cmds as mc
 import maya.mel as mel
 import maya.OpenMaya as OM
+import copy
 
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
@@ -625,15 +626,37 @@ def get_shapePosData(meshShape = None, space = 'os'):
     return _result
 
 
+_d_meshMathValuesModes_ = {'add':['a','+'],'subtract':['s','sub','-'],
+                           'multiply':['mult','m'],
+                           'average':['avg'],'difference':['d','diff'],
+                           'addDiff':['addDifference','+diff','ad'],
+                           'subtractDiff':['subtractDifference','sd','-diff'],
+                           'blend':['b','blendshape'],
+                           'xOnly':['xo'],
+                           'yOnly':['yo'],
+                           'zOnly':['zo'],                       
+                           'xBlend':['xb'],
+                           'yBlend':['yb'],
+                           'zBlend':['zb'],  
+                           'copyTo':['transfer','reset','r']}
 _d_meshMathModes_ = {'add':['a','+'],'subtract':['s','sub','-'],
                      'multiply':['mult','m'],
                      'average':['avg'],'difference':['d','diff'],
                      'addDiff':['addDifference','+diff','ad'],
                      'subtractDiff':['subtractDifference','sd','-diff'],
                      'blend':['b','blendshape'],
-                     'copyTo':['transfer','reset']}
-
+                     'flip':['f'],
+                     'xOnly':['xo'],
+                     'yOnly':['yo'],
+                     'zOnly':['zo'],                       
+                     'xBlend':['xb'],
+                     'yBlend':['yb'],
+                     'zBlend':['zb'], 
+                     'symPos':['sym+','sp','symPositive'],
+                     'symNeg':['sym-','sn','symNegative'],
+                     'copyTo':['transfer','reset','r']}
 def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
+             center = 'pivot', axis = 'x', tolerance = .0001, 
              resultMode = 'new', multiplier = None):
     """
     Create a new mesh by adding,subtracting etc the positional info of one mesh to another
@@ -650,6 +673,11 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
             addDiff: target + (delta * multiplier)
             subtractDiff: target + (delta * multiplier)
             blend: pretty much blendshape result if you added as a target using multiplier as weight
+            flip: flip a source to a given target providing it is symmetrical
+            xOnly/yOnly/zOnly:
+            xBlend/yBlend/zBlend: xBlend + yBlend + zBlend = fullBlend
+            symPos:
+            symNeg:
             copyTo: resets to target to the source
         space(str): object,world
         resultMode(str):
@@ -719,40 +747,49 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
     log.debug("obj pos: {0}".format(_l_pos_obj))	
     log.debug("tar pos: {0}".format(_l_pos_targ))   
     _l_toApply = []
-    _l_toApply = meshMath_values(_l_pos_obj,_l_pos_targ,_mode,_multiplier)
-    """if _mode == 'copyTo':
-        _l_toApply = _l_pos_obj  
-    else:
+    if _mode in ['flip','symPos','symNeg']:
+        _symDict = get_symmetryDict(target,center,axis,tolerance,returnMode = 'indices')
+        if _symDict['asymmetrical']:
+            raise ValueError,"{0}>> Must have symmetrical target for mode: '{1}' | mode: {2}".format(_str_funcName,target,_mode)
         
-        for i,pos in enumerate(_l_pos_targ):
-            _nPos = []
-            if _mode == 'add':
-                _nPos = cgmMath.list_add(pos, _l_pos_obj[i]) * _multiplier
-            elif _mode == 'subtract':
-                _nPos = cgmMath.list_subtract(pos, _l_pos_obj[i]) * _multiplier  
-            elif _mode == 'multiply':
-                for ii,p in enumerate(pos):
-                    _nPos.append((p * _l_pos_obj[i][ii]) * _multiplier)
-            elif _mode == 'average':
-                for ii,p in enumerate(pos):
-                    _nPos.append(((p + _l_pos_obj[i][ii])/2) * _multiplier)
-            elif _mode == 'difference':
-                for ii,p in enumerate(pos):
-                    _nPos.append((p - _l_pos_obj[i][ii]) * _multiplier) 
-            elif _mode == 'addDiff':
-                for ii,p in enumerate(pos):
-                    #_nPos.append(_l_pos_obj[i][ii] + ((_l_pos_obj[i][ii] - p) * _multiplier))                  
-                    _nPos.append(p + (((p - _l_pos_obj[i][ii])) * _multiplier))  
-            elif _mode == 'subtractDiff':
-                for ii,p in enumerate(pos):
-                    _nPos.append(p - (((p - _l_pos_obj[i][ii])) * _multiplier))    
-            elif _mode == 'blend':
-                for ii,p in enumerate(pos):
-                    _nPos.append(p - ((p - _l_pos_obj[i][ii]) * (_multiplier)))  
+        #_l_toEvaluate = meshMath_values(_l_pos_obj,_l_pos_targ,'diff',_multiplier)
+        _l_toApply = copy.copy(_l_pos_obj)
+        _v_flip = []
+        for v in _symDict['axisVector']:
+            if v:
+                _v_flip.append(-1)
             else:
-                raise NotImplementedError,"{0} mode not implemented: '{1}'".format(_str_funcName,_mode)
-            _l_toApply.append(_nPos)"""
-            
+                _v_flip.append(1) 
+                
+        if _mode == 'flip':                   
+            for v in _symDict['symMap']:
+                _buffer = _symDict['symMap'][v]
+                _vBuffer = cgmMath.multiplyLists([_l_pos_obj[v],_v_flip])
+                for v2 in _buffer:
+                    _l_toApply[v2] = _vBuffer
+            for v in _symDict['center']:
+                _l_toApply[v] = cgmMath.multiplyLists([_l_pos_obj[v],_v_flip])
+        else:
+            if _mode == 'symPos':
+                _l = _symDict['positive']
+            else:
+                _l = _symDict['negative']
+            for v in _l:
+                _buffer = _symDict['symMap'][v]
+                _vBuffer = cgmMath.multiplyLists([_l_pos_obj[v],_v_flip])
+                for v2 in _buffer:
+                    _l_toApply[v2] = _vBuffer            
+            for v in _symDict['center']:
+                _v1 = _l_pos_obj[v]
+                _v2 = cgmMath.multiplyLists([_l_pos_obj[v],_v_flip])
+                _av = []
+                for ii,vv in enumerate(_v1):
+                    _av.append( (vv + _v2[ii])/2 )
+                _l_toApply[v] = _av               
+        #raise ValueError,"{0} not implemented".format(_str_funcName)
+    else:
+        _l_toApply = meshMath_values(_l_pos_obj,_l_pos_targ,_mode,_multiplier)
+    
     log.debug("res pos: {0}".format(_l_toApply))   
     log.debug(cgmGeneral._str_subLine)  
     
@@ -806,7 +843,7 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
         
     """
     _str_funcName = 'meshMath_values'
-    _mode = cgmValid.kw_fromDict(mode, _d_meshMathModes_, calledFrom=_str_funcName)
+    _mode = cgmValid.kw_fromDict(mode, _d_meshMathValuesModes_, calledFrom=_str_funcName)
     _multiplier = cgmValid.valueArg(multiplier, calledFrom=_str_funcName)
     
     if not _multiplier:
@@ -849,19 +886,49 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
             elif _mode == 'average':
                 for ii,p in enumerate(pos):
                     _nPos.append(((p + sourceValues[i][ii])/2) * _multiplier)
-            elif _mode == 'difference':
-                for ii,p in enumerate(pos):
-                    _nPos.append((p - sourceValues[i][ii]) * _multiplier) 
-            elif _mode == 'addDiff':
-                for ii,p in enumerate(pos):
-                    #_nPos.append(_l_pos_obj[i][ii] + ((_l_pos_obj[i][ii] - p) * _multiplier))                  
-                    _nPos.append(p + (((p - sourceValues[i][ii])) * _multiplier))  
-            elif _mode == 'subtractDiff':
-                for ii,p in enumerate(pos):
-                    _nPos.append(p - (((p - sourceValues[i][ii])) * _multiplier))    
             elif _mode == 'blend':
                 for ii,p in enumerate(pos):
-                    _nPos.append(p - ((p - sourceValues[i][ii]) * (_multiplier)))  
+                    _nPos.append(p - ((p - sourceValues[i][ii]) * (_multiplier)))
+            elif _mode in ['difference','addDiff','subtractDiff','xBlend','yBlend','zBlend','flip','xFlip','yFlip','zFlip','xOnly','yOnly','zOnly']:
+                _diff = []
+                for ii,p in enumerate(pos):
+                    _diff.append((p - sourceValues[i][ii])) 
+                if _mode == 'difference':
+                    for ii,p in enumerate(pos):
+                        _nPos.append(_diff[ii] * (_multiplier))
+                elif _mode == 'addDiff':
+                    for ii,p in enumerate(pos):
+                        _nPos.append(p + (_diff[ii] * _multiplier))                      
+                elif _mode == 'subtractDiff':
+                    for ii,p in enumerate(pos):
+                        _nPos.append(p - (_diff[ii] * _multiplier))
+                elif _mode == 'xOnly':
+                    _nPos = [_diff[0] * _multiplier,0,0]
+                elif _mode == 'yOnly':
+                    _nPos = [0, _diff[1] * _multiplier,0]
+                elif _mode == 'zOnly':
+                    _nPos = [0, 0, _diff[2] * _multiplier]
+                elif _mode == 'xBlend':
+                    for ii,p in enumerate(pos):
+                        if ii == 0:
+                            _nPos.append(p - _diff[ii] * _multiplier)
+                        else:
+                            _nPos.append(p)
+                elif _mode == 'yBlend':
+                    for ii,p in enumerate(pos):
+                        if ii == 1:
+                            _nPos.append(p - _diff[ii] * _multiplier)
+                        else:
+                            _nPos.append(p)                   
+                elif _mode == 'zBlend':
+                    for ii,p in enumerate(pos):
+                        if ii == 2:
+                            _nPos.append(p - _diff[ii] * _multiplier)
+                        else:
+                            _nPos.append(p)  
+                elif _mode == 'flip':
+                    for ii,p in enumerate(pos):
+                        _nPos.append(p - (_diff[ii] * -1) * _multiplier)             
             else:
                 raise NotImplementedError,"{0} mode not implemented: '{1}'".format(_str_funcName,_mode)
             _result.append(_nPos)
@@ -870,6 +937,213 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
     log.debug(cgmGeneral._str_subLine)  
     guiFactory.doCloseProgressWindow()
     return _result
+
+
+def get_symmetryDict(sourceObj = None, center = 'pivot', axis = 'x',
+                     tolerance = .0001, returnMode = 'names'):
+    """
+    Check the symmetry of an object.
+    
+    :parameters:
+        sourceObj | Object to check for symmetry
+        center -- what to base symetry on
+            pivot
+            boundingbox
+            world
+        axis -- axis which to check
+            x
+            y
+            z
+        tolerance | Level of tolerance to check the center line against
+        returnMode
+            names -- return data as strings
+            indices -- return data as vertex indices
+
+    :returns
+        dict:
+            center
+            positive
+            negative
+            symMap
+            asymmetrical
+            axisVector
+    """      
+    _str_funcName = 'get_symmetryDict'
+    _tolerance = cgmValid.valueArg(tolerance, calledFrom=_str_funcName)
+    
+    _axis = str(axis).lower()
+    if len(_axis) != 1 or _axis not in 'xyz':
+        raise ValueError,"{0} not a valid axis: {1}".format(_str_funcName,axis)
+    _indexAxis = 'xyz'.index(_axis)
+    if _indexAxis == 0:
+        _ax = 0
+        _ax2 = 1
+        _ax3 = 2 
+        _l_axis = [1,0,0]
+    elif _indexAxis == 1:
+        _ax = 1
+        _ax2 = 0
+        _ax3 = 2  
+        _l_axis = [0,1,0]        
+    else:
+        _ax = 2
+        _ax2 = 1
+        _ax3 = 0         
+        _l_axis = [0,0,1]
+    result = {}
+    _sel = mc.ls(sl=1)
+    
+    #Get our objects if we don't have them
+    if sourceObj is None:
+        sourceObj = _sel[0]
+        
+    _dict = cgmValid.MeshDict(sourceObj, calledFrom=_str_funcName)
+    _centerOptions = {'pivot':['p'],'world':['w'],'boundingBox':['bb']}
+    _center = cgmValid.kw_fromDict(center, _centerOptions, calledFrom=_str_funcName)
+    
+    _returnModes = {'names':['n'],'indices':['i','idx']}
+    _returnMode = cgmValid.kw_fromDict(returnMode, _returnModes, calledFrom=_str_funcName)
+    
+    _shape = _dict['shape']
+    _mesh = _dict['mesh']
+    
+    log.debug(cgmGeneral._str_subLine)	
+    log.debug("{0}...".format(_str_funcName))
+    log.debug("sourceObject: '{0}'".format(_shape))	    
+    log.debug("dict: '{0}'".format(_dict))	
+    log.debug("tolerance: {0}".format(_tolerance))	
+    log.debug("center: {0}".format(_center))        
+    log.debug("axis: {0}".format(_ax))        
+    log.debug("returnMode: {0}".format(_returnMode))        
+
+    if _center == 'pivot':
+        _xRes = mc.xform(_mesh, q=True, ws = True, t = True)
+        _mid = _xRes[_ax]
+    elif _center == 'boundingBox':
+        _mid = distance.returnCenterPivotPosition(_mesh)[_ax]
+    else:
+        _mid = 0.0
+        
+    log.debug("mid: {0}".format(_mid))    
+    
+    _l_pos = []
+    _l_neg = []
+    _l_pos_ids = []
+    _l_neg_ids = []
+    _d_trans = {}
+    _l_cull = []
+    _d_xfpos = {}#...vtx to xform
+    _d_vtxToID = {}
+    guiFactory.doProgressWindow(winName=_str_funcName, 
+                                statusMessage='Progress...', 
+                                startingProgress=1, 
+                                interruptableState=True)
+    
+    _points = _dict['pointCountPerShape'][0]
+    log.debug("First pass...")            
+    for i in range(_points):
+        guiFactory.doUpdateProgressWindow("{0} -- [{1}]".format(_str_funcName,i), i,  
+                                          _points, reportItem=False)   
+        _vtx = "{0}.vtx[{1}]".format(_shape,i)
+        _l_cull.append(_vtx)
+        _pos = mc.xform(_vtx, t = True, ws = True, q=True)   
+        _d_xfpos[_vtx] = _pos
+        _d_vtxToID[_vtx] = i
+        _midOffset = _pos[_ax] - _mid
+        if _midOffset >= _tolerance:
+            _l_pos.append(_vtx)
+            _l_pos_ids.append(i)
+            _d_trans[_vtx] = _pos[_ax]
+        else:
+            _l_neg.append(_vtx)
+            _l_neg_ids.append(i)
+            _d_trans[_vtx] = _pos[_ax]
+            
+    log.debug("Pos: {0}".format(_l_pos))        
+    log.debug("Neg: {0}".format(_l_neg))  
+    _i_len_pos = len(_l_pos)
+    _l_pos_result = []
+    _l_neg_result = []
+    _d_matches = {}
+    for i,vtx in enumerate(_l_pos):
+        guiFactory.doUpdateProgressWindow("{0} -verifying- [{1}]".format(_str_funcName,i), i,  
+                                          _i_len_pos, reportItem=False)   
+        
+        _posOffset = _d_trans[vtx] - _mid
+
+        for ii,vtx_neg in enumerate(_l_neg):
+            _negOffset = _mid - _d_trans[vtx_neg]        
+
+            if abs(_posOffset - _negOffset) <= _tolerance:
+                _vtx1_trans = _d_xfpos[vtx]
+                _vtx2_trans = _d_xfpos[vtx_neg]
+                _test1 = abs(_vtx1_trans[_ax2] - _vtx2_trans[_ax2])
+                _test2 = abs(_vtx1_trans[_ax3] - _vtx2_trans[_ax3])
+                if _test1 < _tolerance and _test2 < _tolerance:
+                    _pos_id = _d_vtxToID[vtx]
+                    _neg_id = _d_vtxToID[vtx_neg]
+                    if not _d_matches.get(vtx):
+                        _d_matches[vtx] = [vtx_neg]
+                    elif neg_id not in _d_matches[vtx]:
+                        _d_matches[vtx].append(vtx_neg)
+                    if not _d_matches.get(vtx_neg):
+                        _d_matches[vtx_neg] = [vtx]
+                    elif vtx not in _d_matches[vtx_neg]:
+                        _d_matches[vtx_neg].append(vtx) 
+                        
+                    #log.debug("{0} == {1}".format(_pos_id,_neg_id))
+                    try:_l_pos_result.index(vtx)
+                    except:_l_pos_result.append(vtx)
+                    try:_l_neg_result.index(vtx_neg)
+                    except:_l_neg_result.append(vtx_neg)                    
+                    try:_l_cull.remove(vtx)
+                    except:pass
+                    try:_l_cull.remove(vtx_neg)
+                    except:pass
+                                        
+    #finding aymetrical dat...
+    _l_center = []
+    _l_assym = []
+    for vtx in _l_cull:
+        #log.debug("Checking: '{0}'".format(vtx))  
+        if vtx in _l_pos:
+            _offset = _d_trans[vtx] - _mid
+        elif vtx in _l_neg:
+            _offset = _mid - _d_trans[vtx]
+            
+        if _offset > _tolerance:
+            _l_assym.append(vtx) 
+        else:
+            _l_center.append(vtx)
+            
+    guiFactory.doCloseProgressWindow()
+    
+    log.debug("Assymetrical: {0}".format(_l_assym))        
+    log.debug("Center: {0}".format(_l_center))  
+    log.debug("SymMatches: {0}".format(len(_d_matches.keys())))  
+    
+    if returnMode == 'names':
+        return {'center':_l_center,
+                 'positive':_l_pos_result,
+                 'negative':_l_neg_result,
+                 'symMap':_d_matches,
+                 'axisVector':_l_axis,
+                 'asymmetrical':_l_assym}
+    
+    _d_convert = {}
+    for k in _d_matches.keys():
+        _buffer = _d_matches[k]
+        _d_convert[_d_vtxToID[k]] = []
+        for v in _buffer:
+            _d_convert[_d_vtxToID[k]].append( _d_vtxToID[v] )
+    return {'center':[ _d_vtxToID[vtx] for vtx in _l_center ],
+            'positive':[ _d_vtxToID[vtx] for vtx in _l_pos_result ],
+            'negative':[ _d_vtxToID[vtx] for vtx in _l_neg_result ],
+            'symMap':_d_convert,
+            'axisVector':_l_axis,            
+            'asymmetrical':[ _d_vtxToID[vtx] for vtx in _l_assym ]}
+
+
     
     
     
