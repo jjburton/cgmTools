@@ -632,9 +632,9 @@ _d_meshMathValuesModes_ = {'add':['a','+'],'subtract':['s','sub','-'],
                            'addDiff':['addDifference','+diff','ad'],
                            'subtractDiff':['subtractDifference','sd','-diff'],
                            'blend':['b','blendshape'],
-                           'xOnly':['xo'],
-                           'yOnly':['yo'],
-                           'zOnly':['zo'],                       
+                           'xDiff':['xd'],
+                           'yDiff':['yd'],
+                           'zDiff':['zd'],                       
                            'xBlend':['xb'],
                            'yBlend':['yb'],
                            'zBlend':['zb'],  
@@ -646,18 +646,19 @@ _d_meshMathModes_ = {'add':['a','+'],'subtract':['s','sub','-'],
                      'subtractDiff':['subtractDifference','sd','-diff'],
                      'blend':['b','blendshape'],
                      'flip':['f'],
-                     'xOnly':['xo'],
-                     'yOnly':['yo'],
-                     'zOnly':['zo'],                       
+                     'xDiff':['xd'],
+                     'yDiff':['yd'],
+                     'zDiff':['zd'],                      
                      'xBlend':['xb'],
                      'yBlend':['yb'],
                      'zBlend':['zb'], 
                      'symPos':['sym+','sp','symPositive'],
                      'symNeg':['sym-','sn','symNegative'],
                      'copyTo':['transfer','reset','r']}
+
 def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
              center = 'pivot', axis = 'x', tolerance = .0001, 
-             resultMode = 'new', multiplier = None):
+             resultMode = 'new', multiplier = None, symDict = None):
     """
     Create a new mesh by adding,subtracting etc the positional info of one mesh to another
 
@@ -685,6 +686,7 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
             modify: modify the existing target
             values: just get the values 
         multiplier(float): default 1 -- value to use as a multiplier during the different modes. 
+        symDict(dict) -- pass through for symDict data if it's already been processed.
 
     :returns
         mesh(str) -- which has been modified
@@ -698,6 +700,8 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
     _space = cgmValid.kw_fromDict(space, __space__, calledFrom=_str_funcName)
     _resultType = cgmValid.kw_fromDict(resultMode, __resultTypes__, calledFrom=_str_funcName)
     _multiplier = cgmValid.valueArg(multiplier, calledFrom=_str_funcName)
+    _str_newName = None
+    
     if not _multiplier:
         if _mode == 'blend':
             _multiplier = .5
@@ -748,7 +752,14 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
     log.debug("tar pos: {0}".format(_l_pos_targ))   
     _l_toApply = []
     if _mode in ['flip','symPos','symNeg']:
-        _symDict = get_symmetryDict(target,center,axis,tolerance,returnMode = 'indices')
+        if _multiplier != 1:
+            _str_newName = "{0}_{1}_x{2}_result".format(sourceObj,_mode,_multiplier)                    
+        else:
+            _str_newName = "{0}_{1}_result".format(sourceObj,_mode)        
+        if symDict is not None:
+            _symDict = symDict
+        else:
+            _symDict = get_symmetryDict(target,center,axis,tolerance,returnMode = 'indices')
         if _symDict['asymmetrical']:
             raise ValueError,"{0}>> Must have symmetrical target for mode: '{1}' | mode: {2}".format(_str_funcName,target,_mode)
         
@@ -797,11 +808,16 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
         _result = _l_toApply
     else:
         if _resultType == 'new':
-            _result = mc.duplicate(target)[0]
-            _result = mc.rename(_result,"{0}_from_{1}_{2}_x{3}_result".format(target,sourceObj,_mode,_multiplier))
+            _result = mc.duplicate(sourceObj)[0]
+            if _str_newName is None:
+                if _multiplier != 1:
+                    _str_newName = "{0}_from_{1}_{2}_x{3}_result".format(target,sourceObj,_mode,_multiplier)                    
+                else:
+                    _str_newName = "{0}_from_{1}_{2}_result".format(target,sourceObj,_mode)
+            _result = mc.rename(_result,_str_newName)
         
         else:
-            _result = target
+            _result = sourceObj
         guiFactory.doProgressWindow(winName=_str_funcName, 
                                     statusMessage='Progress...', 
                                     startingProgress=1, 
@@ -889,7 +905,7 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
             elif _mode == 'blend':
                 for ii,p in enumerate(pos):
                     _nPos.append(p - ((p - sourceValues[i][ii]) * (_multiplier)))
-            elif _mode in ['difference','addDiff','subtractDiff','xBlend','yBlend','zBlend','flip','xFlip','yFlip','zFlip','xOnly','yOnly','zOnly']:
+            elif _mode in ['difference','addDiff','subtractDiff','xBlend','yBlend','zBlend','flip','xFlip','yFlip','zFlip','xDiff','yDiff','zDiff']:
                 _diff = []
                 for ii,p in enumerate(pos):
                     _diff.append((p - sourceValues[i][ii])) 
@@ -902,11 +918,11 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
                 elif _mode == 'subtractDiff':
                     for ii,p in enumerate(pos):
                         _nPos.append(p - (_diff[ii] * _multiplier))
-                elif _mode == 'xOnly':
+                elif _mode == 'xDiff':
                     _nPos = [_diff[0] * _multiplier,0,0]
-                elif _mode == 'yOnly':
+                elif _mode == 'yDiff':
                     _nPos = [0, _diff[1] * _multiplier,0]
-                elif _mode == 'zOnly':
+                elif _mode == 'zDiff':
                     _nPos = [0, 0, _diff[2] * _multiplier]
                 elif _mode == 'xBlend':
                     for ii,p in enumerate(pos):
