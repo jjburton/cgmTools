@@ -814,7 +814,9 @@ def get_mayaEnviornmentDict():
 	try:_d[kw] = mel.eval( 'about -%s'%kw )	
 	except Exception,error:log.error("%s | %s"%(kw,error))	
     return _d
-	
+
+__mayaVersion__ = int( mel.eval( 'getApplicationVersionAsFloat' ) )
+
 def report_enviornment():
     print(_str_headerDiv + " Enviornment Info " + _str_headerDiv + _str_subLine)	
     #print(_str_headerDiv + " Maya Version: %s "%int( mel.eval( 'getApplicationVersionAsFloat' )))
