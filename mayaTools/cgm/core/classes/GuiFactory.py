@@ -134,7 +134,7 @@ class cgmGUI(mUI.BaseMelWindow):
 
     def setup_Variables(self):
         self.create_guiOptionVar('ShowHelp',defaultValue = 0)
-        self.create_guiOptionVar('Dock',defaultValue = 1)
+        self.create_guiOptionVar('Dock',defaultValue = 0)
         self.create_guiOptionVar('DockSide',defaultValue = 0)	
         self.create_cgmDebugOptionVar(defaultValue = 0)
 
@@ -175,7 +175,7 @@ class cgmGUI(mUI.BaseMelWindow):
         #>>> Reset Options				
         mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Dock",
                          cb=self.var_Dock.value,
-                         c= lambda *a: self.do_dockToggle())	      
+                         c= lambda *a: self.do_dockToggle())	         
 
     def buildMenu_help( self, *args):
         self.uiMenu_HelpMenu.clear()
@@ -185,7 +185,8 @@ class cgmGUI(mUI.BaseMelWindow):
 
         mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Print Tools Help",
                          c=lambda *a: self.printHelp() )
-
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Log Self",
+                         c=lambda *a: log_selfReport(self) )
         mUI.MelMenuItemDiv( self.uiMenu_HelpMenu )
         mUI.MelMenuItem( self.uiMenu_HelpMenu, l="About",
                          c=lambda *a: self.showAbout() )
@@ -207,17 +208,20 @@ class cgmGUI(mUI.BaseMelWindow):
     #>> Menu Functions
     #=========================================================================    
     def reset(self):	
-        Callback(do_resetGuiInstanceOptionVars(self.l_optionVars,run))
+        mUI.Callback(do_resetGuiInstanceOptionVars(self.l_optionVars,run))
 
     def reload(self):	
         run()
 
     def do_dockToggle( self):
-        self.var_Dock.toggle()
-        if self.var_Dock.value:
-            mc.dockControl(self.dockCnt, area=self.l_allowedDockAreas[self.var_DockSide.value], label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.var_Dock.value, allowedArea=self.l_allowedDockAreas, width=self.DEFAULT_SIZE[0])
-        else:
-            self.reload()            
+        try:
+            self.var_Dock.toggle()
+            if self.var_Dock.value:
+                mc.dockControl(self.dockCnt, area=self.l_allowedDockAreas[self.var_DockSide.value], label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.var_Dock.value, allowedArea=self.l_allowedDockAreas, width=self.DEFAULT_SIZE[0])
+            else:
+                self.reload()
+        except Exception,err:
+            log.error("Failed to dockToggle: {0}".format(err))
 
     def do_showHelpToggle( self):
         doToggleInstancedUIItemsShowState(self.var_ShowHelp.value,self.l_helpElements)
@@ -243,7 +247,7 @@ class cgmGUI(mUI.BaseMelWindow):
 
         add_LineBreak()
         mc.text(label=('%s%s' %('Written by: ',__author__)))
-        mc.text(label=('%s%s%s' %('Copyright ',__owner__,', 2011')))
+        mc.text(label=('%s%s%s' %('Copyright ',__owner__,', 2011 - 2016')))
         add_LineBreak()
         mc.text(label='Version: %s' % self.__version__)
         mc.text(label='')
@@ -407,6 +411,7 @@ def initializeTemplates():
     mc.columnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)  
     mc.textScrollList(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
     mc.frameLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
+    mc.textField(dt = 'cgmUIHeaderTemplate',backgroundColor = [1,1,1],h=20)
 
     # Define our sub template
     if mc.uiTemplate( 'cgmUISubTemplate', exists=True ):

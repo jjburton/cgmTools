@@ -364,6 +364,11 @@ def loadAttrTools( *a ):
     from cgm.tools import attrTools
     reload(attrTools)
     cgmAttrToolsWin = attrTools.run()
+    
+def loadCGMMeshTools( *a ):
+    from cgm.core.tools import meshTools
+    reload(meshTools)
+    cgmMeshToolsWin = meshTools.run()
 
 def loadLocinator( *a ):
     from cgm.tools import locinator
@@ -540,7 +545,10 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
 
               ('rigging', (('cgm.locinator', "Tool for creating, updating, locators",
                             loadLocinator),
-
+                           
+                           ('cgm.meshTools', " Mesh tools",
+                              loadCGMMeshTools),
+                           
                            ('cgm.tdTools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
                             loadTDTools),
 
