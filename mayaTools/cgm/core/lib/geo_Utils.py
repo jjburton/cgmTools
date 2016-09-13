@@ -643,8 +643,9 @@ _d_meshMathModes_ = {'add':['a','+'],'subtract':['s','sub','-'],
                      'multiply':['mult','m'],
                      'average':['avg'],'difference':['d','diff'],
                      'addDiff':['addDifference','+diff','ad'],
-                     'subtractDiff':['subtractDifference','sd','-diff'],
+                     'subtractDiff':['subtractDifference','sd','-diff','combine'],
                      'blend':['b','blendshape'],
+                     'blendSpread':['bs'],                     
                      'flip':['f'],
                      'xDiff':['xd'],
                      'yDiff':['yd'],
@@ -656,7 +657,7 @@ _d_meshMathModes_ = {'add':['a','+'],'subtract':['s','sub','-'],
                      'symNeg':['sym-','sn','symNegative'],
                      'copyTo':['transfer','reset','r']}
 
-def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
+def meshMath_OLD(sourceObj = None, target = None, mode = 'blend', space = 'object',
              center = 'pivot', axis = 'x', tolerance = .0001, 
              resultMode = 'new', multiplier = None, symDict = None):
     """
@@ -671,8 +672,8 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
             multiply : (target * source) * multiplier
             average: ((target + source) /2 ) * multiplier
             difference: delta
-            addDiff: target + (delta * multiplier)
-            subtractDiff: target + (delta * multiplier)
+            addDiff: base + (delta * multiplier)
+            subtractDiff: base - (delta * multiplier)
             blend: pretty much blendshape result if you added as a target using multiplier as weight
             flip: flip a source to a given target providing it is symmetrical
             xOnly/yOnly/zOnly:
@@ -834,6 +835,274 @@ def meshMath(sourceObj = None, target = None, mode = 'blend', space = 'object',
     if _sel:mc.select(_sel)
     return _result
 
+def meshMath(targets = None, mode = 'blend', space = 'object',
+             center = 'pivot', axis = 'x', tolerance = .0001, 
+             resultMode = 'new', multiplier = None, baseIndex = -1,
+             symDict = None):
+    """
+    Create a new mesh by adding,subtracting etc the positional info of one mesh to another
+
+    :parameters:
+        sourceObj(str): The mesh we're using to change our target
+        target(str): Mesh to be modified itself or by duplication
+        mode(str)
+            add : (target + source) * multiplier
+            subtract : (target - source) * multiplier
+            multiply : (target * source) * multiplier
+            average: ((target + source) /2 ) * multiplier
+            difference: delta
+            addDiff: base + (delta * multiplier)
+            subtractDiff: base - (delta * multiplier)
+            blend: pretty much blendshape result if you added as a target using multiplier as weight
+            flip: flip a source to a given target providing it is symmetrical
+            xOnly/yOnly/zOnly:
+            xBlend/yBlend/zBlend: xBlend + yBlend + zBlend = fullBlend
+            symPos:
+            symNeg:
+            copyTo: resets to target to the source
+        space(str): object,world
+        resultMode(str):
+            new: apply new duplicate of target
+            modify: modify the existing target
+            values: just get the values 
+        multiplier(float): default 1 -- value to use as a multiplier during the different modes. 
+        baseIndex(int): Index for our base object, if necessary.
+        symDict(dict) -- pass through for symDict data if it's already been processed.
+
+    :returns
+        mesh(str) -- which has been modified
+        
+    """
+    _sel = mc.ls(sl=True)
+    _str_funcName = 'meshMath'
+    __space__ = {'world':['w','ws'],'object':['o','os']}
+    __resultTypes__ = {'new':['n'],'modify':['self','m'],'values':['v']}
+    _mode = cgmValid.kw_fromDict(mode, _d_meshMathModes_, calledFrom=_str_funcName)
+    _space = cgmValid.kw_fromDict(space, __space__, calledFrom=_str_funcName)
+    _resultType = cgmValid.kw_fromDict(resultMode, __resultTypes__, calledFrom=_str_funcName)
+    _multiplier = cgmValid.valueArg(multiplier, calledFrom=_str_funcName)
+    _baseIndex = int(cgmValid.valueArg(baseIndex, calledFrom=_str_funcName))
+    _symDict = None
+    _str_newName = None
+    _baseObj = None
+    _l_targets = []
+    _l_meshDicts = []
+    _l_posData = []
+    _l_targetsGood = []
+    _l_baseNames = []
+    
+    if not _multiplier:
+        if _mode == 'blend':
+            _multiplier = .5
+        else:
+            _multiplier = 1
+    
+    #>> Get our objects if we don't have them...
+    if targets is None:
+        if not _sel:
+            raise ValueError,"{0}>> must have a targets arg or selection".format(_str_funcName)
+        else:
+            targets = _sel
+            
+    for o in targets:  
+        try:
+            _d_mesh = cgmValid.MeshDict(o, False, calledFrom=_str_funcName)     
+            _l_pos = get_shapePosData(_d_mesh['shape'],_space)
+            _l_targets.append(o)
+            _l_posData.append(_l_pos)
+            _l_meshDicts.append(_d_mesh)
+        except:
+            log.error("{0}>> Target: {1} failed to resolve.".format(_str_funcName,o))
+            
+    try:
+        _baseObj = _l_targets[_baseIndex]
+    except:
+        raise ValueError,"{0}>> Base index failed to resolve. index:{1} | targets:{2}".format(_str_funcName,_baseIndex,_l_targets)
+        
+    #try:#...check against base
+    _len_base = len(_l_posData[_baseIndex])
+    for i,o in enumerate(_l_targets):
+        _pos = _l_posData[i]
+        _len_pos = len(_pos)
+        if _len_pos != _len_base:
+            log.error("{0}>> Target: '{1}' has wrong vert count. lenBase> {2} != {3} <lenTarget".format(_str_funcName,o,_len_base, _len_pos))
+        else:
+            _l_targetsGood.append(i)
+     
+    if len(_l_targetsGood) < 2:
+        raise ValueError,"{0}>> must have at least two good targets".format(_str_funcName)
+        
+    log.debug(cgmGeneral._str_subLine)	
+    log.debug("{0}...".format(_str_funcName))
+
+    for i in _l_targetsGood:
+        log.debug("{0} : '{1}'".format(i,_l_targets[i]))
+        _l_baseNames.append(names.getBaseName(_l_targets[i]))
+
+    log.debug("mode: {0}".format(_mode))	
+    log.debug("space: {0}".format(_space))
+    log.debug("multiplier: {0}".format(_multiplier))
+    log.debug("resultType: {0}".format(_resultType))
+    log.debug("baseIndex: {0}".format(_baseIndex))    
+    log.debug("base: {0}".format(_baseObj))    
+    
+    _l_toApply = []
+    
+    if _mode in ['flip','symPos','symNeg']:
+        #...these must be handled at this level rather than the cumulative
+        _result = []        
+        for i in _l_targetsGood:
+            _posDat = _l_posData[i]
+            _obj = _l_targets[i]
+            if _baseObj == _obj:
+                continue
+  
+            if _multiplier != 1:
+                _str_newName = "{0}_{1}_x{2}_result".format(_l_baseNames[i],_mode,_multiplier)                    
+            else:
+                _str_newName = "{0}_{1}_result".format(_l_baseNames[i],_mode)   
+                
+            if symDict is not None and not _symDict:
+                _symDict = symDict
+            else:
+                _symDict = get_symmetryDict(_baseObj,center,axis,tolerance,returnMode = 'indices')
+            if _symDict['asymmetrical']:
+                raise ValueError,"{0}>> Must have symmetrical target for mode: '{1}' | mode: {2}".format(_str_funcName,target,_mode)
+            
+            #_l_toEvaluate = meshMath_values(_l_pos_obj,_l_pos_targ,'diff',_multiplier)
+            _l_toApply = copy.copy(_posDat)
+            _v_flip = []
+            for v in _symDict['axisVector']:
+                if v:
+                    _v_flip.append(-1)
+                else:
+                    _v_flip.append(1) 
+                    
+            if _mode == 'flip':                   
+                for v in _symDict['symMap']:
+                    _buffer = _symDict['symMap'][v]
+                    _vBuffer = cgmMath.multiplyLists([_posDat[v],_v_flip])
+                    for v2 in _buffer:
+                        _l_toApply[v2] = _vBuffer
+                for v in _symDict['center']:
+                    _l_toApply[v] = cgmMath.multiplyLists([_posDat[v],_v_flip])
+            else:
+                if _mode == 'symPos':
+                    _l = _symDict['positive']
+                else:
+                    _l = _symDict['negative']
+                for v in _l:
+                    _buffer = _symDict['symMap'][v]
+                    _vBuffer = cgmMath.multiplyLists([_posDat[v],_v_flip])
+                    for v2 in _buffer:
+                        _l_toApply[v2] = _vBuffer            
+                for v in _symDict['center']:
+                    _v1 = _posDat[v]
+                    _v2 = cgmMath.multiplyLists([_posDat[v],_v_flip])
+                    _av = []
+                    for ii,vv in enumerate(_v1):
+                        _av.append( (vv + _v2[ii])/2 )
+                    _l_toApply[v] = _av               
+                    
+            if _resultType == 'values':
+                _result.append(_l_toApply)
+            else:
+                if _resultType == 'new':
+                    _r = mc.duplicate(_baseObj)[0]
+                    if _multiplier != 1:
+                        _str_newName = "{0}_{1}_x{2}_result".format(_str_newName,_mode,_multiplier)                    
+                    else:
+                        _str_newName = "{0}_{1}_result".format(_str_newName,_mode)                    
+                    _r = mc.rename(_r,_str_newName)
+                
+                else:
+                    _r = _obj
+                guiFactory.doProgressWindow(winName=_str_funcName, 
+                                            statusMessage='Progress...', 
+                                            startingProgress=1, 
+                                            interruptableState=True)            
+                for i,pos in enumerate(_l_toApply):
+                    guiFactory.doUpdateProgressWindow("Moving -- [{0}]".format(i), i,  
+                                                      _len_base, reportItem=False)                
+                    if _space == 'world':
+                        mc.xform("{0}.vtx[{1}]".format(_r,i), t = pos, ws = True)             
+                    else:
+                        mc.xform("{0}.vtx[{1}]".format(_r,i), t = pos, os = True)    
+                guiFactory.doCloseProgressWindow()
+                _result.append(_r)
+            if _sel:mc.select(_sel)
+            return _result
+            
+    #elif _mode in ['difference','addDiff','subDiff']:
+        #log.info("Difference call...")
+        #pass
+    else:
+        
+        log.info("'{0}' mode is cumulative...".format(_mode))
+        _str_newName = "_to_".join(_l_baseNames)
+        if _mode in ['difference','addDiff','subtractDiff']:
+            log.info("Difference stuff...")
+            _combineMode = {'addDiff':'add',
+                            'subtractDiff':'subtract'}
+            _b_idx = _l_targets.index(_baseObj)
+            _posBase = _l_posData[_b_idx]
+            _l_diffData = []
+            for i in _l_targetsGood:
+                if i != _b_idx:
+                    _posDat = _l_posData[i]
+                    _posDiff = meshMath_values(_posDat,_posBase,'difference',_multiplier)
+                    if not _l_diffData:
+                        _l_diffData = _posDiff
+                    else:
+                        _l_diffData = meshMath_values(_l_diffData, _posDiff,'add')#combine the diffs
+            if _mode in ['addDiff','subtractDiff']:
+                log.info("Recombine diffs...")
+                _l_toApply = meshMath_values(_l_diffData,_posBase, _combineMode[_mode])                
+            else:
+                _l_toApply = _l_diffData
+
+        else:
+            for i in _l_targetsGood:
+                _posDat = _l_posData[i]
+                if not _l_toApply:
+                    _l_toApply = _posDat
+                else:
+                    _l_toApply = meshMath_values(_l_toApply,_posDat,_mode,_multiplier)
+    
+    log.debug("res pos: {0}".format(_l_toApply))   
+    log.debug(cgmGeneral._str_subLine)  
+    
+    if _resultType == 'values':
+        _result = _l_toApply
+    else:
+        if _resultType == 'new':
+            _result = mc.duplicate(_baseObj)[0]
+            if _multiplier != 1:
+                _str_newName = "{0}_{1}_x{2}_result".format(_str_newName,_mode,_multiplier)                    
+            else:
+                _str_newName = "{0}_{1}_result".format(_str_newName,_mode)                    
+            _result = mc.rename(_result,_str_newName)
+        
+        else:
+            if len(_l_targetsGood)==2:
+                _result = _l_targets[ _l_targetsGood[0] ]
+            else:
+                _result = _baseObj
+        guiFactory.doProgressWindow(winName=_str_funcName, 
+                                    statusMessage='Progress...', 
+                                    startingProgress=1, 
+                                    interruptableState=True)            
+        for i,pos in enumerate(_l_toApply):
+            guiFactory.doUpdateProgressWindow("Moving -- [{0}]".format(i), i,  
+                                              _len_base, reportItem=False)                
+            if _space == 'world':
+                mc.xform("{0}.vtx[{1}]".format(_result,i), t = pos, ws = True)             
+            else:
+                mc.xform("{0}.vtx[{1}]".format(_result,i), t = pos, os = True)    
+        guiFactory.doCloseProgressWindow()
+            
+    if _sel:mc.select(_sel)
+    return _result
 
 def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', multiplier = None):
     """
@@ -893,9 +1162,11 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
                                               _len_target, reportItem=False)                
             _nPos = []
             if _mode == 'add':
-                _nPos = cgmMath.list_add(pos, sourceValues[i]) * _multiplier
+                _nPos = cgmMath.list_add(pos, sourceValues[i])
+                _nPos = [p * _multiplier for p in _nPos]
             elif _mode == 'subtract':
-                _nPos = cgmMath.list_subtract(pos, sourceValues[i]) * _multiplier  
+                _nPos = cgmMath.list_subtract(pos, sourceValues[i])
+                _nPos = [p * _multiplier for p in _nPos]                
             elif _mode == 'multiply':
                 for ii,p in enumerate(pos):
                     _nPos.append((p * sourceValues[i][ii]) * _multiplier)
