@@ -7,12 +7,12 @@ else:
 	print ('You need to get the zooPy directory in one of your scripts paths')
 """
 
-from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
-
+#from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
+from cgm.core.cgmPy import path_Utils as cgmPath
 
 def setupContributorPaths():
     try:
-        thisFile = Path( __file__ )
+        thisFile = cgmPath.Path( __file__ )
         thisPath = thisFile.up().osPath()
         #thisPath = os.sep.join(__file__.split(os.sep)[:-1])
 
@@ -50,7 +50,7 @@ def devPaths():
 
 def returnPyFilesFromFolder():
     import os
-    thisFile = Path( __file__ )
+    thisFile = cgmPath.Path( __file__ )
     thisPath = thisFile.up()
 
 

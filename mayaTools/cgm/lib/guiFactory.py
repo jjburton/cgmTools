@@ -22,10 +22,9 @@
 #=================================================================================================================================================
 import maya.cmds as mc
 import maya.mel as mel
-#from cgm.lib.classes.Bridge import *
 
 
-from cgmBaseMelUI import *
+from cgm.core.lib.zoo.baseMelUI import *
 from cgm.lib import dictionary
 from cgm.lib import optionVars
 

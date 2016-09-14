@@ -32,7 +32,7 @@ from cgm.core.classes import DraggerContextFactory
 reload(DraggerContextFactory)
 
 from cgm.lib.zoo.zooPyMaya import skinWeights
-from cgm.lib.cgmBaseMelUI import *
+from cgm.core.lib.zoo.baseMelUI import *
 from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes.ControlFactory import *
 from cgm.lib.classes.DraggerContextFactory import *

@@ -26,7 +26,7 @@ import maya.mel as mel
 import copy
 from cgm.core import cgm_General as cgmGeneral
 
-mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
+mayaVersion = cgmGeneral.__mayaVersion__
 
 # Maya version check
 if mayaVersion >= 2011:
@@ -40,7 +40,7 @@ from cgm.lib import (search,
                      guiFactory,
                      dictionary)
 
-from cgm.lib.zoo.zooPyMaya import baseMelUI as mUI
+from cgm.core.lib.zoo import baseMelUI as mUI
 
 #>>> From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta

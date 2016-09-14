@@ -21,7 +21,7 @@ import subprocess
 from cgm.lib.classes import SetFactory 
 reload(SetFactory)
 
-from cgm.lib.cgmBaseMelUI import *
+from cgm.core.lib.zoo.baseMelUI import *
 from cgm.lib.classes.SetFactory import *
 from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *

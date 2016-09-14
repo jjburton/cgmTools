@@ -3,12 +3,13 @@ import os
 """ From http://stackoverflow.com/questions/1057431/loading-all-modules-in-a-folder-in-python"""
 
 #Need to setup our cgm paths ===========================================================
-from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
+#from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
+from cgm.core.cgmPy import path_Utils as cgmPath
 import sys
 
 def setupContributorPaths():
         try:
-                thisFile = Path( __file__ )
+                thisFile = cgmPath.Path( __file__ )
                 thisPath = thisFile.up().osPath()
         
                 mayaSysPaths = sys.path

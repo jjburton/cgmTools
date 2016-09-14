@@ -14,7 +14,7 @@ import maya.cmds as mc
 import maya.mel as mel
 import subprocess
 
-from cgm.lib.cgmBaseMelUI import *
+from cgm.core.lib.zoo.baseMelUI import *
 from cgm.lib.classes.SetFactory import *
 from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *

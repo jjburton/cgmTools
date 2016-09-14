@@ -27,9 +27,9 @@ import cgm.core.cgm_Meta as cgmMeta
 import cgm.core.cgmPy.validateArgs as cgmValid
 import cgm.core.cgm_General as cgmGeneral
 import cgm.core.classes.GuiFactory as cgmUI
-import cgm.lib.zoo.zooPyMaya.baseMelUI as zooUI
+from cgm.core.lib.zoo import baseMelUI as zooUI
 
-mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
+mayaVersion = cgmGeneral.__mayaVersion__
 
 #>>> Root settings =============================================================
 __version__ = '02.12.2016'
