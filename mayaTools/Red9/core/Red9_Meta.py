@@ -948,6 +948,20 @@ def  convertNodeToMetaData(nodes,mClass):
         mNode.attrSetLocked('mNodeID', True)
     return [MetaClass(node) for node in nodes]
     
+def delete_mNode(mNode):
+    '''
+    wrapper to delete a given mNode via the standard mClass call
+    rather than the mNodes internal class.delete() call to avoid
+    subclass issues when calling super().delete()
+    '''
+    global RED9_META_NODECACHE 
+    if cmds.lockNode(mNode.mNode, q=True):
+        cmds.lockNode(mNode.mNode, lock=False)  
+    # clear the node from the cache
+    removeFromCache(mNode)
+    
+    cmds.delete(mNode.mNode)
+    del(mNode)
     
        
 class MClassNodeUI(object):
@@ -3011,6 +3025,7 @@ class MetaRig(MetaClass):
         self.parentSwitchAttr = ['parent']  # attr used for parentSwitching
         self.MirrorClass = None         # capital as this binds to the MirrorClass directly
         # self.poseSkippedAttrs = []    # attributes which are to be IGNORED by the posesaver, set by you for your needs!
+        self.filterSettings=None        # used in the settings func
 
     def __bindData__(self):
         #self._lockState=True         # set the internal lockstate
@@ -3022,7 +3037,7 @@ class MetaRig(MetaClass):
         # Vital wires used by both StudioPack and Pro
         self.addAttr('renderMeshes', attrType='message')  # used to ID all meshes that are part of this rig system
         self.addAttr('exportSkeletonRoot', attrType='messageSimple')  # used to ID the skeleton root for exporters and code 
-      
+                 
     def gatherInfo(self, level=0, *args, **kws):
         '''
         gather key info on this system
@@ -3046,6 +3061,74 @@ class MetaRig(MetaClass):
             log.warning('"ctrl_main" : is NOT wired correctly!')
         return data
     
+    @property
+    def settings(self):
+        '''
+        bound filterSettings object used by the Animation Systems
+        from now on so that this data can be bound directly to the 
+        rig so we don't have to use the preset config's all the time
+        '''
+        flt=r9Core.FilterNode_Settings()
+        if self.filterSettings:
+            flt.setByDict(self.filterSettings)
+        else:
+            # no specific filter bound to the rig so set the metaRig flag as default
+            flt.metaRig=True
+        return flt
+    
+    @settings.setter
+    def settings(self, settingsobj):
+        '''
+        set the internal filterSettings data to the string attr on the
+        mrig, binding the settings directly to the rig rather than always having
+        to pull them back from configs
+        
+        :param settingsobj: either a valid filterSettings object OR a path
+            to a valid config preset that then gets read and consumed
+        '''
+        
+        # we're specifically setting the data so we cast it to the mNode itself
+        self.addAttr('filterSettings', '') 
+        
+        # set by an existing instance of a filterSettings object
+        if isinstance(type(settingsobj), r9Core.FilterNode_Settings):
+            self.filterSettings=settingsobj.__dict__
+            
+        # set by filepath
+        elif os.path.exists(settingsobj):
+            flt = r9Core.FilterNode_Settings()
+            flt.read(settingsobj)
+            self.filterSettings=flt.__dict__
+            
+    def isValid(self):
+        '''
+        simple check to see if this definition is still valid and wired to
+        controllers and not just to empty subSystems as is the case if you
+        were to delete all the dag nodes in a rig, leaving the MetaRig 
+        structure in-tact but useless
+        '''
+        if not self.getChildren():
+            return False
+        return True
+    
+    def delete(self, full=True):
+        '''
+        full delete and clean of a rig system and network
+        '''
+        mNodes=[]
+        mNodes.append(self)
+        mNodes.extend(self.getChildMetaNodes(walk=True))
+        mNodes.reverse()
+        
+        for a in mNodes:
+            print a
+        
+        for metaChild in mNodes:
+            for child in metaChild.getChildren(walk=False):
+                metaChild.disconnectChild(child)
+            print 'deleting mNode: ', metaChild
+            delete_mNode(metaChild)
+        
     @property
     def ctrl_main(self):
         '''
@@ -3433,7 +3516,8 @@ class MetaRig(MetaClass):
                 setattr(self, attr, self.poseCache.poseDict)
             self.attrSetLocked(attr,True)
         
-    def poseCacheLoad(self, nodes=None, attr=None, filepath=None, incRoots=True, *args, **kws):
+    def poseCacheLoad(self, nodes=None, attr=None, filepath=None, incRoots=True, relativePose=False, relativeRots='projected',
+                      relativeTrans='projected', maintainSpaces=False, *args, **kws):
         '''
         load a cached pose back to this mRig. If attr is given then its assumed
         that that attr is a cached poseDict on the mNode. If not given then it
@@ -3448,18 +3532,25 @@ class MetaRig(MetaClass):
         '''
         import Red9.core.Red9_PoseSaver as r9Pose  # lazy loaded
         if attr or filepath:
-            self.poseCache=r9Pose.PoseData()
+            self.poseCache=r9Pose.PoseData(**kws)  # **kws so we can pass the filterSettings directly if needed
             self.poseCache.metaPose=True
             self.poseCache.settings.incRoots=incRoots
             if attr:
                 self.poseCache.poseDict=getattr(self,attr)
         if self.poseCache:
             if not nodes:
-                self.poseCache.poseLoad(self.mNode, filepath=filepath, useFilter=True, *args, **kws)
+                self.poseCache.poseLoad(self.mNode,
+                                        filepath=filepath,
+                                        useFilter=True,
+                                        relativePose=relativePose,
+                                        relativeRots=relativeRots,
+                                        relativeTrans=relativeTrans,
+                                        maintainSpaces=maintainSpaces, *args, **kws)
             else:
+                # in non hierarchy / filter mode relative is NOT supported
                 self.poseCache.poseLoad(nodes, filepath=filepath, useFilter=False, *args, **kws)
      
-    def poseCompare(self, poseFile, supressWarning=False, compareDict='skeletonDict', filterMap=[], ignoreBlocks=[]):
+    def poseCompare(self, poseFile, supressWarning=False, compareDict='skeletonDict', filterMap=[], ignoreBlocks=[], ignoreStrings=[], ignoreAttrs=[]):
         '''
         Integrated poseCompare, this checks the mRigs current pose against
         a given poseFile. This checks against the 'skeletonDict'
@@ -3470,11 +3561,18 @@ class MetaRig(MetaClass):
         :param filterMap: if given this is used as a high level filter, only matching nodes get compared
             others get skipped. Good for passing in a master core skeleton to test whilst ignoring extra nodes
         :param ignoreBlocks: used to stop certain blocks in the compare from causing a fail eg : ['missingKeys']
+        :param ignoreAttrs: allows you to skip given attrs from the poseCompare calls
         :return: returns a 'PoseCompare' class object with all the compare data in it
         '''
         import Red9.core.Red9_PoseSaver as r9Pose  # lazy loaded
         self.poseCacheStore()
-        compare=r9Pose.PoseCompare(self.poseCache, poseFile, compareDict=compareDict, filterMap=filterMap, ignoreBlocks=ignoreBlocks)
+        compare=r9Pose.PoseCompare(self.poseCache,
+                                   poseFile,
+                                   compareDict=compareDict,
+                                   filterMap=filterMap,
+                                   ignoreBlocks=ignoreBlocks,
+                                   ignoreStrings=ignoreStrings,
+                                   ignoreAttrs=ignoreAttrs)
         if not compare.compare():
             info='Selected Pose is different to the rigs current pose\nsee script editor for debug details'
         else:
@@ -3593,8 +3691,9 @@ class MetaRig(MetaClass):
         if reset:
             self.loadZeroPose(nodes)
     
-
-    # PRO PACK Supported Only
+    
+    # -------------------------------------------------------------------------------
+    # PRO PACK Supported Only ---
     # -------------------------------------------------------------------------------
     '''
     All these commands are bound purely for those running the Red9 ProPack and are examples of
@@ -3603,7 +3702,7 @@ class MetaRig(MetaClass):
     '''
             
     def saveAnimation(self, filepath, incRoots=True, useFilter=True, timerange=(),
-                      storeThumbnail=False, force=False):
+                      storeThumbnail=False, force=False, userInfoData='', **kws):
         '''
         PRO_PACK : Binding of the animMap format for storing animation data out to file
                 
@@ -3613,26 +3712,47 @@ class MetaRig(MetaClass):
         :param timerange: specific a timerange to store, else store all 
         :param storeThumbnail: this will be an avi but currently it's a pose thumbnail
         :param force: allow force write on a read only file
+        :param userInfoData: user information used by the AnimStore UI only
         '''
         if r9Setup.has_pro_pack():
             from Red9.pro_pack import r9pro
             r9pro.r9import('r9panim')
             from r9panim import AnimMap
             
-            self.animMap=AnimMap()
-            self.animMap.filepath=filepath
-            self.animMap.metaPose=True
-            self.animMap.settings.incRoots=incRoots
-            self.animMap.saveAnim(self.mNode,
-                                  useFilter=useFilter,
-                                  timerange=timerange,
-                                  storeThumbnail=storeThumbnail,
-                                  force=force)
+            self.animCache=AnimMap(**kws)
+            self.animCache.userInfoData=userInfoData
+            self.animCache.filepath=filepath
+            self.animCache.metaPose=True
+            self.animCache.settings.incRoots=incRoots
+            self.animCache.saveAnim(self.mNode,
+                                    useFilter=useFilter,
+                                    timerange=timerange,
+                                    storeThumbnail=storeThumbnail,
+                                    force=force)
             
-            log.info('AnimMap data saved to : %s' % self.animMap.filepath)
-            
+            log.info('AnimMap data saved to : %s' % self.animCache.filepath)
+    
+    def loadAnimation_postload_call(self, feedback, *args, **kws):
+        '''
+        -------------------------------------------
+        Added to be Overloaded at the class level!
+        -------------------------------------------
+        call passed into the animMap class and run AFTER the r9Anim file is loaded
+        on the MetaRig, this allows you to add functionality to the base load to
+        extract extra data from the animMap and act upon it
+        
+        This allows us to act on the animMap stored on the class object and rebuld
+        data from the infoDict if required. We use this to rebuild audio links, exporter
+        nodes and any other data that's requried to be restored from the gathered info 
+       
+        self.animCache.infoDict
+        
+        :param feedback: data passed back into the call by the main loadAnimation func
+        '''
+        pass
+               
     def loadAnimation(self, filepath, incRoots=True, useFilter=True, 
-                      loadAsStored=True, loadFromFrm=0, referenceNode=None, *args, **kws):
+                      loadAsStored=True, loadFromFrm=0, referenceNode=None, manageRanges=1, manageFileName=True, *args, **kws):
         '''
         PRO_PACK : Binding of the animMap format for loading animation data from
         an r9Anim file. The base binding of the animation format is the DataMap object
@@ -3644,21 +3764,66 @@ class MetaRig(MetaClass):
         :param loadAsStored: load the data from the timerange stored
         :param loadFromFrm: load the data from a given frame
         :param referenceNode: load relative to the given node
+        :param manageRanges: do we (0, 1, 2) = leave, extend or set the timeranges according to the anim data loaded
+        :param manageFileName: if True and the current Maya scene has no filename other than a blank scene (ie freshly loaded rig)
+            then we take the r9Anim's filename and rename the Maya scene accordingly
+        
+        additional **KWS passed in and / or accepted in the ProPack codebase
+        
+        :KWS manageExport: If running the Red9Pro Exporter systems this will rebuild the export Tag data directly
+            from the r9Anim file's infoData block:
+            False : don't restore any exportData,
+            [] : if you pass in a list then we take that list and match internal exportloop names to it
+            'byName' : restore only exportLoops who name matches the r9Anim's name
+            'byRange': restore exportLoops that fall within the timerange of the imported r9Anim
+            'byRange_start' : restore exportLoops that start after the timerange of the importer r9Anim (ignore end time data)
+            'byRange_end' : restore exportLoops that end before the timerange of the importer r9Anim (ignore start time data)
+            'byAll' : restore ALL exportLoops in the r9Anim infoData block
+        :KWS manageAudio: If running the Red9Pro Exporter systems this will rebuild the Audio Node data directly
+            from the r9Anim file's infoData block   (False, [], 'byName', 'byRange', 'byRange_start', 'byRange_end', 'byAll')
+        
+        .. note:
+            After the anim load the animData is stored on this instance as self.animMap which then 
+            exposes all the data for further functions if needed.
+            self.animCache.infoDict = gatherInfo block on the file and pose
+            self.animCache.poseDict = the animation and pose data dict
+            
+        .. note:
+            **kws are passed directly into BOTH the AnimMap class and the loadAnimation_postload_call
+            so that we can bounce additional **kws into these funcs without having to specify everything,
+            this allows us to modify the behaviour on a case by case basis for clients
         '''
         if r9Setup.has_pro_pack():
             from Red9.pro_pack import r9pro
             r9pro.r9import('r9panim')
             from r9panim import AnimMap
+            feedback=None
             
-            self.animMap=AnimMap()
-            self.animMap.filepath=filepath
-            self.animMap.metaPose=True
-            self.animMap.settings.incRoots=incRoots
-            self.animMap.loadAnim(self.mNode,
-                                  useFilter=useFilter,
-                                  loadAsStored=loadAsStored,
-                                  loadFromFrm=loadFromFrm,
-                                  referenceNode=referenceNode)
+            self.animCache=AnimMap(**kws)  # **kws so we can pass back the filterSettings from the UI call in pro
+            self.animCache.filepath=filepath
+            self.animCache.metaPose=True
+            self.animCache.settings.incRoots=incRoots
+            if useFilter:
+                rootNodes=self.mNode
+            else:
+                rootNodes=cmds.ls(sl=True,l=True)
+            try:
+                feedback=self.animCache.loadAnim(nodes=rootNodes,
+                                               useFilter=useFilter,
+                                               loadAsStored=loadAsStored,
+                                               loadFromFrm=loadFromFrm,
+                                               referenceNode=referenceNode,
+                                               manageRanges=manageRanges,
+                                               manageFileName=manageFileName,
+                                               **kws)
+                # =========================================================
+                # pass the feedback to the postload code to handle, this is 
+                # responsible, at the client level for restoring things like audioNodes
+                # and exportLoops
+                self.loadAnimation_postload_call(feedback, *args, **kws)
+            except StandardError,err:
+                log.warning(err) 
+            return feedback
     
     @property
     def Timecode(self):
@@ -3881,6 +4046,16 @@ class MetaHIKCharacterNode(MetaRig):
                 return data[0]
             return data
     
+    def isValid(self):
+        '''
+        simple check to see if this definition is still wired to a skeleton,
+        the the skeleton was deleted then the definition never gets cleaned up!!
+        Messy Sodding Maya!
+        '''
+        if not cmds.listConnections(self.mNode,type='joint'):
+            return False
+        return True
+        
     def getHIKPropertyStateNode(self):
         '''
         return the HIK Property node as a class for easy management
@@ -4475,7 +4650,7 @@ class MetaTimeCodeHUD(MetaHUDNode):
             flt=r9Core.FilterNode()
             flt.settings.nodeTypes='transform'
         flt.settings.searchAttrs = self.tc_ref
-        nodes=flt.ProcessFilter()
+        nodes=flt.processFilter()
         if nodes:
             self.addMonitoredTimecodeNode(nodes)
         else:
