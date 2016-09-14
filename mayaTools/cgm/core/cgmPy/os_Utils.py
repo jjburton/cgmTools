@@ -26,12 +26,14 @@ import maya.cmds as mc
 
 # From cgm ==============================================================
 from cgm.core.cgmPy import validateArgs as cgmValid
-from cgm.lib.zoo.zooPy.path import Path
-
+from cgm.core.cgmPy import path_Utils as cgmPath
+#from cgm.lib.zoo.zooPy.path import Path
+#import cgm.lib.zoo.zooPy.path as zooPath
+#reload(zooPath)
 #>>> Utilities
 #===================================================================
 def get_lsFromPath(str_path = None, 
-                   matchArg = 'maya', 
+                   matchArg = None, 
                    calledFrom = None,**kwargs):
     """
     Return files or folders of a specific type from a given path
@@ -63,28 +65,35 @@ def get_lsFromPath(str_path = None,
     if not isinstance(str_path, basestring):
         raise TypeError('path must be string | str_path = {0}'.format(str_path))
     if os.path.isfile(str_path):
-        str_path = Path(str_path).up()
+        str_path = cgmPath.Path(str_path).up()
         log.info("{0} >> passed file. using dir: {1}".format(_str_funcName,str_path))        
     if not os.path.isdir(str_path):
         raise ValueError('path must validate as os.path.isdir | str_path = {0}'.format(str_path))
     
     #try:#>> Check matchArg
-    if matchArg is not None and not isinstance(matchArg, basestring):
-        raise TypeError('matchArg must be string | matchArg: {0}'.format(matchArg))        
+    if matchArg is not None:
+        if issubclass(type(matchArg),list):
+            _res = []
+            for a in matchArg:
+                _res.extend(find_files(str_path,a))
+            return _res
+        elif not isinstance(matchArg, basestring):
+            raise TypeError('matchArg must be string | matchArg: {0}'.format(matchArg))        
     
     if matchArg is None or matchArg in ['']:
         return [ name for name in os.listdir(str_path) ] 
     
-    if '*.' in matchArg:
+    #if '*.' in matchArg:
         #l_buffer = matchArg.split('*')        
-        return [ name for name in os.listdir(str_path) if name[-3:] == matchArg.split('*')[-1]]
+        #return [ name for name in os.listdir(str_path) if name[-3:] == matchArg.split('*')[-1]]
         
     if matchArg.lower() in ['folder','dir']:
         return [ name for name in os.listdir(str_path) if os.path.isdir(os.path.join(str_path, name)) ]
     elif matchArg.lower() in ['maya files','maya']:
         return [ name for name in os.listdir(str_path) if name[-3:] in ['.ma','.mb'] ]
     else:
-        raise NotImplementedError,'matchArg handler not in | matchArg: {0}'.format(matchArg)
+        return find_files(str_path,matchArg)
+        #raise NotImplementedError,'matchArg handler not in | matchArg: {0}'.format(matchArg)
     return result
 
 '''
@@ -105,7 +114,7 @@ def get_lsFromPath(str_path = None,
 
 def returnPyFilesFromFolder():
     import os
-    thisFile = Path( __file__ )
+    thisFile = cgmPath.Path( __file__ )
     thisPath = thisFile.up()
 
 

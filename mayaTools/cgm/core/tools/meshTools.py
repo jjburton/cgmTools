@@ -31,7 +31,7 @@ from cgm.core.lib import geo_Utils as GEO
 reload(GEO)
 reload(cgmUI)
 mUI = cgmUI.mUI
-import cgm.lib.zoo.zooPyMaya.baseMelUI as zooUI
+from cgm.core.lib.zoo import baseMelUI as zooUI
 from cgm.lib import dictionary
 mayaVersion = cgmGeneral.__mayaVersion__
 
@@ -192,7 +192,11 @@ class go(cgmUI.cgmGUI):
             cgmUI.cgmGUI.setup_Variables(self)#Initialize parent ones, then add our own
             self.create_guiOptionVar('BaseObject',defaultValue = '')
             self.create_guiOptionVar('AxisMode', defaultValue = 0)#Register the option var    
-            self.create_guiOptionVar('PivotMode', defaultValue = 0)#Register the option var                 
+            self.create_guiOptionVar('PivotMode', defaultValue = 0)#Register the option var     
+            self.create_guiOptionVar('ProxiMode', defaultValue = 1)#Register the option var  
+            self.create_guiOptionVar('ProxiResult', defaultValue = 4)#Register the option var              
+            self.create_guiOptionVar('ProxiAmount', defaultValue = 0.0)#Register the option var            
+            self.create_guiOptionVar('ProxiExpand', defaultValue = 1)#Register the option var                                         
             self.create_guiOptionVar('SpaceMode', defaultValue = 0)#Register the option var     
             self.create_guiOptionVar('ResultMode', defaultValue = 0)#Register the option var     
             self.create_guiOptionVar('Tolerance', defaultValue = .002)#Register the option var
@@ -229,16 +233,115 @@ class go(cgmUI.cgmGUI):
         #>>> Main Help
         containerName = mUI.MelColumn(parent,vis=True)   
         
-        cgmUI.add_Header('Proximity Mesh')
+        cgmUI.add_Header('Proximity Query')
         _help = mUI.MelLabel(containerName,
                              bgc = dictionary.returnStateColor('help'),
                              align = 'center',
-                             label = 'Generate a proximity mesh from selection',
+                             label = 'Target proximity to selection or mesh',
                              h=20,
                              vis = self.var_ShowHelp.value)	
     
-        self.l_helpElements.append(_help)        
+        self.l_helpElements.append(_help)  
         
+        try:#        
+            #Result Mode Change row 
+            _str_section = 'ProxiExpand mode'
+            _l_proxiOptions = ['None', 'Grow', 'Soft Select']
+            _l_ann = ['',
+                      'Use polyTraverse to grow selection',
+                      'Use softSelection with linear falloff by the expandAmount Distance']
+            
+            self.uiRow_ProxiExpandMode = mUI.MelHSingleStretchLayout(containerName,ut='cgmUISubTemplate',padding = 3)
+            mUI.MelSpacer(self.uiRow_ProxiExpandMode,w=5)
+            mUI.MelLabel(self.uiRow_ProxiExpandMode, label = 'Expand: ',align='right')
+            self.uiRow_ProxiExpandMode.setStretchWidget( mUI.MelSeparator(self.uiRow_ProxiExpandMode) )            
+    
+            self.uiRadioCollection_result = mUI.MelRadioCollection()
+            
+            self.uiOptions_proximityMode = []		
+            
+            for i,item in enumerate(_l_proxiOptions):
+                self.uiOptions_proximityMode.append(self.uiRadioCollection_result.createButton(self.uiRow_ProxiExpandMode,label=item,
+                                                                                               ann = _l_ann[i],
+                                                                                               onCommand = mUI.Callback(self.var_ProxiExpand.setValue,i)))
+               
+            mc.radioCollection(self.uiRadioCollection_result, edit=True, sl=self.uiOptions_proximityMode[self.var_ProxiExpand.value])
+       
+       
+            #mUI.MelLabel(self.uiRow_ProxiExpandMode,l='Amount:',align='right')
+            self.uiTF_proxiAmount = mUI.MelTextField(self.uiRow_ProxiExpandMode,backgroundColor = [1,1,1],h=20,
+                                                     ut = 'cgmUITemplate',
+                                                     w = 30,
+                                                     tx = self.var_ProxiAmount.value,
+                                                     ec = lambda *a:self.valid_tf_proxiAmount(),
+                                                     annotation = "How much to expand by")
+            #mUI.MelSpacer(self.uiRow_baseValues,w = 5)       
+            mUI.MelSpacer(self.uiRow_ProxiExpandMode,w=5)                 
+            self.uiRow_ProxiExpandMode.layout()          
+        except Exception,err:
+            log.error("{0} {1} failed to load. err: {12}".format(self._str_reportStart,_str_section,err))
+        
+        try:#        
+            #Result Mode Change row 
+            _str_section = 'Proxi result'
+            _l_proxiOptions = ['objs','face','edge','vtx','mesh']
+            _l_ann = ['Select objects intersecting source',
+                      'Select faces intersecting source',
+                      'Select edges intersecting source',      
+                      'Select vertices intersecting source',                                            
+                      'Create proxi mesh based of intersections to source']            
+            #self.create_guiOptionVar('ResultModeMode', defaultValue = 0)#Register the option var     
+            
+            self.uiRow_ProxiResult = mUI.MelHSingleStretchLayout(containerName,ut='cgmUISubTemplate',padding = 3)
+            mUI.MelSpacer(self.uiRow_ProxiResult,w=5)
+            mUI.MelLabel(self.uiRow_ProxiResult, label = 'Result: ',align='right')
+            self.uiRow_ProxiResult.setStretchWidget( mUI.MelSeparator(self.uiRow_ProxiResult) )            
+    
+            self.uiRadioCollection_result = mUI.MelRadioCollection()
+            
+            self.uiOptions_proximityMode = []		
+            
+            for i,item in enumerate(_l_proxiOptions):
+                self.uiOptions_proximityMode.append(self.uiRadioCollection_result.createButton(self.uiRow_ProxiResult,label=item,
+                                                                                               ann = _l_ann[i],                                                                                            
+                                                                                               onCommand = mUI.Callback(self.var_ProxiResult.setValue,i)))
+            
+            mc.radioCollection(self.uiRadioCollection_result, edit=True, sl=self.uiOptions_proximityMode[self.var_ProxiResult.value])
+            mUI.MelSpacer(self.uiRow_ProxiResult,w=5)                 
+            self.uiRow_ProxiResult.layout()          
+        except Exception,err:
+            log.error("{0} {1} failed to load. err: {12}".format(self._str_reportStart,_str_section,err))
+       
+        try:#        
+            #Result Mode Change row 
+            _str_section = 'Proxi mode'
+            _l_proxiOptions = ['Ray Cast','Bounding Box']
+            _l_ann = ['rayCast interior -- SLOW',
+                      'Bounding box contains -- FASTER']
+            #self.create_guiOptionVar('ResultModeMode', defaultValue = 0)#Register the option var     
+            
+            self.uiRow_ProxiMode = mUI.MelHSingleStretchLayout(containerName,ut='cgmUISubTemplate',padding = 3)
+            mUI.MelSpacer(self.uiRow_ProxiMode,w=5)
+            mUI.MelLabel(self.uiRow_ProxiMode, label = 'Mode: ',align='right')
+            self.uiRow_ProxiMode.setStretchWidget( mUI.MelSeparator(self.uiRow_ProxiMode) )            
+    
+            self.uiRadioCollection_result = mUI.MelRadioCollection()
+            
+            self.uiOptions_proximityMode = []		
+            
+            for i,item in enumerate(_l_proxiOptions):
+                self.uiOptions_proximityMode.append(self.uiRadioCollection_result.createButton(self.uiRow_ProxiMode,label=item,
+                                                                                            ann = _l_ann[i],
+                                                                                            onCommand = mUI.Callback(self.var_ProxiMode.setValue,i)))
+            
+            mc.radioCollection(self.uiRadioCollection_result, edit=True, sl=self.uiOptions_proximityMode[self.var_ProxiMode.value])
+            cgmUI.add_Button(self.uiRow_ProxiMode,'Go',
+                             lambda *a:self.targets_proxiMesh())
+            mUI.MelSpacer(self.uiRow_ProxiMode,w=5)                 
+            self.uiRow_ProxiMode.layout()          
+        except Exception,err:
+            log.error("{0} {1} failed to load. err: {12}".format(self._str_reportStart,_str_section,err))
+   
         
         return containerName
     
@@ -585,6 +688,13 @@ class go(cgmUI.cgmGUI):
             self.uiTF_tolerance.setValue(_buffer)
         else:self.uiTF_tolerance.setValue(self.var_Tolerance.value)
         
+    def valid_tf_proxiAmount(self):
+        _buffer = self.uiTF_proxiAmount.getValue()
+        self.var_ProxiAmount.value = _buffer
+        if self.var_ProxiAmount.value == _buffer:
+            self.uiTF_proxiAmount.setValue(_buffer)
+        else:self.uiTF_proxiAmount.setValue(self.var_ProxiAmount.value)
+        
     def valid_tf_multiplier(self):
         _buffer = self.uiTF_multiplier.getValue()
         if _buffer:
@@ -657,7 +767,28 @@ class go(cgmUI.cgmGUI):
                          symDict=self._d_baseSym))  
         except Exception,err:
             log.error("{0}: meshMath(targets) fail. err:{1}".format(self._str_reportStart,err))                
-                
+    
+    def targets_proxiMesh(self):
+        _sel = mc.ls(sl=True)
+        _ml_objs = cgmMeta.validateObjListArg(_sel,'cgmObject',mayaType='mesh')
+
+        if not _ml_objs:
+            log.error("{0}: No selected objects.".format(self._str_reportStart))                
+            return False
+        
+        if len(_ml_objs) < 2:
+            log.error("{0}: Must have at least two objects.".format(self._str_reportStart))                
+            return False
+        
+        _base = _ml_objs[-1]
+        
+        try:
+            log.info(GEO.get_proximityGeo(_base.mNode,[mObj.mNode for mObj in _ml_objs[:-1]],
+                                          self.var_ProxiMode.value, returnMode= self.var_ProxiResult.value,
+                                          expandBy=self.var_ProxiExpand.value, expandAmount=self.var_ProxiAmount.value)) 
+        except Exception,err:
+            log.error("{0}: create_proximityMeshFromTarget() fail. | err:{1}".format(self._str_reportStart,err))                
+                       
     def baseObject_blendSlider(self):
         _multiplier = self.uiSlider_baseBlend(q=True, value=True)
         self.baseObject_meshMath('blend',_multiplier)

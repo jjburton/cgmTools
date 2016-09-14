@@ -791,7 +791,7 @@ def kw_fromDict(arg = None ,d = None, indexCallable = True,  noneValid = False, 
     if not noneValid:
         raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, d)
 
-def kw_fromList(arg = None ,l = None, noneValid = False, calledFrom = None):
+def kw_fromList(arg = None ,l = None, noneValid = False, indexCallable = False, calledFrom = None):
     """
     Returns valid kw if it matches a list of possible options provided.
     
@@ -803,6 +803,7 @@ def kw_fromList(arg = None ,l = None, noneValid = False, calledFrom = None):
 
     """        
     _str_funcName = 'kw_fromDict'
+    _res = None
     if calledFrom: _str_funcName = "{0} calling {1}".format(calledFrom,_str_funcName) 
        
     if arg is None or l is None:
@@ -811,12 +812,17 @@ def kw_fromList(arg = None ,l = None, noneValid = False, calledFrom = None):
     if not isListArg(l):
         raise ValueError,"{0}: l arg must be a dict | l: {1}".format(_str_funcName,l)
     
-    for o in l:
-        if isStringEquivalent(o,arg):return o 
-        
+    for i,o in enumerate(l):
+        if o == arg:_res = o
+        if i == arg:_res = o      
+        if isStringEquivalent(o,arg):_res = o
+    if _res:
+        if indexCallable:
+            return l.index(_res)
+        else:
+            return _res
     if not noneValid:
         raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, l)
-
         
     
     

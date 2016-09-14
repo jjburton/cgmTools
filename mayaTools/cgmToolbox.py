@@ -26,13 +26,14 @@ from cgm import cgmInitialize
 reload(cgmInitialize)
 cgmInitialize.setupContributorPaths()
 
-import cgm.lib.zoo.zooPyMaya.baseMelUI as zooUI
+#import cgm.lib.zoo.zooPyMaya.baseMelUI as mUI
 import cgm.core.classes.HotkeyFactory as HKEY
 
 #>>>>>
 
 from cgm.lib import guiFactory
-from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
+#from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
+from cgm.core.cgmPy import path_Utils as cgmPath
 from cgm.lib.zoo.zooPyMaya import baseMelUI as mUI
 from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
 import Red9
@@ -40,7 +41,7 @@ import Red9
 def clean_scriptPaths():
     _str_func = 'clean_scriptPaths'
     _buffer = maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' )
-    mayaScriptPaths = map( Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
+    mayaScriptPaths = map( cgmPath.Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
     mayaScriptPathsSet = set( mayaScriptPaths )
     
     _l_good = []
@@ -78,7 +79,7 @@ def clean_scriptPaths():
 def clean_pluginPaths():
     _str_func = 'clean_pluginPaths'
     _buffer = maya.mel.eval( 'getenv MAYA_PLUG_IN_PATH' )
-    mayaScriptPaths = map( Path, maya.mel.eval( 'getenv MAYA_PLUG_IN_PATH' ).split( os.pathsep ) )
+    mayaScriptPaths = map( cgmPath.Path, maya.mel.eval( 'getenv MAYA_PLUG_IN_PATH' ).split( os.pathsep ) )
     mayaScriptPathsSet = set( mayaScriptPaths )
     
     _l_good = []
@@ -110,11 +111,11 @@ def clean_pluginPaths():
         maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s"' % _buffer )
 	
 def setupCGMScriptPaths():
-    thisFile = Path(__file__)
+    thisFile = cgmPath.Path(__file__)
     #thisPath = os.sep.join(__file__.split(os.sep)[:-1])
     thisPath = thisFile.up().osPath()
     
-    mayaScriptPaths = map( Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
+    mayaScriptPaths = map( cgmPath.Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
     mayaScriptPathsSet = set( mayaScriptPaths )
     _paths = [os.path.join('cgm','mel','zooPy'),
               os.path.join('cgm','mel'),
@@ -123,10 +124,10 @@ def setupCGMScriptPaths():
               'Red9']
     
     for path in _paths:
-        fullPath = Path( os.path.join(thisPath, path) )
+        fullPath = cgmPath.Path( os.path.join(thisPath, path) )
         if fullPath not in mayaScriptPathsSet:
             log.info("setupCGMScriptPaths>> Path not found. Appending: {0}".format(fullPath))            
-            mayaScriptPaths.append( Path(fullPath.asFriendly()) )
+            mayaScriptPaths.append( cgmPath.Path(fullPath.asFriendly()) )
             mayaScriptPaths.extend( fullPath.dirs( recursive=True ) )
 
             mayaScriptPaths = mUI.removeDupes( mayaScriptPaths )
@@ -136,15 +137,15 @@ def setupCGMScriptPaths():
             maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
 
 def setupCGMPlugins():
-    thisFile = Path( __file__ )
+    thisFile = cgmPath.Path( __file__ )
     thisPath = thisFile.up().osPath()
 
     existingPlugPathStr = maya.mel.eval( 'getenv MAYA_PLUG_IN_PATH;' )
-    existingPlugPaths = map( Path, existingPlugPathStr.split( os.pathsep ) )
+    existingPlugPaths = map( cgmPath.Path, existingPlugPathStr.split( os.pathsep ) )
     existingPlugPathsSet = set( existingPlugPaths )
 
     #cgmPyPath = thisPath / 'cgm/plugins'
-    cgmPyPath = Path( os.path.join(thisPath, 'cgm','plugins') )
+    cgmPyPath = cgmPath.Path( os.path.join(thisPath, 'cgm','plugins') )
     if cgmPyPath not in existingPlugPathsSet:
         log.info("setupCGMPlugins>> cgmPyPath not found. Appending: {0}".format(cgmPyPath))            
         existingPlugPaths.append( cgmPyPath )
@@ -568,30 +569,30 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
 
               ('hotkeys', (('Zoo Set Menu - selection set menu',
                             'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
-                            zooUI.Callback(HKEY.cgmHotkeyer, 'zooSetMenu', 'zooSetMenu;', 'zooSetMenuKillUI;','zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface','mel','y')),                            
+                            mUI.Callback(HKEY.cgmHotkeyer, 'zooSetMenu', 'zooSetMenu;', 'zooSetMenuKillUI;','zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface','mel','y')),                            
                             #ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
                            ('Set Menu - menu for cgm.setTools',
                             'Menu for working with cgm.SetTools. There are a wide fariety of tools for them..',
-                            zooUI.Callback(HKEY.cgmHotkeyer, 'cgmSetToolsMM', 'cgmSetToolsMM;', 'cgmSetToolsMMKillUI;','cgmSnap marking menu', 'mel','d')),                            
+                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmSetToolsMM', 'cgmSetToolsMM;', 'cgmSetToolsMMKillUI;','cgmSnap marking menu', 'mel','d')),                            
                             #ToolCB( "zooHotkeyer cgmSetToolsMM \"cgmSetToolsMM;\" \"cgmSetToolsMMKillUI;\" \"-default d -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
                            ('Tangent Works - tangency manipulation menu',
                             'zooTangentWks is a marking menu script that provides super fast access to common tangent based operations.  Tangent tightening, sharpening, change tangent types, changing default tangents etc...',
-                            zooUI.Callback(HKEY.cgmHotkeyer, 'zooTangentWks',  'zooTangentWks;', 'zooTangentWksKillUI;','tangent works is a marking menu script to speed up working with the graph editor','mel','q')),                            
+                            mUI.Callback(HKEY.cgmHotkeyer, 'zooTangentWks',  'zooTangentWks;', 'zooTangentWksKillUI;','tangent works is a marking menu script to speed up working with the graph editor','mel','q')),                            
                             #ToolCB( "zooHotkeyer zooTangentWks \"zooTangentWks;\" \"zooTangentWksKillUI;\" \"-default q -enableMods 0 -ann tangent works is a marking menu script to speed up working with the graph editor\";" )),
 
                            ('Snap Tools - snap tools menu',
                             'cgmSnapToolsMM is a tool for accessing snapping tools from a marking menu...',
-                            zooUI.Callback(HKEY.cgmHotkeyer, 'cgmSnap',  'cgmSnapMM;', 'cgmSnapMMKillUI;','cgmSnap marking menu','mel','t')),
+                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmSnap',  'cgmSnapMM;', 'cgmSnapMMKillUI;','cgmSnap marking menu','mel','t')),
                            
                            ('NEW Set Key Menu - key creation menu',
                             'cgmPuppet key menu - wip',
-                            zooUI.Callback(HKEY.cgmHotkeyer, 'cgmPuppetKey', 'cgmPuppetKeyMM;', 'cgmPuppetKeyMMKillUI;','New moduler marking menu for the s key','mel','s')),
+                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmPuppetKey', 'cgmPuppetKeyMM;', 'cgmPuppetKeyMMKillUI;','New moduler marking menu for the s key','mel','s')),
 
                            ('Set Key Menu - key creation menu',
                             'cgmLibrary tools for dealing with keys',
-                            zooUI.Callback(HKEY.cgmHotkeyer, 'cgmSetKeyMM',  'cgmSetKeyMM;', 'cgmSetKeyMMKillUI;','designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations', 'mel','s')),                            
+                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmSetKeyMM',  'cgmSetKeyMM;', 'cgmSetKeyMMKillUI;','designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations', 'mel','s')),                            
                             #ToolCB( "zooHotkeyer cgmSetKeyMM \"cgmSetKeyMM;\" \"cgmSetKeyMMKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
 
                            ('Reset Hotkeys', "Reset all hotkeys in current hotkeySet(2016+) or in maya for below 2016",

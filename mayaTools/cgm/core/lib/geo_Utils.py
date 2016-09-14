@@ -24,6 +24,7 @@ import copy
 
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
+reload(cgmValid)
 from cgm.core.lib import selection_Utils as cgmSELECT
 from cgm.core.cgmPy import OM_Utils as cgmOM
 from cgm.lib import guiFactory
@@ -231,8 +232,8 @@ def is_equivalent(sourceObj = None, target = None, tolerance = .0001):
 
     return True
 
-def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0, selectReturn = True,
-                     expandBy = None, expandAmount = 0):
+def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0,
+                     selectReturn = True, expandBy = 0, expandAmount = 0):
     """
     Method for checking targets components or entirty are within a source object.
 
@@ -267,24 +268,26 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0, 
     """      
     __l_returnModes = ['obj/transform','face','edge/span','vert/cv','proximity mesh']
     __l_modes = ['raycast interior','bounding box']
-    __l_expandBy = [None, 'expandSelection','softSelect']
+    __l_expandBy = ['none', 'expandSelection','softSelect']
     result = []
     
-    _mode = cgmValid.valueArg(mode, inRange=[0,1], noneValid=False, calledFrom = 'get_contained')    
+    #_mode = cgmValid.valueArg(mode, inRange=[0,1], noneValid=False, calledFrom = 'get_contained')  
+    _mode = cgmValid.kw_fromList(mode, __l_modes, indexCallable=True, noneValid=False, calledFrom = 'get_contained')        
     log.info("mode: {0}".format(_mode))
     
-    _returnMode = cgmValid.valueArg(returnMode, inRange=[0,4], noneValid=False, calledFrom = 'get_contained')
+    #_returnMode = cgmValid.valueArg(returnMode, inRange=[0,4], noneValid=False, calledFrom = 'get_contained')
+    _returnMode = cgmValid.kw_fromList(returnMode, __l_returnModes, indexCallable=True, noneValid=False, calledFrom = 'get_contained')        
     log.info("returnMode: {0}".format(_returnMode))
     
     _selectReturn = cgmValid.boolArg(selectReturn, calledFrom='get_contained')
     
-    _expandBy = None
-    if expandBy is not None:
+    _expandBy = cgmValid.kw_fromList(expandBy, __l_expandBy, noneValid=False, calledFrom = 'get_contained')        
+    """if expandBy is not None:
         if expandBy in __l_expandBy:
             _expandBy = expandBy
         else:
             raise ValueError,"'{0}' expandBy arg not found in : {1}".format(expandBy, __l_expandBy)
-        
+        """
     #Validate our expand amount =======================================================================================================
     if expandAmount is 'default':
         expandAmount = distance.returnBoundingBoxSizeToAverage(sourceObj)    
@@ -421,6 +424,8 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0, 
                         _l_found.add(_dagPath, iter.currentItem())
                     iter.next()  
                 
+    else:
+        raise ValueError,"Bad mode {0}".format(_mode)
     guiFactory.doCloseProgressWindow()
     
     #Post processing =============================================================================
@@ -434,7 +439,7 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0, 
         return False
     
     #Expand ========================================================================================
-    if _expandBy is not None and returnMode > 0:
+    if _expandBy is not 'none' and returnMode > 0:
         log.info("Expanding result by '{0}'...".format(_expandBy))   
         _sel = mc.ls(sl=True) or []        
         _expandFactor = int(expandAmount)  
