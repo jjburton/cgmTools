@@ -272,13 +272,14 @@ class go(cgmUI.cgmGUI):
 	    self.create_guiOptionVar('CastYOffset', defaultValue = 0.0)
 	    self.create_guiOptionVar('CastZOffset', defaultValue = 0.0)
 	    self.create_guiOptionVar('CastMarkHits', defaultValue = 0)
-	    self.create_guiOptionVar('CastClosedCurve', defaultValue = 0)	    
+	    self.create_guiOptionVar('CastClosedCurve', defaultValue = 1)	    
 	    self.create_guiOptionVar('CastMinRotate', defaultValue = 0.0)
 	    self.create_guiOptionVar('CastMinUse', defaultValue = 0)	    
 	    self.create_guiOptionVar('CastMaxRotate', defaultValue = 0.0)
-	    self.create_guiOptionVar('CastMaxUse', defaultValue = 0)	    	    
-	    self.create_guiOptionVar('CastRange', defaultValue = 1000.0)
-	    self.create_guiOptionVar('CastClosestInRange', defaultValue = 0)
+	    self.create_guiOptionVar('CastMaxUse', defaultValue = 0)	  
+	    self.create_guiOptionVar('CastDegree', defaultValue = 3)	    	    
+	    self.create_guiOptionVar('CastRange', defaultValue = 100.0)
+	    self.create_guiOptionVar('CastClosestInRange', defaultValue = 1)
 	    
 	    
 	    
@@ -430,22 +431,6 @@ class go(cgmUI.cgmGUI):
     
 	self.l_helpElements.append(_help)  	
 	
-	"""    
-	mesh(string) | Surface to cast at
-	mi_obj(string/mObj) | our casting object
-	latheAxis(str) | axis of the objec to lathe TODO: add validation
-	aimAxis(str) | axis to shoot out of
-	points(int) | how many points you want in the curve
-	posOffset(vector) | transformational offset for the hit from a normalized locator at the hit. Oriented to the surface
-	markHits(bool) | whether to keep the hit markers
-	returnDict(bool) | whether you want all the infomation from the process.
-	rotateBank (float) | let's you add a bank to the rotation object
-	minRotate(float) | let's you specify a valid range to shoot
-	maxRotate(float) | let's you specify a valid range to shoot
-	l_specifiedRotates(list of values) | specify where to shoot relative to an object. Ignores some other settings
-	maxDistance(float) | max distance to cast rays
-	closestInRange(bool) | True by default. If True, takes first hit. Else take the furthest away hit in range.
-	"""
 	try:#Curve Slice Row 1 ---------------------------------------------------------------------------------------
 	    _str_section = 'Curve Slice Row 1'
 	    _uiRow_slice =  mUI.MelHSingleStretchLayout(containerName,ut='cgmUISubTemplate',padding = 3)
@@ -453,35 +438,42 @@ class go(cgmUI.cgmGUI):
 	    mUI.MelSpacer(_uiRow_slice,w=2)	
 
 	    mUI.MelCheckBox(_uiRow_slice,
-	                    label = 'markHits',
+	                    label = 'mark',
 	                    annotation = "Leave the hit locators",		                           
 	                    value = bool(self.var_CastMarkHits.value),
 	                    onCommand = mUI.Callback(self.var_CastMarkHits.setValue,1),
 	                    offCommand = mUI.Callback(self.var_CastMarkHits.setValue,0))
 	    mUI.MelCheckBox(_uiRow_slice,
-	                    label = 'closedCurve',
+	                    label = 'closed',
 	                    annotation = "Leave the hit locators",		                           
 	                    value = bool(self.var_CastClosedCurve.value),
 	                    onCommand = mUI.Callback(self.var_CastClosedCurve.setValue,1),
 	                    offCommand = mUI.Callback(self.var_CastClosedCurve.setValue,0))	
 	    mUI.MelCheckBox(_uiRow_slice,
-	                    label = 'closest',
+	                    label = 'near',
 	                    annotation = "Closest hit in range",		                           
 	                    value = bool(self.var_CastClosestInRange.value),
 	                    onCommand = mUI.Callback(self.var_CastClosestInRange.setValue,1),
-	                    offCommand = mUI.Callback(self.var_CastClosestInRange.setValue,0))	    
-	    mUI.MelLabel(_uiRow_slice,l='Points:')	    
+	                    offCommand = mUI.Callback(self.var_CastClosestInRange.setValue,0))	
+	    _uiRow_slice.setStretchWidget( mUI.MelSeparator(_uiRow_slice, w=2) )
+	    mUI.MelLabel(_uiRow_slice,l='d:')	    
+	    self.uiIF_CastDegree = mUI.MelIntField(_uiRow_slice,
+	                                           w = 20,
+	                                           minValue = 1,
+	                                           value = self.var_CastDegree.value,
+	                                           annotation = 'Degree of curve to create',
+	                                           ec = lambda *a:self.valid_intf_castDegree())	 	    
+	    mUI.MelLabel(_uiRow_slice,l='p:')	    
 	    self.uiIF_CastPoints = mUI.MelIntField(_uiRow_slice,
 	                                           w = 25,
 	                                           minValue = 6,
 	                                           value = self.var_CastPoints.value,
+	                                           annotation = 'How many points to cast',
 	                                           ec = lambda *a:self.valid_intf_castPoints())	    
 		    
-	    _uiRow_slice.setStretchWidget( mUI.MelSeparator(_uiRow_slice, w=2) )	    
 	    
-	    mUI.MelSpacer(_uiRow_slice,w=2)	
 	    mUI.MelSpacer(_uiRow_slice,w=2)		    
-	    _uiRow_slice.layout()      
+	    _uiRow_slice.layout()    
 	except Exception,err:
 	    log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
 	    
@@ -500,9 +492,9 @@ class go(cgmUI.cgmGUI):
 	                    onCommand = mUI.Callback(self.var_CastMinUse.setValue,1),
 	                    offCommand = mUI.Callback(self.var_CastMinUse.setValue,0))	    
 	    self.uiFF_CastMinRotate = mUI.MelFloatField(_uiRow_slice,
-	                                                w = 50,
+	                                                w = 40,
 	                                                annotation = 'minRotate values',
-	                                                precision = 3,
+	                                                precision = 2,
 	                                                value = self.var_CastMinRotate.value,
 	                                                ec = lambda *a:self.valid_ff_CastMinRotate())
     
@@ -513,17 +505,18 @@ class go(cgmUI.cgmGUI):
 	                    onCommand = mUI.Callback(self.var_CastMaxUse.setValue,1),
 	                    offCommand = mUI.Callback(self.var_CastMaxUse.setValue,0))	 	    
 	    self.uiFF_CastMaxRotate = mUI.MelFloatField(_uiRow_slice,
-	                                                w = 50,
+	                                                w = 40,
 	                                                annotation = 'maxRotate values',	                                                
-	                                                precision = 3,
+	                                                precision = 2,
 	                                                value = self.var_CastMaxRotate.value,
 	                                                ec = lambda *a:self.valid_ff_CastMaxRotate())		    
 	    mUI.MelSpacer(_uiRow_slice,w=2)	
 	    _uiRow_slice.setStretchWidget( mUI.MelSeparator(_uiRow_slice, w=2) )	    	    
-	    mUI.MelLabel(_uiRow_slice,l='range:')	    
+	    mUI.MelLabel(_uiRow_slice,l='dist:')	    
 	    self.uiFF_CastRange = mUI.MelFloatField(_uiRow_slice,
 		                                    w = 60,
 		                                    precision = 1,
+	                                            annotation = 'Maximum cast range',
 		                                    value = self.var_CastRange.value,
 		                                    ec = lambda *a:self.valid_ff_CastRange())		    
 	    mUI.MelSpacer(_uiRow_slice,w=2)    
@@ -544,18 +537,18 @@ class go(cgmUI.cgmGUI):
  
 	    mUI.MelLabel(_uiRow_slice,l='Offset:')	    
 	    self.uiFF_CastXOffset = mUI.MelFloatField(_uiRow_slice,
-	                                              w = 50,
-	                                              precision = 3,
+	                                              w = 40,
+	                                              precision = 2,
 	                                              value = self.var_CastXOffset.value,
 	                                              ec = lambda *a:self.valid_ff_CastXOffset())		    
 	    self.uiFF_CastYOffset = mUI.MelFloatField(_uiRow_slice,
-	                                              w = 50,
-	                                              precision = 3,
+	                                              w = 40,
+	                                              precision = 2,
 	                                              value = self.var_CastYOffset.value,
 	                                              ec = lambda *a:self.valid_ff_CastYOffset())
 	    self.uiFF_CastZOffset = mUI.MelFloatField(_uiRow_slice,
-	                                              w = 50,
-	                                              precision = 3,
+	                                              w = 40,
+	                                              precision = 2,
 	                                              value = self.var_CastZOffset.value,
 	                                              ec = lambda *a:self.valid_ff_CastZOffset())	    
 	    
@@ -1072,6 +1065,19 @@ class go(cgmUI.cgmGUI):
 	except Exception,err:
 	    log.error("{0} valid_intf_castPoints failed! err: {1}".format(self._str_reportStart,err))
 	    
+    def valid_intf_castDegree(self):
+	try:
+	    _buffer = self.uiIF_CastDegree.getValue()
+	    if _buffer < 1:
+		_buffer = 1
+	    self.var_CastDegree.value = _buffer
+	    if self.var_CastDegree.value == _buffer:
+		self.uiIF_CastDegree.setValue(_buffer)
+	    else:self.uiIF_CastDegree.setValue(self.var_CastDegree.value)	    
+	    
+	except Exception,err:
+	    log.error("{0} valid_intf_castDegree failed! err: {1}".format(self._str_reportStart,err))   
+	    
     def valid_ff_CastXOffset(self):
 	try:
 	    _buffer = self.uiFF_CastXOffset.getValue()
@@ -1382,6 +1388,7 @@ class go(cgmUI.cgmGUI):
 	log.info("Casting Objects: {0}".format([mObj.mNode for mObj in _ml_objs]))	
 	log.info("Lathe Axis: {0}".format(_latheAxis))
 	log.info("Aim Axis: {0}".format(_aimAxis))
+	log.info("Degree: {0}".format(self.var_CastDegree.value))	
 	log.info("Points: {0}".format(self.var_CastPoints.value))
 	log.info("xOffset: {0}".format(self.var_CastXOffset.value))
 	log.info("yOffset: {0}".format(self.var_CastYOffset.value))
@@ -1397,8 +1404,8 @@ class go(cgmUI.cgmGUI):
 	for mObj in _ml_objs:
 	    log.info( ShapeCaster.createMeshSliceCurve(_l_mesh, mObj,
 	                                               latheAxis=_latheAxis, aimAxis=_aimAxis, 
-	                                                points=self.var_CastPoints.value, 
-	                                               curveDegree=3, 
+	                                               points=self.var_CastPoints.value, 
+	                                               curveDegree=self.var_CastDegree.value, 
 	                                               minRotate=_min, 
 	                                               maxRotate=_max, 
 	                                               rotateRange=None, 
@@ -1414,6 +1421,7 @@ class go(cgmUI.cgmGUI):
 	                                               closestInRange=self.var_CastClosestInRange.value, 
 	                                               returnDict=False,))
 	    
+	mc.select([mObj.mNode for mObj in _ml_objs])
 	    
 
 

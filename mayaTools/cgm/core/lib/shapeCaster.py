@@ -506,12 +506,13 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	latheAxis(str) | axis of the objec to lathe TODO: add validation
 	aimAxis(str) | axis to shoot out of
 	points(int) | how many points you want in the curve
+	curveDegree(int) | specified degree
+	minRotate(float) | let's you specify a valid range to shoot
+	maxRotate(float) | let's you specify a valid range to shoot
 	posOffset(vector) | transformational offset for the hit from a normalized locator at the hit. Oriented to the surface
 	markHits(bool) | whether to keep the hit markers
 	returnDict(bool) | whether you want all the infomation from the process.
 	rotateBank (float) | let's you add a bank to the rotation object
-	minRotate(float) | let's you specify a valid range to shoot
-	maxRotate(float) | let's you specify a valid range to shoot
 	l_specifiedRotates(list of values) | specify where to shoot relative to an object. Ignores some other settings
 	maxDistance(float) | max distance to cast rays
 	closestInRange(bool) | True by default. If True, takes first hit. Else take the furthest away hit in range.
@@ -537,9 +538,9 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	log.debug("mi_obj: {0}".format(mi_obj.mNode))
 	
 	mesh = cgmValid.objStringList(mesh,['mesh','nurbsSurface'], calledFrom = _str_funcName)
-	if len(mc.ls(mesh))>1:
-	    log.error("{0}>>> More than one mesh named. Using first: {1}".format(_str_funcName,mesh))
-	mesh = mesh[0]
+	#if len(mc.ls(mesh))>1:
+	    #log.error("{0}>>> More than one mesh named. Using first: {1}".format(_str_funcName,mesh))
+	#mesh = mesh[0]
 	log.debug("mesh: {0}".format(mesh))
 	log.debug("points: {0}".format(points))
 	
@@ -576,7 +577,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    axisToCheck = axisToCheck or kws.get('axisToCheck') or [a for a in ['x','y','z'] if a != latheAxis]
 	    log.debug("createMeshSliceCurve>> axisToCheck: %s"%axisToCheck)
 	    try:
-		Snap.go(mi_loc.parent,mesh,True,False,midSurfacePos=True, axisToCheck = axisToCheck)
+		Snap.go(mi_loc.parent,mesh[0],True,False,midSurfacePos=True, axisToCheck = axisToCheck)
 	    except:
 		log.error("createMeshSliceCurve >> failed to midMeshCast")
 		
@@ -639,13 +640,20 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    
 	    #mi_rotObj.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)
 	    try:
-		log.debug("mesh: %s"%mesh)
-		log.debug("mi_loc.mNode: %s"%mi_loc.mNode)
-		log.debug("aimAxis: %s"%aimAxis)
-		log.debug("latheAxis: %s"%latheAxis)
-		log.debug("maxDistance: %s"%maxDistance)
+		log.info("mesh: %s"%mesh)
+		log.info("mi_loc.mNode: %s"%mi_loc.mNode)
+		log.info("aimAxis: %s"%aimAxis)
+		log.info("latheAxis: %s"%latheAxis)
+		log.info("maxDistance: %s"%maxDistance)
 		
+		d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance, firstHit=False) or {}
+		d_hitReturnFromValue[rotateValue] = d_castReturn	
+		log.info("{0} -- {1}".format(rotateValue,d_castReturn))
 		if closestInRange:
+		    hit = d_castReturn.get('near') or False
+		else:
+		    hit = d_castReturn.get('far') or False
+		"""if closestInRange:
 		    try:
 			d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance) or {}
 		    except StandardError,error:
@@ -661,9 +669,8 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		    if d_castReturn.get('hits'):
 			closestPoint = distance.returnFurthestPoint(mi_loc.getPosition(),d_castReturn.get('hits')) or False
 			d_castReturn['hit'] = closestPoint
-			log.debug("From %s: %s" %(rotateValue,d_castReturn))
+			log.debug("From %s: %s" %(rotateValue,d_castReturn))"""
 		    
-		hit = d_castReturn.get('hit') or False
 		d_rawHitFromValue[rotateValue] = hit
     
 	    except StandardError,error:

@@ -503,15 +503,37 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance
         log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
         return None
     
-def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, maxDistance = 1000, singleReturn = True):
+def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, maxDistance = 1000, firstHit = True):
     """
     Find mesh intersections for an object's axis
+    
+    :parameters:
+        mesh(string) | Surface to cast at
+	obj(string) | transform to cast from
+	axis(string) | Axis to cast
+	vector(double3) | vector to cast
+	maxDistance(float) | max cast range
+	firstHit(bool) | single return per mesh
+
+    :returns:
+        Dict ------------------------------------------------------------------
+	'source'(double3) |  point from which we cast
+	'hit' | only there for firstHit and single mesh or closestInRange
+	'hits'(list) | world space points
+	'uvs'(dict) | uv on surface of hit
+	'near' | nearest hit
+	'far' | furthest hit
+	
+    :raises:
+	Exception | if reached
     """
     try:
         _str_funcName = 'findMeshIntersectionFromObjectAxis'
-        log.debug(">>> %s >> "%_str_funcName + "="*75)     
-        if len(mc.ls(mesh))>1:
-            raise StandardError,"findMeshIntersectionFromObjectAxis>>> More than one mesh named: %s"%mesh    
+        log.debug(">>> %s >> "%_str_funcName + "="*75) 
+	_mesh = cgmValid.listArg(mesh)
+	_oneMesh = False
+	if len(_mesh) == 1:
+	    _oneMesh = True
         if not vector or type(vector) not in [list,tuple]:
             d_matrixVectorIndices = {'x':[0,1,2],
                                      'y': [4,5,6],
@@ -529,10 +551,50 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
             if list(axis)[1] == '-':
                 for i,v in enumerate(vector):
                     vector[i]=-v
-        if singleReturn:
-            return findMeshIntersection(mesh, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
-        else:
-            return findMeshIntersections(mesh, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
+	
+	#self._posBuffer.append(hit)  
+	#self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
+	#self.d_meshPos[m].append(hit)
+	#self.d_meshUV[m].append(buffer['uv'])
+	_l_posBuffer = []
+	_l_uvBuffer = []
+	_source = None
+	
+	_d_meshPos = {}
+	_d_meshUV = {}
+        for m in _mesh:
+	    _b = {}
+	    if firstHit:
+		_b = findMeshIntersection(m, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
+		#if _oneMesh:return _b
+		if not _d_meshUV.get(m):_d_meshUV[m] = []
+		if not _d_meshPos.get(m):_d_meshPos[m] = []
+		if _b:
+		    _l_posBuffer.append(_b['hit'])
+		    _uv = _b['uv']
+		    _d_meshUV[m].append(_uv)
+		    _d_meshPos[m].append(_b['hit'])								    
+		    #_l_uvBuffer.append("{0}.uv[{1},{2}]".format(m,_uv[0],_uv[1]))
+	    else:
+		_b = findMeshIntersections(m, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
+		#if _oneMesh:return _b	
+		if not _d_meshUV.get(m):_d_meshUV[m] = []
+		if not _d_meshPos.get(m):_d_meshPos[m] = []
+		if _b:
+		    _uvs = _b['uvs']		
+		    for i,h in enumerate(_b['hits']):
+			_uv = _uvs[i]
+			_l_posBuffer.append(h)
+			_d_meshUV[m].append(_uv)
+			_d_meshPos[m].append(h)						
+			#_l_uvBuffer.append("{0}.uv[{1},{2}]".format(m,_uv[0],_uv[1]))
+	    if _b:
+		if _source == None:
+		    _source = _b['source']
+		    
+	_near = distance.returnClosestPoint(_source, _l_posBuffer)
+	_furthest = distance.returnFurthestPoint(_source,_l_posBuffer)
+	return {'source':_source, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'meshHits':_d_meshPos}
     except StandardError,error:
         log.error(">>> %s >> mesh: %s | obj: %s | axis %s | vector: %s | error: %s"%(_str_funcName,mesh,obj,axis,vector,error))
         return None
@@ -688,3 +750,5 @@ def returnNormalizedUV(mesh, uValue, vValue):
 	log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
 	return None
 
+
+ 

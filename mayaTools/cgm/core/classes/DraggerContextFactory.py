@@ -470,7 +470,10 @@ class clickMesh(ContextualPick):
                         self.d_meshUV[m].append(buffer['uv'])
 			
                 else:
-                    buffer = RayCast.findMeshIntersections(m, self.clickPos , self.clickVector , checkDistance)                                    
+                    try:buffer = RayCast.findMeshIntersections(m, self.clickPos , self.clickVector , checkDistance)     
+		    except Exception,error:
+			buffer = None
+			log.error("%s >>> cast fail. More than likely, the offending face lacks uv's. Error: %s"%(_str_funcName,error))		    
                     if buffer:
                         conversionBuffer = []
                         #Need to convert to local space
