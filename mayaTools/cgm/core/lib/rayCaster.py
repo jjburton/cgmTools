@@ -23,6 +23,7 @@ from cgm.lib import search
 from cgm.lib import cgmMath
 from cgm.lib import lists
 from cgm.lib import distance
+from cgm.lib import attributes
 import os
 
 #========================================================================

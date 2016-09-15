@@ -27,6 +27,7 @@ from zooPyMaya import apiExtensions
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.lib import rayCaster as RayCast
+reload(RayCast)
 from cgm.lib import (locators,
                      geo,
                      curves,
@@ -250,7 +251,7 @@ class clickMesh(ContextualPick):
 
         if mesh not in self.l_mesh:
             buffer = search.returnObjectType(mesh)
-            if buffer == 'mesh':
+            if buffer in ['mesh','nurbsSurface']:
                 self.l_mesh.append(mesh)
                 self.updateMeshArea()
                 return True
@@ -369,6 +370,7 @@ class clickMesh(ContextualPick):
                     for pos in self.l_return:                             
                         self.l_created.append( mc.joint (p = (pos[0], pos[1], pos[2]),radius = 1) ) 
         log.debug( self.l_created)
+
 	if self.d_tagAndName:
 	    for o in self.l_created:
 		try:
@@ -397,8 +399,9 @@ class clickMesh(ContextualPick):
         if self._createModeBuffer:
             log.debug("Created : %s "%(self._createModeBuffer))
             mc.select(cl=True)
-	    if 'joint' in self._createMode:
-		jntUtils.metaFreezeJointOrientation(self._createModeBuffer)	
+	    
+	    #if 'joint' in self._createMode:
+		#jntUtils.metaFreezeJointOrientation(self._createModeBuffer)	
 		
         if self.int_maxStore and len(self.l_return) == self.int_maxStore:
             log.debug("Max hit, finalizing")
@@ -445,7 +448,9 @@ class clickMesh(ContextualPick):
         
         for m in self.l_mesh:#Get positions per mesh piece
             #First get the distance to try to check
-            checkDistance = self.getDistanceToCheck(m)
+            #checkDistance = self.getDistanceToCheck(m)
+            checkDistance = 10000
+	    
             #print ("Checking distance of %s"%checkDistance)
             if m not in self.d_meshPos.keys():
                 self.d_meshPos[m] = []
@@ -454,10 +459,10 @@ class clickMesh(ContextualPick):
             if mc.objExists(m):
                 if self.mode == 'surface':
 		    try:buffer = RayCast.findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance)   
-		    except StandardError,error:
+		    except Exception,error:
 			buffer = None
 			log.error("%s >>> cast fail. More than likely, the offending face lacks uv's. Error: %s"%(_str_funcName,error))
-                    if buffer is not None:
+                    if buffer:
                         hit = self.convertPosToLocalSpace( buffer['hit'] )
                         self._posBuffer.append(hit)  
                         self.startPoint = self.convertPosToLocalSpace( buffer['source'] )

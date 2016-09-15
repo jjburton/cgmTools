@@ -33,6 +33,11 @@ reload(cgmUI)
 mUI = cgmUI.mUI
 from cgm.core.lib.zoo import baseMelUI as zooUI
 from cgm.lib import dictionary
+from cgm.lib import search
+from cgm.core.classes import DraggerContextFactory
+from cgm.core.lib import shapeCaster as ShapeCaster
+reload(ShapeCaster)
+reload(DraggerContextFactory)
 mayaVersion = cgmGeneral.__mayaVersion__
 
 #>>> Root settings =============================================================
@@ -80,65 +85,119 @@ class go(cgmUI.cgmGUI):
         self._d_baseSym = {}
         self._d_funcOptions = {}
         self._mi_baseObject = False
+        self._ml_castTargets = []
+        self._l_castItems = []
+	self.tool_clickMesh = False    
+	self._l_spaceOptions = ['Object','World']
+	self._l_createOptions = ['locator','joint','jointChain','curve','follicle','group']
+	self._l_symAxisOptions = ['yz','xz','xy']
+	self._l_latheAxisOptions = ['x','y','z']
+	self._l_aimAxisOptions = ['x+','x-','y+','y-','z+','z-']
         
     #@cgmGeneral.Timer   
     def buildMenu_options( self, *args):
         self.uiMenu_OptionsMenu.clear()
         
-        #>>> Space....
-        self._l_spaceOptions = ['Object','World']
-        _ann = 'Set the space for value querying.'
-        spaceMenu = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l='Space', subMenu=True,
-                                     ann = _ann)
-        self.uiRC_space = mUI.MelRadioMenuCollection()
-        self.uiOptions_space = []		
-                    
-        for i,item in enumerate(self._l_spaceOptions):
-            if i == self.var_SpaceMode.value:
-                _rb = True
-            else:_rb = False
-            self.uiOptions_space.append(self.uiRC_space.createButton(spaceMenu,label=item,
-                                                                     ann = _ann,
-                                                                     c = mUI.Callback(self.var_SpaceMode.setValue,i),
-                                                                     rb = _rb))            
-        
-        #>>> Axis....
-        self._l_axisOptions = ['yz','xz','xy']
-
-        _ann = 'Set the axis for value querying.'
-        axisMenu = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l='Sym Axis', subMenu=True,
-                                     ann = _ann)
-        self.uiRC_axis = mUI.MelRadioMenuCollection()
-        self.uiOptions_axis = []		
-                    
-        for i,item in enumerate(self._l_axisOptions):
-            if i == self.var_AxisMode.value:
-                _rb = True
-            else:_rb = False
-            self.uiOptions_axis.append(self.uiRC_axis.createButton(axisMenu,label=item,
-                                                                     ann = _ann,
-                                                                     c = mUI.Callback(self.var_AxisMode.setValue,i),
-                                                                     rb = _rb))            
-
-        
-        """#>>> Result....
-        self._l_resultMode = ['new','modify','values']
-
-        _ann = 'Set the Result mode...'
-        axisMenu = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l='Result Mode', subMenu=True,
-                                     ann = _ann)
-        self.uiRC_resultMode = mUI.MelRadioMenuCollection()
-        self.uiOptions_axis = []		
-                    
-        for i,item in enumerate(self._l_resultMode):
-            if i == self.var_ResultMode.value:
-                _rb = True
-            else:_rb = False
-            self.uiOptions_axis.append(self.uiRC_resultMode.createButton(axisMenu,label=item,
-                                                                         ann = _ann,
-                                                                         c = mUI.Callback(self.var_ResultMode.setValue,i),
-                                                                         rb = _rb))     """     
+        try:#>>> Space....
+	    _str_section = 'Space menu'	
+	    _ann = 'Set the space for value querying.'
+	    spaceMenu = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l='Space', subMenu=True,
+		                         ann = _ann)
+	    self.uiRC_space = mUI.MelRadioMenuCollection()
+	    self.uiOptions_space = []		
+			
+	    for i,item in enumerate(self._l_spaceOptions):
+		if i == self.var_SpaceMode.value:
+		    _rb = True
+		else:_rb = False
+		self.uiOptions_space.append(self.uiRC_space.createButton(spaceMenu,label=item,
+		                                                         ann = _ann,
+		                                                         c = mUI.Callback(self.var_SpaceMode.setValue,i),
+		                                                         rb = _rb))            
+	except Exception,err:
+	    log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+			
+	
+	try:#>>> Create....
+	    _str_section = 'create options menu'
+	    _ann = 'What to create when a tool needs it'
+	    
+	    _createMenu = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l='Create', subMenu=True,
+	                                   ann = _ann)
+	    self.uiRC_create = mUI.MelRadioMenuCollection()
+	    self.uiOptions_create = []		
+			
+	    for i,item in enumerate(self._l_createOptions):
+		if i == self.var_ClickCreate.value:
+		    _rb = True
+		else:_rb = False
+		self.uiOptions_create.append(self.uiRC_create.createButton(_createMenu,label=item,
+	                                                                 ann = _ann,
+	                                                                 c = mUI.Callback(self.var_ClickCreate.setValue,i),
+	                                                                 rb = _rb))   
+	except Exception,err:
+	    log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+	    
+	try:#>>> Sym Axis....
+	    _str_section = 'Sym Axis menu'
     
+	    _ann = 'Set the axis for value querying.'
+	    axisMenu = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l='Sym Axis', subMenu=True,
+	                                 ann = _ann)
+	    self.uiRC_axis = mUI.MelRadioMenuCollection()
+	    self.uiOptions_axis = []		
+			
+	    for i,item in enumerate(self._l_symAxisOptions):
+		if i == self.var_AxisMode.value:
+		    _rb = True
+		else:_rb = False
+		self.uiOptions_axis.append(self.uiRC_axis.createButton(axisMenu,label=item,
+	                                                                 ann = _ann,
+	                                                                 c = mUI.Callback(self.var_AxisMode.setValue,i),
+	                                                                 rb = _rb))   
+	except Exception,err:
+	    log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+	    
+	try:#>>> Lathe Axis....
+	    _str_section = 'Lathe menu'	
+	    _ann = 'Set the lathe axis for casting'
+	    latheAxisMenu = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l='Lathe Axis', subMenu=True,
+	                                     ann = _ann)
+	    self.uiRC_latheAxis = mUI.MelRadioMenuCollection()
+	    self.uiOptions_latheAxis = []		
+			
+	    for i,item in enumerate(self._l_latheAxisOptions):
+		if i == self.var_CastLatheAxis.value:
+		    _rb = True
+		else:_rb = False
+		self.uiOptions_latheAxis.append(self.uiRC_latheAxis.createButton(latheAxisMenu,
+		                                                                 label=item,
+		                                                                 ann = _ann,
+		                                                                 c = mUI.Callback(self.var_CastLatheAxis.setValue,i),
+		                                                                 rb = _rb))      
+	except Exception,err:
+	    log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+	    
+	try:#>>> Aim Axis....
+	    _str_section = 'Aim menu'	
+	    _ann = 'Set the aim axis for casting'
+	    aimAxisMenu = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l='Aim Axis', subMenu=True,
+	                                     ann = _ann)
+	    self.uiRC_aimAxis = mUI.MelRadioMenuCollection()
+	    self.uiOptions_aimAxis = []		
+			
+	    for i,item in enumerate(self._l_aimAxisOptions):
+		if i == self.var_CastLatheAxis.value:
+		    _rb = True
+		else:_rb = False
+		self.uiOptions_aimAxis.append(self.uiRC_aimAxis.createButton(aimAxisMenu,
+	                                                                         label=item,
+	                                                                         ann = _ann,
+	                                                                         c = mUI.Callback(self.var_CastLatheAxis.setValue,i),
+	                                                                         rb = _rb))      
+	except Exception,err:
+	    log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+
         
         #>>> Reset Options
         mUI.MelMenuItemDiv(self.uiMenu_OptionsMenu)
@@ -201,6 +260,45 @@ class go(cgmUI.cgmGUI):
             self.create_guiOptionVar('ResultMode', defaultValue = 0)#Register the option var     
             self.create_guiOptionVar('Tolerance', defaultValue = .002)#Register the option var
             self.create_guiOptionVar('Multiplier', defaultValue = 1.0)#Register the option var
+            self.create_guiOptionVar('ClickMode', defaultValue = 0)#Register the option var
+            self.create_guiOptionVar('ClickCreate', defaultValue = 0)#Register the option var
+            self.create_guiOptionVar('ClickDrag', defaultValue = 0)#Register the option var
+            self.create_guiOptionVar('ClickClamp', defaultValue = 0)#Register the option var
+	    
+	    self.create_guiOptionVar('CastLatheAxis', defaultValue = 2)
+	    self.create_guiOptionVar('CastAimAxis', defaultValue = 2)
+	    self.create_guiOptionVar('CastPoints', defaultValue = 9)
+	    self.create_guiOptionVar('CastXOffset', defaultValue = 0.0)
+	    self.create_guiOptionVar('CastYOffset', defaultValue = 0.0)
+	    self.create_guiOptionVar('CastZOffset', defaultValue = 0.0)
+	    self.create_guiOptionVar('CastMarkHits', defaultValue = 0)
+	    self.create_guiOptionVar('CastClosedCurve', defaultValue = 0)	    
+	    self.create_guiOptionVar('CastMinRotate', defaultValue = 0.0)
+	    self.create_guiOptionVar('CastMinUse', defaultValue = 0)	    
+	    self.create_guiOptionVar('CastMaxRotate', defaultValue = 0.0)
+	    self.create_guiOptionVar('CastMaxUse', defaultValue = 0)	    	    
+	    self.create_guiOptionVar('CastRange', defaultValue = 1000.0)
+	    self.create_guiOptionVar('CastClosestInRange', defaultValue = 0)
+	    
+	    
+	    
+	    
+	    """    
+	    mesh(string) | Surface to cast at
+	    mi_obj(string/mObj) | our casting object
+	    latheAxis(str) | axis of the objec to lathe TODO: add validation
+	    aimAxis(str) | axis to shoot out of
+	    points(int) | how many points you want in the curve
+	    posOffset(vector) | transformational offset for the hit from a normalized locator at the hit. Oriented to the surface
+	    markHits(bool) | whether to keep the hit markers
+	    returnDict(bool) | whether you want all the infomation from the process.
+	    rotateBank (float) | let's you add a bank to the rotation object
+	    minRotate(float) | let's you specify a valid range to shoot
+	    maxRotate(float) | let's you specify a valid range to shoot
+	    l_specifiedRotates(list of values) | specify where to shoot relative to an object. Ignores some other settings
+	    maxDistance(float) | max distance to cast rays
+	    closestInRange(bool) | True by default. If True, takes first hit. Else take the furthest away hit in range.
+	    """            
              
         except Exception,error:
             raise Exception,"{0} setup_Variables failed | {1}".format(self._str_reportStart,error)  
@@ -213,9 +311,41 @@ class go(cgmUI.cgmGUI):
         
     def reset(self):	
         mUI.Callback(cgmUI.do_resetGuiInstanceOptionVars(self.l_optionVars,run)) 
+        
     def buildTab_cast(self,parent):
         containerName = mUI.MelColumn(parent,vis=True)   
         
+        cgmUI.add_Header('Cast Targets')
+        _help = mUI.MelLabel(containerName,
+                             bgc = dictionary.returnStateColor('help'),
+                             align = 'center',
+                             label = 'Load and remove targets for casting',
+                             h=20,
+                             vis = self.var_ShowHelp.value)	
+    
+        self.l_helpElements.append(_help)
+        
+        self.uiList_Targets = mUI.MelObjectScrollList(containerName, ut='cgmUITemplate', allowMultiSelection=True, h=125 )
+        self.uiList_updateCastTargets()
+        
+        try:#Cast targets row
+            _str_section = 'Cast Targets Row'
+            _uiRow_castTargets = mUI.MelHLayout(containerName)
+            cgmUI.add_Button(_uiRow_castTargets, 'Load Selected', 
+                             lambda *a:self.castTargets_loadSelected(),
+                             annotationText='Select center line vertices')
+            cgmUI.add_Button(_uiRow_castTargets, 'Load All', 
+                             lambda *a:self.castTargets_loadAll(),
+                             annotationText='Select positive vertices')
+            cgmUI.add_Button(_uiRow_castTargets, 'Clear All', 
+                             lambda *a:self.castTargets_clearAll(),
+                             annotationText='Select negative vertices')
+            _uiRow_castTargets.layout()      
+        except Exception,err:
+            log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+        
+        #>>>CLICK MESH ========================================================================
+        mc.setParent(containerName)
         cgmUI.add_Header('Click Mesh')
         _help = mUI.MelLabel(containerName,
                              bgc = dictionary.returnStateColor('help'),
@@ -224,9 +354,222 @@ class go(cgmUI.cgmGUI):
                              h=20,
                              vis = self.var_ShowHelp.value)	
     
-        self.l_helpElements.append(_help)        
+        self.l_helpElements.append(_help)    
         
+        try:#Mode ---------------------------------------------------------------------------------------
+            _str_section = 'Click Mesh Mode'
+            _uiRow_clickMeshMode =  mUI.MelHSingleStretchLayout(containerName,ut='cgmUISubTemplate',padding = 3)
+            
+	    mUI.MelSpacer(_uiRow_clickMeshMode,w=2)	
+	    mUI.MelLabel(_uiRow_clickMeshMode,l='Mode')
+	    _uiRow_clickMeshMode.setStretchWidget( mUI.MelSeparator(_uiRow_clickMeshMode, w=2) )	    
+	    self.ClickMeshOptions = ['surface','bisect','midPoint']
+	    self.uiRadioCollection_clickMesh = mUI.MelRadioCollection()
+	    self.uiOptions_clickMesh = []	    
+	    
+	    for i,item in enumerate(self.ClickMeshOptions):
+		self.uiOptions_clickMesh.append(self.uiRadioCollection_clickMesh.createButton(_uiRow_clickMeshMode,label=item,                                                                                           
+		                                                                              onCommand = mUI.Callback(self.var_ClickMode.setValue,i)))
+	    
+	    
+	    mUI.MelSpacer(_uiRow_clickMeshMode,w=2)		
+	    _uiRow_clickMeshMode.layout()      
+	    
+	    mc.radioCollection(self.uiRadioCollection_clickMesh ,edit=True,sl= (self.uiOptions_clickMesh[ (self.var_ClickMode.value) ]))
+        except Exception,err:
+            log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
         
+	try:#Click Mesh Buttons ---------------------------------------------------------------------------------------
+	    _str_section = 'Click Mesh Buttons'
+	    _uiRow_clickMeshButtons =  mUI.MelHSingleStretchLayout(containerName,ut='cgmUISubTemplate',padding = 3)
+	    
+	    mUI.MelSpacer(_uiRow_clickMeshButtons,w=2)	
+	    #mUI.MelLabel(_uiRow_clickMeshButtons,l='Mode')
+
+	    self.uiBool_ClickDrag = mUI.MelCheckBox(_uiRow_clickMeshButtons,
+	                                            label = 'Drag',
+	                                            annotation = "Stores drag data rather than just clicks",		                           
+	                                            value = bool(self.var_ClickDrag.value),
+	                                            onCommand = mUI.Callback(self.var_ClickDrag.setValue,1),
+	                                            offCommand = mUI.Callback(self.var_ClickDrag.setValue,0))
+	    
+	    mUI.MelLabel(_uiRow_clickMeshButtons,l='Clamp:')	    
+	    self.uiTF_ClickClamp = mUI.MelTextField(_uiRow_clickMeshButtons,
+	                                            w = 30,
+	                                            tx = self.var_ClickClamp.value,
+	                                            ec = lambda *a:self.valid_tf_clickClamp())	    
+	    
+	    _uiRow_clickMeshButtons.setStretchWidget( mUI.MelSeparator(_uiRow_clickMeshButtons, w=2) )	    
+	    
+	    mUI.MelSpacer(_uiRow_clickMeshButtons,w=2)	
+	    cgmUI.add_Button(_uiRow_clickMeshButtons,'Start',
+	                     mUI.Callback(self.clickMesh_start))
+	    mUI.MelSpacer(_uiRow_clickMeshButtons,w=2)	
+	    cgmUI.add_Button(_uiRow_clickMeshButtons,'Drop',
+	                     mUI.Callback(self.clickMesh_drop))	
+	    mUI.MelSpacer(_uiRow_clickMeshButtons,w=2)		    
+	    _uiRow_clickMeshButtons.layout()      
+	    
+	    #mc.radioCollection(self.ClickMeshCreateModeCollection ,edit=True,sl= (self.ClickMeshCreateModeCollectionChoices[ (self.ClickMeshModeOptionVar.value) ]))
+	except Exception,err:
+	    log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+	
+	mc.setParent(containerName)	
+	cgmUI.add_LineSubBreak()
+	cgmUI.add_LineBreak()
+	
+	#>>>Curve Slice ========================================================================
+	mc.setParent(containerName)
+	cgmUI.add_Header('Curve Slice')
+	_help = mUI.MelLabel(containerName,
+	                     bgc = dictionary.returnStateColor('help'),
+	                     align = 'center',
+	                     label = 'Cast a curve from selected objects',
+	                     h=20,
+	                     vis = self.var_ShowHelp.value)	
+    
+	self.l_helpElements.append(_help)  	
+	
+	"""    
+	mesh(string) | Surface to cast at
+	mi_obj(string/mObj) | our casting object
+	latheAxis(str) | axis of the objec to lathe TODO: add validation
+	aimAxis(str) | axis to shoot out of
+	points(int) | how many points you want in the curve
+	posOffset(vector) | transformational offset for the hit from a normalized locator at the hit. Oriented to the surface
+	markHits(bool) | whether to keep the hit markers
+	returnDict(bool) | whether you want all the infomation from the process.
+	rotateBank (float) | let's you add a bank to the rotation object
+	minRotate(float) | let's you specify a valid range to shoot
+	maxRotate(float) | let's you specify a valid range to shoot
+	l_specifiedRotates(list of values) | specify where to shoot relative to an object. Ignores some other settings
+	maxDistance(float) | max distance to cast rays
+	closestInRange(bool) | True by default. If True, takes first hit. Else take the furthest away hit in range.
+	"""
+	try:#Curve Slice Row 1 ---------------------------------------------------------------------------------------
+	    _str_section = 'Curve Slice Row 1'
+	    _uiRow_slice =  mUI.MelHSingleStretchLayout(containerName,ut='cgmUISubTemplate',padding = 3)
+	    
+	    mUI.MelSpacer(_uiRow_slice,w=2)	
+
+	    mUI.MelCheckBox(_uiRow_slice,
+	                    label = 'markHits',
+	                    annotation = "Leave the hit locators",		                           
+	                    value = bool(self.var_CastMarkHits.value),
+	                    onCommand = mUI.Callback(self.var_CastMarkHits.setValue,1),
+	                    offCommand = mUI.Callback(self.var_CastMarkHits.setValue,0))
+	    mUI.MelCheckBox(_uiRow_slice,
+	                    label = 'closedCurve',
+	                    annotation = "Leave the hit locators",		                           
+	                    value = bool(self.var_CastClosedCurve.value),
+	                    onCommand = mUI.Callback(self.var_CastClosedCurve.setValue,1),
+	                    offCommand = mUI.Callback(self.var_CastClosedCurve.setValue,0))	
+	    mUI.MelCheckBox(_uiRow_slice,
+	                    label = 'closest',
+	                    annotation = "Closest hit in range",		                           
+	                    value = bool(self.var_CastClosestInRange.value),
+	                    onCommand = mUI.Callback(self.var_CastClosestInRange.setValue,1),
+	                    offCommand = mUI.Callback(self.var_CastClosestInRange.setValue,0))	    
+	    mUI.MelLabel(_uiRow_slice,l='Points:')	    
+	    self.uiIF_CastPoints = mUI.MelIntField(_uiRow_slice,
+	                                           w = 25,
+	                                           minValue = 6,
+	                                           value = self.var_CastPoints.value,
+	                                           ec = lambda *a:self.valid_intf_castPoints())	    
+		    
+	    _uiRow_slice.setStretchWidget( mUI.MelSeparator(_uiRow_slice, w=2) )	    
+	    
+	    mUI.MelSpacer(_uiRow_slice,w=2)	
+	    mUI.MelSpacer(_uiRow_slice,w=2)		    
+	    _uiRow_slice.layout()      
+	except Exception,err:
+	    log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+	    
+	try:#Curve Slice Row 2 ---------------------------------------------------------------------------------------
+	    _str_section = 'Curve Slice Row 2'
+	    _uiRow_slice =  mUI.MelHSingleStretchLayout(containerName,ut='cgmUISubTemplate',padding = 3)
+    
+	    mUI.MelSpacer(_uiRow_slice,w=2)	
+    
+    
+	    #mUI.MelLabel(_uiRow_slice,l='minRot:')	
+	    mUI.MelCheckBox(_uiRow_slice,
+	                    label = '<',
+	                    annotation = "Use minRotate values",		                           
+	                    value = bool(self.var_CastMinUse.value),
+	                    onCommand = mUI.Callback(self.var_CastMinUse.setValue,1),
+	                    offCommand = mUI.Callback(self.var_CastMinUse.setValue,0))	    
+	    self.uiFF_CastMinRotate = mUI.MelFloatField(_uiRow_slice,
+	                                                w = 50,
+	                                                annotation = 'minRotate values',
+	                                                precision = 3,
+	                                                value = self.var_CastMinRotate.value,
+	                                                ec = lambda *a:self.valid_ff_CastMinRotate())
+    
+	    mUI.MelCheckBox(_uiRow_slice,
+	                    label = '>',
+	                    annotation = "Use maxRotate values",		                           
+	                    value = bool(self.var_CastMaxUse.value),
+	                    onCommand = mUI.Callback(self.var_CastMaxUse.setValue,1),
+	                    offCommand = mUI.Callback(self.var_CastMaxUse.setValue,0))	 	    
+	    self.uiFF_CastMaxRotate = mUI.MelFloatField(_uiRow_slice,
+	                                                w = 50,
+	                                                annotation = 'maxRotate values',	                                                
+	                                                precision = 3,
+	                                                value = self.var_CastMaxRotate.value,
+	                                                ec = lambda *a:self.valid_ff_CastMaxRotate())		    
+	    mUI.MelSpacer(_uiRow_slice,w=2)	
+	    _uiRow_slice.setStretchWidget( mUI.MelSeparator(_uiRow_slice, w=2) )	    	    
+	    mUI.MelLabel(_uiRow_slice,l='range:')	    
+	    self.uiFF_CastRange = mUI.MelFloatField(_uiRow_slice,
+		                                    w = 60,
+		                                    precision = 1,
+		                                    value = self.var_CastRange.value,
+		                                    ec = lambda *a:self.valid_ff_CastRange())		    
+	    mUI.MelSpacer(_uiRow_slice,w=2)    
+	    
+	    _uiRow_slice.layout()    
+	    mc.setParent(containerName)
+	    cgmUI.add_LineSubBreak()	    
+	except Exception,err:
+	    log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+	
+	    
+	try:#Curve Slice Row 3 ---------------------------------------------------------------------------------------
+	    _str_section = 'Curve Slice Row 3'
+	    _uiRow_slice =  mUI.MelHSingleStretchLayout(containerName,ut='cgmUISubTemplate',padding = 3)
+	    
+	    mUI.MelSpacer(_uiRow_slice,w=2)	
+	    #mUI.MelLabel(_uiRow_clickMeshButtons,l='Mode')
+ 
+	    mUI.MelLabel(_uiRow_slice,l='Offset:')	    
+	    self.uiFF_CastXOffset = mUI.MelFloatField(_uiRow_slice,
+	                                              w = 50,
+	                                              precision = 3,
+	                                              value = self.var_CastXOffset.value,
+	                                              ec = lambda *a:self.valid_ff_CastXOffset())		    
+	    self.uiFF_CastYOffset = mUI.MelFloatField(_uiRow_slice,
+	                                              w = 50,
+	                                              precision = 3,
+	                                              value = self.var_CastYOffset.value,
+	                                              ec = lambda *a:self.valid_ff_CastYOffset())
+	    self.uiFF_CastZOffset = mUI.MelFloatField(_uiRow_slice,
+	                                              w = 50,
+	                                              precision = 3,
+	                                              value = self.var_CastZOffset.value,
+	                                              ec = lambda *a:self.valid_ff_CastZOffset())	    
+	    
+	    mUI.MelSpacer(_uiRow_slice,w=2)	
+	    _button_cast = cgmUI.add_Button(_uiRow_slice,"Cast",
+	                                    mUI.Callback(self.curveSlice_cast))
+	    _uiRow_slice.setStretchWidget( _button_cast )	    
+	    mUI.MelSpacer(_uiRow_slice,w=2)		    
+	    _uiRow_slice.layout()  
+	    mc.setParent(containerName)
+	    cgmUI.add_LineSubBreak()
+	except Exception,err:
+	    log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+	    
         return containerName
     
     def buildTab_utils(self,parent):
@@ -702,9 +1045,100 @@ class go(cgmUI.cgmGUI):
             if self.var_Multiplier.value == _buffer:
                 self.uiTF_multiplier.setValue(_buffer)
         else:
-            var_Multiplier.value = ''
+            self.var_Multiplier.value = ''
         self.uiTF_multiplier.setValue(self.var_Multiplier.value)
-        
+	
+    def valid_tf_clickClamp(self):
+	try:
+	    _buffer = self.uiTF_ClickClamp.getValue()
+	    self.var_ClickClamp.value = _buffer
+	    if self.var_ClickClamp.value == _buffer:
+		self.uiTF_ClickClamp.setValue(_buffer)
+	    else:self.uiTF_ClickClamp.setValue(self.var_ClickClamp.value)	    
+	    
+	except Exception,err:
+	    log.error("{0} valid_tf_clickClamp failed! err: {1}".format(self._str_reportStart,err))
+	    
+    def valid_intf_castPoints(self):
+	try:
+	    _buffer = self.uiIF_CastPoints.getValue()
+	    if _buffer < 6:
+		_buffer = 6
+	    self.var_CastPoints.value = _buffer
+	    if self.var_CastPoints.value == _buffer:
+		self.uiIF_CastPoints.setValue(_buffer)
+	    else:self.uiIF_CastPoints.setValue(self.var_CastPoints.value)	    
+	    
+	except Exception,err:
+	    log.error("{0} valid_intf_castPoints failed! err: {1}".format(self._str_reportStart,err))
+	    
+    def valid_ff_CastXOffset(self):
+	try:
+	    _buffer = self.uiFF_CastXOffset.getValue()
+	    self.var_CastXOffset.value = _buffer
+	    if self.var_CastXOffset.value == _buffer:
+		self.uiFF_CastXOffset.setValue(_buffer)
+	    else:self.uiFF_CastXOffset.setValue(self.var_CastXOffset.value)	    
+	except Exception,err:
+	    log.error("{0} valid_ff_CastXOffset failed! err: {1}".format(self._str_reportStart,err))    
+    def valid_ff_CastXOffset(self):
+	try:
+	    _buffer = self.uiFF_CastXOffset.getValue()
+	    self.var_CastXOffset.value = _buffer
+	    if self.var_CastXOffset.value == _buffer:
+		self.uiFF_CastXOffset.setValue(_buffer)
+	    else:self.uiFF_CastXOffset.setValue(self.var_CastXOffset.value)	    
+	except Exception,err:
+	    log.error("{0} valid_ff_CastXOffset failed! err: {1}".format(self._str_reportStart,err))  
+    def valid_ff_CastYOffset(self):
+	try:
+	    _buffer = self.uiFF_CastYOffset.getValue()
+	    self.var_CastYOffset.value = _buffer
+	    if self.var_CastYOffset.value == _buffer:
+		self.uiFF_CastYOffset.setValue(_buffer)
+	    else:self.uiFF_CastYOffset.setValue(self.var_CastYOffset.value)	    
+	except Exception,err:
+	    log.error("{0} valid_ff_CastYOffset failed! err: {1}".format(self._str_reportStart,err))  	    
+    def valid_ff_CastZOffset(self):
+	try:
+	    _buffer = self.uiFF_CastZOffset.getValue()
+	    self.var_CastZOffset.value = _buffer
+	    if self.var_CastZOffset.value == _buffer:
+		self.uiFF_CastZOffset.setValue(_buffer)
+	    else:self.uiFF_CastZOffset.setValue(self.var_CastZOffset.value)	    
+	except Exception,err:
+	    log.error("{0} valid_ff_CastZOffset failed! err: {1}".format(self._str_reportStart,err)) 
+	    
+    def valid_ff_CastMinRotate(self):
+	try:
+	    _buffer = self.uiFF_CastMinRotate.getValue()
+	    self.var_CastMinRotate.value = _buffer
+	    if self.var_CastMinRotate.value == _buffer:
+		self.uiFF_CastMinRotate.setValue(_buffer)
+	    else:self.uiFF_CastMinRotate.setValue(self.var_CastMinRotate.value)	    
+	except Exception,err:
+	    log.error("{0} valid_ff_CastMinRotate failed! err: {1}".format(self._str_reportStart,err))  
+	    
+    def valid_ff_CastMaxRotate(self):
+	try:
+	    _buffer = self.uiFF_CastMaxRotate.getValue()
+	    self.var_CastMaxRotate.value = _buffer
+	    if self.var_CastMaxRotate.value == _buffer:
+		self.uiFF_CastMaxRotate.setValue(_buffer)
+	    else:self.uiFF_CastMaxRotate.setValue(self.var_CastMaxRotate.value)	    
+	except Exception,err:
+	    log.error("{0} valid_ff_CastMaxRotate failed! err: {1}".format(self._str_reportStart,err))  
+	    
+    def valid_ff_CastRange(self):
+	try:
+	    _buffer = self.uiFF_CastRange.getValue()
+	    self.var_CastRange.value = _buffer
+	    if self.var_CastRange.value == _buffer:
+		self.uiFF_CastRange.setValue(_buffer)
+	    else:self.uiFF_CastRange.setValue(self.var_CastRange.value)	    
+	except Exception,err:
+	    log.error("{0} valid_ff_CastMaxRotate failed! err: {1}".format(self._str_reportStart,err)) 
+	    
     def baseObject_set(self, base = None):
         #self.uiTextField_baseObject
         _sel = mc.ls(sl=1)
@@ -789,6 +1223,43 @@ class go(cgmUI.cgmGUI):
         except Exception,err:
             log.error("{0}: create_proximityMeshFromTarget() fail. | err:{1}".format(self._str_reportStart,err))                
                        
+    
+    def uiList_updateCastTargets(self):
+        try:
+            self.uiList_Targets.clear()
+            self._l_castItems = []
+
+            _d = {}
+            for mObj in self._ml_castTargets:
+                _d[mObj.mNode] = mObj    
+            _keys = _d.keys()
+            _keys.sort()
+            self._ml_castTargets = [_d[k] for k in _keys]
+            
+            
+            for mObj in self._ml_castTargets:
+                #self.uiList_Targets.append(item)
+                _str = " {1} -- {0}".format(mObj.getMayaType(),mObj.p_nameBase)
+                self.uiList_Targets.append(_str)
+                self._l_castItems.append(_str)                
+                #self.uiList_Targets.append("{0} {1}".format( mObj.getMayaType(),mObj.mNode))
+                #presets_SetActive
+                popUpMenu = mUI.MelPopupMenu(self.uiList_Targets,button = 3)	
+                mUI.MelMenuItem(popUpMenu ,
+                                label = 'Select',
+                                annotation = 'Select the indicated targets',
+                                c = lambda *a: self.castTargets_select())
+                mUI.MelMenuItem(popUpMenu ,
+                                label = "Remove selected",
+                                annotation = 'Remove the indicated objects as targets',                                
+                                c = lambda *a: self.castTargets_remove())
+                mUI.MelMenuItem(popUpMenu ,
+                                label = "Remove nonselected",
+                                annotation = 'Remove the non-indicated objects as targets',                                                                
+                                c = lambda *a: self.castTargets_removeNonselected())                
+        except Exception,err:
+            raise Exception,"{0} uiList_updateCastTargets failed | {1}".format(self._str_reportStart,err)
+    
     def baseObject_blendSlider(self):
         _multiplier = self.uiSlider_baseBlend(q=True, value=True)
         self.baseObject_meshMath('blend',_multiplier)
@@ -796,7 +1267,198 @@ class go(cgmUI.cgmGUI):
     def targets_blendSlider(self):
         _multiplier = self.uiSlider_targetsBlend(q=True, value=True)
         self.targets_meshMath('blend',_multiplier)
+    
+    def castTargets_add(self,l):
+        _ml_objs = cgmMeta.validateObjListArg(l,'cgmObject',mayaType=['mesh','nurbsSurface'])
+         
+        for mObj in _ml_objs:
+            if mObj not in self._ml_castTargets:
+                self._ml_castTargets.append(mObj)
+                
+        self.uiList_updateCastTargets()
         
+    def castTargets_remove(self):
+        selected = self.uiList_Targets.getSelectedItems()
+        if not selected:
+            log.warning("None selected")
+            return False    
+        _ml = []
+        for s in selected:
+            idx = self._l_castItems.index(s)
+            _ml.append( self._ml_castTargets[idx])
+                
+        for mObj in _ml:
+            self._ml_castTargets.remove(mObj)
+            
+        self.uiList_updateCastTargets()
+        
+    def castTargets_removeNonselected(self):
+        selected = self.uiList_Targets.getSelectedItems()
+        if not selected:
+            log.warning("None selected")
+            return False    
+        _ml = []
+        _ml_remove = []
+        for s in selected:
+            idx = self._l_castItems.index(s)
+            _ml.append( self._ml_castTargets[idx])
+                           
+        
+            
+        for mObj in self._ml_castTargets:
+            if mObj not in _ml:
+                _ml_remove.append(mObj)
+                
+        for mObj in _ml_remove:
+            self._ml_castTargets.remove(mObj)
+            
+        self.uiList_updateCastTargets()   
+    def castTargets_select(self):
+        selected = self.uiList_Targets.getSelectedItems()
+        if not selected:
+            log.warning("None selected")
+            return False    
+        _ml = []
+        for s in selected:
+            idx = self._l_castItems.index(s)
+            _ml.append( self._ml_castTargets[idx])
+            
+        mc.select([mObj.mNode for mObj in _ml])
+            
+        #self.uiList_updateCastTargets()
+        
+    def castTargets_loadSelected(self):
+        _sel = mc.ls(sl=True)
+        self.castTargets_add(_sel)
+        
+    def castTargets_clearAll(self):
+        self._ml_castTargets = []
+        self.uiList_updateCastTargets()
+        
+    def castTargets_loadAll(self):
+        _l_objs = []
+        for l in mc.ls(type='mesh'), mc.ls(type='nurbsSurface'):
+            for o in l:
+                _l_objs.append( cgmMeta.getTransform(o))
+                
+        self.castTargets_add(_l_objs)
+	
+    def curveSlice_cast(self):
+	log.info("curveSlice_cast...")	
+	
+	_sel = mc.ls(sl=True)
+	_ml_objs = cgmMeta.validateObjListArg(_sel,'cgmObject')
+	for mObj in _ml_objs:
+	    for mObj2 in self._ml_castTargets:
+		if mObj.mNode == mObj2.mNode:
+		    _ml_objs.remove(mObj)
+
+	if not _ml_objs:
+	    log.error("{0}: No selected objects.".format(self._str_reportStart))                
+	    return False	
+	
+		
+	if not self._ml_castTargets:
+	    _l_objs = []
+	    for l in mc.ls(type='mesh'), mc.ls(type='nurbsSurface'):
+		for o in l:
+		    _l_objs.append( cgmMeta.getTransform(o))
+	    meshClamp = 100
+	    if len(_l_objs)<=meshClamp:
+		_l_mesh = _l_objs #Still not sure if we wanna do all scene meshes. Need more testing.
+	    else: 
+		raise ValueError("No mesh loaded or too many mesh objects for autoload")
+	else: _l_mesh = [mObj.mNode for mObj in self._ml_castTargets]
+	
+	_latheAxis = self._l_latheAxisOptions[self.var_CastLatheAxis.value]
+	_aimAxis = self._l_aimAxisOptions[self.var_CastAimAxis.value]
+	_min = None
+	if self.var_CastMinUse.value:
+	    _min = self.var_CastMinRotate.value
+	_max = None
+	if self.var_CastMaxUse.value:
+	    _max = self.var_CastMaxRotate.value
+	    
+	log.info("Casting Objects: {0}".format([mObj.mNode for mObj in _ml_objs]))	
+	log.info("Lathe Axis: {0}".format(_latheAxis))
+	log.info("Aim Axis: {0}".format(_aimAxis))
+	log.info("Points: {0}".format(self.var_CastPoints.value))
+	log.info("xOffset: {0}".format(self.var_CastXOffset.value))
+	log.info("yOffset: {0}".format(self.var_CastYOffset.value))
+	log.info("zOffset: {0}".format(self.var_CastZOffset.value))	
+	log.info("MarkHits: {0}".format(self.var_CastMarkHits.value))
+	log.info("ClosedCurve: {0}".format(self.var_CastClosedCurve.value))
+	log.info("CastClosestInRange: {0}".format(self.var_CastClosestInRange.value))	
+	log.info("minRotate: {0}".format(_min))
+	log.info("maxRotate: {0}".format(_max))
+	log.info("Range: {0}".format(self.var_CastRange.value))
+	
+	log.info("Targets: {0}".format(len(_l_mesh)))	
+	for mObj in _ml_objs:
+	    log.info( ShapeCaster.createMeshSliceCurve(_l_mesh, mObj,
+	                                               latheAxis=_latheAxis, aimAxis=_aimAxis, 
+	                                                points=self.var_CastPoints.value, 
+	                                               curveDegree=3, 
+	                                               minRotate=_min, 
+	                                               maxRotate=_max, 
+	                                               rotateRange=None, 
+	                                               posOffset=[self.var_CastXOffset.value,self.var_CastYOffset.value,self.var_CastZOffset.value], 
+	                                               markHits=self.var_CastMarkHits.value, 
+	                                               #rotateBank=None, 
+	                                               closedCurve=self.var_CastClosedCurve.value, 
+	                                               maxDistance=self.var_CastRange.value, 
+	                                               initialRotate=0, 
+	                                               offsetMode='vector', 
+	                                               midMeshCast=False, 
+	                                               l_specifiedRotates=None, 
+	                                               closestInRange=self.var_CastClosestInRange.value, 
+	                                               returnDict=False,))
+	    
+	    
+
+
+    def clickMesh_start(self):
+	log.info("clickMesh_start...")	
+	self.clickMesh_drop()
+		
+	if not self._ml_castTargets:
+	    _l_objs = []
+	    for l in mc.ls(type='mesh'), mc.ls(type='nurbsSurface'):
+		for o in l:
+		    _l_objs.append( cgmMeta.getTransform(o))
+	    meshClamp = 100
+	    if len(_l_objs)<=meshClamp:
+		_l_mesh = _l_objs #Still not sure if we wanna do all scene meshes. Need more testing.
+	    else: 
+		raise ValueError("No mesh loaded or too many mesh objects for autoload")
+	else: _l_mesh = [mObj.mNode for mObj in self._ml_castTargets]
+	
+	log.info("Mode: {0}".format(self.var_ClickMode.value))
+	log.info("Drag: {0}".format(self.var_ClickDrag.value))
+	log.info("Clamp: {0}".format(self.var_ClickClamp.value))
+	log.info("Create: {0}".format(self.var_ClickCreate.value))
+	log.info("Targets: {0}".format(len(_l_mesh)))		
+	
+	self.tool_clickMesh = DraggerContextFactory.clickMesh( mesh = _l_mesh,
+	                                                       closestOnly = True,
+	                                                       dragStore=False,
+	                                                       clampIntersections = self.var_ClickClamp.value)
+	
+	log.info("Resolved Mode: {0}".format(self.tool_clickMesh._l_modes[self.var_ClickMode.value]))
+	log.info("Resolved Create: {0}".format(self.tool_clickMesh._createModes[self.var_ClickCreate.value]))
+	
+	self.tool_clickMesh.setMode(self.tool_clickMesh._l_modes[self.var_ClickMode.value])
+	self.tool_clickMesh.setCreate(self.tool_clickMesh._createModes[self.var_ClickCreate.value])  
+	self.tool_clickMesh.setDragStoreMode(self.var_ClickDrag.value)
+	
+	log.warning("clickMesh_start >>> ClickMesh initialized")  
+	
+    def clickMesh_drop(self):
+	if self.tool_clickMesh:
+	    self.tool_clickMesh.finalize()
+	    self.tool_clickMesh.dropTool()
+	    self.tool_clickMesh = False    
+            
     def baseObject_meshMath(self,mode = None, multiplier = None):
         _sel = mc.ls(sl=True)
         _d = self.get_FunctionOptions()        

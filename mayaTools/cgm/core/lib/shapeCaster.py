@@ -612,7 +612,9 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    if minRotate is not None or maxRotate is not None:
 		#add a point if we don't have a full loop
 		points = points+1	
-	    rotateBaseValue = len(range(rotateFloor,rotateCeiling+1))/points
+	    rotateBaseValue = len(range(int(rotateFloor),int(rotateCeiling)+1))/points
+	    #rotateBaseValue = (rotateCeiling - rotateFloor)/points
+	    
 	    log.debug("rotateBaseValue: %s"%rotateBaseValue)
 		
 	    #Build our rotate values
@@ -726,7 +728,9 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		#curveBuffer =  mc.curve (d=curveDegree, ep = l_pos, os=True)	    
 		#mc.closeCurve(curveBuffer,replaceOriginal = True)
 	    else:
-		curveBuffer =  mc.curve (d=curveDegree, ep = l_pos, os=True)
+		#curveBuffer =  mc.curve (d=curveDegree, ep = l_pos, os=True)
+		knot_len = len(l_pos)+curveDegree-1		
+		curveBuffer = mc.curve (d=curveDegree, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
 		
 	    if returnDict:
 		return {'curve':curveBuffer,
