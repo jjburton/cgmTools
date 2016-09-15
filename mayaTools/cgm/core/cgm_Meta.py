@@ -174,6 +174,19 @@ def isTransform(node):
 	return False   
     except Exception,error:raise Exception,"isTransform({0}) | error: {1}".format(node,error)
     
+def getTransform(node):
+    try:
+	"""Find the transform of the object"""
+	buffer = mc.ls(node, type = 'transform') or False
+	if buffer:
+	    return buffer[0]
+	else:
+	    buffer = mc.listRelatives(node,parent=True,type='transform') or False
+	if buffer:
+	    return buffer[0]
+	return False    
+    except Exception,error:raise Exception,"getTransform({0}) | error: {1}".format(node,error)
+    
 def reinitializeMetaClass(node):
     try:#See if we have an mNode
 	node.mNode
