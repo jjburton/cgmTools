@@ -565,7 +565,8 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
         for m in _mesh:
 	    _b = {}
 	    if firstHit:
-		_b = findMeshIntersection(m, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
+		try:_b = findMeshIntersection(m, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
+		except:log.error("{0} mesh failed to get hit: {1}".format(_str_funcName,m))
 		#if _oneMesh:return _b
 		if not _d_meshUV.get(m):_d_meshUV[m] = []
 		if not _d_meshPos.get(m):_d_meshPos[m] = []
@@ -576,7 +577,8 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
 		    _d_meshPos[m].append(_b['hit'])								    
 		    #_l_uvBuffer.append("{0}.uv[{1},{2}]".format(m,_uv[0],_uv[1]))
 	    else:
-		_b = findMeshIntersections(m, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
+		try:_b = findMeshIntersections(m, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
+		except:log.error("{0} mesh failed to get hit: {1}".format(_str_funcName,m))		
 		#if _oneMesh:return _b	
 		if not _d_meshUV.get(m):_d_meshUV[m] = []
 		if not _d_meshPos.get(m):_d_meshPos[m] = []
@@ -592,10 +594,13 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
 		if _source == None:
 		    _source = _b['source']
 		    
+	if not _l_posBuffer:
+	    log.debug("{0} No hits detected. cast: {1} | mesh{2}".format(_str_funcName,obj,mesh))
+	    return {}
 	_near = distance.returnClosestPoint(_source, _l_posBuffer)
 	_furthest = distance.returnFurthestPoint(_source,_l_posBuffer)
 	return {'source':_source, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'meshHits':_d_meshPos}
-    except StandardError,error:
+    except Exception,error:
         log.error(">>> %s >> mesh: %s | obj: %s | axis %s | vector: %s | error: %s"%(_str_funcName,mesh,obj,axis,vector,error))
         return None
     

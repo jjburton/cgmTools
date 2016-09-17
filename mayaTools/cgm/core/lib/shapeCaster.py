@@ -26,6 +26,7 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.lib import guiFactory
 
 reload(RayCast)
 reload(Snap)
@@ -44,7 +45,7 @@ from cgm.core.lib import nameTools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-def returnBaseControlSize(mi_obj,mesh,axis=True):
+def returnBaseControlSize(mi_obj,mesh,axis=True,closestInRange = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -105,7 +106,7 @@ def returnBaseControlSize(mi_obj,mesh,axis=True):
 	    if len(directions) == 1:#gonna multiply our distance 
 		try:
 		    info = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[0])
-		    d_returnDistances[axis] = (distance.returnDistanceBetweenPoints(info['hit'],mi_obj.getPosition()) *2)
+		    d_returnDistances[axis] = (distance.returnDistanceBetweenPoints(info['near'],mi_obj.getPosition()) *2)
 		except Exception,error:
 		    raise Exception,"raycast | %s"%error
 	    else:
@@ -113,7 +114,7 @@ def returnBaseControlSize(mi_obj,mesh,axis=True):
 		    info1 = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[0])
 		    info2 = RayCast.findMeshIntersectionFromObjectAxis(mesh,mi_obj.mNode,directions[1])
 		    if info1 and info2:
-			d_returnDistances[axis] = distance.returnDistanceBetweenPoints(info1['hit'],info2['hit'])                    
+			d_returnDistances[axis] = distance.returnDistanceBetweenPoints(info1['near'],info2['near'])                    
 		except Exception,error:
 		    raise Exception,"raycast | %s"%error
 		
@@ -181,7 +182,6 @@ def joinCurves(targetObjects, mode = 'simple', curveDegree = 1):
     except StandardError,error:
 	raise StandardError,"joinCurve>> Failure. targets: %s | error: %s"%(targetObjects,error)
 
-#@r9General.Timer    
 def createWrapControlShape(targetObjects,
                            targetGeo = None,
                            latheAxis = 'z',aimAxis = 'y+',objectUp = 'y+',
@@ -203,23 +203,46 @@ def createWrapControlShape(targetObjects,
                            axisToCheck = ['x','y'],
                            ):#'segment,radial,disc' 
     """
-    Function for creating control curves from other objects. Currently assumes z aim, y up
-    1) Cather info
-    2) Get initial curves
-    3) Store info
-    4) return
+    This function lathes an axis of an object, shoot rays out the aim axis at the provided mesh and returning hits. 
+    it then uses this information to build a curve shape.
     
-    TODO:
-    Change offsets to use lathe axis rather than 
-    """
+    :parameters:
+        mesh(string) | Surface to cast at
+	mi_obj(string/mObj) | our casting object
+	latheAxis(str) | axis of the objec to lathe TODO: add validation
+	aimAxis(str) | axis to shoot out of
+	points(int) | how many points you want in the curve
+	curveDegree(int) | specified degree
+	minRotate(float) | let's you specify a valid range to shoot
+	maxRotate(float) | let's you specify a valid range to shoot
+	posOffset(vector) | transformational offset for the hit from a normalized locator at the hit. Oriented to the surface
+	markHits(bool) | whether to keep the hit markers
+	returnDict(bool) | whether you want all the infomation from the process.
+	rotateBank (float) | let's you add a bank to the rotation object
+	l_specifiedRotates(list of values) | specify where to shoot relative to an object. Ignores some other settings
+	maxDistance(float) | max distance to cast rays
+	closestInRange(bool) | True by default. If True, takes first hit. Else take the furthest away hit in range.
+
+    :returns:
+        Dict ------------------------------------------------------------------
+	'source'(double3) |  point from which we cast
+	'hit'(double3) | world space points | active during single return
+	'hits'(list) | world space points | active during multi return
+	'uv'(double2) | uv on surface of hit | only works for mesh surfaces
+	
+    :raises:
+	Exception | if reached
+	
+    """     
     _str_funcName = "createWrapControlShape"
     log.debug(">> %s >> "%(_str_funcName) + "="*75)  
+    _joinModes = []
+    _extendMode = []
     
     if type(targetObjects) not in [list,tuple]:targetObjects = [targetObjects]
-    if not targetGeo:
-	raise NotImplementedError, "Must have geo for now"
-    if len(mc.ls(targetGeo))>1:
-	raise StandardError,"createWrapControlShape>> More than one mesh named: %s"%targetGeo  
+    targetGeo = cgmValid.objStringList(targetGeo, calledFrom = _str_funcName)
+
+
     assert type(points) is int,"Points must be int: %s"%points
     assert type(curveDegree) is int,"Points must be int: %s"%points
     assert curveDegree > 0,"Curve degree must be greater than 1: %s"%curveDegree
@@ -227,7 +250,7 @@ def createWrapControlShape(targetObjects,
     if rootOffset is not None and len(rootOffset) and len(rootOffset)!=3:raise StandardError, "rootOffset must be len(3): %s | len: %s"%(rootOffset,len(rootOffset))
     if rootRotate is not None and len(rootRotate) and len(rootRotate)!=3:raise StandardError, "rootRotate must be len(3): %s | len: %s"%(rootRotate,len(rootRotate))
     
-    if extendMode in ['loliwrap'] and insetMult is None:insetMult = 1
+    if extendMode in ['loliwrap','cylinder','disc'] and insetMult is None:insetMult = 1
     for axis in ['x','y','z']:
 	if axis in latheAxis.lower():latheAxis = axis
     
@@ -377,21 +400,23 @@ def createWrapControlShape(targetObjects,
     elif extendMode == 'endCap':
 	log.debug("endCap mode!")
 	returnBuffer1 = createMeshSliceCurve(targetGeo,mi_rootLoc.mNode,
-	                                     aimAxis = 'z+',
-	                                     latheAxis = 'y',
+	                                     aimAxis = '{0}+'.format(latheAxis),
+	                                     latheAxis = objectUp[0],
 	                                     curveDegree=curveDegree,
 	                                     maxDistance=maxDistance,
+	                                     closestInRange=closestInRange,
 	                                     closedCurve=False,
 	                                     l_specifiedRotates=[-90,-60,-30,0,30,60,90],	                                      
 	                                     posOffset = posOffset)
 	mi_rootLoc.rotate = [0,0,0]
 	mi_rootLoc.__setattr__('r%s'%latheAxis,90)
 	returnBuffer2 = createMeshSliceCurve(targetGeo,mi_rootLoc.mNode,
-	                                     aimAxis = 'z+',
-	                                     latheAxis = 'y',
+	                                     aimAxis = '{0}+'.format(latheAxis),
+	                                     latheAxis = objectUp[0],
 	                                     curveDegree=curveDegree,
 	                                     maxDistance=maxDistance,	                                     
 	                                     closedCurve=False,
+	                                     closestInRange=closestInRange,	                                     
 	                                     l_specifiedRotates=[-90,-60,-30,0,30,60,90],	                                      
 	                                     posOffset = posOffset)	
 	l_sliceReturns.extend([returnBuffer1,returnBuffer2])
@@ -549,6 +574,10 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     
     
     try:#>>> Info #================================================================
+	guiFactory.doProgressWindow(winName='Mesh Slice...', 
+	                            statusMessage='Progress...', 
+	                            startingProgress=1, 
+	                            interruptableState=True)		
 	mi_loc = mi_obj.doLoc()
 	mi_loc.doGroup()
 	l_pos = []
@@ -630,6 +659,9 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     try:#>>> Pew, pew !
 	#================================================================
 	for i,rotateValue in enumerate(l_rotateSettings):
+	    guiFactory.doUpdateProgressWindow("Casting {0}".format(rotateValue), i, 
+		                              len(l_rotateSettings), 
+		                              reportItem=False)	    
 	    d_castReturn = {}
 	    hit = False
 	    
@@ -640,15 +672,15 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    
 	    #mi_rotObj.__setattr__('rotate%s'%latheAxis.capitalize(),rotateValue)
 	    try:
-		log.info("mesh: %s"%mesh)
-		log.info("mi_loc.mNode: %s"%mi_loc.mNode)
-		log.info("aimAxis: %s"%aimAxis)
-		log.info("latheAxis: %s"%latheAxis)
-		log.info("maxDistance: %s"%maxDistance)
+		log.debug("mesh: %s"%mesh)
+		log.debug("mi_loc.mNode: %s"%mi_loc.mNode)
+		log.debug("aimAxis: %s"%aimAxis)
+		log.debug("latheAxis: %s"%latheAxis)
+		log.debug("maxDistance: %s"%maxDistance)
 		
 		d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance, firstHit=False) or {}
 		d_hitReturnFromValue[rotateValue] = d_castReturn	
-		log.info("{0} -- {1}".format(rotateValue,d_castReturn))
+		log.debug("{0} -- {1}".format(rotateValue,d_castReturn))
 		if closestInRange:
 		    hit = d_castReturn.get('near') or False
 		else:
@@ -718,6 +750,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 	    if markHits:mc.curve (d=1, ep = l_pos, os=True)#build curves as we go to see what's up
 	mc.delete(mi_loc.getAllParents()[-1])#delete top group
 	log.debug("pos list: %s"%l_pos)    
+	guiFactory.doCloseProgressWindow()
 	    
     except Exception,error:
 	raise ValueError,"Cast fail | {0}".format(error) 	
