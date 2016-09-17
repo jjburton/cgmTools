@@ -2868,7 +2868,7 @@ class cgmOptionVar(object):
     def setValue(self,value):
 	if type(value) is list or type(value) is tuple:
 	    self.__init__(self.name,self.varType,value = value[0])#Reinitialize
-	    for v in value[1:]:
+	    for v in value:
 		self.append(v)
 	else:
 	    if self.varType == 'int':
@@ -2931,6 +2931,9 @@ class cgmOptionVar(object):
     
     varType = property(getType, setType)
     
+    def __repr__(self):
+	try:return "{0}(var: {1}, type: {2}, value: {3})".format(self.__class__, self.name, self.getType(), self.value)
+	except:return self
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Base Functions
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
