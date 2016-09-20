@@ -70,12 +70,14 @@ class cgmGUI(mUI.BaseMelWindow):
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
-
+ 
+        
     def __init__( self,*args,**kws):
         #Check our tool option var for debug mode to set logger level if so
         if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
             log.setLevel(logging.DEBUG)	
-
+        self.uiDock = False
+  
         #>>> Standard cgm variables
         #====================	    
         self.l_optionVars = []
@@ -84,10 +86,11 @@ class cgmGUI(mUI.BaseMelWindow):
         self.description = __description__
 
         self.initializeTemplates() 
+        
 
         #>>> Insert our init, overloaded for other tools
-        self.insert_init(*args,**kws)
-
+        self.insert_init(self,*args,**kws)
+            
         #>>> Menu
         self.setup_Variables()	
         self.build_menus()
@@ -95,24 +98,31 @@ class cgmGUI(mUI.BaseMelWindow):
         #>>> Body
         #====================        
         self.build_layoutWrapper(self)
+        self.show()
 
         #====================
         # Show and Dock
         #====================
         #Maya2011 QT docking - from Red9's examples
-        try:
-            #'Maya2011 dock delete'
-            if mc.dockControl(self.dockCnt, exists=True):
-                mc.deleteUI(self.dockCnt, control=True)  
-        except:
-            pass
+        #if mayaVersion == 2011:
+        #'Maya2011 dock delete'
 
-        self.show()
+            
         #log.info(self.l_allowedDockAreas[self.var_DockSide.value])
+        """_dock = '{0}Dock'.format(__toolName__)        
+        self.uiDock =  mc.dockControl(_dock , area=self.l_allowedDockAreas[self.var_DockSide.value],
+                                      label=self.WINDOW_TITLE, content=self.WINDOW_NAME,
+                                      floating = self.var_Dock.value,
+                                      allowedArea=self.l_allowedDockAreas,
+                                      width=self.DEFAULT_SIZE[0], height = self.DEFAULT_HEIGHT)""" 
+        _dock = '{0}Dock'.format(self.__toolName__)            
+        if mc.dockControl(_dock, exists=True):
+            log.info('Deleting {0}'.format(_dock))
+            mc.deleteUI(_dock, control=True)   
+            
         if self.var_Dock.value:
-            try:mc.dockControl(self.dockCnt, area=self.l_allowedDockAreas[self.var_DockSide.value], label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.var_Dock.value, allowedArea=self.l_allowedDockAreas, width=self.DEFAULT_SIZE[0])
-            except:
-                log.warning('Failed to dock')
+            self.do_dock()
+            
 
     def insert_init(self,*args,**kws):
         """ This is meant to be overloaded per gui """
@@ -125,12 +135,14 @@ class cgmGUI(mUI.BaseMelWindow):
         log.info("DEFAULT_SIZE: %s"%str(cgmGUI.DEFAULT_SIZE))
         self.description = 'This is a series of tools for working with cgm Sets'
         self.__version__ = __version__
-        self.dockCnt = '%sDock'%__toolName__	
         self.__toolName__ = __toolName__		
         self.l_allowedDockAreas = ['right', 'left']
         self.WINDOW_NAME = cgmGUI.WINDOW_NAME
         self.WINDOW_TITLE = cgmGUI.WINDOW_TITLE
         self.DEFAULT_SIZE = cgmGUI.DEFAULT_SIZE
+        
+        self.setup_Variables()	
+        self.build_menus()        
 
     def setup_Variables(self):
         self.create_guiOptionVar('ShowHelp',defaultValue = 0)
@@ -174,8 +186,7 @@ class cgmGUI(mUI.BaseMelWindow):
         self.uiMenu_OptionsMenu.clear()
         #>>> Reset Options				
         mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Dock",
-                         cb=self.var_Dock.value,
-                         c= lambda *a: self.do_dockToggle())	         
+                         c= lambda *a: self.do_dock())	         
 
     def buildMenu_help( self, *args):
         self.uiMenu_HelpMenu.clear()
@@ -212,16 +223,57 @@ class cgmGUI(mUI.BaseMelWindow):
 
     def reload(self):	
         run()
-
-    def do_dockToggle( self):
+                   
+    def do_dock( self):
         try:
-            self.var_Dock.toggle()
-            if self.var_Dock.value:
-                mc.dockControl(self.dockCnt, area=self.l_allowedDockAreas[self.var_DockSide.value], label=self.WINDOW_TITLE, content=self.WINDOW_NAME, floating=not self.var_Dock.value, allowedArea=self.l_allowedDockAreas, width=self.DEFAULT_SIZE[0])
+            #log.info("dockCnt: {0}".format(self.dockCnt))
+            log.debug("uiDock: {0}".format(self.uiDock))                
+            log.debug("area: {0}".format(self.l_allowedDockAreas[self.var_DockSide.value]))
+            log.debug("label: {0}".format(self.WINDOW_TITLE))
+            log.debug("self: {0}".format(self.Get()))                
+            log.debug("content: {0}".format(self.WINDOW_NAME))
+            log.debug("floating: {0}".format(not self.var_Dock.value))
+            log.debug("allowedArea: {0}".format(self.l_allowedDockAreas))
+            log.debug("width: {0}".format(self.DEFAULT_SIZE[0])) 
+            
+            _dock = '{0}Dock'.format(self.__toolName__)   
+            if mc.dockControl(_dock,q=True, exists = True):
+                log.debug('linking...')
+                self.uiDock = _dock
+                mc.dockControl(_dock , edit = True, area=self.l_allowedDockAreas[self.var_DockSide.value],
+                               label=self.WINDOW_TITLE, content=self.Get(),
+                               allowedArea=self.l_allowedDockAreas,
+                               width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])                    
+            #else:
             else:
-                self.reload()
+                log.debug('creating...')       
+                mc.dockControl(_dock , area=self.l_allowedDockAreas[self.var_DockSide.value],
+                               label=self.WINDOW_TITLE, content=self.Get(),
+                               allowedArea=self.l_allowedDockAreas,
+                               width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])                
+            
+            
+            """log.info("floating: {0}".format(mc.dockControl(_dock, q = True, floating = True)))
+            log.info("var_Doc: {0}".format(self.var_Dock.value))
+            _floating = mc.dockControl(_dock, q = True, floating = True)
+            if _floating and self.var_Dock == 1:
+                log.info('mismatch')
+                self.var_Dock = 0
+            if not _floating and self.var_Dock == 0:
+                log.info("mismatch2")
+                self.var_Dock = 1"""
+            
+            mc.dockControl(_dock, edit = True, floating = self.var_Dock.value, width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])
+            self.uiDock = _dock   
+            _floating = mc.dockControl(_dock, q = True, floating = True)            
+            if _floating:
+                #log.info("Not visible, resetting position.")
+                #mc.dockControl(self.uiDock, e=True, visible = False)
+                mc.window(_dock, edit = True, tlc = [200, 200])
+            self.var_Dock.toggle()
+                
         except Exception,err:
-            log.error("Failed to dockToggle: {0}".format(err))
+            log.error("Failed to dock: {0}".format(err))
 
     def do_showHelpToggle( self):
         doToggleInstancedUIItemsShowState(self.var_ShowHelp.value,self.l_helpElements)
