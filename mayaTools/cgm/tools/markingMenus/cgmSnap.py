@@ -1,10 +1,11 @@
 import maya.cmds as mc
 import maya.mel as mel
 
-from cgm.lib.zoo.zooPyMaya.baseMelUI import *
-
-from cgm.lib.classes.OptionVarFactory import *
-from cgm.lib.classes.ObjectFactory import *
+#from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+#from cgm.lib.classes.cgmMeta.cgmOptionVar import *
+#from cgm.lib.classes.ObjectFactory import *
+import cgm.core.cgm_Meta as cgmMeta
+import cgm.core.lib.zoo.baseMelUI as mUI
 
 from cgm.lib import guiFactory
 from cgm.lib import search
@@ -12,16 +13,22 @@ from cgm.tools.lib import animToolsLib
 from cgm.tools.lib import tdToolsLib
 from cgm.tools.lib import locinatorLib
 from cgm.lib import locators
-
+from cgm.core.classes import DraggerContextFactory as cgmDrag
+reload(cgmDrag)
 import cgmToolbox
 reload(cgmToolbox)
 reload(locinatorLib)
 reload(tdToolsLib)
 
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
 def run():
 	cgmSnapMM = snapMarkingMenu()
 	
-class snapMarkingMenu(BaseMelWindow):
+class snapMarkingMenu(mUI.BaseMelWindow):
 	_DEFAULT_MENU_PARENT = 'viewPanes'
 	
 	def __init__(self):	
@@ -30,32 +37,39 @@ class snapMarkingMenu(BaseMelWindow):
 		"""
 		self.optionVars = []
 		self.toolName = 'cgm.snapMM'
-		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
-		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')	
-		surfaceSnapAimModeVar = OptionVarFactory('cgmVar_SurfaceSnapAimMode', 'int')	
-		UpdateRotateOrderOnTagVar = OptionVarFactory('cgmVar_TaggingUpdateRO', 'int')	
-		self.LocinatorUpdateObjectsBufferOptionVar = OptionVarFactory('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
+		IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked', 'int')
+		mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction', 'int')	
+		surfaceSnapAimModeVar = cgmMeta.cgmOptionVar('cgmVar_SurfaceSnapAimMode', 'int')	
+		UpdateRotateOrderOnTagVar = cgmMeta.cgmOptionVar('cgmVar_TaggingUpdateRO', 'int')	
+		self.LocinatorUpdateObjectsBufferOptionVar = cgmMeta.cgmOptionVar('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
 		
-		self.LocinatorUpdateObjectsOptionVar = OptionVarFactory('cgmVar_SnapMMUpdateMode',defaultValue = 0)
+		self.LocinatorUpdateObjectsOptionVar = cgmMeta.cgmOptionVar('cgmVar_SnapMMUpdateMode',defaultValue = 0)
 		guiFactory.appendOptionVarList(self,self.LocinatorUpdateObjectsOptionVar.name)
 		
-		self.SnapModeOptionVar = OptionVarFactory('cgmVar_SnapMatchMode',defaultValue = 0)
+		self.SnapModeOptionVar = cgmMeta.cgmOptionVar('cgmVar_SnapMatchMode',defaultValue = 0)
 		guiFactory.appendOptionVarList(self,self.SnapModeOptionVar.name)
 				
-		
-		panel = mc.getPanel(up = True)
+		self._l_rayCastModes = ['surface','midPoint']
 		sel = search.selectCheck()
 		
-		IsClickedOptionVar.set(0)
-		mmActionOptionVar.set(0)
+		IsClickedOptionVar.setValue(0)
+		mmActionOptionVar.setValue(0)
 		
-		if mc.popupMenu('cgmMM',ex = True):
-			mc.deleteUI('cgmMM')
+		#if mc.popupMenu('cgmMM',ex = True):
+			#mc.deleteUI('cgmMM')#...deleting ui elements seems to be hard crashing maya 2017
 			
-		if panel:
-			if mc.control(panel, ex = True):
-				mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = 'viewPanes',
-					         pmc = lambda *a: self.createUI('cgmMM'))
+		
+		_p = 'viewPanes'					
+		_p = mc.getPanel(up = True) or 'viewPanes'
+		if not mc.control(_p, ex = True):
+			raise ValueError,"{0} doesn't exist!".format(_p)
+			#_p = panel
+		if not mc.popupMenu('cgmMM',ex = True):
+			mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
+			             pmc = lambda *a: self.createUI('cgmMM'))
+		else:
+			mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
+			              pmc = lambda *a: self.createUI('cgmMM'))
 	
 	def createUI(self,parent):
 		"""
@@ -67,37 +81,37 @@ class snapMarkingMenu(BaseMelWindow):
 			"""			
 			killUI()
 			command
-			mmActionOptionVar.set(1)
+			mmActionOptionVar.value = 1
 		
-		self.LocinatorUpdateObjectsBufferOptionVar = OptionVarFactory('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
-		IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
-		mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
+		self.LocinatorUpdateObjectsBufferOptionVar = cgmMeta.cgmOptionVar('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
+		IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked', 'int')
+		mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction', 'int')
 		
 		self.SnapModeOptionVar.update()#Check if another tool has changed this setting
 		
-		sel = search.selectCheck()
+		_sel = mc.ls(sl=True)
 		selPair = search.checkSelectionLength(2)
-		
-		IsClickedOptionVar.set(1)
+		_selecCheck = len(_sel)
+		IsClickedOptionVar.value = 1
 		
 		mc.menu(parent,e = True, deleteAllItems = True)
-		MelMenuItem(parent,
+		mUI.MelMenuItem(parent,
 		            en = selPair,
 		            l = 'Point Snap',
 		            c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
 		            rp = 'NW')		            
-		MelMenuItem(parent,
+		mUI.MelMenuItem(parent,
 		            en = selPair,
 		            l = 'Parent Snap',
 		            c = lambda *a:buttonAction(tdToolsLib.doParentSnap()),
 		            rp = 'N')	
-		MelMenuItem(parent,
+		mUI.MelMenuItem(parent,
 		            en = selPair,
 		            l = 'Orient Snap',
 		            c = lambda *a:buttonAction(tdToolsLib.doOrientSnap()),
 		            rp = 'NE')	
 		
-		MelMenuItem(parent,
+		mUI.MelMenuItem(parent,
 		            en = selPair,
 		            l = 'Surface Snap',
 		            c = lambda *a:buttonAction(tdToolsLib.doSnapClosestPointToSurface(False)),
@@ -107,34 +121,38 @@ class snapMarkingMenu(BaseMelWindow):
 			ShowMatch = False
 			if self.LocinatorUpdateObjectsBufferOptionVar.value:
 				ShowMatch = True
-			MelMenuItem(parent,
+			mUI.MelMenuItem(parent,
 				        en = ShowMatch,
 				        l = 'Buffer Snap',
 				        c = lambda *a:buttonAction(locinatorLib.doUpdateLoc(self,True)),
 				        rp = 'S')					
 		else:
 			ShowMatch = search.matchObjectCheck()			
-			MelMenuItem(parent,
+			mUI.MelMenuItem(parent,
 				        en = ShowMatch,
 				        l = 'Match Snap',
 				        c = lambda *a:buttonAction(locinatorLib.doUpdateSelectedObjects(self)),
 				        rp = 'S')	
 			
-		
-		MelMenuItem(parent,
+		mUI.MelMenuItem(parent,
+	                en = _selecCheck,
+	                l = 'RayCast',
+	                c = lambda *a:buttonAction(raySnap_start(_sel)),
+	                rp = 'SW')				
+		mUI.MelMenuItem(parent,
 		            en = 0,
 		            l = 'Mirror',
 		            c = lambda *a:buttonAction(locinatorLib.doUpdateObj(self,True)),
-		            rp = 'SW')			
+		            rp = 'SE')			
 		
-		MelMenuItemDiv(parent)
-		MelMenuItem(parent,l = 'Loc Me',
+		mUI.MelMenuItemDiv(parent)
+		mUI.MelMenuItem(parent,l = 'Loc Me',
 	                c = lambda *a: buttonAction(locinatorLib.doLocMe(self)))
-		MelMenuItem(parent, l = 'Tag Loc to Object',en = selPair,
+		mUI.MelMenuItem(parent, l = 'Tag Loc to Object',en = selPair,
 	                c = lambda *a: buttonAction(locinatorLib.doTagObjects(self)))
 		# Update Mode
-		UpdateMenu = MelMenuItem(parent, l='Update Mode', subMenu=True)
-		UpdateMenuCollection = MelRadioMenuCollection()
+		UpdateMenu = mUI.MelMenuItem(parent, l='Update Mode', subMenu=True)
+		UpdateMenuCollection = mUI.MelRadioMenuCollection()
 
 		if self.LocinatorUpdateObjectsOptionVar.value == 0:
 			slMode = True
@@ -144,18 +162,18 @@ class snapMarkingMenu(BaseMelWindow):
 			bufferMode = True
 
 		UpdateMenuCollection.createButton(UpdateMenu,l='Selected',
-				                             c=lambda *a: self.LocinatorUpdateObjectsOptionVar.set(0),
+				                             c=lambda *a: self.LocinatorUpdateObjectsOptionVar.setValue(0),
 				                             rb=slMode )
 		UpdateMenuCollection.createButton(UpdateMenu,l='Buffer',
-				                             c=lambda *a:self.LocinatorUpdateObjectsOptionVar.set(1),
+				                             c=lambda *a:self.LocinatorUpdateObjectsOptionVar.setValue(1),
 				                             rb=bufferMode )
 		#>>>Match Mode
 		self.MatchModeOptions = ['parent','point','orient']
 		
-		self.MatchModeCollection = MelRadioMenuCollection()
+		self.MatchModeCollection = mUI.MelRadioMenuCollection()
 		self.MatchModeCollectionChoices = []
 					
-		MatchModeMenu = MelMenuItem( parent, l='Match Mode', subMenu=True)
+		MatchModeMenu = mUI.MelMenuItem( parent, l='Match Mode', subMenu=True)
 		self.matchMode = self.SnapModeOptionVar.value
 		for c,item in enumerate(self.MatchModeOptions):
 			if self.matchMode == c:
@@ -164,53 +182,106 @@ class snapMarkingMenu(BaseMelWindow):
 				rbValue = False
 			self.MatchModeCollectionChoices.append(self.MatchModeCollection.createButton(MatchModeMenu,label=item,
 			                                                                             rb = rbValue,
-			                                                                             command = Callback(self.SnapModeOptionVar.set,c)))
+			                                                                             command = mUI.Callback(self.SnapModeOptionVar.setValue,c)))
 		#>>> Define
-		DefineMenu = MelMenuItem( parent, l='Buffer', subMenu=True)
-		MelMenuItem( DefineMenu, l="Define",
+		DefineMenu = mUI.MelMenuItem( parent, l='Buffer', subMenu=True)
+		mUI.MelMenuItem( DefineMenu, l="Define",
 		             c= lambda *a: locinatorLib.defineObjBuffer(self.LocinatorUpdateObjectsBufferOptionVar))
 		
-		MelMenuItem( DefineMenu, l="Add Selected",
+		mUI.MelMenuItem( DefineMenu, l="Add Selected",
 		             c= lambda *a: locinatorLib.addSelectedToObjBuffer(self.LocinatorUpdateObjectsBufferOptionVar))
 		
-		MelMenuItem( DefineMenu, l="Remove Selected",
+		mUI.MelMenuItem( DefineMenu, l="Remove Selected",
 		             c= lambda *a: locinatorLib.removeSelectedFromObjBuffer(self.LocinatorUpdateObjectsBufferOptionVar))
 		
-		MelMenuItemDiv( DefineMenu )
-		MelMenuItem( DefineMenu, l="Select Members",
+		mUI.MelMenuItemDiv( DefineMenu )
+		mUI.MelMenuItem( DefineMenu, l="Select Members",
 				     c= lambda *a: locinatorLib.selectObjBufferMembers(self.LocinatorUpdateObjectsBufferOptionVar))
-		MelMenuItem( DefineMenu, l="Clear",
+		mUI.MelMenuItem( DefineMenu, l="Clear",
 		             c= lambda *a: locinatorLib.clearObjBuffer(self.LocinatorUpdateObjectsBufferOptionVar))
 				
+		try:#>>> Sym Axis....
+			_str_section = 'Ray Cast menu'
+		
+			uiMenu_rayCast = mUI.MelMenuItem( parent, l='Ray Cast Mode', subMenu=True)
+			var_RayCastMode = cgmMeta.cgmOptionVar('cgmVar_SnapMenuRayCastMode', defaultValue=0)
+			
+			self.uiRC_RayCast = mUI.MelRadioMenuCollection()
+			self.uiOptions_RayCast = []		
+			_v = var_RayCastMode.value
+			_modes = cgmDrag._clickMesh_modes
+			for i,item in enumerate(_modes):
+				if i == _v:
+					_rb = True
+				else:_rb = False
+				self.uiOptions_RayCast.append(self.uiRC_RayCast.createButton(uiMenu_rayCast,label=item,
+				                                                             c = mUI.Callback(var_RayCastMode.setValue,i),
+				                                                             rb = _rb))   
+		except Exception,err:
+			log.error("{0} failed to load. err: {1}".format(_str_section,err))		
 		
 		
 		
-		
-		MelMenuItemDiv(parent)		
-		MelMenuItem(parent, l = 'Locinator',
+		mUI.MelMenuItemDiv(parent)		
+		mUI.MelMenuItem(parent, l = 'Locinator',
 	                c = lambda *a: buttonAction(cgmToolbox.loadLocinator()))
-		MelMenuItem(parent, l = 'cgm.animTools',
+		mUI.MelMenuItem(parent, l = 'cgm.animTools',
 	                c = lambda *a: buttonAction(cgmToolbox.loadAnimTools()))
-		MelMenuItem(parent, l = 'cgm.tdTools',
+		mUI.MelMenuItem(parent, l = 'cgm.tdTools',
 	                c = lambda *a: buttonAction(cgmToolbox.loadTDTools()))
-		MelMenuItem(parent, l = 'cgm.attrTools',
+		mUI.MelMenuItem(parent, l = 'cgm.attrTools',
 	                c = lambda *a: buttonAction(cgmToolbox.loadAttrTools()))
-		MelMenuItem(parent, l = 'reload cgm.core',
-	                c = lambda *a: buttonAction(cgmToolbox.reload_cgmCore()))		
+		mUI.MelMenuItem(parent, l = 'reload cgm.core',
+	                c = lambda *a: buttonAction(cgmToolbox.reload_cgmCore()))	
 
-		MelMenuItemDiv(parent)	
-		MelMenuItem(parent, l="Reset",
+
+		mUI.MelMenuItemDiv(parent)	
+		
+		mUI.MelMenuItem( parent, l="Docs",
+	                     c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmmsnap");')	
+		
+		mUI.MelMenuItem(parent, l="Reset",
 	                 c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars))
 			
 		
 	
 		
 def killUI():
-	IsClickedOptionVar = OptionVarFactory('cgmVar_IsClicked', 'int')
-	mmActionOptionVar = OptionVarFactory('cgmVar_mmAction', 'int')
+	IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked', 'int')
+	mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction', 'int')
 	
 	if mc.popupMenu('cgmMM',ex = True):
 		mc.deleteUI('cgmMM')
 		
-	IsClickedOptionVar.set(0)
-	mmActionOptionVar.set(0)	
+	IsClickedOptionVar.setValue(0)
+	mmActionOptionVar.setValue(0)	
+	
+	
+def raySnap_start(targets = []):
+	_l_objs = []
+	for l in mc.ls(type='mesh'), mc.ls(type='nurbsSurface'):
+		for o in l:
+			_l_objs.append( cgmMeta.getTransform(o))
+	meshClamp = 500
+	if len(_l_objs)<=meshClamp:
+		_l_mesh = _l_objs #Still not sure if we wanna do all scene meshes. Need more testing.
+	else: 
+		raise ValueError("No mesh loaded or too many mesh objects for autoload")	
+
+	_toSnap = targets
+	log.info("raySnap_start | targets: {0}".format(_toSnap))
+	if not _toSnap:
+		raise ValueError,"raySnap_start >> Must have targets!"
+
+	var_RayCastMode = cgmMeta.cgmOptionVar('cgmVar_SnapMenuRayCastMode', defaultValue=0)
+	log.info("mode: {0}".format(var_RayCastMode.value))
+	log.info("mesh: {0}".format(_l_mesh))
+	cgmDrag.clickMesh( mode = var_RayCastMode.value,
+	                   mesh = _l_mesh,
+	                   closestOnly = True,
+	                   create = 'locator',
+	                   dragStore = False,
+	                   toSnap = _toSnap,
+	                   )
+
+	log.warning("raySnap_start >>> ClickMesh initialized") 
