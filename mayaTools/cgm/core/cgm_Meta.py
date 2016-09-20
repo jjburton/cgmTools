@@ -177,13 +177,16 @@ def isTransform(node):
 def getTransform(node):
     try:
 	"""Find the transform of the object"""
-	buffer = mc.ls(node, type = 'transform') or False
-	if buffer:
-	    return buffer[0]
+	if '.' in node:
+		_buffer = node.split('.')[0]
+	else:_buffer = node
+	_buffer = mc.ls(_buffer, type = 'transform') or False
+	if _buffer:
+	    return _buffer[0]
 	else:
-	    buffer = mc.listRelatives(node,parent=True,type='transform') or False
-	if buffer:
-	    return buffer[0]
+	    _buffer = mc.listRelatives(node,parent=True,type='transform') or False
+	if _buffer:
+	    return _buffer[0]
 	return False    
     except Exception,error:raise Exception,"getTransform({0}) | error: {1}".format(node,error)
     
