@@ -818,11 +818,12 @@ def kw_fromList(arg = None ,l = None, noneValid = False, indexCallable = False, 
         if isStringEquivalent(o,arg):_res = o
     if _res:
         if indexCallable:
-            return l.index(_res)
+            return _res
         else:
             return _res
-    if not noneValid:
-        raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, l)
+    if _res is None:
+        if not noneValid:
+            raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, l)
         
     
     
