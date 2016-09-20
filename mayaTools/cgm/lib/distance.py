@@ -37,7 +37,7 @@ import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
+from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core import cgm_General as cgmGeneral
 from cgm.lib import (nodes,
                      rigging,
@@ -55,50 +55,50 @@ mayaVersion = int( mel.eval( 'getApplicationVersionAsFloat' ) )
 def returnMayaSpaceFromWorldSpace(value):
     """
     Thanks to parentToSurface.mel from autodesk for figuring out this was necessary
-    
-    
+
+
     """
     assert type(float(value)) is float,"'%s' is not a numeric value"%value
     unit = mc.currentUnit(q=True,linear=True)
-	
+
     if unit == 'mm':
-	return (value * 10)
+        return (value * 10)
     elif unit =='cm':
-	return value
+        return value
     elif unit =='m':
-	return(value * .01)
+        return(value * .01)
     elif unit == 'in':
-	return(value * 0.393701)
+        return(value * 0.393701)
     elif unit == 'ft':
-	return(value * 0.0328084)
+        return(value * 0.0328084)
     elif unit =='yd':
-	return(value * 0.0109361)
+        return(value * 0.0109361)
     else:
-	return value
-    
+        return value
+
 def returnWorldSpaceFromMayaSpace(value):
     """
     Thanks to parentToSurface.mel from autodesk for figuring out this was necessary
-        
+
     """
     assert type(float(value)) is float,"'%s' is not a numeric value"%value
     unit = mc.currentUnit(q=True,linear=True)
-	
+
     if unit == 'mm':
-	return (value * .1)
+        return (value * .1)
     elif unit =='cm':
-	return value
+        return value
     elif unit =='m':
-	return(value * 100)
+        return(value * 100)
     elif unit == 'in':
-	return(value * 2.54)
+        return(value * 2.54)
     elif unit == 'ft':
-	return(value * 30.48)
+        return(value * 30.48)
     elif unit =='yd':
-	return(value * 91.44)
+        return(value * 91.44)
     else:
-	return value
-				
+        return value
+
 #			
 #
 
@@ -386,7 +386,7 @@ def createDistanceNodeBetweenObjects (obj1,obj2):
     loc2Buffer = (mc.listRelatives (locAttr2Stripped,parent=True))
     #distObj1 = mc.rename (loc1Buffer, (obj1+'_distLoc') )
     #distObj2 = mc.rename (loc2Buffer, (obj2+'_distLoc') )
-    
+
     return distanceObj
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -552,29 +552,29 @@ def returnBoundingBoxSize (meshGrp,objOnly = False):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     if type(meshGrp) is list:
-	for o in meshGrp: assert mc.objExists(o),"returnBoundingBoxSize: meshGrp object doesn't exist: '%s'"%o
+        for o in meshGrp: assert mc.objExists(o),"returnBoundingBoxSize: meshGrp object doesn't exist: '%s'"%o
     else:
-	assert mc.objExists(meshGrp),"returnBoundingBoxSize: meshGrp doesn't exist: '%s'"%meshGrp
+        assert mc.objExists(meshGrp),"returnBoundingBoxSize: meshGrp doesn't exist: '%s'"%meshGrp
     returnList = []
     boundingBoxSize = []
-    
+
     if objOnly:
-	buffer= mc.duplicate(meshGrp,returnRootsOnly=True)
-	l_relatives = mc.listRelatives(buffer[0],allDescendents = True,fullPath = True,type = 'transform')
-	if l_relatives:mc.delete(l_relatives)  
-	box = mc.exactWorldBoundingBox (buffer[0]) 
-	if buffer:mc.delete(buffer)
-	
+        buffer= mc.duplicate(meshGrp,returnRootsOnly=True)
+        l_relatives = mc.listRelatives(buffer[0],allDescendents = True,fullPath = True,type = 'transform')
+        if l_relatives:mc.delete(l_relatives)  
+        box = mc.exactWorldBoundingBox (buffer[0]) 
+        if buffer:mc.delete(buffer)
+
     #box = mc.exactWorldBoundingBox (meshGrp)
     else:
-	box = mc.exactWorldBoundingBox (meshGrp)   
+        box = mc.exactWorldBoundingBox (meshGrp)   
     rawBuffer =  [(box[3] - box[0]), (box[4] - box[1]), (box[5] - box[2])]
     for number in rawBuffer:
         if mayaVersion >= 2010:
             returnList.append(float('{0:f}'.format(number)))
         else:
             returnList.append(float(number))
-    
+
     return returnList
 
 def returnCenterPivotPosition (meshGrp):
@@ -623,7 +623,7 @@ def returnObjectSize(obj,debugReport = False):
         size =  mc.polyEvaluate(obj,worldArea = True)
 
         if debugReport: print ('%s%f' %('mesh area is ',size))
-	return size
+        return size
 
     elif objType == 'polyVertex':
         meshArea = mc.polyEvaluate(obj,worldArea = True)
@@ -745,7 +745,7 @@ def returnCurveDiameter(curve):
     DESCRIPTION:
     Assuming a given curve is a circle, return it's diameter. This is mainly to account for hidden objects with which
     bounding box size fails to handle properly.
-    
+
     cir = pi * d
 
     ARGUMENTS:
@@ -763,7 +763,7 @@ def returnMidU(curve):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Returns the mid u point of a curve
-    
+
     ARGUMENTS:
     curve(string)
 
@@ -773,11 +773,11 @@ def returnMidU(curve):
     """
     uReturn = mc.ls('%s.u[*]'%curve,flatten = True) or []
     if not uReturn:
-	raise StandardError, "returnMidU>>> No u return "
+        raise StandardError, "returnMidU>>> No u return "
     if len(uReturn)>1:
-	raise StandardError, "returnMidU>>> Can only currently do single curves: %s"%uReturn
+        raise StandardError, "returnMidU>>> Can only currently do single curves: %s"%uReturn
     if ':' not in uReturn[0]:
-	raise StandardError, "returnMidU>>> No ':' in return: %s"%uReturn
+        raise StandardError, "returnMidU>>> No ':' in return: %s"%uReturn
     bracketEnd_split = uReturn[0].split(']')[0]
     bracketStart_split = bracketEnd_split.split('[')[1]
     log.debug("bracket: %s"%bracketStart_split)
@@ -786,7 +786,7 @@ def returnMidU(curve):
     log.debug("l_floats: %s"%l_floats)
     midU = (l_floats[1]-l_floats[0]) /2
     return "%s.u[%s]"%(curve,midU)
-    
+
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -832,7 +832,7 @@ def returnLinearDirection(rootObj,aimObj):
         return ('%s%s' %('-',direction))
     else:
         return (direction)
-    
+
 def returnClosestObjectsFromAim(targetObject,objectList):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -910,15 +910,15 @@ def returnLocalAimDirection(rootObj,aimObj):
     #distanceValues = distanceBuffer /2
     cnt = 0
     for direction in directions:
-	locBuffer = mc.spaceLocator()[0]
-	objTrans = mc.xform (rootObj, q=True, ws=True, sp=True)
-	objRot = mc.xform (rootObj, q=True, ws=True, ro=True)
-	objRoo = mc.xform (rootObj, q=True, roo=True )
-	
-	mc.move (objTrans[0],objTrans[1],objTrans[2], locBuffer)
-	mc.setAttr ((locBuffer+'.rotateOrder'), rotationOrderDictionary[objRoo])
-	mc.rotate (objRot[0], objRot[1], objRot[2], locBuffer, ws=True)	
-	
+        locBuffer = mc.spaceLocator()[0]
+        objTrans = mc.xform (rootObj, q=True, ws=True, sp=True)
+        objRot = mc.xform (rootObj, q=True, ws=True, ro=True)
+        objRoo = mc.xform (rootObj, q=True, roo=True )
+
+        mc.move (objTrans[0],objTrans[1],objTrans[2], locBuffer)
+        mc.setAttr ((locBuffer+'.rotateOrder'), rotationOrderDictionary[objRoo])
+        mc.rotate (objRot[0], objRot[1], objRot[2], locBuffer, ws=True)	
+
         locGroups.append(rigging.groupMeObject(locBuffer))
         directionBuffer = list(direction)
         if directionBuffer[0] == '-':
@@ -932,7 +932,7 @@ def returnLocalAimDirection(rootObj,aimObj):
 
     for grp in locGroups:
         mc.delete(grp)
-	
+
     return returnDirections[matchIndex]
 
 def returnDistanceSortedList(targetObject, objectList):
@@ -1036,7 +1036,7 @@ def returnClosestObjectFromPos(startPoint, objectList):
     distanceList = []
     for obj in objectList:
         pos = returnWorldSpacePosition(obj)
-	distanceList.append (returnDistanceBetweenPoints(startPoint, pos))
+        distanceList.append (returnDistanceBetweenPoints(startPoint, pos))
     return objectList[(distanceList.index ((min(distanceList))))]
 
 def returnClosestPoint(startPoint, posList):
@@ -1246,58 +1246,58 @@ def returnNearestPointOnCurveInfo(targetObject,curve,deleteNode = True,cullOrigi
     _str_funcName = 'returnNearestPointOnCurveInfo'
     log.debug(">>> %s >> "%_str_funcName + "="*75) 
     try:
-	position = []
-	if search.returnObjectType(curve) == 'shape':
-	    shapes = []
-	    shapes.append(curve)
-	else:
-	    shapes = mc.listRelatives (curve, shapes=True)
-	if cullOriginalShapes:
-	    for shape in shapes:
-		if len(shape)>5 and shape[-4:] == 'Orig':
-		    shapes.remove(shape)
-	#to account for target objects in heirarchies """
-	tmpObj = rigging.locMeObjectStandAlone(targetObject)
-	l_positions = []
-	l_uValues = []
-	l_shapes = []
-	l_objects = []
-	l_nodes = []
-	for shape in shapes:
-	    tmpNode = mc.createNode ('nearestPointOnCurve',n='%s_npoc'%shape)
-	    position = []
-	    distances = []
-	    mc.connectAttr ((tmpObj+'.translate'),(tmpNode+'.inPosition'))
-	    mc.connectAttr ((shape+'.worldSpace'),(tmpNode+'.inputCurve'))
-	    position.append (mc.getAttr (tmpNode+'.positionX'))
-	    position.append (mc.getAttr (tmpNode+'.positionY'))
-	    position.append (mc.getAttr (tmpNode+'.positionZ'))
-	    l_positions.append(position)
-	    l_shapes.append(shape)
-	    l_uValues.append(mc.getAttr (tmpNode+'.parameter'))
-	    l_objects.append("%s.u[%f]"%(shape,mc.getAttr (tmpNode+'.parameter')))
-	    l_nodes.append(tmpNode)
-    
-	distances = []
-	""" measure distances """
-	locPos = returnWorldSpacePosition (tmpObj)
-	mc.delete (tmpObj)
-	for position in l_positions:
-	    distances.append(returnDistanceBetweenPoints(locPos,position))
-    
-	""" find the closest to our object """
-	closestPosition = min(distances)
-	matchIndex = distances.index(closestPosition)
-	d_return = {'position':l_positions[matchIndex],'parameter':l_uValues[matchIndex],'shape':l_shapes[matchIndex],'object':l_objects[matchIndex]}
-	if not deleteNode:
-	    d_return['node'] = l_nodes[matchIndex]
-	    l_nodes.remove(l_nodes[matchIndex])	
-	if l_nodes:mc.delete(l_nodes)
-	
-	return d_return
+        position = []
+        if search.returnObjectType(curve) == 'shape':
+            shapes = []
+            shapes.append(curve)
+        else:
+            shapes = mc.listRelatives (curve, shapes=True)
+        if cullOriginalShapes:
+            for shape in shapes:
+                if len(shape)>5 and shape[-4:] == 'Orig':
+                    shapes.remove(shape)
+        #to account for target objects in heirarchies """
+        tmpObj = rigging.locMeObjectStandAlone(targetObject)
+        l_positions = []
+        l_uValues = []
+        l_shapes = []
+        l_objects = []
+        l_nodes = []
+        for shape in shapes:
+            tmpNode = mc.createNode ('nearestPointOnCurve',n='%s_npoc'%shape)
+            position = []
+            distances = []
+            mc.connectAttr ((tmpObj+'.translate'),(tmpNode+'.inPosition'))
+            mc.connectAttr ((shape+'.worldSpace'),(tmpNode+'.inputCurve'))
+            position.append (mc.getAttr (tmpNode+'.positionX'))
+            position.append (mc.getAttr (tmpNode+'.positionY'))
+            position.append (mc.getAttr (tmpNode+'.positionZ'))
+            l_positions.append(position)
+            l_shapes.append(shape)
+            l_uValues.append(mc.getAttr (tmpNode+'.parameter'))
+            l_objects.append("%s.u[%f]"%(shape,mc.getAttr (tmpNode+'.parameter')))
+            l_nodes.append(tmpNode)
+
+        distances = []
+        """ measure distances """
+        locPos = returnWorldSpacePosition (tmpObj)
+        mc.delete (tmpObj)
+        for position in l_positions:
+            distances.append(returnDistanceBetweenPoints(locPos,position))
+
+        """ find the closest to our object """
+        closestPosition = min(distances)
+        matchIndex = distances.index(closestPosition)
+        d_return = {'position':l_positions[matchIndex],'parameter':l_uValues[matchIndex],'shape':l_shapes[matchIndex],'object':l_objects[matchIndex]}
+        if not deleteNode:
+            d_return['node'] = l_nodes[matchIndex]
+            l_nodes.remove(l_nodes[matchIndex])	
+        if l_nodes:mc.delete(l_nodes)
+
+        return d_return
     except StandardError,error:
-	raise StandardError,"%s >>> error : %s"%(_str_funcName,error)	    
-	    
+        raise StandardError,"%s >>> error : %s"%(_str_funcName,error)	    
+
 def returnClosestPointOnMeshInfoFromPos(pos, mesh):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1330,7 +1330,7 @@ def returnClosestPointOnMeshInfoFromPos(pos, mesh):
     mc.move (pos[0],pos[1],pos[2], locBuffer[0])
 
     pointInfo = returnClosestPointOnMeshInfo(locBuffer[0],mesh)
-    
+
     mc.delete(locBuffer[0],closestPointNode)
     return pointInfo
 
@@ -1389,7 +1389,7 @@ def returnClosestPointOnSurfaceInfo(targetObj, surface):
     closestPointNode = mc.createNode ('closestPointOnSurface')
     pointOnSurfaceNode = mc.createNode ('pointOnSurfaceInfo')
     controlSurface = mc.listRelatives(surface,shapes=True)
-        
+
     #>>>Surface Info
     #Thanks - http://www.kylenikolich.com/scripting/lod/parentToSurface.mel
     f_minU = attributes.doGetAttr(controlSurface[0],'mnu')
@@ -1404,7 +1404,7 @@ def returnClosestPointOnSurfaceInfo(targetObj, surface):
     attributes.doSetAttr(closestPointNode,'inPositionX',pos[0])
     attributes.doSetAttr(closestPointNode,'inPositionY',pos[1])
     attributes.doSetAttr(closestPointNode,'inPositionZ',pos[2])
-    
+
     attributes.doConnectAttr((controlSurface[0]+'.worldSpace'),(closestPointNode+'.inputSurface'))
     # Connect the info node to the surface #
     attributes.doConnectAttr  ((controlSurface[0]+'.local'),(pointOnSurfaceNode+'.inputSurface'))
@@ -1421,7 +1421,7 @@ def returnClosestPointOnSurfaceInfo(targetObj, surface):
     pointInfo['normalizedV'] =  (pointInfo['parameterV'] + f_minV)/f_sizeV  
     pointInfo['tangentU']=mc.getAttr(pointOnSurfaceNode+'.tangentU')
     pointInfo['tangentV']=mc.getAttr(pointOnSurfaceNode+'.tangentV')
-    
+
     mc.delete(closestPointNode)
     mc.delete(pointOnSurfaceNode)
     log.debug(pointInfo)
@@ -1430,16 +1430,16 @@ def returnClosestPointOnSurfaceInfo(targetObj, surface):
 def returnClosestUVToPos(mesh, pos):
     """   
     Return the closest point on a mesh to a point in space
-    
+
     Arguments
     mesh(string) -- currently poly surface only
     pos(double3) -- point in world space
-    
+
     returns(double2) -- uv coordinate on mesh
     """
     buffer = []
     for p in pos:
-	buffer.append(returnWorldSpaceFromMayaSpace(p))
+        buffer.append(returnWorldSpaceFromMayaSpace(p))
     pos = buffer
     
     #Create an empty selection list.
@@ -1457,26 +1457,123 @@ def returnClosestUVToPos(mesh, pos):
 
     #Create an MFnMesh functionset to operate on the node pointed to by
     #the dag path.
-    meshFn = om.MFnMesh(meshPath)
-    
+    _type = search.returnObjectType(mesh)
+    if _type == 'nurbsSurface':
+        surfFn = om.MFnNurbsSurface(meshPath)	
+    else:
+        meshFn = om.MFnMesh(meshPath)
+
     #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
-    floatPoint = om.MFloatPoint(pos[0], pos[1], pos[2])
-    refPoint = om.MPoint(floatPoint) # Thank you Capper on Tech-artists.org          
-    pArray = [0.0,0.0]
-    x1 = om.MScriptUtil()
-    x1.createFromList( pArray, 2 )
-    uvPoint = x1.asFloat2Ptr()
-    uvSet = None
-    closestPolygon=None
-    uvReturn = meshFn.getUVAtPoint(refPoint,uvPoint,om.MSpace.kWorld)
-    
-    uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
-    vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+
+    if _type == 'nurbsSurface':
+        uu = om.MScriptUtil()
+        pu = uu.createFromDouble(0.0)
+        pu = uu.asDoublePtr()
+        uv = om.MScriptUtil()
+        pv = uv.createFromDouble(0.0)
+        pv = uv.asDoublePtr()    
+        
+        p = om.MPoint(pos[0], pos[1], pos[2])
+        cpos = surfFn.closestPoint(p, pu, pv,  False, .0002, om.MSpace.kWorld)
+        return returnNormalizedUV(mesh, uu.getDouble(pu), uv.getDouble(pv))['uv']
+        """
+        p = om.MPoint(pos[0], pos[1], pos[2])
+        cpos = surfFn.closestPoint(p)
+        # get U and V parameters from the point on surface
+        surfFn.getParamAtPoint(cpos, pu, pv, False, om.MSpace.kWorld)
+        uValue = uu.getDouble(pu)
+        vValue = uv.getDouble(pv)
+        #uValue = om.MScriptUtil.getFloat2ArrayItem(pu, 0, 0) or False
+        #vValue = om.MScriptUtil.getFloat2ArrayItem(pv, 0, 1) or False        
+        # get normal at U and V parameters
+        n = surfFn.normal(uValue, vValue) """            
+    else:
+        floatPoint = om.MFloatPoint(pos[0], pos[1], pos[2])
+        refPoint = om.MPoint(floatPoint) # Thank you Capper on Tech-artists.org          
+        pArray = [0.0,0.0]
+        x1 = om.MScriptUtil()
+        x1.createFromList( pArray, 2 )
+        uvPoint = x1.asFloat2Ptr()
+        uvSet = None
+        closestPolygon=None
+        uvReturn = meshFn.getUVAtPoint(refPoint,uvPoint,om.MSpace.kWorld)
+
+        uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
+        vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
     
     if uValue and vValue:
-        return [uValue,vValue]
+        return returnNormalizedUV(mesh, uValue, vValue)
     return False
-    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>> 
 #=====================================================================
+def returnNormalizedUV(mesh, uValue, vValue):
+    """
+    uv Values from many functions need to be normalized to be correct when using those values for other functions
+
+    The calculcaion for doing so is 
+    size = maxV - minV
+    sum = rawV + minV
+    normalValue = sum / size
+
+    :parameters:
+    mesh(string) | Surface to normalize to
+    uValue(float) | uValue to normalize 
+    vValue(float) | vValue to normalize 
+
+    :returns:
+    Dict ------------------------------------------------------------------
+    'uv'(double2) |  point from which we cast
+    'uValue'(float) | normalized uValue
+    'vValue'(float) | normalized vValue
+
+    :raises:
+    Exception | if reached
+
+    """      
+    try:
+        _str_funcName = 'returnNormalizedUV'
+
+        try:#Validation ----------------------------------------------------------------
+            mesh = cgmValid.objString(mesh,'nurbsSurface', calledFrom = _str_funcName)
+            if len(mc.ls(mesh))>1:
+                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
+            _str_objType = search.returnObjectType(mesh)
+
+            l_shapes = mc.listRelatives(mesh, shapes=True)
+            if len(l_shapes)>1:
+                log.debug( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(mesh,l_shapes) )
+            #mi_shape = cgmMeta.validateObjArg(l_shapes[0],cgmMeta.cgmNode,noneValid=False)
+
+            uMin = attributes.doGetAttr(l_shapes[0],'mnu')
+            uMax = attributes.doGetAttr(l_shapes[0],'mxu')
+            vMin = attributes.doGetAttr(l_shapes[0],'mnv')
+            vMax = attributes.doGetAttr(l_shapes[0],'mxv')         
+            """uMin = mi_shape.mnu
+            uMax = mi_shape.mxu
+            vMin = mi_shape.mnv
+            vMax = mi_shape.mxv"""
+
+        except Exception,error:raise Exception,"Validation failure | {0}".format(error) 		
+
+        try:#Calculation ----------------------------------------------------------------
+            uSize = uMax - uMin
+            vSize = vMax - vMin
+
+            uSum = uMin + uValue
+            vSum = vMin + vValue
+
+            uNormal = uSum / uSize
+            vNormal = vSum / vSize
+        except Exception,error:raise Exception,"Calculation |{0}".format(error) 		
+
+        try:
+            d_return = {'uv':[uNormal,vNormal],'uValue':uNormal,'vValue':vNormal}
+            return d_return 
+        except Exception,error:raise Exception,"Return prep |{0}".format(error) 		
+
+    except Exception,error:
+        log.error(">>> {0} >> Failure! mesh: '{1}' | uValue: {2} | vValue {3}".format(_str_funcName,mesh,uValue,vValue))
+        log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
+        return None
