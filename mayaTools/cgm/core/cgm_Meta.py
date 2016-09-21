@@ -162,33 +162,11 @@ class cgmMetaFunc(cgmGeneral.cgmFuncCls):
 # cgmNode - subclass to Red9.MetaClass
 #=========================================================================
 def isTransform(node):
-    try:
-        def getLongName(arg):
-            buffer = mc.ls(arg,l=True)        
-            return buffer[0]  
-        buffer = mc.ls(node,type = 'transform',long = True)
-        if buffer and buffer[0]==getLongName(node):
-            return True
-        if not mc.objExists(node):
-            log.error("'{0}' doesn't exist".format(node))
-        return False   
-    except Exception,error:raise Exception,"isTransform({0}) | error: {1}".format(node,error)
+    return search.is_transform(node)
 
 def getTransform(node):
-    try:
-        """Find the transform of the object"""
-        if '.' in node:
-            _buffer = node.split('.')[0]
-        else:_buffer = node
-        _buffer = mc.ls(_buffer, type = 'transform') or False
-        if _buffer:
-            return _buffer[0]
-        else:
-            _buffer = mc.listRelatives(node,parent=True,type='transform') or False
-        if _buffer:
-            return _buffer[0]
-        return False    
-    except Exception,error:raise Exception,"getTransform({0}) | error: {1}".format(node,error)
+    return search.get_transform(node)
+
 
 def reinitializeMetaClass(node):
     try:#See if we have an mNode

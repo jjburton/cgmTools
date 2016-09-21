@@ -40,10 +40,70 @@ from cgm.lib import lists
 from cgm.lib import attributes
 from cgm.lib import dictionary
 from cgm.lib import settings
+from cgm.lib import names
 
 namesDictionaryFile = settings.getNamesDictionaryFile()
 typesDictionaryFile = settings.getTypesDictionaryFile()
 settingsDictionaryFile = settings.getSettingsDictionaryFile()
+
+def get_sceneGeo(clamp = None, geoType = ['mesh','nurbsSurface'], visibleOnly = True):
+    """
+    Compares points of geo mesh. Most likely used for culling out unecessary blend targets that don't do anything.
+    Can work of selection as well when no arguments are passed for source and target in a source then targets selection format.
+    
+    :parameters:
+        sourceObj | Object to base comparison on
+        target | List of objects to compare with
+
+    :returns
+        list of objects matching conditions
+    """      
+    result = []
+    
+    for t in geoType:
+        if visibleOnly:
+            for o in mc.ls(type = t, visible = True):
+                result.append( get_transform(o))
+        else:
+            for o in mc.ls(type = t):
+                result.append( get_transform(o))  
+                
+    if clamp is not None:
+        if len(result)>clamp:
+            log.error("Mesh found exceeds clamp")
+            result = result[:clamp]
+        
+    return result
+        
+def is_transform(node):
+    try:
+        def getLongName(arg):
+            buffer = mc.ls(arg,l=True)        
+            return buffer[0]  
+        buffer = mc.ls(node,type = 'transform',long = True)
+        if buffer and buffer[0]==getLongName(node):
+            return True
+        if not mc.objExists(node):
+            log.error("'{0}' doesn't exist".format(node))
+        return False   
+    except Exception,error:raise Exception,"is_transform({0}) | error: {1}".format(node,error)
+
+def get_transform(node):
+    try:
+        """Find the transform of the object"""
+        if '.' in node:
+            _buffer = node.split('.')[0]
+        else:_buffer = node
+        _buffer = mc.ls(_buffer, type = 'transform') or False
+        if _buffer:
+            return _buffer[0]
+        else:
+            _buffer = mc.listRelatives(node,parent=True,type='transform') or False
+        if _buffer:
+            return _buffer[0]
+        return False    
+    except Exception,error:raise Exception,"get_transform({0}) | error: {1}".format(node,error)
+
 
 def returnRandomName():
     """ 
@@ -56,8 +116,6 @@ def returnRandomName():
         cnt +=1
         buffer = random.choice(randomOptions)
     return buffer 
-
-
 
 
 def returnSelected():
@@ -1103,8 +1161,8 @@ def returnAllMeshObjects():
         t = mc.listRelatives(m,parent=True,type='transform',fullPath=True) or False
         if t:returnList.extend(t)
     if returnList:return returnList
-    return False
-
+    return False    
+    
 def returnParentObject(obj,fullPath=True):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
