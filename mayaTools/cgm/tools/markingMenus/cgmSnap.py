@@ -80,8 +80,8 @@ class snapMarkingMenu(mUI.BaseMelWindow):
 			execute a command and let the menu know not do do the default button action but just kill the ui
 			"""			
 			killUI()
+			mmActionOptionVar.value = 1			
 			command
-			mmActionOptionVar.value = 1
 		
 		self.LocinatorUpdateObjectsBufferOptionVar = cgmMeta.cgmOptionVar('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
 		IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked', 'int')
@@ -137,6 +137,7 @@ class snapMarkingMenu(mUI.BaseMelWindow):
 		mUI.MelMenuItem(parent,
 	                en = _selecCheck,
 	                l = 'RayCast',
+	                #c = mUI.Callback(buttonAction,raySnap_start(_sel)),		            
 	                c = lambda *a:buttonAction(raySnap_start(_sel)),
 	                rp = 'SW')				
 		mUI.MelMenuItem(parent,
@@ -258,16 +259,6 @@ def killUI():
 	
 	
 def raySnap_start(targets = []):
-	_l_objs = []
-	for l in mc.ls(type='mesh'), mc.ls(type='nurbsSurface'):
-		for o in l:
-			_l_objs.append( cgmMeta.getTransform(o))
-	meshClamp = 500
-	if len(_l_objs)<=meshClamp:
-		_l_mesh = _l_objs #Still not sure if we wanna do all scene meshes. Need more testing.
-	else: 
-		raise ValueError("No mesh loaded or too many mesh objects for autoload")	
-
 	_toSnap = targets
 	log.info("raySnap_start | targets: {0}".format(_toSnap))
 	if not _toSnap:
@@ -275,13 +266,14 @@ def raySnap_start(targets = []):
 
 	var_RayCastMode = cgmMeta.cgmOptionVar('cgmVar_SnapMenuRayCastMode', defaultValue=0)
 	log.info("mode: {0}".format(var_RayCastMode.value))
-	log.info("mesh: {0}".format(_l_mesh))
+	
 	cgmDrag.clickMesh( mode = var_RayCastMode.value,
-	                   mesh = _l_mesh,
+	                   mesh = None,
 	                   closestOnly = True,
 	                   create = 'locator',
 	                   dragStore = False,
 	                   toSnap = _toSnap,
+	                   timeDelay = .25,
 	                   )
 
-	log.warning("raySnap_start >>> ClickMesh initialized") 
+	log.warning("raySnap_start >>> ClickMesh initialized")

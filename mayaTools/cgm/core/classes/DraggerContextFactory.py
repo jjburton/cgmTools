@@ -19,6 +19,7 @@
 # 	http://forums.cgsociety.org/archive/index.php/t-1002257.html
 # 	https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
 #======================================================================================================================
+import time
 import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI
@@ -144,7 +145,7 @@ class clickMesh(ContextualPick):
     And other things...:)
 
     @Parameters
-    mesh(list) -- currently poly surfaces only
+    mesh(list) -- Mesh/nurbsSurfaces to cast to. If None, will use all visible mesh.
     mode(string) -- options:('surface' is default)
                     'surface' -- surface hit per mesh piece
                     'intersections' -- all hits on the vector ray
@@ -184,6 +185,7 @@ class clickMesh(ContextualPick):
                  clampValues = [None,None,None],
                  offsetMode = 'normal',
                  orientSnap = True,
+                 timeDelay = None,
                  tagAndName = {},
                  toCreate = [],
                  toSnap = [],#...objects to snap on release
@@ -201,6 +203,8 @@ class clickMesh(ContextualPick):
         self.l_toSnap = cgmValid.listArg(toSnap)
         self._createMode = create
         self._getUV = False
+        self._time_start = time.clock()
+        self._time_delayCheck = timeDelay
 
         if self._createMode == 'follicle':#Only get uv intersection for follicles
             self._getUV = True
@@ -223,14 +227,19 @@ class clickMesh(ContextualPick):
             self.int_maxStore = len(toCreate)
 
         self.setMode(mode)
-
+               
         ContextualPick.__init__(self, drag = True, space = 'screen',projection = 'viewPlane', *a,**kws )
 
+        if mesh is None:
+            log.info("Using all visible mesh!")
+            for l in mc.ls(type='mesh',visible = True), mc.ls(type='nurbsSurface',visible = True):
+                for o in l:
+                    self.addTargetMesh( cgmMeta.getTransform(o))             
         if mesh is not None:
             assert type(mesh) is list,"Mesh call must be in list form when called"
             for m in mesh:
                 self.addTargetMesh(m)    
-            self.updateMeshArea()
+        self.updateMeshArea()
 
     def updateMeshArea(self):
         """
@@ -317,11 +326,12 @@ class clickMesh(ContextualPick):
     def dropTool(self):
         mc.setToolTo('selectSuperContext')        
         mc.selectMode(object=True)
+        mc.refresh()
 
     def press(self):
         """
         Press action. Clears buffers.
-        """
+        """            
         ContextualPick.press(self)
         self._createModeBuffer = []
         self.updatePos()
@@ -353,7 +363,9 @@ class clickMesh(ContextualPick):
                     mesh = attributes.doGetAttr(o,'cgmHitTarget')
                     if mc.objExists(mesh):
                         uv = distance.returnClosestUVToPos(mesh,distance.returnWorldSpacePosition(o))
+                        log.info("uv: {0}".format(uv))
                         follicle = nodes.createFollicleOnMesh(mesh)
+                        log.info("follicle: {0}".format(follicle))                        
                         attributes.doSetAttr(follicle[0],'parameterU',uv[0])
                         attributes.doSetAttr(follicle[0],'parameterV',uv[1])
                         try:mc.delete(o)
@@ -389,7 +401,7 @@ class clickMesh(ContextualPick):
     def release(self):
         """
         Store current data to return buffers
-        """                
+        """                            
         #Only store return values on release
         if self._posBuffer:
             for p in self._posBuffer:
@@ -405,7 +417,8 @@ class clickMesh(ContextualPick):
 
             #if 'joint' in self._createMode:
                 #jntUtils.metaFreezeJointOrientation(self._createModeBuffer)	
-
+                         
+        
         if self._posBuffer and self.l_toSnap:
             log.info("Snap Mode!")
             if self.l_created:
@@ -416,11 +429,14 @@ class clickMesh(ContextualPick):
                         mc.xform(o, t = self._posBuffer[-1], ws = True)  
                     except Exception,err:
                         log.error("{0} failed to snap. err: {1}".format(o,err))
+                if self.l_toSnap:
+                    mc.select(self.l_toSnap)
                 self.dropTool()
-
+                
         if self.int_maxStore and len(self.l_return) == self.int_maxStore:
             log.debug("Max hit, finalizing")
             self.dropTool()
+
 
     def drag(self):
         """
@@ -453,8 +469,16 @@ class clickMesh(ContextualPick):
         _str_funcName = 'clickMesh.updatePos'
         log.debug(">>> %s >> "%_str_funcName + "="*75)     	
         if not self.l_mesh:
-            return log.warning("No mesh objects have been added to '%s'"%(self.name))
-
+            return log.warning("No mesh objects have been added to '%s'"%(self.name))      
+        #_time = "%0.3f" %(time.clock() - self._time_start)
+        if self._time_delayCheck is not None:
+            _time =  float( "%0.3f" %(time.clock() - self._time_start) )
+            #log.info("time {0} | delay: {1}".format(_time,self._time_delayCheck))
+            if _time <= self._time_delayCheck:
+                log.warning("Time delay, not starting...")
+                if self.l_created:
+                    mc.delete(self.l_created)                   
+                return             
         buffer =  screenToWorld(int(self.x),int(self.y))#get world point and vector!
 
         self.clickPos = buffer[0] #Our world space click point

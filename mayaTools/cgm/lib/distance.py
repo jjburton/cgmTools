@@ -1501,8 +1501,8 @@ def returnClosestUVToPos(mesh, pos):
         uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
         vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
     
-    if uValue and vValue:
-        return returnNormalizedUV(mesh, uValue, vValue)
+        if uValue and vValue:
+            return [uValue, vValue]
     return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

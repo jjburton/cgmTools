@@ -215,7 +215,7 @@ class go(cgmUI.cgmGUI):
                                            ann = _ann)
             self.uiRC_aimAxis = mUI.MelRadioMenuCollection()
             self.uiOptions_aimAxis = []		
-            _v = self.var_CastLatheAxis.value
+            _v = self.var_CastAimAxis.value
 
             for i,item in enumerate(self._l_aimAxisOptions):
                 if i == _v:
@@ -1623,7 +1623,7 @@ class go(cgmUI.cgmGUI):
 
     def castTargets_loadAll(self):
         _l_objs = []
-        for l in mc.ls(type='mesh'), mc.ls(type='nurbsSurface'):
+        for l in mc.ls(type='mesh',visible = True), mc.ls(type='nurbsSurface',visible = True):
             for o in l:
                 _l_objs.append( cgmMeta.getTransform(o))
 
@@ -1646,7 +1646,7 @@ class go(cgmUI.cgmGUI):
 
         if not self._ml_castTargets:
             _l_objs = []
-            for l in mc.ls(type='mesh'), mc.ls(type='nurbsSurface'):
+            for l in mc.ls(type='mesh',visible = True), mc.ls(type='nurbsSurface',visible = True):
                 for o in l:
                     _l_objs.append( cgmMeta.getTransform(o))
             meshClamp = 100
@@ -1722,7 +1722,7 @@ class go(cgmUI.cgmGUI):
 
         if not self._ml_castTargets:
             _l_objs = []
-            for l in mc.ls(type='mesh'), mc.ls(type='nurbsSurface'):
+            for l in mc.ls(type='mesh',visible = True), mc.ls(type='nurbsSurface',visible = True):
                 for o in l:
                     _l_objs.append( cgmMeta.getTransform(o))
             meshClamp = 100
@@ -1837,7 +1837,7 @@ class go(cgmUI.cgmGUI):
 
         if not self._ml_castTargets:
             _l_objs = []
-            for l in mc.ls(type='mesh'), mc.ls(type='nurbsSurface'):
+            for l in mc.ls(type='mesh',visible = True), mc.ls(type='nurbsSurface',visible = True):
                 for o in l:
                     _l_objs.append( cgmMeta.getTransform(o))
             meshClamp = 100
@@ -1873,7 +1873,7 @@ class go(cgmUI.cgmGUI):
         _l_mesh = []
         if not self._ml_castTargets:
             _l_objs = []
-            for l in mc.ls(type='mesh'), mc.ls(type='nurbsSurface'):
+            for l in mc.ls(type='mesh',visible = True), mc.ls(type='nurbsSurface',visible = True):
                 for o in l:
                     _l_objs.append( cgmMeta.getTransform(o))
             meshClamp = 100
