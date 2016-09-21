@@ -276,12 +276,12 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0,
     log.info("mode: {0}".format(_mode))
     
     #_returnMode = cgmValid.valueArg(returnMode, inRange=[0,4], noneValid=False, calledFrom = 'get_contained')
-    _returnMode = cgmValid.kw_fromList(returnMode, __l_returnModes, indexCallable=True, noneValid=False, calledFrom = 'get_contained')        
+    _returnMode = cgmValid.kw_fromList(returnMode, __l_returnModes, indexCallable=True, returnIndex=True, noneValid=False, calledFrom = 'get_contained')        
     log.info("returnMode: {0}".format(_returnMode))
     
     _selectReturn = cgmValid.boolArg(selectReturn, calledFrom='get_contained')
     
-    _expandBy = cgmValid.kw_fromList(expandBy, __l_expandBy, noneValid=False, calledFrom = 'get_contained')        
+    _expandBy = cgmValid.kw_fromList(expandBy, __l_expandBy, indexCallable=True, noneValid=False, calledFrom = 'get_contained')        
     """if expandBy is not None:
         if expandBy in __l_expandBy:
             _expandBy = expandBy
@@ -320,7 +320,7 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0,
                                 statusMessage='Progress...', 
                                 startingProgress=1, 
                                 interruptableState=True)
-    if _mode is 1:
+    if _mode is 'bounding box':
         log.info('bounding box mode...')        
         try:#Get our source bb info
             sel.getDagPath(0,_dagPath)
@@ -367,7 +367,7 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0,
                     _l_found.add(_dagPath, iter.currentItem())
                 iter.next()                
                 
-    elif _mode is 0:
+    elif _mode is 'raycast interior':
         log.info('Ray cast Mode...')
         sel.remove(0)#...remove the source        
         for i in xrange(sel.length()):

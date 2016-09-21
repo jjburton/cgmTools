@@ -759,7 +759,7 @@ def filepath(filepath = None, fileMode = 0, fileFilter = 'Config file (*.cfg)', 
             _result = filepath
     return _result
 
-def kw_fromDict(arg = None ,d = None, indexCallable = True,  noneValid = False, calledFrom = None):
+def kw_fromDict(arg = None ,d = None, indexCallable = False, returnIndex = False,  noneValid = False, calledFrom = None):
     """
     Returns valid kw if it matches a key of a dict or a list of possible options provided.
     
@@ -791,7 +791,7 @@ def kw_fromDict(arg = None ,d = None, indexCallable = True,  noneValid = False, 
     if not noneValid:
         raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, d)
 
-def kw_fromList(arg = None ,l = None, noneValid = False, indexCallable = False, calledFrom = None):
+def kw_fromList(arg = None ,l = None, indexCallable = False, returnIndex = False, noneValid = False, calledFrom = None):
     """
     Returns valid kw if it matches a list of possible options provided.
     
@@ -799,31 +799,37 @@ def kw_fromList(arg = None ,l = None, noneValid = False, indexCallable = False, 
         arg | string
         l | list -- Example: {'k1':['KONE','k1']...}
         noneValid | bool -- if False and it fails, raise valueError
+        indexCallable | bool -- Whether an index is an acceptable calling method
+        returnIndex | bool -- whether you want index returned or the list value
         calledFrom | string -- calling function for error reporting
 
     """        
-    _str_funcName = 'kw_fromDict'
+    _str_funcName = 'kw_fromList'
     _res = None
     if calledFrom: _str_funcName = "{0} calling {1}".format(calledFrom,_str_funcName) 
        
     if arg is None or l is None:
+        if noneValid:return False
         raise ValueError,"{0}: Must have k and l arguments | arg: {1} | l: {2}".format(_str_funcName, arg, l)
     
     if not isListArg(l):
+        if noneValid:return False        
         raise ValueError,"{0}: l arg must be a dict | l: {1}".format(_str_funcName,l)
     
+    if returnIndex:
+        if type(arg) is int:
+            if arg <= len(l):
+                return arg
+            
     for i,o in enumerate(l):
         if o == arg:_res = o
-        if i == arg:_res = o      
+        if i == arg and indexCallable:
+            if returnIndex:_res = i
+            else:_res = o      
         if isStringEquivalent(o,arg):_res = o
-    if _res:
-        if indexCallable:
-            return _res
-        else:
-            return _res
-    if _res is None:
-        if not noneValid:
-            raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, l)
+    if _res is None and not noneValid:
+        raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, l)
+    return _res
         
     
     

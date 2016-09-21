@@ -1481,7 +1481,7 @@ class go(cgmUI.cgmGUI):
 
     def targets_proxiMesh(self):
         _sel = self.selectCheck()
-        _ml_objs = cgmMeta.validateObjListArg(_sel,'cgmObject',mayaType='mesh')
+        _ml_objs = cgmMeta.validateObjListArg(_sel,'cgmObject',mayaType=['mesh'])
 
         if not _ml_objs:
             log.error("{0}: No selected objects.".format(self._str_reportStart))                
