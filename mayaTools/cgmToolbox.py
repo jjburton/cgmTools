@@ -622,7 +622,9 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                        ('unitTest - cgmLimb', " WARNING - Opens new file...Unit test cgm.core",
                         unittest_cgmLimb),                           
                        )),
-              ('help', (('CG Monks Vimeo', " Tutorials and more ",
+              ('help', (('Report Issue', " Report an issue with the toolbox ",
+                         'import webbrowser;webbrowser.open("https://bitbucket.org/jjburton/cgmtools/issues/new");'),                               
+                        ('CG Monks Vimeo', " Tutorials and more ",
                          goTo_cgmVimeo), 
                         ('Get Builds', " Find latest builds ",
                          'import webbrowser;webbrowser.open("https://bitbucket.org/jjburton/cgmtools/downloads?tab=branches");'),                         
@@ -634,7 +636,6 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                          get_enviornmentInfo),                           
                         ))
               )
-
 
 class ToolboxTab(mUI.MelColumnLayout):
     def __new__( cls, parent, toolTuples ):
