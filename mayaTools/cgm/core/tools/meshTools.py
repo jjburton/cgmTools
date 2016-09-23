@@ -37,6 +37,8 @@ from cgm.lib import dictionary
 from cgm.lib import search
 from cgm.core.classes import DraggerContextFactory
 from cgm.core.lib import shapeCaster as ShapeCaster
+from cgm.core.lib import selection_Utils as selUtils
+reload(selUtils)
 reload(ShapeCaster)
 reload(DraggerContextFactory)
 mayaVersion = cgmGeneral.__mayaVersion__
@@ -1088,6 +1090,9 @@ class go(cgmUI.cgmGUI):
             cgmUI.add_Button(self.uiRow_baseMath, 'Avg', 
                              lambda *a:self.baseObject_meshMath('average'),
                              annotationText='Average pos data')
+            cgmUI.add_Button(self.uiRow_baseMath, 'Reset', 
+                             lambda *a:self.baseObject_meshMath('reset'),
+                             annotationText='Reset target to base')            
             self.uiRow_baseMath.layout() 
 
             #>>> Diff...
@@ -1180,7 +1185,10 @@ class go(cgmUI.cgmGUI):
                              annotationText='Average pos data')
             cgmUI.add_Button(self.uiRow_targetsMath, 'Mult', 
                              lambda *a:self.targets_meshMath('multiply'),
-                             annotationText='Multiply pos data')            
+                             annotationText='Multiply pos data')
+            cgmUI.add_Button(self.uiRow_targetsMath, 'CopyTo', 
+                             lambda *a:self.targets_meshMath('copyTo'),
+                             annotationText='Copy vert data from one to another')             
             self.uiRow_targetsMath.layout()   
 
             #>>> Diff...
@@ -1457,8 +1465,9 @@ class go(cgmUI.cgmGUI):
 
     def targets_meshMath(self,mode = None, multiplier = None):
         _sel = self.selectCheck()
+        _objs = selUtils.get_filtered('transform')        
         _d = self.get_FunctionOptions()        
-        _ml_objs = cgmMeta.validateObjListArg(_sel,'cgmObject',mayaType='mesh')
+        _ml_objs = cgmMeta.validateObjListArg(_objs,'cgmObject',mayaType='mesh')
         if not _ml_objs:
             log.error("{0}: No selected objects.".format(self._str_reportStart))                
             return False
@@ -1591,7 +1600,7 @@ class go(cgmUI.cgmGUI):
 
         self.uiList_updateCastTargets()   
 
-    def selectCheck(self):
+    def selectCheck(self, transforms = False):
         _sel = mc.ls(sl=1)
         if not _sel:
             self.var_SelectBuffer.select()
@@ -1905,8 +1914,9 @@ class go(cgmUI.cgmGUI):
 
     def baseObject_meshMath(self,mode = None, multiplier = None):
         _sel = self.selectCheck()
+        _objs = selUtils.get_filtered('transform')
         _d = self.get_FunctionOptions()        
-        _ml_objs = cgmMeta.validateObjListArg(_sel,'cgmObject',mayaType='mesh')
+        _ml_objs = cgmMeta.validateObjListArg(_objs,'cgmObject',mayaType='mesh')
         if self._mi_baseObject in _ml_objs:
             _ml_objs.remove(self._mi_baseObject)
         if not _ml_objs:
@@ -1928,6 +1938,7 @@ class go(cgmUI.cgmGUI):
                                       tolerance= _d['tolerance'], 
                                       resultMode=_d['resultMode'],
                                       multiplier=_multiplier,
+                                      softSelectMultiply=True,
                                       symDict=self._d_baseSym) ) 
             except Exception,err:
                 log.error("{0}: meshMath(baseObject) fail. {1} | err:{2}".format(self._str_reportStart,mObj.mNode,err))                
