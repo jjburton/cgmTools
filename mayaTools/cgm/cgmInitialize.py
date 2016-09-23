@@ -18,7 +18,7 @@ def setupContributorPaths():
 
         mayaSysPaths = sys.path
         #'lib/zoo/zooMel','lib/zoo/zooPy','lib/zoo/zooPyMaya','lib/bo','lib/ml':
-        _l = ['mel','images',os.path.join('lib','zoo'),
+        _l = ['mel','images',os.path.join('lib','zoo'),os.path.join('core','mel'),
               os.path.join('lib','zoo','zooPy'),
               os.path.join('lib','zoo','zooPyMaya'),
               os.path.join('lib','bo'),

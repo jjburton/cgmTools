@@ -29,12 +29,12 @@ def run():
 	cgmSnapMM = snapMarkingMenu()
 	
 class snapMarkingMenu(mUI.BaseMelWindow):
-	_DEFAULT_MENU_PARENT = 'viewPanes'
 	
 	def __init__(self):	
 		"""
 		Initializes the pop up menu class call
 		"""
+		self._str_MM = 'snapMarkingMenu'
 		self.optionVars = []
 		self.toolName = 'cgm.snapMM'
 		IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked', 'int')
@@ -48,10 +48,7 @@ class snapMarkingMenu(mUI.BaseMelWindow):
 		
 		self.SnapModeOptionVar = cgmMeta.cgmOptionVar('cgmVar_SnapMatchMode',defaultValue = 0)
 		guiFactory.appendOptionVarList(self,self.SnapModeOptionVar.name)
-				
-		self._l_rayCastModes = ['surface','midPoint']
-		sel = search.selectCheck()
-		
+						
 		IsClickedOptionVar.setValue(0)
 		mmActionOptionVar.setValue(0)
 		
@@ -59,17 +56,25 @@ class snapMarkingMenu(mUI.BaseMelWindow):
 			#mc.deleteUI('cgmMM')#...deleting ui elements seems to be hard crashing maya 2017
 			
 		
-		_p = 'viewPanes'					
-		_p = mc.getPanel(up = True) or 'viewPanes'
+		_p = mc.getPanel(up = True)
+		if _p is None:
+			log.error("No panel detected...")
+			return 
+		if _p:
+			log.info("{0} panel under pointer {1}...".format(self._str_MM, _p))                    
+			_parentPanel = mc.panel(_p,q = True,ctl = True)
+			log.info("{0} panel under pointer {1} | parent: {2}...".format(self._str_MM, _p,_parentPanel))
+			if 'MayaWindow' in _parentPanel:
+				_p = 'viewPanes' 
 		if not mc.control(_p, ex = True):
 			raise ValueError,"{0} doesn't exist!".format(_p)
 			#_p = panel
 		if not mc.popupMenu('cgmMM',ex = True):
 			mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
-			             pmc = lambda *a: self.createUI('cgmMM'))
+			             pmc = lambda *a: self.createUI('cgmMM'), postMenuCommandOnce = True)
 		else:
 			mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
-			              pmc = lambda *a: self.createUI('cgmMM'))
+			              pmc = lambda *a: self.createUI('cgmMM'), postMenuCommandOnce = True)
 	
 	def createUI(self,parent):
 		"""
@@ -82,6 +87,7 @@ class snapMarkingMenu(mUI.BaseMelWindow):
 			killUI()
 			mmActionOptionVar.value = 1			
 			command
+			
 		
 		self.LocinatorUpdateObjectsBufferOptionVar = cgmMeta.cgmOptionVar('cgmVar_LocinatorUpdateObjectsBuffer',defaultValue = [''])
 		IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked', 'int')
