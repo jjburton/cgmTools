@@ -121,6 +121,7 @@ def setupCGMScriptPaths():
               os.path.join('cgm','mel'),
               os.path.join('cgm','images'),
               os.path.join('cgm','lib','zoo'),
+	          os.path.join('cgm','core','mel'),
               'Red9']
     
     for path in _paths:
@@ -589,6 +590,10 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            ('NEW Set Key Menu - key creation menu',
                             'cgmPuppet key menu - wip',
                             mUI.Callback(HKEY.cgmHotkeyer, 'cgmPuppetKey', 'cgmPuppetKeyMM;', 'cgmPuppetKeyMMKillUI;','New moduler marking menu for the s key','mel','s')),
+                           
+                           ('Marking Menu Template - key creation menu',
+                            'template example',
+                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmMMTemplate', 'cgmTemplateMM;', 'cgmTemplateMMKillUI;','Demo marking menu - t','mel','t')),
 
                            ('Set Key Menu - key creation menu',
                             'cgmLibrary tools for dealing with keys',
