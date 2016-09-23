@@ -34,7 +34,7 @@ from cgm.lib import cgmMath
 from cgm.lib import guiFactory
 from cgm.lib import logic
 
-from zooPyMaya import apiExtensions
+from cgm.core.lib.zoo import apiExtensions
 from maya.OpenMayaAnim import MFnSkinCluster
 from maya.OpenMaya import MIntArray, MDagPathArray
 

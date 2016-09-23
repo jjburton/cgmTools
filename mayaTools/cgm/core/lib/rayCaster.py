@@ -14,7 +14,7 @@ import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
-from zooPyMaya import apiExtensions
+from cgm.core.lib.zoo import apiExtensions
 from cgm.core.cgmPy import validateArgs as cgmValid
 
 from cgm.lib import locators

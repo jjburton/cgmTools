@@ -24,7 +24,6 @@ import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
-from zooPyMaya import apiExtensions
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.lib import rayCaster as RayCast
