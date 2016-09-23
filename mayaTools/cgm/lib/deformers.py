@@ -25,7 +25,7 @@ import maya.mel as mel
 import copy
 
 from maya.OpenMayaAnim import MFnBlendShapeDeformer
-from zooPyMaya import apiExtensions
+from cgm.core.lib.zoo import apiExtensions
 from cgm.core.lib import geo_Utils as GEOUTILS
 from cgm.core.cgmPy import validateArgs as cgmVALID
 from cgm.lib import(distance,
