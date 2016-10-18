@@ -121,6 +121,8 @@ def setupCGMScriptPaths():
               os.path.join('cgm','mel'),
               os.path.join('cgm','images'),
               os.path.join('cgm','lib','zoo'),
+              os.path.join('cgm','lib','zoo','zooMel'),
+              os.path.join('cgm','lib','zoo','zooPy'),     
 	          os.path.join('cgm','core','mel'),
               'Red9']
     
