@@ -196,13 +196,14 @@ class AutoStartInstaller(object):
     def getUserSetupFile( self ):
         pyUserSetup, melUserSetup = None, None
         try:
-            pyUserSetup = findFirstInEnv( 'userSetup.py' )#findInPyPath
-        except: print ('No py user setup')
+            pyUserSetup = cgmPath.Path(cgmPath.findInPyPath( 'userSetup.py'))#findInPyPath)
+            log.info("Py user file is '%s'"%pyUserSetup)
+        except: log.info ('No py user setup')
 
         try:
-            melUserSetup = findFirstInEnv( 'userSetup.mel', 'MAYA_SCRIPT_PATH' )
-            print "Mel user file is '%s'"%melUserSetup
-        except: print ('No mel user setup')
+            melUserSetup = cgmPath.Path(cgmPath.findFirstInEnv( 'userSetup.mel', 'MAYA_SCRIPT_PATH' ))
+            log.info("Mel user file is '%s'"%melUserSetup)
+        except: log.info ('No mel user setup')
 
         return pyUserSetup, melUserSetup
 
@@ -227,7 +228,7 @@ class AutoStartInstaller(object):
         log.info("melUserSetup: {0}".format(melUserSetup))        
         if pyUserSetup is None and melUserSetup is None:
             print 'No py or mel user setup files found.Creating py'
-            if not self.createPyUserSetup():#if we can't make a user file, break
+            if not self.createMelUserSetup():#if we can't make a user file, break
                 self.log_error("Failed to create Py User File")
                 return False
             pyUserSetup, melUserSetup = self.getUserSetupFile()
@@ -236,11 +237,11 @@ class AutoStartInstaller(object):
         errors = []
 
         """if pyUserSetup is not None:
-		try:
-			self.installPy( pyUserSetup )
-			success = True
-		except self.AutoSetupError, x:
-			errors.append( x )"""
+			try:
+				self.installPy( pyUserSetup )
+				success = True
+			except self.AutoSetupError, x:
+				errors.append( x )"""
 
         if not success:
             if melUserSetup is not None:
@@ -253,24 +254,52 @@ class AutoStartInstaller(object):
         if not success:
             print '>>>>>Failed>>>>>>'
             for x in errors:
-                printErrorStr( str(x) )
+                log.info("Install error: {0}".format(x))
 
     def isInstalledPy( self, pyUserSetup ):
+        l_lines = ['import cgmToolbox','import cgm.core','cgm.core._reload()']
+        l_found = []
+        l_missing = []
         with open( pyUserSetup ) as f:
+            for i,codeLine in enumerate(l_lines):
+                for line in f:
+                    if codeLine in line:
+                        l_found.append(codeLine)
+                        break
+                if codeLine not in l_found:
+                    l_missing.append(codeLine)
+        log.info("Found: %s"%l_found)
+        if l_missing:
+            log.info("Failed to find: %s"%l_missing)
+            return l_missing
+        return True		
+        """with open( pyUserSetup ) as f:
             for line in f:
                 if 'import' in line and 'cgmToolbox' in line:
                     return True
-        return False
+        return False"""
 
     def installPy( self, pyUserSetup ):
-        if self.isInstalledPy( pyUserSetup ):
+        buffer = self.isInstalledPy( pyUserSetup )
+        if buffer == True:
+            return
+
+        if pyUserSetup.getWritable():
+            with open( pyUserSetup, 'a' ) as f:
+                for l in buffer:
+                    f.write( '\n\n {0}\n'.format(l) )	
+		else:
+			raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup )
+			
+					
+        """if self.isInstalledPy( pyUserSetup ):
             return
 
         if pyUserSetup.getWritable():
             with open( pyUserSetup, 'a' ) as f:
                 f.write( '\n\nimport cgmToolbox\n' )
         else:
-            raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup )
+            raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup )"""
         
     def isInstalledMel( self, melUserSetup ):
         l_lines = ['import cgmToolbox','import cgm.core','cgm.core._reload()']
@@ -290,8 +319,6 @@ class AutoStartInstaller(object):
             return l_missing
         return True
 
-
-
     def installMel( self, melUserSetup ):
         buffer = self.isInstalledMel( melUserSetup )
         if buffer == True:
@@ -303,14 +330,28 @@ class AutoStartInstaller(object):
                     f.write( '\n\npython( "%s" );\n'%l )
         else:
             raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % melUserSetup )
-
+    def createMelUserSetup(self):
+		try:
+			envFile = mc.about(environmentFile = True) or False #Get env variable
+			if not envFile: #See if it got anything
+				print 'No environmental file found'
+			buffer = envFile.split('/')[:-1]#parse to list and pull 'Maya.env'
+			buffer.extend(['scripts','userSetup.mel'])
+			newLocation =  os.sep.join(buffer)
+	
+			f=open(newLocation,'w')
+			f.close()
+			return True
+		except:
+			guiFactory.warning("Couldn't create a mel user file")
+			return False
     def createPyUserSetup(self):
         try:
             envFile = mc.about(environmentFile = True) or False #Get env variable
             if not envFile: #See if it got anything
                 print 'No environmental file found'
             buffer = envFile.split('/')[:-1]#parse to list and pull 'Maya.env'
-            buffer.extend(['scripts','userSetup.mel'])
+            buffer.extend(['scripts','userSetup.py'])
             newLocation =  os.sep.join(buffer)
 
             f=open(newLocation,'w')
@@ -319,6 +360,7 @@ class AutoStartInstaller(object):
         except:
             guiFactory.warning("Couldn't create a mel user file")
             return False
+		
 
 
 
