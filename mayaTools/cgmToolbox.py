@@ -195,10 +195,10 @@ class AutoStartInstaller(object):
 
     def getUserSetupFile( self ):
         pyUserSetup, melUserSetup = None, None
-        try:
+        """try:
             pyUserSetup = cgmPath.Path(cgmPath.findInPyPath( 'userSetup.py'))#findInPyPath)
             log.info("Py user file is '%s'"%pyUserSetup)
-        except: log.info ('No py user setup')
+        except: log.info ('No py user setup')"""
 
         try:
             melUserSetup = cgmPath.Path(cgmPath.findFirstInEnv( 'userSetup.mel', 'MAYA_SCRIPT_PATH' ))

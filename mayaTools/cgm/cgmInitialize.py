@@ -21,6 +21,7 @@ def setupContributorPaths():
         _l = ['mel','images',os.path.join('lib','zoo'),os.path.join('core','mel'),
               os.path.join('lib','zoo','zooPy'),
               os.path.join('lib','zoo','zooPyMaya'),
+              os.path.join('lib','zoo','zooMel'),
               os.path.join('lib','bo'),
               os.path.join('lib','ml')]
         

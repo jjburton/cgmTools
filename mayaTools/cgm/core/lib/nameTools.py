@@ -25,6 +25,7 @@ import maya.cmds as mc
 # From Red9 =============================================================
 from Red9.core import Red9_General as r9General
 from cgm.core.cgmPy import str_Utils as strUtils
+from cgm.lib import names
 reload(strUtils)
 # From cgm ==============================================================
 from cgm.lib import (lists,
