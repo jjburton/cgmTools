@@ -28,24 +28,25 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.cgmPy import OM_Utils as cgmOM
-reload(cgmOM)
+#reload(cgmOM)
 from cgm.core.lib import nameTools
+#import cgm.lib
+import cgm.lib as cgmLIB
 from cgm.lib.ml import ml_resetChannels
-from cgm.lib import lists
-from cgm.lib import curves
-from cgm.lib import search
-from cgm.lib import attributes
-from cgm.lib import distance
-from cgm.lib import deformers
-from cgm.lib import constraints
-from cgm.lib import dictionary
-from cgm.lib import rigging
-from cgm.lib import settings
-from cgm.lib import guiFactory
-from cgm.lib import position
-from cgm.lib import locators
-from cgm.lib import names
-from cgm.lib import cgmMath
+#from cgm.lib import lists
+#from cgm.lib import curves
+#from cgm.lib import search
+#from cgm.lib import attributes
+#from cgm.lib import distance
+#from cgm.lib import deformers
+#from cgm.lib import constraints
+#from cgm.lib import dictionary
+#from cgm.lib import rigging
+#from cgm.lib import settings
+#from cgm.lib import guiFactory
+#from cgm.lib import position
+#from cgm.lib import locators
+#from cgm.lib import names
 
 """from cgm.lib import (lists,
                      curves,
@@ -85,9 +86,9 @@ log.setLevel(logging.INFO)
 #=========================================================================
 from cgm.lib.classes import NameFactory as Old_Name#   TMP<<<<<<<<<<<<<<<<<<<<<<<<
 
-namesDictionaryFile = settings.getNamesDictionaryFile()
-typesDictionaryFile = settings.getTypesDictionaryFile()
-settingsDictionaryFile = settings.getSettingsDictionaryFile()
+#namesDictionaryFile = cgmLIB.settings.getNamesDictionaryFile()
+#typesDictionaryFile = cgmLIB.settings.getTypesDictionaryFile()
+#settingsDictionaryFile = cgmLIB.settings.getSettingsDictionaryFile()
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmMeta - MetaClass factory for figuring out what to do with what's passed to it
@@ -131,12 +132,12 @@ class cgmMetaFactory(object):
 
         #Process what to do with it
         #==============             
-        mClass = attributes.doGetAttr(node,'mClass')
+        mClass = cgmLIB.attributes.doGetAttr(node,'mClass')
         if mClass:
             log.debug("Appears to be a '%s'"%mClass)
             log.debug("Specialized processing not implemented, initializing as...") 
 
-        objType = search.returnObjectType(node)
+        objType = cgmLIB.search.returnObjectType(node)
         if objType == 'objectSet':
             log.debug("'%s' Appears to be an objectSet, initializing as cgmObjectSet"%node)	    
             return cgmObjectSet(node,*args,**kws)
@@ -162,10 +163,10 @@ class cgmMetaFunc(cgmGeneral.cgmFuncCls):
 # cgmNode - subclass to Red9.MetaClass
 #=========================================================================
 def isTransform(node):
-    return search.is_transform(node)
+    return cgmLIB.search.is_transform(node)
 
 def getTransform(node):
-    return search.get_transform(node)
+    return cgmLIB.search.get_transform(node)
 
 
 def reinitializeMetaClass(node):
@@ -196,7 +197,7 @@ def set_mClassInline(self, setClass = None):
         if self.isReferenced():
             raise ValueError,"Cannot set a referenced node's mClass"
 
-        _currentMClass = attributes.doGetAttr(self.mNode,'mClass')#...use to avoid exceptions	
+        _currentMClass = cgmLIB.attributes.doGetAttr(self.mNode,'mClass')#...use to avoid exceptions	
         _b_flushCacheInstance = False
 
         if setClass in [True, 1]:
@@ -288,7 +289,7 @@ def dupe(*args, **kws):
                                  'locator':self.duplicateLocator,
                                  'nurbsCurve':self.duplicateNurbsCurve}
 
-            self.d_attrLists = attributes.d_attrCategoryLists.copy()
+            self.d_attrLists = cgmLIB.attributes.d_attrCategoryLists.copy()
 
             if not self.b_po:
                 raise NotImplementedError,"parentOnly False mode not implemented"
@@ -351,7 +352,7 @@ def dupe(*args, **kws):
         def sub_positioning(self, mObj, mDup):
             _str_mayaType = self._str_mayaType
             mDup.parent = mObj.parent
-            position.moveParentSnap(mDup.mNode,mObj.mNode)
+            cgmLIB.position.moveParentSnap(mDup.mNode,mObj.mNode)
             try:#InverseScale
                 if _str_mayaType == 'joint':
                     mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze  
@@ -396,8 +397,8 @@ def dupe(*args, **kws):
                     #t1 = time.time()
                     try:
                         #pass
-                        _value = attributes.doGetAttr(_obj,attr)
-                        attributes.doSetAttr(_obj, attr, _value)
+                        _value = cgmLIB.attributes.doGetAttr(_obj,attr)
+                        cgmLIB.attributes.doSetAttr(_obj, attr, _value)
                         #cgmAttr(mObj,attr).doCopyTo(_dup)	
                     except Exception,error:
                         self.log_error("Attr failed to set : {0} | {1}".format(attr,error))
@@ -428,7 +429,7 @@ def dupe(*args, **kws):
             if len(_shapes) == 1:
                 mDup = cgmObject(mc.duplicateCurve(mObj.mNode)[0])
             else:
-                mDup = cgmObject(curves.dupeCurve(mObj.mNode))
+                mDup = cgmObject(cgmLIB.curves.dupeCurve(mObj.mNode))
             return mDup	  
 
         def simpleCopyAttr_shapes(self, mObj, mDup, l_attrs):
@@ -437,8 +438,8 @@ def dupe(*args, **kws):
             for i,attr in enumerate(l_attrs):
                 for ii, shape in enumerate(_dupShapes):
                     try:
-                        _value = attributes.doGetAttr(_tarShapes[ii],attr)
-                        attributes.doSetAttr(shape,attr, _value)
+                        _value = cgmLIB.attributes.doGetAttr(_tarShapes[ii],attr)
+                        cgmLIB.attributes.doSetAttr(shape,attr, _value)
                     except Exception,error:
                         self.log_error("Attr failed to set : {0} | {1}".format(attr,error))	
 
@@ -458,8 +459,8 @@ class cgmNode(r9Meta.MetaClass):
         componentMode = False
         component = False	
         if node is not None:
-            node = names.getShortName(node)
-            if '.' in node and search.returnObjectType(node) in l_componentTypes:
+            node = cgmLIB.names.getShortName(node)
+            if '.' in node and cgmLIB.search.returnObjectType(node) in l_componentTypes:
                 componentMode = True
                 component = node.split('.')[-1]
 
@@ -553,7 +554,7 @@ class cgmNode(r9Meta.MetaClass):
     #==============    
     def getParent(self,asMeta = False):
         try:
-            buffer = search.returnParentObject(self.mNode) or False
+            buffer = cgmLIB.search.returnParentObject(self.mNode) or False
             if buffer and asMeta:
                 return validateObjArg(buffer,mType = cgmObject)
             return buffer
@@ -572,9 +573,9 @@ class cgmNode(r9Meta.MetaClass):
         if ignoreOverload:#just use Mark's
             r9Meta.MetaClass.__setMessageAttr__(self,attr,value,**kws)
         elif type(value) is list:
-            attributes.storeObjectsToMessage(value,self.mNode,attr)
+            cgmLIB.attributes.storeObjectsToMessage(value,self.mNode,attr)
         else:
-            attributes.storeObjectToMessage(value,self.mNode,attr)
+            cgmLIB.attributes.storeObjectToMessage(value,self.mNode,attr)
 
     """def __setattr__(self,attr,value, force = True, lock = None, **kws):
 	r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
@@ -600,7 +601,7 @@ class cgmNode(r9Meta.MetaClass):
         try:
             if mc.objExists('%s.%s' % (self.mNode,attr)):#self.hasAttr(attr):
                 if mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
-                    return attributes.returnMessageData(self.mNode,attr,longNames) or []
+                    return cgmLIB.attributes.returnMessageData(self.mNode,attr,longNames) or []
                 else:
                     return cgmAttr(self,attr).getMessage()
             return []
@@ -608,7 +609,7 @@ class cgmNode(r9Meta.MetaClass):
             log.error("getMessage fail | {0} | err:{1}".format(Exception,err))
             return []
         """if mc.objExists('%s.%s' % (self.mNode,attr)) and mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
-	    return attributes.returnMessageData(self.mNode,attr,longNames) or []
+	    return cgmLIB.attributes.returnMessageData(self.mNode,attr,longNames) or []
 	elif mc.objExists('%s.%s' % (self.mNode,attr)):
 	    return cgmAttr(self,attr).getMessage()
 	return [] """
@@ -673,13 +674,13 @@ class cgmNode(r9Meta.MetaClass):
         """
         Returns if attribute is keyed
         """	
-        return attributes.isKeyed([self.mNode,attr])
+        return cgmLIB.attributes.isKeyed([self.mNode,attr])
 
     def isAttrConnected(self,attr):
         """
         Returns if attribute is connected
         """		
-        return attributes.isConnected([self.mNode,attr])
+        return cgmLIB.attributes.isConnected([self.mNode,attr])
 
     def getComponents(self,arg = False):
         """
@@ -793,11 +794,11 @@ class cgmNode(r9Meta.MetaClass):
                 except Exception,error:raise StandardError, "[Query]{%s}"%(error)
 
             def _act_(self):
-                try:attributes.storeObjectToMessage(self._node, _mNodeSelf.mNode, self._attr)
+                try:cgmLIB.attributes.storeObjectToMessage(self._node, _mNodeSelf.mNode, self._attr)
                 except Exception,error:raise StandardError, "[Connect]{%s}"%(error)
 
                 if self._connectBack is not None:
-                    try:attributes.storeObjectToMessage(_mNodeSelf.mNode,self._node,self._connectBack)
+                    try:cgmLIB.attributes.storeObjectToMessage(_mNodeSelf.mNode,self._node,self._connectBack)
                     except Exception,error:raise StandardError, "[ConnectBack]{%s}"%(error)
                 return True
         return fncWrap(*args,**kws).go()
@@ -822,18 +823,18 @@ class cgmNode(r9Meta.MetaClass):
             #if connectBack and not mc.attributeQuery(connectBack, exists=True, node=node):
                 #add to parent node
                 #mc.addAttr(node,longName=connectBack, at='message', m=False)
-            attributes.storeObjectToMessage(node,self.mNode,attr)
+            cgmLIB.attributes.storeObjectToMessage(node,self.mNode,attr)
             #try:cgmAttr(node,connectBack,attrType='message').doConnectIn("%s.msg"%self.mNode)	    
             #except StandardError,error:raise StandardError,"connect Fail | %s"%error
 
             if connectBack is not None:
-                attributes.storeObjectToMessage(self.mNode,node,connectBack)
+                cgmLIB.attributes.storeObjectToMessage(self.mNode,node,connectBack)
                 #try:cgmAttr(self,attr,attrType='message').doConnectIn("%s.msg"%node)
                 #except StandardError,error:raise StandardError,"connectBack Fail | %s"%error
 
-            #attributes.storeObjectToMessage(node,self.mNode,attr)
+            #cgmLIB.attributes.storeObjectToMessage(node,self.mNode,attr)
 
-            #if srcAttr:attributes.storeObjectToMessage(node,self.mNode,srcAttr)
+            #if srcAttr:cgmLIB.attributes.storeObjectToMessage(node,self.mNode,srcAttr)
             return True
 
         except StandardError,error:
@@ -853,12 +854,12 @@ class cgmNode(r9Meta.MetaClass):
             else:
                 log.warning("connectChildrenNodes can't add: '%s'"%node)
 
-        attributes.storeObjectsToMessage(nodesToDo,self.mNode,attr)
+        cgmLIB.attributes.storeObjectsToMessage(nodesToDo,self.mNode,attr)
 
         for i,node in enumerate(nodesToDo):
-            #attributes.storeObjectToMessage(node,self.mNode,"%s_%s"%(attr,i))
+            #cgmLIB.attributes.storeObjectToMessage(node,self.mNode,"%s_%s"%(attr,i))
             try:
-                if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
+                if connectBack is not None:cgmLIB.attributes.storeObjectToMessage(self.mNode,node,connectBack)		
             except StandardError,error:
                 log.warning("connectChildrenNodes: %s"%error)
 
@@ -882,10 +883,10 @@ class cgmNode(r9Meta.MetaClass):
             if ml_nodes:self.msgList_purge(attr)#purge first
             for i,mi_node in enumerate(ml_nodes):
                 str_attr = "%s_%i"%(attr,i)
-                try:attributes.storeObjectToMessage(mi_node.mNode,self.mNode,str_attr)
+                try:cgmLIB.attributes.storeObjectToMessage(mi_node.mNode,self.mNode,str_attr)
                 except StandardError,error:log.error("%s >> i : %s | node: %s | attr : %s | connect back error: %s"%(_str_funcName,str(i),mi_node.p_nameShort,str_attr,error))
                 if connectBack is not None:
-                    try:attributes.storeObjectToMessage(self.mNode,mi_node.mNode,connectBack)
+                    try:cgmLIB.attributes.storeObjectToMessage(self.mNode,mi_node.mNode,connectBack)
                     except StandardError,error:log.error("%s >> i : %s | node: %s | connectBack : %s | connect back error: %s"%(_str_funcName,str(i),mi_node.p_nameShort,connectBack,error))
                 #log.debug("'%s.%s' <<--<< '%s.msg'"%(self.p_nameShort,str_attr,mi_node.p_nameShort))
             #log.debug("-"*100)            	
@@ -1098,7 +1099,7 @@ class cgmNode(r9Meta.MetaClass):
                 if value is None and initialValue is not None:#If no value and initial value, use it
                     value = initialValue
 
-            validatedAttrType = attributes.validateRequestedAttrType(attrType)
+            validatedAttrType = cgmLIB.attributes.validateRequestedAttrType(attrType)
             if attrType is not None and validatedAttrType in ['string','float','double','long'] and mc.objExists("%s.%s"%(self.mNode,attr)):
                 currentType = mc.getAttr('%s.%s'%(self.mNode,attr),type=True)
                 if currentType != validatedAttrType:
@@ -1107,7 +1108,7 @@ class cgmNode(r9Meta.MetaClass):
 
             #If type is double3, handle with out own setup as Red's doesn't have it
             #==============    
-            #if attributes.validateRequestedAttrType(attrType) == 'double3':
+            #if cgmLIB.attributes.validateRequestedAttrType(attrType) == 'double3':
                 #cgmAttr(self.mNode, attrName = attr, value = value, attrType = attrType, enum = enum, initialValue = initialValue, lock=lock,keyable=keyable,hidden = hidden)
                 #object.__setattr__(self, attr, value)	
 
@@ -1132,10 +1133,10 @@ class cgmNode(r9Meta.MetaClass):
 
             if value is not None and r9Meta.MetaClass.__getattribute__(self,attr) != value: 
                 #log.debug("'%s.%s' Value (%s) was not properly set during creation to: %s"%(self.getShortName(),attr,r9Meta.MetaClass.__getattribute__(self,attr),value))
-                if attributes.isConnected([self.mNode,attr]):
-                    attributes.doBreakConnection(self.mNode,attr)
+                if cgmLIB.attributes.isConnected([self.mNode,attr]):
+                    cgmLIB.attributes.doBreakConnection(self.mNode,attr)
                 self.__setattr__(attr,value,**kws)
-                #attributes.doSetAttr(self.mNode,attr,value)
+                #cgmLIB.attributes.doSetAttr(self.mNode,attr,value)
                 #cgmAttr(self, attrName = attr, value=value)#Swictched back to cgmAttr to deal with connected attrs
 
 
@@ -1155,7 +1156,7 @@ class cgmNode(r9Meta.MetaClass):
     #Reference Prefix
     #==============    
     def getReferencePrefix(self):
-        return search.returnReferencePrefix(self.mNode)
+        return cgmLIB.search.returnReferencePrefix(self.mNode)
 
     p_referencePrefix = property(getReferencePrefix)
 
@@ -1194,7 +1195,7 @@ class cgmNode(r9Meta.MetaClass):
         #assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
         #if self.hasAttr('mNodeID') and not self.isReferenced():#experiment
             #log.debug(self.mNodeID)
-            #attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
+            #cgmLIB.attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
         #self.__dict__['__name__'] = self.getShortName()
 
     def getCGMNameTags(self,ignore=[False]):
@@ -1204,7 +1205,7 @@ class cgmNode(r9Meta.MetaClass):
         self.cgm = {}
         for tag in l_cgmNameTags:
             if tag not in ignore:
-                self.cgm[tag] = search.findRawTagInfo(self.mNode,tag)
+                self.cgm[tag] = cgmLIB.search.findRawTagInfo(self.mNode,tag)
         return self.cgm    
 
     def getAttrs(self,**kws):
@@ -1217,7 +1218,7 @@ class cgmNode(r9Meta.MetaClass):
         return mc.listAttr(self.mNode, userDefined = True) or []
 
     def getUserAttrsAsDict(self):
-        return attributes.returnUserAttrsToDict(self.mNode) or {}
+        return cgmLIB.attributes.returnUserAttrsToDict(self.mNode) or {}
 
     def getNameDict(self):
         return nameTools.returnObjectGeneratedNameDict(self.mNode) or {}  
@@ -1242,11 +1243,11 @@ class cgmNode(r9Meta.MetaClass):
 
     def getMayaType(self):
         """ get the type of the object """
-        return search.returnObjectType(self.getComponent())
+        return cgmLIB.search.returnObjectType(self.getComponent())
 
     def getMayaAttr(self,attr,**kws):
         """ get the type of the object """
-        return attributes.doGetAttr(self.mNode,attr,**kws)  
+        return cgmLIB.attributes.doGetAttr(self.mNode,attr,**kws)  
 
     def getAttr(self,attr):
         """ Get the attribute. As an add on to Marks. I don't want errors if it doesn't have the attr, I just want None. """
@@ -1295,8 +1296,8 @@ class cgmNode(r9Meta.MetaClass):
         for a in mc.listAttr(self.mNode,**kws):
             try:
                 log.debug("Checking %s"%a)
-                selfBuffer = attributes.doGetAttr(self.mNode,a)
-                targetBuffer = attributes.doGetAttr(target,a)
+                selfBuffer = cgmLIB.attributes.doGetAttr(self.mNode,a)
+                targetBuffer = cgmLIB.attributes.doGetAttr(target,a)
                 if a in l_targetAttrs and selfBuffer != targetBuffer:
                     log.debug("%s.%s : %s != %s.%s : %s"%(self.getShortName(),a,selfBuffer,target,a,targetBuffer))
             except StandardError,error:
@@ -1356,7 +1357,7 @@ class cgmNode(r9Meta.MetaClass):
         """  
         def doNameChildren(self):
             if not len(mc.ls(self.mNode,type = 'transform',long = True)) == 0:
-                childrenObjects = search.returnAllChildrenObjects(self.mNode,True) or []
+                childrenObjects = cgmLIB.search.returnAllChildrenObjects(self.mNode,True) or []
                 i_children = []
                 for c in childrenObjects:
                     i_c =  r9Meta.MetaClass(c)
@@ -1425,16 +1426,16 @@ class cgmNode(r9Meta.MetaClass):
             elif self.parent:
                 log.debug('%s | parented...'%_str_func)				
                 #i_p = cgmObject(self.parent)#Initialize the parent
-                for c in search.returnChildrenObjects(self.parent,True):
+                for c in cgmLIB.search.returnChildrenObjects(self.parent,True):
                     if c != self.getLongName():
                         l_siblings.append(c)
                         #log.debug("Sibling found: '%s'"%c)
             else:#We have a root transform
                 log.debug('%s | root...'%_str_func)				
-                l_rootTransforms = search.returnRootTransforms() or []
+                l_rootTransforms = cgmLIB.search.returnRootTransforms() or []
                 typeBuffer = self.getMayaType()
                 for c in l_rootTransforms:
-                    if c != self.getShortName() and search.returnObjectType(c) == typeBuffer:
+                    if c != self.getShortName() and cgmLIB.search.returnObjectType(c) == typeBuffer:
                         l_siblings.append(c)
             #log.debug(l_siblings)
             if l_siblings and asMeta:
@@ -1447,7 +1448,7 @@ class cgmNode(r9Meta.MetaClass):
     #=========================================================================                   
     def doStore(self,attr,info,overideMessageCheck = False,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
-        attributes.storeInfo(self.mNode,attr,info,overideMessageCheck = overideMessageCheck,*a,**kw)
+        cgmLIB.attributes.storeInfo(self.mNode,attr,info,overideMessageCheck = overideMessageCheck,*a,**kw)
         object.__setattr__(self, attr, info)
         #self.update()
 
@@ -1456,7 +1457,7 @@ class cgmNode(r9Meta.MetaClass):
         if self.isReferenced():
             return log.warning("'%s' is referenced. Cannot delete attrs"%self.mNode)    	
         try:
-            attributes.doDeleteAttr(self.mNode,attr)
+            cgmLIB.attributes.doDeleteAttr(self.mNode,attr)
         except StandardError,error:
             log.error(error)	
             log.warning("'%s.%s' not found"%(self.mNode,attr))	    
@@ -1533,7 +1534,7 @@ class cgmNode(r9Meta.MetaClass):
             for tag in targetCGM.keys():
                 #log.debug("..."+tag)
                 if tag not in ignore and targetCGM[tag] is not None or False:
-                    attributes.doCopyAttr(target,tag,
+                    cgmLIB.attributes.doCopyAttr(target,tag,
                                           self.mNode,connectTargetToSource=False)
                     didSomething = True
             #self.update()
@@ -1567,10 +1568,10 @@ class cgmNode(r9Meta.MetaClass):
                 for attr in attrs:
                     try:
                         default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
-                        attributes.doSetAttr(obj, attr, default)
+                        cgmLIB.attributes.doSetAttr(obj, attr, default)
                         _reset.append(attr)
                     except Exception,err:
-                        #attributes.doSetAttr(obj, attr, 0)
+                        #cgmLIB.attributes.doSetAttr(obj, attr, 0)
                         log.error("{0}.{1} resetAttrs | error: {2}".format(self.p_nameShort, attr,err))   	
             return _reset
         except Exception,err:
@@ -1594,7 +1595,7 @@ class cgmNode(r9Meta.MetaClass):
                     for vert in verts:
                         if worldSpace:posList.append( mc.pointPosition(vert,world = True) )
                         else:posList.append( mc.pointPosition(vert,local = True) )			    
-                    pos = distance.returnAveragePointPosition(posList)
+                    pos = cgmLIB.distance.returnAveragePointPosition(posList)
                     mc.select(cl=True)
                     return pos
                 else:
@@ -1609,7 +1610,7 @@ class cgmNode(r9Meta.MetaClass):
             log.error("%s.getPosition>>>isComponent: %s | error: %s"%(self.getShortName(),self.isComponent(),error))	
             return False
 
-    def doLoc(self,forceBBCenter = False,nameLink = False):
+    def doLoc(self,forceBBCenter = False,nameLink = False, fastMode = False):
         """
         Create a locator from an object
 
@@ -1618,19 +1619,44 @@ class cgmNode(r9Meta.MetaClass):
         nameLink(bool) -- whether to copy name tags or link the object to cgmName
         """
         try:
+            #_str_funcName = '{0}.doLoc'.format(self.p_nameShort)
+            #t_master = time.time()	            
+            #t1 = time.time()	
+             
             buffer = False
             if self.isComponent():
-                buffer =  locators.locMeObject(self.getComponent(),forceBBCenter = forceBBCenter)
-            elif self.isTransform():
-                buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)
+                buffer =  cgmLIB.locators.locMeObject(self.getComponent(),forceBBCenter = forceBBCenter)
+                #log.info("{0}>> component loc: {1}".format(_str_funcName, "%0.3f seconds"%(time.time() - t1)))
+                #t1 = time.time()	            
+            else:
+                #if self.isTransform():
+                #log.info("{0}>> transform loc: {1}".format(_str_funcName, "%0.3f seconds"%(time.time() - t1)))
+                #t1 = time.time()     
+                if fastMode:
+                    buffer = cgmObject(mc.spaceLocator()[0])
+                    
+                    objTrans = mc.xform(self.mNode, q=True, ws=True, sp=True)
+                    objRot = mc.xform(self.mNode, q=True, ws=True, ro=True)
+                
+                    mc.move (objTrans[0],objTrans[1],objTrans[2], buffer.mNode)			
+                    mc.rotate (objRot[0], objRot[1], objRot[2], buffer.mNode, ws=True)
+                    buffer.rotateOrder = self.rotateOrder
+                else:
+                    buffer = cgmLIB.locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)                    
             if not buffer:
                 return False
+            
             i_loc = validateObjArg(buffer,'cgmObject',setClass = True)#setClass=True
-            if nameLink:
-                i_loc.connectChildNode(self,'cgmName')
-            else:
+            #log.info("{0}>> validate: {1}".format(_str_funcName, "%0.3f seconds"%(time.time() - t1)))
+            #t1 = time.time()            
+            #if nameLink:
+                #i_loc.connectChildNode(self,'cgmName')
+            if not nameLink:
                 i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
-            i_loc.doName()
+                i_loc.doName()
+                #log.info("{0}>> name: {1}".format(_str_funcName, "%0.3f seconds"%(time.time() - t1)))
+                #t1 = time.time()            
+            #log.info("{0}>> total: {1}".format(_str_funcName, "%0.3f seconds"%(time.time() - t_master)))            
             return i_loc
         except Exception,error:raise Exception,"[%s.doLoc]{%s}"%(self.p_nameShort,error)
 
@@ -1735,7 +1761,7 @@ class cgmObject(cgmNode):
     #==============    
     def getParent(self,asMeta = False):
         try:
-            buffer = search.returnParentObject(self.mNode) or False
+            buffer = cgmLIB.search.returnParentObject(self.mNode) or False
             if buffer and asMeta:
                 return validateObjArg(buffer,mType = cgmObject)
             return buffer
@@ -1785,7 +1811,7 @@ class cgmObject(cgmNode):
                 raise Exception,"Failed to parent"
             else:#If not, do so to world
                 #log.info("parenting to world")
-                rigging.doParentToWorld(self.mNode)
+                cgmLIB.rigging.doParentToWorld(self.mNode)
                 return True
                 #log.debug("'%s' parented to world"%self.mNode) 
         except Exception,error:
@@ -1810,7 +1836,7 @@ class cgmObject(cgmNode):
 
     def getAllParents(self,fullPath = False,asMeta = False):
         try:
-            buffer = search.returnAllParents(self.mNode,not fullPath) or []
+            buffer = cgmLIB.search.returnAllParents(self.mNode,not fullPath) or []
             if buffer and asMeta:
                 return validateObjListArg(buffer,mType = cgmObject)
             return buffer
@@ -1820,23 +1846,23 @@ class cgmObject(cgmNode):
     def getChildren(self,fullPath=False,asMeta = False):
         try:
             if asMeta:
-                buffer = search.returnChildrenObjects(self.mNode,True) or []
+                buffer = cgmLIB.search.returnChildrenObjects(self.mNode,True) or []
                 if buffer:
                     return validateObjListArg(buffer,mType = cgmObject)
                 return []
             else:
-                return search.returnChildrenObjects(self.mNode,fullPath) or []
+                return cgmLIB.search.returnChildrenObjects(self.mNode,fullPath) or []
         except Exception,error:raise Exception,"[%s.getChildren(fullPath = %s, asMeta = %s]{%s}"%(self.p_nameShort,fullPath, asMeta,error)
 
     def getAllChildren(self,fullPath = True,asMeta = False):
         try:
             if asMeta:
-                buffer = search.returnAllChildrenObjects(self.mNode,True) or []
+                buffer = cgmLIB.search.returnAllChildrenObjects(self.mNode,True) or []
                 if buffer:
                     return validateObjListArg(buffer,mType = cgmObject)
                 return []
             else:
-                return search.returnAllChildrenObjects(self.mNode,fullPath) or []
+                return cgmLIB.search.returnAllChildrenObjects(self.mNode,fullPath) or []
         except Exception,error:raise Exception,"[%s.getAllChildren(fullPath = %s, asMeta = %s]{%s}"%(self.p_nameShort,fullPath, asMeta,error)
 
     def getShapes(self,fullPath = True, asMeta = False):
@@ -1929,7 +1955,7 @@ class cgmObject(cgmNode):
 
     def getMatchObject(self):
         """ Get match object of the object. """
-        matchObject = search.returnTagInfo(self.mNode,'cgmMatchObject')
+        matchObject = cgmLIB.search.returnTagInfo(self.mNode,'cgmMatchObject')
         if mc.objExists(matchObject):
             #log.debug("Match object found")
             return matchObject
@@ -1953,7 +1979,7 @@ class cgmObject(cgmNode):
                 #Do a loop to figure out if the types are there
                 _deformerTypes = [str(d).lower() for d in _deformerTypes]		
                 for d in _deformers:
-                    if str(search.returnObjectType(d)).lower() in _deformerTypes:
+                    if str(cgmLIB.search.returnObjectType(d)).lower() in _deformerTypes:
                         foundDeformers.append(d)
                 if foundDeformers:
                     _result = foundDeformers
@@ -1978,7 +2004,7 @@ class cgmObject(cgmNode):
             assert mc.objExists(targetObject) is True, "'%s' - target object doesn't exist" %targetObject    
         assert mc.ls(targetObject,type = 'transform'),"'%s' has no transform"%targetObject
         buffer = mc.getAttr(targetObject + '.rotateOrder')
-        attributes.doSetAttr(self.mNode, 'rotateOrder', buffer) 
+        cgmLIB.attributes.doSetAttr(self.mNode, 'rotateOrder', buffer) 
 
     def doCopyPivot(self,sourceObject):
         """ Copy the pivot from a source object to the current instanced maya object. """
@@ -1992,7 +2018,7 @@ class cgmObject(cgmNode):
             assert mc.objExists(sourceObject) is True, "'%s' - source object doesn't exist" %sourceObject
 
         assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
-        rigging.copyPivot(self.mNode,sourceObject)
+        cgmLIB.rigging.copyPivot(self.mNode,sourceObject)
 
     def doCopyTransform(self,sourceObject):
         """ Copy the pivot from a source object to the current instanced maya object. """
@@ -2019,7 +2045,7 @@ class cgmObject(cgmNode):
 
         """
         try:
-            buffer = rigging.groupMeObject(self.mNode,True,maintain)   
+            buffer = cgmLIB.rigging.groupMeObject(self.mNode,True,maintain)   
             if buffer and asMeta:
                 return cgmObject(buffer)
             return buffer
@@ -2047,7 +2073,7 @@ class cgmObject(cgmNode):
 
         """
         try:
-            i_obj = cgmObject( rigging.groupMeObject(self.mNode,parent = False)) 
+            i_obj = cgmObject( cgmLIB.rigging.groupMeObject(self.mNode,parent = False)) 
             if copyAttrs:
                 for attr in self.getUserAttrs():
                     cgmAttr(self,attr).doCopyTo(i_obj.mNode,attr,connectSourceToTarget = False)	    
@@ -2111,12 +2137,12 @@ class cgmObject(cgmNode):
             #Get to business
             if attrs is None or False:
                 for a in drawingOverrideAttrsDict:
-                    attributes.doSetAttr(t,a,drawingOverrideAttrsDict[a])
+                    cgmLIB.attributes.doSetAttr(t,a,drawingOverrideAttrsDict[a])
 
             if type(attrs) is dict:
                 for a in attrs.keys():
                     try:
-                        attributes.doSetAttr(t,a,attrs[a])
+                        cgmLIB.attributes.doSetAttr(t,a,attrs[a])
                     except:
                         raise AttributeError, "There was a problem setting '%s.%s' to %s"%(self.mNode,a,drawingOverrideAttrsDict[a])
 
@@ -2125,7 +2151,7 @@ class cgmObject(cgmNode):
                 for a in attrs:
                     if a in drawingOverrideAttrsDict:
                         try:
-                            attributes.doSetAttr(self.mNode,a,drawingOverrideAttrsDict[a])
+                            cgmLIB.attributes.doSetAttr(self.mNode,a,drawingOverrideAttrsDict[a])
                         except:
                             raise AttributeError, "There was a problem setting '%s.%s' to %s"%(self.mNode,a,drawingOverrideAttrsDict[a])
                     else:
@@ -2134,7 +2160,7 @@ class cgmObject(cgmNode):
     #==============================================================
     def getConstraintsTo(self,asMeta = False):	
         try:
-            buffer = constraints.returnObjectConstraints(self.mNode)
+            buffer = cgmLIB.constraints.returnObjectConstraints(self.mNode)
             if asMeta and buffer:
                 return validateObjListArg(buffer, mType = cgmNode)
             return buffer
@@ -2142,7 +2168,7 @@ class cgmObject(cgmNode):
 
     def getConstraintsFrom(self,asMeta = False):
         try:
-            buffer = constraints.returnObjectDrivenConstraints(self.mNode)
+            buffer = cgmLIB.constraints.returnObjectDrivenConstraints(self.mNode)
             if asMeta and buffer:
                 return validateObjListArg(buffer, mType = cgmNode)
             return buffer
@@ -2154,7 +2180,7 @@ class cgmObject(cgmNode):
             ml_buffer = self.getConstraintsTo(True)
             if ml_buffer:
                 for mConstraint in ml_buffer:
-                    targets = constraints.returnConstraintTargets(mConstraint.mNode)
+                    targets = cgmLIB.constraints.returnConstraintTargets(mConstraint.mNode)
                     if targets:l_constainingObjects.extend(targets)
 
             if asMeta and buffer:
@@ -2180,7 +2206,7 @@ class cgmObject(cgmNode):
             #for i_c in [r9Meta.MetaClass(c) for c in l_constraints]:
             returnList = []
             for c in l_constraints:
-                targets = constraints.returnConstraintTargets(c)
+                targets = cgmLIB.constraints.returnConstraintTargets(c)
                 #log.debug("%s : %s"%(cgmNode(c).getShortName(),targets))
                 if i_obj.getShortName() in targets:
                     returnList.append(c)
@@ -2283,9 +2309,9 @@ class cgmControl(cgmObject):
 
             l_enums = mc.attributeQuery('axisAim', node=self.mNode, listEnum=True)[0].split(':')
 
-            aimVector = dictionary.stringToVectorDict.get("%s"%l_enums[self.axisAim])
-            upVector = dictionary.stringToVectorDict.get("%s"%l_enums[self.axisUp])
-            outVector = dictionary.stringToVectorDict.get("%s"%l_enums[self.axisOut])
+            aimVector = cgmLIB.dictionary.stringToVectorDict.get("%s"%l_enums[self.axisAim])
+            upVector = cgmLIB.dictionary.stringToVectorDict.get("%s"%l_enums[self.axisUp])
+            outVector = cgmLIB.dictionary.stringToVectorDict.get("%s"%l_enums[self.axisOut])
 
             #log.debug("aimVector: %s"%aimVector)
             #log.debug("upVector: %s"%upVector)
@@ -2397,7 +2423,7 @@ class cgmObjectSet(cgmNode):
         ### input check  
         if setName is not None:
             if mc.objExists(setName):
-                assert search.returnObjectType(setName) == __nodeType,"Not an object set"    
+                assert cgmLIB.search.returnObjectType(setName) == __nodeType,"Not an object set"    
                 super(cgmObjectSet, self).__init__(node = setName)  
             else:
                 super(cgmObjectSet, self).__init__(node = None,name = setName,nodeType = __nodeType)
@@ -2485,7 +2511,7 @@ class cgmObjectSet(cgmNode):
         """
         Returns the objectSet type as defined by CG Monks
         """
-        buffer = search.returnTagInfo(self.mNode,'cgmType')
+        buffer = cgmLIB.search.returnTagInfo(self.mNode,'cgmType')
         if buffer:
             for k in setTypes.keys():
                 if buffer == setTypes[k]:
@@ -2507,8 +2533,8 @@ class cgmObjectSet(cgmNode):
             doSetType = setType
             if setType in setTypes.keys():
                 doSetType = setTypes.get(setType)
-            if search.returnTagInfo(self.mNode,'cgmType') != doSetType:
-                if attributes.storeInfo(self.mNode,'cgmType',doSetType,True):
+            if cgmLIB.search.returnTagInfo(self.mNode,'cgmType') != doSetType:
+                if cgmLIB.attributes.storeInfo(self.mNode,'cgmType',doSetType,True):
                     self.doName()
                     log.debug("'%s' renamed!"%(self.mNode))  
                     return self.mNode
@@ -2516,7 +2542,7 @@ class cgmObjectSet(cgmNode):
                     log.warning("'%s' failed to store info"%(self.mNode))  
                     return False
         else:
-            attributes.doDeleteAttr(self.mNode,'cgmType')
+            cgmLIB.attributes.doDeleteAttr(self.mNode,'cgmType')
             self.doName()
             log.debug("'%s' renamed!"%(self.mNode))  
             return self.mNode
@@ -2623,7 +2649,7 @@ class cgmObjectSet(cgmNode):
         # First look for attributes in the channel box
         SelectCheck = False
 
-        channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
+        channelBoxCheck = cgmLIB.search.returnSelectedAttributesFromChannelBox()
         if channelBoxCheck:
             SelectCheck = True
             for item in channelBoxCheck:
@@ -2660,7 +2686,7 @@ class cgmObjectSet(cgmNode):
         SelectCheck = False
 
         # First look for attributes in the channel box
-        channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
+        channelBoxCheck = cgmLIB.search.returnSelectedAttributesFromChannelBox()
         if channelBoxCheck:
             SelectCheck = True                            
             for item in channelBoxCheck:
@@ -2693,9 +2719,9 @@ class cgmObjectSet(cgmNode):
             buffer = mc.sets(name = ('%s_Copy'%self.mNode), copy = self.mNode)
             log.debug("'%s' duplicated!"%(self.mNode))
 
-            for attr in dictionary.cgmNameTags:
+            for attr in cgmLIB.dictionary.cgmNameTags:
                 if mc.objExists("%s.%s"%(self.mNode,attr)):
-                    attributes.doCopyAttr(self.mNode,attr,buffer)
+                    cgmLIB.attributes.doCopyAttr(self.mNode,attr,buffer)
 
             return buffer
         except:
@@ -2811,9 +2837,9 @@ class cgmOptionVar(object):
             if varType is not None:
                 requestVarType = self.returnVarTypeFromCall(varType)
             elif defaultValue is not None:
-                requestVarType = search.returnDataType(defaultValue)                
+                requestVarType = cgmLIB.search.returnDataType(defaultValue)                
             elif value is not None:
-                requestVarType = search.returnDataType(value)
+                requestVarType = cgmLIB.search.returnDataType(value)
             else:
                 requestVarType = 'int'
 
@@ -2889,7 +2915,7 @@ class cgmOptionVar(object):
     #==============    
     def getType(self):
         dataBuffer = mc.optionVar(q=self.name)                                         
-        typeBuffer = search.returnDataType(dataBuffer) or False
+        typeBuffer = cgmLIB.search.returnDataType(dataBuffer) or False
         if not typeBuffer:
             log.warning("I don't know what this is!")
             return False
@@ -2951,7 +2977,7 @@ class cgmOptionVar(object):
 
         else:
             #If it exists, first check for data buffer
-            typeBuffer = search.returnDataType(dataBuffer) or False
+            typeBuffer = cgmLIB.search.returnDataType(dataBuffer) or False
             if not typeBuffer:
                 #log.debug('Changing to int!')
                 typeBuffer = 'int'
@@ -3173,7 +3199,7 @@ class cgmBufferNode(cgmNode):
         for attr in self.getUserAttrs():
             if 'item_' in attr:
                 index = int(attr.split('item_')[-1])
-                dataBuffer = attributes.doGetAttr(self.mNode,attr)
+                dataBuffer = cgmLIB.attributes.doGetAttr(self.mNode,attr)
                 data = dataBuffer
                 self.d_buffer[attr] = data
                 self.d_indexToAttr[index] = attr
@@ -3220,9 +3246,9 @@ class cgmBufferNode(cgmNode):
         if self.messageOverride:
             cgmAttr(self.mNode,('item_'+str(cnt)),value = info,lock=True)	    
         else:
-            attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)	    
+            cgmLIB.attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)	    
 
-        #attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)
+        #cgmLIB.attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)
         self.updateData()
         #self.l_buffer.append(info)
         #self.d_buffer['item_'+str(cnt)] = info
@@ -3234,7 +3260,7 @@ class cgmBufferNode(cgmNode):
             log.warning('This function is not designed for referenced buffer nodes')
             return False
 
-        channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
+        channelBoxCheck = cgmLIB.search.returnSelectedAttributesFromChannelBox()
         if channelBoxCheck:
             for item in channelBoxCheck:
                 self.store(item,overideMessageCheck = self.messageOverride)
@@ -3255,12 +3281,12 @@ class cgmBufferNode(cgmNode):
             return False
 
         if info not in self.l_buffer:
-            guiFactory.warning("'%s' isn't already stored '%s'"%(info,self.mNode))    
+            cgmLIB.guiFactory.warning("'%s' isn't already stored '%s'"%(info,self.mNode))    
             return
 
         for key in self.d_buffer.keys():
             if self.d_buffer.get(key) == info:
-                attributes.doDeleteAttr(self.mNode,key)
+                cgmLIB.attributes.doDeleteAttr(self.mNode,key)
                 self.l_buffer.remove(info)
                 self.d_buffer.pop(key)
 
@@ -3275,7 +3301,7 @@ class cgmBufferNode(cgmNode):
             log.warning('This function is not designed for referenced buffer nodes')
             return False
 
-        channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
+        channelBoxCheck = cgmLIB.search.returnSelectedAttributesFromChannelBox()
         if channelBoxCheck:
             for item in channelBoxCheck:
                 self.remove(item)
@@ -3298,7 +3324,7 @@ class cgmBufferNode(cgmNode):
         userAttrs = mc.listAttr(self.mNode,userDefined = True) or []
         for attr in userAttrs:
             if 'item_' in attr:
-                attributes.doDeleteAttr(self.mNode,attr)
+                cgmLIB.attributes.doDeleteAttr(self.mNode,attr)
                 #log.debug("Deleted: '%s.%s'"%(self.mNode,attr))  
 
         self.l_buffer = []
@@ -3313,12 +3339,12 @@ class cgmBufferNode(cgmNode):
             selectList = []
             # Need to dig down through the items
             for item in self.l_buffer:
-                if search.returnTagInfo(item,'cgmType') == 'objectBuffer':
+                if cgmLIB.search.returnTagInfo(item,'cgmType') == 'objectBuffer':
                     tmpFactory = cgmBuffer(item)
                     selectList.extend(tmpFactory.l_buffer)
 
                     for item in tmpFactory.l_buffer:
-                        if search.returnTagInfo(item,'cgmType') == 'objectBuffer':
+                        if cgmLIB.search.returnTagInfo(item,'cgmType') == 'objectBuffer':
                             subTmpFactory = cgmBuffer(item)   
                             selectList.extend(subTmpFactory.l_buffer)
 
@@ -3390,7 +3416,7 @@ class cgmAttr(object):
             assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
             self.obj = cgmNode(objName)	    
 
-        if attrType:attrType = attributes.validateRequestedAttrType(attrType)
+        if attrType:attrType = cgmLIB.attributes.validateRequestedAttrType(attrType)
 
         #value/attr type logic check
         #==============  
@@ -3408,11 +3434,11 @@ class cgmAttr(object):
                 #log.debug("'%s' exists. creating as message."%value)
                 self.attrType = 'message'		
             else:
-                dataReturn = search.returnDataType(value)
+                dataReturn = cgmLIB.search.returnDataType(value)
                 #log.debug("Trying to create attr of type '%s'"%dataReturn)
-                self.attrType = attributes.validateRequestedAttrType(dataReturn)
+                self.attrType = cgmLIB.attributes.validateRequestedAttrType(dataReturn)
         else:
-            self.attrType = attributes.validateRequestedAttrType(attrType)
+            self.attrType = cgmLIB.attributes.validateRequestedAttrType(attrType)
 
         self.attr = attrName
         initialCreate = False
@@ -3422,7 +3448,7 @@ class cgmAttr(object):
             #log.info("'%s.%s' exists"%(self.obj.mNode,attrName))
             currentType = mc.getAttr('%s.%s'%(self.obj.mNode,attrName),type=True)
             #log.info("Current type is '%s'"%currentType)
-            if not attributes.validateAttrTypeMatch(self.attrType,currentType) and self.attrType is not False:
+            if not cgmLIB.attributes.validateAttrTypeMatch(self.attrType,currentType) and self.attrType is not False:
                 if self.obj.isReferenced():
                     log.error("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.mNode,attrName,attrType))                   
                 self.doConvert(self.attrType)             
@@ -3433,21 +3459,21 @@ class cgmAttr(object):
             try:
                 if self.attrType == False:
                     self.attrType = 'string'
-                    attributes.addStringAttributeToObj(self.obj.mNode,attrName,*a, **kw)
+                    cgmLIB.attributes.addStringAttributeToObj(self.obj.mNode,attrName,*a, **kw)
                 elif self.attrType == 'double':
-                    attributes.addFloatAttributeToObject(self.obj.mNode,attrName,*a, **kw)
+                    cgmLIB.attributes.addFloatAttributeToObject(self.obj.mNode,attrName,*a, **kw)
                 elif self.attrType == 'string':
-                    attributes.addStringAttributeToObj(self.obj.mNode,attrName,*a, **kw)
+                    cgmLIB.attributes.addStringAttributeToObj(self.obj.mNode,attrName,*a, **kw)
                 elif self.attrType == 'long':
-                    attributes.addIntegerAttributeToObj(self.obj.mNode,attrName,*a, **kw) 
+                    cgmLIB.attributes.addIntegerAttributeToObj(self.obj.mNode,attrName,*a, **kw) 
                 elif self.attrType == 'double3':
-                    attributes.addVectorAttributeToObj(self.obj.mNode,attrName,*a, **kw)
+                    cgmLIB.attributes.addVectorAttributeToObj(self.obj.mNode,attrName,*a, **kw)
                 elif self.attrType == 'enum':
-                    attributes.addEnumAttrToObj(self.obj.mNode,attrName,*a, **kw)
+                    cgmLIB.attributes.addEnumAttrToObj(self.obj.mNode,attrName,*a, **kw)
                 elif self.attrType == 'bool':
-                    attributes.addBoolAttrToObject(self.obj.mNode,attrName,*a, **kw)
+                    cgmLIB.attributes.addBoolAttrToObject(self.obj.mNode,attrName,*a, **kw)
                 elif self.attrType == 'message':
-                    attributes.addMessageAttributeToObj(self.obj.mNode,attrName,*a, **kw)
+                    cgmLIB.attributes.addMessageAttributeToObj(self.obj.mNode,attrName,*a, **kw)
                 else:
                     log.error("'%s' is an unknown form to this class"%(self.attrType))
                 initialCreate = True
@@ -3521,13 +3547,13 @@ class cgmAttr(object):
                             if type(value) is list and len(self.getChildren()) == len(value): #if we have the same length of values in our list as we have children, use them
                                 cInstance.value = value[i]
                             else:    
-                                attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value, *a, **kw)
+                                cgmLIB.attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value, *a, **kw)
                         except Exception,error:
                             fmt_args = [c,error]
                             s_errorMsg = "On child: {0}| error: {1}".format(*fmt_args)			    
                             raise Exception,s_errorMsg
                 else:
-                    attributes.doSetAttr(self.obj.mNode,self.attr, value, *a, **kw)	
+                    cgmLIB.attributes.doSetAttr(self.obj.mNode,self.attr, value, *a, **kw)	
             object.__setattr__(self, self.attr, self.value)
         except Exception,error:
             fmt_args = [self.obj.p_nameShort, self.p_nameLong, value, error]
@@ -3543,9 +3569,9 @@ class cgmAttr(object):
         """    
         try:
             if self.attrType == 'message':
-                return attributes.returnMessageData(self.obj.mNode,self.attr)
+                return cgmLIB.attributes.returnMessageData(self.obj.mNode,self.attr)
             else:
-                return attributes.doGetAttr(self.obj.mNode,self.attr)
+                return cgmLIB.attributes.doGetAttr(self.obj.mNode,self.attr)
         except Exception,error:
             log.warning("'%s.%s' failed to get | %s"%(self.obj.mNode,self.attr,error))
 
@@ -3554,7 +3580,7 @@ class cgmAttr(object):
         Deletes an attribute
         """   
         try:
-            attributes.doDeleteAttr(self.obj.mNode,self.attr)
+            cgmLIB.attributes.doDeleteAttr(self.obj.mNode,self.attr)
             log.warning("'%s.%s' deleted"%(self.obj.mNode,self.attr))
             del(self)
 
@@ -3836,7 +3862,7 @@ class cgmAttr(object):
         try:
             if arg:
                 if arg != self.p_nameLong:
-                    attributes.doRenameAttr(self.obj.mNode,self.p_nameLong,arg)
+                    cgmLIB.attributes.doRenameAttr(self.obj.mNode,self.p_nameLong,arg)
                     self.attr = arg                    
                 else:
                     log.debug("'%s.%s' already has that nice name!"%(self.obj.mNode,self.attr,arg))
@@ -4190,10 +4216,10 @@ class cgmAttr(object):
         try:
             asMeta = cgmValid.boolArg(asMeta)   
             if obj:
-                buffer =  attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes) or []
+                buffer =  cgmLIB.attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes) or []
                 if asMeta: return validateObjListArg(buffer)
-                return lists.returnListNoDuplicates(buffer)
-            buffer = attributes.returnDrivenAttribute(self.p_combinedName,skipConversionNodes) or []
+                return cgmLIB.lists.returnListNoDuplicates(buffer)
+            buffer = cgmLIB.attributes.returnDrivenAttribute(self.p_combinedName,skipConversionNodes) or []
             if asMeta and buffer: return validateAttrListArg(buffer)['ml_plugs']
             return buffer
         except Exception,error:
@@ -4207,10 +4233,10 @@ class cgmAttr(object):
         try:
             asMeta = cgmValid.boolArg(asMeta)   
             if obj:
-                buffer =  attributes.returnDriverObject(self.p_combinedName,skipConversionNodes) or []
+                buffer =  cgmLIB.attributes.returnDriverObject(self.p_combinedName,skipConversionNodes) or []
                 if asMeta: return validateObjListArg(buffer)
                 return buffer
-            buffer = attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes) or []
+            buffer = cgmLIB.attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes) or []
             if asMeta and buffer: return validateAttrListArg(buffer)['ml_plugs']
             return buffer
         except Exception,error:
@@ -4273,7 +4299,7 @@ class cgmAttr(object):
                 softMin =  copy.copy(self.p_softMin)
                 softMax =  copy.copy(self.p_softMax)
 
-            attributes.doConvertAttrType(self.p_combinedName,attrType)
+            cgmLIB.attributes.doConvertAttrType(self.p_combinedName,attrType)
 
             #>>> Reset variables
             self.doHidden(hidden)
@@ -4315,12 +4341,12 @@ class cgmAttr(object):
         """   
         try:
             if self.attrType == 'message':
-                return attributes.returnMessageObject(self.obj.mNode,self.attr)
-                if search.returnObjectType(self.value) == 'reference':
-                    if attributes.repairMessageToReferencedTarget(self.obj.mNode,self.attr,*a,**kw):
-                        return attributes.returnMessageObject(self.obj.mNode,self.attr)                        
+                return cgmLIB.attributes.returnMessageObject(self.obj.mNode,self.attr)
+                if cgmLIB.search.returnObjectType(self.value) == 'reference':
+                    if cgmLIB.attributes.repairMessageToReferencedTarget(self.obj.mNode,self.attr,*a,**kw):
+                        return cgmLIB.attributes.returnMessageObject(self.obj.mNode,self.attr)                        
             else:
-                return attributes.returnDriverAttribute("%s.%s"%(self.obj.mNode,self.attr))
+                return cgmLIB.attributes.returnDriverAttribute("%s.%s"%(self.obj.mNode,self.attr))
 
             #log.debug("'%s.%s' >Message> '%s'"%(self.obj.mNode,self.attr,self.value))
             return self.value
@@ -4361,7 +4387,7 @@ class cgmAttr(object):
         """ 
         try:
             mi_target = validateObjArg(target)
-            return attributes.returnCompatibleAttrs(self.obj.mNode,self.p_nameLong,mi_target.mNode,*a, **kw)
+            return cgmLIB.attributes.returnCompatibleAttrs(self.obj.mNode,self.p_nameLong,mi_target.mNode,*a, **kw)
         except Exception,error:
             fmt_args = [self.obj.p_nameShort, self.p_nameLong, target, error]
             s_errorMsg = "{0}.{1}.returnCompatibleFromTarget() | target: {2} | error: {3}".format(*fmt_args)	    
@@ -4385,9 +4411,9 @@ class cgmAttr(object):
                 if mPlug_target.getChildren() and not self.getChildren():
                     for cInstance in mPlug_target.getChildren(asMeta=True):
                         log.info("Single to multi mode. Children detected. Connecting to child: {0}".format(cInstance.p_combinedName))
-                        attributes.doConnectAttr(self.p_combinedName,cInstance.p_combinedName)
+                        cgmLIB.attributes.doConnectAttr(self.p_combinedName,cInstance.p_combinedName)
                 else:
-                    try:attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
+                    try:cgmLIB.attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
                     except Exception,error:raise Exception,"connection fail: %s"%(error)		    
             else:
                 log.warning("Source failed to validate: %s"%(source) + "="*75)            			    
@@ -4417,9 +4443,9 @@ class cgmAttr(object):
                 if self.getChildren() and not mPlug_source.getChildren():
                     for cInstance in self.getChildren(asMeta=True):
                         log.info("Single to multi mode. Children detected. Connecting to child: {0}".format(cInstance.p_combinedName))
-                        attributes.doConnectAttr(mPlug_source.p_combinedName,cInstance.p_combinedName)
+                        cgmLIB.attributes.doConnectAttr(mPlug_source.p_combinedName,cInstance.p_combinedName)
                 else:
-                    try:attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
+                    try:cgmLIB.attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
                     except StandardError,error:raise StandardError,"connection fail: %s"%(error)		
                 #log.debug(">>> %s.doConnectIn <<--<<  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            						
             else:
@@ -4478,7 +4504,7 @@ class cgmAttr(object):
             if '.' in list(target):
                 targetBuffer = target.split('.')
                 if len(targetBuffer) == 2:
-                    attributes.doCopyAttr(self.obj.mNode,
+                    cgmLIB.attributes.doCopyAttr(self.obj.mNode,
                                           self.p_nameLong,
                                           targetBuffer[0],
                                           targetBuffer[1],
@@ -4491,7 +4517,7 @@ class cgmAttr(object):
                 else:
                     log.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
             else:
-                attributes.doCopyAttr(self.obj.mNode,
+                cgmLIB.attributes.doCopyAttr(self.obj.mNode,
                                       self.p_nameLong,
                                       target,
                                       targetAttrName,
@@ -4527,7 +4553,7 @@ class cgmAttr(object):
             log.warning("Transferring attr: '{0}' | from '{1}' to '{2}'".format(*fmt_args))	
             s_attrBuffer = copy.copy(self.p_nameLong)
             #mc.copyAttr(self.obj.mNode,self.target.obj.mNode,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
-            attributes.doCopyAttr(self.obj.mNode,
+            cgmLIB.attributes.doCopyAttr(self.obj.mNode,
                                   self.p_nameLong,
                                   mi_target.mNode,
                                   self.p_nameLong,
@@ -4541,6 +4567,7 @@ class cgmAttr(object):
             fmt_args = [self.obj.p_nameShort, self.p_nameLong, target, error]
             s_errorMsg = "{0}.{1}.doTransferTo() | target: {2} | error: {3}".format(*fmt_args)	    
             log.error(s_errorMsg)  
+                 
 class NameFactory(object):
     """ 
     New Name Factory. Finds a 
@@ -4602,7 +4629,7 @@ class NameFactory(object):
             else:
                 raise StandardError,"NameFactory.getMatchedParents >> node doesn't exist: '%s'"%node
 
-            parents = search.returnAllParents(i_node.mNode)
+            parents = cgmLIB.search.returnAllParents(i_node.mNode)
             self.i_nameParents = []
             if parents:
                 #parents.reverse()
@@ -4874,7 +4901,7 @@ class NameFactory(object):
             #>>> Dictionary driven order first build
             d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
 
-            if 'cgmName' not in d_updatedNamesDict.keys() and search.returnObjectType(i_node.mNode) !='group' and 'cgmName' not in ignore:
+            if 'cgmName' not in d_updatedNamesDict.keys() and cgmLIB.search.returnObjectType(i_node.mNode) !='group' and 'cgmName' not in ignore:
                 i_node.addAttr('cgmName',i_node.getShortName(),attrType = 'string',lock = True)
                 #d_updatedNamesDict = nameTools.returnObjectGeneratedNameDict(i_node.mNode,ignore)
                 d_updatedNamesDict['cgmName'] = i_node.getShortName()
@@ -4987,7 +5014,7 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
     checkList = mc.ls(type='network')
     l_return = []
     for o in checkList:
-        if attributes.doGetAttr(o,'mClass') in mTypes:
+        if cgmLIB.attributes.doGetAttr(o,'mClass') in mTypes:
             l_return.append(o)
     if asMeta:
         ml_return = []
@@ -5132,7 +5159,7 @@ def validateObjArg(*args,**kws):
                 self.log_debug("instance already...")		
             except:
                 self.log_debug("not an instance arg...")
-                try:_arg = names.getLongName(arg)
+                try:_arg = cgmLIB.names.getLongName(arg)
                 except Exception,err:
                     if noneValid:return False
                     raise Exception,err
@@ -5141,7 +5168,7 @@ def validateObjArg(*args,**kws):
                 else:
                     raise ValueError,"'{0}' is not a valid arg. Validated to {1}".format(arg,_arg)
 
-            _argShort = names.getShortName(_arg)
+            _argShort = cgmLIB.names.getShortName(_arg)
 
             self.log_debug("Checking: '{0} | mType: {1}'".format(_arg,mType))
             mTypeClass = _r9ClassRegistry.get(mType)
@@ -5151,8 +5178,8 @@ def validateObjArg(*args,**kws):
                 self.log_debug("Checking mayaType...")
                 if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
                 else: l_mayaTypes = mayaType
-                #str_type = search.returnObjectType(self.mi_arg.getComponent())
-                str_type = search.returnObjectType(_arg)
+                #str_type = cgmLIB.search.returnObjectType(self.mi_arg.getComponent())
+                str_type = cgmLIB.search.returnObjectType(_arg)
                 if str_type not in l_mayaTypes:
                     if noneValid:
                         log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(self._str_reportStart,_argShort,str_type,l_mayaTypes))
@@ -5162,7 +5189,7 @@ def validateObjArg(*args,**kws):
                 self.log_debug("mayaType not None time... %0.6f"%(t2-t1))		    
 
             #Get our cache key
-            _mClass = attributes.doGetAttr(_argShort,'mClass')
+            _mClass = cgmLIB.attributes.doGetAttr(_argShort,'mClass')
 
             _UUID2016 = False#...a flag to see if we need a reg UUID attr 
             try:_UUID2016= mc.ls(_argShort, uuid=True)[0]
@@ -5172,11 +5199,11 @@ def validateObjArg(*args,**kws):
                 self.log_debug(">2016 UUID: {0}...".format(_UUID2016))
                 _UUID = _UUID2016
                 try:
-                    attributes.doDeleteAttr(_argShort,'UUID')				    
+                    cgmLIB.attributes.doDeleteAttr(_argShort,'UUID')				    
                     self.log_debug("Clearing attr UUID...")
                 except:pass
             else:
-                _UUID = attributes.doGetAttr(_argShort,'UUID')
+                _UUID = cgmLIB.attributes.doGetAttr(_argShort,'UUID')
 
             self.log_debug("Cache keys|| UUID: {0} | mClass: {1}".format(_UUID,_mClass))
             _wasCached = False
@@ -5200,7 +5227,7 @@ def validateObjArg(*args,**kws):
             if _cached is not None:
                 t1 = time.clock()		
                 self.log_debug("Already cached")
-                _cachedMClass = attributes.doGetAttr(_arg,'mClass') or False
+                _cachedMClass = cgmLIB.attributes.doGetAttr(_arg,'mClass') or False
                 _cachedType = type(_cached)
                 self.log_debug("Cached mNode: {0}".format(_cached.mNode))		
                 self.log_debug("Cached mClass: {0}".format(_cachedMClass))
@@ -5211,8 +5238,8 @@ def validateObjArg(*args,**kws):
                 if _arg != _cached.mNode:
                     self.log_debug("mNodes don't match. Need new UUID our our new arg")
                     self.log_debug("Clearing UUID...")
-                    #attributes.doDeleteAttr(_arg,'UUID')	
-                    try:attributes.doSetAttr(_argShort,'UUID','')
+                    #cgmLIB.attributes.doDeleteAttr(_arg,'UUID')	
+                    try:cgmLIB.attributes.doSetAttr(_argShort,'UUID','')
                     except:pass		    
                     _redo = True
 
@@ -5220,11 +5247,11 @@ def validateObjArg(*args,**kws):
                     self.log_debug("cachedType({0}) match ({1})".format(_cachedType,mTypeClass))
                     if setClass and not _cachedMClass:
                         self.log_debug("...ensuring proper categorization next time")
-                        try:attributes.doAddAttr(_argShort, 'mClass','string')
+                        try:cgmLIB.attributes.doAddAttr(_argShort, 'mClass','string')
                         except:pass		    
-                        try:attributes.doAddAttr(_argShort,'UUID','string')
+                        try:cgmLIB.attributes.doAddAttr(_argShort,'UUID','string')
                         except:pass
-                        attributes.doSetAttr(_argShort,'mClass',mType,True)
+                        cgmLIB.attributes.doSetAttr(_argShort,'mClass',mType,True)
                     return _cached
 
                 elif _cachedMClass:#...check our types and subclass stuff
@@ -5236,8 +5263,8 @@ def validateObjArg(*args,**kws):
                             self.log_debug("mClass value ({0}). doesn't match({1})".format(_cachedMClass,mType))
                             _change = True
 
-                        #attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
-                        #attributes.doAddAttr(_arg,'UUID','string')
+                        #cgmLIB.attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
+                        #cgmLIB.attributes.doAddAttr(_arg,'UUID','string')
 
                 else:
                     self.log_debug("No cached mClass or type")
@@ -5276,10 +5303,10 @@ def validateObjArg(*args,**kws):
                     if _cachedMClass:
                         self.log_debug("Clearing mClass...")
                         #_cached.mClass = ''
-                        attributes.doDeleteAttr(_argShort,'mClass')
+                        cgmLIB.attributes.doDeleteAttr(_argShort,'mClass')
                     if _UUID:
                         self.log_debug("Clearing UUID...")
-                        attributes.doDeleteAttr(_argShort,'UUID')			
+                        cgmLIB.attributes.doDeleteAttr(_argShort,'UUID')			
                         #_cached.UUID = ''			
                     r9Meta.RED9_META_NODECACHE.pop(_cacheKey)
 
@@ -5290,15 +5317,15 @@ def validateObjArg(*args,**kws):
                 t1 = time.clock()				    		
                 if setClass or _wasCached:
                     self.log_debug("setClass...")
-                    #attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
+                    #cgmLIB.attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
                     t_attr = time.clock()				    		
-                    try:attributes.doAddAttr(_argShort, 'mClass','string')
+                    try:cgmLIB.attributes.doAddAttr(_argShort, 'mClass','string')
                     except:pass		    
                     try:
                         if not _UUID2016:
-                            attributes.doAddAttr(_argShort,'UUID','string')
+                            cgmLIB.attributes.doAddAttr(_argShort,'UUID','string')
                     except:pass
-                    attributes.doSetAttr(_argShort,'mClass',mType,True)
+                    cgmLIB.attributes.doSetAttr(_argShort,'mClass',mType,True)
                     t2 = time.clock()		    
                     self.log_debug("attrSet %0.6f"%(t2-t_attr))	
                     self.log_debug("setClass %0.6f"%(t2-t1))	
@@ -5306,7 +5333,7 @@ def validateObjArg(*args,**kws):
                     t2 = time.clock()
                     self.log_debug("no setClass. Returning %0.6f"%(t2-t1))	
 
-                _mClass = attributes.doGetAttr(_argShort,'mClass')
+                _mClass = cgmLIB.attributes.doGetAttr(_argShort,'mClass')
                 if _mClass and _mClass not in _r9ClassRegistry:
                     raise ValueError,"stored mClass not found in class registry. mClass: {0}".format(_mClass)		
                 self.mi_arg =  mTypeClass(_argShort)
@@ -5475,7 +5502,7 @@ def validateObjArgOLD(*args,**kws):
                         else:
                             raise Exception,"We need an arg by now."
 
-                    self.str_foundMClass = attributes.doGetAttr(arg,'mClass')
+                    self.str_foundMClass = cgmLIB.attributes.doGetAttr(arg,'mClass')
                     _convert = False
                     t2 = time.clock()
                     self.log_debug("mType not None logic... %0.6f"%(t2-t1))		    
@@ -5569,7 +5596,7 @@ def validateObjArgOLD(*args,**kws):
                 self.log_debug("Checking mayaType...")
                 if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
                 else: l_mayaTypes = mayaType
-                str_type = search.returnObjectType(self.mi_arg.getComponent())
+                str_type = cgmLIB.search.returnObjectType(self.mi_arg.getComponent())
                 if str_type not in l_mayaTypes:
                     if noneValid:
                         log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(self._str_reportStart,self.mi_arg.p_nameShort,str_type,l_mayaTypes))

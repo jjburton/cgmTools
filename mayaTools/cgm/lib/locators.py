@@ -33,8 +33,10 @@
 import maya.cmds as mc
 import maya.mel as mel
 
+from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import guiFactory
-from cgm.lib.classes import NameFactory
+from cgm.core.classes import NameFactory
+from cgm.core.lib import nameTools
 from cgm.lib import rigging
 from cgm.lib import distance
 from cgm.lib import search
@@ -71,6 +73,7 @@ def locMe():
 	return returnBuffer
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#@cgmGeneral.Timer
 def createLocFromObject(obj):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -90,8 +93,10 @@ def createLocFromObject(obj):
 	#store info
 	attributes.storeInfo(nameBuffer[0],'cgmName',buffer[0],False)
 	attributes.storeInfo(nameBuffer[0],'cgmLocMode','fromObject',False)
-
-	return ( NameFactory.doNameObject(nameBuffer[0]) )
+	
+	#return nameBuffer[0]
+	return cgmMeta.NameFactory(nameBuffer[0]).doNameObject()
+	#return ( NameFactory.doNameObject(nameBuffer[0]))
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def locMeCenter(objList,forceBBCenter = False):
 	"""
@@ -126,7 +131,8 @@ def locMeCenter(objList,forceBBCenter = False):
 
 	mc.move (objTrans[0],objTrans[1],objTrans[2], nameBuffer[0])
 
-	return ( NameFactory.doNameObject(nameBuffer[0]) )
+	#return ( NameFactory.doNameObject(nameBuffer[0]) )
+	return cgmMeta.NameFactory(nameBuffer[0]).doNameObject()
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doPositionLocator(locatorName,locInfo):
@@ -222,8 +228,8 @@ def locClosest(objectList,targetObject):
 		attributes.storeInfo(loc,'cgmSource',(','.join(storeList)),False)
 		attributes.storeInfo(loc,'cgmLocMode','closestPoint',False)
 		attributes.storeInfo(loc,'cgmTypeModifier','closestPoint',False)
-		bufferList[cnt] = NameFactory.doNameObject(loc)
-
+		#bufferList[cnt] = NameFactory.doNameObject(loc)
+		bufferList[cnt] =  cgmMeta.NameFactory(loc).doNameObject()
 
 	return bufferList[0]
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -279,6 +285,8 @@ def doUpdateLocator(locatorName,forceBBCenter = False):
 
 	return locatorName
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#from cgm.core import cgm_General as cgmGeneral
+#@cgmGeneral.Timer
 def locMeObject(obj,forceBBCenter = False):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -344,6 +352,7 @@ def locMeObjectStandAlone(obj):
 
 	return locatorName
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#@cgmGeneral.Timer
 def returnInfoForLoc(obj,forceBBCenter = False):
 	"""
 	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
