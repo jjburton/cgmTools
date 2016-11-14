@@ -33,7 +33,6 @@ from cgm.lib import (cgmMath,
                      attributes,
                      locators,
                      distance,
-                     autoname,
                      search,
                      curves,
                      dictionary,
@@ -320,7 +319,7 @@ def doSkeletonizeEyeball(self):
     try:
         _str_upLoc = locators.locMeCvFromCvIndex(mi_helper.getShapes()[0],2)   
         mi_upLoc = cgmMeta.asMeta(_str_upLoc,'cgmObject')
-        mi_aimLoc = mi_helper.pupilHelper.doLoc()
+        mi_aimLoc = mi_helper.pupilHelper.doLoc(fastMode = True)
         v_aim = cgmValid.simpleAxis(_str_orientation[0]).p_vector
         v_up = cgmValid.simpleAxis(_str_orientation[1]).p_vector
 
@@ -736,13 +735,13 @@ def doSkeletonizeEyebrow(goInstance = None):
                     try:#Orient
                         if mi_jnt == ml_browJoints[-1]:
                             joints.doCopyJointOrient(ml_browJoints[-2].mNode,mi_jnt.mNode)
-                            mi_upLoc = mi_jnt.doLoc()	
+                            mi_upLoc = mi_jnt.doLoc(fastMode = True)	
 
                             mi_upLoc.parent = mi_jnt
                             mi_upLoc.__setattr__("t%s"%self.str_orientation[0],f_offset)
                             mi_upLoc.parent = False
                         else:
-                            mi_upLoc = mi_jnt.doLoc()
+                            mi_upLoc = mi_jnt.doLoc(fastMode = True)
                             mc.move (0,0,20, mi_upLoc.mNode, r=True, rpr = True, ws = True, wd = True)	
 
                         if i == 0:mi_target = mi_midBrow
@@ -976,8 +975,8 @@ def doSkeletonizeMouthNose(*args,**kws):
                     self.md_moduleJoints[tag] = mi_root
                 except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)
                 try:#Aim Constraint -------------------------------------------------------------------------
-                    mi_upLoc = mi_root.doLoc()
-                    mi_aimLoc = mi_root.doLoc()
+                    mi_upLoc = mi_root.doLoc(fastMode = True)
+                    mi_aimLoc = mi_root.doLoc(fastMode = True)
                     mi_upLoc.parent = mi_crv
                     mi_aimLoc.parent = mi_crv
                     mi_aimLoc.__setattr__("t%s"%self.str_orientation[0],10)
@@ -1222,12 +1221,12 @@ def doSkeletonizeMouthNose(*args,**kws):
                                     mi_aimIn = ml_side[i+1]
 
                                 #up loc ------------------------------------------------------------------------
-                                mi_upLoc = mi_jnt.doLoc()
+                                mi_upLoc = mi_jnt.doLoc(fastMode = True)
                                 mi_upLoc.parent = mi_jnt
                                 mi_upLoc.__setattr__("t%s"%self.str_orientation[1],10)
                                 mi_upLoc.parent = False
 
-                                mi_locIn = mi_jnt.doLoc()
+                                mi_locIn = mi_jnt.doLoc(fastMode = True)
                                 mi_locOut = mi_jnt.doLoc()
 
                                 mc.delete( mc.aimConstraint(mi_aimIn.mNode, mi_locIn.mNode,
@@ -1478,7 +1477,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                 for idx,mJnt in enumerate(ml_createdbuffer[1:]):#Second aim pass
                     self.progressBar_set(status = "Orienting %s %s"%(k,i), progress = idx, maxValue = int_lenMax)						    		    
                     try:#up loc -------------------------------------------------------------------------
-                        mi_upLoc = mJnt.doLoc()
+                        mi_upLoc = mJnt.doLoc(fastMode = True)
                         mi_upLoc.parent = mJnt
                         mi_upLoc.__setattr__("t%s"%self.str_orientation[0],10)		    
                         mi_upLoc.parent = False
@@ -1978,9 +1977,9 @@ def build_limbSkeleton(*args, **kws):
             l_moduleJoints = [i_j.mNode for i_j in ml_moduleJoints]#store
 
             #>>> Set its radius and toggle axis visbility on
-            jointSize = (distance.returnDistanceBetweenObjects (l_moduleJoints[0],
-                                                                l_moduleJoints[-1])/len(l_moduleJoints))
-            attributes.doMultiSetAttr(l_moduleJoints,'radi',3)
+            """jointSize = (distance.returnDistanceBetweenObjects (l_moduleJoints[0],
+                                                                l_moduleJoints[-1])/len(l_moduleJoints))"""
+            attributes.doMultiSetAttr(l_moduleJoints,'radi',1)
 
             #>>> Flag our handle joints
             #===========================

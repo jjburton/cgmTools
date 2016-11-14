@@ -35,7 +35,7 @@ import maya.mel as mel
 
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import guiFactory
-from cgm.core.classes import NameFactory
+#from cgm.core.classes import NameFactory
 from cgm.core.lib import nameTools
 from cgm.lib import rigging
 from cgm.lib import distance

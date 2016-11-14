@@ -227,7 +227,7 @@ class go(object):
         #Create end locs
         #if self._mi_module.moduleType.lower() in ['finger','thumb']:
         if self._mi_module.moduleType.lower() in ['asdf']:	
-            mi_lastLoc = cgmMeta.cgmObject(self.l_controlSnapObjects[-1]).doLoc()	
+            mi_lastLoc = cgmMeta.cgmObject(self.l_controlSnapObjects[-1]).doLoc(fastMode = True)	
             mi_lastLoc.doGroup()
             #Distance stuff    
             d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,
@@ -504,8 +504,9 @@ class go(object):
         time_func = time.clock() 		
         try:
             multiplier = 1.1
-            tmplRoot = self._mi_templateNull.root.mNode
-            mi_loc = cgmMeta.cgmNode(tmplRoot).doLoc()#make loc for sizing
+            #tmplRoot = self._mi_templateNull.root.mNode
+            tmplRoot = self._ml_controlObjects[1]
+            mi_loc = tmplRoot.doLoc(fastMode = True)#make loc for sizing
             mi_loc.doGroup()#group to zero
             sizeReturn = ShapeCast.returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y'])#Get size
             fl_size = sizeReturn.get('average')
@@ -515,7 +516,7 @@ class go(object):
             mi_crvBase = cgmMeta.asMeta( curves.createControlCurve('arrowSingleFat3d',direction = 'y-',size = size,absoluteSize=False),'cgmObject',setClass=False)
             mi_crvBase.scaleY = 2
             mi_crvBase.scaleZ = .75
-            Snap.go(mi_crvBase, tmplRoot) #Snap it
+            Snap.go(mi_crvBase, tmplRoot.mNode) #Snap it
             i_grp = cgmMeta.cgmObject( mi_crvBase.doGroup() )
             
             try:
@@ -527,7 +528,8 @@ class go(object):
                     #Shoot
                     d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_crvBase.mNode)
                     if not d_return.get('hit'):
-                        raise Exception,"build_cog>>failed to get hit. Master template object probably isn't in mesh"
+                        log.info(d_return)
+                        raise Exception,"build_cog>> failed to get hit. Mesh '{0}' object probably isn't in mesh".format(self._targetMesh.mNode)
                     #log.debug("hitDict: %s"%d_return)
                     dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self.f_skinOffset*10)
                     #log.debug("dist: %s"%dist)
@@ -581,12 +583,14 @@ class go(object):
         distanceMult = .5	    
         orientHelper = self.l_controlSnapObjects[1]
         log.debug(orientHelper)
-        mi_loc = cgmMeta.cgmNode(orientHelper).doLoc()#make loc for sizing
+        mi_loc = cgmMeta.cgmNode(orientHelper).doLoc(fastMode = True)#make loc for sizing
         mi_loc.doGroup()#group to zero
 
         d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_loc.mNode,'z-')
         if not d_return.get('hit'):
-            raise Exception,"build_cog>>failed to get hit. Master template object probably isn't in mesh"
+            log.info(d_return)
+            log.info(self._targetMesh)
+            raise Exception,"build_hips>>failed to get hit. Master template object probably isn't in mesh"
         dist = distance.returnDistanceBetweenPoints(mi_loc.getPosition(),d_return['hit'])
         mi_loc.tz = -dist *.2	
 
@@ -829,7 +833,7 @@ class go(object):
                                     'rootRotate':None},
                          0:{}}	
 
-                mi_lastLoc = cgmMeta.cgmObject(self.l_controlSnapObjects[-2]).doLoc()	
+                mi_lastLoc = cgmMeta.cgmObject(self.l_controlSnapObjects[-2]).doLoc(fastMode = True)	
                 mi_lastLoc.doGroup()
                 #Distance stuff    
                 d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,
@@ -910,8 +914,8 @@ class go(object):
 
         #Get our helper objects
         #============================================================================
-        mi_startLoc = mi_startObj.doLoc()
-        mi_endLoc = mi_endObj.doLoc()
+        mi_startLoc = mi_startObj.doLoc(fastMode = True)
+        mi_endLoc = mi_endObj.doLoc(fastMode = True)
 
         #Get our distance for our casts
         if self._direction == 'left':
@@ -1241,8 +1245,8 @@ class go(object):
         i_target = cgmMeta.cgmObject( self.l_controlSnapObjects[index] )
         i_sizeTarget = cgmMeta.cgmObject( self.l_controlSnapObjects[index_size] )
 
-        mi_rootLoc = i_target.doLoc()
-        mi_sizeLoc = i_sizeTarget.doLoc()
+        mi_rootLoc = i_target.doLoc(fastMode = True)
+        mi_sizeLoc = i_sizeTarget.doLoc(fastMode = True)
 
         #Size the settings control
         d_size = ShapeCast.returnBaseControlSize(mi_sizeLoc,self._targetMesh,axis=[self.outAxis])#Get size
@@ -1348,8 +1352,8 @@ class go(object):
 
         #Get our helper objects
         #============================================================================
-        mi_heelLoc = mi_ankle.doLoc()
-        mi_ballLoc = mi_ball.doLoc()
+        mi_heelLoc = mi_ankle.doLoc(fastMode = True)
+        mi_ballLoc = mi_ball.doLoc(fastMode = True)
         mi_heelLoc.__setattr__('r%s'%self.str_jointOrientation[2],0)
         mi_heelLoc.__setattr__('t%s'%self.str_jointOrientation[1],mi_ballLoc.getAttr('t%s'%self.str_jointOrientation[1]))
 
@@ -1364,7 +1368,7 @@ class go(object):
         #Pivots
         #===================================================================================
         try:#Ball pivot
-            mi_ballPivot = mi_ballLoc.doLoc()
+            mi_ballPivot = mi_ballLoc.doLoc(fastMode = True)
             mi_ballPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
             mi_ballPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
             mi_ballPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
@@ -1375,7 +1379,7 @@ class go(object):
             raise Exception,"Ball pivot fail << {0} >>".format(err)
         
         try:#Toe pivot
-            mi_toePivot =  mi_ballLoc.doLoc()
+            mi_toePivot =  mi_ballLoc.doLoc(fastMode = True)
             mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_toePivot.mNode)
             mi_toePivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
             mi_toePivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
@@ -1400,7 +1404,7 @@ class go(object):
             d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,innerAim,pierceDepth=self.f_skinOffset*5) or {}
             if not d_return.get('hit'):
                 raise Exception,"go.build_footShape>>failed to get inner bank hit"	
-            mi_innerPivot =  mi_ballLoc.doLoc()
+            mi_innerPivot =  mi_ballLoc.doLoc(fastMode = True)
             mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_innerPivot.mNode)
             mi_innerPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
             mi_innerPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
@@ -1414,7 +1418,7 @@ class go(object):
             d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,outerAim,pierceDepth=self.f_skinOffset*5) or {}
             if not d_return.get('hit'):
                 raise Exception,"go.build_footShape>>failed to get outer bank hit"	
-            mi_outerPivot =  mi_ballLoc.doLoc()
+            mi_outerPivot =  mi_ballLoc.doLoc(fastMode = True)
             mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_outerPivot.mNode)
             mi_outerPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
             mi_outerPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
@@ -1428,7 +1432,7 @@ class go(object):
             raise Exception,"Banks fail << {0} >>".format(err)
         
         try:#Heel pivot
-            mi_heelPivot =  mi_heelLoc.doLoc()
+            mi_heelPivot =  mi_heelLoc.doLoc(fastMode = True)
             mi_heelPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
             _v = mc.xform(mi_heelPivot.mNode, q = True, t = True, ws = True)
             mi_heelPivot.__setattr__('t%s'%self.str_jointOrientation[1],_v[1] * .5)
@@ -1515,8 +1519,8 @@ class go(object):
 
         #Get our helper objects
         #============================================================================
-        mi_heelLoc = mi_ankle.doLoc()
-        mi_ballLoc = mi_ball.doLoc()
+        mi_heelLoc = mi_ankle.doLoc(fastMode = True)
+        mi_ballLoc = mi_ball.doLoc(fastMode = True)
         mi_heelLoc.__setattr__('r%s'%self.str_jointOrientation[2],0)
         mi_heelLoc.__setattr__('t%s'%self.str_jointOrientation[1],mi_ballLoc.getAttr('t%s'%self.str_jointOrientation[1]))
 
@@ -1532,7 +1536,7 @@ class go(object):
         #===================================================================================
         """
 	#Ball pivot
-	mi_ballPivot = mi_ballLoc.doLoc()
+	mi_ballPivot = mi_ballLoc.doLoc(fastMode = True)
 	mi_ballPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
 	mi_ballPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
 	mi_ballPivot.addAttr('cgmTypeModifier','pivot',lock=True)
@@ -1541,7 +1545,7 @@ class go(object):
 	self.md_returnPivots['ball'] = mi_ballPivot	
 
 	#Toe pivot
-	mi_toePivot =  mi_ballLoc.doLoc()
+	mi_toePivot =  mi_ballLoc.doLoc(fastMode = True)
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_toePivot.mNode)
 	mi_toePivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
 	mi_toePivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
@@ -1564,7 +1568,7 @@ class go(object):
 	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,innerAim,pierceDepth=self.f_skinOffset*5) or {}
 	if not d_return.get('hit'):
 	    raise Exception,"go.build_footShape>>failed to get inner bank hit"	
-	mi_innerPivot =  mi_ballLoc.doLoc()
+	mi_innerPivot =  mi_ballLoc.doLoc(fastMode = True)
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_innerPivot.mNode)
 	mi_innerPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
 	mi_innerPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
@@ -1577,7 +1581,7 @@ class go(object):
 	d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh,mi_ballLoc.mNode,outerAim,pierceDepth=self.f_skinOffset*5) or {}
 	if not d_return.get('hit'):
 	    raise Exception,"go.build_footShape>>failed to get inner bank hit"	
-	mi_outerPivot =  mi_ballLoc.doLoc()
+	mi_outerPivot =  mi_ballLoc.doLoc(fastMode = True)
 	mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_outerPivot.mNode)
 	mi_outerPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
 	mi_outerPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
@@ -1588,7 +1592,7 @@ class go(object):
 	self.md_returnPivots['outer'] = mi_outerPivot	
 
 	#Heel pivot
-	mi_heelPivot =  mi_heelLoc.doLoc()
+	mi_heelPivot =  mi_heelLoc.doLoc(fastMode = True)
 	mi_heelPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
 	mi_heelPivot.__setattr__('t%s'%self.str_jointOrientation[1],.25)
 
@@ -1721,14 +1725,14 @@ class go(object):
 
         #Get our helper objects
         #============================================================================
-        mi_wristLoc = mi_wrist.doLoc()
+        mi_wristLoc = mi_wrist.doLoc(fastMode = True)
         d_wristSize = ShapeCast.returnBaseControlSize(mi_wristLoc.mNode,self._targetMesh,[self.str_jointOrientation[1],self.str_jointOrientation[2]])
         #Average the wrist size
         dist_wristSize = d_wristSize.get('average')
         log.debug("dist_wristSize: %s"%dist_wristSize)	
 
         if mi_palm:
-            mi_palmLoc = mi_palm.doLoc()
+            mi_palmLoc = mi_palm.doLoc(fastMode = True)
         else:
             mi_palmLoc = mi_wristLoc.doDuplicate()
             mi_palmLoc.doGroup()
@@ -2661,7 +2665,7 @@ def shapeCast_mouthNose(*args,**kws):
             _size = self.f_mouthWidth
 
             mObj = self.md_handles['nose']
-            mi_castLoc = self.md_handles['noseTip'].doLoc()
+            mi_castLoc = self.md_handles['noseTip'].doLoc(fastMode = True)
             pos1 = self.md_handles['nostrilLeft'].getPosition()
             pos2 = self.md_handles['nostrilRight'].getPosition()
             pos = distance.returnAveragePointPosition([pos1,pos2])
@@ -2931,7 +2935,7 @@ def shapeCast_eyeball(*args,**kws):
             self.f_pupilSize = distance.returnCurveDiameter(self.mi_pupilCrv.mNode)
 
             #>> Get the iris/pupil base position
-            mi_loc = cgmMeta.cgmNode("%s|curveShape2.ep[3]"%self.mi_helper.mNode).doLoc()
+            mi_loc = cgmMeta.cgmNode("%s|curveShape2.ep[3]"%self.mi_helper.mNode).doLoc(fastMode = True)
             mi_loc.parent = self.mi_helper
             mi_loc.tz *= -1
             self._baseIrisPos = mi_loc.getPosition()
@@ -3097,7 +3101,7 @@ def shapeCast_eyeball(*args,**kws):
 		mi_crv =  cgmMeta.cgmObject(str_crv,setClass=False)'''	
                 #mi_crv =  cgmMeta.cgmObject(curves.createControlCurve('squareRounded',size = f_size * .5,direction=self.str_orientation[0]+'+'),setClass=False)	
 
-                mi_loc = mi_helper.doLoc()
+                mi_loc = mi_helper.doLoc(fastMode = True)
                 mi_tmpGroup = cgmMeta.cgmObject( mi_loc.doGroup())
                 mi_loc.__setattr__('t%s'%self.str_orientation[0],f_baseDistance * 1.5)
 
