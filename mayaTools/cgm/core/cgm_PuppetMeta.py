@@ -423,7 +423,15 @@ class cgmPuppet(cgmMeta.cgmNode):
         """
         kws['mPuppet'] = self			
         return pFactory.get_mirrorIndexDict(*args,**kws)
-
+	
+    def state_set(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.setState)
+        """
+        kws['mPuppet'] = self	
+        return pFactory.state_set(*args,**kws)
+	
     def get_nextMirrorIndex(self,*args,**kws):
         """
         """

@@ -101,6 +101,37 @@ def stateCheck(*args,**kws):
                 except Exception,error: log.error("%s module: %s | %s"%(self._str_reportStart,_str_module,error))
     return fncWrap(*args,**kws).go()
 
+def state_set(*args,**kws):
+    class fncWrap(PuppetFunc):
+        def __init__(self,*args,**kws):
+            """
+            """	
+            super(fncWrap, self).__init__(*args,**kws)
+            self._b_reportTimes = True
+            self._str_funcName = "state_set('%s')"%self._mi_puppet.cgmName
+            self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mPuppet,
+                                        {'kw':'stateArg',"default":None,'help':"What state is desired","argType":"int/string"},
+                                        {'kw':'rebuildFrom',"default":None,'help':"State to rebuild from","argType":"int/string"}]
+
+            self.__dataBind__(*args,**kws)
+            #=================================================================
+
+        def __func__(self):
+            """
+            """
+            ml_orderedModules = getOrderedModules(self._mi_puppet)
+            int_lenModules = len(ml_orderedModules)  
+            
+            for i,mModule in enumerate(ml_orderedModules):
+                _str_module = mModule.p_nameShort
+                self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)	    		
+                try:
+                    #mModule.stateCheck(self.d_kws['arg'],**kws)
+                    mModule.setState(self.d_kws['stateArg'], self.d_kws['rebuildFrom'])
+                    self.log_info(mModule)
+                except Exception,error: log.error("%s module: %s | %s"%(self._str_reportStart,_str_module,error))
+    return fncWrap(*args,**kws).go()
+
 def get_report(*args,**kws):
     '''
     Puppet reporting tool
