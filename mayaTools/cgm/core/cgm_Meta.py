@@ -1677,7 +1677,10 @@ class cgmNode(r9Meta.MetaClass):
             _keys = kws.keys()
             if 'po' not in _keys and 'parentOnly' not in _keys:
                 kws['parentOnly'] = True
-
+                
+            if 'ic' not in _keys and 'inputConnections' not in _keys:
+                            kws['inputConnections'] = True
+                            
             buffer = mc.duplicate(self.mNode,**kws)[0]
             #log.debug("doDuplicate>> buffer: %s"%buffer)
             buffer = mc.rename(buffer, self.getBaseName()+'_DUPLICATE')
