@@ -514,15 +514,18 @@ class clickMesh(ContextualPick):
                         buffer = None
                         log.error("%s >>> cast fail. More than likely, the offending face lacks uv's. Error: %s"%(_str_funcName,error))		    
                     if buffer:
+                        log.info(buffer)
                         conversionBuffer = []
-                        for hit in buffer['hits']:
-                            conversionBuffer.append(self.convertPosToLocalSpace( hit ))
+                        if buffer.get('hits'):
+                            for hit in buffer['hits']:
+                                conversionBuffer.append(self.convertPosToLocalSpace( hit ))
 
-                        self._posBuffer.extend(conversionBuffer)
+                            self._posBuffer.extend(conversionBuffer)
+                            self.d_meshPos[m].extend(conversionBuffer)
+                            self.d_meshUV[m].extend(buffer['uvs'])                            
                         self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
 
-                        self.d_meshPos[m].extend(conversionBuffer)
-                        self.d_meshUV[m].extend(buffer['uvs'])
+
 
         if not self._posBuffer:
             log.warning('No hits detected!')
