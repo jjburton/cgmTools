@@ -166,7 +166,7 @@ class cgmFuncCls(object):
 
 		
     def __func__(self,*args,**kws):
-	raise StandardError,"{0} No function set".format(self._str_reportStart)
+		return "{0} No function set".format(self._str_reportStart)
     
     def validate_stopAtStep(self):
 	__stopAtStep = self.d_kws.get('stopAtStep')

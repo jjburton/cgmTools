@@ -435,7 +435,7 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                                              True)                    
 
             elif _str_objType == 'mesh':
-                log.info("{0} | Mesh cast mode".format(_str_funcName))
+                log.debug("{0} | Mesh cast mode".format(_str_funcName))
   
                 sel = OM2.MSelectionList()#...make selection list
                 sel.add(mesh)#...add them to our lists 
@@ -593,7 +593,7 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                
 
             elif _str_objType == 'mesh':
-                log.info("{0} | Mesh cast mode".format(_str_funcName))
+                log.debug("{0} | Mesh cast mode".format(_str_funcName))
                 
                 #Put the mesh's name on the selection list.
                 selectionList.add(mesh)
@@ -761,7 +761,7 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
                 if not _d_meshPos.get(m):_d_meshPos[m] = []
                 if _b:
                     _l_posBuffer.append(_b['hit'])
-                    _uv = _b['uv']
+                    _uv = _b.get('uv')
                     _d_meshUV[m].append(_uv)
                     _d_meshPos[m].append(_b['hit'])								    
                     #_l_uvBuffer.append("{0}.uv[{1},{2}]".format(m,_uv[0],_uv[1]))

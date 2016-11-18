@@ -680,11 +680,12 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 		
 		d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance, firstHit=False) or {}
 		d_hitReturnFromValue[rotateValue] = d_castReturn	
-		log.debug("{0} -- {1}".format(rotateValue,d_castReturn))
 		if closestInRange:
 		    hit = d_castReturn.get('near') or False
 		else:
 		    hit = d_castReturn.get('far') or False
+		if not hit:log.info("{0} -- {1}".format(rotateValue,d_castReturn))
+					
 		"""if closestInRange:
 		    try:
 			d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance) or {}

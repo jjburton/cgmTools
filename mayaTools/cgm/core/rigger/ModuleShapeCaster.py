@@ -531,7 +531,7 @@ class go(object):
                         log.info(d_return)
                         raise Exception,"build_cog>> failed to get hit. Mesh '{0}' object probably isn't in mesh".format(self._targetMesh.mNode)
                     #log.debug("hitDict: %s"%d_return)
-                    dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self.f_skinOffset*10)
+                    dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self.f_skinOffset*5)
                     #log.debug("dist: %s"%dist)
                     #log.debug("crv: %s"%mi_crvBase.mNode)
                     mi_crvBase.__setattr__("tz",dist)
@@ -638,7 +638,8 @@ class go(object):
             l_segmentControls = []
             ml_segmentControls = []
             if self.str_partType == 'torso':
-                l_segmentsToDo = self.l_segments[1:-1]
+                #l_segmentsToDo = self.l_segments[1:-1]
+                l_segmentsToDo = self.l_segments[1:]
             else:
                 l_segmentsToDo = self.l_segments
             log.debug("segments: %s"%l_segmentsToDo)
@@ -660,7 +661,7 @@ class go(object):
                 returnBuffer = ShapeCast.createWrapControlShape(seg,self._targetMesh,
                                                                 points = self.points,
                                                                 curveDegree=1,
-                                                                insetMult = .2,
+                                                                insetMult = .3,
                                                                 posOffset = self.posOffset,
                                                                 joinMode=True,
                                                                 maxDistance=self.maxDistance,		                                      
@@ -1131,69 +1132,151 @@ class go(object):
         log.info(">>> %s >>> "%(_str_funcName) + "="*75)	
         time_func = time.clock() 		
         try:
-            l_segmentControls = []
-            ml_segmentControls = []
-
-            l_segmentsToDo = self.l_segments[1:]
-
-            for i,seg in enumerate(l_segmentsToDo):
-                returnBuffer = ShapeCast.createWrapControlShape(seg,self._targetMesh,
-                                                                points = 8,
+            try:
+                multiplier = 1.1
+                #tmplRoot = self._mi_templateNull.root.mNode
+                tmplRoot = self._ml_controlObjects[-2]
+                mi_loc = tmplRoot.doLoc(fastMode = True)#make loc for sizing
+                mi_loc.doGroup()#group to zero
+                sizeReturn = ShapeCast.returnBaseControlSize( self._ml_controlObjects[-2],self._targetMesh,axis=['x','y'])#Get size
+                fl_size = sizeReturn.get('average')
+                mc.delete(mi_loc.parent)#delete loc	    
+                size = fl_size/3
+                ml_curvesToCombine = []
+                mi_crvBase = cgmMeta.asMeta( curves.createControlCurve('arrowSingleFat3d',direction = 'y-',size = size,absoluteSize=False),'cgmObject',setClass=False)
+                mi_crvBase.rz = 90
+                #mi_crvBase.scaleZ = .75
+                Snap.go(mi_crvBase, tmplRoot.mNode) #Snap it
+                
+                dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),self._ml_controlObjects[-1].getPosition()) * .75
+                
+                i_grp = cgmMeta.cgmObject( mi_crvBase.doGroup() )
+                mi_crvBase.scaleY = 3         
+                mc.makeIdentity(mi_crvBase.mNode, apply=True,s=1,n=0)	
+                
+                mi_crvBase.__setattr__("tx",dist)
+                try:
+                    for i,rot in enumerate([0,180]):
+                        log.debug(rot)
+                        #rot, shoot, move, dup
+                        #log.debug("curve: %s | rot int: %s | grp: %s"%(mi_crvBase.mNode,i, i_grp.mNode))
+                        i_grp.rotateX = i_grp.rotateX + rot
+                        #Shoot
+                        d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_crvBase.mNode)
+                        if not d_return.get('hit'):
+                            log.info(d_return)
+                            raise Exception,"build_cog>> failed to get hit. Mesh '{0}' object probably isn't in mesh".format(self._targetMesh.mNode)
+                        #log.debug("hitDict: %s"%d_return)
+                        dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self.f_skinOffset*5)
+                        #log.debug("dist: %s"%dist)
+                        #log.debug("crv: %s"%mi_crvBase.mNode)
+                        mi_crvBase.__setattr__("tz",dist)
+                        mi_tmp = mi_crvBase.doDuplicate(parentOnly=False)
+                        #log.debug(mi_tmp)
+                        mi_tmp.parent = False
+                        ml_curvesToCombine.append(mi_tmp)
+                        mi_crvBase.__setattr__("tz",0)
+                except Exception,error:
+                    raise Exception,"Rotate dup | {0}".format(error)                    
+                
+                i_grp.delete()
+            
+                try:
+                    log.info(ml_curvesToCombine)
+                    mi_crv = cgmMeta.cgmObject( curves.combineCurves([i_obj.mNode for i_obj in ml_curvesToCombine]) )
+                    #log.debug("mi_crv: %s"%mi_crv.mNode)
+                except Exception,error:
+                    raise Exception,"Reinitialize | {0}".format(error)            
+            
+                try:#>>Copy tags and name
+                    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])                    
+                    mi_crv.doCopyNameTagsFromObject(self.l_controlSnapObjects[-1],ignore = ['cgmType'])
+                    mi_crv.addAttr('cgmType',attrType='string',value = 'ikCurve',lock=True)	    
+                    mi_crv.doName()
+        
+                    self.d_returnControls['segmentIKEnd'] = mi_crv.mNode 		
+                    self.md_ReturnControls['segmentIKEnd'] = mi_crv
+                    self._mi_rigNull.connectChildNode(mi_crv,'shape_handleIK','owner')
+                except Exception,error:
+                    raise Exception,"Color | {0}".format(error)
+                log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
+                
+                rigging.copyPivot(mi_crv.mNode, self._ml_controlObjects[-2].mNode)
+            except Exception,err:
+                log.error("torsoIK | {0}".format(err)) 
+                return False           
+            
+            
+            try:
+                l_segmentControls = []
+                ml_segmentControls = []
+    
+                l_segmentsToDo = self.l_segments[1:]
+    
+                for i,seg in enumerate(l_segmentsToDo):
+                    returnBuffer = ShapeCast.createWrapControlShape(seg[0],self._targetMesh,
+                                                                    points = 8,
+                                                                    curveDegree=3,
+                                                                    insetMult = .5,
+                                                                    posOffset = [0,0,self.f_skinOffset*3],
+                                                                    joinMode=True,
+                                                                    maxDistance=self._baseModuleDistance,		                                      
+                                                                    extendMode='disc')
+                    mi_crv = returnBuffer['instance']	    
+                    #>>> Color
+                    curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[1])                    
+                    mi_crv.addAttr('cgmType',attrType='string',value = 'segIKCurve',lock=True)	
+                    mi_crv.doName()
+    
+                    #Store for return
+                    l_segmentControls.append( mi_crv.mNode )
+                    ml_segmentControls.append( mi_crv )
+    
+                    #Snap pivot to handle joint?
+                    mObj = cgmMeta.cgmObject(seg[0])
+                    if mObj.getMessage('owner'):
+                        #log.info("Owner!")
+                        _handleJointBuffer = mObj.owner.getMessage('handleJoint')
+                        if _handleJointBuffer:
+                            rigging.copyPivot(mi_crv.mNode,_handleJointBuffer[0])		
+    
+    
+                self.d_returnControls['segmentIK'] = l_segmentControls 
+                self.md_ReturnControls['segmentIK'] = ml_segmentControls
+                self._mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentIK','owner')
+    
+                if len(self.l_segments)>2:
+                    objects = self.l_controlSnapObjects[-2:]
+                else:
+                    objects = self.l_segments[-1]
+                #"""l_specifiedRotates = [0,30,60,160,180,200,220,300,330]"""
+                
+                
+                
+                """returnBuffer = ShapeCast.createWrapControlShape(self.l_segments[-1],self._targetMesh,
+                                                                points = 12 ,
                                                                 curveDegree=3,
                                                                 insetMult = .05,
                                                                 posOffset = [0,0,self.f_skinOffset*3],
+                                                                joinHits = [0,6],	                                          
                                                                 joinMode=True,
-                                                                maxDistance=self._baseModuleDistance,		                                      
-                                                                extendMode='disc')
-                mi_crv = returnBuffer['instance']	    
+                                                                maxDistance=self._baseModuleDistance*.6,
+                                                                extendMode='segment')
+                
+                mi_crv = returnBuffer['instance']
+    
                 #>>> Color
-                curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[1])                    
-                mi_crv.addAttr('cgmType',attrType='string',value = 'segIKCurve',lock=True)	
+                curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])                    
+                mi_crv.doCopyNameTagsFromObject(self.l_controlSnapObjects[-1],ignore = ['cgmType'])
+                mi_crv.addAttr('cgmType',attrType='string',value = 'ikCurve',lock=True)	    
                 mi_crv.doName()
-
-                #Store for return
-                l_segmentControls.append( mi_crv.mNode )
-                ml_segmentControls.append( mi_crv )
-
-                #Snap pivot to handle joint?
-                mObj = cgmMeta.cgmObject(seg[0])
-                if mObj.getMessage('owner'):
-                    log.info("Owner!")
-                    _handleJointBuffer = mObj.owner.getMessage('handleJoint')
-                    if _handleJointBuffer:
-                        rigging.copyPivot(mi_crv.mNode,_handleJointBuffer[0])		
-
-
-            self.d_returnControls['segmentIK'] = l_segmentControls 
-            self.md_ReturnControls['segmentIK'] = ml_segmentControls
-            self._mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentIK','owner')
-
-            if len(self.l_segments)>2:
-                objects = self.l_controlSnapObjects[-2:]
-            else:
-                objects = self.l_segments[-1]
-            #"""l_specifiedRotates = [0,30,60,160,180,200,220,300,330]"""
-            returnBuffer = ShapeCast.createWrapControlShape(self.l_segments[-1],self._targetMesh,
-                                                            points = 12 ,
-                                                            curveDegree=3,
-                                                            insetMult = .05,
-                                                            posOffset = [0,0,self.f_skinOffset*3],
-                                                            joinHits = [0,6],	                                          
-                                                            joinMode=True,
-                                                            maxDistance=self._baseModuleDistance*.6,
-                                                            extendMode='segment')
-            mi_crv = returnBuffer['instance']
-
-            #>>> Color
-            curves.setCurveColorByName(mi_crv.mNode,self.l_moduleColors[0])                    
-            mi_crv.doCopyNameTagsFromObject(self.l_controlSnapObjects[-1],ignore = ['cgmType'])
-            mi_crv.addAttr('cgmType',attrType='string',value = 'ikCurve',lock=True)	    
-            mi_crv.doName()
-
-            self.d_returnControls['segmentIKEnd'] = mi_crv.mNode 		
-            self.md_ReturnControls['segmentIKEnd'] = mi_crv
-            self._mi_rigNull.connectChildNode(mi_crv,'shape_handleIK','owner')
-
+    
+                self.d_returnControls['segmentIKEnd'] = mi_crv.mNode 		
+                self.md_ReturnControls['segmentIKEnd'] = mi_crv
+                self._mi_rigNull.connectChildNode(mi_crv,'shape_handleIK','owner')"""
+            except Exception,error:
+                raise Exception,"segment handles | {0}".format(err)
+            
             log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 
         except Exception,error:
