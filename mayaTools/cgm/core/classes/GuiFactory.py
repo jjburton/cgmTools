@@ -814,3 +814,16 @@ def log_selfReport(self):
                 log.error("log_selfReport >> '{0}' key fail | error: {1}".format(str_k,error))
     except Exception,error:
         log.error("log_self fail | error: {0}".format(error))
+        
+class Callback(object):
+    '''
+    BY HAMISH
+    stupid little callable object for when you need to "bake" temporary args into a
+    callback - useful mainly when creating callbacks for dynamicly generated UI items
+    '''
+    def __init__( self, func, *a, **kw ):
+        self._func = func
+        self._args = a
+        self._kwargs = kw
+    def __call__( self, *args ):
+        return self._func( *self._args, **self._kwargs ) 
