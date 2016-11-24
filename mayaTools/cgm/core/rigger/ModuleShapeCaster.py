@@ -123,8 +123,8 @@ class go(object):
             self.md_returnPivots = {}   
             self.md_fkControls = {}
             self.md_segmentHandles = {}
-            self._baseModuleDistance = self._returnBaseThickness()
-
+            self._baseModuleDistance = self._returnBaseDistance()
+            self._baseModuleThickness = self._returnBaseThickness()
         except Exception,error:
             raise Exception,"{0} >> [Module data gather fail] error: {1}".format(self._strShortName,error)	
 
@@ -266,11 +266,11 @@ class go(object):
                     log.info("target mesh: {0}".format(self._targetMesh))
                     log.info("axis: {0}".format(self.str_jointOrientation))
                     raise Exception,"shapeCast.returnBaseControlSize send | {0}".format(error)
-                log.info("%s >> d_return = %s"%(_str_funcName,d_return))	    		
-                l_lengths = [d_return[k] for k in d_return.keys()]
-                log.info("%s >> l_lengths = %s"%(_str_funcName,l_lengths))	    				
-                average = (sum(l_lengths))/len(l_lengths)
-                return average *1.25
+                #log.info("%s >> d_return = %s"%(_str_funcName,d_return))	    		
+                #l_lengths = [d_return[k] for k in d_return.keys()]
+                #log.info("%s >> l_lengths = %s"%(_str_funcName,l_lengths))	    				
+                #average = (sum(l_lengths))/len(l_lengths)
+                return d_return['average'] *1.25
             elif self._mi_module.getMessage('helper'):
                 return distance.returnBoundingBoxSizeToAverage(self._mi_module.getMessage('helper'))
             else:
@@ -278,6 +278,8 @@ class go(object):
 
         except Exception,error:
             raise Exception,"%s >> %s"%(_str_funcName,error)  
+    def _returnBaseDistance(self):
+        return distance.returnDistanceBetweenObjects(self.l_controlSnapObjects[0],self.l_controlSnapObjects[-1])/10
 
     def build_eyelids(self):
         _str_funcName = "go.build_eyelids(%s)"%self._strShortName
@@ -505,13 +507,14 @@ class go(object):
         try:
             multiplier = 1.1
             #tmplRoot = self._mi_templateNull.root.mNode
-            tmplRoot = self._ml_controlObjects[1]
-            mi_loc = tmplRoot.doLoc(fastMode = True)#make loc for sizing
-            mi_loc.doGroup()#group to zero
-            sizeReturn = ShapeCast.returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y'])#Get size
-            fl_size = sizeReturn.get('average')
-            mc.delete(mi_loc.parent)#delete loc	    
-            size = fl_size/2.5
+            tmplRoot = self._ml_controlObjects[0]
+            #mi_loc = tmplRoot.doLoc(fastMode = True)#make loc for sizing
+            #mi_loc.doGroup()#group to zero
+            #sizeReturn = ShapeCast.returnBaseControlSize(mi_loc,self._targetMesh,axis=['x','y'])#Get size
+            #fl_size = sizeReturn.get('average')
+            #mc.delete(mi_loc.parent)#delete loc	    
+            #ize = fl_size/4
+            size = self._baseModuleThickness/2
             ml_curvesToCombine = []
             mi_crvBase = cgmMeta.asMeta( curves.createControlCurve('arrowSingleFat3d',direction = 'y-',size = size,absoluteSize=False),'cgmObject',setClass=False)
             mi_crvBase.scaleY = 2
@@ -531,7 +534,7 @@ class go(object):
                         log.info(d_return)
                         raise Exception,"build_cog>> failed to get hit. Mesh '{0}' object probably isn't in mesh".format(self._targetMesh.mNode)
                     #log.debug("hitDict: %s"%d_return)
-                    dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self.f_skinOffset*5)
+                    dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),d_return['hit'])+(self.f_skinOffset*7)#self._baseModuleThickness/4
                     #log.debug("dist: %s"%dist)
                     #log.debug("crv: %s"%mi_crvBase.mNode)
                     mi_crvBase.__setattr__("tz",dist)
@@ -646,13 +649,13 @@ class go(object):
             self.l_specifiedRotates = None
             d_kws = False
             self.posOffset = [0,0,self.f_skinOffset*3]
-            self.maxDistance = self._baseModuleDistance
+            self.maxDistance = self._baseModuleThickness
             self.joinHits = [0,2,4,6,8]	  
             self.points = 10
 
             if self._mi_module.moduleType.lower() in ['finger','thumb']:
                 self.posOffset = [0,0,self.f_skinOffset/2]
-                self.maxDistance = self._baseModuleDistance * .75
+                self.maxDistance = self._baseModuleThickness * .75
                 self.joinHits = [0,5]	    
 
             for i,seg in enumerate(l_segmentsToDo):	
@@ -695,9 +698,9 @@ class go(object):
             l_segmentControls = []
             ml_segmentControls = []
             if self.str_partType == 'torso':
-                l_segmentsToDo = self.l_segments[1:-1]
+                l_toDo = self.l_controlSnapObjects[1:-1]
             else:
-                l_segmentsToDo = self.l_segments
+                l_toDo = self.l_segments
             #figure out our settings
             #================================================================
             #defaults first
@@ -705,13 +708,15 @@ class go(object):
             self.posOffset = []
             self.l_specifiedRotates = None
             self.joinMode = False
-            self.closedCurve = False
+            self.closedCurve = True
             self.rotateBank = None
             self.latheAxis = 'z'
             self.aimAxis = 'y+'
             self.rotateBank = None	
             self.rootOffset = []
             self.rootRotate = None
+            self.posOffset = [0,0,self._baseModuleDistance]
+            
             if 'neck' in self.str_partType:
                 self.posOffset = [0,0,self.f_skinOffset*5]
                 self.l_specifiedRotates = [-30,-10,0,10,30]
@@ -751,17 +756,17 @@ class go(object):
                 d_kws = {'default':{'closedCurve':True,
                                     'latheAxis':'z',
                                     'l_specifiedRotates':[],
-                                    'maxDistance':self._baseModuleDistance,
+                                    'maxDistance':self._baseModuleThickness,
                                     'rootOffset':[],
                                     'rootRotate':None},
                          0:{}}	
                 d_kws[0]['l_specifiedRotates'] = [-60,-30,0,30,60]
-                d_kws[0]['maxDistance'] = self._baseModuleDistance * 10	
+                d_kws[0]['maxDistance'] = self._baseModuleThickness * 10	
                 d_kws[0]['closedCurve'] = False
                 self.posOffset = [0,0,self.f_skinOffset/2]
 
-            log.debug("Snap Objects: %s"%self.l_controlSnapObjects)
-            for i,obj in enumerate(self.l_controlSnapObjects):			
+            log.debug("Snap Objects: %s"%l_toDo)
+            for i,obj in enumerate(l_toDo):			
                 #make ball
                 self._pushKWsDict(d_kws,i)
 
@@ -771,7 +776,7 @@ class go(object):
                     self.rootRotate = [0,0,0]
                     self.latheAxis = 'y'
                 returnBuffer = ShapeCast.createWrapControlShape(obj,self._targetMesh,
-                                                                curveDegree=3,
+                                                                curveDegree=1,
                                                                 insetMult = .2,
                                                                 closedCurve= self.closedCurve,
                                                                 aimAxis = self.aimAxis,
@@ -780,7 +785,7 @@ class go(object):
                                                                 posOffset = self.posOffset,
                                                                 rootOffset = self.rootOffset,
                                                                 rootRotate = self.rootRotate,
-                                                                maxDistance=self._baseModuleDistance,
+                                                                maxDistance=self._baseModuleThickness,
                                                                 extendMode='loliwrap')
                 mi_newCurve = returnBuffer['instance']
                 mi_newCurve.doCopyPivot(obj)
@@ -825,11 +830,11 @@ class go(object):
             self.rootOffset = []
             self.rootRotate = None	
             _snapObject = self.l_controlSnapObjects[-1]
-            self.maxDistance = self._baseModuleDistance
+            self.maxDistance = self._baseModuleThickness
             _lastCreated = False
             if self.str_partType in ['index','middle','ring','pinky','thumb','finger']:
                 d_kws = {'default':{'rootOffset':[],
-                                    'maxDistance': self._baseModuleDistance * 1.5,
+                                    'maxDistance': self._baseModuleThickness * 1.5,
                                     'posOffset':[0,0,self.f_skinOffset/2],
                                     'rootRotate':None},
                          0:{}}	
@@ -1037,7 +1042,7 @@ class go(object):
 	                                                    extendMode='cylinder')
 
 	    mi_newCurve = returnBuffer['instance']"""
-            mi_newCurve = cgmMeta.cgmObject(curves.createControlCurve('sphere',size = self._baseModuleDistance * .75))
+            mi_newCurve = cgmMeta.cgmObject(curves.createControlCurve('sphere',size = self._baseModuleThickness * .75))
             mi_newCurve.doCopyNameTagsFromObject(mi_mid.mNode)
 
             Snap.go(mi_newCurve,obj,True, True)#Snap to main object
@@ -1088,7 +1093,7 @@ class go(object):
                                                                 curveDegree=3,
                                                                 insetMult = .2,
                                                                 closedCurve=False,
-                                                                maxDistance=self._baseModuleDistance,		                                      
+                                                                maxDistance=self._baseModuleThickness,		                                      
                                                                 l_specifiedRotates = [-30,-10,0,10,30],
                                                                 posOffset = [0,0,self.f_skinOffset*1.2],
                                                                 extendMode='')
@@ -1141,7 +1146,7 @@ class go(object):
                 sizeReturn = ShapeCast.returnBaseControlSize( self._ml_controlObjects[-2],self._targetMesh,axis=['x','y'])#Get size
                 fl_size = sizeReturn.get('average')
                 mc.delete(mi_loc.parent)#delete loc	    
-                size = fl_size/3
+                size = fl_size/4
                 ml_curvesToCombine = []
                 mi_crvBase = cgmMeta.asMeta( curves.createControlCurve('arrowSingleFat3d',direction = 'y-',size = size,absoluteSize=False),'cgmObject',setClass=False)
                 mi_crvBase.rz = 90
@@ -1215,12 +1220,12 @@ class go(object):
     
                 for i,seg in enumerate(l_segmentsToDo):
                     returnBuffer = ShapeCast.createWrapControlShape(seg[0],self._targetMesh,
-                                                                    points = 8,
+                                                                    points = 17,
                                                                     curveDegree=3,
                                                                     insetMult = .5,
-                                                                    posOffset = [0,0,self.f_skinOffset*3],
+                                                                    posOffset = [0,0,self.f_skinOffset],
                                                                     joinMode=True,
-                                                                    maxDistance=self._baseModuleDistance,		                                      
+                                                                    maxDistance=self._baseModuleThickness,		                                      
                                                                     extendMode='disc')
                     mi_crv = returnBuffer['instance']	    
                     #>>> Color
@@ -1260,7 +1265,7 @@ class go(object):
                                                                 posOffset = [0,0,self.f_skinOffset*3],
                                                                 joinHits = [0,6],	                                          
                                                                 joinMode=True,
-                                                                maxDistance=self._baseModuleDistance*.6,
+                                                                maxDistance=self._baseModuleThickness*.6,
                                                                 extendMode='segment')
                 
                 mi_crv = returnBuffer['instance']
@@ -1899,7 +1904,7 @@ class go(object):
         self.closedCurve = True
         self.rotateBank = None	    
         #self.maxDistance = 1000
-        self.maxDistance = self._baseModuleDistance
+        self.maxDistance = self._baseModuleThickness
         log.info("Max Distance: {0}".format(self.maxDistance))
         self.aimAxis = 'y+'
         self.latheAxis = 'z'

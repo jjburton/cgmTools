@@ -692,13 +692,13 @@ _d_KWARG_secondaryAxis = {'kw':'secondaryAxis',"default":'yup','help':"Only nece
 
 _d_KWARG_extendTwistToEnd = {'kw':'extendTwistToEnd',"default":False,'help':"Whether to extned the twist to the end by default","argType":"bool"}
 _d_KWARG_addTwist = {'kw':'addTwist',"default":False,'help':"whether to add extra twist in the segment","argType":"bool"}
-_d_KWARG_addMidTwist = {'kw':'addMidTwist',"default":True,'help':"Whether to setup a mid twist on the segment","argType":"bool"}
+_d_KWARG_addMidTwist = {'kw':'addMidTwist',"default":False,'help':"Whether to setup a mid twist on the segment","argType":"bool"}
 _d_KWARG_advancedTwistSetup = {'kw':'advancedTwistSetup',"default":False,'help':"Whether to do the cgm advnaced twist setup","argType":"bool"}
 
 _d_KWARG_addSquashStretch = {'kw':'addSquashStretch',"default":False,'help':"whether to setup squash and stretch in the segment","argType":"bool"}
 _d_KWARG_additiveScaleSetup = {'kw':'additiveScaleSetup',"default":False,'help':"whether to setup additive scale","argType":"bool"}
 _d_KWARG_additiveScaleConnect = {'kw':'additiveScaleConnect',"default":False,'help':"whether to connect additive scale","argType":"bool"}
-_d_KWARG_connectBy = {'kw':'connectBy',"default":'trans','help':"How the joint will scale","argType":"string"}
+_d_KWARG_connectBy = {'kw':'connectBy',"default":'scale','help':"How the joint will scale","argType":"string"}
 
 
 _d_KWARG_startControl = {'kw':'startControl',"default":None,'help':"Start control for the segment","argType":"string"}
@@ -712,34 +712,27 @@ _d_KWARG_moduleInstance = {'kw':'moduleInstance',"default":None,'help':"cgmModul
 
 def create_basic(*args,**kws):
     """
-        jointList(list) | jointList of joints to setup
-        influenceJoints(list) | influence joints for setup segment
-        addSquashStretch(bool) | whether to setup squash and stretch in the segment
-        addTwist(bool)| whether tto setup extra twist control
-        startControl(inst/str) | start control object
-        startControl(inst/str) | end control object
-        segmentType(str) | currently only support 'curve' type.
-        rotateGroupAxis(str) | the rotate axis of the rotate group for a twist setup
-        secondaryAxis(arg) | pass through command for other functions
-        baseName(str) | basename for various naming
-        advancedTwistSetup(bool) | pass through command to createCurveSegment
-        additiveScaleSetup(bool) | whether to setup additive scale
-        connectAdditiveScale(bool) |whether to connect additive scale
-        orientation(str) | joint orientation
-        controlOrientation(str) |control orientation. Important as it sets which channels will drive twist and additive scale
-        moduleInstance(arg) | 
-
         :parameters:
-            0 - 'jointList'(joints - None) | List or metalist of joints
-            1 - 'useCurve'(nurbsCurve - None) | Which curve to use. If None. One Created
-            2 - 'orientation'(string - zyx) | What is the joints orientation
-            3 - 'secondaryAxis'(maya axis arg(ex:'yup') - yup) | Only necessary when no module provide for orientating
-            4 - 'baseName'(string - None) | baseName string
-            5 - 'connectBy'(string - trans) | How the joint will scale
-            6 - 'advancedTwistSetup'(bool - False) | Whether to do the cgm advnaced twist setup
-            7 - 'addMidTwist'(bool - True) | Whether to setup a mid twist on the segment
-            8 - 'moduleInstance'(cgmModule - None) | cgmModule to use for connecting on build
-            9 - 'extendTwistToEnd'(bool - False) | Whether to extned the twist to the end by default
+            0 - 'segmentJoints'(list - []) | List of segment joints
+            1 - 'influenceJoints'(list - []) | List of influence joints
+            2 - 'startControl'(string - None) | Start control for the segment
+            3 - 'endControl'(string - None) | End control for the segment
+            4 - 'orientation'(string - zyx) | What is the joints orientation
+            5 - 'secondaryAxis'(maya axis arg(ex:'yup') - yup) | Only necessary when no module provide for orientating
+            6 - 'controlOrientation'(string - zyx) | What is the control orientation. Important as it sets which channels will drive twist and additive scale
+            7 - 'useCurve'(nurbsCurve - None) | Which curve to use. If None. One Created
+            8 - 'rootSetup'(string - torso) | Type of root setup
+            9 - 'segmentType'(string - curve) | Type of segment setup
+            10 - 'addSquashStretch'(bool - False) | whether to setup squash and stretch in the segment
+            11 - 'connectBy'(string - trans) | How the joint will scale
+            12 - 'addTwist'(bool - False) | whether to add extra twist in the segment
+            13 - 'addMidTwist'(bool - False) | Whether to setup a mid twist on the segment
+            14 - 'advancedTwistSetup'(bool - False) | Whether to do the cgm advnaced twist setup
+            15 - 'additiveScaleSetup'(bool - False) | whether to setup additive scale
+            16 - 'additiveScaleConnect'(bool - False) | whether to connect additive scale
+            17 - 'rotateGroupAxis'(string - y) | the rotate axis of the rotate group for a twist setup
+            18 - 'baseName'(string - None) | baseName string
+            19 - 'moduleInstance'(cgmModule - None) | cgmModule to use for connecting on build
 
         :returns:
             Dict ------------------------------------------------------------------
@@ -777,19 +770,26 @@ def create_basic(*args,**kws):
                                          {'kw':'segmentType',"default":'curve','help':"Type of segment setup","argType":"string"},
                                          _d_KWARG_addSquashStretch,
                                          _d_KWARG_connectBy,
+                                         _d_KWARG_addTwist,
                                          _d_KWARG_addMidTwist,
                                          _d_KWARG_advancedTwistSetup,
+                                         _d_KWARG_additiveScaleSetup,
+                                         _d_KWARG_additiveScaleConnect,
                                          {'kw':'rotateGroupAxis',"default":'y','help':"the rotate axis of the rotate group for a twist setup","argType":"string"},
                                          _d_KWARG_baseName,
                                          _d_KWARG_moduleInstance,
                                          ]			    
 
             self.__dataBind__(*args,**kws)
-            self.l_funcSteps = [{'step':'Verify','call':self._verify_},
-                                {'step':'Build Transforms','call':self._transforms_},
-                                {'step':'Constraints','call':self._constraints_},
+            self.l_funcSteps = [{'step':'Verify','call':self._func_verify_},
+                                {'step':'Build Transforms','call':self._func_transforms_},
+                                {'step':'Constraints','call':self._func_constraints_},
+                                {'step':'Build Segment','call':self._func_segment_},
+                                {'step':'Skin segment','call':self._func_skin_},
+                                {'step':'Aim setup','call':self._func_aim_},
+                                {'step':'Finalize','call':self._func_finalize_},
                                 ]
-        def _verify_(self):
+        def _func_verify_(self):
             try:#Query ===========================================================================================
                 _joints = self.d_kws['segmentJoints']
                 self.int_lenJoints = len(_joints)#because it's called repeatedly       
@@ -827,9 +827,14 @@ def create_basic(*args,**kws):
                 
                 self.str_secondaryAxis = cgmValid.stringArg(self.d_kws['secondaryAxis'],noneValid=True)
                 self.str_baseName = cgmValid.stringArg(self.d_kws['baseName'],noneValid=True)
-                self.str_connectBy = cgmValid.stringArg(self.d_kws['connectBy'],noneValid=True)		
+                self.str_connectBy = cgmValid.stringArg(self.d_kws['connectBy'],noneValid=True)	
+                self.b_addTwist = cgmValid.boolArg(self.d_kws['addTwist'])                
                 self.b_addMidTwist = cgmValid.boolArg(self.d_kws['addMidTwist'])
                 self.b_advancedTwistSetup = cgmValid.boolArg(self.d_kws['advancedTwistSetup'])
+                self.b_addSquashStretch = cgmValid.boolArg(self.d_kws['addSquashStretch'])
+                self.b_additiveScaleSetup = cgmValid.boolArg(self.d_kws['additiveScaleSetup'])
+                self.b_additiveScaleConnect = cgmValid.boolArg(self.d_kws['additiveScaleConnect'])
+                
                 #self.b_extendTwistToEnd= cgmValid.boolArg(self.d_kws['extendTwistToEnd'])
                 
                 self.str_rootSetup = self.d_kws['rootSetup']
@@ -871,9 +876,8 @@ def create_basic(*args,**kws):
 
             except Exception,error:raise Exception,"[Module checks | error: {0}".format(error) 
             #self.report_selfStored()
-            return True  
         
-        def _transforms_(self):
+        def _func_transforms_(self):
             try:#Query ===========================================================================================
                 ml_jointList = self.ml_joints
                 ml_influenceJoints = self.ml_influenceJoints
@@ -1006,12 +1010,10 @@ def create_basic(*args,**kws):
                 
             except Exception,err:raise Exception,"[Aim Target creation | error: {0}".format(err)             
             
-            
-            return True
-    
+                
             #if not i_startControl:i_startControl = i_anchorStart
             #if not i_endControl:i_endControl = i_anchorEnd
-        def _constraints_(self):
+        def _func_constraints_(self):
             try:#Query ===========================================================================================
                 i_anchorStart = self.mi_anchorStart
                 i_aimStartNull = self.mi_aimStartNull
@@ -1076,9 +1078,197 @@ def create_basic(*args,**kws):
                 d_endFollowBlendReturn['d_result1']['mi_plug'].p_hidden = True
                 d_endFollowBlendReturn['d_result2']['mi_plug'].p_hidden = True
             except Exception,err:raise Exception,"[Blend setup | error: {0}".format(err)
+                           
+        def _func_segment_(self):
+            try:#Query ===========================================================================================
+                i_anchorStart = self.mi_anchorStart
+                i_aimStartNull = self.mi_aimStartNull
+                i_attachStartNull = self.mi_attachStartNull
+                
+                i_anchorEnd = self.mi_anchorEnd
+                i_aimEndNull = self.mi_aimEndNull
+                i_attachEndNull = self.mi_attachEndNull
+                
+                i_startControl = self.mi_startControl
+                i_endControl = self.mi_endControl
+                
+                ml_influenceJoints = self.ml_influenceJoints
+                l_segmentJoints = self.l_joints
+            except Exception,err:raise Exception,"[Bring local | error: {0}".format(err)    
             
-            return True
+            try:#Segment ===========================================================================================
+                d_segmentBuild = create_segment_curve(l_segmentJoints, useCurve = self.mi_useCurve, orientation = self.str_orientation,secondaryAxis = self.str_secondaryAxis,
+                                                      baseName = self.str_baseName,connectBy = self.str_connectBy,
+                                                      addMidTwist=self.b_addMidTwist, advancedTwistSetup = self.b_advancedTwistSetup, moduleInstance = self.mi_module)
+
+                mi_segmentCurve = d_segmentBuild['mi_segmentCurve']
+                #ml_drivenJoints = d_segmentBuild['ml_drivenJoints']
+                mi_scaleBuffer = d_segmentBuild['mi_scaleBuffer']
+                mi_segmentGroup = d_segmentBuild['mi_segmentGroup']
+                #mPlug_extendTwist = d_segmentBuild['mPlug_extendTwist']
+                
+                self.d_segmentBuild = d_segmentBuild
+                self.mi_segmentCurve = mi_segmentCurve
+                self.mi_scaleBuffer = mi_scaleBuffer
+                self.mi_segmentGroup = mi_segmentGroup
+            except Exception,err:raise Exception,"[Segment curve| error: {0}".format(err)   
+                        
+            try:#SquashStretch ===========================================================================================
+                if self.b_addSquashStretch:
+                    self.log_info("adding squashStretch...")
+                    rig_Utils.addSquashAndStretchToSegmentCurveSetup(mi_scaleBuffer.mNode,
+                                                                     self.ml_joints,
+                                                                     moduleInstance=self.mi_module)
+            except Exception,err:raise Exception,"[SquashStretch setup | error: {0}".format(err) 
             
+            try:#AdditiveScale ===========================================================================================
+                if self.b_additiveScaleSetup:
+                    self.log_info("additveScale setup ...")
+                    rig_Utils.addAdditiveScaleToSegmentCurveSetup(mi_segmentCurve.mNode,orientation=self.str_orientation)
+    
+                    if self.b_additiveScaleConnect:
+                        self.log_info("additveScale connect ...")                        
+                        l_plugs = ['scaleStartUp','scaleStartOut','scaleEndUp','scaleEndOut']
+                        for attr in l_plugs: 
+                            log.info(attr)
+                            if not mi_segmentCurve.hasAttr(attr):
+                                mi_segmentCurve.select()
+                                raise ValueError, "Segment curve missing attr: %s"%attr
+    
+                        l_attrPrefix = ['Start','End']
+                        int_runningTally = 0
+                        for i,i_ctrl in enumerate([i_startControl,i_endControl]):
+                            log.info("{0} | {1}".format(i,i_ctrl.p_nameShort))
+                            mPlug_outDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%controlOrientation[2])
+                            mPlug_upDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%controlOrientation[1])
+                            mPlug_scaleOutDriver = cgmMeta.cgmAttr(i_ctrl,"out_scale%sOutNormal"%l_attrPrefix[i],attrType='float')
+                            mPlug_scaleUpDriver = cgmMeta.cgmAttr(i_ctrl,"out_scale%sUpNormal"%l_attrPrefix[i],attrType='float')
+                            mPlug_out_scaleUp = cgmMeta.cgmAttr(i_ctrl,"out_scale%sOutInv"%l_attrPrefix[i],attrType='float')
+                            mPlug_out_scaleOut = cgmMeta.cgmAttr(i_ctrl,"out_scale%sUpInv"%l_attrPrefix[i],attrType='float')	
+                            # -1 * (1 - driver)
+                            arg_up1 = "%s = 1 - %s"%(mPlug_scaleUpDriver.p_combinedShortName,mPlug_upDriver.p_combinedShortName)
+                            arg_out1 = "%s = 1 - %s"%(mPlug_scaleOutDriver.p_combinedShortName,mPlug_outDriver.p_combinedShortName)
+                            arg_up2 = "%s = -1 * %s"%(mPlug_out_scaleUp.p_combinedShortName,mPlug_scaleUpDriver.p_combinedShortName)
+                            arg_out2 = "%s = -1 * %s"%(mPlug_out_scaleOut.p_combinedShortName,mPlug_scaleOutDriver.p_combinedShortName)
+                            for arg in [arg_up1,arg_out1,arg_up2,arg_out2]:
+                                try:
+                                    NodeF.argsToNodes(arg).doBuild()
+                                except Exception,err:
+                                    raise Exception,"arg fail {0} | error: {1}".format(arg,err)
+    
+                            mPlug_out_scaleUp.doConnectOut("%s.%s"%(mi_segmentCurve.mNode,l_plugs[int_runningTally]))
+                            int_runningTally+=1
+                            mPlug_out_scaleOut.doConnectOut("%s.%s"%(mi_segmentCurve.mNode,l_plugs[int_runningTally]))	    
+                            int_runningTally+=1
+            except Exception,err:raise Exception,"[AdditiveScale setup | error: {0}".format(err) 
+            
+            try:#Twist ===========================================================================================
+                if self.b_addTwist:
+                    i_twistStartPlug = cgmMeta.cgmAttr(mi_segmentCurve.mNode,'twistStart',attrType='float',keyable=True) 
+                    i_twistEndPlug = cgmMeta.cgmAttr(mi_segmentCurve.mNode,'twistEnd',attrType='float',keyable=True)
+                    capAim = self.str_orientation[0].capitalize()
+                    controlOrientation = self.str_controlOrientation
+                    """
+                    log.debug("capAim: %s"%capAim)
+                    d_twistReturn = addRibbonTwistToControlSetup([i_jnt.mNode for i_jnt in ml_jointList],
+                                             [i_twistStartPlug.obj.mNode,i_twistStartPlug.attr],
+                                             [i_twistEndPlug.obj.mNode,i_twistEndPlug.attr],moduleInstance=moduleInstance) 
+            
+                    #Connect resulting full sum to our last spline IK joint to get it's twist
+                    attributes.doConnectAttr(i_twistEndPlug.p_combinedName,"%s.rotate%s"%(ml_drivenJoints[-1].mNode,capAim))
+                    """	    
+                    if i_startControl:
+                        if controlOrientation is None:
+                            i_twistStartPlug.doConnectIn("%s.rotate%s"%(i_startControl.mNode,capAim))
+                        else:
+                            i_twistStartPlug.doConnectIn("%s.r%s"%(i_startControl.mNode,controlOrientation[0]))
+                    if i_endControl:
+                        if controlOrientation is None:		
+                            i_twistEndPlug.doConnectIn("%s.rotate%s"%(i_endControl.mNode,capAim))
+                        else:
+                            i_twistEndPlug.doConnectIn("%s.r%s"%(i_endControl.mNode,controlOrientation[0]))
+            except Exception,err:raise Exception,"[Connect Twist | error: {0}".format(err) 
+            
+            try:#Twist ===========================================================================================
+                pass
+            except Exception,err:raise Exception,"[Twist setup | error: {0}".format(err)             
+        def _func_skin_(self):
+            try:#Query ===========================================================================================
+                if self.ml_influenceJoints:#if we have influence joints, we're gonna skin our curve
+                    if deformers.isSkinned(self.mi_segmentCurve.mNode):
+                        self.log_warning("Curve already skinned. Skipping...")
+                    else:
+                        i_skinCluster = cgmMeta.cgmNode(mc.skinCluster ([i_jnt.mNode for i_jnt in self.ml_influenceJoints],
+                                                                    self.mi_segmentCurve.mNode,
+                                                                    tsb=True,
+                                                                    maximumInfluences = 3,
+                                                                    normalizeWeights = 1,dropoffRate=2.5)[0])
+        
+                        i_skinCluster.addAttr('cgmName', self.str_baseName, lock=True)
+                        i_skinCluster.addAttr('cgmTypeModifier','segmentCurve', lock=True)
+                        i_skinCluster.doName()
+            except Exception,err:raise Exception,"[Bring local | error: {0}".format(err)
+            
+        def _func_aim_(self):
+            try:#Query ===========================================================================================
+                i_anchorStart = self.mi_anchorStart
+                i_aimStartNull = self.mi_aimStartNull
+                i_attachStartNull = self.mi_attachStartNull
+                
+                i_anchorEnd = self.mi_anchorEnd
+                i_aimEndNull = self.mi_aimEndNull
+                i_attachEndNull = self.mi_attachEndNull
+                
+                i_startControl = self.mi_startControl
+                i_endControl = self.mi_endControl
+                
+                ml_influenceJoints = self.ml_influenceJoints
+                l_segmentJoints = self.l_joints
+            except Exception,err:raise Exception,"[Bring local | error: {0}".format(err)  
+            
+            try:
+                startAimTarget = self.mi_anchorEnd.mNode# i_anchorEnd.mNode
+                endAimTarget = self.mi_anchorStart.mNode#i_anchorStart.mNode	
+                cBuffer = mc.aimConstraint(startAimTarget,
+                                           i_aimStartNull.mNode,
+                                           maintainOffset = True, weight = 1,
+                                           aimVector = self.v_aim,#aimVector,
+                                           upVector = self.v_up,#upVector,
+                                           worldUpObject = self.mi_startUpNull.mNode,#i_startUpNull.mNode,
+                                           worldUpType = 'object' ) 
+                self.mi_startAimConstraint = cgmMeta.asMeta(cBuffer[0],'cgmNode',setClass=True)
+        
+                cBuffer = mc.aimConstraint(endAimTarget,
+                                           i_aimEndNull.mNode,
+                                           maintainOffset = True, weight = 1,
+                                           aimVector = self.v_aimNeg,#aimVectorNegative,
+                                           upVector = self.v_up,#upVector,
+                                           worldUpObject = self.mi_endUpNull.mNode,#i_endUpNull.mNode,
+                                           worldUpType = 'object' ) 
+                self.mi_endAimConstraint = cgmMeta.asMeta(cBuffer[0],'cgmNode',setClass=True)
+            except Exception,err:raise Exception,"[constraints | error: {0}".format(err)
+                
+            
+        def _func_finalize_(self):  
+            try:#Store some necessary info to the segment curve =====================================================================================
+                self.mi_segmentCurve.connectChildNode(self.mi_anchorStart,'anchorStart','segmentCurve')
+                self.mi_segmentCurve.connectChildNode(self.mi_anchorEnd,'anchorEnd','segmentCurve')
+                self.mi_segmentCurve.connectChildNode(self.mi_attachStartNull,'attachStart','segmentCurve')
+                self.mi_segmentCurve.connectChildNode(self.mi_attachEndNull,'attachEnd','segmentCurve')
+        
+            except Exception,err:raise Exception,"[Data Store | error: {0}".format(err)
+
+        
+            try:#Return ========================================================================================
+                md_return = {'mi_segmentCurve':self.mi_segmentCurve,'mi_anchorStart':self.mi_anchorStart,'mi_anchorEnd':self.mi_anchorEnd,#'mPlug_extendTwist':mPlug_extendTwist,
+                             'mi_constraintStartAim':self.mi_startAimConstraint,'mi_constraintEndAim':self.mi_endAimConstraint}
+                for k in self.d_segmentBuild.keys():
+                    if k not in md_return.keys():
+                        md_return[k] = self.d_segmentBuild[k]#...push to the return dict
+                return md_return
+            except Exception,err:raise Exception,"[data return | error: {0}".format(err)
+        
+        
     return fncWrap(*args,**kws).go()
 
 def createCGMSegmentOLD(jointList, influenceJoints = None, addSquashStretch = True, addTwist = True,

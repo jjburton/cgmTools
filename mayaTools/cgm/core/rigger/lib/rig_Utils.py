@@ -160,7 +160,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
         for s in l_toBuild:
             try:
                 log.info("%s >> building %s"%(_str_funcName,s))
-                mi_loc = mi_target.doLoc() #Create it
+                mi_loc = mi_target.doLoc(fastMode = True) #Create it
                 #Naming ----------------------------------
                 if d_nameTags:
                     d_tmpNameTags = d_nameTags
@@ -359,7 +359,7 @@ def create_simpleEyelidSetup(uprLidJoint = None, lwrLidJoint = None,
         for s in l_toBuild:
             try:
                 log.info("{0} >> building {1}".format(_str_funcName,s))
-                mi_loc = mi_target.doLoc() #Create it
+                mi_loc = mi_target.doLoc(fastMode = True) #Create it
                 #Naming ----------------------------------
                 if d_nameTags:
                     d_tmpNameTags = d_nameTags
@@ -2483,7 +2483,7 @@ def createSegmentCurve(*args,**kws):
                     ml_pointOnCurveInfos.append(mi_closestPointNode)
 
                     #>>> loc ----------------------------------------------------------------
-                    mi_upLoc = mJnt.doLoc()#Make up Loc
+                    mi_upLoc = mJnt.doLoc(fastMode = True)#Make up Loc
                     mi_locRotateGroup = mJnt.duplicateTransform(False)#group in place
                     mi_locRotateGroup.parent = ml_driverJoints[i].mNode
                     mi_locRotateGroup.doStore('cgmName',mJnt.mNode)	    
@@ -3790,7 +3790,7 @@ def create_traceCurve(control,targetObject,parentTo = False, lock = True):
     #====================================================   
     ml_locs = []
     for i,i_obj in enumerate([i_control,i_target]):#Connect each of our handles ot the cv's of the curve we just made
-        i_loc = i_obj.doLoc()
+        i_loc = i_obj.doLoc(fastMode = True)
         i_loc.doStore('cgmName',i_obj.mNode) #Add name tag
         i_loc.addAttr('cgmTypeModifier',value = 'traceCurve', attrType = 'string', lock=True) #Add Type
         i_loc.v = False # Turn off visibility

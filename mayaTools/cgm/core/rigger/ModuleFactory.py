@@ -727,8 +727,9 @@ def rigConnect(*args,**kws):
                                 #attributes.doConnectAttr('%s.s%s'%(mi_faceDeformNull.mNode,str_a),'%s.offset%s'%(scConstBuffer[0],str_a.capitalize()))
                     else:
                         pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
-                        orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 			
-                        attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+                        orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 
+                        scConstBuffer = mc.scaleConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                         
+                        #attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
                 except Exception,error:
                     raise StandardError,"[Joint failed: %s]{%s}"%(_str_joint,error)
             return True
@@ -1476,7 +1477,7 @@ def setState(*args,**kws):
         def __func__(self,*args,**kws):
             """
             """
-            self.log_warning("<<<<<<<< This module needs to be updated")
+            #self.log_warning("<<<<<<<< This module needs to be updated")
             try:#Query ========================================================
                 mi_module = self._mi_module
                 kws = self.d_kws

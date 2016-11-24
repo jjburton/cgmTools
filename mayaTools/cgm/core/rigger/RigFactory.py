@@ -314,6 +314,15 @@ def go(*args, **kws):
                         self._mi_module.connectChildNode(i_grp,'constrainNull','module')
                 self._i_constrainNull = self._mi_module.constrainNull
             except Exception,error:raise Exception,"Constrain null fail | error: {0}".format(error)
+            
+            try:
+                self._b_noRollMode = False
+                self._b_addMidTwist = True
+                if self._i_templateNull.rollJoints == 0:
+                    self._b_noRollMode = True
+                    self._b_addMidTwist = False
+                    self.log_info("No rollJoint mode...")                
+            except Exception,err:raise Exception,"Roll joint checks | error: {0}".format(err)
 
 
 
@@ -914,6 +923,7 @@ def go(*args, **kws):
                         i_j.addAttr('cgmTypeModifier','seg_{0}'.format(i),attrType='string',lock=True)
                         i_j.addAttr('cgmIterator','{0}'.format(i2),lock=True)			
                         i_j.doName()
+                        #i_j.connectionChildNode(j,'segJoint','sourceJoint') <<<<<<FINISH THIS 
                         if ml_newChain:
                             i_j.parent = ml_newChain[-1].mNode
                         ml_newChain.append(i_j)

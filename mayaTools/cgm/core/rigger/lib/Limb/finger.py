@@ -114,7 +114,7 @@ def __bindSkeletonSetup__(self,addHelpers = True):
 		if i_jnt.d_jointFlags.get('isHandle'):
 		    if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
 		    i_dupJnt = i_jnt.doDuplicate()#Duplicate
-		    i_dupJnt.addAttr('cgmNameModifier','extra')#Tag
+		    i_dupJnt.addAttr('cgmTypeModifier','scale')#Tag
 		    i_jnt.doName()#Rename
 		    i_dupJnt.doName()#Rename
 		    i_dupJnt.parent = i_jnt#Parent
