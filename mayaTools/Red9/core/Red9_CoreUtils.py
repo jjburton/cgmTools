@@ -2047,7 +2047,7 @@ class LockChannels(object):
         in the channelBox.
         
         :param nodes: nodes to process
-        :param attrs: set() of attrs
+        :param attrs: set() of attrs, or 'all'
         :param mode: 'lock', 'unlock', 'hide', 'unhide', 'fullkey', 'lockall'
         :param hierarchy: process all child nodes, default is now False
         :param usedDefined: process all UserDefined attributes on all nodes
