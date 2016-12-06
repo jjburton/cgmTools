@@ -323,16 +323,20 @@ def groupMeObject(obj,parent=True,maintainParent=False):
         if oldParent:oldParent = oldParent[0]
     returnBuffer = []
     rotationOrderDictionary = {'xyz':0,'yzx':1 ,'zxy':2 ,'xzy':3 ,'yxz':4,'zyx':5,'none':6}
+    
     """return stuff to transfer"""
     objTrans = mc.xform (obj, q=True, ws=True, rp=True)
     objRot = mc.xform (obj, q=True, ws=True, ro=True)
-
     objRoo = mc.xform (obj, q=True, roo=True )
+    objRotAxis = mc.xform(obj, q=True, ws = True, ra=True)
+    
     """return rotation order"""
     correctRo = rotationOrderDictionary[objRoo]
     groupBuffer = mc.group (w=True, empty=True)
     mc.setAttr ((groupBuffer+'.rotateOrder'), correctRo)
     mc.move (objTrans[0],objTrans[1],objTrans[2], [groupBuffer])
+    for i,a in enumerate(['X','Y','Z']):
+        attributes.doSetAttr(groupBuffer, 'rotateAxis{0}'.format(a), objRotAxis[i])    
     mc.rotate (objRot[0], objRot[1], objRot[2], [groupBuffer], ws=True)
     mc.xform (groupBuffer, cp=True)
     

@@ -30,6 +30,7 @@ from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.cgmPy import OM_Utils as cgmOM
 #reload(cgmOM)
 from cgm.core.lib import nameTools
+from cgm.core.lib import rigging_utils as coreRigging
 #import cgm.lib
 import cgm.lib as cgmLIB
 from cgm.lib.ml import ml_resetChannels
@@ -2021,10 +2022,10 @@ class cgmObject(cgmNode):
             assert mc.objExists(sourceObject) is True, "'%s' - source object doesn't exist" %sourceObject
 
         assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
-        cgmLIB.rigging.copyPivot(self.mNode,sourceObject)
+        return coreRigging.copy_pivot(self.mNode,sourceObject)
 
     def doCopyTransform(self,sourceObject):
-        """ Copy the pivot from a source object to the current instanced maya object. """
+        """ Copy the transform from a source object to the current instanced maya object. """
         try:
             #If we have an Object Factory instance, link it
             sourceObject.mNode
@@ -2035,9 +2036,7 @@ class cgmObject(cgmNode):
             assert mc.objExists(sourceObject) is True, "'%s' - source object doesn't exist" %sourceObject
 
         assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
-        objRot = mc.xform (sourceObject, q=True, ws=True, ro=True)
-        self.doCopyPivot(sourceObject)
-        self.rotateAxis = objRot
+        return coreRigging.copy_transform(self.mNode, sourceObject)
 
     def doGroup(self,maintain=False, asMeta = False):
         """
@@ -2397,7 +2396,9 @@ class cgmControl(cgmObject):
 
             i_mirrorSystem.objs = [self.i_object.mNode,i_mirrorObject]#Overload as it was erroring out
         except StandardError,error:
-            raise StandardError,"%s >>> error: %s"%(_str_funcName,error) 
+            raise StandardError,"%s >>> error: %s"%(_str_funcName,error)
+        
+        
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   

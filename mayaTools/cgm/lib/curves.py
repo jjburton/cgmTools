@@ -134,6 +134,10 @@ def parentShapeInPlace(obj,curve):
     mc.setAttr((group+'.rx'),0)
     mc.setAttr((group+'.ry'),0)
     mc.setAttr((group+'.rz'),0)
+	
+    mc.setAttr((group+'.rotateAxisX'),0)
+    mc.setAttr((group+'.rotateAxisY'),0)
+    mc.setAttr((group+'.rotateAxisZ'),0)	
 
     #main scale fix 
     baseMultiplier = [0,0,0]
@@ -160,7 +164,7 @@ def parentShapeInPlace(obj,curve):
     workingCurve = mc.parent(workingCurve,world=True)
     mc.delete(group)
 
-    "freeze for parent shaping """
+    #freeze for parent shaping 
     mc.makeIdentity(workingCurve,apply=True,translate =True, rotate = True, scale=True)
     shape = mc.listRelatives (workingCurve, f= True,shapes=True)
     mc.parent (shape,obj,add=True,shape=True)
