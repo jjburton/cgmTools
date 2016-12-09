@@ -31,6 +31,7 @@ from cgm.core.cgmPy import OM_Utils as cgmOM
 #reload(cgmOM)
 from cgm.core.lib import nameTools
 from cgm.core.lib import rigging_utils as coreRigging
+from cgm.core.lib import name_utils as coreNames
 #import cgm.lib
 import cgm.lib as cgmLIB
 from cgm.lib.ml import ml_resetChannels
@@ -1263,20 +1264,14 @@ class cgmNode(r9Meta.MetaClass):
         return enums[self.getAttr(attr)]
 
     def getShortName(self):
-        buffer = mc.ls(self.mNode,shortNames=True) 
-        if buffer:return buffer[0]
-        log.error("No object exists")
+        return coreNames.get_short(self.mNode)
 
     def getBaseName(self):
-        buffer = self.mNode     
-        if buffer:return buffer.split('|')[-1].split(':')[-1] 
-        log.error("No object exists")
+        return coreNames.get_base(self.mNode)
 
 
     def getLongName(self):
-        buffer = mc.ls(self.mNode,l=True)        
-        if buffer:return buffer[0]
-        log.error("No object exists")	
+        return coreNames.get_long(self.mNode)	
 
     #Some name properties
     p_nameShort = property(getShortName)
@@ -1638,9 +1633,12 @@ class cgmNode(r9Meta.MetaClass):
                     
                     objTrans = mc.xform(self.mNode, q=True, ws=True, sp=True)
                     objRot = mc.xform(self.mNode, q=True, ws=True, ro=True)
+                    objRotAxis = mc.xform(self.mNode, q=True, os=True, ra=True)
                 
                     mc.move (objTrans[0],objTrans[1],objTrans[2], buffer.mNode)			
                     mc.rotate (objRot[0], objRot[1], objRot[2], buffer.mNode, ws=True)
+                    for i,a in enumerate(['X','Y','Z']):
+                        attributes.doSetAttr(buffer.mNode, 'rotateAxis{0}'.format(a), objRotAxis[i])                    
                     buffer.rotateOrder = self.rotateOrder
                 else:
                     buffer = cgmLIB.locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)                    
@@ -2028,14 +2026,13 @@ class cgmObject(cgmNode):
         """ Copy the transform from a source object to the current instanced maya object. """
         try:
             #If we have an Object Factory instance, link it
-            sourceObject.mNode
             sourceObject = sourceObject.mNode
             #log.debug("Source is an instance")                        
         except:
             #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
             assert mc.objExists(sourceObject) is True, "'%s' - source object doesn't exist" %sourceObject
 
-        assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
+        #assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
         return coreRigging.copy_transform(self.mNode, sourceObject)
 
     def doGroup(self,maintain=False, asMeta = False):

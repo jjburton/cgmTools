@@ -1139,8 +1139,8 @@ def create_basic(*args,**kws):
                         int_runningTally = 0
                         for i,i_ctrl in enumerate([i_startControl,i_endControl]):
                             log.info("{0} | {1}".format(i,i_ctrl.p_nameShort))
-                            mPlug_outDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%controlOrientation[2])
-                            mPlug_upDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%controlOrientation[1])
+                            mPlug_outDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%self.str_controlOrientation[2])
+                            mPlug_upDriver = cgmMeta.cgmAttr(i_ctrl,"s%s"%self.str_controlOrientation[1])
                             mPlug_scaleOutDriver = cgmMeta.cgmAttr(i_ctrl,"out_scale%sOutNormal"%l_attrPrefix[i],attrType='float')
                             mPlug_scaleUpDriver = cgmMeta.cgmAttr(i_ctrl,"out_scale%sUpNormal"%l_attrPrefix[i],attrType='float')
                             mPlug_out_scaleUp = cgmMeta.cgmAttr(i_ctrl,"out_scale%sOutInv"%l_attrPrefix[i],attrType='float')

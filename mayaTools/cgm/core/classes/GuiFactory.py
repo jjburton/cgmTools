@@ -808,7 +808,7 @@ def log_selfReport(self):
                 if bfr_type in [bool,str,list,tuple]:
                     log.info(cgmGeneral._str_baseStart * 2 + "[{0}] : {1} ".format(str_k,buffer))
                 if 'var_' in str_k:
-                    log.info(cgmGeneral._str_baseStart * 2 + "[{0}] | type: {1} | value: {2}".format(buffer.name,buffer.varType,buffer.value))		
+                    log.info(cgmGeneral._str_baseStart * 2 + "[{3}] | full:{0} | type: {1} | value: {2}".format(buffer.name,buffer.varType,buffer.value,str_k))		
                 #log.info(cgmGeneral._str_baseStart * 4 + "Type: {0}".format(type(buffer)))
             except Exception,error:
                 log.error("log_selfReport >> '{0}' key fail | error: {1}".format(str_k,error))

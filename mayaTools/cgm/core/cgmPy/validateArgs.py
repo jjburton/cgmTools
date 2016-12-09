@@ -814,7 +814,7 @@ def kw_fromList(arg = None ,l = None, indexCallable = False, returnIndex = False
     
     if not isListArg(l):
         if noneValid:return False        
-        raise ValueError,"{0}: l arg must be a dict | l: {1}".format(_str_funcName,l)
+        raise ValueError,"{0}: l arg must be a list | l: {1} | type:{2}".format(_str_funcName,l,type(l))
     
     if returnIndex:
         if type(arg) is int:

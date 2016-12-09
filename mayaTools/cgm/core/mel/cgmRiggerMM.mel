@@ -1,0 +1,8 @@
+global proc cgmRiggerMM() {
+	python("from cgm.core.tools.markingMenus import cgmMMRigger;reload(cgmMMRigger);cgmMMRigger.run()");
+	}
+
+
+global proc cgmRiggerMMKillUI () {
+	python("cgmMMRigger.killUI();");
+	}

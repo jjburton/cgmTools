@@ -153,6 +153,7 @@ def doPositionLocator(locatorName,locInfo):
 		objTrans = locInfo['position']
 		objRot = locInfo['rotation']
 		correctRo = locInfo['rotationOrder']
+		rotateAxis = locInfo['rotateAxis']
 
 		mc.move (objTrans[0],objTrans[1],objTrans[2], locatorName)
 		mc.setAttr ((locatorName+'.rotateOrder'), correctRo)
@@ -162,8 +163,10 @@ def doPositionLocator(locatorName,locInfo):
 			constBuffer = mc.normalConstraint((locInfo['createdFrom']),locatorName)
 			mc.delete(constBuffer[0])
 		else:
+			attributes.doSetAttr(locatorName, 'rotateOrder', correctRo)			
 			mc.rotate (objRot[0], objRot[1], objRot[2], locatorName, ws=True)
-
+			for i,a in enumerate(['X','Y','Z']):
+				attributes.doSetAttr(locatorName, 'rotateAxis{0}'.format(a), rotateAxis[i])  
 		return True
 	else:
 		guiFactory.warning('Not a locator.')
@@ -406,7 +409,8 @@ def returnInfoForLoc(obj,forceBBCenter = False):
 
 	objRot = mc.xform (obj, q=True, ws=True, ro=True)
 	objRoo = mc.xform (obj, q=True, roo=True )
-
+	objRotAxis = mc.xform(obj, q=True, os = True, ra=True) 
+	
 	"""get rotation order"""
 	correctRo = rotationOrderDictionary[objRoo]
 
@@ -417,6 +421,7 @@ def returnInfoForLoc(obj,forceBBCenter = False):
 	locInfo['position']=objTrans
 	locInfo['rotation']=objRot
 	locInfo['rotationOrder']=correctRo
+	locInfo['rotateAxis'] = objRotAxis
 
 
 	return locInfo

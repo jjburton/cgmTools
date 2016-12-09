@@ -27,6 +27,7 @@ from cgm.core.cgmPy import validateArgs as cgmValid
 
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
+from cgm.core.lib import rigging_utils as coreRigging
 from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.lib import meta_Utils as metaUtils
 from cgm.core.lib import shapeCaster as ShapeCast
@@ -1183,7 +1184,6 @@ class go(object):
                         mi_crvBase.__setattr__("tz",0)
                 except Exception,error:
                     raise Exception,"Rotate dup | {0}".format(error)                    
-                
                 i_grp.delete()
             
                 try:
@@ -1205,12 +1205,12 @@ class go(object):
                 except Exception,error:
                     raise Exception,"Color | {0}".format(error)
                 log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
-                
-                rigging.copyPivot(mi_crv.mNode, self._ml_controlObjects[-2].mNode)
+                #rigging.copyPivot(mi_crv.mNode, self._ml_controlObjects[-1].mNode)
+                #mi_crv.doCopyTransform(self._ml_controlObjects[-1])                
+                coreRigging.copy_transform(mi_crv.mNode, self._ml_controlObjects[-1].mNode)
             except Exception,err:
                 log.error("torsoIK | {0}".format(err)) 
                 return False           
-            
             
             try:
                 l_segmentControls = []
