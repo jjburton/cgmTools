@@ -8,14 +8,8 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
-
-from cgm.lib import guiFactory
-from cgm.lib import (lists,search)
-from cgm.tools.lib import animToolsLib
-from cgm.tools.lib import tdToolsLib
-from cgm.tools.lib import locinatorLib
-reload(animToolsLib)
-from cgm.lib import locators
+import cgm.core.classes.GuiFactory as cgmUI
+reload(cgmUI)
 
 
 import time
@@ -28,30 +22,33 @@ log.setLevel(logging.INFO)
 def run():
     cgmMMTemplate = cgmMarkingMenu()
 
+_str_popWindow = 'cgmMM'#...outside to push to killUI
 class cgmMarkingMenu(mUI.BaseMelWindow):
     _DEFAULT_MENU_PARENT = 'viewPanes'
-    _str_funcName = "puppetKeyMarkingMenu"
-    log.debug(">>> %s "%(_str_funcName) + "="*75)  
+    WINDOW_NAME = 'cgmMMWindow'
+    POPWINDOW = _str_popWindow
+     
     def __init__(self):	
         """
         Initializes the pop up menu class call
         """
-        self._str_MM = 'snapMarkingMenu'        
-        self.optionVars = []
-        IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked', value = 0)
-        mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction',value = 0)			
-
+        
+        log.info(self.__class__.POPWINDOW)
+        self._str_MM = type(self).__name__    
+        log.info(">>> %s "%(self._str_MM) + "="*75)          
+        self.l_optionVars = []		
+        self.create_guiOptionVar('isClicked', value = 0)
+        self.create_guiOptionVar('mmAction', value = 0)
+        self.create_guiOptionVar('clockStart', value = 0.0)  
 
         #>>>> Clock set
         #====================================================================
-        self.clockStartVar = cgmMeta.cgmOptionVar('cgmVar_PuppetKeyClockStart', defaultValue = 0.0)	
-        self.clockStartVar.value = time.clock()
-        log.debug("cgmPuppetKey.clockStart: %s"%self.clockStartVar.value)
 
-        IsClickedOptionVar.value = 0
-        mmActionOptionVar.value = 0
-        
-        
+        self.var_clockStart.value = time.clock()
+        #log.info("{0} >> clockStart: {1}".format(self._str_MM,self.clockStartVar.value))
+
+        self.var_isClicked.value = 0
+        self.var_mmAction.value = 0
 
         try:#>> Panel check and build...
             _sub = "Panel check and build"
@@ -60,105 +57,129 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                 log.error("No panel detected...")
                 return 
             if _p:
-                log.info("{0} panel under pointer {1}...".format(self._str_MM, _p))                    
+                log.info("...panel under pointer {1}...".format(self._str_MM, _p))                    
                 _parentPanel = mc.panel(_p,q = True,ctl = True)
-                log.info("{0} panel under pointer {1} | parent: {2}...".format(self._str_MM, _p,_parentPanel))
+                log.info("...panel parent: {1}...".format(self._str_MM,_parentPanel))
                 if 'MayaWindow' in _parentPanel:
                     _p = 'viewPanes'     
             if not mc.control(_p, ex = True):
                 return "{0} doesn't exist!".format(_p)
             else:
-                if not mc.popupMenu('cgmMM',ex = True):
-                    mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
-                                 pmc = mUI.Callback(self.createUI,'cgmMM'))
+                if not mc.popupMenu(self.__class__.POPWINDOW,ex = True):
+                    mc.popupMenu(self.__class__.POPWINDOW, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
+                                 pmc = mUI.Callback(self.createUI,self.__class__.POPWINDOW))
                 else:
-                    mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
-                                 pmc = mUI.Callback(self.createUI,'cgmMM'))
+                    mc.popupMenu(self.__class__.POPWINDOW, edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
+                                 pmc = mUI.Callback(self.createUI,self.__class__.POPWINDOW))
         except Exception,err:
             raise Exception,"{0} {1} exception | {2}".format(self._str_MM,_sub,err)
-        #pmc = lambda *a: self.createUI('cgmMM'))
 
-    def insert_init(self,*args,**kws):
-        self.__toolName__ = __toolName__		        
-        """ This is meant to be overloaded per gui """
-        log.debug(">>> cgmGUI.__init__")	
-        if kws:log.debug("kws: %s"%str(kws))
-        if args:log.debug("args: %s"%str(args))
-        log.debug(self.__call__(q=True, title=True))
-        self.__version__ = __version__
-        self.l_allowedDockAreas = ['right', 'left']
-        self.WINDOW_NAME = cgmGUI.WINDOW_NAME
-        self.WINDOW_TITLE = cgmGUI.WINDOW_TITLE
-        self.DEFAULT_SIZE = cgmGUI.DEFAULT_SIZE
-        
-        self.setup_Variables()	
-
-    def setup_Variables(self):
-        #self.create_guiOptionVar('ShowHelp',defaultValue = 0)
+    def setup_optionVars(self):
         pass
-        
+
     def create_guiOptionVar(self,varName,*args,**kws):
-        fullName = "cgmVar_{0}{1}".format(self.__toolName__,varName)
+        fullName = "cgmVar_{0}{1}".format(self._str_MM,varName)
         if args:args[0] = fullName
         if kws and 'varName' in kws.keys():kws.pop('varName')
         self.__dict__['var_{0}'.format(varName)] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
         log.debug('var_{0}'.format(varName))
         if fullName not in self.l_optionVars:
             self.l_optionVars.append(fullName)
+
         return fullName
+    
+    def build_menu(self, parent):
+        log.info("{0} >> build_menu".format(self._str_MM))                
+        mc.setParent(self)
+        mUI.MelMenuItemDiv(parent)
+        mUI.MelMenuItem(parent,l = 'ButtonAction...',
+                        c = mUI.Callback(self.button_action,None))        
+        mUI.MelMenuItem(parent,l = 'Reset...',
+                        c=mUI.Callback(self.button_action,self.reset))
+        #mUI.MelMenuItem(parent,l = "-"*20,en = False)
+        mUI.MelMenuItem(parent,l='Report',
+                        c = lambda *a: self.report()) 
+
+    def button_action(self, command = None):
+        """
+        execute a command and let the menu know not do do the default button action but just kill the ui
+        """	
+        log.info("{0} >> buttonAction: {1}".format(self._str_MM,command))                    
+        self.var_mmAction.value=1			
+        if command:
+            try:command()
+            except Exception,err:
+                log.info("{0} button >> error {1}".format(self._str_MM, err))      
 
     def createUI(self,parent):
         """
         Create the UI
         """	
-        log.info("{0}.createUI()...".format(self._str_MM))
-        
+        log.info("{0}.createUI()...{1}".format(self._str_MM,self))
+        for c in self.get_uiChildren():
+            #print c
+            log.info('deleting old ui: {0}'.format(c))
+            mc.deleteUI(c)
+
         time_buildMenuStart =  time.clock()
-        self.setupVariables()#Setup our optionVars
-
-        def buttonAction(command):
-            """
-            execute a command and let the menu know not do do the default button action but just kill the ui
-            """			
-            self.mmActionOptionVar.value=1			
-            command
-            killUI()	
-		
-        #MelMenuItem(parent,l = "-"*20,en = False)
+        self.setup_optionVars()#Setup our optionVars
+        log.info(parent)
+        #mc.setParent(parent)
+        #self.build_menu(parent)
         mUI.MelMenuItemDiv(parent)
-        mUI.MelMenuItem(parent,l = 'Reset...')
-        #mUI.MelMenuItem(parent, l="Reset",
-                        #c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars))
-
+        """
+        mUI.MelMenuItem(parent,l = 'ButtonAction...',
+                        c = mUI.Callback(self.button_action,None))        
+        mUI.MelMenuItem(parent,l = 'Reset...',
+                        c=mUI.Callback(self.button_action,self.reset))"""
+        mUI.MelMenuItem(parent,l = "-"*20,en = False)
+        mUI.MelMenuItem(parent,l='Report',
+                        c = lambda *a: self.report())
+        mUI.MelMenuItem(parent,l='Children',
+                        c = lambda *a: self.get_uiChildren())
         f_time = time.clock()-time_buildMenuStart
-        log.info('build menu took: %0.3f seconds  ' % (f_time) + '<'*10)  
+        log.info('build menu took: %0.3f seconds  ' % (f_time) + '<'*10) 
 
     def toggleVarAndReset(self, optionVar):
         try:
             self.mmActionOptionVar.value=1						
             optionVar.toggle()
-            log.info("PuppetKey.toggleVarAndReset>>> %s : %s"%(optionVar.name,optionVar.value))
+            log.info("{0}.toggleVarAndReset>>> {1} : {2}".format(self._str_MM,optionVar.name,optionVar.value))
         except Exception,error:
             log.error(error)
             print "MM change var and reset failed!"
 
+    def reset(self):
+        log.info("{0} >> reset".format(self._str_MM))        
+        mUI.Callback(cgmUI.do_resetGuiInstanceOptionVars(self.l_optionVars,False))
+    def report(self):
+        cgmUI.log_selfReport(self)
+        log.info("{0} >> Children...".format(self._str_MM))  
+        for c in self.get_uiChildren():
+            log.info(c)
+
+    def get_uiChildren(self):
+        """
+        Because maya is stupid and you can't query uiChildren
+        """
+        l_ = []
+        l_toCheck = []
+        l_toCheck.extend( mc.lsUI(controls = True, l = True) )
+        l_toCheck.extend( mc.lsUI(mi = True, l = True) )
+        l_toCheck.extend( mc.lsUI(controlLayouts = True, l = True) )
+        l_toCheck.extend( mc.lsUI(collection = True, l = True) )
+        l_toCheck.extend( mc.lsUI(rmc = True, l = True) )
+        l_toCheck.extend( mc.lsUI(menus = True, l = True) )
+        l_toCheck.extend( mc.lsUI(contexts = True, l = True) )
+        
+        for c in l_toCheck:
+            if  self.__class__.POPWINDOW in c.split('|') and not str(c).endswith(self.__class__.POPWINDOW):
+                l_.append(c)
+        return l_ 
 
 def killUI():
-    log.info("killUI()...")    
-    IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked')
-    mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction')
+    log.info("killUI...")
+    if mc.popupMenu(_str_popWindow,ex = True):
+        mc.deleteUI(_str_popWindow)      
 
-    sel = search.selectCheck()
 
-    #>>> Timer stuff
-    #=============================================================================
-    var_clockStart = cgmMeta.cgmOptionVar('cgmVar_PuppetKeyClockStart', defaultValue = 0.0)    
-    f_seconds = time.clock()-var_clockStart.value
-    log.debug(">"*10  + '   cgmPuppetKey =  %0.3f seconds  ' % (f_seconds) + '<'*10)    
-
-    #>>>Delete our gui and default behavior
-    if mc.popupMenu('cgmMM',ex = True):
-        mc.deleteUI('cgmMM')
-    if sel and f_seconds <= .5 and not mmActionOptionVar.value:
-        setKey()
-	

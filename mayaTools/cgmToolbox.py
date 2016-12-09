@@ -638,6 +638,10 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                            ('Marking Menu Template - key creation menu',
                             'template example',
                             mUI.Callback(HKEY.cgmHotkeyer, 'cgmMMTemplate', 'cgmTemplateMM;', 'cgmTemplateMMKillUI;','Demo marking menu - t','mel','t')),
+                           
+                           ('cgmRiggerMM -',
+                            'cgm Marking menu for rigging',
+                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmMMRigger',  'cgmRiggerMM;', 'cgmRiggerMMKillUI;','Marking menu for working with rigging tools', 'mel','s')),
 
                            ('Set Key Menu - key creation menu',
                             'cgmLibrary tools for dealing with keys',
