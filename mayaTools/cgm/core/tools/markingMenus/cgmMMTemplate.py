@@ -23,17 +23,17 @@ def run():
     cgmMMTemplate = cgmMarkingMenu()
 
 _str_popWindow = 'cgmMM'#...outside to push to killUI
+#MelPopupMenu
 class cgmMarkingMenu(mUI.BaseMelWindow):
     _DEFAULT_MENU_PARENT = 'viewPanes'
     WINDOW_NAME = 'cgmMMWindow'
     POPWINDOW = _str_popWindow
-     
+    MM = False#...whether to use mm pop up menu for build or not 
     def __init__(self):	
         """
         Initializes the pop up menu class call
         """
         
-        log.info(self.__class__.POPWINDOW)
         self._str_MM = type(self).__name__    
         log.info(">>> %s "%(self._str_MM) + "="*75)          
         self.l_optionVars = []		
@@ -52,6 +52,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
 
         try:#>> Panel check and build...
             _sub = "Panel check and build"
+            log.info( mc.getPanel(withFocus=True))            
             _p = mc.getPanel(up = True)
             if _p is None:
                 log.error("No panel detected...")
@@ -65,12 +66,14 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
             if not mc.control(_p, ex = True):
                 return "{0} doesn't exist!".format(_p)
             else:
+                #_pmc = mUI.Callback(self.createUI,self.__class__.POPWINDOW)
                 if not mc.popupMenu(self.__class__.POPWINDOW,ex = True):
-                    mc.popupMenu(self.__class__.POPWINDOW, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
-                                 pmc = mUI.Callback(self.createUI,self.__class__.POPWINDOW))
+                    mc.popupMenu(self.__class__.POPWINDOW, ctl = 0, alt = 0, sh = 0, mm = self.__class__.MM, b =1, aob = 1, p = _p)
                 else:
-                    mc.popupMenu(self.__class__.POPWINDOW, edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
-                                 pmc = mUI.Callback(self.createUI,self.__class__.POPWINDOW))
+                    mc.popupMenu(self.__class__.POPWINDOW, edit = True, ctl = 0, alt = 0, sh = 0, mm = self.__class__.MM, b =1, aob = 1, p = _p, dai = True)
+                self.createUI(self.__class__.POPWINDOW)
+                #mc.showWindow( self.__class__.POPWINDOW )
+                #self.show()
         except Exception,err:
             raise Exception,"{0} {1} exception | {2}".format(self._str_MM,_sub,err)
 
@@ -88,18 +91,28 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
 
         return fullName
     
+    @cgmGeneral.Timer
     def build_menu(self, parent):
+        """
+        This is the method designed to be overloaded to do build the subclass menus...
+        """
         log.info("{0} >> build_menu".format(self._str_MM))                
-        mc.setParent(self)
+        #mc.setParent(self)
         mUI.MelMenuItemDiv(parent)
         mUI.MelMenuItem(parent,l = 'ButtonAction...',
                         c = mUI.Callback(self.button_action,None))        
         mUI.MelMenuItem(parent,l = 'Reset...',
-                        c=mUI.Callback(self.button_action,self.reset))
-        #mUI.MelMenuItem(parent,l = "-"*20,en = False)
+                        c=mUI.Callback(self.button_action,self.reset))        
+        
+        """
+        mUI.MelMenuItem(parent,l = 'ButtonAction...',
+                                c = lambda *a: self.button_action(None))        
+        mUI.MelMenuItem(parent,l = 'Reset...',
+                        c=lambda *a: self.button_action(self.reset))  """      
+        mUI.MelMenuItem(parent,l = "-"*20,en = False)
         mUI.MelMenuItem(parent,l='Report',
-                        c = lambda *a: self.report()) 
-
+                        c = lambda *a: self.report())
+    @cgmGeneral.Timer    
     def button_action(self, command = None):
         """
         execute a command and let the menu know not do do the default button action but just kill the ui
@@ -121,24 +134,18 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
             log.info('deleting old ui: {0}'.format(c))
             mc.deleteUI(c)
 
-        time_buildMenuStart =  time.clock()
+        #time_buildMenuStart =  time.clock()
         self.setup_optionVars()#Setup our optionVars
-        log.info(parent)
         #mc.setParent(parent)
-        #self.build_menu(parent)
-        mUI.MelMenuItemDiv(parent)
-        """
-        mUI.MelMenuItem(parent,l = 'ButtonAction...',
-                        c = mUI.Callback(self.button_action,None))        
-        mUI.MelMenuItem(parent,l = 'Reset...',
-                        c=mUI.Callback(self.button_action,self.reset))"""
-        mUI.MelMenuItem(parent,l = "-"*20,en = False)
-        mUI.MelMenuItem(parent,l='Report',
-                        c = lambda *a: self.report())
-        mUI.MelMenuItem(parent,l='Children',
-                        c = lambda *a: self.get_uiChildren())
-        f_time = time.clock()-time_buildMenuStart
-        log.info('build menu took: %0.3f seconds  ' % (f_time) + '<'*10) 
+        
+        self.build_menu(parent)
+        
+        #mUI.MelMenuItemDiv(parent)        
+        mUI.MelMenuItem(parent,l = '{0}'.format(self.__class__.POPWINDOW),en=False)   
+        
+        #f_time = time.clock()-time_buildMenuStart
+        #log.info('build menu took: %0.3f seconds  ' % (f_time) + '<'*10) 
+              
 
     def toggleVarAndReset(self, optionVar):
         try:
@@ -152,11 +159,13 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
     def reset(self):
         log.info("{0} >> reset".format(self._str_MM))        
         mUI.Callback(cgmUI.do_resetGuiInstanceOptionVars(self.l_optionVars,False))
+        #killUI()
+        
     def report(self):
         cgmUI.log_selfReport(self)
-        log.info("{0} >> Children...".format(self._str_MM))  
+        log.debug("{0} >> Children...".format(self._str_MM))  
         for c in self.get_uiChildren():
-            log.info(c)
+            log.debug(c)
 
     def get_uiChildren(self):
         """
@@ -179,7 +188,10 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
 
 def killUI():
     log.info("killUI...")
-    if mc.popupMenu(_str_popWindow,ex = True):
-        mc.deleteUI(_str_popWindow)      
+    try:
+        if mc.popupMenu(_str_popWindow,ex = True):
+            mc.deleteUI(_str_popWindow)
+    except Exception,err:
+        log.error(err)
 
 

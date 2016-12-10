@@ -551,6 +551,10 @@ def create_at(target = None, create = 'null'):
         mc.select(cl=True)
         _created = mc.joint()
         attributes.doSetAttr(_created,'displayLocalAxis',True)
+        
+    elif _create == 'locator':
+        raise NotImplementedError,"locators not done yet"
+        
 
     return _created
     
@@ -585,8 +589,8 @@ def group_me(target = None,
     group = create_at(target)
     
 
-    if maintainParent == True and oldParent:
-        group = parent_set(group,oldParent)
+    if maintainParent == True and _oldParent:
+        group = parent_set(group,_oldParent)
         
     if parent:
         _wasLocked = []  
