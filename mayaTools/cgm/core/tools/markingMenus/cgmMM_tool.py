@@ -243,36 +243,26 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         en = self._b_sel_pair,
                         l = 'Parent',
                         c = lambda *a:snap_action(self,'parent'),
-                        rp = 'N')	
+                        rp = 'SE')	
         mUI.MelMenuItem(_r,
                         en = self._b_sel_pair,
                         l = 'Orient',
                         c = lambda *a:snap_action(self,'orient'),
-                        rp = 'E')	
-        """mUI.MelMenuItem(_r,
-                        en = self._b_sel_pair,
-                        l = 'bbCenter',
-                        ann = 'To the center of the bounding box',
-                        c = lambda *a:snap_action(self,'boundingBox'),
-                        rp = 'SE')	"""        
-        mUI.MelMenuItem(_r,
-                        en = self._b_sel_pair,
-                        l = 'scalePivot',
-                        c = lambda *a:snap_action(self,'scalePivot'),
-                        rp = 'SE')	        
+                        rp = 'E')	       
+       
     
-        mUI.MelMenuItem(_r,
+        """mUI.MelMenuItem(_r,
                         en = self._b_sel_pair,
                         l = 'Surface',
                         c = lambda *a:self.button_action(tdToolsLib.doSnapClosestPointToSurface(False)),
-                        rp = 'SW')
+                        rp = 'SW')"""
     
         mUI.MelMenuItem(_r,
                         en = self._b_sel,
                         l = 'RayCast',
                         #c = mUI.Callback(buttonAction,raySnap_start(_sel)),		            
                         c = lambda *a:self.button_action(raySnap_start(self._l_sel)),
-                        rp = 'W')	
+                        rp = 'SW')	
         
         #Settings....
         #======================================================================================
@@ -280,7 +270,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                                     en = True,
                                     l = 'Pivot Mode',
                                     rp = 'S')
-        self._l_pivotModes = ['rotatePivot','scalePivot','boundingBox']
+        #self._l_pivotModes = ['rotatePivot','scalePivot','boundingBox']
         _l_toBuild = [{'l':'rotatePivot',
                        'rp':'S',
                        'c':lambda *a:self.var_snapPivotMode.setValue(0)},
@@ -289,10 +279,13 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                        'c':lambda *a:self.var_snapPivotMode.setValue(1)},
                       {'l':'boundingBox',
                        'rp':'SE',
-                       'c':lambda *a:self.var_snapPivotMode.setValue(2)}]
+                       'c':lambda *a:self.var_snapPivotMode.setValue(2)},
+                      {'l':'closest',
+                       'rp':'E',
+                       'c':lambda *a:self.var_snapPivotMode.setValue(3)}]
         for i,m in enumerate(_l_toBuild):
             if i == self.var_snapPivotMode.value:
-                m['l'] = m['l'] + '(Active)'
+                m['l'] = m['l'] + '--(Active)'
             mUI.MelMenuItem(_settings,
                             en = True,
                             l = m['l'],

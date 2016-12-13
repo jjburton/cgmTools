@@ -20,13 +20,13 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 def run():
-    cgmMMTemplate = cgmMarkingMenu()
+    cgmMetaMMWindow = cgmMetaMM()
 
-_str_popWindow = 'cgmMM'#...outside to push to killUI
+_str_popWindow = 'cgmMetaMM'#...outside to push to killUI
 #MelPopupMenu
-class cgmMarkingMenu(mUI.BaseMelWindow):
+class cgmMetaMM(mUI.BaseMelWindow):
     _DEFAULT_MENU_PARENT = 'viewPanes'
-    WINDOW_NAME = 'cgmMMWindow'
+    WINDOW_NAME = 'cgmMetaMMWindow'
     POPWINDOW = _str_popWindow
     MM = False#...whether to use mm pop up menu for build or not 
     def __init__(self):	

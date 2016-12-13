@@ -109,9 +109,16 @@ def stringArg(arg=None, noneValid=True, calledFrom = None, **kwargs):
     if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
     else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg)    
     
-    result = arg
+    if not arg:
+        if noneValid:return False
+        raise ValueError,"Arg is None and not noneValid"
 
-    if not isinstance(arg, basestring):
+    if issubclass(type(arg),list or tuple):
+        arg = arg[0]  
+        
+    result = arg
+   
+    if not isinstance(arg, basestring):      
         if noneValid:
             result = False
         else:
@@ -289,25 +296,28 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
         TypeError | if the Maya type of 'arg' is in the list 'mayaType' and noneValid is False
         TypeError | if isTransform is True, 'arg' is not a transform, and noneValid is False
     """
-    log.debug("validateArgs.objString arg={0}".format(arg))
+    log.debug("validateArgs.objString arg = {0}".format(arg))
 
     _str_funcRoot = 'objString'
-    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
-    else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg) 
+    if calledFrom: _str_funcName = "{0}.{1} | arg:{2}".format(calledFrom,_str_funcRoot,arg)    
+    else:_str_funcName = "{0} | arg:{1}".format(_str_funcRoot,arg) 
 
     result = None 
-
+    
+    if issubclass(type(arg),list or tuple):
+        arg = arg[0]  
+    
     if not isinstance(arg, basestring):
-        raise TypeError('arg must be string')
+        raise TypeError('{0}: arg must be string'.format(_str_funcName))
 
     if len(mc.ls(arg)) > 1:
-        raise NameError("More than one object is named '{0}'".format(arg))
+        raise NameError("{1}: More than one object is named '{0}'".format(arg,_str_funcName))
 
     if result is None and not mc.objExists(arg):
         if noneValid:
             result = False
         else:
-            raise NameError("'{0}' does not exist".format(arg))
+            raise NameError("{1}: '{0}' does not exist".format(arg,_str_funcName))
     
     if result != False and mayaType is not None:
         l_mayaTypes = mayaType
@@ -321,9 +331,9 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
                 result = False
             else:
                 str_mayaTypes_formatted = ', '.join(l_mayaTypes)
-                fmt_args = [arg, str_argMayaType, str_mayaTypes_formatted]
+                fmt_args = [arg, str_argMayaType, str_mayaTypes_formatted, _str_funcName]
 
-                raise TypeError("Arg {0} is type '{1}', expected '{2}'".format(*fmt_args))
+                raise TypeError("{3}: Arg {0} is type '{1}', expected '{2}'".format(*fmt_args))
 
     if result is None and isTransform:
         if not mc.objectType(arg, isType="transform"):
@@ -331,8 +341,8 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
                 result = False
             else:
                 str_argMayaType = search.returnObjectType(arg)
-                fmt_args = [arg, str_argMayaType]
-                raise TypeError("'Arg {0}' is type {1}, expected 'transform'").format(*fmt_args)
+                fmt_args = [arg, str_argMayaType, _str_funcName]
+                raise TypeError("{2}: 'Arg {0}' is type {1}, expected 'transform'").format(*fmt_args)
 
     if result is None:
         result = arg
