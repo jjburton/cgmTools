@@ -81,7 +81,7 @@ class cgmMetaMM(mUI.BaseMelWindow):
         pass
 
     def create_guiOptionVar(self,varName,*args,**kws):
-        fullName = "cgmVar_{0}{1}".format(self._str_MM,varName)
+        fullName = "cgmVar_{0}_{1}".format(self._str_MM,varName)
         if args:args[0] = fullName
         if kws and 'varName' in kws.keys():kws.pop('varName')
         self.__dict__['var_{0}'.format(varName)] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
@@ -141,7 +141,7 @@ class cgmMetaMM(mUI.BaseMelWindow):
         self.build_menu(parent)
         
         #mUI.MelMenuItemDiv(parent)        
-        mUI.MelMenuItem(parent,l = '{0}'.format(self.__class__.POPWINDOW),en=False)   
+        #mUI.MelMenuItem(parent,l = '{0}'.format(self.__class__.POPWINDOW),en=False)   
         
         #f_time = time.clock()-time_buildMenuStart
         #log.info('build menu took: %0.3f seconds  ' % (f_time) + '<'*10) 

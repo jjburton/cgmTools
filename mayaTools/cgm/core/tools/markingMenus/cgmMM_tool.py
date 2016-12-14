@@ -23,7 +23,7 @@ from cgm.tools.lib import tdToolsLib#...REFACTOR THESE!!!!
 def run():
     mmWindow = cgmMarkingMenu()
 
-_str_popWindow = 'cgmMarkingMenuMM'#...outside to push to killUI
+_str_popWindow = 'cgmMarkingMenu'#...outside to push to killUI
 
 class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     WINDOW_NAME = 'cgmMarkingMenuWindow'
@@ -42,27 +42,184 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             self._b_sel_pair = True
             
         log.info("{0} >> build_menu".format(self._str_MM))                
-        #mc.setParent(self)
-        mUI.MelMenuItem(parent,l = 'ButtonAction...',
-                        c = mUI.Callback(self.button_action,None))        
-   
-        
         #mc.menu(parent,e = True, deleteAllItems = True)
-        self.uiRadial_snap_build(parent,'S')
+        
+        #Radial Section
+        _mode = self.var_menuMode.value
+        if _mode == 0:
+            log.info("{0} >> td mode...".format(self._str_MM))                            
+            self.menuRadial_td(parent)
+        elif _mode == 1:
+            log.info("{0} >> anim mode...".format(self._str_MM))                                        
+            self.menuRadial_anim(parent)
+        elif _mode == 2:
+            log.info("{0} >> dev mode...".format(self._str_MM))                                        
+            self.menuRadial_dev(parent)
+        else:
+            log.error("Don't know what to do with mode: {0}".format(_mode))
+            
+            
+        #Bottom section
+        if _mode == 0:
+            log.info("{0} >> td mode bottom...".format(self._str_MM))  
+            self.menuBottom_td(parent)
+        elif _mode == 1:
+            log.info("{0} >> anim mode bottom...".format(self._str_MM))
+            self.menuBottom_anim(parent)
+        elif _mode == 2:
+            log.info("{0} >> dev mode bottom...".format(self._str_MM))                                        
+        
+        mUI.MelMenuItem(parent,l = "-"*20,en = False)
+        
+        try:#>>> Menu mode
+            self.l_menuModes = ['td','anim','dev']
+            _str_section = 'menu mode toggle'
+    
+            uiMenu_menuMode = mUI.MelMenuItem( parent, l='Menu Mode', subMenu=True)    
+            self.uiRC_menuMode = mUI.MelRadioMenuCollection()
+            #self.uiOptions_menuMode = []		
+            _v = self.var_menuMode.value
+            
+            for i,item in enumerate(self.l_menuModes):
+                if i == _v:
+                    _rb = True
+                else:_rb = False
+                """self.uiOptions_menuMode.append(self.uiRC_menuMode.createButton(uiMenu_menuMode,label=item,
+                                                                               c = mUI.Callback(self.var_menuMode.setValue,i),
+                                                                               rb = _rb))"""   
+                self.uiRC_menuMode.createButton(uiMenu_menuMode,label=item,
+                                                c = mUI.Callback(self.var_menuMode.setValue,i),
+                                                rb = _rb)                
+        except Exception,err:
+            log.error("{0} failed to load. err: {1}".format(_str_section,err))	        
+        
+        mUI.MelMenuItem(parent,l = 'Reset Options',
+                        c=mUI.Callback(self.button_action,self.reset))             
+        mUI.MelMenuItem(parent,l='Report',
+                        c = lambda *a: self.report())
+        mUI.MelMenuItem(parent,l = 'cgmMM - {0}'.format(self.l_menuModes[self.var_menuMode.value]),en=False)
+        
+    def setup_optionVars(self):
+        self.create_guiOptionVar('menuMode', defaultValue = 0)            
+        self.var_keyType = cgmMeta.cgmOptionVar('cgmVar_KeyType', defaultValue = 0)
+        self.var_keyMode = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)	  
+        self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
+        
+    #@cgmGen.Timer
+    def menuRadial_td(self,parent):
+        #Radial---------------------------------------------------
+        self.uiRadial_snap_build(parent,'N')
+        #self.build_radial_dynParent(parent,'NW')
+        #self.build_radial_create(parent,'N')
+        #self.build_radial_copy(parent,'W')
+        #self.build_radial_aim(parent,'NE')
+        #self.build_radial_control(parent,'SW')
+        #self.build_radial_arrange(parent,'SE')
+        #Bottom---------------------------------------------------
+        
+    def menuRadial_anim(self,parent):
+        self.uiRadial_snap_build(parent,'N')
+        
+        mUI.MelMenuItem(parent,
+                        en = self._b_sel,
+                        l = 'dragBetween',
+                        #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                        #c = mUI.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Transform'),
+                        rp = "S")        
+        mUI.MelMenuItem(parent,
+                        en = self._b_sel,
+                        l = 'Reset',
+                        #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                        #c = mUI.Callback(self.button_action_per_sel,RIGGING.group_me,'Group Me'),
+                        rp = "SW")   
+        mUI.MelMenuItem(parent,
+                        en = self._b_sel,
+                        l = 'Key Clear Selected',
+                        #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                        #c = mUI.Callback(self.bc_create_groupMe,'Group Me'),
+                        rp = "W")  
+        mUI.MelMenuItem(parent,
+                        en = self._b_sel,
+                        l = 'Key Selected',
+                        #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                        #c = mUI.Callback(self.bc_create_groupMe,'Group Me'),
+                        rp = "E")  
+        
+    def menuRadial_dev(self,parent):
+        #Radial---------------------------------------------------
+        self.uiRadial_snap_build(parent,'N')
         self.build_radial_dynParent(parent,'NW')
         self.build_radial_create(parent,'N')
         self.build_radial_copy(parent,'W')
         self.build_radial_aim(parent,'NE')
         self.build_radial_control(parent,'SW')
         self.build_radial_arrange(parent,'SE')
+        #Bottom---------------------------------------------------
         
-        mUI.MelMenuItem(parent,l = "-"*20,en = False)
-        mUI.MelMenuItem(parent,l = 'Reset...',
-                        c=mUI.Callback(self.button_action,self.reset))             
-        mUI.MelMenuItem(parent,l='Report',
-                        c = lambda *a: self.report())
-         
-    #@cgmGen.Timer
+    def menuBottom_anim(self,parent):
+        self.optionMenu_keyType(parent) 
+        self.optionMenu_keyMode(parent)
+        self.optionMenu_resetMode(parent)
+    def menuBottom_td(self,parent):
+        self.optionMenu_resetMode(parent)
+        
+    def optionMenu_keyType(self, parent):
+        try:#>>> KeyType 
+            self.l_menuModes = ['td','anim','dev']
+            _str_section = 'key type'
+    
+            uiMenu = mUI.MelMenuItem( parent, l='Key Type', subMenu=True)    
+            uiRC = mUI.MelRadioMenuCollection()
+            #self.uiOptions_menuMode = []		
+            _v = self.var_keyType.value
+            
+            for i,item in enumerate(['reg','breakdown']):
+                if i == _v:
+                    _rb = True
+                else:_rb = False
+                uiRC.createButton(uiMenu,label=item,
+                                  c = mUI.Callback(self.var_keyType.setValue,i),
+                                  rb = _rb)                
+        except Exception,err:
+            log.error("{0} failed to load. err: {1}".format(_str_section,err))        
+    def optionMenu_keyMode(self, parent):
+        try:#>>> KeyMode 
+            _str_section = 'key mode'
+    
+            uiMenu = mUI.MelMenuItem( parent, l='Key Mode', subMenu=True)    
+            uiRC = mUI.MelRadioMenuCollection()
+            #self.uiOptions_menuMode = []		
+            _v = self.var_keyMode.value
+            
+            for i,item in enumerate(['Default','Channelbox']):
+                if i == _v:
+                    _rb = True
+                else:_rb = False
+                uiRC.createButton(uiMenu,label=item,
+                                  c = mUI.Callback(self.var_keyMode.setValue,i),
+                                  rb = _rb)                
+        except Exception,err:
+            log.error("{0} failed to load. err: {1}".format(_str_section,err))
+            
+    def optionMenu_resetMode(self, parent):
+        try:#>>> KeyMode 
+            _str_section = 'reset mode'
+    
+            uiMenu = mUI.MelMenuItem( parent, l='Reset Mode', subMenu=True)    
+            uiRC = mUI.MelRadioMenuCollection()
+            #self.uiOptions_menuMode = []		
+            _v = self.var_resetMode.value
+            
+            for i,item in enumerate(['Default','Transform Attrs']):
+                if i == _v:
+                    _rb = True
+                else:_rb = False
+                uiRC.createButton(uiMenu,label=item,
+                                  c = mUI.Callback(self.var_resetMode.setValue,i),
+                                  rb = _rb)                
+        except Exception,err:
+            log.error("{0} failed to load. err: {1}".format(_str_section,err)) 
+            
     def build_radial_dynParent(self,parent,direction = None):
         """
         Menu to work with dynParent setup from cgm
@@ -238,17 +395,17 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         en = self._b_sel_pair,
                         l = 'Point',
                         c = lambda *a:snap_action(self,'point'),
-                        rp = 'NE')		            
+                        rp = 'NW')		            
         mUI.MelMenuItem(_r,
                         en = self._b_sel_pair,
                         l = 'Parent',
                         c = lambda *a:snap_action(self,'parent'),
-                        rp = 'SE')	
+                        rp = 'N')	
         mUI.MelMenuItem(_r,
                         en = self._b_sel_pair,
                         l = 'Orient',
                         c = lambda *a:snap_action(self,'orient'),
-                        rp = 'E')	       
+                        rp = 'NE')	       
        
     
         """mUI.MelMenuItem(_r,
@@ -262,7 +419,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         l = 'RayCast',
                         #c = mUI.Callback(buttonAction,raySnap_start(_sel)),		            
                         c = lambda *a:self.button_action(raySnap_start(self._l_sel)),
-                        rp = 'SW')	
+                        rp = 'W')	
         
         #Settings....
         #======================================================================================
@@ -286,6 +443,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         for i,m in enumerate(_l_toBuild):
             if i == self.var_snapPivotMode.value:
                 m['l'] = m['l'] + '--(Active)'
+                
             mUI.MelMenuItem(_settings,
                             en = True,
                             l = m['l'],
@@ -339,7 +497,27 @@ def killUI():
         if mc.popupMenu(_str_popWindow,ex = True):
             mc.deleteUI(_str_popWindow)  
     except Exception,err:
-        log.error(err)    
+        log.error(err)  
+    
+    _var_mode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_menuMode', defaultValue = 0)
+    if _var_mode.value in [1]:
+        log.info('animMode killUI')
+        
+        #IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked')
+        #mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction')
+    
+        sel = search.selectCheck()
+    
+        #>>> Timer stuff
+        #=============================================================================
+        var_clockStart = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_clockStart', defaultValue = 0.0)    
+        f_seconds = time.clock()-var_clockStart.value
+        log.info(">"*10  + '   cgmMarkingMenu =  %0.3f seconds  ' % (f_seconds) + '<'*10)    
+    
+        if sel and f_seconds <= .5:#and not mmActionOptionVar.value:
+            log.info("{0} >> low time. Set key...".format(_str_popWindow))
+            setKey()        
+    
         
 from cgm.core.classes import DraggerContextFactory as cgmDrag
 
@@ -398,6 +576,57 @@ def snap_action(self,mode = 'point'):
     mc.select(self._l_sel)    
     
 
+
+    
+def setKey():
+    KeyTypeOptionVar = cgmMeta.cgmOptionVar('cgmVar_KeyType', defaultValue = 0)
+    KeyModeOptionVar = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)	
+
+    if not KeyModeOptionVar.value:#This is default maya keying mode
+        selection = mc.ls(sl=True) or []
+        if not selection:
+            return log.warning('cgmPuppetKey.setKey>>> Nothing l_selected!')
+
+        if not KeyTypeOptionVar.value:
+            mc.setKeyframe(selection)
+        else:
+            mc.setKeyframe(breakdown = True)
+    else:#Let's check the channel box for objects
+        selection = search.returnSelectedAttributesFromChannelBox(False) or []
+        if not selection:
+            selection = mc.ls(sl=True) or []
+            if not selection:
+                return log.warning('cgmPuppetKey.setKey>>> Nothing l_selected!')
+
+        if not KeyTypeOptionVar.value:
+            mc.setKeyframe(selection)
+        else:
+            mc.setKeyframe(selection,breakdown = True)	
+
+def deleteKey():
+    KeyTypeOptionVar = cgmMeta.cgmOptionVar('cgmVar_KeyType', defaultValue = 0)
+    KeyModeOptionVar = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)	
+
+    if not KeyModeOptionVar.value:#This is default maya keying mode
+        selection = mc.ls(sl=True) or []
+        if not selection:
+            return log.warning('cgmPuppetKey.deleteKey>>> Nothing l_selected!')
+
+        if not KeyTypeOptionVar.value:
+            mc.cutKey(selection)	    
+        else:
+            mc.cutKey(selection)	    
+    else:#Let's check the channel box for objects
+        selection = search.returnSelectedAttributesFromChannelBox(False) or []
+        if not selection:
+            selection = mc.ls(sl=True) or []
+            if not selection:
+                return log.warning('cgmPuppetKey.deleteKey>>> Nothing l_selected!')
+
+        if not KeyTypeOptionVar.value:
+            mc.cutKey(selection)	    
+        else:
+            mc.cutKey(selection,breakdown = True)
 
 
 

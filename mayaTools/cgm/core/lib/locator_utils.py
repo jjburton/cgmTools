@@ -28,6 +28,8 @@ from cgm.core.lib import search_utils as SEARCH
 reload(VALID)
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.cgmPy import OM_Utils as cgmOM
+from cgm.core.lib import position_utils as POS
+
 
 #TO REFACTOR
 from cgm.lib import attributes
@@ -90,7 +92,7 @@ def update(target = None, mode = None, forceBBCenter = False):
             _source = SEARCH.get_tag(_target,'cgmName')
             log.info(_source)
             if _source:
-                _d = SNAP.get_info(_source)
+                _d = POS.get_info(_source)
                 position(_target,_d)
                 return True
     else:

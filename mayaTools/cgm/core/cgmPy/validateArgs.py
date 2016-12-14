@@ -220,7 +220,9 @@ def stringListArg(l_args=None, noneValid=False, calledFrom = None, **kwargs):
     else:_str_funcName = "{0}({1})".format(_str_funcRoot,l_args)    
     
     result = []
-
+    if l_args is None:
+        if noneValid:return False
+        else:raise ValueError,"Arg is none and not noneValid"
     if not isinstance(l_args, (tuple, list)):l_args = [l_args]
     
     for arg in l_args:
@@ -230,7 +232,7 @@ def stringListArg(l_args=None, noneValid=False, calledFrom = None, **kwargs):
         else:
             log.warning(
                 "Arg {0} from func '{1}' ".format(arg, _str_funcName) +\
-                " is type '{2}', not 'str'".format(type(arg).__name__)
+                " is type '{0}', not 'str'".format(type(arg).__name__)
             )
     return result
     
