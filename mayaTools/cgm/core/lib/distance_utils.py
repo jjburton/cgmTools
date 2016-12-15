@@ -29,7 +29,9 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import position_utils as POS
+from cgm.core.lib import math_utils as MATHUTILS
 reload(POS)
+reload(MATHUTILS)
 #>>> Utilities
 #===================================================================
 def get_bb_size(arg = None):
@@ -144,3 +146,25 @@ def get_distance_between_points(point1,point2):
         distance(float)
     """       
     return sqrt( pow(point1[0]-point2[0], 2) + pow(point1[1]-point2[1], 2) + pow(point1[2]-point2[2], 2) )
+
+def get_pos_by_vec_dist(startPos,vec,distance = 1):
+    """
+    Get a point along a ray given a point, ray and distance along that ray 
+    
+    :parameters:
+        point(list): [x,x,x]
+        vector(list): [x,x,x]
+
+    :returns
+        distance(float)
+    """         
+    _str_func = 'get_pos_by_vec_dist'
+    
+    _startPos = MATHUTILS.Vector3(startPos[0],startPos[1],startPos[2])
+    _dir = MATHUTILS.Vector3(vec[0],vec[1],vec[2])
+    
+    _new = _startPos + _dir * distance
+    
+    return _new.x,_new.y,_new.z
+    
+    

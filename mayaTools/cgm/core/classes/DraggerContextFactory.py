@@ -7,7 +7,6 @@
 # DESCRIPTION:
 #	Classes and functions for DraggerContext
 #
-#
 # AUTHOR:
 # 	Josh Burton
 #	http://www.cgmonks.com
@@ -28,6 +27,11 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.lib import distance_utils as DIST
+from cgm.core.lib import position_utils as POS
+reload(POS)
+from cgm.core.lib import math_utils as MATHUTILS
+from cgm.core.lib import locator_utils as LOC
 reload(RayCast)
 from cgm.lib import (locators,
                      geo,
@@ -47,7 +51,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 class ContextualPick(object):
@@ -143,30 +147,37 @@ class clickMesh(ContextualPick):
     Find positional data from clicking on a surface from a ContextualPick instance.
     And other things...:)
 
-    @Parameters
-    mesh(list) -- Mesh/nurbsSurfaces to cast to. If None, will use all visible mesh.
-    mode(string) -- options:('surface' is default)
-                    'surface' -- surface hit per mesh piece
-                    'intersections' -- all hits on the vector ray
-                    'midPoint' -- mid point of intersections
+    :parameters:
+        mesh(list) -- Mesh/nurbsSurfaces to cast to. If None, will use all visible mesh.
+        mode(string) -- options:('surface' is default)
+                        'surface' -- Single return
+                        'intersections' -- all hits on the vector ray
+                        'midPoint' -- mid point of intersections
+    
+        create(False/option) -- options:('locator' is default)
+                                'locator' -- makes a locator 
+                                'joint' -- creates joints per click
+                                'jointChain' -- rebuilds all positions as a chain at tool exit
+                                'curve' -- builds curve from positions at tool exit
+                                'group' -- build groups at positions
+                                'follicle' --creates a folicle
+    
+        closestOnly(bool) -- only return the closest hit from all mesh hits (default - True)
+        clampIntersections(False/int) -- clamp number of interactions
+        dragStore(bool) -- whether to force store data during drag
+        maxStore(int) -- Maximum number of hits to accept before finalizing
+        posOffset(vector) -- x,y,z offset from given point
+        offsetMode(str) -- 'vector','normal' (default -- 'vector')
+                            distance -- offset along the ray with the end - start being the base distance
+                            snapCast -- An auto guessing post cast mode to attempt to keep things off the surface when casting
+        clampValues(vector) -- clamp given values to provided ones. Useful for a spine cast for example
+        orientSnap(bool) -- orient the created object to surface
+        timeDelay(float) -- Wait to start the tool after a given delay. Useful for marking menu calling
+        tagAndName(dict) -- I don't remember...:)
+        toCreate(list) -- list of items names to make, sets's max as well. When it's through the list, it shops
+        toSnap(list) -- objects to snap to a final pos value
 
-    create(False/option) -- options:('locator' is default)
-                            'locator' -- makes a locator 
-                            'joint' -- creates joints per click
-                            'jointChain' -- rebuilds all positions as a chain at tool exit
-                            'curve' -- builds curve from positions at tool exit
-                            'group' -- build groups at positions
-                            'follicle' --creates a folicle
-
-    closestOnly(bool) -- only return the closest hit from all mesh hits (default - True)
-    clampIntersections(False/int) -- clamp number of interactions
-    dragStore(bool) -- whether to force store data during drag
-    toCreate(list) -- list of items names to make, sets's max as well
-    posOffset(vector) -- how much ot offset 
-    offsetMode(bool) -- 'vector','normal' (default -- 'vector')
-    orientSnap(bool) -- orient the created object to surface
-
-    Stores
+    :Stores
     self.l_pos(list) -- points on the surface selected in world space
 
     TODO:
@@ -181,8 +192,8 @@ class clickMesh(ContextualPick):
                  dragStore = False,
                  maxStore = False,
                  posOffset = None,
+                 offsetMode = None,                 
                  clampValues = [None,None,None],
-                 offsetMode = 'normal',
                  orientSnap = True,
                  timeDelay = None,
                  tagAndName = {},
@@ -423,9 +434,57 @@ class clickMesh(ContextualPick):
             if self.l_created:
                 mc.delete(self.l_created)            
             if self._posBuffer:
+                """
+                #TESTING OFFSET
+                _dist = DIST.get_distance_between_points(p,self.clickPos)
+                log.info("BaseDistance: {0}".format(_dist))
+                _dist = _dist - 1
+                _newP = DIST.get_pos_by_vec_dist(self.clickPos,self.clickVector,_dist)
+                log.info("Old point: {0} | new point: {1}".format(p,_newP))
+                self._posBuffer[i] = _newP"""                              
+                
+                #Use that distance to subtract along our original ray's hit distance to get our new point
                 for o in self.l_toSnap:
+                    _pos = self._posBuffer[-1]
+                    if self.str_offsetMode == 'snapCast':
+                        try:
+                            log.debug("snapCast: {0}".format(o))
+                            
+                            _pos_obj = POS.get(o,pivot='rp',space='w')#...Get the point of the object to snap
+                            log.debug("startPoint: {0}".format(_pos_obj))
+                            log.debug("posBuffer: {0}".format(self._posBuffer[-1]))
+                            
+                            _vec_obj = MATHUTILS.get_vector_of_two_points( _pos_obj,self._posBuffer[-1])#...Get the vector from there to our hit
+                            _dist_base = DIST.get_distance_between_points(self._posBuffer[-1], _pos_obj)#...get our base distance
+                            
+                            _cast = RayCast.shoot(self.l_mesh, startPoint=_pos_obj,vector=_vec_obj)
+                            _nearHit = _cast['near']
+                            _dist_firstHit = DIST.get_distance_between_points(_pos_obj,_nearHit)
+                            log.debug("baseDist: {0}".format(_dist_base))
+                            log.debug("firstHit: {0}".format(_dist_firstHit))
+                            
+                            _offsetPos = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,(_dist_base - _dist_firstHit))
+                            
+                            _pos = _offsetPos
+                            
+                            #Failsafe for casting to self...
+                            if DIST.get_distance_between_points(_pos, _pos_obj) < _dist_firstHit:
+                                log.warning("Close proximity cast, using default")
+                                _pos = self._posBuffer[-1]
+                        except Exception,err:
+                            _pos = self._posBuffer[-1]                            
+                            log.error("SnapCast fail. Using original pos... | err: {0}".format(err))
+                        
+                    #mc.rename( LOC.create(position = _nearHit), 'nearHit')
+                    #mc.rename( LOC.create(position = _offsetPos), 'offSet')
+                    
+                    
+                    #_dist_base = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,_dist)
+                    #Cast a ray and get nearest hit
+                    #Get that distance                    
                     try:
-                        mc.xform(o, t = self._posBuffer[-1], ws = True)  
+                        POS.set(o,_pos)
+                        #mc.xform(o, t = _offsetPos, ws = True)  
                     except Exception,err:
                         log.error("{0} failed to snap. err: {1}".format(o,err))
                 if self.l_toSnap:
@@ -526,7 +585,6 @@ class clickMesh(ContextualPick):
                         self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
 
 
-
         if not self._posBuffer:
             log.warning('No hits detected!')
             return
@@ -535,8 +593,9 @@ class clickMesh(ContextualPick):
             log.warning("Position buffer was clamped. Check settings if this was not desired.")
             self._posBuffer = distance.returnPositionDataDistanceSortedList(self.startPoint,self._posBuffer)
             self._posBuffer = self._posBuffer[:self.b_clampSetting]
-
-        if self.mode == 'midPoint':                
+            
+        if self.mode == 'midPoint':  
+            #JOSH -- this needs to be redone. It should average the closest and furthest, not all points
             self._posBuffer = [distance.returnAveragePointPosition(self._posBuffer)]
 
         if self._posBuffer: #Check for closest and just for hits
@@ -545,6 +604,9 @@ class clickMesh(ContextualPick):
                 self._posBuffer = [buffer]                 
         else:pass
             #log.warning("No hits detected")
+        
+        #Playing with vector offset...
+        
 
         #>>> Make our stuff ======================================================
         if self._createMode and self._posBuffer: # Make our stuff

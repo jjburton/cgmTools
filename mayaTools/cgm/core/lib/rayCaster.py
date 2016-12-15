@@ -15,7 +15,9 @@ import copy
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
 from cgm.core.lib.zoo import apiExtensions
-from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as VALID
+from cgm.core.lib import position_utils as POS
+from cgm.core.lib import distance_utils as DIST
 from cgm.core import cgm_General as cgmGeneral
 
 from cgm.lib import locators
@@ -37,6 +39,115 @@ log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def shoot(mesh = None, obj = None, axis = 'z+',
+          startPoint = None, vector = None,
+          maxDistance = 1000, firstHit = True):
+    """
+    Find mesh intersections
+    
+    :parameters:
+        mesh(string/list) | Surface to cast at
+        obj(string) | transform to cast from
+        axis(string) | Axis to cast
+        vector(double3) | vector to cast
+        maxDistance(float) | max cast range
+        firstHit(bool) | single return per mesh
+
+    :returns:
+        Dict ------------------------------------------------------------------
+        'source'(double3) |  point from which we cast
+        'hit' | only there for firstHit and single mesh or closestInRange
+        'hits'(list) | world space points
+        'uvs'(dict) | uv on surface of hit
+        'near' | nearest hit
+        'far' | furthest hit
+  
+    :raises:
+    Exception | if reached
+    """   
+    _str_func = 'shoot'
+    
+    _mesh = VALID.listArg(mesh)
+    
+    if not startPoint:
+        startPoint = POS.get(obj,pivot='rp',space='ws')
+    
+    if not vector:
+        if not obj:
+            raise ValueError,"Must have an obj to get a vector when no vector is provided"
+        
+        d_matrixVectorIndices = {'x':[0,1,2],
+                                 'y': [4,5,6],
+                                 'z' : [8,9,10]}
+        
+        matrix = mc.xform(obj, q=True,  matrix=True, worldSpace=True)
+
+        #>>> Figure out our vector
+        if axis not in dictionary.stringToVectorDict.keys():
+            log.error("|{0}| >> axis arg not valid: '{1}'".format(_str_func,axis))
+            return False
+        if list(axis)[0] not in d_matrixVectorIndices.keys():
+            log.error("|{0}| >> axis arg not in d_matrixVectorIndices: '{1}'".format(_str_func,axis))            
+            return False  
+        vector = [matrix[i] for i in d_matrixVectorIndices.get(list(axis)[0])]
+        if list(axis)[1] == '-':
+            for i,v in enumerate(vector):
+                vector[i]=-v
+
+    _l_posBuffer = []
+    _l_uvBuffer = []
+    _source = None
+
+    _d_meshPos = {}
+    _d_meshUV = {}
+    for m in _mesh:
+        _b = {}
+        if firstHit:
+            try:_b = findMeshIntersection(m, startPoint, rayDir=vector, maxDistance = maxDistance)
+            except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))
+            if not _d_meshUV.get(m):_d_meshUV[m] = []
+            if not _d_meshPos.get(m):_d_meshPos[m] = []
+            if _b:
+                _l_posBuffer.append(_b['hit'])
+                _uv = _b.get('uv')
+                _d_meshUV[m].append(_uv)
+                _d_meshPos[m].append(_b['hit'])								    
+        else:
+            try:_b = findMeshIntersections(m, startPoint, rayDir=vector, maxDistance = maxDistance)
+            except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))	
+            if not _d_meshUV.get(m):_d_meshUV[m] = []
+            if not _d_meshPos.get(m):_d_meshPos[m] = []
+            if _b:
+                _uvs = _b['uvs']		
+                for i,h in enumerate(_b['hits']):
+                    _uv = _uvs[i]
+                    _l_posBuffer.append(h)
+                    _d_meshUV[m].append(_uv)
+                    _d_meshPos[m].append(h)						
+        if _b:
+            if _source == None:
+                _source = _b['source']
+
+    if not _l_posBuffer:
+        log.info("|{0}| No hits detected. startPoint: {1} | mesh:{2} | vector:{4} | axis: {3}".format(_str_func,startPoint,mesh,axis,vector))
+        return {}
+    
+    _near = distance.returnClosestPoint(_source, _l_posBuffer)
+    _furthest = distance.returnFurthestPoint(_source,_l_posBuffer)
+    
+    _d = {'source':_source, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'meshHits':_d_meshPos}
+    if firstHit:
+        _d['hit'] = _near
+    else:_d['hit'] = _furthest
+    return _d
+
+
+
+#LOOK AT BELOW FOR OPTIMIZATION =================================================================================================
+
+
+
+
 def findSurfaceIntersection(surface, raySource, rayDir, maxDistance = 1000):
     """
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
@@ -170,7 +281,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
         _str_funcName = 'findMeshIntersection'
 
         try:
-            if cgmValid.isListArg(mesh):
+            if VALID.isListArg(mesh):
                 log.debug("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
                 mesh = mesh[0]
             if len(mc.ls(mesh))>1:
@@ -343,7 +454,7 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance
         if cgmGeneral.__mayaVersion__ >= 2012:
             _b_OpenMaya_2 = True
 
-        if cgmValid.isListArg(mesh):
+        if VALID.isListArg(mesh):
             log.debug("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
             mesh = mesh[0]	    
         if len(mc.ls(mesh))>1:
@@ -388,7 +499,7 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
         from maya.api import OpenMaya as OM2
         
         try:
-            if cgmValid.isListArg(mesh):
+            if VALID.isListArg(mesh):
                 log.debug("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
                 mesh = mesh[0]	    
             if len(mc.ls(mesh))>1:
@@ -518,7 +629,7 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
         _str_funcName = 'findMeshIntersections_OM2'
         
         try:
-            if cgmValid.isListArg(mesh):
+            if VALID.isListArg(mesh):
                 log.debug("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
                 mesh = mesh[0]	    
             if len(mc.ls(mesh))>1:
@@ -698,11 +809,11 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
 
     :parameters:
         mesh(string) | Surface to cast at
-    obj(string) | transform to cast from
-    axis(string) | Axis to cast
-    vector(double3) | vector to cast
-    maxDistance(float) | max cast range
-    firstHit(bool) | single return per mesh
+        obj(string) | transform to cast from
+        axis(string) | Axis to cast
+        vector(double3) | vector to cast
+        maxDistance(float) | max cast range
+        firstHit(bool) | single return per mesh
 
     :returns:
         Dict ------------------------------------------------------------------
@@ -719,7 +830,7 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
     try:
         _str_funcName = 'findMeshIntersectionFromObjectAxis'
         log.debug(">>> %s >> "%_str_funcName + "="*75) 
-        _mesh = cgmValid.listArg(mesh)
+        _mesh = VALID.listArg(mesh)
         _oneMesh = False
         if len(_mesh) == 1:
             _oneMesh = True
@@ -906,7 +1017,7 @@ def returnNormalizedUVOLD(mesh, uValue, vValue):
         _str_funcName = 'returnNormalizedUV'
 
         try:#Validation ----------------------------------------------------------------
-            mesh = cgmValid.objString(mesh,'nurbsSurface', calledFrom = _str_funcName)
+            mesh = VALID.objString(mesh,'nurbsSurface', calledFrom = _str_funcName)
             if len(mc.ls(mesh))>1:
                 raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
             _str_objType = search.returnObjectType(mesh)

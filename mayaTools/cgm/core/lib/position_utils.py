@@ -33,7 +33,7 @@ from cgm.core.lib import search_utils as SEARCH
 #===================================================================
 _d_pos_modes = {'xform':['x']}
 
-def get(obj = None, pivot = 'rp', space = 'os', targets = None, mode = 'xform'):
+def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
     """
     General call for querying position data in maya.
     Note -- pivot and space are ingored in boundingBox mode which returns the center pivot in worldSpace
@@ -121,7 +121,7 @@ def get(obj = None, pivot = 'rp', space = 'os', targets = None, mode = 'xform'):
     
     raise RuntimeError,"|{0}| >> Shouldn't have gotten here: obj: {1}".format(_str_func,_obj)
     
-def set(obj = None, pos = None, pivot = 'rp', space = 'os'):
+def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
     """
     General call for querying position data in maya.
     Note -- pivot and space are ingored in boundingBox mode which returns the center pivot in worldSpace

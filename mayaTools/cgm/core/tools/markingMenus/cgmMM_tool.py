@@ -6,7 +6,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGen
@@ -19,6 +19,17 @@ from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.lib import search
 from cgm.lib import locators
 from cgm.tools.lib import tdToolsLib#...REFACTOR THESE!!!!
+
+
+from cgm.lib.ml import (ml_breakdownDragger,
+                        ml_resetChannels,
+                        ml_deleteKey,
+                        ml_setKey,
+                        ml_hold,
+                        ml_stopwatch,
+                        ml_arcTracer,
+                        ml_convertRotationOrder,
+                        ml_copyAnim)
 
 def run():
     mmWindow = cgmMarkingMenu()
@@ -41,19 +52,19 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         if len(self._l_sel) >= 2:
             self._b_sel_pair = True
             
-        log.info("{0} >> build_menu".format(self._str_MM))                
+        log.debug("{0} >> build_menu".format(self._str_MM))                
         #mc.menu(parent,e = True, deleteAllItems = True)
         
         #Radial Section
         _mode = self.var_menuMode.value
         if _mode == 0:
-            log.info("{0} >> td mode...".format(self._str_MM))                            
+            log.debug("{0} >> td mode...".format(self._str_MM))                            
             self.menuRadial_td(parent)
         elif _mode == 1:
-            log.info("{0} >> anim mode...".format(self._str_MM))                                        
+            log.debug("{0} >> anim mode...".format(self._str_MM))                                        
             self.menuRadial_anim(parent)
         elif _mode == 2:
-            log.info("{0} >> dev mode...".format(self._str_MM))                                        
+            log.debug("{0} >> dev mode...".format(self._str_MM))                                        
             self.menuRadial_dev(parent)
         else:
             log.error("Don't know what to do with mode: {0}".format(_mode))
@@ -61,13 +72,13 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             
         #Bottom section
         if _mode == 0:
-            log.info("{0} >> td mode bottom...".format(self._str_MM))  
+            log.debug("{0} >> td mode bottom...".format(self._str_MM))  
             self.menuBottom_td(parent)
         elif _mode == 1:
-            log.info("{0} >> anim mode bottom...".format(self._str_MM))
+            log.debug("{0} >> anim mode bottom...".format(self._str_MM))
             self.menuBottom_anim(parent)
         elif _mode == 2:
-            log.info("{0} >> dev mode bottom...".format(self._str_MM))                                        
+            log.debug("{0} >> dev mode bottom...".format(self._str_MM))                                        
         
         mUI.MelMenuItem(parent,l = "-"*20,en = False)
         
@@ -110,7 +121,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         #Radial---------------------------------------------------
         self.uiRadial_snap_build(parent,'N')
         #self.build_radial_dynParent(parent,'NW')
-        #self.build_radial_create(parent,'N')
+        self.build_radial_create(parent,'NE')
         #self.build_radial_copy(parent,'W')
         #self.build_radial_aim(parent,'NE')
         #self.build_radial_control(parent,'SW')
@@ -123,26 +134,22 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         mUI.MelMenuItem(parent,
                         en = self._b_sel,
                         l = 'dragBetween',
-                        #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                        #c = mUI.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Transform'),
+                        c = lambda *a:ml_breakdownDragger.drag(),
                         rp = "S")        
         mUI.MelMenuItem(parent,
                         en = self._b_sel,
                         l = 'Reset',
-                        #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                        #c = mUI.Callback(self.button_action_per_sel,RIGGING.group_me,'Group Me'),
+                        c = lambda *a: ml_resetChannels.main(transformsOnly = self.var_resetMode.value),
                         rp = "SW")   
         mUI.MelMenuItem(parent,
                         en = self._b_sel,
-                        l = 'Key Clear Selected',
-                        #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                        #c = mUI.Callback(self.bc_create_groupMe,'Group Me'),
+                        l = 'Delete Key',
+                        c= lambda *a:deleteKey(),
                         rp = "W")  
         mUI.MelMenuItem(parent,
                         en = self._b_sel,
                         l = 'Key Selected',
-                        #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                        #c = mUI.Callback(self.bc_create_groupMe,'Group Me'),
+                        c= lambda *a:setKey(),
                         rp = "E")  
         
     def menuRadial_dev(self,parent):
@@ -235,12 +242,12 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         Menu to create items from selected objects
         """
         _r = mUI.MelMenuItem(parent,subMenu = True,
-                             en = self._b_sel,
+                             en = True,
                              l = 'Create',
                              #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                              rp = direction)  
-        if not self._b_sel:
-            return        
+        #if not self._b_sel:
+            #return        
         #---------------------------------------------------------------------------
 
         mUI.MelMenuItem(_r,
@@ -262,7 +269,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         c = mUI.Callback(self.bc_create_groupMe,'Group Me'),
                         rp = "NE")  
         mUI.MelMenuItem(_r,
-                         en = self._b_sel,
+                         en =True,
                          l = 'Locator',
                          #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                          c = mUI.Callback(self.button_action_per_sel,locators.locMeObject,'Locator'),
@@ -278,6 +285,89 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                              #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                              rp = direction)
         
+    def optionRadial_pivotMode(self,parent,direction = None):
+        _r = mUI.MelMenuItem(parent,subMenu = True,
+                             en = True,
+                             l = 'Pivot Mode',
+                             rp = direction)
+        #self._l_pivotModes = ['rotatePivot','scalePivot','boundingBox']
+        _l_toBuild = [{'l':'rotatePivot',
+                       'rp':'S',
+                       'c':lambda *a:self.var_snapPivotMode.setValue(0)},
+                      {'l':'scalePivot',
+                       'rp':'SW',
+                       'c':lambda *a:self.var_snapPivotMode.setValue(1)},
+                      {'l':'boundingBox',
+                       'rp':'SE',
+                       'c':lambda *a:self.var_snapPivotMode.setValue(2)},
+                      {'l':'closest',
+                       'rp':'E',
+                       'c':lambda *a:self.var_snapPivotMode.setValue(3)}]
+        for i,m in enumerate(_l_toBuild):
+            if i == self.var_snapPivotMode.value:
+                m['l'] = m['l'] + '--(Active)'
+                
+            mUI.MelMenuItem(_r,
+                            en = True,
+                            l = m['l'],
+                            c = m['c'],
+                            rp = m['rp'])  
+            
+    def optionRadial_rayCastMode(self,parent,direction = None):
+        _r = mUI.MelMenuItem(parent,subMenu = True,
+                             en = True,
+                             l = 'RayCast Mode',
+                             rp = direction)
+        #self._l_pivotModes = ['rotatePivot','scalePivot','boundingBox']
+        _l_toBuild = [{'l':'closest',
+                       'rp':'W',
+                       'c':lambda *a:self.var_rayCastMode.setValue(0)},
+                      {'l':'midpoint',
+                       'rp':'SW',
+                       'c':lambda *a:self.var_rayCastMode.setValue(1)},
+                      {'l':'far',
+                       'rp':'S',
+                       'c':lambda *a:self.var_snapPivotMode.setValue(2)}]
+        
+        for i,m in enumerate(_l_toBuild):
+            if i == self.var_rayCastMode.value:
+                m['l'] = m['l'] + '--(Active)'
+                
+            mUI.MelMenuItem(_r,
+                            en = True,
+                            l = m['l'],
+                            c = m['c'],
+                            rp = m['rp'])  
+            
+    def optionRadial_rayCastOffset(self,parent,direction = None):
+        _r = mUI.MelMenuItem(parent,subMenu = True,
+                             en = True,
+                             l = 'RayCast Offset',
+                             rp = direction)
+        #self._l_pivotModes = ['rotatePivot','scalePivot','boundingBox']
+        _l_toBuild = [{'l':'None',
+                       'rp':'NW',
+                       'c':lambda *a:self.var_rayCastMode.setValue(0)},
+                      {'l':'Distance',
+                       'rp':'W',
+                       'c':lambda *a:self.var_rayCastMode.setValue(1)},
+                      {'l':'Change Distance',
+                       'rp':'SE',
+                       'c':lambda *a:self.var_snapPivotMode.setValue(2)},
+                      {'l':'snapCast',
+                       'rp':'SW',
+                       'c':lambda *a:self.var_snapPivotMode.setValue(2)}]
+        
+        for i,m in enumerate(_l_toBuild):
+            if i == self.var_rayCastMode.value:
+                m['l'] = m['l'] + '--(Active)'
+                
+            mUI.MelMenuItem(_r,
+                            en = True,
+                            l = m['l'],
+                            c = m['c'],
+                            rp = m['rp'])  
+            
     def build_radial_arrange(self,parent,direction = None):
         _r = mUI.MelMenuItem(parent,subMenu = True,
                              en = False,
@@ -350,7 +440,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     def button_action_per_sel(self,func,calling = None):
         for o in self._l_sel:
             _res = func(o)
-            log.info("{0} : '{1}' | result: '{2}'".format(calling,o,_res)) 
+            log.debug("{0} : '{1}' | result: '{2}'".format(calling,o,_res)) 
             self._l_res.append(_res)
         mc.select(self._l_res)
         
@@ -359,7 +449,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     
     def action_logged(self,func,calling=None):
         _res = func
-        log.info("{0} | result: '{1}'".format(calling,_res)) 
+        log.debug("{0} | result: '{1}'".format(calling,_res)) 
         
     def bc_create_groupMe(self, calling = None):
         for o in self._l_sel:
@@ -381,6 +471,10 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         Radial menu for snap functionality
         """
         self.create_guiOptionVar('snapPivotMode', defaultValue = 0)
+        self.create_guiOptionVar('rayCastMode', defaultValue = 0)
+        self.create_guiOptionVar('rayCastOffset', defaultValue = 0)
+        self.create_guiOptionVar('rayCastCreate', defaultValue = 0)
+        self.create_guiOptionVar('rayCastOffsetDist', defaultValue = 1.0)
 
         _r = mUI.MelMenuItem(parent,subMenu = True,
                              en = self._b_sel,
@@ -425,8 +519,17 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         #======================================================================================
         _settings = mUI.MelMenuItem(_r,subMenu = True,
                                     en = True,
-                                    l = 'Pivot Mode',
+                                    l = 'Options',
                                     rp = 'S')
+        
+        self.optionRadial_pivotMode(_settings,'S')
+        self.optionRadial_rayCastMode(_settings,'SW')
+        self.optionRadial_rayCastOffset(_settings,'W')
+        
+        """_r = mUI.MelMenuItem(_settings,subMenu = True,
+                             en = True,
+                             l = 'Pivot Mode',
+                             rp = 'S')
         #self._l_pivotModes = ['rotatePivot','scalePivot','boundingBox']
         _l_toBuild = [{'l':'rotatePivot',
                        'rp':'S',
@@ -444,12 +547,11 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             if i == self.var_snapPivotMode.value:
                 m['l'] = m['l'] + '--(Active)'
                 
-            mUI.MelMenuItem(_settings,
+            mUI.MelMenuItem(_r,
                             en = True,
                             l = m['l'],
-                            #c=mUI.Callback(self.var_snapPivotMode.setValue,0),
                             c = m['c'],
-                            rp = m['rp'])                
+                            rp = m['rp'])   """             
         
         """mUI.MelMenuItem(_settings,
                         en = True,
@@ -492,7 +594,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         rp = 'SE')	"""
     
 def killUI():
-    log.info("killUI...")
+    log.debug("killUI...")
     try:
         if mc.popupMenu(_str_popWindow,ex = True):
             mc.deleteUI(_str_popWindow)  
@@ -501,7 +603,7 @@ def killUI():
     
     _var_mode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_menuMode', defaultValue = 0)
     if _var_mode.value in [1]:
-        log.info('animMode killUI')
+        log.debug('animMode killUI')
         
         #IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked')
         #mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction')
@@ -512,24 +614,24 @@ def killUI():
         #=============================================================================
         var_clockStart = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_clockStart', defaultValue = 0.0)    
         f_seconds = time.clock()-var_clockStart.value
-        log.info(">"*10  + '   cgmMarkingMenu =  %0.3f seconds  ' % (f_seconds) + '<'*10)    
+        log.debug(">"*10  + '   cgmMarkingMenu =  %0.3f seconds  ' % (f_seconds) + '<'*10)    
     
         if sel and f_seconds <= .5:#and not mmActionOptionVar.value:
-            log.info("{0} >> low time. Set key...".format(_str_popWindow))
+            log.debug("{0} >> low time. Set key...".format(_str_popWindow))
             setKey()        
     
         
 from cgm.core.classes import DraggerContextFactory as cgmDrag
-
+reload(cgmDrag)
 
 def raySnap_start(targets = []):
     _toSnap = targets
-    log.info("raySnap_start | targets: {0}".format(_toSnap))
+    log.debug("raySnap_start | targets: {0}".format(_toSnap))
     if not _toSnap:
         raise ValueError,"raySnap_start >> Must have targets!"
 
     var_RayCastMode = cgmMeta.cgmOptionVar('cgmVar_SnapMenuRayCastMode', defaultValue=0)
-    log.info("mode: {0}".format(var_RayCastMode.value))
+    log.debug("mode: {0}".format(var_RayCastMode.value))
 
     cgmDrag.clickMesh( mode = var_RayCastMode.value,
                        mesh = None,
