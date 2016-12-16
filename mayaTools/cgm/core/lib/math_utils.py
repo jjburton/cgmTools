@@ -18,8 +18,8 @@ log.setLevel(logging.INFO)
 # From Maya =============================================================
 import maya.cmds as mc
 from maya import mel
-import cgm.core.lib.euclid as euclid
-
+#import cgm.core.lib.euclid as euclid
+import euclid as euclid
 
 # From Red9 =============================================================
 

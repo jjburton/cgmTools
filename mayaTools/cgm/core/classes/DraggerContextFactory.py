@@ -26,7 +26,9 @@ import maya.OpenMaya as om
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.lib import rayCaster as RayCast
+from cgm.core import cgm_General as cgmGen
 from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import position_utils as POS
 reload(POS)
@@ -167,6 +169,7 @@ class clickMesh(ContextualPick):
         dragStore(bool) -- whether to force store data during drag
         maxStore(int) -- Maximum number of hits to accept before finalizing
         posOffset(vector) -- x,y,z offset from given point
+        offsetDistance(float) -- amount to offset for distance offsetMode 
         offsetMode(str) -- 'vector','normal' (default -- 'vector')
                             distance -- offset along the ray with the end - start being the base distance
                             snapCast -- An auto guessing post cast mode to attempt to keep things off the surface when casting
@@ -192,7 +195,8 @@ class clickMesh(ContextualPick):
                  dragStore = False,
                  maxStore = False,
                  posOffset = None,
-                 offsetMode = None,                 
+                 offsetMode = None,        
+                 offsetDistance = 1.0,
                  clampValues = [None,None,None],
                  orientSnap = True,
                  timeDelay = None,
@@ -228,6 +232,7 @@ class clickMesh(ContextualPick):
         self._posBuffer = False
         self.v_posOffset = posOffset or False    
         self.str_offsetMode = offsetMode
+        self.f_offsetDistance = offsetDistance
         self.b_orientSnap = orientSnap
         self._createModeBuffer = False
         self.int_maxStore = maxStore
@@ -244,7 +249,7 @@ class clickMesh(ContextualPick):
             log.info("Using all visible mesh!")
             for l in mc.ls(type='mesh',visible = True), mc.ls(type='nurbsSurface',visible = True):
                 for o in l:
-                    self.addTargetMesh( cgmMeta.getTransform(o))             
+                    self.addTargetMesh( o )#             
         if mesh is not None:
             assert type(mesh) is list,"Mesh call must be in list form when called"
             for m in mesh:
@@ -272,10 +277,10 @@ class clickMesh(ContextualPick):
             return False
 
         if mesh not in self.l_mesh:
-            buffer = search.returnObjectType(mesh)
+            buffer = cgmValid.get_mayaType(mesh)
             if buffer in ['mesh','nurbsSurface']:
                 self.l_mesh.append(mesh)
-                self.updateMeshArea()
+                #self.updateMeshArea()
                 return True
             else:
                 log.warning("'%s' is not a mesh. It is returning as '%s'"%(mesh,buffer))
@@ -295,7 +300,7 @@ class clickMesh(ContextualPick):
         Set tool mode
         """
         #assert mode in ['surface','intersections','midPoint'],"'%s' not a defined mode"%mode
-        self.mode = cgmValid.kw_fromList(mode, ['surface','intersections','midPoint'],indexCallable=True) 
+        self.mode = cgmValid.kw_fromList(mode, ['surface','intersections','midPoint','far'],indexCallable=True) 
 
     def setClamp(self,setting):
         """
@@ -368,6 +373,7 @@ class clickMesh(ContextualPick):
                 if self.mode == 'midPoint':
                     log.warning("Mid point mode doesn't work with follicles")
                     return
+                
                 bufferList = []
                 for o in self.l_created:
                     mesh = attributes.doGetAttr(o,'cgmHitTarget')
@@ -386,7 +392,11 @@ class clickMesh(ContextualPick):
                     except:pass
                 if self._createMode == 'curve' and len(self.l_return)>1:
                     if len(self.l_return) > 1:
-                        self.l_created = [curves.curveFromPosList(self.l_return)]
+                        #self.l_created = [curves.curveFromPosList(self.l_return)]
+                        #self.l_created = [ mc.curve (d=3, ep = self.l_return , ws=True, )]
+                        knot_len = len(self.l_return)+3-1		
+                        curveBuffer = mc.curve (d=3, ep = self.l_return, k = [i for i in range(0,knot_len)], os=True)   
+                        self.l_created = [curveBuffer]
                     else:
                         log.warning("Need at least 2 points for a curve")                        
                 elif self._createMode == 'jointChain':
@@ -429,67 +439,62 @@ class clickMesh(ContextualPick):
                 #jntUtils.metaFreezeJointOrientation(self._createModeBuffer)	
                          
         
-        if self._posBuffer and self.l_toSnap:
+        if self.l_created and self.l_toSnap:
             log.info("Snap Mode!")
-            if self.l_created:
-                mc.delete(self.l_created)            
-            if self._posBuffer:
-                """
-                #TESTING OFFSET
-                _dist = DIST.get_distance_between_points(p,self.clickPos)
-                log.info("BaseDistance: {0}".format(_dist))
-                _dist = _dist - 1
-                _newP = DIST.get_pos_by_vec_dist(self.clickPos,self.clickVector,_dist)
-                log.info("Old point: {0} | new point: {1}".format(p,_newP))
-                self._posBuffer[i] = _newP"""                              
-                
-                #Use that distance to subtract along our original ray's hit distance to get our new point
-                for o in self.l_toSnap:
-                    _pos = self._posBuffer[-1]
-                    if self.str_offsetMode == 'snapCast':
-                        try:
-                            log.debug("snapCast: {0}".format(o))
-                            
-                            _pos_obj = POS.get(o,pivot='rp',space='w')#...Get the point of the object to snap
-                            log.debug("startPoint: {0}".format(_pos_obj))
-                            log.debug("posBuffer: {0}".format(self._posBuffer[-1]))
-                            
-                            _vec_obj = MATHUTILS.get_vector_of_two_points( _pos_obj,self._posBuffer[-1])#...Get the vector from there to our hit
-                            _dist_base = DIST.get_distance_between_points(self._posBuffer[-1], _pos_obj)#...get our base distance
-                            
-                            _cast = RayCast.shoot(self.l_mesh, startPoint=_pos_obj,vector=_vec_obj)
-                            _nearHit = _cast['near']
-                            _dist_firstHit = DIST.get_distance_between_points(_pos_obj,_nearHit)
-                            log.debug("baseDist: {0}".format(_dist_base))
-                            log.debug("firstHit: {0}".format(_dist_firstHit))
-                            
-                            _offsetPos = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,(_dist_base - _dist_firstHit))
-                            
-                            _pos = _offsetPos
-                            
-                            #Failsafe for casting to self...
-                            if DIST.get_distance_between_points(_pos, _pos_obj) < _dist_firstHit:
-                                log.warning("Close proximity cast, using default")
-                                _pos = self._posBuffer[-1]
-                        except Exception,err:
-                            _pos = self._posBuffer[-1]                            
-                            log.error("SnapCast fail. Using original pos... | err: {0}".format(err))
-                        
-                    #mc.rename( LOC.create(position = _nearHit), 'nearHit')
-                    #mc.rename( LOC.create(position = _offsetPos), 'offSet')
-                    
-                    
-                    #_dist_base = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,_dist)
-                    #Cast a ray and get nearest hit
-                    #Get that distance                    
+          
+            """
+            #TESTING OFFSET
+            _dist = DIST.get_distance_between_points(p,self.clickPos)
+            log.info("BaseDistance: {0}".format(_dist))
+            _dist = _dist - 1
+            _newP = DIST.get_pos_by_vec_dist(self.clickPos,self.clickVector,_dist)
+            log.info("Old point: {0} | new point: {1}".format(p,_newP))
+            self._posBuffer[i] = _newP"""                              
+            
+            #Use that distance to subtract along our original ray's hit distance to get our new point
+            for o in self.l_toSnap:
+                _pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')
+                _pos = _pos_base 
+                if self.str_offsetMode == 'snapCast':
                     try:
-                        POS.set(o,_pos)
-                        #mc.xform(o, t = _offsetPos, ws = True)  
+                        log.debug("snapCast: {0}".format(o))
+                        
+                        _pos_obj = POS.get(o,pivot='rp',space='w')#...Get the point of the object to snap
+                        log.debug("startPoint: {0}".format(_pos_obj))
+                        log.debug("posBuffer: {0}".format(_pos_base))
+                        
+                        _vec_obj = MATHUTILS.get_vector_of_two_points( _pos_obj,_pos_base)#...Get the vector from there to our hit
+                        _dist_base = DIST.get_distance_between_points(_pos_base, _pos_obj)#...get our base distance
+                        
+                        _cast = RayCast.cast(self.l_mesh, startPoint=_pos_obj,vector=_vec_obj)
+                        _nearHit = _cast['near']
+                        _dist_firstHit = DIST.get_distance_between_points(_pos_obj,_nearHit)
+                        log.debug("baseDist: {0}".format(_dist_base))
+                        log.debug("firstHit: {0}".format(_dist_firstHit))
+                        
+                        if self.mode == 'far':
+                            _dist_new = _dist_base + _dist_firstHit
+                        else:
+                            _dist_new = _dist_base - _dist_firstHit
+                        _offsetPos = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,(_dist_new))
+                        
+                        _pos = _offsetPos
+                        
+                        #Failsafe for casting to self...
+                        if DIST.get_distance_between_points(_pos, _pos_obj) < _dist_firstHit:
+                            log.warning("Close proximity cast, using default")
+                            _pos = self._posBuffer[-1]
                     except Exception,err:
-                        log.error("{0} failed to snap. err: {1}".format(o,err))
-                if self.l_toSnap:
-                    mc.select(self.l_toSnap)
-                self.dropTool()
+                        _pos = _pos_base                         
+                        log.error("SnapCast fail. Using original pos... | err: {0}".format(err))
+                try:
+                    POS.set(o,_pos)
+                except Exception,err:
+                    log.error("{0} failed to snap. err: {1}".format(o,err))
+            mc.delete(self.l_created)
+            if self.l_toSnap:
+                mc.select(self.l_toSnap)
+            self.dropTool()
                 
         if self.int_maxStore and len(self.l_return) == self.int_maxStore:
             log.debug("Max hit, finalizing")
@@ -542,7 +547,50 @@ class clickMesh(ContextualPick):
         self.clickPos = buffer[0] #Our world space click point
         self.clickVector = buffer[1] #Camera vector
         self._posBuffer = []#Clear our pos buffer
-
+        #checkDistance = self.getDistanceToCheck(m)
+        checkDistance = 100000        
+        
+        kws = {'mesh':self.l_mesh,'startPoint':self.clickPos,'vector':self.clickVector,'maxDistance':checkDistance}
+        if self.mode != 'surface':
+            kws['firstHit'] = False
+        if self.str_offsetMode == 'distance':
+            kws['offsetMode'] = 'distance'
+            kws['offsetDistance'] = self.f_offsetDistance
+            
+        try:
+            #buffer = RayCast.findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance) 
+            _res = RayCast.cast(**kws)
+        except Exception,error:
+            _res = None
+            log.error("{0} >>> surface cast fail. More than likely, the offending face lacks uv's. Error:{1}".format(_str_funcName,error))
+        
+        if _res:
+            try:
+                for i,m in enumerate(_res['meshHits'].keys()):
+                    self.d_meshPos[m] = _res['meshHits'][m]
+                    _d = _res.get('uvs',{})
+                    self.d_meshUV[m] = _d.get(m,[])
+                    
+                if self.mode == 'surface':
+                    self._posBuffer = [_res['near']]
+                elif self.mode == 'far':
+                    self._posBuffer = [_res['far']]
+                elif self.mode == 'midPoint':
+                    if len(_res['hits']) < 2:
+                        log.error("Must have two hits for midpoint mode")
+                        return
+                    
+                    _near = _res['near']
+                    _far = _res['far']
+                    self._posBuffer = [ DIST.get_average_position([_near,_far]) ]
+            except Exception,err:
+                cgmGen.log_info_dict(_res,'Result')
+                log.error("{0} >>> Processing fail. err:{1}".format(_str_funcName,err))                
+                return
+        else:
+            log.debug('No hits detected!')
+            return            
+        """
         for m in self.l_mesh:#Get positions per mesh piece
             #First get the distance to try to check
             #checkDistance = self.getDistanceToCheck(m)
@@ -554,55 +602,65 @@ class clickMesh(ContextualPick):
                 self.d_meshUV[m] = []
 
             if mc.objExists(m):
+                kws = {'mesh':m,'startPoint':self.clickPos,'vector':self.clickVector,'maxDistance':checkDistance}
+                
                 if self.mode == 'surface':
-                    try:buffer = RayCast.findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance)   
+                    try:
+                        #buffer = RayCast.findMeshIntersection(m, self.clickPos , self.clickVector, checkDistance) 
+                        _res = RayCast.cast(**kws)
                     except Exception,error:
-                        buffer = None
-                        log.error("%s >>> cast fail. More than likely, the offending face lacks uv's. Error: %s"%(_str_funcName,error))
-                    if buffer:
-                        hit = self.convertPosToLocalSpace( buffer['hit'] )
+                        _res = None
+                        log.error("%s >>> surface cast fail. More than likely, the offending face lacks uv's. Error: %s"%(_str_funcName,error))
+                    if _res:
+                        #hit = self.convertPosToLocalSpace( _res['hit'] )
+                        hit = _res['hit']
                         self._posBuffer.append(hit)  
                         self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
                         #log.info(self.startPoint)
                         self.d_meshPos[m].append(hit)
-                        self.d_meshUV[m].append(buffer['uv'])
+                        self.d_meshUV[m].append(_res['uv'])
 
                 else:
-                    try:buffer = RayCast.findMeshIntersections(m, self.clickPos , self.clickVector , checkDistance)     
+                    kws['firstHit'] = False
+                    
+                    try:
+                        #buffer = RayCast.findMeshIntersections(m, self.clickPos , self.clickVector , checkDistance)
+                        _res = RayCast.cast(**kws)
                     except Exception,error:
-                        buffer = None
+                        _res = None
                         log.error("%s >>> cast fail. More than likely, the offending face lacks uv's. Error: %s"%(_str_funcName,error))		    
-                    if buffer:
-                        log.info(buffer)
+                    if _res:
+                        log.info(_res)
                         conversionBuffer = []
-                        if buffer.get('hits'):
-                            for hit in buffer['hits']:
+                        if _res.get('hits'):
+                            for hit in _res['hits']:
                                 conversionBuffer.append(self.convertPosToLocalSpace( hit ))
 
                             self._posBuffer.extend(conversionBuffer)
                             self.d_meshPos[m].extend(conversionBuffer)
-                            self.d_meshUV[m].extend(buffer['uvs'])                            
-                        self.startPoint = self.convertPosToLocalSpace( buffer['source'] )
-
+                            self.d_meshUV[m].extend(_res['uvs'][m])                            
+                        self.startPoint = self.convertPosToLocalSpace( _res['source'] )
+                        """
 
         if not self._posBuffer:
-            log.warning('No hits detected!')
+            log.debug('No hits detected!')
             return
+        
 
         if self.b_clampSetting and self.b_clampSetting < len(self._posBuffer):
             log.warning("Position buffer was clamped. Check settings if this was not desired.")
             self._posBuffer = distance.returnPositionDataDistanceSortedList(self.startPoint,self._posBuffer)
             self._posBuffer = self._posBuffer[:self.b_clampSetting]
             
-        if self.mode == 'midPoint':  
+        #if self.mode == 'midPoint':  
             #JOSH -- this needs to be redone. It should average the closest and furthest, not all points
-            self._posBuffer = [distance.returnAveragePointPosition(self._posBuffer)]
+            #self._posBuffer = [distance.returnAveragePointPosition(self._posBuffer)]
 
-        if self._posBuffer: #Check for closest and just for hits
-            if self.b_closestOnly and self.mode != 'intersections':
-                buffer = distance.returnClosestPoint(self.startPoint,self._posBuffer)
-                self._posBuffer = [buffer]                 
-        else:pass
+        #if self._posBuffer: #Check for closest and just for hits
+            #if self.b_closestOnly and self.mode != 'intersections':
+                #buffer = distance.returnClosestPoint(self.startPoint,self._posBuffer)
+                #self._posBuffer = [buffer]                 
+        #else:pass
             #log.warning("No hits detected")
         
         #Playing with vector offset...
@@ -623,7 +681,7 @@ class clickMesh(ContextualPick):
                         pos[i2] = v
                 #Let's make our stuff
                 if len(pos) == 3:
-                    baseScale = distance.returnMayaSpaceFromWorldSpace(10)
+                    #baseScale = distance.returnMayaSpaceFromWorldSpace(10)
                     if self._createMode == 'joint':
                         nameBuffer = mc.joint(radius = 1)
                         #attributes.doSetAttr(nameBuffer,'radius',1)

@@ -83,7 +83,7 @@ def update(target = None, mode = None, forceBBCenter = False):
     """   
     _str_func = "update"
     _target = VALID.objString(target, noneValid=True, calledFrom = __name__ + _str_func + ">> validate target")
-    _type = SEARCH.get_mayaType(_target)
+    _type = VALID.get_mayaType(_target)
     if _type == 'locator':
         _mode = SEARCH.get_tag(_target,'cgmLocMode')
         log.info(_type)

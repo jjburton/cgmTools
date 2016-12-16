@@ -20,8 +20,12 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 def run():
-    cgmMetaMMWindow = cgmMetaMM()
-
+    try:
+        cgmMetaMM()
+        #cgmMetaMMWindow = cgmMetaMM()
+    except Exception,err:
+        log.error("Failed to load. err:{0}".format(err))
+        
 _str_popWindow = 'cgmMetaMM'#...outside to push to killUI
 #MelPopupMenu
 class cgmMetaMM(mUI.BaseMelWindow):
@@ -132,8 +136,8 @@ class cgmMetaMM(mUI.BaseMelWindow):
         for c in self.get_uiChildren():
             #print c
             log.info('deleting old ui: {0}'.format(c))
-            mc.deleteUI(c)
-
+            try:mc.deleteUI(c)
+            except:log.info('failed to delete...')
         #time_buildMenuStart =  time.clock()
         self.setup_optionVars()#Setup our optionVars
         #mc.setParent(parent)

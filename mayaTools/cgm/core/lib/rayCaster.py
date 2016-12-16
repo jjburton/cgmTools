@@ -17,7 +17,9 @@ import maya.OpenMaya as om
 from cgm.core.lib.zoo import apiExtensions
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import position_utils as POS
+from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import distance_utils as DIST
+reload(DIST)
 from cgm.core import cgm_General as cgmGeneral
 
 from cgm.lib import locators
@@ -39,9 +41,10 @@ log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def shoot(mesh = None, obj = None, axis = 'z+',
+def cast(mesh = None, obj = None, axis = 'z+',
           startPoint = None, vector = None,
-          maxDistance = 1000, firstHit = True):
+          maxDistance = 1000, firstHit = True,
+          offsetMode = None, offsetDistance = 1.0):
     """
     Find mesh intersections
     
@@ -52,6 +55,9 @@ def shoot(mesh = None, obj = None, axis = 'z+',
         vector(double3) | vector to cast
         maxDistance(float) | max cast range
         firstHit(bool) | single return per mesh
+        offsetMode(str) | process the hit. Per mesh hits will be returned raw
+            distance | offset a given distance along the cast vector
+        offsetDistance(float) | how much to offset with distance mode
 
     :returns:
         Dict ------------------------------------------------------------------
@@ -65,10 +71,42 @@ def shoot(mesh = None, obj = None, axis = 'z+',
     :raises:
     Exception | if reached
     """   
-    _str_func = 'shoot'
+    def offsetHit(h,startPoint,vector,offsetDistance):
+        log.debug("|{0}| >> offset call...".format(_str_func))
+        if offsetMode == 'distance':
+            if not offsetDistance:
+                log.warning("|{0}| >> No offsetDistance provided. Using 1.0...".format(_str_func))
+                offsetDistance = 1.0
+                
+            log.debug("|{0}| >> vectorDistance offset {1}...".format(_str_func,offsetDistance))
+            
+            _dist_base = DIST.get_distance_between_points(startPoint, h)#...get our base distance
+            _offsetPos = DIST.get_pos_by_vec_dist(startPoint,vector,(_dist_base + offsetDistance))
+            log.debug("|{0}| >> hit: {1} | offset: {2}...".format(_str_func,h,_offsetPos))
+            h = _offsetPos
+        else:
+            log.warning("|{0}| >> unknown offsetMode {1}...".format(_str_func,offsetMode))
+            
+        return h
     
-    _mesh = VALID.listArg(mesh)
+    _str_func = 'cast'
     
+    _meshArg = VALID.listArg(mesh)
+    _mesh =  []
+    for m in _meshArg:
+        log.debug("|{0}| >> checking mesh arg: {1}...".format(_str_func,m))                            
+        if SEARCH.is_transform(m):
+            #_mesh.extend(mc.listRelatives(m,shapes = True))
+            for s in mc.listRelatives(m,shapes=True):
+                if VALID.get_mayaType(s) in ['mesh','nurbsSurface']:
+                    log.debug("|{0}| >> good shape: {1}...".format(_str_func,s))                    
+                    _mesh.append(m)
+        elif SEARCH.is_shape(m):
+            if VALID.get_mayaType(m) in ['mesh','nurbsSurface']:
+                log.debug("|{0}| >> good shape: {1}...".format(_str_func,m))                    
+                _mesh.append(m)            
+                
+            
     if not startPoint:
         startPoint = POS.get(obj,pivot='rp',space='ws')
     
@@ -108,22 +146,35 @@ def shoot(mesh = None, obj = None, axis = 'z+',
             if not _d_meshUV.get(m):_d_meshUV[m] = []
             if not _d_meshPos.get(m):_d_meshPos[m] = []
             if _b:
-                _l_posBuffer.append(_b['hit'])
-                _uv = _b.get('uv')
+                h = _b['hit']
+
+                _uv = _b.get('uv',None)
                 _d_meshUV[m].append(_uv)
-                _d_meshPos[m].append(_b['hit'])								    
+                _d_meshPos[m].append(h)	
+                if not _uv:
+                    log.warning("{0} failed to find uvs".format(m))
+                    
+                if offsetMode:
+                    h = offsetHit(h,startPoint,vector,offsetDistance)
+                _l_posBuffer.append(h)                
         else:
             try:_b = findMeshIntersections(m, startPoint, rayDir=vector, maxDistance = maxDistance)
             except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))	
             if not _d_meshUV.get(m):_d_meshUV[m] = []
             if not _d_meshPos.get(m):_d_meshPos[m] = []
             if _b:
-                _uvs = _b['uvs']		
+                _uvs = _b.get('uvs',None)
+                if not _uvs:
+                    log.warning("{0} failed to find uvs".format(m))
                 for i,h in enumerate(_b['hits']):
                     _uv = _uvs[i]
-                    _l_posBuffer.append(h)
                     _d_meshUV[m].append(_uv)
-                    _d_meshPos[m].append(h)						
+                    _d_meshPos[m].append(h)		
+                    
+                    if offsetMode == 'vectorDistance':
+                        h = offsetHit(h,startPoint,vector,offsetDistance)
+                    _l_posBuffer.append(h)
+                    
         if _b:
             if _source == None:
                 _source = _b['source']
@@ -131,6 +182,7 @@ def shoot(mesh = None, obj = None, axis = 'z+',
     if not _l_posBuffer:
         log.info("|{0}| No hits detected. startPoint: {1} | mesh:{2} | vector:{4} | axis: {3}".format(_str_func,startPoint,mesh,axis,vector))
         return {}
+    
     
     _near = distance.returnClosestPoint(_source, _l_posBuffer)
     _furthest = distance.returnFurthestPoint(_source,_l_posBuffer)
@@ -162,8 +214,8 @@ def findSurfaceIntersection(surface, raySource, rayDir, maxDistance = 1000):
     returns hitpoint(double3)
     """    
     try:
-        _str_funcName = 'findSurfaceIntersection'
-        log.debug(">>> %s >> "%_str_funcName + "="*75)           
+        _str_func = 'findSurfaceIntersection'
+        log.debug(">>> %s >> "%_str_func + "="*75)           
         if len(mc.ls(surface))>1:
             raise StandardError,"findSurfaceIntersection>>> More than one surface named: %s"%surface    
 
@@ -249,7 +301,7 @@ def findSurfaceIntersection(surface, raySource, rayDir, maxDistance = 1000):
         else:
             return None    
     except StandardError,error:
-        log.error(">>> %s >> mesh: %s | raysource: %s | rayDir %s | error: %s"%(_str_funcName,surface,raySource,rayDir,error))
+        log.error(">>> %s >> mesh: %s | raysource: %s | rayDir %s | error: %s"%(_str_func,surface,raySource,rayDir,error))
         return None
 
 
@@ -278,17 +330,22 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
 
     """      
     try:
-        _str_funcName = 'findMeshIntersection'
+        _str_func = 'findMeshIntersection'
 
         try:
-            if VALID.isListArg(mesh):
-                log.debug("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
+            """if VALID.isListArg(mesh):
+                log.debug("{0}>>> list provided. Using first : {1}".format(_str_func,mesh))
                 mesh = mesh[0]
             if len(mc.ls(mesh))>1:
-                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
+                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_func,mesh)
             _str_objType = search.returnObjectType(mesh)
             if _str_objType not in ['mesh','nurbsSurface']:
+                raise ValueError,"Object type not supported | type: {0}".format(_str_objType)"""
+
+            _str_objType = VALID.get_mayaType(mesh)
+            if _str_objType not in ['mesh','nurbsSurface']:
                 raise ValueError,"Object type not supported | type: {0}".format(_str_objType)
+
 
             #Create an empty selection list.
             selectionList = om.MSelectionList()
@@ -313,15 +370,15 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
 
         try:
             if _str_objType == 'nurbsSurface': 
-                log.debug("{0} | Surface cast mode".format(_str_funcName))
+                log.debug("{0} | Surface cast mode".format(_str_func))
 
-                surfaceShape = mc.listRelatives(mesh, s=1)[0]
+                #surfaceShape = mc.listRelatives(mesh, s=1)[0]
 
                 mPoint_raySource = om.MPoint(raySource[0], raySource[1], raySource[2])
                 mVec_rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
                 mPoint_hit = om.MPoint()    
                 selectionList = om.MSelectionList()
-                selectionList.add(surfaceShape)
+                selectionList.add(mesh)
                 surfacePath = om.MDagPath()
                 selectionList.getDagPath(0, surfacePath)
                 surfaceFn = om.MFnNurbsSurface(surfacePath)		
@@ -340,7 +397,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
                                              mPoint_u, mPoint_v,mPoint_hit, tolerance, spc, False, None, False, None)
 
             elif _str_objType == 'mesh':
-                log.debug("{0} | Mesh cast mode".format(_str_funcName))
+                log.debug("{0} | Mesh cast mode".format(_str_func))
                 
                 #Put the mesh's name on the selection list.
                 selectionList.add(mesh)
@@ -398,7 +455,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
             uvPoint = x1.asFloat2Ptr()
             uvSet = None
             closestPolygon=None
-            log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_funcName,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
+            log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_func,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
 
             d_return['hit'] = [mPoint_hit.x, mPoint_hit.y, mPoint_hit.z]
             d_return['source'] = [mPoint_raySource.x,mPoint_raySource.y,mPoint_raySource.z]
@@ -413,7 +470,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
                 else:
                     uRaw = mPoint_u.value()
                     vRaw = mPoint_v.value()
-                    __d = distance.returnNormalizedUV(mesh,uRaw,vRaw)#normalize data
+                    __d = DIST.get_normalized_uv(mesh,uRaw,vRaw)#normalize data
 
                     d_return['l_rawUV'] = [uRaw,vRaw]
                     d_return['uv'] = __d['uv']
@@ -421,8 +478,8 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
             except Exception,error:raise Exception,"Uv Processing failure |{0}".format(error) 		
         return d_return 
     except Exception,error:
-        log.error(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_funcName,mesh,raySource,rayDir))
-        log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
+        log.debug(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_func,mesh,raySource,rayDir))
+        log.debug(">>> {0} >> error: {1}".format(_str_func,error))        
         return None
 
 def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance = .1):
@@ -448,28 +505,33 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance
 
     """      
     try:
-        _str_funcName = 'findMeshIntersections'
+        _str_func = 'findMeshIntersections'
         
         _b_OpenMaya_2 = False
         if cgmGeneral.__mayaVersion__ >= 2012:
             _b_OpenMaya_2 = True
 
-        if VALID.isListArg(mesh):
-            log.debug("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
+        """if VALID.isListArg(mesh):
+            log.debug("{0}>>> list provided. Using first : {1}".format(_str_func,mesh))
             mesh = mesh[0]	    
         if len(mc.ls(mesh))>1:
-            raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
-        _str_objType = search.returnObjectType(mesh)
+            raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_func,mesh)
+        _str_objType = search.returnObjectType(mesh)"""
+        
+        _str_objType = VALID.get_mayaType(mesh)
         if _str_objType not in ['mesh','nurbsSurface']:
-            raise ValueError,"Object type not supported | type: {0}".format(_str_objType)
+            raise ValueError,"Object type not supported | type: {0}".format(_str_objType)        
+        
+        #if _str_objType not in ['mesh','nurbsSurface']:
+            #raise ValueError,"Object type not supported | type: {0}".format(_str_objType)
         
         if _str_objType == 'mesh' and _b_OpenMaya_2:
             return findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance, tolerance)
         return findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance, tolerance)
                     
     except Exception,error:
-        log.error(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_funcName,mesh,raySource,rayDir))
-        log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
+        log.debug(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_func,mesh,raySource,rayDir))
+        log.debug(">>> {0} >> error: {1}".format(_str_func,error))        
         return None 
     
 def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, tolerance = .1):
@@ -495,19 +557,23 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
 
     """      
     try:
-        _str_funcName = 'findMeshIntersections_OM2'
+        _str_func = 'findMeshIntersections_OM2'
         from maya.api import OpenMaya as OM2
         
         try:
-            if VALID.isListArg(mesh):
-                log.debug("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
+            """if VALID.isListArg(mesh):
+                log.debug("{0}>>> list provided. Using first : {1}".format(_str_func,mesh))
                 mesh = mesh[0]	    
             if len(mc.ls(mesh))>1:
-                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
+                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_func,mesh)
             _str_objType = search.returnObjectType(mesh)
             if _str_objType not in ['mesh','nurbsSurface']:
+                raise ValueError,"Object type not supported | type: {0}".format(_str_objType)"""
+            
+            _str_objType = VALID.get_mayaType(mesh)
+            if _str_objType not in ['mesh','nurbsSurface']:
                 raise ValueError,"Object type not supported | type: {0}".format(_str_objType)
-
+            
             
             mPoint_raySource = OM2.MFloatPoint(raySource[0], raySource[1], raySource[2])
             #Convert the 'rayDir' parameter into an MVector.`
@@ -525,13 +591,13 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
 
         try:
             if _str_objType == 'nurbsSurface': 
-                log.debug("{0} | Surface cast mode".format(_str_funcName))
+                log.debug("{0} | Surface cast mode".format(_str_func))
                 #centerPoint = mc.xform(mesh, q=1, ws=1, t=1)    
-                surfaceShape = mc.listRelatives(mesh, s=1)[0]
+                #surfaceShape = mc.listRelatives(mesh, s=1)[0]
                 
 
                 sel = OM2.MSelectionList()#...make selection list
-                sel.add(surfaceShape)#...add them to our lists 
+                sel.add(mesh)#...add them to our lists 
                 surfaceFn = OM2.MFnNurbsSurface(sel.getDagPath(0))
                 
                 mPoint_raySource = OM2.MPoint(raySource[0], raySource[1], raySource[2])
@@ -546,7 +612,7 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                                              True)                    
 
             elif _str_objType == 'mesh':
-                log.debug("{0} | Mesh cast mode".format(_str_funcName))
+                log.debug("{0} | Mesh cast mode".format(_str_func))
   
                 sel = OM2.MSelectionList()#...make selection list
                 sel.add(mesh)#...add them to our lists 
@@ -576,7 +642,7 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
             for i,hit in enumerate(gotHit[0]) :
                 l_hits.append( [hit.x, hit.y,hit.z])
                 mPoint_hit = OM2.MPoint(hit) # Thank you Capper on Tech-artists.org          
-                log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_funcName,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
+                log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_func,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
                 
                 if _str_objType == 'mesh':
                     uvReturn = meshFn.getUVAtPoint(mPoint_hit,OM2.MSpace.kWorld)
@@ -585,7 +651,7 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                 else:#Nurbs
                     uRaw = gotHit[i+1][0]
                     vRaw =  gotHit[i+1][1]                        
-                    __d = distance.returnNormalizedUV(mesh,uRaw,vRaw)#normalize data
+                    __d = DIST.get_normalized_uv(mesh,uRaw,vRaw)#normalize data
                     l_rawUV.append([uRaw,vRaw])
                     l_uv.append(__d['uv'])    
             try:            
@@ -599,8 +665,8 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                 raise Exception,"Return processing |{0}".format(err) 
         return d_return 
     except Exception,error:
-        log.error(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_funcName,mesh,raySource,rayDir))
-        log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
+        log.error(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_func,mesh,raySource,rayDir))
+        log.error(">>> {0} >> error: {1}".format(_str_func,error))        
         return None
     
 def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, tolerance = .1):
@@ -610,7 +676,7 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
     Thanks to Samaneh Momtazmand for doing the r&d to get this working with surfaces
 
     :parameters:
-        mesh(string) | Surface to cast at
+        mesh(string) | mesh/surface shape
         raySource(double3) | point from which to cast in world space
         rayDir(vector) | world space vector
     maxDistance(value) | Maximum cast distance 
@@ -626,19 +692,24 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
 
     """      
     try:
-        _str_funcName = 'findMeshIntersections_OM2'
+        _str_func = 'findMeshIntersections_OM1'
         
         try:
-            if VALID.isListArg(mesh):
-                log.debug("{0}>>> list provided. Using first : {1}".format(_str_funcName,mesh))
+            """if VALID.isListArg(mesh):
+                log.debug("{0}>>> list provided. Using first : {1}".format(_str_func,mesh))
                 mesh = mesh[0]	    
             if len(mc.ls(mesh))>1:
-                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
-            _str_objType = search.returnObjectType(mesh)
+                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_func,mesh)
+            #_str_objType = search.returnObjectType(mesh)
+            _str_objType = VALID.get_mayaType(mesh)
+            log.debug("|{0}| >> mesh: {1} | type:{2}".format(_str_func,mesh,_str_objType))
+            if _str_objType not in ['mesh','nurbsSurface']:
+                raise ValueError,"Object type not supported | type: {0}".format(_str_objType)"""
+            
+            _str_objType = VALID.get_mayaType(mesh)
             if _str_objType not in ['mesh','nurbsSurface']:
                 raise ValueError,"Object type not supported | type: {0}".format(_str_objType)
-
-
+            
             #Create an empty selection list.
             selectionList = om.MSelectionList()
 
@@ -658,20 +729,20 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
             spc = om.MSpace.kWorld	
 
         except Exception,error:
-            raise ValueError,"Validation fail |0}".format(error)    
+            raise ValueError,"Validation fail |{0}".format(error)    
 
         try:
             if _str_objType == 'nurbsSurface': 
-                log.debug("{0} | Surface cast mode".format(_str_funcName))
+                log.debug("|{0}| >>  Surface cast mode".format(_str_func))
                 #centerPoint = mc.xform(mesh, q=1, ws=1, t=1)    
-                surfaceShape = mc.listRelatives(mesh, s=1)[0]
+                #surfaceShape = mc.listRelatives(mesh, s=1)[0]
                 
                 mPointArray_hits = om.MPointArray()
                 mPoint_raySource = om.MPoint(raySource[0], raySource[1], raySource[2])
                 mVec_rayDirection = om.MVector(rayDir[0], rayDir[1], rayDir[2])
 
                 selectionList = om.MSelectionList()
-                selectionList.add(surfaceShape)
+                selectionList.add(mesh)
                 surfacePath = om.MDagPath()
                 selectionList.getDagPath(0, surfacePath)
                 surfaceFn = om.MFnNurbsSurface(surfacePath)
@@ -704,7 +775,7 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                
 
             elif _str_objType == 'mesh':
-                log.debug("{0} | Mesh cast mode".format(_str_funcName))
+                log.debug("{0} | Mesh cast mode".format(_str_func))
                 
                 #Put the mesh's name on the selection list.
                 selectionList.add(mesh)
@@ -766,7 +837,7 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
 
                 #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
                 mPoint_hit = om.MPoint(mPointArray_hits[i]) # Thank you Capper on Tech-artists.org          
-                log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_funcName,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
+                log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_func,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
 
                 pArray = [0.0,0.0]
                 x1 = om.MScriptUtil()
@@ -783,7 +854,7 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                 else:#Nurbs
                     uRaw = mPointArray_u[i]
                     vRaw =  mPointArray_v[i]
-                    __d = distance.returnNormalizedUV(mesh,uRaw,vRaw)#normalize data
+                    __d = DIST.get_normalized_uv(mesh,uRaw,vRaw)#normalize data
 
                     l_rawUV.append([uRaw,vRaw])
                     l_uv.append(__d['uv'])
@@ -798,8 +869,8 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                 raise Exception,"Return processing |{0}".format(err) 
         return d_return 
     except Exception,error:
-        log.error(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_funcName,mesh,raySource,rayDir))
-        log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
+        log.error(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_func,mesh,raySource,rayDir))
+        log.error(">>> {0} >> error: {1}".format(_str_func,error))        
         return None
     
     
@@ -828,8 +899,8 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
     Exception | if reached
     """
     try:
-        _str_funcName = 'findMeshIntersectionFromObjectAxis'
-        log.debug(">>> %s >> "%_str_funcName + "="*75) 
+        _str_func = 'findMeshIntersectionFromObjectAxis'
+        log.debug(">>> %s >> "%_str_func + "="*75) 
         _mesh = VALID.listArg(mesh)
         _oneMesh = False
         if len(_mesh) == 1:
@@ -866,7 +937,7 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
             _b = {}
             if firstHit:
                 try:_b = findMeshIntersection(m, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
-                except:log.error("{0} mesh failed to get hit: {1}".format(_str_funcName,m))
+                except:log.error("{0} mesh failed to get hit: {1}".format(_str_func,m))
                 #if _oneMesh:return _b
                 if not _d_meshUV.get(m):_d_meshUV[m] = []
                 if not _d_meshPos.get(m):_d_meshPos[m] = []
@@ -878,7 +949,7 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
                     #_l_uvBuffer.append("{0}.uv[{1},{2}]".format(m,_uv[0],_uv[1]))
             else:
                 try:_b = findMeshIntersections(m, distance.returnWorldSpacePosition(obj), rayDir=vector, maxDistance = maxDistance)
-                except:log.error("{0} mesh failed to get hit: {1}".format(_str_funcName,m))	
+                except:log.error("{0} mesh failed to get hit: {1}".format(_str_func,m))	
                 #if _oneMesh:return _b	
                 if not _d_meshUV.get(m):_d_meshUV[m] = []
                 if not _d_meshPos.get(m):_d_meshPos[m] = []
@@ -895,7 +966,7 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
                     _source = _b['source']
 
         if not _l_posBuffer:
-            log.info("{0} No hits detected. cast: {1} | mesh{2} | axis: {3}".format(_str_funcName,obj,mesh,axis))
+            log.info("{0} No hits detected. cast: {1} | mesh{2} | axis: {3}".format(_str_func,obj,mesh,axis))
             return {}
         _near = distance.returnClosestPoint(_source, _l_posBuffer)
         _furthest = distance.returnFurthestPoint(_source,_l_posBuffer)
@@ -905,14 +976,14 @@ def findMeshIntersectionFromObjectAxis(mesh, obj, axis = 'z+', vector = False, m
         else:_d['hit'] = _furthest
         return _d
     except Exception,error:
-        log.error(">>> %s >> mesh: %s | obj: %s | axis %s | vector: %s | error: %s"%(_str_funcName,mesh,obj,axis,vector,error))
+        log.error(">>> %s >> mesh: %s | obj: %s | axis %s | vector: %s | error: %s"%(_str_func,mesh,obj,axis,vector,error))
         return None
 
 def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
                                vector = False, maxDistance = 1000, maxIterations = 10,**kws):
     try:#findMeshMidPointFromObject
-        _str_funcName = 'findMeshMidPointFromObject'
-        log.debug(">>> %s >> "%_str_funcName + "="*75)             
+        _str_func = 'findMeshMidPointFromObject'
+        log.debug(">>> %s >> "%_str_func + "="*75)             
         if len(mc.ls(mesh))>1:
             raise StandardError,"findMeshMidPointFromObject>>> More than one mesh named: %s"%mesh      
         if type(axisToCheck) not in [list,tuple]:axisToCheck=[axisToCheck]
@@ -955,14 +1026,14 @@ def findMeshMidPointFromObject(mesh,obj,axisToCheck = ['x','z'],
             log.debug("%s"%kw)  
         try:mc.delete(loc)
         except:pass
-        raise StandardError, "%s >> error: %s"%(_str_funcName,error)
+        raise StandardError, "%s >> error: %s"%(_str_func,error)
 
 def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
                                        vector = False, maxDistance = 1000):
     """ Find the furthest point in range on an axis. Useful for getting to the outershell of a mesh """
     try:
-        _str_funcName = 'findFurthestPointInRangeFromObject'
-        log.debug(">>> %s >> "%_str_funcName + "="*75)             
+        _str_func = 'findFurthestPointInRangeFromObject'
+        log.debug(">>> %s >> "%_str_func + "="*75)             
         if len(mc.ls(mesh))>1:
             raise StandardError,"findFurthestPointInRangeFromObject>>> More than one mesh named: %s"%mesh      
         #>>>First cast to get our initial range
@@ -986,7 +1057,7 @@ def findFurthestPointInRangeFromObject(mesh,obj,axis = 'z+', pierceDepth = 4,
     except StandardError,error:
         for kw in [mesh,obj,axis,pierceDepth,vector,maxDistance]:
             log.debug("%s"%kw)
-        raise StandardError, "%s >> error: %s"%(_str_funcName,error)
+        raise StandardError, "%s >> error: %s"%(_str_func,error)
 
 
 def returnNormalizedUVOLD(mesh, uValue, vValue):
@@ -1014,12 +1085,12 @@ def returnNormalizedUVOLD(mesh, uValue, vValue):
 
     """      
     try:
-        _str_funcName = 'returnNormalizedUV'
+        _str_func = 'returnNormalizedUV'
 
         try:#Validation ----------------------------------------------------------------
-            mesh = VALID.objString(mesh,'nurbsSurface', calledFrom = _str_funcName)
+            mesh = VALID.objString(mesh,'nurbsSurface', calledFrom = _str_func)
             if len(mc.ls(mesh))>1:
-                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
+                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_func,mesh)
             _str_objType = search.returnObjectType(mesh)
 
             l_shapes = mc.listRelatives(mesh, shapes=True)
@@ -1055,8 +1126,8 @@ def returnNormalizedUVOLD(mesh, uValue, vValue):
         except Exception,error:raise Exception,"Return prep |{0}".format(error) 		
 
     except Exception,error:
-        log.error(">>> {0} >> Failure! mesh: '{1}' | uValue: {2} | vValue {3}".format(_str_funcName,mesh,uValue,vValue))
-        log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
+        log.error(">>> {0} >> Failure! mesh: '{1}' | uValue: {2} | vValue {3}".format(_str_func,mesh,uValue,vValue))
+        log.error(">>> {0} >> error: {1}".format(_str_func,error))        
         return None
 
 

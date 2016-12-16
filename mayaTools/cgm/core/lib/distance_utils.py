@@ -32,6 +32,8 @@ from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATHUTILS
 reload(POS)
 reload(MATHUTILS)
+
+from cgm.lib import attributes
 #>>> Utilities
 #===================================================================
 def get_bb_size(arg = None):
@@ -51,24 +53,6 @@ def get_bb_size(arg = None):
     
     _box = mc.exactWorldBoundingBox(_arg)
     return [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
-
-def get_bb_center(arg = None):
-    """
-    Get the bb center of a given arg
-    
-    :parameters:
-        arg(str/list): Object(s) to check
-
-    :returns
-        boundingBox size(list)
-    """   
-    _str_func = 'get_bb_center'
-    _arg = VALID.stringListArg(arg,False,_str_func)   
-    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))   
-    
-    _box = mc.exactWorldBoundingBox(_arg)
-    
-    return [((_box[0] + _box[3])/2),((_box[4] + _box[1])/2), ((_box[5] + _box[2])/2)]
 
 
 def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'point',
@@ -126,7 +110,7 @@ def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'poin
         log.debug("|{0}| >> Targets processing...".format(_str_func))
         _d_targetTypes = {}
         for t in _l_targets:
-            _type = SEARCH.get_mayaType(t)
+            _type = VALID.get_mayaType(t)
             if _type not in _d_targetTypes.keys():
                 _d_targetTypes[_type] = [t]
             else:
@@ -147,6 +131,26 @@ def get_distance_between_points(point1,point2):
     """       
     return sqrt( pow(point1[0]-point2[0], 2) + pow(point1[1]-point2[1], 2) + pow(point1[2]-point2[2], 2) )
 
+def get_average_position(posList):
+    """
+    Gets the average point given a list of points 
+    
+    :parameters:
+        pointList(list): [[x,x,x],...]
+
+    :returns
+        pos(double3)
+    """       
+    posX = []
+    posY = []
+    posZ = []
+    for pos in posList:
+        posBuffer = pos
+        posX.append(posBuffer[0])
+        posY.append(posBuffer[1])
+        posZ.append(posBuffer[2])
+    return [float(sum(posX)/len(posList)), float(sum(posY)/len(posList)), float(sum(posZ)/len(posList))]
+
 def get_pos_by_vec_dist(startPos,vec,distance = 1):
     """
     Get a point along a ray given a point, ray and distance along that ray 
@@ -166,5 +170,146 @@ def get_pos_by_vec_dist(startPos,vec,distance = 1):
     _new = _startPos + _dir * distance
     
     return _new.x,_new.y,_new.z
+
+
+
+def get_normalized_uv(mesh, uValue, vValue):
+    """
+    uv Values from many functions need to be normalized to be correct when using those values for other functions
+
+    The calculcaion for doing so is 
+    size = maxV - minV
+    sum = rawV + minV
+    normalValue = sum / size
+    
+    :parameters:
+        mesh(string) | Surface to normalize to
+        uValue(float) | uValue to normalize 
+        vValue(float) | vValue to normalize 
+
+    :returns
+        Dict ------------------------------------------------------------------
+        'uv'(double2) |  point from which we cast
+        'uValue'(float) | normalized uValue
+        'vValue'(float) | normalized vValue
+
+    :raises:
+        Exception | if reached
+    """        
+    _str_func = 'get_normalized_uv'
+    
+    try:
+        try:#Validation ----------------------------------------------------------------
+            reload(VALID)
+            _mesh = VALID.objString(mesh,'nurbsSurface', calledFrom = _str_func)
+            log.debug("|{0}| >> mesh arg: {1} | validated: {2}".format(_str_func,mesh,_mesh))            
+            
+            if not SEARCH.is_shape(_mesh):
+                shape = mc.listRelatives(_mesh, shapes=True)[0]
+                log.debug("|{0}| >> Transform provided. using first shape: {1}".format(_str_func,shape))
+            else:shape = _mesh
+  
+            uMin = attributes.doGetAttr(shape,'mnu')
+            uMax = attributes.doGetAttr(shape,'mxu')
+            vMin = attributes.doGetAttr(shape,'mnv')
+            vMax = attributes.doGetAttr(shape,'mxv')         
+            """uMin = mi_shape.mnu
+            uMax = mi_shape.mxu
+            vMin = mi_shape.mnv
+            vMax = mi_shape.mxv"""
+
+        except Exception,error:raise Exception,"Validation failure | {0}".format(error) 		
+
+        try:#Calculation ----------------------------------------------------------------
+            uSize = uMax - uMin
+            vSize = vMax - vMin
+
+            uSum = uMin + uValue
+            vSum = vMin + vValue
+
+            uNormal = uSum / uSize
+            vNormal = vSum / vSize
+        except Exception,error:raise Exception,"Calculation |{0}".format(error) 		
+
+        try:
+            d_return = {'uv':[uNormal,vNormal],'uValue':uNormal,'vValue':vNormal}
+            return d_return 
+        except Exception,error:raise Exception,"Return prep |{0}".format(error) 		
+
+    except Exception,error:
+        log.error(">>> {0} >> Failure! mesh: '{1}' | uValue: {2} | vValue {3}".format(_str_func,mesh,uValue,vValue))
+        log.error(">>> {0} >> error: {1}".format(_str_func,error))        
+        return None
+
+
+def returnNormalizedUV(mesh, uValue, vValue):
+    """
+    uv Values from many functions need to be normalized to be correct when using those values for other functions
+
+    The calculcaion for doing so is 
+    size = maxV - minV
+    sum = rawV + minV
+    normalValue = sum / size
+
+    :parameters:
+    mesh(string) | Surface to normalize to
+    uValue(float) | uValue to normalize 
+    vValue(float) | vValue to normalize 
+
+    :returns:
+    Dict ------------------------------------------------------------------
+    'uv'(double2) |  point from which we cast
+    'uValue'(float) | normalized uValue
+    'vValue'(float) | normalized vValue
+
+    :raises:
+    Exception | if reached
+
+    """      
+    try:
+        _str_funcName = 'returnNormalizedUV'
+
+        try:#Validation ----------------------------------------------------------------
+            mesh = cgmValid.objString(mesh,'nurbsSurface', calledFrom = _str_funcName)
+            if len(mc.ls(mesh))>1:
+                raise StandardError,"{0}>>> More than one mesh named: {1}".format(_str_funcName,mesh)
+            _str_objType = search.returnObjectType(mesh)
+
+            l_shapes = mc.listRelatives(mesh, shapes=True)
+            if len(l_shapes)>1:
+                log.debug( "More than one shape found. Using 0. targetSurface : %s | shapes: %s"%(mesh,l_shapes) )
+            #mi_shape = cgmMeta.validateObjArg(l_shapes[0],cgmMeta.cgmNode,noneValid=False)
+
+            uMin = attributes.doGetAttr(l_shapes[0],'mnu')
+            uMax = attributes.doGetAttr(l_shapes[0],'mxu')
+            vMin = attributes.doGetAttr(l_shapes[0],'mnv')
+            vMax = attributes.doGetAttr(l_shapes[0],'mxv')         
+            """uMin = mi_shape.mnu
+            uMax = mi_shape.mxu
+            vMin = mi_shape.mnv
+            vMax = mi_shape.mxv"""
+
+        except Exception,error:raise Exception,"Validation failure | {0}".format(error) 		
+
+        try:#Calculation ----------------------------------------------------------------
+            uSize = uMax - uMin
+            vSize = vMax - vMin
+
+            uSum = uMin + uValue
+            vSum = vMin + vValue
+
+            uNormal = uSum / uSize
+            vNormal = vSum / vSize
+        except Exception,error:raise Exception,"Calculation |{0}".format(error) 		
+
+        try:
+            d_return = {'uv':[uNormal,vNormal],'uValue':uNormal,'vValue':vNormal}
+            return d_return 
+        except Exception,error:raise Exception,"Return prep |{0}".format(error) 		
+
+    except Exception,error:
+        log.error(">>> {0} >> Failure! mesh: '{1}' | uValue: {2} | vValue {3}".format(_str_funcName,mesh,uValue,vValue))
+        log.error(">>> {0} >> error: {1}".format(_str_funcName,error))        
+        return None
     
     

@@ -62,19 +62,19 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
         
     if _pivot == 'boundingBox':
         log.debug("|{0}|...boundingBox pivot...".format(_str_func))                
-        return DIST.get_bb_center(_obj)
+        return get_bb_center(_obj)
     elif _pivot == 'closestPoint':
         log.debug("|{0}|...closestPoint pivot...".format(_str_func))
         _d_targets = {}
         for t in _targets:
             log.debug("|{0}| target: {1}".format(_str_func,t))                
 
-        #_targetType = SEARCH.get_mayaType(_target)    
+        #_targetType = VALID.get_mayaType(_target)    
     else:
         if '[' in _obj:
             if ":" in _obj:
                 raise ValueError,"|{0}| >>Please specify one obj. Component list found: {1}".format(_str_func,_obj)
-            _cType = SEARCH.get_mayaType(_obj)
+            _cType = VALID.get_mayaType(_obj)
             log.debug("|{0}| >> component mode...".format(_str_func))
             log.debug("|{0}| >> obj: {1} | type: {2} | pivot: {3} | space: {4} | mode: {5}".format(_str_func,_obj,_cType,_pivot,_space,_mode)) 
             
@@ -146,7 +146,7 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
         log.debug("|{0}| >> obj: {1} | pos: {4} | pivot: {2} | space: {3}".format(_str_func,_obj,_pivot,_space,_pos))             
         kws = {'rpr':False,'spr':False,'os':False,'ws':False}
         
-        if _pivot == 'rotate':kws['rpr'] = True
+        if _pivot == 'rp':kws['rpr'] = True
         else: kws['spr'] = True
         
         if _space == 'object':kws['os']=True
@@ -154,7 +154,25 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
         
         log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
     
-        return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )    
+        return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )  
+    
+def get_bb_center(arg = None):
+    """
+    Get the bb center of a given arg
+    
+    :parameters:
+        arg(str/list): Object(s) to check
+
+    :returns
+        boundingBox size(list)
+    """   
+    _str_func = 'get_bb_center'
+    _arg = VALID.stringListArg(arg,False,_str_func)   
+    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))   
+    
+    _box = mc.exactWorldBoundingBox(_arg)
+    
+    return [((_box[0] + _box[3])/2),((_box[4] + _box[1])/2), ((_box[5] + _box[2])/2)]
 
 def get_info(target = None):
     """
@@ -171,7 +189,7 @@ def get_info(target = None):
 
     _d = {}
     _d ['createdFrom']=_target
-    _d ['objectType']=SEARCH.get_mayaType(_target)
+    _d ['objectType']=VALID.get_mayaType(_target)
     _d ['position']=POS.get(target,'rp','world')
     _d ['scalePivot']=POS.get(target,'sp','world')
     _d ['rotation']= mc.xform (_target, q=True, ws=True, ro=True)

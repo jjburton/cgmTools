@@ -20,7 +20,6 @@ import maya.mel as mel
 # From Red9 =============================================================
 
 # From cgm ==============================================================
-from cgm.lib import search
 from cgm.core import cgm_General as cgmGeneral
 
 # Shared Defaults ========================================================
@@ -31,6 +30,119 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
+def get_mayaType(node = None):
+    """
+    What kind of nodeect is this as maya's type return isn't always great
+    
+    :parameters:
+        node(str): Object to check
+
+    :returns
+        type(str)
+    """   
+    def simpleTransformShapeCheck(node = None):
+        _shapes = mc.listRelatives(node,shapes=True,fullPath=True) or []
+        _len = len(_shapes)
+        
+        if _len == 1:
+            return mc.objectType(_shapes[0])
+        elif _len > 1:
+            log.warning("|{0}| >> node: '{1}' has multiple shapes. returning type for '{2}'. Remaining shapes:{3}".format(_str_func,_node,_shapes[0],_shapes[1:]))    
+            _shapeType = False
+            for s in _shapes:
+                sType = mc.objectType(s)
+                if not _shapeType:
+                    _shapeType = sType
+                elif _shapeType != sType:
+                    log.warning("|{0}| >> node: '{1}' has multiple shapes and all do not match. {2} != {3}".format(_str_func,_node,_shapeType,sType))    
+                    return 'transform'
+            return mc.objectType(_shapes[0])
+        else:
+            """
+            _parent = coreRigging.parent_get(_node)
+            if not _parent:
+                _parentShapes = mc.listRelatives(_parent,shapes=True,fullPath=True)
+                if parentShapes != None:
+                    matchObjName = mc.ls(_node, long=True)
+                    if matchObjName[0] in parentShapes:
+                        isShape = True
+            if isShape == True:
+                return 'shape'
+            else:
+                # Case specific"""
+                
+    
+            if mc.listRelatives(node,children = True):#if just a tranform with children, it's a group
+                return 'group'
+            return 'transform' 
+        
+    _str_func = 'get_mayaType'
+    _node = stringArg(node,False,_str_func)
+    
+    log.debug("|{0}| >> node: '{1}' ".format(_str_func,_node))    
+    
+    _intialCheck = mc.objectType(_node)
+
+    if _intialCheck in ['objectSet']:
+        return _intialCheck
+
+    #Easiest to check component...
+    if _intialCheck == 'transform':
+        return simpleTransformShapeCheck(_node)
+
+    elif is_component(_node):
+        log.debug("|{0}| >> component mode...".format(_str_func))
+        _split = _node.split('.')[-1]
+        if 'vtx[' in _split:
+            return 'polyVertex'
+
+        if 'cv[' in _split:
+            if _intialCheck == 'nurbsCurve':
+                return 'curveCV'
+            else:
+                return 'surfaceCV'
+
+        if 'e[' in _split:
+            return 'polyEdge'
+        if 'f[' in _split:
+            return 'polyFace'
+        if 'map[' in _split:
+            return 'polyUV'
+        if 'uv[' in _split:
+            return 'surfacePoint'
+        if 'sf[' in _split:
+            return 'surfacePatch'
+        if 'u[' in _split or 'v[' in _split:
+            _root = _node.split('.')[0]
+            _rootType = simpleTransformShapeCheck(_root)
+            if _rootType == 'nurbsCurve':
+                return 'curvePoint'
+            if _rootType == 'nurbsSurface':
+                return 'isoparm'
+        if 'ep[' in _split:
+            return 'editPoint' 
+        
+        raise RuntimeError,"Shouldn't have gotten here. Need another check for component type. '{0}'".format(_node)
+    return _intialCheck
+def is_component(arg = None):
+    """
+    Check to see if an arg is a component
+    
+    :parameters:
+        node(str): Object to check
+
+    :returns
+        status(bool)
+    """   
+    _str_func = 'is_component'
+    _arg = stringArg(arg,False,_str_func)   
+    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))    
+    
+    if mc.objExists(_arg):
+        if '.' in _arg and '[' in _arg and ']' in _arg:
+            return True
+    return False
+    
 def isFloatEquivalent(lhs, rhs, **kwargs):
     """
     Return true if both floats are with E (epsilon) of one another, 
@@ -165,6 +277,8 @@ def listArg(l_args=None, types=None):
         else:
             result = l_args
     return result
+
+
 
 def isListArg(l_args=None, types=None):
     """
@@ -326,7 +440,7 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
         if isinstance(mayaType, (basestring)):
             l_mayaTypes = [mayaType]
 
-        str_argMayaType = search.returnObjectType(arg)
+        str_argMayaType = get_mayaType(arg)
 
         if not str_argMayaType in l_mayaTypes:
             if noneValid: 
@@ -342,7 +456,7 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
             if noneValid:
                 result = False
             else:
-                str_argMayaType = search.returnObjectType(arg)
+                str_argMayaType = get_mayaType(arg)
                 fmt_args = [arg, str_argMayaType, _str_funcName]
                 raise TypeError("{2}: 'Arg {0}' is type {1}, expected 'transform'").format(*fmt_args)
 
@@ -378,7 +492,7 @@ def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False
         if tmp != False:
             result.append(tmp)
         else:
-            str_argMayaType = search.returnObjectType(arg)
+            str_argMayaType = get_mayaType(arg)
             log.warning(
                 "Arg {0} from func '{1}' ".format(arg, _str_funcName) +\
                 " is Maya type '{2}', not 'str'".format(str_argMayaType)
@@ -694,7 +808,7 @@ def MeshDict(mesh = None, pointCounts = True, calledFrom = None):
         mesh = _bfr[0]
         log.info("{0}>> No source specified, found: '{1}'".format(_str_funcName,mesh))
            
-    _type = search.returnObjectType(mesh)
+    _type = get_mayaType(mesh)
     _shape = None
     _callObjType = None
     
