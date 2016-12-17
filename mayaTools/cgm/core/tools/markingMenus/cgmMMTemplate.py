@@ -9,6 +9,7 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 import cgm.core.classes.GuiFactory as cgmUI
+from cgm.core.lib import name_utils as NAMES
 reload(cgmUI)
 
 
@@ -94,6 +95,44 @@ class cgmMetaMM(mUI.BaseMelWindow):
             self.l_optionVars.append(fullName)
 
         return fullName
+    
+    def varBuffer_define(self,optionVar):
+        _str_func = 'varBuffer_define'
+        
+        sel = mc.ls(sl=True, flatten = True) or []
+        
+        if not sel:
+            log.error("|{0}| >> No selection found. Cannot define")
+            return False
+        
+        optionVar.clear()
+    
+        for o in sel:
+            optionVar.append(NAMES.get_short(o))
+        return True
+    
+    def varBuffer_add(self,optionVar):
+        _str_func = 'varBuffer_add'
+        
+        sel = mc.ls(sl=True, flatten = True) or []
+        if not sel:
+            log.error("|{0}| >> No selection found. Cannot define")
+            return False
+        
+        for o in sel:
+            optionVar.append(o)
+            
+    def varBuffer_remove(self,optionVar):
+            _str_func = 'varBuffer_add'
+            
+            sel = mc.ls(sl=True, flatten = True) or []
+            if not sel:
+                log.error("|{0}| >> No selection found. Cannot define")
+                return False
+            
+            for o in sel:
+                optionVar.remove(o)
+    
     
     @cgmGeneral.Timer
     def build_menu(self, parent):

@@ -71,26 +71,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
     :raises:
     Exception | if reached
     """   
-    def offsetHit(h,startPoint,vector,offsetDistance):
-        log.debug("|{0}| >> offset call...".format(_str_func))
-        if offsetMode == 'distance':
-            if not offsetDistance:
-                log.warning("|{0}| >> No offsetDistance provided. Using 1.0...".format(_str_func))
-                offsetDistance = 1.0
-                
-            log.debug("|{0}| >> vectorDistance offset {1}...".format(_str_func,offsetDistance))
-            
-            _dist_base = DIST.get_distance_between_points(startPoint, h)#...get our base distance
-            _offsetPos = DIST.get_pos_by_vec_dist(startPoint,vector,(_dist_base + offsetDistance))
-            log.debug("|{0}| >> hit: {1} | offset: {2}...".format(_str_func,h,_offsetPos))
-            h = _offsetPos
-        else:
-            log.warning("|{0}| >> unknown offsetMode {1}...".format(_str_func,offsetMode))
-            
-        return h
-    
     _str_func = 'cast'
-    
     _meshArg = VALID.listArg(mesh)
     _mesh =  []
     for m in _meshArg:
@@ -105,8 +86,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
             if VALID.get_mayaType(m) in ['mesh','nurbsSurface']:
                 log.debug("|{0}| >> good shape: {1}...".format(_str_func,m))                    
                 _mesh.append(m)            
-                
-            
+                       
     if not startPoint:
         startPoint = POS.get(obj,pivot='rp',space='ws')
     
@@ -193,7 +173,24 @@ def cast(mesh = None, obj = None, axis = 'z+',
     else:_d['hit'] = _furthest
     return _d
 
-
+def offset_hit_by_distance(h,startPoint,vector,offsetDistance, offsetMode = 'distance'):
+    _str_func = 'offset_hit_by_distance'    
+    log.debug("|{0}| >> offset call...".format(_str_func))
+    if offsetMode == 'distance':
+        if not offsetDistance:
+            log.warning("|{0}| >> No offsetDistance provided. Using 1.0...".format(_str_func))
+            offsetDistance = 1.0
+            
+        log.debug("|{0}| >> vectorDistance offset {1}...".format(_str_func,offsetDistance))
+        
+        _dist_base = DIST.get_distance_between_points(startPoint, h)#...get our base distance
+        _offsetPos = DIST.get_pos_by_vec_dist(startPoint,vector,(_dist_base + offsetDistance))
+        log.debug("|{0}| >> hit: {1} | offset: {2}...".format(_str_func,h,_offsetPos))
+        h = _offsetPos
+    else:
+        log.warning("|{0}| >> unknown offsetMode {1}...".format(_str_func,offsetMode))
+        
+    return h
 
 #LOOK AT BELOW FOR OPTIMIZATION =================================================================================================
 

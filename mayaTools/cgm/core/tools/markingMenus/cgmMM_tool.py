@@ -56,19 +56,19 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         if len(self._l_sel) >= 2:
             self._b_sel_pair = True
             
-        log.debug("{0} >> build_menu".format(self._str_MM))                
+        log.debug("|{0}| >> build_menu".format(self._str_MM))                
         #mc.menu(parent,e = True, deleteAllItems = True)
         
         #Radial Section --------------------------------------------------------------
         _mode = self.var_menuMode.value
         if _mode == 0:
-            log.debug("{0} >> td mode...".format(self._str_MM))                            
+            log.debug("|{0}| >> td mode...".format(self._str_MM))                            
             self.menuRadial_td(parent)
         elif _mode == 1:
-            log.debug("{0} >> anim mode...".format(self._str_MM))                                        
+            log.debug("|{0}| >> anim mode...".format(self._str_MM))                                        
             self.menuRadial_anim(parent)
         elif _mode == 2:
-            log.debug("{0} >> dev mode...".format(self._str_MM))                                        
+            log.debug("|{0}| >> dev mode...".format(self._str_MM))                                        
             self.menuRadial_dev(parent)
         else:
             log.error("Don't know what to do with mode: {0}".format(_mode))
@@ -80,13 +80,13 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         mUI.MelMenuItem(parent,l = "-"*20,en = False)
         
         if _mode == 0:
-            log.debug("{0} >> td mode bottom...".format(self._str_MM))  
+            log.debug("|{0}| >> td mode bottom...".format(self._str_MM))  
             self.menuBottom_td(parent)
         elif _mode == 1:
-            log.debug("{0} >> anim mode bottom...".format(self._str_MM))
+            log.debug("|{0}| >> anim mode bottom...".format(self._str_MM))
             self.menuBottom_anim(parent)
         elif _mode == 2:
-            log.debug("{0} >> dev mode bottom...".format(self._str_MM))  
+            log.debug("|{0}| >> dev mode bottom...".format(self._str_MM))  
             
         try:#>>> Menu mode
             self.l_menuModes = ['td','anim','dev']
@@ -108,7 +108,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                                                 c = mUI.Callback(self.var_menuMode.setValue,i),
                                                 rb = _rb)                
         except Exception,err:
-            log.error("{0} failed to load. err: {1}".format(_str_section,err))	        
+            log.error("|{0}| failed to load. err: {1}".format(_str_section,err))	        
         
         mUI.MelMenuItem(parent,l = 'Reset Options',
                         c=mUI.Callback(self.button_action,self.reset))             
@@ -121,6 +121,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.var_keyType = cgmMeta.cgmOptionVar('cgmVar_KeyType', defaultValue = 0)
         self.var_keyMode = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)	  
         self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
+        self.var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])
         
     #@cgmGen.Timer
     def menuRadial_td(self,parent):
@@ -132,6 +133,11 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         #self.build_radial_aim(parent,'NE')
         #self.build_radial_control(parent,'SW')
         #self.build_radial_arrange(parent,'SE')
+        mUI.MelMenuItem(parent,
+                        en = self._b_sel,
+                        l = 'Reset',
+                        c = lambda *a: ml_resetChannels.main(transformsOnly = self.var_resetMode.value),
+                        rp = "S")           
         #Bottom---------------------------------------------------
         
     def menuRadial_anim(self,parent):
@@ -194,7 +200,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                                   c = mUI.Callback(self.var_keyType.setValue,i),
                                   rb = _rb)                
         except Exception,err:
-            log.error("{0} failed to load. err: {1}".format(_str_section,err))        
+            log.error("|{0}| failed to load. err: {1}".format(_str_section,err))        
     def optionMenu_keyMode(self, parent):
         try:#>>> KeyMode 
             _str_section = 'key mode'
@@ -212,7 +218,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                                   c = mUI.Callback(self.var_keyMode.setValue,i),
                                   rb = _rb)                
         except Exception,err:
-            log.error("{0} failed to load. err: {1}".format(_str_section,err))
+            log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
             
     def optionMenu_resetMode(self, parent):
         try:#>>> KeyMode 
@@ -231,7 +237,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                                   c = mUI.Callback(self.var_resetMode.setValue,i),
                                   rb = _rb)                
         except Exception,err:
-            log.error("{0} failed to load. err: {1}".format(_str_section,err)) 
+            log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
             
     def optionMenu_rayCast(self, parent):
         uiMenu_rayCast = mUI.MelMenuItem( parent, l='rayCast Mode', subMenu=True)    
@@ -253,7 +259,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                                   #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastMode.setValue(i)),                                  
                                   rb = _rb)                
         except Exception,err:
-            log.error("{0} failed to load. err: {1}".format(_str_section,err))
+            log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
             
         try:#>>> Offset Mode 
             _str_section = 'Offset mode'
@@ -275,24 +281,29 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             mUI.MelMenuItem( uiMenu_rayCast, l='Set Offset',
                              c = lambda *a:self.raySnap_setAndStart(self.var_rayCastOffsetDist.uiPrompt_value('Set offset')))
         except Exception,err:
-            log.error("{0} failed to load. err: {1}".format(_str_section,err))            
-        """
-                _l_toBuild = [{'l':'None',
-                       'rp':'NW',
-                       'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffset.setValue(0))},
-                      {'l':'Distance',
-                       'rp':'SW',
-                       'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffset.setValue(1))},
-                      {'l':'snapCast',
-                       'rp':'W',
-                       'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffset.setValue(2))},
-                      {'l':'Set Distance -- ({0})'.format(self.var_rayCastOffsetDist.value),
-                       'rp':'S',
-                       'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffsetDist.uiPrompt_value('Set offset'))},
-                      {'l':'closeUI',
-                       'rp':'NE',
-                       'c':'pass'}]
-        """
+            log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
+            
+        try:#>>> Cast Buffer 
+            _str_section = 'Cast Buffer'
+    
+            uiMenu = mUI.MelMenuItem( uiMenu_rayCast, l='Cast Buffer', subMenu=True)    
+            mUI.MelMenuItem( uiMenu, l="Define",
+                             c= lambda *a: self.varBuffer_define(self.var_rayCastTargetsBuffer))
+        
+            mUI.MelMenuItem( uiMenu, l="Add Selected",
+                             c= lambda *a: self.varBuffer_add(self.var_rayCastTargetsBuffer))
+        
+            mUI.MelMenuItem( uiMenu, l="Remove Selected",
+                             c= lambda *a: self.varBuffer_remove(self.var_rayCastTargetsBuffer))
+        
+            mUI.MelMenuItemDiv( uiMenu )
+            mUI.MelMenuItem( uiMenu, l="Select Members",
+                             c= lambda *a: self.var_rayCastTargetsBuffer.select())
+            mUI.MelMenuItem( uiMenu, l="Clear",
+                             c= lambda *a: self.var_rayCastTargetsBuffer.clear())
+            
+        except Exception,err:
+            log.error("|{0}| failed to load. err: {1}".format(_str_section,err))  
 
     def build_radial_dynParent(self,parent,direction = None):
         """
@@ -349,8 +360,11 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                                     #l = 'Cast Create',
                                     #rp = 'SE')
         
-        self.optionRadial_create_rayCast(_r,'CastCreate','S')        
-        self.optionRadial_create_rayCast(_r,'DragCreate','SW',drag = True)        
+        if self.var_rayCastTargetsBuffer.value:
+            _add = "(Buffer Cast)"
+        else:_add = ""
+        self.optionRadial_create_rayCast(_r,'Cast{0}'.format(_add),'S')        
+        self.optionRadial_create_rayCast(_r,'Drag{0}'.format(_add),'SW',drag = True)        
         
         
         
@@ -379,6 +393,9 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                       {'l':'curve',
                        'rp':'SE',
                        'c':lambda *a:self.rayCast_create('curve',drag)},
+                      {'l':'Duplicate',
+                        'rp':'W',
+                        'c':lambda *a:self.rayCast_create('duplicate',drag)},                      
                       {'l':'follicle',
                        'rp':'S',
                        'c':lambda *a:self.rayCast_create('follicle',drag)}]    
@@ -568,7 +585,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     def button_action_per_sel(self,func,calling = None):
         for o in self._l_sel:
             _res = func(o)
-            log.debug("{0} : '{1}' | result: '{2}'".format(calling,o,_res)) 
+            log.debug("|{0}| : '{1}' | result: '{2}'".format(calling,o,_res)) 
             self._l_res.append(_res)
         mc.select(self._l_res)
         
@@ -577,21 +594,21 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     
     def action_logged(self,func,calling=None):
         _res = func
-        log.debug("{0} | result: '{1}'".format(calling,_res)) 
+        log.debug("|{0}| | result: '{1}'".format(calling,_res)) 
         
     def bc_create_groupMe(self, calling = None):
         for o in self._l_sel:
-            _res = self.action_logged( RIGGING.group_me(o,True,True), "{0} : {1}".format(calling,o) )
+            _res = self.action_logged( RIGGING.group_me(o,True,True), "|{0}| : {1}".format(calling,o) )
             self._l_res.append(_res)
         mc.select(self._l_res)
     
     def bc_copy_pivot(self,rotatePivot = False, scalePivot = False, calling=None):        
         for o in self._l_sel[1:]:
-            _msg = "{0} : {1}".format(calling,o)
+            _msg = "|{0}| : {1}".format(calling,o)
             try:
                 self.action_logged( RIGGING.copy_pivot(o,self._l_sel[0],rotatePivot,scalePivot), _msg  )
             except Exception,err:
-                log.error("{0} ||| Failure >>> err:s[{1}]".format(_msg,err))
+                log.error("|{0}| ||| Failure >>> err:s[{1}]".format(_msg,err))
         mc.select(self._l_sel)
 
     def uiRadial_snap_build(self,parent,direction = None):
@@ -746,7 +763,7 @@ def killUI():
         log.debug(">"*10  + '   cgmMarkingMenu =  %0.3f seconds  ' % (f_seconds) + '<'*10)    
     
         if sel and f_seconds <= .5:#and not mmActionOptionVar.value:
-            log.debug("{0} >> low time. Set key...".format(_str_popWindow))
+            log.debug("|{0}| >> low time. Set key...".format(_str_popWindow))
             setKey()        
     
         
@@ -757,7 +774,7 @@ def raySnap_start(targets = [], create = None, drag = False):
     
     _str_func = 'raySnap_start'
     _toSnap = False
-    if not create:
+    if not create or create == 'duplicate':
         targets = mc.ls(sl=True)#...to use g to do again?...    
         _toSnap = targets
         log.debug("|{0}| | targets: {1}".format(_str_func,_toSnap))
@@ -768,20 +785,35 @@ def raySnap_start(targets = [], create = None, drag = False):
     var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastMode', defaultValue=0)
     var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastOffset', defaultValue=0)
     var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastOffsetDist', defaultValue=1.0)
+    var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])
     
     _rayCastMode = var_rayCastMode.value
     _rayCastOffsetMode = var_rayCastOffsetMode.value
+    _rayCastTargetsBuffer = var_rayCastTargetsBuffer.value
     
-    log.debug("|{0}| | Mode: {1}".format(_str_func,_rayCastMode))
-    log.debug("|{0}| | offsetMode: {1}".format(_str_func,_rayCastOffsetMode))
+    log.debug("|{0}| >> Mode: {1}".format(_str_func,_rayCastMode))
+    log.debug("|{0}| >> offsetMode: {1}".format(_str_func,_rayCastOffsetMode))
     
     kws = {'mode':'surface', 'mesh':None,'closestOnly':True, 'create':'locator','dragStore':False,
            'timeDelay':.15, 'offsetMode':None, 'offsetDistance':var_rayCastOffsetDist.value}#var_rayCastOffsetDist.value
     
+    if _rayCastTargetsBuffer:
+        log.debug("|{0}| >> Casting at buffer {1}".format(_str_func,_rayCastMode))
+        kws['mesh'] = _rayCastTargetsBuffer
+        
     if _toSnap:
         kws['toSnap'] = _toSnap
     elif create:
         kws['create'] = create
+        
+    if create == 'duplicate':
+        kws['toDuplicate'] = _toSnap        
+        if _toSnap:
+            kws['toSnap'] = False
+        else:
+            log.error("|{0}| >> Must have target with duplicate mode!".format(_str_func))
+            cgmGen.log_info_dict(kws,"RayCast args")        
+            return
         
     if drag:
         kws['dragStore'] = drag
@@ -836,7 +868,7 @@ def snap_action(self,mode = 'point'):
             
             self.action_logged( SNAP.go(**kws), _msg  )
         except Exception,err:
-            log.error("{0} ||| Failure >>> err:s[{1}]".format(_msg,err))
+            log.error("|{0}| ||| Failure >>> err:s[{1}]".format(_msg,err))
     mc.select(self._l_sel)    
     
 
