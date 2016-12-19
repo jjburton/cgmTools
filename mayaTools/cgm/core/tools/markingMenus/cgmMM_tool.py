@@ -14,6 +14,7 @@ from cgm.core.tools.markingMenus import cgmMMTemplate as mmTemplate
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import distance_utils as DIST
+from cgm.core.lib import shared_data as SHARED
 reload(RIGGING)
 reload(mmTemplate)
 from cgm.core.lib.zoo import baseMelUI as mUI
@@ -46,7 +47,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     MM = True#...whether to use mm pop up menu for build or not 
     
     @cgmGen.Timer
-    def build_menu(self, parent):
+    def BUILD(self, parent):
         self._d_radial_menu = {}
         self._l_res = []
         self._l_sel = mc.ls(sl=True)
@@ -121,6 +122,9 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.var_keyType = cgmMeta.cgmOptionVar('cgmVar_KeyType', defaultValue = 0)
         self.var_keyMode = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)	  
         self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
+        self.var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0)
+        self.var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
+        self.var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)                
         self.var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])
         
     #@cgmGen.Timer
@@ -180,6 +184,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.optionMenu_keyMode(parent)
         self.optionMenu_resetMode(parent)
     def menuBottom_td(self,parent):
+        self.optionMenu_objDefaults(parent)
         self.optionMenu_resetMode(parent)
         self.optionMenu_rayCast(parent)
     def optionMenu_keyType(self, parent):
@@ -239,6 +244,46 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         except Exception,err:
             log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
             
+    def optionMenu_objDefaults(self, parent):
+            uiMenu_objDefault = mUI.MelMenuItem( parent, l='Object Default', subMenu=True)    
+            
+            try:#>>> Obj Aim 
+                _str_section = 'Aim Axis'
+        
+                uiMenu = mUI.MelMenuItem( uiMenu_objDefault, l='Obj Aim', subMenu=True)    
+                uiRC = mUI.MelRadioMenuCollection()
+                #self.uiOptions_menuMode = []		
+                _v = self.var_objDefaultAimAxis.value
+                
+                for i,item in enumerate(SHARED._l_axis_by_string):
+                    if i == _v:
+                        _rb = True
+                    else:_rb = False
+                    uiRC.createButton(uiMenu,label=item,
+                                      #c = mUI.Callback(self.raySnap_setAndStart_reg,self.var_rayCastMode,i),                                  
+                                      c = lambda *a:self.var_rayCastMode.setValue(i),                                  
+                                      rb = _rb)                
+            except Exception,err:
+                log.error("|{0}| failed to load. err: {1}".format(_str_section,err))    
+            try:#>>> Obj Up 
+                _str_section = 'Up Axis'
+        
+                uiMenu = mUI.MelMenuItem( uiMenu_objDefault, l='Obj Up', subMenu=True)    
+                uiRC = mUI.MelRadioMenuCollection()
+                #self.uiOptions_menuMode = []		
+                _v = self.var_objDefaultUpAxis.value
+                
+                for i,item in enumerate(SHARED._l_axis_by_string):
+                    if i == _v:
+                        _rb = True
+                    else:_rb = False
+                    uiRC.createButton(uiMenu,label=item,
+                                      #c = mUI.Callback(self.raySnap_setAndStart_reg,self.var_rayCastMode,i),                                  
+                                      c = lambda *a:self.var_objDefaultUpAxis.setValue(i),                                  
+                                      rb = _rb)                
+            except Exception,err:
+                log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
+                
     def optionMenu_rayCast(self, parent):
         uiMenu_rayCast = mUI.MelMenuItem( parent, l='rayCast Mode', subMenu=True)    
         
@@ -250,7 +295,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             #self.uiOptions_menuMode = []		
             _v = self.var_rayCastMode.value
             
-            for i,item in enumerate(['closest','midpoint','far']):
+            for i,item in enumerate(['closest','midpoint','far','xPlane','yPlane','zPlane']):
                 if i == _v:
                     _rb = True
                 else:_rb = False
@@ -283,6 +328,25 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         except Exception,err:
             log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
             
+        try:#>>> Orient Mode 
+            _str_section = 'Orient mode'
+    
+            uiMenu = mUI.MelMenuItem( uiMenu_rayCast, l='Orient', subMenu=True)    
+            uiRC = mUI.MelRadioMenuCollection()
+            #self.uiOptions_menuMode = []		
+            _v = self.var_rayCastOrientMode.value
+            
+            for i,item in enumerate(['None','Normal']):
+                if i == _v:
+                    _rb = True
+                else:_rb = False
+                uiRC.createButton(uiMenu,label=item,
+                                  c = mUI.Callback(self.raySnap_setAndStart_reg,self.var_rayCastOrientMode,i),
+                                  #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastOffset.setValue(i)),                                  
+                                  rb = _rb)         
+        except Exception,err:
+            log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
+
         try:#>>> Cast Buffer 
             _str_section = 'Cast Buffer'
     
@@ -375,7 +439,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                              #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                              rp = direction)
         
-    def optionRadial_create_rayCast(self,parent,label = 'Cast Create', direction = None,drag = False):
+    def optionRadial_create_rayCast(self,parent,label = 'Cast Create', direction = None, drag = False):
         _r = mUI.MelMenuItem(parent,subMenu = True,
                              en = True,
                              l = label,
@@ -395,7 +459,10 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                        'c':lambda *a:self.rayCast_create('curve',drag)},
                       {'l':'Duplicate',
                         'rp':'W',
-                        'c':lambda *a:self.rayCast_create('duplicate',drag)},                      
+                        'c':lambda *a:self.rayCast_create('duplicate',drag)},
+                      {'l':'vector',
+                       'rp':'SW',
+                       'c':lambda *a:self.rayCast_create('vectorLine',drag)},                      
                       {'l':'follicle',
                        'rp':'S',
                        'c':lambda *a:self.rayCast_create('follicle',drag)}]    
@@ -779,22 +846,31 @@ def raySnap_start(targets = [], create = None, drag = False):
         _toSnap = targets
         log.debug("|{0}| | targets: {1}".format(_str_func,_toSnap))
         if not _toSnap:
-            log.error("|{0}| >> Must have targets!".format(_str_func))
+            if create == 'duplicate':
+                log.error("|{0}| >> Must have targets to duplicate!".format(_str_func))
             return
     
     var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastMode', defaultValue=0)
     var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastOffset', defaultValue=0)
     var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastOffsetDist', defaultValue=1.0)
     var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])
+    var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0) 
+    var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
+    var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)      
+    
     
     _rayCastMode = var_rayCastMode.value
     _rayCastOffsetMode = var_rayCastOffsetMode.value
     _rayCastTargetsBuffer = var_rayCastTargetsBuffer.value
+    _rayCastOrientMode = var_rayCastOrientMode.value
+    _objDefaultAimAxis = var_objDefaultAimAxis.value
+    _objDefaultUpAxis = var_objDefaultUpAxis.value
     
     log.debug("|{0}| >> Mode: {1}".format(_str_func,_rayCastMode))
     log.debug("|{0}| >> offsetMode: {1}".format(_str_func,_rayCastOffsetMode))
     
-    kws = {'mode':'surface', 'mesh':None,'closestOnly':True, 'create':'locator','dragStore':False,
+    kws = {'mode':'surface', 'mesh':None,'closestOnly':True, 'create':'locator','dragStore':False,'orientMode':None,
+           'objAimAxis':SHARED._l_axis_by_string[_objDefaultAimAxis], 'objUpAxis':SHARED._l_axis_by_string[_objDefaultUpAxis],
            'timeDelay':.15, 'offsetMode':None, 'offsetDistance':var_rayCastOffsetDist.value}#var_rayCastOffsetDist.value
     
     if _rayCastTargetsBuffer:
@@ -805,6 +881,9 @@ def raySnap_start(targets = [], create = None, drag = False):
         kws['toSnap'] = _toSnap
     elif create:
         kws['create'] = create
+        
+    if _rayCastOrientMode == 1:
+        kws['orientMode'] = 'normal'
         
     if create == 'duplicate':
         kws['toDuplicate'] = _toSnap        
@@ -822,6 +901,12 @@ def raySnap_start(targets = [], create = None, drag = False):
         kws['mode'] = 'midPoint'
     elif _rayCastMode == 2:
         kws['mode'] = 'far'
+    elif _rayCastMode == 3:
+        kws['mode'] = 'planeX'
+    elif _rayCastMode == 4:
+        kws['mode'] = 'planeY'   
+    elif _rayCastMode == 5:
+        kws['mode'] = 'planeZ'        
     elif _rayCastMode != 0:
         log.warning("|{0}| >> Unknown rayCast mode: {1}!".format(_str_func,_rayCastMode))
         

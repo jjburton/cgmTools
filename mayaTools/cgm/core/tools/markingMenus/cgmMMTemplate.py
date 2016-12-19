@@ -135,7 +135,7 @@ class cgmMetaMM(mUI.BaseMelWindow):
     
     
     @cgmGeneral.Timer
-    def build_menu(self, parent):
+    def BUILD(self, parent):
         """
         This is the method designed to be overloaded to do build the subclass menus...
         """
@@ -181,7 +181,7 @@ class cgmMetaMM(mUI.BaseMelWindow):
         self.setup_optionVars()#Setup our optionVars
         #mc.setParent(parent)
         
-        self.build_menu(parent)
+        self.BUILD(parent)
         
         #mUI.MelMenuItemDiv(parent)        
         #mUI.MelMenuItem(parent,l = '{0}'.format(self.__class__.POPWINDOW),en=False)   

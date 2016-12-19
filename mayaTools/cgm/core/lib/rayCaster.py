@@ -35,7 +35,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -115,7 +115,8 @@ def cast(mesh = None, obj = None, axis = 'z+',
     _l_posBuffer = []
     _l_uvBuffer = []
     _source = None
-
+    
+    log.debug("|{0}| >> Source:{1} | Vector:{2}".format(_str_func,startPoint,vector))
     _d_meshPos = {}
     _d_meshUV = {}
     for m in _mesh:
@@ -456,10 +457,11 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
 
             d_return['hit'] = [mPoint_hit.x, mPoint_hit.y, mPoint_hit.z]
             d_return['source'] = [mPoint_raySource.x,mPoint_raySource.y,mPoint_raySource.z]
+            
             try:
                 if _str_objType == 'mesh':
                     uvReturn = meshFn.getUVAtPoint(hitMPoint,uvPoint,om.MSpace.kWorld)
-
+                    
                     uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
                     vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
                     if uValue and vValue:
@@ -471,8 +473,23 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
 
                     d_return['l_rawUV'] = [uRaw,vRaw]
                     d_return['uv'] = __d['uv']
+            except Exception,err:raise Exception,"Uv Processing failure |{0}".format(err) 
+            
+            try:#...normal,face id processing
+                if _str_objType == 'mesh':
+                    mVector_normal = om.MVector()
+                    meshFn.getClosestNormal(hitMPoint,mVector_normal,om.MSpace.kWorld)
+                    #log.info(mVector_normal)
+                    #log.info(mVector_normal.x)
+                    d_return['normal'] = [mVector_normal.x,mVector_normal.y,mVector_normal.z]
+                else:
+                    _res = surfaceFn.normal( uRaw, vRaw,om.MSpace.kWorld)
+                    d_return['normal'] = [_res.x, _res.y, _res.z]
+                    pass
 
-            except Exception,error:raise Exception,"Uv Processing failure |{0}".format(error) 		
+            except Exception,err:raise Exception,"Normal processing failure |{0}".format(err)             
+            
+            
         return d_return 
     except Exception,error:
         log.debug(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_func,mesh,raySource,rayDir))
@@ -633,6 +650,7 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
         l_hits = []
         l_uv = []	
         l_rawUV = []
+        l_normals = []
         if gotHit:
 
             #Nurbs return -
@@ -645,12 +663,31 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                     uvReturn = meshFn.getUVAtPoint(mPoint_hit,OM2.MSpace.kWorld)
                     if uvReturn:
                         l_uv.append([uvReturn[0],uvReturn[1]])
+                        
+                    #normals...
+                    mNormal = meshFn.getClosestNormal(mPoint_hit,OM2.MSpace.kWorld)
+                    l_normals.append([mNormal[0].x,mNormal[0].y,mNormal[0].z])
+                    
                 else:#Nurbs
+                    log.info('here')
                     uRaw = gotHit[i+1][0]
-                    vRaw =  gotHit[i+1][1]                        
+                    vRaw =  gotHit[i+1][1] 
+                    log.info('u: {0}'.format(uRaw))
+                    log.info('v: {0}'.format(vRaw))
+
                     __d = DIST.get_normalized_uv(mesh,uRaw,vRaw)#normalize data
                     l_rawUV.append([uRaw,vRaw])
-                    l_uv.append(__d['uv'])    
+                    l_uv.append(__d['uv']) 
+                    
+                    #normals...
+                    for i4,item in enumerate(gotHit):
+                        log.info("{0} : {1}".format(i4,item))
+                    
+                    #mNormal = surfaceFn.normal(__d['uv'][0],__d['uv'][1],OM2.MSpace.kWorld)                    
+                    mNormal = surfaceFn.normal(uRaw,vRaw,OM2.MSpace.kWorld)
+                    log.info('n: {0}'.format(mNormal))
+                    #mNormal = surfaceFn.normal(uRaw,vRaw,OM2.MSpace.kWorld)
+                    l_normals.append([mNormal[0],mNormal[1],mNormal[2]])                    
             try:            
                 d_return['hits'] = l_hits
                 d_return['source'] = [mPoint_raySource.x,mPoint_raySource.y,mPoint_raySource.z]	    
@@ -658,6 +695,8 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                     d_return['uvs'] = l_uv
                 if l_rawUV:
                     d_return['uvsRaw'] = l_rawUV
+                if l_normals:
+                    d_return['normals'] = l_normals
             except Exception,err:
                 raise Exception,"Return processing |{0}".format(err) 
         return d_return 
@@ -828,6 +867,7 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
         l_hits = []
         l_uv = []	
         l_rawUV = []
+        l_normals = []
         if gotHit:
             for i in range( mPointArray_hits.length() ):
                 l_hits.append( [mPointArray_hits[i].x, mPointArray_hits[i].y,mPointArray_hits[i].z])
@@ -848,6 +888,11 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                     vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
                     if uValue and vValue:
                         l_uv.append([uValue,vValue])
+                        
+                    #....normal
+                    mVector_normal = om.MVector()
+                    meshFn.getClosestNormal(mPoint_hit,mVector_normal,om.MSpace.kWorld)
+                    l_normals.append([mVector_normal.x, mVector_normal.y, mVector_normal.z])
                 else:#Nurbs
                     uRaw = mPointArray_u[i]
                     vRaw =  mPointArray_v[i]
@@ -855,6 +900,10 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
 
                     l_rawUV.append([uRaw,vRaw])
                     l_uv.append(__d['uv'])
+                    
+                    #....normal
+                    _res = surfaceFn.normal( uRaw, vRaw,om.MSpace.kWorld)
+                    l_normals.append([_res.x, _res.y, _res.z])                    
             try:            
                 d_return['hits'] = l_hits
                 d_return['source'] = [mPoint_raySource.x,mPoint_raySource.y,mPoint_raySource.z]	    
@@ -862,6 +911,8 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                     d_return['uvs'] = l_uv
                 if l_rawUV:
                     d_return['uvsRaw'] = l_rawUV
+                if l_normals:
+                    d_return['normals'] = l_normals
             except Exception,err:
                 raise Exception,"Return processing |{0}".format(err) 
         return d_return 

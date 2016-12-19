@@ -158,6 +158,9 @@ class clickMesh(ContextualPick):
                         'surface' -- Single return
                         'intersections' -- all hits on the vector ray
                         'midPoint' -- mid point of intersections
+                        'planeX' -- cast to x plane
+                        'planeY' -- cast to y plane
+                        'planeZ' -- cast to z plane
     
         create(False/option) -- options:('locator' is default)
                                 'locator' -- makes a locator 
@@ -179,10 +182,14 @@ class clickMesh(ContextualPick):
                             snapCast -- An auto guessing post cast mode to attempt to keep things off the surface when casting
         clampValues(vector) -- clamp given values to provided ones. Useful for a spine cast for example
         orientSnap(bool) -- orient the created object to surface
+        orientMode(str) -- how to orient our created or duplicated objects
+                           None
+                           normal
         timeDelay(float) -- Wait to start the tool after a given delay. Useful for marking menu calling
         tagAndName(dict) -- I don't remember...:)
         toCreate(list) -- list of items names to make, sets's max as well. When it's through the list, it shops
         toSnap(list) -- objects to snap to a final pos value
+        maxDistance(float) -- maximum cast distance
 
     :Stores
     self.l_pos(list) -- points on the surface selected in world space
@@ -203,17 +210,21 @@ class clickMesh(ContextualPick):
                  offsetDistance = 1.0,
                  clampValues = [None,None,None],
                  orientSnap = True,
+                 orientMode = None,
                  timeDelay = None,
+                 objAimAxis = 'z+',
+                 objUpAxis = 'y+',
                  tagAndName = {},
                  toCreate = [],
                  toDuplicate = [],
                  toSnap = [],#...objects to snap on release
+                 maxDistance = 100000,
                  *a,**kws):
 
         _str_funcName = 'clickMesh.__init__'
         log.debug(">>> %s >> "%_str_funcName + "="*75)     	
         #>>> Store our info ====================================================================
-        self._createModes = ['locator','joint','jointChain','curve','follicle','group',False]
+        self._createModes = ['locator','joint','jointChain','curve','follicle','group','vectorLine',False]
         self._l_modes = _clickMesh_modes
         self.l_mesh = []
         self.d_meshPos = {} #creating this pretty much just for follicle mode so we can attache to a specific mesh
@@ -226,10 +237,11 @@ class clickMesh(ContextualPick):
         self._time_delayCheck = timeDelay
         self._l_folliclesToMake = []
         self._l_folliclesBuffer = []
+        self._orientMode = orientMode
         self._l_toDuplicate = toDuplicate
         if self._createMode == 'follicle':#Only get uv intersection for follicles
             self._getUV = True
-
+        self._f_maxDistance = maxDistance
         self.b_closestOnly = closestOnly
         self.l_created = []
         self.b_clampSetting = clampIntersections
@@ -246,23 +258,37 @@ class clickMesh(ContextualPick):
         self.int_maxStore = maxStore
         self.l_toCreate = toCreate
         self.v_clampValues = clampValues
+        self._str_castPlane = None
         if toCreate:
             self.int_maxStore = len(toCreate)
 
+
+        if mode in ['planeX','planeY','planeZ']:
+            d_plane_axis = {'planeX':[1,0,0],
+                            'planeY':[0,1,0],
+                            'planeZ':[0,0,1]}
+            self._str_castPlane = mc.polyPlane(n=mode, axis = d_plane_axis[mode], width = self._f_maxDistance, height = self._f_maxDistance, cuv = 1)[0]
+            attributes.doSetAttr(self._str_castPlane,'v',False)
+            self.addTargetMesh( self._str_castPlane )
+            mode = 'surface'#...change for casting
+            
         self.setMode(mode)
                
         ContextualPick.__init__(self, drag = True, space = 'screen',projection = 'viewPlane', *a,**kws )
+        
 
-        if mesh is None:
+        if mesh is None and not self._str_castPlane:                
             log.info("Using all visible mesh!")
             for l in mc.ls(type='mesh',visible = True), mc.ls(type='nurbsSurface',visible = True):
                 for o in l:
                     self.addTargetMesh( o )#             
-        if mesh is not None:
+
+        if mesh:
             assert type(mesh) is list,"Mesh call must be in list form when called"
             for m in mesh:
                 self.addTargetMesh(m)    
-        self.updateMeshArea()
+                
+        #self.updateMeshArea()
 
     def updateMeshArea(self):
         """
@@ -376,7 +402,8 @@ class clickMesh(ContextualPick):
         _str_funcName = 'finalize'
         self.l_created = lists.returnListNoDuplicates(self.l_created)
         self.l_return = lists.returnListNoDuplicates(self.l_return)
-
+        if self._str_castPlane:
+            mc.delete(self._str_castPlane)
         if self._createMode in ['curve','jointChain','group','follicle'] and self.l_return:
             if self._createMode == 'group':
                 bufferList = []
@@ -533,6 +560,11 @@ class clickMesh(ContextualPick):
                         log.error("SnapCast fail. Using original pos... | err: {0}".format(err))
                 try:
                     POS.set(o,_pos)
+                    
+                    if self._orientMode == 'normal':
+                        mc.xform(o, ro= mc.xform(self.l_created[-1],q=True,ro=True))                   
+                    
+                    
                 except Exception,err:
                     log.error("{0} failed to snap. err: {1}".format(o,err))
             mc.delete(self.l_created)
@@ -750,14 +782,11 @@ class clickMesh(ContextualPick):
                             POS.set(_dup,_pos)
                         except Exception,err:
                             log.error("{0} failed to snap. err: {1}".format(o,err))   
-                        if _m:
-                            constBuffer = mc.normalConstraint(_m,_dup,
-                                                              aimVector=[0,0,1],
-                                                              upVector=[0,1,0],
-                                                              worldUpType = 'scene')
-                            mc.delete(constBuffer) 
                         nameBuffer.append(_dup)
                             
+                elif self._createMode == 'vectorLine':
+                    nameBuffer = [mc.curve (d=1, ep = [self.clickPos,pos], ws=True)]
+
                 else:
                     if self._createMode == 'joint':
                         nameBuffer = mc.joint(radius = 1)
@@ -769,18 +798,23 @@ class clickMesh(ContextualPick):
     
                     #mc.move (pos[0],pos[1],pos[2], nameBuffer)
                     POS.set(nameBuffer,pos)
-                    if _m:
-                        constBuffer = mc.normalConstraint(_m,nameBuffer,
-                                                          aimVector=[0,0,1],
-                                                          upVector=[0,1,0],
-                                                          worldUpType = 'scene')
-                        mc.delete(constBuffer)
+                    
                         
                     #if self.l_toCreate:#Name it
                         #nameBuffer = mc.rename(nameBuffer,self.l_toCreate[len(self.l_return)])
                     nameBuffer = [nameBuffer]
     
-                self._createModeBuffer.extend(nameBuffer)                        
+                self._createModeBuffer.extend(nameBuffer)   
+                
+                if self._orientMode == 'normal' and self._createMode not in ['vectorLine']:
+                    for o in nameBuffer:
+                        if _m:
+                            constBuffer = mc.normalConstraint(_m,o,
+                                                              aimVector=[0,0,1],
+                                                              upVector=[0,1,0],
+                                                              #worldUpVector = self.clickVector,
+                                                              worldUpType = 'scene')
+                            mc.delete(constBuffer)                        
                 """
                 for m in self.d_meshPos.keys():#check each mesh dictionary to see where it came from
                     if pos in self.d_meshPos[m]:#if the mesh has a match
@@ -848,3 +882,5 @@ def screenToWorld(startX,startY):
     success = activeView.viewToWorld(startX, startY, posMPoint, vecMVector ) # The function
 
     return [posMPoint.x,posMPoint.y,posMPoint.z],[vecMVector.x,vecMVector.y,vecMVector.z]
+
+

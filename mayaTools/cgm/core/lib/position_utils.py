@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -140,7 +140,7 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
     _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom=_str_func)
     _pos = pos
               
-    if SEARCH.is_component(_obj):
+    if VALID.is_component(_obj):
         raise NotImplementedError,"Haven't implemented component move"
     else:
         log.debug("|{0}| >> obj: {1} | pos: {4} | pivot: {2} | space: {3}".format(_str_func,_obj,_pivot,_space,_pos))             

@@ -21,7 +21,8 @@ import maya.mel as mel
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-
+from cgm.core.lib import shared_data as SHARED
+reload(SHARED)
 # Shared Defaults ========================================================
 
 #=========================================================================
@@ -685,16 +686,7 @@ class simpleOrientation():
         return self.__i_orientation_index
     
 #>>> Simple Axis ==========================================================================
-l_axisDirectionsByString = ['x+','y+','z+','x-','y-','z-'] #Used for several menus and what not
 
-d_stringToVector = {
-    'x+':[1, 0, 0],
-    'x-':[-1, 0, 0],
-    'y+':[0, 1, 0],
-    'y-':[0,-1, 0],
-    'z+':[0, 0, 1],
-    'z-':[0, 0,-1]
-}
 
 d_vectorToString = {
     '[1, 0, 0]' :'x+',
@@ -705,20 +697,8 @@ d_vectorToString = {
     '[0, 0,-1]':'z-'
 }
 
-d_tupleToString = {
-    '(1, 0, 0)':'x+',
-    '(-1, 0, 0)':'x-',
-    '(0, 1, 0)':'y+',
-    '(0,-1, 0)':'y-',
-    '(0, 0, 1)':'z+',
-    '(0, 0,-1)':'z-'
-}
 
-d_shortAxisToLong = {
-    'x':'x+',
-    'y':'y+',
-    'z':'z+'
-}
+
 
 class simpleAxis():
     """ 
@@ -746,12 +726,12 @@ class simpleAxis():
 
         str_arg = str_arg.replace(' ','')
 
-        if d_shortAxisToLong.has_key(str_arg):
-            self.__str_axis = d_shortAxisToLong[str_arg]
-            self.__v_axis = d_stringToVector.get(self.__str_axis)
-        elif d_stringToVector.has_key(str_arg):
+        if SHARED._d_short_axis_to_long.has_key(str_arg):
+            self.__str_axis = SHARED._d_short_axis_to_long[str_arg]
+            self.__v_axis = SHARED._d_axis_string_to_vector.get(self.__str_axis)
+        elif SHARED._d_axis_string_to_vector.has_key(str_arg):
             self.__str_axis = str_arg
-            self.__v_axis = d_stringToVector[str_arg]
+            self.__v_axis = SHARED._d_axis_string_to_vector[str_arg]
         elif d_vectorToString.has_key(str_arg):
             self.__str_axis = d_vectorToString[str_arg]
             self.__v_axis = d_stringTovector(self.__str_axis)
@@ -771,6 +751,19 @@ class simpleAxis():
     @property
     def p_vector(self):
         return self.__v_axis
+    
+    @property
+    def inverse(self):
+        """
+        Returns an inverted instance of itself. z+ --> z-
+        """
+        if '+'in self.p_string:
+            return simpleAxis(self.p_string.replace('+','-'))
+        else:
+            return simpleAxis(self.p_string.replace('-','+'))
+        
+    #def __repr__(self):
+        #return 
     
     
 #>>> Transforms ==========================================================================
