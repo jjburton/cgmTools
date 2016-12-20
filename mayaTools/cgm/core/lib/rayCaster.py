@@ -21,7 +21,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import distance_utils as DIST
 reload(DIST)
 from cgm.core import cgm_General as cgmGeneral
-
+from cgm.core.lib import locator_utils as LOC
 from cgm.lib import locators
 from cgm.lib import dictionary
 from cgm.lib import search
@@ -35,7 +35,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -119,19 +119,23 @@ def cast(mesh = None, obj = None, axis = 'z+',
     log.debug("|{0}| >> Source:{1} | Vector:{2}".format(_str_func,startPoint,vector))
     _d_meshPos = {}
     _d_meshUV = {}
+    _d_meshNormal = {}
     for m in _mesh:
         _b = {}
+        if not _d_meshUV.get(m):_d_meshUV[m] = []
+        if not _d_meshPos.get(m):_d_meshPos[m] = []
+        if not _d_meshNormal.get(m):_d_meshNormal[m] = []        
         if firstHit:
             try:_b = findMeshIntersection(m, startPoint, rayDir=vector, maxDistance = maxDistance)
             except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))
-            if not _d_meshUV.get(m):_d_meshUV[m] = []
-            if not _d_meshPos.get(m):_d_meshPos[m] = []
             if _b:
                 h = _b['hit']
 
                 _uv = _b.get('uv',None)
+                _normal = _b.get('normal',False)
                 _d_meshUV[m].append(_uv)
                 _d_meshPos[m].append(h)	
+                _d_meshNormal[m].append(_normal)
                 if not _uv:
                     log.warning("{0} failed to find uvs".format(m))
                     
@@ -141,17 +145,20 @@ def cast(mesh = None, obj = None, axis = 'z+',
         else:
             try:_b = findMeshIntersections(m, startPoint, rayDir=vector, maxDistance = maxDistance)
             except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))	
-            if not _d_meshUV.get(m):_d_meshUV[m] = []
-            if not _d_meshPos.get(m):_d_meshPos[m] = []
             if _b:
                 _uvs = _b.get('uvs',None)
+                _normals =_b.get('normals',False)
+                
                 if not _uvs:
                     log.warning("{0} failed to find uvs".format(m))
+                if not _normals:
+                    log.warning("{0} failed to find normals".format(m))   
+                    
                 for i,h in enumerate(_b['hits']):
                     _uv = _uvs[i]
                     _d_meshUV[m].append(_uv)
                     _d_meshPos[m].append(h)		
-                    
+                    _d_meshNormal[m].append(_normals[i])
                     if offsetMode == 'vectorDistance':
                         h = offsetHit(h,startPoint,vector,offsetDistance)
                     _l_posBuffer.append(h)
@@ -168,7 +175,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
     _near = distance.returnClosestPoint(_source, _l_posBuffer)
     _furthest = distance.returnFurthestPoint(_source,_l_posBuffer)
     
-    _d = {'source':_source, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'meshHits':_d_meshPos}
+    _d = {'source':_source, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'meshHits':_d_meshPos,'meshNormals':_d_meshNormal}
     if firstHit:
         _d['hit'] = _near
     else:_d['hit'] = _furthest
@@ -479,8 +486,8 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
                 if _str_objType == 'mesh':
                     mVector_normal = om.MVector()
                     meshFn.getClosestNormal(hitMPoint,mVector_normal,om.MSpace.kWorld)
-                    #log.info(mVector_normal)
-                    #log.info(mVector_normal.x)
+                    #log.debug(mVector_normal)
+                    #log.debug(mVector_normal.x)
                     d_return['normal'] = [mVector_normal.x,mVector_normal.y,mVector_normal.z]
                 else:
                     _res = surfaceFn.normal( uRaw, vRaw,om.MSpace.kWorld)
@@ -501,6 +508,7 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance
     Calls on OpenMaya 1 and 2 variations after some bugs were discovered with 2016 casting. 
     -2016 OM2 - when casting at poly edge, fails
     -2016 OM2 - nurbsSurface UV returns a different rawUV than 1. 1 Normalizes as expected, 2's does not.
+    -2016 OM2 - nurbsSurface normal returns junk and broken
     
     :parameters:
         mesh(string) | Surface to cast at
@@ -651,14 +659,20 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
         l_uv = []	
         l_rawUV = []
         l_normals = []
+        _space = OM2.MSpace.kWorld
         if gotHit:
 
             #Nurbs return -
             for i,hit in enumerate(gotHit[0]) :
                 l_hits.append( [hit.x, hit.y,hit.z])
                 mPoint_hit = OM2.MPoint(hit) # Thank you Capper on Tech-artists.org          
-                log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_func,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
+                log.debug("{0} | {4} Hit! [{1},{2},{3}]".format(_str_func,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z, i))
                 
+                #mc.rename( LOC.create(position = l_hits[i]), 'hit_{0}_loc'.format(i))
+                log.debug("Hit return...")
+                for i4,item in enumerate(gotHit):
+                    log.debug("|{2}| >> {0} : {1}".format(i4,item,_str_func))
+                    
                 if _str_objType == 'mesh':
                     uvReturn = meshFn.getUVAtPoint(mPoint_hit,OM2.MSpace.kWorld)
                     if uvReturn:
@@ -667,27 +681,38 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                     #normals...
                     mNormal = meshFn.getClosestNormal(mPoint_hit,OM2.MSpace.kWorld)
                     l_normals.append([mNormal[0].x,mNormal[0].y,mNormal[0].z])
+                    #mc.rename( LOC.create(position = DIST.get_pos_by_vec_dist(l_hits[i],l_normals[i],2)), 'hit_{0}_normal_loc'.format(i))
                     
                 else:#Nurbs
-                    log.info('here')
+
+                    raise Exception,"Open Maya 2.0 should not be used with Nurbs ray stuff. Normal returns are off."    
                     uRaw = gotHit[i+1][0]
                     vRaw =  gotHit[i+1][1] 
-                    log.info('u: {0}'.format(uRaw))
-                    log.info('v: {0}'.format(vRaw))
+                    
+                    #log.info('u: {0}'.format(uRaw))
+                    #log.debug('v: {0}'.format(vRaw))
 
                     __d = DIST.get_normalized_uv(mesh,uRaw,vRaw)#normalize data
+                    
                     l_rawUV.append([uRaw,vRaw])
                     l_uv.append(__d['uv']) 
                     
                     #normals...
-                    for i4,item in enumerate(gotHit):
-                        log.info("{0} : {1}".format(i4,item))
+                    #
                     
                     #mNormal = surfaceFn.normal(__d['uv'][0],__d['uv'][1],OM2.MSpace.kWorld)                    
-                    mNormal = surfaceFn.normal(uRaw,vRaw,OM2.MSpace.kWorld)
-                    log.info('n: {0}'.format(mNormal))
-                    #mNormal = surfaceFn.normal(uRaw,vRaw,OM2.MSpace.kWorld)
-                    l_normals.append([mNormal[0],mNormal[1],mNormal[2]])                    
+                    try:
+                        #Must use raw values
+                        #mNormal = surfaceFn.normal(__d['uv'][0],__d['uv'][1],OM2.MSpace.kWorld) 
+                        mNormal = surfaceFn.normal(uRaw,vRaw,_space)
+                        l_normals.append([mNormal[0],mNormal[1],mNormal[2]])                                            
+                    except Exception,err:
+                        l_normals.append(False)
+                        log.error("|{0}| >> Surface normal query failed. | uRaw:{1} | vRaw:{2} | space:{3} ||| err: {4}".format(_str_func,uRaw,vRaw,OM2.MSpace.kWorld,err))
+                    log.debug('n: {0}'.format(mNormal))
+                    #mNormal = surfaceFn.normal(uRaw,vRaw,OM2.MSpace.kWorld)                    
+                    #try:mc.rename( LOC.create(position = DIST.get_pos_by_vec_dist(l_hits[i],l_normals[i],2)), 'hit_{0}_normal_loc'.format(i))
+                    #except:pass
             try:            
                 d_return['hits'] = l_hits
                 d_return['source'] = [mPoint_raySource.x,mPoint_raySource.y,mPoint_raySource.z]	    
@@ -875,7 +900,12 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                 #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
                 mPoint_hit = om.MPoint(mPointArray_hits[i]) # Thank you Capper on Tech-artists.org          
                 log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_func,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
-
+                
+                #mc.rename( LOC.create(position = l_hits[i]), 'hit_{0}_loc'.format(i))
+                
+                #for i4,item in enumerate(gotHit):
+                    #log.debug("|{2}| >> {0} : {1}".format(i4,item,_str_func))
+                    
                 pArray = [0.0,0.0]
                 x1 = om.MScriptUtil()
                 x1.createFromList( pArray, 2 )
@@ -893,9 +923,14 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                     mVector_normal = om.MVector()
                     meshFn.getClosestNormal(mPoint_hit,mVector_normal,om.MSpace.kWorld)
                     l_normals.append([mVector_normal.x, mVector_normal.y, mVector_normal.z])
+                    
+                    #mc.rename( LOC.create(position = DIST.get_pos_by_vec_dist(l_hits[i],l_normals[i],2)), 'hit_{0}_normal_loc'.format(i))
+                    
                 else:#Nurbs
                     uRaw = mPointArray_u[i]
                     vRaw =  mPointArray_v[i]
+                    
+                    log.debug("Raw: {0} | {1}".format(uRaw,vRaw))
                     __d = DIST.get_normalized_uv(mesh,uRaw,vRaw)#normalize data
 
                     l_rawUV.append([uRaw,vRaw])
@@ -903,7 +938,10 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                     
                     #....normal
                     _res = surfaceFn.normal( uRaw, vRaw,om.MSpace.kWorld)
-                    l_normals.append([_res.x, _res.y, _res.z])                    
+                    l_normals.append([_res.x, _res.y, _res.z])    
+                    
+                    #mc.rename( LOC.create(position = DIST.get_pos_by_vec_dist(l_hits[i],l_normals[i],2)), 'hit_{0}_normal_loc'.format(i))
+                    
             try:            
                 d_return['hits'] = l_hits
                 d_return['source'] = [mPoint_raySource.x,mPoint_raySource.y,mPoint_raySource.z]	    

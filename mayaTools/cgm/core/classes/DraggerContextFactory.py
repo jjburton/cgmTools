@@ -56,7 +56,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 class ContextualPick(object):
@@ -169,6 +169,8 @@ class clickMesh(ContextualPick):
                                 'curve' -- builds curve from positions at tool exit
                                 'group' -- build groups at positions
                                 'follicle' --creates a folicle
+                                'vectorLine' -- visualize cast data
+                                'data' -- just return data
     
         closestOnly(bool) -- only return the closest hit from all mesh hits (default - True)
         clampIntersections(False/int) -- clamp number of interactions
@@ -224,11 +226,12 @@ class clickMesh(ContextualPick):
         _str_funcName = 'clickMesh.__init__'
         log.debug(">>> %s >> "%_str_funcName + "="*75)     	
         #>>> Store our info ====================================================================
-        self._createModes = ['locator','joint','jointChain','curve','follicle','group','vectorLine',False]
+        self._createModes = ['locator','joint','jointChain','curve','follicle','group','vectorLine','data',False]
         self._l_modes = _clickMesh_modes
         self.l_mesh = []
         self.d_meshPos = {} #creating this pretty much just for follicle mode so we can attache to a specific mesh
         self.d_meshUV = {}
+        self.d_meshNormals = {}
         self.f_meshArea = 1
         self.l_toSnap = cgmValid.listArg(toSnap)
         self._createMode = create
@@ -258,6 +261,7 @@ class clickMesh(ContextualPick):
         self.int_maxStore = maxStore
         self.l_toCreate = toCreate
         self.v_clampValues = clampValues
+        self._int_runningTally = 0
         self._str_castPlane = None
         if toCreate:
             self.int_maxStore = len(toCreate)
@@ -404,6 +408,7 @@ class clickMesh(ContextualPick):
         self.l_return = lists.returnListNoDuplicates(self.l_return)
         if self._str_castPlane:
             mc.delete(self._str_castPlane)
+            
         if self._createMode in ['curve','jointChain','group','follicle'] and self.l_return:
             if self._createMode == 'group':
                 bufferList = []
@@ -453,6 +458,40 @@ class clickMesh(ContextualPick):
                         except:pass   """   
                 try:mc.delete(self.l_created)
                 except:pass 
+            elif self._createMode == 'jointChain':
+                
+                mc.ls(sl=1)
+                ml_joints = []
+                for i,o in enumerate(self.l_created):
+                    mi_jnt = cgmMeta.cgmObject(mc.joint(n="cast_{0}_jnt".format(i)))
+                    ml_joints.append(mi_jnt)
+                    
+                    #Position
+                    POS.set(mi_jnt.mNode, POS.get(o))
+                    
+                    #Get our orientation data
+                    _mi_loc = cgmMeta.cgmNode(self.l_created[-1])
+                    _d = _mi_loc.dataBuffer
+                    _m_normal = _d['normal']
+                    _m = _mi_loc.meshTarget[0]
+                    
+                    if o != self.l_created[-1]:
+                        constBuffer = mc.aimConstraint(self.l_created[i+1],mi_jnt.mNode,
+                                                       aimVector=[0,0,1],
+                                                       upVector=[0,1,0],
+                                                       worldUpVector = _m_normal)
+                    else:
+                        constBuffer = mc.aimConstraint(self.l_created[-2],mi_jnt.mNode,
+                                                       aimVector=[0,0,-1],
+                                                       upVector=[0,1,0],
+                                                       worldUpVector = _m_normal)
+                    
+                    mc.delete(constBuffer)
+                    if ml_joints:#parent to the last
+                        mi_jnt.parent = ml_joints[-1]      
+                        
+                mc.delete(self.l_created)
+                
             else:
                 for o in self.l_created:
                     try:mc.delete(o)
@@ -466,11 +505,26 @@ class clickMesh(ContextualPick):
                         self.l_created = [curveBuffer]
                     else:
                         log.warning("Need at least 2 points for a curve")                        
-                elif self._createMode == 'jointChain':
-                    self.l_created = []
-                    mc.select(cl=True)
-                    for pos in self.l_return:                             
-                        self.l_created.append( mc.joint (p = (pos[0], pos[1], pos[2]),radius = 1) ) 
+
+                            
+                        
+                        
+                    if self._orientMode == 'normal' and self._createMode not in ['vectorLine']:
+                        for o in nameBuffer:
+                            if _m:
+                                if self._createMode == 'joint':
+                                    constBuffer = mc.normalConstraint(_m,o,
+                                                                      aimVector=[0,0,1],
+                                                                      upVector=[0,1,0],
+                                                                      #worldUpVector = _m_normal)
+                                                                      worldUpType = 'scene')                                
+                                else:
+                                    constBuffer = mc.normalConstraint(_m,o,
+                                                                      aimVector=[0,0,1],
+                                                                      upVector=[0,1,0],
+                                                                      worldUpVector = _m_normal)
+                                                                      #worldUpType = 'scene')                    
+                        
         log.debug( self.l_created)
 
         if self.d_tagAndName:
@@ -488,7 +542,9 @@ class clickMesh(ContextualPick):
     def release(self):
         """
         Store current data to return buffers
-        """                            
+        """               
+        _str_funcName = 'release'
+        
         #Only store return values on release
         if not self.b_dragStoreMode:#If not on drag, do it here. Otherwise do it on update
             if self._posBuffer:
@@ -509,7 +565,20 @@ class clickMesh(ContextualPick):
 
             #if 'joint' in self._createMode:
                 #jntUtils.metaFreezeJointOrientation(self._createModeBuffer)	
-        
+        if self._createMode == 'data':
+            _mi_loc = cgmMeta.cgmNode(self.l_created[-1])
+            _dBuffer = _mi_loc.dataBuffer
+            _m_normal = _dBuffer['normal']
+            _d = {'startPoint':None,
+                  'hit':POS.get(self.l_created[-1],pivot='rp',space='w'),
+                  'normal':_m_normal,
+                  'vector':None,
+                  'meshHit':_mi_loc.getMessage('meshTarget')[0]}
+            cgmGen.log_info_dict(_d,"Hit {0} Data".format(self._int_runningTally))
+            try:_mi_loc.delete()
+            except:pass
+            self.l_created = []
+            
         if self.l_created and self.l_toSnap and not self._l_toDuplicate:
             log.info("Snap Mode!")
           
@@ -520,12 +589,36 @@ class clickMesh(ContextualPick):
             _dist = _dist - 1
             _newP = DIST.get_pos_by_vec_dist(self.clickPos,self.clickVector,_dist)
             log.info("Old point: {0} | new point: {1}".format(p,_newP))
-            self._posBuffer[i] = _newP"""                              
+            self._posBuffer[i] = _newP"""   
             
+            """#_pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')
+            _pos_base = self._posBuffer[-1]
+            
+            #Find our mesh...
+            _base_idex = self._posBuffer.index(_pos_base)
+            _rawPos = self._posBufferRaw[_base_idex]
+            _m = False
+            _m_hit_idx = None
+            
+            if _rawPos:
+                for i,m in enumerate(self.d_meshPos.keys()):
+                    log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                                    
+                    for i2,h in enumerate(self.d_meshPos[m]):
+                        if h == _rawPos: 
+                            log.debug("Found mesh match!")
+                            _m = m
+                            _m_hit_idx = self.d_meshPos[_m].index(h)
+                            _m_normal = self.d_meshNormals[_m][_m_hit_idx]
+                            log.info("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
+                            break      """      
+            
+            _mi_loc = cgmMeta.cgmNode(self.l_created[-1])
+            _d = _mi_loc.dataBuffer
+            _m_normal = _d['normal']
+            _m = _mi_loc.meshTarget[0]
+            _pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')                            
             #Use that distance to subtract along our original ray's hit distance to get our new point
             for o in self.l_toSnap:
-                _pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')
-                _pos = _pos_base 
                 if self.str_offsetMode == 'snapCast':
                     try:
                         log.debug("snapCast: {0}".format(o))
@@ -543,11 +636,16 @@ class clickMesh(ContextualPick):
                         log.debug("baseDist: {0}".format(_dist_base))
                         log.debug("firstHit: {0}".format(_dist_firstHit))
                         
-                        if self.mode == 'far':
-                            _dist_new = _dist_base + _dist_firstHit
+                        if not _m_normal:
+                            if self.mode == 'far':
+                                _dist_new = _dist_base + _dist_firstHit
+                            else:
+                                _dist_new = _dist_base - _dist_firstHit 
+                                
+                            _offsetPos = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,(_dist_new))
                         else:
-                            _dist_new = _dist_base - _dist_firstHit
-                        _offsetPos = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,(_dist_new))
+                            log.info("|{0}| >> mesh normal offset!".format(_str_funcName))                                    
+                            _offsetPos = DIST.get_pos_by_vec_dist(_pos_base,_m_normal,(_dist_firstHit))
                         
                         _pos = _offsetPos
                         
@@ -571,7 +669,9 @@ class clickMesh(ContextualPick):
             if self.l_toSnap:
                 mc.select(self.l_toSnap)
             self.dropTool()
-                
+        
+        self._int_runningTally+=1
+        
         if self.int_maxStore and len(self.l_return) == self.int_maxStore:
             log.debug("Max hit, finalizing")
             self.dropTool()
@@ -583,7 +683,9 @@ class clickMesh(ContextualPick):
         """
         ContextualPick.drag(self)
         self.updatePos()
-
+        
+        #self._int_runningTally+=1
+        
         if self._createModeBuffer:
             self.l_created.extend(self._createModeBuffer)          
 
@@ -606,7 +708,7 @@ class clickMesh(ContextualPick):
         Get updated position data via shooting rays
         """
         _str_funcName = 'clickMesh.updatePos'
-        log.debug(">>> %s >> "%_str_funcName + "="*75)     	
+        #log.debug(">>> %s >> "%_str_funcName + "="*75)     	
         if not self.l_mesh:
             return log.warning("No mesh objects have been added to '%s'"%(self.name)) 
         
@@ -626,9 +728,8 @@ class clickMesh(ContextualPick):
         self._posBuffer = []#Clear our pos buffer
         self._posBufferRaw = []
         #checkDistance = self.getDistanceToCheck(m)
-        checkDistance = 100000        
         
-        kws = {'mesh':self.l_mesh,'startPoint':self.clickPos,'vector':self.clickVector,'maxDistance':checkDistance}
+        kws = {'mesh':self.l_mesh,'startPoint':self.clickPos,'vector':self.clickVector,'maxDistance':self._f_maxDistance}
         if self.mode != 'surface':
             kws['firstHit'] = False
                         
@@ -648,12 +749,16 @@ class clickMesh(ContextualPick):
                     else:
                         self.d_meshPos[m] = _res['meshHits'][m]  
                         
+                    if self.d_meshNormals.has_key(m):
+                        self.d_meshNormals[m].extend(_res['meshNormals'][m])
+                    else:
+                        self.d_meshNormals[m] = _res['meshNormals'][m]   
+                                                
                     _d_UVS = _res.get('uvs',{})
-                    if _d_UVS:
-                        if self.d_meshUV.has_key(m):
-                            self.d_meshUV[m].extend(_d_UVS[m])
-                        else:
-                            self.d_meshUV[m] = _d_UVS[m]    
+                    if self.d_meshUV.has_key(m):
+                        self.d_meshUV[m].extend(_d_UVS[m])
+                    else:
+                        self.d_meshUV[m] = _d_UVS[m]    
                             
                     #self.d_meshUV[m] = _d.get(m,[])
                     
@@ -704,7 +809,8 @@ class clickMesh(ContextualPick):
                     self.l_returnRaw.extend(self._posBufferRaw)
                 else:
                     self.l_returnRaw.extend(self._posBuffer)
-                    
+            self._int_runningTally+=1
+            
         #>>> Make our stuff ====================================================================================
         if self._posBuffer: # Make our stuff
             mc.select(cl=1)
@@ -725,6 +831,8 @@ class clickMesh(ContextualPick):
                 #Find our mesh...
                 _rawPos = self._posBufferRaw[i]
                 _m = False
+                _m_hit_idx = None
+                
                 if _rawPos:
                     for i,m in enumerate(self.d_meshPos.keys()):
                         log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                                    
@@ -732,23 +840,29 @@ class clickMesh(ContextualPick):
                             if h == _rawPos: 
                                 log.debug("Found mesh match!")
                                 _m = m
+                                _m_hit_idx = _res['meshHits'][_m].index(h)
+                                _m_normal = _res['meshNormals'][_m][_m_hit_idx]
+                                log.info("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
                                 break
                 else:
                     log.debug("no raw pos match")
-                        
+                
+                _jsonDict = {'hitIndex':_m_hit_idx,"normal":_m_normal}
+                
                 #Let's make our stuff
                 #baseScale = distance.returnMayaSpaceFromWorldSpace(10)
                 if self._l_toDuplicate:
                     nameBuffer = []
                     for o in self._l_toDuplicate:
                         _dup = mc.duplicate(o)[0]
-                        
+                        _dup = mc.rename(_dup,"{0}_DUPLICATE_{1}".format(NAMES.get_base(o),self._int_runningTally))
                         _pos = pos 
+                        _oType = cgmValid.get_mayaType(o)
                         
                         if self.str_offsetMode == 'snapCast':
                             try:
                                 log.debug("snapCast: {0}".format(_dup))
-                                
+                                _pos_base = _pos
                                 _pos_obj = POS.get(_dup,pivot='rp',space='w')#...Get the point of the object to snap
                                 log.debug("startPoint: {0}".format(_pos_obj))
                                 log.debug("posBuffer: {0}".format(_pos_base))
@@ -762,12 +876,17 @@ class clickMesh(ContextualPick):
                                 log.debug("baseDist: {0}".format(_dist_base))
                                 log.debug("firstHit: {0}".format(_dist_firstHit))
                                 
-                                if self.mode == 'far':
-                                    _dist_new = _dist_base + _dist_firstHit
+                                if not _m_normal:
+                                    if self.mode == 'far':
+                                        _dist_new = _dist_base + _dist_firstHit
+                                    else:
+                                        _dist_new = _dist_base - _dist_firstHit 
+                                        
+                                    _offsetPos = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,(_dist_new))
                                 else:
-                                    _dist_new = _dist_base - _dist_firstHit
-                                _offsetPos = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,(_dist_new))
-                                
+                                    log.info("|{0}| >> mesh normal offset!".format(_str_funcName))                                    
+                                    _offsetPos = DIST.get_pos_by_vec_dist(_pos_base,_m_normal,(_dist_firstHit))
+                                    
                                 _pos = _offsetPos
                                 
                                 #Failsafe for casting to self...
@@ -776,7 +895,7 @@ class clickMesh(ContextualPick):
                                     #_pos = self._posBuffer[-1]
                                     _pos = pos
                             except Exception,err:
-                                _pos = _pos_base                         
+                                _pos = _pos                         
                                 log.error("SnapCast fail. Using original pos... | err: {0}".format(err))
                         try:
                             POS.set(_dup,_pos)
@@ -785,23 +904,32 @@ class clickMesh(ContextualPick):
                         nameBuffer.append(_dup)
                             
                 elif self._createMode == 'vectorLine':
-                    nameBuffer = [mc.curve (d=1, ep = [self.clickPos,pos], ws=True)]
+                    _dist_base = DIST.get_distance_between_points(self.clickPos, pos)#...get our base distance                    
+                    _crv_ray = mc.curve (d=1, ep = [self.clickPos,pos], ws=True)
+                    _crv_normal = mc.curve (d=1, ep = [pos,  DIST.get_pos_by_vec_dist(pos,_m_normal,(_dist_base/10)) ], ws=True)
+                    curves.setCurveColorByName(_crv_ray,'yellow')
+                    _crv_ray = mc.rename(_crv_ray,"ray_{0}_crv".format(self._int_runningTally))
+                    _crv_normal = mc.rename(_crv_normal,"normal_{0}_crv".format(self._int_runningTally))
+                    
+                    curves.setCurveColorByName(_crv_normal,'white')
+                    nameBuffer = [_crv_ray,_crv_normal]
 
                 else:
                     if self._createMode == 'joint':
                         nameBuffer = mc.joint(radius = 1)
+                        nameBuffer = mc.rename(nameBuffer,"cast_{0}_jnt".format(self._int_runningTally))
                         #attributes.doSetAttr(nameBuffer,'radius',1)
                         mc.select(cl=True)
                     
                     else:
-                        nameBuffer = mc.spaceLocator()[0]
-    
-                    #mc.move (pos[0],pos[1],pos[2], nameBuffer)
+                        loc = cgmMeta.cgmNode(mc.spaceLocator()[0])
+                        
+                        loc.addAttr('dataBuffer',_jsonDict,attrType='string')
+                        loc.doStore('meshTarget',_m)
+                        loc.rename("cast_{0}_loc".format(self._int_runningTally))
+                        nameBuffer = loc.mNode
                     POS.set(nameBuffer,pos)
                     
-                        
-                    #if self.l_toCreate:#Name it
-                        #nameBuffer = mc.rename(nameBuffer,self.l_toCreate[len(self.l_return)])
                     nameBuffer = [nameBuffer]
     
                 self._createModeBuffer.extend(nameBuffer)   
@@ -809,11 +937,18 @@ class clickMesh(ContextualPick):
                 if self._orientMode == 'normal' and self._createMode not in ['vectorLine']:
                     for o in nameBuffer:
                         if _m:
-                            constBuffer = mc.normalConstraint(_m,o,
-                                                              aimVector=[0,0,1],
-                                                              upVector=[0,1,0],
-                                                              #worldUpVector = self.clickVector,
-                                                              worldUpType = 'scene')
+                            if self._createMode == 'joint':
+                                constBuffer = mc.normalConstraint(_m,o,
+                                                                  aimVector=[0,0,1],
+                                                                  upVector=[0,1,0],
+                                                                  #worldUpVector = _m_normal)
+                                                                  worldUpType = 'scene')                                
+                            else:
+                                constBuffer = mc.normalConstraint(_m,o,
+                                                                  aimVector=[0,0,1],
+                                                                  upVector=[0,1,0],
+                                                                  worldUpVector = _m_normal)
+                                                                  #worldUpType = 'scene')
                             mc.delete(constBuffer)                        
                 """
                 for m in self.d_meshPos.keys():#check each mesh dictionary to see where it came from

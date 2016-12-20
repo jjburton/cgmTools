@@ -295,7 +295,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             #self.uiOptions_menuMode = []		
             _v = self.var_rayCastMode.value
             
-            for i,item in enumerate(['closest','midpoint','far','xPlane','yPlane','zPlane']):
+            for i,item in enumerate(['closest','midpoint','far','pierce','xPlane','yPlane','zPlane']):
                 if i == _v:
                     _rb = True
                 else:_rb = False
@@ -462,7 +462,10 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         'c':lambda *a:self.rayCast_create('duplicate',drag)},
                       {'l':'vector',
                        'rp':'SW',
-                       'c':lambda *a:self.rayCast_create('vectorLine',drag)},                      
+                       'c':lambda *a:self.rayCast_create('vectorLine',drag)},   
+                      {'l':'data',
+                        'rp':'NW',
+                        'c':lambda *a:self.rayCast_create('data',drag)},                      
                       {'l':'follicle',
                        'rp':'S',
                        'c':lambda *a:self.rayCast_create('follicle',drag)}]    
