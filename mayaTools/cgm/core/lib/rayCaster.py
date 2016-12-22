@@ -137,7 +137,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
                 _d_meshPos[m].append(h)	
                 _d_meshNormal[m].append(_normal)
                 if not _uv:
-                    log.warning("{0} failed to find uvs".format(m))
+                    log.debug("{0} failed to find uvs".format(m))
                     
                 if offsetMode:
                     h = offsetHit(h,startPoint,vector,offsetDistance)
@@ -150,9 +150,9 @@ def cast(mesh = None, obj = None, axis = 'z+',
                 _normals =_b.get('normals',False)
                 
                 if not _uvs:
-                    log.warning("{0} failed to find uvs".format(m))
+                    log.debug("{0} failed to find uvs".format(m))
                 if not _normals:
-                    log.warning("{0} failed to find normals".format(m))   
+                    log.debug("{0} failed to find normals".format(m))   
                     
                 for i,h in enumerate(_b['hits']):
                     _uv = _uvs[i]
