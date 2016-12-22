@@ -168,7 +168,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
                 _source = _b['source']
 
     if not _l_posBuffer:
-        log.info("|{0}| No hits detected. startPoint: {1} | mesh:{2} | vector:{4} | axis: {3}".format(_str_func,startPoint,mesh,axis,vector))
+        log.debug("|{0}| No hits detected. startPoint: {1} | mesh:{2} | vector:{4} | axis: {3}".format(_str_func,startPoint,mesh,axis,vector))
         return {}
     
     

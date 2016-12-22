@@ -202,7 +202,7 @@ def get_normalized_uv(mesh, uValue, vValue):
         try:#Validation ----------------------------------------------------------------
             reload(VALID)
             _mesh = VALID.objString(mesh,'nurbsSurface', calledFrom = _str_func)
-            log.debug("|{0}| >> mesh arg: {1} | validated: {2}".format(_str_func,mesh,_mesh))            
+            #log.debug("|{0}| >> mesh arg: {1} | validated: {2}".format(_str_func,mesh,_mesh))            
             
             if not SEARCH.is_shape(_mesh):
                 shape = mc.listRelatives(_mesh, shapes=True)[0]

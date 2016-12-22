@@ -428,9 +428,9 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         try:#>>> Orient Mode 
             _str_section = 'Orient mode'
     
-            uiMenu = mc.menuItem( uiMenu_rayCast, l='Orient', subMenu=True)    
+            uiMenu = mc.menuItem( p=uiMenu_rayCast, l='Orient', subMenu=True)    
             uiRC = mc.radioMenuItemCollection()
-            #self.uiOptions_menuMode = []		
+            #self.uiOptions_menuMode = []		s
             _v = self.var_rayCastOrientMode.value
             
             for i,item in enumerate(['None','Normal']):

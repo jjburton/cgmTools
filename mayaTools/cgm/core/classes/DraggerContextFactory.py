@@ -451,7 +451,7 @@ class clickMesh(ContextualPick):
                 if self._l_folliclesToMake:
                     for f_dat in self._l_folliclesToMake:
                         _follicle = NODES.add_follicle(f_dat[0],f_dat[2])
-                        log.debug("Follicle created: {0}".format(_follicle))                        
+                        log.info("|finalize| >> Follicle created: {0}".format(_follicle))                        
                         attributes.doSetAttr(_follicle[0],'parameterU',f_dat[1][0])
                         attributes.doSetAttr(_follicle[0],'parameterV',f_dat[1][1])                    
                         """bufferList = []
@@ -500,6 +500,7 @@ class clickMesh(ContextualPick):
                     mc.delete(constBuffer)
                     if ml_joints:#parent to the last
                         mi_jnt.parent = ml_joints[-1]      
+                        log.info("|finalize| >> Created: {0}".format(mi_jnt))                        
                         
                 mc.delete(self.l_created)
                 
@@ -577,15 +578,20 @@ class clickMesh(ContextualPick):
         log.debug("|{0}| >> create mode: {1}".format(_str_funcName,self._createMode))
             #if 'joint' in self._createMode:
                 #jntUtils.metaFreezeJointOrientation(self._createModeBuffer)	
+                
+        l_cull = []        
         for o in self.l_created:
             if not mc.objExists(o):
-                log.error("|{0}| >> missing created: {1}".format(_str_funcName,o))
-                self.l_created.remove(o)
+                log.debug("|{0}| >> missing created: {1}".format(_str_funcName,o))
+            else:
+                l_cull.append(o)
+        self.l_created = l_cull
                 
         if self._createMode == 'data' and self.l_created:
             log.debug("Data!")
-            for o in self.l_created:
-                _mi_loc = cgmMeta.cgmNode(o)
+            for i,o in enumerate(self.l_created):
+                try:_mi_loc = cgmMeta.cgmNode(o)
+                except:continue
                 _dBuffer = _mi_loc.dataBuffer
                 _m_normal = _dBuffer['normal']
                 _d = {'startPoint':self.clickPos,
@@ -593,7 +599,7 @@ class clickMesh(ContextualPick):
                       'normal':_m_normal,
                       'vector':self.clickVector,
                       'meshHit':_mi_loc.getMessage('meshTarget')}
-                cgmGen.log_info_dict(_d,"Hit {0} Data".format(self._int_runningTally))
+                cgmGen.log_info_dict(_d,"Cast {0} | Hit {1} Data".format(self._int_runningTally, i))
                 try:_mi_loc.delete()
                 except:pass
             self.l_created = []
@@ -760,6 +766,7 @@ class clickMesh(ContextualPick):
             _res = None
             log.error("{0} >>> surface cast fail. More than likely, the offending face lacks uv's. Error:{1}".format(_str_funcName,error))
         
+        _d_hit_mesh_queried = {}
         if _res:
             try:
                 for i,m in enumerate(_res['meshHits'].keys()):
@@ -823,17 +830,27 @@ class clickMesh(ContextualPick):
                 _l = copy.copy(self._posBuffer)
                 for i,pos in enumerate(self._posBuffer):
                     _m_normal = False  
-                    for i2,m in enumerate(self.d_meshPos.keys()):
-                        #log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                       
-                        for i3,h in enumerate(self.d_meshPos[m]):
-                            if h == pos: 
-                                log.debug("Found mesh match!")
-                                _m = m
-                                _m_hit_idx = _res['meshHits'][_m].index(h)
-                                _m_normal = _res['meshNormals'][_m][_m_hit_idx]
-                                
-                                log.debug("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
-                                break      
+                    if str(pos) in _d_hit_mesh_queried.keys():
+                        log.debug("|{0}| >> Using queryied data for hit {1}".format(_str_funcName,pos))
+                        _d = _d_hit_mesh_queried[str(pos)]
+                        _m = _d['m']
+                        _m_hit_idx = _d['m_hit_idx']
+                        _m_normal = _d['m_normal']
+                    else:    
+                        for i2,m in enumerate(self.d_meshPos.keys()):
+                            #log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                       
+                            for i3,h in enumerate(self.d_meshPos[m]):
+                                if h == pos: 
+                                    log.debug("Found mesh match!")
+                                    _m = m
+                                    _m_hit_idx = _res['meshHits'][_m].index(h)
+                                    _m_normal = _res['meshNormals'][_m][_m_hit_idx]
+                                    
+                                    if str(pos) not in _d_hit_mesh_queried.keys():
+                                        _d_hit_mesh_queried[str(pos)] = {'m':m,'m_hit_idx':_m_hit_idx,'m_normal':_m_normal}
+                                        
+                                    log.debug("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
+                                    break      
                         
                     if not _m_normal:
                         cgmGen.log_info_dict(self.d_meshPos,"Mesh hit dict")
@@ -880,16 +897,24 @@ class clickMesh(ContextualPick):
                 _m_hit_idx = None
                 _m_normal = False
                 if _rawPos:
-                    for i2,m in enumerate(self.d_meshPos.keys()):
-                        #log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                                    
-                        for i3,h in enumerate(self.d_meshPos[m]):
-                            if h == _rawPos: 
-                                log.debug("Found mesh match!")
-                                _m = m
-                                _m_hit_idx = _res['meshHits'][_m].index(h)
-                                _m_normal = _res['meshNormals'][_m][_m_hit_idx]
-                                log.debug("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
-                                break
+                    if str(_rawPos) in _d_hit_mesh_queried.keys():
+                        log.debug("|{0}| >> Using queryied data for hit {1}".format(_str_funcName,_rawPos))
+                        _d = _d_hit_mesh_queried[str(_rawPos)]
+                        _m = _d['m']
+                        _m_hit_idx = _d['m_hit_idx']
+                        _m_normal = _d['m_normal']  
+                        
+                    else:
+                        for i2,m in enumerate(self.d_meshPos.keys()):
+                            #log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                                    
+                            for i3,h in enumerate(self.d_meshPos[m]):
+                                if h == _rawPos: 
+                                    log.debug("Found mesh match!")
+                                    _m = m
+                                    _m_hit_idx = _res['meshHits'][_m].index(h)
+                                    _m_normal = _res['meshNormals'][_m][_m_hit_idx]
+                                    log.debug("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
+                                    break
                 else:
                     log.debug("no raw pos match")
                 
@@ -985,7 +1010,7 @@ class clickMesh(ContextualPick):
     
                 self._createModeBuffer.extend(nameBuffer)   
                 
-                if self._orientMode == 'normal' and self._createMode not in ['vectorLine']:
+                if self._orientMode == 'normal' and self._createMode not in ['vectorLine','data']:
                     for o in nameBuffer:
                         if _m:
                             if self._createMode == 'joint':
