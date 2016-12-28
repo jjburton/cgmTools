@@ -315,8 +315,8 @@ def eulerSelected():
     cmds.delete(cmds.ls(sl=True, l=True), sc=True)
 
        
-def animCurveDrawStyle(style='simple', forceBuffer=True,
-                   showBufferCurves=False, displayTangents=False, displayActiveKeyTangents=True, *args):
+def animCurveDrawStyle(style='simple', forceBuffer=True, showBufferCurves=False,
+                       displayTangents=False, displayActiveKeyTangents=True, *args):
     '''
     Toggle the state of the graphEditor curve display, used in the Filter and Randomizer to
     simplify the display and the curve whilst processing. This allows you to also pass in
@@ -350,12 +350,13 @@ def animCurveDrawStyle(style='simple', forceBuffer=True,
         mel.eval('%s graphEditor1GraphEd;' % cmd)
 
 
-    
-# TimeRange / AnimRange Functions -------------------------------------------------
+# ----------------------------------------------------------------------------
+# TimeRange / AnimRange Functions ----
+# ----------------------------------------------------------------------------
 
 def animRangeFromNodes(nodes, setTimeline=True):
     '''
-    return the extend of the animation range for the given objects
+    return the extent of the animation range for the given objects
     :param nodes: nodes to examine for animation data
     :param setTimeLine: whether we should set the playback timeline to the extent of the found anim data
     '''
@@ -449,7 +450,9 @@ def setTimeRangeToo(nodes=None, setall=True):
 #    time=cmds.timeControl(PlayBackSlider ,e=True, rangeArray=True, v=time)
 
 
-# MAIN CALLS -----------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# MAIN CALLS ----
+# ----------------------------------------------------------------------------
 
 class AnimationLayerContext(object):
     """
@@ -501,18 +504,6 @@ class AnimationLayerContext(object):
         # If this was false, it would re-raise the exception when complete
         return True
 
-# ==========================================================================================================
-# Maya 2017 workspace replaces dockControl but still not got my head round how the hell you get this to run??
-# ==========================================================================================================
-'''
-work in progress: 
-
-element=mel.eval('getUIComponentDockControl("Channel Box / Layer Editor", false);')
-windowcall='import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.AnimationUI()._showUI()'
-cmds.workspaceControl('red9_animdsd35u', label="Red9_Animadtion", uiScript=windowcall, tabToControl=(element, -1))  
-
-'''
-# ==========================================================================================================
 
 class AnimationUI(object):
     
@@ -3441,7 +3432,19 @@ preCopyAttrs=%s : filterSettings=%s : matchMethod=%s : prioritySnapOnly=%s : sna
             except:
                 log.debug(cmds.getAttr('%s.%s' % (node, chan)) * -1)
                 log.debug('failed to inverse %s.%s attr' % (node, chan))
-  
+                
+    @staticmethod
+    def inverseAnimCurves(nodes, curves=[], time=(), timePivot=None):
+        '''
+        really basic method to inverse anim curves for a given time, or for the current playback timerange
+        '''
+        curves=r9Core.FilterNode.lsAnimCurves(nodes, safe=True)
+        if time:
+            cmds.scaleKey(curves, timeScale=-1, timePivot=(time[0] + time[1]) / 2, time=time)
+        else:
+            time=timeLineRangeGet()
+            cmds.scaleKey(curves, timeScale=-1, timePivot=(time[0] + time[1]) / 2)
+
 
 class curveModifierContext(object):
     """
@@ -4433,12 +4436,21 @@ class MirrorHierarchy(object):
         ConfigObj.filename = filepath
         ConfigObj.write()
         
-    def loadMirrorSetups(self, filepath, nodes=None, clearCurrent=True, matchMethod='stripPrefix'):  # used to be 'base' for some reason??
-        if not os.path.exists(filepath):
-            raise IOError('invalid filepath given')
-        self.mirrorDict = configobj.ConfigObj(filepath)['mirror']
-        nodesToMap=nodes
+    def loadMirrorSetups(self, filepath=None, nodes=None, clearCurrent=True, matchMethod='stripPrefix'):  # used to be 'base' for some reason??
+        '''
+        Load a Mirror Map to the nodes
         
+        :param filepath: filepath to a mirrorMap, if none given then we assume that the internal mirrorDict is already setup
+        :param nodes: nodes to load, or the root of a system to filter
+        :param clearCurrent: if True then the load will first remove all current mirrormarkers
+        :param matchMethod: method used to match the data to the nodes
+        '''
+        if filepath:
+            if not os.path.exists(filepath):
+                raise IOError('invalid filepath given')
+            self.mirrorDict = configobj.ConfigObj(filepath)['mirror']
+    
+        nodesToMap=nodes
         if not nodesToMap:
             nodesToMap=list(self.nodes)
             nodesToMap.extend(cmds.listRelatives(nodesToMap, ad=True, f=True, type='transform'))
@@ -4887,7 +4899,11 @@ class CameraTracker():
 
 
 class ReconnectAnimData(object):
-    
+    '''
+    This is a method for debugging and re-connecting animation curves when theyve become
+    disconnected from a scene. This happens occasionally when using referencing where the
+    refEdits pointing to the connect calls get broken..
+    '''
     def __init__(self):
         self.win = 'ReconnectAnimData'
         

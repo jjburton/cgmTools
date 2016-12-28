@@ -1923,8 +1923,11 @@ class MetaClass(object):
         '''
         separated func as it's the kind of thing that other classes may want to overload
         the behaviour of the returns etc
+        
+        .. note::
+            added the 'sh' flag to the listConnections 22/11/16!
         '''
-        msgLinks=cmds.listConnections('%s.%s' % (self.mNode,attr),destination=True,source=True)
+        msgLinks=cmds.listConnections('%s.%s' % (self.mNode,attr),destination=True,source=True,sh=True)
         if msgLinks:
             msgLinks=cmds.ls(msgLinks,l=True)
             if not cmds.attributeQuery(attr, node=self.mNode, m=True):  # singular message
@@ -2335,7 +2338,15 @@ class MetaClass(object):
         '''
         if self.isReferenced():
             return cmds.referenceQuery(cmds.referenceQuery(self.mNode, rfn=True), filename=True, wcn=wcn)
-        
+            
+    def referenceGroup(self):
+        '''
+        :return: string name of reference group
+        '''
+        grp = cmds.listConnections('%s.associatedNode' % self.referenceNode())
+        if grp:
+            return grp[0]
+            
     def nameSpace(self):
         '''
         This flag has been modified to return just the direct namespace
@@ -2368,8 +2379,8 @@ class MetaClass(object):
                 return []
             else:
                 return ''
-                    
-        
+
+
     # Connection Management Block
     #---------------------------------------------------------------------------------
     
@@ -4655,127 +4666,6 @@ class MetaHUDNode(MetaClass):
         if wasActive==True:
             self.drawHUD()
             
-
-# class MetaTimeCodeHUD(MetaHUDNode):
-#     '''
-#     Generate's a HUD node connected to the main timecode attrs,
-#     allows us to show the actual internal timecode attrs as their 
-#     original SMPTE time's
-#     
-#     Crucial things to be aware of: 
-#     
-#     We construct timecode from 3 attrs on the given node: 
-#     timecode_ref        : the original timecode converted to milliseconds 
-#     timecode_count      : a linear curve that increments every frame based on the samplerate 
-#     timecode_samplerate : samplerate that the linear counter was generated against 
-#     
-#     SMPTE timecode is then reconstructed like so: 
-#     
-#     >>> r9Audio.milliseconds_to_Timecode(ref + ((count / samplerate) * 1000)) 
-#     >>> 
-#     >>> tcHUD=cFacialMeta.MetaTimeCodeHUD() 
-#     >>> tcHUD.addMonitoredTimecodeNode(cmds.ls(sl=True)[0]) 
-#     >>> tcHUD.drawHUD() 
-#     
-#     '''
-#     def __init__(self, *args, **kws):
-#         super(MetaTimeCodeHUD, self).__init__(*args, **kws)
-#         
-#         if self.cached:
-#             log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.__class__)
-#             return
-# 
-#         if r9Setup.has_pro_pack():
-#             import Red9.core.Red9_Audio as r9Audio
-#             r9paudio=r9Audio.bind_pro_audio()
-#             self.func=r9paudio.milliseconds_to_Timecode
-#         else:
-#             raise r9Setup.ProPack_Error('Timecode HUD requires ProPack')
-# 
-#         self.tc_count = r9paudio.Timecode.count
-#         self.tc_samplerate = r9paudio.Timecode.samplerate
-#         self.tc_ref = r9paudio.Timecode.ref
-#         self.attrCache={}
-#         
-#     def __compute__(self, attr, *args):
-#         '''
-#         Data computed on the refresh - convert all the attrs to meaningful timecode
-#         '''
-#         cacheData=self.attrCache[attr]
-#         try:
-#             return self.func(cacheData['ref'] + ((float(getattr(self, attr)) / cacheData['samplerate']) * 1000))
-#         except:
-#             return 'InvalidDataSet'  
-#     
-#     def addMonitoredTimecodeNode(self, nodes, valid=True):
-#         '''
-#         add a node with the TimeCode attrs on it to monitor
-#         '''
-#         if not type(nodes)==list:
-#             nodes=[nodes]
-# 
-#         for node in nodes:
-#             node=MetaClass(node)
-#             if not node.hasAttr(self.tc_ref):
-#                 continue
-#             if node.nameSpace():
-#                 monitoredAttr='%s_%s_%s' % (r9Core.nodeNameStrip(node.nameSpace()[0]),
-#                                         r9Core.nodeNameStrip(node.mNode),
-#                                         'Timecode')
-#             else:
-#                 monitoredAttr='%s_%s' % (r9Core.nodeNameStrip(node.mNode),
-#                                         'Timecode')
-#             if not node.timecode_ref >1000 and valid:
-#                 log.warning('%s : Skipping as timecode is invalid' % monitoredAttr)
-#                 continue
-#             
-#             self.addMonitoredAttr(monitoredAttr, value=getattr(node, self.tc_count), refresh=False)
-#             cmds.connectAttr('%s.%s' % (node.mNode, self.tc_count), '%s.%s' % (self.mNode, monitoredAttr))
-#             
-#             #add the data that we can to the cache for speed
-#             self.attrCache[monitoredAttr]={'mNode':node, 'ref':getattr(node, self.tc_ref), 'samplerate':getattr(node, self.tc_samplerate)}
-#         
-#     def removeMonitoredTimecodeNode(self, nodes):
-#         '''
-#         remove a given node from the timecode 
-#         ''' 
-#         if not type(nodes)==list:
-#             nodes=[nodes] 
-#         for node in nodes:
-#             node=MetaClass(node)
-#             for k,data in self.attrCache.items():
-#                 if data['mNode']==node:
-#                     self.removeMonitoredAttr(k)
-#             
-#     def removeMonitoredAttr(self,attr):
-#         '''
-#         remove a specific attr from the HUD
-#         '''
-#         super(MetaTimeCodeHUD,self).removeMonitoredAttr(attr)
-#         self.attrCache.pop(attr)
-#         if not self.attrCache:
-#             print 'Deleting : empty TimecodeHUD node'
-#             self.delete()
-#         
-#     @r9General.Timer
-#     def connectTimecodeSystems(self, metaRigs=True):
-#         '''
-#         connect all mRigs in the scene to the HUD node
-#         '''
-#         if metaRigs:
-#             rigs=getMetaNodes(mInstances=MetaRig)
-#             flt=r9Core.FilterNode([rig for rig in rigs if rig.isValid()])
-#             flt.settings.metaRig=True
-#         else:
-#             flt=r9Core.FilterNode()
-#             flt.settings.nodeTypes='transform'
-#         flt.settings.searchAttrs = self.tc_ref
-#         nodes=flt.processFilter()
-#         if nodes:
-#             self.addMonitoredTimecodeNode(nodes)
-#         else:
-#             raise StandardError('No nodes found through the filters that contain timecode attrs')
-
             
 '''
 if we reload r9Meta on it's own then the registry used in construction of

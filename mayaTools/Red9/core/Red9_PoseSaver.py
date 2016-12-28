@@ -371,18 +371,20 @@ class DataMap(object):
                     if self.rootJnt:
                         self.rootJnt=self.rootJnt[0]
             else:
-                if cmds.attributeQuery('exportSkeletonRoot',node=rootNode,exists=True):
+                if cmds.attributeQuery('exportSkeletonRoot',node=rootNode, exists=True):
                     connectedSkel=cmds.listConnections('%s.%s' % (rootNode,'exportSkeletonRoot'),destination=True,source=True)
                     if connectedSkel and cmds.nodeType(connectedSkel)=='joint':
                         self.rootJnt=connectedSkel[0]
                     elif cmds.nodeType(rootNode)=='joint':
                         self.rootJnt=rootNode
-                if cmds.attributeQuery('animSkeletonRoot',node=rootNode,exists=True):
+                elif cmds.attributeQuery('animSkeletonRoot',node=rootNode, exists=True):
                     connectedSkel=cmds.listConnections('%s.%s' % (rootNode,'animSkeletonRoot'),destination=True,source=True)
                     if connectedSkel and cmds.nodeType(connectedSkel)=='joint':
                         self.rootJnt=connectedSkel[0]
                     elif cmds.nodeType(rootNode)=='joint':
                         self.rootJnt=rootNode
+                elif self.settings.nodeTypes==['joint']:
+                    self.rootJnt=rootNode
         else:
             if self.metaPose:
                 self.setMetaRig(rootNode)
@@ -819,6 +821,8 @@ class PoseData(DataMap):
         self.relativePose=False
         self.relativeRots='projected'
         self.relativeTrans='projected'
+        
+        self.mirrorInverse=False  # when loading do we inverse the attrs values being loaded (PRO-PACK finger systems)
 
     def _collectNodeData(self, node, key):
         '''
@@ -901,6 +905,21 @@ class PoseData(DataMap):
                         continue
                     try:
                         val = eval(val)
+                        # =====================================================================
+                        # inverse the correct mirror attrs if the mirrorInverse flag was thrown
+                        # =====================================================================
+                        # this is mainly for the ProPack finger systems support hooks
+                        if self.mirrorInverse and 'mirrorID' in self.poseDict[key] and self.poseDict[key]['mirrorID']:
+                            axis=r9Anim.MirrorHierarchy().getMirrorAxis(dest)
+                            side=r9Anim.MirrorHierarchy().getMirrorSide(dest)
+                            if attr in axis:
+                                poseSide=self.poseDict[key]['mirrorID'].split('_')[0]
+                                if not poseSide==side:
+                                    val = 0-val
+                                    log.debug('Inversing Pose Values for Axis: %s, stored side: %s, nodes side: %s, node: %s' % (attr,
+                                                                                                                                  poseSide,
+                                                                                                                                  side,
+                                                                                                                                  r9Core.nodeNameStrip(dest)))
                     except:
                         pass
                     log.debug('node : %s : attr : %s : val %s' % (dest, attr, val))
