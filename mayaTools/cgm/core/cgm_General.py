@@ -828,6 +828,25 @@ def report_enviornment():
 def report_enviornmentSingleLine():
     print("Maya: {0} | OS: {1}".format(mel.eval( 'about -%s'%'version'), mel.eval( 'about -%s'%'operatingSystemVersion')))
 	
+class Callback(object):
+	'''
+	By Hamish McKenzie
+	stupid little callable object for when you need to "bake" temporary args into a
+	callback - useful mainly when creating callbacks for dynamicly generated UI items
+	'''
+	def __init__( self, func, *a, **kw ):
+			self._func = func
+			self._args = a
+			self._kwargs = kw
+	def __call__( self, *args ):
+			try:return self._func( *self._args, **self._kwargs )
+			except Exception,err:
+				log.info("Func: {0}".format(self._func.__name__))
+				if self._args:
+					log.info("args: {0}".format(self._args))
+				if self._kwargs:
+					log.info("kws: {0}".format(self._kwargs))
+				raise Exception,err
 #>>> Sub funcs ==============================================================================
 def subTimer(func):
     '''
