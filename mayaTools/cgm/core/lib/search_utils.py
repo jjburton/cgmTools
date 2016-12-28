@@ -135,6 +135,37 @@ def get_tag(node = None, tag = None):
                 return False
     else:
         return False    
+    
+def get_all_parents(node = None, shortNames = True):
+    """
+    Get all the parents of a given node where the last parent is the top of the heirarchy
+    
+    :parameters:
+        node(str): Object to check
+        shortNames(bool): Whether you just want short names or long
+
+    :returns
+        parents(list)
+    """   
+    _str_func = 'get_all_parents'
+    _node = coreValid.stringArg(node,False,_str_func) 
+    
+    _l_parents = []
+    tmpObj = node
+    noParent = False
+    while noParent == False:
+        tmpParent = mc.listRelatives(tmpObj,allParents=True,fullPath=True)
+        if tmpParent:
+            if len(tmpParent) > 1:
+                raise ValueError,"Resolve what to do with muliple parents...{0} | {1}".format(node,tmpParent)
+            _l_parents.append(tmpParent[0])
+            tmpObj = tmpParent[0]
+        else:
+            noParent = True
+    if shortNames:
+        return [NAME.get_short(o) for o in _l_parents]
+    return _l_parents 
+    
 
 
 

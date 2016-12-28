@@ -604,96 +604,100 @@ class clickMesh(ContextualPick):
                 except:pass
             self.l_created = []
             
-        if self.l_created and self.l_toSnap and not self._l_toDuplicate:
-            log.debug("Snap Mode!")
-          
-            """
-            #TESTING OFFSET
-            _dist = DIST.get_distance_between_points(p,self.clickPos)
-            log.info("BaseDistance: {0}".format(_dist))
-            _dist = _dist - 1
-            _newP = DIST.get_pos_by_vec_dist(self.clickPos,self.clickVector,_dist)
-            log.info("Old point: {0} | new point: {1}".format(p,_newP))
-            self._posBuffer[i] = _newP"""   
-            
-            """#_pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')
-            _pos_base = self._posBuffer[-1]
-            
-            #Find our mesh...
-            _base_idex = self._posBuffer.index(_pos_base)
-            _rawPos = self._posBufferRaw[_base_idex]
-            _m = False
-            _m_hit_idx = None
-            
-            if _rawPos:
-                for i,m in enumerate(self.d_meshPos.keys()):
-                    log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                                    
-                    for i2,h in enumerate(self.d_meshPos[m]):
-                        if h == _rawPos: 
-                            log.debug("Found mesh match!")
-                            _m = m
-                            _m_hit_idx = self.d_meshPos[_m].index(h)
-                            _m_normal = self.d_meshNormals[_m][_m_hit_idx]
-                            log.info("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
-                            break      """      
-            
-            _mi_loc = cgmMeta.cgmNode(self.l_created[-1])
-            _d = _mi_loc.dataBuffer
-            _m_normal = _d['normal']
-            _m = _mi_loc.meshTarget[0]
-            _pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')                            
-            #Use that distance to subtract along our original ray's hit distance to get our new point
-            for o in self.l_toSnap:
-                if self.str_offsetMode == 'snapCast':
-                    try:
-                        log.debug("snapCast: {0}".format(o))
-                        
-                        _pos_obj = POS.get(o,pivot='rp',space='w')#...Get the point of the object to snap
-                        log.debug("startPoint: {0}".format(_pos_obj))
-                        log.debug("posBuffer: {0}".format(_pos_base))
-                        
-                        _vec_obj = MATHUTILS.get_vector_of_two_points( _pos_obj,_pos_base)#...Get the vector from there to our hit
-                        _dist_base = DIST.get_distance_between_points(_pos_base, _pos_obj)#...get our base distance
-                        
-                        _cast = RayCast.cast(self.l_mesh, startPoint=_pos_obj,vector=_vec_obj)
-                        _nearHit = _cast['near']
-                        _dist_firstHit = DIST.get_distance_between_points(_pos_obj,_nearHit)
-                        log.debug("baseDist: {0}".format(_dist_base))
-                        log.debug("firstHit: {0}".format(_dist_firstHit))
-                        
-                        if not _m_normal:
-                            if self.mode == 'far':
-                                _dist_new = _dist_base + _dist_firstHit
+        if self.l_created:
+            if self._l_toDuplicate:
+                for o in self.l_created:
+                    self.addTargetMesh( o )#...append our new geo to make it updatable             
+            elif self.l_toSnap:
+                log.debug("Snap Mode!")
+              
+                """
+                #TESTING OFFSET
+                _dist = DIST.get_distance_between_points(p,self.clickPos)
+                log.info("BaseDistance: {0}".format(_dist))
+                _dist = _dist - 1
+                _newP = DIST.get_pos_by_vec_dist(self.clickPos,self.clickVector,_dist)
+                log.info("Old point: {0} | new point: {1}".format(p,_newP))
+                self._posBuffer[i] = _newP"""   
+                
+                """#_pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')
+                _pos_base = self._posBuffer[-1]
+                
+                #Find our mesh...
+                _base_idex = self._posBuffer.index(_pos_base)
+                _rawPos = self._posBufferRaw[_base_idex]
+                _m = False
+                _m_hit_idx = None
+                
+                if _rawPos:
+                    for i,m in enumerate(self.d_meshPos.keys()):
+                        log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                                    
+                        for i2,h in enumerate(self.d_meshPos[m]):
+                            if h == _rawPos: 
+                                log.debug("Found mesh match!")
+                                _m = m
+                                _m_hit_idx = self.d_meshPos[_m].index(h)
+                                _m_normal = self.d_meshNormals[_m][_m_hit_idx]
+                                log.info("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
+                                break      """      
+                
+                _mi_loc = cgmMeta.cgmNode(self.l_created[-1])
+                _d = _mi_loc.dataBuffer
+                _m_normal = _d['normal']
+                _m = _mi_loc.meshTarget[0]
+                _pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')                            
+                #Use that distance to subtract along our original ray's hit distance to get our new point
+                for o in self.l_toSnap:
+                    if self.str_offsetMode == 'snapCast':
+                        try:
+                            log.debug("snapCast: {0}".format(o))
+                            
+                            _pos_obj = POS.get(o,pivot='rp',space='w')#...Get the point of the object to snap
+                            log.debug("startPoint: {0}".format(_pos_obj))
+                            log.debug("posBuffer: {0}".format(_pos_base))
+                            
+                            _vec_obj = MATHUTILS.get_vector_of_two_points( _pos_obj,_pos_base)#...Get the vector from there to our hit
+                            _dist_base = DIST.get_distance_between_points(_pos_base, _pos_obj)#...get our base distance
+                            
+                            _cast = RayCast.cast(self.l_mesh, startPoint=_pos_obj,vector=_vec_obj)
+                            _nearHit = _cast['near']
+                            _dist_firstHit = DIST.get_distance_between_points(_pos_obj,_nearHit)
+                            log.debug("baseDist: {0}".format(_dist_base))
+                            log.debug("firstHit: {0}".format(_dist_firstHit))
+                            
+                            if not _m_normal:
+                                if self.mode == 'far':
+                                    _dist_new = _dist_base + _dist_firstHit
+                                else:
+                                    _dist_new = _dist_base - _dist_firstHit 
+                                    
+                                _offsetPos = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,(_dist_new))
                             else:
-                                _dist_new = _dist_base - _dist_firstHit 
-                                
-                            _offsetPos = DIST.get_pos_by_vec_dist(_pos_obj,_vec_obj,(_dist_new))
-                        else:
-                            log.debug("|{0}| >> mesh normal offset!".format(_str_funcName))                                    
-                            _offsetPos = DIST.get_pos_by_vec_dist(_pos_base,_m_normal,(_dist_firstHit))
+                                log.debug("|{0}| >> mesh normal offset!".format(_str_funcName))                                    
+                                _offsetPos = DIST.get_pos_by_vec_dist(_pos_base,_m_normal,(_dist_firstHit))
+                            
+                            _pos = _offsetPos
+                            
+                            #Failsafe for casting to self...
+                            if DIST.get_distance_between_points(_pos, _pos_obj) < _dist_firstHit:
+                                log.warning("Close proximity cast, using default")
+                                _pos = self._posBuffer[-1]
+                        except Exception,err:
+                            _pos = _pos_base                         
+                            log.error("SnapCast fail. Using original pos... | err: {0}".format(err))
+                    try:
+                        POS.set(o,_pos)
                         
-                        _pos = _offsetPos
+                        if self._orientMode == 'normal':
+                            mc.xform(o, ro= mc.xform(self.l_created[-1],q=True,ro=True))                   
                         
-                        #Failsafe for casting to self...
-                        if DIST.get_distance_between_points(_pos, _pos_obj) < _dist_firstHit:
-                            log.warning("Close proximity cast, using default")
-                            _pos = self._posBuffer[-1]
+                        
                     except Exception,err:
-                        _pos = _pos_base                         
-                        log.error("SnapCast fail. Using original pos... | err: {0}".format(err))
-                try:
-                    POS.set(o,_pos)
-                    
-                    if self._orientMode == 'normal':
-                        mc.xform(o, ro= mc.xform(self.l_created[-1],q=True,ro=True))                   
-                    
-                    
-                except Exception,err:
-                    log.error("{0} failed to snap. err: {1}".format(o,err))
-            mc.delete(self.l_created)
-            if self.l_toSnap:
-                mc.select(self.l_toSnap)
-            self.dropTool()
+                        log.error("{0} failed to snap. err: {1}".format(o,err))
+                mc.delete(self.l_created)
+                if self.l_toSnap:
+                    mc.select(self.l_toSnap)
+                self.dropTool()
         
         self._int_runningTally+=1
         
@@ -974,7 +978,8 @@ class clickMesh(ContextualPick):
                         try:
                             POS.set(_dup,_pos)
                         except Exception,err:
-                            log.error("{0} failed to snap. err: {1}".format(o,err))   
+                            log.error("{0} failed to snap. err: {1}".format(o,err))
+                            
                         nameBuffer.append(_dup)
                             
                 elif self._createMode == 'vectorLine':
