@@ -93,34 +93,37 @@ def get_mayaType(node = None):
 
     elif is_component(_node):
         log.debug("|{0}| >> component mode...".format(_str_func))
-        _split = _node.split('.')[-1]
-        if 'vtx[' in _split:
+        _split = _node.split('[')[0].split('.')
+        _root = _split[0]
+        _compType = _split[1]
+        
+        log.info("|{0}| >> split: {1} | root: {2} | comp: {3}".format(_str_func,_split,_root,_compType))
+        if 'vtx' == _compType:
             return 'polyVertex'
 
-        if 'cv[' in _split:
+        if 'cv' == _compType:
             if _intialCheck == 'nurbsCurve':
                 return 'curveCV'
             else:
                 return 'surfaceCV'
 
-        if 'e[' in _split:
+        if 'e' == _compType:
             return 'polyEdge'
-        if 'f[' in _split:
+        if 'f' == _compType:
             return 'polyFace'
-        if 'map[' in _split:
+        if 'map' == _compType:
             return 'polyUV'
-        if 'uv[' in _split:
+        if 'uv' == _compType:
             return 'surfacePoint'
-        if 'sf[' in _split:
+        if 'sf' == _compType:
             return 'surfacePatch'
-        if 'u[' in _split or 'v[' in _split:
-            _root = _node.split('.')[0]
+        if 'u' == _compType or 'v' == _compType:
             _rootType = simpleTransformShapeCheck(_root)
             if _rootType == 'nurbsCurve':
                 return 'curvePoint'
             if _rootType == 'nurbsSurface':
                 return 'isoparm'
-        if 'ep[' in _split:
+        if 'ep' == _compType:
             return 'editPoint' 
         
         raise RuntimeError,"Shouldn't have gotten here. Need another check for component type. '{0}'".format(_node)
