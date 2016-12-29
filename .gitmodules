@@ -1,0 +1,3 @@
+[submodule "mayaTools/cgm/core/lib/ml"]
+	path = mayaTools/cgm/core/lib/ml
+	url = https://github.com/morganloomis/ml_tools.git
