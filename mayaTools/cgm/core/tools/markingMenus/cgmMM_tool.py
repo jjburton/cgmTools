@@ -18,6 +18,7 @@ from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.cgmPy import validateArgs as VALID
+from cgm.core.lib import position_utils as POS
 
 reload(RIGGING)
 reload(mmTemplate)
@@ -64,7 +65,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         
         self._d_radial_menu = {}
         self._l_res = []
-        self._l_sel = mc.ls(sl=True)
+        self._l_sel = mc.ls(sl=True,flatten=True)
         self._b_sel = False
         self._l_contextTypes = []
         
@@ -175,10 +176,11 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     #@cgmGen.Timer
     def bUI_radialRoot_td(self,parent):
         #Radial---------------------------------------------------
-        self.uiRadial_snap_build(parent,'N')
+        self.uiRadial_snap(parent,'N')
         #self.bUI_radial_dynParent(parent,'NW')
-        self.uiRadial_create_build(parent,'NE')
-        self.uiRadial_rayCreate_build(parent,'E')
+        self.uiRadial_create(parent,'NE')
+        self.uiRaidal_rayCreate(parent,'E')
+        self.uiRadial_curve(parent,'W')
         #self.bUI_radial_copy(parent,'W')
         #self.bUI_radial_aim(parent,'NE')
         #self.bUI_radial_control(parent,'SW')
@@ -191,36 +193,37 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         #Bottom---------------------------------------------------
         
     def bUI_radialRoot_anim(self,parent):
-        self.uiRadial_snap_build(parent,'N')
+        self.uiRadial_snap(parent,'N')
         
         mc.menuItem(p=parent,
                    en = self._b_sel,
                    l = 'dragBetween',
                    c = lambda *a:ml_breakdownDragger.drag(),
-                   rp = "E")        
+                   rp = "SE")        
         mc.menuItem(p=parent,
                     en = self._b_sel,
                     l = 'Reset',
                     c = lambda *a: ml_resetChannels.main(transformsOnly = self.var_resetMode.value),
                     rp = "S")   
-        mc.menuItem(p=parent,
+ 
+        
+        mc.menuItem(p=parent,l='Key',subMenu=True,
                     en = self._b_sel,
-                    l = 'Delete Key',
-                    c= lambda *a:deleteKey(),
-                    rp = "W")  
-        mc.menuItem(p=parent,
-                    en = self._b_sel,
-                    l = 'Key Selected - BD',
-                    c= lambda *a:setKey('breakdown'),
-                    rp = "SE")  
-        mc.menuItem(p=parent,
-                    en = self._b_sel,
-                    l = 'Key Selected - Reg',
-                    c= lambda *a:setKey('default'),
-                    rp = "NE")         
+                    rp = 'E')
+        
+        if self._b_sel:
+            mc.menuItem(l = 'Regular',
+                        c= lambda *a:setKey('default'),
+                        rp = "E")            
+            mc.menuItem(l = 'Breakdown',
+                        c= lambda *a:setKey('breakdown'),
+                        rp = "SE")  
+            mc.menuItem(l = 'Delete',
+                        c= lambda *a:deleteKey(),
+                        rp = "N")            
     def bUI_radial_dev(self,parent):
         #Radial---------------------------------------------------
-        self.uiRadial_snap_build(parent,'N')
+        self.uiRadial_snap(parent,'N')
         self.bUI_radial_dynParent(parent,'NW')
         self.bUI_radial_create(parent,'N')
         self.bUI_radial_copy(parent,'W')
@@ -614,18 +617,18 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                          rp = direction)
         
     @cgmGen.Timer     
-    def uiRadial_create_build(self,parent,direction = None):
+    def uiRadial_create(self,parent,direction = None):
         """
         Menu to create items from selected objects
         """
         _r =mc.menuItem(parent=parent,subMenu = True,
-                        en = True,
+                        en = self._b_sel,
                         l = 'Create',
                         #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                         rp = direction)  
         
-        #if not self._b_sel:
-            #return        
+        if not self._b_sel:
+            return        
         #---------------------------------------------------------------------------
 
         mc.menuItem(parent=_r,
@@ -645,17 +648,30 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     l = 'Group Me',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = cgmGen.Callback(self.bc_create_groupMe,'Group Me'),
-                    rp = "NE")  
+                    rp = "NE")
         mc.menuItem(parent=_r,
+                    en = self._b_sel,
+                    l = 'Curve',
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    c = cgmGen.Callback(self.bc_create_curve),
+                    rp = "S")
+        mc.menuItem(parent=_r,
+                    en = False,
+                    l = 'Locator',
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    c = cgmGen.Callback(self.bc_create_groupMe,'Group Me'),
+                    rp = "SE")            
+        
+        """mc.menuItem(parent=_r,
                     en =True,
                     l = 'Locator',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = cgmGen.Callback(self.button_action_per_sel,locators.locMeObject,'Locator'),
-                    rp = "SE")
+                    rp = "SE")"""
 
         
     @cgmGen.Timer 
-    def uiRadial_rayCreate_build(self,parent,direction = None):
+    def uiRaidal_rayCreate(self,parent,direction = None):
             """
             Menu to create items from selected objects
             """
@@ -672,9 +688,46 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             if self.var_rayCastTargetsBuffer.value:
                 _add = "(Buffer Cast)"
             else:_add = ""
-            self.optionRadial_create_rayCast(_r,'Cast{0}'.format(_add),'NE')        
-            self.optionRadial_create_rayCast(_r,'Drag{0}'.format(_add),'SE',drag = True)      
-
+            self.bUI_radial_rayCast(_r,'Cast{0}'.format(_add),'NE')        
+            self.bUI_radial_rayCast(_r,'Drag{0}'.format(_add),'SE',drag = True)   
+            
+    @cgmGen.Timer     
+    def uiRadial_curve(self,parent,direction = None):
+        _r = mc.menuItem(parent=parent,subMenu = True,
+                         en = self._b_sel,
+                         l = 'Shapes',
+                         #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                         rp = direction)  
+        if not self._b_sel:
+            return        
+        #---------------------------------------------------------------------------
+        mc.menuItem(parent=_r,
+                    l = 'Shapeparent',
+                    en = self._b_sel_pair,
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom'),
+                    rp = "W")   
+        _d_combine = {'keepCurve':False}
+        mc.menuItem(parent=_r,
+                    en = self._b_sel_pair,
+                    l = 'Combine',
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_combine),
+                    rp = "NW") 
+        mc.menuItem(parent=_r,
+                    en = False,                    
+                    l = 'Replace',
+                    rp = "SW")        
+        mc.menuItem(parent=_r,
+                    en = False,
+                    l = 'Describe',
+                    rp = "SE")          
+        mc.menuItem(parent=_r,
+                    en = False,
+                    l = 'Color',
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    #c = cgmGen.Callback(self.button_action_per_sel,locators.locMeObject,'Locator'),
+                    rp = "S")  
         
         
     def bUI_radial_aim(self,parent,direction = None):
@@ -684,7 +737,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                          #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                          rp = direction)
         
-    def optionRadial_create_rayCast(self,parent,label = 'Cast Create', direction = None, drag = False):
+    def bUI_radial_rayCast(self,parent,label = 'Cast Create', direction = None, drag = False):
         _r =mc.menuItem(parent=parent,subMenu = True,
                         en = True,
                         l = label,
@@ -862,7 +915,8 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     l = 'Orientation',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     #c = cgmGen.Callback(self.button_action_per_sel,locators.locMeObject,'Locator'),
-                    rp = "NW")         
+                    rp = "NW")
+        
     def bUI_radial_control(self,parent,direction = None):
         _r = mc.menuItem(parent=parent,subMenu = True,
                          en = self._b_sel,
@@ -910,12 +964,33 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     def action_logged(self,func,calling=None):
         _res = func
         log.debug("|{0}| | result: '{1}'".format(calling,_res)) 
+        return _res
+    
+    def log_info(self,msg=None,calling = None):
+        log.info("|{0}| >> {1}".format(calling,msg)) 
         
     def bc_create_groupMe(self, calling = None):
         for o in self._l_sel:
             _res = self.action_logged( RIGGING.group_me(o,True,True), "|{0}| : {1}".format(calling,o) )
             self._l_res.append(_res)
         mc.select(self._l_res)
+        
+    def bc_create_curve(self, calling = None):
+        _str_func = 'bc_create_curve'
+        l_pos = []
+        for i,o in enumerate(self._l_sel):
+            p = POS.get(o)
+            log.info("|{0}| >> {3}: {1} | pos: {2}".format(_str_func,o,p,i)) 
+            l_pos.append(p)
+            
+        if len(l_pos) <= 1:
+            raise ValueError,"Must have more than one position to create curve"
+        
+        knot_len = len(l_pos)+3-1		
+        curveBuffer = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)  
+        log.info("|{0}| >> created: {1}".format(_str_func,curveBuffer))         
+        mc.select(curveBuffer)
+
     
     def bc_copy_pivot(self,rotatePivot = False, scalePivot = False, calling=None):        
         for o in self._l_sel[1:]:
@@ -927,7 +1002,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         mc.select(self._l_sel)
 
     @cgmGen.Timer    
-    def uiRadial_snap_build(self,parent,direction = None):
+    def uiRadial_snap(self,parent,direction = None):
         """
         Radial menu for snap functionality
         """

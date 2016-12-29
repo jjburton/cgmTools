@@ -162,3 +162,30 @@ def select(context = 'selection', mType = None):
         return False
         
     mc.select(_l_context)
+    
+def func_all_to_last(func,objects, mode = 'toFrom',**kws):
+    """
+    Get data for updating a transform
+    
+    :parameters
+        self(instance): cgmMarkingMenu
+
+    :returns
+        info(dict)
+    """   
+    _str_func = "func_all_to_last"
+    
+    log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__))  
+    log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
+        
+    for i,o in enumerate(objects[:-1]):
+        log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
+        try:
+            if mode == 'toFrom':
+                func(objects[-1],o,**kws)
+            else:
+                func(o,objects[-1],**kws)
+        except Exception,err:
+            log.error("|{0}| >> {1} : {2} failed! | err: {3}".format(_str_func,i,o,err))  
+
+    
