@@ -721,13 +721,33 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         mc.menuItem(parent=_r,
                     en = False,
                     l = 'Describe',
-                    rp = "SE")          
-        mc.menuItem(parent=_r,
-                    en = False,
-                    l = 'Color',
+                    rp = "SE")  
+        
+        _color = mc.menuItem(parent=_r,subMenu=True,
+                             en = True,
+                             l = 'Color',
+                             #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                             #c = cgmGen.Callback(self.button_action_per_sel,locators.locMeObject,'Locator'),
+                             rp = "S")
+        _center = mc.menuItem(parent=_color,subMenu=True,
+                              en = True,
+                              l = 'Center',
+                              #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                              c=cgmGen.Callback(MMCONTEXT.color_shape,'red',self.var_contextTD.value,'shape'),
+                              rp = "S")
+        
+        mc.menuItem(parent=_center,
+                    en = True,
+                    l = 'Sub',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    #c = cgmGen.Callback(self.button_action_per_sel,locators.locMeObject,'Locator'),
-                    rp = "S")  
+                    c=cgmGen.Callback(MMCONTEXT.color_shape,'redLight',self.var_contextTD.value,'shape'),
+                    rp = "SE")  
+        mc.menuItem(parent=_center,
+                    en = True,
+                    l = 'Extra',
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    c=cgmGen.Callback(MMCONTEXT.color_shape,'redDark',self.var_contextTD.value,'shape'),
+                    rp = "SW")        
         
         
     def bUI_radial_aim(self,parent,direction = None):

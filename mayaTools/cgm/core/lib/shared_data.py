@@ -70,14 +70,27 @@ d_shortAxisToLong = {
 
 #>>> Colors
 #===================================================================
-_d_curve_colors_to_indices = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,
-                              'blueDark':5,'blueBright':6,'greenDark':7,'violetDark':8,
-                              'violetBright':9,'brownReg':10,'brownDark':11,
-                              'orangeDark':12,'redBright':13,'greenBright':14,'blueDull':15,
-                              'white':16,'yellowBright':17,'blueSky':18,'teal':19,
-                              'pink':20,'peach':21,'yellow':22,'greenBlue':23,'tan':24,
-                              'olive':25,'greenYellow':26,'greenBlue':27,'blueGray':28,
-                              'blueGrayDark':29,'purple':30,'purpleBrown':31}
+_d_colors_to_index = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,
+                      'blueDark':5,'blueBright':6,'greenDark':7,'violetDark':8,
+                      'violetBright':9,'brownReg':10,'brownDark':11,
+                      'orangeDark':12,'redBright':13,'greenBright':14,'blueDull':15,
+                      'white':16,'yellowBright':17,'blueSky':18,'teal':19,
+                      'pink':20,'peach':21,'yellow':22,'greenBlue':23,'tan':24,
+                      'olive':25,'greenYellow':26,'greenBlue':27,'blueGray':28,
+                      'blueGrayDark':29,'purple':30,'purpleBrown':31}
+
+_d_colors_to_RGB = {'red':[1,0,0],'redDark':[.5,0,0],'redLight':[1,.2,.2],'redBlack':[.1,0,0],'redWhite':[1,.5,.5],
+                    'orange':[1,.27,0],'orangeDark':[.65,.1,0],'orangeLight':[1,.5,.2],'orangeBlack':[.2,.02,0],'orangeWhite':[1,.6,.1],                    
+                    'yellow':[1,1,0],'yellowDark':[.65,.47,0],'yellowLight':[1,.8,.1],'yellowBlack':[.25,.25,0],'yellowWhite':[1,.9,.4],
+                    'green':[0,1,0],'greenDark':[0,.129,0],'greenLight':[.193,1,0],'greenBlack':[0,.015,0],'greenWhite':[.667,1,.667],                                        
+                    'blue':[0,0,1],'blueDark':[0,.05,.4],'blueLight':[.06,.275,1],'blueBlack':[0,0,.1],'blueWhite':[.5,.5,1],
+                    'purple':[.22,0,.44],'purpleDark':[.22,0,.44],'purpleLight':[.5,0,1],'purpleBlack':[.05,0,.1],'purpleWhite':[.8,.6,1],
+                    'teal':[0,1,.5],
+                    }
+_d_side_colors = {'left':[],
+                  'right':[],
+                  'center':[]}
+
 
 #>>> Gui
 #===================================================================
