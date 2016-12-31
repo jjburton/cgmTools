@@ -87,6 +87,25 @@ _d_colors_to_RGB = {'red':[1,0,0],'redDark':[.5,0,0],'redLight':[1,.2,.2],'redBl
                     'purple':[.22,0,.44],'purpleDark':[.22,0,.44],'purpleLight':[.5,0,1],'purpleBlack':[.05,0,.1],'purpleWhite':[.8,.6,1],
                     'teal':[0,1,.5],
                     }
+
+_d_colorSetsRGB = {'red':['White','Light','Dark','Black'],
+                   'orange':['White','Light','Dark','Black'],
+                   'yellow':['White','Light','Dark','Black'],
+                   'green':['White','Light','Dark','Black'],
+                   'blue':['White','Light','Dark','Black'],
+                   'teal':[]}
+
+_d_colorsByIndexSets = {'red':['pink','redBright','redDark'],
+                        'orange':['orangeDark','peach'],
+                        'yellow':['yellow','yellowBright'],
+                        'blue':['blueBright','blueDark','blueDull','blueGray','blueGrayDark','blueSky','teal'],
+                        'green':['greenBlue','greenBright','greenDark','greenYellow','olive'],
+                        'purple':['purple','purpleBrown','violetBright','violetDark'],
+                        'brown':['brownDark','brownReg','tan','purpleBrown'],
+                        'b&w':['black','white','grayDark','grayLight']}
+
+
+
 _d_side_colors = {'left':[],
                   'right':[],
                   'center':[]}

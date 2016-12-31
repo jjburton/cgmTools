@@ -152,7 +152,7 @@ class cgmMetaMM(mUI.BaseMelWindow):
                                 c = lambda *a: self.button_action(None))        
         mUI.MelMenuItem(parent,l = 'Reset...',
                         c=lambda *a: self.button_action(self.reset))  """      
-        mUI.MelMenuItem(parent,l = "-"*20,en = False)
+        mUI.MelMenuItem(parent,l = "-"*15,en = False)
         mUI.MelMenuItem(parent,l='Report',
                         c = lambda *a: self.report())
     @cgmGeneral.Timer    

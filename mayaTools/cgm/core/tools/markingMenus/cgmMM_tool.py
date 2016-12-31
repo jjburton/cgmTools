@@ -19,7 +19,7 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import position_utils as POS
-
+reload(SHARED)
 reload(RIGGING)
 reload(mmTemplate)
 #from cgm.core.lib.zoo import baseMelUI as mUI
@@ -107,8 +107,8 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         #Bottom section --------------------------------------------------------------
                                       
         
-        #mc.menuItem(parent=parent,l = "-"*20,en = False)
-        mc.menuItem(p=parent,l = "-"*20,en = False)
+        #mc.menuItem(parent=parent,l = "-"*15,en = False)
+        mc.menuItem(p=parent,l = "-"*15,en = False)
         
         if _mode == 0:
             log.debug("|{0}| >> td mode bottom...".format(self._str_MM))  
@@ -123,7 +123,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             self.l_menuModes = ['td','anim','dev']
             _str_section = 'menu mode toggle'
     
-            uiMenu_menuMode = mc.menuItem( p=parent, l='Menu Mode', subMenu=True)    
+            uiMenu_menuMode = mc.menuItem( p=parent, l='Mode', subMenu=True)    
             uiRC_menuMode = mc.radioMenuItemCollection()#mUI.MelRadioMenuCollection()
             #self.uiOptions_menuMode = []		
             _v = self.var_menuMode.value
@@ -250,7 +250,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     l='mlHold',
                     c=lambda *a: ml_hold.ui())          
 
-        mc.menuItem(p=parent,l = "-"*20,en = False)
+        mc.menuItem(p=parent,l = "-"*15,en = False)
                     
         uiOptions = mc.menuItem(parent = parent, l='Options', subMenu=True)
         
@@ -312,13 +312,56 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         #-----------------------------------------------------------------------------
         _go = False
         if _contextMode == 'selection':
-            for n in ['mesh','nurbsSurface','nurbsCurve']:
+            for n in ['mesh','nurbsSurface','nurbsCurve','transform','joint']:
                 if n in  self._l_contextTypes:
                     _go = True
                     break
         else:_go = True
             
         if _go:
+            #>>>Shape ==============================================================================================
+            uiShape = mc.menuItem(parent = parent, l='Shape', subMenu=True)
+            uiColorShape = mc.menuItem(parent = uiShape, l='Color', subMenu=True)
+            
+            uiColorIndexShape = mc.menuItem(parent = uiColorShape, l='Index', subMenu=True)
+            _IndexKeys = SHARED._d_colorsByIndexSets.keys()
+            for k1 in _IndexKeys:
+                _keys2 = SHARED._d_colorsByIndexSets.get(k1,[])
+                _sub = False
+                
+                mc.menuItem(parent=uiColorIndexShape,subMenu = True,
+                            en = True,
+                            l=k1)
+                
+                for k2 in _keys2:
+                    mc.menuItem(en = True,
+                                l=k2,
+                                c=cgmGen.Callback(MMCONTEXT.color_shape,SHARED._d_colors_to_index[k2],self.var_contextTD.value,'shape'))                        
+            
+            
+            uiRGBShape = mc.menuItem(parent = uiColorShape, l='RBG', subMenu=True)            
+            _IndexKeys = SHARED._d_colorSetsRGB.keys()
+            for k1 in _IndexKeys:
+                _keys2 = SHARED._d_colorSetsRGB.get(k1,[])
+                _sub = False
+                if _keys2:_sub = True
+                
+                mc.menuItem(parent=uiRGBShape,subMenu = _sub,
+                            en = True,
+                            l=k1,
+                            c=cgmGen.Callback(MMCONTEXT.color_shape,SHARED._d_colors_to_RGB[k1],self.var_contextTD.value,'shape'))
+                
+                if _sub:
+                    mc.menuItem(en = True,
+                                l=k1,
+                                c=cgmGen.Callback(MMCONTEXT.color_shape,k1,self.var_contextTD.value,'shape'))                    
+                    for k2 in _keys2:
+                        _buffer = "{0}{1}".format(k1,k2)
+                        mc.menuItem(en = True,
+                                    l=_buffer,
+                                    c=cgmGen.Callback(MMCONTEXT.color_shape,SHARED._d_colors_to_RGB[_buffer],self.var_contextTD.value,'shape'))              
+            
+            #>>>Mesh ==============================================================================================
             uiMesh = mc.menuItem(parent = parent, l='Mesh', subMenu=True)
             mc.menuItem(parent = uiMesh,
                         l='cgmMeshTools',
@@ -328,7 +371,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         c=lambda *a: mel.eval('abSymMesh'),)       
         
         
-            #-----------------------------------------------------------------------------
+            #>>>Skin ==============================================================================================
             
             uiSkin = mc.menuItem(parent = parent, l='Skin', subMenu=True)
             
@@ -344,7 +387,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         
         #-----------------------------------------------------------------------------    
         
-        uiLegacy = mc.menuItem(parent = parent, l='cgmLegacy', subMenu=True)
+        uiLegacy = mc.menuItem(parent = parent, l='cgmOLD', subMenu=True)
         
         mc.menuItem(parent = uiLegacy,
                     l='Locinator',
@@ -356,7 +399,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     l='tdTools',
                     c=lambda *a: tdTools.run())          
         #-----------------------------------------------------------------------------         
-        mc.menuItem(p=parent,l = "-"*20,en = False)
+        mc.menuItem(p=parent,l = "-"*15,en = False)
                     
         uiOptions = mc.menuItem(parent = parent, l='Options', subMenu=True)
         self.bUI_optionMenu_contextTD(uiOptions)
@@ -1080,7 +1123,7 @@ def killUI():
         #IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked')
         #mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction')
     
-        sel = search.selectCheck()
+        sel = mc.ls(sl=1)
     
         #>>> Timer stuff
         #=============================================================================
