@@ -12,16 +12,17 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
 
 # From Red9 =============================================================
+from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
-from cgm.core import cgm_General as cgmGeneral
-from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core import cgm_General as cgmGen
+from cgm.core.cgmPy import validateArgs as VALID
 
 from cgm.lib import attributes
 from cgm.lib import search
@@ -29,6 +30,8 @@ from cgm.lib import rigging
 #from cgm.lib import locators #....CANNOT IMPORT LOCATORS - loop
 from cgm.core.lib import attribute_utils as coreAttr
 from cgm.core.lib import name_utils as coreNames
+from cgm.core.lib import search_utils as SEARCH
+from cgm.core.lib import shared_data as SHARED
 
 #>>> Utilities
 #===================================================================
@@ -438,39 +441,49 @@ def parent_get(obj = None):
         return _parents[0]
     return False
 
-def parentShape_in_place(obj = None, curve = None, keepCurve = True):
+def parentShape_in_place(obj = None, shapeSource = None, keepSource = True, replaceShapes = False):
     """
     Shape parent a curve in place to a obj transform
 
     :parameters:
         obj(str): Object to modify
-        curve(str): Curve to shape parent
-        keepCurve(bool): Keep the curve shapeParented as well
+        shapeSource(str): Curve to shape parent
+        keepSource(bool): Keep the curve shapeParented as well
+        replaceShapes(bool): Whether to remove the obj's original shapes or not
 
     :returns
         success(bool)
     """   
     _str_func = 'parentShape_in_place'
-    obj = valid_arg_single(obj, 'obj', _str_func)
-    l_curves = valid_arg_multi(curve, 'curve', _str_func)
-
-    log.debug("{0} || obj:{1}".format(_str_func,obj))    
-    log.debug("{0} || curve:{1}".format(_str_func,curve))
-
+    
+    l_shapes = VALID.listArg(shapeSource)
+    
+    log.debug("|{0}| >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
+    
+    if replaceShapes:
+        _l_objShapes = mc.listRelatives(obj, s=True)    
+        if _l_objShapes:
+            log.debug("|{0}| >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
+            mc.delete(_l_objShapes)
+    
     mc.select (cl=True)
-    for c in l_curves:
+    for c in l_shapes:
         try:
-            if not mc.listRelatives(c, f= True,shapes=True, fullPath = True):
+            if not SEARCH.is_shape(c) and not mc.listRelatives(c, f= True,shapes=True, fullPath = True):
                 raise ValueError,"Has no shapes"
             if coreNames.get_long(obj) == coreNames.get_long(c):
                 raise ValueError,"Cannot parentShape self"
             
             _dup_curve = mc.duplicate(c)[0]
-            _l_parents = search.returnAllParents(obj)
+            _l_parents = SEARCH.get_all_parents(obj)
         
-            _dup_curve = parent_set(_dup_curve,False)
-        
+            _dup_curve = parent_set(_dup_curve, False)
+     
+            
             copy_pivot(_dup_curve,obj)
+            #piv_pos = mc.xform(obj, q=True, ws=True, rp = True)
+            #mc.xform(_dup_curve,ws=True, rp = piv_pos)  
+            
             pos = mc.xform(obj, q=True, os=True, rp = True)
         
             curveScale =  mc.xform(_dup_curve,q=True, s=True,r=True)
@@ -483,7 +496,7 @@ def parentShape_in_place(obj = None, curve = None, keepCurve = True):
             #group = rigging.groupMeObject(obj,False)
             group = create_at(obj,'null')
         
-            _dup_curve = parent_set(_dup_curve,group)
+            _dup_curve = mc.parent(_dup_curve,group)[0]
         
             # zero out the group 
             mc.xform(group, ws=True, t = pos)
@@ -525,7 +538,8 @@ def parentShape_in_place(obj = None, curve = None, keepCurve = True):
                 mc.setAttr(_dup_curve+'.sy',multiplier[1])
                 mc.setAttr(_dup_curve+'.sz',multiplier[2])	
         
-            _dup_curve = parent_set(_dup_curve,False)
+            _dup_curve = parent_set(_dup_curve, False)
+            
             mc.delete(group)
             
             #freeze for parent shaping 
@@ -533,7 +547,7 @@ def parentShape_in_place(obj = None, curve = None, keepCurve = True):
             shape = mc.listRelatives (_dup_curve, f= True,shapes=True, fullPath = True)
             mc.parent (shape,obj,add=True,shape=True)
             mc.delete(_dup_curve)
-            if not keepCurve:
+            if not keepSource:
                 mc.delete(c)
         except Exception,err:
             log.error("{0} || obj:{1} failed to parentShape {2} >> err: {3}".format(_str_func,obj,c,err))  
@@ -554,7 +568,7 @@ def create_at(obj = None, create = 'null'):
     
     obj = valid_arg_single(obj, 'obj', _str_func)
     _l_toCreate = ['null','joint','locator']
-    _create = cgmValid.kw_fromList(create, _l_toCreate, calledFrom=_str_func)
+    _create = VALID.kw_fromList(create, _l_toCreate, calledFrom=_str_func)
     
     log.debug("{0} || obj:{1}".format(_str_func,obj))  
     log.debug("{0} || create:{1}".format(_str_func,_create))  
@@ -658,6 +672,114 @@ def snap(obj = None, source = None,
     _str_func = 'match_transform'
     
     obj = valid_arg_single(obj, 'obj', _str_func)
-    source = valid_arg_single(source, 'source', _str_func) 
+    source = valid_arg_single(source, 'source', _str_func)
+    
+def override_color(target = None, key = None, index = None, rgb = None, pushToShapes = True):
+    """
+    Sets the color of a shape or object via override. In Maya 2016, they introduced 
+    rgb value override.
+    
+    :parameters
+        target(str): What to color - shape or transform with shapes
+        key(varied): if str will check against our shared color dict definitions for rgb and index entries
+        index(int): Color index
+        rgb(list): rgb values to set in Maya 2016 or above
+        pushToShapes(bool): Push the overrides to shapes of passed transforms
+
+    :returns
+        info(dict)
+    """   
+    _str_func = "set_color"
+    if not target:raise ValueError,"|{0}| >> Must have a target".format(_str_func)
+
+    _shapes = []
+    #If it's accepable target to color
+    
+    mTarget = r9Meta.MetaClass(target, autoFill=False)
+    
+    if mTarget.hasAttr('overrideEnabled'):
+        log.debug("|{0}| >> overrideEnabled  on target...".format(_str_func))            
+        _shapes.append(mTarget.mNode)
+    if pushToShapes:
+        _bfr = mc.listRelatives(target, s=True)
+        if _bfr:
+            _shapes.extend(_bfr)
+            
+    if not _shapes:
+        raise ValueError,"|{0}| >> Not a shape and has no shapes: '{1}'".format(_str_func,target)        
+    
+    if index is None and rgb is None and key is None:
+        raise ValueError,"|{0}| >> Must have a value for index,rgb or key".format(_str_func)
+    
+    #...little dummy proofing..
+    _type = type(key)
+    
+    if not issubclass(_type,str):
+        log.debug("|{0}| >> Not a string arg for key...".format(_str_func))
+        
+        if rgb is None and issubclass(_type,list) or issubclass(_type,tuple):
+            log.debug("|{0}| >> vector arg for key...".format(_str_func))            
+            rgb = key
+            key = None
+        elif index is None and issubclass(_type,int):
+            log.debug("|{0}| >> int arg for key...".format(_str_func))            
+            index = key
+            key = None
+        else:
+            raise ValueError,"|{0}| >> Not sure what to do with this key arg: {1}".format(_str_func,key)
+    
+    _b_RBGMode = False
+    _b_2016Plus = False
+    if cgmGen.__mayaVersion__ >=2016:
+        _b_2016Plus = True
+        
+    if key is not None:
+        _color = False
+        if _b_2016Plus:
+            log.debug("|{0}| >> 2016+ ...".format(_str_func))            
+            _color = SHARED._d_colors_to_RGB.get(key,False)
+            
+            if _color:
+                rgb = _color
+        
+        if _color is False:
+            log.debug("|{0}| >> Color key not found in rgb dict checking index...".format(_str_func))
+            _color = SHARED._d_colors_to_index.get(key,False)
+            if _color is False:
+                raise ValueError,"|{0}| >> Unknown color key: '{1}'".format(_str_func,key) 
+                
+    if rgb is not None:
+        if not _b_2016Plus:
+            raise ValueError,"|{0}| >> RGB values introduced in maya 2016. Current version: {1}".format(_str_func,cgmGen.__mayaVersion__) 
+        
+        _b_RBGMode = True        
+        if len(rgb) == 3:
+            _color = rgb
+        else:
+            raise ValueError,"|{0}| >> Too many rgb values: '{1}'".format(_str_func,rgb) 
+        
+    if index is not None:
+        _color = index
+
+    log.debug("|{0}| >> Color: {1} | rgbMode: {2}".format(_str_func,_color,_b_RBGMode))
+    
+
+    for i,s in enumerate(_shapes):
+        mShape = r9Meta.MetaClass(s)
+        
+        mShape.overrideEnabled = True
+        #attributes.doSetAttr(s,'overrideEnabled',True)
+        
+    
+        if _b_RBGMode:
+            mShape.overrideRGBColors = 1
+            mShape.overrideColorRGB = _color
+            #attributes.doSetAttr(s,'overrideRGBColors','RGB')#...brilliant attr naming here Autodesk...            
+            #attributes.doSetAttr(s,'overrideColorsRGB',[1,1,1])
+
+        else:
+            if _b_2016Plus:
+                mShape.overrideRGBColors = 0
+            mShape.overrideColor = _color
 
     

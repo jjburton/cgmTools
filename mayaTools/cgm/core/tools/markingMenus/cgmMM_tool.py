@@ -19,6 +19,8 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import position_utils as POS
+from cgm.core.lib import shape_utils as SHAPES
+reload(SHAPES)
 reload(SHARED)
 reload(RIGGING)
 reload(mmTemplate)
@@ -180,7 +182,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         #self.bUI_radial_dynParent(parent,'NW')
         self.uiRadial_create(parent,'NE')
         self.uiRaidal_rayCreate(parent,'E')
-        self.uiRadial_curve(parent,'W')
+        #self.uiRadial_curve(parent,'W')
         #self.bUI_radial_copy(parent,'W')
         #self.bUI_radial_aim(parent,'NE')
         #self.bUI_radial_control(parent,'SW')
@@ -262,7 +264,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     def bUI_menuBottom_td(self,parent):
         _contextMode = self.var_contextTD.value
         
-        uiSelect = mc.menuItem(parent = parent, l='Select', subMenu=True)
+        uiSelect = mc.menuItem(parent = parent, l='Select*', subMenu=True)
         
         for s in ['selection','children','heirarchy','scene']:
             mc.menuItem(p=uiSelect, l=s,subMenu=True)
@@ -289,7 +291,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             uiJoints = mc.menuItem(parent = parent, l='Joints', subMenu=True)
             
                            
-            mc.menuItem(l='Axis', subMenu = True)
+            mc.menuItem(l='Axis*', subMenu = True)
             mc.menuItem(l='Show',
                         c=cgmGen.Callback(MMCONTEXT.set_attrs,self,'displayLocalAxis',1,self.var_contextTD.value,'joint'))
                         
@@ -316,12 +318,43 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                 if n in  self._l_contextTypes:
                     _go = True
                     break
+        elif not self._b_sel:
+            pass
         else:_go = True
             
         if _go:
             #>>>Shape ==============================================================================================
             uiShape = mc.menuItem(parent = parent, l='Shape', subMenu=True)
-            uiColorShape = mc.menuItem(parent = uiShape, l='Color', subMenu=True)
+            
+            
+            if self._b_sel_pair:              
+                #---------------------------------------------------------------------------
+                mc.menuItem(parent=uiShape,
+                            l = 'parentShape',
+                            #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                            c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom'),
+                            rp = "W")   
+                _d_combine = {'keepSource':False}
+                mc.menuItem(parent=uiShape,
+                            l = 'Combine',
+                            #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                            c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_combine),
+                            rp = "NW")
+                mc.menuItem(parent=uiShape,
+                            l = 'Add',
+                            #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                            c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **{}),
+                            rp = "NW")      
+                
+                _d_replace = {'replaceShapes':True}                
+                mc.menuItem(parent=uiShape,
+                            l = 'Replace',
+                            c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_replace),                            
+                            rp = "SW")                  
+            
+            
+            #>Color -------------------------------------------------------------------------------------------------
+            uiColorShape = mc.menuItem(parent = uiShape, l='Color*', subMenu=True)
             
             uiColorIndexShape = mc.menuItem(parent = uiColorShape, l='Index', subMenu=True)
             _IndexKeys = SHARED._d_colorsByIndexSets.keys()
@@ -336,7 +369,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                 for k2 in _keys2:
                     mc.menuItem(en = True,
                                 l=k2,
-                                c=cgmGen.Callback(MMCONTEXT.color_shape,SHARED._d_colors_to_index[k2],self.var_contextTD.value,'shape'))                        
+                                c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_index[k2],self.var_contextTD.value,'shape'))                        
             
             
             uiRGBShape = mc.menuItem(parent = uiColorShape, l='RBG', subMenu=True)            
@@ -349,18 +382,25 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                 mc.menuItem(parent=uiRGBShape,subMenu = _sub,
                             en = True,
                             l=k1,
-                            c=cgmGen.Callback(MMCONTEXT.color_shape,SHARED._d_colors_to_RGB[k1],self.var_contextTD.value,'shape'))
+                            c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[k1],self.var_contextTD.value,'shape'))
                 
                 if _sub:
                     mc.menuItem(en = True,
                                 l=k1,
-                                c=cgmGen.Callback(MMCONTEXT.color_shape,k1,self.var_contextTD.value,'shape'))                    
+                                c=cgmGen.Callback(MMCONTEXT.color_override,k1,self.var_contextTD.value,'shape'))                    
                     for k2 in _keys2:
                         _buffer = "{0}{1}".format(k1,k2)
                         mc.menuItem(en = True,
                                     l=_buffer,
-                                    c=cgmGen.Callback(MMCONTEXT.color_shape,SHARED._d_colors_to_RGB[_buffer],self.var_contextTD.value,'shape'))              
+                                    c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],self.var_contextTD.value,'shape'))              
             
+            #>>>Curve ==============================================================================================
+            uiCurve = mc.menuItem(parent = parent, l='Curve', subMenu=True)
+            mc.menuItem(parent=uiCurve,
+                        l = 'Describe')   
+            mc.menuItem(parent=uiCurve,
+                        l = 'Mirror')              
+                                    
             #>>>Mesh ==============================================================================================
             uiMesh = mc.menuItem(parent = parent, l='Mesh', subMenu=True)
             mc.menuItem(parent = uiMesh,
@@ -748,14 +788,14 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     l = 'Shapeparent',
                     en = self._b_sel_pair,
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom'),
+                    c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom'),
                     rp = "W")   
         _d_combine = {'keepCurve':False}
         mc.menuItem(parent=_r,
                     en = self._b_sel_pair,
                     l = 'Combine',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_combine),
+                    c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_combine),
                     rp = "NW") 
         mc.menuItem(parent=_r,
                     en = False,                    
@@ -1109,7 +1149,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
 
     
 def killUI():
-    log.debug("killUI...")
+    #log.debug("killUI...")
     try:
         if mc.popupMenu(_str_popWindow,ex = True):
             mc.deleteUI(_str_popWindow)  

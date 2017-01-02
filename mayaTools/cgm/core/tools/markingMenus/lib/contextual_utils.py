@@ -25,6 +25,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shape_utils as SHAPE
+from cgm.core.lib import rigging_utils as RIGGING
 
 def get_list(context = 'selection', mType = None):
     """
@@ -141,7 +142,7 @@ def set_attrs(self, attr = None, value = None, context = 'selection', mType = No
     mc.select(_l_context)
     return True
 
-def color_shape(value = None, context = 'selection', mType = None):
+def color_override(value = None, context = 'selection', mType = None):
     """
     Get data for updating a transform
     
@@ -151,15 +152,15 @@ def color_shape(value = None, context = 'selection', mType = None):
     :returns
         info(dict)
     """   
-    _str_func = "color_shape"
+    _str_func = "color_override"
     _context = context.lower()
     _l_context = get_list(_context, mType)
-    
+    _l_context.extend(get_list(_context,'joint'))
     log.debug("|{0}| >> value: {1} | mType: {2} | context: {3}".format(_str_func,value,mType,_context))             
         
     for o in _l_context:
         try:
-            SHAPE.set_color(o,value)
+            RIGGING.override_color(o,value)
         except Exception,err:
             log.error("|{0}| >> set fail. obj:{1} | value:{2} | error: {3} | {4}".format(_str_func,NAMES.get_short(o),value,err,Exception))
     
@@ -189,6 +190,31 @@ def select(context = 'selection', mType = None):
         
     mc.select(_l_context)
     
+def func_enumrate_all_to_last(func,objects, mode = 'toFrom',**kws):
+    """
+    Get data for updating a transform
+    
+    :parameters
+        self(instance): cgmMarkingMenu
+
+    :returns
+        info(dict)
+    """   
+    _str_func = "func_enumrate_all_to_last"
+    
+    log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__))  
+    log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
+        
+    for i,o in enumerate(objects[:-1]):
+        log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
+        try:
+            if mode == 'toFrom':
+                func(objects[-1],o,**kws)
+            else:
+                func(o,objects[-1],**kws)
+        except Exception,err:
+            log.error("|{0}| >> {1} : {2} failed! | err: {3}".format(_str_func,i,o,err))  
+
 def func_all_to_last(func,objects, mode = 'toFrom',**kws):
     """
     Get data for updating a transform
@@ -204,14 +230,12 @@ def func_all_to_last(func,objects, mode = 'toFrom',**kws):
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__))  
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
         
-    for i,o in enumerate(objects[:-1]):
-        log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
-        try:
-            if mode == 'toFrom':
-                func(objects[-1],o,**kws)
-            else:
-                func(o,objects[-1],**kws)
-        except Exception,err:
-            log.error("|{0}| >> {1} : {2} failed! | err: {3}".format(_str_func,i,o,err))  
-
-    
+    #for i,o in enumerate(objects[:-1]):
+        #log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
+    try:
+        if mode == 'toFrom':
+            func(objects[-1],objects[:-1],**kws)
+        else:
+            func(objects[:-1],objects[-1],**kws)
+    except Exception,err:
+        log.error("|{0}| >> {1} : {2} failed! | err: {3}".format(_str_func,i,o,err))  

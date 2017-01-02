@@ -324,21 +324,35 @@ def groupMeObject(obj,parent=True,maintainParent=False):
     returnBuffer = []
     rotationOrderDictionary = {'xyz':0,'yzx':1 ,'zxy':2 ,'xzy':3 ,'yxz':4,'zyx':5,'none':6}
     
-    """return stuff to transfer"""
+    #_matrix = mc.xform (obj, q=True, m =True)
+    #groupBuffer = mc.group (w=True, empty=True)    
+    #mc.xform(groupBuffer, m = _matrix)    
+    #mc.xform(groupBuffer,ra=[0,0,0],p=True)
+    #mc.xform(groupBuffer, roo = 'xyz', p=True)#...always do pushing values in xyz 
+    #objRot = mc.xform(groupBuffer, q=True, os = True, ro=True)
+    #objRa = mc.xform(groupBuffer, q=True, os = True, ra=True)
+    #mc.xform(groupBuffer, os = True, ra=[v + objRot[i] for i,v in enumerate(objRa)])
+    #mc.xform(groupBuffer,os=True, ro = [0,0,0])#...clear    
+    
+    #mc.xform(groupBuffer, roo = mc.xform (obj, q=True, roo=True ), p=True)#...match rotateOrder
+    
+    #return stuff to transfer
     objTrans = mc.xform (obj, q=True, ws=True, rp=True)
     objRot = mc.xform (obj, q=True, ws=True, ro=True)
-    objRoo = mc.xform (obj, q=True, roo=True )
     objRotAxis = mc.xform(obj, q=True, ws = True, ra=True)
     
-    """return rotation order"""
-    correctRo = rotationOrderDictionary[objRoo]
+    #return rotation order
     groupBuffer = mc.group (w=True, empty=True)
-    mc.setAttr ((groupBuffer+'.rotateOrder'), correctRo)
+    #mc.setAttr ((groupBuffer+'.rotateOrder'), correctRo)
+    mc.xform(groupBuffer, roo = mc.xform (obj, q=True, roo=True ))#...match rotateOrder    
     mc.move (objTrans[0],objTrans[1],objTrans[2], [groupBuffer])
-    for i,a in enumerate(['X','Y','Z']):
-        attributes.doSetAttr(groupBuffer, 'rotateAxis{0}'.format(a), objRotAxis[i])    
-    mc.rotate (objRot[0], objRot[1], objRot[2], [groupBuffer], ws=True)
-    mc.xform (groupBuffer, cp=True)
+    #for i,a in enumerate(['X','Y','Z']):
+        #attributes.doSetAttr(groupBuffer, 'rotateAxis{0}'.format(a), objRotAxis[i])    
+    #mc.rotate(objRot[0], objRot[1], objRot[2], [groupBuffer], ws=True)
+    mc.xform(groupBuffer, ws=True, ro= objRot,p=False)
+    mc.xform(groupBuffer, ws=True, ra= objRotAxis,p=False)    
+    
+    #mc.xform (groupBuffer, cp=True)
     
     if maintainParent == True and oldParent:
         #for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:

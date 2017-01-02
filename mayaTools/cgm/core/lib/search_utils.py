@@ -27,7 +27,6 @@ from cgm.core import cgm_General as cgmGen
 from cgm.core.cgmPy import validateArgs as coreValid
 reload(coreValid)
 from cgm.core.lib import shared_data as coreShared
-from cgm.core.lib import rigging_utils as coreRigging
 from cgm.core.lib import name_utils as NAME
 
 from cgm.lib import attributes

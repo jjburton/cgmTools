@@ -33,7 +33,7 @@
 import maya.cmds as mc
 import maya.mel as mel
 
-from cgm.core import cgm_Meta as cgmMeta
+#from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import guiFactory
 #from cgm.core.classes import NameFactory
 from cgm.core.lib import nameTools
@@ -95,7 +95,8 @@ def createLocFromObject(obj):
 	attributes.storeInfo(nameBuffer[0],'cgmLocMode','fromObject',False)
 	
 	#return nameBuffer[0]
-	return cgmMeta.NameFactory(nameBuffer[0]).doNameObject()
+	return mc.rename(nameBuffer[0],"{0}_loc".format(buffer[0]))
+	#return cgmMeta.NameFactory(nameBuffer[0]).doNameObject()
 	#return ( NameFactory.doNameObject(nameBuffer[0]))
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def locMeCenter(objList,forceBBCenter = False):
@@ -132,7 +133,8 @@ def locMeCenter(objList,forceBBCenter = False):
 	mc.move (objTrans[0],objTrans[1],objTrans[2], nameBuffer[0])
 
 	#return ( NameFactory.doNameObject(nameBuffer[0]) )
-	return cgmMeta.NameFactory(nameBuffer[0]).doNameObject()
+	return mc.rename(nameBuffer[0],"{0}_midPoint_loc".format(str('_to_'.join(objList))))	
+	#return cgmMeta.NameFactory(nameBuffer[0]).doNameObject()
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doPositionLocator(locatorName,locInfo):
@@ -232,8 +234,8 @@ def locClosest(objectList,targetObject):
 		attributes.storeInfo(loc,'cgmLocMode','closestPoint',False)
 		attributes.storeInfo(loc,'cgmTypeModifier','closestPoint',False)
 		#bufferList[cnt] = NameFactory.doNameObject(loc)
-		bufferList[cnt] =  cgmMeta.NameFactory(loc).doNameObject()
-
+		#bufferList[cnt] =  cgmMeta.NameFactory(loc).doNameObject()
+		bufferList[cnt] = 	mc.rename(nameBuffer[0],"{0}_loc".format('{0}_to_{1}_closestPoint_loc'.format(objectList[0],objectList[-1])))
 	return bufferList[0]
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def doUpdateLocator(locatorName,forceBBCenter = False):
