@@ -645,7 +645,8 @@ class clickMesh(ContextualPick):
                 _d = _mi_loc.dataBuffer
                 _m_normal = _d['normal']
                 _m = _mi_loc.meshTarget[0]
-                _pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')                            
+                _pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')   
+                _pos = _pos_base
                 #Use that distance to subtract along our original ray's hit distance to get our new point
                 for o in self.l_toSnap:
                     if self.str_offsetMode == 'snapCast':
