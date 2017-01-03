@@ -1152,7 +1152,12 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),		            
                         c = lambda *a:self.button_action(raySnap_start(self._l_sel)),
                         rp = 'E')	
-
+        mc.menuItem(parent=_r,
+                        en = self._b_sel,
+                        l = 'Aim',
+                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                        c = lambda *a:snap_action(self,'aim'),
+                        rp = 'W')
     
 def killUI():
     #log.debug("killUI...")
@@ -1292,6 +1297,8 @@ def snap_action(self,mode = 'point'):
             elif mode == 'parent':
                 kws['position'] = True
                 kws['rotation'] = True
+            elif mode == 'aim':
+                kws['rotation'] = True
             else:
                 raise ValueError,"Unknown mode!"
             
@@ -1305,7 +1312,10 @@ def snap_action(self,mode = 'point'):
             else:
                 raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)
             
-            self.action_logged( SNAP.go(**kws), _msg  )
+            if mode == 'aim':
+                self.action_logged( SNAP.aim(o, self._l_sel[-1]), _msg  )
+            else:
+                self.action_logged( SNAP.go(**kws), _msg  )
         except Exception,err:
             log.error("|{0}| ||| Failure >>> err:s[{1}]".format(_msg,err))
     mc.select(self._l_sel)    

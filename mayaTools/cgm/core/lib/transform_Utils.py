@@ -23,6 +23,8 @@ from Red9.core import Red9_General as r9General
 #>>> From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.lib import math_utils as MATHUTILS
+import euclid as EUCLID
 
 from cgm.lib import (search,
                      lists,
@@ -111,4 +113,3 @@ def isSkinned(self):
 	log.error("Self: {0}".format(self))
 	log.error("deformerTypes: {0}".format(deformerTypes))	
 	raise StandardError, "{0} fail | error: {1}"(_str_funcName,error)
-    
