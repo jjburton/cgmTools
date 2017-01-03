@@ -479,7 +479,7 @@ class clickMesh(ContextualPick):
                     POS.set(mi_jnt.mNode, POS.get(o))
                     
                     #Get our orientation data
-                    _mi_loc = cgmMeta.cgmNode(self.l_created[-1])
+                    _mi_loc = cgmMeta.cgmNode(self.l_created[i])
                     _d = _mi_loc.dataBuffer
                     _m_normal = _d['normal']
                     _m = _mi_loc.meshTarget[0]
@@ -488,18 +488,19 @@ class clickMesh(ContextualPick):
                         constBuffer = mc.aimConstraint(self.l_created[i+1],mi_jnt.mNode,
                                                        aimVector=self.mAxis_aim.p_vector,
                                                        upVector=self.mAxis_up.p_vector,
-                                                       worldUpType = 'none')                                                       
-                                                       #worldUpVector = _m_normal)
+                                                       worldUpType = 3,#)                                                       
+                                                       worldUpVector = _m_normal)
                     else:
                         constBuffer = mc.aimConstraint(self.l_created[-2],mi_jnt.mNode,
                                                        aimVector=self.mAxis_aim.inverse.p_vector,
                                                        upVector=self.mAxis_up.p_vector,
-                                                       worldUpType = 'none')
-                                                       #worldUpVector = _m_normal)
+                                                       worldUpType = 3, #)
+                                                       worldUpVector = _m_normal)
+                    
                     
                     mc.delete(constBuffer)
                     if ml_joints:#parent to the last
-                        mi_jnt.parent = ml_joints[-1]      
+                        mi_jnt.parent = ml_joints[-1]    
                         log.info("|finalize| >> Created: {0}".format(mi_jnt))                        
                         
                 mc.delete(self.l_created)
