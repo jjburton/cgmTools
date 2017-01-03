@@ -31,6 +31,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rigging_utils as RIGGING
 reload(RIGGING)
 from cgm.core.lib import shape_utils as SHAPES
+from cgm.core.lib import name_utils as NAMES
 reload(SHAPES)
 from cgm.lib import (distance,
                      locators,
@@ -69,6 +70,8 @@ def get_python_call(crvShape):
         shapeNodes.append(dictBuffer['shape'])
         commandBuffer =[]
         commandBuffer.append('mc.curve')
+        if dictBuffer['form'] == 2:
+            commandBuffer.append("periodic = True")            
         commandBuffer.append('%s%i' % ('d = ',dictBuffer['degree']))
         commandBuffer.append('%s%s' % ('p = ',dictBuffer['cvs'])) 
         commandBuffer.append('%s%s' % ('k = ',dictBuffer['knots'])) 
@@ -79,7 +82,7 @@ def get_python_call(crvShape):
     #print (guiFactory.doPrintReportStart())
     print cgmGeneral._str_hardLine
     print ('import maya.cmds as mc')
-    print ('from cgm.core.lib import shape_utils as SHAPES')
+    if len(shapeNodes)>1:print ('from cgm.core.lib import shape_utils as SHAPES')
     print ''
     if len(shapeNodes)>1:
         print 'l_curveShapes = []'
@@ -88,8 +91,8 @@ def get_python_call(crvShape):
             print ('%s%s%s' % ('l_curveShapes.append(',commandsReturn[i],')'))
         print 'SHAPES.combine(l_curveShapes)'
     else:
-        print ("#...{0}'s shape may be created with...".format(crvShape))        
-        print ('%s%s' % ('createBuffer = ',commandsReturn[0]))
+        print ("#...{0} shape may be created with...".format(NAMES.get_short(crvShape)))        
+        print (commandsReturn[0])
 
     print ''
     print cgmGeneral._str_hardLine
@@ -128,17 +131,23 @@ def get_shape_info(crvShape):
         _infoNode = mc.createNode('curveInfo')
         mc.connectAttr((_transform+'.worldSpace'),(_infoNode+'.inputCurve')) 
         _rawKnots = mc.getAttr(_infoNode + '.knots')[0]
+        #log.info( mc.getAttr(_infoNode + '.knots[*]'))
         
-        log.info(_rawKnots)
+        """log.info(_rawKnots)
         for knot in _rawKnots:
             #knots.append(decimal.Decimal(knot))
             log.info(knot)
             if 'e' in str(knot):
                 _knots.append('%f' % (knot))
             else:
-                _knots.append(knot)
+                _knots.append(knot)"""
         
-        log.info("|{0}| >> knot info 1...".format(_str_func))
+        if _form == 2:
+            log.debug("|{0}| >> Closed curve mode!...".format(_str_func))
+            _cvs.extend(_cvs[:_degree])
+            _cps.extend(_cps[:_degree])
+        
+        """log.info("|{0}| >> knot info 1...".format(_str_func))
         if _form == 2:
             _knotInfo.append(_knots[0]-1)
         else:
@@ -154,7 +163,7 @@ def get_shape_info(crvShape):
         if _form == 2:
             _knotInfo.append(_knots[-1]+1)
         else:
-            _knotInfo.append(_knots[-1])
+            _knotInfo.append(_knots[-1])"""
             
         mc.delete(_infoNode)
 
@@ -175,8 +184,7 @@ def get_shape_info(crvShape):
             'degree':_degree,
             'cvs':_cvs,
             'cps':_cps,
-            'knotsRaw':_rawKnots,
-            'knots':_knotInfo}
+            'knots':_rawKnots}
 
 def get_curve_shape_info(curve):
     """
