@@ -214,6 +214,8 @@ def func_enumrate_all_to_last(func,objects, mode = 'toFrom',**kws):
                 func(o,objects[-1],**kws)
         except Exception,err:
             log.error("|{0}| >> {1} : {2} failed! | err: {3}".format(_str_func,i,o,err))  
+            
+    #mc.select(objects[-1])
 
 def func_all_to_last(func,objects, mode = 'toFrom',**kws):
     """
@@ -239,3 +241,31 @@ def func_all_to_last(func,objects, mode = 'toFrom',**kws):
             func(objects[:-1],objects[-1],**kws)
     except Exception,err:
         log.error("|{0}| >> {1} : {2} failed! | err: {3}".format(_str_func,i,o,err))  
+        
+    #mc.select(objects)
+        
+def func_context_all(func,context = 'selection',mType = None, **kws):
+    """
+    
+    :parameters
+        self(instance): cgmMarkingMenu
+
+    :returns
+        info(dict)
+    """   
+    _str_func = "func_all"
+    _context = context.lower()
+    _l_context = get_list(_context, mType)  
+        
+    log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__))  
+    log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
+        
+    for i,o in enumerate(_l_context):
+        log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
+        try:
+            func(o,**kws)
+        except Exception,err:
+            log.error("|{0}| >> {1} : {2} failed! | err: {3}".format(_str_func,i,o,err))
+            
+    try:mc.select(_l_context)
+    except:pass

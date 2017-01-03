@@ -12,7 +12,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -469,12 +469,16 @@ def parentShape_in_place(obj = None, shapeSource = None, keepSource = True, repl
     mc.select (cl=True)
     for c in l_shapes:
         try:
-            if not SEARCH.is_shape(c) and not mc.listRelatives(c, f= True,shapes=True, fullPath = True):
+            _shapeCheck = SEARCH.is_shape(c)
+            if not _shapeCheck and not mc.listRelatives(c, f= True,shapes=True, fullPath = True):
                 raise ValueError,"Has no shapes"
             if coreNames.get_long(obj) == coreNames.get_long(c):
                 raise ValueError,"Cannot parentShape self"
             
-            _dup_curve = mc.duplicate(c)[0]
+            if _shapeCheck:
+                _dup_curve = duplicate_shape(c)[0]
+            else:
+                _dup_curve =  mc.duplicate(c)[0] # NO NO NO
             _l_parents = SEARCH.get_all_parents(obj)
         
             _dup_curve = parent_set(_dup_curve, False)
@@ -782,4 +786,45 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
                 mShape.overrideRGBColors = 0
             mShape.overrideColor = _color
 
+def duplicate_shape(shape):
+    """
+    mc.duplicate can't duplicate a shape. This provides for it
+
+    :parameters:
+    	shape(str): shape to dupliate
+
+    :returns
+    	[shape,transform]
+
+    """
+    try:
+        _str_func = 'duplicate_shape'
+        _type = VALID.get_mayaType(shape)
+        if _type == 'nurbsCurve':
+            _bfr = mc.duplicateCurve(shape)
     
+            parentObj = mc.listRelatives(shape, p=True, fullPath=True)
+            mc.delete( mc.parentConstraint(parentObj,_bfr[0]))
+    
+            return _bfr
+        else:
+            log.debug("|{0}| >> mesh shape assumed...".format(_str_func))            
+            _transform = SEARCH.get_transform(shape)
+            _shapes = mc.listRelatives(_transform,s=True, fullPath = True)
+            _idx = _shapes.index(coreNames.get_long(shape))
+            log.info(_shapes)
+            log.info(_idx)
+            
+            _bfr = mc.duplicate(shape)
+            _newShapes = mc.listRelatives(_bfr[0], s=True, fullPath = True)
+            _dupShape = _newShapes[_idx]
+            _newShapes.pop(_idx)
+            mc.delete(_newShapes)
+            
+            return [_bfr[0],_dupShape]
+            
+        
+    except Exception,err:
+        if not SEARCH.is_shape(shape):
+            log.error("|{0}| >> Failure || Not a shape: {1}".format(_str_func,shape))
+        raise Exception,"|{0}| >> failed! | err: {1}".format(_str_func,err)  

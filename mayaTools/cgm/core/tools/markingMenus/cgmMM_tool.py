@@ -20,6 +20,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import shape_utils as SHAPES
+from cgm.core.lib import curve_Utils as CURVES
 reload(SHAPES)
 reload(SHARED)
 reload(RIGGING)
@@ -352,7 +353,10 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                             c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_replace),                            
                             rp = "SW")                  
             
-            
+            mc.menuItem(parent=uiShape,
+                        l = 'Extract',
+                        c = cgmGen.Callback(MMCONTEXT.func_context_all, RIGGING.duplicate_shape, 'selection','shape'),                            
+                        rp = "SW")              
             #>Color -------------------------------------------------------------------------------------------------
             uiColorShape = mc.menuItem(parent = uiShape, l='Color*', subMenu=True)
             
@@ -397,7 +401,9 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             #>>>Curve ==============================================================================================
             uiCurve = mc.menuItem(parent = parent, l='Curve', subMenu=True)
             mc.menuItem(parent=uiCurve,
-                        l = 'Describe')   
+                        l = 'Describe',
+                        c = cgmGen.Callback(MMCONTEXT.func_context_all, CURVES.get_python_call, 'selection','shape'),                            
+                        )   
             mc.menuItem(parent=uiCurve,
                         l = 'Mirror')              
                                     

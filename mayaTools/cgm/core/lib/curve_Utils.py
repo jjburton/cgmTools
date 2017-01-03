@@ -29,6 +29,9 @@ from cgm.core.cgmPy import validateArgs as cgmValid
 reload(cgmValid)
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rigging_utils as RIGGING
+reload(RIGGING)
+from cgm.core.lib import shape_utils as SHAPES
+reload(SHAPES)
 from cgm.lib import (distance,
                      locators,
                      attributes,
@@ -45,50 +48,52 @@ from cgm.lib import (distance,
 reload(distance)
 
 #>>> Utilities
-#===================================================================
-def to_python_command(crvShape):
+#===================================================================    
+def get_python_call(crvShape):
     """
-    Shape parent a curve in place to a obj transform
+    Get the python commands to reconstruct a curve. Useful for storing curve presets.
 
     :parameters:
-
-    	curve(str): Object to describe
+    	crvShape(str): Object to describe
+        
     :returns
-    	success(bool)
-    """       
-    shapesInfo = returnCurveInfo(crvShape)
+        Prints commands in script editor
+    	Commands(list)
+    """
+    _str_func = 'get_python_call'
+    shapesInfo = get_curve_shape_info(crvShape)
     commandsReturn = []
     shapeNodes = []
     for shape in shapesInfo.keys():
         dictBuffer =  shapesInfo[shape]
-    shapeNodes.append(dictBuffer['shape'])
-    commandBuffer =[]
-    commandBuffer.append('mc.curve')
-    commandBuffer.append('%s%i' % ('d = ',dictBuffer['degree']))
-    commandBuffer.append('%s%s' % ('p = ',dictBuffer['cvs'])) 
-    commandBuffer.append('%s%s' % ('k = ',dictBuffer['knots'])) 
-    command = ('%s%s%s%s' % (commandBuffer[0],'( ',(','.join(commandBuffer[1:])),')'))
-    commandsReturn.append(command)
+        shapeNodes.append(dictBuffer['shape'])
+        commandBuffer =[]
+        commandBuffer.append('mc.curve')
+        commandBuffer.append('%s%i' % ('d = ',dictBuffer['degree']))
+        commandBuffer.append('%s%s' % ('p = ',dictBuffer['cvs'])) 
+        commandBuffer.append('%s%s' % ('k = ',dictBuffer['knots'])) 
+        command = ('%s%s%s%s' % (commandBuffer[0],'( ',(','.join(commandBuffer[1:])),')'))
+        commandsReturn.append(command)
     #Get our message ready
     print ''
-    print ("'%s' may be created with..." % crvName)
-    print (guiFactory.doPrintReportStart())
+    #print (guiFactory.doPrintReportStart())
+    print cgmGeneral._str_hardLine
     print ('import maya.cmds as mc')
-    print ('from cgm.lib import curves')
+    print ('from cgm.core.lib import shape_utils as SHAPES')
     print ''
-    cmd = 0 
     if len(shapeNodes)>1:
         print 'l_curveShapes = []'
-        for shape in shapeNodes:
-            print ('%s%s%s' % ('l_curveShapes.append(',commandsReturn[cmd],')'))
-            cmd += 1
-        print 'curves.combineCurves(l_curveShapes)'
+        for i,shape in enumerate(shapeNodes):
+            print ("#...shape: {0}".format(shape))
+            print ('%s%s%s' % ('l_curveShapes.append(',commandsReturn[i],')'))
+        print 'SHAPES.combine(l_curveShapes)'
     else:
+        print ("#...{0}'s shape may be created with...".format(crvShape))        
         print ('%s%s' % ('createBuffer = ',commandsReturn[0]))
 
     print ''
-
-    print (guiFactory.doPrintReportEnd())
+    print cgmGeneral._str_hardLine
+    #print (guiFactory.doPrintReportEnd())
     return commandsReturn
 
 def get_shape_info(crvShape):
@@ -101,7 +106,9 @@ def get_shape_info(crvShape):
         
     :returns
     	info(dict) - shape, span, form, degree, cvs, cps, knots
-
+    
+    ACKNOWLEDGEMENT:
+    Knot portion - Pythonized from http://nccastaff.bournemouth.ac.uk/jmacey/RobTheBloke/www/mel/DATA_ncurve.html
     """
     _str_func = 'get_shape_info'
     try:
@@ -110,50 +117,55 @@ def get_shape_info(crvShape):
         _form = mc.getAttr(crvShape + '.form')
         _degree = mc.getAttr(crvShape + '.degree')
         
-        
         _cvs = []
         _cps = []
         for i,cv in enumerate(mc.ls("{0}.cv[*]".format(crvShape),flatten=True)):
             _cvs.append( mc.pointPosition(cv,w=True) )
             _cps.append( mc.pointPosition("{0}.cp[{1}]".format(crvShape,i),w=True))
-            
-            
+              
         _knots = []
         _knotInfo = []
         _infoNode = mc.createNode('curveInfo')
         mc.connectAttr((_transform+'.worldSpace'),(_infoNode+'.inputCurve')) 
-        _rawKnots = mc.getAttr(_infoNode + '.knots')
+        _rawKnots = mc.getAttr(_infoNode + '.knots')[0]
+        
         log.info(_rawKnots)
         for knot in _rawKnots:
             #knots.append(decimal.Decimal(knot))
             log.info(knot)
-            if 'e' in list(knot):
+            if 'e' in str(knot):
                 _knots.append('%f' % (knot))
             else:
                 _knots.append(knot)
         
+        log.info("|{0}| >> knot info 1...".format(_str_func))
         if _form == 2:
             _knotInfo.append(_knots[0]-1)
         else:
             _knotInfo.append(_knots[0])
     
-        i=0
-        while i > len(_knots):
-            _knotInfo.append(_knots[i])
-            i+=1
-    
+        #i=0
+        #while i > len(_knots):
+            #_knotInfo.append(_knots[i])
+            #i+=1
+        _knotInfo.extend(_knots)
+        
+        log.info("|{0}| >> knot info 2...".format(_str_func))
         if _form == 2:
-            _knotInfo.append(_knots[len(_knots)-1]+1)
+            _knotInfo.append(_knots[-1]+1)
         else:
-            _knotInfo.append(_knots[len(_knots)-1])
+            _knotInfo.append(_knots[-1])
+            
         mc.delete(_infoNode)
 
     except Exception,err:
+        try:mc.delete(_infoNode)
+        except:pass
         if not SEARCH.is_shape(crvShape):
-            log.error("|{0}| >> Not a shape: {1}".format(_str_func,crvShape))
+            log.error("|{0}| >> Failure || Not a shape: {1}".format(_str_func,crvShape))
         _type = cgmValid.get_mayaType(crvShape)
         if not _type == 'nurbsCurve':
-            log.error("|{0}| >> Not a nurbsCurve. Type: {1}".format(_str_func,_type))
+            log.error("|{0}| >> Failure || {2} Not a nurbsCurve. Type: {1}".format(_str_func,_type,crvShape))
         raise Exception,"|{0}| >> failed! | err: {1}".format(_str_func,err)
     
 
@@ -180,26 +192,31 @@ def get_curve_shape_info(curve):
     _str_func = 'get_curve_shape_info'
     try:
         _shapes = mc.listRelatives(curve, s=True,fullPath=True)
+        if not _shapes:
+            return {curve: get_shape_info(curve)}
         _d = {}
-        for shape in shapeNodes:
-            transform = mc.group(em=True)
-            RIGGING.parentShape_in_place(transform, shape)
-            tmpShapeNode = mc.listRelatives (transform, f=True, shapes=True, fullPath=True)
-            _d[shape] = (get_shape_info(tmpShapeNode[0],type))
-            mc.delete(transform)
+        for shape in _shapes:
+            if cgmValid.get_mayaType(shape) == 'nurbsCurve':
+                log.info("|{0}| >> shape: {1}".format(_str_func,shape))                
+                #transform = mc.group(em=True)
+                #RIGGING.parentShape_in_place(transform, shape)
+                #tmpShapeNode = mc.listRelatives (transform, shapes=True, fullPath=True)
+                _bfr = RIGGING.duplicate_shape(shape)
+                _d[shape] = (get_shape_info(_bfr[1]))
+                mc.delete(_bfr[0])
+                #mc.delete(transform)
+            else:
+                log.warning("|{0}| >> not a nurbsCurve. Skipping {1}...".format(_str_func,shape))
             
         return _d
 
 
     except Exception,err:
-        if SEARCH.is_shape(crvShape):
-            log.error("|{0}| >> is a shape: {1}".format(_str_func,crvShape))
-        _type = cgmValid.get_mayaType(crvShape)
-        if not _type == 'nurbsCurve':
-            log.error("|{0}| >> Not a nurbsCurve. Type: {1}".format(_str_func,_type))
-        raise Exception,"|{0}| >> failed! | err: {1}".format(_str_func,err)
-
-
+        try:mc.delete(_bfr[0])
+        except:pass
+        if SEARCH.is_shape(curve):
+            log.error("|{0}| >> is a shape: {1}".format(_str_func,curve))
+        raise Exception,"|{0}| >> failed! | err: {1}".format(_str_func,err)      
 
 #>>>>PRE Refactor ====================================================================================================================================
 def returnSplitCurveList(*args, **kws):
