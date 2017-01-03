@@ -33,6 +33,7 @@ from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import node_utils as NODES
 from cgm.core.lib import name_utils as NAMES
+
 reload(POS)
 reload(NODES)
 from cgm.core.lib import math_utils as MATHUTILS
@@ -252,6 +253,7 @@ class clickMesh(ContextualPick):
         self.l_returnRaw = []
         self.d_tagAndName = tagAndName
         self._posBuffer = False
+        self._prevBuffer = False
         self.v_posOffset = posOffset or False    
         self.str_offsetMode = offsetMode
         self.f_offsetDistance = offsetDistance
@@ -484,16 +486,20 @@ class clickMesh(ContextualPick):
                     _m_normal = _d['normal']
                     _m = _mi_loc.meshTarget[0]
                     
+                    _aim = MATHUTILS.Vector3(self.mAxis_aim.p_vector[0], self.mAxis_aim.p_vector[1], self.mAxis_aim.p_vector[2])
+                    _up = MATHUTILS.Vector3(self.mAxis_up.p_vector[0], self.mAxis_up.p_vector[1], self.mAxis_up.p_vector[2])
+                    _right = _aim.cross(_up)
+                    
                     if o != self.l_created[-1]:
                         constBuffer = mc.aimConstraint(self.l_created[i+1],mi_jnt.mNode,
                                                        aimVector=self.mAxis_aim.p_vector,
-                                                       upVector=self.mAxis_up.p_vector,
+                                                       upVector=[_right.x, _right.y, _right.z],
                                                        worldUpType = 3,#)                                                       
                                                        worldUpVector = _m_normal)
                     else:
                         constBuffer = mc.aimConstraint(self.l_created[-2],mi_jnt.mNode,
                                                        aimVector=self.mAxis_aim.inverse.p_vector,
-                                                       upVector=self.mAxis_up.p_vector,
+                                                       upVector=[_right.x, _right.y, _right.z],
                                                        worldUpType = 3, #)
                                                        worldUpVector = _m_normal)
                     
@@ -714,6 +720,8 @@ class clickMesh(ContextualPick):
         """
         ContextualPick.drag(self)
         self.updatePos()
+
+        #print len(self._createModeBuffer)
         
         #self._int_runningTally+=1
         
@@ -738,6 +746,8 @@ class clickMesh(ContextualPick):
         """
         Get updated position data via shooting rays
         """
+        TOLERANCE = .2
+
         _str_funcName = 'clickMesh.updatePos'
         #log.debug(">>> %s >> "%_str_funcName + "="*75)     	
         if not self.l_mesh:
@@ -873,6 +883,17 @@ class clickMesh(ContextualPick):
         
         if self.b_dragStoreMode:#If not on drag, do it here. Otherwise do it on update
             if self._posBuffer:
+                if self._prevBuffer:
+                    for pos in self._posBuffer:
+                        for prev_pos in self._prevBuffer:
+                            # exit out if point is not within tolerance
+                            pos_vector = MATHUTILS.Vector3(pos[0], pos[1], pos[2])
+                            prev_pos_vector = MATHUTILS.Vector3( prev_pos[0], prev_pos[1], prev_pos[2] )
+                            mag = (prev_pos_vector - pos_vector).magnitude()
+                            if mag < TOLERANCE:
+                                return
+
+                self._prevBuffer = copy.copy(self._posBuffer)
                 self.l_return.extend(self._posBuffer)
                 if self._posBufferRaw:
                     self.l_returnRaw.extend(self._posBufferRaw)
@@ -1011,6 +1032,7 @@ class clickMesh(ContextualPick):
                         loc.doStore('meshTarget',_m)
                         loc.rename("cast_{0}_hit_{1}_loc".format(self._int_runningTally,i))
                         nameBuffer = loc.mNode
+                        print "making locator"
                     POS.set(nameBuffer,pos)
                     
                     nameBuffer = [nameBuffer]
