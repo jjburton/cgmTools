@@ -752,7 +752,6 @@ class clickMesh(ContextualPick):
         """
         Get updated position data via shooting rays
         """
-        TOLERANCE = .2
 
         _str_funcName = 'clickMesh.updatePos'
         #log.debug(">>> %s >> "%_str_funcName + "="*75)     	
@@ -896,7 +895,7 @@ class clickMesh(ContextualPick):
                             pos_vector = MATHUTILS.Vector3(pos[0], pos[1], pos[2])
                             prev_pos_vector = MATHUTILS.Vector3( prev_pos[0], prev_pos[1], prev_pos[2] )
                             mag = (prev_pos_vector - pos_vector).magnitude()
-                            if mag < TOLERANCE:
+                            if mag < self.f_aimTolerance:
                                 return
 
                 self._prevBuffer = copy.copy(self._posBuffer)
