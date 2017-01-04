@@ -1319,7 +1319,12 @@ def snap_action(self,mode = 'point'):
                 raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)
             
             if mode == 'aim':
-                self.action_logged( SNAP.aim(o, self._l_sel[-1]), _msg  )
+                var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
+                var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)  
+
+                aim_axis = SHARED._l_axis_by_string[var_objDefaultAimAxis.value]
+                up_axis = SHARED._l_axis_by_string[var_objDefaultUpAxis.value]
+                self.action_logged( SNAP.aim(o, self._l_sel[-1], aim_axis, up_axis), _msg  )
             else:
                 self.action_logged( SNAP.go(**kws), _msg  )
         except Exception,err:
