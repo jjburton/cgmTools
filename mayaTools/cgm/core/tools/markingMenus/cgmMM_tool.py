@@ -103,7 +103,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             self.bUI_radialRoot_anim(parent)
         elif _mode == 2:
             log.debug("|{0}| >> dev mode...".format(self._str_MM))                                        
-            self.bUI_radial_dev(parent)
+            self.bUI_radialRoot_dev(parent)
         else:
             log.error("Don't know what to do with mode: {0}".format(_mode))
             
@@ -171,7 +171,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.var_keyMode = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)	  
         self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
         self.var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0)
-        self.var_aimTolerance = cgmMeta.cgmOptionVar('cgmVar_aimTolerance', defaultValue = .2)        
+        self.var_rayCastAimTolerance = cgmMeta.cgmOptionVar('cgmVar_rayCastAimTolerance', defaultValue = .2)        
         self.var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
         self.var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)
         self.var_objDefaultOutAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultOutAxis', defaultValue = 3)                        
@@ -226,7 +226,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             mc.menuItem(l = 'Delete',
                         c= lambda *a:deleteKey(),
                         rp = "N")            
-    def bUI_radial_dev(self,parent):
+    def bUI_radialRoot_dev(self,parent):
         #Radial---------------------------------------------------
         self.bUI_radial_snap(parent,'N')
         self.bUI_radial_dynParent(parent,'NW')
@@ -587,7 +587,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                 log.error("|{0}| failed to load. err: {1}".format(_str_section,err))     
                 
             mc.menuItem(p= uiMenu_objDefault, l='Set Aim Tolerance',
-                        c = lambda *a:self.var_aimTolerance.uiPrompt_value('Set aim tolerance'))            
+                        c = lambda *a:self.var_rayCastAimTolerance.uiPrompt_value('Set aim tolerance'))            
                 
     @cgmGen.Timer
     def bUI_optionMenu_contextTD(self, parent):
@@ -1216,7 +1216,7 @@ def raySnap_start(targets = [], create = None, drag = False):
     var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
     var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)      
     var_objDefaultOutAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultOutAxis', defaultValue = 0)      
-    var_aimTolerance = cgmMeta.cgmOptionVar('cgmVar_aimTolerance', defaultValue = .2)
+    var_rayCastAimTolerance = cgmMeta.cgmOptionVar('cgmVar_rayCastAimTolerance', defaultValue = .2)
     
     _rayCastMode = var_rayCastMode.value
     _rayCastOffsetMode = var_rayCastOffsetMode.value
@@ -1225,14 +1225,14 @@ def raySnap_start(targets = [], create = None, drag = False):
     _objDefaultAimAxis = var_objDefaultAimAxis.value
     _objDefaultUpAxis = var_objDefaultUpAxis.value
     _objDefaultOutAxis = var_objDefaultOutAxis.value
-    _aimTolerance = var_aimTolerance.value
+    _rayCastAimTolerance = var_rayCastAimTolerance.value
     
     log.debug("|{0}| >> Mode: {1}".format(_str_func,_rayCastMode))
     log.debug("|{0}| >> offsetMode: {1}".format(_str_func,_rayCastOffsetMode))
     
     kws = {'mode':'surface', 'mesh':None,'closestOnly':True, 'create':'locator','dragStore':False,'orientMode':None,
            'objAimAxis':SHARED._l_axis_by_string[_objDefaultAimAxis], 'objUpAxis':SHARED._l_axis_by_string[_objDefaultUpAxis],'objOutAxis':SHARED._l_axis_by_string[_objDefaultOutAxis],
-           'timeDelay':.15, 'offsetMode':None, 'aimTolerance':_aimTolerance, 'offsetDistance':var_rayCastOffsetDist.value}#var_rayCastOffsetDist.value
+           'timeDelay':.15, 'offsetMode':None, 'aimTolerance':_rayCastAimTolerance, 'offsetDistance':var_rayCastOffsetDist.value}#var_rayCastOffsetDist.value
     
     if _rayCastTargetsBuffer:
         log.debug("|{0}| >> Casting at buffer {1}".format(_str_func,_rayCastMode))
