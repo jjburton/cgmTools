@@ -352,7 +352,8 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                 _d_replace = {'replaceShapes':True}                
                 mc.menuItem(parent=uiShape,
                             l = 'Replace',
-                            c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_replace),                            
+                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parentShape_in_place, self._l_sel,'toLastFromAll', **_d_replace),                                                        
+                            #c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_replace),                            
                             rp = "SW")                  
             
             mc.menuItem(parent=uiShape,
@@ -585,9 +586,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                                 rb = _rb)                
             except Exception,err:
                 log.error("|{0}| failed to load. err: {1}".format(_str_section,err))     
-                
-            mc.menuItem(p= uiMenu_objDefault, l='Set Aim Tolerance',
-                        c = lambda *a:self.var_rayCastAimTolerance.uiPrompt_value('Set aim tolerance'))            
+                           
                 
     @cgmGen.Timer
     def bUI_optionMenu_contextTD(self, parent):
@@ -614,7 +613,8 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     @cgmGen.Timer
     def bUI_optionMenu_rayCast(self, parent):
         uiMenu_rayCast = mc.menuItem( parent = parent, l='rayCast', subMenu=True)    
-        
+        mc.menuItem(p= uiMenu_rayCast, l='Set Aim Tolerance',
+                    c = lambda *a:self.var_rayCastAimTolerance.uiPrompt_value('Set aim tolerance'))         
         try:#>>> Cast Mode 
             _str_section = 'Cast mode'
     
@@ -1026,20 +1026,24 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                            l = 'Pivot',
                            rp = "W")    
         
-        
+        mc.menuItem(parent = _piv,
+                    l = 'rp',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'toEachFromFirst', **{'rotatePivot':True,'scalePivot':False}),                                               
+                    rp = "W")         
+        mc.menuItem(parent = _piv,
+                    l = 'sp',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'toEachFromFirst', **{'rotatePivot':False,'scalePivot':True}),                                               
+                    rp = "SW")         
         
         mc.menuItem(parent=_r,
                     l = 'Shapes',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    #c = cgmGen.Callback(self.bc_copy_pivot,True, False,'Rotate Pivot'),
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parentShape_in_place, self._l_sel,'fromEachToLast', **{}),
                     rp = "SW")
         mc.menuItem(parent=_r,subMenu=True,
                     l = 'Attrs',
                     rp = "S")        
 
- 
-
-        
     def bUI_radial_control(self,parent,direction = None):
         _r = mc.menuItem(parent=parent,subMenu = True,
                          en = self._b_sel,
@@ -1181,9 +1185,13 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         rp = 'SW')
             
             _p = mc.menuItem(parent=_r, #subMenu = True,
-                             l = 'Parent Selected Order',
+                             l = 'Parent Order >>',
                              c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'toEachFromPrev'),                                             
-                             rp = 'SW')            
+                             rp = 'SW')
+            _p = mc.menuItem(parent=_r, #subMenu = True,
+                             l = 'Parent Order <<',
+                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'fromEachToNext'),                                             
+                             rp = 'S')              
         else:
             mc.menuItem(parent=_r,
                         l = 'Aim',

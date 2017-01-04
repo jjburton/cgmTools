@@ -240,7 +240,7 @@ def func_all_to_last(func,objects, mode = 'toFrom',**kws):
         else:
             func(objects[:-1],objects[-1],**kws)
     except Exception,err:
-        log.error("|{0}| >> {1} : {2} failed! | err: {3}".format(_str_func,i,o,err))  
+        log.error("|{0}| >> err: {2}".format(_str_func,err))  
         
     #mc.select(objects)
     
@@ -252,13 +252,16 @@ def func_process(func,objects, processMode = 'all',**kws):
         func(function)
         objects(list)
         mode(str)
-            all -- to it to each object
+            all -- func to each object
             fromEachToNext -- each object to the next until the last
             toEachFromLast -- [:-1]i from [-1]
             fromEachToLast -- [:-1]i to [-1]
             fromFirstToEach -- [0] to [1:]i
             toEachFromPrev -- [1:]i from i-1
             toPrevFromEach -- i-1 to i
+            toEachFromFirst -- [1:]i from [1]
+            fromAllToLast
+            toLastFromAll
         kws(dict) -- pass through
 
     :returns
@@ -269,17 +272,14 @@ def func_process(func,objects, processMode = 'all',**kws):
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__)) 
     log.debug("|{0}| >> mode: {1}".format(_str_func, processMode) )
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
+    log.debug("|{0}| >> objects: {1}".format(_str_func, objects))  
     
-    if processMode in ['all','toEachFromPrev','toPrevFromEach']:
+    if processMode in ['all']:
         for i,o in enumerate(objects):
             log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
             
             if processMode == 'all':
-                _res = func(o,**kws)
-            elif processMode == 'toEachFromPrev':
-                _res = func(o,objects[i-1],**kws)     
-            elif processMode == 'toPrevFromEach':
-                _res = func(objects[i-1],o,**kws)      
+                _res = func(o,**kws)    
                 
             log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
             
@@ -297,16 +297,28 @@ def func_process(func,objects, processMode = 'all',**kws):
                 
             except Exception,err:
                 log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))
-    elif processMode in ['fromFirstToEach']:
+    elif processMode in ['fromFirstToEach','toEachFromFirst','toEachFromPrev','toPrevFromEach']:
             for i,o in enumerate(objects[1:]):
                 log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
                 try:
                     if processMode == 'fromFirstToEach':
                         _res = func(objects[0],o,**kws)
-                    
+                    elif processMode == 'toEachFromFirst':
+                        _res = func(o,objects[0],**kws) 
+                        
+                    elif processMode == 'toEachFromPrev':
+                        log.debug("|{0}| >> {1} < {2}".format(_str_func,o,objects[i-1]))  
+                        _res = func(o,objects[i],**kws)     
+                    elif processMode == 'toPrevFromEach':
+                        _res = func(objects[i],o,**kws)                      
                 except Exception,err:
                     log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))                 
-           
+    elif processMode in ['fromAllToLast','toLastFromAll']:
+        if processMode == 'toLastFromAll':
+            _res = func(objects[-1],objects[:-1],**kws)  
+        elif processMode == 'fromAllToLast':
+            _res = func(objects[:-1],objects[-1],**kws)  
+            
     else:
         raise ValueError,"|{0}.{1}| Unkown processMode: {2}".format(__name__,_str_func,processMode)
     

@@ -12,7 +12,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -461,7 +461,7 @@ def parentShape_in_place(obj = None, shapeSource = None, keepSource = True, repl
     log.debug("|{0}| >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
     
     if replaceShapes:
-        _l_objShapes = mc.listRelatives(obj, s=True)    
+        _l_objShapes = mc.listRelatives(obj, s=True, fullPath = True)    
         if _l_objShapes:
             log.debug("|{0}| >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
             mc.delete(_l_objShapes)
