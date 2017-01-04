@@ -189,6 +189,10 @@ class clickMesh(ContextualPick):
                            None
                            normal
         timeDelay(float) -- Wait to start the tool after a given delay. Useful for marking menu calling
+        objAimAxis(str/vector) -- 
+        objUpAxis(str/vector) --
+        objOutAxis(str/vector) --
+        aimTolerance(float) -- Pass through value for SNAP.aim
         tagAndName(dict) -- I don't remember...:)
         toCreate(list) -- list of items names to make, sets's max as well. When it's through the list, it shops
         toSnap(list) -- objects to snap to a final pos value
@@ -218,6 +222,7 @@ class clickMesh(ContextualPick):
                  objAimAxis = 'z+',
                  objUpAxis = 'y+',
                  objOutAxis = 'x+',
+                 aimTolerance = .2,                 
                  tagAndName = {},
                  toCreate = [],
                  toDuplicate = [],
@@ -257,6 +262,7 @@ class clickMesh(ContextualPick):
         self.v_posOffset = posOffset or False    
         self.str_offsetMode = offsetMode
         self.f_offsetDistance = offsetDistance
+        self.f_aimTolerance = aimTolerance
         self.b_orientSnap = orientSnap
         self._createModeBuffer = False
         self.int_maxStore = maxStore
