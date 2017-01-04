@@ -219,7 +219,7 @@ def func_enumrate_all_to_last(func,objects, mode = 'toFrom',**kws):
 
 def func_all_to_last(func,objects, mode = 'toFrom',**kws):
     """
-    Get data for updating a transform
+    Function for selection lists
     
     :parameters
         self(instance): cgmMarkingMenu
@@ -243,7 +243,76 @@ def func_all_to_last(func,objects, mode = 'toFrom',**kws):
         log.error("|{0}| >> {1} : {2} failed! | err: {3}".format(_str_func,i,o,err))  
         
     #mc.select(objects)
-        
+    
+def func_process(func,objects, processMode = 'all',**kws):
+    """
+    Process objects passed with fuction provided in different modes...
+    
+    :parameters
+        func(function)
+        objects(list)
+        mode(str)
+            all -- to it to each object
+            fromEachToNext -- each object to the next until the last
+            toEachFromLast -- [:-1]i from [-1]
+            fromEachToLast -- [:-1]i to [-1]
+            fromFirstToEach -- [0] to [1:]i
+            toEachFromPrev -- [1:]i from i-1
+            toPrevFromEach -- i-1 to i
+        kws(dict) -- pass through
+
+    :returns
+        info(dict)
+    """   
+    _str_func = "func_process"
+    
+    log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__)) 
+    log.debug("|{0}| >> mode: {1}".format(_str_func, processMode) )
+    log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
+    
+    if processMode in ['all','toEachFromPrev','toPrevFromEach']:
+        for i,o in enumerate(objects):
+            log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
+            
+            if processMode == 'all':
+                _res = func(o,**kws)
+            elif processMode == 'toEachFromPrev':
+                _res = func(o,objects[i-1],**kws)     
+            elif processMode == 'toPrevFromEach':
+                _res = func(objects[i-1],o,**kws)      
+                
+            log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
+            
+    elif processMode in ['fromEachToNext','toEachFromLast','fromEachToLast']:
+        for i,o in enumerate(objects[:-1]):
+            log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
+            try:
+                if processMode == 'fromEachToNext':
+                    _res = func(o,objects[i+1],**kws)
+                elif processMode == 'toEachFromLast':
+                    _res = func(objects[-1],o,**kws)
+                elif processMode == 'fromEachToLast':
+                    _res = func(o,objects[-1],**kws)
+                log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
+                
+            except Exception,err:
+                log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))
+    elif processMode in ['fromFirstToEach']:
+            for i,o in enumerate(objects[1:]):
+                log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
+                try:
+                    if processMode == 'fromFirstToEach':
+                        _res = func(objects[0],o,**kws)
+                    
+                except Exception,err:
+                    log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))                 
+           
+    else:
+        raise ValueError,"|{0}.{1}| Unkown processMode: {2}".format(__name__,_str_func,processMode)
+    
+    try:mc.select(objects)
+    except:pass
+            
 def func_context_all(func,context = 'selection',mType = None, **kws):
     """
     

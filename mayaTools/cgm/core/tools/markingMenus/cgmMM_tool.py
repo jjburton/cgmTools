@@ -75,8 +75,8 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         
         if self._l_sel:self._b_sel = True
         self._b_sel_pair = False
-        
-        if len(self._l_sel) >= 2:
+        self._len_sel = len(self._l_sel)
+        if self._len_sel  >= 2:
             self._b_sel_pair = True
             
 
@@ -122,7 +122,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             self.bUI_menuBottom_anim(parent)
         elif _mode == 2:
             log.debug("|{0}| >> dev mode bottom...".format(self._str_MM))  
-            
+          
         try:#>>> Menu mode
             self.l_menuModes = ['td','anim','dev']
             _str_section = 'menu mode toggle'
@@ -1011,25 +1011,34 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         if not self._b_sel_pair:
             return        
         #---------------------------------------------------------------------------
-
         mc.menuItem(parent=_r,
-                    en = self._b_sel_pair,
-                    l = 'Rotate Pivot',
+                    l = 'Transform',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(self.bc_copy_pivot,True, False,'Rotate Pivot'),
-                    rp = "W")   
+                    #c = cgmGen.Callback(self.bc_copy_pivot,True, False,'Rotate Pivot'),
+                    rp = "N")          
         mc.menuItem(parent=_r,
-                   en = self._b_sel_pair,
-                   l = 'Scale Pivot',
-                   #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                   c = cgmGen.Callback(self.bc_copy_pivot,False, True,'Scale Pivot'),
-                   rp = "SW") 
-        mc.menuItem(parent=_r,
-                    en = False,
-                    l = 'Orientation',
+                    l = 'Orienation',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    #c = cgmGen.Callback(self.button_action_per_sel,locators.locMeObject,'Locator'),
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_orientation, self._l_sel,'fromFirstToEach'),                    
                     rp = "NW")
+        
+        _piv = mc.menuItem(parent=_r,subMenu=True,
+                           l = 'Pivot',
+                           rp = "W")    
+        
+        
+        
+        mc.menuItem(parent=_r,
+                    l = 'Shapes',
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    #c = cgmGen.Callback(self.bc_copy_pivot,True, False,'Rotate Pivot'),
+                    rp = "SW")
+        mc.menuItem(parent=_r,subMenu=True,
+                    l = 'Attrs',
+                    rp = "S")        
+
+ 
+
         
     def bUI_radial_control(self,parent,direction = None):
         _r = mc.menuItem(parent=parent,subMenu = True,
@@ -1136,33 +1145,55 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         #---------------------------------------------------------------------------
     
         mc.menuItem(parent=_r,
-                        en = self._b_sel_pair,
                         l = 'Point',
                         c = lambda *a:snap_action(self,'point'),
                         rp = 'NW')		            
         mc.menuItem(parent=_r,
-                        en = self._b_sel_pair,
                         l = 'Parent',
                         c = lambda *a:snap_action(self,'parent'),
                         rp = 'N')	
         mc.menuItem(parent=_r,
-                        en = self._b_sel_pair,
                         l = 'Orient',
                         c = lambda *a:snap_action(self,'orient'),
                         rp = 'NE')	       
 
         mc.menuItem(parent=_r,
-                        en = self._b_sel,
                         l = 'RayCast',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),		            
                         c = lambda *a:self.button_action(raySnap_start(self._l_sel)),
                         rp = 'E')	
-        mc.menuItem(parent=_r,
-                        en = self._b_sel,
+        
+        if self._len_sel > 2:
+            _aim = mc.menuItem(parent=_r,subMenu = True,
+                            l = 'Aim',
+                            #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                            #c = lambda *a:snap_action(self,'aim'),
+                            rp = 'W')
+            mc.menuItem(parent=_aim,
+                        l = 'All to last',
+                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                        c = lambda *a:snap_action(self,'aim','fromEachToLast'),
+                        rp = 'W') 
+            mc.menuItem(parent=_aim,
+                        l = 'Selection Order',
+                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                        c = lambda *a:snap_action(self,'aim','fromEachToNext'),
+                        rp = 'SW')
+            
+            _p = mc.menuItem(parent=_r, #subMenu = True,
+                             l = 'Parent Selected Order',
+                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'toEachFromPrev'),                                             
+                             rp = 'SW')            
+        else:
+            mc.menuItem(parent=_r,
                         l = 'Aim',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                        c = lambda *a:snap_action(self,'aim'),
-                        rp = 'W')
+                        c = lambda *a:snap_action(self,'aim','fromEachToLast'),
+                        rp = 'W')         
+        
+       
+             
+        
     
 def killUI():
     #log.debug("killUI...")
@@ -1287,7 +1318,45 @@ def raySnap_start(targets = [], create = None, drag = False):
 
     log.warning("raySnap_start >>> ClickMesh initialized")
     
-def snap_action(self,mode = 'point'):
+def snap_action(self, snapMode = 'point',selectionMode = 'fromEachToLast'):
+    
+    if snapMode == 'aim':
+        aim_axis = SHARED._l_axis_by_string[self.var_objDefaultAimAxis.value]
+        up_axis = SHARED._l_axis_by_string[self.var_objDefaultUpAxis.value]
+                
+        kws = {'aimAxis':aim_axis, 'upAxis':up_axis}
+        
+        MMCONTEXT.func_process(SNAP.aim, self._l_sel ,selectionMode, **kws)
+    else:
+        kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,'scalePivot' : False,
+               'pivot' : 'rp', 'space' : 'w', 'mode' : 'xform'}
+        
+        if snapMode == 'point':
+            kws['position'] = True
+        elif snapMode == 'orient':
+            kws['rotation'] = True
+        elif snapMode == 'parent':
+            kws['position'] = True
+            kws['rotation'] = True
+        elif snapMode == 'aim':
+            kws['rotation'] = True
+        else:
+            raise ValueError,"Unknown mode!"
+        
+        _pivotMode = self.var_snapPivotMode.value
+        
+        if not _pivotMode:pass#0 handled by default
+        elif _pivotMode == 1:
+            kws['pivot'] = 'sp'
+        elif _pivotMode == 2:
+            kws['pivot'] = 'boundingBox'
+        else:
+            raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)        
+    
+        MMCONTEXT.func_process(SNAP.go, self._l_sel ,selectionMode, **kws)
+    
+    
+    return
     _str_func = 'snap_action'
     for o in self._l_sel[:-1]:
         _msg = "|{0}| >> mode: {1} | obj: {2} |target: {3}".format(_str_func,mode,o,self._l_sel[-1])
@@ -1319,11 +1388,11 @@ def snap_action(self,mode = 'point'):
                 raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)
             
             if mode == 'aim':
-                var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
-                var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)  
-
-                aim_axis = SHARED._l_axis_by_string[var_objDefaultAimAxis.value]
-                up_axis = SHARED._l_axis_by_string[var_objDefaultUpAxis.value]
+                #var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
+                #var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)  
+                
+                aim_axis = SHARED._l_axis_by_string[self.var_objDefaultAimAxis.value]
+                up_axis = SHARED._l_axis_by_string[self.var_objDefaultUpAxis.value]
                 self.action_logged( SNAP.aim(o, self._l_sel[-1], aim_axis, up_axis), _msg  )
             else:
                 self.action_logged( SNAP.go(**kws), _msg  )
