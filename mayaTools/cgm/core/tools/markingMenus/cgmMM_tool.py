@@ -21,6 +21,8 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import shape_utils as SHAPES
 from cgm.core.lib import curve_Utils as CURVES
+from cgm.core.lib import locator_utils as LOC
+reload(LOC)
 reload(SNAP)
 reload(SHAPES)
 reload(SHARED)
@@ -739,10 +741,9 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     c = cgmGen.Callback(self.bc_create_curve),
                     rp = "S")
         mc.menuItem(parent=_r,
-                    en = False,
                     l = 'Locator',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(self.bc_create_groupMe,'Group Me'),
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each'),
                     rp = "SE")            
         
         """mc.menuItem(parent=_r,
@@ -1017,7 +1018,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                             l = 'Constraints',
                             en=False,
                             #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_orientation, self._l_sel,'eachToFirst','Match Orientation'),                    
+                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, self._l_sel,'eachToFirst','Match Orientation'),                    
                             rp = "E") 
         
         _piv = mc.menuItem(parent=_r,subMenu=True,
