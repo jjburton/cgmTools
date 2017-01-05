@@ -1250,7 +1250,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             mc.menuItem(parent=_r,
                         l = 'Aim',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                        c = lambda *a:snap_action(self,'aim','fromEachToLast'),
+                        c = lambda *a:snap_action(self,'aim','eachToLast'),
                         rp = 'W')         
         
        
