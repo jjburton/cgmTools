@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -244,7 +244,7 @@ def func_all_to_last(func,objects, mode = 'toFrom',**kws):
         
     #mc.select(objects)
     
-def func_process(func,objects, processMode = 'all',**kws):
+def func_process(func,objects, processMode = 'all', calledFrom = None, **kws):
     """
     Process objects passed with fuction provided in different modes...
     
@@ -252,76 +252,88 @@ def func_process(func,objects, processMode = 'all',**kws):
         func(function)
         objects(list)
         mode(str)
-            all -- func to each object
-            fromEachToNext -- each object to the next until the last
-            toEachFromLast -- [:-1]i from [-1]
-            fromEachToLast -- [:-1]i to [-1]
-            fromFirstToEach -- [0] to [1:]i
-            toEachFromPrev -- [1:]i from i-1
-            toPrevFromEach -- i-1 to i
-            toEachFromFirst -- [1:]i from [1]
-            fromAllToLast
-            toLastFromAll
+            all -- objects
+            each -- func to each object
+            eachToNext -- o,objects[i+1]
+            fromPreviousEach -- objects[-1],o
+            eachToLast -- o,objects[-1]
+            firstToEach -- objects[0],o
+            eachToFirst -- o,objects[0]
+            eachToPrevious -- objects[i],objects[i-1]
+            previousToEach -- objects[i-1],objects[i]
+            lastFromRest - objects[-1],objects[:-1]
+            restFromLast - objects[:-1],objects[-1]
+        calledFrom - String for debugging/
         kws(dict) -- pass through
 
     :returns
         info(dict)
+        
+        iterTo
     """   
-    _str_func = "func_process"
+    if calledFrom is not None:_str_func = "processing...{0}".format(calledFrom)
+    else:_str_func = "func_process"
     
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__)) 
     log.debug("|{0}| >> mode: {1}".format(_str_func, processMode) )
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
     log.debug("|{0}| >> objects: {1}".format(_str_func, objects))  
     
-    if processMode in ['all']:
+    if processMode in ['each']:
         for i,o in enumerate(objects):
             log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
             
-            if processMode == 'all':
+            if processMode == 'each':
                 _res = func(o,**kws)    
                 
-            log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
+            if _res:log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
             
-    elif processMode in ['fromEachToNext','toEachFromLast','fromEachToLast']:
+    elif processMode in ['eachToNext','fromPreviousEach','eachToLast']:
         for i,o in enumerate(objects[:-1]):
             log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
             try:
-                if processMode == 'fromEachToNext':
+                if processMode == 'eachToNext':
                     _res = func(o,objects[i+1],**kws)
-                elif processMode == 'toEachFromLast':
+                elif processMode == 'fromPreviousEach':
                     _res = func(objects[-1],o,**kws)
-                elif processMode == 'fromEachToLast':
+                elif processMode == 'eachToLast':
                     _res = func(o,objects[-1],**kws)
-                log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
+                
+                if _res:log.info( "|{0}| >> {1}".format( _str_func, _res ))
                 
             except Exception,err:
                 log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))
-    elif processMode in ['fromFirstToEach','toEachFromFirst','toEachFromPrev','toPrevFromEach']:
+    elif processMode in ['firstToEach','eachToFirst','eachToPrevious','previousToEach']:
             for i,o in enumerate(objects[1:]):
                 log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
                 try:
-                    if processMode == 'fromFirstToEach':
+                    if processMode == 'firstToEach':
                         _res = func(objects[0],o,**kws)
-                    elif processMode == 'toEachFromFirst':
+                    elif processMode == 'eachToFirst':
                         _res = func(o,objects[0],**kws) 
                         
-                    elif processMode == 'toEachFromPrev':
+                    elif processMode == 'eachToPrevious':
                         log.debug("|{0}| >> {1} < {2}".format(_str_func,o,objects[i-1]))  
                         _res = func(o,objects[i],**kws)     
-                    elif processMode == 'toPrevFromEach':
-                        _res = func(objects[i],o,**kws)                      
+                    elif processMode == 'previousToEach':
+                        _res = func(objects[i],o,**kws)  
+                        
+                    if _res:log.info( "|{0}| >> {1}".format( _str_func, _res ))
+                        
                 except Exception,err:
                     log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))                 
-    elif processMode in ['fromAllToLast','toLastFromAll']:
-        if processMode == 'toLastFromAll':
+    elif processMode in ['lastFromRest','restFromLast']:
+        if processMode == 'lastFromRest':
             _res = func(objects[-1],objects[:-1],**kws)  
-        elif processMode == 'fromAllToLast':
-            _res = func(objects[:-1],objects[-1],**kws)  
+        elif processMode == 'restFromLast':
+            _res = func(objects[:-1],objects[-1],**kws)   
+        elif processMode == 'all':
+            _res = func(objects,**kws)   
+            
+        if _res:log.info( "|{0}| >> {1}".format( _str_func, _res ))
             
     else:
         raise ValueError,"|{0}.{1}| Unkown processMode: {2}".format(__name__,_str_func,processMode)
-    
     try:mc.select(objects)
     except:pass
             

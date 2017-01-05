@@ -75,9 +75,12 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         
         if self._l_sel:self._b_sel = True
         self._b_sel_pair = False
+        self._b_sel_few = False
         self._len_sel = len(self._l_sel)
         if self._len_sel  >= 2:
             self._b_sel_pair = True
+        if self._len_sel >2:
+            self._b_sel_few = True
             
 
         log.debug("|{0}| >> build_menu".format(self._str_MM))                
@@ -183,11 +186,10 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         #Radial---------------------------------------------------
         self.bUI_radial_snap(parent,'N')
         #self.bUI_radial_dynParent(parent,'NW')
+        self.bUI_radial_tdUtils(parent,'NW')
         self.bUI_radial_create(parent,'NE')
         self.bUI_radial_rayCreate(parent,'E')
-        #self.bUI_radial_curve(parent,'W')
-        #self.bUI_radial_copy(parent,'W')
-        #self.bUI_radial_aim(parent,'NE')
+        self.bUI_radial_match(parent,'W')
         #self.bUI_radial_control(parent,'SW')
         #self.bUI_radial_arrange(parent,'SE')
         mc.menuItem(p=parent,
@@ -231,8 +233,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.bUI_radial_snap(parent,'N')
         self.bUI_radial_dynParent(parent,'NW')
         self.bUI_radial_create(parent,'N')
-        self.bUI_radial_copy(parent,'W')
-        self.bUI_radial_aim(parent,'NE')
+        self.bUI_radial_match(parent,'W')
         self.bUI_radial_control(parent,'SW')
         self.bUI_radial_arrange(parent,'SE')
         #Bottom---------------------------------------------------
@@ -352,7 +353,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                 _d_replace = {'replaceShapes':True}                
                 mc.menuItem(parent=uiShape,
                             l = 'Replace',
-                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parentShape_in_place, self._l_sel,'toLastFromAll', **_d_replace),                                                        
+                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parentShape_in_place, self._l_sel,'lastFromRest', 'replaceShapes',**_d_replace),                                                        
                             #c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_replace),                            
                             rp = "SW")                  
             
@@ -733,18 +734,6 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     rp = "N")        
         mc.menuItem(parent=_r,
                     en = self._b_sel,
-                    l = 'Group',
-                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(self.button_action_per_sel,RIGGING.group_me,'Group Me'),
-                    rp = "E")   
-        mc.menuItem(parent=_r,
-                    en = self._b_sel,
-                    l = 'Group Me',
-                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(self.bc_create_groupMe,'Group Me'),
-                    rp = "NE")
-        mc.menuItem(parent=_r,
-                    en = self._b_sel,
                     l = 'Curve',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = cgmGen.Callback(self.bc_create_curve),
@@ -1002,10 +991,10 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                          #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                          rp = direction)  
         
-    def bUI_radial_copy(self,parent,direction = None):
+    def bUI_radial_match(self,parent,direction = None):
         _r = mc.menuItem(parent=parent,subMenu = True,
                          en = self._b_sel_pair,
-                         l = 'Copy',
+                         l = 'Match',
                          #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                          rp = direction)  
         if not self._b_sel_pair:
@@ -1014,13 +1003,20 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         mc.menuItem(parent=_r,
                     l = 'Transform',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    #c = cgmGen.Callback(self.bc_copy_pivot,True, False,'Rotate Pivot'),
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_transform, self._l_sel,'eachToFirst','Match Transform'),                    
                     rp = "N")          
         mc.menuItem(parent=_r,
                     l = 'Orienation',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_orientation, self._l_sel,'fromFirstToEach'),                    
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, self._l_sel,'eachToFirst','Match Orientation'),                    
                     rp = "NW")
+        
+        mc.menuItem(parent=_r,
+                            l = 'Constraints',
+                            en=False,
+                            #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_orientation, self._l_sel,'eachToFirst','Match Orientation'),                    
+                            rp = "E") 
         
         _piv = mc.menuItem(parent=_r,subMenu=True,
                            l = 'Pivot',
@@ -1028,19 +1024,21 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         
         mc.menuItem(parent = _piv,
                     l = 'rp',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'toEachFromFirst', **{'rotatePivot':True,'scalePivot':False}),                                               
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'eachFromFirst', 'Match RP',**{'rotatePivot':True,'scalePivot':False}),                                               
                     rp = "W")         
         mc.menuItem(parent = _piv,
                     l = 'sp',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'toEachFromFirst', **{'rotatePivot':False,'scalePivot':True}),                                               
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'eachFromFirst', 'Match SP', **{'rotatePivot':False,'scalePivot':True}),                                               
                     rp = "SW")         
         
         mc.menuItem(parent=_r,
                     l = 'Shapes',
+                    en=False,
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parentShape_in_place, self._l_sel,'fromEachToLast', **{}),
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parentShape_in_place, self._l_sel,'eachToLast','Copy Shapes', **{}),
                     rp = "SW")
         mc.menuItem(parent=_r,subMenu=True,
+                    en=False,                    
                     l = 'Attrs',
                     rp = "S")        
 
@@ -1126,8 +1124,60 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                 self.action_logged( RIGGING.copy_pivot(o,self._l_sel[0],rotatePivot,scalePivot), _msg  )
             except Exception,err:
                 log.error("|{0}| ||| Failure >>> err:s[{1}]".format(_msg,err))
+                
         mc.select(self._l_sel)
-
+    @cgmGen.Timer    
+    def bUI_radial_tdUtils(self,parent,direction = None):
+        """
+        Radial menu for td Utils 
+        """
+        _r = mc.menuItem(parent=parent,subMenu = True,
+                             en = self._b_sel,
+                             l = 'Utils',
+                             #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                             rp = direction)
+        if not self._b_sel:
+            return        
+        #---------------------------------------------------------------------------
+        _gSet = mc.menuItem(parent=_r,subMenu=True,
+                            l='Group',
+                            rp='NW')
+        
+        mc.menuItem(parent=_gSet,
+                    en = self._b_sel,
+                    l = 'Just Group',
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, self._l_sel,'each','Group',**{'parent':False,'maintainParent':False}),                                             
+                    rp = "N")  
+        mc.menuItem(parent=_gSet,
+                    en = self._b_sel,
+                    l = 'Group Me',
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, self._l_sel,'each','Group',**{'parent':True,'maintainParent':False}),                                             
+                    rp = "W")          
+        mc.menuItem(parent=_gSet,
+                    en = self._b_sel,
+                    l = 'In Place',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, self._l_sel,'each','Group In Place',**{'parent':True,'maintainParent':True}),                                                                 
+                    rp = "NW")       
+        
+        
+        
+        _p = mc.menuItem(parent=_r, subMenu = True,
+                         en=self._b_sel_few,
+                         l = 'Parent',
+                         rp = 'SW')       
+        
+        if self._b_sel_few:
+            mc.menuItem(parent=_p, #subMenu = True,
+                             l = 'Reverse',
+                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToNext','Reverse Parent'),                                             
+                             rp = 'S')
+            mc.menuItem(parent=_r, #subMenu = True,
+                             l = 'Ordered',
+                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToPrevious','Parent Order'),                                             
+                             rp = 'SW')   
+        
     @cgmGen.Timer    
     def bUI_radial_snap(self,parent,direction = None):
         """
@@ -1167,7 +1217,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         c = lambda *a:self.button_action(raySnap_start(self._l_sel)),
                         rp = 'E')	
         
-        if self._len_sel > 2:
+        if self._b_sel_few:
             _aim = mc.menuItem(parent=_r,subMenu = True,
                             l = 'Aim',
                             #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
@@ -1176,21 +1226,21 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             mc.menuItem(parent=_aim,
                         l = 'All to last',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                        c = lambda *a:snap_action(self,'aim','fromEachToLast'),
+                        c = lambda *a:snap_action(self,'aim','eachToLast'),
                         rp = 'W') 
             mc.menuItem(parent=_aim,
                         l = 'Selection Order',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                        c = lambda *a:snap_action(self,'aim','fromEachToNext'),
+                        c = lambda *a:snap_action(self,'aim','eachToNext'),
                         rp = 'SW')
             
             _p = mc.menuItem(parent=_r, #subMenu = True,
-                             l = 'Parent Order >>',
-                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'toEachFromPrev'),                                             
+                             l = 'Reverse Parent',
+                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToNext','Reverse Parent'),                                             
                              rp = 'SW')
             _p = mc.menuItem(parent=_r, #subMenu = True,
-                             l = 'Parent Order <<',
-                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'fromEachToNext'),                                             
+                             l = 'Parent Order',
+                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToPrevious','Parent Order'),                                             
                              rp = 'S')              
         else:
             mc.menuItem(parent=_r,
@@ -1326,7 +1376,7 @@ def raySnap_start(targets = [], create = None, drag = False):
 
     log.warning("raySnap_start >>> ClickMesh initialized")
     
-def snap_action(self, snapMode = 'point',selectionMode = 'fromEachToLast'):
+def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
     
     if snapMode == 'aim':
         aim_axis = SHARED._l_axis_by_string[self.var_objDefaultAimAxis.value]
@@ -1334,7 +1384,7 @@ def snap_action(self, snapMode = 'point',selectionMode = 'fromEachToLast'):
                 
         kws = {'aimAxis':aim_axis, 'upAxis':up_axis}
         
-        MMCONTEXT.func_process(SNAP.aim, self._l_sel ,selectionMode, **kws)
+        MMCONTEXT.func_process(SNAP.aim, self._l_sel ,selectionMode,'Snap aim', **kws)
     else:
         kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,'scalePivot' : False,
                'pivot' : 'rp', 'space' : 'w', 'mode' : 'xform'}
@@ -1361,7 +1411,7 @@ def snap_action(self, snapMode = 'point',selectionMode = 'fromEachToLast'):
         else:
             raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)        
     
-        MMCONTEXT.func_process(SNAP.go, self._l_sel ,selectionMode, **kws)
+        MMCONTEXT.func_process(SNAP.go, self._l_sel ,selectionMode, 'Snap', **kws)
     
     
     return

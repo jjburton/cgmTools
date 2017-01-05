@@ -65,6 +65,8 @@ def get_python_call(crvShape):
     shapesInfo = get_curve_shape_info(crvShape)
     commandsReturn = []
     shapeNodes = []
+    if not shapesInfo:
+        raise ValueError,"|{0}.{1}| >> Not a valid object. Empty shapes dict. '{2}'".format(__name__,_str_func,crvShape)
     for shape in shapesInfo.keys():
         dictBuffer =  shapesInfo[shape]
         shapeNodes.append(dictBuffer['shape'])

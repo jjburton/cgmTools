@@ -27,7 +27,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.lib import attributes
 from cgm.lib import search
 from cgm.lib import rigging
-#from cgm.lib import locators #....CANNOT IMPORT LOCATORS - loop
+from cgm.lib import locators #....CANNOT IMPORT LOCATORS - loop
 from cgm.core.lib import attribute_utils as coreAttr
 from cgm.core.lib import name_utils as coreNames
 from cgm.core.lib import search_utils as SEARCH
@@ -50,7 +50,7 @@ def valid_arg_single(arg = None, tag = None, calledFrom = None):
         arg
     """ 
     if not arg:
-        raise ValueError,"{0} || Must have a {1}. | {1}: {2}".format(calledFrom,tag,arg) 
+        raise ValueError,"|{0}| >> Must have a {1}. | {1}: {2}".format(calledFrom,tag,arg) 
     if issubclass(type(arg),list or tuple):
         arg = arg[0]
     return arg
@@ -68,12 +68,12 @@ def valid_arg_multi(arg = None, tag = None, calledFrom = None):
         arg
     """ 
     if not arg:
-        raise ValueError,"{0} || Must have a {1}. | {1}: {2}".format(calledFrom,tag,arg) 
+        raise ValueError,"|{0}| >> Must have a {1}. | {1}: {2}".format(calledFrom,tag,arg) 
     if not issubclass(type(arg),list or tuple):
         arg = [arg]
     return arg
 
-def copy_orientation(obj = None, source = None,
+def match_orientation(obj = None, source = None,
                      rotateOrder = True, rotateAxis = True):
     """
     Copy the axis from one object to another. For rotation axis -- 
@@ -92,42 +92,44 @@ def copy_orientation(obj = None, source = None,
     :returns
         success(bool)
     """   
-    _str_func = 'copy_orientation'
+    _str_func = 'match_orientation'
     
     obj = valid_arg_single(obj, 'obj', _str_func)
     source = valid_arg_single(source, 'source', _str_func) 
     
-    log.debug("{0} || obj:{1}".format(_str_func,obj))    
-    log.debug("{0} || source:{1}".format(_str_func,source))
-    log.debug("{0} || rotateOrder:{1}".format(_str_func,rotateOrder))
-    log.debug("{0} || rotateAxis:{1}".format(_str_func,rotateAxis))
+    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
+    log.debug("|{0}| >> source:{1}".format(_str_func,source))
+    log.debug("|{0}| >> rotateOrder:{1}".format(_str_func,rotateOrder))
+    log.debug("|{0}| >> rotateAxis:{1}".format(_str_func,rotateAxis))
     
     if not rotateOrder and not rotateAxis:
-        raise ValueError,"{0} || Both rotateOrder and rotateAxis are False. Nothing to do...".format(_str_func) 
+        raise ValueError,"|{0}| >> Both rotateOrder and rotateAxis are False. Nothing to do...".format(_str_func) 
     
     #First gather children to parent away and shapes so they don't get messed up either
     _l_children = mc.listRelatives (obj, children = True,type='transform') or []
     _l_shapes = mc.listRelatives (obj, shapes = True, fullPath = True) or []
     _dup = False
     
-    log.info("{0} || children:{1}".format(_str_func,_l_children))
-    log.info("{0} || shapes:{1}".format(_str_func,_l_shapes))
+    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
+    log.info("|{0}| >> shapes:{1}".format(_str_func,_l_shapes))
     
     if _l_children:#...parent children to world as we'll be messing with stuff
         for i,c in enumerate(_l_children):
             _l_children[i] = parent_set(c,False)
-    log.info("{0} || children:{1}".format(_str_func,_l_children))
+    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
             
     if _l_shapes:#...dup our shapes to properly shape parent them back
-        _dup = mc.duplicate(obj, parentOnly = False)[0]
-        log.info("{0} || dup:{1}".format(_str_func,_dup))
+        _dup = mc.duplicate(obj, parentOnly = True)[0]
+        log.info("|{0}| >> dup:{1}".format(_str_func,_dup))
+        for s in _l_shapes:
+            parentShape_in_place(_dup,s,keepSource=False)        
         
     #The meat of it...
     _restorePivotRP = False
     _restorePivotSP = False
     
     if rotateAxis:
-        log.info("{0} || rotateAxis...".format(_str_func))        
+        log.info("|{0}| >> rotateAxis...".format(_str_func))        
         
         #There must be a better way to do this. Storing to be able to restore after matrix ops
         _restorePivotRP = mc.xform(obj, q=True, ws=True, rp = True)
@@ -163,26 +165,26 @@ def copy_orientation(obj = None, source = None,
         mc.xform(obj,ws=True, sp = _restorePivotSP) 
             
     if rotateOrder:   
-        log.info("{0} || rotateOrder...".format(_str_func))                  
+        log.info("|{0}| >> rotateOrder...".format(_str_func))                  
         mc.xform(obj, roo = mc.xform (source, q=True, roo=True ), p=True)#...match rotateOrder
                 
     if _dup:
-        log.info("{0} || shapes back...: {1}".format(_str_func,_l_shapes))          
-        mc.delete(_l_shapes)
+        log.info("|{0}| >> shapes back...: {1}".format(_str_func,_l_shapes))          
+        #mc.delete(_l_shapes)
         parentShape_in_place(obj,_dup)
         mc.delete(_dup)
         
     for c in _l_children:
-        log.info("{0} || parent back...: '{1}'".format(_str_func,c))  
-        log.debug("{0} || obj:{1}".format(_str_func,obj))    
+        log.info("|{0}| >> parent back...: '{1}'".format(_str_func,c))  
+        log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
         
         parent_set(c,obj)  
         
     return True
 
-def match_transformNOTDONE(obj = None, source = None,
-                   rotateOrder = True, rotateAxis = True,
-                   rotatePivot = True, scalePivot = True):
+def match_transform(obj = None, source = None,
+                    rotateOrder = True, rotateAxis = True,
+                    rotatePivot = True, scalePivot = True):
     """
     A bridge function utilizing both copy_pivot and copy_orientation in a single call
     
@@ -202,47 +204,48 @@ def match_transformNOTDONE(obj = None, source = None,
     obj = valid_arg_single(obj, 'obj', _str_func)
     source = valid_arg_single(source, 'source', _str_func) 
     
-    log.debug("{0} || obj:{1}".format(_str_func,obj))    
-    log.debug("{0} || source:{1}".format(_str_func,source))
+    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
+    log.debug("|{0}| >> source:{1}".format(_str_func,source))
     
     #First gather children to parent away and shapes so they don't get messed up either
     _l_children = mc.listRelatives (obj, children = True,type='transform') or []
     _l_shapes = mc.listRelatives (obj, shapes = True, fullPath = True) or []
     _dup = False
     
-    log.info("{0} || children:{1}".format(_str_func,_l_children))
-    log.info("{0} || shapes:{1}".format(_str_func,_l_shapes))
+    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
+    log.info("|{0}| >> shapes:{1}".format(_str_func,_l_shapes))
     
     if _l_children:#...parent children to world as we'll be messing with stuff
         for i,c in enumerate(_l_children):
             _l_children[i] = parent_set(c,False)
-    log.info("{0} || children:{1}".format(_str_func,_l_children))
+    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
             
     if _l_shapes:#...dup our shapes to properly shape parent them back
-        _dup = mc.duplicate(obj, parentOnly = False)[0]
-        log.info("{0} || dup:{1}".format(_str_func,_dup))
+        _dup = mc.duplicate(obj, parentOnly = True)[0]
+        for s in _l_shapes:
+            parentShape_in_place(_dup,s,keepSource=False)
+        log.info("|{0}| >> dup:{1}".format(_str_func,_dup))
         
         
     #The meat of it...        
     if rotateOrder or rotateAxis:
-        log.info("{0} || orientation copy...".format(_str_func))                                  
+        log.info("|{0}| >> orientation copy...".format(_str_func))                                  
         copy_orientation(obj,source,rotateOrder,rotateAxis)
         
     if rotatePivot or scalePivot:    
-        log.info("{0} || pivot copy...".format(_str_func))                                  
+        log.info("|{0}| >> pivot copy...".format(_str_func))                                  
         copy_pivot(obj,source, rotatePivot, scalePivot)    
         
 
     if _dup:
-        log.info("{0} || shapes back...: {1}".format(_str_func,_l_shapes))          
-        mc.delete(_l_shapes)
-        parentShape_in_place(obj,_dup)
+        log.info("|{0}| >> shapes back...: {1}".format(_str_func,_l_shapes))          
+        #mc.delete(_l_shapes)
+        parentShape_in_place(obj,_dup,)
         mc.delete(_dup)
         
     for c in _l_children:
-        log.info("{0} || parent back...: '{1}'".format(_str_func,c))  
-        log.debug("{0} || obj:{1}".format(_str_func,obj))    
-        
+        log.info("|{0}| >> parent back...: '{1}'".format(_str_func,c))  
+        log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
         parent_set(c,obj)  
         
     return True
@@ -269,38 +272,38 @@ def copy_transformOLD(obj = None, source = None,
     obj = valid_arg_single(obj, 'obj', _str_func)
     source = valid_arg_single(source, 'source', _str_func) 
     
-    log.debug("{0} || obj:{1}".format(_str_func,obj))    
-    log.debug("{0} || source:{1}".format(_str_func,source))
-    log.info("{0} || rotateAxis:{1}".format(_str_func,rotateAxis))
+    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
+    log.debug("|{0}| >> source:{1}".format(_str_func,source))
+    log.info("|{0}| >> rotateAxis:{1}".format(_str_func,rotateAxis))
     
     #First gather children to parent away and shapes so they don't get messed up either
     _l_children = mc.listRelatives (obj, children = True,type='transform') or []
     _l_shapes = mc.listRelatives (obj, shapes = True, fullPath = True) or []
     _dup = False
     
-    log.info("{0} || children:{1}".format(_str_func,_l_children))
-    log.info("{0} || shapes:{1}".format(_str_func,_l_shapes))
+    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
+    log.info("|{0}| >> shapes:{1}".format(_str_func,_l_shapes))
     
     if _l_children:#...parent children to world as we'll be messing with stuff
         for i,c in enumerate(_l_children):
             _l_children[i] = parent_set(c,False)
-    log.info("{0} || children:{1}".format(_str_func,_l_children))
+    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
             
     if _l_shapes:#...dup our shapes to properly shape parent them back
         _dup = mc.duplicate(obj, parentOnly = False)[0]
-        log.info("{0} || dup:{1}".format(_str_func,_dup))
+        log.info("|{0}| >> dup:{1}".format(_str_func,_dup))
         
     
     #The meat of it...
     if rotatePivot or scalePivot and not rotateAxis:    
-        log.info("{0} || pivot copy...".format(_str_func))                                  
+        log.info("|{0}| >> pivot copy...".format(_str_func))                                  
         copy_pivot(obj,source, rotatePivot, scalePivot)
         
     _restorePivotRP = False
     _restorePivotSP = False
     
     if rotateAxis:
-        log.info("{0} || rotateAxis...".format(_str_func))                          
+        log.info("|{0}| >> rotateAxis...".format(_str_func))                          
         if not rotatePivot:
             #There must be a better way to do this. Storing to be able to restore after matrix ops
             _restorePivotRP = mc.xform(obj, q=True, ws=True, rp = True)
@@ -322,7 +325,7 @@ def copy_transformOLD(obj = None, source = None,
         
         objRot = mc.xform (obj, q=True, os = True, ro=True)
         for i,a in enumerate(['X','Y','Z']):
-            attributes.doSetAttr(obj, 'rotateAxis{0}'.format(a), objRot[i])  
+            attributes.doSetAttr(obj, 'rotateAxis|{0}|'.format(a), objRot[i])  
         mc.xform(obj,os=True, ro = [0,0,0])#...clear
             
         mc.delete(loc)
@@ -330,25 +333,25 @@ def copy_transformOLD(obj = None, source = None,
         #mc.xform(obj, os = True, ro = objRot)
         
         if not rotatePivot:
-            log.info("{0} || restore rotatePivot...".format(_str_func))                                      
+            log.info("|{0}| >> restore rotatePivot...".format(_str_func))                                      
             mc.xform(obj,ws=True, rp = _restorePivotRP)
         if not scalePivot:
-            log.info("{0} || restore scalePivot...".format(_str_func))                                      
+            log.info("|{0}| >> restore scalePivot...".format(_str_func))                                      
             mc.xform(obj,ws=True, sp = _restorePivotSP)
             
     if rotateOrder:   
-        log.info("{0} || rotateOrder...".format(_str_func))                  
+        log.info("|{0}| >> rotateOrder...".format(_str_func))                  
         mc.xform(obj, roo = mc.xform (source, q=True, roo=True ), p=True)#...match rotateOrder
                 
     if _dup:
-        log.info("{0} || shapes back...: {1}".format(_str_func,_l_shapes))          
+        log.info("|{0}| >> shapes back...: {1}".format(_str_func,_l_shapes))          
         mc.delete(_l_shapes)
         parentShape_in_place(obj,_dup)
         mc.delete(_dup)
         
     for c in _l_children:
-        log.info("{0} || parent back...: '{1}'".format(_str_func,c))  
-        log.debug("{0} || obj:{1}".format(_str_func,obj))    
+        log.info("|{0}| >> parent back...: '{1}'".format(_str_func,c))  
+        log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
         
         parent_set(c,obj)  
         
@@ -370,8 +373,8 @@ def copy_pivot(obj = None, source = None, rotatePivot = True, scalePivot = True)
     obj = valid_arg_single(obj, 'obj', _str_func)
     source = valid_arg_single(source, 'source', _str_func) 
     
-    log.debug("{0} || obj:{1}".format(_str_func,obj))    
-    log.debug("{0} || source:{1}".format(_str_func,source))
+    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
+    log.debug("|{0}| >> source:{1}".format(_str_func,source))
     
     if rotatePivot:
         pos = mc.xform(source, q=True, ws=True, rp = True)
@@ -397,8 +400,8 @@ def parent_set(obj = None, parent = False):
     if parent:
         parent = valid_arg_single(parent, 'parent', _str_func)    
         
-    log.debug("{0} || obj:{1}".format(_str_func,obj))    
-    log.debug("{0} || parent:{1}".format(_str_func,parent))
+    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
+    log.debug("|{0}| >> parent:{1}".format(_str_func,parent))
     
     _parents = mc.listRelatives(obj,parent=True,type='transform')
     
@@ -406,7 +409,7 @@ def parent_set(obj = None, parent = False):
         try:
             return mc.parent(obj,parent)[0]
         except Exception,err:
-            log.error("{0} || Failed to parent '{1}' to '{2}' | err: {3}".format(_str_func, obj,parent, err))    
+            log.error("|{0}| >> Failed to parent '{1}' to '{2}' | err: {3}".format(_str_func, obj,parent, err))    
             return obj
         #if parent in str(mc.ls(obj,long=True)):
             #return obj
@@ -433,7 +436,7 @@ def parent_get(obj = None):
     
     obj = valid_arg_single(obj, 'obj', _str_func)
         
-    log.debug("{0} || obj:{1}".format(_str_func,obj))    
+    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
     
     _parents = mc.listRelatives(obj,parent=True, type='transform') or False
     
@@ -458,12 +461,12 @@ def parentShape_in_place(obj = None, shapeSource = None, keepSource = True, repl
     
     l_shapes = VALID.listArg(shapeSource)
     
-    log.debug("|{0}| >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
+    log.debug(">>{0}>> >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
     
     if replaceShapes:
         _l_objShapes = mc.listRelatives(obj, s=True, fullPath = True)    
         if _l_objShapes:
-            log.debug("|{0}| >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
+            log.debug(">>{0}>> >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
             mc.delete(_l_objShapes)
     
     mc.select (cl=True)
@@ -554,7 +557,7 @@ def parentShape_in_place(obj = None, shapeSource = None, keepSource = True, repl
             if not keepSource:
                 mc.delete(c)
         except Exception,err:
-            log.error("{0} || obj:{1} failed to parentShape {2} >> err: {3}".format(_str_func,obj,c,err))  
+            log.error("|{0}| >> obj:{1} failed to parentShape {2} >> err: {3}".format(_str_func,obj,c,err))  
     return True
 
 def create_at(obj = None, create = 'null'):
@@ -574,8 +577,8 @@ def create_at(obj = None, create = 'null'):
     _l_toCreate = ['null','joint','locator']
     _create = VALID.kw_fromList(create, _l_toCreate, calledFrom=_str_func)
     
-    log.debug("{0} || obj:{1}".format(_str_func,obj))  
-    log.debug("{0} || create:{1}".format(_str_func,_create))  
+    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))  
+    log.debug("|{0}| >> create:{1}".format(_str_func,_create))  
     
     objTrans = mc.xform (obj, q=True, ws=True, rp=True)
     objRot = mc.xform (obj, q=True, ws=True, ro=True)
@@ -588,7 +591,7 @@ def create_at(obj = None, create = 'null'):
         mc.xform(_created, roo = mc.xform(obj, q=True, roo=True ))#...match rotateOrder    
         mc.move (objTrans[0],objTrans[1],objTrans[2], [_created])
         #for i,a in enumerate(['X','Y','Z']):
-                        #attributes.doSetAttr(groupBuffer, 'rotateAxis{0}'.format(a), objRotAxis[i])    
+                        #attributes.doSetAttr(groupBuffer, 'rotateAxis|{0}|'.format(a), objRotAxis[i])    
         #mc.rotate(objRot[0], objRot[1], objRot[2], [groupBuffer], ws=True)
         mc.xform(_created, ws=True, ro= objRot,p=False)
         mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
@@ -614,8 +617,8 @@ def group_me(obj = None,
     
     :parameters:
         obj(str): Object to modify
-        sourceObject(str): object to copy from
-        rotateOrder(bool): whether to copy the rotateOrder while preserving rotations
+        parent(str): Whether to parent the object to the new group
+        maintainParent(bool): Whether to maintain parent of the object
         rotateAxis(bool): whether to copy the rotateAxis
         rotatePivot(bool): whether to copy the rotatePivot
         scalePivot(bool): whether to copy the scalePivot
@@ -627,7 +630,7 @@ def group_me(obj = None,
     
     obj = valid_arg_single(obj, 'obj', _str_func)
     
-    log.debug("{0} || obj:{1}".format(_str_func,obj))    
+    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
     
     _oldParent = False
     if maintainParent:
@@ -654,7 +657,7 @@ def group_me(obj = None,
                 attrBuffer = '%s.%s'%(obj,attr)
                 mc.setAttr(attrBuffer,lock=True)                
 
-    return mc.rename(group, "{0}_grp".format(coreNames.get_base(obj)))  
+    return mc.rename(group, "|{0}|_grp".format(coreNames.get_base(obj)))  
 
 def snap(obj = None, source = None,
          position = True, rotation = True, rotateAxis = True,
@@ -694,7 +697,7 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
         info(dict)
     """   
     _str_func = "set_color"
-    if not target:raise ValueError,"|{0}| >> Must have a target".format(_str_func)
+    if not target:raise ValueError,">>{0}>> >> Must have a target".format(_str_func)
 
     _shapes = []
     #If it's accepable target to color
@@ -702,7 +705,7 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
     mTarget = r9Meta.MetaClass(target, autoFill=False)
     
     if mTarget.hasAttr('overrideEnabled'):
-        log.debug("|{0}| >> overrideEnabled  on target...".format(_str_func))            
+        log.debug(">>{0}>> >> overrideEnabled  on target...".format(_str_func))            
         _shapes.append(mTarget.mNode)
     if pushToShapes:
         _bfr = mc.listRelatives(target, s=True)
@@ -710,27 +713,27 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
             _shapes.extend(_bfr)
             
     if not _shapes:
-        raise ValueError,"|{0}| >> Not a shape and has no shapes: '{1}'".format(_str_func,target)        
+        raise ValueError,">>{0}>> >> Not a shape and has no shapes: '{1}'".format(_str_func,target)        
     
     if index is None and rgb is None and key is None:
-        raise ValueError,"|{0}| >> Must have a value for index,rgb or key".format(_str_func)
+        raise ValueError,">>{0}>> >> Must have a value for index,rgb or key".format(_str_func)
     
     #...little dummy proofing..
     _type = type(key)
     
     if not issubclass(_type,str):
-        log.debug("|{0}| >> Not a string arg for key...".format(_str_func))
+        log.debug(">>{0}>> >> Not a string arg for key...".format(_str_func))
         
         if rgb is None and issubclass(_type,list) or issubclass(_type,tuple):
-            log.debug("|{0}| >> vector arg for key...".format(_str_func))            
+            log.debug(">>{0}>> >> vector arg for key...".format(_str_func))            
             rgb = key
             key = None
         elif index is None and issubclass(_type,int):
-            log.debug("|{0}| >> int arg for key...".format(_str_func))            
+            log.debug(">>{0}>> >> int arg for key...".format(_str_func))            
             index = key
             key = None
         else:
-            raise ValueError,"|{0}| >> Not sure what to do with this key arg: {1}".format(_str_func,key)
+            raise ValueError,">>{0}>> >> Not sure what to do with this key arg: {1}".format(_str_func,key)
     
     _b_RBGMode = False
     _b_2016Plus = False
@@ -740,32 +743,32 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
     if key is not None:
         _color = False
         if _b_2016Plus:
-            log.debug("|{0}| >> 2016+ ...".format(_str_func))            
+            log.debug(">>{0}>> >> 2016+ ...".format(_str_func))            
             _color = SHARED._d_colors_to_RGB.get(key,False)
             
             if _color:
                 rgb = _color
         
         if _color is False:
-            log.debug("|{0}| >> Color key not found in rgb dict checking index...".format(_str_func))
+            log.debug(">>{0}>> >> Color key not found in rgb dict checking index...".format(_str_func))
             _color = SHARED._d_colors_to_index.get(key,False)
             if _color is False:
-                raise ValueError,"|{0}| >> Unknown color key: '{1}'".format(_str_func,key) 
+                raise ValueError,">>{0}>> >> Unknown color key: '{1}'".format(_str_func,key) 
                 
     if rgb is not None:
         if not _b_2016Plus:
-            raise ValueError,"|{0}| >> RGB values introduced in maya 2016. Current version: {1}".format(_str_func,cgmGen.__mayaVersion__) 
+            raise ValueError,">>{0}>> >> RGB values introduced in maya 2016. Current version: {1}".format(_str_func,cgmGen.__mayaVersion__) 
         
         _b_RBGMode = True        
         if len(rgb) == 3:
             _color = rgb
         else:
-            raise ValueError,"|{0}| >> Too many rgb values: '{1}'".format(_str_func,rgb) 
+            raise ValueError,">>{0}>> >> Too many rgb values: '{1}'".format(_str_func,rgb) 
         
     if index is not None:
         _color = index
 
-    log.debug("|{0}| >> Color: {1} | rgbMode: {2}".format(_str_func,_color,_b_RBGMode))
+    log.debug(">>{0}>> >> Color: {1} | rgbMode: {2}".format(_str_func,_color,_b_RBGMode))
     
 
     for i,s in enumerate(_shapes):
@@ -808,7 +811,7 @@ def duplicate_shape(shape):
     
             return _bfr
         else:
-            log.debug("|{0}| >> mesh shape assumed...".format(_str_func))            
+            log.debug(">>{0}>> >> mesh shape assumed...".format(_str_func))            
             _transform = SEARCH.get_transform(shape)
             _shapes = mc.listRelatives(_transform,s=True, fullPath = True)
             _idx = _shapes.index(coreNames.get_long(shape))
@@ -826,5 +829,5 @@ def duplicate_shape(shape):
         
     except Exception,err:
         if not SEARCH.is_shape(shape):
-            log.error("|{0}| >> Failure || Not a shape: {1}".format(_str_func,shape))
-        raise Exception,"|{0}| >> failed! | err: {1}".format(_str_func,err)  
+            log.error(">>{0}>> >> Failure >> Not a shape: {1}".format(_str_func,shape))
+        raise Exception,">>{0}>> >> failed! | err: {1}".format(_str_func,err)  
