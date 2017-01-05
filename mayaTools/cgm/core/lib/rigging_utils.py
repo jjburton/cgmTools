@@ -231,7 +231,7 @@ def match_transform(obj = None, source = None,
     #The meat of it...        
     if rotateOrder or rotateAxis:
         log.info("|{0}| >> orientation copy...".format(_str_func))                                  
-        copy_orientation(obj,source,rotateOrder,rotateAxis)
+        match_orientation(obj,source,rotateOrder,rotateAxis)
         
     if rotatePivot or scalePivot:    
         log.info("|{0}| >> pivot copy...".format(_str_func))                                  
