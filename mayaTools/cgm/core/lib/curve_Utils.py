@@ -209,7 +209,7 @@ def get_curve_shape_info(curve):
             if cgmValid.get_mayaType(shape) == 'nurbsCurve':
                 log.info("|{0}| >> shape: {1}".format(_str_func,shape))                
                 #transform = mc.group(em=True)
-                #RIGGING.parentShape_in_place(transform, shape)
+                #RIGGING.shapeParent_in_place(transform, shape)
                 #tmpShapeNode = mc.listRelatives (transform, shapes=True, fullPath=True)
                 _bfr = RIGGING.duplicate_shape(shape)
                 _d[shape] = (get_shape_info(_bfr[1]))

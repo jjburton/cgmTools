@@ -32,6 +32,7 @@ from cgm.core.lib import attribute_utils as coreAttr
 from cgm.core.lib import name_utils as coreNames
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shared_data as SHARED
+from cgm.core.lib import snap_utils as SNAP
 
 #>>> Utilities
 #===================================================================
@@ -122,7 +123,7 @@ def match_orientation(obj = None, source = None,
         _dup = mc.duplicate(obj, parentOnly = True)[0]
         log.info("|{0}| >> dup:{1}".format(_str_func,_dup))
         for s in _l_shapes:
-            parentShape_in_place(_dup,s,keepSource=False)        
+            shapeParent_in_place(_dup,s,keepSource=False)        
         
     #The meat of it...
     _restorePivotRP = False
@@ -171,7 +172,7 @@ def match_orientation(obj = None, source = None,
     if _dup:
         log.info("|{0}| >> shapes back...: {1}".format(_str_func,_l_shapes))          
         #mc.delete(_l_shapes)
-        parentShape_in_place(obj,_dup)
+        shapeParent_in_place(obj,_dup)
         mc.delete(_dup)
         
     for c in _l_children:
@@ -223,7 +224,7 @@ def match_transform(obj = None, source = None,
     if _l_shapes:#...dup our shapes to properly shape parent them back
         _dup = mc.duplicate(obj, parentOnly = True)[0]
         for s in _l_shapes:
-            parentShape_in_place(_dup,s,keepSource=False)
+            shapeParent_in_place(_dup,s,keepSource=False)
         log.info("|{0}| >> dup:{1}".format(_str_func,_dup))
         
         
@@ -240,119 +241,12 @@ def match_transform(obj = None, source = None,
     if _dup:
         log.info("|{0}| >> shapes back...: {1}".format(_str_func,_l_shapes))          
         #mc.delete(_l_shapes)
-        parentShape_in_place(obj,_dup,)
+        shapeParent_in_place(obj,_dup,)
         mc.delete(_dup)
         
     for c in _l_children:
         log.info("|{0}| >> parent back...: '{1}'".format(_str_func,c))  
         log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
-        parent_set(c,obj)  
-        
-    return True
-
-def copy_transformOLD(obj = None, source = None,
-                   rotateOrder = True, rotateAxis = True,
-                   rotatePivot = True, scalePivot = True):
-    """
-    A bridge function utilizing both copy_pivot and copy_orientation in a single call
-    
-    :parameters:
-        obj(str): Object to modify
-        sourceObject(str): object to copy from
-        rotateOrder(bool): whether to copy the rotateOrder while preserving rotations
-        rotateAxis(bool): whether to copy the rotateAxis
-        rotatePivot(bool): whether to copy the rotatePivot
-        scalePivot(bool): whether to copy the scalePivot
-
-    :returns
-        success(bool)
-    """   
-    _str_func = 'copy_transform'
-    
-    obj = valid_arg_single(obj, 'obj', _str_func)
-    source = valid_arg_single(source, 'source', _str_func) 
-    
-    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
-    log.debug("|{0}| >> source:{1}".format(_str_func,source))
-    log.info("|{0}| >> rotateAxis:{1}".format(_str_func,rotateAxis))
-    
-    #First gather children to parent away and shapes so they don't get messed up either
-    _l_children = mc.listRelatives (obj, children = True,type='transform') or []
-    _l_shapes = mc.listRelatives (obj, shapes = True, fullPath = True) or []
-    _dup = False
-    
-    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
-    log.info("|{0}| >> shapes:{1}".format(_str_func,_l_shapes))
-    
-    if _l_children:#...parent children to world as we'll be messing with stuff
-        for i,c in enumerate(_l_children):
-            _l_children[i] = parent_set(c,False)
-    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
-            
-    if _l_shapes:#...dup our shapes to properly shape parent them back
-        _dup = mc.duplicate(obj, parentOnly = False)[0]
-        log.info("|{0}| >> dup:{1}".format(_str_func,_dup))
-        
-    
-    #The meat of it...
-    if rotatePivot or scalePivot and not rotateAxis:    
-        log.info("|{0}| >> pivot copy...".format(_str_func))                                  
-        copy_pivot(obj,source, rotatePivot, scalePivot)
-        
-    _restorePivotRP = False
-    _restorePivotSP = False
-    
-    if rotateAxis:
-        log.info("|{0}| >> rotateAxis...".format(_str_func))                          
-        if not rotatePivot:
-            #There must be a better way to do this. Storing to be able to restore after matrix ops
-            _restorePivotRP = mc.xform(obj, q=True, ws=True, rp = True)
-        if not scalePivot:
-            _restorePivotSP = mc.xform(obj, q=True, ws=True, sp = True)
-                    
-        #We do our stuff with a locator to get simple transferrable values after matching parents and what not...
-        loc = locators.locMeObject(source)
-        #..match ro before starting to do values
-        
-        parent_set(loc, parent_get(obj))#...match parent
-        mc.xform(loc, roo = mc.xform (obj, q=True, roo=True ), p=True)#...match rotateOrder
-        
-        mc.makeIdentity(obj,a = True, rotate = True)
-        
-        #...push matrix
-        _matrix = mc.xform (loc, q=True, m =True)
-        mc.xform(obj, m = _matrix)
-        
-        objRot = mc.xform (obj, q=True, os = True, ro=True)
-        for i,a in enumerate(['X','Y','Z']):
-            attributes.doSetAttr(obj, 'rotateAxis|{0}|'.format(a), objRot[i])  
-        mc.xform(obj,os=True, ro = [0,0,0])#...clear
-            
-        mc.delete(loc)
-        #mc.xform(obj, p = False, os = True, ra = objRotAxis)
-        #mc.xform(obj, os = True, ro = objRot)
-        
-        if not rotatePivot:
-            log.info("|{0}| >> restore rotatePivot...".format(_str_func))                                      
-            mc.xform(obj,ws=True, rp = _restorePivotRP)
-        if not scalePivot:
-            log.info("|{0}| >> restore scalePivot...".format(_str_func))                                      
-            mc.xform(obj,ws=True, sp = _restorePivotSP)
-            
-    if rotateOrder:   
-        log.info("|{0}| >> rotateOrder...".format(_str_func))                  
-        mc.xform(obj, roo = mc.xform (source, q=True, roo=True ), p=True)#...match rotateOrder
-                
-    if _dup:
-        log.info("|{0}| >> shapes back...: {1}".format(_str_func,_l_shapes))          
-        mc.delete(_l_shapes)
-        parentShape_in_place(obj,_dup)
-        mc.delete(_dup)
-        
-    for c in _l_children:
-        log.info("|{0}| >> parent back...: '{1}'".format(_str_func,c))  
-        log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
-        
         parent_set(c,obj)  
         
     return True
@@ -444,7 +338,7 @@ def parent_get(obj = None):
         return _parents[0]
     return False
 
-def parentShape_in_place(obj = None, shapeSource = None, keepSource = True, replaceShapes = False):
+def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, replaceShapes = False, snapFirst = False):
     """
     Shape parent a curve in place to a obj transform
 
@@ -453,11 +347,12 @@ def parentShape_in_place(obj = None, shapeSource = None, keepSource = True, repl
         shapeSource(str): Curve to shape parent
         keepSource(bool): Keep the curve shapeParented as well
         replaceShapes(bool): Whether to remove the obj's original shapes or not
+        snapFirst(bool): whether to snap source to obj before transfer
 
     :returns
         success(bool)
     """   
-    _str_func = 'parentShape_in_place'
+    _str_func = 'shapeParent_in_place'
     
     l_shapes = VALID.listArg(shapeSource)
     
@@ -478,10 +373,16 @@ def parentShape_in_place(obj = None, shapeSource = None, keepSource = True, repl
             if coreNames.get_long(obj) == coreNames.get_long(c):
                 raise ValueError,"Cannot parentShape self"
             
+            
             if _shapeCheck:
                 _dup_curve = duplicate_shape(c)[0]
+                if snapFirst:
+                    SNAP.go(_dup_curve,obj)                    
             else:
-                _dup_curve =  mc.duplicate(c)[0] # NO NO NO
+                _dup_curve =  mc.duplicate(c)[0]
+                if snapFirst:
+                    SNAP.go(_dup_curve,obj)                
+                
             _l_parents = SEARCH.get_all_parents(obj)
         
             _dup_curve = parent_set(_dup_curve, False)
@@ -659,7 +560,7 @@ def group_me(obj = None,
 
     return mc.rename(group, "|{0}|_grp".format(coreNames.get_base(obj)))  
 
-def snap(obj = None, source = None,
+def snapDEPRECIATE(obj = None, source = None,
          position = True, rotation = True, rotateAxis = True,
          objPivot = 'rp', sourcePivot = 'rp'):
     """

@@ -334,27 +334,27 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             if self._b_sel_pair:              
                 #---------------------------------------------------------------------------
                 mc.menuItem(parent=uiShape,
-                            l = 'parentShape',
+                            l = 'shapeParent',
                             #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                            c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom'),
+                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel, 'lastFromRest'),
                             rp = "W")   
                 _d_combine = {'keepSource':False}
                 mc.menuItem(parent=uiShape,
                             l = 'Combine',
                             #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                            c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_combine),
+                            c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom', **_d_combine),
                             rp = "NW")
                 mc.menuItem(parent=uiShape,
                             l = 'Add',
                             #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                            c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **{}),
+                            c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom', **{}),
                             rp = "NW")      
                 
                 _d_replace = {'replaceShapes':True}                
                 mc.menuItem(parent=uiShape,
                             l = 'Replace',
-                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parentShape_in_place, self._l_sel,'lastFromRest', 'replaceShapes',**_d_replace),                                                        
-                            #c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_replace),                            
+                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel,'lastFromRest', 'replaceShapes',**_d_replace),                                                        
+                            #c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom', **_d_replace),                            
                             rp = "SW")                  
             
             mc.menuItem(parent=uiShape,
@@ -787,15 +787,14 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         mc.menuItem(parent=_r,
                     l = 'Shapeparent',
                     en = self._b_sel_pair,
-                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom'),
+                    c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom'),
                     rp = "W")   
         _d_combine = {'keepCurve':False}
         mc.menuItem(parent=_r,
                     en = self._b_sel_pair,
                     l = 'Combine',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.parentShape_in_place, self._l_sel,'toFrom', **_d_combine),
+                    c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom', **_d_combine),
                     rp = "NW") 
         mc.menuItem(parent=_r,
                     en = False,                    
@@ -1002,14 +1001,17 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         #---------------------------------------------------------------------------
         mc.menuItem(parent=_r,
                     l = 'Transform',
-                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_transform, self._l_sel,'eachToFirst','Match Transform'),                    
                     rp = "N")          
         mc.menuItem(parent=_r,
                     l = 'Orienation',
-                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, self._l_sel,'eachToFirst','Match Orientation'),                    
                     rp = "NW")
+        
+        mc.menuItem(parent=_r,
+                    l = 'Shapes',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel,'lastFromRest','Copy Shapes', **{'snapFirst':True}),
+                    rp = "SW")        
         
         mc.menuItem(parent=_r,
                             l = 'Constraints',
@@ -1031,12 +1033,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'eachFromFirst', 'Match SP', **{'rotatePivot':False,'scalePivot':True}),                                               
                     rp = "SW")         
         
-        mc.menuItem(parent=_r,
-                    l = 'Shapes',
-                    en=False,
-                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parentShape_in_place, self._l_sel,'eachToLast','Copy Shapes', **{}),
-                    rp = "SW")
+
         mc.menuItem(parent=_r,subMenu=True,
                     en=False,                    
                     l = 'Attrs',
@@ -1139,6 +1136,13 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         if not self._b_sel:
             return        
         #---------------------------------------------------------------------------
+        mc.menuItem(parent=_r,
+                    l = 'shapeParent',
+                    en = self._b_sel_pair,
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel, 'lastFromRest'),
+                    rp = "NE")         
+        
+        
         _gSet = mc.menuItem(parent=_r,subMenu=True,
                             l='Group',
                             rp='NW')
@@ -1167,7 +1171,6 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                          en=self._b_sel_few,
                          l = 'Parent',
                          rp = 'SW')       
-        
         if self._b_sel_few:
             mc.menuItem(parent=_p, #subMenu = True,
                              l = 'Reverse',

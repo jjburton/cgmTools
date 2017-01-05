@@ -33,6 +33,7 @@ from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import euclid as EUCLID
+#!!!! No rigging_utils!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #>>> Utilities
 #===================================================================  

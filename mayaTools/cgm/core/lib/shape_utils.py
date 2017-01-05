@@ -58,7 +58,7 @@ def combine(shapeTranforms):
             raise Exception,"|{0}| >> Channel history delete on {2} | err: {1}".format(_str_func,err,t)
         
     for t in shapeTranforms[1:]:
-        RIGGING.parentShape_in_place(_transform, t, 
+        RIGGING.shapeParent_in_place(_transform, t, 
                                      keepSource=False)   
         
     return _transform
