@@ -192,6 +192,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.bUI_radial_create(parent,'NE')
         self.bUI_radial_rayCreate(parent,'E')
         self.bUI_radial_match(parent,'W')
+        self.bUI_radial_locinator(parent,'SE')
         #self.bUI_radial_control(parent,'SW')
         #self.bUI_radial_arrange(parent,'SE')
         mc.menuItem(p=parent,
@@ -338,7 +339,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                 mc.menuItem(parent=uiShape,
                             l = 'shapeParent',
                             #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel, 'lastFromRest'),
+                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel, 'lastFromRest','shapeParent'),
                             rp = "W")   
                 _d_combine = {'keepSource':False}
                 mc.menuItem(parent=uiShape,
@@ -991,6 +992,20 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                          #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                          rp = direction)  
         
+    def bUI_radial_locinator(self,parent,direction = None):
+        _r = mc.menuItem(parent=parent,subMenu = True,
+                         en = self._b_sel,
+                         l = 'Locinator',
+                         #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                         rp = direction)  
+        if not self._b_sel:
+            return        
+        #---------------------------------------------------------------------------
+        mc.menuItem(parent=_r,
+                    l = 'Loc me',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'firstToRest','Match Transform'),                    
+                    rp = "N")         
+    
     def bUI_radial_match(self,parent,direction = None):
         _r = mc.menuItem(parent=parent,subMenu = True,
                          en = self._b_sel_pair,
