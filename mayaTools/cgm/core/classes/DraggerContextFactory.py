@@ -192,7 +192,7 @@ class clickMesh(ContextualPick):
         objAimAxis(str/vector) -- 
         objUpAxis(str/vector) --
         objOutAxis(str/vector) --
-        aimTolerance(float) -- Pass through value for SNAP.aim
+        dragInterval(float) -- Distance inverval for drag mode
         tagAndName(dict) -- I don't remember...:)
         toCreate(list) -- list of items names to make, sets's max as well. When it's through the list, it shops
         toSnap(list) -- objects to snap to a final pos value
@@ -222,7 +222,7 @@ class clickMesh(ContextualPick):
                  objAimAxis = 'z+',
                  objUpAxis = 'y+',
                  objOutAxis = 'x+',
-                 aimTolerance = .2,                 
+                 dragInterval = .2,                 
                  tagAndName = {},
                  toCreate = [],
                  toDuplicate = [],
@@ -262,7 +262,7 @@ class clickMesh(ContextualPick):
         self.v_posOffset = posOffset or False    
         self.str_offsetMode = offsetMode
         self.f_offsetDistance = offsetDistance
-        self.f_aimTolerance = aimTolerance
+        self.f_dragInterval = dragInterval
         self.b_orientSnap = orientSnap
         self._createModeBuffer = False
         self.int_maxStore = maxStore
@@ -895,7 +895,7 @@ class clickMesh(ContextualPick):
                             pos_vector = MATHUTILS.Vector3(pos[0], pos[1], pos[2])
                             prev_pos_vector = MATHUTILS.Vector3( prev_pos[0], prev_pos[1], prev_pos[2] )
                             mag = (prev_pos_vector - pos_vector).magnitude()
-                            if mag < self.f_aimTolerance:
+                            if mag < self.f_dragInterval:
                                 return
 
                 self._prevBuffer = copy.copy(self._posBuffer)
