@@ -106,29 +106,27 @@ def go(obj = None, target = None,
     mc.xform(_target, rp=infoDict['position'], ws = True, p=True)        
     mc.xform(_target, sp=infoDict['scalePivot'], ws = True, p=True)     
     
-
-def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+"):
+def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+"):
     """
     Aim functionality.
     
     :parameters:
         obj(str): Object to modify
-        target(str): object to copy from
+        position(array): object to copy from
         aimAxis(str): axis that is pointing forward
         upAxis(str): axis that is pointing up
 
     :returns
         success(bool)
-    """  
-    _str_func = 'aim'
+    """ 
+    _str_func = 'aimAtPoint'
     
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
-    _target = VALID.objString(target, noneValid=False, calledFrom = __name__ + _str_func + ">> validate target")
 
     '''Rotate transform based on look vector'''
     # get source and target vectors
     objPos = MATH.Vector3.Create(POS.get(_obj))
-    targetPos = MATH.Vector3.Create(POS.get(_target))
+    targetPos = MATH.Vector3.Create(position)
 
     aim = (targetPos - objPos).normalized()
 
@@ -167,5 +165,56 @@ def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+"):
     transform_matrix = result_matrix[0:12] + [pos.x, pos.y, pos.z, 1.0]
 
     mc.xform(_obj, matrix = transform_matrix , roo="xyz", ws=True)
+
+    return True
+
+def aimAtMidpoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+"):
+    """
+    Aim functionality.
+    
+    :parameters:
+        obj(str): Object to modify
+        target(str): object to copy from
+        aimAxis(str): axis that is pointing forward
+        upAxis(str): axis that is pointing up
+
+    :returns
+        success(bool)
+    """  
+    _str_func = 'aimAtMidpoint'
+
+    _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
+    _targets = VALID.objStringList(targets, noneValid=False, calledFrom = __name__ + _str_func + ">> validate targets")
+
+    targetPos = MATH.Vector3.zero()
+
+    for t in _targets:
+        targetPos += MATH.Vector3.Create(POS.get(t))
+
+    targetPos /= len(_targets)
+
+    aimAtPoint(_obj, MATH.Vector3.AsArray(targetPos), aimAxis, upAxis)
+
+def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+"):
+    """
+    Aim functionality.
+    
+    :parameters:
+        obj(str): Object to modify
+        target(str): object to copy from
+        aimAxis(str): axis that is pointing forward
+        upAxis(str): axis that is pointing up
+
+    :returns
+        success(bool)
+    """  
+    _str_func = 'aim'
+
+    _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
+    _target = VALID.objString(target, noneValid=False, calledFrom = __name__ + _str_func + ">> validate target")
+
+    targetPos = POS.get(_target)
+
+    aimAtPoint(_obj, targetPos, aimAxis, upAxis)
 
     return True

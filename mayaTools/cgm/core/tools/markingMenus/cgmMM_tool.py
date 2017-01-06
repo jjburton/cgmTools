@@ -1268,7 +1268,12 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                         c = lambda *a:snap_action(self,'aim','eachToNext'),
                         rp = 'SW')
-            
+            mc.menuItem(parent=_aim,
+                        l = 'First to Midpoint',
+                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                        c = lambda *a:snap_action(self,'aim','firstToRest'),
+                        rp = 'S')
+
             _p = mc.menuItem(parent=_r, #subMenu = True,
                              l = 'Reverse Parent',
                              c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToNext','Reverse Parent'),                                             
@@ -1419,7 +1424,10 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
                 
         kws = {'aimAxis':aim_axis, 'upAxis':up_axis}
         
-        MMCONTEXT.func_process(SNAP.aim, self._l_sel ,selectionMode,'Snap aim', **kws)
+        if selectionMode == 'firstToRest':
+            MMCONTEXT.func_process(SNAP.aimAtMidpoint, self._l_sel ,selectionMode,'Snap aim', **kws)
+        else:
+            MMCONTEXT.func_process(SNAP.aim, self._l_sel ,selectionMode,'Snap aim', **kws)
     else:
         kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,'scalePivot' : False,
                'pivot' : 'rp', 'space' : 'w', 'mode' : 'xform'}
@@ -1450,6 +1458,7 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
     
     
     return
+    '''
     _str_func = 'snap_action'
     for o in self._l_sel[:-1]:
         _msg = "|{0}| >> mode: {1} | obj: {2} |target: {3}".format(_str_func,mode,o,self._l_sel[-1])
@@ -1492,6 +1501,7 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
         except Exception,err:
             log.error("|{0}| ||| Failure >>> err:s[{1}]".format(_msg,err))
     mc.select(self._l_sel)    
+    '''
     
 
 
