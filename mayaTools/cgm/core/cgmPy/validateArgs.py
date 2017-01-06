@@ -128,6 +128,7 @@ def get_mayaType(node = None):
         
         raise RuntimeError,"Shouldn't have gotten here. Need another check for component type. '{0}'".format(_node)
     return _intialCheck
+
 def is_component(arg = None):
     """
     Check to see if an arg is a component
@@ -146,7 +147,28 @@ def is_component(arg = None):
         if '.' in _arg and '[' in _arg and ']' in _arg:
             return True
     return False
+
+def get_component(arg = None):
+    """
+    Check to see if an arg is a component
     
+    :parameters:
+        node(str): Object to check
+
+    :returns
+        [componentType, component]
+    """       
+    _str_func = 'get_component'
+    if is_component(arg):
+        log.debug("|{0}| >> component mode...".format(_str_func))
+        _split = arg.split('[')[0].split('.')
+        _root = _split[0]
+        _compType = _split[1]
+        
+        log.info("|{0}| >> split: {1} | root: {2} | comp: {3}".format(_str_func,_split,_root,_compType))   
+        return [''.join(arg.split('.')[1:]), _compType]
+    return False
+
 def isFloatEquivalent(lhs, rhs, **kwargs):
     """
     Return true if both floats are with E (epsilon) of one another, 
@@ -462,7 +484,7 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
             else:
                 str_argMayaType = get_mayaType(arg)
                 fmt_args = [arg, str_argMayaType, _str_funcName]
-                raise TypeError("{2}: 'Arg {0}' is type {1}, expected 'transform'").format(*fmt_args)
+                raise TypeError("{2}: 'Arg {0}' is type {1}, expected 'transform'".format(*fmt_args))
 
     if result is None:
         result = arg
@@ -492,7 +514,7 @@ def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False
     if not isinstance(l_args, (list, tuple)):l_args = [l_args]
 
     for arg in l_args:
-        tmp = objString(arg, mayaType, noneValid, isTransform)
+        tmp = objString(arg, mayaType,isTransform, noneValid)
         if tmp != False:
             result.append(tmp)
         else:

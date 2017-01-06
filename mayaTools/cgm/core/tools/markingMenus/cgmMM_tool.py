@@ -1186,16 +1186,32 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         _p = mc.menuItem(parent=_r, subMenu = True,
                          en=self._b_sel_few,
                          l = 'Parent',
-                         rp = 'SW')       
+                         rp = 'W')       
         if self._b_sel_few:
             mc.menuItem(parent=_p, #subMenu = True,
                              l = 'Reverse',
                              c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToNext','Reverse Parent'),                                             
                              rp = 'S')
-            mc.menuItem(parent=_r, #subMenu = True,
+            mc.menuItem(parent=_p, #subMenu = True,
                              l = 'Ordered',
                              c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToPrevious','Parent Order'),                                             
                              rp = 'SW')   
+            
+        
+        #>Distance
+        _p = mc.menuItem(parent=_r, subMenu = True,
+                         en=self._b_sel_few,
+                         l = 'Distance',
+                         rp = 'SW')    
+        
+        _f = mc.menuItem(parent=_p, #subMenu = True,
+                         l = 'Near Target',
+                         c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'object'}),                                                                      
+                         rp = 'SW')   
+        _f = mc.menuItem(parent=_p, #subMenu = True,
+                         l = 'Far Target',
+                         c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Far Target',True,**{'mode':'far','resMode':'object'}),                                                                      
+                         rp = 'W')          
         
     @cgmGen.Timer    
     def bUI_radial_snap(self,parent,direction = None):

@@ -244,7 +244,7 @@ def func_all_to_last(func,objects, mode = 'toFrom',**kws):
         
     #mc.select(objects)
     
-def func_process(func,objects, processMode = 'all', calledFrom = None, **kws):
+def func_process(func,objects, processMode = 'all', calledFrom = None, noSelect = True, **kws):
     """
     Process objects passed with fuction provided in different modes...
     
@@ -263,6 +263,8 @@ def func_process(func,objects, processMode = 'all', calledFrom = None, **kws):
             previousToEach -- objects[i-1],objects[i]
             lastFromRest - objects[-1],objects[:-1]
             restFromLast - objects[:-1],objects[-1]
+            firstToRest - objects[0],objects[1:]
+            restFromFirst - objects[1:],objects[0]
         calledFrom - String for debugging/
         kws(dict) -- pass through
 
@@ -316,26 +318,30 @@ def func_process(func,objects, processMode = 'all', calledFrom = None, **kws):
                         log.debug("|{0}| >> {1} < {2}".format(_str_func,o,objects[i-1]))  
                         _res = func(o,objects[i],**kws)     
                     elif processMode == 'previousToEach':
-                        _res = func(objects[i],o,**kws)  
-                        
+                        _res = func(objects[i],o,**kws)                       
                     if _res:log.info( "|{0}| >> {1}".format( _str_func, _res ))
                         
                 except Exception,err:
                     log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))                 
-    elif processMode in ['lastFromRest','restFromLast']:
+    elif processMode in ['lastFromRest','restFromLast','firstToRest','restFromFirst','all']:
         if processMode == 'lastFromRest':
             _res = func(objects[-1],objects[:-1],**kws)  
         elif processMode == 'restFromLast':
             _res = func(objects[:-1],objects[-1],**kws)   
         elif processMode == 'all':
             _res = func(objects,**kws)   
-            
+        elif processMode == 'firstToRest':
+            _res = func(objects[0],objects[1:],**kws)
+        elif processMode == 'restFromFirst':
+            _res = func(objects[1:],objects[0],**kws)               
         if _res:log.info( "|{0}| >> {1}".format( _str_func, _res ))
             
     else:
         raise ValueError,"|{0}.{1}| Unkown processMode: {2}".format(__name__,_str_func,processMode)
-    try:mc.select(objects)
-    except:pass
+    
+    if not noSelect:
+        try:mc.select(objects)
+        except:pass
             
 def func_context_all(func,context = 'selection',mType = None, **kws):
     """

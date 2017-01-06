@@ -19,6 +19,7 @@ log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
+import maya.mel as mel
 
 # From Red9 =============================================================
 
@@ -28,6 +29,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 #from cgm.core.lib import name_utils as NAME
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
+from cgm.core.lib import math_utils as MATH
 #Cannot import: DIST,
 #>>> Utilities
 #===================================================================
@@ -44,12 +46,11 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
         pivot(str): Which pivot to use. (rotate,scale,boundingBox)
             rotatePivot
             scalePivot
-            boundingBox -- Returns the calculated center pivot position based on bounding box 
+            boundingBox -- Returns the calculated center pivot position based on bounding box
+            closestPoint
         space(str): World,Object
         mode(str):
             xform -- Utilizes tranditional checking with xForm or pointPosition for components
-            boundingBox -- Returns the calculated center pivot position based on bounding box 
-
     :returns
         success(bool)
     """   
@@ -174,7 +175,7 @@ def get_bb_center(arg = None):
     
     return [((_box[0] + _box[3])/2),((_box[4] + _box[1])/2), ((_box[5] + _box[2])/2)]
 
-def get_info(target = None):
+def get_info(target = None, boundingBox = False):
     """
     Get data for updating a transform
     
@@ -186,16 +187,18 @@ def get_info(target = None):
     """   
     _str_func = "get_dat"
     _target = VALID.objString(target, noneValid=True, calledFrom = __name__ + _str_func + ">> validate target")
-
+    _posPivot = 'rp'
+    if boundingBox:
+        _posPivot = 'boundingBox'
     _d = {}
     _d ['createdFrom']=_target
     _d ['objectType']=VALID.get_mayaType(_target)
-    _d ['position']=POS.get(target,'rp','world')
-    _d ['scalePivot']=POS.get(target,'sp','world')
+    _d ['position']=get(target,_posPivot,'world')
+    _d ['scalePivot']=get(target,'sp','world')
     _d ['rotation']= mc.xform (_target, q=True, ws=True, ro=True)
     _d ['rotateOrder']=mc.xform (_target, q=True, roo=True )
     _d ['rotateAxis'] = mc.xform(_target, q=True, os = True, ra=True)
     
-    cgmGeneral.log_info_dict(_d,'|{0}.{1}| info...'.format(__name__,_str_func))
+    cgmGen.log_info_dict(_d,'|{0}.{1}| info...'.format(__name__,_str_func))
 
     return _d

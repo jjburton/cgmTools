@@ -121,7 +121,7 @@ def get_tag(node = None, tag = None):
             returnBuffer = attributes.returnMessageData(_node,tag,False)
             if not returnBuffer:
                 return False
-            elif get_mayaType(returnBuffer[0]) == 'reference':
+            elif coreValid.get_mayaType(returnBuffer[0]) == 'reference':
                 if attributes.repairMessageToReferencedTarget(_node,tag):
                     return attributes.returnMessageData(_node,tag,False)[0]
                 return returnBuffer[0]

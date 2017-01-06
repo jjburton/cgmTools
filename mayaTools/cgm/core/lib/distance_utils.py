@@ -61,15 +61,40 @@ def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'poin
     Get the the closest return based on a source and target and variable modes
     
     :parameters:
-        source(str): Our base object to measure from
-        targets(list): List of object types
-        mode(str):What mode are we checking data from
-            object -- return the closest object
-            component -- return the closest base component
-            pointOnSurface -- closest point on the target shape(s)
+        :source(str): Our base object to measure from
+        :targets(list): List of object types
+        :mode(str):What mode are we checking data from
+            close
+            far
+        :resMode(str):
+            object -- return the [closest] target
+            point -- return the [closest] point
+            #component -- return [the closest] base component
+            pointOnTarget -- [closest] point on the target shape(s)
+        resMode(str)
     :returns
         [res,distance]
     """   
+    def get_fromTargets(sourcePos,targets,targetPivot,resMode):
+        _l_distances = []
+        _l_pos = []
+        for t in targets:
+            _tarPos = POS.get(t,targetPivot,space='world')
+            _l_pos.append(_tarPos)
+            _d = get_distance_between_points(sourcePos,_tarPos)
+            log.debug("|{0}| >> target: {1} | pivot: {4} | dist: {3} | pos: {2}...".format(_str_func,t,_tarPos,_d,targetPivot))
+            _l_distances.append(_d)
+        if _mode == 'closest':
+            _minDist = min(_l_distances)
+            _minIdx = _l_distances.index(_minDist)
+            if resMode == 'point':return _l_pos[_minIdx], _minDist
+            return targets[_minIdx], _minDist
+        else:
+            _maxDist = max(_l_distances)
+            _maxIdx = _l_distances.index(_maxDist)
+            if resMode == 'point':return _l_pos[_maxIdx], _maxDist      
+            return targets[_maxIdx], _maxDist
+        
     _d_by_dist_modes = {'close':['closest','c','near'],'far':['furthest','long']}
     
     _str_func = 'get_by_dist'
@@ -88,24 +113,36 @@ def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'poin
     log.debug("|{0}| >> Source pos({2}): {1}...".format(_str_func,_sourcePos,_sourcePivot))
     
     #Modes
-    if _resMode == 'object':
+    if _resMode in ['object','point']:
         log.debug("|{0}| >> object resMode...".format(_str_func))
+        mc.select(cl=True)
+        
+        _res = get_fromTargets(_sourcePos,_l_targets,_targetPivot,resMode)
+        if resMode == 'object':
+            mc.select(_res[0])
+        """
         _l_distances = []
+        _l_pos = []
         for t in _l_targets:
             _tarPos = POS.get(t,_targetPivot,space='world')
+            _l_pos.append(_tarPos)
             _d = get_distance_between_points(_sourcePos,_tarPos)
             log.debug("|{0}| >> target: {1} | pivot: {4} | dist: {3} | pos: {2}...".format(_str_func,t,_tarPos,_d,_targetPivot))
             _l_distances.append(_d)
         if _mode == 'closest':
             _minDist = min(_l_distances)
             _minIdx = _l_distances.index(_minDist)
-            return _l_targets[_minIdx], _minDist
+            if _resMode == 'object':return _l_targets[_minIdx], _minDist
+            return _l_pos[_minIdx], _minDist
         else:
             _maxDist = max(_l_distances)
             _maxIdx = _l_distances.index(_maxDist)
-            return _l_targets[_maxIdx], _maxDist
-    elif _resMode == 'pointOnSurface':
-        log.debug("|{0}| >> pointOnSurface...".format(_str_func))        
+            if _resMode == 'object':return _l_targets[_maxIdx], _maxDist
+            return _l_pos[_maxIdx], _maxDist"""
+    elif _resMode == 'component':
+        pass
+    elif _resMode == 'pointOnTarget':
+        log.debug("|{0}| >> pointOnTarget...".format(_str_func))        
         #Targets=============================================================
         log.debug("|{0}| >> Targets processing...".format(_str_func))
         _d_targetTypes = {}
