@@ -273,7 +273,7 @@ def func_process(func,objects, processMode = 'all', calledFrom = None, noSelect 
         
         iterTo
     """   
-    if calledFrom is not None:_str_func = "processing...{0}".format(calledFrom)
+    if calledFrom is not None:_str_func = "{0}".format(calledFrom)
     else:_str_func = "func_process"
     
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__)) 
@@ -301,7 +301,7 @@ def func_process(func,objects, processMode = 'all', calledFrom = None, noSelect 
                 elif processMode == 'eachToLast':
                     _res = func(o,objects[-1],**kws)
                 
-                if _res:log.info( "|{0}| >> {1}".format( _str_func, _res ))
+                if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
                 
             except Exception,err:
                 log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))
@@ -319,7 +319,7 @@ def func_process(func,objects, processMode = 'all', calledFrom = None, noSelect 
                         _res = func(o,objects[i],**kws)     
                     elif processMode == 'previousToEach':
                         _res = func(objects[i],o,**kws)                       
-                    if _res:log.info( "|{0}| >> {1}".format( _str_func, _res ))
+                    if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
                         
                 except Exception,err:
                     log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))                 
@@ -334,7 +334,7 @@ def func_process(func,objects, processMode = 'all', calledFrom = None, noSelect 
             _res = func(objects[0],objects[1:],**kws)
         elif processMode == 'restFromFirst':
             _res = func(objects[1:],objects[0],**kws)               
-        if _res:log.info( "|{0}| >> {1}".format( _str_func, _res ))
+        if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
             
     else:
         raise ValueError,"|{0}.{1}| Unkown processMode: {2}".format(__name__,_str_func,processMode)

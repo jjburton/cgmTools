@@ -125,27 +125,8 @@ def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'poin
             mc.select(_res[0])
             return _res[0]
         return _res[0]
-        """
-        _l_distances = []
-        _l_pos = []
-        for t in _l_targets:
-            _tarPos = POS.get(t,_targetPivot,space='world')
-            _l_pos.append(_tarPos)
-            _d = get_distance_between_points(_sourcePos,_tarPos)
-            log.debug("|{0}| >> target: {1} | pivot: {4} | dist: {3} | pos: {2}...".format(_str_func,t,_tarPos,_d,_targetPivot))
-            _l_distances.append(_d)
-        if _mode == 'closest':
-            _minDist = min(_l_distances)
-            _minIdx = _l_distances.index(_minDist)
-            if _resMode == 'object':return _l_targets[_minIdx], _minDist
-            return _l_pos[_minIdx], _minDist
-        else:
-            _maxDist = max(_l_distances)
-            _maxIdx = _l_distances.index(_maxDist)
-            if _resMode == 'object':return _l_targets[_maxIdx], _maxDist
-            return _l_pos[_maxIdx], _maxDist"""
     elif _resMode == 'component':
-        pass
+        raise NotImplementedError,"component mode"
     elif _resMode in ['pointOnSurface','shape','pointOnSurfaceLoc']:
         log.debug("|{0}| >> Shape processing...".format(_str_func))        
         #Targets=============================================================
@@ -155,7 +136,7 @@ def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'poin
         _l_dist = []
         _l_shapes = []
         
-        for t in _l_targets:
+        """for t in _l_targets:
             _t = t
             _bfr_component = VALID.get_component(t)
             if _bfr_component:
@@ -165,18 +146,15 @@ def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'poin
                 _d_targetTypes[_type] = [_t]
             else:
                 _d_targetTypes[_type].append(_t)
-            log.debug("|{0}| >> obj: {1} | type: {2}".format(_str_func,t,_type))
-        cgmGen.log_info_dict(_d_targetTypes,'Targets to type') 
+            log.debug("|{0}| >> obj: {1} | type: {2}".format(_str_func,t,_type))"""
+        #cgmGen.log_info_dict(_d_targetTypes,'Targets to type') 
         
-        
-        for _type in _d_targetTypes.keys():
-            _tars = _d_targetTypes[_type]
-            for t in _tars:
-                res = get_closest_point(_sourcePos, t)
-                log.info("|{0}| >> {1}: {2}".format(_str_func,t,res))
-                _l_pos.append(res[0])
-                _l_dist.append(res[1])
-                _l_shapes.append(res[2])
+        for t in _l_targets:
+            res = get_closest_point(_sourcePos, t)
+            log.info("|{0}| >> {1}: {2}".format(_str_func,t,res))
+            _l_pos.append(res[0])
+            _l_dist.append(res[1])
+            _l_shapes.append(res[2])
                 
 
         closest = min(_l_dist)
@@ -187,6 +165,7 @@ def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'poin
             POS.set(_loc,_l_pos[_idx])
             return _loc
         if _resMode == 'shape':
+            mc.select(_l_shapes[_idx])            
             return _l_shapes[_idx]
         return _l_pos[_idx]
         
