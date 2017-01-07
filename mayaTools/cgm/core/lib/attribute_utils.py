@@ -23,8 +23,9 @@ import maya.cmds as mc
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.lib import name_utils as NAMES
 
-
+from cgm.lib import attributes
 #>>> Utilities
 #===================================================================
 def validate_arg(arg):
@@ -91,6 +92,47 @@ def alias_set(arg, alias = None):
         if mc.aliasAttr(_d['combined'],q=True):           
             mc.aliasAttr(_d['combined'],remove=True)
             log.warning("'{0}' cleared of alias!".format(_d['combined']))
+            
+def compare_attrs(source, targets, **kws):
+    _source = NAMES.get_short(source)
+    _l_targets = cgmValid.objStringList(targets)
+    
+    log.info(cgmGeneral._str_hardLine)   
+    
+    for t in _l_targets:
+        l_targetAttrs = mc.listAttr(t,**kws)
+        if not l_targetAttrs:
+            raise ValueError,"No attrs found. kws: {0}".format(kws)
+        _t = NAMES.get_short(t)
+        log.info("Comparing {0} to {1}...".format(_source,_t))
+        _l_matching = []
+        _l_notMatching = []
+        for a in mc.listAttr(_source,**kws):
+            try:
+                #log.info("Checking %s"%a)
+                selfBuffer = attributes.doGetAttr(_source,a)
+                targetBuffer = attributes.doGetAttr(t,a)
+                if a in l_targetAttrs and selfBuffer != targetBuffer:
+                    #bfr = ("{0} || {1} != {2}".format(a,selfBuffer,targetBuffer))
+                    _l_notMatching.append([a,selfBuffer,targetBuffer])
+                    continue
+                _l_matching.append(a)
+                    #print ("{0}.{1} != {2}.{1}".format(self.getShortName(),a,_t))
+                    #log.info("%s.%s : %s != %s.%s : %s"%(self.getShortName(),a,selfBuffer,target,a,targetBuffer))
+            except Exception,error:
+                log.info(error)	
+                log.warning("'%s.%s'couldn't query"%(_source,a))
+        log.info("Matching attrs: {0} | Unmatching: {1}".format(len(_l_matching),len(_l_notMatching)))
+        log.info(cgmGeneral._str_subLine)
+        for b in _l_notMatching:
+            log.info("attr: {0}...".format(b[0]))
+            log.info("source: {0}".format(b[1]))
+            log.info("target: {0}".format(b[2]))
+            
+        log.info("{0} >>".format(_t) + cgmGeneral._str_subLine)
+    log.info(cgmGeneral._str_hardLine)
+
+    return True    
             
 
     

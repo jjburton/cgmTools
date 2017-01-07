@@ -1077,21 +1077,40 @@ class cgmNode(r9Meta.MetaClass):
             return True
         return False
 
-    def compareAttrs(self,target,**kws):
+    def compareAttrs(self,targets,**kws):
         """ compare the attributes of one object to another """
-        if not mc.objExists(target):
-            raise StandardError,"Target doesn't exist! | %s"%target
-        l_targetAttrs = mc.listAttr(target,**kws)
-        for a in mc.listAttr(self.mNode,**kws):
-            try:
-                log.debug("Checking %s"%a)
-                selfBuffer = attributes.doGetAttr(self.mNode,a)
-                targetBuffer = attributes.doGetAttr(target,a)
-                if a in l_targetAttrs and selfBuffer != targetBuffer:
-                    log.debug("%s.%s : %s != %s.%s : %s"%(self.getShortName(),a,selfBuffer,target,a,targetBuffer))
-            except StandardError,error:
-                log.debug(error)	
-                log.warning("'%s.%s'couldn't query"%(self.mNode,a))
+        _l_targets = cgmValid.objStringList(targets)
+        log.info(cgmGeneral._str_hardLine)   
+        
+        for t in _l_targets:
+            l_targetAttrs = mc.listAttr(t,**kws)
+            if not l_targetAttrs:
+                raise ValueError,"No attrs found. kws: {0}".format(kws)
+            _t = names.getShortName(t)
+            log.info("Comparing {0} to {1}...".format(self.getShortName(),_t))
+            _l_matching = []
+            _l_notMatching = []
+            for a in mc.listAttr(self.mNode,**kws):
+                try:
+                    #log.info("Checking %s"%a)
+                    selfBuffer = attributes.doGetAttr(self.mNode,a)
+                    targetBuffer = attributes.doGetAttr(t,a)
+                    if a in l_targetAttrs and selfBuffer != targetBuffer:
+                        bfr = ("{0} || {1} != {2}".format(a,selfBuffer,targetBuffer))
+                        _l_notMatching.append(bfr)
+                        continue
+                    _l_matching.append(a)
+                        #print ("{0}.{1} != {2}.{1}".format(self.getShortName(),a,_t))
+                        #log.info("%s.%s : %s != %s.%s : %s"%(self.getShortName(),a,selfBuffer,target,a,targetBuffer))
+                except Exception,error:
+                    log.info(error)	
+                    log.warning("'%s.%s'couldn't query"%(self.mNode,a))
+            log.info("Matching attrs: {0} | Unmatching: {1}".format(len(_l_matching),len(_l_notMatching)))
+            for b in _l_notMatching:
+                print b
+            log.info("{0} >>".format(_t) + cgmGeneral._str_subLine)
+        log.info(cgmGeneral._str_hardLine)
+        
         return True
 
     def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,fastName = True,**kws):

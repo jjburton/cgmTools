@@ -22,6 +22,8 @@ from cgm.core.lib import position_utils as POS
 from cgm.core.lib import shape_utils as SHAPES
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import locator_utils as LOC
+from cgm.core.lib import attribute_utils as ATTRS
+reload(ATTRS)
 reload(LOC)
 reload(SNAP)
 reload(SHAPES)
@@ -1239,8 +1241,12 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                              l = 'Ordered',
                              c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToPrevious','Parent Order'),                                             
                              rp = 'SW')   
-            
         
+        mc.menuItem(parent=_r, #subMenu = True,
+                    l = 'Compare Attrs',
+                    en=self._b_sel_pair,
+                    c = cgmGen.Callback(MMCONTEXT.func_process, ATTRS.compare_attrs, self._l_sel, 'firstToRest','Compare Attrs',True,**{}),                                                                      
+                    rp = 'N') 
         """#>Distance
         _p = mc.menuItem(parent=_r, subMenu = True,
                          en=self._b_sel_few,
