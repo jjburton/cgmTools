@@ -156,7 +156,7 @@ def get_component(arg = None):
         node(str): Object to check
 
     :returns
-        [componentType, component]
+        [component, transform, componentType]
     """       
     _str_func = 'get_component'
     if is_component(arg):

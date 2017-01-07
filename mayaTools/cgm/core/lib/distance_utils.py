@@ -24,6 +24,7 @@ import maya.cmds as mc
 # From Red9 =============================================================
 
 # From cgm ==============================================================
+#NO LOC
 from cgm.core import cgm_General as cgmGen
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
@@ -85,9 +86,9 @@ def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'poin
             _tarPos = POS.get(t,targetPivot,space='world')
             _l_pos.append(_tarPos)
             _d = get_distance_between_points(sourcePos,_tarPos)
-            log.debug("|{0}| >> target: {1} | pivot: {4} | dist: {3} | pos: {2}...".format(_str_func,t,_tarPos,_d,targetPivot))
+            log.debug("|{0}| >> target: {1} | pivot: {4} | dist: {3} | pos: {2}...| mode: {5}".format(_str_func,t,_tarPos,_d,targetPivot,mode))
             _l_distances.append(_d)
-        if mode == 'closest':
+        if mode == 'close':
             _minDist = min(_l_distances)
             _minIdx = _l_distances.index(_minDist)
             if resMode == 'point':return _l_pos[_minIdx], _minDist
@@ -151,12 +152,18 @@ def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'poin
         
         for t in _l_targets:
             res = get_closest_point(_sourcePos, t)
-            log.info("|{0}| >> {1}: {2}".format(_str_func,t,res))
-            _l_pos.append(res[0])
-            _l_dist.append(res[1])
-            _l_shapes.append(res[2])
+            if not res:
+                log.error("|{0}| >> {1} -- failed".format(_str_func,t))
+            else:
+                log.info("|{0}| >> {1}: {2}".format(_str_func,t,res))
+                _l_pos.append(res[0])
+                _l_dist.append(res[1])
+                _l_shapes.append(res[2])
                 
 
+        if not _l_dist:
+            log.error("|{0}| >> Failed to find any points".format(_str_func))
+            return False
         closest = min(_l_dist)
         _idx = _l_dist.index(closest)    
         
@@ -250,8 +257,15 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
     
     if SEARCH.is_shape(targetSurface):
         _shapes = [targetSurface]
+    elif VALID.is_component(targetSurface):
+        _shapes = mc.listRelatives(VALID.get_component(targetSurface)[1], s=True)
     else:
         _shapes = mc.listRelatives(targetSurface, s=True)
+    
+    if not _shapes:
+        log.error("|{0}| >> Unsupported target surface type. Skipping: {1}".format(_str_func,targetSurface))
+        mc.delete(_loc)
+        return False
     
     _l_res_positions = []
     _l_res_shapes = []
@@ -261,7 +275,7 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
         _type = VALID.get_mayaType(s)
         
         if _type not in ['mesh','nurbsSurface','nurbsCurve']:
-            log.error("|{0}| >> Unsupported target surface type. Skipping: {0} |{1}".format(_str_func,s,_type))
+            log.error("|{0}| >> Unsupported target surface type. Skipping: {1} |{2}".format(_str_func,s,_type))
             _l_res_positions.append(False)
             continue
         
@@ -300,6 +314,9 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
             p = [mc.getAttr (_node+'.positionX'), mc.getAttr (_node+'.positionY'), mc.getAttr (_node+'.positionZ') ]
             _l_res_positions.append(p)
             mc.delete (_node)
+    
+    mc.delete(_loc)
+    
     if not _l_res_positions:
         raise ValueError,"No positions found"
     
@@ -311,11 +328,16 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
     closest = min(_l_res_distances)
     _idx = _l_res_distances.index(closest)
     
-    mc.delete(_loc)
+    _pos = _l_res_positions[_idx]
+    if not _pos:
+        return False
+        #raise ValueError,"Failed to find point"
+    
     if loc:
         _loc = mc.spaceLocator(n='get_closest_point_loc')[0]
-        POS.set(_loc,_l_res_positions[_idx]) 
-    return _l_res_positions[_idx], _l_res_distances[_idx], _shapes[_idx] 
+        POS.set(_loc,_pos) 
+        
+    return _pos, _l_res_distances[_idx], _shapes[_idx] 
 
 
 def create_closest_point_node(source = None, targetSurface = None):
@@ -391,7 +413,7 @@ def create_closest_point_node(source = None, targetSurface = None):
             attributes.doConnectAttr((s +'.worldSpace'),(closestPointNode+'.inputSurface'))
             
             attributes.doConnectAttr ((closestPointNode+'.position'),(_res_loc+'.translate'))  
-            
+            _node.append(closestPointNode)
             
         elif _type == 'nurbsCurve':
             _node = mc.createNode ('nearestPointOnCurve')
@@ -403,7 +425,7 @@ def create_closest_point_node(source = None, targetSurface = None):
             mc.connectAttr ((s+'.worldSpace'),(_node+'.inputCurve'))
             
             attributes.doConnectAttr ((_node+'.position'),(_res_loc+'.translate'))  
-            
+            _nodes.append(_node)
     return _locs, _nodes
             
 

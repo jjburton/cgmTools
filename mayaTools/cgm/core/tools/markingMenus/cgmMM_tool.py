@@ -292,8 +292,9 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         mc.menuItem(l='Mesh', subMenu = False,
                     c=cgmGen.Callback(MMCONTEXT.select,self.var_contextTD.value,'mesh'))        
         mc.menuItem(l='Surface', subMenu = False,
-                    c=cgmGen.Callback(MMCONTEXT.select,self.var_contextTD.value,'nurbsSurface')) """       
+                    c=cgmGen.Callback(MMCONTEXT.select,self.var_contextTD.value,'nurbsSurface')) """    
         
+        #-----------------------------------------------------------------------------        
         _p = mc.menuItem(parent=parent, subMenu = True,
                          en=self._b_sel_pair,
                          l = 'Distance')    
@@ -309,18 +310,18 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         )   
             mc.menuItem(parent=_n, 
                         l = 'Shape',
-                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'shape'}),                                                                      
+                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Shape',True,**{'mode':'closest','resMode':'shape'}),                                                                      
                         )               
             mc.menuItem(parent=_n, 
-                        l = 'Point on surface',
+                        l = 'Surface Point',
                         c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'pointOnSurface'}),                                                                      
                         )     
             mc.menuItem(parent=_n, 
-                        l = 'Point on surface Loc',
+                        l = 'Surface Loc',
                         c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'pointOnSurfaceLoc'}),                                                                      
                         )               
             mc.menuItem(parent=_n,
-                        l = 'Point on surface Node',
+                        l = 'Surface Nodes',
                         c = cgmGen.Callback(MMCONTEXT.func_process, DIST.create_closest_point_node, self._l_sel,'firstToEach','Create closest Point Node',True,**{}),                                                                      
                         )                 
         
