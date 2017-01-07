@@ -166,7 +166,7 @@ def get_component(arg = None):
         _compType = _split[1]
         
         log.info("|{0}| >> split: {1} | root: {2} | comp: {3}".format(_str_func,_split,_root,_compType))   
-        return [''.join(arg.split('.')[1:]), _compType]
+        return [''.join(arg.split('.')[1:]), _root, _compType]
     return False
 
 def isFloatEquivalent(lhs, rhs, **kwargs):
@@ -187,6 +187,29 @@ def isFloatEquivalent(lhs, rhs, **kwargs):
 
     return abs(lhs-rhs) <= sys.float_info.epsilon
 
+def vectorArg(arg,noneValid = True):
+    """
+    Validates a vector arg
+
+    :parameters:
+        arg 
+
+    :returns
+        arg(if valid)
+    """     
+    try:
+        if not isListArg(arg):
+            raise ValueError,"Not a list, can't be vector"
+        if len(arg) != 3:
+            raise ValueError,"Len = {0} | {1}".format(len(arg),arg)
+        for i,v in enumerate(arg):
+            if valueArg(v) is False:
+                raise ValueError,"{0} not a value.".format(v)
+        return arg
+    except Exception,err:
+        if noneValid:return False
+        raise Exception,err
+    
 def isVectorEquivalent(lhs, rhs, **kwargs):
     """
     Return true if two vectors are of equal length and have equal values.

@@ -145,12 +145,14 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
         raise NotImplementedError,"Haven't implemented component move"
     else:
         log.debug("|{0}| >> obj: {1} | pos: {4} | pivot: {2} | space: {3}".format(_str_func,_obj,_pivot,_space,_pos))             
-        kws = {'rpr':False,'spr':False,'os':False,'ws':False}
+        kws = {'rpr':False,'spr':False,'os':False,'ws':False,'r':False}
         
         if _pivot == 'rp':kws['rpr'] = True
         else: kws['spr'] = True
         
-        if _space == 'object':kws['os']=True
+        if _space == 'object':
+            kws['os']=True
+            kws['rpr'] = False
         else:kws['ws']=True
         
         log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 

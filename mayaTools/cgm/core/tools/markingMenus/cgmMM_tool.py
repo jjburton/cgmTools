@@ -292,7 +292,49 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         mc.menuItem(l='Mesh', subMenu = False,
                     c=cgmGen.Callback(MMCONTEXT.select,self.var_contextTD.value,'mesh'))        
         mc.menuItem(l='Surface', subMenu = False,
-                    c=cgmGen.Callback(MMCONTEXT.select,self.var_contextTD.value,'nurbsSurface')) """         
+                    c=cgmGen.Callback(MMCONTEXT.select,self.var_contextTD.value,'nurbsSurface')) """       
+        
+        _p = mc.menuItem(parent=parent, subMenu = True,
+                         en=self._b_sel_pair,
+                         l = 'Distance')    
+        if self._b_sel_pair:     
+            _n = mc.menuItem(parent=_p, subMenu = True,
+                             l = 'Near')
+            _f = mc.menuItem(parent=_p, subMenu = True,
+                             l = 'Far')
+                             
+            mc.menuItem(parent=_n, #subMenu = True,
+                        l = 'Target',
+                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'object'}),                                                                      
+                        )   
+            mc.menuItem(parent=_n, #subMenu = True,
+                        l = 'Shape',
+                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'shape'}),                                                                      
+                        ) 
+            mc.menuItem(parent=_n, #subMenu = True,
+                        l = 'Point on surface Loc',
+                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'pointOnSurfaceLoc'}),                                                                      
+                        )                 
+            mc.menuItem(parent=_n, #subMenu = True,
+                        l = 'Point on surface',
+                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'pointOnSurface'}),                                                                      
+                        )     
+            mc.menuItem(parent=_n, #subMenu = True,
+                        l = 'Point on surface Node',
+                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.create_closest_point_node, self._l_sel,'firstToEach','Create closest Point Node',True,**{}),                                                                      
+                        )                 
+        
+        
+        
+            mc.menuItem(parent=_f, #subMenu = True,
+                        l = 'Target',
+                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Far Target',True,**{'mode':'far','resMode':'object'}),                                                                      
+                        )                  
+            mc.menuItem(parent=_f, #subMenu = True,
+                        l = 'Shape',
+                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Far Shape',True,**{'mode':'far','resMode':'shape'}),                                                                      
+                        )  
+        
         
         if 'joint' in self._l_contextTypes or _contextMode != 'selection':
             uiJoints = mc.menuItem(parent = parent, l='Joints', subMenu=True)
@@ -1202,16 +1244,32 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         _p = mc.menuItem(parent=_r, subMenu = True,
                          en=self._b_sel_few,
                          l = 'Distance',
-                         rp = 'SW')    
+                         rp = 'N')    
         
-        _f = mc.menuItem(parent=_p, #subMenu = True,
-                         l = 'Near Target',
-                         c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'object'}),                                                                      
-                         rp = 'SW')   
-        _f = mc.menuItem(parent=_p, #subMenu = True,
-                         l = 'Far Target',
-                         c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Far Target',True,**{'mode':'far','resMode':'object'}),                                                                      
-                         rp = 'W')          
+        _n = mc.menuItem(parent=_p, subMenu = True,
+                         l = 'Near',rp='NE')
+        _f = mc.menuItem(parent=_p, subMenu = True,
+                         l = 'Far',rp='NW')
+                         
+        mc.menuItem(parent=_n, #subMenu = True,
+                    l = 'Target',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'object'}),                                                                      
+                    rp = 'N')   
+        mc.menuItem(parent=_n, #subMenu = True,
+                    l = 'Shape',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'shape'}),                                                                      
+                    rp = 'N') 
+        mc.menuItem(parent=_n, #subMenu = True,
+                    l = 'Point on surface',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'shape'}),                                                                      
+                    rp = 'NE')     
+        
+        
+        
+        mc.menuItem(parent=_f, #subMenu = True,
+                    l = 'Target',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Far Target',True,**{'mode':'far','resMode':'object'}),                                                                      
+                    rp = 'E')          
         
     @cgmGen.Timer    
     def bUI_radial_snap(self,parent,direction = None):
