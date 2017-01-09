@@ -413,7 +413,7 @@ def create_closest_point_node(source = None, targetSurface = None):
             attributes.doConnectAttr((s +'.worldSpace'),(closestPointNode+'.inputSurface'))
             
             attributes.doConnectAttr ((closestPointNode+'.position'),(_res_loc+'.translate'))  
-            _node.append(closestPointNode)
+            _nodes.append(closestPointNode)
             
         elif _type == 'nurbsCurve':
             _node = mc.createNode ('nearestPointOnCurve')
