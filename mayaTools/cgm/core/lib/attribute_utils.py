@@ -27,6 +27,10 @@ from cgm.core.lib import name_utils as NAMES
 
 from cgm.lib import attributes
 
+import sys
+def testNAME():
+    print sys._getframe().f_code.co_name
+
 _d_attrTypes = {'message':('message','msg'),
                 'double':('float','fl','f','doubleLinear','doubleAngle','double','d'),
                 'string':('string','s','str'),
@@ -114,23 +118,23 @@ def validate_arg(*a):
     _str_func = 'validate_arg'
     _len = len(a)
     log.debug("|{0}| >> a: {1}...".format(_str_func,a))
-    
+
     if _len == 1:
         log.debug("|{0}| >> single arg...".format(_str_func)) 
-        
+
         if issubclass(type(a[0]),dict):
             log.debug("|{0}| >> dict arg...".format(_str_func))             
             if a[0].get('combined'):
                 log.debug("|{0}| >> passed validated arg, repassing...".format(_str_func))
                 return a[0]
             raise ValueError,"This isn't a valid dict: {0}".format(a[0])
-        
+
         elif type(a[0]) in [list,tuple] and len(a[0]) == 2:
             log.debug("|{0}| >> list arg...".format(_str_func))             
             _obj = a[0][0]
             _attr = a[0][1]
             _combined = "{0}.{1}".format(_obj,_attr)
-            
+
         elif '.' in a[0]:
             log.debug("|{0}| >> string arg...".format(_str_func))             
             _obj = a[0].split('.')[0]
@@ -143,14 +147,14 @@ def validate_arg(*a):
         _combined = "{0}.{1}".format(a[0],a[1])
         _obj = a[0]
         _attr = a[1]     
-    if not mc.objExists(_combined):  
-        raise ValueError,"{0} doesn't exist.".format(_combined)        
-    return {'obj':_obj ,'attr':_attr ,'combined':_combined}
-    
+    #if not mc.objExists(_combined):  
+        #raise ValueError,"{0} doesn't exist.".format(_combined)        
+    return {'node':_obj,'obj':_obj ,'attr':_attr ,'combined':_combined}
+
 def alias_get(arg, attr = None):
     """
     Gets the alias of an object attribute if there is one
-    
+
     :parameters:
         arg(varied): Accepts 'obj.attr', ['obj','attr'] formats.
         attr(str): attribute to get the alias of
@@ -185,25 +189,25 @@ def alias_set(arg, alias = None):
         if mc.aliasAttr(_d['combined'],q=True):           
             mc.aliasAttr(_d['combined'],remove=True)
             log.warning("'{0}' cleared of alias!".format(_d['combined']))
-            
+
 def compare_attrs(source, targets, **kws):
     """   
     Call for comparing a source object to targets to check values and attributes
-    
+
     :parameters:
         source(string): Source object for a comparative base
         targets(list): objects to compare to
         kws(dict):pass through for mc.listAttr query
-        
+
     :returns
         Report in the script editor
 
     """         
     _source = NAMES.get_short(source)
     _l_targets = cgmValid.objStringList(targets)
-    
+
     log.info(cgmGeneral._str_hardLine)   
-    
+
     for t in _l_targets:
         l_targetAttrs = mc.listAttr(t,**kws)
         if not l_targetAttrs:
@@ -233,7 +237,7 @@ def compare_attrs(source, targets, **kws):
             log.info("attr: {0}...".format(b[0]))
             log.info("source: {0}".format(b[1]))
             log.info("target: {0}".format(b[2]))
-            
+
         log.info("{0} >>".format(_t) + cgmGeneral._str_subLine)
     log.info(cgmGeneral._str_hardLine)
 
@@ -243,11 +247,11 @@ def get(*a, **kws):
     """   
     Replacement for getAttr which get's message objects as well as parses double3 type 
     attributes to a list  
-    
+
     :parameters:
         *a(varied): - Uses validate_arg 
         **kws -- pass through for getAttr on certain types
-        
+
     :returns
         value(s)
     """ 
@@ -256,10 +260,10 @@ def get(*a, **kws):
     _combined = _d['combined']
     _obj = _d['obj']
     _attr = _d['attr']
-    
+
     log.debug("|{0}| >> arg: {1}".format(_str_func,a))    
     if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
-    
+
     if "[" in _attr:
         log.debug("Indexed attr")
         return mc.listConnections(_combined)
@@ -267,7 +271,7 @@ def get(*a, **kws):
     attrType = mc.getAttr(_d['combined'],type=True)
     if attrType in ['TdataCompound']:
         return mc.listConnections(_combined)		
-    
+
     _isMsg = (mc.attributeQuery (_attr,node=_obj,msg=True))
 
     if _isMsg == True:
@@ -279,44 +283,44 @@ def get(*a, **kws):
         return mc.getAttr("{0}.{1}".format(_obj,parentAttr[0]), **kws)
     else:
         return mc.getAttr(_combined, **kws)
-    
-def set(obj, attr, value = None, lock = False,**kws):
+
+def set(node, attr, value = None, lock = False,**kws):
     """   
     Replacement for setAttr which get's message objects as well as parses double3 type 
     attributes to a list  
-    
+
     :parameters:
-        obj(str)
+        node(str)
         attr(str)
         value(varied): -
         forceLock -- lock after setting
         **kws -- pass through for getAttr on certain types
-        
+
     :returns
         value(s)
     """ 
     _str_func = 'set'
-    _d = validate_arg(obj,attr) 
+    _d = validate_arg(node,attr) 
     _combined = _d['combined']
-    _obj = _d['obj']
+    _obj = _d['node']
     _attr = _d['attr']
     _wasLocked = False
-    
+
     log.info("|{0}| >> attr: {1} | value: {2} | lock: {3}".format(_str_func,_combined,value, lock))    
     if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))  
-    
+
     _aType =  mc.getAttr(_combined,type=True)
     _validType = validate_attrTypeName(_aType)
-    
+
     if mc.getAttr(_combined,lock=True):
         _wasLocked = True
         mc.setAttr(_combined,lock=False)    
-        
+
     #CONNECTED!!!
     if not is_keyed(_d):
         if break_connection(_d):
             log.warning("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
-    
+
     if _validType == 'long':
         mc.setAttr(_combined,int(float(value)), **kws)
     elif _validType == 'string':
@@ -328,17 +332,17 @@ def set(obj, attr, value = None, lock = False,**kws):
 
     if _wasLocked or lock:
         mc.setAttr(_combined,lock=True)    
-        
+
     return
 
-    
+
 def validate_attrTypeName(attrType):
     """"   
     Validates an attr type from various returns to something more consistant
-    
+
     :parameters:
         attrType(string): - U
-        
+
     :returns
         validatedType(string)
     """         
@@ -350,42 +354,113 @@ def validate_attrTypeName(attrType):
 def is_keyed(*a):
     """   
     Returns if an attribute is keyed
-    
+
     :parameters:
         *a(varied): - Uses validate_arg 
-        
+
     :returns
         status(bool)
     """ 
     _str_func = 'is_keyed'
     _d = validate_arg(*a) 
-    
+
     if mc.keyframe(_d['combined'], query=True):return True
     return False
 
+def is_hidden(*a):
+    """   
+    hidden query
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        type(string)
+    """ 
+    _str_func = 'is_hidden'
+    _d = validate_arg(*a) 
+
+    return not mc.getAttr(_d['combined'],channelBox=True) 
+
+
+def get_enum(*a):
+    """   
+    Get enum
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        type(string)
+    """ 
+    _str_func = 'get_enum'
+    _d = validate_arg(*a) 
+    
+    if get_type(_d) == 'enum':
+        return mc.addAttr(_d['combined'],q=True, en = True) 
+    return False
+    
+def is_keyable(*a):
+    """   
+    Keyable query
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        type(string)
+    """ 
+    _str_func = 'is_keyable'
+    _d = validate_arg(*a) 
+
+    try:
+        return mc.getAttr(_d['combined'],keyable=True) 
+    except Exception,err:
+        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        return False
+    
+def is_locked(*a):
+    """   
+    Lock query
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        type(string)
+    """ 
+    _str_func = 'is_locked'
+    _d = validate_arg(*a) 
+
+    try:
+        return mc.getAttr(_d['combined'],lock=True) 
+    except Exception,err:
+        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        return False
+    
 def is_connected(*a):
     """   
     Returns if an attribute is keyed
-    
+
     :parameters:
         *a(varied): - Uses validate_arg 
-        
+
     :returns
         status(bool)
     """ 
     _str_func = 'is_connected'
     _d = validate_arg(*a) 
-    
+
     if mc.connectionInfo(_d['combined'], isDestination=True):return True
     return False
 
 def get_familyDict(*a):
     """   
     Get family dict of an attribute
-    
+
     :parameters:
         *a(varied): - Uses validate_arg 
-        
+
     :returns
         family(dict)
     """     
@@ -394,7 +469,7 @@ def get_familyDict(*a):
     _combined = _d['combined']
     _obj = _d['obj']
     _attr = _d['attr']
-        
+
     returnDict = {}
     buffer = mc.attributeQuery(_attr, node = _obj, listParent=True)
     if buffer is not None:
@@ -409,14 +484,14 @@ def get_familyDict(*a):
     if returnDict:
         return returnDict
     return False
-    
+
 def break_connection(*a):
     """   
     Breaks connections on an attribute. Handles locks on source or end
-    
+
     :parameters:
         *a -- validate_arg
-        
+
     :returns
         broken connection or status
     """ 
@@ -425,9 +500,9 @@ def break_connection(*a):
     _combined = _d['combined']
     _obj = _d['obj']
     _attr = _d['attr']
-    
+
     _drivenAttr = _combined
-    
+
     family = {}
     source = []
 
@@ -471,6 +546,912 @@ def break_connection(*a):
     else:
         return False
 
+def connect(fromAttr,toAttr,transferConnection=False,lock = False):
+    """   
+    Breaks connections on an attribute. Handles locks on source or end
+
+    :parameters:
+        attribute(string) - 'obj.attribute'
+        value() - depends on the attribute type
+        transferConnection(bool) - (False) - whether you wante to transfer the existing connection to or not
+        useful for buffer connections
+        lock(bool) = False(default)
+
+
+    :returns
+        broken connection or status
+    """ 
+    _str_func = 'connect'
+    _d = validate_arg(fromAttr) 
+    _combined = _d['combined']
+    _obj = _d['obj']
+    _attr = _d['attr']
+
+    assert fromAttr != toAttr,"Cannot connect an attr to itself. The world might blow up!"
+
+    if transferConnection: raise Exception,"Look at why you're transferring connection"
+
+    _wasLocked = False
+    if (mc.objExists(toAttr)) == True:
+        if mc.getAttr(toAttr,lock=True) == True:
+            _wasLocked = True
+            mc.setAttr(toAttr,lock=False)
+
+        #bufferConnection = get_driver(toAttr)
+        _connection = break_connection(toAttr)
+        #doBreakConnection(attrBuffer[0],attrBuffer[1])
+        mc.connectAttr(fromAttr,toAttr)     
+
+    if transferConnection:
+        if _connection and not is_connected(fromAttr):
+            log.info("|{0}| >> {1} | Transferring to fromAttr: {2} | connnection: {3}".format(_str_func,toAttr,fromAttr,_connection))            
+            mc.connectAttr(_connection,fromAttr)
+
+    if _wasLocked or lock:
+        mc.setAttr(toAttr,lock=True)    
+
+
+def OLDdoConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
+    """                                     
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Replacement for setAttr which will unlock a locked node it's given
+    to force a setting of the values. Also has a lock when done overide.
+    In addition has transfer connections ability for buffer nodes.
+
+    ARGUMENTS:
+    attribute(string) - 'obj.attribute'
+    value() - depends on the attribute type
+    forceLock(bool) = False(default)
+    transferConnection(bool) - (False) - whether you wante to transfer the existing connection to or not
+                                        useful for buffer connections
+    RETURNS:
+    nothin
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    assert fromAttr != toAttr,"Cannot connect an attriubute to itself. The world might blow up!"
+
+    wasLocked = False
+    if (mc.objExists(toAttr)) == True:
+        if mc.getAttr(toAttr,lock=True) == True:
+            wasLocked = True
+            mc.setAttr(toAttr,lock=False)
+        bufferConnection = returnDriverAttribute(toAttr)
+        attrBuffer = returnObjAttrSplit(toAttr)
+        if not attrBuffer:
+            return False
+        doBreakConnection(attrBuffer[0],attrBuffer[1])
+        mc.connectAttr(fromAttr,toAttr)     
+
+    if transferConnection == True:
+        if bufferConnection != False:
+            mc.connectAttr(bufferConnection,toAttr)
+
+    if wasLocked == True or forceLock == True:
+        mc.setAttr(toAttr,lock=True)
+
+
+def add(obj,attr,attrType, enumOptions = ['off','on'],*a, **kws):
+    """   
+    Breaks connections on an attribute. Handles locks on source or end
+
+    :parameters:
+        obj(string) -- must exist in scene
+        attr(string) -- attribute name
+        attrType(string) -- must be valid type. Type 'print attrTypesDict' for search dict 
+        enumOptions(list) -- string list of options for enum attr types
+
+    :returns
+        combined name
+    """ 
+    _str_func = 'add'
+    _combined = "{0}.{1}".format(obj,attr)
+    if mc.objExists(_combined):
+        raise ValueError,"{0} already exists.".format(_combined)
+
+    _type = validate_attrTypeName(attrType)
+
+    assert _type is not False,"'{0}' is not a valid attribute type for creation.".format(attrType)
+
+    if _type == 'string':
+        mc.addAttr (obj, ln = attr, dt = 'string',*a, **kws)
+    elif _type == 'double':
+        mc.addAttr (obj, ln = attr, at = 'float',*a, **kws)
+    elif _type == 'long':
+        mc.addAttr (obj, ln = attr, at = 'long',*a, **kws)
+    elif _type == 'double3':
+        mc.addAttr (obj, ln=attr, at= 'double3',*a, **kws)
+        mc.addAttr (obj, ln=(attr+'X'),p=attr , at= 'double',*a, **kws)
+        mc.addAttr (obj, ln=(attr+'Y'),p=attr , at= 'double',*a, **kws)
+        mc.addAttr (obj, ln=(attr+'Z'),p=attr , at= 'double',*a, **kws)        
+    elif _type == 'enum':
+        mc.addAttr (obj,ln = attr, at = 'enum', en=('%s' %(':'.join(enumOptions))),*a, **kws)
+        mc.setAttr ((obj+'.'+attr),e=True,keyable=True)
+
+    elif _type == 'bool':
+        mc.addAttr (obj, ln = attr,  at = 'bool',*a, **kws)
+        mc.setAttr ((obj+'.'+attr), edit = True, channelBox = True)
+    elif _type == 'message':
+        mc.addAttr (obj, ln = attr, at = 'message',*a, **kws )
+    else:
+        raise ValueError,"Don't know what to do with attrType: {0}".format(attrType)
+        #return False
+    return _combined        
+
+def get_standardFlagsDict(*a):
+    """   
+    Returns a diciontary of locked,keyable,locked states of an attribute. If
+    the attribute is numeric, it grabs the typical flags for that.
+
+    :parameters:
+        *a -- validate_arg
+
+    :returns
+        dict
+    """ 
+    _str_func = 'get_standardFlagsDict'
+    _d = validate_arg(*a) 
+    _combined = _d['combined']
+    _obj = _d['obj']
+    _attr = _d['attr']
+
+    objAttrs = mc.listAttr(_obj, userDefined = True) or []
+    dataDict = {'type':mc.getAttr(_combined,type=True),
+                'locked':mc.getAttr(_combined ,lock=True),
+                'keyable':mc.getAttr(_combined ,keyable=True)}
+
+    dynamic = False
+    if _attr in objAttrs:
+        dynamic = True
+    dataDict['dynamic'] = dynamic
+
+    hidden = not mc.getAttr(_combined,channelBox=True)
+
+    if dataDict.get('keyable'):
+        hidden = mc.attributeQuery(_attr, node = _obj, hidden=True)
+    dataDict['hidden'] = hidden
+
+    enumData = False
+    if dataDict.get('type') == 'enum' and dynamic == True:
+        dataDict['enum'] = mc.addAttr(_combined,q=True, en = True)
+
+    numeric = True
+    if dataDict.get('type') in ['string','message','enum','bool']:
+        numeric = False
+    dataDict['numeric'] = numeric
+
+    if dynamic:
+        dataDict['readable']=mc.addAttr(_combined,q=True,r=True)
+        dataDict['writable']=mc.addAttr(_combined,q=True,w=True)
+        dataDict['storable']=mc.addAttr(_combined,q=True,s=True)
+        dataDict['usedAsColor']=mc.addAttr(_combined,q=True,usedAsColor = True)        
+
+    return dataDict    
+
+def get_numericFlagsDict(*a):
+    """   
+    Returns a diciontary of max,min,ranges,softs and default settings of an attribute
+
+    :parameters:
+        *a -- validate_arg
+
+    :returns
+        dict
+    """ 
+    _str_func = 'get_numericFlagsDict'
+    _d = validate_arg(*a) 
+    _combined = _d['combined']
+    _obj = _d['obj']
+    _attr = _d['attr']
+
+    objAttrs = mc.listAttr(_obj, userDefined = True) or []
+
+    dynamic = False
+    if _attr in objAttrs:
+        dynamic = True
+
+    numeric = True
+    attrType = mc.getAttr(_combined,type=True)    
+    if attrType in ['string','message','enum','bool']:
+        numeric = False
+
+    dataDict = {}    
+    # Return numeric data    
+    if not numeric or not dynamic or mc.attributeQuery(_attr, node = _obj, listChildren=True):
+        return False
+    else:
+        dataDict['min'] = False                    
+        if mc.attributeQuery(_attr, node = _obj, minExists=True):
+            try:
+                minValue =  mc.attributeQuery(_attr, node = _obj, minimum=True)
+                if minValue is not False:
+                    dataDict['min'] = minValue[0]
+            except:
+                dataDict['min'] = False
+                log.warning("'%s.%s' failed to query min value" %(_obj,_attr))
+
+        dataDict['max'] = False                
+        if mc.attributeQuery(_attr, node = _obj, maxExists=True):
+            try:
+                maxValue =  mc.attributeQuery(_attr, node = _obj, maximum=True)
+                if maxValue is not False:
+                    dataDict['max']  = maxValue[0]                    
+            except:
+                dataDict['max']  = False
+                log.warning("'%s.%s' failed to query max value" %(_obj,_attr))
+
+        dataDict['default'] = False             
+        if type(mc.addAttr(_combined,q=True,defaultValue = True)) is int or float:
+            try:
+                defaultValue = mc.attributeQuery(_attr, node = _obj, listDefault=True)
+                if defaultValue is not False:
+                    dataDict['default'] = defaultValue[0]  
+            except:
+                dataDict['default'] = False
+                log.warning("'%s.%s' failed to query default value" %(_obj,_attr))
+
+        #>>> Soft values
+        dataDict['softMax']  = False
+        try:
+            softMaxValue =  mc.attributeQuery(_attr, node = _obj, softMax=True)
+            if softMaxValue is not False:
+                dataDict['softMax'] = softMaxValue[0]                  
+        except:
+            dataDict['softMax']  = False
+
+        dataDict['softMin']  = False
+        try:
+            softMinValue =  mc.attributeQuery(_attr, node = _obj, softMin=True)
+            if softMinValue is not False:
+                dataDict['softMin']  = softMinValue[0]                  
+        except:
+            dataDict['softMin']  = False
+
+        #>>> Range
+        try:
+            dataDict['range'] =  mc.attributeQuery(_attr, node = _obj, range=True)
+        except:
+            dataDict['range'] = False
+
+        try:
+            dataDict['softRange'] =  mc.attributeQuery(_attr, node = _obj, softRange=True)
+        except:
+            dataDict['softRange'] = False 
+
+        return dataDict     
+
+def get_nameNice(*a):
+    """   
+    Get the nice name of an attribute
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'get_nameNice'
+    _d = validate_arg(*a) 
+
+    return mc.attributeQuery(_d['attr'], node = _d['obj'], niceName = True) or False
+
+def renameNice(node=None, attr=None, name=None):
+    """   
+    Set the long name of an attribute
+
+    :parameters:
+        node(string)
+        attr(string)
+        name(string) -- new name. If None, assumes obj arg is combined and uses attr. If False, clears the nice name
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'rename'
+    if name is None:
+        name = attr
+        attr = None
+        _d = validate_arg(node) 
+    else:
+        _d = validate_arg(node,attr) 
+
+    _longName = name_getLong(_d)
+    #try:
+    if name:
+        mc.addAttr(_d['combined'],edit = True, niceName = name)
+    elif name == False:
+        mc.addAttr(_d['combined'],edit = True, niceName = _d['attr'])
+    return get_nameNice(_d)    
+
+def get_nameLong(*a):
+    """   
+    Get the long name of an attribute
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'name_getLong'
+    _d = validate_arg(*a) 
+    try:
+        return mc.attributeQuery(_d['attr'], node = _d['obj'], longName = True) or False
+    except:
+        if mc.objExists(_d['combined']):
+            return _d['attr']
+        else:
+            raise RuntimeError,"Attr does not exist: {0}".format(_d['combined'])
+
+def rename(obj=None, attr=None, name=None):
+    """   
+    Set the long name of an attribute
+
+    :parameters:
+        obj(string)
+        attr(string)
+        name(string) -- new name. If None, assumes obj arg is combined and uses attr
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'rename'
+    if name is None:
+        name = attr
+        attr = None
+        _d = validate_arg(obj) 
+    else:
+        _d = validate_arg(obj,attr) 
+
+    _longName = name_getLong(_d)
+    #try:
+    if name:
+        if name != _longName:
+            attributes.doRenameAttr(_d['obj'],_longName,name)
+            return True
+        else:
+            log.debug("|{0}| >> nice name is already: {1} | combined:{2}".format(_str_func,name,_d['combined']))
+            return False
+    raise ValueError,"No new attr name provided"
+
+def is_dynamic(*a):
+    """   
+    Returns if an attribute is dynamic
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'is_dynamic'
+    _d = validate_arg(*a) 
+    if _d['attr'] in mc.listAttr(_d['obj'], userDefined = True):
+        return True
+    return False
+
+def is_numeric(*a):
+    """   
+    Returns if an attribute is numeric
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'is_numeric'
+    _d = validate_arg(*a) 
+    if mc.getAttr(_d['combined'],type=True) in ['string','message','enum','bool']:
+        return False
+    return True
+
+def is_readable(*a):
+    """   
+    Returns if an attribute is readable
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'is_readable'
+    _d = validate_arg(*a) 
+    if not is_dynamic(_d):
+        return False
+    return mc.addAttr(_d['combined'],q=True,r=True) or False
+
+def is_writable(*a):
+    """   
+    Returns if an attribute is writable
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'is_writable'
+    _d = validate_arg(*a) 
+    if not is_dynamic(_d):
+        return False
+    return mc.addAttr(_d['combined'],q=True,w=True) or False
+
+def is_storable(*a):
+    """   
+    Returns if an attribute is storable
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'is_storable'
+    _d = validate_arg(*a) 
+    if not is_dynamic(_d):
+        return False
+    return mc.addAttr(_d['combined'],q=True,s=True) or False
+
+def is_usedAsColor(*a):
+    """   
+    Returns if an attribute is usedAsColor
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'is_usedAsColor'
+    _d = validate_arg(*a) 
+    if not is_dynamic(_d):
+        return False
+    return mc.addAttr(_d['combined'],q=True,usedAsColor=True) or False
+
+def is_userDefined(*a):
+    """   
+    Returns if an attribute is userDefined
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        status(bool)
+    """ 
+    _str_func = 'is_userDefined'
+    _d = validate_arg(*a) 
+
+    if get_nameLong(_d) in mc.listAttr(_d['node'],userDefined=True):
+        return True
+    return False
+
+def get_range(*a):
+    """   
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        range(bool)
+    """ 
+    _str_func = 'get_range'
+    _d = validate_arg(*a) 
+
+    try:return mc.attributeQuery(_d['attr'], node = _d['node'], range=True) or False 
+    except Exception,err:
+        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        return False
+
+def get_rangeSoft(*a):
+    """   
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        range(bool)
+    """ 
+    _str_func = 'get_rangeSoft'
+    _d = validate_arg(*a) 
+
+    try:return mc.attributeQuery(_d['attr'], node = _d['node'], softRange=True) or False 
+    except Exception,err:
+        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        return False
+
+def get_children(*a):
+    """   
+    Get children of an attribute
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        children(list)
+    """ 
+    _str_func = 'get_children'
+    _d = validate_arg(*a) 
+
+    try:return mc.attributeQuery(_d['attr'], node = _d['node'], listChildren=True) or [] 
+    except Exception,err:
+        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        return False
+
+def get_parent(*a):
+    """   
+    Get parent of an attribute
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        children(list)
+    """ 
+    _str_func = 'get_parent'
+    _d = validate_arg(*a) 
+
+    try:
+        _buffer = mc.attributeQuery(_d['attr'], node = _d['node'], listParent=True) or [] 
+        if _buffer:return _buffer[0]
+        return _buffer
+    except Exception,err:
+        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        return False   
+
+def get_siblings(*a):
+    """   
+    Get siblings of an attribute
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        siblings(list)
+    """ 
+    _str_func = 'get_siblings'
+    _d = validate_arg(*a) 
+
+    try:
+        return mc.attributeQuery(_d['attr'], node = _d['node'], listSiblings=True) or [] 
+    except Exception,err:
+        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        return False  
+    
+def get_type(*a):
+    """   
+    Get attr type
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        type(string)
+    """ 
+    _str_func = 'get_type'
+    _d = validate_arg(*a) 
+
+    try:
+        return mc.getAttr(_d['combined'],type=True) 
+    except Exception,err:
+        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        return False  
+    
+def get_driver(node, attr = None, getNode = False, skipConversionNodes = False, longNames = True):
+    """   
+    Get the driver of an attribute if it is there
+
+    :parameters:
+        node(str) -- 
+        attr(str)
+        getNode(bool) -- if you want the dag node or the attribute(s)
+        skipConversionNodes(bool) -- whether you want conversion nodes included in query
+        longNames(bool) -- how you want the data returned name wise
+
+    :returns
+        driver(string)
+    """
+    _str_func = 'get_driver'    
+    if attr is None:
+        _d = validate_arg(node)
+    else:
+        _d = validate_arg(node,attr)     
+
+    _combined = _d['combined']
+    
+    if getNode:
+        objectBuffer =  mc.listConnections (_combined, scn = skipConversionNodes, d = False, s = True, plugs = False)
+        if not objectBuffer:
+            return False
+        if longNames:	
+            return NAMES.get_long(objectBuffer[0])
+        else:
+            return NAMES.get_short(objectBuffer[0])      
+    else:
+        if (mc.connectionInfo (_combined,isDestination=True)) == True:
+            sourceBuffer = mc.listConnections (_combined, scn = skipConversionNodes, d = False, s = True, plugs = True)
+            if not sourceBuffer:
+                sourceBuffer = [mc.connectionInfo (_combined,sourceFromDestination=True)]   
+            if sourceBuffer:
+                if longNames:		    
+                    return NAMES.get_long(sourceBuffer[0])
+                else:
+                    return NAMES.get_short(sourceBuffer[0])
+            return False
+    return False    
+
+def get_driven(node, attr = None, getNode = False, skipConversionNodes = False, longNames = True):
+    """   
+    Get attributes driven by an attribute
+
+    :parameters:
+        node(str) -- 
+        attr(str)
+        getNode(bool) -- if you want the dag node or the attribute(s)
+        skipConversionNodes(bool) -- whether you want conversion nodes included in query
+        longNames(bool) -- how you want the data returned name wise
+
+    :returns
+        driver(string)
+    """
+    _str_func = 'get_driven'    
+    if attr is None:
+        _d = validate_arg(node)
+    else:
+        _d = validate_arg(node,attr)     
+
+    _combined = _d['combined']
+    
+    if getNode:
+        objectBuffer =  mc.listConnections (_combined, scn = skipConversionNodes, d = True, s = False, plugs = False)
+        if not objectBuffer:
+            return False
+        if longNames:	
+            return NAMES.get_long(objectBuffer[0])
+        else:
+            return NAMES.get_short(objectBuffer[0])      
+    else:
+        if (mc.connectionInfo (_combined,isSource=True)) == True:
+            destinationBuffer = mc.listConnections (_combined, scn = skipConversionNodes, d = True, s = False, plugs = True)
+            if not destinationBuffer:
+                destinationBuffer = mc.connectionInfo (_combined,destinationFromSource=True) 
+            if destinationBuffer:
+                _l = []
+                for lnk in destinationBuffer:
+                    if longNames:		    
+                        _l.append( NAMES.get_long(lnk) )
+                    else:
+                        _l.append( NAMES.get_short(lnk) )
+                return _l
+            return False
+    return False 
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def get_sequentialAttrDict(node, attr = None):
+    """   
+    Get dict of sequential attrs. This is mainly used for our own storage methods
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        type(string)
+    """ 
+    _str_func = 'get_sequentialAttrDict'
+    
+    _res = {}
+    _l_user = mc.listAttr(node, userDefined=True)
+    for a in _l_user:
+        if '_' in a:
+            _split = a.split('_')
+            _int_ = _split[-1]
+            _str_ = ('_').join(_split[:-1])
+            if str(attr) == _str_:
+                try:
+                    _res[int(_int_)] = a
+                except:
+                    log.warning("|{0}| >> {1}.{2} failed to int. | int: {3}".format(_str_func,NAMES.get_short(node),a,_int_))     	               	
+    return _res	
+
+
+def msgList_exists(self,attr):
+    """
+    Fast check to see if we have data on this attr chain
+    """
+    try:
+        #log.debug(">>> %s.msgList_exists(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
+        d_attrs = self.get_sequentialAttrDict(attr)
+        for i,k in enumerate(d_attrs.keys()):
+            str_attr = d_attrs[i]
+            if self.getMessage(d_attrs[i]):
+                return True
+        #log.debug("-"*100)            	               	
+        return False   
+    except StandardError,error:
+        raise StandardError, "%s.msgList_exists >>[Error]<< : %s"(self.p_nameShort,error)
+
+def msgList_connect(self, nodes, attr = None, connectBack = None):
+    """
+    Because multimessage data can't be counted on for important sequential connections we have
+    implemented this.
+
+    @param node: Maya node to connect to this mNode
+    @param attr: Base name for the message attribute sequence. It WILL be appended with '_' as in 'attr_0'
+    @param connectBack: attr name to connect back to self
+    @param purge: Whether to purge before build
+
+    """	
+    _str_funcName = "%s.msgList_connect()"%self.p_nameShort  
+    #log.debug(">>> %s.msgList_connect( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 	    
+    try:
+        #ml_nodes = cgmValid.objStringList(nodes,noneValid=True)	    
+        ml_nodes = validateObjListArg(nodes,noneValid=True)
+        if ml_nodes:self.msgList_purge(attr)#purge first
+        for i,mi_node in enumerate(ml_nodes):
+            str_attr = "%s_%i"%(attr,i)
+            try:attributes.storeObjectToMessage(mi_node.mNode,self.mNode,str_attr)
+            except StandardError,error:log.error("%s >> i : %s | node: %s | attr : %s | connect back error: %s"%(_str_funcName,str(i),mi_node.p_nameShort,str_attr,error))
+            if connectBack is not None:
+                try:attributes.storeObjectToMessage(self.mNode,mi_node.mNode,connectBack)
+                except StandardError,error:log.error("%s >> i : %s | node: %s | connectBack : %s | connect back error: %s"%(_str_funcName,str(i),mi_node.p_nameShort,connectBack,error))
+            #log.debug("'%s.%s' <<--<< '%s.msg'"%(self.p_nameShort,str_attr,mi_node.p_nameShort))
+        #log.debug("-"*100)            	
+        return True
+    except StandardError,error:
+        raise StandardError, "%s.msgList_connect >>[Error]<< : %s"(self.p_nameShort,error)	
+
+def msgList_get(self,attr = None, asMeta = True, cull = True):
+    """
+    @param attr: Base name for the message attribute sequence. It WILL be appended with '_' as in 'attr_0'
+    @param asMeta: Returns a MetaClass object list
+    @param cull: Whether to remove empty entries in the returned list
+    """
+    try:
+        #log.debug(">>> %s.get_msgList(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
+        d_attrs = self.get_sequentialAttrDict(attr)
+        l_return = []
+        ml_return = []
+        for i,k in enumerate(d_attrs.keys()):
+            str_msgBuffer = self.getMessage(d_attrs[i],False)
+            if str_msgBuffer:str_msgBuffer = str_msgBuffer[0]
+
+            l_return.append(str_msgBuffer)
+            if asMeta:
+                ml_return.append( validateObjArg(str_msgBuffer,noneValid=True) )
+                #log.debug("index: %s | msg: '%s' | mNode: %s"%(i,str_msgBuffer,ml_return[i]))
+            else:log.debug("index: %s | msg: '%s' "%(i,str_msgBuffer))
+
+        if cull:
+            l_return = [o for o in l_return if o]
+            if asMeta: ml_return = [o for o in ml_return if o]
+
+        #log.debug("-"*100)  
+        if asMeta:return ml_return
+        return l_return
+    except StandardError,error:
+        raise StandardError, "%s.get_msgList >>[Error]<< : %s"(self.p_nameShort,error)
+
+def msgList_getMessage(self,attr = None, longNames = True, cull = True):
+    """
+    msgList equivalent to regular getMessage call
+    @param attr: Base name for the message attribute sequence. It WILL be appended with '_' as in 'attr_0'
+    @param longNames: Returns a MetaClass object list
+    @param cull: Whether to remove empty entries in the returned list
+    """
+    try:
+        #log.debug(">>> %s.msgList_getMessage(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
+        d_attrs = self.get_sequentialAttrDict(attr)
+        l_return = []
+        for i,k in enumerate(d_attrs.keys()):
+            str_msgBuffer = self.getMessage(d_attrs[i],longNames = longNames)
+            if str_msgBuffer:str_msgBuffer = str_msgBuffer[0]
+            l_return.append(str_msgBuffer)
+            #log.debug("index: %s | msg: '%s' "%(i,str_msgBuffer))
+        if cull:
+            l_return = [o for o in l_return if o]
+        #log.debug("-"*100)  
+        return l_return
+    except StandardError,error:
+        raise StandardError, "%s.msgList_getMessage >>[Error]<< : %s"(self.p_nameShort,error)
+
+def msgList_append(self, node, attr = None, connectBack = None):
+    """
+    Append node to msgList
+
+    Returns index
+    """
+    #try:
+    i_node = validateObjArg(node,noneValid=True)
+    if not i_node:
+        raise StandardError, " %s.msgList_append >> invalid node: %s"%(self.p_nameShort,node)
+    #if not self.msgList_exists(attr):
+        #raise StandardError, " %s.msgList_append >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
+
+    #log.debug(">>> %s.msgList_append(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
+
+    ml_nodes = self.msgList_get(attr,asMeta=True)
+    if i_node in ml_nodes:
+        #log.debug(">>> %s.msgList_append >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75) 
+        idx = ml_nodes.index(i_node)	    
+        return idx
+    else:
+        #log.debug("%s"%i_node.p_nameShort)
+        ml_nodes.append(i_node)
+        idx = ml_nodes.index(i_node)
+        self.msgList_connect(ml_nodes,attr,connectBack)
+        return idx
+    #log.debug("-"*100)            	               	
+    return True 
+
+def msgList_index(self, node, attr = None):
+    """
+    Return the index of a node if it's in a msgList
+    """
+    i_node = validateObjArg(node,noneValid=True)
+    if not i_node:
+        raise StandardError, " %s.msgList_index >> invalid node: %s"%(self.p_nameShort,node)
+    if not self.msgList_exists(attr):
+        raise StandardError, " %s.msgList_index >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
+    #log.debug(">>> %s.msgList_index(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
+    ml_nodes = self.msgList_get(attr,asMeta=True)	
+    if i_node in ml_nodes:
+        #log.debug(">>> %s.msgList_index >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75)  		
+        return ml_nodes.index(i_node)
+    #log.debug("-"*100)            	               	
+    return False
+
+def msgList_remove(self, nodes, attr = None):
+    """
+    Return the index of a node if it's in a msgList
+    """
+    ml_nodesToRemove = validateObjListArg(nodes,noneValid=True)
+    if not ml_nodesToRemove:
+        raise StandardError, " %s.msgList_index >> invalid nodes: %s"%(self.p_nameShort,nodes)
+    if not self.msgList_exists(attr):
+        raise StandardError, " %s.msgList_append >> invalid msgList attr: '%s'"%(self.p_nameShort,attr)		
+    #log.debug(">>> %s.msgList_remove(nodes = %s, attr = '%s') >> "%(self.p_nameShort,nodes,attr) + "="*75)  
+    ml_nodes = self.msgList_get(attr,asMeta=True)
+    b_removedSomething = False
+    for i_n in ml_nodesToRemove:
+        if i_n in ml_nodes:
+            ml_nodes.remove(i_n)
+            #log.debug(">>> %s.msgList_remove >> Node removed: %s "%(self.p_nameShort,i_n.p_nameShort) + "="*75)  				
+            b_removedSomething = True
+    if b_removedSomething:
+        self.msgList_connect(ml_nodes,attr)
+        return True	    
+    #log.debug("-"*100)            	               	
+    return False
+
+def msgList_purge(self,attr):
+    """
+    Purge all the attributes of a msgList
+    """
+    try:
+        #log.debug(">>> %s.get_msgList(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
+        d_attrs = self.get_sequentialAttrDict(attr)
+        for i,k in enumerate(d_attrs.keys()):
+            str_attr = d_attrs[i]
+            self.doRemove(str_attr)
+            #log.debug("Removed: '%s'"%str_attr)
+
+        #log.debug("-"*100)            	               	
+        return True   
+    except StandardError,error:
+        raise StandardError, "%s.msgList_purge >>[Error]<< : %s"(self.p_nameShort,error)
+
+def msgList_clean(self,attr,connectBack = None):
+    """
+    Removes empty entries and pushes back
+    """
+    try:
+        #log.debug(">>> %s.msgList_clean(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
+        l_attrs = self.msgList_get(attr,False,True)
+        self.msgList_connect(l_attrs,attr,connectBack)
+        #log.debug("-"*100)            	               	
+        return True   
+    except StandardError,error:
+        raise StandardError, "%s.msgList_clean >>[Error]<< : %s"(self.p_nameShort,error)
+
 
 def copy(fromObject, fromAttr, toObject, toAttr = None,
          convertToMatch = True, values = True, inConnection = False, outConnections = False,
@@ -480,7 +1461,7 @@ def copy(fromObject, fromAttr, toObject, toAttr = None,
     Copy attributes from one object to another as well as other options. If the attribute already
     exists, it'll copy the values. If it doesn't, it'll make it. If it needs to convert, it can.
     It will not make toast.  
-    
+
     :parameters:
         fromObject(string) - obj with attrs
         fromAttr(string) - source attribute
@@ -495,7 +1476,7 @@ def copy(fromObject, fromAttr, toObject, toAttr = None,
         copyAttrSettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
         connectSourceToTarget(bool) --useful for moving attribute controls to another object. default False
         connectTargetToSource(bool) --useful for moving attribute controls to another object. default False
-        
+
     :returns
         success(bool)
     """ 
@@ -504,21 +1485,39 @@ def copy(fromObject, fromAttr, toObject, toAttr = None,
     _combined = _d['combined']
     _obj = _d['obj']
     _attr = _d['attr']
-    
+
 
     # Gather info   
-    sourceFlags = returnStandardAttrFlags(fromObject,fromAttr)
-    sourceType = sourceFlags.get('type')
+    #sourceFlags = get_standardFlagsDict(_d)
+    #sourceType = sourceFlags.get('type')
+    
+    _d_source = {}
+    _d_source['type'] = get_type(_d)
+    _d_source['locked'] = is_locked(_d)
+    _d_source['keyable'] = is_keyable(_d)
+    _d_source['hidden'] = is_hidden(_d)
+    _d_source['dynamic'] = is_dynamic(_d)
+    _d_source['numeric'] = is_numeric(_d)
 
-    if values and not validateRequestedAttrType(sourceType):
-        log.warning("'%s.%s' is a '%s' and not valid for copying."%(fromObject,fromAttr,sourceType))             
-        return False    
+    if values and not validate_attrTypeName(_d_source['type']):
+        log.warning("|{0}| >> {1} is a {2} attr and not valid for copying".format(_str_func,_d['combined'],_d_source['type']))
+        return False   
     
+    if _d_source['numeric']:
     
+            """sourceNumericFlags = returnNumericAttrSettingsDict(fromObject,fromAttr)
+            if sourceNumericFlags:
+                sourceDefault = sourceNumericFlags.get('default')
+                sourceMax = sourceNumericFlags.get('max')
+                sourceMin = sourceNumericFlags.get('min')
+                sourceSoftMax = sourceNumericFlags.get('softMax')
+                sourceSoftMin = sourceNumericFlags.get('softMin')"""
     
-    
-    
-    
+    if _d_source['type'] == 'enum':
+        _d_source['enum'] = get_enum(_d)
+        
+    cgmGeneral(_d_source,_combined)
+
 def OLDdoCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
     """                                     
     DESCRIPTION:
@@ -770,177 +1769,6 @@ def OLDvalidateAttrTypeMatch(attrType1,attrType2):
             return True
     return False
 
-def OLDdoAddAttr(obj,attrName,attrType,*a, **kw):
-    """ 
-    Adds an attr if you don't care to know the specific commands for each type
-
-    Keyword arguments:
-    obj(string) -- must exist in scene
-    attrName(string) -- attribute name
-    attrType(string) -- must be valid type. Type 'print attrTypesDict' for search dict  
-    """          
-    #assert mc.objExists(obj) is True,"'%s' doesn't exists!. Can't add attribute"%obj
-    assert mc.objExists('%s.%s'%(obj,attrName)) is not True,"'%s.%s' already exists. "%(obj,attrName)
-
-    attrTypeReturn = validateRequestedAttrType(attrType)
-    assert attrTypeReturn is not False,"'%s' is not a valid attribute type for creation."%attrType
-
-    if attrTypeReturn == 'string':
-        return addStringAttributeToObj(obj,attrName,*a, **kw)
-    elif attrTypeReturn == 'double':
-        return addFloatAttributeToObject(obj,attrName,*a, **kw)
-    elif attrTypeReturn == 'string':
-        return addStringAttributeToObj(obj,attrName,*a, **kw)
-    elif attrTypeReturn == 'long':
-        return addIntegerAttributeToObj(obj,attrName,*a, **kw) 
-    elif attrTypeReturn == 'double3':
-        return addVectorAttributeToObj(obj,attrName,*a, **kw)
-    elif attrTypeReturn == 'enum':
-        return addEnumAttrToObj(obj,attrName,*a, **kw)
-    elif attrTypeReturn == 'bool':
-        return addBoolAttrToObject(obj,attrName,*a, **kw)
-    elif attrTypeReturn == 'message':
-        return addMessageAttributeToObj(obj,attrName,*a, **kw)
-    else:
-        return False
-
-def OLDreturnStandardAttrFlags(obj,attr): 
-    """ 
-    Returns a diciontary of locked,keyable,locked states of an attribute. If
-    the attribute is numeric, it grabs the typical flags for that.
-
-    Keyword arguments:
-    obj(string) -- must exist in scene
-    attr(string) -- name for an attribute    
-    """    
-    nameCombined = "%s.%s"%(obj,attr)
-    assert mc.objExists(nameCombined) is True,"'%s' doesn't exist!"%(nameCombined)
-
-    objAttrs = mc.listAttr(obj, userDefined = True) or []
-    dataDict = {'type':mc.getAttr(nameCombined,type=True),
-                'locked':mc.getAttr(nameCombined ,lock=True),
-                'keyable':mc.getAttr(nameCombined ,keyable=True)}
-
-    # So, if it's keyable, you have to use one attribute to read correctly, otherwise it's the other...awesome
-    dynamic = False
-    if attr in objAttrs:
-        dynamic = True
-    dataDict['dynamic'] = dynamic
-
-
-    hidden = not mc.getAttr(nameCombined,channelBox=True)
-
-    if dataDict.get('keyable'):
-        hidden = mc.attributeQuery(attr, node = obj, hidden=True)
-    dataDict['hidden'] = hidden
-
-    enumData = False
-    if dataDict.get('type') == 'enum' and dynamic == True:
-        dataDict['enum'] = mc.addAttr(nameCombined,q=True, en = True)
-
-    numeric = True
-    if dataDict.get('type') in ['string','message','enum','bool']:
-        numeric = False
-    dataDict['numeric'] = numeric
-
-    if dynamic:
-        dataDict['readable']=mc.addAttr(nameCombined,q=True,r=True)
-        dataDict['writable']=mc.addAttr(nameCombined,q=True,w=True)
-        dataDict['storable']=mc.addAttr(nameCombined,q=True,s=True)
-        dataDict['usedAsColor']=mc.addAttr(nameCombined,q=True,usedAsColor = True)        
-
-    return dataDict
-
-def OLDreturnNumericAttrSettingsDict(obj,attr): 
-    """ 
-    Returns a diciontary of max,min,ranges,softs and default settings of an attribute
-
-    Keyword arguments:
-    obj(string) -- must exist in scene
-    attr(string) -- name for an attribute    
-
-    Return:
-    dataDict(dict)
-    """    
-    nameCombined = "%s.%s"%(obj,attr)
-    assert mc.objExists(nameCombined) is True,"'%s' doesn't exist!"%(nameCombined)
-
-    objAttrs = mc.listAttr(obj, userDefined = True) or []
-
-    dynamic = False
-    if attr in objAttrs:
-        dynamic = True
-
-    numeric = True
-    attrType = mc.getAttr(nameCombined,type=True)    
-    if attrType in ['string','message','enum','bool']:
-        numeric = False
-
-    dataDict = {}    
-    # Return numeric data    
-    if not numeric or not dynamic or mc.attributeQuery(attr, node = obj, listChildren=True):
-        return False
-    else:
-        dataDict['min'] = False                    
-        if mc.attributeQuery(attr, node = obj, minExists=True):
-            try:
-                minValue =  mc.attributeQuery(attr, node = obj, minimum=True)
-                if minValue is not False:
-                    dataDict['min'] = minValue[0]
-            except:
-                dataDict['min'] = False
-                log.warning("'%s.%s' failed to query min value" %(obj,attr))
-
-        dataDict['max'] = False                
-        if mc.attributeQuery(attr, node = obj, maxExists=True):
-            try:
-                maxValue =  mc.attributeQuery(attr, node = obj, maximum=True)
-                if maxValue is not False:
-                    dataDict['max']  = maxValue[0]                    
-            except:
-                dataDict['max']  = False
-                log.warning("'%s.%s' failed to query max value" %(obj,attr))
-
-        dataDict['default'] = False             
-        if type(mc.addAttr(nameCombined,q=True,defaultValue = True)) is int or float:
-            try:
-                defaultValue = mc.attributeQuery(attr, node = obj, listDefault=True)
-                if defaultValue is not False:
-                    dataDict['default'] = defaultValue[0]  
-            except:
-                dataDict['default'] = False
-                log.warning("'%s.%s' failed to query default value" %(obj,attr))
-
-        #>>> Soft values
-        dataDict['softMax']  = False
-        try:
-            softMaxValue =  mc.attributeQuery(attr, node = obj, softMax=True)
-            if softMaxValue is not False:
-                dataDict['softMax'] = softMaxValue[0]                  
-        except:
-            dataDict['softMax']  = False
-
-        dataDict['softMin']  = False
-        try:
-            softMinValue =  mc.attributeQuery(attr, node = obj, softMin=True)
-            if softMinValue is not False:
-                dataDict['softMin']  = softMinValue[0]                  
-        except:
-            dataDict['softMin']  = False
-
-        #>>> Range
-        try:
-            dataDict['range'] =  mc.attributeQuery(attr, node = obj, range=True)
-        except:
-            dataDict['range'] = False
-
-        try:
-            dataDict['softRange'] =  mc.attributeQuery(attr, node = obj, softRange=True)
-        except:
-            dataDict['softRange'] = False 
-
-        return dataDict
-
 
 def OLDreturnAttributeDataDict(obj,attr,value = True,incoming = True, outGoing = True):
     """ 
@@ -1116,44 +1944,7 @@ def OLDstoreInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = F
 # Set/Copy/Delete Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    
-def OLDdoConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
-    """                                     
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Replacement for setAttr which will unlock a locked node it's given
-    to force a setting of the values. Also has a lock when done overide.
-    In addition has transfer connections ability for buffer nodes.
 
-    ARGUMENTS:
-    attribute(string) - 'obj.attribute'
-    value() - depends on the attribute type
-    forceLock(bool) = False(default)
-    transferConnection(bool) - (False) - whether you wante to transfer the existing connection to or not
-                                        useful for buffer connections
-    RETURNS:
-    nothin
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    assert fromAttr != toAttr,"Cannot connect an attriubute to itself. The world might blow up!"
-
-    wasLocked = False
-    if (mc.objExists(toAttr)) == True:
-        if mc.getAttr(toAttr,lock=True) == True:
-            wasLocked = True
-            mc.setAttr(toAttr,lock=False)
-        bufferConnection = returnDriverAttribute(toAttr)
-        attrBuffer = returnObjAttrSplit(toAttr)
-        if not attrBuffer:
-            return False
-        doBreakConnection(attrBuffer[0],attrBuffer[1])
-        mc.connectAttr(fromAttr,toAttr)     
-
-    if transferConnection == True:
-        if bufferConnection != False:
-            mc.connectAttr(bufferConnection,toAttr)
-
-    if wasLocked == True or forceLock == True:
-        mc.setAttr(toAttr,lock=True)
 
 
 
@@ -1835,108 +2626,6 @@ def OLDdoSetLockHideKeyableAttr (obj,lock=True,visible=False,keyable=False,chann
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def OLDreturnDriverAttribute(attribute,skipConversionNodes = False,longNames = True):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Returns the driverAttribute of an attribute if there is one
-
-    ARGUMENTS:
-    attribute(string)
-
-    RETURNS:
-    Success - driverAttribute(string)
-    Failure - False
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    if (mc.connectionInfo (attribute,isDestination=True)) == True:
-        sourceBuffer = mc.listConnections (attribute, scn = skipConversionNodes, d = False, s = True, plugs = True)
-        if not sourceBuffer:
-            sourceBuffer = [mc.connectionInfo (attribute,sourceFromDestination=True)]   
-        if sourceBuffer:
-            if longNames:		    
-                return str(mc.ls(sourceBuffer[0],l=True)[0])#cast to longNames!
-            else:
-                return str(mc.ls(sourceBuffer[0],shortNames=True)[0])#cast to shortnames!		    
-        return False
-    return False
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDreturnDriverObject(attribute,skipConversionNodes = False,longNames = True):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Returns the driver of an attribute if there is one
-
-    ARGUMENTS:
-    attribute(string)
-
-    RETURNS:
-    Success - driverObj(string)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    objectBuffer =  mc.listConnections (attribute, scn = skipConversionNodes, d = False, s = True, plugs = False)
-    if not objectBuffer:
-        return False
-    if longNames:		    
-        return str(mc.ls(objectBuffer[0],l=True)[0])#cast to longNames!
-    else:
-        return str(mc.ls(objectBuffer[0],shortNames=True)[0])#cast to shortnames!
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDreturnDrivenAttribute(attribute,skipConversionNodes = False,longNames = True):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Returns the drivenAttribute of an attribute if there is one
-
-    ARGUMENTS:
-    attribute(string)
-
-    RETURNS:
-    Success - drivenAttribute(string)
-    Failure - False
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    if (mc.connectionInfo (attribute,isSource=True)) == True:
-        destinationBuffer = mc.listConnections (attribute, scn = skipConversionNodes, s = False, d = True, plugs = True)
-        if not destinationBuffer:
-            destinationBuffer = mc.connectionInfo (attribute,destinationFromSource=True) 
-        if destinationBuffer:
-            returnList = []
-            for lnk in destinationBuffer:
-                if longNames:		    
-                    returnList.append(str(mc.ls(lnk,l=True)[0]))#cast to longNames!
-                else:
-                    returnList.append(str(mc.ls(lnk,shortNames=True)[0]))#cast to shortnames!		    
-            return returnList
-        return False
-    return False
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDreturnDrivenObject(attribute,skipConversionNodes = True,longNames = True):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Returns the driven object of an attribute if there is one
-
-    ARGUMENTS:
-    attribute(string)
-
-    RETURNS:
-    Success - drivenObj(string)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    objectBuffer =  mc.listConnections (attribute, scn = skipConversionNodes, s = False, d = True, plugs = False)
-    if not objectBuffer:
-        return False
-    if attribute in objectBuffer:
-        objectBuffer.remove(attribute)
-
-    returnList = []
-    for lnk in objectBuffer:
-        if longNames:		    
-            returnList.append(str(mc.ls(lnk,l=True)[0]))#cast to longNames!
-        else:
-            returnList.append(str(mc.ls(lnk,shortNames=True)[0]))#cast to shortnames!	
-    return returnList    
 
 
 
@@ -2395,103 +3084,12 @@ def OLDaddAttributesToObj (obj, attributeTypesDict):
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDaddStringAttributeToObj (obj,attr,*a, **kw ):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds a string attribute to an object, passing forward commands
 
 
-    ARGUMENTS:
-    obj(string)
-    attr(string)
-
-    RETURNS:
-    Success(bool)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """    
-    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
-
-    try: 
-        mc.addAttr (obj, ln = attr, dt = 'string',*a, **kw)
-        return ("%s.%s"%(obj,attr))
-    except:
-        log.warning("'%s' failed to add '%s'"%(obj,attr))
-        return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDaddIntegerAttributeToObj (obj,attr,*a, **kw ):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds a integer attribute to an object, passing forward commands
 
-
-    ARGUMENTS:
-    obj(string)
-    attr(string)
-
-    RETURNS:
-    Success(bool)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """   
-    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
-
-    try: 
-        mc.addAttr (obj, ln = attr, at = 'long',*a, **kw)
-        return ("%s.%s"%(obj,attr))
-    except:
-        log.warning("'%s' failed to add '%s'"%(obj,attr))
-        return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDaddMessageAttributeToObj (obj,attr,*a, **kw ):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds a integer attribute to an object, passing forward commands
-
-
-    ARGUMENTS:
-    obj(string)
-    attr(string)
-
-    RETURNS:
-    Success(bool)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """    
-    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
-
-    try: 
-        mc.addAttr (obj, ln = attr, at = 'message',*a, **kw )
-        return ("%s.%s"%(obj,attr))
-    except:
-        log.warning("'%s' failed to add '%s'"%(obj,attr))
-        return False   
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDaddVectorAttributeToObj (obj,attr,*a, **kw):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds a vector attribute to an object, passing forward commands
-
-    ARGUMENTS:
-    obj(string)
-    attr(string)
-
-    RETURNS:
-    Success(bool)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """    
-    try: 
-        mc.addAttr (obj, ln=attr, at= 'double3',*a, **kw)
-        mc.addAttr (obj, ln=(attr+'X'),p=attr , at= 'double',*a, **kw)
-        mc.addAttr (obj, ln=(attr+'Y'),p=attr , at= 'double',*a, **kw)
-        mc.addAttr (obj, ln=(attr+'Z'),p=attr , at= 'double',*a, **kw)       
-        return ("%s.%s"%(obj,attr))
-
-    except:
-        log.warning("'%s' failed to add '%s'"%(obj,attr))
-        return False
 
 
 
@@ -2521,58 +3119,10 @@ def OLDaddStringAttributesToObj (obj, attrList):
             print ('"' + attrCache + '" exists, moving on')
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def OLDaddFloatAttributeToObject (obj, attr,*a, **kw):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds a float attribute to an object
 
-    ARGUMENTS:
-    obj(string) - object to add attribute to
-    attr(string) - attribute name to add
-    minValue(int/float) - minimum value
-    maxValue(int/float) - maximum value
-    default(int/float) - default value
-
-    RETURNS:
-    Attribute full name (string) - ex obj.attribute
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
-
-    try: 
-        mc.addAttr (obj, ln = attr, at = 'float',*a, **kw)
-        return ("%s.%s"%(obj,attr))
-    except StandardError,error:
-        log.error("addFloatAttributeToObject>>Failure! '%s' failed to add '%s'"%(obj,attr))
-        raise StandardError,error  
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def OLDaddEnumAttrToObj (obj,attr,optionList=['off','on'],*a, **kw):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds a enum attribute to an object
 
-    ARGUMENTS:
-    obj(string) - object to add attribute to
-    attrName(list)
-    optionList(list)
-    default(int/float) - default value
-
-    RETURNS:
-    Attribute full name (string) - ex obj.attribute
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
-
-    try: 
-        mc.addAttr (obj,ln = attr, at = 'enum', en=('%s' %(':'.join(optionList))),*a, **kw)
-        mc.setAttr ((obj+'.'+attr),e=True,keyable=True)
-        return ("%s.%s"%(obj,attr))
-    except:
-        log.warning("'%s' failed to add '%s'"%(obj,attr))
-        return False
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2600,30 +3150,6 @@ def OLDaddFloatAttrsToObj (obj,attrList, *a, **kw):
         attrsCache.append(attrCache)
     return attrsCache
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDaddBoolAttrToObject(obj, attr, *a, **kw):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds a section break for an attribute list
-
-    ARGUMENTS:
-    obj(string) - object to add attribute to
-    attr(string) - name for the section break
-
-    RETURNS:
-    Success
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    assert mc.objExists(obj+'.'+attr) is False,"'%s' already has an attr called '%s'"%(obj,attr)
-
-    try: 
-        mc.addAttr (obj, ln = attr,  at = 'bool',*a, **kw)
-        mc.setAttr ((obj+'.'+attr), edit = True, channelBox = True)
-
-        return True
-    except:
-        log.warning("'%s' failed to add '%s'"%(obj,attr))
-        return False
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -2799,23 +3325,7 @@ def OLDstoreObjListNameToMessage (objList, storageObj):
     for obj in objList:
         storeObjNameToMessage (obj, storageObj)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDqueryIfMessage(obj,attr):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    log.warning('!'*50)
-    log.warning("Please get rid of 'attributes.queryIfMessage' in your code")
-    log.warning('!'*50)    
-    if mc.objExists(obj+'.'+attr) != False:
-        try:
-            messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
-            if messageQuery == True:
-                return True
-        except:
-            return False
-    else:
-        return False
+
 
 
 
