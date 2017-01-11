@@ -19,6 +19,7 @@ log.setLevel(logging.INFO)
 import maya.cmds as mc
 
 # From Red9 =============================================================
+from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
@@ -243,6 +244,25 @@ def compare_attrs(source, targets, **kws):
 
     return True    
 
+
+def delete(*a):
+    _str_func = 'delete'
+    _d = validate_arg(*a) 
+    _combined = _d['combined'] 
+    
+    if mc.objExists(_combined):
+        if get_parent(_d):raise ValueError,"{0} is child attr, try deleting parent attr: {1}".format(_combined,get_parent(_d))
+        try:
+            mc.setAttr(_combined,lock=False)
+        except:pass            
+        try:
+            break_connection(_combined)
+        except:pass
+
+        mc.deleteAttr(_combined)  
+        return True
+    return False
+        
 def get(*a, **kws):
     """   
     Replacement for getAttr which get's message objects as well as parses double3 type 
@@ -272,9 +292,7 @@ def get(*a, **kws):
     if attrType in ['TdataCompound']:
         return mc.listConnections(_combined)		
 
-    _isMsg = (mc.attributeQuery (_attr,node=_obj,msg=True))
-
-    if _isMsg == True:
+    if mc.attributeQuery (_attr,node=_obj,msg=True):
         return mc.listConnections(_combined) or False     
     elif attrType == 'double3':
         return [mc.getAttr(_obj+'.'+ a) for a in mc.attributeQuery(_attr, node = _obj, listChildren = True)]
@@ -1225,6 +1243,345 @@ def get_driven(node, attr = None, getNode = False, skipConversionNodes = False, 
             return False
     return False 
 
+    
+def get_message(messageHolder, messageAttr = None, dataAttr = None, simple = False):
+    """   
+    This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
+    Get attributes driven by an attribute
+
+    :parameters:
+        messageHolder(str) -- object to store to
+        messageAttr(str) -- 
+        dataAttr(str) -- Specify the attribute to check for extra data or use default(NONE)
+            cgmMsgData is our default. Data is stored as a json dict of {attr:{msg:component or attr}}
+        simple -- ignore extra data
+
+    :returns
+        data(list)
+    """  
+    _str_func = 'get_message'    
+    _dataAttr = dataAttr
+    if '.' in messageHolder:
+        _d = validate_arg(messageHolder)
+        _dataAttr = messageAttr
+    else:
+        _d = validate_arg(messageHolder,messageAttr)     
+    _combined = _d['combined']       
+            
+    log.debug("|{0}| >> {1} | dataAttr: {2}".format(_str_func,_combined,_dataAttr))
+    
+    _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
+    if mc.objectType(_msgBuffer[0])=='reference':
+        #REPAIR
+        _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
+        
+    
+    if mc.addAttr(_combined,q=True,m=True):
+        log.debug("|{0}| >> multimessage...".format(_str_func))
+        
+        if _msgBuffer:
+            return _msgBuffer
+        return False
+    else:
+        log.debug("|{0}| >> single message...".format(_str_func))  
+        
+        if simple:
+            return _msgBuffer
+        
+        _dataAttr = 'cgmMsgData'
+        if dataAttr is not None:
+            _dataAttr = dataAttr
+    
+        if '.' in _dataAttr:
+            _d_dataAttr = validate_arg(_dataAttr)            
+        else:
+            _d_dataAttr = validate_arg(messageHolder,_dataAttr)           
+        
+        _messagedNode = mc.listConnections (_combined,destination=True,source=True)
+        if _messagedNode != None:
+            if mc.objExists(_messagedNode[0]) and not mc.objectType(_messagedNode[0])=='reference':
+                
+                mi_node = r9Meta.MetaClass(_d['node'])
+                _dBuffer = mi_node.__getattribute__(_d_dataAttr['attr']) or {}
+                if _dBuffer.get(_d['attr']):
+                    log.debug("|{0}| >> extra message data found...".format(_str_func))  
+                    return [ _messagedNode[0] + '.' + _dBuffer.get(_d['attr'])]
+                
+                return _messagedNode
+            else:#Try to repair it
+                return repairMessageToReferencedTarget(storageObject,messageAttr)
+    return False    
+    
+
+def set_message(message, messageHolder, messageAttr, dataAttr = None, simple = False):
+    """   
+    This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
+    Get attributes driven by an attribute
+
+    :parameters:
+        message(str) -- may be object, attribute, or component 
+        messageHolder(str) -- object to store to
+        messageAttr(str) -- 
+        dataAttr(str) -- Specify the attribute to check for extra data or use default(NONE)
+            cgmMsgData is our default. Data is stored as a json dict of {attr:{msg:component or attr}}
+        simple(bool) -- Will only store dag nodes when specified
+
+    :returns
+        status(bool)
+    """
+    _str_func = 'set_message'    
+    
+    _d = validate_arg(messageHolder,messageAttr)
+    _combined = _d['combined']
+
+    #>> Validation -----------------------------------------------------------------------------------------------
+    _mode = 'reg'
+    _messagedNode = None
+    _messagedExtra = None
+    _d_dataAttr = None
+    if '.' in message:
+        if cgmValid.is_component(message):
+            _l_msg = cgmValid.get_component(message)  
+            _messagedNode = _l_msg[1]            
+            if simple:
+                message = _l_msg[1]
+                log.debug("|{0}| >> simple. Using {1} | {2}".format(_str_func,message,_l_msg))
+            else:
+                _mode = 'comp'
+                log.debug("|{0}| >> componentMessage: {1}".format(_str_func,_l_msg)) 
+                _messagedExtra = _l_msg[0]
+        else:
+            _d_msg = validate_arg(message)   
+            _messagedNode = _d_msg['node']            
+            if simple:
+                message = _d_msg['node']
+                log.debug("|{0}| >> simple. Using {1} | {2}".format(_str_func,message,_d_msg))                
+            else:
+                _mode = 'attr'
+                log.debug("|{0}| >> attrMessage: {1}".format(_str_func,_d_msg))
+                _messagedExtra = _d_msg['attr']
+    else:
+        _messagedNode = message
+            
+    _messageLong = NAMES.get_long(message)
+    
+    _dataAttr = 'cgmMsgData'
+    if dataAttr is not None:
+        _dataAttr = dataAttr
+
+    log.info("|{0}| >> mode: {1} | dataAttr: {2}".format(_str_func,_mode, _dataAttr))
+    log.info("|{0}| >> messageHolder: {1} | messageAttr: {2}".format(_str_func,messageHolder, messageAttr))
+    log.info("|{0}| >> messagedNode: {1} | messagedExtra: {2} | messageLong: {3}".format(_str_func,_messagedNode, _messagedExtra, _messageLong))
+    
+    if _messagedExtra:
+        if '.' in _dataAttr:
+            _d_dataAttr = validate_arg(_dataAttr)            
+        else:
+            _d_dataAttr = validate_arg(messageHolder,_dataAttr)
+
+    #>> Node store ------------------------------------------------------------------------------------------------------------
+    def storeMsg(msgNode,msgExtra,holderDict,dataAttrDict=None):
+        connect((msgNode + ".message"),holderDict['combined'])
+        if msgExtra:
+            log.info("|{0}| >> '{1}.{2}' stored to: '{3}'".format(_str_func,msgNode,msgExtra, holderDict['combined']))
+            
+            if not mc.objExists(dataAttrDict['combined']):
+                add(dataAttrDict['node'],dataAttrDict['attr'],'string')
+            
+            if get_type(dataAttrDict['combined']) != 'string':
+                raise ValueError,"DataAttr must be string. {0} is type {1}".format(dataAttrDict['combined'], get_type(dataAttrDict['combined']) )
+            
+            mi_node = r9Meta.MetaClass(_d['node'])
+            _dBuffer = mi_node.__getattribute__(dataAttrDict['attr']) or {}
+            _dBuffer[_d['attr']] = _messagedExtra
+            log.debug("|{0}| >> buffer: {1}".format(_str_func,_dBuffer))
+            mi_node.__setattr__(dataAttrDict['attr'], _dBuffer)
+            #setlock
+            return True
+        
+        log.info("|{0}| >> '{1}' stored to: '{2}'".format(_str_func,msgNode, _combined))        
+        return True
+    
+    if mc.objExists(_combined):
+        if not get_type(_combined) == 'message':
+            log.warning("|{0}| >> Not a message attribute. converting..".format(_str_func))  
+            delete(_d)
+            add(messageHolder,messageAttr,'message',m=False)
+            storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr)
+            return True
+        
+        _buffer = get_message(_combined,dataAttr,simple = simple)        
+        if not mc.addAttr(_combined,q=True,m=True):#not multi...
+            log.debug("|{0}| >> messageSimple...".format(_str_func))
+            if _buffer and NAMES.get_long(_buffer[0]) == _messageLong:
+                log.info("|{0}| >> message match. Good to go".format(_str_func))                            
+                return True
+            else:
+                break_connection(_d)
+                storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr)
+            
+        else:
+            log.debug("|{0}| >> multimessage...".format(_str_func))  
+            if _buffer and NAMES.get_long(_buffer[0]) == _messageLong:
+                log.info("|{0}| >> message match. Good to go".format(_str_func))                            
+                return True
+            else:
+                connections = get_driven(_combined)
+                if connections:
+                    for c in connections:
+                        break_connection(c)
+    
+                delete(_d)
+                add(messageHolder,messageAttr,'message',m=False)
+                storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr)
+    
+    else:
+        log.info("|{0}| >> new attr...".format(_str_func))                    
+        add(messageHolder,messageAttr,'message',m=False)
+        #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
+        #connect((_messagedNode + ".message"),_combined)
+        storeMsg(_messagedNode, _messagedExtra, _combined, dataAttr)
+        
+    #>> Extra store ------------------------------------------------------------------------------------------------------------
+    
+    return True
+    #>> Meat ------------------------------------------------------------------------------------------------------------
+    if  mc.objExists (_combined):
+        if mc.attributeQuery (messageAttr,node=messageHolder,msg=True) and not mc.addAttr(_combined,q=True,m=True):
+            if get_message(messageHolder,messageName,dataAttr = dataAttr) != message:
+                
+                log.debug(attrCache+' already exists. Adding to existing message node.')
+                doBreakConnection(attrCache)
+                #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+                doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))
+                return True 
+            else:
+                log.debug("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
+        else:
+            connections = returnDrivenAttribute(attrCache)
+            if connections:
+                for c in connections:
+                    doBreakConnection(c)
+
+            log.debug("'%s' already exists. Not a message attr, converting."%attrCache)
+            doDeleteAttr(storageObj,messageName)
+
+            buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
+            #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+            doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))                
+
+            return True
+    else:
+        mc.addAttr (storageObj, ln=messageName, at= 'message')
+        #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
+        doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))	    
+        return True    
+    
+    
+    return
+
+
+    
+
+    try:
+        if  mc.objExists (attrCache):
+            if mc.attributeQuery (messageName,node=storageObj,msg=True) and not mc.addAttr(attrCache,q=True,m=True):
+                if returnMessageObject(storageObj,messageName) != obj:
+                    log.debug(attrCache+' already exists. Adding to existing message node.')
+                    doBreakConnection(attrCache)
+                    #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+                    doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))
+                    return True 
+                else:
+                    log.debug("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
+            else:
+                connections = returnDrivenAttribute(attrCache)
+                if connections:
+                    for c in connections:
+                        doBreakConnection(c)
+
+                log.debug("'%s' already exists. Not a message attr, converting."%attrCache)
+                doDeleteAttr(storageObj,messageName)
+
+                buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
+                #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+                doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))                
+
+                return True
+        else:
+            mc.addAttr (storageObj, ln=messageName, at= 'message')
+            #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
+            doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))	    
+            return True
+    except StandardError,error:
+        log.warning(error)
+        return False
+    
+def OLDstoreObjectToMessage (obj, storageObj, messageName):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Adds the obj name as a message attribute to the storage object with
+    a custom message attribute name
+
+    ARGUMENTS:
+    obj(string) - object to store
+    storageObject(string) - object to store the info to
+    messageName(string) - message name to store it as
+
+    RETURNS:
+    Success
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    assert mc.objExists(obj) is True,"'%s' doesn't exist"%(obj)
+    assert mc.objExists(storageObj) is True,"'%s' doesn't exist"%(storageObj)
+
+    attrCache = (storageObj+'.'+messageName)
+    objLong = mc.ls(obj,long=True)
+    if len(objLong)>1:
+        log.warning("Can't find long name for storage, found '%s'"%objLong)
+        return False 
+    objLong = objLong[0]
+
+    storageLong = mc.ls(storageObj,long=True)
+    if len(storageLong)>1:
+        log.warning("Can't find long name for storage, found '%s'"%storageLong)
+        return False
+    storageLong = storageLong[0]
+
+    try:
+        if  mc.objExists (attrCache):
+            if mc.attributeQuery (messageName,node=storageObj,msg=True) and not mc.addAttr(attrCache,q=True,m=True):
+                if returnMessageObject(storageObj,messageName) != obj:
+                    log.debug(attrCache+' already exists. Adding to existing message node.')
+                    doBreakConnection(attrCache)
+                    #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+                    doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))
+                    return True 
+                else:
+                    log.debug("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
+            else:
+                connections = returnDrivenAttribute(attrCache)
+                if connections:
+                    for c in connections:
+                        doBreakConnection(c)
+
+                log.debug("'%s' already exists. Not a message attr, converting."%attrCache)
+                doDeleteAttr(storageObj,messageName)
+
+                buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
+                #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
+                doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))                
+
+                return True
+        else:
+            mc.addAttr (storageObj, ln=messageName, at= 'message')
+            #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
+            doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))	    
+            return True
+    except StandardError,error:
+        log.warning(error)
+        return False
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_sequentialAttrDict(node, attr = None):
     """   
@@ -2722,67 +3079,7 @@ def OLDreturnUserAttributes(obj,*a,**kw):
         return False
 
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def OLDreturnMessageObject(storageObject, messageAttr):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Returns the object linked to the message attribute
-
-    ARGUMENTS:
-    storageObject(string) - object holding the message attr
-    messageAttr(string) - name of the message attr
-
-    RETURNS:
-    messageObject(string)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    attrBuffer = (storageObject+'.'+messageAttr)
-    if mc.objExists(attrBuffer) == True:
-        if mc.addAttr(attrBuffer,q=True,m=True):
-            log.warning("'%s' is a multi message attr. Use returnMessageData"%attrBuffer)
-            return False
-        messageObject = (mc.listConnections (attrBuffer))
-        if messageObject != None:
-            if mc.objExists(messageObject[0]) and not mc.objectType(messageObject[0])=='reference':
-                return messageObject[0]
-            else:#Try to repair it
-                return repairMessageToReferencedTarget(storageObject,messageAttr)
-        else:
-            return False
-    else:
-        return False
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDreturnMessageData(storageObject, messageAttr,longNames=True):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Better message date return
-
-    ARGUMENTS:
-    storageObject(string) - object holding the message attr
-    messageAttr(string) - name of the message attr
-
-    RETURNS:
-    messageObject(string)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    attrBuffer = (storageObject+'.'+messageAttr)
-    if mc.objExists(attrBuffer) == True:
-        msgLinks=mc.listConnections(attrBuffer,destination=True,source=True) #CHANGE : Source=True		
-        returnList = []
-        if msgLinks:
-            for msg in msgLinks:
-                if longNames:
-                    returnList.append(str(mc.ls(msg,l=True)[0]))#cast to longNames!
-                else:
-                    returnList.append(str(mc.ls(msg,shortNames=True)[0]))#cast to shortNames!    
-            return returnList 
-        else:
-            return False
-    else:
-        return False    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def OLDreturnObjAttrSplit(attr):
     """ 
@@ -2809,31 +3106,6 @@ def OLDreturnObjAttrSplit(attr):
             return returnBuffer
     return False  
 
-def OLDreturnMessageObjs(obj):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Pass an object into it with messages, it will return a list of the objects
-
-    ARGUMENTS:
-    obj(string) - obj with message attrs
-
-    RETURNS:
-    messageObject(string)
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    objList = []
-    objAttributes =(mc.listAttr (obj, userDefined=True))
-    if not objAttributes == None:
-        for attr in objAttributes:                    
-            messageQuery = (mc.attributeQuery (attr,node=obj,msg=True))
-            if messageQuery == True:
-                query = (mc.listConnections(obj+'.'+attr))
-                if not query == None:
-                    objList.append (query[0])
-        return objList
-    else:
-        return False  
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def OLDreturnMessageAttrs(obj):
     """ 
@@ -3045,136 +3317,6 @@ def OLDaddPickAxisAttr(obj,name):
     except:
         log.warning("'%s' failed to add '%s'"%(obj,name))
 
-def OLDaddAttributesToObj (obj, attributeTypesDict):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Takes an list of string variables to add to an object as string
-    attributes. Skips it if it exists.
-
-    ARGUMENTS:
-    obj(string) - object to add attributes to
-    attrList(list) - list of attributes to add
-
-    RETURNS:
-    NA
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    """sort the keys"""
-    sortedAttributes = dictionary.returnDictionarySortedToList(attributeTypesDict,True)
-
-    """ make em"""
-    for set in sortedAttributes:
-        attr = set[0]
-        attrType = set[1]
-        attrCache = (obj+'.'+attr)
-        if not mc.objExists (attrCache):
-            if attrType == 'string':
-                mc.addAttr (obj, ln = attr,  dt =attrType )
-            elif attrType == 'double3':
-                mc.addAttr (obj, ln=attr, at= 'double3')
-                mc.addAttr (obj, ln=(attr+'X'),p=attr , at= 'double')
-                mc.addAttr (obj, ln=(attr+'Y'),p=attr , at= 'double')
-                mc.addAttr (obj, ln=(attr+'Z'),p=attr , at= 'double')
-            else:
-                mc.addAttr (obj, ln = attr,  at =attrType )
-
-        else:
-            print ('"' + attrCache + '" exists, moving on')
-
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-def OLDaddStringAttributesToObj (obj, attrList):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Takes an list of string variables to add to an object as string attributes. Skips it if it exists.
-    Input -obj, attrList(list).
-
-    ARGUMENTS:
-    obj(string) - object to add attributes to
-    attrList(list) - list of attributes to add
-
-    RETURNS:
-    NA
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    for attr in attrList:        
-        attrCache = (obj+'.'+attr)
-        if not mc.objExists (attrCache):
-            mc.addAttr (obj, ln = attr,  dt = 'string')
-            return ("%s.%s"%(obj,attr))            
-        else:
-            print ('"' + attrCache + '" exists, moving on')
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-def OLDaddFloatAttrsToObj (obj,attrList, *a, **kw):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds a float attribute to an object
-
-    ARGUMENTS:
-    obj(string) - object to add attribute to
-    attrList(list) - attribute name to add
-    minValue(int/float) - minimum value
-    maxValue(int/float) - maximum value
-    default(int/float) - default value
-
-    RETURNS:
-    Attribute full name (string) - ex obj.attribute
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    attrsCache=[]
-    for attr in attrList:
-        attrCache = addFloatAttributeToObject (obj, attr, *a, **kw)
-        attrsCache.append(attrCache)
-    return attrsCache
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-def OLDaddSectionBreakAttrToObj(obj, attr):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds a section break for an attribute list
-
-    ARGUMENTS:
-    obj(string) - object to add attribute to
-    attr(string) - name for the section break
-
-    RETURNS:
-    Nothing
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    attrCache = (obj+'.'+attr)
-    if not mc.objExists (attrCache):
-        mc.addAttr (obj, ln = attr,  at = 'bool')
-        mc.setAttr (attrCache, lock = True, channelBox = True)
-    else:
-        print ('"' + attrCache + '" exists, moving on')
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Message Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -3267,64 +3409,7 @@ def OLDstoreObjectToMessage (obj, storageObj, messageName):
         log.warning(error)
         return False
 
-def OLDstoreObjectsToMessage (objects, storageObj, messageName):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds the obj name as a mulit message attribute to the storage object with
-    a custom message attribute name. Reminder - multi message attrs are invisible
 
-    ARGUMENTS:
-    objects(list) - object to store
-    storageObject(string) - object to store the info to
-    messageName(string) - message name to store it as
-
-    RETURNS:
-    Success
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    for obj in objects:
-        assert mc.objExists(obj) is True,"'%s' doesn't exist"%(obj)
-    assert mc.objExists(storageObj) is True,"'%s' doesn't exist"%(storageObj)
-    attrCache = (storageObj+'.'+messageName)
-    objects = lists.returnListNoDuplicates(objects)
-    try:
-        if mc.objExists (attrCache):
-            log.debug(attrCache+' already exists. Adding to existing message node.')                
-            doDeleteAttr(storageObj,messageName)
-            mc.addAttr (storageObj, ln=messageName, at= 'message',m=True,im=False) 
-            for obj in objects:
-                mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),nextAvailable=True)
-            mc.setAttr(attrCache,lock=True)
-            return True                       
-        else:
-            mc.addAttr(storageObj, ln=messageName, at= 'message',m=True,im=False) 
-            for obj in objects:
-                mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),nextAvailable=True)
-            mc.setAttr(attrCache,lock=True)
-            return True 
-    except:
-        log.error("Storing '%s' to '%s.%s' failed!"%(objects,storageObj,messageName))
-        return False
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def OLDstoreObjListNameToMessage (objList, storageObj):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Adds the obj names as  message attributes to the storage object
-
-    ARGUMENTS:
-    objList(string) - object to store
-    storageObj(string) - object to store the info to
-
-    RETURNS:
-    Nothing
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    for obj in objList:
-        storeObjNameToMessage (obj, storageObj)
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 
