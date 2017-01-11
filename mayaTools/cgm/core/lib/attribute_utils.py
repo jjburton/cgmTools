@@ -1243,8 +1243,8 @@ def get_driven(node, attr = None, getNode = False, skipConversionNodes = False, 
             return False
     return False 
 
-    
-def get_message(messageHolder, messageAttr = None, dataAttr = None, simple = False):
+@cgmGeneral.Timer    
+def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = None, simple = False):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
     Get attributes driven by an attribute
@@ -1254,6 +1254,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, simple = Fal
         messageAttr(str) -- 
         dataAttr(str) -- Specify the attribute to check for extra data or use default(NONE)
             cgmMsgData is our default. Data is stored as a json dict of {attr:{msg:component or attr}}
+        dataKey(str/int) -- data key for extra data. If None provided, attr name is used.
         simple -- ignore extra data
 
     :returns
@@ -1271,7 +1272,8 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, simple = Fal
     log.debug("|{0}| >> {1} | dataAttr: {2}".format(_str_func,_combined,_dataAttr))
     
     _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
-    if mc.objectType(_msgBuffer[0])=='reference':
+    
+    if _msgBuffer and mc.objectType(_msgBuffer[0])=='reference':
         #REPAIR
         _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
         
@@ -1312,8 +1314,8 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, simple = Fal
                 return repairMessageToReferencedTarget(storageObject,messageAttr)
     return False    
     
-
-def set_message(message, messageHolder, messageAttr, dataAttr = None, simple = False):
+@cgmGeneral.Timer
+def set_message(message, messageHolder, messageAttr, dataAttr = None, dataKey = None, simple = False):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
     Get attributes driven by an attribute
@@ -1324,6 +1326,7 @@ def set_message(message, messageHolder, messageAttr, dataAttr = None, simple = F
         messageAttr(str) -- 
         dataAttr(str) -- Specify the attribute to check for extra data or use default(NONE)
             cgmMsgData is our default. Data is stored as a json dict of {attr:{msg:component or attr}}
+        dataKey(str/int) -- data key for extra data. If None provided, attr name is used.
         simple(bool) -- Will only store dag nodes when specified
 
     :returns
