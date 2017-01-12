@@ -302,7 +302,7 @@ def get(*a, **kws):
     else:
         return mc.getAttr(_combined, **kws)
 
-def set(node, attr, value = None, lock = False,**kws):
+def set(node, attr = None, value = None, lock = False,**kws):
     """   
     Replacement for setAttr which get's message objects as well as parses double3 type 
     attributes to a list  
@@ -318,7 +318,12 @@ def set(node, attr, value = None, lock = False,**kws):
         value(s)
     """ 
     _str_func = 'set'
-    _d = validate_arg(node,attr) 
+    
+    if '.' in node or issubclass(type(node),dict):
+        _d = validate_arg(node)
+    else:
+        _d = validate_arg(node,attr)  
+    
     _combined = _d['combined']
     _obj = _d['node']
     _attr = _d['attr']
@@ -345,6 +350,8 @@ def set(node, attr, value = None, lock = False,**kws):
         mc.setAttr(_combined,str(value),type = 'string', **kws)
     elif _validType == 'double':
         mc.setAttr(_combined,float(value), **kws)
+    elif _validType == 'message':
+        set_message(value, _obj, _attr)
     else:
         mc.setAttr(_combined,value, **kws)
 
@@ -649,7 +656,7 @@ def OLDdoConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False)
         mc.setAttr(toAttr,lock=True)
 
 
-def add(obj,attr,attrType, enumOptions = ['off','on'],*a, **kws):
+def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],*a, **kws):
     """   
     Breaks connections on an attribute. Handles locks on source or end
 
@@ -663,7 +670,17 @@ def add(obj,attr,attrType, enumOptions = ['off','on'],*a, **kws):
         combined name
     """ 
     _str_func = 'add'
-    _combined = "{0}.{1}".format(obj,attr)
+    
+    if '.' in obj or issubclass(type(obj),dict):
+        _d = validate_arg(obj)
+        attrType = attr
+    else:
+        _d = validate_arg(obj,attr)     
+    
+    
+    _combined = _d['combined']
+    _node = _d['node']
+    _attr = _d['attr']
     if mc.objExists(_combined):
         raise ValueError,"{0} already exists.".format(_combined)
 
@@ -672,25 +689,25 @@ def add(obj,attr,attrType, enumOptions = ['off','on'],*a, **kws):
     assert _type is not False,"'{0}' is not a valid attribute type for creation.".format(attrType)
 
     if _type == 'string':
-        mc.addAttr (obj, ln = attr, dt = 'string',*a, **kws)
+        mc.addAttr (_node, ln = _attr, dt = 'string',*a, **kws)
     elif _type == 'double':
-        mc.addAttr (obj, ln = attr, at = 'float',*a, **kws)
+        mc.addAttr (_node, ln = _attr, at = 'float',*a, **kws)
     elif _type == 'long':
-        mc.addAttr (obj, ln = attr, at = 'long',*a, **kws)
+        mc.addAttr (_node, ln = _attr, at = 'long',*a, **kws)
     elif _type == 'double3':
-        mc.addAttr (obj, ln=attr, at= 'double3',*a, **kws)
-        mc.addAttr (obj, ln=(attr+'X'),p=attr , at= 'double',*a, **kws)
-        mc.addAttr (obj, ln=(attr+'Y'),p=attr , at= 'double',*a, **kws)
-        mc.addAttr (obj, ln=(attr+'Z'),p=attr , at= 'double',*a, **kws)        
+        mc.addAttr (_node, ln=_attr, at= 'double3',*a, **kws)
+        mc.addAttr (_node, ln=(_attr+'X'),p=_attr , at= 'double',*a, **kws)
+        mc.addAttr (_node, ln=(_attr+'Y'),p=_attr , at= 'double',*a, **kws)
+        mc.addAttr (_node, ln=(_attr+'Z'),p=_attr , at= 'double',*a, **kws)        
     elif _type == 'enum':
-        mc.addAttr (obj,ln = attr, at = 'enum', en=('%s' %(':'.join(enumOptions))),*a, **kws)
-        mc.setAttr ((obj+'.'+attr),e=True,keyable=True)
+        mc.addAttr (_node,ln = _attr, at = 'enum', en=('%s' %(':'.join(enumOptions))),*a, **kws)
+        mc.setAttr ((_node+'.'+_attr),e=True,keyable=True)
 
     elif _type == 'bool':
-        mc.addAttr (obj, ln = attr,  at = 'bool',*a, **kws)
-        mc.setAttr ((obj+'.'+attr), edit = True, channelBox = True)
+        mc.addAttr (_node, ln = _attr,  at = 'bool',*a, **kws)
+        mc.setAttr ((_node+'.'+_attr), edit = True, channelBox = True)
     elif _type == 'message':
-        mc.addAttr (obj, ln = attr, at = 'message',*a, **kws )
+        mc.addAttr (_node, ln = _attr, at = 'message',*a, **kws )
     else:
         raise ValueError,"Don't know what to do with attrType: {0}".format(attrType)
         #return False
@@ -1262,14 +1279,19 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
     """  
     _str_func = 'get_message'    
     _dataAttr = dataAttr
-    if '.' in messageHolder:
+    if '.' in messageHolder or issubclass(type(messageHolder),dict):
         _d = validate_arg(messageHolder)
         _dataAttr = messageAttr
     else:
         _d = validate_arg(messageHolder,messageAttr)     
     _combined = _d['combined']       
             
-    log.debug("|{0}| >> {1} | dataAttr: {2}".format(_str_func,_combined,_dataAttr))
+    if dataKey is None:
+        dataKey = messageAttr
+    else:
+        dataKey = unicode(dataKey)
+        
+    log.info("|{0}| >> {1} | dataAttr: {2} | dataKey: {3}".format(_str_func,_combined,_dataAttr,dataKey))
     
     _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
     
@@ -1277,7 +1299,6 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
         #REPAIR
         _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
         
-    
     if mc.addAttr(_combined,q=True,m=True):
         log.debug("|{0}| >> multimessage...".format(_str_func))
         
@@ -1294,7 +1315,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
         if dataAttr is not None:
             _dataAttr = dataAttr
     
-        if '.' in _dataAttr:
+        if '.' in _dataAttr or issubclass(type(_dataAttr),dict):
             _d_dataAttr = validate_arg(_dataAttr)            
         else:
             _d_dataAttr = validate_arg(messageHolder,_dataAttr)           
@@ -1305,9 +1326,9 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
                 
                 mi_node = r9Meta.MetaClass(_d['node'])
                 _dBuffer = mi_node.__getattribute__(_d_dataAttr['attr']) or {}
-                if _dBuffer.get(_d['attr']):
+                if _dBuffer.get(dataKey):
                     log.debug("|{0}| >> extra message data found...".format(_str_func))  
-                    return [ _messagedNode[0] + '.' + _dBuffer.get(_d['attr'])]
+                    return [ _messagedNode[0] + '.' + _dBuffer.get(dataKey)]
                 
                 return _messagedNode
             else:#Try to repair it
@@ -1371,8 +1392,13 @@ def set_message(message, messageHolder, messageAttr, dataAttr = None, dataKey = 
     _dataAttr = 'cgmMsgData'
     if dataAttr is not None:
         _dataAttr = dataAttr
-
-    log.info("|{0}| >> mode: {1} | dataAttr: {2}".format(_str_func,_mode, _dataAttr))
+        
+    if dataKey is None:
+        dataKey = messageAttr
+    else:
+        dataKey = unicode(dataKey)
+        
+    log.info("|{0}| >> mode: {1} | dataAttr: {2} | dataKey: {3}".format(_str_func,_mode, _dataAttr,dataKey))
     log.info("|{0}| >> messageHolder: {1} | messageAttr: {2}".format(_str_func,messageHolder, messageAttr))
     log.info("|{0}| >> messagedNode: {1} | messagedExtra: {2} | messageLong: {3}".format(_str_func,_messagedNode, _messagedExtra, _messageLong))
     
@@ -1383,7 +1409,7 @@ def set_message(message, messageHolder, messageAttr, dataAttr = None, dataKey = 
             _d_dataAttr = validate_arg(messageHolder,_dataAttr)
 
     #>> Node store ------------------------------------------------------------------------------------------------------------
-    def storeMsg(msgNode,msgExtra,holderDict,dataAttrDict=None):
+    def storeMsg(msgNode,msgExtra,holderDict,dataAttrDict=None, dataKey = None):
         connect((msgNode + ".message"),holderDict['combined'])
         if msgExtra:
             log.info("|{0}| >> '{1}.{2}' stored to: '{3}'".format(_str_func,msgNode,msgExtra, holderDict['combined']))
@@ -1396,7 +1422,7 @@ def set_message(message, messageHolder, messageAttr, dataAttr = None, dataKey = 
             
             mi_node = r9Meta.MetaClass(_d['node'])
             _dBuffer = mi_node.__getattribute__(dataAttrDict['attr']) or {}
-            _dBuffer[_d['attr']] = _messagedExtra
+            _dBuffer[dataKey] = _messagedExtra
             log.debug("|{0}| >> buffer: {1}".format(_str_func,_dBuffer))
             mi_node.__setattr__(dataAttrDict['attr'], _dBuffer)
             #setlock
@@ -1410,10 +1436,10 @@ def set_message(message, messageHolder, messageAttr, dataAttr = None, dataKey = 
             log.warning("|{0}| >> Not a message attribute. converting..".format(_str_func))  
             delete(_d)
             add(messageHolder,messageAttr,'message',m=False)
-            storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr)
+            storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
             return True
         
-        _buffer = get_message(_combined,dataAttr,simple = simple)        
+        _buffer = get_message(_combined,dataAttr,dataKey = dataKey, simple = simple)        
         if not mc.addAttr(_combined,q=True,m=True):#not multi...
             log.debug("|{0}| >> messageSimple...".format(_str_func))
             if _buffer and NAMES.get_long(_buffer[0]) == _messageLong:
@@ -1421,7 +1447,7 @@ def set_message(message, messageHolder, messageAttr, dataAttr = None, dataKey = 
                 return True
             else:
                 break_connection(_d)
-                storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr)
+                storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
             
         else:
             log.debug("|{0}| >> multimessage...".format(_str_func))  
@@ -1436,155 +1462,270 @@ def set_message(message, messageHolder, messageAttr, dataAttr = None, dataKey = 
     
                 delete(_d)
                 add(messageHolder,messageAttr,'message',m=False)
-                storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr)
+                storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
     
     else:
         log.info("|{0}| >> new attr...".format(_str_func))                    
         add(messageHolder,messageAttr,'message',m=False)
-        #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
-        #connect((_messagedNode + ".message"),_combined)
-        storeMsg(_messagedNode, _messagedExtra, _combined, dataAttr)
+        storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
         
-    #>> Extra store ------------------------------------------------------------------------------------------------------------
-    
     return True
-    #>> Meat ------------------------------------------------------------------------------------------------------------
-    if  mc.objExists (_combined):
-        if mc.attributeQuery (messageAttr,node=messageHolder,msg=True) and not mc.addAttr(_combined,q=True,m=True):
-            if get_message(messageHolder,messageName,dataAttr = dataAttr) != message:
-                
-                log.debug(attrCache+' already exists. Adding to existing message node.')
-                doBreakConnection(attrCache)
-                #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-                doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))
-                return True 
-            else:
-                log.debug("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
-        else:
-            connections = returnDrivenAttribute(attrCache)
-            if connections:
-                for c in connections:
-                    doBreakConnection(c)
 
-            log.debug("'%s' already exists. Not a message attr, converting."%attrCache)
-            doDeleteAttr(storageObj,messageName)
+def convert_type(node = None, attr = None, attrType = None):
+    """   
+     Attempts to convert an existing attrType from one type to another. 
+     Enum's are stored to strings as 'option1;option2'.
+     Strings with a ';' will split to enum options on conversion.
 
-            buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
-            #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-            doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))                
+    :parameters:
+        node(str) -- 
+        attr(str) -- 
+        attrType(str) -- 
 
-            return True
+    :returns
+        status(bool)
+    """
+    _str_func = 'convert_type'    
+    
+    _attrType = attrType
+    if '.' in node or issubclass(type(node),dict):
+        _d = validate_arg(node)
+        _attrType = attr
     else:
-        mc.addAttr (storageObj, ln=messageName, at= 'message')
-        #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
-        doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))	    
-        return True    
+        _d = validate_arg(node,attr)  
+    _combined = _d['combined']
     
+    _attrType = validate_attrTypeName(_attrType)
+    _typeCurrent = validate_attrTypeName(get_type(_d))
     
-    return
-
-
+    log.debug("|{0}| >> attr: {1} | type: {2} | targetType: {3}".format(_str_func,_combined,_typeCurrent, _attrType))
     
+    if _attrType == _typeCurrent:
+        log.debug("|{0}| >> {1} already target type.".format(_str_func,_combined))
+        return True
+    
+    #Gather data -----------------------------------------------------------------------
+    _lock = False
+    if is_locked(_d):
+        _lock = True
+        mc.setAttr(_combined,lock=False)
+        
+    _driver = None
+    _driven = None
+    _data = None
+    _enum = 'off','on'
+    
+    _driver = get_driver(_d,skipConversionNodes=True)
+    _driven = get_driven(_d,skipConversionNodes=True)
+    
+    if _typeCurrent == 'enum':
+        _enum = get_enum(_d).split(':')
 
-    try:
-        if  mc.objExists (attrCache):
-            if mc.attributeQuery (messageName,node=storageObj,msg=True) and not mc.addAttr(attrCache,q=True,m=True):
-                if returnMessageObject(storageObj,messageName) != obj:
-                    log.debug(attrCache+' already exists. Adding to existing message node.')
-                    doBreakConnection(attrCache)
-                    #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-                    doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))
-                    return True 
+    if _typeCurrent == 'message':
+        _data = get_message(_d)
+    elif _typeCurrent == 'enum':
+        _data = get_enum(_d)
+    else:
+        _data = get(_d)
+          
+    delete(_d)
+    
+    #Rebuild -----------------------------------------------------------   
+    
+    if _attrType == 'enum':
+        if _data:
+            if cgmValid.stringArg(_data):
+                for o in [":",",",";"]:
+                    if o in _data:
+                        _enum = _data.split(o)
+                        break
+                                    
+    add(_d,_attrType,enumOptions=_enum)
+        
+    if _data is not None:
+        log.debug("|{0}| >> Data setting: {1}".format(_str_func,_data))    
+        try:
+            if _attrType == 'string':
+                if _typeCurrent == 'message':
+                    _data = ','.join(_data)
                 else:
-                    log.debug("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
-            else:
-                connections = returnDrivenAttribute(attrCache)
-                if connections:
-                    for c in connections:
-                        doBreakConnection(c)
-
-                log.debug("'%s' already exists. Not a message attr, converting."%attrCache)
-                doDeleteAttr(storageObj,messageName)
-
-                buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
-                #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-                doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))                
-
-                return True
-        else:
-            mc.addAttr (storageObj, ln=messageName, at= 'message')
-            #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
-            doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))	    
-            return True
-    except StandardError,error:
-        log.warning(error)
-        return False
+                    _data = str(_data)
+            elif _attrType == 'double':
+                _data = float(_data)
+            elif _attrType == 'long':
+                _data = int(_data)
+        except Exception,err:
+            log.error("|{0}| >> Failed to convert data: {1} | type: {2} | err: {3}".format(_str_func,_data,_attrType,err))        
+        
+        
+        try:set(_d,value = _data)
+        except Exception,err:
+            log.error("|{0}| >> Failed to set back data buffer {1} | data: {2} | err: {3}".format(_str_func,_combined,_data,err))        
+        
+    if _driver and _typeCurrent != 'message':
+        log.debug("|{0}| >> Driver: {1}".format(_str_func,_driver))
+        try:connect(_driver,_combined)
+        except Exception,err:
+            log.error("|{0}| >> Failed to connect {1} >--> {2} | err: {3}".format(_str_func,_driver,_combined,err))        
+                
+    if _driven:
+        log.debug("|{0}| >> Driven: {1}".format(_str_func,_driven))
+        for c in _driven:
+            log.debug("|{0}| >> driven: {1}".format(_str_func,c))
+            try:connect(_combined,c)
+            except Exception,err:
+                log.error("|{0}| >> Failed to connect {1} >--> {2} | err: {3}".format(_str_func,_combined,c,err))        
+        
+    if _lock:
+        mc.setAttr(_combined,lock = True)     
+    return True
     
-def OLDstoreObjectToMessage (obj, storageObj, messageName):
+    
+
+
+def OLDdoConvertAttrType(targetAttrName,attrType):
+    """ 
+    Keyword arguments:
+    targetAttrName(string) -- name for an existing attribute name
+    attrType(string) -- desired attribute type
+
+    """    
+    assert mc.objExists(targetAttrName) is True,"'%s' doesn't exist!"%targetAttrName
+
+    aType = False
+    for option in attrTypesDict.keys():
+        if attrType in attrTypesDict.get(option): 
+            aType = option
+            break
+
+    assert aType is not False,"'%s' is not a valid attribute type!"%attrType
+
+
+    #>>> Get data
+    targetLock = False
+    if mc.getAttr((targetAttrName),lock = True) == True:
+        targetLock = True
+        mc.setAttr(targetAttrName,lock = False)
+
+    targetType = mc.getAttr(targetAttrName,type=True)
+
+    buffer = targetAttrName.split('.')
+    targetObj = buffer[0]
+    targetAttr = buffer[-1]
+
+
+    #>>> Do the stuff
+    if aType != targetType:
+        # get data connection and data to transfer after we make our new attr
+        # see if it's a message attribute to copy    
+        connection = ''
+        if mc.attributeQuery (targetAttr,node=targetObj,msg=True):
+            dataBuffer = (returnMessageObject(targetObj,targetAttr))
+        else:
+            connection = returnDriverAttribute(targetAttrName)            
+            dataBuffer = mc.getAttr(targetAttrName)
+
+        if targetType == 'enum':           
+            dataBuffer = mc.addAttr((targetObj+'.'+targetAttr),q=True, en = True)
+
+
+        doDeleteAttr(targetObj,targetAttr)
+
+        """if it doesn't exist, make it"""
+        if aType == 'string':
+            mc.addAttr (targetObj, ln = targetAttr,  dt = aType )
+
+        elif aType == 'enum':
+            enumStuff  = 'off:on'
+            if dataBuffer:
+                if type(dataBuffer) is str or type(dataBuffer) is unicode:
+                    enumStuff = dataBuffer
+            mc.addAttr (targetObj, ln = targetAttr, at=  'enum', en = enumStuff)
+
+        elif aType == 'double3':
+            mc.addAttr (targetObj, ln=targetAttr, at= 'double3')
+            mc.addAttr (targetObj, ln=(targetAttr+'X'),p=targetAttr , at= 'double')
+            mc.addAttr (targetObj, ln=(targetAttr+'Y'),p=targetAttr , at= 'double')
+            mc.addAttr (targetObj, ln=(targetAttr+'Z'),p=targetAttr , at= 'double')
+        else:
+            mc.addAttr (targetObj, ln = targetAttr,  at = aType )
+
+        if connection:
+            try:
+                doConnectAttr(connection,targetAttrName)
+            except:
+                log.warning("Couldn't connect '%s' to the '%s'"%(connection,targetAttrName))
+
+        elif dataBuffer is not None:
+            if mc.objExists(dataBuffer) and aType == 'message':
+                storeObjectToMessage(dataBuffer,targetObj,targetAttr)
+            else:
+                try:
+                    if aType == 'long':
+                        mc.setAttr(targetAttrName,int(float(dataBuffer)))
+                    elif aType == 'string':
+                        mc.setAttr(targetAttrName,str(dataBuffer),type = aType)
+                    elif aType == 'double':
+                        mc.setAttr(targetAttrName,float(dataBuffer))   
+                    else:
+                        mc.setAttr(targetAttrName,dataBuffer,type = aType)
+                except:
+                    log.warning("Couldn't add '%s' to the '%s'"%(dataBuffer,targetAttrName))
+
+
+        if targetLock:
+            mc.setAttr(targetAttrName,lock = True)
+            
+def OLDreorderAttributes(obj,attrs,direction = 0):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    Acknowledgement:
+    Thank you to - http://www.the-area.com/forum/autodesk-maya/mel/how-can-we-reorder-an-attribute-in-the-channel-box/
+
     DESCRIPTION:
-    Adds the obj name as a message attribute to the storage object with
-    a custom message attribute name
+    Reorders attributes on an object
 
     ARGUMENTS:
-    obj(string) - object to store
-    storageObject(string) - object to store the info to
-    messageName(string) - message name to store it as
+    obj(string) - obj with message attrs
+    attrs(list) must be attributes on the object
+    direction(int) - 0 is is negative (up on the channelbox), 1 is positive (up on the channelbox)
 
     RETURNS:
-    Success
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    assert mc.objExists(obj) is True,"'%s' doesn't exist"%(obj)
-    assert mc.objExists(storageObj) is True,"'%s' doesn't exist"%(storageObj)
+    assert direction in [0,1],"Direction must be 0 for negative, or 1 for positive movement"
+    for attr in attrs:
+        assert mc.objExists(obj+'.'+attr) is True, "reorderAttributes error. '%s.%s' doesn't exist. Swing and a miss..."%(obj,atr)
 
-    attrCache = (storageObj+'.'+messageName)
-    objLong = mc.ls(obj,long=True)
-    if len(objLong)>1:
-        log.warning("Can't find long name for storage, found '%s'"%objLong)
-        return False 
-    objLong = objLong[0]
+    userAttrs = mc.listAttr(obj,userDefined = True)
 
-    storageLong = mc.ls(storageObj,long=True)
-    if len(storageLong)>1:
-        log.warning("Can't find long name for storage, found '%s'"%storageLong)
-        return False
-    storageLong = storageLong[0]
+    attrsToMove = []
+    for attr in userAttrs:
+        if not mc.attributeQuery(attr, node = obj,listParent = True):
+            attrsToMove.append(attr)
 
-    try:
-        if  mc.objExists (attrCache):
-            if mc.attributeQuery (messageName,node=storageObj,msg=True) and not mc.addAttr(attrCache,q=True,m=True):
-                if returnMessageObject(storageObj,messageName) != obj:
-                    log.debug(attrCache+' already exists. Adding to existing message node.')
-                    doBreakConnection(attrCache)
-                    #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-                    doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))
-                    return True 
-                else:
-                    log.debug("'%s' already stored to '%s.%s'"%(obj,storageObj,messageName))
-            else:
-                connections = returnDrivenAttribute(attrCache)
-                if connections:
-                    for c in connections:
-                        doBreakConnection(c)
+    lists.reorderListInPlace(attrsToMove,attrs,direction)
 
-                log.debug("'%s' already exists. Not a message attr, converting."%attrCache)
-                doDeleteAttr(storageObj,messageName)
+    #To reorder, we need delete and undo in the order we want
+    for attr in attrsToMove:
+        try:
+            attrBuffer = '%s.%s'%(obj,attr)
+            lockState = False
+            if mc.getAttr(attrBuffer,lock=True) == True:
+                lockState = True
+                mc.setAttr(attrBuffer,lock=False)
 
-                buffer = mc.addAttr (storageObj, ln=messageName, at= 'message')                
-                #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName),force=True)
-                doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))                
+            mc.deleteAttr('%s.%s'%(obj,attr))
 
-                return True
-        else:
-            mc.addAttr (storageObj, ln=messageName, at= 'message')
-            #mc.connectAttr ((obj+".message"),(storageObj+'.'+ messageName))
-            doConnectAttr((obj+".message"),(storageObj+'.'+ messageName))	    
-            return True
-    except StandardError,error:
-        log.warning(error)
-        return False
+            mc.undo()
+
+            if lockState:
+                mc.setAttr(attrBuffer,lock=True)
+
+        except:
+            log.warning("'%s' Failed to reorder"%attr)
+            
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_sequentialAttrDict(node, attr = None):
     """   
@@ -2418,103 +2559,6 @@ def OLDdoRenameAttr(obj,oldAttrName,newAttrName,forceLock = False):
     if wasLocked == True or forceLock == True:
         newBuffer = '%s.%s'%(obj,newAttrName)
         mc.setAttr(newBuffer,lock=True)
-
-def OLDdoConvertAttrType(targetAttrName,attrType):
-    """ 
-    Attempts to convert an existing attrType from one type to another. 
-    Enum's are stored to strings as 'option1;option2'.
-    Strings with a ';' will split to enum options on conversion.
-
-    Keyword arguments:
-    targetAttrName(string) -- name for an existing attribute name
-    attrType(string) -- desired attribute type
-
-    """    
-    assert mc.objExists(targetAttrName) is True,"'%s' doesn't exist!"%targetAttrName
-
-    aType = False
-    for option in attrTypesDict.keys():
-        if attrType in attrTypesDict.get(option): 
-            aType = option
-            break
-
-    assert aType is not False,"'%s' is not a valid attribute type!"%attrType
-
-
-    #>>> Get data
-    targetLock = False
-    if mc.getAttr((targetAttrName),lock = True) == True:
-        targetLock = True
-        mc.setAttr(targetAttrName,lock = False)
-
-    targetType = mc.getAttr(targetAttrName,type=True)
-
-    buffer = targetAttrName.split('.')
-    targetObj = buffer[0]
-    targetAttr = buffer[-1]
-
-
-    #>>> Do the stuff
-    if aType != targetType:
-        # get data connection and data to transfer after we make our new attr
-        # see if it's a message attribute to copy    
-        connection = ''
-        if mc.attributeQuery (targetAttr,node=targetObj,msg=True):
-            dataBuffer = (returnMessageObject(targetObj,targetAttr))
-        else:
-            connection = returnDriverAttribute(targetAttrName)            
-            dataBuffer = mc.getAttr(targetAttrName)
-
-        if targetType == 'enum':           
-            dataBuffer = mc.addAttr((targetObj+'.'+targetAttr),q=True, en = True)
-
-
-        doDeleteAttr(targetObj,targetAttr)
-
-        """if it doesn't exist, make it"""
-        if aType == 'string':
-            mc.addAttr (targetObj, ln = targetAttr,  dt = aType )
-
-        elif aType == 'enum':
-            enumStuff  = 'off:on'
-            if dataBuffer:
-                if type(dataBuffer) is str or type(dataBuffer) is unicode:
-                    enumStuff = dataBuffer
-            mc.addAttr (targetObj, ln = targetAttr, at=  'enum', en = enumStuff)
-
-        elif aType == 'double3':
-            mc.addAttr (targetObj, ln=targetAttr, at= 'double3')
-            mc.addAttr (targetObj, ln=(targetAttr+'X'),p=targetAttr , at= 'double')
-            mc.addAttr (targetObj, ln=(targetAttr+'Y'),p=targetAttr , at= 'double')
-            mc.addAttr (targetObj, ln=(targetAttr+'Z'),p=targetAttr , at= 'double')
-        else:
-            mc.addAttr (targetObj, ln = targetAttr,  at = aType )
-
-        if connection:
-            try:
-                doConnectAttr(connection,targetAttrName)
-            except:
-                log.warning("Couldn't connect '%s' to the '%s'"%(connection,targetAttrName))
-
-        elif dataBuffer is not None:
-            if mc.objExists(dataBuffer) and aType == 'message':
-                storeObjectToMessage(dataBuffer,targetObj,targetAttr)
-            else:
-                try:
-                    if aType == 'long':
-                        mc.setAttr(targetAttrName,int(float(dataBuffer)))
-                    elif aType == 'string':
-                        mc.setAttr(targetAttrName,str(dataBuffer),type = aType)
-                    elif aType == 'double':
-                        mc.setAttr(targetAttrName,float(dataBuffer))   
-                    else:
-                        mc.setAttr(targetAttrName,dataBuffer,type = aType)
-                except:
-                    log.warning("Couldn't add '%s' to the '%s'"%(dataBuffer,targetAttrName))
-
-
-        if targetLock:
-            mc.setAttr(targetAttrName,lock = True)
 
 def OLDreturnMatchNameAttrsDict(fromObject,toObject,attributes=[True],directMatchOnly = False,*a, **kw ):
     """                                     
@@ -3417,52 +3461,5 @@ def OLDstoreObjectToMessage (obj, storageObj, messageName):
 
 
 
-def OLDreorderAttributes(obj,attrs,direction = 0):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    Acknowledgement:
-    Thank you to - http://www.the-area.com/forum/autodesk-maya/mel/how-can-we-reorder-an-attribute-in-the-channel-box/
 
-    DESCRIPTION:
-    Reorders attributes on an object
-
-    ARGUMENTS:
-    obj(string) - obj with message attrs
-    attrs(list) must be attributes on the object
-    direction(int) - 0 is is negative (up on the channelbox), 1 is positive (up on the channelbox)
-
-    RETURNS:
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    assert direction in [0,1],"Direction must be 0 for negative, or 1 for positive movement"
-    for attr in attrs:
-        assert mc.objExists(obj+'.'+attr) is True, "reorderAttributes error. '%s.%s' doesn't exist. Swing and a miss..."%(obj,atr)
-
-    userAttrs = mc.listAttr(obj,userDefined = True)
-
-    attrsToMove = []
-    for attr in userAttrs:
-        if not mc.attributeQuery(attr, node = obj,listParent = True):
-            attrsToMove.append(attr)
-
-    lists.reorderListInPlace(attrsToMove,attrs,direction)
-
-    #To reorder, we need delete and undo in the order we want
-    for attr in attrsToMove:
-        try:
-            attrBuffer = '%s.%s'%(obj,attr)
-            lockState = False
-            if mc.getAttr(attrBuffer,lock=True) == True:
-                lockState = True
-                mc.setAttr(attrBuffer,lock=False)
-
-            mc.deleteAttr('%s.%s'%(obj,attr))
-
-            mc.undo()
-
-            if lockState:
-                mc.setAttr(attrBuffer,lock=True)
-
-        except:
-            log.warning("'%s' Failed to reorder"%attr)
 
