@@ -8,6 +8,7 @@ Refactoring attribte calls to core.
 # From Python =============================================================
 import copy
 import re
+import sys
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -27,10 +28,6 @@ from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.lib import name_utils as NAMES
 
 from cgm.lib import attributes
-
-import sys
-def testNAME():
-    print sys._getframe().f_code.co_name
 
 _d_attrTypes = {'message':('message','msg'),
                 'double':('float','fl','f','doubleLinear','doubleAngle','double','d'),
@@ -152,6 +149,28 @@ def validate_arg(*a):
         #raise ValueError,"{0} doesn't exist.".format(_combined)        
     return {'node':_obj,'obj':_obj ,'attr':_attr ,'combined':_combined}
 
+def validate_attrTypeMatch(t1,t2):
+    """
+    Returns if attr types match
+    
+    :parameters:
+        t1(string): attr type arg 1
+        t2(string)
+        
+    :returns
+        status(bool)
+    """
+    #_str_func = sys._getframe().f_code.co_name
+    
+    if t1 == t2:
+            return True
+    
+    for o in _d_attrTypes.keys():
+        if t1 in _d_attrTypes.get(o) and t2 in _d_attrTypes.get(o): 
+            return True
+    return False    
+
+    
 def alias_get(arg, attr = None):
     """
     Gets the alias of an object attribute if there is one
@@ -293,7 +312,8 @@ def get(*a, **kws):
         return mc.listConnections(_combined)		
 
     if mc.attributeQuery (_attr,node=_obj,msg=True):
-        return mc.listConnections(_combined) or False     
+        #return mc.listConnections(_combined) or False 
+        return get_message(_d)
     elif attrType == 'double3':
         return [mc.getAttr(_obj+'.'+ a) for a in mc.attributeQuery(_attr, node = _obj, listChildren = True)]
     elif attrType == 'double':
@@ -343,8 +363,14 @@ def set(node, attr = None, value = None, lock = False,**kws):
     if not is_keyed(_d):
         if break_connection(_d):
             log.warning("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
-
-    if _validType == 'long':
+    
+    _children = get_children(_d)
+    if _children:
+        if len(_children) != len(value):
+            raise ValueError,"Must have matching len for value and children. Children: {0} | value: {1}".format(_children,value)
+        for i,c in enumerate(_children):
+            mc.setAttr("{0}.{1}".format(_obj,c),value[i], **kws)
+    elif _validType == 'long':
         mc.setAttr(_combined,int(float(value)), **kws)
     elif _validType == 'string':
         mc.setAttr(_combined,str(value),type = 'string', **kws)
@@ -352,6 +378,7 @@ def set(node, attr = None, value = None, lock = False,**kws):
         mc.setAttr(_combined,float(value), **kws)
     elif _validType == 'message':
         set_message(value, _obj, _attr)
+        
     else:
         mc.setAttr(_combined,value, **kws)
 
@@ -548,32 +575,63 @@ def break_connection(*a):
 
         log.debug("|{0}| >> breaking: {1} >>> to >>> {2}".format(_str_func,sourceBuffer,_drivenAttr))
 
-        #>>>See if stuff is locked
-        drivenLock = False
-        if mc.getAttr(_drivenAttr,lock=True):
-            drivenLock = True
-            mc.setAttr(_drivenAttr,lock=False)
-        sourceLock = False    
-        if mc.getAttr(sourceBuffer,lock=True):
-            sourceLock = True
-            mc.setAttr(sourceBuffer,lock=False)
-
-        mc.disconnectAttr (sourceBuffer,_drivenAttr)
-
-
-        if drivenLock:
-            mc.setAttr(_drivenAttr,lock=True)
-
-        if sourceLock:
-            mc.setAttr(sourceBuffer,lock=True)
+        disconnect(sourceBuffer,_drivenAttr)
 
         return sourceBuffer
-    else:
-        return False
+    
+    if get_type(_d) == 'message':
+        _dest = mc.listConnections (_combined, scn = False, d = True, s = False, plugs = True)
+        if _dest:
+            for c in _dest:
+                disconnect(_drivenAttr,c)
+
+    return False
+
+def disconnect(fromAttr,toAttr):
+    """   
+    Disconnects attributes. Handles locks on source or end
+
+    :parameters:
+        fromAttr(string) - 'obj.attribute'
+        toAttr() - depends on the attribute type
+        
+    :returns
+        status(bool)
+    """     
+    _str_func = 'connect'
+    _d = validate_arg(fromAttr) 
+    _combined = _d['combined']
+    _obj = _d['obj']
+    _attr = _d['attr']
+    
+    _d_to = validate_arg(toAttr)
+    _toAttr = _d_to['attr']
+    _combined_to = _d_to['combined']    
+    
+
+    drivenLock = False
+    if mc.getAttr(_combined_to,lock=True):
+        drivenLock = True
+        mc.setAttr(_combined_to,lock=False)
+    sourceLock = False    
+    if mc.getAttr(_combined,lock=True):
+        sourceLock = True
+        mc.setAttr(_combined,lock=False)
+
+    mc.disconnectAttr (_combined,_combined_to)
+
+
+    if drivenLock:
+        mc.setAttr(_combined_to,lock=True)
+
+    if sourceLock:
+        mc.setAttr(_combined,lock=True)
+        
+    return True
 
 def connect(fromAttr,toAttr,transferConnection=False,lock = False):
     """   
-    Breaks connections on an attribute. Handles locks on source or end
+    Connects attributes. Handles locks on source or end
 
     :parameters:
         attribute(string) - 'obj.attribute'
@@ -591,29 +649,36 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False):
     _combined = _d['combined']
     _obj = _d['obj']
     _attr = _d['attr']
+    
+    _d_to = validate_arg(toAttr)
+    _toAttr = _d_to['attr']
+    _combined_to = _d_to['combined']
+    
+    log.info("|{0}| >> Connecting {1} to {2}".format(_str_func,_combined,_combined_to))
 
-    assert fromAttr != toAttr,"Cannot connect an attr to itself. The world might blow up!"
+    assert _combined != _combined_to,"Cannot connect an attr to itself. The world might blow up!"
 
     if transferConnection: raise Exception,"Look at why you're transferring connection"
 
     _wasLocked = False
-    if (mc.objExists(toAttr)) == True:
-        if mc.getAttr(toAttr,lock=True) == True:
+    _connection = False
+    if (mc.objExists(_combined_to)):
+        if mc.getAttr(_combined_to,lock=True):
             _wasLocked = True
-            mc.setAttr(toAttr,lock=False)
+            mc.setAttr(_combined_to,lock=False)
 
         #bufferConnection = get_driver(toAttr)
-        _connection = break_connection(toAttr)
+        _connection = break_connection(_d_to)
         #doBreakConnection(attrBuffer[0],attrBuffer[1])
-        mc.connectAttr(fromAttr,toAttr)     
+        mc.connectAttr(_combined,_combined_to)     
 
     if transferConnection:
-        if _connection and not is_connected(fromAttr):
+        if _connection and not is_connected(_d):
             log.info("|{0}| >> {1} | Transferring to fromAttr: {2} | connnection: {3}".format(_str_func,toAttr,fromAttr,_connection))            
-            mc.connectAttr(_connection,fromAttr)
+            mc.connectAttr(_connection,_combined)
 
     if _wasLocked or lock:
-        mc.setAttr(toAttr,lock=True)    
+        mc.setAttr(_combined_to,lock=True)    
 
 
 def OLDdoConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
@@ -754,12 +819,16 @@ def get_standardFlagsDict(*a):
     if dataDict.get('type') in ['string','message','enum','bool']:
         numeric = False
     dataDict['numeric'] = numeric
+    
+    if numeric:
+        _d_numeric = get_numericFlagsDict(_d)
+        dataDict.update(_d_numeric)
 
     if dynamic:
         dataDict['readable']=mc.addAttr(_combined,q=True,r=True)
         dataDict['writable']=mc.addAttr(_combined,q=True,w=True)
         dataDict['storable']=mc.addAttr(_combined,q=True,s=True)
-        dataDict['usedAsColor']=mc.addAttr(_combined,q=True,usedAsColor = True)        
+        dataDict['usedAsColor']=mc.addAttr(_combined,q=True,usedAsColor = True)     
 
     return dataDict    
 
@@ -793,7 +862,7 @@ def get_numericFlagsDict(*a):
     dataDict = {}    
     # Return numeric data    
     if not numeric or not dynamic or mc.attributeQuery(_attr, node = _obj, listChildren=True):
-        return False
+        return {}
     else:
         dataDict['min'] = False                    
         if mc.attributeQuery(_attr, node = _obj, minExists=True):
@@ -853,7 +922,7 @@ def get_numericFlagsDict(*a):
         except:
             dataDict['softRange'] = False 
 
-        return dataDict     
+    return dataDict     
 
 def get_nameNice(*a):
     """   
@@ -1260,7 +1329,6 @@ def get_driven(node, attr = None, getNode = False, skipConversionNodes = False, 
             return False
     return False 
 
-@cgmGeneral.Timer    
 def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = None, simple = False):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
@@ -1325,17 +1393,17 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
             if mc.objExists(_messagedNode[0]) and not mc.objectType(_messagedNode[0])=='reference':
                 
                 mi_node = r9Meta.MetaClass(_d['node'])
-                _dBuffer = mi_node.__getattribute__(_d_dataAttr['attr']) or {}
-                if _dBuffer.get(dataKey):
-                    log.debug("|{0}| >> extra message data found...".format(_str_func))  
-                    return [ _messagedNode[0] + '.' + _dBuffer.get(dataKey)]
+                if mi_node.hasAttr(_d_dataAttr['attr']):
+                    _dBuffer = mi_node.__getattribute__(_d_dataAttr['attr']) or {}
+                    if _dBuffer.get(dataKey):
+                        log.debug("|{0}| >> extra message data found...".format(_str_func))  
+                        return [ _messagedNode[0] + '.' + _dBuffer.get(dataKey)]
                 
                 return _messagedNode
             else:#Try to repair it
                 return repairMessageToReferencedTarget(storageObject,messageAttr)
     return False    
     
-@cgmGeneral.Timer
 def set_message(message, messageHolder, messageAttr, dataAttr = None, dataKey = None, simple = False):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
@@ -1363,7 +1431,18 @@ def set_message(message, messageHolder, messageAttr, dataAttr = None, dataKey = 
     _messagedNode = None
     _messagedExtra = None
     _d_dataAttr = None
-    if '.' in message:
+    
+        
+    if issubclass(type(message),list):
+        if len(message) > 1:
+            raise ValueError,"Not implemented multi message"
+        else:
+            message = message[0]
+            
+    if message == False:
+        break_connection(_d)
+        return True
+    elif '.' in message:
         if cgmValid.is_component(message):
             _l_msg = cgmValid.get_component(message)  
             _messagedNode = _l_msg[1]            
@@ -1561,7 +1640,7 @@ def convert_type(node = None, attr = None, attrType = None):
         try:set(_d,value = _data)
         except Exception,err:
             log.error("|{0}| >> Failed to set back data buffer {1} | data: {2} | err: {3}".format(_str_func,_combined,_data,err))        
-        
+
     if _driver and _typeCurrent != 'message':
         log.debug("|{0}| >> Driver: {1}".format(_str_func,_driver))
         try:connect(_driver,_combined)
@@ -1954,10 +2033,10 @@ def msgList_clean(self,attr,connectBack = None):
         raise StandardError, "%s.msgList_clean >>[Error]<< : %s"(self.p_nameShort,error)
 
 
-def copy(fromObject, fromAttr, toObject, toAttr = None,
+def copy(fromObject, fromAttr, toObject = None, toAttr = None,
          convertToMatch = True, values = True, inConnection = False, outConnections = False,
          keepSourceConnections = True, copySettings = True,
-         connectSourceToTarget = False, connectTargetToSource = False):
+         driven = None):
     """   
     Copy attributes from one object to another as well as other options. If the attribute already
     exists, it'll copy the values. If it doesn't, it'll make it. If it needs to convert, it can.
@@ -1974,262 +2053,149 @@ def copy(fromObject, fromAttr, toObject, toAttr = None,
         inputConnections(bool) -- default False
         outGoingConnections(bool) -- default False
         keepSourceConnections(bool)-- keeps connections on source. default True
-        copyAttrSettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
-        connectSourceToTarget(bool) --useful for moving attribute controls to another object. default False
+        copySettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
+        driven(string) -- 'source','target' - whether to connect source>target or target>source
         connectTargetToSource(bool) --useful for moving attribute controls to another object. default False
 
     :returns
         success(bool)
     """ 
     _str_func = 'copy'
+    
     _d = validate_arg(fromObject,fromAttr) 
     _combined = _d['combined']
-    _obj = _d['obj']
+    _node = _d['node']
     _attr = _d['attr']
-
-
-    # Gather info   
-    #sourceFlags = get_standardFlagsDict(_d)
-    #sourceType = sourceFlags.get('type')
+    _toObject = toObject
+    _toAttr = toAttr
     
-    _d_source = {}
-    _d_source['type'] = get_type(_d)
-    _d_source['locked'] = is_locked(_d)
-    _d_source['keyable'] = is_keyable(_d)
-    _d_source['hidden'] = is_hidden(_d)
-    _d_source['dynamic'] = is_dynamic(_d)
-    _d_source['numeric'] = is_numeric(_d)
-
-    if values and not validate_attrTypeName(_d_source['type']):
-        log.warning("|{0}| >> {1} is a {2} attr and not valid for copying".format(_str_func,_d['combined'],_d_source['type']))
-        return False   
+    if _toObject is None:
+        log.info("|{0}| >> No toObject specified. Using fromObject: {1}".format(_str_func,fromObject))
+        _toObject = fromObject
+    if _toAttr is None:
+        log.info("|{0}| >> No toAttr specified. Using fromAttr: {1}".format(_str_func,fromAttr))
+        _toAttr = fromAttr
+    _d_targetAttr = validate_arg(_toObject,_toAttr)
     
-    if _d_source['numeric']:
-    
-            """sourceNumericFlags = returnNumericAttrSettingsDict(fromObject,fromAttr)
-            if sourceNumericFlags:
-                sourceDefault = sourceNumericFlags.get('default')
-                sourceMax = sourceNumericFlags.get('max')
-                sourceMin = sourceNumericFlags.get('min')
-                sourceSoftMax = sourceNumericFlags.get('softMax')
-                sourceSoftMin = sourceNumericFlags.get('softMin')"""
-    
-    if _d_source['type'] == 'enum':
-        _d_source['enum'] = get_enum(_d)
+    if _combined == _d_targetAttr['combined']:
+        raise ValueError,"Cannot copy to self."
         
-    cgmGeneral(_d_source,_combined)
+    
+    #>>> Gather info --------------------------------------------------------------------------------------
+    _d_sourceFlags = get_standardFlagsDict(_d)
+    
+    if values and not validate_attrTypeName(_d_sourceFlags['type']):
+        log.warning("|{0}| >> {1} is a {2} attr and not valid for copying".format(_str_func,_d['combined'],_d_sourceFlags['type']))
+        return False   
 
-def OLDdoCopyAttr(fromObject,fromAttr, toObject, toAttr = None, *a,**kw):
-    """                                     
-    DESCRIPTION:
-    Replacement for Maya's since maya's can't handle shapes....blrgh...
-    Copy attributes from one object to another as well as other options. If the attribute already
-    exists, it'll copy the values. If it doesn't, it'll make it. If it needs to convert, it can.
-    It will not make toast.
-
-    Keywords:
-    fromObject(string) - obj with attrs
-    fromAttr(string) - source attribute
-    toObject(string) - obj to copy to
-    toAttr(string) -- name of the attr to copy to . Default is None which will create an 
-                      attribute of the fromAttr name on the toObject if it doesn't exist
-    convertToMatch(bool) -- whether to automatically convert attribute if they need to be. Default True                  
-    values(bool) -- copy values. default True
-    inputConnections(bool) -- default False
-    outGoingConnections(bool) -- default False
-    keepSourceConnections(bool)-- keeps connections on source. default True
-    copyAttrSettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
-    connectSourceToTarget(bool) --useful for moving attribute controls to another object. default False
-    connectTargetToSource(bool) --useful for moving attribute controls to another object. default False
-
-    RETURNS:
-    success(bool)
-    """
-    #>>>Keyword args
-    convertToMatch = kw.pop('convertToMatch',True)
-    values = kw.pop('values',True)
-    inputConnections = kw.pop('inputConnections',False)
-    outgoingConnections = kw.pop('outgoingConnections',False)
-    keepSourceConnections = kw.pop('keepSourceConnections',True)
-    copyAttrSettings = kw.pop('copyAttrSettings',True)
-    connectSourceToTarget = kw.pop('connectSourceToTarget',False)
-    connectTargetToSource = kw.pop('connectTargetToSource',False) 
-
-    if not mc.objExists('%s.%s'%(fromObject,fromAttr)):
-        log.debug("doCopyAttr error. Source '%s.%s' doesn't exist"%(fromObject,fromAttr))
-        return False
-    assert mc.objExists(toObject) is True,"Target '%s' doesn't exist"%toObject
-
-    # Gather info   
-    sourceFlags = returnStandardAttrFlags(fromObject,fromAttr)
-    sourceType = sourceFlags.get('type')
-
-    if values and not validateRequestedAttrType(sourceType):
-        log.warning("'%s.%s' is a '%s' and not valid for copying."%(fromObject,fromAttr,sourceType))             
-        return False
-
-    sourceLock = sourceFlags.get('locked')
-    sourceKeyable = sourceFlags.get('keyable')
-    sourceHidden = sourceFlags.get('hidden')
-    sourceDynamic = sourceFlags.get('dynamic')
-    sourceNumeric = sourceFlags.get('numeric')
-    if sourceNumeric:
-        sourceNumericFlags = returnNumericAttrSettingsDict(fromObject,fromAttr)
-        if sourceNumericFlags:
-            sourceDefault = sourceNumericFlags.get('default')
-            sourceMax = sourceNumericFlags.get('max')
-            sourceMin = sourceNumericFlags.get('min')
-            sourceSoftMax = sourceNumericFlags.get('softMax')
-            sourceSoftMin = sourceNumericFlags.get('softMin')
-
-    sourceEnum = False
-    if sourceType == 'enum':
-        sourceEnum = sourceFlags.get('enum')
-
-    goodToGo = True
-    targetExisted = False
-    relockSource = False
-
-    #Let's check on the target attr
-    if toAttr is not None:
-        #If an attr is specified
-        if mc.objExists('%s.%s'%(toObject,toAttr)):
-            #If it exists, verify the types match and get standard flags
-            targetExisted = True
-            targetFlags = returnStandardAttrFlags(toObject,toAttr)
-            targetType = targetFlags.get('type')
-            targetLock = targetFlags.get('locked')
-            targetKeyable = targetFlags.get('keyable')
-            targetHidden = targetFlags.get('hidden')
-            targetDynamic = targetFlags.get('dynamic')   
-            if not validateRequestedAttrType(targetType):
-                log.warning("'%s.%s' is a '%s' and may not copy correctly."%(toObject,toAttr,sourceType))             
-
-            if not validateAttrTypeMatch(targetType,sourceType):
-                #If it doesn't match, covert
-                if sourceDynamic and convertToMatch:
-                    log.warning("'%s.%s' must be converted. It's type is not '%s'"%(toObject,toAttr,targetType))              
-                    if targetLock:
-                        mc.setAttr('%s.%s'%(toObject,toAttr),lock = False)
-                        relockSource = True
-                    doConvertAttrType(('%s.%s'%(toObject,toAttr)),sourceType)
-                else:
-                    goodToGo = False
-
-
-        elif doAddAttr(toObject,toAttr,sourceType):
-            #If it doesn't exist, make it
-            log.debug("'%s.%s' created!"%(toObject,toAttr))            
-        else:
-            return False
-
-    else:
-        #If no attr is specified (None), we first look to see if our target has an attr called what our source is
-        matchAttrs = returnMatchNameAttrsDict(fromObject,toObject,[fromAttr])
-        if matchAttrs:
-            targetFlags = returnStandardAttrFlags(toObject,matchAttrs.get(fromAttr))
-            targetType = targetFlags.get('type')
-            targetLock = targetFlags.get('locked')
-            targetKeyable = targetFlags.get('keyable')
-            targetHidden = targetFlags.get('hidden')
-            targetDynamic = targetFlags.get('dynamic')  
-
-            if not targetType:
-                log.warning("'%s.%s' has no type."%(toObject,toAttr))             
-                return False    
-
-            if not validateAttrTypeMatch(targetType,sourceType):
-                if sourceDynamic and convertToMatch:
-                    toAttr = fromAttr                    
-                    #f the match attr doesnt' type as well, convert
-                    log.debug("Match is '%s', needs to be '%s'"%(targetType,sourceType))  
-                    if targetLock:
-                        mc.setAttr('%s.%s'%(toObject,toAttr),lock = False)
-                        relockSource = True                        
-                    doConvertAttrType(('%s.%s'%(toObject,toAttr)),sourceType)
-                else:
-                    goodToGo = False
-                    toAttr = matchAttrs.get(fromAttr)
+    cgmGeneral.log_info_dict(_d_sourceFlags,_combined)
+    
+    _driver = get_driver(_d,skipConversionNodes=True)
+    _driven = get_driven(_d,skipConversionNodes=True)
+    _data = get(_d)
+    
+    log.info("|{0}| >> data: {1}".format(_str_func,_data))    
+    log.info("|{0}| >> driver: {1}".format(_str_func,_driver))
+    log.info("|{0}| >> driven: {1}".format(_str_func,_driven))    
+    
+    #>>> First get our attribute ---------------------------------------------------------------------
+    _goodToGo = True
+    _targetExisted = False
+    _relockSource = False    
+    
+    cgmGeneral.log_info_dict(_d_targetAttr)
+    if mc.objExists(_d_targetAttr['combined']):
+        _targetExisted = True
+        _d_targetFlags = get_standardFlagsDict(_d_targetAttr)
+        
+        if not validate_attrTypeName(_d_targetFlags['type']):
+            log.warning("|{0}| >> {1} may not copy correctly. Type did not validate.".format(_str_func,_d_targetAttr['combined']))
+        
+        if not validate_attrTypeMatch(_d_sourceFlags['type'],_d_targetFlags['type']):
+            if _d_targetAttr['dynamic'] and convertToMatch:
+                log.warning("|{0}| >> {1} Not the correct type, conversion necessary...".format(_str_func,_d_targetAttr['combined']))
+                #_relockSource
+                convert_type(_d_targetAttr,_d_sourceFlags['type'])
             else:
-                #Otherwise, good to go
-                toAttr = matchAttrs.get(fromAttr)                   
-
-        elif doAddAttr(toObject,fromAttr,sourceType):
-            toAttr = fromAttr
-            log.debug("'%s.%s' created!"%(toObject,fromAttr))   
-
-    if not goodToGo:
-        log.warning("'%s.%s' may not copy well to '%s.%s'. Source type is '%s', target type is '%s'. Conversion mode is off"%(fromObject,fromAttr,toObject,toAttr,sourceType,targetType))
-
-    #Let's get our data    
-    dataDict = returnAttributeDataDict(fromObject,fromAttr)
-
-    if values:
-        if sourceType == 'message' and dataDict.get('value'):
-            storeInfo(toObject,toAttr,dataDict.get('value'))
-        else:
-            doSetAttr(toObject,toAttr,dataDict.get('value'))
-
-    if inputConnections and not connectSourceToTarget:
-        buffer = dataDict['incoming']
-        if buffer:
-            try:
-                doConnectAttr(buffer,('%s.%s'%(toObject,toAttr)))
-                if not keepSourceConnections:
-                    doBreakConnection('%s.%s'%(fromObject,fromAttr))
-            except:
-                if sourceType != 'message':
-                    log.warning("Inbound fail - '%s.%s' failed to connect to '%s"%(fromObject,fromAttr,buffer))
-
-    if outgoingConnections and not connectSourceToTarget:
-        if dataDict['outGoing']:
-            for connection in dataDict['outGoing']:
-                try:
-                    doConnectAttr(('%s.%s'%(toObject,toAttr)),connection)
-
-                except:
-                    log.warning("Outbound fail - '%s' failed to connect to '%s.%s'"%(connection,toObject,toAttr))
-
-    if copyAttrSettings:
-        if sourceEnum:
-            mc.addAttr (('%s.%s'%(toObject,toAttr)), e = True, at=  'enum', en = sourceEnum)
-        if sourceNumeric and sourceNumericFlags:
-            if sourceDefault:
-                mc.addAttr((toObject+'.'+toAttr),e=True,dv = sourceDefault)
-            if sourceMax:
-                mc.addAttr((toObject+'.'+toAttr),e=True,maxValue = sourceMax)                
-            if sourceMin:
-                mc.addAttr((toObject+'.'+toAttr),e=True,minValue = sourceMin)                
-            if sourceSoftMax:
-                mc.addAttr((toObject+'.'+toAttr),e=True,softMaxValue = sourceSoftMax)                
-            if sourceSoftMin:
-                mc.addAttr((toObject+'.'+toAttr),e=True,softMinValue = sourceSoftMin)                
-
-        mc.setAttr(('%s.%s'%(toObject,toAttr)),e=True,channelBox = not sourceHidden)
-        mc.setAttr(('%s.%s'%(toObject,toAttr)),e=True,keyable = sourceKeyable)
-        mc.setAttr(('%s.%s'%(toObject,toAttr)),e=True,lock = sourceLock)
-
-
-    if connectSourceToTarget:
+                raise Exception,"|{0}| >> {1} Not the correct type, conversion necessary and convertToMatch is off".format(_str_func,_d_targetAttr['combined'])
+                _goodToGo = False
+    else:
+        add(_d_targetAttr, _d_sourceFlags['type'])
+            
+    #>>> Get our values over -------------------------------------------------------------------------
+    
+    if _data is not None :
+        try:set(_d_targetAttr,value = _data)
+        except Exception,err:
+            log.error("|{0}| >> Failed to set back data buffer {1} | data: {2} | err: {3}".format(_str_func,_d_targetAttr['combined'],_data,err))        
+   
+    if _driver:
+        if _d_sourceFlags['type'] != 'message':
+            log.debug("|{0}| >> Driver: {1}".format(_str_func,_driver))
+            try:connect(_driver,_d_targetAttr['combined'])
+            except Exception,err:
+                log.error("|{0}| >> Failed to connect {1} >--> {2} | err: {3}".format(_str_func,_driver,_d_targetAttr['combined'],err))        
+                    
+    if _driven:
+        log.debug("|{0}| >> Driven: {1}".format(_str_func,_driven))
+        for c in _driven:
+            log.debug("|{0}| >> driven: {1}".format(_str_func,c))
+            try:connect(_d_targetAttr['combined'],c)
+            except Exception,err:
+                log.error("|{0}| >> Failed to connect {1} >--> {2} | err: {3}".format(_str_func,_d_targetAttr['combined'],c,err))        
+        
+        
+    if copySettings:
+        if _d_sourceFlags.get('enum'):
+            mc.addAttr (_d_targetAttr['combined'], e = True, at=  'enum', en = _d_sourceFlags['enum'])
+        if _d_sourceFlags['numeric']:
+            _children = get_children(_d)
+            if _children:
+                for c in _children:
+                    _d_c = get_standardFlagsDict(_node,c)
+                    _buffer = "{0}.{1}".format(_d_targetAttr['node'],c)
+                    if _d_c['default']:
+                        mc.addAttr(_buffer,e=True,dv = _d_c['default'])
+                    if _d_c['max']:
+                        mc.addAttr(_buffer,e=True,maxValue = _d_c['max'])                
+                    if _d_c['min']:
+                        mc.addAttr(_buffer,e=True,minValue = _d_c['min'])                
+                    if _d_c['softMax']:
+                        mc.addAttr(_buffer,e=True,softMaxValue = _d_c['softMax'])                
+                    if _d_c['softMin']:
+                        mc.addAttr(_buffer,e=True,softMinValue = _d_c['softMin'])                      
+            else:
+                if _d_sourceFlags['default']:
+                    mc.addAttr(_d_targetAttr['combined'],e=True,dv = _d_sourceFlags['default'])
+                if _d_sourceFlags['max']:
+                    mc.addAttr(_d_targetAttr['combined'],e=True,maxValue = _d_sourceFlags['max'])                
+                if _d_sourceFlags['min']:
+                    mc.addAttr(_d_targetAttr['combined'],e=True,minValue = _d_sourceFlags['min'])                
+                if _d_sourceFlags['softMax']:
+                    mc.addAttr(_d_targetAttr['combined'],e=True,softMaxValue = _d_sourceFlags['softMax'])                
+                if _d_sourceFlags['softMin']:
+                    mc.addAttr(_d_targetAttr['combined'],e=True,softMinValue = _d_sourceFlags['softMin'])                
+ 
+        mc.setAttr(_d_targetAttr['combined'],e=True,channelBox = not _d_sourceFlags['hidden'])
+        mc.setAttr(_d_targetAttr['combined'],e=True,keyable = _d_sourceFlags['keyable'])
+        mc.setAttr(_d_targetAttr['combined'],e=True,lock = _d_sourceFlags['locked'])
+ 
+     
+    if driven == 'target':
         try:            
-            doConnectAttr(('%s.%s'%(toObject,toAttr)),('%s.%s'%(fromObject,fromAttr)))
-        except:
-            log.warning("Connect to target fail - '%s.%s' failed to connect to '%s.%s'"%(fromObject,fromAttr,toObject,toAttr))
-
-    elif connectTargetToSource:
+            connect(_d,_d_targetAttr)
+        except Exception,err:
+            log.error("|{0}| >> Failed to connect source to target {1} >--> {2} | err: {3}".format(_str_func,_combined,_d_targetAttr['combined'],err))        
+    elif driven == 'source':
         try:            
-            doConnectAttr(('%s.%s'%(fromObject,fromAttr)),('%s.%s'%(toObject,toAttr)))
-        except:
-            log.warning("Connect to source fail - '%s.%s' failed to connect to '%s.%s'"%(fromObject,fromAttr,toObject,toAttr))
-
-    if relockSource:
-        mc.setAttr('%s.%s'%(toObject,toAttr),lock = True)
-
+            connect(_d_targetAttr,_d)
+        except Exception,err:
+            log.error("|{0}| >> Failed to connect target to source {1} >--> {2} | err: {3}".format(_str_func,_d_targetAttr['combined'],_combined,err))        
+           
+    if _d_sourceFlags['locked']:
+        mc.setAttr(_d_targetAttr['combined'],lock = True)  
+        
     return True
-
-
-
-
 
 #>>>>REFACTORING>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2254,21 +2220,7 @@ def OLDreturnCompatibleAttrs(sourceObj,sourceAttr,target,*a, **kw):
             return returnBuffer
     return False
 
-def OLDvalidateAttrTypeMatch(attrType1,attrType2):
-    """ 
-    Returns if attr types match
 
-    Keyword arguments:
-    attrType1(string)  
-    attrType1(string)  
-    """
-    if attrType1 == attrType2:
-        return True
-
-    for option in attrTypesDict.keys():
-        if attrType1 in attrTypesDict.get(option) and attrType2 in attrTypesDict.get(option): 
-            return True
-    return False
 
 
 def OLDreturnAttributeDataDict(obj,attr,value = True,incoming = True, outGoing = True):
