@@ -1316,7 +1316,11 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),		            
                         c = lambda *a:self.button_action(raySnap_start(self._l_sel)),
                         rp = 'E')	
-        
+        mc.menuItem(parent=_r,
+                        l = 'AimCast',
+                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                 
+                        c = lambda *a:self.button_action(aimSnap_start(self._l_sel)),
+                        rp = 'SE')
         if self._b_sel_few:
             _aim = mc.menuItem(parent=_r,subMenu = True,
                             l = 'Aim',
@@ -1389,19 +1393,29 @@ def killUI():
 from cgm.core.classes import DraggerContextFactory as cgmDrag
 reload(cgmDrag)
 
-def raySnap_start(targets = [], create = None, drag = False):
+def aimSnap_start(targets=[]):
+    raySnap_start(targets, None, False, snap=False, aim=True)
+
+def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=False):
     
     _str_func = 'raySnap_start'
     _toSnap = False
-    if not create or create == 'duplicate':
-        targets = mc.ls(sl=True)#...to use g to do again?...    
-        _toSnap = targets
-        log.debug("|{0}| | targets: {1}".format(_str_func,_toSnap))
-        if not _toSnap:
-            if create == 'duplicate':
-                log.error("|{0}| >> Must have targets to duplicate!".format(_str_func))
-            return
+    _toAim = False
     
+    if snap:
+        if not create or create == 'duplicate':
+            targets = mc.ls(sl=True)#...to use g to do again?...    
+            _toSnap = targets
+
+            log.debug("|{0}| | targets: {1}".format(_str_func,_toSnap))
+            if not _toSnap:
+                if create == 'duplicate':
+                    log.error("|{0}| >> Must have targets to duplicate!".format(_str_func))
+                return
+    
+    if aim:
+        _toAim = targets
+
     var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastMode', defaultValue=0)
     var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastOffset', defaultValue=0)
     var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastOffsetDist', defaultValue=1.0)
@@ -1436,6 +1450,9 @@ def raySnap_start(targets = [], create = None, drag = False):
         kws['toSnap'] = _toSnap
     elif create:
         kws['create'] = create
+
+    if _toAim:
+        kws['toAim'] = _toAim
         
     if _rayCastOrientMode == 1:
         kws['orientMode'] = 'normal'
@@ -1476,7 +1493,7 @@ def raySnap_start(targets = [], create = None, drag = False):
         log.warning("|{0}| >> Unknown rayCast offset mode: {1}!".format(_str_func,_rayCastOffsetMode))
     cgmGen.log_info_dict(kws,"RayCast args")
     
-    cgmDrag.clickMesh(**kws)    
+    cgmDrag.clickMesh(**kws)
     return
 
     log.warning("raySnap_start >>> ClickMesh initialized")

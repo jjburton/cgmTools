@@ -33,6 +33,7 @@ from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import node_utils as NODES
 from cgm.core.lib import name_utils as NAMES
+from cgm.core.lib import snap_utils as SNAP
 
 reload(POS)
 reload(NODES)
@@ -227,6 +228,7 @@ class clickMesh(ContextualPick):
                  toCreate = [],
                  toDuplicate = [],
                  toSnap = [],#...objects to snap on release
+                 toAim = [],#...objects to aim on update
                  maxDistance = 100000,
                  *a,**kws):
 
@@ -241,6 +243,7 @@ class clickMesh(ContextualPick):
         self.d_meshNormals = {}
         self.f_meshArea = 1
         self.l_toSnap = cgmValid.listArg(toSnap)
+        self.l_toAim = cgmValid.listArg(toAim)
         self._getUV = False
         self._time_start = time.clock()
         self._time_delayCheck = timeDelay
@@ -275,8 +278,8 @@ class clickMesh(ContextualPick):
             self.int_maxStore = len(toCreate)
             
         self.mAxis_aim = cgmValid.simpleAxis(objAimAxis)
-        self.mAxis_out = cgmValid.simpleAxis(objUpAxis)
-        self.mAxis_up = cgmValid.simpleAxis(objOutAxis)
+        self.mAxis_out = cgmValid.simpleAxis(objOutAxis)
+        self.mAxis_up = cgmValid.simpleAxis(objUpAxis)
 
 
         if mode in ['planeX','planeY','planeZ']:
@@ -712,6 +715,10 @@ class clickMesh(ContextualPick):
                 if self.l_toSnap:
                     mc.select(self.l_toSnap)
                 self.dropTool()
+            elif self.l_toAim:
+                mc.delete(self.l_created)
+                mc.select(self.l_toAim)
+                self.dropTool()
         
         self._int_runningTally+=1
         
@@ -1037,9 +1044,13 @@ class clickMesh(ContextualPick):
                         loc.doStore('meshTarget',_m)
                         loc.rename("cast_{0}_hit_{1}_loc".format(self._int_runningTally,i))
                         nameBuffer = loc.mNode
-                        print "making locator"
+                        #print "making locator"
                     POS.set(nameBuffer,pos)
                     
+                    #print "Aiming these: aim: %s, up: %s" % (self.mAxis_aim, self.mAxis_up)
+                    for aimTarget in self.l_toAim:
+                        SNAP.aimAtPoint(aimTarget, pos, self.mAxis_aim.p_string, self.mAxis_up.p_string)
+
                     nameBuffer = [nameBuffer]
     
                 self._createModeBuffer.extend(nameBuffer)   
