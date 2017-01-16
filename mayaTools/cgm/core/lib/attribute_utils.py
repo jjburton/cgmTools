@@ -650,46 +650,6 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False):
         mc.setAttr(_combined_to,lock=True)    
 
 
-def OLDdoConnectAttr(fromAttr,toAttr,forceLock = False,transferConnection=False):
-    """                                     
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Replacement for setAttr which will unlock a locked node it's given
-    to force a setting of the values. Also has a lock when done overide.
-    In addition has transfer connections ability for buffer nodes.
-
-    ARGUMENTS:
-    attribute(string) - 'obj.attribute'
-    value() - depends on the attribute type
-    forceLock(bool) = False(default)
-    transferConnection(bool) - (False) - whether you wante to transfer the existing connection to or not
-                                        useful for buffer connections
-    RETURNS:
-    nothin
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    assert fromAttr != toAttr,"Cannot connect an attriubute to itself. The world might blow up!"
-
-    wasLocked = False
-    if (mc.objExists(toAttr)) == True:
-        if mc.getAttr(toAttr,lock=True) == True:
-            wasLocked = True
-            mc.setAttr(toAttr,lock=False)
-        bufferConnection = returnDriverAttribute(toAttr)
-        attrBuffer = returnObjAttrSplit(toAttr)
-        if not attrBuffer:
-            return False
-        doBreakConnection(attrBuffer[0],attrBuffer[1])
-        mc.connectAttr(fromAttr,toAttr)     
-
-    if transferConnection == True:
-        if bufferConnection != False:
-            mc.connectAttr(bufferConnection,toAttr)
-
-    if wasLocked == True or forceLock == True:
-        mc.setAttr(toAttr,lock=True)
-
-
 def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],*a, **kws):
     """   
     Breaks connections on an attribute. Handles locks on source or end
@@ -1328,7 +1288,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
     else:
         dataKey = unicode(dataKey)
         
-    log.info("|{0}| >> {1} | dataAttr: {2} | dataKey: {3}".format(_str_func,_combined,_dataAttr,dataKey))
+    log.debug("|{0}| >> {1} | dataAttr: {2} | dataKey: {3}".format(_str_func,_combined,_dataAttr,dataKey))
     
     _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
     
@@ -1719,12 +1679,14 @@ def datList_purge(node = None, attr = None):
     _str_func = 'datList_purge'        
     d_attrs = get_sequentialAttrDict(node,attr)
     
-    for i,k in enumerate(d_attrs.keys()):
-        str_attr = d_attrs[i]
+    for k in d_attrs.keys():
+        str_attr = d_attrs[k]
         delete(node,str_attr)
         log.info("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,str_attr))
         
-    try:delete(node,"{0}_datdict".format(attr))
+    try:
+        delete(node,"{0}_datdict".format(attr))
+        log.info("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,"{0}_datdict".format(attr)))
     except:pass
     
     return True    
@@ -1825,9 +1787,9 @@ def datList_get(node = None, attr = None, mode = 'message', cull = False ):
     l_return = []
     ml_return = []
     
-    for i,k in enumerate(d_attrs.keys()):
+    for k in d_attrs.keys():
         if _mode == 'message':
-            _res = get_message(node,d_attrs[k], _str_dataAttr, i ) or False
+            _res = get_message(node,d_attrs[k], _str_dataAttr, k ) or False
             if _res:_res = _res[0]
             
         else:
@@ -1851,9 +1813,12 @@ def datList_index(data = None, node = None, attr = None, mode = 'message'):
     Index a value in a given datList.
     
     :parameters:
+        data(str) -- data to index
         node(str) -- 
         attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
-
+        mode(str) -- what kind of data to be looking for
+            NONE - just get the data
+            message - getMessage
     :returns
         status(bool)
     """
@@ -1867,8 +1832,8 @@ def datList_index(data = None, node = None, attr = None, mode = 'message'):
     if mode == 'message':
         _l_long = [NAMES.get_long(o) for o in _l_dat]
         _str_long = NAMES.get_long(data)
-        log.info(_l_long)
-        log.info(_str_long)
+        #log.info(_l_long)
+        #log.info(_str_long)
         if NAMES.get_long(data) in _l_long:
             idx = _l_long.index(_str_long)
             log.info("|{0}| >> Node already connected | idx: {1}".format(_str_func,idx))
@@ -1876,18 +1841,18 @@ def datList_index(data = None, node = None, attr = None, mode = 'message'):
         if l_data.count(data) > 1:
             raise ValueError,"More than one entry"
         else:
-            idx = _l_dat.index(data)
-        
+            idx = _l_dat.index(data) 
     
     if idx is None:
         raise ValueError,"|{0}| >> Data not found. node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode)
     return idx
     
-def datList_append(dataNode = None, node = None, attr = None, mode = 'message'):
+def datList_append(data = None, node = None, attr = None, mode = 'message'):
     """   
     Append datList.
     
     :parameters:
+        data(varied) -- object or value to add to our datList
         node(str) -- 
         attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
 
@@ -1896,121 +1861,98 @@ def datList_append(dataNode = None, node = None, attr = None, mode = 'message'):
     """
     _str_func = 'datList_append'    
     
-    log.info("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,dataNode,mode))
+    log.info("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
     
     _l_dat = datList_get(node,attr,mode,False)
+    _len = len(_l_dat)
+    _idx = _len
     
     if mode == 'message':
-        _l_long = [NAMES.get_long for o in _l_dat]
-        _str_long = NAMES.get_long(dataNode)
-        if NAMES.get_long(dataNode) in _l_long:
-            idx = _l_long.index(_str_long)
-            log.info("|{0}| >> Node already connected | idx: {1}".format(_str_func,idx))
-            return idx
-        else:
-            _l_dat.append(_str_long)
-            idx = _l_dat.index(_str_long)
-            log.info("|{0}| >> adding... | idx: {1}".format(_str_func,idx))
-
-
-def msgListOLD_append(self, node, attr = None, connectBack = None):
-    """
-    Append node to msgListOLD
-
-    Returns index
-    """
-    #try:
-    i_node = validateObjArg(node,noneValid=True)
-    if not i_node:
-        raise StandardError, " %s.msgListOLD_append >> invalid node: %s"%(self.p_nameShort,node)
-    #if not self.msgListOLD_exists(attr):
-        #raise StandardError, " %s.msgListOLD_append >> invalid msgListOLD attr: '%s'"%(self.p_nameShort,attr)		
-
-    #log.debug(">>> %s.msgListOLD_append(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
-
-    ml_nodes = self.msgListOLD_get(attr,asMeta=True)
-    if i_node in ml_nodes:
-        #log.debug(">>> %s.msgListOLD_append >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75) 
-        idx = ml_nodes.index(i_node)	    
-        return idx
+        set_message(dataNode, node, "{0}_{1}".format(attr,_idx),"{0}_datdict".format(attr), dataKey=_idx)
     else:
-        #log.debug("%s"%i_node.p_nameShort)
-        ml_nodes.append(i_node)
-        idx = ml_nodes.index(i_node)
-        self.msgListOLD_connect(ml_nodes,attr,connectBack)
-        return idx
-    #log.debug("-"*100)            	               	
-    return True 
+        raise NotImplemented,"Having implemented non message mode yet."
 
-def msgListOLD_index(self, node, attr = None):
+def datList_removeByIndex(indices = None, node = None, attr = None, mode = 'message'):
+    """   
+    Append datList.
+    
+    :parameters:
+        data(varied) -- object or value to remove from our datList
+        node(str) -- 
+        attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+    :returns
+        status(bool)
     """
-    Return the index of a node if it's in a msgListOLD
+    _str_func = 'datList_removeByIndex'    
+    _indices = cgmValid.listArg(indices)
+    d_attrs = get_sequentialAttrDict(node,attr)
+    
+    log.debug("|{0}| >> node: {1} | attr: {2} | indices: {3} | mode: {4}".format(_str_func,node,attr,_indices,mode))
+    
+    for i in d_attrs.keys():
+        if i in _indices:
+            log.warning("|{0}| >> removing... | idx: {1} | attr: {2}".format(_str_func,i,d_attrs[i]))
+            delete(node,d_attrs[i])
+    
+    return True
+            
+  
+def datList_remove(data = None, node = None, attr = None, mode = 'message'):
+    """   
+    Append datList.
+    
+    :parameters:
+        data(varied) -- object or value to remove from our datList
+        node(str) -- 
+        attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+        mode(str) -- what kind of data to be looking for
+            NONE - just get the data
+            message - getMessage
+    :returns
+        status(bool)
     """
-    i_node = validateObjArg(node,noneValid=True)
-    if not i_node:
-        raise StandardError, " %s.msgListOLD_index >> invalid node: %s"%(self.p_nameShort,node)
-    if not self.msgListOLD_exists(attr):
-        raise StandardError, " %s.msgListOLD_index >> invalid msgListOLD attr: '%s'"%(self.p_nameShort,attr)		
-    #log.debug(">>> %s.msgListOLD_index(node = %s, attr = '%s') >> "%(self.p_nameShort,i_node.p_nameShort,attr) + "="*75)  
-    ml_nodes = self.msgListOLD_get(attr,asMeta=True)	
-    if i_node in ml_nodes:
-        #log.debug(">>> %s.msgListOLD_index >> Node already connected: %s "%(self.p_nameShort,i_node.p_nameShort) + "="*75)  		
-        return ml_nodes.index(i_node)
-    #log.debug("-"*100)            	               	
-    return False
+    _str_func = 'datList_remove'    
+    _data = cgmValid.listArg(data)        
+    d_attrs = get_sequentialAttrDict(node,attr)
 
-def msgListOLD_remove(self, nodes, attr = None):
+    log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
+    
+    if mode == 'message':
+        _data = cgmValid.objStringList(_data,calledFrom=_str_func)
+        _l_dat_long = [NAMES.get_long(o) for o in _data]  
+        
+        for i in d_attrs.keys():
+            _o = get_message(node, d_attrs[i],"{0}_datdict".format(attr), dataKey=i)
+            if _o and NAMES.get_long(_o) in _l_dat_long:
+                log.warning("|{0}| >> removing... | idx: {1} | attr: {2} | value: {3}".format(_str_func,i,d_attrs[i],_o))
+                delete(node,d_attrs[i])                
+    else:
+        d_attrs = get_sequentialAttrDict(node,attr)
+        for i in d_attrs.keys():
+            _v =  get(node,_d_attrs[i])
+            if _v in _data:
+                log.warning("|{0}| >> removing... | idx: {1} | attr: {2} | value: {3}".format(_str_func,i,d_attrs[i],_v))
+                delete(node,d_attrs[i])
+                
+    return True
+        
+def datList_clean(node = None, attr = None, mode = 'message'):
+    """   
+    Remove dead data from a datList and reconnect
+    
+    :parameters:
+        node(str) -- 
+        attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+        mode(str) -- what kind of data to be looking for
+            NONE - just get the data
+            message - getMessage
+    :returns
+        status(bool)
     """
-    Return the index of a node if it's in a msgListOLD
-    """
-    ml_nodesToRemove = validateObjListArg(nodes,noneValid=True)
-    if not ml_nodesToRemove:
-        raise StandardError, " %s.msgListOLD_index >> invalid nodes: %s"%(self.p_nameShort,nodes)
-    if not self.msgListOLD_exists(attr):
-        raise StandardError, " %s.msgListOLD_append >> invalid msgListOLD attr: '%s'"%(self.p_nameShort,attr)		
-    #log.debug(">>> %s.msgListOLD_remove(nodes = %s, attr = '%s') >> "%(self.p_nameShort,nodes,attr) + "="*75)  
-    ml_nodes = self.msgListOLD_get(attr,asMeta=True)
-    b_removedSomething = False
-    for i_n in ml_nodesToRemove:
-        if i_n in ml_nodes:
-            ml_nodes.remove(i_n)
-            #log.debug(">>> %s.msgListOLD_remove >> Node removed: %s "%(self.p_nameShort,i_n.p_nameShort) + "="*75)  				
-            b_removedSomething = True
-    if b_removedSomething:
-        self.msgListOLD_connect(ml_nodes,attr)
-        return True	    
-    #log.debug("-"*100)            	               	
-    return False
-
-def msgListOLD_purge(self,attr):
-    """
-    Purge all the attributes of a msgListOLD
-    """
-    try:
-        #log.debug(">>> %s.get_msgListOLD(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
-        d_attrs = self.get_sequentialAttrDict(attr)
-        for i,k in enumerate(d_attrs.keys()):
-            str_attr = d_attrs[i]
-            self.doRemove(str_attr)
-            #log.debug("Removed: '%s'"%str_attr)
-
-        #log.debug("-"*100)            	               	
-        return True   
-    except StandardError,error:
-        raise StandardError, "%s.msgListOLD_purge >>[Error]<< : %s"(self.p_nameShort,error)
-
-def msgListOLD_clean(self,attr,connectBack = None):
-    """
-    Removes empty entries and pushes back
-    """
-    try:
-        #log.debug(">>> %s.msgListOLD_clean(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
-        l_attrs = self.msgListOLD_get(attr,False,True)
-        self.msgListOLD_connect(l_attrs,attr,connectBack)
-        #log.debug("-"*100)            	               	
-        return True   
-    except StandardError,error:
-        raise StandardError, "%s.msgListOLD_clean >>[Error]<< : %s"(self.p_nameShort,error)
+    _str_func = 'datList_clean'    
+    
+    l_dat = datList_get(node,attr,mode,True)
+    return msgList_connect(l_dat,node,attr)
 
 
 def copy(fromObject, fromAttr, toObject = None, toAttr = None,
@@ -2050,10 +1992,10 @@ def copy(fromObject, fromAttr, toObject = None, toAttr = None,
     _toAttr = toAttr
     
     if _toObject is None:
-        log.info("|{0}| >> No toObject specified. Using fromObject: {1}".format(_str_func,fromObject))
+        log.debug("|{0}| >> No toObject specified. Using fromObject: {1}".format(_str_func,fromObject))
         _toObject = fromObject
     if _toAttr is None:
-        log.info("|{0}| >> No toAttr specified. Using fromAttr: {1}".format(_str_func,fromAttr))
+        log.debug("|{0}| >> No toAttr specified. Using fromAttr: {1}".format(_str_func,fromAttr))
         _toAttr = fromAttr
     _d_targetAttr = validate_arg(_toObject,_toAttr)
     
@@ -2074,9 +2016,9 @@ def copy(fromObject, fromAttr, toObject = None, toAttr = None,
     _driven = get_driven(_d,skipConversionNodes=True)
     _data = get(_d)
     
-    log.info("|{0}| >> data: {1}".format(_str_func,_data))    
-    log.info("|{0}| >> driver: {1}".format(_str_func,_driver))
-    log.info("|{0}| >> driven: {1}".format(_str_func,_driven))    
+    log.debug("|{0}| >> data: {1}".format(_str_func,_data))    
+    log.debug("|{0}| >> driver: {1}".format(_str_func,_driver))
+    log.debug("|{0}| >> driven: {1}".format(_str_func,_driven))    
     
     #>>> First get our attribute ---------------------------------------------------------------------
     _goodToGo = True
