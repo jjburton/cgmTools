@@ -537,6 +537,8 @@ def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False
     if not isinstance(l_args, (list, tuple)):l_args = [l_args]
 
     for arg in l_args:
+        try:arg = arg.mNode
+        except:pass
         tmp = objString(arg, mayaType,isTransform, noneValid)
         if tmp != False:
             result.append(tmp)

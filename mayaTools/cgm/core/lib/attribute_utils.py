@@ -26,7 +26,7 @@ from Red9.core import Red9_Meta as r9Meta
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.lib import name_utils as NAMES
-
+reload(cgmValid)
 from cgm.lib import attributes
 
 _d_attrTypes = {'message':('message','msg'),
@@ -140,7 +140,7 @@ def validate_attrTypeMatch(t1,t2):
     return False    
 
     
-def alias_get(arg, attr = None):
+def get_alias(arg, attr = None):
     """
     Gets the alias of an object attribute if there is one
 
@@ -156,7 +156,7 @@ def alias_get(arg, attr = None):
         return mc.aliasAttr(_d['combined'],q=True) 
     return None
 
-def alias_set(arg, alias = None):
+def set_alias(arg, alias = None):
     """   
     :parameters:
         arg(varied): Accepts 'obj.attr', ['obj','attr'] formats.
@@ -165,10 +165,10 @@ def alias_set(arg, alias = None):
     """        
     _d = validate_arg(arg)    
     alias = cgmValid.stringArg(alias)
-    _alias_current = alias_get(arg)
+    _alias_current = get_alias(arg)
     if alias:
         try:
-            if alias != alias_get(_d['combined']):
+            if alias != get_alias(_d['combined']):
                 return mc.aliasAttr(alias, _d['combined'])
             else:log.info("'{0}' already has that alias!".format(_d['combined']))
         except:
@@ -285,9 +285,9 @@ def get(*a, **kws):
         return get_message(_d)
     elif attrType == 'double3':
         return [mc.getAttr(_obj+'.'+ a) for a in mc.attributeQuery(_attr, node = _obj, listChildren = True)]
-    elif attrType == 'double':
-        parentAttr = mc.attributeQuery(_attr, node =_obj, listParent = True)
-        return mc.getAttr("{0}.{1}".format(_obj,parentAttr[0]), **kws)
+    #elif attrType == 'double':
+        #parentAttr = mc.attributeQuery(_attr, node =_obj, listParent = True)
+        #return mc.getAttr("{0}.{1}".format(_obj,parentAttr[0]), **kws)
     else:
         return mc.getAttr(_combined, **kws)
 
@@ -1638,7 +1638,9 @@ def OLDreorderAttributes(obj,attrs,direction = 0):
             log.warning("'%s' Failed to reorder"%attr)
             
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#>>>==============================================================================================
+#>> datList/msgList
+#>>>==============================================================================================
 def get_sequentialAttrDict(node, attr = None):
     """   
     Get dict of sequential attrs. This is mainly used for our own storage methods
@@ -1652,7 +1654,7 @@ def get_sequentialAttrDict(node, attr = None):
     _str_func = 'get_sequentialAttrDict'
     
     _res = {}
-    _l_user = mc.listAttr(node, userDefined=True)
+    _l_user = mc.listAttr(node, userDefined=True) or []
     for a in _l_user:
         if '_' in a:
             _split = a.split('_')
@@ -1690,6 +1692,7 @@ def datList_purge(node = None, attr = None):
     except:pass
     
     return True    
+msgList_purge = datList_purge
 
 def datList_exists(node = None, attr = None, mode = None):
     """   
@@ -1708,14 +1711,17 @@ def datList_exists(node = None, attr = None, mode = None):
     d_attrs = get_sequentialAttrDict(node,attr)
     for i,k in enumerate(d_attrs.keys()):
         str_attr = d_attrs[i]
-        if mode == 'msgList':
+        if mode == 'message':
             if get_message(node,str_attr):
                 return True
         elif get(node,str_attr) is not None:
             return True
     return False  
-    
-def msgList_connect(data = None, node = None, attr = None, connectBack = None):
+
+def msgList_exists(node = None, attr = None):
+    return datList_exists(node,attr,'message')
+
+def msgList_connect(node = None, attr = None, data = None, connectBack = None):
     """   
     Because multimessage data can't be counted on for important sequential connections we have
     implemented this.
@@ -1755,10 +1761,54 @@ def msgList_connect(data = None, node = None, attr = None, connectBack = None):
     
     return True
 
-def msgList_get(node = None, attr = None, cull = False ):
-    return datList_get(node,attr,cull=cull)
+def datList_connect(node = None, attr = None, data = None, mode = None):
+    """   
+    Because multimessage data can't be counted on for important sequential connections we have
+    implemented this.
 
-def datList_get(node = None, attr = None, mode = 'message', cull = False ):
+    :parameters:
+        node(str) -- 
+        attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+        data(varied) -- whatever you want stored
+        mode(str) -- what kind of data to be looking for
+            NONE - just get the data
+            message - getMessage
+    :returns
+        status(bool)
+    """
+    _str_func = 'datList_connect'    
+    
+    _l_dat = cgmValid.listArg(data)
+    
+    log.info("|{0}| >> node: {1} | attr: {2} | mode: {3}".format(_str_func,node,attr,mode))
+    log.info("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
+    
+    datList_purge(node,attr)
+    
+    mi_node = r9Meta.MetaClass(node)
+    
+    
+    if mode == 'message':
+        msgList_connect(node,attr,_l_dat)
+        
+    else:
+        """_str_dataAttr = "{0}_datdict".format(attr)
+        mi_node.addAttr(_str_dataAttr, value="",attrType= 'string')
+        _dBuffer = {'mode':'msg'}
+        log.debug("|{0}| >> buffer: {1}".format(_str_func,_dBuffer))
+        mi_node.__setattr__(_str_dataAttr, _dBuffer)"""    
+        
+        for i,_data in enumerate(_l_dat):
+            str_attr = "{0}_{1}".format(attr,i)
+            
+            store_info(node, str_attr, _data, mode)
+           
+    return True
+
+def msgList_get(node = None, attr = None, cull = False ):
+    return datList_get(node,attr,mode= 'message', cull=cull)
+
+def datList_get(node = None, attr = None, mode = None, cull = False ):
     """   
     Get datList return.
     
@@ -1772,13 +1822,13 @@ def datList_get(node = None, attr = None, mode = 'message', cull = False ):
     :returns
         status(bool)
     """
-    _str_func = 'msgList_get'
+    _str_func = 'datList_get'
     
     if mode is not None:
         _mode = validate_attrTypeName(mode)
     else:_mode = mode
     
-    log.info("|{0}| >> node: {1} | attr: {2} | mode: {3} | cull: {4}".format(_str_func,node,attr,_mode,cull))
+    log.debug("|{0}| >> node: {1} | attr: {2} | mode: {3} | cull: {4}".format(_str_func,node,attr,_mode,cull))
     
     _str_dataAttr = "{0}_datdict".format(attr)
     
@@ -1793,9 +1843,15 @@ def datList_get(node = None, attr = None, mode = 'message', cull = False ):
             if _res:_res = _res[0]
             
         else:
-            _res = get(node,d_attrs[k])
-        
-        if issubclass(type(_res),list):l_return.extend(_res)
+            try:
+                _res = get(node,d_attrs[k])
+            except Exception,err:
+                log.warning("|{0}| >> {1}.{2} Failed! || err: {3}".format(_str_func,node,d_attrs[k],err))
+                _res = None
+        if issubclass(type(_res),list):
+            if _mode == 'message' or mc.objExists(_res[0]):
+                l_return.extend(_res)
+            else:l_return.append(_res)
         else:l_return.append(_res)
         #if asMeta:
             #ml_return.append( validateObjArg(str_msgBuffer,noneValid=True) )
@@ -1808,14 +1864,34 @@ def datList_get(node = None, attr = None, mode = 'message', cull = False ):
     
     return l_return
 
-def datList_index(data = None, node = None, attr = None, mode = 'message'):
+def datList_getAttrs(node = None, attr = None):
+    """   
+    Get the attributes of a datList
+    
+    :parameters:
+        node(str) -- 
+        attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+
+    :returns
+        status(bool)
+    """
+    _str_func = 'datList_get'
+    
+    d_attrs = get_sequentialAttrDict(node,attr)
+    return [d_attrs[i] for i in d_attrs.keys()]
+msgList_getAttrs = datList_getAttrs
+
+def msgList_index(node = None, attr = None, data = None):
+    return datList_index(node,attr,data,'message')
+
+def datList_index(node = None, attr = None, data = None, mode = None):
     """   
     Index a value in a given datList.
     
     :parameters:
-        data(str) -- data to index
         node(str) -- 
         attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+        data(str) -- data to index
         mode(str) -- what kind of data to be looking for
             NONE - just get the data
             message - getMessage
@@ -1824,7 +1900,7 @@ def datList_index(data = None, node = None, attr = None, mode = 'message'):
     """
     _str_func = 'datList_index'    
     
-    log.info("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
+    log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
     
     _l_dat = datList_get(node,attr,mode,False)
     idx = None
@@ -1836,18 +1912,23 @@ def datList_index(data = None, node = None, attr = None, mode = 'message'):
         #log.info(_str_long)
         if NAMES.get_long(data) in _l_long:
             idx = _l_long.index(_str_long)
-            log.info("|{0}| >> Node already connected | idx: {1}".format(_str_func,idx))
     elif data in _l_dat:
-        if l_data.count(data) > 1:
+        if _l_dat.count(data) > 1:
             raise ValueError,"More than one entry"
         else:
             idx = _l_dat.index(data) 
     
     if idx is None:
-        raise ValueError,"|{0}| >> Data not found. node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode)
+        log.info("|{0}| >> Data not found. node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
+        log.info("|{0}| >> values...".format(_str_func))
+        for i,v in enumerate(_l_dat):
+            log.info("idx: {0} | {1}".format(i,v))
+        raise ValueError,"Data not found"
     return idx
-    
-def datList_append(data = None, node = None, attr = None, mode = 'message'):
+
+def msgList_append(node = None, attr = None, data = None):
+    return datList_append(node,attr,data,'message')
+def datList_append(node = None, attr = None, data = None, mode = None):
     """   
     Append datList.
     
@@ -1868,18 +1949,19 @@ def datList_append(data = None, node = None, attr = None, mode = 'message'):
     _idx = _len
     
     if mode == 'message':
-        set_message(dataNode, node, "{0}_{1}".format(attr,_idx),"{0}_datdict".format(attr), dataKey=_idx)
+        set_message(data, node, "{0}_{1}".format(attr,_idx),"{0}_datdict".format(attr), dataKey=_idx)
     else:
-        raise NotImplemented,"Having implemented non message mode yet."
+        store_info(node,"{0}_{1}".format(attr,_idx),data)
 
-def datList_removeByIndex(indices = None, node = None, attr = None, mode = 'message'):
+
+def datList_removeByIndex(node = None, attr = None, indices = None):
     """   
     Append datList.
     
     :parameters:
-        data(varied) -- object or value to remove from our datList
         node(str) -- 
         attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+        indices(ints) -- indexes you want removed
     :returns
         status(bool)
     """
@@ -1887,7 +1969,7 @@ def datList_removeByIndex(indices = None, node = None, attr = None, mode = 'mess
     _indices = cgmValid.listArg(indices)
     d_attrs = get_sequentialAttrDict(node,attr)
     
-    log.debug("|{0}| >> node: {1} | attr: {2} | indices: {3} | mode: {4}".format(_str_func,node,attr,_indices,mode))
+    log.debug("|{0}| >> node: {1} | attr: {2} | indices: {3}".format(_str_func,node,attr,_indices))
     
     for i in d_attrs.keys():
         if i in _indices:
@@ -1895,16 +1977,19 @@ def datList_removeByIndex(indices = None, node = None, attr = None, mode = 'mess
             delete(node,d_attrs[i])
     
     return True
-            
+msgList_removeByIndex = datList_removeByIndex   
   
-def datList_remove(data = None, node = None, attr = None, mode = 'message'):
+def msgList_remove(node = None, attr = None, data = None):
+    return datList_remove(node,attr,data,'message')
+
+def datList_remove(node = None, attr = None, data = None, mode = None):
     """   
     Append datList.
     
     :parameters:
-        data(varied) -- object or value to remove from our datList
         node(str) -- 
         attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+        data(varied) -- object or value to remove from our datList
         mode(str) -- what kind of data to be looking for
             NONE - just get the data
             message - getMessage
@@ -1917,6 +2002,7 @@ def datList_remove(data = None, node = None, attr = None, mode = 'message'):
 
     log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
     
+    _action = False
     if mode == 'message':
         _data = cgmValid.objStringList(_data,calledFrom=_str_func)
         _l_dat_long = [NAMES.get_long(o) for o in _data]  
@@ -1925,18 +2011,23 @@ def datList_remove(data = None, node = None, attr = None, mode = 'message'):
             _o = get_message(node, d_attrs[i],"{0}_datdict".format(attr), dataKey=i)
             if _o and NAMES.get_long(_o) in _l_dat_long:
                 log.warning("|{0}| >> removing... | idx: {1} | attr: {2} | value: {3}".format(_str_func,i,d_attrs[i],_o))
-                delete(node,d_attrs[i])                
+                delete(node,d_attrs[i])       
+                _action = True
     else:
         d_attrs = get_sequentialAttrDict(node,attr)
         for i in d_attrs.keys():
-            _v =  get(node,_d_attrs[i])
+            _v =  get(node,d_attrs[i])
             if _v in _data:
                 log.warning("|{0}| >> removing... | idx: {1} | attr: {2} | value: {3}".format(_str_func,i,d_attrs[i],_v))
                 delete(node,d_attrs[i])
+                _action = True
+    return _action
                 
-    return True
-        
-def datList_clean(node = None, attr = None, mode = 'message'):
+      
+def msgList_clean(node = None, attr = None):
+    return datList_clean(node,attr,'message')
+
+def datList_clean(node = None, attr = None, mode = None):
     """   
     Remove dead data from a datList and reconnect
     
@@ -1952,8 +2043,10 @@ def datList_clean(node = None, attr = None, mode = 'message'):
     _str_func = 'datList_clean'    
     
     l_dat = datList_get(node,attr,mode,True)
-    return msgList_connect(l_dat,node,attr)
-
+    return datList_connect(node,attr,l_dat,mode)
+#>>>==============================================================================================
+#>> Utilities
+#>>>==============================================================================================
 
 def copy(fromObject, fromAttr, toObject = None, toAttr = None,
          convertToMatch = True, values = True, inConnection = False, outConnections = False,
@@ -2119,89 +2212,53 @@ def copy(fromObject, fromAttr, toObject = None, toAttr = None,
         
     return True
 
+def store_info(node = None, attr = None, data = None, attrType = None, lock = False):
+    """   
+    Append datList.
+    
+    :parameters:
+        node(str) -- 
+        attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+        data(varied) -- data to add
+
+    :returns
+        status(bool)
+    """
+    _str_func = 'store_info'    
+    _data = cgmValid.listArg(data)        
+
+    
+    if attrType is None:
+        if len(_data)==3:
+            attrType = 'double3'
+        elif len(_data)>3:
+            attrType = 'doubleArray'
+            
+    log.info("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
+    
+    #>> Store our data #-------------------------------------------------------------------------
+    mi_node = r9Meta.MetaClass(node)
+    _except = False
+    if mi_node.hasAttr(attr):
+        try:set(node,attr,data)
+        except:
+            log.warning("|{0}| >> removing... | node: {1} | attr: {2} | value: {3}".format(_str_func,node,attr,mi_node.__getattribute__(attr)))        
+            delete(node,attr)
+
+            mi_node.addAttr(attr,_data[0], attrType = attrType)
+    else:
+        mi_node.addAttr(attr,data, attrType = attrType)
+        
+    if lock:
+        pass
+        #set_lock(node,attr)
+    return True
+    
+    
 #>>>>REFACTORING>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-def OLDreturnCompatibleAttrs(sourceObj,sourceAttr,target,*a, **kw):
-    """ 
-    Returns compatible attributes
-
-    Keyword arguments:
-    attrType1(string)  
-    attrType1(string)  
-    """
-    assert mc.objExists('%s.%s'%(sourceObj,sourceAttr)) is True,"returnCompatibleAttrs error. '%s.%s' doesn't exist."%(sourceObj,sourceAttr)
-    assert mc.objExists(target) is True,"'%s' doesn't exist."%(target)
-
-    sourceType = validateRequestedAttrType( mc.getAttr((sourceObj+'.'+sourceAttr),type=True) )
-    if sourceType:
-        returnBuffer = []
-        bufferDict = returnObjectsAttributeByTypeDict(target,attrTypesDict.get(sourceType),*a, **kw) or {}
-        for key in bufferDict.keys():
-            returnBuffer.extend(bufferDict.get(key))
-        if returnBuffer:    
-            return returnBuffer
-    return False
 
 
-
-
-def OLDreturnAttributeDataDict(obj,attr,value = True,incoming = True, outGoing = True):
-    """ 
-    Returns a diciontary of parent,children,sibling of an attribute or False if nothing found   
-
-    Keyword arguments:
-    obj(string) -- must exist in scene
-    attr(string) -- name for an attribute    
-    """       
-    assert mc.objExists("%s.%s"%(obj,attr)) is True,"'%s.%s' doesn't exist!"%(obj,attr)
-
-    returnDict = {}
-    if value:
-        returnDict['value'] = doGetAttr(obj,attr)
-    if incoming:
-        returnDict['incoming'] = returnDriverAttribute('%s.%s'%(obj,attr),False)
-    if outGoing:
-        returnDict['outGoing'] = returnDrivenAttribute('%s.%s'%(obj,attr),False)
-
-    return returnDict
-
-
-
-def OLDreturnAttrListFromStringInput (stringInput1,stringInput2 = None):
-    """ 
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    DESCRIPTION:
-    Takes an list of string variables to add to an object as string
-    attributes. Skips it if it exists.
-
-    ARGUMENTS:
-    stringInput(string/stringList)
-
-    RETURNS:
-    [obj,attr]
-    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    """
-    if '.' in list(stringInput1):
-        buffer = stringInput1.split('.')
-        assert mc.objExists(buffer[0]) is True,"'%s' doesn't exsit"%buffer[0]
-        assert len(buffer) == 2, "'%s' has too many .'s"%stringInput1
-        obj = buffer [0]
-        attr = buffer[1]
-        return [obj,attr]
-    elif len(stringInput1) == 2:
-        assert mc.objExists(stringInput1[0]) is True,"'%s' doesn't exsit"%stringInput1[0]
-        obj = stringInput1 [0]
-        attr = stringInput1[1]
-        return [obj,attr]
-    elif stringInput2 !=None:
-        assert mc.objExists(stringInput1) is True,"'%s' doesn't exsit"%stringInput1
-        return [stringInput1,stringInput2]
-
-    else:
-        return False
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Storing fuctions
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def OLDstoreInfo(obj,infoType,info,overideMessageCheck = False,leaveUnlocked = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

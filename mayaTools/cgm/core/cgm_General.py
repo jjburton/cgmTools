@@ -827,7 +827,14 @@ def report_enviornment():
 	
 def report_enviornmentSingleLine():
     print("Maya: {0} | OS: {1}".format(mel.eval( 'about -%s'%'version'), mel.eval( 'about -%s'%'operatingSystemVersion')))
-	
+
+
+#import sys
+def get_func_string():
+	#just for reference. this will just return this function. if wanted, need to copy to other functions
+	return sys._getframe().f_code.co_name
+
+
 class Callback(object):
 	'''
 	By Hamish McKenzie
