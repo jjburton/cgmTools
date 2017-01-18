@@ -57,7 +57,7 @@ def get_bb_size(arg = None):
     return [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
 
 
-def get_by_dist(source = None, targets = None, mode = 'closest', resMode = 'point',
+def get_by_dist(source = None, targets = None, mode = 'close', resMode = 'point',
                 sourcePivot = 'rp', targetPivot = 'rp'):
     """
     Get the the closest return based on a source and target and variable modes

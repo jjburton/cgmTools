@@ -194,7 +194,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.bUI_radial_create(parent,'NE')
         self.bUI_radial_rayCreate(parent,'E')
         self.bUI_radial_match(parent,'W')
-        self.bUI_radial_locinator(parent,'SE')
+        #self.bUI_radial_locinator(parent,'SE')
         #self.bUI_radial_control(parent,'SW')
         #self.bUI_radial_arrange(parent,'SE')
         mc.menuItem(p=parent,
@@ -786,11 +786,29 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = cgmGen.Callback(self.bc_create_curve),
                     rp = "S")
-        mc.menuItem(parent=_r,
-                    l = 'Locator',
-                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+        
+        _l = mc.menuItem(parent=_r,subMenu=True,
+                         l = 'Locator',
+                         #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                         #c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each'),
+                         rp = "E")
+        mc.menuItem(parent=_l,
+                    l = 'Selected',
                     c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each'),
-                    rp = "SE")            
+                    rp = "E")           
+        mc.menuItem(parent=_l,
+                    l = 'Mid point',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','midPointLoc',False,**{'mode':'midPoint'}),                                                                      
+                    rp = "S")            
+        mc.menuItem(parent=_l,
+                    l = 'closest Point',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','closestPoint',False,**{'mode':'closestPoint'}),                                                                      
+                    rp = "NW") 
+        mc.menuItem(parent=_l,
+                    l = 'closest Target',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','closestTarget',False,**{'mode':'closestTarget'}),                                                                      
+                    rp = "N")         
+        
         
         """mc.menuItem(parent=_r,
                     en =True,
@@ -1300,14 +1318,17 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     
         mc.menuItem(parent=_r,
                         l = 'Point',
+                        en = self._b_sel_pair,
                         c = lambda *a:snap_action(self,'point'),
                         rp = 'NW')		            
         mc.menuItem(parent=_r,
                         l = 'Parent',
+                        en = self._b_sel_pair,                        
                         c = lambda *a:snap_action(self,'parent'),
                         rp = 'N')	
         mc.menuItem(parent=_r,
                         l = 'Orient',
+                        en = self._b_sel_pair,                        
                         c = lambda *a:snap_action(self,'orient'),
                         rp = 'NE')	       
 
@@ -1315,7 +1336,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         l = 'RayCast',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),		            
                         c = lambda *a:self.button_action(raySnap_start(self._l_sel)),
-                        rp = 'E')	
+                        rp = 'W')	
         mc.menuItem(parent=_r,
                         l = 'AimCast',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                 
@@ -1323,41 +1344,40 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         rp = 'SE')
         if self._b_sel_few:
             _aim = mc.menuItem(parent=_r,subMenu = True,
-                            l = 'Aim',
+                            l = 'Aim Special',
                             #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                             #c = lambda *a:snap_action(self,'aim'),
-                            rp = 'W')
+                            rp = 'E')
             mc.menuItem(parent=_aim,
                         l = 'All to last',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                         c = lambda *a:snap_action(self,'aim','eachToLast'),
-                        rp = 'W') 
+                        rp = 'E') 
             mc.menuItem(parent=_aim,
                         l = 'Selection Order',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                         c = lambda *a:snap_action(self,'aim','eachToNext'),
-                        rp = 'SW')
+                        rp = 'SE')
             mc.menuItem(parent=_aim,
                         l = 'First to Midpoint',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                         c = lambda *a:snap_action(self,'aim','firstToRest'),
-                        rp = 'S')
-
-            _p = mc.menuItem(parent=_r, #subMenu = True,
-                             l = 'Reverse Parent',
-                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToNext','Reverse Parent'),                                             
-                             rp = 'SW')
-            _p = mc.menuItem(parent=_r, #subMenu = True,
-                             l = 'Parent Order',
-                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToPrevious','Parent Order'),                                             
-                             rp = 'S')              
+                        rp = 'S')             
         else:
             mc.menuItem(parent=_r,
                         l = 'Aim',
+                        en = self._b_sel_pair,
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                         c = lambda *a:snap_action(self,'aim','eachToLast'),
-                        rp = 'W')         
+                        rp = 'E')     
         
+        mc.menuItem(parent=_r,
+                    l = 'Match',
+                    en=False,
+                    #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                    c = lambda *a:snap_action(self,'aim','eachToLast'),
+                    rp = 'S')           
+
        
              
         

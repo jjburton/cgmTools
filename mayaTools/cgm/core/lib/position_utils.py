@@ -201,6 +201,6 @@ def get_info(target = None, boundingBox = False):
     _d ['rotateOrder']=mc.xform (_target, q=True, roo=True )
     _d ['rotateAxis'] = mc.xform(_target, q=True, os = True, ra=True)
     
-    cgmGen.log_info_dict(_d,'|{0}.{1}| info...'.format(__name__,_str_func))
+    #cgmGen.log_info_dict(_d,'|{0}.{1}| info...'.format(__name__,_str_func))
 
     return _d

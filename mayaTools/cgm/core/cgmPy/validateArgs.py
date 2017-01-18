@@ -97,7 +97,7 @@ def get_mayaType(node = None):
         _root = _split[0]
         _compType = _split[1]
         
-        log.info("|{0}| >> split: {1} | root: {2} | comp: {3}".format(_str_func,_split,_root,_compType))
+        log.debug("|{0}| >> split: {1} | root: {2} | comp: {3}".format(_str_func,_split,_root,_compType))
         if 'vtx' == _compType:
             return 'polyVertex'
 

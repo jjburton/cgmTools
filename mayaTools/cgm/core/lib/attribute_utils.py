@@ -2124,7 +2124,7 @@ def get_sequentialAttrDict(node, attr = None):
                     log.debug("|{0}| >> {1}.{2} failed to int. | int: {3}".format(_str_func,NAMES.get_short(node),a,_int_))     	               	
     return _res	
 
-def datList_purge(node = None, attr = None):
+def datList_purge(node = None, attr = None, dataAttr=None):
     """   
     Purge a dat list if it exists.
 
@@ -2138,20 +2138,26 @@ def datList_purge(node = None, attr = None):
     _str_func = 'datList_purge'        
     d_attrs = get_sequentialAttrDict(node,attr)
     
+    if dataAttr is not None:
+        _str_dataAttr = dataAttr
+    else:
+        _str_dataAttr = "{0}_datdict".format(attr)
+        
     for k in d_attrs.keys():
         str_attr = d_attrs[k]
         delete(node,str_attr)
         log.info("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,str_attr))
         
     try:
-        delete(node,"{0}_datdict".format(attr))
-        log.info("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,"{0}_datdict".format(attr)))
+        if r9Meta.MetaClass(node).hasAttr(_str_dataAttr):
+            delete(node,_str_dataAttr)
+            log.info("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,_str_dataAttr))
     except:pass
     
     return True    
 msgList_purge = datList_purge
 
-def datList_exists(node = None, attr = None, mode = None):
+def datList_exists(node = None, attr = None, mode = None, dataAttr = None):
     """   
     Check if a cgm datList exists.
 
@@ -2166,19 +2172,25 @@ def datList_exists(node = None, attr = None, mode = None):
     _str_func = 'datList_exists'    
     
     d_attrs = get_sequentialAttrDict(node,attr)
+    
+    if dataAttr is not None:
+        _str_dataAttr = dataAttr
+    else:
+        _str_dataAttr = "{0}_datdict".format(attr)
+        
     for i,k in enumerate(d_attrs.keys()):
         str_attr = d_attrs[i]
         if mode == 'message':
-            if get_message(node,str_attr):
+            if get_message(node,str_attr,_str_dataAttr):
                 return True
         elif get(node,str_attr) is not None:
             return True
     return False  
 
-def msgList_exists(node = None, attr = None):
-    return datList_exists(node,attr,'message')
+def msgList_exists(node = None, attr = None,dataAttr = None):
+    return datList_exists(node,attr,'message',dataAttr)
 
-def msgList_connect(node = None, attr = None, data = None, connectBack = None):
+def msgList_connect(node = None, attr = None, data = None, connectBack = None, dataAttr = None):
     """   
     Because multimessage data can't be counted on for important sequential connections we have
     implemented this.
@@ -2199,7 +2211,12 @@ def msgList_connect(node = None, attr = None, data = None, connectBack = None):
     datList_purge(node,attr)
     
     mi_node = r9Meta.MetaClass(node)
-    _str_dataAttr = "{0}_datdict".format(attr)
+    
+    if dataAttr is not None:
+        _str_dataAttr = dataAttr
+    else:
+        _str_dataAttr = "{0}_datdict".format(attr)
+        
     mi_node.addAttr(_str_dataAttr, value="",attrType= 'string')
     _dBuffer = {'mode':'msg'}
     log.debug("|{0}| >> buffer: {1}".format(_str_func,_dBuffer))
@@ -2218,7 +2235,7 @@ def msgList_connect(node = None, attr = None, data = None, connectBack = None):
     
     return True
 
-def datList_connect(node = None, attr = None, data = None, mode = None):
+def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr=None):
     """   
     Because multimessage data can't be counted on for important sequential connections we have
     implemented this.
@@ -2244,9 +2261,13 @@ def datList_connect(node = None, attr = None, data = None, mode = None):
     
     mi_node = r9Meta.MetaClass(node)
     
+    if dataAttr is not None:
+        _str_dataAttr = dataAttr
+    else:
+        _str_dataAttr = "{0}_datdict".format(attr)    
     
     if mode == 'message':
-        msgList_connect(node,attr,_l_dat)
+        msgList_connect(node,attr,_l_dat,dataAttr=dataAttr)
         
     else:
         """_str_dataAttr = "{0}_datdict".format(attr)
@@ -2262,10 +2283,10 @@ def datList_connect(node = None, attr = None, data = None, mode = None):
            
     return True
 
-def msgList_get(node = None, attr = None, cull = False ):
-    return datList_get(node,attr,mode= 'message', cull=cull)
+def msgList_get(node = None, attr = None, dataAttr = None, cull = False, ):
+    return datList_get(node,attr,'message', dataAttr, cull)
 
-def datList_get(node = None, attr = None, mode = None, cull = False ):
+def datList_get(node = None, attr = None, mode = None, dataAttr = None, cull = False ):
     """   
     Get datList return.
     
@@ -2287,7 +2308,10 @@ def datList_get(node = None, attr = None, mode = None, cull = False ):
     
     log.debug("|{0}| >> node: {1} | attr: {2} | mode: {3} | cull: {4}".format(_str_func,node,attr,_mode,cull))
     
-    _str_dataAttr = "{0}_datdict".format(attr)
+    if dataAttr is not None:
+        _str_dataAttr = dataAttr
+    else:
+        _str_dataAttr = "{0}_datdict".format(attr)    
     
     d_attrs = get_sequentialAttrDict(node,attr)
     
@@ -2338,10 +2362,10 @@ def datList_getAttrs(node = None, attr = None):
     return [d_attrs[i] for i in d_attrs.keys()]
 msgList_getAttrs = datList_getAttrs
 
-def msgList_index(node = None, attr = None, data = None):
-    return datList_index(node,attr,data,'message')
+def msgList_index(node = None, attr = None, data = None, dataAttr = None):
+    return datList_index(node,attr,data,'message',dataAttr)
 
-def datList_index(node = None, attr = None, data = None, mode = None):
+def datList_index(node = None, attr = None, data = None, mode = None, dataAttr = None):
     """   
     Index a value in a given datList.
     
@@ -2359,8 +2383,13 @@ def datList_index(node = None, attr = None, data = None, mode = None):
     
     log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
     
-    _l_dat = datList_get(node,attr,mode,False)
-    idx = None
+    if dataAttr is not None:
+        _str_dataAttr = dataAttr
+    else:
+        _str_dataAttr = "{0}_datdict".format(attr)     
+    
+    _l_dat = datList_get(node,attr,mode,_str_dataAttr,False)
+    idx = None    
     
     if mode == 'message':
         _l_long = [NAMES.get_long(o) for o in _l_dat]
@@ -2383,9 +2412,10 @@ def datList_index(node = None, attr = None, data = None, mode = None):
         raise ValueError,"Data not found"
     return idx
 
-def msgList_append(node = None, attr = None, data = None):
-    return datList_append(node,attr,data,'message')
-def datList_append(node = None, attr = None, data = None, mode = None):
+def msgList_append(node = None, attr = None, data = None,dataAttr=None):
+    return datList_append(node,attr,data,'message',dataAttr)
+
+def datList_append(node = None, attr = None, data = None, mode = None, dataAttr = None):
     """   
     Append datList.
     
@@ -2401,12 +2431,18 @@ def datList_append(node = None, attr = None, data = None, mode = None):
     
     log.info("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
     
-    _l_dat = datList_get(node,attr,mode,False)
+    if dataAttr is not None:
+        _str_dataAttr = dataAttr
+    else:
+        _str_dataAttr = "{0}_datdict".format(attr)
+        
+    _l_dat = datList_get(node,attr,mode,dataAttr,False)
     _len = len(_l_dat)
     _idx = _len
     
+        
     if mode == 'message':
-        set_message(data, node, "{0}_{1}".format(attr,_idx),"{0}_datdict".format(attr), dataKey=_idx)
+        set_message(data, node, "{0}_{1}".format(attr,_idx),_str_dataAttr, dataKey=_idx)
     else:
         store_info(node,"{0}_{1}".format(attr,_idx),data)
 
@@ -2436,10 +2472,10 @@ def datList_removeByIndex(node = None, attr = None, indices = None):
     return True
 msgList_removeByIndex = datList_removeByIndex   
   
-def msgList_remove(node = None, attr = None, data = None):
-    return datList_remove(node,attr,data,'message')
+def msgList_remove(node = None, attr = None, data = None, dataAttr = None):
+    return datList_remove(node,attr,data,'message',dataAttr)
 
-def datList_remove(node = None, attr = None, data = None, mode = None):
+def datList_remove(node = None, attr = None, data = None, mode = None, dataAttr = None):
     """   
     Append datList.
     
@@ -2456,7 +2492,12 @@ def datList_remove(node = None, attr = None, data = None, mode = None):
     _str_func = 'datList_remove'    
     _data = cgmValid.listArg(data)        
     d_attrs = get_sequentialAttrDict(node,attr)
-
+    
+    if dataAttr is not None:
+        _str_dataAttr = dataAttr
+    else:
+        _str_dataAttr = "{0}_datdict".format(attr)
+        
     log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
     
     _action = False
@@ -2481,10 +2522,10 @@ def datList_remove(node = None, attr = None, data = None, mode = None):
     return _action
                 
       
-def msgList_clean(node = None, attr = None):
-    return datList_clean(node,attr,'message')
+def msgList_clean(node = None, attr = None,dataAttr=None):
+    return datList_clean(node,attr,'message',dataAttr)
 
-def datList_clean(node = None, attr = None, mode = None):
+def datList_clean(node = None, attr = None, mode = None, dataAttr = None):
     """   
     Remove dead data from a datList and reconnect
     
@@ -2499,8 +2540,17 @@ def datList_clean(node = None, attr = None, mode = None):
     """
     _str_func = 'datList_clean'    
     
-    l_dat = datList_get(node,attr,mode,True)
-    return datList_connect(node,attr,l_dat,mode)
+    if dataAttr is not None:
+        _str_dataAttr = dataAttr
+    else:
+        _str_dataAttr = "{0}_datdict".format(attr)
+        
+    l_dat = datList_get(node,attr,mode,dataAttr,True)
+    
+    if mode == 'message':
+        return msgList_connect(node,attr,l_dat,dataAttr=_str_dataAttr)
+    else:
+        return datList_connect(node,attr,l_dat,mode,_str_dataAttr)
 #>>>==============================================================================================
 #>> Utilities
 #>>>==============================================================================================
@@ -2707,8 +2757,7 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Fa
         mi_node.addAttr(attr,data, attrType = attrType)
         
     if lock:
-        pass
-        #set_lock(node,attr)
+        set_lock(node,attr,lock)
     return True
     
     
