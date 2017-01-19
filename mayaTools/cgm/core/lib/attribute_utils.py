@@ -354,7 +354,7 @@ def set(node, attr = None, value = None, lock = False,**kws):
     elif _validType == 'double':
         mc.setAttr(_combined,float(value), **kws)
     elif _validType == 'message':
-        set_message(value, _obj, _attr)
+        set_message(_obj, _attr, value)
         
     else:
         mc.setAttr(_combined,value, **kws)
@@ -1779,15 +1779,15 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
                 return repairMessageToReferencedTarget(storageObject,messageAttr)
     return False    
     
-def set_message(message, messageHolder, messageAttr, dataAttr = None, dataKey = None, simple = False):
+def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = None, simple = False):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
     Get attributes driven by an attribute
 
     :parameters:
-        message(str) -- may be object, attribute, or component 
         messageHolder(str) -- object to store to
         messageAttr(str) -- 
+        message(str) -- may be object, attribute, or component 
         dataAttr(str) -- Specify the attribute to check for extra data or use default(NONE)
             cgmMsgData is our default. Data is stored as a json dict of {attr:{msg:component or attr}}
         dataKey(str/int) -- data key for extra data. If None provided, attr name is used.
@@ -2225,13 +2225,13 @@ def msgList_connect(node = None, attr = None, data = None, connectBack = None, d
     for i,_node in enumerate(_l_dat):
         str_attr = "{0}_{1}".format(attr,i)
         
-        set_message(_node, node, str_attr, _str_dataAttr, i)
+        set_message(node, str_attr, _node, _str_dataAttr, i)
        
         if connectBack is not None:
             if '.' in _node:
                 _n = _node.split('.')[0]
             else:_n = _node
-            set_message(node, _n, connectBack, simple = True)
+            set_message(_n, connectBack, node, simple = True)
     
     return True
 
@@ -2442,7 +2442,7 @@ def datList_append(node = None, attr = None, data = None, mode = None, dataAttr 
     
         
     if mode == 'message':
-        set_message(data, node, "{0}_{1}".format(attr,_idx),_str_dataAttr, dataKey=_idx)
+        set_message(node, "{0}_{1}".format(attr,_idx),data,_str_dataAttr, dataKey=_idx)
     else:
         store_info(node,"{0}_{1}".format(attr,_idx),data)
 

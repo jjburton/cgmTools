@@ -374,3 +374,64 @@ mi_sphere.getEnumValueString('testEnum')
 
 mi_loc.returnPositionOutPlug()#This is a wip one but it works for most necessary things, handy for nodal work
 #==============================================================================================
+
+
+
+def jointStuff_standard():
+    l_joints = mc.ls(sl = 1)
+
+    for jnt in l_joints:#Validation loop before doing stuff...
+        if not mc.objectType(jnt) == 'joint':
+            raise ValueError,"Not a joint: {0}".format(jnt)
+        
+    for i,jnt in enumerate(l_joints):   
+        #First we're gonna create a curve at each joint. Name, parent and snap it ...
+        jnt = mc.rename(jnt,"ourChain_{0}_jnt".format(i))#...gotta catch stuff when you rename it
+        str_crv = mc.circle(normal = [1,0,0], ch = 0)[0]
+        str_crv = mc.parent(str_crv,jnt)[0]#...gotta catch stuff when you parent it
+        str_crv = mc.rename(str_crv, '{0}_crv'.format(jnt))#...everytime it changes
+        mc.delete(mc.parentConstraint(jnt, str_crv, maintainOffset = False))
+               
+        #Now we wanna add a locator at each joint - matching, position,orientation,rotation order
+        loc = mc.spaceLocator(n = "{0}_loc".format(jnt))[0]
+        ro = mc.getAttr('{0}.rotateOrder'.format(jnt))
+        mc.setAttr('{0}.rotateOrder'.format(loc),ro)
+        mc.delete(mc.parentConstraint(jnt, loc, maintainOffset = False))
+             
+        #Now if we wanna store data on each object one to another...
+        mc.addAttr (jnt, ln='curveObject', at= 'message')
+        mc.connectAttr ((str_crv+".message"),(jnt+'.curveObject'))
+        mc.addAttr (str_crv, ln='targetJoint', at= 'message')
+        mc.connectAttr ((jnt+".message"),(str_crv+'.targetJoint'))    
+        
+        mc.addAttr (loc, ln='source', at= 'message')
+        mc.connectAttr ((jnt+".message"),(loc+'.source'))          
+        #...the contains none of the built in checking and verifying built in to metaData and if you tried to
+        #...run this on message attributes that existed or were locked or 15 other scenerios, it would fail
+        
+        
+        
+
+def jointStuff_meta():
+    ml_joints = cgmMeta.validateObjListArg(mc.ls(sl=1), mayaType = 'joint')#...gets us a validated meta data list of our selection
+    
+    for i,mJnt in enumerate(ml_joints):
+        mJnt.rename("ourChain_{0}_jnt".format(i))
+        mi_crv = r9Meta.MetaClass( mc.circle(normal = [1,0,0], ch = 0)[0])
+        mc.parent(mi_crv.mNode, mJnt.mNode)
+        mi_crv.rename('{0}_crv'.format(mJnt.p_nameBase))#...p_nameBase property cgmMeta only
+        mc.delete(mc.parentConstraint(mJnt.mNode, mi_crv.mNode, maintainOffset = False))
+        
+        #...loc
+        mJnt.doLoc()#..doLoc cgmMeta only        
+        
+        #...same data storage
+        mJnt.connectChildNode(mi_crv,'curveObject','targetJoint')
+        
+
+        
+        
+        
+        
+        
+        
