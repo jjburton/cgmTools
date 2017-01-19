@@ -24,7 +24,6 @@ from Red9.core import Red9_Meta as r9Meta
 from cgm.core import cgm_General as cgmGen
 from cgm.core.cgmPy import validateArgs as VALID
 
-from cgm.lib import attributes
 from cgm.lib import search
 from cgm.lib import rigging
 from cgm.lib import locators #....CANNOT IMPORT LOCATORS - loop
@@ -502,7 +501,7 @@ def create_at(obj = None, create = 'null'):
         raise NotImplementedError,"joints not done yet"
         mc.select(cl=True)
         _created = mc.joint()
-        attributes.doSetAttr(_created,'displayLocalAxis',True)
+        coreAttr.set(_created,'displayLocalAxis',True)
         
     elif _create == 'locator':
         raise NotImplementedError,"locators not done yet"
@@ -733,3 +732,4 @@ def duplicate_shape(shape):
         if not SEARCH.is_shape(shape):
             log.error(">>{0}>> >> Failure >> Not a shape: {1}".format(_str_func,shape))
         raise Exception,">>{0}>> >> failed! | err: {1}".format(_str_func,err)  
+    

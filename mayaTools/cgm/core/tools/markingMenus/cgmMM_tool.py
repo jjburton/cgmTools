@@ -23,6 +23,8 @@ from cgm.core.lib import shape_utils as SHAPES
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import attribute_utils as ATTRS
+from cgm.core.tools import locinator as LOCINATOR
+
 reload(ATTRS)
 reload(LOC)
 reload(SNAP)
@@ -1373,10 +1375,10 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         
         mc.menuItem(parent=_r,
                     l = 'Match',
-                    en=False,
+                    en=self._b_sel,
                     #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                    c = lambda *a:snap_action(self,'aim','eachToLast'),
-                    rp = 'S')           
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':True,'rotate':True,'boundingBox':False}),                                                                      
+                    rp = 'SW')           
 
        
              

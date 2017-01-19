@@ -33,6 +33,9 @@ from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import euclid as EUCLID
+from cgm.core.lib import attribute_utils as ATTR
+from cgm.core.lib import name_utils as NAMES
+reload(ATTR)
 #!!!! No rigging_utils!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #>>> Utilities
@@ -218,3 +221,62 @@ def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+"):
     aimAtPoint(_obj, targetPos, aimAxis, upAxis)
 
     return True
+
+def matchTarget_set(obj = None, target = None):
+    """
+    Set the match target of an object
+    
+    :parameters:
+        obj(str): Object to modify
+        target(str): Target to match
+
+    :returns
+        success(bool)
+    """     
+    _str_func = 'matchTarget_set'
+    
+    _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
+    _target = VALID.objString(target, noneValid=False, calledFrom = __name__ + _str_func + ">> validate target")
+    
+    ATTR.set_message(_obj, 'cgmMatchTarget',_target,'cgmMatchDat',0)
+    
+    return True
+
+def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False):
+    """
+    Snap an object to it's match target
+    
+    :parameters:
+        obj(str): Object to modify
+        target(str): Target to match
+
+    :returns
+        success(bool)
+    """     
+    _str_func = 'matchTarget_snap'
+    
+    _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
+    
+    _target = ATTR.get_message(_obj, 'cgmMatchTarget','cgmMatchDat',0)
+    
+    if not _target:
+        raise ValueError,"|{0}| >> {1} has no cgmMatchTarget.".format(_str_func,NAMES.get_short(_obj))
+    
+    log.info("|{0}| >> {1} snapping to: {2}.".format(_str_func,NAMES.get_short(_obj),_target[0]))
+    
+    _dict = POS.get_info(_target[0])
+    
+    #cgmGeneral.log_info_dict(_dict)
+    
+    pos = _dict['position']
+    
+    if move:
+        mc.move (pos[0],pos[1],pos[2], _obj, ws=True)
+    if rotate:
+        #if _dict.get('rotateOrder'):mc.xform(_obj, roo=_dict['rotateOrder'],p=True)
+        if _dict.get('rotation'):mc.xform(_obj, ro=_dict['rotation'], ws = True)
+        #if _dict.get('rotateAxis'):mc.xform(_obj, ra=_dict['rotateAxis'],p=True)
+        
+    
+    return True
+    

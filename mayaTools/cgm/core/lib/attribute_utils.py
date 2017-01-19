@@ -284,7 +284,10 @@ def get(*a, **kws):
         log.debug("Indexed attr")
         return mc.listConnections(_combined)
 
-    attrType = mc.getAttr(_d['combined'],type=True)
+    try:attrType = mc.getAttr(_d['combined'],type=True)
+    except:
+        log.debug("|{0}| >> {1} failed to return type. Exists: {2}".format(_str_func,_d['combined'],mc.objExists(_d['combined'])))            
+        return None
     if attrType in ['TdataCompound']:
         return mc.listConnections(_combined)		
 

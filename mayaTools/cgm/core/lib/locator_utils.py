@@ -28,6 +28,7 @@ from cgm.core.lib import search_utils as SEARCH
 reload(SEARCH)
 reload(VALID)
 from cgm.core.lib import snap_utils as SNAP
+reload(SNAP)
 from cgm.core.cgmPy import OM_Utils as cgmOM
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import distance_utils as DIST
@@ -90,8 +91,8 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                 ATTR.store_info(_loc,'cgmName',coreNames.get_short(_target), lock = True)
     
                 ATTR.store_info(_loc,'cgmLocMode',mode,lock = True)
-                ATTR.set_message(_target, _loc, 'cgmLocSource','cgmLocDat')
-                
+                ATTR.set_message(_loc, 'cgmLocSource',_target,'cgmLocDat')
+                SNAP.matchTarget_set(_target,_loc)
                 #_d = r9Meta.MetaClass(_loc).cgmLocDat
                 
                 return update(_loc)
@@ -109,6 +110,8 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                 ATTR.store_info(_loc,'cgmName',_name, lock = True)
                 ATTR.store_info(_loc,'cgmLocMode',mode,lock = True)
                 ATTR.msgList_connect(_loc, 'cgmLocSource',_targets, dataAttr='cgmLocDat')
+                
+                SNAP.matchTarget_set(_targets[0],_loc)
 
                 return update(_loc)
             return update(_loc, _targets, mode)
@@ -285,3 +288,18 @@ def get_midPointDict(sourceList,forceBBCenter = False):
 
 def get_closestPointDict(basePoint,sourceList):
     pass
+
+def tag_to_loc(obj = None, loc = None):
+    """
+    Match an object to it's loc or a specified loc.
+
+    :parameters
+        obj(str): What to use for updating our loc
+        loc(str): locator to use
+
+    :returns
+        None
+    """
+    _str_func = "tag_to_loc"
+    
+    
