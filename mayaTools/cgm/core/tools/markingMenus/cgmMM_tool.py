@@ -24,6 +24,7 @@ from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
+from cgm.core.lib import node_utils as NODES
 
 reload(ATTRS)
 reload(LOC)
@@ -472,7 +473,6 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         
         
             #>>>Skin ==============================================================================================
-            
             uiSkin = mc.menuItem(parent = parent, l='Skin', subMenu=True)
             
             mc.menuItem(parent = uiSkin,
@@ -484,7 +484,17 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         c=lambda *a: mel.eval('cometJointOrient'),) 
         
      
+        #>>>Nodes ==============================================================================================
+        uiNodes = mc.menuItem(parent = parent, l='Nodes', subMenu=True)
         
+        _uic_nodes = mc.menuItem(parent = uiNodes,subMenu=True,
+                                 l='Create',
+                                 )               
+        for n in SHARED._d_node_to_suffix.keys():
+            mc.menuItem(parent = _uic_nodes,
+                        l=n,
+                        c=cgmGen.Callback(NODES.create,'NameMe',n),                   
+                        )                  
         #-----------------------------------------------------------------------------    
         
         uiLegacy = mc.menuItem(parent = parent, l='cgmOLD', subMenu=True)
@@ -787,35 +797,44 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     c = cgmGen.Callback(self.bc_create_curve),
                     rp = "S")
         
+        
+        #>>Locator ------------------------------------------------------------------------------------------
         _l = mc.menuItem(parent=_r,subMenu=True,
                          l = 'Locator',
                          #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                          #c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each'),
-                         rp = "E")
+                         rp = "NE")
+        
+        mc.menuItem(parent=_l,
+                    l = 'World Center',
+                    c = cgmGen.Callback(LOC.create),
+                    rp = "S")          
         mc.menuItem(parent=_l,
                     l = 'Selected',
+                    en = self._b_sel,
                     c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each'),
-                    rp = "E")           
+                    rp = "N")           
         mc.menuItem(parent=_l,
                     l = 'Mid point',
+                    en = self._b_sel_pair,                    
                     c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','midPointLoc',False,**{'mode':'midPoint'}),                                                                      
-                    rp = "S")            
+                    rp = "NE")            
         mc.menuItem(parent=_l,
                     l = 'closest Point',
+                    en = self._b_sel_pair,                    
                     c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','closestPoint',False,**{'mode':'closestPoint'}),                                                                      
                     rp = "NW") 
         mc.menuItem(parent=_l,
                     l = 'closest Target',
+                    en = self._b_sel_few,                    
                     c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','closestTarget',False,**{'mode':'closestTarget'}),                                                                      
-                    rp = "N")         
+                    rp = "W")   
+        mc.menuItem(parent=_l,
+                    l = 'rayCast',
+                    c = lambda *a:self.rayCast_create('locator',False),
+                    rp = "SE")           
         
-        
-        """mc.menuItem(parent=_r,
-                    en =True,
-                    l = 'Locator',
-                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(self.button_action_per_sel,locators.locMeObject,'Locator'),
-                    rp = "SE")"""
+        #>>Nodes ------------------------------------------------------------------------------------------        
 
         
     @cgmGen.Timer 
@@ -1341,13 +1360,13 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         l = 'AimCast',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                 
                         c = lambda *a:self.button_action(aimSnap_start(self._l_sel)),
-                        rp = 'SE')
+                        rp = 'E')
         if self._b_sel_few:
             _aim = mc.menuItem(parent=_r,subMenu = True,
                             l = 'Aim Special',
                             #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                             #c = lambda *a:snap_action(self,'aim'),
-                            rp = 'E')
+                            rp = 'SE')
             mc.menuItem(parent=_aim,
                         l = 'All to last',
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
@@ -1369,7 +1388,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         en = self._b_sel_pair,
                         #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                         c = lambda *a:snap_action(self,'aim','eachToLast'),
-                        rp = 'E')     
+                        rp = 'SE')     
         
         mc.menuItem(parent=_r,
                     l = 'Match',
