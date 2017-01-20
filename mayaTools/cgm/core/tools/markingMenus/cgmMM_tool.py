@@ -767,13 +767,11 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         Menu to create items from selected objects
         """
         _r =mc.menuItem(parent=parent,subMenu = True,
-                        en = self._b_sel,
+                        en = True,
                         l = 'Create',
                         #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                         rp = direction)  
-        
-        if not self._b_sel:
-            return        
+              
         #---------------------------------------------------------------------------
 
         mc.menuItem(parent=_r,
@@ -1462,7 +1460,7 @@ def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=Fals
     
     kws = {'mode':'surface', 'mesh':None,'closestOnly':True, 'create':'locator','dragStore':False,'orientMode':None,
            'objAimAxis':SHARED._l_axis_by_string[_objDefaultAimAxis], 'objUpAxis':SHARED._l_axis_by_string[_objDefaultUpAxis],'objOutAxis':SHARED._l_axis_by_string[_objDefaultOutAxis],
-           'timeDelay':.15, 'offsetMode':None, 'dragInterval':_rayCastDragInterval, 'offsetDistance':var_rayCastOffsetDist.value}#var_rayCastOffsetDist.value
+           'timeDelay':.1, 'offsetMode':None, 'dragInterval':_rayCastDragInterval, 'offsetDistance':var_rayCastOffsetDist.value}#var_rayCastOffsetDist.value
     
     if _rayCastTargetsBuffer:
         log.debug("|{0}| >> Casting at buffer {1}".format(_str_func,_rayCastMode))

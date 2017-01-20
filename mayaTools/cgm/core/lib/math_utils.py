@@ -24,7 +24,7 @@ import euclid as euclid
 # From Red9 =============================================================
 
 # From cgm ==============================================================
-
+from cgm.core.cgmPy import validateArgs as VALID
 
 '''
 Lerp and Slerp functions translated from taken from https://keithmaggio.wordpress.com/2011/02/15/math-magician-lerp-slerp-and-nlerp/
@@ -150,6 +150,68 @@ def get_vector_of_two_points(point1,point2):
     
     return _new.x,_new.y,_new.z    
     
+def get_space_value(arg, mode = 'mayaSpace'):
+    """
+    Space conversion of values. api which is in cm to maya space and vice versa
+    
+    :parameters:
+        arg(float/list)
+        mode(str)
+            mayaSpace -- api(cm) to maya
+            apiSpace -- maya to api(cm)
+
+    :returns
+        converted value(s)
+        
+    :Acknowledgement
+    Thanks to parentToSurface.mel from autodesk for figuring out this was necessary
+
+    """         
+    _str_func = 'get_space_value'
+    
+    _values = VALID.listArg(arg) 
+    _res = []
+    unit = mc.currentUnit(q=True,linear=True)
+    
+    if mode == 'mayaSpace':
+        for v in _values:
+            if unit == 'mm':
+                _res.append(v * 10)
+            elif unit =='cm':
+                _res.append(v)
+            elif unit =='m':
+                _res.append(v * .01)
+            elif unit == 'in':
+                _res.append(v * 0.393701)
+            elif unit == 'ft':
+                _res.append(v * 0.0328084)
+            elif unit =='yd':
+                _res.append(v * 0.0109361)
+            else:
+                raise ValueError,"|{0}| >> nonhandled unit: {1}".format(_str_func,unit)
+    elif mode == 'apiSpace':
+        for v in _values:
+            if unit == 'mm':
+                _res.append(v * .1)
+            elif unit =='cm':
+                _res.append(v)
+            elif unit =='m':
+                _res.append(v * 100)
+            elif unit == 'in':
+                _res.append(v * 2.54)
+            elif unit == 'ft':
+                _res.append(v * 30.48)
+            elif unit =='yd':
+                _res.append(v * 91.44)
+            else:
+                raise ValueError,"|{0}| >> nonhandled unit: {1}".format(_str_func,unit)    
+    else:
+        raise ValueError,"|{0}| >> unknown mode: {1}".format(_str_func,mode)
+
+    if len(_res) == 1:
+        return _res[0]
+    return _res
+
     
 #Bosker's stuff ===========================================================================================================================
 def Clamp(val, minimum, maximum):

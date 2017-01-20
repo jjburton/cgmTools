@@ -106,7 +106,6 @@ class ContextualPick(object):
         if self.projection == 'plane': mc.draggerContext(self.name,e=True, plane = self.plane)# if our projection is 'plane', set the plane
         if self.dragOption:mc.draggerContext(self.name,e=True, dragCommand = self.drag)# If drag mode, turn it on
 
-
     def finalize(self):pass
 
 
@@ -748,13 +747,6 @@ class clickMesh(ContextualPick):
 
         return distance.returnWorldSpaceFromMayaSpace( baseDistance + sum(baseSize) )
 
-    def convertPosToLocalSpace(self,pos):
-        assert type(pos) is list,"'%s' is not a list. Coordinate expected"%pos
-        returnList = []
-        for f in pos:
-            returnList.append( distance.returnMayaSpaceFromWorldSpace(f))
-        return returnList
-
     def updatePos(self):
         """
         Get updated position data via shooting rays
@@ -773,15 +765,22 @@ class clickMesh(ContextualPick):
                 log.warning("Time delay, not starting...")
                 if self.l_created:
                     mc.delete(self.l_created)                   
-                return             
+                return   
+            
+        # = MATHUTILS.get_screenspace_value_from_api_space([int(self.x),int(self.y)])
         buffer =  screenToWorld(int(self.x),int(self.y))#get world point and vector!
-
-        self.clickPos = buffer[0] #Our world space click point
+        #buffer = [int(self.x),int(self.y)]
+        #self.clickPos = buffer[0] #Our world space click point
+        self.clickPos = MATHUTILS.get_space_value( buffer[0],'mayaSpace' )
         self.clickVector = buffer[1] #Camera vector
+        #self.clickVector = MATHUTILS.get_screenspace_value_from_api_space( buffer[1] )
         self._posBuffer = []#Clear our pos buffer
         self._posBufferRaw = []
         #checkDistance = self.getDistanceToCheck(m)
         
+        #mc.rename( LOC.create(position = self.clickPos), 'hit_{0}_start_loc'.format(self._int_runningTally))    
+        #smc.rename( LOC.create(position = DIST.get_pos_by_vec_dist(self.clickPos,self.clickVector,2)), 'hit_{0}_normal_loc'.format(self._int_runningTally))
+        #MATHUTILS.get_space_value( self.clickPos,'apiSpace' )
         kws = {'mesh':self.l_mesh,'startPoint':self.clickPos,'vector':self.clickVector,'maxDistance':self._f_maxDistance}
         
         if self.mode != 'surface' or not self.b_closestOnly:
@@ -1137,7 +1136,7 @@ def screenToWorld(startX,startY):
     vecMVector = om.MVector()
 
     success = activeView.viewToWorld(startX, startY, posMPoint, vecMVector ) # The function
-
+    
     return [posMPoint.x,posMPoint.y,posMPoint.z],[vecMVector.x,vecMVector.y,vecMVector.z]
 
 
