@@ -25,7 +25,7 @@ from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import node_utils as NODES
-
+reload(LOCINATOR)
 reload(ATTRS)
 reload(LOC)
 reload(SNAP)
@@ -196,7 +196,8 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.bUI_radial_tdUtils(parent,'NW')
         self.bUI_radial_create(parent,'NE')
         self.bUI_radial_rayCreate(parent,'E')
-        self.bUI_radial_match(parent,'W')
+        self.bUI_radial_copy(parent,'W')
+        LOCINATOR.uiBuild_radialMenu(self,parent,'SE')
         #self.bUI_radial_locinator(parent,'SE')
         #self.bUI_radial_control(parent,'SW')
         #self.bUI_radial_arrange(parent,'SE')
@@ -241,7 +242,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.bUI_radial_snap(parent,'N')
         self.bUI_radial_dynParent(parent,'NW')
         self.bUI_radial_create(parent,'N')
-        self.bUI_radial_match(parent,'W')
+        self.bUI_radial_copy(parent,'W')
         self.bUI_radial_control(parent,'SW')
         self.bUI_radial_arrange(parent,'SE')
         #Bottom---------------------------------------------------
@@ -1088,10 +1089,10 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'firstToRest','Match Transform'),                    
                     rp = "N")         
     
-    def bUI_radial_match(self,parent,direction = None):
+    def bUI_radial_copy(self,parent,direction = None):
         _r = mc.menuItem(parent=parent,subMenu = True,
                          en = self._b_sel_pair,
-                         l = 'Match',
+                         l = 'Copy',
                          #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                          rp = direction)  
         if not self._b_sel_pair:

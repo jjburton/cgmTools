@@ -31,7 +31,8 @@ from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import name_utils as NAMES
 reload(SNAP)
 reload(LOC)
-
+from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
+reload(MMCONTEXT)
 
 def update_obj(obj = None, move = True, rotate = True, boundingBox = False):
     """
@@ -59,7 +60,101 @@ def update_obj(obj = None, move = True, rotate = True, boundingBox = False):
     log.info("|{0}| >> Not updatable: {1}".format(_str_func,NAMES.get_short(_obj)))    
     return False
         
+        
+def uiBuild_subMenu_create(self,parent,direction = None):
+    #>>>Loc ==============================================================================================    
+        _l = mc.menuItem(parent=parent,subMenu=True,
+                     l = 'Loc',
+                     rp = "N")
+    
+        mc.menuItem(parent=_l,
+                    l = 'World Center',
+                    c = cgmGen.Callback(LOC.create),
+                    rp = "S")          
+        mc.menuItem(parent=_l,
+                    l = 'Me',
+                    en = self._b_sel,
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each'),
+                    rp = "N")           
+        mc.menuItem(parent=_l,
+                    l = 'Mid point',
+                    en = self._b_sel_pair,                    
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','midPointLoc',False,**{'mode':'midPoint'}),                                                                      
+                    rp = "NE")            
+        mc.menuItem(parent=_l,
+                    l = 'closest Point',
+                    en = self._b_sel_pair,                    
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','closestPoint',False,**{'mode':'closestPoint'}),                                                                      
+                    rp = "NW") 
+        mc.menuItem(parent=_l,
+                    l = 'closest Target',
+                    en = self._b_sel_few,                    
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','closestTarget',False,**{'mode':'closestTarget'}),                                                                      
+                    rp = "W")   
+        mc.menuItem(parent=_l,
+                    l = 'rayCast',
+                    c = lambda *a:self.rayCast_create('locator',False),
+                    rp = "SE")       
+    
+def uiBuild_radialMenu(self,parent,direction = None):
+    """
+    
+    """
+    _r = mc.menuItem(parent=parent,subMenu = True,
+                     l = 'Locinator',
+                     rp = direction)  
+    
+  
+    #---------------------------------------------------------------------------
+    
+    #>>>Loc ==============================================================================================    
+    uiBuild_subMenu_create(self,_r,'N')
+    
+    #>>>Bake ==============================================================================================
+    mc.menuItem(parent=_r,
+                en = self._b_sel,
+                l = 'Bake Range Frames',
+                rp = 'NW')
+    
+    _bakeRange = mc.menuItem(parent=_r,subMenu = True,
+                             en = self._b_sel,
+                             l = 'Bake Range Keys',
+                             rp = 'W')  
+    mc.menuItem(parent=_bakeRange,
+                l = 'of Loc',
+                rp = 'NW')  
+    mc.menuItem(parent=_bakeRange,
+                 l = 'of Source',
+                 rp = 'SW')       
+    
+    
+    mc.menuItem(parent=_r,
+                en = self._b_sel,
+                l = 'Bake Timeline Frames',
+                rp = 'NE')
+        
+    _bakeTime = mc.menuItem(parent=_r,subMenu = True,
+                en = self._b_sel,
+                l = 'Bake Timeline Keys',
+                rp = 'E')
+    mc.menuItem(parent=_bakeTime,
+                    l = 'of Loc',
+                    rp = 'NE')  
+    mc.menuItem(parent=_bakeTime,
+                 l = 'of Source',
+                 rp = 'SE')     
 
+    #>>>Utils ==============================================================================================
+    mc.menuItem(parent=_r,
+                l = 'Match',
+                en=self._b_sel,
+                #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                c = cgmGen.Callback(MMCONTEXT.func_process, update_obj, self._l_sel,'each','Match',False,**{'move':True,'rotate':True,'boundingBox':False}),                                                                      
+                rp = 'S')         
+    _utils = mc.menuItem(parent=_r,subMenu = True,
+                         l = 'Utils',
+                         en=self._b_sel,
+                         rp = 'SE')  
 
 
 
