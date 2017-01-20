@@ -92,7 +92,8 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
     
                 ATTR.store_info(_loc,'cgmLocMode',mode,lock = True)
                 ATTR.set_message(_loc, 'cgmLocSource',_target,'cgmLocDat')
-                SNAP.matchTarget_set(_target,_loc)
+                if not VALID.is_component(_target):
+                    SNAP.matchTarget_set(_target,_loc)
                 #_d = r9Meta.MetaClass(_loc).cgmLocDat
                 
                 return update(_loc)
@@ -111,7 +112,8 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                 ATTR.store_info(_loc,'cgmLocMode',mode,lock = True)
                 ATTR.msgList_connect(_loc, 'cgmLocSource',_targets, dataAttr='cgmLocDat')
                 
-                SNAP.matchTarget_set(_targets[0],_loc)
+                if not VALID.is_component(_targets[0]):
+                    SNAP.matchTarget_set(_targets[0],_loc)
 
                 return update(_loc)
             return update(_loc, _targets, mode)
