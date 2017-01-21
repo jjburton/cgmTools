@@ -801,6 +801,12 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     rp = "N")        
         mc.menuItem(parent=_r,
                     en = self._b_sel,
+                    l = 'Joint here',
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_joint_at,'Create Joint'),
+                    rp = "NW")   
+        mc.menuItem(parent=_r,
+                    en = self._b_sel,
                     l = 'Curve',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = cgmGen.Callback(self.bc_create_curve),

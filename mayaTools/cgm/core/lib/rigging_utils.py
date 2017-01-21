@@ -498,10 +498,21 @@ def create_at(obj = None, create = 'null'):
         mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
         
     elif _create == 'joint':
-        raise NotImplementedError,"joints not done yet"
+        #raise NotImplementedError,"joints not done yet"
+        #mc.select(cl=True)
+        #_created = mc.joint()
+        #coreAttr.set(_created,'displayLocalAxis',True)
+
         mc.select(cl=True)
         _created = mc.joint()
-        coreAttr.set(_created,'displayLocalAxis',True)
+        #mc.setAttr ((groupBuffer+'.rotateOrder'), correctRo)
+        mc.xform(_created, roo = mc.xform(obj, q=True, roo=True ))#...match rotateOrder    
+        mc.move (objTrans[0],objTrans[1],objTrans[2], [_created])
+        #for i,a in enumerate(['X','Y','Z']):
+                        #attributes.doSetAttr(groupBuffer, 'rotateAxis|{0}|'.format(a), objRotAxis[i])    
+        #mc.rotate(objRot[0], objRot[1], objRot[2], [groupBuffer], ws=True)
+        mc.xform(_created, ws=True, ro= objRot,p=False)
+        mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
         
     elif _create == 'locator':
         raise NotImplementedError,"locators not done yet"
@@ -509,6 +520,18 @@ def create_at(obj = None, create = 'null'):
 
     return _created
     
+def create_joint_at(obj = None):
+    """
+    Create a joint matching a given obj
+    
+    :parameters:
+        obj(str): Object to modify
+
+    :returns
+        name(str)
+    """
+
+    return create_at(obj, create = 'joint')
 
 def group_me(obj = None,
              parent = False, maintainParent = False, rotateAxis = True,
