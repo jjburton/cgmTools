@@ -227,6 +227,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     en = self._b_sel,
                     rp = 'E')
         
+        
         if self._b_sel:
             mc.menuItem(l = 'Regular',
                         c= lambda *a:setKey('default'),
@@ -236,7 +237,10 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         rp = "SE")  
             mc.menuItem(l = 'Delete',
                         c= lambda *a:deleteKey(),
-                        rp = "N")            
+                        rp = "N")     
+            
+        LOCINATOR.uiBuild_radialMenu(self,parent,'NE')
+            
     def bUI_radialRoot_dev(self,parent):
         #Radial---------------------------------------------------
         self.bUI_radial_snap(parent,'N')
