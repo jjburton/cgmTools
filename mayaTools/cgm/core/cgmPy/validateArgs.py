@@ -501,7 +501,7 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
                 raise TypeError("{3}: Arg {0} is type '{1}', expected '{2}'".format(*fmt_args))
 
     if result is None and isTransform:
-        if not mc.objectType(arg, isType="transform"):
+        if not is_transform(arg):
             if noneValid:
                 result = False
             else:
@@ -513,6 +513,27 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
         result = arg
 
     return result
+
+def is_transform(node = None):
+    """
+    Is an node a transform?
+    
+    :parameters:
+        node(str): Object to check
+
+    :returns
+        status(bool)
+    """   
+    _str_func = 'is_transform'
+    _node = stringArg(node,False,_str_func) 
+    log.debug("|{0}| >> node: '{1}' ".format(_str_func,_node))    
+    
+    buffer = mc.ls(_node,type = 'transform',long = True)
+    if buffer and buffer[0]==mc.ls(_node,l=True)[0]:
+        return True
+    if not mc.objExists(_node):
+        log.error("|{0}| >> node: '{1}' doesn't exist".format(_str_func,_node))    
+    return False
 
 def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False, calledFrom = None, **kwargs):
     """
