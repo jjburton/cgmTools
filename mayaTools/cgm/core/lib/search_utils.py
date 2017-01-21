@@ -31,6 +31,7 @@ from cgm.core.lib import name_utils as NAME
 
 from cgm.lib import attributes
 
+from cgm.lib import lists
 #>>> Utilities
 #===================================================================   
 def is_shape(node = None):
@@ -164,6 +165,54 @@ def get_all_parents(node = None, shortNames = True):
     if shortNames:
         return [NAME.get_short(o) for o in _l_parents]
     return _l_parents 
+
+def get_timeline_dict():
+    """
+    Returns timeline info as a dictionary
+    
+    :returns
+        dict :: currentTime,sceneStart,sceneEnd,rangeStart,rangeEnd
+    """   
+    _str_func = 'get_timeline_dict'
+    returnDict = {}
+    returnDict['currentTime'] = mc.currentTime(q=True)
+    returnDict['sceneStart'] = mc.playbackOptions(q=True,animationStartTime=True)
+    returnDict['sceneEnd'] = mc.playbackOptions(q=True,animationEndTime=True)
+    returnDict['rangeStart'] = mc.playbackOptions(q=True,min=True)
+    returnDict['rangeEnd'] = mc.playbackOptions(q=True,max=True)
+
+    return returnDict    
+
+def get_key_indices_from(obj = None):
+    """
+    Return a list of the time indexes of the keyframes on an object
+    
+    :returns
+        list of keys(list)
+    """ 
+    _str_func = 'get_key_indices'
+    
+    initialTimeState = mc.currentTime(q=True)
+    keyFrames = []
+
+    firstKey = mc.findKeyframe(obj,which = 'first')
+    lastKey = mc.findKeyframe(obj,which = 'last')
+
+    keyFrames.append(firstKey)
+    mc.currentTime(firstKey)
+    while mc.currentTime(q=True) != lastKey:
+        keyBuffer = mc.findKeyframe(obj,which = 'next')
+        keyFrames.append(keyBuffer)
+        mc.currentTime(keyBuffer)
+
+    keyFrames.append(lastKey)
+
+    # Put the time back where we found it
+    mc.currentTime(initialTimeState)
+
+    return lists.returnListNoDuplicates(keyFrames)   
+
+
     
 
 

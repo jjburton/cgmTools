@@ -186,7 +186,9 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)
         self.var_objDefaultOutAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultOutAxis', defaultValue = 3)                        
         self.var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])
-        self.var_contextTD = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection')                        
+        self.var_contextTD = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection')   
+        
+        LOCINATOR.uiSetupOptionVars(self)
         
     #@cgmGen.Timer
     def bUI_radialRoot_td(self,parent):
@@ -197,7 +199,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.bUI_radial_create(parent,'NE')
         self.bUI_radial_rayCreate(parent,'E')
         self.bUI_radial_copy(parent,'W')
-        LOCINATOR.uiBuild_radialMenu(self,parent,'SE')
+        LOCINATOR.uiRadialMenu_root(self,parent,'SE')
         #self.bUI_radial_locinator(parent,'SE')
         #self.bUI_radial_control(parent,'SW')
         #self.bUI_radial_arrange(parent,'SE')
@@ -239,7 +241,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         c= lambda *a:deleteKey(),
                         rp = "N")     
             
-        LOCINATOR.uiBuild_radialMenu(self,parent,'NE')
+        LOCINATOR.uiRadialMenu_root(self,parent,'NE')
             
     def bUI_radialRoot_dev(self,parent):
         #Radial---------------------------------------------------
@@ -276,6 +278,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.bUI_optionMenu_keyType(uiOptions) 
         self.bUI_optionMenu_keyMode(uiOptions)
         self.bUI_optionMenu_resetMode(uiOptions)
+        LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
         
     @cgmGen.Timer    
     def bUI_menuBottom_td(self,parent):
@@ -521,6 +524,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.bUI_optionMenu_objDefaults(uiOptions)
         self.bUI_optionMenu_resetMode(uiOptions)
         self.bUI_optionMenu_rayCast(uiOptions)
+        LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
         
     def bUI_optionMenu_keyType(self, parent):
         try:#>>> KeyType 
