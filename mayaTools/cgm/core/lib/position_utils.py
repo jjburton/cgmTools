@@ -47,7 +47,6 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
             rotatePivot
             scalePivot
             boundingBox -- Returns the calculated center pivot position based on bounding box
-            closestPoint
         space(str): World,Object
         mode(str):
             xform -- Utilizes tranditional checking with xForm or pointPosition for components
@@ -69,62 +68,54 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
             log.warning("|{0}|...boundingBox pivot is zero, using rp....".format(_str_func))                
         else:
             return _res
+          
+    if '[' in _obj:
+        if ":" in _obj:
+            raise ValueError,"|{0}| >>Please specify one obj. Component list found: {1}".format(_str_func,_obj)
+        _cType = VALID.get_mayaType(_obj)
+        log.debug("|{0}| >> component mode...".format(_str_func))
+        log.debug("|{0}| >> obj: {1} | type: {2} | pivot: {3} | space: {4} | mode: {5}".format(_str_func,_obj,_cType,_pivot,_space,_mode)) 
         
-    if _pivot == 'closestPoint':
-        log.debug("|{0}|...closestPoint pivot...".format(_str_func))
-        _d_targets = {}
-        for t in _targets:
-            log.debug("|{0}| target: {1}".format(_str_func,t))                
+        kws_pp = {'world':False,'local':False}
+        if _space == 'world':kws_pp['world'] = True
+        else: kws_pp['local'] = True      
+                    
+        if _cType == 'polyVertex':
+            return mc.pointPosition(_obj,**kws_pp)
+        elif _cType == 'polyEdge':
+            mc.select(cl=True)
+            mc.select(_obj)
+            mel.eval("PolySelectConvert 3")
+            edgeVerts = mc.ls(sl=True,fl=True)
+            posList = []
+            for vert in edgeVerts:
+                posList.append(mc.pointPosition(vert,**kws_pp))
+            return MATH.get_average_pos(posList)
+        elif _cType == 'polyFace':
+            mc.select(cl=True)
+            mc.select(_obj)
+            mel.eval("PolySelectConvert 3")
+            edgeVerts = mc.ls(sl=True,fl=True)
+            posList = []
+            for vert in edgeVerts:
+                posList.append(mc.pointPosition(vert,**kws_pp))
+            return MATH.get_average_pos(posList)
+        elif _cType in ['surfaceCV','curveCV','editPoint','surfacePoint','curvePoint']:
+            return mc.pointPosition (_obj,**kws_pp)
+        raise RuntimeError,"|{0}| >> Shouldn't have gotten here. Need another check for component type. '{1}'".format(_str_func,_cType)
 
-        #_targetType = VALID.get_mayaType(_target)    
     else:
-        if '[' in _obj:
-            if ":" in _obj:
-                raise ValueError,"|{0}| >>Please specify one obj. Component list found: {1}".format(_str_func,_obj)
-            _cType = VALID.get_mayaType(_obj)
-            log.debug("|{0}| >> component mode...".format(_str_func))
-            log.debug("|{0}| >> obj: {1} | type: {2} | pivot: {3} | space: {4} | mode: {5}".format(_str_func,_obj,_cType,_pivot,_space,_mode)) 
-            
-            kws_pp = {'world':False,'local':False}
-            if _space == 'world':kws_pp['world'] = True
-            else: kws_pp['local'] = True      
-                        
-            if _cType == 'polyVertex':
-                return mc.pointPosition(_obj,**kws_pp)
-            elif _cType == 'polyEdge':
-                mc.select(cl=True)
-                mc.select(_obj)
-                mel.eval("PolySelectConvert 3")
-                edgeVerts = mc.ls(sl=True,fl=True)
-                posList = []
-                for vert in edgeVerts:
-                    posList.append(mc.pointPosition(vert,**kws_pp))
-                return MATH.get_average_pos(posList)
-            elif _cType == 'polyFace':
-                mc.select(cl=True)
-                mc.select(_obj)
-                mel.eval("PolySelectConvert 3")
-                edgeVerts = mc.ls(sl=True,fl=True)
-                posList = []
-                for vert in edgeVerts:
-                    posList.append(mc.pointPosition(vert,**kws_pp))
-                return MATH.get_average_pos(posList)
-            elif _cType in ['surfaceCV','curveCV','editPoint','surfacePoint','curvePoint']:
-                return mc.pointPosition (_obj,**kws_pp)
-            raise RuntimeError,"|{0}| >> Shouldn't have gotten here. Need another check for component type. '{1}'".format(_str_func,_cType)
-
-        else:
-            log.debug("|{0}| >> obj: {1} | pivot: {2} | space: {3} | mode: {4}".format(_str_func,_obj,_pivot,_space,_mode))             
-            kws = {'q':True,'rp':False,'sp':False,'os':False,'ws':False}
-            if _pivot == 'rp':kws['rp'] = True
-            else: kws['sp'] = True
-            
-            if _space == 'object':kws['os']=True
-            else:kws['ws']=True
-            
-            log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
+        log.debug("|{0}| >> obj: {1} | pivot: {2} | space: {3} | mode: {4}".format(_str_func,_obj,_pivot,_space,_mode))             
+        kws = {'q':True,'rp':False,'sp':False,'os':False,'ws':False}
+        if _pivot == 'rp':kws['rp'] = True
+        else: kws['sp'] = True
         
-            return mc.xform(_obj,**kws )
+        if _space == 'object':kws['os']=True
+        else:kws['ws']=True
+        
+        log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
+    
+        return mc.xform(_obj,**kws )
     
     raise RuntimeError,"|{0}| >> Shouldn't have gotten here: obj: {1}".format(_str_func,_obj)
     
