@@ -242,6 +242,26 @@ def matchTarget_set(obj = None, target = None):
     
     return True
 
+def matchTarget_clear(obj = None):
+    """
+    Clear the match target of an object
+    
+    :parameters:
+        obj(str): Object to modify
+
+    :returns
+        success(bool)
+    """     
+    _str_func = 'matchTarget_set'
+    
+    _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
+    
+    ATTR.delete(_obj,'cgmMatchTarget')
+    ATTR.delete(_obj,'cgmMatchDat')
+    
+    return True
+
+
 def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False, pivot = 'rp'):
     """
     Snap an object to it's match target
