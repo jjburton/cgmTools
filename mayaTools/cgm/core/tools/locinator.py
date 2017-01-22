@@ -184,13 +184,16 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     
     #>>>Process ==============================================================================================    
     _d_keysOfTarget = {}
+    _keysToProcess = []
+    _start = int(_d_keyDat['frameStart'])
+    _end = int(_d_keyDat['frameEnd'])  
     
+    #First for loop, gathers key data per object...
     for o in _l_toDo:
         log.info("|{0}| >> Processing: '{1}' | keysMode: {2}".format(_str_func,o,keysMode))
         _d = _d_toDo[o]
-        _start = int(_d_keyDat['frameStart'])
-        _end = int(_d_keyDat['frameEnd'])  
         
+        #Gather target key data...
         if keysMode == 'loc':
             _keys = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['loc']))
         elif keysMode == 'source':
@@ -216,28 +219,40 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
         
         _d_keysOfTarget[o] = _keys
         
+        _keysToProcess.extend(_keys)
+        
         log.info("|{0}| >> Keys: {1}".format(_str_func,_keys))
         
+
         #Clear keys in range
         mc.cutKey(o,animation = 'objects', time=(_start,_end+ 1),at= _attrs)
-        
-        #Process 
-        _progressBar = cgmUI.doStartMayaProgressBar(len(_keys),"On '{0}'".format(o))
-        
-        for i,f in enumerate(_keys):
-            if mc.progressBar(_progressBar, query=True, isCancelled=True ):
-                break
-            mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1)                    
-        
-            mc.currentTime(f)
-            
-            update_obj(o,move,rotate,boundingBox)
-            
-            mc.setKeyframe(o,time = f, at = _attrs)
-             
+    
+    #Second for loop processes our keys so we can do it in one go...
+    _keysToProcess = lists.returnListNoDuplicates(_keysToProcess)
+    
+    #Process 
+    _progressBar = cgmUI.doStartMayaProgressBar(len(_keysToProcess),"Processing...")
+    
+    for i,f in enumerate(_keysToProcess):
 
-        cgmUI.doEndMayaProgressBar(_progressBar)
-        mc.currentTime(_d_keyDat['currentTime'])
+        mc.currentTime(f)
+        
+        for o in _l_toDo:
+            _keys = _d_keysOfTarget[o]
+            if f in _keys:
+                
+                if mc.progressBar(_progressBar, query=True, isCancelled=True ):
+                    break
+                mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1)                    
+            
+            
+                update_obj(o,move,rotate,boundingBox)
+            
+                mc.setKeyframe(o,time = f, at = _attrs)
+         
+
+    cgmUI.doEndMayaProgressBar(_progressBar)
+    mc.currentTime(_d_keyDat['currentTime'])
     
     mc.select(_targets)
     return True
