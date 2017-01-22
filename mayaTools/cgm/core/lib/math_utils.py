@@ -212,6 +212,62 @@ def get_space_value(arg, mode = 'mayaSpace'):
         return _res[0]
     return _res
 
+def ut_isFloatEquivalent():
+    assert is_float_equivalent(-4.11241646134e-07,0.0),"sc>0.0 fail"
+    assert is_float_equivalent(-4.11241646134e-07,0.00001),"sc>0.00001 fail"
+    assert is_float_equivalent(-4.11241646134e-07,-0.0),"sc>0.00001 fail"
+    assert is_float_equivalent(0.0,-0.0),"0.0>-0.0 fail"
+    assert is_float_equivalent(0.0,0),"0.0>0 fail"
+    
+def is_float_equivalent(f1,f2,places=4):
+    """
+    Compare two floats, returns if equivalent
+    
+    :parameters:
+        f1(float)
+        f2(float)
+        places(int) - how many places to check to
+
+    :returns
+        status(bool)
+    """         
+    _str_func = 'is_float_equivalent'
+    
+    #zeroCheck
+    l_zeros = [-0.0,0.0]
+
+    if round(f1,places) in l_zeros and round(f2,places) in l_zeros:
+        log.debug("|{0}| >> zero match: {1}|{2}".format(_str_func,f1,f2))
+        return True
+
+    f1_rounded = round(f1,places)
+    f2_rounded = round(f2,places)
+
+    if f1_rounded == f2_rounded:
+        return True
+    return False     
+    
+def is_vector_equivalent(v1,v2,places=7):
+    """
+    Compare two floats, returns if equivalent
+    
+    :parameters:
+        f1(float)
+        f2(float)
+        places(int) - how many places to check to
+
+    :returns
+        status(bool)
+    """ 
+    if type(v1) not in [list,tuple]:return False
+    if type(v2) not in [list,tuple]:return False
+    
+    if len(v1)!= len(v2):return False 
+
+    for i,n in enumerate(v1):
+        if not is_float_equivalent(n,v2[i],places):
+            return False
+    return True
     
 #Bosker's stuff ===========================================================================================================================
 def Clamp(val, minimum, maximum):

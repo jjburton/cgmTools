@@ -63,8 +63,14 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
         
     if _pivot == 'boundingBox':
         log.debug("|{0}|...boundingBox pivot...".format(_str_func))                
-        return get_bb_center(_obj)
-    elif _pivot == 'closestPoint':
+        _res = get_bb_center(_obj)
+        if MATH.is_vector_equivalent(_res,[0,0,0]) and not mc.listRelatives(_obj,s=True):
+            _pivot = 'rp'
+            log.warning("|{0}|...boundingBox pivot is zero, using rp....".format(_str_func))                
+        else:
+            return _res
+        
+    if _pivot == 'closestPoint':
         log.debug("|{0}|...closestPoint pivot...".format(_str_func))
         _d_targets = {}
         for t in _targets:
@@ -189,9 +195,11 @@ def get_info(target = None, boundingBox = False):
     """   
     _str_func = "get_dat"
     _target = VALID.objString(target, noneValid=True, calledFrom = __name__ + _str_func + ">> validate target")
+    
     _posPivot = 'rp'
     if boundingBox:
         _posPivot = 'boundingBox'
+    
     _d = {}
     _d ['createdFrom']=_target
     _d ['objectType']=VALID.get_mayaType(_target)
