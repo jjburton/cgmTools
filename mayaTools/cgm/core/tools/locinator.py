@@ -155,10 +155,13 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     #>>>Validate ==============================================================================================  
     for o in _targets:
         _d = get_objDat(o)
-        if _d:
+        if _d and _d.get('updateType'):
             _l_toDo.append(o)
             _d_toDo[o] = _d
             
+    if not _l_toDo:
+        log.error("|{0}| >> No updatable targets found in: {1}".format(_str_func,_targets))        
+        return False
     #>>>Key data ==============================================================================================    
     _d_keyDat['currentTime'] = mc.currentTime(q=True)
     
