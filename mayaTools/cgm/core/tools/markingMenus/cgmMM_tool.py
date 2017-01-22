@@ -1409,7 +1409,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     l = 'Match',
                     en=self._b_sel,
                     #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':True,'rotate':True,'boundingBox':False}),                                                                      
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'targetPivot':self.var_matchModePivot.value}),                                                                      
                     rp = 'SW')           
 
        
