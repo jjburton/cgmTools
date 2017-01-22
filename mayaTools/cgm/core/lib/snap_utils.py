@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -242,7 +242,7 @@ def matchTarget_set(obj = None, target = None):
     
     return True
 
-def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False):
+def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False, pivot = 'rp'):
     """
     Snap an object to it's match target
     
@@ -262,7 +262,7 @@ def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False
     if not _target:
         raise ValueError,"|{0}| >> {1} has no cgmMatchTarget.".format(_str_func,NAMES.get_short(_obj))
     
-    log.info("|{0}| >> {1} snapping to: {2}.".format(_str_func,NAMES.get_short(_obj),_target[0]))
+    log.debug("|{0}| >> {1} snapping to: {2}.".format(_str_func,NAMES.get_short(_obj),_target[0]))
     
     _dict = POS.get_info(_target[0])
     
