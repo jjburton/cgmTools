@@ -15,7 +15,7 @@ __version__ = '2.0.01202017'
 # From Python =============================================================
 import copy
 import re
-
+import sys
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -27,6 +27,7 @@ import maya.mel as mel
 
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as VALID
+reload(VALID)
 from cgm.core import cgm_General as cgmGen
 reload(cgmGen)
 from cgm.core.lib import snap_utils as SNAP
@@ -44,7 +45,7 @@ from cgm.lib import lists
 
 
 
-def update_obj(obj = None, move = True, rotate = True, boundingBox = False):
+def update_obj(obj = None, move = True, rotate = True, boundingBox = False, targetPivot = 'rp'):
     """
     Updates an tagged loc or matches a tagged object
     
@@ -114,7 +115,7 @@ def get_objDat(obj=None, report = False):
     return _res
         
 
-def bake_match(targets = None, move = True, rotate = True, boundingBox = False,
+def bake_match(targets = None, move = True, rotate = True, boundingBox = False, pivot = 'rp',
                timeMode = 'slider', keysMode = 'loc'):
     """
     Updates an tagged loc or matches a tagged object
@@ -182,8 +183,10 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False,
     cgmGen.print_dict(_d_keyDat,"Key data..",__name__)
     
     #>>>Process ==============================================================================================    
+    _d_keysOfTarget = {}
+    
     for o in _l_toDo:
-        log.info("|{0}| >> Processing: {1} | keysMode: {2}".format(_str_func,o,keysMode))
+        log.info("|{0}| >> Processing: '{1}' | keysMode: {2}".format(_str_func,o,keysMode))
         _d = _d_toDo[o]
         _start = int(_d_keyDat['frameStart'])
         _end = int(_d_keyDat['frameEnd'])  
@@ -202,13 +205,18 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False,
             _keys = range(_start,_end +1)
         else:raise ValueError,"|{0}| >> Unknown keysMode: {1}".format(_str_func,keysMode)
         
+        if not _keys:
+            log.error("|{0}| >> No keys found for: '{1}'".format(_str_func,o))
+            break
+        
         for k in _keys:
             if k < _d_keyDat['frameStart'] or k > _d_keyDat['frameEnd']:
                 log.info("|{0}| >> Removing key from list: {1}".format(_str_func,k))                
                 _keys.remove(k)
         
-        log.info("|{0}| >> Keys: {1}".format(_str_func,_keys))
+        _d_keysOfTarget[o] = _keys
         
+        log.info("|{0}| >> Keys: {1}".format(_str_func,_keys))
         
         #Clear keys in range
         mc.cutKey(o,animation = 'objects', time=(_start,_end+ 1),at= _attrs)
@@ -274,40 +282,54 @@ def uiSetupOptionVars(self):
     self.var_matchModeMove = cgmMeta.cgmOptionVar('cgmVar_matchModeMove', defaultValue = 1)
     self.var_matchModeRotate = cgmMeta.cgmOptionVar('cgmVar_matchModeRotate', defaultValue = 1)
     self.var_matchModePivot = cgmMeta.cgmOptionVar('cgmVar_matchModePivot', defaultValue = 0)
+    self.var_matchMode = cgmMeta.cgmOptionVar('cgmVar_matchMode', defaultValue = 2)
     
+def uiFunc_change_matchMode(self,arg):
+    self.var_matchMode.value = arg    
+    if arg == 0:
+        self.var_matchModeMove.value = 1
+        self.var_matchModeRotate.value = 0
+    elif arg == 1:
+        self.var_matchModeMove.value = 0
+        self.var_matchModeRotate.value = 1
+    elif arg == 3:
+        self.var_matchModeMove.value = 1
+        self.var_matchModeRotate.value = 1
+    else:
+        self.var_matchMode.value = 2        
+        raise ValueError,"|{0}| >> Unknown matchMode: {1}".format(sys._getframe().f_code.co_name,arg)
+        
 def uiOptionMenu_matchMode(self, parent):
-    try:#>>> KeyMode 
+    try:#>>> KeyMode ================================================================================
         _str_section = 'match mode'
-
-        uiMenu = mc.menuItem(p=parent, l='Match Mode', subMenu=True)    
-        #uiRC = mc.radioMenuItemCollection()
-        #self.uiOptions_menuMode = []		
-        _v = self.var_resetMode.value
+        uiMatch = mc.menuItem(p=parent, l='Match ', subMenu=True)
         
-        mc.menuItem(p=uiMenu,
-                    l='move',
-                    cb=self.var_matchModeMove.value,
-                    c= cgmGen.Callback(self.var_matchModeMove.setValue,not self.var_matchModeMove.value),
-                    )
-        mc.menuItem(p=uiMenu,
-                    l='rotate',
-                    cb=self.var_matchModeRotate.value,
-                    c= cgmGen.Callback(self.var_matchModeRotate.setValue,not self.var_matchModeRotate.value),
-                    )        
-        mc.menuItem(p=uiMenu,
-                    l='boundingbox',
-                    cb=self.var_matchModePivot,
-                    #c= lambda *a: self.do_showHelpToggle())
-                    )
+        uiMenu = mc.menuItem(p=uiMatch, l='Mode ', subMenu=True)    
+        uiRC = mc.radioMenuItemCollection()
+        _v = self.var_matchMode.value
         
-        """for i,item in enumerate(['Default','Transform Attrs']):
+        for i,item in enumerate(['point','orient','point/orient']):
             if i == _v:
                 _rb = True
             else:_rb = False
             mc.menuItem(p=uiMenu,collection = uiRC,
                         label=item,
-                        c = cgmGen.Callback(self.var_resetMode.setValue,i),
-                        rb = _rb)"""                
+                        c = cgmGen.Callback(uiFunc_change_matchMode,i),
+                        rb = _rb) 
+            
+        #>>> Match pivot ================================================================================    
+        uiMenu = mc.menuItem(p=uiMatch, l='Pivot', subMenu=True)    
+        uiRC = mc.radioMenuItemCollection() 
+        _v = self.var_matchModePivot.value
+        
+        for i,item in enumerate(['rp','sp','boundingbox']):
+            if i == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(p=uiMenu,collection = uiRC,
+                        label=item,
+                        c = cgmGen.Callback(self.var_matchModePivot.setValue,i),
+                        rb = _rb)         
     except Exception,err:
         log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
         
@@ -385,7 +407,7 @@ def uiRadialMenu_root(self,parent,direction = None):
                 l = 'Match',
                 en=self._b_sel,
                 #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                c = cgmGen.Callback(MMCONTEXT.func_process, update_obj, self._l_sel,'each','Match',False,**{'move':True,'rotate':True,'boundingBox':False}),                                                                      
+                c = cgmGen.Callback(MMCONTEXT.func_process, update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'targetPivot':self.var_matchModePivot.value}),                                                                      
                 rp = 'S')         
     
     _utils = mc.menuItem(parent=_r,subMenu = True,
