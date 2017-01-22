@@ -1425,7 +1425,7 @@ def killUI():
         log.error(err)  
     
     _var_mode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_menuMode', defaultValue = 0)
-    if _var_mode.value in [1]:
+    if _var_mode.value in [0,1]:
         log.debug('animMode killUI')
         
         #IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked')
