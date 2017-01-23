@@ -34,7 +34,8 @@ from cgm.core.lib import position_utils as POS
 from cgm.core.lib import node_utils as NODES
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import snap_utils as SNAP
-
+from cgm.core.lib import attribute_utils as ATTR
+reload(ATTR)
 reload(POS)
 reload(NODES)
 from cgm.core.lib import math_utils as MATHUTILS
@@ -613,7 +614,8 @@ class clickMesh(ContextualPick):
                       'hit':POS.get(o,pivot='rp',space='w'),
                       'normal':_m_normal,
                       'vector':self.clickVector,
-                      'meshHit':_mi_loc.getMessage('meshTarget')}
+                      'meshHit':_dBuffer['shape'],
+                      'uv':_dBuffer['uv']}
                 cgmGen.log_info_dict(_d,"Cast {0} | Hit {1} Data".format(self._int_runningTally, i))
                 try:_mi_loc.delete()
                 except:pass
@@ -941,7 +943,7 @@ class clickMesh(ContextualPick):
                         _m = _d['m']
                         _m_hit_idx = _d['m_hit_idx']
                         _m_normal = _d['m_normal']  
-                        
+                        _m_uv = _d['m_uv']  
                     else:
                         for i2,m in enumerate(self.d_meshPos.keys()):
                             #log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                                    
@@ -951,12 +953,13 @@ class clickMesh(ContextualPick):
                                     _m = m
                                     _m_hit_idx = _res['meshHits'][_m].index(h)
                                     _m_normal = _res['meshNormals'][_m][_m_hit_idx]
+                                    _m_uv = _res['uvs'][_m][_m_hit_idx]                                    
                                     log.debug("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
                                     break
                 else:
                     log.debug("no raw pos match")
                 
-                _jsonDict = {'hitIndex':_m_hit_idx,"normal":_m_normal}
+                _jsonDict = {'hitIndex':_m_hit_idx,"normal":_m_normal,"uv":_m_uv,"shape":NAMES.get_base(_m)}
                 
                 #Let's make our stuff
                 #baseScale = distance.returnMayaSpaceFromWorldSpace(10)
@@ -1040,8 +1043,10 @@ class clickMesh(ContextualPick):
                         loc = cgmMeta.cgmNode(mc.spaceLocator()[0])
                         
                         loc.addAttr('dataBuffer',_jsonDict,attrType='string')
-                        loc.doStore('meshTarget',_m)
-                        loc.rename("cast_{0}_hit_{1}_loc".format(self._int_runningTally,i))
+                        ATTR.set_message(loc.mNode,'meshTarget',_m)
+                        ATTR.store_info(loc.mNode,'cgmLocMode','raycast',lock=True)
+                        #loc.doStore('meshTarget',_m)
+                        loc.rename("cast_{0}_hit_{1}_{2}_loc".format(self._int_runningTally,i,_jsonDict['shape']))
                         nameBuffer = loc.mNode
                         #print "making locator"
                     POS.set(nameBuffer,pos)
