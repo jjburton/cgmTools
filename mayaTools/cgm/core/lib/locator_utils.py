@@ -35,9 +35,13 @@ from cgm.core.lib import distance_utils as DIST
 reload(POS)
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import attribute_utils as ATTR
+from cgm.core.lib import node_utils as NODES
 reload(ATTR)
 #TO REFACTOR
 #from cgm.lib import attributes
+
+from cgm.core.classes import DraggerContextFactory as cgmDrag
+reload(cgmDrag)
 
 #>>> Utilities
 #===================================================================
@@ -55,12 +59,27 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
             midPoint -- mid point of specfied targets
             closestPointOnTarget -- closest point from source to targets
             closestTarget -- closest target from source
+            rayCast -- create a rayCast locator. For more options, see LOCINATOR
+            attachPoint -- Create a rayCast follicle, and parent your loc to that.
     :returns
         short name(str)
     """   
     _str_func = "create"
     
     try:
+        if mode == 'rayCast':
+            #_catch = mc.group(em=True)
+            class rayCastLoc(cgmDrag.clickMesh):
+                def release(self):
+                    if self.int_maxStore and len(self.l_created) >= self.int_maxStore:
+                        #ATTR.set_message(_catch, 'tmpMsg', self.l_created[-1])
+                        print "{0}".format(self.l_created[-1])
+                        self.dropTool()
+                                   
+            rayCastLoc(maxStore=1,create='locator')
+            #_res = ATTR.get_message(_catch,'tmpMsg')[0]
+            return True
+        
         _loc = mc.spaceLocator()[0]
     
         if position:
@@ -77,8 +96,8 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                 _mi_loc.addAttr('cgmLocDat',attrType='string')
                 
         log.info("|{0}| >> {1} mode...".format(_str_func,mode))
-        
-        if mode in ['fromTarget']:
+               
+        if mode in ['fromTarget','attachPoint']:
             if len(_targets) != 1:
                 log.warning("|{0}| >> mode: {1} | targets: {2} | ".format(_str_func,mode,_targets))
                 raise ValueError,"May only have one target for mode: {0} | targets: {1}".format(mode,_targets)            
@@ -90,14 +109,57 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
             if tag:#store info
                 ATTR.store_info(_loc,'cgmName',coreNames.get_short(_target), lock = True)
     
-                ATTR.store_info(_loc,'cgmLocMode',mode,lock = True)
+                ATTR.store_info(_loc,'cgmLocMode','fromTarget',lock = True)
                 ATTR.set_message(_loc, 'cgmLocSource',_target,'cgmLocDat')
                 if not VALID.is_component(_target):
                     SNAP.matchTarget_set(_target,_loc)
                 #_d = r9Meta.MetaClass(_loc).cgmLocDat
                 
-                return update(_loc)
-            return update(_loc, _target, mode)
+                _res =update(_loc)
+            _res = update(_loc, _target, 'fromTarget')
+            
+            if mode == 'attachPoint':
+                class follicleAttach(cgmDrag.clickMesh):
+                    def release(self):
+                        _str_funcName = 'follicleAttach.release'
+                        log.info('hi')
+                        if not self.b_dragStoreMode:#If not on drag, do it here. Otherwise do it on update
+                            if self._posBuffer:
+                                self.l_return.extend(self._posBuffer)
+                                if self._posBufferRaw:
+                                    self.l_returnRaw.extend(self._posBufferRaw)
+                                else:
+                                    self.l_returnRaw.extend(self._posBuffer)
+                        
+                            if self._createModeBuffer:
+                                self.l_created.extend(self._createModeBuffer)
+                        
+                        for pos in self.l_returnRaw:
+                            log.debug("|{0}|...pos {1}".format(_str_funcName,pos))                
+                            for i,m in enumerate(self.d_meshPos.keys()):
+                                log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                                    
+                                for i2,h in enumerate(self.d_meshPos[m]):
+                                    if h == pos:
+                                        log.debug("Found follicle match!")
+                                        try:
+                                            _set = [m, self.d_meshUV[m][i2], "{0}_u{1}s_v{2}".format(coreNames.get_short(m),self.d_meshUV[m][i2][0],self.d_meshUV[m][i2][1])]
+                                            self._l_folliclesToMake.append(_set)
+                                            log.debug("|{0}|...uv {1}".format(_str_funcName,_set))                                                
+                                        except Exception,err:
+                                            log.error("|{0}| >> Failed to query uv for hit {2} on shape {2} | err:{1}".format(_str_funcName,err,pos,m))                
+                            if self._l_folliclesToMake:
+                                for f_dat in self._l_folliclesToMake:
+                                    _follicle = NODES.add_follicle(f_dat[0],f_dat[2])
+                                    log.info("|finalize| >> Follicle created: {0}".format(_follicle))                        
+                                    ATTR.set(_follicle[0],'parameterU',f_dat[1][0])
+                                    ATTR.set(_follicle[0],'parameterV',f_dat[1][1])
+                                    mc.parent(_loc, _follicle[0])
+                        mc.delete(self.l_created)
+                        self.dropTool()
+                                       
+                follicleAttach()
+                
+            return _res
         else:
             if len(_targets) < 2:
                 log.warning("|{0}| >> mode: {1} | targets: {2} | ".format(_str_func,mode,_targets))            

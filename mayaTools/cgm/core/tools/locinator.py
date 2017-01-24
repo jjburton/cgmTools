@@ -281,7 +281,12 @@ def uiRadial_create(self,parent,direction = None):
                     l = 'Mid point',
                     en = self._b_sel_pair,                    
                     c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','midPointLoc',False,**{'mode':'midPoint'}),                                                                      
-                    rp = "NE")            
+                    rp = "SW")   
+        mc.menuItem(parent=_l,
+                    l = 'Attach Point',
+                    en = self._b_sel,
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each','attachPoint',False,**{'mode':'attachPoint'}),
+                    rp = "E")         
         mc.menuItem(parent=_l,
                     l = 'closest Point',
                     en = self._b_sel_pair,                    
@@ -294,7 +299,8 @@ def uiRadial_create(self,parent,direction = None):
                     rp = "W")   
         mc.menuItem(parent=_l,
                     l = 'rayCast',
-                    c = lambda *a:self.rayCast_create('locator',False),
+                    c = lambda *a:LOC.create(mode = 'rayCast'),
+                    #c = lambda *a:self.rayCast_create('locator',False),
                     rp = "SE")       
 
 def uiSetupOptionVars(self):
