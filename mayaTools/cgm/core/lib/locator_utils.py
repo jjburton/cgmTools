@@ -12,7 +12,7 @@ www.cgmonks.com
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -171,6 +171,18 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
             _d['rotateAxis'] = False
             
             _kws['infoDict'] = _d
+            
+        elif mode == 'rayCast':
+            _dbuffer = r9Meta.MetaClass(_loc).cgmLocDat
+            _d = {}
+            _p = POS.get_uv_position(_target[0], _dbuffer['uv'])
+            if _dbuffer.get('offsetDist'):
+                _v = POS.get_uv_normal(_target[0], _dbuffer['uv'])
+                _dist = _dbuffer.get('offsetDist')
+                _p = DIST.get_pos_by_vec_dist(_p,_v,_dist)
+            _d['position'] = _p 
+            _kws['infoDict'] = _d
+            _kws['rotate'] = False
         else:
             log.error("|{0}| >> unknown mode: {1}".format(_str_func,_mode))                
             return False        
@@ -226,7 +238,10 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
             elif _mode == 'closestTarget':
                 _targets = ATTR.msgList_get(_loc,'cgmLocSource','cgmLocDat')
                 log.info("|{0}| >> targets: {1}".format(_str_func,_targets))
-                return getAndMove(_loc,_targets,_mode,forceBBCenter)        
+                return getAndMove(_loc,_targets,_mode,forceBBCenter)
+            elif _mode == 'rayCast':
+                _target = ATTR.get_message(_loc,'meshTarget')
+                return getAndMove(_loc,_target,_mode)
             else:
                 log.error("|{0}| >> unknown mode: {1}".format(_str_func,_mode))                
                 return False

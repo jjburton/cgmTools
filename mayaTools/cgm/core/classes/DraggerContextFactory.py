@@ -491,7 +491,7 @@ class clickMesh(ContextualPick):
                     
                     #Get our orientation data
                     _mi_loc = cgmMeta.cgmNode(self.l_created[i])
-                    _d = _mi_loc.dataBuffer
+                    _d = _mi_loc.cgmLocDat
                     _m_normal = _d['normal']
                     _m = _mi_loc.meshTarget[0]
                     
@@ -608,7 +608,7 @@ class clickMesh(ContextualPick):
             for i,o in enumerate(self.l_created):
                 try:_mi_loc = cgmMeta.cgmNode(o)
                 except:continue
-                _dBuffer = _mi_loc.dataBuffer
+                _dBuffer = _mi_loc.cgmLocDat
                 _m_normal = _dBuffer['normal']
                 _d = {'startPoint':self.clickPos,
                       'hit':POS.get(o,pivot='rp',space='w'),
@@ -659,7 +659,7 @@ class clickMesh(ContextualPick):
                                 break      """      
                 
                 _mi_loc = cgmMeta.cgmNode(self.l_created[-1])
-                _d = _mi_loc.dataBuffer
+                _d = _mi_loc.cgmLocDat
                 _m_normal = _d['normal']
                 _m = _mi_loc.meshTarget[0]
                 _pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')   
@@ -865,6 +865,7 @@ class clickMesh(ContextualPick):
                         _m = _d['m']
                         _m_hit_idx = _d['m_hit_idx']
                         _m_normal = _d['m_normal']
+                        _m_uv = _d['m_uv']
                     else:    
                         for i2,m in enumerate(self.d_meshPos.keys()):
                             #log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                       
@@ -874,9 +875,10 @@ class clickMesh(ContextualPick):
                                     _m = m
                                     _m_hit_idx = _res['meshHits'][_m].index(h)
                                     _m_normal = _res['meshNormals'][_m][_m_hit_idx]
+                                    _m_uv = _res['uvs'][_m][_m_hit_idx]                                    
                                     
                                     if str(pos) not in _d_hit_mesh_queried.keys():
-                                        _d_hit_mesh_queried[str(pos)] = {'m':m,'m_hit_idx':_m_hit_idx,'m_normal':_m_normal}
+                                        _d_hit_mesh_queried[str(pos)] = {'m':m,'m_hit_idx':_m_hit_idx,'m_normal':_m_normal,'m_uv':_m_uv}
                                         
                                     log.debug("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
                                     break      
@@ -960,6 +962,8 @@ class clickMesh(ContextualPick):
                     log.debug("no raw pos match")
                 
                 _jsonDict = {'hitIndex':_m_hit_idx,"normal":_m_normal,"uv":_m_uv,"shape":NAMES.get_base(_m)}
+                if self.str_offsetMode == 'distance':
+                    _jsonDict['offsetDist'] = self.f_offsetDistance
                 
                 #Let's make our stuff
                 #baseScale = distance.returnMayaSpaceFromWorldSpace(10)
@@ -1042,9 +1046,9 @@ class clickMesh(ContextualPick):
                     else:
                         loc = cgmMeta.cgmNode(mc.spaceLocator()[0])
                         
-                        loc.addAttr('dataBuffer',_jsonDict,attrType='string')
+                        loc.addAttr('cgmLocDat',_jsonDict,attrType='string')
                         ATTR.set_message(loc.mNode,'meshTarget',_m)
-                        ATTR.store_info(loc.mNode,'cgmLocMode','raycast',lock=True)
+                        ATTR.store_info(loc.mNode,'cgmLocMode','rayCast',lock=True)
                         #loc.doStore('meshTarget',_m)
                         loc.rename("cast_{0}_hit_{1}_{2}_loc".format(self._int_runningTally,i,_jsonDict['shape']))
                         nameBuffer = loc.mNode

@@ -19,7 +19,7 @@ import maya.cmds as mc
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-#from cgm.core.cgmPy import validateArgs as cgmValid
+#NO IMPORT: VALID
 
 #>>> Utilities
 #===================================================================

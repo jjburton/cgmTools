@@ -24,9 +24,9 @@ from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import name_utils as NAMES
-reload(cgmValid)
+reload(VALID)
 
 from cgm.lib import lists
 
@@ -171,7 +171,7 @@ def set_alias(node, attr = None, alias = None):
     else:
         _d = validate_arg(node,attr) 
         
-    alias = cgmValid.stringArg(alias)
+    alias = VALID.stringArg(alias)
     _alias_current = get_alias(_d)
     
     if alias:
@@ -201,7 +201,7 @@ def compare_attrs(source, targets, **kws):
 
     """         
     _source = NAMES.get_short(source)
-    _l_targets = cgmValid.objStringList(targets)
+    _l_targets = VALID.objStringList(targets)
 
     log.info(cgmGeneral._str_hardLine)   
 
@@ -1710,7 +1710,7 @@ def get_driven(node, attr = None, getNode = False, skipConversionNodes = False, 
 def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = None, simple = False):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
-    Get attributes driven by an attribute
+    Get attributes driven by an attribute.
 
     :parameters:
         messageHolder(str) -- object to store to
@@ -1739,11 +1739,21 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
         
     log.debug("|{0}| >> {1} | dataAttr: {2} | dataKey: {3}".format(_str_func,_combined,_dataAttr,dataKey))
     
-    _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
     
-    if _msgBuffer and mc.objectType(_msgBuffer[0])=='reference':
-        #REPAIR
+    _type = get_type(_d)
+    if _type in ['string']:
+        log.debug("|{0}| >> special message attr...".format(_str_func))
+        _msgBuffer = mc.listConnections(_combined,p=True)
+        if _msgBuffer and len(_msgBuffer) == 1:
+            _msgBuffer = [_msgBuffer[0].split('.')[0]]
+        else:
+            raise ValueError,"not sure what to do with this: {0}".format(_msgBuffer)
+    else:
         _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
+        
+        if _msgBuffer and mc.objectType(_msgBuffer[0])=='reference':
+            #REPAIR
+            _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
         
     if mc.addAttr(_combined,q=True,m=True):
         log.debug("|{0}| >> multimessage...".format(_str_func))
@@ -1766,18 +1776,18 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
         else:
             _d_dataAttr = validate_arg(messageHolder,_dataAttr)           
         
-        _messagedNode = mc.listConnections (_combined,destination=True,source=True)
-        if _messagedNode != None:
-            if mc.objExists(_messagedNode[0]) and not mc.objectType(_messagedNode[0])=='reference':
+        #_messagedNode = mc.listConnections (_combined,destination=True,source=True)
+        if _msgBuffer != None:
+            if mc.objExists(_msgBuffer[0]) and not mc.objectType(_msgBuffer[0])=='reference':
                 
                 mi_node = r9Meta.MetaClass(_d['node'])
                 if mi_node.hasAttr(_d_dataAttr['attr']):
                     _dBuffer = mi_node.__getattribute__(_d_dataAttr['attr']) or {}
                     if _dBuffer.get(dataKey):
                         log.debug("|{0}| >> extra message data found...".format(_str_func))  
-                        return [ _messagedNode[0] + '.' + _dBuffer.get(dataKey)]
+                        return [ _msgBuffer[0] + '.' + _dBuffer.get(dataKey)]
                 
-                return _messagedNode
+                return _msgBuffer
             else:#Try to repair it
                 return repairMessageToReferencedTarget(storageObject,messageAttr)
     return False    
@@ -1790,7 +1800,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
     :parameters:
         messageHolder(str) -- object to store to
         messageAttr(str) -- 
-        message(str) -- may be object, attribute, or component 
+        message(str) -- may be object, attribute, shape, or component 
         dataAttr(str) -- Specify the attribute to check for extra data or use default(NONE)
             cgmMsgData is our default. Data is stored as a json dict of {attr:{msg:component or attr}}
         dataKey(str/int) -- data key for extra data. If None provided, attr name is used.
@@ -1821,8 +1831,8 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
         break_connection(_d)
         return True
     elif '.' in message:
-        if cgmValid.is_component(message):
-            _l_msg = cgmValid.get_component(message)  
+        if VALID.is_component(message):
+            _l_msg = VALID.get_component(message)  
             _messagedNode = _l_msg[1]            
             if simple:
                 message = _l_msg[1]
@@ -1841,6 +1851,9 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
                 _mode = 'attr'
                 log.debug("|{0}| >> attrMessage: {1}".format(_str_func,_d_msg))
                 _messagedExtra = _d_msg['attr']
+    elif VALID.is_shape(message):
+        _mode = 'shape'
+        _messagedNode = message
     else:
         _messagedNode = message
             
@@ -1859,6 +1872,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
     log.info("|{0}| >> messageHolder: {1} | messageAttr: {2}".format(_str_func,messageHolder, messageAttr))
     log.info("|{0}| >> messagedNode: {1} | messagedExtra: {2} | messageLong: {3}".format(_str_func,_messagedNode, _messagedExtra, _messageLong))
     
+
     if _messagedExtra:
         if '.' in _dataAttr:
             _d_dataAttr = validate_arg(_dataAttr)            
@@ -1866,14 +1880,16 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
             _d_dataAttr = validate_arg(messageHolder,_dataAttr)
 
     #>> Node store ------------------------------------------------------------------------------------------------------------
-    def storeMsg(msgNode,msgExtra,holderDict,dataAttrDict=None, dataKey = None):
-        connect((msgNode + ".message"),holderDict['combined'])
+    def storeMsg(msgNode,msgExtra,holderDict,dataAttrDict=None, dataKey = None, mode = None):
+        if mode not in ['sphape']:
+            connect((msgNode + ".message"),holderDict['combined'])
+            
         if msgExtra:
             log.info("|{0}| >> '{1}.{2}' stored to: '{3}'".format(_str_func,msgNode,msgExtra, holderDict['combined']))
             
             if not mc.objExists(dataAttrDict['combined']):
                 add(dataAttrDict['node'],dataAttrDict['attr'],'string')
-            
+                        
             if get_type(dataAttrDict['combined']) != 'string':
                 raise ValueError,"DataAttr must be string. {0} is type {1}".format(dataAttrDict['combined'], get_type(dataAttrDict['combined']) )
             
@@ -1888,6 +1904,11 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
         log.info("|{0}| >> '{1}' stored to: '{2}'".format(_str_func,msgNode, _combined))        
         return True
     
+    if _mode == 'shape':
+        copy_to(_messagedNode,'viewName',messageHolder,messageAttr,driven='target')
+        storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey,'shape')  
+        set_lock(_d,True)
+        return True
     if mc.objExists(_combined):
         if not get_type(_combined) == 'message':
             log.warning("|{0}| >> Not a message attribute. converting..".format(_str_func))  
@@ -1991,7 +2012,7 @@ def convert_type(node = None, attr = None, attrType = None):
     
     if _attrType == 'enum':
         if _data:
-            if cgmValid.stringArg(_data):
+            if VALID.stringArg(_data):
                 for o in [":",",",";"]:
                     if o in _data:
                         _enum = _data.split(o)
@@ -2054,7 +2075,7 @@ def reorder(node = None, attrs = None, direction = 0):
     """
     _str_func = 'reorder'    
     
-    attrs = cgmValid.listArg(attrs)
+    attrs = VALID.listArg(attrs)
     
     for a in attrs:
         assert mc.objExists(node+'.'+a) is True, "|{0}|>> . '{1}.{2}' doesn't exist. Swing and a miss...".format(_str_func,node,a)
@@ -2207,7 +2228,7 @@ def msgList_connect(node = None, attr = None, data = None, connectBack = None, d
     """
     _str_func = 'msgList_connect'    
     
-    _l_dat = cgmValid.objStringList(data,noneValid=True)
+    _l_dat = VALID.objStringList(data,noneValid=True)
     log.info("|{0}| >> node: {1} | attr: {2} | connectBack: {3}".format(_str_func,node,attr,connectBack))
     log.info("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
     
@@ -2255,7 +2276,7 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
     """
     _str_func = 'datList_connect'    
     
-    _l_dat = cgmValid.listArg(data)
+    _l_dat = VALID.listArg(data)
     
     log.info("|{0}| >> node: {1} | attr: {2} | mode: {3}".format(_str_func,node,attr,mode))
     log.info("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
@@ -2462,7 +2483,7 @@ def datList_removeByIndex(node = None, attr = None, indices = None):
         status(bool)
     """
     _str_func = 'datList_removeByIndex'    
-    _indices = cgmValid.listArg(indices)
+    _indices = VALID.listArg(indices)
     d_attrs = get_sequentialAttrDict(node,attr)
     
     log.debug("|{0}| >> node: {1} | attr: {2} | indices: {3}".format(_str_func,node,attr,_indices))
@@ -2493,7 +2514,7 @@ def datList_remove(node = None, attr = None, data = None, mode = None, dataAttr 
         status(bool)
     """
     _str_func = 'datList_remove'    
-    _data = cgmValid.listArg(data)        
+    _data = VALID.listArg(data)        
     d_attrs = get_sequentialAttrDict(node,attr)
     
     if dataAttr is not None:
@@ -2505,7 +2526,7 @@ def datList_remove(node = None, attr = None, data = None, mode = None, dataAttr 
     
     _action = False
     if mode == 'message':
-        _data = cgmValid.objStringList(_data,calledFrom=_str_func)
+        _data = VALID.objStringList(_data,calledFrom=_str_func)
         _l_dat_long = [NAMES.get_long(o) for o in _data]  
         
         for i in d_attrs.keys():
@@ -2558,10 +2579,10 @@ def datList_clean(node = None, attr = None, mode = None, dataAttr = None):
 #>> Utilities
 #>>>==============================================================================================
 
-def copy(fromObject, fromAttr, toObject = None, toAttr = None,
-         convertToMatch = True, values = True, inConnection = False, outConnections = False,
-         keepSourceConnections = True, copySettings = True,
-         driven = None):
+def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
+            convertToMatch = True, values = True, inConnection = False, outConnections = False,
+            keepSourceConnections = True, copySettings = True,
+            driven = None):
     """   
     Copy attributes from one object to another as well as other options. If the attribute already
     exists, it'll copy the values. If it doesn't, it'll make it. If it needs to convert, it can.
@@ -2580,7 +2601,6 @@ def copy(fromObject, fromAttr, toObject = None, toAttr = None,
         keepSourceConnections(bool)-- keeps connections on source. default True
         copySettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
         driven(string) -- 'source','target' - whether to connect source>target or target>source
-        connectTargetToSource(bool) --useful for moving attribute controls to another object. default False
 
     :returns
         success(bool)
@@ -2637,7 +2657,7 @@ def copy(fromObject, fromAttr, toObject = None, toAttr = None,
             log.warning("|{0}| >> {1} may not copy correctly. Type did not validate.".format(_str_func,_d_targetAttr['combined']))
         
         if not validate_attrTypeMatch(_d_sourceFlags['type'],_d_targetFlags['type']):
-            if _d_targetAttr['dynamic'] and convertToMatch:
+            if _d_targetFlags['dynamic'] and convertToMatch:
                 log.warning("|{0}| >> {1} Not the correct type, conversion necessary...".format(_str_func,_d_targetAttr['combined']))
                 #_relockSource
                 convert_type(_d_targetAttr,_d_sourceFlags['type'])
@@ -2735,7 +2755,7 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Fa
         status(bool)
     """
     _str_func = 'store_info'    
-    _data = cgmValid.listArg(data)        
+    _data = VALID.listArg(data)        
 
     
     if attrType is None:

@@ -30,6 +30,8 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
+from cgm.core.lib import node_utils as NODE
+from cgm.core.lib import attribute_utils as ATTR
 #Cannot import: DIST,
 #>>> Utilities
 #===================================================================
@@ -173,6 +175,52 @@ def get_bb_center(arg = None):
     _box = mc.exactWorldBoundingBox(_arg)
     
     return [((_box[0] + _box[3])/2),((_box[4] + _box[1])/2), ((_box[5] + _box[2])/2)]
+
+def get_uv_position(mesh, uvValue):
+    """
+    Get a uv position in world space. UV should be normalized.
+    
+    :parameters:
+        mesh(string) | Surface uv resides on
+        uValue(float) | uValue  
+        vValue(float) | vValue 
+
+    :returns
+        pos(double3)
+
+    """        
+    _str_func = 'get_uv_position'
+    
+    _follicle = NODE.add_follicle(mesh)
+    ATTR.set(_follicle[0],'parameterU', uvValue[0])
+    ATTR.set(_follicle[0],'parameterV', uvValue[1])
+    
+    _pos = get(_follicle[1])
+    mc.delete(_follicle)
+    return _pos
+
+def get_uv_normal(mesh, uvValue):
+    """
+    Get a normal at a uv
+    
+    :parameters:
+        mesh(string) | Surface uv resides on
+        uValue(float) | uValue  
+        vValue(float) | vValue 
+
+    :returns
+        pos(double3)
+
+    """        
+    _str_func = 'get_uv_position'
+    
+    _follicle = NODE.add_follicle(mesh)
+    ATTR.set(_follicle[0],'parameterU', uvValue[0])
+    ATTR.set(_follicle[0],'parameterV', uvValue[1])
+    
+    _normal = ATTR.get(_follicle[0],'outNormal')
+    mc.delete(_follicle)
+    return _normal
 
 def get_info(target = None, boundingBox = False):
     """
