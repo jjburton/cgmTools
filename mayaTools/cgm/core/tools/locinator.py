@@ -43,8 +43,6 @@ reload(MMCONTEXT)
 
 from cgm.lib import lists
 
-
-
 def update_obj(obj = None, move = True, rotate = True, boundingBox = False, targetPivot = 'rp'):
     """
     Updates an tagged loc or matches a tagged object
@@ -132,6 +130,8 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
             :source
             :combine
             :frames -- bake every frame
+            :twos
+            :threes
 
     :returns
         success(bool)
@@ -191,40 +191,61 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     _start = int(_d_keyDat['frameStart'])
     _end = int(_d_keyDat['frameEnd'])  
     
+    _keysAll = None
+    if keysMode == 'frames':
+        _keysAll = range(_start,_end +1)
+    elif keysMode == 'twos':
+        _keysAll = []
+        i = _start
+        while i <= _end:
+            _keysAll.append(i)
+            i += 2
+    elif keysMode == 'threes':
+        _keysAll = []
+        i = _start
+        while i <= _end:
+            _keysAll.append(i)
+            i += 3   
+    if _keysAll:
+        _keysToProcess = _keysAll
+    
     #First for loop, gathers key data per object...
     for o in _l_toDo:
         log.info("|{0}| >> Processing: '{1}' | keysMode: {2}".format(_str_func,o,keysMode))
         _d = _d_toDo[o]
         
         #Gather target key data...
-        if keysMode == 'loc':
-            _keys = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['loc']))
-        elif keysMode == 'source':
-            _keys = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['source']))
-        elif keysMode in ['combine','both']:
-            _source = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['loc']))
-            _loc = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['source']))
-            
-            _keys = _source + _loc
-            _keys = lists.returnListNoDuplicates(_keys)
-        elif keysMode == 'frames':
-            _keys = range(_start,_end +1)
-        else:raise ValueError,"|{0}| >> Unknown keysMode: {1}".format(_str_func,keysMode)
+        if not _keysAll:
+            if keysMode == 'loc':
+                _keys = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['loc']))
+            elif keysMode == 'source':
+                _keys = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['source']))
+            elif keysMode in ['combine','both']:
+                _source = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['loc']))
+                _loc = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['source']))
+                
+                _keys = _source + _loc
+                _keys = lists.returnListNoDuplicates(_keys)
+            elif keysMode == 'frames':
+                _keys = range(_start,_end +1)
+            else:raise ValueError,"|{0}| >> Unknown keysMode: {1}".format(_str_func,keysMode)
         
-        if not _keys:
-            log.error("|{0}| >> No keys found for: '{1}'".format(_str_func,o))
-            break
         
-        for k in _keys:
-            if k < _d_keyDat['frameStart'] or k > _d_keyDat['frameEnd']:
-                log.info("|{0}| >> Removing key from list: {1}".format(_str_func,k))                
-                _keys.remove(k)
+            for k in _keys:
+                if k < _d_keyDat['frameStart'] or k > _d_keyDat['frameEnd']:
+                    log.info("|{0}| >> Removing key from list: {1}".format(_str_func,k))                
+                    _keys.remove(k)
+                    
+            if not _keys:
+                log.error("|{0}| >> No keys found for: '{1}'".format(_str_func,o))
+                break            
         
-        _d_keysOfTarget[o] = _keys
+            _d_keysOfTarget[o] = _keys
+            _keysToProcess.extend(_keys)  
+            log.info("|{0}| >> Keys: {1}".format(_str_func,_keys))            
+        else: _d_keysOfTarget[o] = _keysAll
         
-        _keysToProcess.extend(_keys)
         
-        log.info("|{0}| >> Keys: {1}".format(_str_func,_keys))
         
 
         #Clear keys in range
@@ -373,12 +394,25 @@ def uiRadialMenu_root(self,parent,direction = None):
     uiRadial_create(self,_r,'N')
     
     #>>>Bake ==============================================================================================
-    mc.menuItem(parent=_r,
-                en = self._b_sel,
-                l = 'Bake Range Frames',
-                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake',False,
-                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':'frames','timeMode':'slider'}),                                                                                      
-                rp = 'NW')
+    _bakeFrames = mc.menuItem(parent=_r,subMenu = True,
+                              en = self._b_sel,
+                              l = 'Bake Range Frames',                                
+                              rp = 'NW')
+    mc.menuItem(parent=_bakeFrames,
+                l = 'All',
+                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
+                                                  **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':'frames','timeMode':'slider'}),                                                                                      
+                rp = 'N')      
+    mc.menuItem(parent=_bakeFrames,
+                l = 'Twos',
+                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range by twos',False,
+                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':'twos','timeMode':'slider'}),                                                                                      
+                rp = 'NW')      
+    mc.menuItem(parent=_bakeFrames,
+                l = 'Threes',
+                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range by threes',False,
+                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':'threes','timeMode':'slider'}),                                                                                      
+                rp = 'W')      
     
     _bakeRange = mc.menuItem(parent=_r,subMenu = True,
                              en = self._b_sel,
@@ -400,12 +434,30 @@ def uiRadialMenu_root(self,parent,direction = None):
                                     **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':'both','timeMode':'slider'}),                 
                 rp = 'W')     
     
-    mc.menuItem(parent=_r,
-                en = self._b_sel,
-                l = 'Bake Timeline Frames',
-                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake',False,
-                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':'frames','timeMode':'scene'}),                                                                                      
-                rp = 'NE')
+    
+    
+    _bakeTimeline = mc.menuItem(parent=_r,subMenu = True,
+                                en = self._b_sel,
+                                l = 'Bake Timeline Frames',
+                                rp = 'NE')
+    mc.menuItem(parent=_bakeTimeline,
+                l = 'All',
+                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
+                                                  **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':'frames','timeMode':'scene'}),                                                                                      
+                rp = 'N')      
+    mc.menuItem(parent=_bakeTimeline,
+                l = 'Twos',
+                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range by twos',False,
+                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':'twos','timeMode':'scene'}),                                                                                      
+                rp = 'NE')      
+    mc.menuItem(parent=_bakeTimeline,
+                l = 'Threes',
+                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range by threes',False,
+                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':'threes','timeMode':'scene'}),                                                                                      
+                rp = 'E')      
+    
+    
+    
         
     _bakeTime = mc.menuItem(parent=_r,subMenu = True,
                 en = self._b_sel,
