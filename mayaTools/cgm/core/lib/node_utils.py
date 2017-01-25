@@ -22,6 +22,7 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
+from cgm.core.lib import attribute_utils as ATTR
 reload(SHARED)
 
 #CANNOT IMPORT: DIST, LOC
@@ -60,6 +61,9 @@ def add_follicle(mesh, name = 'follicle'):
         
     attributes.doConnectAttr((_node+'.outTranslate'),(_trans+'.translate'))
     attributes.doConnectAttr((_node+'.outRotate'),(_trans+'.rotate'))    
+    
+    #ATTR.set_message(_node,'follTrans',_trans)
+    #ATTR.set_message(_trans,'follNode',_node)
     
     attributes.doSetLockHideKeyableAttr(_trans)
         

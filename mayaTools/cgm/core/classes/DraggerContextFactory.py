@@ -425,6 +425,9 @@ class clickMesh(ContextualPick):
         self._createModeBuffer = []
         self.updatePos()
 
+    def release_post_insert(self):pass
+    def release_pre_insert(self):pass
+    
     def finalize(self):
         """
         Press action. Clears buffers.
@@ -457,7 +460,7 @@ class clickMesh(ContextualPick):
                             if h == pos:
                                 log.debug("Found follicle match!")
                                 try:
-                                    _set = [m, self.d_meshUV[m][i2], "{0}_u{1}s_v{2}".format(NAMES.get_short(m),self.d_meshUV[m][i2][0],self.d_meshUV[m][i2][1])]
+                                    _set = [m, self.d_meshUV[m][i2], "{0}_u{1}s_v{2}".format(NAMES.get_short(m),"{0:.4f}".format(self.d_meshUV[m][i2][0]),"{0:.4f}".format(self.d_meshUV[m][i2][1]))]
                                     self._l_folliclesToMake.append(_set)
                                     log.debug("|{0}|...uv {1}".format(_str_funcName,_set))                                                
                                 except Exception,err:
@@ -578,6 +581,9 @@ class clickMesh(ContextualPick):
         Store current data to return buffers
         """               
         _str_funcName = 'release'
+        
+        self.release_pre_insert()
+        
         self.l_created = lists.returnListNoDuplicates(self.l_created)
         #Only store return values on release
         if not self.b_dragStoreMode:#If not on drag, do it here. Otherwise do it on update
@@ -732,6 +738,9 @@ class clickMesh(ContextualPick):
             log.debug("Max hit, finalizing")
             log.info("|{0}| >> created: {1}".format(_str_funcName,self.l_created))
             self.dropTool()
+            
+        self.release_post_insert()
+        
             
 
     def drag(self):

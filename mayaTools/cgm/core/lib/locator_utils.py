@@ -36,6 +36,7 @@ reload(POS)
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import node_utils as NODES
+reload(NODES)
 reload(ATTR)
 #TO REFACTOR
 #from cgm.lib import attributes
@@ -70,13 +71,19 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
         if mode == 'rayCast':
             #_catch = mc.group(em=True)
             class rayCastLoc(cgmDrag.clickMesh):
-                def release(self):
-                    if self.int_maxStore and len(self.l_created) >= self.int_maxStore:
-                        #ATTR.set_message(_catch, 'tmpMsg', self.l_created[-1])
-                        print "{0}".format(self.l_created[-1])
-                        self.dropTool()
+                def release_post_insert(self):
+                    #ATTR.set_messagse(_catch, 'tmpMsg', self.l_created[-1])
+                    _loc = self.l_created[-1]
+                    _mLoc = r9Meta.MetaClass(_loc)
+                    _buffer = _mLoc.cgmLocDat
+                    _target = ATTR.get_message(_loc,'meshTarget')[0]
+                    _loc = mc.rename(_loc, "{0}_u{1}_v{2}_rayCast_loc".format(coreNames.get_base(_target),
+                                                                          "{0:.4f}".format(_buffer['uv'][0]),
+                                                                          "{0:.4f}".format(_buffer['uv'][1]),
+                                                                          ))
+                    self.dropTool()
                                    
-            rayCastLoc(maxStore=1,create='locator')
+            rayCastLoc(create='locator')
             #_res = ATTR.get_message(_catch,'tmpMsg')[0]
             return True
         
@@ -120,10 +127,9 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
             
             if mode == 'attachPoint':
                 class follicleAttach(cgmDrag.clickMesh):
-                    def release(self):
+                    def release_post_insert(self):
                         _str_funcName = 'follicleAttach.release'
-                        log.info('hi')
-                        if not self.b_dragStoreMode:#If not on drag, do it here. Otherwise do it on update
+                        """if not self.b_dragStoreMode:#If not on drag, do it here. Otherwise do it on update
                             if self._posBuffer:
                                 self.l_return.extend(self._posBuffer)
                                 if self._posBufferRaw:
@@ -132,7 +138,7 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                                     self.l_returnRaw.extend(self._posBuffer)
                         
                             if self._createModeBuffer:
-                                self.l_created.extend(self._createModeBuffer)
+                                self.l_created.extend(self._createModeBuffer)"""
                         
                         for pos in self.l_returnRaw:
                             log.debug("|{0}|...pos {1}".format(_str_funcName,pos))                
@@ -142,7 +148,7 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                                     if h == pos:
                                         log.debug("Found follicle match!")
                                         try:
-                                            _set = [m, self.d_meshUV[m][i2], "{0}_u{1}s_v{2}".format(coreNames.get_short(m),self.d_meshUV[m][i2][0],self.d_meshUV[m][i2][1])]
+                                            _set = [m, self.d_meshUV[m][i2], "{0}_u{1}_v{2}".format(coreNames.get_short(m),"{0:.4f}".format(self.d_meshUV[m][i2][0]),"{0:.4f}".format(self.d_meshUV[m][i2][1]))]
                                             self._l_folliclesToMake.append(_set)
                                             log.debug("|{0}|...uv {1}".format(_str_funcName,_set))                                                
                                         except Exception,err:
