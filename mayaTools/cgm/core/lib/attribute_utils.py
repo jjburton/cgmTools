@@ -957,7 +957,7 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False):
     _toAttr = _d_to['attr']
     _combined_to = _d_to['combined']
     
-    log.info("|{0}| >> Connecting {1} to {2}".format(_str_func,_combined,_combined_to))
+    log.debug("|{0}| >> Connecting {1} to {2}".format(_str_func,_combined,_combined_to))
 
     assert _combined != _combined_to,"Cannot connect an attr to itself. The world might blow up!"
 
@@ -1868,9 +1868,9 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
     else:
         dataKey = unicode(dataKey)
         
-    log.info("|{0}| >> mode: {1} | dataAttr: {2} | dataKey: {3}".format(_str_func,_mode, _dataAttr,dataKey))
-    log.info("|{0}| >> messageHolder: {1} | messageAttr: {2}".format(_str_func,messageHolder, messageAttr))
-    log.info("|{0}| >> messagedNode: {1} | messagedExtra: {2} | messageLong: {3}".format(_str_func,_messagedNode, _messagedExtra, _messageLong))
+    log.debug("|{0}| >> mode: {1} | dataAttr: {2} | dataKey: {3}".format(_str_func,_mode, _dataAttr,dataKey))
+    log.debug("|{0}| >> messageHolder: {1} | messageAttr: {2}".format(_str_func,messageHolder, messageAttr))
+    log.debug("|{0}| >> messagedNode: {1} | messagedExtra: {2} | messageLong: {3}".format(_str_func,_messagedNode, _messagedExtra, _messageLong))
     
 
     if _messagedExtra:
@@ -1885,7 +1885,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
             connect((msgNode + ".message"),holderDict['combined'])
             
         if msgExtra:
-            log.info("|{0}| >> '{1}.{2}' stored to: '{3}'".format(_str_func,msgNode,msgExtra, holderDict['combined']))
+            log.debug("|{0}| >> '{1}.{2}' stored to: '{3}'".format(_str_func,msgNode,msgExtra, holderDict['combined']))
             
             if not mc.objExists(dataAttrDict['combined']):
                 add(dataAttrDict['node'],dataAttrDict['attr'],'string')
@@ -1901,13 +1901,13 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
             #setlock
             return True
         
-        log.info("|{0}| >> '{1}' stored to: '{2}'".format(_str_func,msgNode, _combined))        
+        log.debug("|{0}| >> '{1}' stored to: '{2}'".format(_str_func,msgNode, _combined))        
         return True
     
     if _mode == 'shape':
         copy_to(_messagedNode,'viewName',messageHolder,messageAttr,driven='target')
         storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey,'shape')  
-        set_lock(_d,True)
+        #set_lock(_d,True)
         return True
     if mc.objExists(_combined):
         if not get_type(_combined) == 'message':
@@ -1943,7 +1943,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
                 storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
     
     else:
-        log.info("|{0}| >> new attr...".format(_str_func))                    
+        log.debug("|{0}| >> new attr...".format(_str_func))                    
         add(messageHolder,messageAttr,'message',m=False)
         storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
         
@@ -2633,7 +2633,7 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
         log.warning("|{0}| >> {1} is a {2} attr and not valid for copying".format(_str_func,_d['combined'],_d_sourceFlags['type']))
         return False   
 
-    cgmGeneral.log_info_dict(_d_sourceFlags,_combined)
+    #cgmGeneral.log_info_dict(_d_sourceFlags,_combined)
     
     _driver = get_driver(_d,skipConversionNodes=True)
     _driven = get_driven(_d,skipConversionNodes=True)
@@ -2648,7 +2648,7 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
     _targetExisted = False
     _relockSource = False    
     
-    cgmGeneral.log_info_dict(_d_targetAttr)
+    #cgmGeneral.log_info_dict(_d_targetAttr)
     if mc.objExists(_d_targetAttr['combined']):
         _targetExisted = True
         _d_targetFlags = get_standardFlagsDict(_d_targetAttr)

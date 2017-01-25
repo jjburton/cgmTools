@@ -23,13 +23,15 @@ import maya.OpenMaya as OM
 import copy
 
 from cgm.core import cgm_General as cgmGeneral
-from cgm.core.cgmPy import validateArgs as cgmValid
-reload(cgmValid)
+from cgm.core.cgmPy import validateArgs as VALID
+reload(VALID)
 from cgm.core.lib import selection_Utils as selUtils
 from cgm.core.cgmPy import OM_Utils as cgmOM
 from cgm.lib import guiFactory
 from cgm.lib import cgmMath
+from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import rayCaster as cgmRAYS
+from cgm.core.lib import search_utils as SEARCH
 import re
 
 from cgm.lib import search
@@ -59,11 +61,11 @@ def compare_area(sourceObj, targetList, shouldMatch = True):
     for o in targetList:
         _f_area = mc.polyEvaluate(o, area = True)
         if shouldMatch:
-            if cgmValid.isFloatEquivalent(_f_baseArea,_f_area):
+            if VALID.isFloatEquivalent(_f_baseArea,_f_area):
                 log.info("Match: {0}".format(o))
                 result.append(o)
         else:
-            if not cgmValid.isFloatEquivalent(_f_baseArea,_f_area):        
+            if not VALID.isFloatEquivalent(_f_baseArea,_f_area):        
                 log.info("Nonmatch: {0}".format(o))
                 result.append(o)                     
     return result
@@ -271,17 +273,17 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0,
     __l_expandBy = ['none', 'expandSelection','softSelect']
     result = []
 
-    #_mode = cgmValid.valueArg(mode, inRange=[0,1], noneValid=False, calledFrom = 'get_contained')  
-    _mode = cgmValid.kw_fromList(mode, __l_modes, indexCallable=True, noneValid=False, calledFrom = 'get_contained')        
+    #_mode = VALID.valueArg(mode, inRange=[0,1], noneValid=False, calledFrom = 'get_contained')  
+    _mode = VALID.kw_fromList(mode, __l_modes, indexCallable=True, noneValid=False, calledFrom = 'get_contained')        
     log.info("mode: {0}".format(_mode))
 
-    #_returnMode = cgmValid.valueArg(returnMode, inRange=[0,4], noneValid=False, calledFrom = 'get_contained')
-    _returnMode = cgmValid.kw_fromList(returnMode, __l_returnModes, indexCallable=True, returnIndex=True, noneValid=False, calledFrom = 'get_contained')        
+    #_returnMode = VALID.valueArg(returnMode, inRange=[0,4], noneValid=False, calledFrom = 'get_contained')
+    _returnMode = VALID.kw_fromList(returnMode, __l_returnModes, indexCallable=True, returnIndex=True, noneValid=False, calledFrom = 'get_contained')        
     log.info("returnMode: {0}".format(_returnMode))
 
-    _selectReturn = cgmValid.boolArg(selectReturn, calledFrom='get_contained')
+    _selectReturn = VALID.boolArg(selectReturn, calledFrom='get_contained')
 
-    _expandBy = cgmValid.kw_fromList(expandBy, __l_expandBy, indexCallable=True, noneValid=False, calledFrom = 'get_contained')        
+    _expandBy = VALID.kw_fromList(expandBy, __l_expandBy, indexCallable=True, noneValid=False, calledFrom = 'get_contained')        
     """if expandBy is not None:
         if expandBy in __l_expandBy:
             _expandBy = expandBy
@@ -298,11 +300,11 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0,
         sourceObj = _sel[0]
         targets = _sel[1:]
 
-    targets = cgmValid.listArg(targets)#...Validate our targets as a list
+    targets = VALID.listArg(targets)#...Validate our targets as a list
     l_targetCounts = []
 
     for o in targets:
-        _d = cgmValid.MeshDict(o)
+        _d = VALID.MeshDict(o)
         l_targetCounts.append(_d['pointCountPerShape'][0])
 
     sel = OM.MSelectionList()#..make selection list
@@ -393,7 +395,7 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0,
                     _cnt +=1
                     vert = iter.position(OM.MSpace.kWorld)
                     _inside = True                           
-                    for v in cgmValid.d_stringToVector.itervalues():
+                    for v in VALID.d_stringToVector.itervalues():
                         d_return = cgmRAYS.findMeshIntersection(sourceObj, vert, 
                                                                 v, 
                                                                 maxDistance=10000, 
@@ -413,7 +415,7 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0,
                     vert = iter.position(OM.MSpace.kWorld)
                     _good = True                           
                     p = cgmOM.Point(vert)
-                    for v in cgmValid.d_stringToVector.itervalues():
+                    for v in VALID.d_stringToVector.itervalues():
                         d_return = cgmRAYS.findMeshIntersection(sourceObj, vert, 
                                                                 v, 
                                                                 maxDistance=10000, 
@@ -601,7 +603,7 @@ def get_deltaBaseLine(mNode = None, excludeDeformers = True):
 
     #meat...
     _result = []
-    _dict = cgmValid.MeshDict(mNode.mNode)
+    _dict = VALID.MeshDict(mNode.mNode)
     for i in range(_dict['pointCount']):
         _result.append(mc.xform("{0}.vtx[{1}]".format(mNode.mNode,i), t = True, os = True, q=True))
 
@@ -618,10 +620,10 @@ def get_shapePosData(meshShape = None, space = 'os'):
     _str_funcName = 'get_shapePosData'
 
     __space__ = {'world':['w','ws'],'object':['o','os']}
-    _space = cgmValid.kw_fromDict(space, __space__, calledFrom=_str_funcName)    
+    _space = VALID.kw_fromDict(space, __space__, calledFrom=_str_funcName)    
 
     _result = []
-    _dict = cgmValid.MeshDict(meshShape)
+    _dict = VALID.MeshDict(meshShape)
     #cgmGeneral.log_info_dict(_dict,'get_shapePosData: {0}'.format(meshShape))
     for i in range(_dict['pointCount']):
         if _space == 'world':
@@ -704,10 +706,10 @@ def meshMath_OLD(sourceObj = None, target = None, mode = 'blend', space = 'objec
     _str_funcName = 'meshMath'
     __space__ = {'world':['w','ws'],'object':['o','os']}
     __resultTypes__ = {'new':['n'],'modify':['self','m'],'values':['v']}
-    _mode = cgmValid.kw_fromDict(mode, _d_meshMathModes_, calledFrom=_str_funcName)
-    _space = cgmValid.kw_fromDict(space, __space__, calledFrom=_str_funcName)
-    _resultType = cgmValid.kw_fromDict(resultMode, __resultTypes__, calledFrom=_str_funcName)
-    _multiplier = cgmValid.valueArg(multiplier, calledFrom=_str_funcName)
+    _mode = VALID.kw_fromDict(mode, _d_meshMathModes_, calledFrom=_str_funcName)
+    _space = VALID.kw_fromDict(space, __space__, calledFrom=_str_funcName)
+    _resultType = VALID.kw_fromDict(resultMode, __resultTypes__, calledFrom=_str_funcName)
+    _multiplier = VALID.valueArg(multiplier, calledFrom=_str_funcName)
     _str_newName = None
 
     if not _multiplier:
@@ -731,8 +733,8 @@ def meshMath_OLD(sourceObj = None, target = None, mode = 'blend', space = 'objec
             except:
                 raise ValueError,"{0} must have a target".format(_sel)
 
-    _d_source = cgmValid.MeshDict(sourceObj,False, calledFrom=_str_funcName)
-    _d_target = cgmValid.MeshDict(target,False, calledFrom=_str_funcName)
+    _d_source = VALID.MeshDict(sourceObj,False, calledFrom=_str_funcName)
+    _d_target = VALID.MeshDict(target,False, calledFrom=_str_funcName)
 
     for k in ['meshType']:
         if _d_source[k] != _d_target[k]:
@@ -893,14 +895,14 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
             
     __space__ = {'world':['w','ws'],'object':['o','os']}
     __resultTypes__ = {'new':['n'],'modify':['self','m'],'values':['v']}
-    _mode = cgmValid.kw_fromDict(mode, _d_meshMathModes_, calledFrom=_str_funcName)
-    _space = cgmValid.kw_fromDict(space, __space__, calledFrom=_str_funcName)
-    _resultType = cgmValid.kw_fromDict(resultMode, __resultTypes__, calledFrom=_str_funcName)
-    _multiplier = cgmValid.valueArg(multiplier, calledFrom=_str_funcName)
+    _mode = VALID.kw_fromDict(mode, _d_meshMathModes_, calledFrom=_str_funcName)
+    _space = VALID.kw_fromDict(space, __space__, calledFrom=_str_funcName)
+    _resultType = VALID.kw_fromDict(resultMode, __resultTypes__, calledFrom=_str_funcName)
+    _multiplier = VALID.valueArg(multiplier, calledFrom=_str_funcName)
     
     _baseIndex = None
     if baseIndex is not None:
-        _baseIndex = int(cgmValid.valueArg(baseIndex, calledFrom=_str_funcName))
+        _baseIndex = int(VALID.valueArg(baseIndex, calledFrom=_str_funcName))
     elif _mode in ['copyTo']:
         _baseIndex = 0
     else:
@@ -932,7 +934,7 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
 
     for o in targets:  
         try:
-            _d_mesh = cgmValid.MeshDict(o, False, calledFrom=_str_funcName)     
+            _d_mesh = VALID.MeshDict(o, False, calledFrom=_str_funcName)     
             _l_pos = get_shapePosData(_d_mesh['shape'],_space)
             _l_targets.append(o)
             _l_posData.append(_l_pos)
@@ -1225,8 +1227,8 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
 
     """
     _str_funcName = 'meshMath_values'
-    _mode = cgmValid.kw_fromDict(mode, _d_meshMathValuesModes_, calledFrom=_str_funcName)
-    _multiplier = cgmValid.valueArg(multiplier, calledFrom=_str_funcName)
+    _mode = VALID.kw_fromDict(mode, _d_meshMathValuesModes_, calledFrom=_str_funcName)
+    _multiplier = VALID.valueArg(multiplier, calledFrom=_str_funcName)
     _multiplyDict = multiplyDict
 
     if not _multiplier:
@@ -1383,7 +1385,7 @@ def get_symmetryDict(sourceObj = None, center = 'pivot', axis = 'x',
             axisVector
     """      
     _str_funcName = 'get_symmetryDict'
-    _tolerance = cgmValid.valueArg(tolerance, calledFrom=_str_funcName)
+    _tolerance = VALID.valueArg(tolerance, calledFrom=_str_funcName)
 
     _axis = str(axis).lower()
     if len(_axis) != 1 or _axis not in 'xyz':
@@ -1411,12 +1413,12 @@ def get_symmetryDict(sourceObj = None, center = 'pivot', axis = 'x',
     if sourceObj is None:
         sourceObj = _sel[0]
 
-    _dict = cgmValid.MeshDict(sourceObj, calledFrom=_str_funcName)
+    _dict = VALID.MeshDict(sourceObj, calledFrom=_str_funcName)
     _centerOptions = {'pivot':['p'],'world':['w'],'boundingBox':['bb']}
-    _center = cgmValid.kw_fromDict(center, _centerOptions, calledFrom=_str_funcName)
+    _center = VALID.kw_fromDict(center, _centerOptions, calledFrom=_str_funcName)
 
     _returnModes = {'names':['n'],'indices':['i','idx']}
-    _returnMode = cgmValid.kw_fromDict(returnMode, _returnModes, calledFrom=_str_funcName)
+    _returnMode = VALID.kw_fromDict(returnMode, _returnModes, calledFrom=_str_funcName)
 
     _shape = _dict['shape']
     _mesh = _dict['mesh']
@@ -1556,6 +1558,9 @@ def get_symmetryDict(sourceObj = None, center = 'pivot', axis = 'x',
             'symMap':_d_convert,
             'axisVector':_l_axis,            
             'asymmetrical':[ _d_vtxToID[vtx] for vtx in _l_assym ]}
+
+
+
 
 
 

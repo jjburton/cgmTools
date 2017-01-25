@@ -55,13 +55,13 @@ def get_transform(node = None):
     else:
         _buffer = node
         
-    _buffer = mc.ls(_buffer, type = 'transform') or False
+    _buffer = mc.ls(_buffer, type = 'transform',long = True) or False
     if _buffer:
-        return _buffer[0]
+        return NAME.get_short(_buffer[0])
     else:
-        _buffer = mc.listRelatives(node,parent=True,type='transform') or False
+        _buffer = mc.listRelatives(node,parent=True,type='transform',fullPath = True) or False
     if _buffer:
-        return _buffer[0]
+        return NAME.get_short(_buffer[0])
     return False    
 
 def get_tag(node = None, tag = None):

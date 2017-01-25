@@ -23,7 +23,6 @@ from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import name_utils as NAMES
 reload(DIST)
 from cgm.core import cgm_General as cgmGeneral
-from cgm.core.lib import locator_utils as LOC
 from cgm.lib import locators
 from cgm.lib import dictionary
 from cgm.lib import search
@@ -32,6 +31,7 @@ from cgm.lib import lists
 from cgm.lib import distance
 from cgm.lib import attributes
 import os
+#CANNOT IMPORT: LOC
 
 #========================================================================
 import logging
@@ -74,7 +74,13 @@ def cast(mesh = None, obj = None, axis = 'z+',
 
     :raises:
     Exception | if reached
-    """   
+    """  
+    def simpleLoc( position = None):
+        _loc = mc.spaceLocator()[0]
+        mc.move (position[0],position[1],position[2], _loc, ws=True)
+        return _loc
+
+    
     _str_func = 'cast'
     _meshArg = VALID.listArg(mesh)
     _mesh =  []
@@ -186,14 +192,14 @@ def cast(mesh = None, obj = None, axis = 'z+',
     if locDat:
         for k in ['source','near','far']:
             if _d.get(k):
-                mc.rename( LOC.create(position = _d.get(k)), 'cast_{0}_loc'.format(k))
+                mc.rename( simpleLoc(position = _d.get(k)), 'cast_{0}_loc'.format(k))
         for m in _d['meshHits'].keys():
             for i,p in enumerate(_d['meshHits'][m]):
                 _dist = DIST.get_distance_between_points(_d['source'],p) / 3
-                mc.rename( LOC.create(position = p), 'cast_hit_{0}_{1}_loc'.format(NAMES.get_base(m),i))
+                mc.rename( simpleLoc(position = p), 'cast_hit_{0}_{1}_loc'.format(NAMES.get_base(m),i))
                 
                 _p = DIST.get_pos_by_vec_dist(p, _d['meshNormals'][m][i], _dist)
-                mc.rename( LOC.create(position = _p), 'cast_normalOffset_{0}_{1}_loc'.format(NAMES.get_base(m),i))
+                mc.rename( simpleLoc(position = _p), 'cast_normalOffset_{0}_{1}_loc'.format(NAMES.get_base(m),i))
             
             
 
@@ -696,7 +702,6 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                 mPoint_hit = OM2.MPoint(hit) # Thank you Capper on Tech-artists.org          
                 log.debug("{0} | {4} Hit! [{1},{2},{3}]".format(_str_func,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z, i))
 
-                #mc.rename( LOC.create(position = l_hits[i]), 'hit_{0}_loc'.format(i))
                 log.debug("Hit return...")
                 for i4,item in enumerate(gotHit):
                     log.debug("|{2}| >> {0} : {1}".format(i4,item,_str_func))
@@ -709,7 +714,6 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                     #normals...
                     mNormal = meshFn.getClosestNormal(mPoint_hit,OM2.MSpace.kWorld)
                     l_normals.append([mNormal[0].x,mNormal[0].y,mNormal[0].z])
-                    #mc.rename( LOC.create(position = DIST.get_pos_by_vec_dist(l_hits[i],l_normals[i],2)), 'hit_{0}_normal_loc'.format(i))
 
                 else:#Nurbs
 
@@ -739,8 +743,7 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                         log.error("|{0}| >> Surface normal query failed. | uRaw:{1} | vRaw:{2} | space:{3} ||| err: {4}".format(_str_func,uRaw,vRaw,OM2.MSpace.kWorld,err))
                     log.debug('n: {0}'.format(mNormal))
                     #mNormal = surfaceFn.normal(uRaw,vRaw,OM2.MSpace.kWorld)                    
-                    #try:mc.rename( LOC.create(position = DIST.get_pos_by_vec_dist(l_hits[i],l_normals[i],2)), 'hit_{0}_normal_loc'.format(i))
-                    #except:pass
+
             try:            
                 d_return['hits'] = l_hits
                 d_return['source'] = [mPoint_raySource.x,mPoint_raySource.y,mPoint_raySource.z]	    
@@ -931,7 +934,6 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                 mPoint_hit = om.MPoint(mPointArray_hits[i]) # Thank you Capper on Tech-artists.org          
                 log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_func,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
 
-                #mc.rename( LOC.create(position = l_hits[i]), 'hit_{0}_loc'.format(i))
 
                 #for i4,item in enumerate(gotHit):
                     #log.debug("|{2}| >> {0} : {1}".format(i4,item,_str_func))
@@ -954,7 +956,6 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                     meshFn.getClosestNormal(mPoint_hit,mVector_normal,om.MSpace.kWorld)
                     l_normals.append([mVector_normal.x, mVector_normal.y, mVector_normal.z])
 
-                    #mc.rename( LOC.create(position = DIST.get_pos_by_vec_dist(l_hits[i],l_normals[i],2)), 'hit_{0}_normal_loc'.format(i))
 
                 else:#Nurbs
                     uRaw = mPointArray_u[i]
@@ -970,7 +971,6 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                     _res = surfaceFn.normal( uRaw, vRaw,om.MSpace.kWorld)
                     l_normals.append([_res.x, _res.y, _res.z])    
 
-                    #mc.rename( LOC.create(position = DIST.get_pos_by_vec_dist(l_hits[i],l_normals[i],2)), 'hit_{0}_normal_loc'.format(i))
 
             try:            
                 d_return['hits'] = l_hits

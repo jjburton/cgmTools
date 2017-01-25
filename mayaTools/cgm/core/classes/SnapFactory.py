@@ -31,8 +31,6 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.classes import GuiFactory as gui
-from cgm.core.lib import rayCaster as RayCast
-reload(RayCast)
 from cgm.lib import (lists,
                      search,
                      curves,#tmp

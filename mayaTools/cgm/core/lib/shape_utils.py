@@ -30,9 +30,10 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import name_utils as coreNames
 from cgm.core.lib import rigging_utils as RIGGING
-
+from cgm.core.lib import attribute_utils as ATTR
+reload(SEARCH)
 reload(SHARED)
-from cgm.lib import attributes
+
 
 
 #>>> Utilities
@@ -62,4 +63,41 @@ def combine(shapeTranforms):
                                      keepSource=False)   
         
     return _transform
+
+def get_nonintermediate(shape):
+    """
+    Get the nonintermediate shape on a transform
+    
+    :parameters:
+        shape(str): Shape to check
+
+    :returns
+        non intermediate shape(string)
+    """   
+    _str_func = "get_nonintermediate"
+    
+    if not VALID.is_shape(shape):
+        _shapes = mc.listRelatives(shape)
+        _l_matches = []
+        for s in _shapes:
+            if not ATTR.get(s,'intermediateObject'):
+                _l_matches.append(s)
+        if len(_l_matches) == 1:
+            return _l_matches[0]
+        else:
+            raise ValueError,"Not sure what to do with this many intermediate shapes: {0}".format(_l_matches)        
+    elif ATTR.get(shape,'intermediateObject'):
+        _type = VALID.get_mayaType(shape)
+        _trans = SEARCH.get_transform(shape)
+        _shapes = mc.listRelatives(_trans,s=True,type=_type)
+        _l_matches = []
+        for s in _shapes:
+            if not ATTR.get(s,'intermediateObject'):
+                _l_matches.append(s)
+        if len(_l_matches) == 1:
+            return _l_matches[0]
+        else:
+            raise ValueError,"Not sure what to do with this many intermediate shapes: {0}".format(_l_matches)
+    else:
+        return shape
             

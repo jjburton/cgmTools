@@ -23,6 +23,9 @@ import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
+
+
+#CANNOT IMPORT: LOC
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.lib import rayCaster as RayCast
@@ -34,12 +37,12 @@ from cgm.core.lib import position_utils as POS
 from cgm.core.lib import node_utils as NODES
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import snap_utils as SNAP
+from cgm.core.lib import shape_utils as SHAPE
 from cgm.core.lib import attribute_utils as ATTR
 reload(ATTR)
 reload(POS)
 reload(NODES)
 from cgm.core.lib import math_utils as MATHUTILS
-from cgm.core.lib import locator_utils as LOC
 reload(RayCast)
 from cgm.lib import (locators,
                      geo,
@@ -149,6 +152,8 @@ class ContextualPick(object):
 # Subclasses
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 _clickMesh_modes = ['surface','intersections','midPoint']
+def clickMesh_func(*a,**kws):
+    return clickMesh(*a,**kws).finalize()
 class clickMesh(ContextualPick):
     """
     Find positional data from clicking on a surface from a ContextualPick instance.
@@ -338,15 +343,15 @@ class clickMesh(ContextualPick):
         if not mc.objExists(mesh):
             log.warning("'%s' doesn't exist. Ignoring..."%mesh)
             return False
-
-        if mesh not in self.l_mesh:
-            buffer = cgmValid.get_mayaType(mesh)
+        _mesh =  SHAPE.get_nonintermediate(mesh)
+        if _mesh not in self.l_mesh:
+            buffer = cgmValid.get_mayaType(_mesh)
             if buffer in ['mesh','nurbsSurface']:
-                self.l_mesh.append(mesh)
+                self.l_mesh.append( _mesh )#...this accounts for deformed mesh 
                 #self.updateMeshArea()
                 return True
             else:
-                log.warning("'%s' is not a mesh. It is returning as '%s'"%(mesh,buffer))
+                log.warning("'%s' is not a mesh. It is returning as '%s'"%(_mesh,buffer))
                 return False
         return False
 
@@ -493,7 +498,7 @@ class clickMesh(ContextualPick):
                     _mi_loc = cgmMeta.cgmNode(self.l_created[i])
                     _d = _mi_loc.cgmLocDat
                     _m_normal = _d['normal']
-                    _m = _mi_loc.meshTarget[0]
+                    _m = ATTR.get_message(_mi_loc.mNode,'meshTarget')[0]
                     
                     _aim = MATHUTILS.Vector3(self.mAxis_aim.p_vector[0], self.mAxis_aim.p_vector[1], self.mAxis_aim.p_vector[2])
                     _up = MATHUTILS.Vector3(self.mAxis_up.p_vector[0], self.mAxis_up.p_vector[1], self.mAxis_up.p_vector[2])
@@ -573,7 +578,7 @@ class clickMesh(ContextualPick):
         Store current data to return buffers
         """               
         _str_funcName = 'release'
-        
+        self.l_created = lists.returnListNoDuplicates(self.l_created)
         #Only store return values on release
         if not self.b_dragStoreMode:#If not on drag, do it here. Otherwise do it on update
             if self._posBuffer:
@@ -661,7 +666,7 @@ class clickMesh(ContextualPick):
                 _mi_loc = cgmMeta.cgmNode(self.l_created[-1])
                 _d = _mi_loc.cgmLocDat
                 _m_normal = _d['normal']
-                _m = _mi_loc.meshTarget[0]
+                _m = ATTR.get_message(_mi_loc.mNode,'meshTarget')[0]
                 _pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')   
                 _pos = _pos_base
                 #Use that distance to subtract along our original ray's hit distance to get our new point
@@ -725,8 +730,9 @@ class clickMesh(ContextualPick):
         
         if self.int_maxStore and len(self.l_return) == self.int_maxStore:
             log.debug("Max hit, finalizing")
+            log.info("|{0}| >> created: {1}".format(_str_funcName,self.l_created))
             self.dropTool()
-
+            
 
     def drag(self):
         """
@@ -780,8 +786,6 @@ class clickMesh(ContextualPick):
         self._posBufferRaw = []
         #checkDistance = self.getDistanceToCheck(m)
         
-        #mc.rename( LOC.create(position = self.clickPos), 'hit_{0}_start_loc'.format(self._int_runningTally))    
-        #smc.rename( LOC.create(position = DIST.get_pos_by_vec_dist(self.clickPos,self.clickVector,2)), 'hit_{0}_normal_loc'.format(self._int_runningTally))
         #MATHUTILS.get_space_value( self.clickPos,'apiSpace' )
         kws = {'mesh':self.l_mesh,'startPoint':self.clickPos,'vector':self.clickVector,'maxDistance':self._f_maxDistance}
         
