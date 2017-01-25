@@ -1405,11 +1405,25 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         c = lambda *a:snap_action(self,'aim','eachToLast'),
                         rp = 'SE')     
         
-        mc.menuItem(parent=_r,
+        """mc.menuItem(parent=_r,
                     l = 'Match',
                     en=self._b_sel,
                     #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'targetPivot':self.var_matchModePivot.value}),                                                                      
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    rp = 'SW')"""      
+        _match= mc.menuItem(parent=_r,subMenu = True,
+                            l = 'Match',
+                            en=self._b_sel,
+                            rp = 'S')         
+        mc.menuItem(parent=_match,
+                    l = 'Self',
+                    #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    rp = 'S')     
+        mc.menuItem(parent=_match,
+                    l = 'Target',
+                    #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                     rp = 'SW')           
 
        

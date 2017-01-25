@@ -102,7 +102,7 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
             if not _mi_loc.hasAttr('cgmLocDat'):
                 _mi_loc.addAttr('cgmLocDat',attrType='string')
                 
-        log.info("|{0}| >> {1} mode...".format(_str_func,mode))
+        log.debug("|{0}| >> {1} mode...".format(_str_func,mode))
                
         if mode in ['fromTarget','attachPoint']:
             if len(_targets) != 1:
@@ -166,8 +166,10 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                 follicleAttach()
                 
             return _res
+        elif not _targets:
+            raise ValueError,"Must have targets for mode: {0} | targets: {1}".format(mode,_targets)
         else:
-            if len(_targets) < 2:
+            if len(_targets) <= 2 and mode not in ['midPoint']:
                 log.warning("|{0}| >> mode: {1} | targets: {2} | ".format(_str_func,mode,_targets))            
                 raise ValueError,"Must have more than two targets for mode: {0} | targets: {1}".format(mode,_targets)
             
@@ -216,11 +218,15 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
             _kws['infoDict'] = _d
         
         elif mode == 'midPoint':
-            if not len(targets) >= 2:
-                raise ValueError,"midPoint mode must have at least two targets"
+            if len(targets) == 1:
+                _d = POS.get_info(targets[0],boundingBox=True)
+                _kws['infoDict'] = _d                
             
-            _d = get_midPointDict(targets,forceBBCenter)
-            _kws['infoDict'] = _d
+            elif not len(targets) >= 2:
+                raise ValueError,"midPoint mode must have at least two targets"
+            else:
+                _d = get_midPointDict(targets,forceBBCenter)
+                _kws['infoDict'] = _d
 
         elif mode == 'closestPoint':
             if not len(targets) >= 2:
@@ -280,14 +286,11 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
             if len(_targets) >1:
                 log.info("|{0}| >> assuming midPoint...".format(_str_func))
                 return getAndMove(_loc,_targets,'midPoint',forceBBCenter)
-
-
             else:
                 log.info("|{0}| >> singleTarget...".format(_str_func))
                 _d = POS.get_info(_targets,boundingBox=forceBBCenter)
                 position(_loc,_d)
                 return True                
-
         else:
             log.info("|{0}| >> tagged...".format(_str_func))          
             _mode = SEARCH.get_tag(_loc,'cgmLocMode')
