@@ -129,6 +129,8 @@ def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mo
     
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
     
+    log.debug("|{0}| >> obj: {1} | position:{2} | mode: {3}".format(_str_func,_obj,position,mode))             
+    
     if mode == 'local':
         '''Rotate transform based on look vector'''
         # get source and target vectors
@@ -177,9 +179,10 @@ def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mo
         mc.move (position[0],position[1],position[2], _loc, ws=True)  
         
         mAxis_aim = VALID.simpleAxis(aimAxis)
-        mAxis_up = VALID.simpleAxis(aimAxis)
+        mAxis_up = VALID.simpleAxis(upAxis)
         
         _constraint = mc.aimConstraint(_loc,_obj,
+                                       maintainOffset = False,
                                        aimVector = mAxis_aim.p_vector,
                                        upVector = mAxis_up.p_vector,
                                        worldUpType = 'scene',) 
@@ -238,6 +241,7 @@ def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local')
     _target = VALID.objString(target, noneValid=False, calledFrom = __name__ + _str_func + ">> validate target")
 
     targetPos = POS.get(_target)
+    log.debug("|{0}| >> obj: {1} | target:{2} | mode: {3}".format(_str_func,_obj,_target,mode))             
 
     aimAtPoint(_obj, targetPos, aimAxis, upAxis, mode)
 
