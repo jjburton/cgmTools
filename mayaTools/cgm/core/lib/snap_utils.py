@@ -109,7 +109,7 @@ def go(obj = None, target = None,
     mc.xform(_target, rp=infoDict['position'], ws = True, p=True)        
     mc.xform(_target, sp=infoDict['scalePivot'], ws = True, p=True)     
     
-def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+"):
+def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local'):
     """
     Aim functionality.
     
@@ -118,6 +118,9 @@ def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+"):
         position(array): object to copy from
         aimAxis(str): axis that is pointing forward
         upAxis(str): axis that is pointing up
+        mode(str): 
+            'local'-- use Bokser's fancy method
+            'world' -- use standard maya aiming
 
     :returns
         success(bool)
@@ -125,53 +128,67 @@ def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+"):
     _str_func = 'aimAtPoint'
     
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
-
-    '''Rotate transform based on look vector'''
-    # get source and target vectors
-    objPos = MATH.Vector3.Create(POS.get(_obj))
-    targetPos = MATH.Vector3.Create(position)
-
-    aim = (targetPos - objPos).normalized()
-
-    upVector = MATH.Vector3.up()
-    if upAxis == "y-":
-        upVector = MATH.Vector3.down()
-    elif upAxis == "z+":
-        upVector = MATH.Vector3.forward()
-    elif upAxis == "z-":
-        upVector = MATH.Vector3.back()
-    elif upAxis == "x+":
-        upVector = MATH.Vector3.right()
-    elif upAxis == "x-":
-        upVector = MATH.Vector3.left()
-    else:
+    
+    if mode == 'local':
+        '''Rotate transform based on look vector'''
+        # get source and target vectors
+        objPos = MATH.Vector3.Create(POS.get(_obj))
+        targetPos = MATH.Vector3.Create(position)
+    
+        aim = (targetPos - objPos).normalized()
+    
         upVector = MATH.Vector3.up()
+        if upAxis == "y-":
+            upVector = MATH.Vector3.down()
+        elif upAxis == "z+":
+            upVector = MATH.Vector3.forward()
+        elif upAxis == "z-":
+            upVector = MATH.Vector3.back()
+        elif upAxis == "x+":
+            upVector = MATH.Vector3.right()
+        elif upAxis == "x-":
+            upVector = MATH.Vector3.left()
+        else:
+            upVector = MATH.Vector3.up()
+        
+        up = MATH.transform_direction( _obj, upVector )
+        
+        wantedAim, wantedUp = MATH.convert_aim_vectors_to_different_axis(aim, up, aimAxis, upAxis)
+        
+        xformPos = mc.xform(_obj, q=True, matrix = True, ws=True)
+        pos = MATH.Vector3(xformPos[12], xformPos[13], xformPos[14])
+        rot_matrix = EUCLID.Matrix4.new_look_at(MATH.Vector3.zero(), -wantedAim, wantedUp)
+        
+        s = MATH.Vector3.Create( mc.getAttr('%s.scale' % _obj)[0] )
     
-    up = MATH.transform_direction( _obj, upVector )
+        scale_matrix = EUCLID.Matrix4()
+        scale_matrix.a = s.x
+        scale_matrix.f = s.y
+        scale_matrix.k = s.z
+        scale_matrix.p = 1
     
-    wantedAim, wantedUp = MATH.convert_aim_vectors_to_different_axis(aim, up, aimAxis, upAxis)
+        result_matrix = scale_matrix * rot_matrix
     
-    xformPos = mc.xform(_obj, q=True, matrix = True, ws=True)
-    pos = MATH.Vector3(xformPos[12], xformPos[13], xformPos[14])
-    rot_matrix = EUCLID.Matrix4.new_look_at(MATH.Vector3.zero(), -wantedAim, wantedUp)
+        transform_matrix = result_matrix[0:12] + [pos.x, pos.y, pos.z, 1.0]
     
-    s = MATH.Vector3.Create( mc.getAttr('%s.scale' % _obj)[0] )
-
-    scale_matrix = EUCLID.Matrix4()
-    scale_matrix.a = s.x
-    scale_matrix.f = s.y
-    scale_matrix.k = s.z
-    scale_matrix.p = 1
-
-    result_matrix = scale_matrix * rot_matrix
-
-    transform_matrix = result_matrix[0:12] + [pos.x, pos.y, pos.z, 1.0]
-
-    mc.xform(_obj, matrix = transform_matrix , roo="xyz", ws=True)
+        mc.xform(_obj, matrix = transform_matrix , roo="xyz", ws=True)
+    elif mode == 'world':
+        _loc = mc.spaceLocator()[0]
+        mc.move (position[0],position[1],position[2], _loc, ws=True)  
+        
+        mAxis_aim = VALID.simpleAxis(aimAxis)
+        mAxis_up = VALID.simpleAxis(aimAxis)
+        
+        _constraint = mc.aimConstraint(_loc,_obj,
+                                       aimVector = mAxis_aim.p_vector,
+                                       upVector = mAxis_up.p_vector,
+                                       worldUpType = 'scene',) 
+        mc.delete(_constraint + [_loc])
+        
 
     return True
 
-def aimAtMidpoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+"):
+def aimAtMidpoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mode='local'):
     """
     Aim functionality.
     
@@ -180,7 +197,9 @@ def aimAtMidpoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+"):
         target(str): object to copy from
         aimAxis(str): axis that is pointing forward
         upAxis(str): axis that is pointing up
-
+        mode(str): 
+            'local'-- use Bokser's fancy method
+            'world' -- use standard maya aiming
     :returns
         success(bool)
     """  
@@ -198,7 +217,7 @@ def aimAtMidpoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+"):
 
     aimAtPoint(_obj, MATH.Vector3.AsArray(targetPos), aimAxis, upAxis)
 
-def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+"):
+def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local'):
     """
     Aim functionality.
     
@@ -207,7 +226,9 @@ def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+"):
         target(str): object to copy from
         aimAxis(str): axis that is pointing forward
         upAxis(str): axis that is pointing up
-
+        mode(str): 
+            'local'-- use Bokser's fancy method
+            'world' -- use standard maya aiming
     :returns
         success(bool)
     """  
@@ -218,7 +239,7 @@ def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+"):
 
     targetPos = POS.get(_target)
 
-    aimAtPoint(_obj, targetPos, aimAxis, upAxis)
+    aimAtPoint(_obj, targetPos, aimAxis, upAxis, mode)
 
     return True
 

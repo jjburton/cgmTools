@@ -2766,7 +2766,7 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Fa
         elif len(_data)>3:
             attrType = 'doubleArray'
             
-    log.info("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
+    log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
     
     #>> Store our data #-------------------------------------------------------------------------
     mi_node = r9Meta.MetaClass(node)

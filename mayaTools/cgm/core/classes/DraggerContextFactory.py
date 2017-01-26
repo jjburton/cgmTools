@@ -198,6 +198,9 @@ class clickMesh(ContextualPick):
         objAimAxis(str/vector) -- 
         objUpAxis(str/vector) --
         objOutAxis(str/vector) --
+        aimMode(str): 
+            'local'-- use Bokser's fancy method
+            'world' -- use standard maya aiming
         dragInterval(float) -- Distance inverval for drag mode
         tagAndName(dict) -- I don't remember...:)
         toCreate(list) -- list of items names to make, sets's max as well. When it's through the list, it shops
@@ -228,6 +231,7 @@ class clickMesh(ContextualPick):
                  objAimAxis = 'z+',
                  objUpAxis = 'y+',
                  objOutAxis = 'x+',
+                 aimMode = 'local',
                  dragInterval = .2,                 
                  tagAndName = {},
                  toCreate = [],
@@ -256,6 +260,7 @@ class clickMesh(ContextualPick):
         self._l_folliclesBuffer = []
         self._orientMode = orientMode
         self._l_toDuplicate = toDuplicate
+        self.str_aimMode = aimMode
 
         self._f_maxDistance = maxDistance
         self.b_closestOnly = closestOnly
@@ -1070,7 +1075,7 @@ class clickMesh(ContextualPick):
                     
                     #print "Aiming these: aim: %s, up: %s" % (self.mAxis_aim, self.mAxis_up)
                     for aimTarget in self.l_toAim:
-                        SNAP.aimAtPoint(aimTarget, pos, self.mAxis_aim.p_string, self.mAxis_up.p_string)
+                        SNAP.aimAtPoint(aimTarget, pos, self.mAxis_aim.p_string, self.mAxis_up.p_string, mode= self.str_aimMode)
 
                     nameBuffer = [nameBuffer]
     

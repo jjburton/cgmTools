@@ -178,7 +178,8 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     def setup_optionVars(self):
         self.create_guiOptionVar('menuMode', defaultValue = 0)            
         self.var_keyType = cgmMeta.cgmOptionVar('cgmVar_KeyType', defaultValue = 0)
-        self.var_keyMode = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)	  
+        self.var_keyMode = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)
+        self.var_aimMode = cgmMeta.cgmOptionVar('cgmVar_aimMode', defaultValue = 'world')        
         self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
         self.var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0)
         self.var_rayCastDragInterval = cgmMeta.cgmOptionVar('cgmVar_rayCastDragInterval', defaultValue = .2)        
@@ -278,6 +279,8 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.bUI_optionMenu_keyType(uiOptions) 
         self.bUI_optionMenu_keyMode(uiOptions)
         self.bUI_optionMenu_resetMode(uiOptions)
+        self.bUI_optionMenu_aimMode(uiOptions)
+        
         LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
         
         uiBuffers = mc.menuItem(parent = parent, l='Buffers', subMenu=True)
@@ -526,6 +529,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         uiOptions = mc.menuItem(parent = parent, l='Options', subMenu=True)
         self.bUI_optionMenu_contextTD(uiOptions)
         self.bUI_optionMenu_objDefaults(uiOptions)
+        self.bUI_optionMenu_aimMode(uiOptions)
         self.bUI_optionMenu_resetMode(uiOptions)
         self.bUI_optionMenu_rayCast(uiOptions)
         LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
@@ -575,6 +579,26 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         except Exception,err:
             log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
             
+    def bUI_optionMenu_aimMode(self, parent):
+            try:#>>> KeyMode 
+                _str_section = 'aim mode'
+        
+                uiMenu =mc.menuItem(p=parent, l='Aim Mode', subMenu=True)    
+                uiRC = mc.radioMenuItemCollection()
+                #self.uiOptions_menuMode = []		
+                _v = self.var_aimMode.value
+                
+                for i,item in enumerate(['local','world']):
+                    if item == _v:
+                        _rb = True
+                    else:_rb = False
+                    mc.menuItem(p=uiMenu,collection = uiRC,
+                                label=item,
+                                c = cgmGen.Callback(self.var_aimMode.setValue,item),
+                                rb = _rb)                
+            except Exception,err:
+                log.error("|{0}| failed to load. err: {1}".format(_str_section,err))  
+                
     def bUI_optionMenu_resetMode(self, parent):
         try:#>>> KeyMode 
             _str_section = 'reset mode'
@@ -1507,6 +1531,7 @@ def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=Fals
     var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)      
     var_objDefaultOutAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultOutAxis', defaultValue = 0)      
     var_rayCastDragInterval = cgmMeta.cgmOptionVar('cgmVar_rayCastDragInterval', defaultValue = .2)
+    var_aimMode = cgmMeta.cgmOptionVar('cgmVar_aimMode',defaultValue='world')
     
     _rayCastMode = var_rayCastMode.value
     _rayCastOffsetMode = var_rayCastOffsetMode.value
@@ -1522,6 +1547,7 @@ def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=Fals
     
     kws = {'mode':'surface', 'mesh':None,'closestOnly':True, 'create':'locator','dragStore':False,'orientMode':None,
            'objAimAxis':SHARED._l_axis_by_string[_objDefaultAimAxis], 'objUpAxis':SHARED._l_axis_by_string[_objDefaultUpAxis],'objOutAxis':SHARED._l_axis_by_string[_objDefaultOutAxis],
+           'aimMode':var_aimMode.value,
            'timeDelay':.1, 'offsetMode':None, 'dragInterval':_rayCastDragInterval, 'offsetDistance':var_rayCastOffsetDist.value}#var_rayCastOffsetDist.value
     
     if _rayCastTargetsBuffer:
@@ -1586,7 +1612,7 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
         aim_axis = SHARED._l_axis_by_string[self.var_objDefaultAimAxis.value]
         up_axis = SHARED._l_axis_by_string[self.var_objDefaultUpAxis.value]
                 
-        kws = {'aimAxis':aim_axis, 'upAxis':up_axis}
+        kws = {'aimAxis':aim_axis, 'upAxis':up_axis, 'mode':self.var_aimMode.value}
         
         if selectionMode == 'firstToRest':
             MMCONTEXT.func_process(SNAP.aimAtMidpoint, self._l_sel ,selectionMode,'Snap aim', **kws)
