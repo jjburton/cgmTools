@@ -1424,22 +1424,22 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     rp = 'SW')"""      
         _match= mc.menuItem(parent=_r,subMenu = True,
                             l = 'Match',
-                            rp = 'S')         
+                            rp = 'SW')         
         mc.menuItem(parent=_match,
                     l = 'Self',
                     en=self._b_sel,
                     c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
-                    rp = 'S')     
+                    rp = 'SW')     
         mc.menuItem(parent=_match,
                     l = 'Target',
                     en=self._b_sel,
                     c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
-                    rp = 'SW')           
+                    rp = 'W')           
         mc.menuItem(parent=_match,
                     l = 'Buffer',
                     #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                     c = cgmGen.Callback(LOCINATOR.update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
-                    rp = 'SE')  
+                    rp = 'S')  
        
              
         
