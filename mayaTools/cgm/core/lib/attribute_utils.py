@@ -1739,7 +1739,9 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
         
     log.debug("|{0}| >> {1} | dataAttr: {2} | dataKey: {3}".format(_str_func,_combined,_dataAttr,dataKey))
     
-    
+    if not mc.objExists(_combined):
+        log.debug("|{0}| >> {1} | No attribute exists".format(_str_func,_combined))        
+        return
     _type = get_type(_d)
     if _type in ['string']:
         log.debug("|{0}| >> special message attr...".format(_str_func))

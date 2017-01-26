@@ -61,7 +61,7 @@ def update_obj(obj = None, move = True, rotate = True, mode = 'self',**kws):
             return LOC.update(obj)
         
         if ATTR.get(obj +'.cgmMatchTarget'):
-            log.debug("|{0}| >> Match mode. Matching {1} | move: {2} | rotate: {3}".format(_str_func,NAMES.get_short(_obj),move,rotate))
+            log.debug("|{0}| >> Match mode. Matching {1} | move: {2} | rotate: {3}".format(_str_func,NAMES.get_short(obj),move,rotate))
             return SNAP.matchTarget_snap(obj,move,rotate)
         else:
             _res = LOC.create(obj)
@@ -71,12 +71,27 @@ def update_obj(obj = None, move = True, rotate = True, mode = 'self',**kws):
         return False    
         
     _str_func = 'update_obj'
+    log.debug("|{0}| >> obj {1} | move: {2} | rotate: {3} | mode: {4}".format(_str_func,obj,move,rotate,mode))
+    
+    if mode == 'buffer':
+        _targets = cgmMeta.cgmOptionVar('cgmVar_locinatorTargetsBuffer').value or []
+        if not _targets:
+            log.error("|{0}| >> No buffer targets found".format(_str_func))   
+            return False
+        for t in _targets:
+            log.info("|{0}| >> Buffer target: {1}".format(_str_func,t))               
+            match(t,move,rotate)
+        return True    
+    
+    if not obj:
+        log.error("|{0}| >> No obj specified.".format(_str_func))           
+        return False
     
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
     _target = None
     
     if mode == 'self':
-        return match(obj,move,rotate)
+        return match(obj,move,rotate)    
     else:
         _target = ATTR.get_message(_obj,'cgmMatchTarget')
         if _target:
@@ -347,6 +362,7 @@ def uiSetupOptionVars(self):
     self.var_matchModeRotate = cgmMeta.cgmOptionVar('cgmVar_matchModeRotate', defaultValue = 1)
     #self.var_matchModePivot = cgmMeta.cgmOptionVar('cgmVar_matchModePivot', defaultValue = 0)
     self.var_matchMode = cgmMeta.cgmOptionVar('cgmVar_matchMode', defaultValue = 2)
+    self.var_locinatorTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_locinatorTargetsBuffer',defaultValue = [''])
     
 def uiFunc_change_matchMode(self,arg):
     self.var_matchMode.value = arg    
@@ -397,10 +413,31 @@ def uiOptionMenu_matchMode(self, parent):
     except Exception,err:
         log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
         
-def uiRadialMenu_root(self,parent,direction = None):
-    """
+def uiBuffer_control(self, parent):
+    try:#>>> KeyMode ================================================================================
+        _str_section = 'locinator buffer control'
+            
+        uiMenu = mc.menuItem(p=parent, l='Match', subMenu=True)    
+        mc.menuItem(p=uiMenu, l="Define",
+                    c= lambda *a: self.varBuffer_define(self.var_locinatorTargetsBuffer))
     
-    """
+        mc.menuItem(p=uiMenu, l="Add Selected",
+                         c= lambda *a: self.varBuffer_add(self.var_locinatorTargetsBuffer))
+    
+        mc.menuItem(p=uiMenu, l="Remove Selected",
+                         c= lambda *a: self.varBuffer_remove(self.var_locinatorTargetsBuffer))
+    
+        mc.menuItem(p=uiMenu,l='----------------',en=False)
+        mc.menuItem(p=uiMenu, l="Report",
+                    c= lambda *a: self.var_locinatorTargetsBuffer.report())        
+        mc.menuItem(p=uiMenu, l="Select Members",
+                    c= lambda *a: self.var_locinatorTargetsBuffer.select())
+        mc.menuItem(p=uiMenu, l="Clear",
+                    c= lambda *a: self.var_locinatorTargetsBuffer.clear())       
+    except Exception,err:
+        log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
+        
+def uiRadialMenu_root(self,parent,direction = None):
     _r = mc.menuItem(parent=parent,subMenu = True,
                      l = 'Locinator',
                      rp = direction)  
@@ -500,19 +537,24 @@ def uiRadialMenu_root(self,parent,direction = None):
     #>>>Utils ==============================================================================================
     _match= mc.menuItem(parent=_r,subMenu = True,
                         l = 'Match',
-                        en=self._b_sel,
                         rp = 'S')         
     mc.menuItem(parent=_match,
                 l = 'Self',
-                #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),  
+                en=self._b_sel,                
                 c = cgmGen.Callback(MMCONTEXT.func_process, update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                 rp = 'S')     
     mc.menuItem(parent=_match,
                  l = 'Target',
-                 #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                 #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),   
+                 en=self._b_sel,                 
                  c = cgmGen.Callback(MMCONTEXT.func_process, update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                  rp = 'SW')      
-    
+    mc.menuItem(parent=_match,
+                 l = 'Buffer',
+                 #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                 c = cgmGen.Callback(update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                 rp = 'SE')   
     
     
     _utils = mc.menuItem(parent=_r,subMenu = True,
@@ -540,6 +582,7 @@ def uiRadialMenu_root(self,parent,direction = None):
                 #rp = 'NE')
     mc.menuItem(parent=_utils,
                 l = 'Get Help',
+                c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/locinator-2-0/");',                        
                 rp = 'N')       
     
     
