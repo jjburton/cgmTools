@@ -2942,6 +2942,17 @@ class cgmOptionVar(object):
             if not mc.objExists(item):
                 self.remove(item)
                 log.debug("'%s' removed from '%s'"%(item,self.name))
+                
+    def report(self):
+        """
+        Simple report from value
+        """
+        _value = self.value
+        log.info(cgmGeneral._str_baseStart * 2 + " OptionVar: {0} | type: {1} | value: {2}".format(self.name,self.varType,self.value))
+        if issubclass(type(_value),list):
+            for i,v in enumerate(_value):
+                log.info("idx: {0} | obj: {1}".format(i,v))
+        log.info(cgmGeneral._str_subLine)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmBuffer - replacement for a multimessage attribute. Stores a list to object
@@ -2959,6 +2970,7 @@ class cgmBufferNode(cgmNode):
         """
         ### input check  
         #log.debug("In cgmBuffer.__init__ node is '%s'"%node)
+        raise DeprecationWarning,"Not using this anymore..."
 
         super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
 
