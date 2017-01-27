@@ -40,7 +40,7 @@ from cgm.tools.lib import tdToolsLib#...REFACTOR THESE!!!!
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 reload(MMCONTEXT)
 from cgm.core.tools import meshTools
-
+reload(meshTools)
 from cgm.tools import locinator
 from cgm.tools import tdTools
 from cgm.tools import setTools
@@ -481,7 +481,8 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             uiMesh = mc.menuItem(parent = parent, l='Mesh', subMenu=True)
             mc.menuItem(parent = uiMesh,
                         l='cgmMeshTools',
-                        c=lambda *a: meshTools.run())         
+                        c=cgmGen.Callback(meshTools.run))                                 
+                        #c=lambda *a: meshTools.run())         
             mc.menuItem(parent = uiMesh,
                         l='abSym',
                         c=lambda *a: mel.eval('abSymMesh'),)       
