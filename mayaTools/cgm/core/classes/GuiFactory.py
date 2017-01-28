@@ -77,6 +77,7 @@ class cgmGUI(mUI.BaseMelWindow):
         if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
             log.setLevel(logging.DEBUG)	
         self.uiDock = False
+        self.var_Dock = False
   
         #>>> Standard cgm variables
         #====================	    
@@ -120,7 +121,7 @@ class cgmGUI(mUI.BaseMelWindow):
             log.info('Deleting {0}'.format(_dock))
             mc.deleteUI(_dock, control=True)   
             
-        if self.var_Dock.value:
+        if self.var_Dock and self.var_Dock.value:
             self.do_dock()
             
 
