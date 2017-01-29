@@ -40,6 +40,8 @@ from cgm.tools.lib import tdToolsLib#...REFACTOR THESE!!!!
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 reload(MMCONTEXT)
 from cgm.core.tools import meshTools
+from cgm.core.tools import attrTools as ATTRTOOLS
+reload(ATTRTOOLS)
 reload(meshTools)
 from cgm.tools import locinator
 from cgm.tools import tdTools
@@ -1278,12 +1280,10 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         Radial menu for td Utils 
         """
         _r = mc.menuItem(parent=parent,subMenu = True,
-                             en = self._b_sel,
-                             l = 'Utils',
-                             #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                             rp = direction)
-        if not self._b_sel:
-            return        
+                         l = 'Utils',
+                         #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                         rp = direction)
+      
         #---------------------------------------------------------------------------
         mc.menuItem(parent=_r,
                     l = 'shapeParent',
@@ -1330,11 +1330,34 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                              c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToPrevious','Parent Order'),                                             
                              rp = 'SW')   
         
-        mc.menuItem(parent=_r, #subMenu = True,
+
+        
+        
+        
+        _attr = mc.menuItem(parent=_r,subMenu=True,
+                            l='Attr',
+                            rp='SW')     
+        mc.menuItem(parent=_attr,
+                    l='Add',
+                    en=False,
+                    #c = cgmGen.Callback(ATTRTOOLS.uiWin_multiSetAttr),
+                    rp='NW') 
+        mc.menuItem(parent=_attr,
+                    l='Manage',
+                    en=False,
+                    #c = cgmGen.Callback(ATTRTOOLS.uiWin_multiSetAttr),
+                    rp='W')       
+        mc.menuItem(parent=_attr,
+                    l='MultiSet',
+                    c = cgmGen.Callback(ATTRTOOLS.uiWin_multiSetAttr),
+                    rp='SW')          
+        mc.menuItem(parent=_attr, #subMenu = True,
                     l = 'Compare Attrs',
                     en=self._b_sel_pair,
                     c = cgmGen.Callback(MMCONTEXT.func_process, ATTRS.compare_attrs, self._l_sel, 'firstToRest','Compare Attrs',True,**{}),                                                                      
-                    rp = 'N') 
+                    rp = 'S')         
+        
+        
         """#>Distance
         _p = mc.menuItem(parent=_r, subMenu = True,
                          en=self._b_sel_few,

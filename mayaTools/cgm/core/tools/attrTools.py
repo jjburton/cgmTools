@@ -16,7 +16,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 import maya.cmds as mc
@@ -34,7 +34,7 @@ from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import list_utils as LISTS
-
+reload(SEARCH)
 #>>> Root settings =============================================================
 __version__ = 'Alpha 2.0.01262017'
 
@@ -114,7 +114,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 375,250
-    _checkBoxKeys = ['shared','keyable','user','numeric']
+    _checkBoxKeys = ['shared','regular','user','numeric']
     
     def insert_init(self,*args,**kws):
             if kws:log.debug("kws: %s"%str(kws))
@@ -128,6 +128,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
             self.DEFAULT_SIZE = uiWin_multiSetAttr.DEFAULT_SIZE
             self._d_attrs = {}
             self._ml_nodes = []
+            self.uiPopUpMenu_attr = False
 
     def build_menus(self):
         self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)           
@@ -183,7 +184,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         self.uiFunc_updateScrollAttrList()
 
     def uiFunc_updateScrollAttrList(self):
-        _str_func = 'uiFunc_load_selected'          
+        _str_func = 'uiFunc_updateScrollAttrList'          
         self._l_attrsToLoad = []
         _d_processed = {}
         
@@ -195,7 +196,8 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         #['shared','keyable','transforms','user','other']
         
         _shared = self._d_uiCheckBoxes['shared'].getValue()
-        _keyable = self._d_uiCheckBoxes['keyable'].getValue()
+        #_keyable = self._d_uiCheckBoxes['keyable'].getValue()
+        _regular = self._d_uiCheckBoxes['regular'].getValue()
         _user = self._d_uiCheckBoxes['user'].getValue()
         _numeric = self._d_uiCheckBoxes['numeric'].getValue()
         _sort = self._d_uiCheckBoxes['sort'].getValue()
@@ -208,9 +210,21 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
             _short = mObj.p_nameShort
             _d_processed[_short] = []
             _l_processed = _d_processed[_short] 
-                        
-            _d_kws = {'ud':_user,"keyable":_keyable, 'settable':True}
-            _l = mc.listAttr(mObj.mNode, **_d_kws) or []
+            
+            #_d_kws = {'ud':_user,"keyable":_keyable, 'settable':True}
+            
+            
+            _l_raw = []
+            if _regular:
+                _l_raw.extend( mc.listAttr(mObj.mNode, keyable=True) or [])
+                if VALID.getTransform(mObj.mNode):
+                    _l_raw.extend(SHARED._d_attrCategoryLists['transform'])
+                _l_raw.extend(mc.listAttr(mObj.mNode, ud=True) or [])
+                _l = LISTS.get_noDuplicates(_l_raw)
+            else:
+                _l = mc.listAttr(mObj.mNode, settable=True) or []
+
+            
             for a in _l:
                 try:
                     _d = ATTR.validate_arg(mObj.mNode,a)
@@ -248,15 +262,69 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         log.debug("|{0}| >> List....".format(_str_func,))                
         self.uiScrollList_attr.clear()
         _len = len(self._ml_nodes)
-        for a in self._l_attrsToLoad:
-            if _len == 1:
-                _short = self._ml_nodes[0].p_nameShort
-                _d = ATTR.validate_arg(_short,a)
-                self.uiScrollList_attr.append("{0} -- {1} -- {2}".format(a,ATTR.get_type(_d),ATTR.get(_d)))
-            else:
-                 self.uiScrollList_attr.append(a)
-            log.debug("|{0}| >> {1} : {2}".format(_str_func, _short, a))         
+        
+        if not self._l_attrsToLoad:
+            return False
+        
+        _progressBar = cgmUI.doStartMayaProgressBar(len(self._l_attrsToLoad),"Processing...")
+        try:
+            for a in self._l_attrsToLoad:
+                
+                mc.progressBar(_progressBar, edit=True, status = ("{0} Processing attribute: {1}".format(_str_func,a)), step=1)                    
+                
+                try:
+                    if _len == 1:
+                        _short = self._ml_nodes[0].p_nameShort
+                        _d = ATTR.validate_arg(_short,a)
+                        
+                        _l_report = [a+'   ']
+                        
+                        _l_flags = []
+                        
+                        if ATTR.is_keyable(_d):
+                            _l_flags.append('K')                          
+                        if ATTR.is_locked(_d):
+                            _l_flags.append('L')
+                        if ATTR.is_hidden(_d):
+                            _l_flags.append('H')
+                        if ATTR.is_readable(_d):
+                            _l_flags.append('R')
+                        if ATTR.is_writable(_d):
+                            _l_flags.append('W')
+                        if _l_flags:
+                            _l_report.append(''.join(_l_flags))
+                            
+                        _l_report.append("{0}".format(ATTR.get_type(_d))) 
+                            
+                        if ATTR.is_numeric(_d):
+                            _d_flags = ATTR.get_numericFlagsDict(_d)
+                            if _d_flags.get('default') is not None:
+                                _l_report.append("dv={0}".format(_d_flags.get('default')))
+                            if _d_flags.get('min') is not None:
+                                _l_report.append("m={0}".format(_d_flags.get('min'))) 
+                            if _d_flags.get('max') is not None:
+                                _l_report.append("M={0}".format(_d_flags.get('max')))     
+                            if _d_flags.get('softMin') is not None:
+                                _l_report.append("sm={0}".format(_d_flags.get('softMin')))
+                            if _d_flags.get('softMax') is not None:
+                                _l_report.append("sM={0}".format(_d_flags.get('softMax')))                                
+                        _l_report.append("{0}".format(ATTR.get(_d)))
+                        
+                        #_str = " -- ".join(_l_report)
+                        self.uiScrollList_attr.append("/ ".join(_l_report))
+                    else:
+                        self.uiScrollList_attr.append(a)
+                except:
+                    log.info("|{0}| >> {1}.{2} | failed to query. Removing".format(_str_func, _short, a))  
+                    self._l_attrsToLoad.remove(a)
+                log.debug("|{0}| >> {1} : {2}".format(_str_func, _short, a))  
+        except Exception,err:
+            try:cgmUI.doEndMayaProgressBar(_progressBar)
+            except:pass
+            raise Exception,err
+
         #menu(edit=True,cc = uiAttrUpdate)
+        cgmUI.doEndMayaProgressBar(_progressBar)
         
         return False
     
@@ -358,16 +426,22 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         
         mUI.MelSpacer(_row_attrFlags,w=5)
         self._d_uiCheckBoxes['sort'] = mUI.MelCheckBox(_row_attrFlags,label = 'Sort',
+                                                       v=True,
                                                        cc = cgmGEN.Callback(self.uiFunc_updateScrollAttrList))                
 
         mUI.MelLabel(_row_attrFlags,l = 'Show')
         _row_attrFlags.setStretchWidget( mUI.MelSeparator(_row_attrFlags) )
         for item in uiWin_multiSetAttr._checkBoxKeys:
+            if item in ['shared','regular','user']:_cb = True
+            else:_cb = False
             self._d_uiCheckBoxes[item] = mUI.MelCheckBox(_row_attrFlags,label = item,
+                                                         v = _cb,
                                                          cc = cgmGEN.Callback(self.uiFunc_updateScrollAttrList))
         _row_attrFlags.layout()
+        
         #>>>Manage Attribute Section ---------------------------------------------------------------------------------------
-        self.uiScrollList_attr = mUI.MelObjectScrollList(_MainForm, allowMultiSelection=True )
+        self.uiScrollList_attr = mUI.MelObjectScrollList(_MainForm, allowMultiSelection=True,
+                                                         selectCommand = self.uiFunc_selectAttr)
         
         #>>>SetValue Row --------------------------------------------------------------------------------------------
         self.row_setValue = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 5)
@@ -400,6 +474,116 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         
 
         
+        """MelMenuItem(popUpMenu ,
+                    label = 'Make Keyable',
+                    c = lambda *a: attrToolsLib.uiManageAttrsKeyable(self))
+    
+        MelMenuItem(popUpMenu ,
+                    label = 'Make Unkeyable',
+                    c = lambda *a: attrToolsLib.uiManageAttrsUnkeyable(self))
+    
+        MelMenuItemDiv(popUpMenu)
+    
+        MelMenuItem(popUpMenu ,
+                    label = 'Hide',
+                    c = lambda *a: attrToolsLib.uiManageAttrsHide(self))
+    
+        MelMenuItem(popUpMenu ,
+                    label = 'Unhide',
+                    c = lambda *a: attrToolsLib.uiManageAttrsUnhide(self))
+    
+        MelMenuItemDiv(popUpMenu)
+        MelMenuItem(popUpMenu ,
+                    label = 'Lock',
+                    c = lambda *a: attrToolsLib.uiManageAttrsLocked(self))
+    
+        MelMenuItem(popUpMenu ,
+                    label = 'Unlock',
+                    c = lambda *a: attrToolsLib.uiManageAttrsUnlocked(self))
+    
+        MelMenuItemDiv(popUpMenu)
+        MelMenuItem(popUpMenu ,
+                    label = 'Delete',
+                    c = lambda *a: attrToolsLib.uiManageAttrsDelete(self))      """  
+    
+        _sel = mc.ls(sl=True)
+        if _sel:
+            self.uiFunc_load_selected()        
+
+    def uiFunc_selectAttr(self): 
+        _str_func = 'uiFunc_selectAttr'        
+        if self.uiPopUpMenu_attr:
+            self.uiPopUpMenu_attr.clear()
+            self.uiPopUpMenu_attr.delete()
+            
+        self.uiPopUpMenu_attr = mUI.MelPopupMenu(self.uiScrollList_attr,button = 3)
+
+        _popUp = self.uiPopUpMenu_attr   
+        
+        _numeric = False
+        _numberChanges = False
+        
+        _indices = self.uiScrollList_attr.getSelectedIdxs()
+        _short = self._ml_nodes[0].p_nameShort
+        
+        for i in _indices:
+            _a = self._l_attrsToLoad[i]
+            _d = ATTR.validate_arg(_short, _a)
+            if ATTR.is_numeric(_d) and ATTR.is_dynamic(_d):
+                _numberChanges = True
+                log.warning("|{0}| >> {1}.{2}...setting up value change popup".format(_str_func, _short,_a))                           
+
+        
+        #>>>Pop up menu--------------------------------------------------------------------------------------------        
+        _l_boolToMake = ['keyable','lock','hidden']
+        
+        for item in _l_boolToMake:
+            _menu = mUI.MelMenuItem(_popUp, subMenu = True,
+                                label = item.capitalize())
+            mUI.MelMenuItem(_menu,
+                        label ='True',
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{item:True}))        
+            mUI.MelMenuItem(_menu,
+                        label ='False',
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{item:False}))            
+        mUI.MelMenuItem(_popUp,l='test')
+        
+        
+        
+        
+        _l_toDo = ['min','max','softMin','softMax','default','alias','rename']
+        
+    def uiFunc_attrManage_fromScrollList(self,**kws):
+        _str_func = 'attrManage_fromScrollList'
+        _indices = self.uiScrollList_attr.getSelectedIdxs()
+        
+        _keyable = kws.get('keyable',None)
+        _lock = kws.get('lock',None)
+        _hidden = kws.get('hidden',None)
+        
+        for i in _indices:
+            _a = self._l_attrsToLoad[i]
+            for mNode in self._ml_nodes:
+                _short = mNode.p_nameShort
+                _d = ATTR.validate_arg(_short,_a)
+                if not _d:
+                    log.warning("|{0}| >> not validated. skipping: {1}.{2}".format(_str_func, _short,_a))                           
+                    continue
+                
+                if _keyable is not None:
+                    log.warning("|{0}| >> {1}.{2} keyable: {3}".format(_str_func, _short,_a,_keyable))                                               
+                    ATTR.set_keyable(_d,_keyable)
+                if _lock is not None:
+                    log.warning("|{0}| >> {1}.{2} lock: {3}".format(_str_func, _short,_a,_lock))                           
+                    ATTR.set_lock(_d,_lock)        
+                if _hidden is not None:
+                    log.warning("|{0}| >> {1}.{2} hidden: {3}".format(_str_func, _short,_a,_hidden))                                               
+                    ATTR.set_hidden(_d,_hidden)
+                    
+        
+        self.uiFunc_updateScrollAttrList()
+                    
+    
 def uiRow_attributeTypes(self,parent):	
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Attr type row

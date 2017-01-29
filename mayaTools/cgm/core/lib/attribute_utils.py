@@ -711,12 +711,19 @@ def is_hidden(*a):
     _str_func = 'is_hidden'
     _d = validate_arg(*a) 
     
+    hidden = not mc.getAttr(_d['combined'],channelBox=True)
+    if is_keyable(_d):
+        hidden = mc.attributeQuery(_d['attr'], node = _d['node'], hidden=True)	
+    return hidden    
+    
+    
+    """
     _get = mc.getAttr(_d['combined'],channelBox=True)
     _query = mc.attributeQuery(_d['attr'], node = _d['node'],channelBox=True)
 
     if not _query and _get:
         return False
-    return True
+    return True"""
     #return not mc.attributeQuery(_d['attr'], node = _d['node'],channelBox=True)
 
 def get_enum(*a):
@@ -1218,6 +1225,13 @@ def get_numericFlagsDict(*a):
 
     :returns
         dict
+            default
+            min
+            max
+            softMin
+            softMax
+            range
+            softRange
     """ 
     _str_func = 'get_numericFlagsDict'
     _d = validate_arg(*a) 
