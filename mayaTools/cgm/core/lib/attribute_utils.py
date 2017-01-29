@@ -1422,7 +1422,8 @@ def is_dynamic(*a):
     """ 
     _str_func = 'is_dynamic'
     _d = validate_arg(*a) 
-    if _d['attr'] in mc.listAttr(_d['obj'], userDefined = True):
+    _ud = mc.listAttr(_d['obj'], userDefined = True) or []
+    if _d['attr'] in _ud:
         return True
     return False
 
