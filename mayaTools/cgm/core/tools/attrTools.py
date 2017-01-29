@@ -210,24 +210,23 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
             _short = mObj.p_nameShort
             _d_processed[_short] = []
             _l_processed = _d_processed[_short] 
-            
-            #_d_kws = {'ud':_user,"keyable":_keyable, 'settable':True}
-            
-            
-            _l_raw = []
+                       
+            _l = []
             if _regular:
-                _l_raw.extend( mc.listAttr(mObj.mNode, keyable=True) or [])
-                if VALID.getTransform(mObj.mNode):
-                    _l_raw.extend(SHARED._d_attrCategoryLists['transform'])
-                _l_raw.extend(mc.listAttr(mObj.mNode, ud=True) or [])
-                _l = LISTS.get_noDuplicates(_l_raw)
+                _l.extend( mc.listAttr(_short, keyable=True) or [])
+                if VALID.getTransform(_short):
+                    _l.extend(SHARED._d_attrCategoryLists['transform'])                
             else:
-                _l = mc.listAttr(mObj.mNode, settable=True) or []
+                _l = mc.listAttr(_short, settable=True) or []
+            
+            if _user:_l.extend(mc.listAttr(_short, ud=True) or [])
+                
+            _l = LISTS.get_noDuplicates(_l)
 
             
             for a in _l:
                 try:
-                    _d = ATTR.validate_arg(mObj.mNode,a)
+                    _d = ATTR.validate_arg(_short,a)
                     if _numeric:
                         if ATTR.is_numeric(_d):
                             _l_processed.append(a)
@@ -273,49 +272,51 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                 mc.progressBar(_progressBar, edit=True, status = ("{0} Processing attribute: {1}".format(_str_func,a)), step=1)                    
                 
                 try:
-                    if _len == 1:
-                        _short = self._ml_nodes[0].p_nameShort
-                        _d = ATTR.validate_arg(_short,a)
+                    _short = self._ml_nodes[0].p_nameShort
+                    _d = ATTR.validate_arg(_short,a)
+                    
+                    _l_report = [a+'---']
+                    
+                    _type = ATTR.get_type(_d)
+                    """_v = "{0}".format(ATTR.get(_d))
+                    if len(_v)> 10 and _type not in ['message']:
+                        _v = _v[:10] + "...  "
+                    _l_report.append(_v)"""
+                    
+                    _l_flags = []
+                    
+                    if ATTR.is_keyable(_d):
+                        _l_flags.append('K')                          
+                    if ATTR.is_locked(_d):
+                        _l_flags.append('L')
+                    if ATTR.is_hidden(_d):
+                        _l_flags.append('H')
+                    if ATTR.is_readable(_d):
+                        _l_flags.append('R')
+                    if ATTR.is_writable(_d):
+                        _l_flags.append('W')
+                    if _l_flags:
+                        _l_report.append(''.join(_l_flags))
                         
-                        _l_report = [a+'   ']
+                    _l_report.append("{0}".format(_type) )
                         
-                        _l_flags = []
+                    if ATTR.is_numeric(_d):
+                        _d_flags = ATTR.get_numericFlagsDict(_d)
+                        if _d_flags.get('default') is not None:
+                            _l_report.append("dv={0}".format(_d_flags.get('default')))
+                        if _d_flags.get('min') is not None:
+                            _l_report.append("m={0}".format(_d_flags.get('min'))) 
+                        if _d_flags.get('max') is not None:
+                            _l_report.append("M={0}".format(_d_flags.get('max')))     
+                        if _d_flags.get('softMin') is not None:
+                            _l_report.append("sm={0}".format(_d_flags.get('softMin')))
+                        if _d_flags.get('softMax') is not None:
+                            _l_report.append("sM={0}".format(_d_flags.get('softMax')))                                
                         
-                        if ATTR.is_keyable(_d):
-                            _l_flags.append('K')                          
-                        if ATTR.is_locked(_d):
-                            _l_flags.append('L')
-                        if ATTR.is_hidden(_d):
-                            _l_flags.append('H')
-                        if ATTR.is_readable(_d):
-                            _l_flags.append('R')
-                        if ATTR.is_writable(_d):
-                            _l_flags.append('W')
-                        if _l_flags:
-                            _l_report.append(''.join(_l_flags))
-                            
-                        _l_report.append("{0}".format(ATTR.get_type(_d))) 
-                            
-                        if ATTR.is_numeric(_d):
-                            _d_flags = ATTR.get_numericFlagsDict(_d)
-                            if _d_flags.get('default') is not None:
-                                _l_report.append("dv={0}".format(_d_flags.get('default')))
-                            if _d_flags.get('min') is not None:
-                                _l_report.append("m={0}".format(_d_flags.get('min'))) 
-                            if _d_flags.get('max') is not None:
-                                _l_report.append("M={0}".format(_d_flags.get('max')))     
-                            if _d_flags.get('softMin') is not None:
-                                _l_report.append("sm={0}".format(_d_flags.get('softMin')))
-                            if _d_flags.get('softMax') is not None:
-                                _l_report.append("sM={0}".format(_d_flags.get('softMax')))                                
-                        _l_report.append("{0}".format(ATTR.get(_d)))
-                        
-                        #_str = " -- ".join(_l_report)
-                        self.uiScrollList_attr.append("/ ".join(_l_report))
-                    else:
-                        self.uiScrollList_attr.append(a)
-                except:
-                    log.info("|{0}| >> {1}.{2} | failed to query. Removing".format(_str_func, _short, a))  
+                    #_str = " -- ".join(_l_report)
+                    self.uiScrollList_attr.append("/".join(_l_report))
+                except Exception,err:
+                    log.info("|{0}| >> {1}.{2} | failed to query. Removing. err: {3}".format(_str_func, _short, a, err))  
                     self._l_attrsToLoad.remove(a)
                 log.debug("|{0}| >> {1} : {2}".format(_str_func, _short, a))  
         except Exception,err:
@@ -375,7 +376,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                                          "attrs: {0}".format(len(self._d_attrs[_short]))])
             else:
                 _l = [mObj.p_nameBase for mObj in self._ml_nodes]                
-                _str_report = ' , '.join(_l)
+                _str_report = '<{0}> , '.format(_l[0]) + ' , '.join(_l[1:])
                 if len(_str_report) >= 100:
                     _str_report = "{0} Objects. Report to see them all".format(len(self._ml_nodes))
             self.uiField_attrReport(edit=True, label = _str_report)   
@@ -520,21 +521,38 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
 
         _popUp = self.uiPopUpMenu_attr   
         
-        _numeric = False
-        _numberChanges = False
+
         
         _indices = self.uiScrollList_attr.getSelectedIdxs()
+        log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))                           
+        
         _short = self._ml_nodes[0].p_nameShort
+        _dynamic = False
+        _numberChanges = False    
+        _hidden = False
         
         for i in _indices:
             _a = self._l_attrsToLoad[i]
             _d = ATTR.validate_arg(_short, _a)
-            if ATTR.is_numeric(_d) and ATTR.is_dynamic(_d):
-                _numberChanges = True
-                log.warning("|{0}| >> {1}.{2}...setting up value change popup".format(_str_func, _short,_a))                           
-
+            _v = ATTR.get(_d)
+            print("|{0}| >> {1}.{2} value: {3}".format(_str_func, _short,_a, _v))                           
+            if ATTR.is_dynamic(_d):
+                _dynamic = True
+                if ATTR.is_numeric(_d):
+                    _numberChanges = True
+                    log.info("|{0}| >> {1}.{2}...setting up value change popup".format(_str_func, _short,_a))                           
+            if ATTR.is_hidden(_d):
+                _hidden = True
+        
+        print(cgmGEN._str_subLine)
         
         #>>>Pop up menu--------------------------------------------------------------------------------------------        
+        mUI.MelMenuItem(_popUp,
+                        label ='Set Value',
+                        en=False,                            
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}))        
+        mUI.MelMenuItemDiv(_popUp)
+        
         _l_boolToMake = ['keyable','lock','hidden']
         
         for item in _l_boolToMake:
@@ -546,39 +564,95 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
             mUI.MelMenuItem(_menu,
                         label ='False',
                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{item:False}))            
-        mUI.MelMenuItem(_popUp,l='test')
+        
+            
+        #Name --------------------------------
+        _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
+                                l='Name')
+        if _dynamic:
+            mUI.MelMenuItem(_menu,
+                            label ='Rename',
+                            en=False,                            
+                            c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'rename'}))                
+        mUI.MelMenuItem(_menu,
+                        label ='Alias',
+                        en=False,                        
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'alias'}))        
+        
+        #Values --------------------------------        
+        if _numberChanges:
+            _l = ['default','min','max','softMin','softMax']
+            _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
+                                    l='Numeric')
+            for item in _l:
+                mUI.MelMenuItem(_menu,
+                                label =item.capitalize(),
+                                en=False,
+                                c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':item})) 
+                
+                
+        #Values --------------------------------        
+        _l = ['add','convert','duplicate','copyTo','copyTo connect back','copyTo connect','connectTo','moveUp','moveDown']
+        _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
+                                l='Utilities')
+        
+        for item in _l:
+            if not _dynamic and item in ['moveUp','moveDown','convert']:
+                pass
+            elif _hidden and item in ['moveUp','moveDown']:
+                pass
+            else:
+                mUI.MelMenuItem(_menu,
+                                label =item,
+                                en=False,
+                                c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':item}))        
         
         
-        
+        if _dynamic:        
+            mUI.MelMenuItem(_popUp,
+                            l='Delete',
+                            c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'delete'}),        
+                            )           
         
         _l_toDo = ['min','max','softMin','softMax','default','alias','rename']
         
     def uiFunc_attrManage_fromScrollList(self,**kws):
         _str_func = 'attrManage_fromScrollList'
         _indices = self.uiScrollList_attr.getSelectedIdxs()
-        
+                
         _keyable = kws.get('keyable',None)
         _lock = kws.get('lock',None)
         _hidden = kws.get('hidden',None)
+        _mode = kws.get('mode',None)
         
         for i in _indices:
             _a = self._l_attrsToLoad[i]
             for mNode in self._ml_nodes:
-                _short = mNode.p_nameShort
-                _d = ATTR.validate_arg(_short,_a)
-                if not _d:
-                    log.warning("|{0}| >> not validated. skipping: {1}.{2}".format(_str_func, _short,_a))                           
-                    continue
-                
-                if _keyable is not None:
-                    log.warning("|{0}| >> {1}.{2} keyable: {3}".format(_str_func, _short,_a,_keyable))                                               
-                    ATTR.set_keyable(_d,_keyable)
-                if _lock is not None:
-                    log.warning("|{0}| >> {1}.{2} lock: {3}".format(_str_func, _short,_a,_lock))                           
-                    ATTR.set_lock(_d,_lock)        
-                if _hidden is not None:
-                    log.warning("|{0}| >> {1}.{2} hidden: {3}".format(_str_func, _short,_a,_hidden))                                               
-                    ATTR.set_hidden(_d,_hidden)
+                try:
+                    _short = mNode.p_nameShort
+                    _d = ATTR.validate_arg(_short,_a)
+                    if not _d:
+                        log.warning("|{0}| >> not validated. skipping: {1}.{2}".format(_str_func, _short,_a))                           
+                        continue
+                    
+                    if _keyable is not None:
+                        log.warning("|{0}| >> {1}.{2} keyable: {3}".format(_str_func, _short,_a,_keyable))                                               
+                        ATTR.set_keyable(_d,_keyable)
+                    if _lock is not None:
+                        log.warning("|{0}| >> {1}.{2} lock: {3}".format(_str_func, _short,_a,_lock))                           
+                        ATTR.set_lock(_d,_lock)        
+                    if _hidden is not None:
+                        log.warning("|{0}| >> {1}.{2} hidden: {3}".format(_str_func, _short,_a,_hidden))                                               
+                        ATTR.set_hidden(_d,_hidden)
+                        
+                        
+                    if _mode is not None:
+                        if _mode == 'delete':
+                            ATTR.delete(_d)
+                            
+                except Exception,err:
+                    log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _short,_a,err))                                               
+                    
                     
         
         self.uiFunc_updateScrollAttrList()
