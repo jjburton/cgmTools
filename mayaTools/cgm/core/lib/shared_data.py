@@ -26,6 +26,8 @@ _d_attrCategoryLists = {'transform':('translateX','translateY','translateZ',
                                          'overrideLevelOfDetail','overrideShading',
                                          'overrideTexturing','overridePlayback',
                                          'overrideVisibility','overrideColor')}
+_d_attrTypes_toShort = {'matrix':'mtrx','float':'fl','double':'d','double3':'d3','string':'str','long':'int','float3':'fl3',
+                        'message':'msg','doubleLinear':'dl','doubleAngle':'da','TdataCompound':'Tdata'}
 
 #>>> Naming
 #==================================================================

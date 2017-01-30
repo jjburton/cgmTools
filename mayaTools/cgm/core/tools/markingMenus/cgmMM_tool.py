@@ -1337,11 +1337,19 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         _attr = mc.menuItem(parent=_r,subMenu=True,
                             l='Attr',
                             rp='SW')     
-        mc.menuItem(parent=_attr,
-                    l='Add',
-                    en=False,
-                    #c = cgmGen.Callback(ATTRTOOLS.uiWin_multiSetAttr),
-                    rp='NW') 
+        _add = mc.menuItem(parent=_attr,subMenu=True,
+                           l='Add',
+                           en=self._b_sel,
+                           #c = cgmGen.Callback(ATTRTOOLS.uiWin_multiSetAttr),
+                           rp='S') 
+        _d_attrTypes = {"string":'E','float':'S','enum':'NE','vector':'SW','int':'W','bool':'NW','message':'SE'}
+        for _t,_d in _d_attrTypes.iteritems():
+            mc.menuItem(parent=_add,
+                        l=_t,
+                        c = cgmGen.Callback(ATTRTOOLS.uiPrompt_addAttr,_t),
+                        rp=_d)             
+        
+        
         mc.menuItem(parent=_attr,
                     l='Manage',
                     en=False,
@@ -1355,7 +1363,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     l = 'Compare Attrs',
                     en=self._b_sel_pair,
                     c = cgmGen.Callback(MMCONTEXT.func_process, ATTRS.compare_attrs, self._l_sel, 'firstToRest','Compare Attrs',True,**{}),                                                                      
-                    rp = 'S')         
+                    rp = 'N')         
         
         
         """#>Distance
@@ -1493,8 +1501,9 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         
     
 def killUI():
-    #log.debug("killUI...")
+    log.debug("killUI...")
     try:
+        mmTemplate.killChildren(_str_popWindow)        
         if mc.popupMenu(_str_popWindow,ex = True):
             mc.deleteUI(_str_popWindow)  
     except Exception,err:
@@ -1517,7 +1526,8 @@ def killUI():
     
         if sel and f_seconds <= .5:#and not mmActionOptionVar.value:
             log.debug("|{0}| >> low time. Set key...".format(_str_popWindow))
-            setKey()        
+            setKey()    
+            
     
         
 from cgm.core.classes import DraggerContextFactory as cgmDrag

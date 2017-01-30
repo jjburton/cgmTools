@@ -419,14 +419,20 @@ def set_keyable(node, attr = None, arg = None):
     _combined = _d['combined']
     _obj = _d['node']
     _attr = _d['attr']
-
+    
     _children = get_children(_d)
     if _children:
         for i,c in enumerate(_children):
-            mc.setAttr("{0}.{1}".format(_obj,c),e=True,keyable = arg)    
+            if not arg:_hidden = is_hidden(_obj,c)
+            mc.setAttr("{0}.{1}".format(_obj,c),e=True,keyable = arg)
+            if not arg and is_hidden(_obj,c) != _hidden:
+                set_hidden(_obj,c,_hidden)
     else:
+        if not arg:_hidden = is_hidden(_d)        
         mc.setAttr(_combined,e=True,keyable = arg)  
-        
+        if not arg and is_hidden(_d) != _hidden:
+            set_hidden(_d,_hidden)      
+            
 def set_hidden(node, attr = None, arg = None):
     """   
     Set the hidden status of an attribute
@@ -800,6 +806,27 @@ def is_locked(*a):
         log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
         return False
     
+def is_multi(*a):
+    """   
+    multi query
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        type(string)
+    """ 
+    _str_func = 'is_multi'
+    _d = validate_arg(*a) 
+
+    try:
+        if not is_dynamic(_d):
+            return False
+        return mc.addAttr(_d['combined'],q=True,m=True)
+    except Exception,err:
+        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        return False
+    
 def is_connected(*a):
     """   
     Returns if an attribute is keyed
@@ -939,7 +966,7 @@ def disconnect(fromAttr,toAttr):
         
     return True
 
-def connect(fromAttr,toAttr,transferConnection=False,lock = False):
+def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
     """   
     Connects attributes. Handles locks on source or end
 
@@ -980,7 +1007,7 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False):
         #bufferConnection = get_driver(toAttr)
         _connection = break_connection(_d_to)
         #doBreakConnection(attrBuffer[0],attrBuffer[1])
-        mc.connectAttr(_combined,_combined_to)     
+        mc.connectAttr(_combined,_combined_to,nextAvailable = True)     
 
     if transferConnection:
         if _connection and not is_connected(_d):
@@ -1118,6 +1145,8 @@ def get_default(*a):
     _node = _d['node']
     _attr = _d['attr']
     
+    if not is_dynamic(_d):
+        return False    
     if type(mc.addAttr(_combined,q=True,defaultValue = True)) is int or float:
         _res = mc.attributeQuery(_attr, node = _node, listDefault=True)
         if _res is not False:
@@ -1837,10 +1866,54 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
     _messagedExtra = None
     _d_dataAttr = None
     
+    _multi = False
+    if mc.objExists(_combined) and mc.addAttr(_combined,q=True,m=True):
+        _multi = True
         
-    if issubclass(type(message),list):
-        if len(message) > 1:
-            raise ValueError,"Not implemented multi message"
+    if issubclass(type(message),list) or _multi:
+        def storeMsgMulti(msgNodes,holderDict):
+            for n in msgNodes:
+                connect((n + ".message"),holderDict['combined'],nextAvailable=True)
+        
+        if len(message) > 1 or _multi:#MULTIMESSAGE MODE...
+            if mc.objExists(_combined):
+                if not get_type(_combined) == 'message':
+                    log.warning("|{0}| >> Not a message attribute. converting..".format(_str_func))  
+                    delete(_d)
+                    add(messageHolder,messageAttr,'message',m=True,im=False)
+                    storeMsgMulti(message,_d)
+                    return True
+                
+                _buffer = get_message(_combined,dataAttr)        
+                if not mc.addAttr(_combined,q=True,m=True):#not multi...
+                    log.warning("|{0}| >> Not a multi message attribute. converting..".format(_str_func))  
+                    delete(_d)
+                    add(messageHolder,messageAttr,'message',m=True,im=False)
+                    storeMsgMulti(message,_d)
+                    return True                    
+                    
+                else:
+                    log.debug("|{0}| >> multimessage...".format(_str_func))  
+                    _messageLong = [NAMES.get_long(m) for m in message]
+                    if _buffer and [NAMES.get_long(m) for m in _buffer] == _messageLong:
+                        log.debug("|{0}| >> message match. Good to go".format(_str_func))                            
+                        return True
+                    else:
+                        log.debug("|{0}| >> No match...".format(_str_func))                                                    
+                        connections = get_driven(_combined)
+                        if connections:
+                            for c in connections:
+                                break_connection(c)
+            
+                        delete(_d)
+                        add(messageHolder,messageAttr,'message',m=True,im=False)
+                        storeMsgMulti(message,_d)
+            
+            else:
+                log.debug("|{0}| >> new attr...".format(_str_func))                    
+                add(messageHolder,messageAttr,'message',m=True,im=False)
+                storeMsgMulti(message,_d)
+            return True
         else:
             message = message[0]
             
