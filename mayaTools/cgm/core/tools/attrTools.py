@@ -156,7 +156,11 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
             for i,mObj in enumerate(self._ml_nodes):
                 _short = mObj.p_nameShort
                 log.info("|{0}| >> {1} : {2} | attrs: {3}...".format(_str_func,i,_short, len(self._d_attrs[_short])))
-    
+        
+        
+        log.info("|{0}| >> scroll listattrs...".format(_str_func,))        
+        for a in self._l_attrsToLoad:
+            log.info("|{0}| >> {1} ...".format(_str_func,a))            
     def uiFunc_load_selected(self):
         _str_func = 'uiFunc_load_selected'  
         self._d_attrs = {}
@@ -335,8 +339,10 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                         if _d_flags.get('softMax') not in [False,None]:
                             _l_report.append("sM={0}".format(_d_flags.get('softMax')))                                
                         
-                        
-                    _v = "{0}".format(ATTR.get(_d))
+                    if _type == 'enum':
+                        _v = "{0}".format(ATTR.get_enumValueString(_d))                        
+                    else:
+                        _v = "{0}".format(ATTR.get(_d))
                     if len(_v)> 10 and _type not in ['msg']:
                         _v = _v[:10] + "...  "
                     _l_report.append(_v)
@@ -621,6 +627,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                 mUI.MelMenuItem(_menu,
                                 label ='Rename',
                                 c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'rename'}))                
+            
             mUI.MelMenuItem(_menu,
                             label ='Alias',
                             c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'alias'}))        
@@ -637,9 +644,19 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                 
                 
         #Values --------------------------------        
-        _l = ['add','convert','duplicate','copyTo','copyTo connect back','copyTo connect','connectTo','moveUp','moveDown']
+        _l = ['convert','duplicate','copyTo','copyTo connect back','copyTo connect','connectTo','moveUp','moveDown']
         _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
                                 l='Utilities')
+        
+        _l_addTypes = ["string"'float','enum','vector','int','bool','message']
+        _add = mUI.MelMenuItem(_menu,subMenu = True, 
+                               l='add')
+        for t in _l_addTypes:
+            mc.menuItem(parent=_add,
+                        l=t,
+                        c = cgmGEN.Callback(uiPrompt_addAttr,t))              
+        
+        
         
         for item in _l:
             if not _dynamic and item in ['moveUp','moveDown','convert','copyTo','copyTo connect back','copyTo connect']:
@@ -687,6 +704,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         
         _d_baseAttr = ATTR.validate_arg(self._ml_nodes[0].mNode,self._l_attrsToLoad[_indices[0]])
         _aType = ATTR.get_type(_d_baseAttr)
+        _str_base = NAMES.get_base(_d_baseAttr['combined'])
         _done = False
         #Get attr types...
 
@@ -695,7 +713,17 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                 simpleProcess(self, _indices, self._l_attrsToLoad, ATTR.delete)
                 _done = True                
             elif _mode == 'rename':
-                _fromPrompt = uiPrompt_getValue(self)
+                _fromPrompt = uiPrompt_getValue("Enter Name","Primary attr: '{0}' | type: {1}".format(_str_base,_aType),_d_baseAttr['attr'])                
+                if _fromPrompt is None:
+                    log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
+                    return False
+                else:
+                    log.info("|{0}| >>  from prompt: {1} ".format(_str_func,_fromPrompt)) 
+                    try:
+                        ATTR.rename(_d_baseAttr,_fromPrompt)
+                        _done = True
+                    except Exception,err:
+                        log.warning("|{0}| >> {1} | new name: {2} | err: {3}".format(_str_func, _str_base, _fromPrompt,err))                           
             elif _mode == 'value':
                 if _aType == 'message':
                     _sel = mc.ls(sl=True)
@@ -707,20 +735,20 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                     ATTR.set_message(self._ml_nodes[0].mNode, self._l_attrsToLoad[_indices[0]], _sel)
                     _done = True
                 else:
-                    _fromPrompt = uiPrompt_getValue(self)
-                    
+                    _fromPrompt = uiPrompt_getValue("Enter Value","Primary attr: '{0}' | type: {1} | v: {2}".format(_str_base,_aType, ATTR.get(_d_baseAttr)))
+                    if _fromPrompt is None:
+                        log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
+                        return False
+                    else:
+                        log.info("|{0}| >>  from prompt: {1} ".format(_str_func,_fromPrompt))                                               
+                        
             else:
                 log.error("|{0}| >>  Mode: {1} | Not implented...".format(_str_func,_mode))                                               
                 return False
-            
-        if _fromPrompt:
-            log.error("|{0}| >>  from prompt: {1} ".format(_str_func,_fromPrompt))                                               
-            return False
         
         if _done:
             self.uiFunc_updateScrollAttrList()
             return True
-        return
 
         for i in _indices:
             _a = self._l_attrsToLoad[i]
@@ -742,20 +770,25 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                         log.warning("|{0}| >> {1}.{2} hidden: {3}".format(_str_func, _short,_a,_hidden))                                               
                         ATTR.set_hidden(_d,_hidden)
                         
-                        
                     if _mode is not None:
-                        if _mode == 'delete':
-                            ATTR.delete(_d)
-                        elif _mode == 'rename':
-                            _newName = uiPrompt_getValue(self)
+                        if _mode == 'value':
+                            _v = None
+                            try:
+                                if ',' in _fromPrompt:
+                                    _fromPrompt = _fromPrompt.split(',')
+                                _v = ATTR.validate_value(_d,value =_fromPrompt)
+                                print _v
+                            except Exception,err:
+                                log.error("|{0}| >> {1}.{2} | Mode: {3} | Failed to validate value from prompt: {4} | err: {5}".format(_str_func, _short,_a,_mode,_fromPrompt,err))                                               
+                                continue
+                            if _v is not None:
+                                ATTR.set(_d, value = _v)
+
                         else:
                             log.error("|{0}| >> {1}.{2} | Mode: {3} | Not implented or failed to meet criteria".format(_str_func, _short,_a,_mode))                                               
                             
                 except Exception,err:
                     log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _short,_a,err))                                               
-                    
-                    
-        
         self.uiFunc_updateScrollAttrList()
                     
 
@@ -789,31 +822,35 @@ def uiPrompt_addAttr(attrType = None, nodes = None, title = None, message = None
         else:
             for node in nodes:
                 ATTR.add(node, _v, attrType,keyable = True, hidden = False)
+        uiWin_multiSetAttr()
     else:
         log.info("|{2}| >> Add {0} attr cancelled. Nodes: {1}".format(attrType,_str_nodes,_str_func))
         return None     
     
-def uiPrompt_getValue(title = None, message = None):
-    
+def uiPrompt_getValue(title = None, message = None, text = None, uiSelf = None):
+    _str_func = 'uiPrompt_getValue'
     if title is None:
-        _title = 'Set value...'
+        _title = 'Need data...'
     else:_title = title
-    result = mc.promptDialog(title=_title,
-                             #message='Current: {0} | type: {1}'.format(self.value,self.varType),
-                             button=['OK', 'Cancel','Store'],
-                             #text = self.value,
-                             defaultButton='OK',
-                             cancelButton='Cancel',
-                             dismissString='Cancel')
+    
+    
+    _d = {'title':_title, 'button':['OK','Cancel'], 'defaultButton':'OK', 'messageAlign':'center', 'cancelButton':'Cancel','dismissString':'Cancel'}
+    if message is None:
+        message = "Getting values is better with messages..."
+        
+    _d['message'] = message
+    if text is not None:
+        _d['text'] = text
+        
+    result = mc.promptDialog(**_d)
+    
     if result == 'OK':
         _v =  mc.promptDialog(query=True, text=True)
-        log.info(_v)
+        
         return _v
-    elif result == 'Store':
-        log.info( mc.ls(sl=True))
     else:
-        log.error("|{0}| value change cancelled".format('asdfasdf'))
-        return None 
+        log.info("|{0}| >> Gather value cancelled".format(_str_func))
+        return None     
         
         
 def uiRow_attributeTypes(self,parent):	

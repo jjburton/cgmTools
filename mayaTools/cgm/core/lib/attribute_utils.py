@@ -50,6 +50,7 @@ attrCompatibilityDict = {'message':('message'),
 
 dataConversionDict = {'long':int,
                       'string':str,
+                      'bool':bool,
                       'double':float} 
 
 d_attrCategoryLists = {'transform':('translateX','translateY','translateZ',
@@ -74,6 +75,66 @@ d_attrCategoryLists = {'transform':('translateX','translateY','translateZ',
 
 #>>> Utilities
 #===================================================================
+def validate_value(node, attr = None, value = None):
+    """
+    Validate an value to an attribute
+
+    :parameters:
+        node
+        attr 
+        value - 
+    :returns
+        None or value
+    """    
+    _str_func = 'validate_value'
+    
+    if '.' in node or issubclass(type(node),dict):
+        _d = validate_arg(node)
+        if value is None and attr is not None:
+            value = attr
+    else:
+        _d = validate_arg(node,attr) 
+        
+    _aType = get_type(_d)
+    _vType = type(value)
+    _b_list = False    
+    if _vType in [list,tuple]:
+        _b_list = True
+        
+    if _aType in ['long','double','double3','doubleAngle','float','float3','time','byte']:
+        if _aType in ['long','byte']:
+            if _b_list:return [int(v) for v in value]
+            return int(value)
+        else:
+            if _b_list:return [float(v) for v in value]
+            return float(value)     
+    elif _aType == 'bool':
+        try:
+            if value.lower() in ['t','true','tr','yes']:return True
+        except:pass
+        try:
+            if value.lower() in ['f','false','no']:return False
+        except:pass
+        return bool(value)
+    elif _aType == 'string':
+        if _b_list:return [str(v) for v in value]
+        return str(value)
+    elif _aType == 'enum':
+        _l = get_enum(_d).split(':')
+        try:_int = int(value)
+        except:_int = None
+        
+        if value in _l:
+            return _l.index(value)
+        elif _int is not None and _int <= len(_l):
+            return _int
+        raise ValueError,"|{0}| >>> Not a valid enum value: {1} | {2}".format(_str_func,value,_l)
+    raise ValueError,"|{0}| >>> Not a valid value: {1} | type: {2} | value: {3}".format(_str_func,_d['combined'],_aType,value)
+    
+        
+    
+    
+    
 def validate_arg(*a):
     """
     Validate an attr arg to be more useful for the various methods of calling it
@@ -1379,7 +1440,7 @@ def renameNice(node=None, attr=None, name=None):
     else:
         _d = validate_arg(node,attr) 
 
-    _longName = name_getLong(_d)
+    _longName = get_nameLong(_d)
     #try:
     if name:
         mc.addAttr(_d['combined'],edit = True, niceName = name)
@@ -1397,7 +1458,7 @@ def get_nameLong(*a):
     :returns
         status(bool)
     """ 
-    _str_func = 'name_getLong'
+    _str_func = 'get_nameLong'
     _d = validate_arg(*a) 
     try:
         return mc.attributeQuery(_d['attr'], node = _d['obj'], longName = True) or False
@@ -1427,11 +1488,11 @@ def rename(obj=None, attr=None, name=None):
     else:
         _d = validate_arg(obj,attr) 
 
-    _longName = name_getLong(_d)
+    _longName = get_nameLong(_d)
     #try:
     if name:
         if name != _longName:
-            mc.renameAttr("{0}.{1}".format(_d['obj'],_longName),newAttrName)
+            mc.renameAttr("{0}.{1}".format(_d['obj'],_longName),name)
             #attributes.doRenameAttr(_d['obj'],_longName,name)
             return True
         else:

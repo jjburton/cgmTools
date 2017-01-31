@@ -171,12 +171,13 @@ class cgmMetaMM(mUI.BaseMelWindow):
         """
         Create the UI
         """	
-        log.info("{0}.createUI()...{1}".format(self._str_MM,self))
-        for c in self.get_uiChildren():
+        log.debug("{0}.createUI()...{1}".format(self._str_MM,self))
+        """for c in self.get_uiChildren():
             #print c
             log.info('deleting old ui: {0}'.format(c))
             try:mc.deleteUI(c)
-            except:log.info('failed to delete...')
+            except:log.info('failed to delete...')"""
+            
         #time_buildMenuStart =  time.clock()
         self.setup_optionVars()#Setup our optionVars
         #mc.setParent(parent)
@@ -227,7 +228,28 @@ class cgmMetaMM(mUI.BaseMelWindow):
         for c in l_toCheck:
             if  self.__class__.POPWINDOW in c.split('|') and not str(c).endswith(self.__class__.POPWINDOW):
                 l_.append(c)
-        return l_ 
+        
+        return l_
+   
+def killChildren(uiElement):
+    l_ = []
+    l_toCheck = []
+    l_toCheck.extend( mc.lsUI(controls = True, l = True) )
+    l_toCheck.extend( mc.lsUI(mi = True, l = True) )
+    l_toCheck.extend( mc.lsUI(controlLayouts = True, l = True) )
+    l_toCheck.extend( mc.lsUI(collection = True, l = True) )
+    l_toCheck.extend( mc.lsUI(rmc = True, l = True) )
+    l_toCheck.extend( mc.lsUI(menus = True, l = True) )
+    l_toCheck.extend( mc.lsUI(contexts = True, l = True) )
+    
+    for c in l_toCheck:
+        if  uiElement in c.split('|') and not str(c).endswith(uiElement):
+            l_.append(c)
+            
+    for c in l_:
+        #log.info('deleting old ui: {0}'.format(c))
+        try:mc.deleteUI(c)
+        except Exception,err:log.debug('failed to delete: {0} | err: {1}'.format(c,err))          
 
 def killUI():
     log.info("killUI...")
