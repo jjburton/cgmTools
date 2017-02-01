@@ -1357,7 +1357,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     rp='W')       
         mc.menuItem(parent=_attr,
                     l='MultiSet',
-                    c = cgmGen.Callback(ATTRTOOLS.uiWin_multiSetAttr),
+                    c = cgmGen.Callback(ATTRTOOLS.ui),
                     rp='SW')          
         mc.menuItem(parent=_attr, #subMenu = True,
                     l = 'Compare Attrs',
