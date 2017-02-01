@@ -110,10 +110,10 @@ def validate_value(node, attr = None, value = None):
             return float(value)     
     elif _aType == 'bool':
         try:
-            if value.lower() in ['t','true','tr','yes']:return True
+            if value.lower() in ['t','true','tr','yes','y','1']:return True
         except:pass
         try:
-            if value.lower() in ['f','false','no']:return False
+            if value.lower() in ['f','false','no','n','0']:return False
         except:pass
         return bool(value)
     elif _aType == 'string':

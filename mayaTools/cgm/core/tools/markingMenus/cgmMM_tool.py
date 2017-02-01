@@ -1346,7 +1346,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         for _t,_d in _d_attrTypes.iteritems():
             mc.menuItem(parent=_add,
                         l=_t,
-                        c = cgmGen.Callback(ATTRTOOLS.uiPrompt_addAttr,_t),
+                        c = cgmGen.Callback(ATTRTOOLS.uiPrompt_addAttr,_t,**{'autoLoadFail':True}),
                         rp=_d)             
         
         
@@ -1749,7 +1749,7 @@ def setKey(keyModeOverride = None):
         else:
             mc.setKeyframe(breakdown = True)"""
     else:#Let's check the channel box for objects
-        selection = search.returnSelectedAttributesFromChannelBox(False) or []
+        selection = SEARCH.get_selectedFromChannelBox(False) or []
         if not selection:
             selection = mc.ls(sl=True) or []
             

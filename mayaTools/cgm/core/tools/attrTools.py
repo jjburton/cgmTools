@@ -104,16 +104,16 @@ class uiWin_addAttr(cgmUI.cgmGUI):
         log.info("|{0}| >> Selected: {1}".format(_str_func, self.rc_attrTypes.getSelectedIndex()))
         
         
-class uiWin_multiSetAttr(cgmUI.cgmGUI):
+class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
-    WINDOW_NAME = 'cgmMultiSetAttr_ui'    
-    WINDOW_TITLE = 'cgmMultiSetAttr - {0}'.format(__version__)
+    WINDOW_NAME = 'cgmAttrTools_ui'    
+    WINDOW_TITLE = 'cgmAttrTools - {0}'.format(__version__)
     DEFAULT_MENU = None
     RETAIN = True
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 375,250
+    DEFAULT_SIZE = 375,300
     _checkBoxKeys = ['shared','regular','user','numeric']
     
     def insert_init(self,*args,**kws):
@@ -124,10 +124,11 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
             self.__version__ = __version__
             self.__toolName__ = 'cgmMultiSet'		
             #self.l_allowedDockAreas = []
-            self.WINDOW_TITLE = uiWin_multiSetAttr.WINDOW_TITLE
-            self.DEFAULT_SIZE = uiWin_multiSetAttr.DEFAULT_SIZE
+            self.WINDOW_TITLE = ui.WINDOW_TITLE
+            self.DEFAULT_SIZE = ui.DEFAULT_SIZE
             self._d_attrs = {}
             self._ml_nodes = []
+            self._l_attrsSelected = []
             self.uiPopUpMenu_attr = False
 
     def build_menus(self):
@@ -146,7 +147,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         self._d_uiCheckBoxes['shared'](edit = True, en=True)
         
     def uiFunc_report_loaded(self):
-        _str_func = 'cgmMultiSetAttr'  
+        _str_func = 'cgmAttrTools'  
         
         if not self._ml_nodes:
             log.info("|{0}| >> No objects loaded".format(_str_func))
@@ -160,7 +161,8 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         
         log.info("|{0}| >> scroll listattrs...".format(_str_func,))        
         for a in self._l_attrsToLoad:
-            log.info("|{0}| >> {1} ...".format(_str_func,a))            
+            log.info("|{0}| >> {1} ...".format(_str_func,a))     
+            
     def uiFunc_load_selected(self):
         _str_func = 'uiFunc_load_selected'  
         self._d_attrs = {}
@@ -195,7 +197,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         if not self._ml_nodes:
             return False      
         
-        #for k in uiWin_multiSetAttr._checkBoxKeys:
+        #for k in ui._checkBoxKeys:
             #log.info("{0} : {1}".format(k, self._d_uiCheckBoxes[k].getValue()))
         #['shared','keyable','transforms','user','other']
         
@@ -374,6 +376,16 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         #menu(edit=True,cc = uiAttrUpdate)
         cgmUI.doEndMayaProgressBar(_progressBar)
         
+        
+        #Reselect
+        if self._l_attrsSelected:
+            _indxs = []
+            for a in self._l_attrsSelected:
+                if a in self._l_attrsToLoad:
+                    self.uiScrollList_attr.selectByIdx(self._l_attrsToLoad.index(a))
+                    
+                    
+                    
         return False
     
         if self.SourceObject and self.SourceObject.update(self.SourceObject.nameLong):
@@ -454,7 +466,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         
 
         #>>>Objects Buttons Row ---------------------------------------------------------------------------------------
-        _row_attrCreate = mUI.MelHLayout(_MainForm,ut='cgmUITemplate',padding = 5)
+        _row_attrCreate = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 5)
     
         cgmUI.add_Button(_row_attrCreate,'Load Selected',
                          cgmGEN.Callback(self.uiFunc_load_selected),
@@ -479,7 +491,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
 
         mUI.MelLabel(_row_attrFlags,l = 'Show')
         _row_attrFlags.setStretchWidget( mUI.MelSeparator(_row_attrFlags) )
-        for item in uiWin_multiSetAttr._checkBoxKeys:
+        for item in ui._checkBoxKeys:
             if item in ['shared','regular','user']:_cb = True
             else:_cb = False
             self._d_uiCheckBoxes[item] = mUI.MelCheckBox(_row_attrFlags,label = item,
@@ -491,10 +503,84 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         self.uiScrollList_attr = mUI.MelObjectScrollList(_MainForm, allowMultiSelection=True,
                                                          selectCommand = self.uiFunc_selectAttr)
         
-        #>>>SetValue Row --------------------------------------------------------------------------------------------
-        self.row_setValue = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 5)
-        mUI.MelLabel(self.row_setValue ,l = 'Set value: ')
         
+        #>>>Keys Row --------------------------------------------------------------------------------------------        
+        mc.setParent(_MainForm)
+        _header_push = cgmUI.add_Header('Push Values')
+       
+        
+        self.create_guiOptionVar('keyMode',defaultValue = 0)       
+        
+        self.rc_keyMode = mUI.MelRadioCollection()
+        _l_keyModes = ['primeAttr','primeObj','each','combined']
+        #build our sub section options
+        _row_keyModes = mUI.MelHSingleStretchLayout(_MainForm,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelLabel(_row_keyModes,l = 'Keys')
+        _row_keyModes.setStretchWidget( mUI.MelSeparator(_row_keyModes) )
+        
+        _on = self.var_keyMode.value
+        
+        for cnt,item in enumerate(_l_keyModes):
+            if cnt == _on:_rb = True
+            else:_rb = False
+            self.rc_keyMode.createButton(_row_keyModes,label=_l_keyModes[cnt],sl=_rb,
+                                         onCommand = cgmGEN.Callback(self.var_keyMode.setValue,cnt))
+            mUI.MelSpacer(_row_keyModes,w=2)
+    
+        
+        _row_keyModes.layout()        
+        
+        #>>>Values Mode Row --------------------------------------------------------------------------------------------        
+        
+        self.create_guiOptionVar('valueMode',defaultValue = 0)       
+        _row_valueModes = mUI.MelHSingleStretchLayout(_MainForm,ut='cgmUISubTemplate',padding = 5)
+        
+        self.rc_valueMode = mUI.MelRadioCollection()
+        _l_valueModes = ['primeAttr','primeObj']
+        #build our sub section options
+        mUI.MelLabel(_row_valueModes,l = 'Values')
+        _row_valueModes.setStretchWidget( mUI.MelSeparator(_row_valueModes) )
+        
+        _on = self.var_valueMode.value
+    
+        for cnt,item in enumerate(_l_valueModes):
+            if cnt == _on:_rb = True
+            else:_rb = False
+            self.rc_valueMode.createButton(_row_valueModes,label=_l_valueModes[cnt],sl=_rb,
+                                         onCommand = cgmGEN.Callback(self.var_valueMode.setValue,cnt))
+            mUI.MelSpacer(_row_valueModes,w=2)        
+        
+        _row_valueModes.layout()        
+        
+        
+        
+        #>>>Push Values Row --------------------------------------------------------------------------------------------
+        self.row_setValue = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 2)
+        
+        cgmUI.add_Button(self.row_setValue,'<<<All',
+                         cgmGEN.Callback(self.uiFunc_load_selected),
+                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                         "Add the attribute names from the text field") 
+        cgmUI.add_Button(self.row_setValue,'<Prev',
+                         cgmGEN.Callback(self.uiFunc_load_selected),
+                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                         "Add the attribute names from the text field")
+        
+        cgmUI.add_Button(self.row_setValue,'Current',
+                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'current'}),                
+                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                         "Add the attribute names from the text field")
+
+        cgmUI.add_Button(self.row_setValue,'Next>',
+                         cgmGEN.Callback(self.uiFunc_load_selected),
+                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                         "Add the attribute names from the text field")
+        cgmUI.add_Button(self.row_setValue,'All>>>',
+                         cgmGEN.Callback(self.uiFunc_load_selected),
+                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                         "Add the attribute names from the text field")
+
+        self.row_setValue.layout()
         
         _MainForm(edit = True,
                   af = [(_header,"top",0),
@@ -502,58 +588,32 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                         (_header,"right",0),
                         (self.uiScrollList_attr,"left",0),
                         (self.uiScrollList_attr,"right",0),
-                        (_row_attrReport,"left",5),
-                        (_row_attrReport,"right",5),
-                        (_row_attrCreate,"left",5),
-                        (_row_attrCreate,"right",5),
-                        (_row_attrFlags,"left",5),
-                        (_row_attrFlags,"right",5),   
-                        (self.row_setValue,"left",5),
-                        (self.row_setValue,"right",5),                          
+                        (_row_attrReport,"left",0),
+                        (_row_attrReport,"right",0),
+                        (_row_attrCreate,"left",0),
+                        (_row_attrCreate,"right",0),
+                        (_row_attrFlags,"left",0),
+                        (_row_attrFlags,"right",0),
+                        (_header_push,"left",0),
+                        (_header_push,"right",0),                         
+                        (_row_keyModes,"left",5),
+                        (_row_keyModes,"right",5),  
+                        (_row_valueModes,"left",5),
+                        (_row_valueModes,"right",5),                          
+                        (self.row_setValue,"left",0),
+                        (self.row_setValue,"right",0),                          
                         (self.row_setValue,"bottom",5),
                         ],
                   ac = [(_row_attrReport,"top",2,_header),
                         (_row_attrCreate,"top",2,_row_attrReport),
                         (_row_attrFlags,"top",2,_row_attrCreate),
+                        (_header_push,"bottom",0,_row_keyModes),                        
+                        (_row_keyModes,"bottom",0,_row_valueModes),
+                        (_row_valueModes,"bottom",0,self.row_setValue),                        
                         (self.uiScrollList_attr,"top",2,_row_attrFlags),
-                        (self.uiScrollList_attr,"bottom",5,self.row_setValue)],
+                        (self.uiScrollList_attr,"bottom",0,_header_push)],
                   attachNone = [(self.row_setValue,"top")])	        
             
-        
-
-        
-        """MelMenuItem(popUpMenu ,
-                    label = 'Make Keyable',
-                    c = lambda *a: attrToolsLib.uiManageAttrsKeyable(self))
-    
-        MelMenuItem(popUpMenu ,
-                    label = 'Make Unkeyable',
-                    c = lambda *a: attrToolsLib.uiManageAttrsUnkeyable(self))
-    
-        MelMenuItemDiv(popUpMenu)
-    
-        MelMenuItem(popUpMenu ,
-                    label = 'Hide',
-                    c = lambda *a: attrToolsLib.uiManageAttrsHide(self))
-    
-        MelMenuItem(popUpMenu ,
-                    label = 'Unhide',
-                    c = lambda *a: attrToolsLib.uiManageAttrsUnhide(self))
-    
-        MelMenuItemDiv(popUpMenu)
-        MelMenuItem(popUpMenu ,
-                    label = 'Lock',
-                    c = lambda *a: attrToolsLib.uiManageAttrsLocked(self))
-    
-        MelMenuItem(popUpMenu ,
-                    label = 'Unlock',
-                    c = lambda *a: attrToolsLib.uiManageAttrsUnlocked(self))
-    
-        MelMenuItemDiv(popUpMenu)
-        MelMenuItem(popUpMenu ,
-                    label = 'Delete',
-                    c = lambda *a: attrToolsLib.uiManageAttrsDelete(self))      """  
-    
         _sel = mc.ls(sl=True)
         if _sel:
             self.uiFunc_load_selected()        
@@ -583,9 +643,11 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         _connectionsOut = False
         
         print(cgmGEN._str_subLine)
+        self._l_attrsSelected = []
         
         for i in _indices:
             _a = self._l_attrsToLoad[i]
+            self._l_attrsSelected.append(_a)
             _d = ATTR.validate_arg(_short, _a)
             _v = ATTR.get(_d)
             log.info("{1}.{2} | value: {3}".format(_str_func, _short,_a, _v))                           
@@ -668,18 +730,26 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
                                 l='Utilities')
         
-        _l_addTypes = ["string"'float','enum','vector','int','bool','message']
+        _l_addTypes = ['string','float','enum','vector','int','bool','message']
         _add = mUI.MelMenuItem(_menu,subMenu = True, 
                                l='add')
         for t in _l_addTypes:
             mc.menuItem(parent=_add,
                         l=t,
-                        c = cgmGEN.Callback(uiPrompt_addAttr,t))              
+                        c = cgmGEN.Callback(uiPrompt_addAttr,t))
+            
+        _convert = mUI.MelMenuItem(_menu,subMenu = True, 
+                                   en = _dynamic,                                   
+                                   l='convert')
+        for t in _l_addTypes:
+            mc.menuItem(parent=_convert,
+                        l=t,
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'convert{0}'.format(t.capitalize())})) 
         
         
         
         for item in _l:
-            if not _dynamic and item in ['moveUp','moveDown','convert','copyTo','copyTo connect back','copyTo connect']:
+            if not _dynamic and item in ['moveUp','moveDown','copyTo','copyTo connect back','copyTo connect']:
                 pass
             elif _hidden and item in ['moveUp','moveDown']:
                 pass
@@ -696,6 +766,45 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                         )           
     
         _l_toDo = ['min','max','softMin','softMax','default','alias','rename']
+        
+    def uiFunc_pushValue(self,**kws):
+        _str_func = 'uiFunc_pushValue'
+        _indices = self.uiScrollList_attr.getSelectedIdxs()
+        _mode = kws.get('mode','current')
+        _keyMode = self.var_keyMode.value
+        _valueMode = self.var_valueMode.value
+        
+        log.info("|{0}| >> mode: {1} | keyMode: {2} | valueMode: {3}".format(_str_func,_mode,_keyMode,_valueMode))
+        log.info("|{0}| >> indicies: {1} ".format(_str_func,_indices))
+        
+        _v_master = None
+        _d_values = {}
+        
+        #>>Get Attribute values -----------------------------------------------------------------------------------
+        _short = self._ml_nodes[0].p_nameShort
+        if _valueMode == 0:#PrimeAttr
+            _v_master = ATTR.get(_short, self._l_attrsToLoad[_indices[0]])
+            log.info("|{0}| >> master value: {1} ".format(_str_func,_v_master))
+        else:
+            for idx in _indices:
+                _a = self._l_attrsToLoad[idx]
+                _d_values[_a] = ATTR.get(_short,_a)
+            cgmGEN.print_dict(_d_values,'Master Values', 'attrTools')
+        
+        #>>> Get our driven ------------------------------------------------------------------------------
+        _sel = SEARCH.get_selectedFromChannelBox(False) or []
+        if not _sel:
+            _sel = mc.ls(sl=True) or []
+            
+        _ml_nodes = self._ml_nodes        
+        
+        #>>> Bake ------------------------------------------------------------------------------        
+        if _mode == 'current':
+            pass
+            #Get our targets
+            #Get our Values
+            #Push our values
+        
         
     def uiFunc_attrManage_fromScrollList(self,**kws):
         def simpleProcess(self, indicies, attrs, func,**kws):
@@ -794,6 +903,11 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                     else:
                         log.info("|{0}| >>  from prompt: {1} ".format(_str_func,_fromPrompt))                                               
                         
+            elif _mode.startswith('convert'):
+                _convertString = _mode.split('convert')[-1].lower()
+                log.info("|{0}| >>  convert string: {1} ".format(_str_func,_convertString))                                                               
+                return False
+                
             else:
                 log.error("|{0}| >>  Mode: {1} | Not implented...".format(_str_func,_mode))                                               
                 return False
@@ -859,7 +973,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         self.uiFunc_updateScrollAttrList()
                     
 
-def uiPrompt_addAttr(attrType = None, nodes = None, title = None, message = None, text = None, uiSelf = None):
+def uiPrompt_addAttr(attrType = None, nodes = None, title = None, message = None, text = None, uiSelf = None, autoLoadFail = False):
     _str_func = 'uiPrompt_addAttr'
     if title is None:
         _title = 'Add {0} attrs...'.format(attrType)
@@ -880,16 +994,27 @@ def uiPrompt_addAttr(attrType = None, nodes = None, title = None, message = None
     
     if result == 'OK':
         _v =  mc.promptDialog(query=True, text=True)
-        
+        _l_fails = []
         if ',' in _v:
             _attrs = _v.split(',')
             for a in _attrs:
                 for node in nodes:
-                    ATTR.add(node, a, attrType,keyable = True, hidden = False)                
+                    try:
+                        ATTR.add(node, a, attrType,keyable = True, hidden = False)    
+                    except Exception,err:
+                        _l_fails.append(node)
+                        log.error("|{0}| >> Add failure. Node: {1} | Attr: {2} | Type: {3} | err: {4}".format(_str_func,node, a, attrType,err))
         else:
             for node in nodes:
-                ATTR.add(node, _v, attrType,keyable = True, hidden = False)
-        uiWin_multiSetAttr()
+                try:
+                    ATTR.add(node, _v, attrType,keyable = True, hidden = False)
+                except Exception,err:
+                    _l_fails.append(node)
+                    log.error("|{0}| >> Add failure. Node: {1} | Attr: {2} | Type: {3} | err: {4}".format(_str_func,node, _v, attrType,err))
+                    
+        if autoLoadFail and _l_fails:
+            mc.select(_l_fails)
+        ui()
     else:
         log.info("|{2}| >> Add {0} attr cancelled. Nodes: {1}".format(attrType,_str_nodes,_str_func))
         return None     

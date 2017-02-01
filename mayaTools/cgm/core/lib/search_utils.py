@@ -19,7 +19,7 @@ log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
-
+import maya.mel as mel
 # From Red9 =============================================================
 
 # From cgm ==============================================================
@@ -173,8 +173,46 @@ def get_key_indices_from(obj = None):
 
     return lists.returnListNoDuplicates(keyFrames)   
 
-
+def get_selectedFromChannelBox(attributesOnly = False):
+    """ 
+    Returns a list of selected object attributes from the channel box
     
+    :parameters:
+        attributesOnly(bool): Whether you want
+        
+    Keyword arguments:
+    returnRaw() -- whether you just want channels or objects combined with selected attributes
+
+    """    
+    _sel = mc.ls(sl=True)
+    ChannelBoxName = mel.eval('$tmp = $gChannelBoxName');
+
+    sma = mc.channelBox(ChannelBoxName, query=True, sma=True)
+    ssa = mc.channelBox(ChannelBoxName, query=True, ssa=True)
+    sha = mc.channelBox(ChannelBoxName, query=True, sha=True)
+    soa = mc.channelBox(ChannelBoxName, query=True, soa=True)
+
+
+    channels = []
+    if sma:
+        channels.extend(sma)
+    if ssa:
+        channels.extend(ssa)
+    if sha:
+        channels.extend(sha)
+    if soa:
+        channels.extend(soa)
+
+    if channels and _sel:
+        if attributesOnly:
+            return channels
+        else:
+            _res = []
+            for item in _sel:
+                for attr in channels:
+                    _res.append("{0}.{1}".format(item,attr))
+            return _res
+    return False 
 
 
 
