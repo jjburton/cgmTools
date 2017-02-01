@@ -1503,7 +1503,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
 def killUI():
     log.debug("killUI...")
     try:
-        mmTemplate.killChildren(_str_popWindow)        
+        #mmTemplate.killChildren(_str_popWindow)        
         if mc.popupMenu(_str_popWindow,ex = True):
             mc.deleteUI(_str_popWindow)  
     except Exception,err:
