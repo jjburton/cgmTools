@@ -1068,7 +1068,7 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
         #bufferConnection = get_driver(toAttr)
         _connection = break_connection(_d_to)
         #doBreakConnection(attrBuffer[0],attrBuffer[1])
-        mc.connectAttr(_combined,_combined_to,nextAvailable = True)     
+        mc.connectAttr(_combined,_combined_to,**kws)     
 
     if transferConnection:
         if _connection and not is_connected(_d):
