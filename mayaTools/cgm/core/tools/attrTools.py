@@ -241,7 +241,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                 except Exception,err:
                     log.warning("|{0}| >> Failed to process: {1} : {2} || err:{3}".format(_str_func, _short, a,err))
 
-        for a in ['ghostDriver','hyperLayout']:
+        for a in ['ghostDriver','hyperLayout','attributeAliasList']:
             if a in _l_processed:_l_processed.remove(a)
         
         
@@ -294,8 +294,21 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                     _type = ATTR.get_type(_d)
                     _type = SHARED._d_attrTypes_toShort.get(_type,_type)
                     
-                    _l_report.append("{0}--({1})--".format(a,_type) )
-
+                    _alias = ATTR.get_alias(_d)
+                    _nice = ATTR.get_nameNice(_d)
+                    _long = ATTR.get_nameLong(_d)
+                    
+                    _l_name = []
+                    _l_name.append(_long)
+                    
+                    if _alias:
+                        _l_name.append("--alias({0})".format(_alias) )
+                    #if _nice and _nice.lower() != _long:
+                        #_l_name.append("--nice({0})".format(_nice))
+                    _l_name.append("--({0})--".format(_type) )
+                    
+                    _l_report.append("".join(_l_name))
+                    
                     _l_flags = []
                     
                     if ATTR.is_dynamic(_d):
@@ -590,6 +603,7 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         #>>>Pop up menu--------------------------------------------------------------------------------------------        
         mUI.MelMenuItem(_popUp,
                         label ='Set Value',
+                        ann = 'Enter value desired in pompt. If message, select object(s) to store',
                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}))        
         mUI.MelMenuItemDiv(_popUp)
         
@@ -620,18 +634,24 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                                 label = NAMES.get_short(plug))                 
             
         #Name --------------------------------
-        if _b_single:
-            _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
-                                    l='Name')
-            if _dynamic:
-                mUI.MelMenuItem(_menu,
-                                label ='Rename',
-                                c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'rename'}))                
-            
-            mUI.MelMenuItem(_menu,
-                            label ='Alias',
-                            c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'alias'}))        
+        _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
+                                ann="Only active with single attribute selection",
+                                l='Name')
+        mUI.MelMenuItem(_menu,
+                        en = _dynamic * _b_single,
+                        label ='Rename',
+                        ann = 'Only valid for user attributes',
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'rename'}))                
         
+        mUI.MelMenuItem(_menu,
+                        en = _b_single,
+                        label ='Alias',
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'alias'}))
+        mUI.MelMenuItem(_menu,
+                        en = _b_single,
+                        label ='Nice',
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'nameNice'}))            
+    
         #Values --------------------------------        
         if _numberChanges:
             _l = ['default','min','max','softMin','softMax']
@@ -667,14 +687,14 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                 mUI.MelMenuItem(_menu,
                                 label =item,
                                 c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':item}))        
-        
-        
-        if _dynamic:        
-            mUI.MelMenuItem(_popUp,
-                            l='Delete',
-                            c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'delete'}),        
-                            )           
-        
+
+        mUI.MelMenuItem(_popUp,
+                        en=_dynamic,
+                        l='Delete',
+                        ann='Only user defined attrs are deletable',
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'delete'}),        
+                        )           
+    
         _l_toDo = ['min','max','softMin','softMax','default','alias','rename']
         
     def uiFunc_attrManage_fromScrollList(self,**kws):
@@ -711,19 +731,51 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
         if _mode is not None:
             if _mode == 'delete':
                 simpleProcess(self, _indices, self._l_attrsToLoad, ATTR.delete)
-                _done = True                
+                _done = True             
             elif _mode == 'rename':
                 _fromPrompt = uiPrompt_getValue("Enter Name","Primary attr: '{0}' | type: {1}".format(_str_base,_aType),_d_baseAttr['attr'])                
                 if _fromPrompt is None:
                     log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
                     return False
+                #else:
+                    #log.info("|{0}| >>  from prompt: {1} ".format(_str_func,_fromPrompt)) 
+                    #try:
+                        #ATTR.rename(_d_baseAttr,_fromPrompt)
+                        #_done = True
+                    #except Exception,err:
+                        #log.warning("|{0}| >> {1} | new name: {2} | err: {3}".format(_str_func, _str_base, _fromPrompt,err))                           
+            elif _mode in ['alias','nameNice']:
+                if _mode == 'alias':
+                    _plug = ATTR.get_alias(_d_baseAttr)
                 else:
-                    log.info("|{0}| >>  from prompt: {1} ".format(_str_func,_fromPrompt)) 
-                    try:
-                        ATTR.rename(_d_baseAttr,_fromPrompt)
-                        _done = True
-                    except Exception,err:
-                        log.warning("|{0}| >> {1} | new name: {2} | err: {3}".format(_str_func, _str_base, _fromPrompt,err))                           
+                    _plug = ATTR.get_nameNice(_d_baseAttr)
+                _kws = {'title':"Enter {0}".format(_mode),'message':'Enter a new {0}.'.format(_mode)}
+                if _plug:
+                    _kws['text'] = _plug
+                
+                _fromPrompt = uiPrompt_getValue(**_kws)   
+                
+                if _fromPrompt is None:
+                    log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
+                    return False
+                log.info(_fromPrompt)
+            elif _mode in ['default','min','max','softMin','softMax']:
+                _d_plugs = {'default':ATTR.get_default,'min':ATTR.get_min,'max':ATTR.get_max,
+                            'softMin':ATTR.get_softMin,'softMax':ATTR.get_softMax}
+                
+                _plug = _d_plugs[_mode](_d_baseAttr)
+
+                _kws = {'title':"Enter {0}".format(_mode),'message':'Enter a new {0}.'.format(_mode)}
+                if _plug:
+                    _kws['text'] = _plug
+            
+                _fromPrompt = uiPrompt_getValue(**_kws)   
+            
+                if _fromPrompt is None:
+                    log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
+                    return False
+                log.info(_fromPrompt)  
+                
             elif _mode == 'value':
                 if _aType == 'message':
                     _sel = mc.ls(sl=True)
@@ -756,7 +808,8 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                 try:
                     _short = mNode.p_nameShort
                     _d = ATTR.validate_arg(_short,_a)
-                    if not _d:
+                    
+                    if not _d or not mc.objExists(_d['combined']):
                         log.warning("|{0}| >> not validated. skipping: {1}.{2}".format(_str_func, _short,_a))                           
                         continue
                     
@@ -777,13 +830,27 @@ class uiWin_multiSetAttr(cgmUI.cgmGUI):
                                 if ',' in _fromPrompt:
                                     _fromPrompt = _fromPrompt.split(',')
                                 _v = ATTR.validate_value(_d,value =_fromPrompt)
-                                print _v
                             except Exception,err:
                                 log.error("|{0}| >> {1}.{2} | Mode: {3} | Failed to validate value from prompt: {4} | err: {5}".format(_str_func, _short,_a,_mode,_fromPrompt,err))                                               
                                 continue
                             if _v is not None:
                                 ATTR.set(_d, value = _v)
-
+                        elif _mode == 'alias':
+                            if not _fromPrompt:_fromPrompt=False
+                            ATTR.set_alias(_d, _fromPrompt)
+                        elif _mode == 'nameNice':
+                            if not _fromPrompt:_fromPrompt=False
+                            ATTR.renameNice(_d, _fromPrompt)                            
+                        elif _mode == 'rename':
+                            if not _fromPrompt:raise ValueError,"Must have new name"
+                            ATTR.rename(_d, _fromPrompt) 
+                        elif _mode in ['default','min','max','softMin','softMax']:
+                            _d_plugs = {'default':ATTR.set_default,'min':ATTR.set_min,'max':ATTR.set_max,
+                                        'softMin':ATTR.set_softMin,'softMax':ATTR.set_softMax}
+                            if not _fromPrompt:_fromPrompt=False
+                            else:_fromPrompt = float(_fromPrompt)
+                            _d_plugs[_mode](_d,_fromPrompt)
+                            
                         else:
                             log.error("|{0}| >> {1}.{2} | Mode: {3} | Not implented or failed to meet criteria".format(_str_func, _short,_a,_mode))                                               
                             
