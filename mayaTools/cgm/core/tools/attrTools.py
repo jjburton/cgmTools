@@ -114,7 +114,7 @@ class ui(cgmUI.cgmGUI):
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 375,300
-    _checkBoxKeys = ['shared','regular','user','numeric']
+    _checkBoxKeys = ['shared','default','user','others']
     
     def insert_init(self,*args,**kws):
             if kws:log.debug("kws: %s"%str(kws))
@@ -173,14 +173,14 @@ class ui(cgmUI.cgmGUI):
         #Get our raw data
         for o in _sel:
             _type = VALID.get_mayaType(o)
-            if VALID.is_transform(o) or VALID.is_shape(o):
-                mNode = cgmMeta.validateObjArg(o)
-                self._ml_nodes.append( mNode )
-                _short = mNode.p_nameShort
-                log.debug("|{0}| >> Good obj: {1}".format(_str_func, _short))
-                self._d_attrs[_short] = mc.listAttr(_short)
-            else:
-                log.debug("|{0}| >> Bad obj: {1}".format(_str_func, NAMES.get_short(o)))
+            #if VALID.is_transform(o) or VALID.is_shape(o):
+            mNode = cgmMeta.validateObjArg(o)
+            self._ml_nodes.append( mNode )
+            _short = mNode.p_nameShort
+            log.debug("|{0}| >> Good obj: {1}".format(_str_func, _short))
+            self._d_attrs[_short] = mc.listAttr(_short)
+            #else:
+                #log.debug("|{0}| >> Bad obj: {1}".format(_str_func, NAMES.get_short(o)))
                 
         if len(self._ml_nodes) < 2:
             self._d_uiCheckBoxes['shared'](edit = True, en=False)
@@ -203,9 +203,9 @@ class ui(cgmUI.cgmGUI):
         
         _shared = self._d_uiCheckBoxes['shared'].getValue()
         #_keyable = self._d_uiCheckBoxes['keyable'].getValue()
-        _regular = self._d_uiCheckBoxes['regular'].getValue()
+        _default = self._d_uiCheckBoxes['default'].getValue()
         _user = self._d_uiCheckBoxes['user'].getValue()
-        _numeric = self._d_uiCheckBoxes['numeric'].getValue()
+        _others = self._d_uiCheckBoxes['others'].getValue()
         _sort = self._d_uiCheckBoxes['sort'].getValue()
         
         
@@ -217,29 +217,44 @@ class ui(cgmUI.cgmGUI):
             _d_processed[_short] = []
             _l_processed = _d_processed[_short] 
                        
-            _l = []
-            if _regular:
-                _l.extend( mc.listAttr(_short, keyable=True) or [])
-                if VALID.getTransform(_short):
-                    _l.extend(SHARED._d_attrCategoryLists['transform'])                
-            else:
-                _l = mc.listAttr(_short, settable = True) or []
+            _l = mc.listAttr(_short, settable=True) or []
+            if VALID.getTransform(_short):
+                _l.extend(SHARED._d_attrCategoryLists['transform'])             
+            """if _default:
+                _l.extend( mc.listAttr(_short) or [])
+                #if VALID.getTransform(_short):
+                    #_l.extend(SHARED._d_attrCategoryLists['transform'])                
             
-            if _user:_l.extend(mc.listAttr(_short, ud=True) or [])
+            #if _user:_l.extend(mc.listAttr(_short, ud=True) or [])
+            
+            if _others:
+                _l.extend( mc.listAttr(_short, settable=True) or [])"""
+                
                 
             _l = LISTS.get_noDuplicates(_l)
 
-            
             for a in _l:
                 try:
                     if a.count('.')>0:
                         continue
                     _d = ATTR.validate_arg(_short,a)
-                    if _numeric:
+                    _dyn = ATTR.is_dynamic(_d)
+                    _hidden = ATTR.is_hidden(_d)
+                    
+                    if _default:
+                        if not _hidden and not _dyn:
+                            _l_processed.append(a)
+                        if _d['attr'] in SHARED._d_attrCategoryLists['transform']:
+                            _l_processed.append(a)
+                    if _user and _dyn:
+                        _l_processed.append(a)
+                    if _others and a not in _l_processed:
+                        _l_processed.append(a)
+                    """if _numeric:
                         if ATTR.is_numeric(_d):
                             _l_processed.append(a)
                     else:
-                        _l_processed.append(a)
+                        _l_processed.append(a)"""
                 except Exception,err:
                     log.warning("|{0}| >> Failed to process: {1} : {2} || err:{3}".format(_str_func, _short, a,err))
 
@@ -355,11 +370,18 @@ class ui(cgmUI.cgmGUI):
                             _l_report.append("sM={0}".format(_d_flags.get('softMax')))                                
                         
                     if _type == 'enum':
-                        _v = "{0}".format(ATTR.get_enumValueString(_d))                        
+                        _v = ATTR.get(_d)
+                        _options = ATTR.get_enum(_d).split(':')
+                        _options[_v] = "[ {0} ]".format(_options[_v])
+                        _v = (' , '.join(_options))
                     else:
                         _v = "{0}".format(ATTR.get(_d))
-                    if len(_v)> 10 and _type not in ['msg']:
-                        _v = _v[:10] + "...  "
+                        for chk in [':']:
+                            if chk in _v:
+                                _v = 'NONDISPLAYABLE'
+                                continue
+                        if len(_v)> 20 and _type not in ['msg']:
+                            _v = _v[:20] + "...  "
                     _l_report.append(_v)
                         
                     #_str = " -- ".join(_l_report)
@@ -492,7 +514,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelLabel(_row_attrFlags,l = 'Show')
         _row_attrFlags.setStretchWidget( mUI.MelSeparator(_row_attrFlags) )
         for item in ui._checkBoxKeys:
-            if item in ['shared','regular','user']:_cb = True
+            if item in ['shared','default','user']:_cb = True
             else:_cb = False
             self._d_uiCheckBoxes[item] = mUI.MelCheckBox(_row_attrFlags,label = item,
                                                          v = _cb,
@@ -669,18 +691,33 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}))        
         mUI.MelMenuItemDiv(_popUp)
         
+        
+        #Standard Flags--------------------------------
+        _flags = mUI.MelMenuItem(_popUp, subMenu = True,
+                                label = 'Standard Flags')  
+        
+        mUI.MelMenuItem(_flags,
+                        label ='Lock and Hide',
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'lock':True,'hidden':True}))         
+        mUI.MelMenuItem(_flags,
+                        label ='Unlock and Show',
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'lock':False,'hidden':False}))         
+        
         _l_boolToMake = ['keyable','lock','hidden']
         
+        
         for item in _l_boolToMake:
-            _menu = mUI.MelMenuItem(_popUp, subMenu = True,
+            _menu = mUI.MelMenuItem(_flags, subMenu = True,
                                 label = item.capitalize())
             mUI.MelMenuItem(_menu,
                         label ='True',
                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{item:True}))        
             mUI.MelMenuItem(_menu,
                         label ='False',
-                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{item:False}))            
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{item:False}))    
         
+        
+        #Connections --------------------------------        
         if _connectionsIn:
             _menu = mUI.MelMenuItem(_popUp, subMenu = True,
                                     label = "Connections In")            
@@ -715,18 +752,24 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'nameNice'}))            
     
         #Values --------------------------------        
+        _l = ['default','min','max','softMin','softMax']
+        _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
+                                en = _numberChanges,
+                                ann="Only userDefined numeric attributes supported",                                
+                                l='Numeric')
         if _numberChanges:
-            _l = ['default','min','max','softMin','softMax']
-            _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
-                                    l='Numeric')
             for item in _l:
                 mUI.MelMenuItem(_menu,
                                 label =item.capitalize(),
                                 c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':item})) 
-                
+                    
                 
         #Values --------------------------------        
-        _l = ['convert','duplicate','copyTo','copyTo connect back','copyTo connect','connectTo','moveUp','moveDown']
+        #_l = ['duplicate','copyTo','copyTo connect back','copyTo connect','connectTo','moveUp','moveDown']
+        _l = ['duplicate']
+        
+        _d_utils = {'duplicate':'Duplicate the attribute including values, connections to the same object',
+              }
         _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
                                 l='Utilities')
         
@@ -736,6 +779,7 @@ class ui(cgmUI.cgmGUI):
         for t in _l_addTypes:
             mc.menuItem(parent=_add,
                         l=t,
+                        ann = "Add a {0} attribute to the loaded object".format(t),
                         c = cgmGEN.Callback(uiPrompt_addAttr,t))
             
         _convert = mUI.MelMenuItem(_menu,subMenu = True, 
@@ -744,11 +788,12 @@ class ui(cgmUI.cgmGUI):
         for t in _l_addTypes:
             mc.menuItem(parent=_convert,
                         l=t,
+                        ann = "Convert select attributes to type: {0}".format(t),                        
                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'convert{0}'.format(t.capitalize())})) 
         
         
         
-        for item in _l:
+        for item,a in _d_utils.iteritems():
             if not _dynamic and item in ['moveUp','moveDown','copyTo','copyTo connect back','copyTo connect']:
                 pass
             elif _hidden and item in ['moveUp','moveDown']:
@@ -756,6 +801,7 @@ class ui(cgmUI.cgmGUI):
             else:
                 mUI.MelMenuItem(_menu,
                                 label =item,
+                                ann = a,
                                 c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':item}))        
 
         mUI.MelMenuItem(_popUp,
@@ -846,19 +892,15 @@ class ui(cgmUI.cgmGUI):
                 if _fromPrompt is None:
                     log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
                     return False
-                #else:
-                    #log.info("|{0}| >>  from prompt: {1} ".format(_str_func,_fromPrompt)) 
-                    #try:
-                        #ATTR.rename(_d_baseAttr,_fromPrompt)
-                        #_done = True
-                    #except Exception,err:
-                        #log.warning("|{0}| >> {1} | new name: {2} | err: {3}".format(_str_func, _str_base, _fromPrompt,err))                           
-            elif _mode in ['alias','nameNice']:
+                
+            elif _mode in ['alias','nameNice','duplicate']:
                 if _mode == 'alias':
                     _plug = ATTR.get_alias(_d_baseAttr)
+                elif _mode == 'duplicate':
+                    _plug = _d_baseAttr['attr']+'DUP'                 
                 else:
                     _plug = ATTR.get_nameNice(_d_baseAttr)
-                _kws = {'title':"Enter {0}".format(_mode),'message':'Enter a new {0}.'.format(_mode)}
+                _kws = {'title':"Enter {0}".format(_mode),'message':'Enter a new {0} name.'.format(_mode)}
                 if _plug:
                     _kws['text'] = _plug
                 
@@ -906,7 +948,6 @@ class ui(cgmUI.cgmGUI):
             elif _mode.startswith('convert'):
                 _convertString = _mode.split('convert')[-1].lower()
                 log.info("|{0}| >>  convert string: {1} ".format(_str_func,_convertString))                                                               
-                return False
                 
             else:
                 log.error("|{0}| >>  Mode: {1} | Not implented...".format(_str_func,_mode))                                               
@@ -922,6 +963,11 @@ class ui(cgmUI.cgmGUI):
                 try:
                     _short = mNode.p_nameShort
                     _d = ATTR.validate_arg(_short,_a)
+                    
+                    if _mode == 'duplicate':
+                        if not _fromPrompt:raise ValueError,"Must have new name"
+                        ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True)                                                 
+                        continue
                     
                     if not _d or not mc.objExists(_d['combined']):
                         log.warning("|{0}| >> not validated. skipping: {1}.{2}".format(_str_func, _short,_a))                           
@@ -958,12 +1004,18 @@ class ui(cgmUI.cgmGUI):
                         elif _mode == 'rename':
                             if not _fromPrompt:raise ValueError,"Must have new name"
                             ATTR.rename(_d, _fromPrompt) 
+                        
                         elif _mode in ['default','min','max','softMin','softMax']:
                             _d_plugs = {'default':ATTR.set_default,'min':ATTR.set_min,'max':ATTR.set_max,
                                         'softMin':ATTR.set_softMin,'softMax':ATTR.set_softMax}
                             if not _fromPrompt:_fromPrompt=False
                             else:_fromPrompt = float(_fromPrompt)
                             _d_plugs[_mode](_d,_fromPrompt)
+                            
+                        elif _mode.startswith('convert'):
+                            if not ATTR.is_dynamic(_d):
+                                log.error("|{0}| >> {1}.{2} | Mode: {3} | Not dynamic. Continuing to next...".format(_str_func, _short,_a,_mode))                                               
+                            ATTR.convert_type(_d,_convertString) 
                             
                         else:
                             log.error("|{0}| >> {1}.{2} | Mode: {3} | Not implented or failed to meet criteria".format(_str_func, _short,_a,_mode))                                               

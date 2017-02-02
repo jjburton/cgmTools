@@ -334,7 +334,7 @@ def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False
     return True
 
 
-def verify_aimAttrs(obj = None, aim = None, up = None, out = None, checkOnly = False):
+def verify_aimAttrs(obj = None, aim = None, up = None, checkOnly = False):
     """
     Make sure an object has aim attributes.
     
@@ -353,10 +353,10 @@ def verify_aimAttrs(obj = None, aim = None, up = None, out = None, checkOnly = F
     
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
     
-    _l = [aim,up,out]
-    _l_defaults = [aim or 2, up or 1, out or 0]
+    _l = [aim,up]
+    _l_defaults = [aim or 2, up or 1]
     
-    for i,a in enumerate(['axisAim','axisUp','axisOut']):
+    for i,a in enumerate(['axisAim','axisUp']):
         _d = ATTR.validate_arg(_obj,a)
         _good = False
         if mc.objExists(_d['combined']):

@@ -427,7 +427,8 @@ def set(node, attr = None, value = None, lock = False,**kws):
             mc.setAttr(_combined, _l.index(value), **kws)
         elif value is not None and value <= len(_l):
             mc.setAttr(_combined, value, **kws)  
-        else:raise ValueError,"Shouldn't have gotten here"
+        else:
+            mc.setAttr(_combined,value, **kws)
         
     else:
         mc.setAttr(_combined,value, **kws)
@@ -816,7 +817,8 @@ def get_enum(*a):
     _d = validate_arg(*a) 
     
     if get_type(_d) == 'enum':
-        return mc.addAttr(_d['combined'],q=True, en = True) 
+        #return mc.addAttr(_d['combined'],q=True, en = True) 
+        return mc.attributeQuery(_d['attr'], node = _d['node'], listEnum=True)[0]	
     return False
 
 def get_enumValueString(*a):
@@ -1371,48 +1373,40 @@ def get_numericFlagsDict(*a):
     if not numeric or get_children(_d):
         return {}
     else:
-        dataDict['min'] = False                    
-        #if mc.attributeQuery(_attr, node = _obj, minExists=True):
         try:
             dataDict['min'] = get_min(_d)
         except:
             dataDict['min'] = False
-            log.warning("'%s.%s' failed to query min value" %(_obj,_attr))
+            log.debug("'%s.%s' failed to query min value" %(_obj,_attr))
 
-        dataDict['max'] = False                
-        if mc.attributeQuery(_attr, node = _obj, maxExists=True):
-            try:
-                maxValue =  mc.attributeQuery(_attr, node = _obj, maximum=True)
-                if maxValue is not False:
-                    dataDict['max']  = maxValue[0]                    
-            except:
-                dataDict['max']  = False
-                log.warning("'%s.%s' failed to query max value" %(_obj,_attr))
+        try:
+            dataDict['max']  = get_max(_d)                  
+        except:
+            dataDict['max']  = False
+            log.debug("'%s.%s' failed to query max value" %(_obj,_attr))
 
-        dataDict['default'] = False             
-        if type(mc.addAttr(_combined,q=True,defaultValue = True)) is int or float:
+        try:
+            dataDict['default'] = get_default(_d) 
+        except:
+            dataDict['default'] = False
+            log.debug("'%s.%s' failed to query default value" %(_obj,_attr))        
+        """if type(mc.addAttr(_combined,q=True,defaultValue = True)) is int or float:
             try:
                 defaultValue = mc.attributeQuery(_attr, node = _obj, listDefault=True)
                 if defaultValue is not False:
                     dataDict['default'] = defaultValue[0]  
             except:
                 dataDict['default'] = False
-                log.warning("'%s.%s' failed to query default value" %(_obj,_attr))
+                log.debug("'%s.%s' failed to query default value" %(_obj,_attr))"""
 
         #>>> Soft values
-        dataDict['softMax']  = False
         try:
-            softMaxValue =  mc.attributeQuery(_attr, node = _obj, softMax=True)
-            if softMaxValue is not False:
-                dataDict['softMax'] = softMaxValue[0]                  
+            dataDict['softMax'] = get_softMax(_d)                  
         except:
             dataDict['softMax']  = False
 
-        dataDict['softMin']  = False
         try:
-            softMinValue =  mc.attributeQuery(_attr, node = _obj, softMin=True)
-            if softMinValue is not False:
-                dataDict['softMin']  = softMinValue[0]                  
+            dataDict['softMin']  =  get_softMin(_d)                  
         except:
             dataDict['softMin']  = False
 
