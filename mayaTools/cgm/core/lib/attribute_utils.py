@@ -34,6 +34,7 @@ _d_attrTypes = {'message':('message','msg'),
                 'double':('float','fl','f','doubleLinear','doubleAngle','double','d'),
                 'string':('string','s','str'),
                 'long':('long','int','i','integer'),
+                'short':('short','shrt'),
                 'bool':('bool','b','boolean'),
                 'enum':('enum','options','e'),
                 'double3':('vector','vec','v','double3','d3'),
@@ -101,7 +102,7 @@ def validate_value(node, attr = None, value = None):
     if _vType in [list,tuple]:
         _b_list = True
         
-    if _aType in ['long','double','double3','doubleAngle','float','float3','time','byte']:
+    if _aType in ['long','double','double3','short','doubleAngle','float','float3','time','byte','short']:
         if _aType in ['long','byte']:
             if _b_list:return [int(v) for v in value]
             return int(value)
@@ -419,6 +420,14 @@ def set(node, attr = None, value = None, lock = False,**kws):
         mc.setAttr(_combined,float(value), **kws)
     elif _validType == 'message':
         set_message(_obj, _attr, value)
+    elif _validType == 'enum':
+        _l = get_enum(_d).split(':')
+        
+        if value in _l:
+            mc.setAttr(_combined, _l.index(value), **kws)
+        elif value is not None and value <= len(_l):
+            mc.setAttr(_combined, value, **kws)  
+        else:raise ValueError,"Shouldn't have gotten here"
         
     else:
         mc.setAttr(_combined,value, **kws)
@@ -1123,7 +1132,9 @@ def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],*a, **kws):
         mc.addAttr (_node, ln=(_attr+'Y'),p=_attr , at= 'double',*a, **kws)
         mc.addAttr (_node, ln=(_attr+'Z'),p=_attr , at= 'double',*a, **kws)        
     elif _type == 'enum':
-        mc.addAttr (_node,ln = _attr, at = 'enum', en=('%s' %(':'.join(enumOptions))),*a, **kws)
+        if type(enumOptions) in [list,tuple]:
+            enumOptions = '%s' %(':'.join(enumOptions))
+        mc.addAttr (_node,ln = _attr, at = 'enum', en=enumOptions,*a, **kws)
         mc.setAttr ((_node+'.'+_attr),e=True,keyable=True)
 
     elif _type == 'bool':
@@ -1188,7 +1199,28 @@ def get_standardFlagsDict(*a):
         dataDict['storable']=mc.addAttr(_combined,q=True,s=True)
         dataDict['usedAsColor']=mc.addAttr(_combined,q=True,usedAsColor = True)     
 
-    return dataDict    
+    return dataDict 
+
+def has_attr(*a):
+    """   
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        status(has_attr)
+    """ 
+    _str_func = 'has_attr'
+    _d = validate_arg(*a) 
+
+    try:
+        if mc.objExists(_d['combined']):
+            return True
+        return False   
+    except Exception,err:
+        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        return False
+    return False
+
 
 def get_default(*a):
     """   
@@ -1329,31 +1361,23 @@ def get_numericFlagsDict(*a):
     _obj = _d['obj']
     _attr = _d['attr']
 
-    objAttrs = mc.listAttr(_obj, userDefined = True) or []
 
-    dynamic = False
-    if _attr in objAttrs:
-        dynamic = True
 
-    numeric = True
-    attrType = mc.getAttr(_combined,type=True)    
-    if attrType in ['string','message','enum','bool']:
-        numeric = False
+    numeric = is_numeric(_d)
+
 
     dataDict = {}    
     # Return numeric data    
-    if not numeric or not dynamic or mc.attributeQuery(_attr, node = _obj, listChildren=True):
+    if not numeric or get_children(_d):
         return {}
     else:
         dataDict['min'] = False                    
-        if mc.attributeQuery(_attr, node = _obj, minExists=True):
-            try:
-                minValue =  mc.attributeQuery(_attr, node = _obj, minimum=True)
-                if minValue is not False:
-                    dataDict['min'] = minValue[0]
-            except:
-                dataDict['min'] = False
-                log.warning("'%s.%s' failed to query min value" %(_obj,_attr))
+        #if mc.attributeQuery(_attr, node = _obj, minExists=True):
+        try:
+            dataDict['min'] = get_min(_d)
+        except:
+            dataDict['min'] = False
+            log.warning("'%s.%s' failed to query min value" %(_obj,_attr))
 
         dataDict['max'] = False                
         if mc.attributeQuery(_attr, node = _obj, maxExists=True):

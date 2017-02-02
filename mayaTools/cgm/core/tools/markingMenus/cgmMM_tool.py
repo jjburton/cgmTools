@@ -627,7 +627,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     def bUI_optionMenu_objDefaults(self, parent):
             #uiMenu_objDefault = mc.menuItem(parent= parent, l='Object Default', subMenu=True)
             #mc.setParent(parent)        
-            uiMenu_objDefault = mc.menuItem(parent = parent, l='Object Default', subMenu=True)
+            uiMenu_objDefault = mc.menuItem(parent = parent, l='Object', subMenu=True)
             
             try:#>>> Obj Aim 
                 _str_section = 'Aim Axis'
@@ -692,7 +692,11 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             except Exception,err:
                 log.error("|{0}| failed to load. err: {1}".format(_str_section,err))     
                            
+            
+            mc.menuItem( parent = uiMenu_objDefault, l='Tag selected for aim',
+                         c = cgmGen.Callback(MMCONTEXT.func_process, SNAP.verify_aimAttrs, self._l_sel,'each','Verify aim attributes',True,**{}),)                                                                    
                 
+            
     #@cgmGen.Timer
     def bUI_optionMenu_contextTD(self, parent):
         uiMenu_context = mc.menuItem( parent = parent, l='Context:', subMenu=True)    
@@ -1502,12 +1506,6 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
     
 def killUI():
     log.debug("killUI...")
-    try:
-        #mmTemplate.killChildren(_str_popWindow)        
-        if mc.popupMenu(_str_popWindow,ex = True):
-            mc.deleteUI(_str_popWindow)  
-    except Exception,err:
-        log.error(err)  
     
     _var_mode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_menuMode', defaultValue = 0)
     if _var_mode.value in [0,1]:
@@ -1527,7 +1525,13 @@ def killUI():
         if sel and f_seconds <= .5:#and not mmActionOptionVar.value:
             log.debug("|{0}| >> low time. Set key...".format(_str_popWindow))
             setKey()    
-            
+    
+    try:
+        #mmTemplate.killChildren(_str_popWindow)        
+        if mc.popupMenu(_str_popWindow,ex = True):
+            mc.deleteUI(_str_popWindow)  
+    except Exception,err:
+        log.error(err)     
     
         
 from cgm.core.classes import DraggerContextFactory as cgmDrag

@@ -109,7 +109,7 @@ def go(obj = None, target = None,
     mc.xform(_target, rp=infoDict['position'], ws = True, p=True)        
     mc.xform(_target, sp=infoDict['scalePivot'], ws = True, p=True)     
     
-def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local'):
+def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',ignoreAimAttrs = False):
     """
     Aim functionality.
     
@@ -129,7 +129,15 @@ def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mo
     
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
     
-    log.debug("|{0}| >> obj: {1} | position:{2} | mode: {3}".format(_str_func,_obj,position,mode))             
+    log.debug("|{0}| >> obj: {1} | position:{2} | mode: {3}".format(_str_func,_obj,position,mode))  
+    
+    if not ignoreAimAttrs:
+        _d_aim = ATTR.validate_arg(_obj,'axisAim')
+        _d_up =ATTR.validate_arg(_obj,'axisUp')
+        if ATTR.has_attr(_d_aim) and ATTR.has_attr(_d_up):
+            aimAxis = ATTR.get_enumValueString(_d_aim)
+            upAxis = ATTR.get_enumValueString(_d_up)
+            log.debug("|{0}| >> obj: {1} aimable from attrs. aim: {2} | up: {3}".format(_str_func,_obj,aimAxis,upAxis))              
     
     if mode == 'local':
         '''Rotate transform based on look vector'''
@@ -323,5 +331,49 @@ def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False
         #if _dict.get('rotateAxis'):mc.xform(_obj, ra=_dict['rotateAxis'],p=True)
         
     
+    return True
+
+
+def verify_aimAttrs(obj = None, aim = None, up = None, out = None, checkOnly = False):
+    """
+    Make sure an object has aim attributes.
+    
+    :parameters:
+        obj(str): Object to modify
+        aim(arg): Value to set with on call
+        up(arg): Value to set with on call
+        out(arg): Value to set with on call
+        checkOnly(bool): Check only, no adding attrs
+
+    :returns
+        success(bool)
+    """     
+    _str_func = 'verify_aimAttrs'
+    _str_enum = 'x+:y+:z+:x-:y-:z-'
+    
+    _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
+    
+    _l = [aim,up,out]
+    _l_defaults = [aim or 2, up or 1, out or 0]
+    
+    for i,a in enumerate(['axisAim','axisUp','axisOut']):
+        _d = ATTR.validate_arg(_obj,a)
+        _good = False
+        if mc.objExists(_d['combined']):
+            if ATTR.get_type(_d) == 'enum':
+                if ATTR.get_enum(_d) == _str_enum:
+                    _good = True
+        if not _good:
+            if checkOnly:
+                return False
+            log.warning("|{0}| >> {1} not a good attr. Must rebuild".format(_str_func,_d['combined']))
+            ATTR.delete(_d)
+            ATTR.add(_d,'enum',enumOptions= _str_enum, hidden = False)
+            ATTR.set(_d,value =_l_defaults[i])
+            ATTR.set_keyable(_d,False)
+        _v = _l[i]
+        if _v is not None:
+            ATTR.set(_d,value = _v)
+
     return True
     
