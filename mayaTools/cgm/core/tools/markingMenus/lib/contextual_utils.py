@@ -21,11 +21,12 @@ log.setLevel(logging.INFO)
 import maya.cmds as mc
 
 
-from cgm.core import cgm_Meta as cgmMeta
+#from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shape_utils as SHAPE
 from cgm.core.lib import rigging_utils as RIGGING
+from cgm.core.lib import attribute_utils as ATTR
 
 def get_list(context = 'selection', mType = None):
     """
@@ -135,7 +136,8 @@ def set_attrs(self, attr = None, value = None, context = 'selection', mType = No
         
     for o in _l_context:
         try:
-            cgmMeta.cgmNode(o).__setattr__(attr,value)
+            ATTR.set(o,attr,value)
+            #cgmMeta.cgmNode(o).__setattr__(attr,value)
         except Exception,err:
             log.error("|{0}| >> set fail. obj:{1} | attr:{2} | value:{3} | error: {4} | {5}".format(_str_func,NAMES.get_short(o),attr,value,err,Exception))
     

@@ -34,9 +34,11 @@ from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import list_utils as LISTS
+from cgm.core.tools.markingMenus.lib import contextual_utils as CONTEXT
+
 reload(SEARCH)
 #>>> Root settings =============================================================
-__version__ = 'Alpha 2.0.01262017'
+__version__ = 'Alpha 2.0.02022017'
 
 #__toolURL__ = 'www.cgmonks.com'
 #__author__ = 'Josh Burton'
@@ -132,11 +134,62 @@ class ui(cgmUI.cgmGUI):
             self.uiPopUpMenu_attr = False
 
     def build_menus(self):
+        self.uiMenu_context = mUI.MelMenu( l='Context', pmc=self.buildMenu_context)           
+        self.uiMenu_keys = mUI.MelMenu( l='Keys', pmc=self.buildMenu_keys)           
+        
         self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)           
         #pass#...don't want em  
     #def setup_Variables(self):pass
     
+    def buildMenu_context( self, *args):
+        self.create_guiOptionVar('context',  defaultValue = 'loaded')            
         
+        self.uiMenu_context.clear()
+        
+        uiRC = mc.radioMenuItemCollection()
+        #self.uiOptions_menuMode = []		
+        _v = self.var_context.value
+
+        for i,item in enumerate(['loaded','selection','children','heirarchy','scene']):
+            if item == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(parent=self.uiMenu_context,collection = uiRC,
+                        label=item,
+                        c = cgmGEN.Callback(self.var_context.setValue,item),                                  
+                        rb = _rb)                        
+        
+        mUI.MelMenuItemDiv(parent=self.uiMenu_context)
+        mc.menuItem(parent=self.uiMenu_context,collection = uiRC,
+                    label='Report',
+                    ann='Print the current context report.',
+                    c = cgmGEN.Callback(get_context, self, _v, True))          
+        
+        """#>>> Reset Options		
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
+                         c=lambda *a: self.reload())		
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
+                         c=lambda *a: self.reset())"""   
+        
+    def buildMenu_keys( self, *args):
+        self.create_guiOptionVar('keysMode',  defaultValue = 0)            
+        
+        self.uiMenu_keys.clear()
+        
+        uiRC = mc.radioMenuItemCollection()
+        #self.uiOptions_menuMode = []		
+        _v = self.var_keysMode.value
+
+        for i,item in enumerate(['primeAttr','primeObj','each','combined']):
+            if i == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(parent=self.uiMenu_keys,collection = uiRC,
+                        label=item,
+                        c = cgmGEN.Callback(self.var_keysMode.setValue,i),                                  
+                        rb = _rb)   
+            
     def uiFunc_clear_loaded(self):
         _str_func = 'uiFunc_clear_loaded'  
         self._d_attrs = {}
@@ -530,9 +583,7 @@ class ui(cgmUI.cgmGUI):
                                                          selectCommand = self.uiFunc_selectAttr)
         
         
-        #>>>Keys Row --------------------------------------------------------------------------------------------        
-        mc.setParent(_MainForm)
-        _header_push = cgmUI.add_Header('Push Values')
+        """#>>>Keys Row --------------------------------------------------------------------------------------------        
        
         
         self.create_guiOptionVar('keyMode',defaultValue = 0)       
@@ -576,9 +627,10 @@ class ui(cgmUI.cgmGUI):
                                          onCommand = cgmGEN.Callback(self.var_valueMode.setValue,cnt))
             mUI.MelSpacer(_row_valueModes,w=2)        
         
-        _row_valueModes.layout()        
+        _row_valueModes.layout()  """      
         
-        
+        mc.setParent(_MainForm)        
+        _header_push = cgmUI.add_Header('Push Values')
         
         #>>>Push Values Row --------------------------------------------------------------------------------------------
         self.row_setValue = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 2)
@@ -622,20 +674,20 @@ class ui(cgmUI.cgmGUI):
                         (_row_attrFlags,"right",0),
                         (_header_push,"left",0),
                         (_header_push,"right",0),                         
-                        (_row_keyModes,"left",5),
-                        (_row_keyModes,"right",5),  
-                        (_row_valueModes,"left",5),
-                        (_row_valueModes,"right",5),                          
+                        #(_row_keyModes,"left",5),
+                        #(_row_keyModes,"right",5),  
+                        #(_row_valueModes,"left",5),
+                        #(_row_valueModes,"right",5),                          
                         (self.row_setValue,"left",0),
                         (self.row_setValue,"right",0),                          
-                        (self.row_setValue,"bottom",5),
+                        (self.row_setValue,"bottom",2),
                         ],
                   ac = [(_row_attrReport,"top",2,_header),
                         (_row_attrCreate,"top",2,_row_attrReport),
                         (_row_attrFlags,"top",2,_row_attrCreate),
-                        (_header_push,"bottom",0,_row_keyModes),                        
-                        (_row_keyModes,"bottom",0,_row_valueModes),
-                        (_row_valueModes,"bottom",0,self.row_setValue),                        
+                        (_header_push,"bottom",2,self.row_setValue),                        
+                        #(_row_keyModes,"bottom",0,_row_valueModes),
+                        #(_row_valueModes,"bottom",0,self.row_setValue),                        
                         (self.uiScrollList_attr,"top",2,_row_attrFlags),
                         (self.uiScrollList_attr,"bottom",0,_header_push)],
                   attachNone = [(self.row_setValue,"top")])	        
@@ -967,7 +1019,7 @@ class ui(cgmUI.cgmGUI):
             else:
                 log.error("|{0}| >>  Mode: {1} | Not implented...".format(_str_func,_mode))                                               
                 return False
-        
+            
         if _done:
             self.uiFunc_updateScrollAttrList()
             return True
@@ -1206,5 +1258,57 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
         else:
             uiSelectActiveAttr(self,attrs[0])
         menu(edit=True,cc = uiAttrUpdate)
+        
+        
+        
+        
+def get_context(self, context = None, report = False):
+    _str_func = 'get_context'
+    self._ml_nodes
+    _l_context = []
+    if context == 'loaded':
+        _indices = self.uiScrollList_attr.getSelectedIdxs()
+        
+        if not self._ml_nodes:
+            log.error("|{0}| >> No nodes stored to ui. ".format(_str_func))            
+            return False
+        
+        for mNode in self._ml_nodes:
+            for i in _indices:
+                _a = self._l_attrsToLoad[i]
+                _l_context.append( "{0}.{1}".format(mNode.mNode, _a))
+        
+    if report:
+        log.info(cgmGEN._str_subLine)
+        log.info("|{0}| >> context: {1}.... ".format(_str_func,context))
+        for i,o in enumerate(_l_context):
+            log.info("|{0}| >> {1} | {2}".format(_str_func,i,NAMES.get_short(o)))
+    return _l_context
+        
+    
+def contextual_set(attr = None, value = None, context = 'selection', mType = None):
+    """
+    
+    
+    :parameters
+        self(instance): cgmMarkingMenu
+
+    :returns
+        info(dict)
+    """   
+    _str_func = "contextual_set"
+    _context = context.lower()
+    _l_context = CONTEXT.get_list(_context, mType)
+    
+    log.debug("|{0}| >> attr: {1} | value: {2} | mType: {3} | context: {4}".format(_str_func,attr,value,mType,_context))             
+        
+    for o in _l_context:
+        try:
+            ATTR.set(o,attr,value)
+        except Exception,err:
+            log.error("|{0}| >> set fail. obj:{1} | attr:{2} | value:{3} | error: {4} | {5}".format(_str_func,NAMES.get_short(o),attr,value,err,Exception))
+    
+    mc.select(_l_context)
+    return True    
         
 
