@@ -28,7 +28,7 @@ from cgm.core.cgmPy import validateArgs as coreValid
 reload(coreValid)
 from cgm.core.lib import shared_data as coreShared
 from cgm.core.lib import name_utils as NAME
-
+from cgm.core.lib import attribute_utils as ATTR
 from cgm.lib import attributes
 
 from cgm.lib import lists
@@ -202,14 +202,18 @@ def get_selectedFromChannelBox(attributesOnly = False):
         channels.extend(sha)
     if soa:
         channels.extend(soa)
-
+    
     if channels and _sel:
+        _channels_long = []
+        for c in channels:
+            _channels_long.append(ATTR.get_nameLong(_sel[0],c))
+            
         if attributesOnly:
-            return channels
+            return _channels_long
         else:
             _res = []
             for item in _sel:
-                for attr in channels:
+                for attr in _channels_long:
                     _res.append("{0}.{1}".format(item,attr))
             return _res
     return False 

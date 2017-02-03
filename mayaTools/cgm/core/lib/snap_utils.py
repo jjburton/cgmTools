@@ -32,6 +32,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import position_utils as POS
+reload(POS)
 from cgm.core.lib import euclid as EUCLID
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import name_utils as NAMES
@@ -67,10 +68,17 @@ def go(obj = None, target = None,
     log.debug("|{0}| >> position: {1} | rotation:{2} | rotateAxis: {3} | rotateOrder: {4}".format(_str_func,position,rotation,rotateAxis,rotateOrder))             
     
     kws = {'ws':False,'os':False}
-    if _space == 'world':kws['ws']=True
-    else:kws['os']=True    
+    if _space == 'world':
+        kws['ws']=True
+    else:kws['os']=True  
+    
     
     if position:
+        kws_move = copy.copy(kws)
+        if _pivot == 'sp':
+            kws_move['spr'] = True
+        else:
+            kws_move['rpr'] = True        
         if _pivot == 'closestPoint':
             log.debug("|{0}|...closestPoint...".format(_str_func))        
             _targetType = SEARCH.get_mayaType(_target)
@@ -78,8 +86,10 @@ def go(obj = None, target = None,
         else:
             log.debug("|{0}|...postion...".format(_str_func))
             pos = POS.get(target,_pivot,_space,_mode)
-            mc.move (pos[0],pos[1],pos[2], _obj, **kws)
-        
+            log.info(pos)
+            #cgmGeneral.print_dict(kws,'move kws','snap.go')
+            mc.move (pos[0],pos[1],pos[2], _obj, **kws_move)
+            log.info(POS.get(_obj))
     if rotateAxis:
         log.debug("|{0}|...rotateAxis...".format(_str_func))        
         mc.xform(obj,ra = mc.xform(_target, q=True, ra=True, **kws), p=True, **kws)    
@@ -324,7 +334,7 @@ def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False
     pos = _dict['position']
     
     if move:
-        mc.move (pos[0],pos[1],pos[2], _obj, ws=True)
+        mc.move (pos[0],pos[1],pos[2], _obj, ws=True, rpr = True)
     if rotate:
         #if _dict.get('rotateOrder'):mc.xform(_obj, roo=_dict['rotateOrder'],p=True)
         if _dict.get('rotation'):mc.xform(_obj, ro=_dict['rotation'], ws = True)

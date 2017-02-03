@@ -169,7 +169,10 @@ class ui(cgmUI.cgmGUI):
         self._ml_nodes = []
         
         _sel = mc.ls(sl=True)
-        
+        _sel_attrs = SEARCH.get_selectedFromChannelBox(True)
+        if _sel_attrs:#...push any selected channels to preselect
+            self._l_attrsSelected = _sel_attrs
+            
         #Get our raw data
         for o in _sel:
             _type = VALID.get_mayaType(o)
@@ -187,6 +190,7 @@ class ui(cgmUI.cgmGUI):
         else:
             self._d_uiCheckBoxes['shared'](edit = True, en=True)    
         self.uiReport_objects()
+        self.uiScrollList_attr.clear()        
         self.uiFunc_updateScrollAttrList()
 
     def uiFunc_updateScrollAttrList(self):
@@ -782,6 +786,7 @@ class ui(cgmUI.cgmGUI):
                         ann = "Add a {0} attribute to the loaded object".format(t),
                         c = cgmGEN.Callback(uiPrompt_addAttr,t))
             
+        
         _convert = mUI.MelMenuItem(_menu,subMenu = True, 
                                    en = _dynamic,                                   
                                    l='convert')
@@ -791,6 +796,14 @@ class ui(cgmUI.cgmGUI):
                         ann = "Convert select attributes to type: {0}".format(t),                        
                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'convert{0}'.format(t.capitalize())})) 
         
+        _copy = mUI.MelMenuItem(_menu,subMenu = True, 
+                                #en = _dynamic,                                   
+                                l='copy')
+        for t in ['to','connectBack','connectTo']:
+            mc.menuItem(parent=_copy,
+                        l=t,
+                        ann = "Copy selected attribute by {0}".format(t),                        
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'copy{0}'.format(t.capitalize())})) 
         
         
         for item,a in _d_utils.iteritems():
@@ -893,13 +906,15 @@ class ui(cgmUI.cgmGUI):
                     log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
                     return False
                 
-            elif _mode in ['alias','nameNice','duplicate']:
+            elif _mode in ['alias','nameNice','duplicate','copyTo','copyConnectBack','copyConnectTo']:
                 if _mode == 'alias':
                     _plug = ATTR.get_alias(_d_baseAttr)
                 elif _mode == 'duplicate':
                     _plug = _d_baseAttr['attr']+'DUP'                 
-                else:
+                elif _mode == 'nameNice':
                     _plug = ATTR.get_nameNice(_d_baseAttr)
+                else:
+                    _plug = ATTR.get_nameLong(_d_baseAttr)
                 _kws = {'title':"Enter {0}".format(_mode),'message':'Enter a new {0} name.'.format(_mode)}
                 if _plug:
                     _kws['text'] = _plug
@@ -964,11 +979,14 @@ class ui(cgmUI.cgmGUI):
                     _short = mNode.p_nameShort
                     _d = ATTR.validate_arg(_short,_a)
                     
-                    if _mode == 'duplicate':
+                    if _mode in ['duplicate']:
                         if not _fromPrompt:raise ValueError,"Must have new name"
-                        ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True)                                                 
+                        if _mode == 'duplicate':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True)                                                 
+                        if _mode == 'copyTo':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True)
                         continue
                     
+                    
+                    #...the remainder of these happen after validation of attr
                     if not _d or not mc.objExists(_d['combined']):
                         log.warning("|{0}| >> not validated. skipping: {1}.{2}".format(_str_func, _short,_a))                           
                         continue

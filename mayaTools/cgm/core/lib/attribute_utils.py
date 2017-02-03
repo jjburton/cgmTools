@@ -23,6 +23,7 @@ import maya.cmds as mc
 from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
+#DO NOT IMPORT: SEARCH
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import name_utils as NAMES
