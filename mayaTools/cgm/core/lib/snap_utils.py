@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -236,7 +236,7 @@ def aimAtMidpoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mode
 
     targetPos /= len(_targets)
 
-    aimAtPoint(_obj, MATH.Vector3.AsArray(targetPos), aimAxis, upAxis)
+    aimAtPoint(_obj, MATH.Vector3.AsArray(targetPos), aimAxis, upAxis,mode = mode)
 
 def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local'):
     """

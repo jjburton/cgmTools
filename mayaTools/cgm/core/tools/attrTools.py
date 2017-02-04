@@ -132,6 +132,10 @@ class ui(cgmUI.cgmGUI):
             self._ml_nodes = []
             self._l_attrsSelected = []
             self.uiPopUpMenu_attr = False
+            
+            self.create_guiOptionVar('keysMode',  defaultValue = 0)            
+            self.create_guiOptionVar('context',  defaultValue = 'loaded')            
+            
 
     def build_menus(self):
         self.uiMenu_context = mUI.MelMenu( l='Context', pmc=self.buildMenu_context)           
@@ -142,13 +146,17 @@ class ui(cgmUI.cgmGUI):
     #def setup_Variables(self):pass
     
     def buildMenu_context( self, *args):
-        self.create_guiOptionVar('context',  defaultValue = 'loaded')            
-        
         self.uiMenu_context.clear()
         
-        uiRC = mc.radioMenuItemCollection()
+        uiRC = mc.radioMenuItemCollection(parent = self.uiMenu_context)
         #self.uiOptions_menuMode = []		
         _v = self.var_context.value
+        
+        _d_annos = {'loaded':'Will use objects loaded to the ui',
+                    'selection':'Will use any selected objects primNode type',
+                    'children':'Will use any objects below primeNode heirarchally and matching type',
+                    'heirarchy':'Will use any objects in primNode heirarchy and matching type',
+                    'scene':'Will use any objects in scene matching primeNode type'}
 
         for i,item in enumerate(['loaded','selection','children','heirarchy','scene']):
             if item == _v:
@@ -156,6 +164,7 @@ class ui(cgmUI.cgmGUI):
             else:_rb = False
             mc.menuItem(parent=self.uiMenu_context,collection = uiRC,
                         label=item,
+                        ann=_d_annos.get(item,'Fill out the dict!'),
                         c = cgmGEN.Callback(self.var_context.setValue,item),                                  
                         rb = _rb)                        
         
@@ -173,13 +182,17 @@ class ui(cgmUI.cgmGUI):
                          c=lambda *a: self.reset())"""   
         
     def buildMenu_keys( self, *args):
-        self.create_guiOptionVar('keysMode',  defaultValue = 0)            
-        
         self.uiMenu_keys.clear()
         
-        uiRC = mc.radioMenuItemCollection()
+        uiRC = mc.radioMenuItemCollection(parent = self.uiMenu_keys)
         #self.uiOptions_menuMode = []		
         _v = self.var_keysMode.value
+        
+        _d_annos = {'loaded':'Will use objects loaded to the ui',
+                    'selection':'Will use any selected objects primNode type',
+                    'children':'Will use any objects below primeNode heirarchally and matching type',
+                    'heirarchy':'Will use any objects in primNode heirarchy and matching type',
+                    'scene':'Will use any objects in scene matching primeNode type'}        
 
         for i,item in enumerate(['primeAttr','primeObj','each','combined']):
             if i == _v:
@@ -187,6 +200,7 @@ class ui(cgmUI.cgmGUI):
             else:_rb = False
             mc.menuItem(parent=self.uiMenu_keys,collection = uiRC,
                         label=item,
+                        ann=_d_annos.get(item,'Fill out the dict!'),                        
                         c = cgmGEN.Callback(self.var_keysMode.setValue,i),                                  
                         rb = _rb)   
             
@@ -882,14 +896,21 @@ class ui(cgmUI.cgmGUI):
         _str_func = 'uiFunc_pushValue'
         _indices = self.uiScrollList_attr.getSelectedIdxs()
         _mode = kws.get('mode','current')
-        _keyMode = self.var_keyMode.value
-        _valueMode = self.var_valueMode.value
+        _keyMode = self.var_keysMode.value
+        #_valueMode = self.var_valueMode.value
         
-        log.info("|{0}| >> mode: {1} | keyMode: {2} | valueMode: {3}".format(_str_func,_mode,_keyMode,_valueMode))
+        log.info("|{0}| >> mode: {1} | keyMode: {2}".format(_str_func,_mode,_keyMode))
         log.info("|{0}| >> indicies: {1} ".format(_str_func,_indices))
         
         _v_master = None
         _d_values = {}
+             
+        #>>> Get our driven ------------------------------------------------------------------------------
+        _res = get_context(self, self.var_context.value)
+        _primeNode = _res[0],
+        _l_primeAttrs =_res[1]
+        _l_targets = _res[2]
+        
         
         #>>Get Attribute values -----------------------------------------------------------------------------------
         _short = self._ml_nodes[0].p_nameShort
@@ -900,14 +921,7 @@ class ui(cgmUI.cgmGUI):
             for idx in _indices:
                 _a = self._l_attrsToLoad[idx]
                 _d_values[_a] = ATTR.get(_short,_a)
-            cgmGEN.print_dict(_d_values,'Master Values', 'attrTools')
-        
-        #>>> Get our driven ------------------------------------------------------------------------------
-        _sel = SEARCH.get_selectedFromChannelBox(False) or []
-        if not _sel:
-            _sel = mc.ls(sl=True) or []
-            
-        _ml_nodes = self._ml_nodes        
+            cgmGEN.print_dict(_d_values,'Master Values', 'attrTools')        
         
         #>>> Bake ------------------------------------------------------------------------------        
         if _mode == 'current':
@@ -1263,27 +1277,68 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
         
         
 def get_context(self, context = None, report = False):
+    """
+    :parameters
+        self(instance): cgmMarkingMenu
+
+    :returns
+        info(dict)
+    """   
     _str_func = 'get_context'
-    self._ml_nodes
-    _l_context = []
-    if context == 'loaded':
-        _indices = self.uiScrollList_attr.getSelectedIdxs()
+    
+    _l_targets = []
+    _sel = mc.ls(sl=True)
+    _sel_attrs = SEARCH.get_selectedFromChannelBox(True)
+
+    #_primeNode -----------------------------------------------------------------------------------
+    _primeNode = None
+    _type = None
+    if self._ml_nodes:
+        _primeNode = self._ml_nodes[0].mNode
+    elif _sel:
+        _primeNode = _sel[0]
+    else:
+        log.error("|{0}| >> No nodes stored. Nothing selected. Try again. ".format(_str_func))  
+        return False
+    
+    #_primeAttrs -----------------------------------------------------------------------------------
+    _l_primeAttrs = []
+    _indices = self.uiScrollList_attr.getSelectedIdxs()
+    if _indices:
+        for i in _indices:
+            _l_primeAttrs.append(self._l_attrsToLoad[i])
+    elif _sel_attrs:
+        _l_primeAttrs = _sel_attrs
+    else:
+        log.error("|{0}| >> Attrs found. using all settable ".format(_str_func))  
+        _l_primeAttrs = mc.listAttr(_primeNode, settable = True)
         
+    if _primeNode:
+        _type = VALID.get_mayaType(_primeNode)
+    
+    if context == 'loaded':
         if not self._ml_nodes:
             log.error("|{0}| >> No nodes stored to ui. ".format(_str_func))            
             return False
         
         for mNode in self._ml_nodes:
-            for i in _indices:
-                _a = self._l_attrsToLoad[i]
-                _l_context.append( "{0}.{1}".format(mNode.mNode, _a))
+            for a in _l_primeAttrs:
+                _l_targets.append( "{0}.{1}".format(mNode.mNode, a))
+    else:
+        _l_targets = CONTEXT.get_list(context,_type)
         
     if report:
-        log.info(cgmGEN._str_subLine)
+        log.info(cgmGEN._str_hardLine)
         log.info("|{0}| >> context: {1}.... ".format(_str_func,context))
-        for i,o in enumerate(_l_context):
+        log.info("|{0}| >> primeNode: {1} | type: {2}.... ".format(_str_func,_primeNode,_type))
+        log.info("|{0}| >> primeAttrs({1})... ".format(_str_func,len(_l_primeAttrs)))
+        
+        for i,a in enumerate(_l_primeAttrs):
+            log.info("|{0}| >> {1} | {2}".format(_str_func,i,a))        
+        log.info(cgmGEN._str_subLine)        
+        for i,o in enumerate(_l_targets):
             log.info("|{0}| >> {1} | {2}".format(_str_func,i,NAMES.get_short(o)))
-    return _l_context
+    return _primeNode,_l_primeAttrs,_l_targets
         
     
 def contextual_set(attr = None, value = None, context = 'selection', mType = None):
