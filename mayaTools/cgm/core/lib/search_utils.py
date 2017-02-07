@@ -153,16 +153,19 @@ def get_key_indices_from(obj = None):
     """ 
     _str_func = 'get_key_indices'
     
+    if not ATTR.get_keyed(obj):
+        return []
+    
     initialTimeState = mc.currentTime(q=True)
     keyFrames = []
 
-    firstKey = mc.findKeyframe(obj,which = 'first')
-    lastKey = mc.findKeyframe(obj,which = 'last')
+    firstKey = mc.findKeyframe(obj,which = 'first',an='objects')
+    lastKey = mc.findKeyframe(obj,which = 'last',an='objects')
 
     keyFrames.append(firstKey)
     mc.currentTime(firstKey)
     while mc.currentTime(q=True) != lastKey:
-        keyBuffer = mc.findKeyframe(obj,which = 'next')
+        keyBuffer = mc.findKeyframe(obj,which = 'next',an='objects')
         keyFrames.append(keyBuffer)
         mc.currentTime(keyBuffer)
 

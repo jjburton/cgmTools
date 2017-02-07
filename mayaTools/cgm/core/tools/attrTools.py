@@ -38,7 +38,7 @@ from cgm.core.tools.markingMenus.lib import contextual_utils as CONTEXT
 
 reload(SEARCH)
 #>>> Root settings =============================================================
-__version__ = 'Alpha 2.0.02022017'
+__version__ = 'Alpha 2.0.02062017'
 
 #__toolURL__ = 'www.cgmonks.com'
 #__author__ = 'Josh Burton'
@@ -133,13 +133,15 @@ class ui(cgmUI.cgmGUI):
             self._l_attrsSelected = []
             self.uiPopUpMenu_attr = False
             
-            self.create_guiOptionVar('keysMode',  defaultValue = 0)            
+            self.create_guiOptionVar('keysMode',  defaultValue = 'each')
+            self.create_guiOptionVar('valuesMode',  defaultValue = 'primeNode')                        
             self.create_guiOptionVar('context',  defaultValue = 'loaded')            
             
 
     def build_menus(self):
         self.uiMenu_context = mUI.MelMenu( l='Context', pmc=self.buildMenu_context)           
-        self.uiMenu_keys = mUI.MelMenu( l='Keys', pmc=self.buildMenu_keys)           
+        self.uiMenu_valueModes = mUI.MelMenu( l='Values', pmc=self.buildMenu_values)           
+        self.uiMenu_keysModes = mUI.MelMenu( l='Keys', pmc=self.buildMenu_keys)           
         
         self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)           
         #pass#...don't want em  
@@ -182,27 +184,61 @@ class ui(cgmUI.cgmGUI):
                          c=lambda *a: self.reset())"""   
         
     def buildMenu_keys( self, *args):
-        self.uiMenu_keys.clear()
+        self.uiMenu_keysModes.clear()
         
-        uiRC = mc.radioMenuItemCollection(parent = self.uiMenu_keys)
+        uiRC = mc.radioMenuItemCollection(parent = self.uiMenu_keysModes)
         #self.uiOptions_menuMode = []		
         _v = self.var_keysMode.value
         
-        _d_annos = {'loaded':'Will use objects loaded to the ui',
-                    'selection':'Will use any selected objects primNode type',
-                    'children':'Will use any objects below primeNode heirarchally and matching type',
-                    'heirarchy':'Will use any objects in primNode heirarchy and matching type',
-                    'scene':'Will use any objects in scene matching primeNode type'}        
+        _d_annos = {'primeNode':'Any keys on prime node',
+                    'each':'Each contextual nodes will take values on own keys',
+                    'combined':'Combine keys of conextual nodes and prime'}        
 
-        for i,item in enumerate(['primeAttr','primeObj','each','combined']):
-            if i == _v:
+        for i,item in enumerate(['primeNode','each','combined']):
+            if item == _v:
                 _rb = True
             else:_rb = False
-            mc.menuItem(parent=self.uiMenu_keys,collection = uiRC,
+            mc.menuItem(parent=self.uiMenu_keysModes,collection = uiRC,
                         label=item,
                         ann=_d_annos.get(item,'Fill out the dict!'),                        
-                        c = cgmGEN.Callback(self.var_keysMode.setValue,i),                                  
-                        rb = _rb)   
+                        c = cgmGEN.Callback(self.var_keysMode.setValue,item),                                  
+                        rb = _rb) 
+            
+        mUI.MelMenuItemDiv(parent=self.uiMenu_keysModes)
+        mc.menuItem(parent=self.uiMenu_keysModes,collection = uiRC,
+                    label='Report',
+                    ann='Print the current values report.',
+                    c = cgmGEN.Callback(get_keys, self, self.var_context.value, True))  
+            
+    def buildMenu_values( self, *args):
+        self.uiMenu_valueModes.clear()
+        
+        uiRC = mc.radioMenuItemCollection(parent = self.uiMenu_valueModes)
+        #self.uiOptions_menuMode = []		
+        _v = self.var_valuesMode.value
+        
+        _d_annos = {'primeAttr':'First attribute values will be pushed',
+                    'primeAttrPer':'First attribute value per key will be pushed',
+                    'primeNode':'Values from primeNode will be pushed',
+                    'primeNodePer':'Values from primenode per key will be pushed',
+                    'each':'Values from each object will be pushed',
+                    }        
+
+        for i,item in enumerate(['primeAttr','primeAttrPer','primeNode','primeNodePer','each']):
+            if item == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(parent=self.uiMenu_valueModes,collection = uiRC,
+                        label=item,
+                        ann=_d_annos.get(item,'Fill out the dict!'),                        
+                        c = cgmGEN.Callback(self.var_valuesMode.setValue,item),                                  
+                        rb = _rb)
+            
+        mUI.MelMenuItemDiv(parent=self.uiMenu_valueModes)
+        mc.menuItem(parent=self.uiMenu_valueModes,collection = uiRC,
+                    label='Report',
+                    ann='Print the current values report.',
+                    c = cgmGEN.Callback(get_values, self, self.var_context.value, True))           
             
     def uiFunc_clear_loaded(self):
         _str_func = 'uiFunc_clear_loaded'  
@@ -340,7 +376,7 @@ class ui(cgmUI.cgmGUI):
                 _l = _d_processed[mObj.p_nameShort]
                 for a in self._l_attrsToLoad:
                     if a not in _l:
-                        log.info("|{0}| >> '{1}' not shared. removing...".format(_str_func, a))                           
+                        log.debug("|{0}| >> '{1}' not shared. removing...".format(_str_func, a))                           
                         #self._l_attrsToLoad.remove(a)
                     else:
                         _l_good.append(a)
@@ -650,27 +686,26 @@ class ui(cgmUI.cgmGUI):
         self.row_setValue = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 2)
         
         cgmUI.add_Button(self.row_setValue,'<<<All',
-                         cgmGEN.Callback(self.uiFunc_load_selected),
-                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-                         "Add the attribute names from the text field") 
+                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'back'}),                
+                         "Push values to all previous frames") 
         cgmUI.add_Button(self.row_setValue,'<Prev',
-                         cgmGEN.Callback(self.uiFunc_load_selected),
-                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-                         "Add the attribute names from the text field")
+                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'previous'}),                
+                         "Push current values to the previous key")
         
         cgmUI.add_Button(self.row_setValue,'Current',
                          cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'current'}),                
-                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-                         "Add the attribute names from the text field")
+                         "Push current values in context")
+        cgmUI.add_Button(self.row_setValue,'All',
+                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'all'}),                
+                         "Push current values in context")
+
 
         cgmUI.add_Button(self.row_setValue,'Next>',
-                         cgmGEN.Callback(self.uiFunc_load_selected),
-                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-                         "Add the attribute names from the text field")
+                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'next'}),                
+                         "Push current values to the next key")
         cgmUI.add_Button(self.row_setValue,'All>>>',
-                         cgmGEN.Callback(self.uiFunc_load_selected),
-                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-                         "Add the attribute names from the text field")
+                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'forward'}),                
+                         "Push values to all future keys")
 
         self.row_setValue.layout()
         
@@ -894,42 +929,63 @@ class ui(cgmUI.cgmGUI):
         
     def uiFunc_pushValue(self,**kws):
         _str_func = 'uiFunc_pushValue'
-        _indices = self.uiScrollList_attr.getSelectedIdxs()
         _mode = kws.get('mode','current')
         _keyMode = self.var_keysMode.value
-        #_valueMode = self.var_valueMode.value
+        _valuesMode = self.var_valuesMode.value
+        _context = self.var_context.value
         
-        log.info("|{0}| >> mode: {1} | keyMode: {2}".format(_str_func,_mode,_keyMode))
-        log.info("|{0}| >> indicies: {1} ".format(_str_func,_indices))
+        log.info("|{0}| >> mode: {1} | context: {2} | keyMode: {3} | valuesMode: {4}".format(_str_func,_mode,_context,_keyMode,_valuesMode))        
         
-        _v_master = None
-        _d_values = {}
-             
+        if _mode == 'current' and _valuesMode == 'each':
+            log.warning("|{0}| >>  This doesn't do anything on current mode as each item already has these values.".format(_str_func))      
+            return False
+        
+        
         #>>> Get our driven ------------------------------------------------------------------------------
         _res = get_context(self, self.var_context.value)
-        _primeNode = _res[0],
-        _l_primeAttrs =_res[1]
-        _l_targets = _res[2]
+        _primeNode =_res['primeNode']
+        _l_primeAttrs = _res['attrs']
+        _l_targets = _res['targets']
         
         
         #>>Get Attribute values -----------------------------------------------------------------------------------
-        _short = self._ml_nodes[0].p_nameShort
-        if _valueMode == 0:#PrimeAttr
-            _v_master = ATTR.get(_short, self._l_attrsToLoad[_indices[0]])
-            log.info("|{0}| >> master value: {1} ".format(_str_func,_v_master))
-        else:
-            for idx in _indices:
-                _a = self._l_attrsToLoad[idx]
-                _d_values[_a] = ATTR.get(_short,_a)
-            cgmGEN.print_dict(_d_values,'Master Values', 'attrTools')        
-        
+        _d_values = get_values(self, _res)
+                
         #>>> Bake ------------------------------------------------------------------------------        
         if _mode == 'current':
-            pass
-            #Get our targets
-            #Get our Values
-            #Push our values
+            if _valuesMode == 'each':
+                log.warning("|{0}| >>  This doesn't do anything on current mode as each item already has these values.".format(_str_func))      
+                """ for o, d in _d_values.iteritems():
+                    for a,v in d.iteritems():
+                        log.info("|{0}| >>  {1}.{2} --> {3}".format(_str_func,o,a,v))"""      
+            else:
+                for a,v in _d_values.iteritems():
+                    log.debug("|{0}| >>  {1}.{2} --> {3}".format(_str_func,_primeNode,a,v))      
+                    for o in _l_targets:
+                        try:ATTR.set(o,a,v)
+                        except Exception,err:
+                            log.error("|{0}| >>  Failed to set: {1}.{2} --> {3} | {4}".format(_str_func,_primeNode,a,v,err))      
+                            
         
+        _d_keys = get_keys(self,_res)
+        _f_currentTime = mc.currentTime(q=True)
+        _d_keys_processed = {}
+        # Process our keys before processing values
+        if _mode in ['previous','back']:
+            for o,l in _d_keys.iteritems():
+                _l_processed= []
+                for k in l:
+                    if k < _f_currentTime:
+                        _l_processed.append(k)
+                        
+            if _mode == 'previous' and len(_l_processed)>1:
+                _l_processed = [_l_processed[-1]]
+            
+            _d_keys_processed[o] = _l_processed
+        elif _mode in ['next','forward']:
+            pass
+            
+        cgmGEN.print_dict(_d_keys_processed,"Processed keys",__name__)
         
     def uiFunc_attrManage_fromScrollList(self,**kws):
         def simpleProcess(self, indicies, attrs, func,**kws):
@@ -1274,8 +1330,124 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
         menu(edit=True,cc = uiAttrUpdate)
         
         
+def get_keys(self, context = None, report = False):
+    """
+    :parameters
+        self(instance): cgmMarkingMenu
+
+    :returns
+        info(dict)
+    """   
+    _str_func = 'get_keys'
+    
+    
+    if type(context) in [dict]:
+        _res_context = context
+    else:
+        _res_context = get_context(self,context,False)
+
+    _primeNode =_res_context['primeNode']
+    _l_primeAttrs = _res_context['attrs']
+    _l_targets = _res_context['targets']
+    
+    _mode = self.var_keysMode.value
+    
+    _d_annos = {'selectedAttrs':'Only keys on selected attrs',
+                'primeNode':'Any keys on prime node',
+                'each':'Each contextual nodes will take values on own keys',
+                'combined':'Combine keys of conextual nodes and prime'}       
+    
+    
+    _d_keys = {}
+    
+    log.info("|{0}| >> mode: {1}".format(_str_func,_mode))  
+    
+    if _mode in ['each']:
+        for o in _l_targets:
+            _d_keys[o] = SEARCH.get_key_indices_from(o)
+    elif _mode in ['primeNode']:
+        _keys = SEARCH.get_key_indices_from(_primeNode)
+        for o in _l_targets:
+            _d_keys[o] = _keys
+    elif _mode in ['combined']:
+        _l_keys = []
+        for o in _l_targets:
+            _l_keys.extend(SEARCH.get_key_indices_from(o))
+        _l_keys = LISTS.get_noDuplicates(_l_keys)
         
+        for o in _l_targets:
+            _d_keys[o] = _l_keys
         
+            #_keys = _source + _loc
+            #_keys = lists.returnListNoDuplicates(_keys)            
+        pass
+    else:
+        log.error("|{0}| >> unknown mode:{1} ".format(_str_func,_mode))  
+
+    
+    if report:
+        log.info(cgmGEN._str_hardLine)
+        cgmGEN.print_dict(_d_keys,"Keys",__name__)
+        
+    return _d_keys
+        
+def get_values(self, context = None, report = False):
+    """
+    :parameters
+        self(instance): cgmMarkingMenu
+
+    :returns
+        info(dict)
+    """   
+    _str_func = 'get_values'
+
+    if type(context) in [dict]:
+        _res_context = context
+    else:
+        _res_context = get_context(self,context,False)
+
+    _primeNode =_res_context['primeNode']
+    _l_primeAttrs = _res_context['attrs']
+    _l_targets = _res_context['targets']
+    
+    _mode = self.var_valuesMode.value
+    
+    _d_values = {}
+    
+    if _mode in ['primeAttr','primeAttrPer']:
+        log.info("|{0}| >> primeAttr mode: {1}.{2} ".format(_str_func,_primeNode, _l_primeAttrs[0]))  
+        
+        _v = ATTR.get(_primeNode,_l_primeAttrs[0])
+        _d_values[_l_primeAttrs[0]] = _v 
+        for a in _l_primeAttrs[1:]:
+            _a = "{0}.{1}".format(_primeNode,a)     
+            try:
+                _validated_v = ATTR.validate_value(_primeNode,a,_v)
+                if _validated_v is not None:
+                    _d_values[a] = _validated_v  
+            except:
+                log.info("|{0}| >> Attr failed to validate value: {1} | for attr: {2}.{3}".format(_str_func,_v,_primeNode,a))  
+                
+            
+    elif _mode in ['primeNode','primeNodePer']:
+        log.info("|{0}| >> primeNode mode: {1} ".format(_str_func,_primeNode))
+        for a in _l_primeAttrs:
+            _a = "{0}.{1}".format(_primeNode,a)
+            _d_values[a] = ATTR.get(_a)
+    else:
+        log.info("|{0}| >> each object mode. Targets: {1} ".format(_str_func,len(_l_targets)))  
+        for o in _l_targets:
+            _d_values[o] = {}
+            _d = _d_values[o]
+            for a in _l_primeAttrs:
+                _d[a] = ATTR.get(o,a)
+    
+    if report:
+        log.info(cgmGEN._str_hardLine)
+        cgmGEN.print_dict(_d_values,"Values",__name__)
+
+    return _d_values
+
 def get_context(self, context = None, report = False):
     """
     :parameters
@@ -1335,10 +1507,11 @@ def get_context(self, context = None, report = False):
         
         for i,a in enumerate(_l_primeAttrs):
             log.info("|{0}| >> {1} | {2}".format(_str_func,i,a))        
-        log.info(cgmGEN._str_subLine)        
+        log.info(cgmGEN._str_subLine)    
+        log.info("|{0}| >> targets({1})... ".format(_str_func,len(_l_targets)))        
         for i,o in enumerate(_l_targets):
             log.info("|{0}| >> {1} | {2}".format(_str_func,i,NAMES.get_short(o)))
-    return _primeNode,_l_primeAttrs,_l_targets
+    return {'primeNode':_primeNode,'attrs':_l_primeAttrs,'targets':_l_targets}
         
     
 def contextual_set(attr = None, value = None, context = 'selection', mType = None):

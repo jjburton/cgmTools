@@ -776,6 +776,24 @@ def is_keyed(*a):
     if mc.keyframe(_d['combined'], query=True):return True
     return False
 
+def get_keyed(node):
+    """   
+    Returns if list of keyed attributes
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        attributes(list)
+    """ 
+    _str_func = 'get_keyed'
+    _res = []
+    for a in mc.listAttr(node,keyable=True):
+        if is_keyed(node,a):
+            _res.append(a)
+            
+    return _res
+
 def is_hidden(*a):
     """   
     hidden query
