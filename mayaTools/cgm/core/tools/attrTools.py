@@ -208,7 +208,7 @@ class ui(cgmUI.cgmGUI):
         mc.menuItem(parent=self.uiMenu_keysModes,collection = uiRC,
                     label='Report',
                     ann='Print the current values report.',
-                    c = cgmGEN.Callback(get_keys, self, self.var_context.value, True))  
+                    c = cgmGEN.Callback(get_keys, self, self.var_context.value, 'all',True))  
             
     def buildMenu_values( self, *args):
         self.uiMenu_valueModes.clear()
@@ -685,7 +685,7 @@ class ui(cgmUI.cgmGUI):
         #>>>Push Values Row --------------------------------------------------------------------------------------------
         self.row_setValue = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 2)
         
-        cgmUI.add_Button(self.row_setValue,'<<<All',
+        cgmUI.add_Button(self.row_setValue,'<<Back',
                          cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'back'}),                
                          "Push values to all previous frames") 
         cgmUI.add_Button(self.row_setValue,'<Prev',
@@ -703,7 +703,7 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_Button(self.row_setValue,'Next>',
                          cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'next'}),                
                          "Push current values to the next key")
-        cgmUI.add_Button(self.row_setValue,'All>>>',
+        cgmUI.add_Button(self.row_setValue,'Fwd>>',
                          cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'forward'}),                
                          "Push values to all future keys")
 
@@ -950,6 +950,7 @@ class ui(cgmUI.cgmGUI):
         
         #>>Get Attribute values -----------------------------------------------------------------------------------
         _d_values = get_values(self, _res)
+        cgmGEN.print_dict(_d_values,"Values",__name__)
                 
         #>>> Bake ------------------------------------------------------------------------------        
         if _mode == 'current':
@@ -966,27 +967,53 @@ class ui(cgmUI.cgmGUI):
                         except Exception,err:
                             log.error("|{0}| >>  Failed to set: {1}.{2} --> {3} | {4}".format(_str_func,_primeNode,a,v,err))      
                             
-        
-        _d_keys = get_keys(self,_res)
-        _f_currentTime = mc.currentTime(q=True)
-        _d_keys_processed = {}
-        # Process our keys before processing values
-        if _mode in ['previous','back']:
-            for o,l in _d_keys.iteritems():
-                _l_processed= []
-                for k in l:
-                    if k < _f_currentTime:
-                        _l_processed.append(k)
-                        
-            if _mode == 'previous' and len(_l_processed)>1:
-                _l_processed = [_l_processed[-1]]
+        else:
+            _d_keys = get_keys(self,_res,_mode)    
+            cgmGEN.print_dict(_d_keys,"Processed keys",__name__)
+            if _valuesMode == 'each':
+                for o, l_keys in _d_keys.iteritems():
+                    for k in l_keys:
+                        for a,v in _d_values[o].iteritems():
+                            log.info("|{0}| >>  f{1} : {2}.{3} --> {4}".format(_str_func,k,o,a,v))
+                            try:mc.setKeyframe(o,attribute=a,v = v,t=k)
+                            except Exception,err:
+                                log.error("|{0}| >>  failed to set... f{1} : {2}.{3} --> {4} | {5}".format(_str_func,k,o,a,v, err))
+                            
+            else:
+                if _valuesMode.endswith('Per'):
+                    log.warning("|{0}| >>  Per mode....".format(_str_func))
+                    initialTimeState = mc.currentTime(q=True)
+                    
+                    for o,l_keys in _d_keys.iteritems():
+                        for k in l_keys:       
+                            mc.currentTime(k)
+                            _d_tmp = get_values(self, _res)
+                            for a,v in _d_tmp.iteritems():
+                                if o in _l_targets:
+                                    log.info("|{0}| >>  f{1} : {2}.{3} --> {4}".format(_str_func,k,o,a,v))
+                                    try:mc.setKeyframe(o,attribute=a,v = v,t=k)
+                                    except Exception,err:
+                                        log.error("|{0}| >>  failed to set... f{1} : {2}.{3} --> {4} | {5}".format(_str_func,k,o,a,v, err))
+                                
+                            
+                    mc.currentTime(initialTimeState)
+                    
+                else:
+                    for o,l_keys in _d_keys.iteritems():
+                        for k in l_keys:
+                            for a,v in _d_values.iteritems():
+                                if o in _l_targets:
+                                    log.info("|{0}| >>  f{1} : {2}.{3} --> {4}".format(_str_func,k,o,a,v))
+                                    try:mc.setKeyframe(o,attribute=a,v = v,t=k)
+                                    except Exception,err:
+                                        log.error("|{0}| >>  failed to set... f{1} : {2}.{3} --> {4} | {5}".format(_str_func,k,o,a,v, err))
+                                        
+                                #try:ATTR.set(o,a,v)
+                                #except Exception,err:
+                                    #log.error("|{0}| >>  Failed to set: {1}.{2} --> {3} | {4}".format(_str_func,_primeNode,a,v,err))      
+
             
-            _d_keys_processed[o] = _l_processed
-        elif _mode in ['next','forward']:
-            pass
             
-        cgmGEN.print_dict(_d_keys_processed,"Processed keys",__name__)
-        
     def uiFunc_attrManage_fromScrollList(self,**kws):
         def simpleProcess(self, indicies, attrs, func,**kws):
             for i in indicies:
@@ -1330,7 +1357,7 @@ def uiUpdateObjectAttrMenu(self,menu,selectAttr = False):
         menu(edit=True,cc = uiAttrUpdate)
         
         
-def get_keys(self, context = None, report = False):
+def get_keys(self, context = None, mode = 'all', report = False):
     """
     :parameters
         self(instance): cgmMarkingMenu
@@ -1364,17 +1391,17 @@ def get_keys(self, context = None, report = False):
     
     if _mode in ['each']:
         for o in _l_targets:
-            _d_keys[o] = SEARCH.get_key_indices_from(o)
+            _d_keys[o] = SEARCH.get_key_indices_from(o,mode)
     elif _mode in ['primeNode']:
-        _keys = SEARCH.get_key_indices_from(_primeNode)
+        _keys = SEARCH.get_key_indices_from(_primeNode,mode)
         for o in _l_targets:
             _d_keys[o] = _keys
     elif _mode in ['combined']:
         _l_keys = []
         for o in _l_targets:
-            _l_keys.extend(SEARCH.get_key_indices_from(o))
+            _l_keys.extend(SEARCH.get_key_indices_from(o,mode))
         _l_keys = LISTS.get_noDuplicates(_l_keys)
-        
+           
         for o in _l_targets:
             _d_keys[o] = _l_keys
         
@@ -1388,6 +1415,9 @@ def get_keys(self, context = None, report = False):
     if report:
         log.info(cgmGEN._str_hardLine)
         cgmGEN.print_dict(_d_keys,"Keys",__name__)
+        
+    for o,keys in _d_keys.iteritems():
+        if not keys:log.error("|{0}| >> Failed to find keys for: {1} | mode: {2} ".format(_str_func,o,_mode))       
         
     return _d_keys
         
@@ -1494,8 +1524,9 @@ def get_context(self, context = None, report = False):
             return False
         
         for mNode in self._ml_nodes:
-            for a in _l_primeAttrs:
-                _l_targets.append( "{0}.{1}".format(mNode.mNode, a))
+            _l_targets.append(mNode.mNode)
+            #for a in _l_primeAttrs:
+                #_l_targets.append( "{0}.{1}".format(mNode.mNode, a))
     else:
         _l_targets = CONTEXT.get_list(context,_type)
         

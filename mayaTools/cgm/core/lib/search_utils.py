@@ -144,37 +144,79 @@ def get_timeline_dict():
 
     return returnDict    
 
-def get_key_indices_from(obj = None):
+def get_key_indices_from(node = None, mode = 'all'):
     """
     Return a list of the time indexes of the keyframes on an object
+
+    :parameters:
+        node(str): What you want to get the keys of
+        mode(str):
+            all -- Every key
+            next --
+            previous -- 
+            forward --
+            back --
     
     :returns
         list of keys(list)
     """ 
     _str_func = 'get_key_indices'
     
-    if not ATTR.get_keyed(obj):
+    if not ATTR.get_keyed(node):
         return []
     
     initialTimeState = mc.currentTime(q=True)
     keyFrames = []
+    
+    if mode == 'next':
+        _key = mc.findKeyframe(node,which = 'next',an='objects')
+        if _key > initialTimeState:
+            return [_key]
+        return []
+    elif mode == 'forward':
+        lastKey = mc.findKeyframe(node,which = 'last',an='objects')
+        mc.currentTime(initialTimeState-1)        
+        while mc.currentTime(q=True) != lastKey:
+            keyBuffer = mc.findKeyframe(node,which = 'next',an='objects')
+            keyFrames.append(keyBuffer)
+            mc.currentTime(keyBuffer)
+        keyFrames.append(lastKey) 
+    elif mode in ['previous','back']:
+        firstKey = mc.findKeyframe(node,which = 'first',an='objects')
+        lastKey = mc.findKeyframe(node,which = 'last',an='objects')        
+        mc.currentTime(firstKey-1)
+        while mc.currentTime(q=True) != lastKey:
+            if mc.currentTime(q=True) >= initialTimeState:
+                log.debug('higher: {0}'.format(mc.currentTime(q=True)))
+                break
+            keyBuffer = mc.findKeyframe(node,which = 'next',an='objects')
+            keyFrames.append(keyBuffer)
+            mc.currentTime(keyBuffer)
+        if mode == 'previous' and keyFrames:
+            keyFrames = [keyFrames[-1]]
 
-    firstKey = mc.findKeyframe(obj,which = 'first',an='objects')
-    lastKey = mc.findKeyframe(obj,which = 'last',an='objects')
-
-    keyFrames.append(firstKey)
-    mc.currentTime(firstKey)
-    while mc.currentTime(q=True) != lastKey:
-        keyBuffer = mc.findKeyframe(obj,which = 'next',an='objects')
-        keyFrames.append(keyBuffer)
-        mc.currentTime(keyBuffer)
-
-    keyFrames.append(lastKey)
-
-    # Put the time back where we found it
+        
+    elif mode == 'all':
+        firstKey = mc.findKeyframe(node,which = 'first',an='objects')
+        lastKey = mc.findKeyframe(node,which = 'last',an='objects')
+    
+        keyFrames.append(firstKey)
+        mc.currentTime(firstKey-1)
+        while mc.currentTime(q=True) != lastKey:
+            keyBuffer = mc.findKeyframe(node,which = 'next',an='objects')
+            keyFrames.append(keyBuffer)
+            mc.currentTime(keyBuffer)
+    
+        keyFrames.append(lastKey)
+    
+        # Put the time back where we found it
+        mc.currentTime(initialTimeState)
+    else:
+        raise ValueError,"Unknown mode: {0}".format(mode)
+    
     mc.currentTime(initialTimeState)
-
-    return lists.returnListNoDuplicates(keyFrames)   
+    return lists.returnListNoDuplicates(keyFrames)
+    
 
 def get_selectedFromChannelBox(attributesOnly = False):
     """ 
