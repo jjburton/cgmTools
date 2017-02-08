@@ -93,7 +93,7 @@ def update_obj(obj = None, move = True, rotate = True, mode = 'self',**kws):
     if mode == 'self':
         return match(obj,move,rotate)    
     else:
-        _target = ATTR.get_message(_obj,'cgmMatchTarget')
+        _target = ATTR.get_message(_obj,'cgmMatchTarget') or ATTR.get_message(_obj,'cgmLocSource')
         if _target:
             return match(_target[0],move,rotate)
         else:
