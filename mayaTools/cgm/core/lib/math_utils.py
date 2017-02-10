@@ -25,7 +25,7 @@ import euclid as euclid
 
 # From cgm ==============================================================
 from cgm.core.cgmPy import validateArgs as VALID
-
+from cgm.core.lib import shared_data as SHARED
 '''
 Lerp and Slerp functions translated from taken from https://keithmaggio.wordpress.com/2011/02/15/math-magician-lerp-slerp-and-nlerp/
 '''
@@ -149,6 +149,47 @@ def get_vector_of_two_points(point1,point2):
     _new = (_point2 - _point1).normalized()
     
     return _new.x,_new.y,_new.z    
+
+
+def get_obj_vector(obj = None, axis = 'z+'):
+    """
+    Get the vector along an object axis
+    
+    :parameters:
+        obj(string)
+        axis(str)
+
+    :returns
+        vector(s)
+        
+    :Acknowledgement
+    Thanks to parentToSurface.mel from autodesk for figuring out this was necessary
+
+    """         
+    _str_func = 'get_obj_vector'
+    
+    if not mc.objExists(obj):
+        raise ValueError,"Must have an obj to get a vector when no vector is provided"
+
+    d_matrixVectorIndices = {'x':[0,1,2],
+                             'y': [4,5,6],
+                             'z' : [8,9,10]}
+
+    matrix = mc.xform(obj, q=True,  matrix=True, worldSpace=True)
+    
+    #>>> Figure out our vector
+    if axis not in SHARED._d_axis_string_to_vector.keys():
+        log.error("|{0}| >> axis arg not valid: '{1}'".format(_str_func,axis))
+        return False
+    if list(axis)[0] not in d_matrixVectorIndices.keys():
+        log.error("|{0}| >> axis arg not in d_matrixVectorIndices: '{1}'".format(_str_func,axis))            
+        return False  
+    vector = [matrix[i] for i in d_matrixVectorIndices.get(list(axis)[0])]
+    if list(axis)[1] == '-':
+        for i,v in enumerate(vector):
+            vector[i]=-v
+    return vector
+    
     
 def get_space_value(arg, mode = 'mayaSpace'):
     """

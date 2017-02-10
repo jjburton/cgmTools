@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -119,7 +119,7 @@ def go(obj = None, target = None,
     mc.xform(_target, rp=infoDict['position'], ws = True, p=True)        
     mc.xform(_target, sp=infoDict['scalePivot'], ws = True, p=True)     
     
-def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',ignoreAimAttrs = False):
+def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',ignoreAimAttrs = False):
     """
     Aim functionality.
     
@@ -129,8 +129,9 @@ def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mo
         aimAxis(str): axis that is pointing forward
         upAxis(str): axis that is pointing up
         mode(str): 
-            'local'-- use Bokser's fancy method
-            'world' -- use standard maya aiming
+            'local'-- use standard maya aiming with local axis
+            'world' -- use standard maya aiming with world axis
+            'matrix' -- use Bokser's fancy method
 
     :returns
         success(bool)
@@ -149,7 +150,7 @@ def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mo
             upAxis = ATTR.get_enumValueString(_d_up)
             log.debug("|{0}| >> obj: {1} aimable from attrs. aim: {2} | up: {3}".format(_str_func,_obj,aimAxis,upAxis))              
     
-    if mode == 'local':
+    if mode == 'matrix':
         '''Rotate transform based on look vector'''
         # get source and target vectors
         objPos = MATH.Vector3.Create(POS.get(_obj))
@@ -192,7 +193,7 @@ def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mo
         transform_matrix = result_matrix[0:12] + [pos.x, pos.y, pos.z, 1.0]
     
         mc.xform(_obj, matrix = transform_matrix , roo="xyz", ws=True)
-    elif mode == 'world':
+        """elif mode == 'world':
         _loc = mc.spaceLocator()[0]
         mc.move (position[0],position[1],position[2], _loc, ws=True)  
         
@@ -203,13 +204,35 @@ def aimAtPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mo
                                        maintainOffset = False,
                                        aimVector = mAxis_aim.p_vector,
                                        upVector = mAxis_up.p_vector,
-                                       worldUpType = 'scene',) 
-        mc.delete(_constraint + [_loc])
+                                       worldUpType = 'scene',)
+        mc.delete(_constraint + [_loc])"""
+    elif mode in ['local','world']:
+            _loc = mc.spaceLocator()[0]
+            mc.move (position[0],position[1],position[2], _loc, ws=True)  
+            mAxis_aim = VALID.simpleAxis(aimAxis)
+            mAxis_up = VALID.simpleAxis(upAxis) 
+            
+            if mode == 'world':                
+                _constraint = mc.aimConstraint(_loc,_obj,
+                                               maintainOffset = False,
+                                               aimVector = mAxis_aim.p_vector,
+                                               upVector = mAxis_up.p_vector,
+                                               worldUpType = 'scene',) 
+            else:
+                _vUp = MATH.get_obj_vector(_obj,upAxis)
+                _constraint = mc.aimConstraint(_loc,_obj,
+                                               maintainOffset = False,
+                                               aimVector = mAxis_aim.p_vector,
+                                               upVector = mAxis_up.p_vector,
+                                               worldUpType = 'vector',
+                                               worldUpVector = _vUp)                 
+                
+            mc.delete(_constraint + [_loc])    
         
 
     return True
 
-def aimAtMidpoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mode='local'):
+def aim_atMidPoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mode='local'):
     """
     Aim functionality.
     
@@ -236,7 +259,7 @@ def aimAtMidpoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mode
 
     targetPos /= len(_targets)
 
-    aimAtPoint(_obj, MATH.Vector3.AsArray(targetPos), aimAxis, upAxis,mode = mode)
+    aim_atPoint(_obj, MATH.Vector3.AsArray(targetPos), aimAxis, upAxis,mode = mode)
 
 def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local'):
     """
@@ -261,7 +284,7 @@ def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local')
     targetPos = POS.get(_target)
     log.debug("|{0}| >> obj: {1} | target:{2} | mode: {3}".format(_str_func,_obj,_target,mode))             
 
-    aimAtPoint(_obj, targetPos, aimAxis, upAxis, mode)
+    aim_atPoint(_obj, targetPos, aimAxis, upAxis, mode)
 
     return True
 

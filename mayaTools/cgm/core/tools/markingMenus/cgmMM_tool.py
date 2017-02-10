@@ -591,7 +591,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                 #self.uiOptions_menuMode = []		
                 _v = self.var_aimMode.value
                 
-                for i,item in enumerate(['local','world']):
+                for i,item in enumerate(['local','world','matrix']):
                     if item == _v:
                         _rb = True
                     else:_rb = False
@@ -1653,7 +1653,7 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
         kws = {'aimAxis':aim_axis, 'upAxis':up_axis, 'mode':self.var_aimMode.value}
         
         if selectionMode == 'firstToRest':
-            MMCONTEXT.func_process(SNAP.aimAtMidpoint, self._l_sel ,selectionMode,'Snap aim', **kws)
+            MMCONTEXT.func_process(SNAP.aim_atMidPoint, self._l_sel ,selectionMode,'Snap aim', **kws)
         else:
             MMCONTEXT.func_process(SNAP.aim, self._l_sel ,selectionMode,'Snap aim', **kws)
     else:

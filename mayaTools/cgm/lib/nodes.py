@@ -191,8 +191,8 @@ def createFollicleOnMesh(mesh, name = 'follicle'):
     [follicleNode,follicleTransform]
     """
     assert mc.objExists(mesh),"'%s' doesn't exist!"%mesh
-    objType = search.returnObjectType(mesh)
-    assert objType in ['mesh','nurbsSurface'],("'%s' isn't a mesh"%mesh)
+    #objType = search.returnObjectType(mesh)
+    #assert objType in ['mesh','nurbsSurface'],("'%s' isn't a mesh"%mesh)
         
     follicleNode = createNamedNode((name),'follicle')
     

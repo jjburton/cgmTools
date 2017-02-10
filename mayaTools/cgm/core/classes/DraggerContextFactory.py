@@ -1075,7 +1075,7 @@ class clickMesh(ContextualPick):
                     
                     #print "Aiming these: aim: %s, up: %s" % (self.mAxis_aim, self.mAxis_up)
                     for aimTarget in self.l_toAim:
-                        SNAP.aimAtPoint(aimTarget, pos, self.mAxis_aim.p_string, self.mAxis_up.p_string, mode= self.str_aimMode)
+                        SNAP.aim_atPoint(aimTarget, pos, self.mAxis_aim.p_string, self.mAxis_up.p_string, mode= self.str_aimMode)
 
                     nameBuffer = [nameBuffer]
     
