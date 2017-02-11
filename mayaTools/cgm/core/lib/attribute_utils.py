@@ -103,7 +103,7 @@ def validate_value(node, attr = None, value = None):
     if _vType in [list,tuple]:
         _b_list = True
         
-    if _aType in ['long','double','double3','short','doubleAngle','float','float3','time','byte','short']:
+    if _aType in ['long','double','double3','short','doubleAngle','doubleLinear','float','float3','time','byte','short']:
         if _aType in ['long','byte']:
             if _b_list:return [int(v) for v in value]
             return int(value)
@@ -384,6 +384,8 @@ def set(node, attr = None, value = None, lock = False,**kws):
     
     if '.' in node or issubclass(type(node),dict):
         _d = validate_arg(node)
+        if value == None and attr is not None:
+            value = attr
     else:
         _d = validate_arg(node,attr)  
     
@@ -392,13 +394,14 @@ def set(node, attr = None, value = None, lock = False,**kws):
     _attr = _d['attr']
     _wasLocked = False
 
-    log.info("|{0}| >> attr: {1} | value: {2} | lock: {3}".format(_str_func,_combined,value, lock))    
+    log.debug("|{0}| >> attr: {1} | value: {2} | lock: {3}".format(_str_func,_combined,value, lock))    
     if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))  
 
     _aType =  mc.getAttr(_combined,type=True)
     _validType = validate_attrTypeName(_aType)
-
-    if mc.getAttr(_combined,lock=True):
+    
+    
+    if is_locked(_combined):
         _wasLocked = True
         mc.setAttr(_combined,lock=False)    
 
@@ -406,6 +409,12 @@ def set(node, attr = None, value = None, lock = False,**kws):
     if not is_keyed(_d):
         if break_connection(_d):
             log.warning("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
+            
+    _current = get(_combined)
+    if _current == value:
+        log.debug("|{0}| >> Already has value: {1}".format(_str_func,_combined))
+        if _wasLocked:set_lock(_d,True)
+        return 
     
     _children = get_children(_d)
     if _children:
@@ -1782,9 +1791,16 @@ def get_driver(node, attr = None, getNode = False, skipConversionNodes = False, 
 
     _combined = _d['combined']
     
+    if not is_connected(_d):
+        return False
+    
     if getNode:
         objectBuffer =  mc.listConnections (_combined, scn = skipConversionNodes, d = False, s = True, plugs = False)
         if not objectBuffer:
+            _p = get_parent(_d)
+            if _p:
+                log.debug("|{0}| >> parent check: {1}".format(_str_func,_p))
+                return get_driver(_d['node'],_p,getNode,skipConversionNodes,longNames)
             return False
         if longNames:	
             return NAMES.get_long(objectBuffer[0])
@@ -1796,6 +1812,12 @@ def get_driver(node, attr = None, getNode = False, skipConversionNodes = False, 
             if not sourceBuffer:
                 sourceBuffer = [mc.connectionInfo (_combined,sourceFromDestination=True)]   
             if sourceBuffer:
+                if skipConversionNodes and VALID.get_mayaType(sourceBuffer) == 'unitConversion':
+                    _p = get_parent(_d)
+                    if _p:
+                        log.debug("|{0}| >> parent check: {1}".format(_str_func,_p))
+                        return get_driver(_d['node'],_p,getNode,skipConversionNodes,longNames)                    
+                    
                 if longNames:		    
                     return NAMES.get_long(sourceBuffer[0])
                 else:
@@ -2224,7 +2246,7 @@ def convert_type(node = None, attr = None, attrType = None):
             log.error("|{0}| >> Failed to convert data: {1} | type: {2} | err: {3}".format(_str_func,_data,_attrType,err))        
         
         
-        try:set(_d,value = _data)
+        try:set(_d, value = _data)
         except Exception,err:
             log.error("|{0}| >> Failed to set back data buffer {1} | data: {2} | err: {3}".format(_str_func,_combined,_data,err))        
 

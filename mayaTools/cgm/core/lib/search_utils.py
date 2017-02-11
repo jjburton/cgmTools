@@ -36,7 +36,7 @@ from cgm.lib import lists
 #===================================================================   
 is_shape = coreValid.is_shape
 is_transform = coreValid.is_transform    
-
+get_mayaType = coreValid.get_mayaType
 def get_transform(node = None):
     """
     Get transform of given node

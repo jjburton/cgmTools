@@ -680,7 +680,7 @@ class ui(cgmUI.cgmGUI):
         _row_valueModes.layout()  """      
         
         mc.setParent(_MainForm)        
-        _header_push = cgmUI.add_Header('Push Values')
+        _header_push = cgmUI.add_Header('Push Values*')
         
         #>>>Push Values Row --------------------------------------------------------------------------------------------
         self.row_setValue = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 2)
@@ -822,20 +822,61 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{item:False}))    
         
         
-        #Connections --------------------------------        
+        #Connections --------------------------------
+        _connections = mUI.MelMenuItem(_popUp, subMenu = True,
+                                       label = "Connections")
+        
+        _in = mUI.MelMenuItem(_connections, subMenu = True,
+                              label = "In")
+        _out = mUI.MelMenuItem(_connections, subMenu = True,
+                              label = "Out")
+        
+        #...in
+        mUI.MelMenuItem(_in, 
+                        ann = "COnnect in selected attribute or primaryAttr to others",
+                        label = "Set")
         if _connectionsIn:
-            _menu = mUI.MelMenuItem(_popUp, subMenu = True,
-                                    label = "Connections In")            
-            mUI.MelMenuItem(_menu,
+            mUI.MelMenuItemDiv(_in)
+            _inShort = NAMES.get_short(_connectionsIn)
+            mUI.MelMenuItem(_in,
+                            en = False,
+                            label = NAMES.get_short(_connectionsIn))
+            
+            mUI.MelMenuItem(_in,
                             c = cgmGEN.Callback(mc.select,_connectionsIn),
-                            label = NAMES.get_short(_connectionsIn))                
-        if _connectionsOut:
-            _menu = mUI.MelMenuItem(_popUp, subMenu = True,
-                                    label = "Connections Out")            
-            for plug in _connectionsOut:
-                mUI.MelMenuItem(_menu,
-                                c = cgmGEN.Callback(mc.select,plug),
-                                label = NAMES.get_short(plug))                 
+                            ann = 'Select connection: {0}'.format(_inShort),
+                            label = 'Select')
+            mUI.MelMenuItem(_in,
+                            c = cgmGEN.Callback(mc.select,_connectionsIn),
+                            ann = 'Load connection: {0}'.format(_inShort),
+                            label = 'Load')            
+            mUI.MelMenuItem(_in,
+                            c = cgmGEN.Callback(ATTR,_connectionsIn),
+                            ann = 'Break connection: {0}'.format(_inShort),
+                            label = 'Break')  
+        #...Out
+            mUI.MelMenuItem(_out, 
+                            label = "Set")
+            if _connectionsOut:
+                mUI.MelMenuItemDiv(_out)
+                for _p in _connectionsOut:
+                    _inShort = NAMES.get_short(_p)
+                    _outMenu = mUI.MelMenuItem(_out,subMenu = True,
+                                               label = _inShort)
+            
+                    mUI.MelMenuItem(_outMenu,
+                                    c = cgmGEN.Callback(mc.select,_connectionsIn),
+                                    ann = 'Select connection: {0}'.format(_inShort),
+                                    label = 'Select')
+                    mUI.MelMenuItem(_outMenu,
+                                    c = cgmGEN.Callback(mc.select,_connectionsIn),
+                                    ann = 'Load connection: {0}'.format(_inShort),
+                                    label = 'Load')            
+                    mUI.MelMenuItem(_outMenu,
+                                    c = cgmGEN.Callback(ATTR,_connectionsIn),
+                                    ann = 'Break connection: {0}'.format(_inShort),
+                                    label = 'Break')        
+            
             
         #Name --------------------------------
         _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
@@ -1012,7 +1053,8 @@ class ui(cgmUI.cgmGUI):
                                 #except Exception,err:
                                     #log.error("|{0}| >>  Failed to set: {1}.{2} --> {3} | {4}".format(_str_func,_primeNode,a,v,err))      
 
-            
+        self.uiFunc_updateScrollAttrList()
+        return
             
     def uiFunc_attrManage_fromScrollList(self,**kws):
         def simpleProcess(self, indicies, attrs, func,**kws):
@@ -1039,6 +1081,12 @@ class ui(cgmUI.cgmGUI):
         _mode = kws.get('mode',None)
         _fromPrompt = None
         
+        _res_context = get_context(self,self.var_context.value,False)
+
+        _primeNode =_res_context['primeNode']
+        _l_primeAttrs = _res_context['attrs']
+        _l_targets = _res_context['targets']        
+        
         _d_baseAttr = ATTR.validate_arg(self._ml_nodes[0].mNode,self._l_attrsToLoad[_indices[0]])
         _aType = ATTR.get_type(_d_baseAttr)
         _str_base = NAMES.get_base(_d_baseAttr['combined'])
@@ -1055,7 +1103,7 @@ class ui(cgmUI.cgmGUI):
                     log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
                     return False
                 
-            elif _mode in ['alias','nameNice','duplicate','copyTo','copyConnectBack','copyConnectTo']:
+            elif _mode in ['alias','nameNice','duplicate','copyTo','copyConnectback','copyConnectto']:
                 if _mode == 'alias':
                     _plug = ATTR.get_alias(_d_baseAttr)
                 elif _mode == 'duplicate':
@@ -1123,15 +1171,19 @@ class ui(cgmUI.cgmGUI):
 
         for i in _indices:
             _a = self._l_attrsToLoad[i]
-            for mNode in self._ml_nodes:
+            #for mNode in self._ml_nodes:
+            for node in _l_targets:
                 try:
-                    _short = mNode.p_nameShort
+                    _short = NAMES.get_short(node)
                     _d = ATTR.validate_arg(_short,_a)
+                    log.info("|{0}| >> on...{1}.{2}".format(_str_func, _short,_a))                                                                   
                     
-                    if _mode in ['duplicate']:
+                    if _mode in ['duplicate','copyTo','copyConnectto','copyConnectback']:
                         if not _fromPrompt:raise ValueError,"Must have new name"
                         if _mode == 'duplicate':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True)                                                 
                         if _mode == 'copyTo':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True)
+                        if _mode == 'copyConnectto':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True,driven='target')
+                        if _mode == 'copyConnectback':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True,driven='source')                        
                         continue
                     
                     
