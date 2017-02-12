@@ -266,15 +266,26 @@ class ui(cgmUI.cgmGUI):
         for a in self._l_attrsToLoad:
             log.info("|{0}| >> {1} ...".format(_str_func,a))     
             
-    def uiFunc_load_selected(self):
+    def uiFunc_load(self, nodes, attrs):
+        _str_func = 'uiFunc_load'  
+        
+        log.info("|{0}| >> nodes: {1} | attrs: {2}".format(_str_func, nodes, attrs))
+        
+        mc.select(nodes)
+        self._l_attrsSelected = VALID.listArg(attrs)
+        
+        self.uiFunc_load_selected(True)
+        
+    def uiFunc_load_selected(self, bypassAttrCheck = False):
         _str_func = 'uiFunc_load_selected'  
         self._d_attrs = {}
         self._ml_nodes = []
         
         _sel = mc.ls(sl=True)
-        _sel_attrs = SEARCH.get_selectedFromChannelBox(True)
-        if _sel_attrs:#...push any selected channels to preselect
-            self._l_attrsSelected = _sel_attrs
+        if bypassAttrCheck is not True:
+            _sel_attrs = SEARCH.get_selectedFromChannelBox(True)
+            if _sel_attrs:#...push any selected channels to preselect
+                self._l_attrsSelected = _sel_attrs
             
         #Get our raw data
         for o in _sel:
@@ -351,7 +362,7 @@ class ui(cgmUI.cgmGUI):
                     if _default:
                         if not _hidden and not _dyn:
                             _l_processed.append(a)
-                        if _d['attr'] in SHARED._d_attrCategoryLists['transform']:
+                        if _d['attr'] in SHARED._d_attrCategoryLists['transform'] or _d['attr'] in ['translate','rotate','scale']:
                             _l_processed.append(a)
                     if _user and _dyn:
                         _l_processed.append(a)
@@ -510,6 +521,7 @@ class ui(cgmUI.cgmGUI):
         if self._l_attrsSelected:
             _indxs = []
             for a in self._l_attrsSelected:
+                log.info("|{0}| >> Selected? {1}".format(_str_func,a))                              
                 if a in self._l_attrsToLoad:
                     self.uiScrollList_attr.selectByIdx(self._l_attrsToLoad.index(a))
                     
@@ -772,22 +784,27 @@ class ui(cgmUI.cgmGUI):
         print(cgmGEN._str_subLine)
         self._l_attrsSelected = []
         
-        for i in _indices:
-            _a = self._l_attrsToLoad[i]
+        
+        for i,idx in enumerate(_indices):
+            _a = self._l_attrsToLoad[idx]
             self._l_attrsSelected.append(_a)
             _d = ATTR.validate_arg(_short, _a)
             _v = ATTR.get(_d)
-            log.info("{1}.{2} | value: {3}".format(_str_func, _short,_a, _v))                           
-            if ATTR.is_dynamic(_d):
-                _dynamic = True
-                if ATTR.is_numeric(_d):
-                    _numberChanges = True
-                    log.debug("|{0}| >> {1}.{2}...setting up value change popup".format(_str_func, _short,_a))                           
-            if ATTR.is_hidden(_d):
-                _hidden = True
-            _connectionsIn = ATTR.get_driver(_d,skipConversionNodes=True)
-            _connectionsOut = ATTR.get_driven(_d,skipConversionNodes=True)
-        
+            log.info("{1}.{2} | value: {3}".format(_str_func, _short,_a, _v))
+            if i == 0:
+                if ATTR.is_dynamic(_d):
+                    _dynamic = True
+                    if ATTR.is_numeric(_d):
+                        _numberChanges = True
+                        log.debug("|{0}| >> {1}.{2}...setting up value change popup".format(_str_func, _short,_a))                           
+                if ATTR.is_hidden(_d):
+                    _hidden = True
+                _l_connectionsIn = ATTR.get_driver(_d,skipConversionNodes=True)
+                if _l_connectionsIn:
+                    _connectionsIn = True
+                _l_connectionsOut = ATTR.get_driven(_d,skipConversionNodes=True)
+                if _l_connectionsOut:
+                    _connectionsOut = True
         
         #>>>Pop up menu--------------------------------------------------------------------------------------------        
         mUI.MelMenuItem(_popUp,
@@ -827,56 +844,62 @@ class ui(cgmUI.cgmGUI):
                                        label = "Connections")
         
         _in = mUI.MelMenuItem(_connections, subMenu = True,
+                              en = _connectionsIn,
                               label = "In")
         _out = mUI.MelMenuItem(_connections, subMenu = True,
-                              label = "Out")
+                               en = _connectionsOut,
+                               label = "Out")
         
         #...in
         mUI.MelMenuItem(_in, 
-                        ann = "COnnect in selected attribute or primaryAttr to others",
+                        ann = "Connect in selected attribute or primaryAttr to others",
                         label = "Set")
         if _connectionsIn:
             mUI.MelMenuItemDiv(_in)
-            _inShort = NAMES.get_short(_connectionsIn)
+            _inShort = NAMES.get_short(_l_connectionsIn)
+            _d_in = ATTR.validate_arg(_l_connectionsIn)
             mUI.MelMenuItem(_in,
                             en = False,
-                            label = NAMES.get_short(_connectionsIn))
+                            label = NAMES.get_short(_l_connectionsIn))
             
             mUI.MelMenuItem(_in,
-                            c = cgmGEN.Callback(mc.select,_connectionsIn),
+                            c = cgmGEN.Callback(mc.select,_l_connectionsIn),
                             ann = 'Select connection: {0}'.format(_inShort),
                             label = 'Select')
             mUI.MelMenuItem(_in,
-                            c = cgmGEN.Callback(mc.select,_connectionsIn),
+                            c = cgmGEN.Callback(self.uiFunc_load,_d_in['node'],_d_in['attr']),
                             ann = 'Load connection: {0}'.format(_inShort),
                             label = 'Load')            
             mUI.MelMenuItem(_in,
-                            c = cgmGEN.Callback(ATTR,_connectionsIn),
+                            c = cgmGEN.Callback(ATTR,_l_connectionsIn),
                             ann = 'Break connection: {0}'.format(_inShort),
                             label = 'Break')  
         #...Out
-            mUI.MelMenuItem(_out, 
-                            label = "Set")
-            if _connectionsOut:
-                mUI.MelMenuItemDiv(_out)
-                for _p in _connectionsOut:
-                    _inShort = NAMES.get_short(_p)
-                    _outMenu = mUI.MelMenuItem(_out,subMenu = True,
-                                               label = _inShort)
-            
-                    mUI.MelMenuItem(_outMenu,
-                                    c = cgmGEN.Callback(mc.select,_connectionsIn),
-                                    ann = 'Select connection: {0}'.format(_inShort),
-                                    label = 'Select')
-                    mUI.MelMenuItem(_outMenu,
-                                    c = cgmGEN.Callback(mc.select,_connectionsIn),
-                                    ann = 'Load connection: {0}'.format(_inShort),
-                                    label = 'Load')            
-                    mUI.MelMenuItem(_outMenu,
-                                    c = cgmGEN.Callback(ATTR,_connectionsIn),
-                                    ann = 'Break connection: {0}'.format(_inShort),
-                                    label = 'Break')        
-            
+        #mUI.MelMenuItem(_out, 
+                        #label = "Set")
+        if _connectionsOut:
+            mUI.MelMenuItemDiv(_out)
+            for _p in _l_connectionsOut:
+                _outShort = NAMES.get_short(_p)
+                log.info("|{0}| >> connectOut...{1} | short: {2}".format(_str_func, _p, _outShort))
+                
+                _d_out = ATTR.validate_arg(_p)
+                _outMenu = mUI.MelMenuItem(_out,subMenu = True,
+                                           label = _outShort)
+        
+                mUI.MelMenuItem(_outMenu,
+                                c = cgmGEN.Callback(mc.select,_l_connectionsOut),
+                                ann = 'Select connection: {0}'.format(_outShort),
+                                label = 'Select')
+                mUI.MelMenuItem(_outMenu,
+                                c = cgmGEN.Callback(self.uiFunc_load,_d_out['node'],_d_out['attr']),
+                                ann = 'Load connection: {0}'.format(_outShort),
+                                label = 'Load')            
+                mUI.MelMenuItem(_outMenu,
+                                c = cgmGEN.Callback(ATTR,_l_connectionsOut),
+                                ann = 'Break connection: {0}'.format(_outShort),
+                                label = 'Break')        
+        
             
         #Name --------------------------------
         _menu = mUI.MelMenuItem(_popUp,subMenu = True, 
@@ -1566,6 +1589,10 @@ def get_context(self, context = None, report = False):
     else:
         log.error("|{0}| >> Attrs found. using all settable ".format(_str_func))  
         _l_primeAttrs = mc.listAttr(_primeNode, settable = True)
+        
+    if _sel_attrs:
+        _l_primeAttrs.extend(_sel_attrs)
+        _l_primeAttrs = LISTS.get_noDuplicates(_l_primeAttrs)
         
     if _primeNode:
         _type = VALID.get_mayaType(_primeNode)
