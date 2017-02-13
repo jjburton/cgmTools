@@ -306,7 +306,23 @@ class ui(cgmUI.cgmGUI):
         self.uiReport_objects()
         self.uiScrollList_attr.clear()        
         self.uiFunc_updateScrollAttrList()
-
+        
+    def uiFunc_connect(self, fromAttr, toAttr):
+        _str_func = 'uiFunc_connect'          
+        try:
+            ATTR.connect(fromAttr,toAttr)
+        except Exception,err:
+            log.info("|{0}| >> fromAttr: {1} | toAttr: {2} || err: {3}".format(_str_func, fromAttr, toAttr, err))
+        self.uiFunc_updateScrollAttrList()
+    
+    def uiFunc_breakConnection(self, combined):
+        _str_func = 'uiFunc_breakConnection'          
+        try:
+            ATTR.break_connection(combined)
+        except Exception,err:
+            log.info("|{0}| >> combined: {1} || err: {3}".format(_str_func, combined, err))
+        self.uiFunc_updateScrollAttrList()
+        
     def uiFunc_updateScrollAttrList(self):
         _str_func = 'uiFunc_updateScrollAttrList'          
         self._l_attrsToLoad = []
@@ -756,7 +772,7 @@ class ui(cgmUI.cgmGUI):
         _sel = mc.ls(sl=True)
         if _sel:
             self.uiFunc_load_selected()        
-
+    @cgmGEN.Timer
     def uiFunc_selectAttr(self): 
         _str_func = 'uiFunc_selectAttr'        
         if self.uiPopUpMenu_attr:
@@ -781,6 +797,14 @@ class ui(cgmUI.cgmGUI):
         _connectionsIn = False
         _connectionsOut = False
         
+        
+        _res_context = get_context(self,self.var_context.value,False)
+        
+        _primeNode =_res_context['primeNode']
+        _l_primeAttrs = _res_context['attrs']
+        _l_targets = _res_context['targets']         
+        _d_prime = None
+        
         print(cgmGEN._str_subLine)
         self._l_attrsSelected = []
         
@@ -792,6 +816,7 @@ class ui(cgmUI.cgmGUI):
             _v = ATTR.get(_d)
             log.info("{1}.{2} | value: {3}".format(_str_func, _short,_a, _v))
             if i == 0:
+                _d_prime = _d
                 if ATTR.is_dynamic(_d):
                     _dynamic = True
                     if ATTR.is_numeric(_d):
@@ -806,7 +831,11 @@ class ui(cgmUI.cgmGUI):
                 if _l_connectionsOut:
                     _connectionsOut = True
         
+                
         #>>>Pop up menu--------------------------------------------------------------------------------------------        
+        mUI.MelMenuItem(_popUp,
+                        label = "prime: {0}".format(self._l_attrsToLoad[_indices[0]]),
+                        en=False)
         mUI.MelMenuItem(_popUp,
                         label ='Set Value',
                         ann = 'Enter value desired in pompt. If message, select object(s) to store',
@@ -844,16 +873,29 @@ class ui(cgmUI.cgmGUI):
                                        label = "Connections")
         
         _in = mUI.MelMenuItem(_connections, subMenu = True,
-                              en = _connectionsIn,
                               label = "In")
         _out = mUI.MelMenuItem(_connections, subMenu = True,
                                en = _connectionsOut,
                                label = "Out")
         
         #...in
-        mUI.MelMenuItem(_in, 
-                        ann = "Connect in selected attribute or primaryAttr to others",
-                        label = "Set")
+        _set = mUI.MelMenuItem(_in, subMenu = True,
+                               ann = "Connect something in to our prime attr or node",
+                               label = "Connect")
+        
+        if _l_primeAttrs and _l_targets:
+            for o in _l_targets:
+                _t_short = NAMES.get_base(o)
+                _oMenu = mUI.MelMenuItem(_set, subMenu = True,
+                                         ann = "Connect in selected attribute or primaryAttr to others",
+                                         label = _t_short)
+                for a in _l_primeAttrs[1:]:
+                    mUI.MelMenuItem(_oMenu,
+                                    ann = "Connect in selected attribute or primaryAttr to others",
+                                    c = cgmGEN.Callback(self.uiFunc_connect,"{0}.{1}".format(o,a),_d_prime['combined']),                                            
+                                    label = a)                    
+                    
+            
         if _connectionsIn:
             mUI.MelMenuItemDiv(_in)
             _inShort = NAMES.get_short(_l_connectionsIn)
@@ -871,7 +913,7 @@ class ui(cgmUI.cgmGUI):
                             ann = 'Load connection: {0}'.format(_inShort),
                             label = 'Load')            
             mUI.MelMenuItem(_in,
-                            c = cgmGEN.Callback(ATTR,_l_connectionsIn),
+                            c = cgmGEN.Callback(self.uiFunc_breakConnection,_d_prime['combined']),                                            
                             ann = 'Break connection: {0}'.format(_inShort),
                             label = 'Break')  
         #...Out
@@ -896,7 +938,7 @@ class ui(cgmUI.cgmGUI):
                                 ann = 'Load connection: {0}'.format(_outShort),
                                 label = 'Load')            
                 mUI.MelMenuItem(_outMenu,
-                                c = cgmGEN.Callback(ATTR,_l_connectionsOut),
+                                c = cgmGEN.Callback(self.uiFunc_breakConnection,_p),                                            
                                 ann = 'Break connection: {0}'.format(_outShort),
                                 label = 'Break')        
         
@@ -1552,6 +1594,10 @@ def get_values(self, context = None, report = False):
         cgmGEN.print_dict(_d_values,"Values",__name__)
 
     return _d_values
+
+def Callback(uiInstance, func, *a,**kws):
+    cgmGEN.Callback(func,*a,**kws)
+    uiInstance.uiFunc_updateScrollAttrList()
 
 def get_context(self, context = None, report = False):
     """
