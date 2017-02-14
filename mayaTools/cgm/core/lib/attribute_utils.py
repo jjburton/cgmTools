@@ -27,6 +27,8 @@ from Red9.core import Red9_Meta as r9Meta
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import name_utils as NAMES
+from cgm.core.lib import list_utils as LISTS
+
 reload(VALID)
 
 from cgm.lib import lists
@@ -74,6 +76,7 @@ d_attrCategoryLists = {'transform':('translateX','translateY','translateZ',
                                         'overrideTexturing','overridePlayback',
                                         'overrideVisibility','overrideColor')}
 
+#_d_compatibility= get_compatibilityDict(False)
 
 #>>> Utilities
 #===================================================================
@@ -1004,11 +1007,11 @@ def break_connection(*a):
             sourceBuffer = sourceBuffer[0]
 
         if not sourceBuffer:
-            return log.warning("|{0}| >>No source for '{1}.{2}' found!".format(_str_func,obj,attr))
+            return log.warning("|{0}| >>No source for '{1}.{2}' found!".format(_str_func,_obj,attr))
         log.debug("|{0}| >> sourcebuffer: {1}".format(_str_func,sourceBuffer))
         if family and family.get('parent'):
             log.debug("|{0}| >> family: {1}".format(_str_func,family))
-            _drivenAttr = '{0}.{1}'.format(obj,family.get('parent'))
+            _drivenAttr = '{0}.{1}'.format(_obj,family.get('parent'))
 
         log.debug("|{0}| >> breaking: {1} >>> to >>> {2}".format(_str_func,sourceBuffer,_drivenAttr))
 
@@ -1115,7 +1118,9 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
             mc.connectAttr(_connection,_combined)
 
     if _wasLocked or lock:
-        mc.setAttr(_combined_to,lock=True)    
+        mc.setAttr(_combined_to,lock=True)  
+        
+    return True
 
 
 def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],*a, **kws):
@@ -1766,7 +1771,7 @@ def get_type(*a):
     try:
         return mc.getAttr(_d['combined'],type=True) 
     except Exception,err:
-        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+        log.debug("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
         return False  
     
 def get_driver(node, attr = None, getNode = False, skipConversionNodes = False, longNames = True):
@@ -2992,7 +2997,203 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Fa
     if lock:
         set_lock(node,attr,lock)
     return True
+
+def get_attrsByTypeDict(node,typeCheck = [],*a,**kws):
+    """   
+    Replacement for getAttr which get's message objects as well as parses double3 type 
+    attributes to a list  
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+        **kws -- pass through for getAttr on certain types
+
+    :returns
+        value(s)
+    """ 
+    attrs =(mc.listAttr (node,*a, **kws ))
+    typeDict = {}    
+    if typeCheck:
+        for check in typeCheck:
+            typeDict[check] = []
+
+    if not attrs == None:   
+        for a in attrs:
+            try:               
+                typeBuffer  = get_type(node,a)
+                if typeCheck:
+                    if typeBuffer and typeBuffer in typeDict.keys():
+                        typeDict[typeBuffer].append(a)
+                else:
+                    if typeBuffer and typeBuffer in typeDict.keys():
+                        typeDict[typeBuffer].append(a)
+                    elif typeBuffer:
+                        typeDict[typeBuffer] = [a]                    
+            except:
+                pass
+    #cgmGeneral.print_dict(typeDict)
     
+    if typeDict: 
+        for key in typeDict.keys():
+            if typeDict.get(key):
+                return typeDict
+    return False   
+
+def get_compatible(node,attr,targetNode, direction = 'to'):
+    """   
+    Get attributes driven by an attribute
+
+    :parameters:
+        node(str) -- 
+        attr(str)
+        getNode(bool) -- if you want the dag node or the attribute(s)
+        skipConversionNodes(bool) -- whether you want conversion nodes included in query
+        longNames(bool) -- how you want the data returned name wise
+
+    :returns
+        driver(string)
+    """
+    _str_func = 'get_compatible'    
+    _d = validate_arg(node,attr) 
+    _res = []
+    _type = get_type(_d)
+    _l_goodTypes = []
+    
+    _d_compatibility= get_compatibilityDict(False)
+    
+    for a in mc.listAttr(targetNode):
+        try:
+            _combined = "{0}.{1}".format(targetNode,a)
+            
+            if direction == 'to':
+                for k,types in _d_compatibility.iteritems():
+                    log.info(k + ' ' + _type)
+                    if _type in types:
+                        log.info(k)
+                        _l_goodTypes.append(k)
+            else:
+                pass
+        except Exception,err:
+            log.debug("|{0}| >> Attr failed: {1}.{2} || err: {3}".format(_str_func,targetNode,a,err))
+    return _res
+
+def get_compatibilityDict(report = False):
+    """   
+    Get a compatibility dict to know what kinds of attributes are compatible with others. We do this by testing connections.
+    
+
+    :returns
+        driver(string)
+    """
+    _str_func = 'get_compatibilityDict' 
+    
+    _l_created = []
+    _l_d_byType = []
+    _l_types = []
+    _d_attrsByType = {}
+    _d_compatible = {}
+    _d_nodePairs = {}
+    
+    for t in 'transform','multiplyDivide':
+        _buffer = VALID.listArg( mc.createNode (t,name= (t+'_testing')))
+        _l_created.extend( _buffer )
+        
+            #_l_created.append( VALID.get_transform(_buffer[0]))
+        _buffer2 = VALID.listArg( mc.createNode (t,name= (t+'_testing2')))
+        _t2 = _buffer[0]
+        _l_created.extend( _buffer2 )        
+        
+        _d_nodePairs[_buffer[0]] = _buffer2[0]
+        
+    for o in _l_created:
+        for a in ['string','float','enum','message']:
+            add(o,a+'test',a,keyable=True)
+        
+    for o in _l_created:
+        if report:log.info("|{0}| >> getting attrs for {1}".format(_str_func,o))
+        _d = get_attrsByTypeDict(o,keyable=True) 
+        _l_d_byType.append( _d )
+        for k in _d.keys():
+            if k not in _d_attrsByType.keys():
+                _d_attrsByType[k] = []
+            for a in _d[k]:
+                _d_attrsByType[k].append(a)
+                
+    if report:cgmGeneral.print_dict(_d_attrsByType,'Attr type by keys',_str_func)
+    
+    for k in _d_attrsByType.keys():
+        _d_compatible[k] = {'out':[],'in':[]}
+        for k2 in _d_attrsByType.keys():
+            for n in _d_nodePairs.keys():
+                atr = _d_attrsByType[k][0]
+                if has_attr(n,atr):
+                    n2 = _d_nodePairs[n]
+                _n1_comb =  "{0}.{1}".format(n,atr)
+                
+                for atr2 in _d_attrsByType[k2]:
+                    if has_attr(n2,atr2):
+                        _n2_comb = "{0}.{1}".format(n2,atr2)
+                        break
+              
+                    
+                if _n1_comb and _n2_comb:
+                    try:
+                        connect(_n1_comb,_n2_comb)
+                        if get(_n1_comb) == get(_n2_comb):
+                            _d_compatible[k]['out'].append(k2)
+                            if report:log.info("|{0}| >> Connected out: {1} | type: {2}>{3} || value: {4}".format(_str_func,
+                                                                                                                  _n1_comb,
+                                                                                                                  k,k2,get(_n1_comb)))                
+                        break_connection(_n2_comb)
+                    
+                    except:
+                        pass
+                    try:
+                        connect(_n2_comb,_n1_comb)
+                        if get(_n1_comb) == get(_n2_comb):
+                            _d_compatible[k]['in'].append(k2)
+                            if report:log.info("|{0}| >> Connected in: {1} | type: {2}>{3} || value: {4}".format(_str_func,
+                                                                                                                  _n1_comb,
+                                                                                                                  k,k2,get(_n1_comb)))                
+                        break_connection(_n1_comb)
+                    
+                    except:
+                        pass   
+        _d_compatible[k]['out'] = LISTS.get_noDuplicates(_d_compatible[k]['out'])
+        _d_compatible[k]['in'] = LISTS.get_noDuplicates(_d_compatible[k]['in'])
+        
+    mc.delete(_l_created)
+    
+    if report:cgmGeneral.print_dict(_d_compatible,'Compatible',_str_func)
+    
+    return _d_compatible
+        
+    
+    
+    
+            
+    
+def returnCompatibleAttrs(sourceObj,sourceAttr,target,*a, **kw):
+    """ 
+    Returns compatible attributes
+
+    Keyword arguments:
+    attrType1(string)  
+    attrType1(string)  
+    """
+    assert mc.objExists('%s.%s'%(sourceObj,sourceAttr)) is True,"returnCompatibleAttrs error. '%s.%s' doesn't exist."%(sourceObj,sourceAttr)
+    assert mc.objExists(target) is True,"'%s' doesn't exist."%(target)
+
+    sourceType = validateRequestedAttrType( mc.getAttr((sourceObj+'.'+sourceAttr),type=True) )
+    if sourceType:
+        returnBuffer = []
+        bufferDict = returnObjectsAttributeByTypeDict(target,attrTypesDict.get(sourceType),*a, **kw) or {}
+        for key in bufferDict.keys():
+            returnBuffer.extend(bufferDict.get(key))
+        if returnBuffer:    
+            return returnBuffer
+    return False    
+    
+
     
 #>>>>REFACTORING>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

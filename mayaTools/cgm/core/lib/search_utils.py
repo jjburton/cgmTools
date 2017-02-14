@@ -37,32 +37,7 @@ from cgm.lib import lists
 is_shape = coreValid.is_shape
 is_transform = coreValid.is_transform    
 get_mayaType = coreValid.get_mayaType
-def get_transform(node = None):
-    """
-    Get transform of given node
-    
-    :parameters:
-        node(str): Object to check
-
-    :returns
-        status(bool)
-    """   
-    _str_func = 'is_transform'
-    _node = coreValid.stringArg(node,False,_str_func) 
-    
-    if '.' in node:
-        _buffer = node.split('.')[0]
-    else:
-        _buffer = node
-        
-    _buffer = mc.ls(_buffer, type = 'transform',long = True) or False
-    if _buffer:
-        return NAME.get_short(_buffer[0])
-    else:
-        _buffer = mc.listRelatives(node,parent=True,type='transform',fullPath = True) or False
-    if _buffer:
-        return NAME.get_short(_buffer[0])
-    return False    
+get_transform = coreValid.get_transform 
 
 def get_tag(node = None, tag = None):
     """

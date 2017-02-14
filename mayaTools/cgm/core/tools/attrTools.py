@@ -35,7 +35,8 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import list_utils as LISTS
 from cgm.core.tools.markingMenus.lib import contextual_utils as CONTEXT
-
+from cgm.core.cgmPy import str_Utils as STRINGS
+reload(STRINGS)
 reload(SEARCH)
 #>>> Root settings =============================================================
 __version__ = 'Alpha 2.0.02062017'
@@ -658,6 +659,7 @@ class ui(cgmUI.cgmGUI):
         
         #>>>Manage Attribute Section ---------------------------------------------------------------------------------------
         self.uiScrollList_attr = mUI.MelObjectScrollList(_MainForm, allowMultiSelection=True,
+                                                         dcc = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}),
                                                          selectCommand = self.uiFunc_selectAttr)
         
         
@@ -869,31 +871,61 @@ class ui(cgmUI.cgmGUI):
         
         
         #Connections --------------------------------
-        _connections = mUI.MelMenuItem(_popUp, subMenu = True,
-                                       label = "Connections")
+        #_connections = mUI.MelMenuItem(_popUp, subMenu = True,
+                                       #label = "Connections")
         
-        _in = mUI.MelMenuItem(_connections, subMenu = True,
-                              label = "In")
-        _out = mUI.MelMenuItem(_connections, subMenu = True,
-                               en = _connectionsOut,
-                               label = "Out")
+        _in = mUI.MelMenuItem(_popUp, subMenu = True,
+                              label = "Inbound")
+        _out = mUI.MelMenuItem(_popUp, subMenu = True,
+                               label = "Outbound")
         
-        #...in
+        #...in -------------------------------------------------------------------------------------
         _set = mUI.MelMenuItem(_in, subMenu = True,
                                ann = "Connect something in to our prime attr or node",
                                label = "Connect")
         
+        
+        mUI.MelMenuItem(_set,
+                        en=False,
+                        label = "Driven: "+ _short)        
+        mUI.MelMenuItemDiv(_set)
+        _b_multiTarget = False
+        if len(_l_targets) > 1:
+            _b_multiTarget = True
+            
         if _l_primeAttrs and _l_targets:
-            for o in _l_targets:
-                _t_short = NAMES.get_base(o)
-                _oMenu = mUI.MelMenuItem(_set, subMenu = True,
-                                         ann = "Connect in selected attribute or primaryAttr to others",
-                                         label = _t_short)
-                for a in _l_primeAttrs[1:]:
-                    mUI.MelMenuItem(_oMenu,
-                                    ann = "Connect in selected attribute or primaryAttr to others",
-                                    c = cgmGEN.Callback(self.uiFunc_connect,"{0}.{1}".format(o,a),_d_prime['combined']),                                            
-                                    label = a)                    
+            for a in ['all'] + _l_primeAttrs:
+                if a == 'all':
+                    if _b_multiTarget:
+                        _all =  mUI.MelMenuItem(_set, subMenu = True,
+                                                ann = "Connect all primeAttrs to primeNode {0} from target".format(_short),
+                                                label = 'All')
+                        for o in _l_targets:
+                            if o != _short:
+                                _t_short = NAMES.get_base(o)
+                                _oMenu = mUI.MelMenuItem(_all,
+                                                         ann = "Connect all to: {0}".format(o),
+                                                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectToPrime','driver':_t_short}),                                                     
+                                                         label = _t_short)                    
+                else:
+                    _primeAttr = mUI.MelMenuItem(_set, subMenu = True,
+                                                 ann = "Connect to primeNode {0}.{1}".format(_short,a),
+                                                 label = a)
+                    mUI.MelMenuItem(_primeAttr,
+                                    en=False,
+                                    label = "Driver")                  
+                    for o in _l_targets:
+                        _t_short = NAMES.get_base(o)
+                        _oMenu = mUI.MelMenuItem(_primeAttr, subMenu = True,
+                                                 ann = "Connect in selected attribute or primaryAttr to others",
+                                                 label = _t_short)
+                        for a1 in _l_primeAttrs:
+                            if _short == o and a1 == a:
+                                continue
+                            mUI.MelMenuItem(_oMenu,
+                                            ann = "Connect in selected attribute or primaryAttr to others",
+                                            c = cgmGEN.Callback(self.uiFunc_connect,"{0}.{1}".format(o,a1),"{0}.{1}".format(_short,a)),                                            
+                                            label = a1)                    
                     
             
         if _connectionsIn:
@@ -916,10 +948,13 @@ class ui(cgmUI.cgmGUI):
                             c = cgmGEN.Callback(self.uiFunc_breakConnection,_d_prime['combined']),                                            
                             ann = 'Break connection: {0}'.format(_inShort),
                             label = 'Break')  
-        #...Out
+        #...Out -------------------------------------------------------------------------------------
         #mUI.MelMenuItem(_out, 
                         #label = "Set")
         if _connectionsOut:
+            mUI.MelMenuItem(_out,
+                            en=False,
+                            label = "Driven")                 
             mUI.MelMenuItemDiv(_out)
             for _p in _l_connectionsOut:
                 _outShort = NAMES.get_short(_p)
@@ -991,7 +1026,8 @@ class ui(cgmUI.cgmGUI):
             mc.menuItem(parent=_add,
                         l=t,
                         ann = "Add a {0} attribute to the loaded object".format(t),
-                        c = cgmGEN.Callback(uiPrompt_addAttr,t))
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'addAttr','type':t}))                         
+                        #c = cgmGEN.Callback(uiPrompt_addAttr,t))
             
         
         _convert = mUI.MelMenuItem(_menu,subMenu = True, 
@@ -1167,7 +1203,18 @@ class ui(cgmUI.cgmGUI):
                 if _fromPrompt is None:
                     log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
                     return False
+            elif _mode == 'addAttr':
+                uiPrompt_addAttr(kws['type'],_l_targets)
+                _done = True
+            elif _mode == 'connectToPrime':
+                _driver = kws['driver'] 
                 
+                for a in _l_primeAttrs:
+                    try:
+                        ATTR.connect("{0}.{1}".format(_driver,a), "{0}.{1}".format(_primeNode,a))
+                    except Exception,err:
+                        log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _short,_a,err))                   
+                    _done = True
             elif _mode in ['alias','nameNice','duplicate','copyTo','copyConnectback','copyConnectto']:
                 if _mode == 'alias':
                     _plug = ATTR.get_alias(_d_baseAttr)
@@ -1186,6 +1233,10 @@ class ui(cgmUI.cgmGUI):
                 if _fromPrompt is None:
                     log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
                     return False
+                
+                _fromPrompt = STRINGS.strip_invalid(_fromPrompt,'[]{}()', functionSwap = False)
+                if ',' in _fromPrompt:
+                    _fromPrompt = _fromPrompt.split(',')                
                 log.info(_fromPrompt)
             elif _mode in ['default','min','max','softMin','softMax']:
                 _d_plugs = {'default':ATTR.get_default,'min':ATTR.get_min,'max':ATTR.get_max,
@@ -1271,8 +1322,6 @@ class ui(cgmUI.cgmGUI):
                         if _mode == 'value':
                             _v = None
                             try:
-                                if ',' in _fromPrompt:
-                                    _fromPrompt = _fromPrompt.split(',')
                                 _v = ATTR.validate_value(_d,value =_fromPrompt)
                             except Exception,err:
                                 log.error("|{0}| >> {1}.{2} | Mode: {3} | Failed to validate value from prompt: {4} | err: {5}".format(_str_func, _short,_a,_mode,_fromPrompt,err))                                               
@@ -1350,7 +1399,10 @@ def uiPrompt_addAttr(attrType = None, nodes = None, title = None, message = None
                     
         if autoLoadFail and _l_fails:
             mc.select(_l_fails)
-        ui()
+
+            try:ui()
+            except Exception,err:
+                log.error(err)
     else:
         log.info("|{2}| >> Add {0} attr cancelled. Nodes: {1}".format(attrType,_str_nodes,_str_func))
         return None     

@@ -32,6 +32,33 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
+def get_transform(node = None):
+    """
+    Get transform of given node
+    
+    :parameters:
+        node(str): Object to check
+
+    :returns
+        status(bool)
+    """   
+    _str_func = 'is_transform'
+    _node = stringArg(node,False,_str_func) 
+    
+    if '.' in node:
+        _buffer = node.split('.')[0]
+    else:
+        _buffer = node
+        
+    _buffer = mc.ls(_buffer, type = 'transform',long = True) or False
+    if _buffer:
+        return NAME.get_short(_buffer[0])
+    else:
+        _buffer = mc.listRelatives(node,parent=True,type='transform',fullPath = True) or False
+    if _buffer:
+        return NAME.get_short(_buffer[0])
+    return False   
+
 def get_mayaType(node = None):
     """
     What kind of nodeect is this as maya's type return isn't always great
@@ -860,8 +887,8 @@ class simpleAxis():
     
     
 #>>> Transforms ==========================================================================
-def getTransform(arg):
-    """Find the transform of the object"""
+getTransform = get_transform
+"""def getTransform(arg):
     buffer = mc.ls(arg, type = 'transform') or False
     if buffer:
         return buffer[0]
@@ -869,7 +896,7 @@ def getTransform(arg):
         buffer = mc.listRelatives(arg,parent=True,type='transform') or False
     if buffer:
         return buffer[0]
-    return False
+    return False"""
 
 def MeshDict(mesh = None, pointCounts = True, calledFrom = None):
     """

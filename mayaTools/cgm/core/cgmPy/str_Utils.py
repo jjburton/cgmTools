@@ -95,3 +95,4 @@ def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?>
 						l_buffer.append(n)
 					break	
 """
+strip_invalid = stripInvalidChars
