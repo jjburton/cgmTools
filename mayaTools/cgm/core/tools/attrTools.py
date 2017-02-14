@@ -629,14 +629,14 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_Button(_row_attrCreate,'Load Selected',
                          cgmGEN.Callback(self.uiFunc_load_selected),
                          #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-                         "Add the attribute names from the text field")
-        cgmUI.add_Button(_row_attrCreate,'Report',
-                         cgmGEN.Callback(self.uiFunc_report_loaded),                         
-                         "Add the attribute names from the text field")        
+                         "Load selected nodes to the ui. First in selection is prime node.")
+        cgmUI.add_Button(_row_attrCreate,'Refresh',
+                         cgmGEN.Callback(self.uiFunc_updateScrollAttrList),                         
+                         "Refresh the attributes in the scroll list. Useful if keyed.")        
 
         cgmUI.add_Button(_row_attrCreate,'Clear',
                          cgmGEN.Callback(self.uiFunc_clear_loaded),                         
-                         "Add the attribute names from the text field")
+                         "Clear loaded nodes")
         _row_attrCreate.layout()  
         
         #Flags ---------------------------------------------------------------------------------------------
@@ -1117,7 +1117,7 @@ class ui(cgmUI.cgmGUI):
                     for k in l_keys:
                         for a,v in _d_values[o].iteritems():
                             log.info("|{0}| >>  f{1} : {2}.{3} --> {4}".format(_str_func,k,o,a,v))
-                            try:mc.setKeyframe(o,attribute=a,v = v,t=k)
+                            try:ATTR.set_keyframe(o,a,v,k)
                             except Exception,err:
                                 log.error("|{0}| >>  failed to set... f{1} : {2}.{3} --> {4} | {5}".format(_str_func,k,o,a,v, err))
                             
@@ -1133,7 +1133,7 @@ class ui(cgmUI.cgmGUI):
                             for a,v in _d_tmp.iteritems():
                                 if o in _l_targets:
                                     log.info("|{0}| >>  f{1} : {2}.{3} --> {4}".format(_str_func,k,o,a,v))
-                                    try:mc.setKeyframe(o,attribute=a,v = v,t=k)
+                                    try:ATTR.set_keyframe(o,a,v,k)
                                     except Exception,err:
                                         log.error("|{0}| >>  failed to set... f{1} : {2}.{3} --> {4} | {5}".format(_str_func,k,o,a,v, err))
                                 
@@ -1146,7 +1146,7 @@ class ui(cgmUI.cgmGUI):
                             for a,v in _d_values.iteritems():
                                 if o in _l_targets:
                                     log.info("|{0}| >>  f{1} : {2}.{3} --> {4}".format(_str_func,k,o,a,v))
-                                    try:mc.setKeyframe(o,attribute=a,v = v,t=k)
+                                    try:ATTR.set_keyframe(o,a,v,k)
                                     except Exception,err:
                                         log.error("|{0}| >>  failed to set... f{1} : {2}.{3} --> {4} | {5}".format(_str_func,k,o,a,v, err))
                                         

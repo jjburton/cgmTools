@@ -368,6 +368,47 @@ def get(*a, **kws):
     else:
         return mc.getAttr(_combined, **kws)
 
+def set_keyframe(node, attr = None, value = None, time = None):
+    """   
+    Replacement for simple setKeyframe call. Necessary because Maya's doesn't allow multi attrs like translate,scale,rotate...
+    
+    :parameters:
+        node(str)
+        attr(str)
+        v-value(varied): -
+        t-time(varied) - pass through for mc.setKeyframe
+
+    :returns
+        value(s)
+    """ 
+    _str_func = 'set_keyframe'
+    
+    if '.' in node or issubclass(type(node),dict):
+        _d = validate_arg(node)
+    else:
+        _d = validate_arg(node,attr)  
+    
+    _combined = _d['combined']
+    _node = _d['node']
+    _attr = _d['attr']
+    _children = get_children(_d)
+    _kws = {'v':value,'t':time}
+    
+    if _children:
+        if len(_children) == len(value):
+            for i,c in enumerate(_children):
+                try:mc.setKeyframe(_node,attribute=c,v=value[i], t=time)
+                except Exception,err:
+                    log.error("|{0}| >>  failed to set... f{1} : {2}.{3} --> {4} | {5}".format(_str_func,time,_node,_attr,value, err))
+                          
+        else:
+            raise ValueError,"Children len to value len mismatch|| children: {0} | v: {1}".format(_children,value)
+    else:
+        try:mc.setKeyframe(_node,attribute=_attr,**_kws)
+        except Exception,err:
+            log.error("|{0}| >>  failed to set... f{1} : {2}.{3} --> {4} | {5}".format(_str_func,time,_node,_attr,value, err))
+        
+
 def set(node, attr = None, value = None, lock = False,**kws):
     """   
     Replacement for setAttr which get's message objects as well as parses double3 type 

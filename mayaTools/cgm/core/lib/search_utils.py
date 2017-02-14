@@ -165,8 +165,12 @@ def get_key_indices_from(node = None, mode = 'all'):
                 log.debug('higher: {0}'.format(mc.currentTime(q=True)))
                 break
             keyBuffer = mc.findKeyframe(node,which = 'next',an='objects')
-            keyFrames.append(keyBuffer)
-            mc.currentTime(keyBuffer)
+            if keyBuffer < initialTimeState:
+                keyFrames.append(keyBuffer)
+                log.info(keyFrames)
+                mc.currentTime(keyBuffer)
+            else:
+                break
         if mode == 'previous' and keyFrames:
             keyFrames = [keyFrames[-1]]
 

@@ -1500,10 +1500,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                     c = cgmGen.Callback(LOCINATOR.update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                     rp = 'S')  
-       
-             
-        
-    
+
 def killUI():
     log.debug("killUI...")
     
