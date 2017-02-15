@@ -40,11 +40,19 @@ d_functionStringSwaps = {'.':'_attr_', ' ':'',',':'_',
                          '==':'_isEqualTo_','!=':'_isNotEqualTo_','>':'_isGreaterThan_','>=':'_isGreaterOrEqualTo_','<':'_isLessThan_','<=':'_isLessThanOrEqualTo_',#condition
                          '*':'_multBy_','/':'_divBy_','^':'_pow_',}#md
 
-def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?><., """,
+def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?><., """, noNumberStart = True,
                       functionSwap = True, replaceChar = '', cleanDoubles = True, stripTailing=True):
 	"""
 	Modified from Hamish MacKenzie's zoo one
-
+	
+	:parameters:
+        arg(str) - String to clean
+        invalidChars(str) - Sequence of characters to remove
+		noNumberStart(bool) - remove numbers at start
+		functionSwap(bool) - whether to replace functions with string from dict
+		replaceChar(str) - Character to use to replace with
+		cleanDoubles(bool) - remove doubles
+		stripTrailing(bool) - remove trailing '_'
 
 	returns l_pos
 	"""
@@ -57,12 +65,12 @@ def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?>
 				str_Clean = str_Clean.replace( char, d_functionStringSwaps.get(char) )
 			else:
 				str_Clean = str_Clean.replace( char, replaceChar )
-			
-		for n in range(10):		
-			while str_Clean.startswith( str(n) ):
-				log.debug("Cleaning : %s"%str(n))
-				str_Clean = str_Clean[ 1: ]	
-				
+		
+		if noNumberStart:
+			for n in range(10):		
+				while str_Clean.startswith( str(n) ):
+					log.debug("Cleaning : %s"%str(n))
+					str_Clean = str_Clean[ 1: ]	
 		if cleanDoubles and replaceChar:
 			doubleChar = replaceChar + replaceChar
 			while doubleChar in cleanStr:
