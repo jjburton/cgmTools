@@ -28,7 +28,7 @@ from cgm.core.lib import shape_utils as SHAPE
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import attribute_utils as ATTR
 
-def get_list(context = 'selection', mType = None):
+def get_list(context = 'selection', mType = None, getTransform = False):
     """
     Get contextual data for updating a transform
     
@@ -39,6 +39,8 @@ def get_list(context = 'selection', mType = None):
             heirarchy
             scene
             buffer
+        mType
+        getTransform
 
     :returns
         list(list)
@@ -114,7 +116,11 @@ def get_list(context = 'selection', mType = None):
     else:
         log.warning("|{0}| >> context unkown: {1}...".format(_str_func,_context))        
         return False
-    
+    if getTransform:
+        for i,o in enumerate(_l_context):
+            _trans = SEARCH.get_transform(o)
+            if _trans:
+                _l_context[i] = _trans
     return _l_context
 
     

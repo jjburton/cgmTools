@@ -343,6 +343,10 @@ class ui(cgmUI.cgmGUI):
         _others = self._d_uiCheckBoxes['others'].getValue()
         _sort = self._d_uiCheckBoxes['sort'].getValue()
         
+        if _user:
+            self.row_move(edit =True, vis = True)
+        else:
+            self.row_move(edit = True, vis = False)
         
         #_transforms = self._d_uiCheckBoxes['trans'].getValue()        
         #_other = self._d_uiCheckBoxes['other'].getValue()
@@ -351,10 +355,12 @@ class ui(cgmUI.cgmGUI):
             _short = mObj.p_nameShort
             _d_processed[_short] = []
             _l_processed = _d_processed[_short] 
-                       
+            _is_transform = VALID.is_transform(_short)           
             _l = mc.listAttr(_short, settable=True) or []
-            if VALID.getTransform(_short):
-                _l.extend(SHARED._d_attrCategoryLists['transform'])             
+            if _is_transform:
+                _l.extend(SHARED._d_attrCategoryLists['transform']) 
+            else:
+                _l.extend(mc.listAttr(_short, inUse=True) or [])
             """if _default:
                 _l.extend( mc.listAttr(_short) or [])
                 #if VALID.getTransform(_short):
@@ -377,10 +383,14 @@ class ui(cgmUI.cgmGUI):
                     _hidden = ATTR.is_hidden(_d)
                     
                     if _default:
-                        if not _hidden and not _dyn:
-                            _l_processed.append(a)
-                        if _d['attr'] in SHARED._d_attrCategoryLists['transform'] or _d['attr'] in ['translate','rotate','scale']:
-                            _l_processed.append(a)
+                        if _is_transform:
+                            if not _hidden and not _dyn:
+                                _l_processed.append(a)
+                            if _d['attr'] in SHARED._d_attrCategoryLists['transform'] or _d['attr'] in ['translate','rotate','scale']:
+                                _l_processed.append(a)
+                        else:
+                            if a not in ['isHistoricallyInteresting','nodeState','binMembership','caching','frozen']:
+                                _l_processed.append(a)
                     if _user and _dyn:
                         _l_processed.append(a)
                     if _others and a not in _l_processed:
@@ -710,8 +720,21 @@ class ui(cgmUI.cgmGUI):
                                          onCommand = cgmGEN.Callback(self.var_valueMode.setValue,cnt))
             mUI.MelSpacer(_row_valueModes,w=2)        
         
-        _row_valueModes.layout()  """      
+        _row_valueModes.layout()  """ 
         
+        #>>>Objects Buttons Row ---------------------------------------------------------------------------------------
+        _row_move = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 5, vis = False)
+        self.row_move = _row_move
+    
+        cgmUI.add_Button(_row_move,'Move Up',
+                         cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'moveUp'}),                                                     
+                         "Load selected nodes to the ui. First in selection is prime node.")
+        cgmUI.add_Button(_row_move,'Move Down',
+                         cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'moveDown'}),                                                     
+                         "Refresh the attributes in the scroll list. Useful if keyed.")        
+        _row_move.layout()      
+        
+        #>>>Push Values header ---------------------------------------------------------------------------------------        
         mc.setParent(_MainForm)        
         _header_push = cgmUI.add_Header('Push Values*')
         
@@ -754,6 +777,8 @@ class ui(cgmUI.cgmGUI):
                         (_row_attrCreate,"right",0),
                         (_row_attrFlags,"left",0),
                         (_row_attrFlags,"right",0),
+                        (_row_move,"left",0),
+                        (_row_move,"right",0),                        
                         (_header_push,"left",0),
                         (_header_push,"right",0),                         
                         #(_row_keyModes,"left",5),
@@ -767,11 +792,12 @@ class ui(cgmUI.cgmGUI):
                   ac = [(_row_attrReport,"top",2,_header),
                         (_row_attrCreate,"top",2,_row_attrReport),
                         (_row_attrFlags,"top",2,_row_attrCreate),
+                        (_row_move,"bottom",0,_header_push),                                                
                         (_header_push,"bottom",2,self.row_setValue),                        
                         #(_row_keyModes,"bottom",0,_row_valueModes),
                         #(_row_valueModes,"bottom",0,self.row_setValue),                        
                         (self.uiScrollList_attr,"top",2,_row_attrFlags),
-                        (self.uiScrollList_attr,"bottom",0,_header_push)],
+                        (self.uiScrollList_attr,"bottom",0,_row_move)],
                   attachNone = [(self.row_setValue,"top")])	        
             
         _sel = mc.ls(sl=True)
@@ -1456,6 +1482,8 @@ class ui(cgmUI.cgmGUI):
                 _convertString = _mode.split('convert')[-1].lower()
                 log.info("|{0}| >>  convert string: {1} ".format(_str_func,_convertString))                                                               
                 
+            elif _mode in ['moveUp','moveDown']:
+                pass
             else:
                 log.error("|{0}| >>  Mode: {1} | Not implented...".format(_str_func,_mode))                                               
                 return False
@@ -1480,8 +1508,7 @@ class ui(cgmUI.cgmGUI):
                         if _mode == 'copyConnectto':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True,driven='target')
                         if _mode == 'copyConnectback':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True,driven='source')                        
                         continue
-                    
-                    
+
                     #...the remainder of these happen after validation of attr
                     if not _d or not mc.objExists(_d['combined']):
                         log.warning("|{0}| >> not validated. skipping: {1}.{2}".format(_str_func, _short,_a))                           
@@ -1516,6 +1543,15 @@ class ui(cgmUI.cgmGUI):
                         elif _mode == 'rename':
                             if not _fromPrompt:raise ValueError,"Must have new name"
                             ATTR.rename(_d, _fromPrompt) 
+                        elif _mode in ['moveUp','moveDown']:
+                            if _mode == 'moveUp':
+                                _direction = 0
+                            else:
+                                _direction = 1
+                            if ATTR.is_dynamic(_d):
+                                ATTR.reorder(_short, _a, _direction)
+                            else:
+                                log.error("|{0}| >> {1}.{2} | Mode: {3} | Attr must be userDefined to be dynamic".format(_str_func, _short,_a,_mode))                                                                               
                         
                         elif _mode in ['default','min','max','softMin','softMax']:
                             _d_plugs = {'default':ATTR.set_default,'min':ATTR.set_min,'max':ATTR.set_max,
@@ -1873,7 +1909,7 @@ def get_context(self, context = None, report = False):
         
     if _primeNode:
         _type = VALID.get_mayaType(_primeNode)
-    
+        _trans = VALID.is_transform(_primeNode)
     if context == 'loaded':
         if not self._ml_nodes:
             log.error("|{0}| >> No nodes stored to ui. ".format(_str_func))            
@@ -1884,7 +1920,7 @@ def get_context(self, context = None, report = False):
             #for a in _l_primeAttrs:
                 #_l_targets.append( "{0}.{1}".format(mNode.mNode, a))
     else:
-        _l_targets = CONTEXT.get_list(context,_type)
+        _l_targets = CONTEXT.get_list(context,_type,_trans)
         
     if report:
         log.info(cgmGEN._str_hardLine)

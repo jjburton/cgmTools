@@ -354,6 +354,7 @@ def get(*a, **kws):
     except:
         log.debug("|{0}| >> {1} failed to return type. Exists: {2}".format(_str_func,_d['combined'],mc.objExists(_d['combined'])))            
         return None
+    
     if attrType in ['TdataCompound']:
         return mc.listConnections(_combined)		
 
@@ -1967,7 +1968,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
             #REPAIR
             _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
         
-    if mc.addAttr(_combined,q=True,m=True):
+    if is_multi(_d):
         log.debug("|{0}| >> multimessage...".format(_str_func))
         
         if _msgBuffer:
