@@ -783,14 +783,16 @@ class ui(cgmUI.cgmGUI):
         if self.uiPopUpMenu_attr:
             self.uiPopUpMenu_attr.clear()
             self.uiPopUpMenu_attr.delete()
+            self.uiPopUpMenu_attr = None
             
-        self.uiPopUpMenu_attr = mUI.MelPopupMenu(self.uiScrollList_attr,button = 3)
-
-        _popUp = self.uiPopUpMenu_attr   
-        
-
-        _indices = self.uiScrollList_attr.getSelectedIdxs()
+        _indices = self.uiScrollList_attr.getSelectedIdxs() or []
         log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))                           
+        if not _indices:
+            return
+        
+        self.uiPopUpMenu_attr = mUI.MelPopupMenu(self.uiScrollList_attr,button = 3)
+        _popUp = self.uiPopUpMenu_attr     
+        
         
         _b_single = False
         if len(_indices)==1:_b_single = True
@@ -916,13 +918,16 @@ class ui(cgmUI.cgmGUI):
                         en=False,
                         label = "Connect to "+ _short + " attrs...")   
         
-        _b_multiTarget = False
-        if len(_l_targets) > 1:
-            _b_multiTarget = True
-            
+        _b_multiTarget = False    
         _b_severalTarget = False
-        if len(_l_targets) > 2:
-            _b_severalTarget = True
+        _len_targets = len(_l_targets)
+        
+        if _len_targets >= 1:
+            if _l_targets[0] != _short:
+                _b_severalTarget = True
+                _b_multiTarget = True                
+            if _len_targets >= 2:
+                _b_multiTarget = True
             
         _b_multiAttr = False
         if len(_l_primeAttrs) > 1:
@@ -930,15 +935,23 @@ class ui(cgmUI.cgmGUI):
         
         _b_attrLenMatch = False
         _len_channelbox = len(_l_channelbox)
-        if len(_l_primeAttrs) == _len_channelbox:
+        _len_primAttrs = len(_l_primeAttrs)
+        if _len_primAttrs and _len_channelbox and _len_primAttrs == _len_channelbox:
             _b_attrLenMatch = True            
             for a in _l_primeAttrs:
                 if a in _l_channelbox:
                     _b_attrLenMatch = False
                     break
-            
+        elif _len_primAttrs == 1 and _l_channelbox:
+            _children = ATTR.get_children(_short,_l_primeAttrs[0])
+            if len(_children) == _len_channelbox:
+                _b_attrLenMatch = True
+                
+        _l_a = _l_primeAttrs + _l_channelbox
+        _l_a = LISTS.get_noDuplicates(_l_a)
+        
         if _l_primeAttrs and _l_targets:
-            for a in ['all'] + _l_primeAttrs + _l_channelbox:
+            for a in ['all'] + _l_a:
                 if a == 'all':
                     _all =  mUI.MelMenuItem(_set, subMenu = True,
                                             en = _b_multiTarget,
@@ -950,7 +963,7 @@ class ui(cgmUI.cgmGUI):
                                 _t_short = NAMES.get_base(o)
                                 _oMenu = mUI.MelMenuItem(_all,
                                                          ann = "Connect all to: {0}".format(o),
-                                                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectToPrime','driver':_t_short}),                                                     
+                                                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectToPrime','driver':[_t_short]}),                                                     
                                                          label = _t_short) 
                     _cb =  mUI.MelMenuItem(_set, subMenu = True,
                                            en = _b_attrLenMatch,
@@ -961,7 +974,7 @@ class ui(cgmUI.cgmGUI):
                             _t_short = NAMES.get_base(o)
                             _oMenu = mUI.MelMenuItem(_cb,
                                                      ann = "Connect all from channelbox of: {0}".format(o),
-                                                     c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectToPrimeChannelbox','driver':_t_short}),                                                     
+                                                     c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectToPrimeFromChannelbox','driver':_t_short}),                                                     
                                                      label = _t_short)                         
                 elif _b_multiAttr:
                     _primeAttr = mUI.MelMenuItem(_set, subMenu = True,
@@ -993,11 +1006,11 @@ class ui(cgmUI.cgmGUI):
         if _connectionsOut:
             mUI.MelMenuItem(_out,
                             en=False,
-                            label = "Driven from primeAttrs")                 
+                            label = "Driven from primeAttrs({0})".format(_len_primAttrs))                 
             mUI.MelMenuItemDiv(_out)
             for _p in _l_connectionsOut:
                 _outShort = NAMES.get_short(_p)
-                log.info("|{0}| >> connectOut...{1} | short: {2}".format(_str_func, _p, _outShort))
+                log.debug("|{0}| >> connectOut...{1} | short: {2}".format(_str_func, _p, _outShort))
                 
                 _d_out = ATTR.validate_arg(_p)
                 _outMenu = mUI.MelMenuItem(_out,subMenu = True,
@@ -1023,7 +1036,7 @@ class ui(cgmUI.cgmGUI):
         
         
         if _l_primeAttrs and _l_targets:
-            for a in ['all'] + _l_primeAttrs + _l_channelbox:
+            for a in ['all'] + _l_a:
                 if a == 'all':
                     _all =  mUI.MelMenuItem(_out, subMenu = True,
                                             en = _b_multiTarget,
@@ -1035,10 +1048,11 @@ class ui(cgmUI.cgmGUI):
                                 _t_short = NAMES.get_base(o)
                                 _oMenu = mUI.MelMenuItem(_all,
                                                          ann = "Connect all to: {0}".format(o),
-                                                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectToPrime','driver':_t_short}),                                                     
+                                                         c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectFromPrime','driven':[_t_short]}),                                                     
                                                          label = _t_short) 
                         mUI.MelMenuItem(_all,
                                         en = _b_severalTarget,
+                                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectFromPrime','driven':_l_targets}),                                                                                             
                                         ann = "Connect all selected attribute or primaryAttr to others",
                                         label = 'All targets')   
                                 
@@ -1052,11 +1066,12 @@ class ui(cgmUI.cgmGUI):
                             _t_short = NAMES.get_base(o)
                             _oMenu = mUI.MelMenuItem(_cb,
                                                      ann = "Connect all to channelbox of: {0}".format(o),
-                                                     c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectToPrimeChannelbox','driver':_t_short}),                                                     
+                                                     c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectFromPrimeToChannelbox','driven':[_t_short]}),                                                     
                                                      label = _t_short)  
                         mUI.MelMenuItem(_cb,
                                         en = _b_severalTarget,
                                         ann = "Connect to each selected objects channelbox",
+                                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'connectFromPrimeToChannelbox','driven':_l_targets}),                                                                                             
                                         label = 'All targets')                           
                             
                 elif _b_multiAttr:
@@ -1078,7 +1093,7 @@ class ui(cgmUI.cgmGUI):
                                 continue
                             mUI.MelMenuItem(_oMenu,
                                             ann = "Connect in selected attribute or primaryAttr to others",
-                                            c = cgmGEN.Callback(self.uiFunc_connect,"{0}.{1}".format(o,a1),"{0}.{1}".format(_short,a)),                                            
+                                            c = cgmGEN.Callback(self.uiFunc_connect,"{0}.{1}".format(_short,a),"{0}.{1}".format(o,a1)),                                            
                                             label = a1)  
                     _all = mUI.MelMenuItem(_primeAttr, subMenu = True,
                                            ann = "Connect out selected attribute or primaryAttr to others",
@@ -1086,7 +1101,7 @@ class ui(cgmUI.cgmGUI):
                     for a1 in _l_primeAttrs:
                         mUI.MelMenuItem(_all,
                                         ann = "Connect in selected attribute or primaryAttr to others",
-                                        c = cgmGEN.Callback(self.uiFunc_connect,"{0}.{1}".format(o,a1),"{0}.{1}".format(_short,a)),                                            
+                                        c = cgmGEN.Callback(self.uiFunc_connect,"{0}.{1}".format(_short,a),"{0}.{1}".format(o,a1)),                                            
                                         label = a1)                    
         
         
@@ -1163,9 +1178,7 @@ class ui(cgmUI.cgmGUI):
         
         
         for item,a in _d_utils.iteritems():
-            if not _dynamic and item in ['moveUp','moveDown','copyTo','copyTo connect back','copyTo connect']:
-                pass
-            elif _hidden and item in ['moveUp','moveDown']:
+            if not _dynamic and item in ['copyTo','copyTo connect back','copyTo connect']:
                 pass
             else:
                 mUI.MelMenuItem(_menu,
@@ -1302,7 +1315,11 @@ class ui(cgmUI.cgmGUI):
         _l_targets = _res_context['targets']        
         _l_channelbox = _res_context['channelbox'] 
         
-        _d_baseAttr = ATTR.validate_arg(self._ml_nodes[0].mNode,self._l_attrsToLoad[_indices[0]])
+        if _indices:
+            _d_baseAttr = ATTR.validate_arg(self._ml_nodes[0].mNode,self._l_attrsToLoad[_indices[0]])
+        else:
+            _d_baseAttr = False
+            
         _aType = ATTR.get_type(_d_baseAttr)
         _str_base = NAMES.get_base(_d_baseAttr['combined'])
         _done = False
@@ -1323,21 +1340,58 @@ class ui(cgmUI.cgmGUI):
             elif _mode == 'connectToPrime':
                 _driver = kws['driver'] 
                 
-                for a in _l_primeAttrs:
-                    try:
-                        ATTR.connect("{0}.{1}".format(_driver,a), "{0}.{1}".format(_primeNode,a))
-                    except Exception,err:
-                        log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _short,_a,err))                   
+                for o in _driver:
+                    for a in _l_primeAttrs:
+                        try:
+                            ATTR.connect("{0}.{1}".format(o,a), "{0}.{1}".format(_primeNode,a))
+                        except Exception,err:
+                            log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                   
                 _done = True
-            elif _mode == 'connectToPrimeChannelbox':
+            elif _mode == 'connectToPrimeFromChannelbox':
                 _driver = kws['driver'] 
-                for i,a in enumerate(_l_primeAttrs):
-                    try:
-                        ATTR.connect("{0}.{1}".format(_driver,_l_channelbox[i]), "{0}.{1}".format(_primeNode,a))
-                    except Exception,err:
-                        log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _short,_a,err))                   
+                len_primeAttrs = len(_l_primeAttrs)
+                if len_primeAttrs == 1 and len_primeAttrs != len(_l_channelbox):
+                    for o in _driver:
+                        try:
+                            for i,a in enumerate(ATTR.get_children(_d_baseAttr)):
+                                ATTR.connect("{0}.{1}".format(o,_l_channelbox[i]),"{0}.{1}".format(_primeNode,a))                        
+                        except Exception,err:
+                            log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                    
+                else:
+                    for o in _driver:
+                        for i,a in enumerate(_l_primeAttrs):
+                            try:
+                                ATTR.connect("{0}.{1}".format(o,_l_channelbox[i]),"{0}.{1}".format(_primeNode,a))
+                            except Exception,err:
+                                log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                   
                 _done = True                
-                        
+            elif _mode == 'connectFromPrime':
+                _driven = kws['driven'] 
+                for o in _driven:
+                    for a in _l_primeAttrs:
+                        try:
+                            ATTR.connect("{0}.{1}".format(_primeNode,a),"{0}.{1}".format(o,a))
+                        except Exception,err:
+                            log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                   
+                _done = True
+            elif _mode == 'connectFromPrimeToChannelbox':
+                _driven = kws['driven'] 
+                len_primeAttrs = len(_l_primeAttrs)
+                if len_primeAttrs == 1 and len_primeAttrs != len(_l_channelbox):
+                    for o in _driven:
+                        try:
+                            for i,a in enumerate(ATTR.get_children(_d_baseAttr)):
+                                ATTR.connect( "{0}.{1}".format(_primeNode,a),"{0}.{1}".format(o,_l_channelbox[i]))                        
+                        except Exception,err:
+                            log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                    
+                else:
+                    for o in _driven:
+                        for i,a in enumerate(_l_primeAttrs):
+                            try:
+                                ATTR.connect("{0}.{1}".format(_primeNode,a),"{0}.{1}".format(o,_l_channelbox[i]))
+                            except Exception,err:
+                                log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                   
+                _done = True                     
             elif _mode in ['alias','nameNice','duplicate','copyTo','copyConnectback','copyConnectto']:
                 if _mode == 'alias':
                     _plug = ATTR.get_alias(_d_baseAttr)
