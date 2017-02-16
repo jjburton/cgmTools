@@ -39,7 +39,7 @@ from cgm.core.cgmPy import str_Utils as STRINGS
 reload(STRINGS)
 reload(SEARCH)
 #>>> Root settings =============================================================
-__version__ = 'Alpha 2.0.02062017'
+__version__ = 'Alpha 2.0.02152017'
 
 #__toolURL__ = 'www.cgmonks.com'
 #__author__ = 'Josh Burton'
@@ -736,7 +736,7 @@ class ui(cgmUI.cgmGUI):
         
         #>>>Push Values header ---------------------------------------------------------------------------------------        
         mc.setParent(_MainForm)        
-        _header_push = cgmUI.add_Header('Push Values*')
+        _header_push = cgmUI.add_Header('Push Values')
         
         #>>>Push Values Row --------------------------------------------------------------------------------------------
         self.row_setValue = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 2)
@@ -907,9 +907,9 @@ class ui(cgmUI.cgmGUI):
                                        #label = "Connections")
         
         _in = mUI.MelMenuItem(_popUp, subMenu = True,
-                              label = "Inbound")
+                              label = "In")
         _out = mUI.MelMenuItem(_popUp, subMenu = True,
-                               label = "Outbound")
+                               label = "Out")
         
         #...in -------------------------------------------------------------------------------------
         

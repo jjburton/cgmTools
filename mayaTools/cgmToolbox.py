@@ -407,10 +407,15 @@ def startWingServer( *a ):
     mWingServer.startServer()
 
 def loadAttrTools( *a ):
-    from cgm.tools import attrTools
-    reload(attrTools)
-    cgmAttrToolsWin = attrTools.run()
-    
+    from cgm.tools import attrTools1
+    reload(attrTools1)
+    cgmAttrToolsWin = attrTools1.run()
+	
+def loadAttrTools2( *a ):
+	from cgm.core.tools import attrTools as attrTools
+	reload(attrTools)
+	attrTools.ui()
+	
 def loadCGMMeshTools( *a ):
     from cgm.core.tools import meshTools
     reload(meshTools)
@@ -574,13 +579,7 @@ class ToolCB(object):
 #in the UI, and a tuple containing the annotation string and the button press callback to invoke when that
 #tool's toolbox button is pressed.
 #NOTE: the press callback should take *a as its args
-TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
-                              loadAnimTools),
-                             ('cgm.locinator', "Tool for creating, updating, locators",
-                              loadLocinator),
-                             ('cgm.SetTools', " Set tools",
-                              loadSetTools),
-                             ('red9.studioTools', "Launch Red 9's tools - hit it twice for now",
+TOOL_CATS = ( ('animation', (('red9.studioTools', "Launch Red 9's tools - hit it twice for now",
                               loadRed9),                             
                              ('zoo.XferAnim', "Tool for transferring animation - from Hamish McKenzie's zooToolbox",
                               loadXferAnim), 
@@ -589,21 +588,13 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
 
                              )),
 
-              ('rigging', (('cgm.locinator', "Tool for creating, updating, locators",
-                            loadLocinator),
-                           
+              ('rigging', (('cgm.attrTools', " NEW Attribute tools",
+                            loadAttrTools2),                      
                            ('cgm.meshTools', " Mesh tools",
                               loadCGMMeshTools),
-                           
-                           ('cgm.tdTools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
-                            loadTDTools),
-
-                           ('cgm.attrTools', " Attribute tools",
-                            loadAttrTools),
 
                            ('cgm.PolyUniteTool', "Stand alone poly unite tool for Plastic",
                             loadPolyUniteTool),                        
-
                            )),
 
               ('layout', (('zoo.Shots', "from Hamish McKenzie's zooToolbox -  zooShots is a camera management tool.  It lets you create a bunch of cameras in your scene, and 'edit' them together in time.  The master camera then cuts between each 'shot' camera.  All camera attributes are maintained over the cut - focal length, clipping planes, fstop etc...",
@@ -611,8 +602,22 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                           ('zoo.HUDCtrl', "from Hamish McKenzie's zooToolbox -  zooHUDCtrl lets you easily add stuff to your viewport HUD. ",
                            ToolCB('zooHUDCtrl')),
                           )),
-
-              ('hotkeys', (('Zoo Set Menu - selection set menu',
+              ('legacy', (('cgm.animTools', " Anim tools",
+                           loadAnimTools),
+                          ('cgm.SetTools', " Set tools",
+                           loadSetTools),
+                         ('cgm.locinator', "Tool for creating, updating, locators",
+                         loadLocinator),
+                          
+                          ('cgm.tdTools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
+                           loadTDTools),
+                      
+                          ('cgm.attrTools OLD', " OLD Attribute tools",
+                           loadAttrTools))),
+              ('hotkeys', (('cgmMarkingMenu -',
+                            'cgm Marking menu for pretty much everything we do',
+                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmMM_tool',  'cgmMarkingMenu;', 'cgmMarkingMenuKillUI;','Marking menu for working with rigging tools', 'mel','s')),
+                           ('Zoo Set Menu - selection set menu',
                             'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
                             mUI.Callback(HKEY.cgmHotkeyer, 'zooSetMenu', 'zooSetMenu;', 'zooSetMenuKillUI;','zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface','mel','y')),                            
                             #ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
@@ -639,10 +644,6 @@ TOOL_CATS = ( ('animation', (('cgm.animTools', " Anim tools",
                             'template example',
                             mUI.Callback(HKEY.cgmHotkeyer, 'cgmMMTemplate', 'cgmTemplateMM;', 'cgmTemplateMMKillUI;','Demo marking menu - t','mel','t')),
                            
-                           ('cgmMarkingMenu -',
-                            'cgm Marking menu for pretty much everything we do',
-                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmMM_tool',  'cgmMarkingMenu;', 'cgmMarkingMenuKillUI;','Marking menu for working with rigging tools', 'mel','s')),
-
                            ('Set Key Menu - key creation menu',
                             'cgmLibrary tools for dealing with keys',
                             mUI.Callback(HKEY.cgmHotkeyer, 'cgmSetKeyMM',  'cgmSetKeyMM;', 'cgmSetKeyMMKillUI;','designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations', 'mel','s')),                            
