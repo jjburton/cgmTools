@@ -252,7 +252,7 @@ def func_all_to_last(func,objects, mode = 'toFrom',**kws):
         
     #mc.select(objects)
     
-def func_process(func,objects, processMode = 'all', calledFrom = None, noSelect = True, **kws):
+def func_process(func,objects = None, processMode = 'all', calledFrom = None, noSelect = True, **kws):
     """
     Process objects passed with fuction provided in different modes...
     
@@ -284,10 +284,14 @@ def func_process(func,objects, processMode = 'all', calledFrom = None, noSelect 
     if calledFrom is not None:_str_func = "{0}".format(calledFrom)
     else:_str_func = "func_process"
     
+    if objects == None:
+        objects = mc.ls(sl=True)
+    
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__)) 
     log.debug("|{0}| >> mode: {1}".format(_str_func, processMode) )
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
     log.debug("|{0}| >> objects: {1}".format(_str_func, objects))  
+    
     
     if processMode in ['each']:
         for i,o in enumerate(objects):

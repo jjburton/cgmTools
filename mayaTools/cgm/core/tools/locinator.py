@@ -9,7 +9,7 @@ Website : http://www.cgmonks.com
 2.0 rewrite
 ================================================================
 """
-__version__ = '2.0.01202017'
+__version__ = '2.0.02162017'
 
 
 # From Python =============================================================
@@ -40,6 +40,10 @@ reload(SNAP)
 reload(LOC)
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 reload(MMCONTEXT)
+
+import cgm.core.classes.GuiFactory as cgmUI
+reload(cgmUI)
+mUI = cgmUI.mUI
 
 from cgm.lib import lists
 
@@ -372,7 +376,7 @@ def uiFunc_change_matchMode(self,arg):
     elif arg == 1:
         self.var_matchModeMove.value = 0
         self.var_matchModeRotate.value = 1
-    elif arg == 3:
+    elif arg == 2:
         self.var_matchModeMove.value = 1
         self.var_matchModeRotate.value = 1
     else:
@@ -394,7 +398,7 @@ def uiOptionMenu_matchMode(self, parent):
             else:_rb = False
             mc.menuItem(p=uiMatch,collection = uiRC,
                         label=item,
-                        c = cgmGen.Callback(uiFunc_change_matchMode,i),
+                        c = cgmGen.Callback(uiFunc_change_matchMode,self,i),
                         rb = _rb) 
         """    
         #>>> Match pivot ================================================================================    
@@ -575,7 +579,11 @@ def uiRadialMenu_root(self,parent,direction = None):
                 l = 'Report',
                 en=self._b_sel,
                 c = cgmGen.Callback(MMCONTEXT.func_process, get_objDat, self._l_sel,'each','Report',True,**{'report':True}),                                                                                      
-                rp = 'E')  
+                rp = 'E') 
+    mc.menuItem(parent=_utils,
+                l = 'UI',
+                c = cgmGen.Callback(ui),                                                                                      
+                rp = 'NE')     
     #mc.menuItem(parent=_utils,
                 #l = 'Select Source Targets',
                 #en=self._b_sel,
@@ -586,7 +594,223 @@ def uiRadialMenu_root(self,parent,direction = None):
                 rp = 'N')       
     
     
+class ui(cgmUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'cgmLocinator_ui'    
+    WINDOW_TITLE = 'cgmLocinator - {0}'.format(__version__)
+    DEFAULT_SIZE = 180, 275
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = True
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
 
+    _checkBoxKeys = ['shared','default','user','others']
+    
+    def insert_init(self,*args,**kws):
+            if kws:log.debug("kws: %s"%str(kws))
+            if args:log.debug("args: %s"%str(args))
+            log.info(self.__call__(q=True, title=True))
+    
+            self.__version__ = __version__
+            self.__toolName__ = 'cgmLocinator'		
+            #self.l_allowedDockAreas = []
+            self.WINDOW_TITLE = ui.WINDOW_TITLE
+            self.DEFAULT_SIZE = ui.DEFAULT_SIZE
+            
+            self.currentFrameOnly = True
+            self.startFrame = ''
+            self.endFrame = ''
+            self.startFrameField = ''
+            self.endFrameField = ''
+            self.forceBoundingBoxState = False
+            self.forceEveryFrame = False
+            self.showHelp = False
+            self.helpBlurbs = []
+            self.oldGenBlurbs = []
+        
+            self.showTimeSubMenu = False
+            self.timeSubMenu = []            
+            
+
+            uiSetupOptionVars(self)
+            
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper'
+        
+        ui_tabs = mUI.MelTabLayout( self )
+        uiTab_update = mUI.MelColumnLayout(ui_tabs)
+        uiTab_create = mUI.MelColumnLayout( ui_tabs )
+        
+        for i,tab in enumerate(['Update','Create']):
+            ui_tabs.setLabel(i,tab)
+            
+        self.buildTab_create(uiTab_create)
+
+        
+    def build_menus(self):
+        #pmc
+        self.uiMenu_options = mUI.MelMenu( l='Options', pmc = cgmGen.Callback(self.buildMenu_options) )
+        self.uiMenu_Buffer = mUI.MelMenu( l='Buffer', pmc = cgmGen.Callback(self.buildMenu_buffer))
+        self.uiMenu_help = mUI.MelMenu( l='Help', pmc = cgmGen.Callback(self.buildMenu_help))        
+        #pass#...don't want em  
+    #def setup_Variables(self):pas
+    
+    
+    def buildMenu_buffer(self):
+        self.uiMenu_Buffer.clear()  
+        
+        uiMenu = self.uiMenu_Buffer   
+        mc.menuItem(p=uiMenu, l="Define",
+                    c= lambda *a: self.varBuffer_define(self.var_locinatorTargetsBuffer))
+    
+        mc.menuItem(p=uiMenu, l="Add Selected",
+                         c= lambda *a: self.varBuffer_add(self.var_locinatorTargetsBuffer))
+    
+        mc.menuItem(p=uiMenu, l="Remove Selected",
+                         c= lambda *a: self.varBuffer_remove(self.var_locinatorTargetsBuffer))
+    
+        mc.menuItem(p=uiMenu,l='----------------',en=False)
+        mc.menuItem(p=uiMenu, l="Report",
+                    c= lambda *a: self.var_locinatorTargetsBuffer.report())        
+        mc.menuItem(p=uiMenu, l="Select Members",
+                    c= lambda *a: self.var_locinatorTargetsBuffer.select())
+        mc.menuItem(p=uiMenu, l="Clear",
+                    c= lambda *a: self.var_locinatorTargetsBuffer.clear())       
+      
+    def buildMenu_help( self, *args):
+        self.uiMenu_help.clear()
+
+        mc.menuItem(parent=self.uiMenu_help,
+                    l = 'Report Loc Data',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, get_objDat, None,'each','Report',True,**{'report':True}),                                                                                      
+                    rp = 'E')  
+      
+        mc.menuItem(p=self.uiMenu_help,l='----------------',en=False)
+        mc.menuItem(parent=self.uiMenu_help,
+                    l = 'Get Help',
+                    c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/locinator-2-0/");',                        
+                    rp = 'N')    
+        mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
+                         c=lambda *a: cgmUI.log_selfReport(self) )        
+    
+
+        
+    def buildMenu_options( self, *args):
+        self.uiMenu_options.clear()   
+        _menu = self.uiMenu_options
+        
+        
+        mc.menuItem(parent=_menu,
+                    l = 'Tag Selected',
+                    ann = 'Tag to last as cgmMatchTarget',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, SNAP.matchTarget_set, None,'eachToLast','Tag cgmMatchTarget',False),                                                                                      
+                    rp = 'SE') 
+        mc.menuItem(parent=_menu,
+                    l = 'Clear Selected',
+                    ann = 'Clear match Target data from selected objects',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, SNAP.matchTarget_clear, None,'each','Clear cgmMatch data',True),                                                                                                      
+                    rp = 'S')   
+        uiOptionMenu_matchMode(self, _menu)
+            
+    def buildMenu_context( self, *args):
+        self.uiMenu_context.clear()
+    
+        uiRC = mc.radioMenuItemCollection(parent = self.uiMenu_context)
+        #self.uiOptions_menuMode = []		
+        _v = self.var_context.value
+    
+        _d_annos = {'loaded':'Will use objects loaded to the ui',
+                    'selection':'Will use any selected objects primNode type',
+                    'children':'Will use any objects below primeNode heirarchally and matching type',
+                    'heirarchy':'Will use any objects in primNode heirarchy and matching type',
+                    'scene':'Will use any objects in scene matching primeNode type'}
+    
+        for i,item in enumerate(['loaded','selection','children','heirarchy','scene']):
+            if item == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(parent=self.uiMenu_context,collection = uiRC,
+                        label=item,
+                        ann=_d_annos.get(item,'Fill out the dict!'),
+                        c = cgmGEN.Callback(self.var_context.setValue,item),                                  
+                        rb = _rb)                        
+    
+        mUI.MelMenuItemDiv(parent=self.uiMenu_context)
+        mc.menuItem(parent=self.uiMenu_context,collection = uiRC,
+                    label='Report',
+                    ann='Print the current context report.',
+                    c = cgmGEN.Callback(get_context, self, _v, True))          
+    
+        """#>>> Reset Options		
+            mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+            mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
+                             c=lambda *a: self.reload())		
+            mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
+                             c=lambda *a: self.reset())""" 
+        
+    def buildTab_create(self,parent):
+        _column = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate')
+            
+        #>>>  Center Section
+        
+        cgmUI.add_LineSubBreak()
+        cgmUI.add_Button(_column,'Loc Me',
+                        cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'each'),
+                        _d_annotations['me'])
+        
+        cgmUI.add_LineSubBreak()
+        cgmUI.add_Button(_column,'Mid point',
+                         cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'all','midPointLoc',False,**{'mode':'midPoint'}),                                                                      
+                         _d_annotations['mid'])          
+        
+        cgmUI.add_LineSubBreak()
+        cgmUI.add_Button(_column,'Attach point',
+                         cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'all','midPointLoc',False,**{'mode':'midPoint'}),                                                                      
+                         _d_annotations['attach'])
+        
+        cgmUI.add_LineSubBreak()
+        cgmUI.add_Button(_column,'Closest point',
+                         cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'all','closestPoint',False,**{'mode':'closestPoint'}),                                                                      
+                         _d_annotations['closestPoint'])
+        
+        cgmUI.add_LineSubBreak()
+        cgmUI.add_Button(_column,'Closest target',
+                         cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'all','closestTarget',False,**{'mode':'closestTarget'}),                                                                      
+                         _d_annotations['closestTarget'])        
+        
+        
+        cgmUI.add_LineSubBreak()
+        cgmUI.add_Button(_column,'Raycast',
+                         lambda *a:LOC.create(mode = 'rayCast'),                                                                      
+                         _d_annotations['rayCast'])  
+        
+        
+        cgmUI.add_LineBreak()
+        
+        #>>>Objects Buttons Row ---------------------------------------------------------------------------------------
+        cgmUI.add_Header('Update')
+        _row_update = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding = 1)
+    
+        cgmUI.add_Button(_row_update,' Self',
+                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),                         
+                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                         _d_annotations.get('updateSelf','fix'))
+    
+        cgmUI.add_Button(_row_update,'Target',
+                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),                         
+                         _d_annotations.get('updateTarget','fix'))
+        _row_update.layout()        
+        
+
+_d_annotations = {'me':'Create a loc from selected objects',
+                  'mid':'Create a loc at the bb midpoint of a single target or the mid point of multiple targets',
+                  'closestPoint':'Create a loc at the bb midpoint of a single target or the mid point of multiple targets',
+                  'closestTarget':'Create a loc at the bb midpoint of a single target or the mid point of multiple targets',
+                  'rayCast':'Begin a clickMesh instance to cast a single locator in scene',
+                  'updateSelf':'Update the selected objects',
+                  'updateTarget':'Update the selected targets if possible',
+                  'attach':'Create a loc of the selected object AND start a clickMesh instance to setup an attach point on a mesh in scene'}
 
 
 
