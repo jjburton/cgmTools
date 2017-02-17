@@ -43,6 +43,7 @@ reload(MMCONTEXT)
 
 import cgm.core.classes.GuiFactory as cgmUI
 reload(cgmUI)
+cgmUI.initializeTemplates()
 mUI = cgmUI.mUI
 
 from cgm.lib import lists
@@ -646,7 +647,7 @@ class ui(cgmUI.cgmGUI):
             ui_tabs.setLabel(i,tab)
             
         self.buildTab_create(uiTab_create)
-
+        self.buildTab_update(uiTab_update)
         
     def build_menus(self):
         #pmc
@@ -700,6 +701,45 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_options.clear()   
         _menu = self.uiMenu_options
         
+        uiOptionMenu_matchMode(self, _menu)
+        
+        
+        #>>> 
+        self.create_guiOptionVar('keysMode',defaultValue = 0)               
+        uiMenu_keysModes = mc.menuItem(parent = _menu,subMenu = True,
+                                       l='Bake Keys')
+        
+        uiRC = mc.radioMenuItemCollection(parent = uiMenu_keysModes)
+        _v = self.var_keysMode.value
+    
+        _d_annos = {'primeNode':'Any keys on prime node',
+                    'each':'Each contextual nodes will take values on own keys',
+                    'combined':'Combine keys of conextual nodes and prime'}        
+    
+        for i,item in enumerate(['Keys of Selected','...of Matches','...Combined',"1's","2's","3's"]):
+            if i == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(parent=uiMenu_keysModes,collection = uiRC,
+                        label=item,
+                        ann=_d_annos.get(item,'Fill out the dict!'),                        
+                        c = cgmGen.Callback(self.var_keysMode.setValue,i),                                  
+                        rb = _rb) 
+    
+        mUI.MelMenuItemDiv(parent=uiMenu_keysModes)
+        mc.menuItem(parent=uiMenu_keysModes,collection = uiRC,
+                    label='Report',
+                    #c = cgmGen.Callback(get_keys, self, self.var_context.value, 'all',True)
+                    ann='Print the current values report.',
+                    )        
+        
+        
+        
+        
+        
+        
+        
+        mc.menuItem(p=_menu,l='----------------',en=False)
         
         mc.menuItem(parent=_menu,
                     l = 'Tag Selected',
@@ -710,8 +750,7 @@ class ui(cgmUI.cgmGUI):
                     l = 'Clear Selected',
                     ann = 'Clear match Target data from selected objects',
                     c = cgmGen.Callback(MMCONTEXT.func_process, SNAP.matchTarget_clear, None,'each','Clear cgmMatch data',True),                                                                                                      
-                    rp = 'S')   
-        uiOptionMenu_matchMode(self, _menu)
+                    rp = 'S')          
             
     def buildMenu_context( self, *args):
         self.uiMenu_context.clear()
@@ -749,11 +788,101 @@ class ui(cgmUI.cgmGUI):
             mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                              c=lambda *a: self.reset())""" 
         
+    def buildTab_update(self,parent):
+        _column = mUI.MelColumnLayout(parent,useTemplate = 'cgmUITemplate')
+        
+        self.buildRow_update(_column)
+
+        mc.setParent(_column)    
+        
+        cgmUI.add_LineBreak()
+        
+        _d_timeLine = SEARCH.get_timeline_dict()
+        _bake_frame = mUI.MelFrameLayout(_column,label = 'Bake',vis=True,
+                                         collapse=True,
+                                         collapsable=True,
+                                         enable=True,
+                                         useTemplate = 'cgmUIHeaderTemplate',
+                                         #expandCommand = lambda:self.var_PresetFrameCollapse.setValue(0),
+                                         #collapseCommand = lambda:self.var_PresetFrameCollapse.setValue(1)
+                                         )	
+        _frame_inside = mUI.MelColumnLayout(_bake_frame,useTemplate = 'cgmUISubTemplate')
+        
+        
+        # TimeInput Row ----------------------------------------------------------------------------------
+        _row_time = mUI.MelHSingleStretchLayout(_frame_inside,ut='cgmUISubTemplate')
+        self.timeSubMenu.append( _row_time )
+        mUI.MelSpacer(_row_time)
+        mUI.MelLabel(_row_time,l='start')
+    
+        self.startFrameField = mUI.MelIntField(_row_time,'cgmLocWinStartFrameField',
+                                               width = 40,
+                                               value= _d_timeLine['rangeStart'])
+        _row_time.setStretchWidget( mUI.MelSpacer(_row_time) )
+        mUI.MelLabel(_row_time,l='end')
+    
+        self.endFrameField = mUI.MelIntField(_row_time,'cgmLocWinEndFrameField',
+                                         width = 40,
+                                         value= _d_timeLine['rangeEnd'])
+    
+        mUI.MelSpacer(_row_time)
+        _row_time.layout()   
+        
+        
+        #>>>Keys Row --------------------------------------------------------------------------------------------        
+        self.create_guiOptionVar('keyMode',defaultValue = 0)       
+    
+        self.rc_keyMode = mUI.MelRadioCollection()
+        _l_keyModes = ['keys','2','3','4']
+        #build our sub section options
+        _row_keyModes = mUI.MelHSingleStretchLayout(_frame_inside,ut='cgmUISubTemplate',padding = 5)
+        #mUI.MelLabel(_row_keyModes,l = 'Keys')
+        _row_keyModes.setStretchWidget( mUI.MelSeparator(_row_keyModes) )
+    
+        _on = self.var_keyMode.value
+    
+        for cnt,item in enumerate(_l_keyModes):
+            if cnt == _on:_rb = True
+            else:_rb = False
+            self.rc_keyMode.createButton(_row_keyModes,label=_l_keyModes[cnt],sl=_rb,
+                                         onCommand = cgmGen.Callback(self.var_keyMode.setValue,cnt))
+            mUI.MelSpacer(_row_keyModes,w=2)
+
+        _row_keyModes.layout()        
+        
+
+        #>>>Update Row ---------------------------------------------------------------------------------------
+        
+        mc.setParent(_frame_inside)
+        cgmUI.add_LineSubBreak()
+        
+        _row_bake = mUI.MelHLayout(_frame_inside,ut='cgmUISubTemplate',padding = 1)
+    
+        cgmUI.add_Button(_row_bake,' <<<',
+                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),                         
+                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                         _d_annotations.get('updateSelf','fix'))
+    
+        cgmUI.add_Button(_row_bake,'All',
+                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),                         
+                         _d_annotations.get('updateTarget','fix'))
+        
+        
+        cgmUI.add_Button(_row_bake,'>>>',
+                         cgmGen.Callback(update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),                                      
+                         _d_annotations.get('updateBuffer','fix'))    
+        
+        _row_bake.layout()         
+        
+        
+        
+
+        
     def buildTab_create(self,parent):
-        _column = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate')
+        _column = mUI.MelColumnLayout(parent,useTemplate = 'cgmUITemplate')
             
         #>>>  Center Section
-        
+        cgmUI.add_Header('Create')        
         cgmUI.add_LineSubBreak()
         cgmUI.add_Button(_column,'Loc Me',
                         cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'each'),
@@ -788,9 +917,13 @@ class ui(cgmUI.cgmGUI):
         
         cgmUI.add_LineBreak()
         
-        #>>>Objects Buttons Row ---------------------------------------------------------------------------------------
+        self.buildRow_update(_column)
+        
+    def buildRow_update(self,parent):
+        #>>>Update Row ---------------------------------------------------------------------------------------
+        mc.setParent(parent)
         cgmUI.add_Header('Update')
-        _row_update = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding = 1)
+        _row_update = mUI.MelHLayout(parent,ut='cgmUISubTemplate',padding = 1)
     
         cgmUI.add_Button(_row_update,' Self',
                          cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),                         
@@ -800,16 +933,25 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_Button(_row_update,'Target',
                          cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),                         
                          _d_annotations.get('updateTarget','fix'))
+        
+        
+        cgmUI.add_Button(_row_update,'Buffer',
+                         cgmGen.Callback(update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),                                      
+                         _d_annotations.get('updateBuffer','fix'))    
+        
         _row_update.layout()        
+        
+        
         
 
 _d_annotations = {'me':'Create a loc from selected objects',
                   'mid':'Create a loc at the bb midpoint of a single target or the mid point of multiple targets',
-                  'closestPoint':'Create a loc at the bb midpoint of a single target or the mid point of multiple targets',
-                  'closestTarget':'Create a loc at the bb midpoint of a single target or the mid point of multiple targets',
+                  'closestPoint':'Create a loc at the closest point on the targets specified - curve, mesh, nurbs',
+                  'closestTarget':'Create a loc at the closest target',
                   'rayCast':'Begin a clickMesh instance to cast a single locator in scene',
                   'updateSelf':'Update the selected objects',
                   'updateTarget':'Update the selected targets if possible',
+                  'updateBuffer':'Update objects loaded to the buffer',
                   'attach':'Create a loc of the selected object AND start a clickMesh instance to setup an attach point on a mesh in scene'}
 
 
