@@ -153,9 +153,11 @@ def get_key_indices_from(node = None, mode = 'all'):
         mc.currentTime(initialTimeState-1)        
         while mc.currentTime(q=True) != lastKey:
             keyBuffer = mc.findKeyframe(node,which = 'next',an='objects')
-            keyFrames.append(keyBuffer)
+            if keyBuffer > initialTimeState:
+                keyFrames.append(keyBuffer)
             mc.currentTime(keyBuffer)
-        keyFrames.append(lastKey) 
+        if lastKey > initialTimeState:
+            keyFrames.append(lastKey) 
     elif mode in ['previous','back']:
         firstKey = mc.findKeyframe(node,which = 'first',an='objects')
         lastKey = mc.findKeyframe(node,which = 'last',an='objects')        
@@ -167,7 +169,7 @@ def get_key_indices_from(node = None, mode = 'all'):
             keyBuffer = mc.findKeyframe(node,which = 'next',an='objects')
             if keyBuffer < initialTimeState:
                 keyFrames.append(keyBuffer)
-                log.info(keyFrames)
+                #log.debug(keyFrames)
                 mc.currentTime(keyBuffer)
             else:
                 break

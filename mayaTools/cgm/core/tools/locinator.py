@@ -152,7 +152,7 @@ def get_objDat(obj=None, report = False):
         
 
 def bake_match(targets = None, move = True, rotate = True, boundingBox = False, pivot = 'rp',
-               timeMode = 'slider', keysMode = 'loc'):
+               timeMode = 'slider',timeRange = None, keysMode = 'loc', keysDirection = 'all'):
     """
     Updates an tagged loc or matches a tagged object
     
@@ -163,6 +163,7 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
         timeMode(str):
             :slider/range
             :scene
+            :custom
         keysMode(str)
             :loc
             :source
@@ -170,11 +171,16 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
             :frames -- bake every frame
             :twos
             :threes
+        keysDirection(str):
+            :all
+            :forward
+            :back
+        timeRange(list) -- [0,111] for example
 
     :returns
         success(bool)
     """     
-    _str_func = 'update_obj'
+    _str_func = 'bake_match'
     
     #log.info("|{0}| >> Not updatable: {1}".format(_str_func,NAMES.get_short(_obj)))  
     _targets = VALID.objStringList(l_args=targets,isTransform=True,noneValid=False,calledFrom=_str_func)
@@ -184,7 +190,7 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     
     log.info("|{0}| >> Targets: {1}".format(_str_func,_targets))
     log.info("|{0}| >> move: {1} | rotate: {2} | boundingBox: {3}".format(_str_func,move,rotate,boundingBox))    
-    log.info("|{0}| >> timeMode: {1} | keysMode: {2}".format(_str_func,timeMode,keysMode))
+    log.info("|{0}| >> timeMode: {1} | keysMode: {2} | keysDirection: {3}".format(_str_func,timeMode,keysMode,keysDirection))
     
     _l_toDo = []
     _d_toDo = {}
@@ -200,6 +206,8 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     if not _l_toDo:
         log.error("|{0}| >> No updatable targets found in: {1}".format(_str_func,_targets))        
         return False
+    
+    
     #>>>Key data ==============================================================================================    
     _d_keyDat['currentTime'] = mc.currentTime(q=True)
     
@@ -208,7 +216,10 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
         _d_keyDat['frameEnd'] = mc.playbackOptions(q=True,max=True)
     elif timeMode == 'scene':
         _d_keyDat['frameStart'] = mc.playbackOptions(q=True,animationStartTime=True)
-        _d_keyDat['frameEnd'] = mc.playbackOptions(q=True,animationEndTime=True)   
+        _d_keyDat['frameEnd'] = mc.playbackOptions(q=True,animationEndTime=True)
+    elif timeMode == 'custom':
+        _d_keyDat['frameStart'] = timeRange[0]
+        _d_keyDat['frameEnd'] = timeRange[1]       
     else:
         raise ValueError,"|{0}| >> Unknown timeMode: {1}".format(_str_func,timeMode)
     
@@ -226,6 +237,7 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     #>>>Process ==============================================================================================    
     _d_keysOfTarget = {}
     _keysToProcess = []
+
     _start = int(_d_keyDat['frameStart'])
     _end = int(_d_keyDat['frameEnd'])  
     
@@ -244,9 +256,26 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
         while i <= _end:
             _keysAll.append(i)
             i += 3   
+            
+    if keysDirection in ['forward','back']:
+        _keysDirection = []
+        if keysDirection == 'forward':
+            for k in _keysAll:
+                if k > _d_keyDat['currentTime']:
+                    _keysDirection.append(k)                     
+        else:
+            for k in _keysAll:
+                if k < _d_keyDat['currentTime']:
+                    _keysDirection.append(k)
+        _keysAll = _keysDirection
+        
+        _start = _keysAll[0]
+        _end = _keysAll[-1]
+
     if _keysAll:
         _keysToProcess = _keysAll
     
+
     #First for loop, gathers key data per object...
     for o in _l_toDo:
         log.info("|{0}| >> Processing: '{1}' | keysMode: {2}".format(_str_func,o,keysMode))
@@ -255,12 +284,12 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
         #Gather target key data...
         if not _keysAll:
             if keysMode == 'loc':
-                _keys = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['loc']))
+                _keys = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['loc']),mode = keysDirection)
             elif keysMode == 'source':
-                _keys = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['source']))
+                _keys = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['source']),mode = keysDirection)
             elif keysMode in ['combine','both']:
-                _source = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['loc']))
-                _loc = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['source']))
+                _source = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['loc']),mode = keysDirection)
+                _loc = SEARCH.get_key_indices_from( SEARCH.get_transform( _d['source']),mode= keysDirection)
                 
                 _keys = _source + _loc
                 _keys = lists.returnListNoDuplicates(_keys)
@@ -273,11 +302,15 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
                 if k < _d_keyDat['frameStart'] or k > _d_keyDat['frameEnd']:
                     log.info("|{0}| >> Removing key from list: {1}".format(_str_func,k))                
                     _keys.remove(k)
+                if timeRange is not None:
+                    if k < timeRange[0] or k > timeRange[1]:
+                        log.info("|{0}| >> Key not in time range({2}). Removing: {1}".format(_str_func,k,timeRange))                
+                        _keys.remove(k)                        
                     
             if not _keys:
                 log.error("|{0}| >> No keys found for: '{1}'".format(_str_func,o))
                 break            
-        
+            
             _d_keysOfTarget[o] = _keys
             _keysToProcess.extend(_keys)  
             log.info("|{0}| >> Keys: {1}".format(_str_func,_keys))            
@@ -292,6 +325,8 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     #Second for loop processes our keys so we can do it in one go...
     _keysToProcess = lists.returnListNoDuplicates(_keysToProcess)
     
+    #return #...keys test...
+
     #Process 
     _progressBar = cgmUI.doStartMayaProgressBar(len(_keysToProcess),"Processing...")
     _autoKey = mc.autoKeyframe(q=True,state=True)
@@ -635,6 +670,8 @@ class ui(cgmUI.cgmGUI):
             
 
             uiSetupOptionVars(self)
+            self.create_guiOptionVar('keysMode',defaultValue = 'loc')               
+            self.create_guiOptionVar('bakeFrameCollapse',defaultValue = 0) 
             
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'
@@ -705,25 +742,38 @@ class ui(cgmUI.cgmGUI):
         
         
         #>>> 
-        self.create_guiOptionVar('keysMode',defaultValue = 0)               
         uiMenu_keysModes = mc.menuItem(parent = _menu,subMenu = True,
                                        l='Bake Keys')
         
         uiRC = mc.radioMenuItemCollection(parent = uiMenu_keysModes)
         _v = self.var_keysMode.value
     
-        _d_annos = {'primeNode':'Any keys on prime node',
+        _d_annos = {'loc':'loc',
                     'each':'Each contextual nodes will take values on own keys',
-                    'combined':'Combine keys of conextual nodes and prime'}        
+                    'combined':'Combine keys of conextual nodes and prime'}    
+        
+        """
+        timeMode(str):
+            :slider/range
+            :scene
+            :custom
+        keysMode(str)
+            :loc
+            :source
+            :combine
+            :frames -- bake every frame
+            :twos
+            :threes
+        """
     
-        for i,item in enumerate(['Keys of Selected','...of Matches','...Combined',"1's","2's","3's"]):
-            if i == _v:
+        for i,item in enumerate(['loc','source','combine','frames','twos','threes']):
+            if item == _v:
                 _rb = True
             else:_rb = False
             mc.menuItem(parent=uiMenu_keysModes,collection = uiRC,
                         label=item,
                         ann=_d_annos.get(item,'Fill out the dict!'),                        
-                        c = cgmGen.Callback(self.var_keysMode.setValue,i),                                  
+                        c = cgmGen.Callback(self.var_keysMode.setValue,item),                                  
                         rb = _rb) 
     
         mUI.MelMenuItemDiv(parent=uiMenu_keysModes)
@@ -733,12 +783,7 @@ class ui(cgmUI.cgmGUI):
                     ann='Print the current values report.',
                     )        
         
-        
-        
-        
-        
-        
-        
+
         mc.menuItem(p=_menu,l='----------------',en=False)
         
         mc.menuItem(parent=_menu,
@@ -752,41 +797,19 @@ class ui(cgmUI.cgmGUI):
                     c = cgmGen.Callback(MMCONTEXT.func_process, SNAP.matchTarget_clear, None,'each','Clear cgmMatch data',True),                                                                                                      
                     rp = 'S')          
             
-    def buildMenu_context( self, *args):
-        self.uiMenu_context.clear()
-    
-        uiRC = mc.radioMenuItemCollection(parent = self.uiMenu_context)
-        #self.uiOptions_menuMode = []		
-        _v = self.var_context.value
-    
-        _d_annos = {'loaded':'Will use objects loaded to the ui',
-                    'selection':'Will use any selected objects primNode type',
-                    'children':'Will use any objects below primeNode heirarchally and matching type',
-                    'heirarchy':'Will use any objects in primNode heirarchy and matching type',
-                    'scene':'Will use any objects in scene matching primeNode type'}
-    
-        for i,item in enumerate(['loaded','selection','children','heirarchy','scene']):
-            if item == _v:
-                _rb = True
-            else:_rb = False
-            mc.menuItem(parent=self.uiMenu_context,collection = uiRC,
-                        label=item,
-                        ann=_d_annos.get(item,'Fill out the dict!'),
-                        c = cgmGEN.Callback(self.var_context.setValue,item),                                  
-                        rb = _rb)                        
-    
-        mUI.MelMenuItemDiv(parent=self.uiMenu_context)
-        mc.menuItem(parent=self.uiMenu_context,collection = uiRC,
-                    label='Report',
-                    ann='Print the current context report.',
-                    c = cgmGEN.Callback(get_context, self, _v, True))          
-    
-        """#>>> Reset Options		
-            mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
-            mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
-                             c=lambda *a: self.reload())		
-            mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
-                             c=lambda *a: self.reset())""" 
+   
+        
+    def uiFunc_updateTimeRange(self,mode = 'slider'):
+        _d_timeLine = SEARCH.get_timeline_dict()
+        
+        if mode == 'slider':
+            self.uiFieldInt_start(edit = True, value = _d_timeLine['rangeStart'])
+            self.uiFieldInt_end(edit = True, value = _d_timeLine['rangeEnd'])
+        else:
+            self.uiFieldInt_start(edit = True, value = _d_timeLine['sceneStart'])
+            self.uiFieldInt_end(edit = True, value = _d_timeLine['sceneEnd'])            
+        
+        
         
     def buildTab_update(self,parent):
         _column = mUI.MelColumnLayout(parent,useTemplate = 'cgmUITemplate')
@@ -797,17 +820,32 @@ class ui(cgmUI.cgmGUI):
         
         cgmUI.add_LineBreak()
         
-        _d_timeLine = SEARCH.get_timeline_dict()
         _bake_frame = mUI.MelFrameLayout(_column,label = 'Bake',vis=True,
-                                         collapse=True,
+                                         collapse=self.var_bakeFrameCollapse.value,
                                          collapsable=True,
                                          enable=True,
                                          useTemplate = 'cgmUIHeaderTemplate',
-                                         #expandCommand = lambda:self.var_PresetFrameCollapse.setValue(0),
-                                         #collapseCommand = lambda:self.var_PresetFrameCollapse.setValue(1)
+                                         expandCommand = lambda:self.var_bakeFrameCollapse.setValue(0),
+                                         collapseCommand = lambda:self.var_bakeFrameCollapse.setValue(1)
                                          )	
         _frame_inside = mUI.MelColumnLayout(_bake_frame,useTemplate = 'cgmUISubTemplate')
         
+        
+        #>>>Update Row ---------------------------------------------------------------------------------------
+        mc.setParent(_frame_inside)
+        _row_timeSet = mUI.MelHLayout(_frame_inside,ut='cgmUISubTemplate',padding = 1)
+    
+        cgmUI.add_Button(_row_timeSet,'Slider Range',
+                         cgmGen.Callback(self.uiFunc_updateTimeRange,'slider'),                         
+                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                         _d_annotations.get('sliderRange','fix sliderRange'))
+    
+        cgmUI.add_Button(_row_timeSet,'Scene Range',
+                         cgmGen.Callback(self.uiFunc_updateTimeRange,'scene'),                         
+                         _d_annotations.get('sceneRange','fix sceneRange'))
+  
+        
+        _row_timeSet.layout()          
         
         # TimeInput Row ----------------------------------------------------------------------------------
         _row_time = mUI.MelHSingleStretchLayout(_frame_inside,ut='cgmUISubTemplate')
@@ -815,40 +853,42 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row_time)
         mUI.MelLabel(_row_time,l='start')
     
-        self.startFrameField = mUI.MelIntField(_row_time,'cgmLocWinStartFrameField',
-                                               width = 40,
-                                               value= _d_timeLine['rangeStart'])
+        self.uiFieldInt_start = mUI.MelIntField(_row_time,'cgmLocWinStartFrameField',
+                                                width = 40)
         _row_time.setStretchWidget( mUI.MelSpacer(_row_time) )
         mUI.MelLabel(_row_time,l='end')
     
-        self.endFrameField = mUI.MelIntField(_row_time,'cgmLocWinEndFrameField',
-                                         width = 40,
-                                         value= _d_timeLine['rangeEnd'])
+        self.uiFieldInt_end = mUI.MelIntField(_row_time,'cgmLocWinEndFrameField',
+                                              width = 40)
+        
+        self.uiFunc_updateTimeRange()
     
         mUI.MelSpacer(_row_time)
         _row_time.layout()   
         
         
-        #>>>Keys Row --------------------------------------------------------------------------------------------        
-        self.create_guiOptionVar('keyMode',defaultValue = 0)       
+        #>>>Bake Mode --------------------------------------------------------------------------------------------        
+        self.create_guiOptionVar('bakeMode',defaultValue = 0)       
     
-        self.rc_keyMode = mUI.MelRadioCollection()
-        _l_keyModes = ['keys','2','3','4']
+        _rc_keyMode = mUI.MelRadioCollection()
+        
+        _l_bakeModes = ['sel','buffer']
+        
         #build our sub section options
-        _row_keyModes = mUI.MelHSingleStretchLayout(_frame_inside,ut='cgmUISubTemplate',padding = 5)
-        #mUI.MelLabel(_row_keyModes,l = 'Keys')
-        _row_keyModes.setStretchWidget( mUI.MelSeparator(_row_keyModes) )
+        _row_bakeModes = mUI.MelHSingleStretchLayout(_frame_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelLabel(_row_bakeModes,l = 'Targets:')
+        _row_bakeModes.setStretchWidget( mUI.MelSeparator(_row_bakeModes) )
     
-        _on = self.var_keyMode.value
+        _on = self.var_bakeMode.value
     
-        for cnt,item in enumerate(_l_keyModes):
-            if cnt == _on:_rb = True
+        for i,item in enumerate(_l_bakeModes):
+            if i == _on:_rb = True
             else:_rb = False
-            self.rc_keyMode.createButton(_row_keyModes,label=_l_keyModes[cnt],sl=_rb,
-                                         onCommand = cgmGen.Callback(self.var_keyMode.setValue,cnt))
-            mUI.MelSpacer(_row_keyModes,w=2)
+            _rc_keyMode.createButton(_row_bakeModes,label=_l_bakeModes[i],sl=_rb,
+                                     onCommand = cgmGen.Callback(self.var_bakeMode.setValue,i))
+            mUI.MelSpacer(_row_bakeModes,w=2)
 
-        _row_keyModes.layout()        
+        _row_bakeModes.layout()         
         
 
         #>>>Update Row ---------------------------------------------------------------------------------------
@@ -859,23 +899,35 @@ class ui(cgmUI.cgmGUI):
         _row_bake = mUI.MelHLayout(_frame_inside,ut='cgmUISubTemplate',padding = 1)
     
         cgmUI.add_Button(_row_bake,' <<<',
-                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),                         
+                         cgmGen.Callback(self.uiFunc_bake,'back'),                         
                          #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-                         _d_annotations.get('updateSelf','fix'))
+                         _d_annotations.get('<<<','fix'))
     
         cgmUI.add_Button(_row_bake,'All',
-                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),                         
-                         _d_annotations.get('updateTarget','fix'))
+                         cgmGen.Callback(self.uiFunc_bake,'all'),                         
+                         _d_annotations.get('All','fix'))
         
         
         cgmUI.add_Button(_row_bake,'>>>',
-                         cgmGen.Callback(update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),                                      
-                         _d_annotations.get('updateBuffer','fix'))    
+                         cgmGen.Callback(self.uiFunc_bake,'forward'),                         
+                         _d_annotations.get('>>>','fix'))    
         
         _row_bake.layout()         
         
-        
-        
+    def uiFunc_bake(self,mode='all'):
+        _bakeMode = self.var_bakeMode.value
+        if _bakeMode == 0:
+            _targets = None
+        else:
+            _targets = self.var_locinatorTargetsBuffer.value
+            if not _targets:
+                log.error("Buffer is empty")
+                return False
+            
+        MMCONTEXT.func_process(bake_match, _targets,'all','Bake',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,
+                                                                      'boundingBox':False,'keysMode':self.var_keysMode.value,'keysDirection':mode,
+                                                                      'timeMode':'custom','timeRange':[self.uiFieldInt_start(q=True, value = True),self.uiFieldInt_end(q=True, value = True)]})       
+                                                                    
 
         
     def buildTab_create(self,parent):
@@ -931,12 +983,10 @@ class ui(cgmUI.cgmGUI):
                          _d_annotations.get('updateSelf','fix'))
     
         cgmUI.add_Button(_row_update,'Target',
-                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),                         
                          _d_annotations.get('updateTarget','fix'))
         
         
         cgmUI.add_Button(_row_update,'Buffer',
-                         cgmGen.Callback(update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),                                      
                          _d_annotations.get('updateBuffer','fix'))    
         
         _row_update.layout()        
