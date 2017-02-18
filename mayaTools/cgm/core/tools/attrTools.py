@@ -144,9 +144,19 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_valueModes = mUI.MelMenu( l='Values', pmc=self.buildMenu_values)           
         self.uiMenu_keysModes = mUI.MelMenu( l='Keys', pmc=self.buildMenu_keys)           
         
-        self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)           
+        self.uiMenu_help = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)           
         #pass#...don't want em  
     #def setup_Variables(self):pass
+    
+    def buildMenu_help( self, *args):
+        self.uiMenu_help.clear()
+    
+        mc.menuItem(parent=self.uiMenu_help,
+                    l = 'Get Help',
+                    c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/attrtools-2-0/");',                        
+                    rp = 'N')    
+        mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
+                         c=lambda *a: cgmUI.log_selfReport(self) )      
     
     def buildMenu_context( self, *args):
         self.uiMenu_context.clear()
