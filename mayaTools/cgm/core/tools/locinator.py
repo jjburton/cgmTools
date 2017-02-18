@@ -748,9 +748,12 @@ class ui(cgmUI.cgmGUI):
         uiRC = mc.radioMenuItemCollection(parent = uiMenu_keysModes)
         _v = self.var_keysMode.value
     
-        _d_annos = {'loc':'loc',
-                    'each':'Each contextual nodes will take values on own keys',
-                    'combined':'Combine keys of conextual nodes and prime'}    
+        _d_annos = {'loc':'Use keys of the loc',
+                    'source':'Use keys of the source',
+                    'combine':'Combine keys of the loc and source',
+                    'frames':'Within specified range, every frame',
+                    'twos':'Within specified range, on twos',
+                    'threes':'Within specified range, on threes'}
         
         """
         timeMode(str):
@@ -776,13 +779,6 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGen.Callback(self.var_keysMode.setValue,item),                                  
                         rb = _rb) 
     
-        mUI.MelMenuItemDiv(parent=uiMenu_keysModes)
-        mc.menuItem(parent=uiMenu_keysModes,collection = uiRC,
-                    label='Report',
-                    #c = cgmGen.Callback(get_keys, self, self.var_context.value, 'all',True)
-                    ann='Print the current values report.',
-                    )        
-        
 
         mc.menuItem(p=_menu,l='----------------',en=False)
         
@@ -979,14 +975,15 @@ class ui(cgmUI.cgmGUI):
     
         cgmUI.add_Button(_row_update,' Self',
                          cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),                         
-                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
                          _d_annotations.get('updateSelf','fix'))
     
         cgmUI.add_Button(_row_update,'Target',
+                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),                                                  
                          _d_annotations.get('updateTarget','fix'))
         
         
         cgmUI.add_Button(_row_update,'Buffer',
+                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),                                                                           
                          _d_annotations.get('updateBuffer','fix'))    
         
         _row_update.layout()        
@@ -1002,6 +999,11 @@ _d_annotations = {'me':'Create a loc from selected objects',
                   'updateSelf':'Update the selected objects',
                   'updateTarget':'Update the selected targets if possible',
                   'updateBuffer':'Update objects loaded to the buffer',
+                  'sliderRange':' Push the slider range values to the int fields',
+                  'sceneRange':'Push scene range values to the int fields',
+                  '<<<':'Bake within a context of keys in range prior to the current time',
+                  'All':'Bake within a context of the entire range of keys ',
+                  '>>>':'Bake within a context of keys in range after the current time',
                   'attach':'Create a loc of the selected object AND start a clickMesh instance to setup an attach point on a mesh in scene'}
 
 

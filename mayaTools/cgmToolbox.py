@@ -425,6 +425,11 @@ def loadLocinator( *a ):
     from cgm.tools import locinator
     reload(locinator)
     locinator.run()
+	
+def loadLocinator2( *a ):
+	from cgm.core.tools import locinator as LOCINATOR
+	reload(LOCINATOR)
+	LOCINATOR.ui()
 
 def loadAnimTools( *a ):
     from cgm.tools import animTools
@@ -579,7 +584,9 @@ class ToolCB(object):
 #in the UI, and a tuple containing the annotation string and the button press callback to invoke when that
 #tool's toolbox button is pressed.
 #NOTE: the press callback should take *a as its args
-TOOL_CATS = ( ('animation', (('red9.studioTools', "Launch Red 9's tools - hit it twice for now",
+TOOL_CATS = ( ('animation', (('cgm.locinator', "Launch cgmLocinator 2.0",
+                              loadLocinator2),
+                             ('red9.studioTools', "Launch Red 9's tools - hit it twice for now",
                               loadRed9),                             
                              ('zoo.XferAnim', "Tool for transferring animation - from Hamish McKenzie's zooToolbox",
                               loadXferAnim), 
