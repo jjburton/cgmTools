@@ -377,12 +377,12 @@ class DataMap(object):
                         self.rootJnt=connectedSkel[0]
                     elif cmds.nodeType(rootNode)=='joint':
                         self.rootJnt=rootNode
-                elif cmds.attributeQuery('animSkeletonRoot',node=rootNode, exists=True):
-                    connectedSkel=cmds.listConnections('%s.%s' % (rootNode,'animSkeletonRoot'),destination=True,source=True)
-                    if connectedSkel and cmds.nodeType(connectedSkel)=='joint':
-                        self.rootJnt=connectedSkel[0]
-                    elif cmds.nodeType(rootNode)=='joint':
-                        self.rootJnt=rootNode
+#                 elif cmds.attributeQuery('animSkeletonRoot',node=rootNode, exists=True):
+#                     connectedSkel=cmds.listConnections('%s.%s' % (rootNode,'animSkeletonRoot'),destination=True,source=True)
+#                     if connectedSkel and cmds.nodeType(connectedSkel)=='joint':
+#                         self.rootJnt=connectedSkel[0]
+#                     elif cmds.nodeType(rootNode)=='joint':
+#                         self.rootJnt=rootNode
                 elif self.settings.nodeTypes==['joint']:
                     self.rootJnt=rootNode
         else:
@@ -833,6 +833,8 @@ class PoseData(DataMap):
     def _buildBlock_skeletonData(self, rootJnt):
         '''
         :param rootNode: root of the skeleton to process
+        
+        TODO : strip the longname from the root joint upwards and remove namespaces on all
         '''
         self.skeletonDict={}
         if not rootJnt:
@@ -843,11 +845,16 @@ class PoseData(DataMap):
         fn.settings.nodeTypes='joint'
         fn.settings.incRoots=False
         skeleton=fn.processFilter()
-
+        parentNode=cmds.listRelatives(rootJnt,p=True,f=True)
+        
         for jnt in skeleton:
             key=r9Core.nodeNameStrip(jnt)
             self.skeletonDict[key]={}
             self.skeletonDict[key]['attrs']={}
+            if parentNode:
+                self.skeletonDict[key]['longName']=jnt.replace(parentNode[0],'')
+            else:
+                self.skeletonDict[key]['longName']=jnt
             for attr in ['translateX','translateY','translateZ', 'rotateX','rotateY','rotateZ','jointOrientX','jointOrientY','jointOrientZ']:
                 try:
                     self.skeletonDict[key]['attrs'][attr]=cmds.getAttr('%s.%s' % (jnt,attr))
