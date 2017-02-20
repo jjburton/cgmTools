@@ -886,7 +886,8 @@ class Callback(object):
     def __call__( self, *args ):
         try:return self._func( *self._args, **self._kwargs )
         except Exception,err:
-            log.info("Func: {0}".format(self._func.__name__))
+            try:log.info("Func: {0}".format(self._func.__name__))
+            except:log.info("Func: {0}".format(self._func))
             if self._args:
                 log.info("args: {0}".format(self._args))
             if self._kwargs:

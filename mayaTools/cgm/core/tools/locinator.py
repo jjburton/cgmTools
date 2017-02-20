@@ -48,6 +48,15 @@ mUI = cgmUI.mUI
 
 from cgm.lib import lists
 
+def update_uiCall(mode = 'self'):
+    _move = cgmMeta.cgmOptionVar('cgmVar_matchModeMove', defaultValue = 1).getValue()
+    _rotate = cgmMeta.cgmOptionVar('cgmVar_matchModeRotate', defaultValue = 1).getValue()
+    
+    if mode == 'buffer':
+        update_obj(obj=None, move=_move, rotate=_rotate, mode='buffer')
+    else:
+        MMCONTEXT.func_process(update_obj, None,'each','Match',False,**{'move':_move,'rotate':_rotate,'mode':mode})
+
 def update_obj(obj = None, move = True, rotate = True, mode = 'self',**kws):
     """
     Updates an tagged loc or matches a tagged object
@@ -921,8 +930,8 @@ class ui(cgmUI.cgmGUI):
                 return False
             
         MMCONTEXT.func_process(bake_match, _targets,'all','Bake',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,
-                                                                      'boundingBox':False,'keysMode':self.var_keysMode.value,'keysDirection':mode,
-                                                                      'timeMode':'custom','timeRange':[self.uiFieldInt_start(q=True, value = True),self.uiFieldInt_end(q=True, value = True)]})       
+                                                                          'boundingBox':False,'keysMode':self.var_keysMode.value,'keysDirection':mode,
+                                                                          'timeMode':'custom','timeRange':[self.uiFieldInt_start(q=True, value = True),self.uiFieldInt_end(q=True, value = True)]})       
                                                                     
 
         
@@ -974,16 +983,19 @@ class ui(cgmUI.cgmGUI):
         _row_update = mUI.MelHLayout(parent,ut='cgmUISubTemplate',padding = 1)
     
         cgmUI.add_Button(_row_update,' Self',
-                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),                         
+                         lambda *a:update_uiCall('self'),
+                         #cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),                         
                          _d_annotations.get('updateSelf','fix'))
     
         cgmUI.add_Button(_row_update,'Target',
-                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),                                                  
+                         lambda *a:update_uiCall('target'),
+                         #cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),                                                  
                          _d_annotations.get('updateTarget','fix'))
         
         
         cgmUI.add_Button(_row_update,'Buffer',
-                         cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),                                                                           
+                         lambda *a:update_uiCall('buffer'),                         
+                         #cgmGen.Callback(MMCONTEXT.func_process, update_obj, None,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),                                                                           
                          _d_annotations.get('updateBuffer','fix'))    
         
         _row_update.layout()        
