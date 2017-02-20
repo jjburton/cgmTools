@@ -25,6 +25,8 @@ from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import node_utils as NODES
+from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
+reload(MMPuppet)
 reload(LOCINATOR)
 reload(ATTRS)
 reload(LOC)
@@ -114,6 +116,9 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             log.debug("|{0}| >> anim mode...".format(self._str_MM))                                        
             self.bUI_radialRoot_anim(parent)
         elif _mode == 2:
+            log.debug("|{0}| >> puppet mode...".format(self._str_MM))
+            self.bUI_radialRoot_puppet(parent)  
+        elif _mode == 3:
             log.debug("|{0}| >> dev mode...".format(self._str_MM))                                        
             self.bUI_radialRoot_dev(parent)
         else:
@@ -133,10 +138,14 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
             log.debug("|{0}| >> anim mode bottom...".format(self._str_MM))
             self.bUI_menuBottom_anim(parent)
         elif _mode == 2:
-            log.debug("|{0}| >> dev mode bottom...".format(self._str_MM))  
+            log.debug("|{0}| >> puppet mode bottom...".format(self._str_MM))
+            MMPuppet.uiOptionMenu_build(self, parent)
+            
+        elif _mode == 3:
+            log.debug("|{0}| >> dev mode bottom...".format(self._str_MM))              
           
         try:#>>> Menu mode
-            self.l_menuModes = ['td','anim','dev']
+            self.l_menuModes = ['td','anim','puppet','dev']
             _str_section = 'menu mode toggle'
     
             uiMenu_menuMode = mc.menuItem( p=parent, l='Mode', subMenu=True)    
@@ -192,6 +201,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         self.var_contextTD = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection')   
         
         LOCINATOR.uiSetupOptionVars(self)
+        MMPuppet.uiSetupOptionVars(self)
         
     ##@cgmGen.Timer
     def bUI_radialRoot_td(self,parent):
@@ -245,7 +255,41 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                         rp = "N")     
             
         LOCINATOR.uiRadialMenu_root(self,parent,'NE')
+        
+    def bUI_radialRoot_puppet(self,parent):
+        self.bUI_radial_snap(parent,'N')    
+    
+
+        mc.menuItem(p=parent,
+                    en = self._b_sel,
+                    l = 'dragBetween',
+                    c = lambda *a:ml_breakdownDragger.drag(),
+                    rp = "SE")        
+        mc.menuItem(p=parent,
+                    en = self._b_sel,
+                    l = 'Reset',
+                    c = lambda *a: ml_resetChannels.main(transformsOnly = self.var_resetMode.value),
+                    rp = "S")   
+  
+        mc.menuItem(p=parent,l='Key',subMenu=True,
+                    en = self._b_sel,
+                    rp = 'E')
+        
+        
+        if self._b_sel:
+            mc.menuItem(l = 'Regular',
+                        c= lambda *a:setKey('default'),
+                        rp = "E")            
+            mc.menuItem(l = 'Breakdown',
+                        c= lambda *a:setKey('breakdown'),
+                        rp = "SE")  
+            mc.menuItem(l = 'Delete',
+                        c= lambda *a:deleteKey(),
+                        rp = "N")     
             
+        LOCINATOR.uiRadialMenu_root(self,parent,'NE')        
+        MMPuppet.bUI_radial(self, parent)
+        
     def bUI_radialRoot_dev(self,parent):
         #Radial---------------------------------------------------
         self.bUI_radial_snap(parent,'N')
@@ -543,7 +587,6 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         
     def bUI_optionMenu_keyType(self, parent):
         try:#>>> KeyType 
-            self.l_menuModes = ['td','anim','dev']
             _str_section = 'key type'
     
             uiMenu = mc.menuItem(p=parent, l='Key Type', subMenu=True)    
@@ -1505,7 +1548,7 @@ def killUI():
     log.debug("killUI...")
     
     _var_mode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_menuMode', defaultValue = 0)
-    if _var_mode.value in [0,1]:
+    if _var_mode.value in [0,1,2]:
         log.debug('animMode killUI')
         
         #IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked')

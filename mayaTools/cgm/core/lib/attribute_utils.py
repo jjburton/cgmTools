@@ -891,7 +891,7 @@ def get_enum(*a):
     
     if get_type(_d) == 'enum':
         #return mc.addAttr(_d['combined'],q=True, en = True) 
-        return mc.attributeQuery(_d['attr'], node = _d['node'], listEnum=True)[0]	
+        return mc.attributeQuery(_d['attr'], node = _d['node'], listEnum=True)[0]
     return False
 
 def get_enumValueString(*a):
@@ -904,7 +904,7 @@ def get_enumValueString(*a):
     :returns
         type(string)
     """ 
-    _str_func = 'get_enum'
+    _str_func = 'get_enumValueString'
     _d = validate_arg(*a) 
     
     if get_type(_d) == 'enum':
@@ -912,6 +912,12 @@ def get_enumValueString(*a):
         return enums[get(_d)]
 
     return False
+
+def get_enumList(*a):
+    _res = get_enum(*a)
+    if _res:
+        return _res.split(':')
+    return False    
     
 def is_keyable(*a):
     """   

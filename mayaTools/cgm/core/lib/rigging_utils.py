@@ -19,6 +19,7 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
+from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGen
@@ -27,7 +28,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.lib import search
 from cgm.lib import rigging
 from cgm.lib import locators #....CANNOT IMPORT LOCATORS - loop
-from cgm.core.lib import attribute_utils as coreAttr
+from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import name_utils as coreNames
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shared_data as SHARED
@@ -356,12 +357,12 @@ def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, repl
     
     l_shapes = VALID.listArg(shapeSource)
     
-    log.debug(">>{0}>> >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
+    log.debug("|{0}|  >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
     
     if replaceShapes:
         _l_objShapes = mc.listRelatives(obj, s=True, fullPath = True)    
         if _l_objShapes:
-            log.debug(">>{0}>> >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
+            log.debug("|{0}|  >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
             mc.delete(_l_objShapes)
     
     mc.select (cl=True)
@@ -501,7 +502,7 @@ def create_at(obj = None, create = 'null'):
         #raise NotImplementedError,"joints not done yet"
         #mc.select(cl=True)
         #_created = mc.joint()
-        #coreAttr.set(_created,'displayLocalAxis',True)
+        #ATTR.set(_created,'displayLocalAxis',True)
 
         mc.select(cl=True)
         _created = mc.joint()
@@ -621,7 +622,7 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
         info(dict)
     """   
     _str_func = "set_color"
-    if not target:raise ValueError,">>{0}>> >> Must have a target".format(_str_func)
+    if not target:raise ValueError,"|{0}|  >> Must have a target".format(_str_func)
 
     _shapes = []
     #If it's accepable target to color
@@ -629,7 +630,7 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
     mTarget = r9Meta.MetaClass(target, autoFill=False)
     
     if mTarget.hasAttr('overrideEnabled'):
-        log.debug(">>{0}>> >> overrideEnabled  on target...".format(_str_func))            
+        log.debug("|{0}|  >> overrideEnabled  on target...".format(_str_func))            
         _shapes.append(mTarget.mNode)
     if pushToShapes:
         _bfr = mc.listRelatives(target, s=True)
@@ -637,27 +638,27 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
             _shapes.extend(_bfr)
             
     if not _shapes:
-        raise ValueError,">>{0}>> >> Not a shape and has no shapes: '{1}'".format(_str_func,target)        
+        raise ValueError,"|{0}|  >> Not a shape and has no shapes: '{1}'".format(_str_func,target)        
     
     if index is None and rgb is None and key is None:
-        raise ValueError,">>{0}>> >> Must have a value for index,rgb or key".format(_str_func)
+        raise ValueError,"|{0}|  >> Must have a value for index,rgb or key".format(_str_func)
     
     #...little dummy proofing..
     _type = type(key)
     
     if not issubclass(_type,str):
-        log.debug(">>{0}>> >> Not a string arg for key...".format(_str_func))
+        log.debug("|{0}|  >> Not a string arg for key...".format(_str_func))
         
         if rgb is None and issubclass(_type,list) or issubclass(_type,tuple):
-            log.debug(">>{0}>> >> vector arg for key...".format(_str_func))            
+            log.debug("|{0}|  >> vector arg for key...".format(_str_func))            
             rgb = key
             key = None
         elif index is None and issubclass(_type,int):
-            log.debug(">>{0}>> >> int arg for key...".format(_str_func))            
+            log.debug("|{0}|  >> int arg for key...".format(_str_func))            
             index = key
             key = None
         else:
-            raise ValueError,">>{0}>> >> Not sure what to do with this key arg: {1}".format(_str_func,key)
+            raise ValueError,"|{0}|  >> Not sure what to do with this key arg: {1}".format(_str_func,key)
     
     _b_RBGMode = False
     _b_2016Plus = False
@@ -667,32 +668,32 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
     if key is not None:
         _color = False
         if _b_2016Plus:
-            log.debug(">>{0}>> >> 2016+ ...".format(_str_func))            
+            log.debug("|{0}|  >> 2016+ ...".format(_str_func))            
             _color = SHARED._d_colors_to_RGB.get(key,False)
             
             if _color:
                 rgb = _color
         
         if _color is False:
-            log.debug(">>{0}>> >> Color key not found in rgb dict checking index...".format(_str_func))
+            log.debug("|{0}|  >> Color key not found in rgb dict checking index...".format(_str_func))
             _color = SHARED._d_colors_to_index.get(key,False)
             if _color is False:
-                raise ValueError,">>{0}>> >> Unknown color key: '{1}'".format(_str_func,key) 
+                raise ValueError,"|{0}|  >> Unknown color key: '{1}'".format(_str_func,key) 
                 
     if rgb is not None:
         if not _b_2016Plus:
-            raise ValueError,">>{0}>> >> RGB values introduced in maya 2016. Current version: {1}".format(_str_func,cgmGen.__mayaVersion__) 
+            raise ValueError,"|{0}|  >> RGB values introduced in maya 2016. Current version: {1}".format(_str_func,cgmGen.__mayaVersion__) 
         
         _b_RBGMode = True        
         if len(rgb) == 3:
             _color = rgb
         else:
-            raise ValueError,">>{0}>> >> Too many rgb values: '{1}'".format(_str_func,rgb) 
+            raise ValueError,"|{0}|  >> Too many rgb values: '{1}'".format(_str_func,rgb) 
         
     if index is not None:
         _color = index
 
-    log.debug(">>{0}>> >> Color: {1} | rgbMode: {2}".format(_str_func,_color,_b_RBGMode))
+    log.debug("|{0}|  >> Color: {1} | rgbMode: {2}".format(_str_func,_color,_b_RBGMode))
     
 
     for i,s in enumerate(_shapes):
@@ -735,7 +736,7 @@ def duplicate_shape(shape):
     
             return _bfr
         else:
-            log.debug(">>{0}>> >> mesh shape assumed...".format(_str_func))            
+            log.debug("|{0}|  >> mesh shape assumed...".format(_str_func))            
             _transform = SEARCH.get_transform(shape)
             _shapes = mc.listRelatives(_transform,s=True, fullPath = True)
             _idx = _shapes.index(coreNames.get_long(shape))
@@ -753,6 +754,39 @@ def duplicate_shape(shape):
         
     except Exception,err:
         if not SEARCH.is_shape(shape):
-            log.error(">>{0}>> >> Failure >> Not a shape: {1}".format(_str_func,shape))
-        raise Exception,">>{0}>> >> failed! | err: {1}".format(_str_func,err)  
+            log.error("|{0}|  >> Failure >> Not a shape: {1}".format(_str_func,shape))
+        raise Exception,"|{0}|  >> failed! | err: {1}".format(_str_func,err)  
     
+def is_mirrorable(obj = None):
+    """
+    Return if an object is tagged for mirrorable
+        
+    :returns
+        status(bool)
+    """   
+    _str_func = 'is_mirrorable'
+    
+    obj = valid_arg_single(obj, 'obj', _str_func)
+        
+    l_ = ['mirrorSide','mirrorIndex','mirrorAxis']
+    for a in l_:
+        if not ATTR.has_attr(obj,a):
+            log.debug("|{0}| lacks attr: {1}".format(_str_func,a))
+            return False
+    return True
+
+def mirror(obj = None, mode = ''):
+    """
+    Use r9anim call to mirror
+        
+    :returns
+        status(bool)
+    """   
+    _str_func = 'mirror'
+    
+    obj = valid_arg_single(obj, 'obj', _str_func)
+    try:    
+        r9Anim.MirrorHierarchy([obj]).mirrorData(mode = mode)
+    except Exception,err:
+        _mirrorable = is_mirrorable(obj)
+        log.error("|{0}| >> failure. obj: {1} | mirrorable: {2} | mode: {3} | err: {4}".format(_str_func,obj,_mirrorable,mode,err))
