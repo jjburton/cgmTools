@@ -4,5 +4,5 @@ global proc cgmMarkingMenu() {
 
 
 global proc cgmMarkingMenuKillUI () {
-	python("from cgm.core.tools.markingMenus import cgmMM_tool;cgmMM_tool.killUI();");
+	python("cgmMM_tool.killUI();");
 	}

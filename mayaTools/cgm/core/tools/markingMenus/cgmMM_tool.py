@@ -2,7 +2,7 @@ import maya.cmds as mc
 import maya.mel as mel
 
 import time
-
+import webbrowser
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -11,7 +11,9 @@ log.setLevel(logging.INFO)
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGen
 reload(cgmGen)
-from cgm.core.tools.markingMenus import cgmMMTemplate as mmTemplate
+#from cgm.core.tools.markingMenus import cgmMMTemplate as mmTemplate
+from cgm.core.lib.zoo import baseMelUI as mUI
+import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import distance_utils as DIST
@@ -34,7 +36,7 @@ reload(SNAP)
 reload(SHAPES)
 reload(SHARED)
 reload(RIGGING)
-reload(mmTemplate)
+#reload(mmTemplate)
 #from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.lib import search
 from cgm.lib import locators
@@ -70,7 +72,7 @@ def run():
         
 _str_popWindow = 'cgmMM'#...outside to push to killUI
 
-class cgmMarkingMenu(mmTemplate.mUI.BaseMelWindow):
+class cgmMarkingMenu(mUI.BaseMelWindow):
     WINDOW_NAME = 'cgmMarkingMenuWindow'
     POPWINDOW = _str_popWindow
     MM = True#...whether to use mm pop up menu for build or not 
@@ -112,15 +114,42 @@ class cgmMarkingMenu(mmTemplate.mUI.BaseMelWindow):
             return "{0} doesn't exist!".format(_p)
         else:
             if not mc.popupMenu('cgmMM',ex = True):
-                mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,
+                mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,mm = 1, b =1, aob = 1, p = _p,
                              pmc = lambda *a: self.createUI('cgmMM'),                             
-                             mm = self.__class__.MM, b =1, aob = 1, p = _p,postMenuCommandOnce=True)#postMenuCommandOnce=True
+                             postMenuCommandOnce=True)#postMenuCommandOnce=True
             else:
-                mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0,
+                mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
                              pmc = lambda *a: self.createUI('cgmMM'),
-                             mm =self.__class__.MM, b =1, aob = 1, p = _p, dai = True,postMenuCommandOnce=True)
+                             postMenuCommandOnce=True)#dai = True,
+                
+        """
+        if not mc.popupMenu('cgmMM',ex = True):
+			mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
+			             pmc = lambda *a: self.createUI('cgmMM'), postMenuCommandOnce = True)
+		else:
+			mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p,
+			              pmc = lambda *a: self.createUI('cgmMM'), postMenuCommandOnce = True)
+        
+        """
+    def get_uiChildren(self):
+        """
+        Because maya is stupid and you can't query uiChildren
+        """
+        l_ = []
+        l_toCheck = []
+        l_toCheck.extend( mc.lsUI(controls = True, l = True) )
+        l_toCheck.extend( mc.lsUI(mi = True, l = True) )
+        l_toCheck.extend( mc.lsUI(controlLayouts = True, l = True) )
+        l_toCheck.extend( mc.lsUI(collection = True, l = True) )
+        l_toCheck.extend( mc.lsUI(rmc = True, l = True) )
+        l_toCheck.extend( mc.lsUI(menus = True, l = True) )
+        l_toCheck.extend( mc.lsUI(contexts = True, l = True) )
     
-            
+        for c in l_toCheck:
+            if  self.__class__.POPWINDOW in c.split('|') and not str(c).endswith(self.__class__.POPWINDOW):
+                l_.append(c)
+
+        return l_      
     def create_guiOptionVar(self,varName,*args,**kws):
         fullName = "cgmVar_{0}_{1}".format(self._str_MM,varName)
         if args:args[0] = fullName
@@ -199,13 +228,18 @@ class cgmMarkingMenu(mmTemplate.mUI.BaseMelWindow):
     def report(self):
         cgmUI.log_selfReport(self)
         log.debug("{0} >> Children...".format(self._str_MM))  
-        for c in self.get_uiChildren():
-            log.debug(c)
+        #for c in self.get_uiChildren():
+            #log.debug(c)
             
             
             
     #@cgmGen.Timer
+    """def createUI(self,parent):
+        mmTemplate.mUI.MelMenuItem(parent,
+                        l = 'Point Snap',
+                        rp = 'NW')"""	        
     def createUI(self, parent):
+        mc.menu(parent,e = True, deleteAllItems = True)
         _str_func = "createUI"
         self.setup_optionVars()
         
@@ -226,7 +260,6 @@ class cgmMarkingMenu(mmTemplate.mUI.BaseMelWindow):
             
 
         log.debug("|{0}| >> build_menu".format(self._str_MM))                
-        #mc.menu(parent,e = True, deleteAllItems = True)
         
         #Radial Section --------------------------------------------------------------
         _mode = self.var_menuMode.value
@@ -303,9 +336,11 @@ class cgmMarkingMenu(mmTemplate.mUI.BaseMelWindow):
         uiHelp = mc.menuItem(p=parent, l='Help', subMenu=True)
         
         mc.menuItem(p=uiHelp,l='Report',
-                        c = lambda *a: self.report())
+                    c = lambda *a: self.report())
+        
         mc.menuItem(p=uiHelp, l="Docs",
-                    c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/");')        
+                    c = lambda *a: webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/"))                            
+                    #c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/");')        
         
         mc.menuItem(p=uiHelp,l = 'Reset Options',
                     c=cgmGen.Callback(self.button_action,self.reset))   
@@ -1694,13 +1729,13 @@ def killUI():
         log.debug(">"*10  + '   cgmMarkingMenu =  %0.3f seconds  ' % (f_seconds) + '<'*10)    
     
         if sel and f_seconds <= .5:#and not mmActionOptionVar.value:
-            log.debug("|{0}| >> low time. Set key...".format(_str_popWindow))
+            log.debug("|{0}| >> low time. Set key...".format('cgmMM'))
             setKey()    
     
     try:
         #mmTemplate.killChildren(_str_popWindow)        
-        if mc.popupMenu(_str_popWindow,ex = True):
-            mc.deleteUI(_str_popWindow)  
+        if mc.popupMenu('cgmMM',ex = True):
+            mc.deleteUI('cgmMM')  
     except Exception,err:
         log.error(err)     
     
