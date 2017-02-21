@@ -68,15 +68,146 @@ def run():
     except Exception,err:
         log.error("Failed to load. err:{0}".format(err))
         
-_str_popWindow = 'cgmMarkingMenu'#...outside to push to killUI
-class cgmMarkingMenu(mmTemplate.cgmMetaMM):
+_str_popWindow = 'cgmMM'#...outside to push to killUI
+
+class cgmMarkingMenu(mmTemplate.mUI.BaseMelWindow):
     WINDOW_NAME = 'cgmMarkingMenuWindow'
     POPWINDOW = _str_popWindow
     MM = True#...whether to use mm pop up menu for build or not 
     
+    def __init__(self):	
+        """
+        Initializes the pop up menu class call
+        """
+    
+        self._str_MM = type(self).__name__    
+        log.debug(">>> %s "%(self._str_MM) + "="*75)          
+        self.l_optionVars = []		
+        self.create_guiOptionVar('isClicked', value = 0)
+        self.create_guiOptionVar('mmAction', value = 0)
+        self.create_guiOptionVar('clockStart', value = 0.0)  
+    
+        #>>>> Clock set
+        #====================================================================
+    
+        self.var_clockStart.value = time.clock()
+        #log.info("{0} >> clockStart: {1}".format(self._str_MM,self.clockStartVar.value))
+    
+        self.var_isClicked.value = 0
+        self.var_mmAction.value = 0
+    
+        _sub = "Panel check and build"
+        log.debug( mc.getPanel(withFocus=True))            
+        _p = mc.getPanel(up = True)
+        if _p is None:
+            log.debug("No panel detected...")
+            return 
+        if _p:
+            log.debug("...panel under pointer {1}...".format(self._str_MM, _p))                    
+            _parentPanel = mc.panel(_p,q = True,ctl = True)
+            log.debug("...panel parent: {1}...".format(self._str_MM,_parentPanel))
+            if 'MayaWindow' in _parentPanel:
+                _p = 'viewPanes'     
+        if not mc.control(_p, ex = True):
+            return "{0} doesn't exist!".format(_p)
+        else:
+            if not mc.popupMenu('cgmMM',ex = True):
+                mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,
+                             pmc = lambda *a: self.createUI('cgmMM'),                             
+                             mm = self.__class__.MM, b =1, aob = 1, p = _p,postMenuCommandOnce=True)#postMenuCommandOnce=True
+            else:
+                mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0,
+                             pmc = lambda *a: self.createUI('cgmMM'),
+                             mm =self.__class__.MM, b =1, aob = 1, p = _p, dai = True,postMenuCommandOnce=True)
+    
+            
+    def create_guiOptionVar(self,varName,*args,**kws):
+        fullName = "cgmVar_{0}_{1}".format(self._str_MM,varName)
+        if args:args[0] = fullName
+        if kws and 'varName' in kws.keys():kws.pop('varName')
+        self.__dict__['var_{0}'.format(varName)] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
+        log.debug('var_{0}'.format(varName))
+        if fullName not in self.l_optionVars:
+            self.l_optionVars.append(fullName)
+    
+        return fullName
+    
+    def varBuffer_define(self,optionVar):
+        _str_func = 'varBuffer_define'
+
+        sel = mc.ls(sl=True, flatten = True) or []
+
+        if not sel:
+            log.error("|{0}| >> No selection found. Cannot define")
+            return False
+
+        optionVar.clear()
+
+        for o in sel:
+            optionVar.append(NAMES.get_short(o))
+        return True
+
+    def varBuffer_add(self,optionVar):
+        _str_func = 'varBuffer_add'
+
+        sel = mc.ls(sl=True, flatten = True) or []
+        if not sel:
+            log.error("|{0}| >> No selection found. Cannot define")
+            return False
+
+        for o in sel:
+            optionVar.append(o)
+
+    def varBuffer_remove(self,optionVar):
+        _str_func = 'varBuffer_add'
+
+        sel = mc.ls(sl=True, flatten = True) or []
+        if not sel:
+            log.error("|{0}| >> No selection found. Cannot define")
+            return False
+
+        for o in sel:
+            optionVar.remove(o)
+
+    @cgmGen.Timer    
+    def button_action(self, command = None):
+        """
+        execute a command and let the menu know not do do the default button action but just kill the ui
+        """	
+        log.info("{0} >> buttonAction: {1}".format(self._str_MM,command))                    
+        self.var_mmAction.value=1			
+        if command:
+            try:command()
+            except Exception,err:
+                log.info("{0} button >> error {1}".format(self._str_MM, err))      
+
+
+    def toggleVarAndReset(self, optionVar):
+        try:
+            self.mmActionOptionVar.value=1						
+            optionVar.toggle()
+            log.info("{0}.toggleVarAndReset>>> {1} : {2}".format(self._str_MM,optionVar.name,optionVar.value))
+        except Exception,error:
+            log.error(error)
+            print "MM change var and reset failed!"
+
+    def reset(self):
+        log.info("{0} >> reset".format(self._str_MM))        
+        mUI.Callback(cgmUI.do_resetGuiInstanceOptionVars(self.l_optionVars,False))
+        #killUI()
+
+    def report(self):
+        cgmUI.log_selfReport(self)
+        log.debug("{0} >> Children...".format(self._str_MM))  
+        for c in self.get_uiChildren():
+            log.debug(c)
+            
+            
+            
     #@cgmGen.Timer
-    def BUILD(self, parent):
-        _str_func = "BUILD"
+    def createUI(self, parent):
+        _str_func = "createUI"
+        self.setup_optionVars()
         
         self._d_radial_menu = {}
         self._l_res = []
@@ -124,12 +255,12 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
         else:
             log.error("Don't know what to do with mode: {0}".format(_mode))
             
-            
+        
         #Bottom section --------------------------------------------------------------
                                       
         
-        #mc.menuItem(parent=parent,l = "-"*15,en = False)
-        mc.menuItem(p=parent,l = "-"*15,en = False)
+        #mc.menuItem(parent=parent,l = "-"*25,en = False)
+        mc.menuItem(p=parent,l = "-"*25,en = False)
         
         if _mode == 0:
             log.debug("|{0}| >> td mode bottom...".format(self._str_MM))  
@@ -180,7 +311,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     c=cgmGen.Callback(self.button_action,self.reset))   
         
         mc.menuItem(p=uiHelp,l='Reload local python',
-                    c = lambda *a: mel.eval('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_Deformers as cgmDeformers;from cgm.core import cgm_General as cgmGeneral;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;from cgm.core import cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as cgmValid")'))        
+                    c = lambda *a: mel.eval('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_Deformers as cgmDeformers;from cgm.core import cgm_General as cgmGen;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;from cgm.core import cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as cgmValid")'))        
         
         #>>>Lower menu footer -------------------------------------------------------------------------------------        
         mc.menuItem(p=parent,l = 'cgmMM - {0}'.format(self.l_menuModes[self.var_menuMode.value]),en=False)
@@ -318,7 +449,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     l='mlHold',
                     c=lambda *a: ml_hold.ui())          
 
-        mc.menuItem(p=parent,l = "-"*15,en = False)
+        mc.menuItem(p=parent,l = "-"*25,en = False)
                     
         uiOptions = mc.menuItem(parent = parent, l='Options', subMenu=True)
         
@@ -571,7 +702,7 @@ class cgmMarkingMenu(mmTemplate.cgmMetaMM):
                     l='tdTools',
                     c=lambda *a: tdTools.run())          
         #-----------------------------------------------------------------------------         
-        mc.menuItem(p=parent,l = "-"*15,en = False)
+        mc.menuItem(p=parent,l = "-"*25,en = False)
                     
         uiOptions = mc.menuItem(parent = parent, l='Options', subMenu=True)
         self.bUI_optionMenu_contextTD(uiOptions)

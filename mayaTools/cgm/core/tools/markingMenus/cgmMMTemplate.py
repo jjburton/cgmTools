@@ -33,7 +33,7 @@ class cgmMetaMM(mUI.BaseMelWindow):
     _DEFAULT_MENU_PARENT = 'viewPanes'
     WINDOW_NAME = 'cgmMetaMMWindow'
     POPWINDOW = _str_popWindow
-    MM = False#...whether to use mm pop up menu for build or not 
+    MM = True#...whether to use mm pop up menu for build or not 
     def __init__(self):	
         """
         Initializes the pop up menu class call
@@ -55,32 +55,42 @@ class cgmMetaMM(mUI.BaseMelWindow):
         self.var_isClicked.value = 0
         self.var_mmAction.value = 0
 
-        try:#>> Panel check and build...
-            _sub = "Panel check and build"
-            log.debug( mc.getPanel(withFocus=True))            
-            _p = mc.getPanel(up = True)
-            if _p is None:
-                log.debug("No panel detected...")
-                return 
-            if _p:
-                log.debug("...panel under pointer {1}...".format(self._str_MM, _p))                    
-                _parentPanel = mc.panel(_p,q = True,ctl = True)
-                log.debug("...panel parent: {1}...".format(self._str_MM,_parentPanel))
-                if 'MayaWindow' in _parentPanel:
-                    _p = 'viewPanes'     
-            if not mc.control(_p, ex = True):
-                return "{0} doesn't exist!".format(_p)
+        #try:#>> Panel check and build...
+        _sub = "Panel check and build"
+        log.debug( mc.getPanel(withFocus=True))            
+        _p = mc.getPanel(up = True)
+        if _p is None:
+            log.debug("No panel detected...")
+            return 
+        if _p:
+            log.debug("...panel under pointer {1}...".format(self._str_MM, _p))                    
+            _parentPanel = mc.panel(_p,q = True,ctl = True)
+            log.debug("...panel parent: {1}...".format(self._str_MM,_parentPanel))
+            if 'MayaWindow' in _parentPanel:
+                _p = 'viewPanes'     
+        if not mc.control(_p, ex = True):
+            return "{0} doesn't exist!".format(_p)
+        else:
+            #_pmc = mUI.Callback(self.createUI,self.__class__.POPWINDOW)
+            if not mc.popupMenu('cgmMM',ex = True):
+                mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,
+                             pmc = lambda *a: self.createUI('cgmMM'),                             
+                             mm = self.__class__.MM, b =1, aob = 1, p = _p,postMenuCommandOnce=True)#postMenuCommandOnce=True
             else:
-                #_pmc = mUI.Callback(self.createUI,self.__class__.POPWINDOW)
-                if not mc.popupMenu(self.__class__.POPWINDOW,ex = True):
-                    mc.popupMenu(self.__class__.POPWINDOW, ctl = 0, alt = 0, sh = 0, mm = self.__class__.MM, b =1, aob = 1, p = _p)
-                else:
-                    mc.popupMenu(self.__class__.POPWINDOW, edit = True, ctl = 0, alt = 0, sh = 0, mm = self.__class__.MM, b =1, aob = 1, p = _p, dai = True)
-                self.createUI(self.__class__.POPWINDOW)
-                #mc.showWindow( self.__class__.POPWINDOW )
-                #self.show()
-        except Exception,err:
-            raise Exception,"{0} {1} exception | {2}".format(self._str_MM,_sub,err)
+                mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0,
+                             pmc = lambda *a: self.createUI('cgmMM'),
+                             mm =self.__class__.MM, b =1, aob = 1, p = _p, dai = True,postMenuCommandOnce=True)
+                
+            #mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, b = 3,
+                         #pmc = lambda *a: killUI())
+                         
+            #self.createUI(self.__class__.POPWINDOW)
+            #self.createUI('cgmMM')
+            #mc.showWindow('cgmMM')
+            #mc.showWindow( self.__class__.POPWINDOW )
+            #self.show()
+        #except Exception,err:
+            #raise Exception,"{0} {1} exception | {2}".format(self._str_MM,_sub,err)
 
     def setup_optionVars(self):
         pass
@@ -141,20 +151,20 @@ class cgmMetaMM(mUI.BaseMelWindow):
         """
         log.info("{0} >> build_menu".format(self._str_MM))                
         #mc.setParent(self)
-        mUI.MelMenuItemDiv(parent)
-        mUI.MelMenuItem(parent,l = 'ButtonAction...',
-                        c = mUI.Callback(self.button_action,None))        
-        mUI.MelMenuItem(parent,l = 'Reset...',
-                        c=mUI.Callback(self.button_action,self.reset))        
+        mc.menuItem(parent = parent,l = "-"*25,en = False)
+        mc.menuItem(parent = parent,l = 'ButtonAction...',
+                    c = mUI.Callback(self.button_action,None))        
+        mc.menuItem(parent = parent,l = 'Reset...',
+                    c=mUI.Callback(self.button_action,self.reset))        
         
         """
         mUI.MelMenuItem(parent,l = 'ButtonAction...',
                                 c = lambda *a: self.button_action(None))        
         mUI.MelMenuItem(parent,l = 'Reset...',
                         c=lambda *a: self.button_action(self.reset))  """      
-        mUI.MelMenuItem(parent,l = "-"*15,en = False)
-        mUI.MelMenuItem(parent,l='Report',
-                        c = lambda *a: self.report())
+        mc.menuItem(parent = parent,l = "-"*25,en = False)
+        mc.menuItem(parent = parent,l='Report',
+                    c = lambda *a: self.report())
     @cgmGeneral.Timer    
     def button_action(self, command = None):
         """
@@ -254,6 +264,7 @@ def killChildren(uiElement):
 def killUI():
     log.info("killUI...")
     try:
+        _str_popWindow = 'cgmMM'
         if mc.popupMenu(_str_popWindow,ex = True):
             mc.deleteUI(_str_popWindow)
     except Exception,err:
