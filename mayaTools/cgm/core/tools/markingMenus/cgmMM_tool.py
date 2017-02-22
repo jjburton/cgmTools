@@ -282,6 +282,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         elif _mode == 2:
             log.debug("|{0}| >> puppet mode...".format(self._str_MM))
             self.bUI_radialRoot_puppet(parent)  
+            MMPuppet.bUI_lower(self, parent)            
         elif _mode == 3:
             log.debug("|{0}| >> dev mode...".format(self._str_MM))                                        
             self.bUI_radialRoot_dev(parent)
