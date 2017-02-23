@@ -150,7 +150,7 @@ def bUI_lower(self,parent):
                         try:
                             self._ml_modules.append(_mi_module)
                         except Exception,err:
-                            log.error("|{0}| >> obj: {1} | err: {2}".format(_str_func, _short, err))                
+                            log.debug("|{0}| >> obj: {1} | err: {2}".format(_str_func, _short, err))                
 
                 if _optionVar_val_puppetOn:
                     try:
@@ -159,13 +159,14 @@ def bUI_lower(self,parent):
                             if buffer:
                                 self._l_puppets.append(buffer[0])
                     except Exception,err:
-                        log.error("|{0}| >> No module puppet. obj: {1} | err: {2}".format(_str_func, _short, err))                
+                        log.debug("|{0}| >> No module puppet. obj: {1} | err: {2}".format(_str_func, _short, err))                
+                    
                     try:
                         buffer = mObj.getMessage('puppet')
                         if buffer:
                             self._l_puppets.append(buffer[0])
                     except Exception,err:
-                        log.error("|{0}| >> No puppet. obj: {1} | err: {2}".format(_str_func, _short, err))                
+                        log.debug("|{0}| >> No puppet. obj: {1} | err: {2}".format(_str_func, _short, err))                
         #for k in self._d_mObjInfo.keys():
             #log.debug("%s: %s"%(k.getShortName(),self._d_mObjInfo.get(k)))
         #cgmGen.print_dict(self._d_mObjInfo)

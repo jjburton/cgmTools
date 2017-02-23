@@ -757,8 +757,8 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
                 raise Exception,"Return processing |{0}".format(err) 
         return d_return 
     except Exception,error:
-        log.error(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_func,mesh,raySource,rayDir))
-        log.error(">>> {0} >> error: {1}".format(_str_func,error))        
+        log.debug(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_func,mesh,raySource,rayDir))
+        log.debug(">>> {0} >> error: {1}".format(_str_func,error))        
         return None
 
 def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, tolerance = .1):

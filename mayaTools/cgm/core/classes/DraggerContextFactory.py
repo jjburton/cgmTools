@@ -504,29 +504,42 @@ class clickMesh(ContextualPick):
                     
                     #Get our orientation data
                     _mi_loc = cgmMeta.cgmNode(self.l_created[i])
-                    _d = _mi_loc.cgmLocDat
-                    _m_normal = _d['normal']
-                    _m = ATTR.get_message(_mi_loc.mNode,'meshTarget')[0]
+                    if self.mode not in ['midPoint']:
+                        _d = _mi_loc.cgmLocDat
+                        _m_normal = _d['normal']
+                        _m = ATTR.get_message(_mi_loc.mNode,'meshTarget')[0]
+                        
+                        _aim = MATHUTILS.Vector3(self.mAxis_aim.p_vector[0], self.mAxis_aim.p_vector[1], self.mAxis_aim.p_vector[2])
+                        _up = MATHUTILS.Vector3(self.mAxis_up.p_vector[0], self.mAxis_up.p_vector[1], self.mAxis_up.p_vector[2])
+                        _right = _aim.cross(_up)
+                        
+                        if o != self.l_created[-1]:
+                            _constraint = mc.aimConstraint(self.l_created[i+1],mi_jnt.mNode,
+                                                           aimVector=self.mAxis_aim.p_vector,
+                                                           upVector=[_right.x, _right.y, _right.z],
+                                                           worldUpType = 3,#)                                                       
+                                                           worldUpVector = _m_normal)
+                        else:
+                            _constraint = mc.aimConstraint(self.l_created[-2],mi_jnt.mNode,
+                                                           aimVector=self.mAxis_aim.inverse.p_vector,
+                                                           upVector=[_right.x, _right.y, _right.z],
+                                                           worldUpType = 3, #)
+                                                           worldUpVector = _m_normal)
+                    else:#...midPoint aim setup...
+                        if o != self.l_created[-1]:
+                            _constraint = mc.aimConstraint(self.l_created[i+1],mi_jnt.mNode,
+                                                           maintainOffset = False,
+                                                           aimVector = self.mAxis_aim.p_vector,
+                                                           upVector = self.mAxis_up.p_vector,
+                                                           worldUpType = 'scene')                            
+                        else:
+                            _constraint = mc.aimConstraint(self.l_created[-2],mi_jnt.mNode,
+                                                           maintainOffset = False,
+                                                           aimVector = self.mAxis_aim.inverse.p_vector,
+                                                           upVector = self.mAxis_up.p_vector,
+                                                           worldUpType = 'scene')                        
                     
-                    _aim = MATHUTILS.Vector3(self.mAxis_aim.p_vector[0], self.mAxis_aim.p_vector[1], self.mAxis_aim.p_vector[2])
-                    _up = MATHUTILS.Vector3(self.mAxis_up.p_vector[0], self.mAxis_up.p_vector[1], self.mAxis_up.p_vector[2])
-                    _right = _aim.cross(_up)
-                    
-                    if o != self.l_created[-1]:
-                        constBuffer = mc.aimConstraint(self.l_created[i+1],mi_jnt.mNode,
-                                                       aimVector=self.mAxis_aim.p_vector,
-                                                       upVector=[_right.x, _right.y, _right.z],
-                                                       worldUpType = 3,#)                                                       
-                                                       worldUpVector = _m_normal)
-                    else:
-                        constBuffer = mc.aimConstraint(self.l_created[-2],mi_jnt.mNode,
-                                                       aimVector=self.mAxis_aim.inverse.p_vector,
-                                                       upVector=[_right.x, _right.y, _right.z],
-                                                       worldUpType = 3, #)
-                                                       worldUpVector = _m_normal)
-                    
-                    
-                    mc.delete(constBuffer)
+                    mc.delete(_constraint)
                     if ml_joints:#parent to the last
                         mi_jnt.parent = ml_joints[-1]    
                         log.info("|finalize| >> Created: {0}".format(mi_jnt))                        
@@ -675,14 +688,15 @@ class clickMesh(ContextualPick):
                                 break      """      
                 
                 _mi_loc = cgmMeta.cgmNode(self.l_created[-1])
-                _d = _mi_loc.cgmLocDat
-                _m_normal = _d['normal']
-                _m = ATTR.get_message(_mi_loc.mNode,'meshTarget')[0]
+                if self.mode not in ['midPoint']:
+                    _d = _mi_loc.cgmLocDat
+                    _m_normal = _d['normal']
+                    _m = ATTR.get_message(_mi_loc.mNode,'meshTarget')[0]
                 _pos_base = POS.get(self.l_created[-1],pivot='rp',space='w')   
                 _pos = _pos_base
-                #Use that distance to subtract along our original ray's hit distance to get our new point
+                    #Use that distance to subtract along our original ray's hit distance to get our new point
                 for o in self.l_toSnap:
-                    if self.str_offsetMode == 'snapCast':
+                    if self.str_offsetMode == 'snapCast' and self.mode not in ['midPoint']:
                         try:
                             log.debug("snapCast: {0}".format(o))
                             
@@ -947,41 +961,43 @@ class clickMesh(ContextualPick):
                 self._createModeBuffer = []
                 
             for i,pos in enumerate(self._posBuffer):
-                for i2,v in enumerate(self.v_clampValues):
-                    if v is not None:
-                        pos[i2] = v
-                        
-                #Find our mesh...
-                _rawPos = self._posBufferRaw[i]
-                _m = False
-                _m_hit_idx = None
-                _m_normal = False
-                if _rawPos:
-                    if str(_rawPos) in _d_hit_mesh_queried.keys():
-                        log.debug("|{0}| >> Using queryied data for hit {1}".format(_str_funcName,_rawPos))
-                        _d = _d_hit_mesh_queried[str(_rawPos)]
-                        _m = _d['m']
-                        _m_hit_idx = _d['m_hit_idx']
-                        _m_normal = _d['m_normal']  
-                        _m_uv = _d['m_uv']  
+                if self.mode not in ['midPoint']:            
+                    for i2,v in enumerate(self.v_clampValues):
+                        if v is not None:
+                            pos[i2] = v
+                            
+                    #Find our mesh...
+                    _rawPos = self._posBufferRaw[i]
+                    _m = False
+                    _m_hit_idx = None
+                    _m_normal = False
+                    _m_uv = False
+                    if _rawPos:
+                        if str(_rawPos) in _d_hit_mesh_queried.keys():
+                            log.debug("|{0}| >> Using queryied data for hit {1}".format(_str_funcName,_rawPos))
+                            _d = _d_hit_mesh_queried[str(_rawPos)]
+                            _m = _d['m']
+                            _m_hit_idx = _d['m_hit_idx']
+                            _m_normal = _d['m_normal']  
+                            _m_uv = _d['m_uv']  
+                        else:
+                            for i2,m in enumerate(self.d_meshPos.keys()):
+                                #log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                                    
+                                for i3,h in enumerate(self.d_meshPos[m]):
+                                    if h == _rawPos: 
+                                        log.debug("Found mesh match!")
+                                        _m = m
+                                        _m_hit_idx = _res['meshHits'][_m].index(h)
+                                        _m_normal = _res['meshNormals'][_m][_m_hit_idx]
+                                        _m_uv = _res['uvs'][_m][_m_hit_idx]                                    
+                                        log.debug("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
+                                        break
                     else:
-                        for i2,m in enumerate(self.d_meshPos.keys()):
-                            #log.debug("|{0}|...mesh: {1}".format(_str_funcName,m))                                    
-                            for i3,h in enumerate(self.d_meshPos[m]):
-                                if h == _rawPos: 
-                                    log.debug("Found mesh match!")
-                                    _m = m
-                                    _m_hit_idx = _res['meshHits'][_m].index(h)
-                                    _m_normal = _res['meshNormals'][_m][_m_hit_idx]
-                                    _m_uv = _res['uvs'][_m][_m_hit_idx]                                    
-                                    log.debug("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
-                                    break
-                else:
-                    log.debug("no raw pos match")
-                
-                _jsonDict = {'hitIndex':_m_hit_idx,"normal":_m_normal,"uv":_m_uv,"shape":NAMES.get_base(_m)}
-                if self.str_offsetMode == 'distance':
-                    _jsonDict['offsetDist'] = self.f_offsetDistance
+                        log.debug("no raw pos match")
+                    
+                    _jsonDict = {'hitIndex':_m_hit_idx,"normal":_m_normal,"uv":_m_uv,"shape":NAMES.get_base(_m)}
+                    if self.str_offsetMode == 'distance':
+                        _jsonDict['offsetDist'] = self.f_offsetDistance
                 
                 #Let's make our stuff
                 #baseScale = distance.returnMayaSpaceFromWorldSpace(10)
@@ -1063,12 +1079,14 @@ class clickMesh(ContextualPick):
                     
                     else:
                         loc = cgmMeta.cgmNode(mc.spaceLocator()[0])
-                        
-                        loc.addAttr('cgmLocDat',_jsonDict,attrType='string')
-                        ATTR.set_message(loc.mNode,'meshTarget',_m)
-                        ATTR.store_info(loc.mNode,'cgmLocMode','rayCast',lock=True)
-                        #loc.doStore('meshTarget',_m)
-                        loc.rename("cast_{0}_hit_{1}_{2}_loc".format(self._int_runningTally,i,_jsonDict['shape']))
+                        if self.mode not in ['midPoint']:
+                            loc.addAttr('cgmLocDat',_jsonDict,attrType='string')
+                            ATTR.set_message(loc.mNode,'meshTarget',_m)
+                            ATTR.store_info(loc.mNode,'cgmLocMode','rayCast',lock=True)
+                            #loc.doStore('meshTarget',_m)
+                            loc.rename("cast_{0}_hit_{1}_{2}_loc".format(self._int_runningTally,i,_jsonDict['shape']))
+                        else:
+                            loc.rename("cast_{0}_hit_{1}_midPoint_loc".format(self._int_runningTally,i,))                            
                         nameBuffer = loc.mNode
                         #print "making locator"
                     POS.set(nameBuffer,pos)
