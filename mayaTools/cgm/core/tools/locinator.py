@@ -172,6 +172,7 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
         timeMode(str):
             :slider/range
             :scene
+            :selected
             :custom
         keysMode(str)
             :loc
@@ -226,6 +227,13 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     elif timeMode == 'scene':
         _d_keyDat['frameStart'] = mc.playbackOptions(q=True,animationStartTime=True)
         _d_keyDat['frameEnd'] = mc.playbackOptions(q=True,animationEndTime=True)
+    elif timeMode == 'selected':
+        _tRes = SEARCH.get_time('selected')
+        if not _tRes:
+            log.error("|{0}| >> No time range selected".format(_str_func))                    
+            return False
+        _d_keyDat['frameStart'] = _tRes[0]
+        _d_keyDat['frameEnd'] = _tRes[1]          
     elif timeMode == 'custom':
         _d_keyDat['frameStart'] = timeRange[0]
         _d_keyDat['frameEnd'] = timeRange[1]       
@@ -805,14 +813,11 @@ class ui(cgmUI.cgmGUI):
    
         
     def uiFunc_updateTimeRange(self,mode = 'slider'):
-        _d_timeLine = SEARCH.get_timeline_dict()
-        
-        if mode == 'slider':
-            self.uiFieldInt_start(edit = True, value = _d_timeLine['rangeStart'])
-            self.uiFieldInt_end(edit = True, value = _d_timeLine['rangeEnd'])
-        else:
-            self.uiFieldInt_start(edit = True, value = _d_timeLine['sceneStart'])
-            self.uiFieldInt_end(edit = True, value = _d_timeLine['sceneEnd'])            
+        _range = SEARCH.get_time(mode)
+        if _range:
+            self.uiFieldInt_start(edit = True, value = _range[0])
+            self.uiFieldInt_end(edit = True, value = _range[1])            
+             
         
         
         
@@ -840,12 +845,16 @@ class ui(cgmUI.cgmGUI):
         mc.setParent(_frame_inside)
         _row_timeSet = mUI.MelHLayout(_frame_inside,ut='cgmUISubTemplate',padding = 1)
     
-        cgmUI.add_Button(_row_timeSet,'Slider Range',
+        cgmUI.add_Button(_row_timeSet,'Slider',
                          cgmGen.Callback(self.uiFunc_updateTimeRange,'slider'),                         
                          #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
                          _d_annotations.get('sliderRange','fix sliderRange'))
+        cgmUI.add_Button(_row_timeSet,'Sel',
+                                 cgmGen.Callback(self.uiFunc_updateTimeRange,'selected'),                         
+                                 #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                                 _d_annotations.get('selectedRange','fix selectedRange'))        
     
-        cgmUI.add_Button(_row_timeSet,'Scene Range',
+        cgmUI.add_Button(_row_timeSet,'Scene',
                          cgmGen.Callback(self.uiFunc_updateTimeRange,'scene'),                         
                          _d_annotations.get('sceneRange','fix sceneRange'))
   
@@ -1012,6 +1021,7 @@ _d_annotations = {'me':'Create a loc from selected objects',
                   'updateTarget':'Update the selected targets if possible',
                   'updateBuffer':'Update objects loaded to the buffer',
                   'sliderRange':' Push the slider range values to the int fields',
+                  'selectedRange': 'Push the selected timeline range (if active)',
                   'sceneRange':'Push scene range values to the int fields',
                   '<<<':'Bake within a context of keys in range prior to the current time',
                   'All':'Bake within a context of the entire range of keys ',

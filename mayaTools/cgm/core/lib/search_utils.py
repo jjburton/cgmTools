@@ -102,6 +102,37 @@ def get_all_parents(node = None, shortNames = True):
         return [NAME.get_short(o) for o in _l_parents]
     return _l_parents 
 
+def get_time(mode = 'current'):
+    """
+    Get time line frame data
+    
+    :parameters:
+        mode(str): O
+            current - current frame
+            slider - slider range
+            scene - scene range
+            selected - selected frames in timeline
+        
+    :returns
+        float/[float,float]
+    """   
+    _str_func = 'get_time'
+    returnDict = {}
+    if mode == 'current':
+        return mc.currentTime(q=True)
+    elif mode == 'scene':
+        return [mc.playbackOptions(q=True,animationStartTime=True), mc.playbackOptions(q=True,animationEndTime=True)]
+    elif mode == 'slider':
+        return [mc.playbackOptions(q=True,min=True), mc.playbackOptions(q=True,max=True)]
+    elif mode == 'selected':
+        #Thanks to Brad Clark for this one
+        aPlayBackSliderPython = mel.eval('$tmpVar=$gPlayBackSlider')
+        if not mc.timeControl(aPlayBackSliderPython, query=True, rangeVisible=True):
+            log.info("|{0}| >> No time selected".format(_str_func))        
+            return False
+        return mc.timeControl(aPlayBackSliderPython, query=True, rangeArray=True)
+
+
 def get_timeline_dict():
     """
     Returns timeline info as a dictionary
@@ -131,6 +162,7 @@ def get_key_indices_from(node = None, mode = 'all'):
             previous -- 
             forward --
             back --
+            selected - from selected range
     
     :returns
         list of keys(list)
@@ -177,7 +209,8 @@ def get_key_indices_from(node = None, mode = 'all'):
             keyFrames = [keyFrames[-1]]
 
         
-    elif mode == 'all':
+        
+    elif mode in ['all','selected']:
         firstKey = mc.findKeyframe(node,which = 'first',an='objects')
         lastKey = mc.findKeyframe(node,which = 'last',an='objects')
     
@@ -192,6 +225,17 @@ def get_key_indices_from(node = None, mode = 'all'):
     
         # Put the time back where we found it
         mc.currentTime(initialTimeState)
+        if mode == 'selected':
+            _range = get_time('selected')
+            if not _range:
+                return False
+            _l_cull = []
+            for k in keyFrames:
+                if k > (_range[0]-1) and k < (_range[1]):
+                    _l_cull.append(k)
+            keyFrames = _l_cull
+                
+        
     else:
         raise ValueError,"Unknown mode: {0}".format(mode)
     
