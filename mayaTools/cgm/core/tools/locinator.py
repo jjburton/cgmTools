@@ -901,13 +901,13 @@ class ui(cgmUI.cgmGUI):
         
         uiMenu = self.uiMenu_Buffer   
         mc.menuItem(p=uiMenu, l="Define",
-                    c= lambda *a: self.varBuffer_define(self.var_locinatorTargetsBuffer))
+                    c= lambda *a: cgmUI.varBuffer_define(self,self.var_locinatorTargetsBuffer))
     
         mc.menuItem(p=uiMenu, l="Add Selected",
-                         c= lambda *a: self.varBuffer_add(self.var_locinatorTargetsBuffer))
+                         c= lambda *a: cgmUI.varBuffer_add(self,self.var_locinatorTargetsBuffer))
     
         mc.menuItem(p=uiMenu, l="Remove Selected",
-                         c= lambda *a: self.varBuffer_remove(self.var_locinatorTargetsBuffer))
+                         c= lambda *a: cgmUI.varBuffer_remove(self,self.var_locinatorTargetsBuffer))
     
         mc.menuItem(p=uiMenu,l='----------------',en=False)
         mc.menuItem(p=uiMenu, l="Report",

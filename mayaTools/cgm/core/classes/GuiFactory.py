@@ -41,7 +41,7 @@ from cgm.lib import (search,
                      dictionary)
 
 from cgm.core.lib.zoo import baseMelUI as mUI
-
+from cgm.core.lib import name_utils as NAMES
 #>>> From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
@@ -828,3 +828,40 @@ class Callback(object):
         self._kwargs = kw
     def __call__( self, *args ):
         return self._func( *self._args, **self._kwargs ) 
+    
+def varBuffer_define(self,optionVar):
+    _str_func = 'varBuffer_define'
+
+    sel = mc.ls(sl=True, flatten = True) or []
+
+    if not sel:
+        log.error("|{0}| >> No selection found. Cannot define")
+        return False
+
+    optionVar.clear()
+
+    for o in sel:
+        optionVar.append(NAMES.get_short(o))
+    return True
+
+def varBuffer_add(self,optionVar):
+    _str_func = 'varBuffer_add'
+
+    sel = mc.ls(sl=True, flatten = True) or []
+    if not sel:
+        log.error("|{0}| >> No selection found. Cannot define")
+        return False
+
+    for o in sel:
+        optionVar.append(o)
+
+def varBuffer_remove(self,optionVar):
+    _str_func = 'varBuffer_add'
+
+    sel = mc.ls(sl=True, flatten = True) or []
+    if not sel:
+        log.error("|{0}| >> No selection found. Cannot define")
+        return False
+
+    for o in sel:
+        optionVar.remove(o)
