@@ -492,9 +492,10 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         self.bUI_optionMenu_keyType(uiOptions) 
         self.bUI_optionMenu_keyMode(uiOptions)
         self.bUI_optionMenu_resetMode(uiOptions)
+        LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)        
         self.bUI_optionMenu_aimMode(uiOptions)
-        
-        LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
+        self.bUI_optionMenu_objDefaults(uiOptions)
+        self.bUI_optionMenu_rayCast(uiOptions)
         
         uiBuffers = mc.menuItem(parent = parent, l='Buffers', subMenu=True)
         LOCINATOR.uiBuffer_control(self, uiBuffers)
