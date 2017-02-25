@@ -1145,7 +1145,7 @@ class ui(cgmUI.cgmGUI):
         
         cgmUI.add_LineSubBreak()
         cgmUI.add_Button(_column,'Attach point',
-                         cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'all','midPointLoc',False,**{'mode':'midPoint'}),                                                                      
+                         cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'all','attachPoint',False,**{'mode':'attachPoint'}),                                                                      
                          _d_annotations['attach'])
         
         cgmUI.add_LineSubBreak()
