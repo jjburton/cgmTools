@@ -10,7 +10,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGen
 
 try:
     #try to connect to wing - otherwise don't worry
@@ -181,11 +181,19 @@ def setupCGMMenu():
     if not hasattr( maya, '_cgmToolboxMenu' ):
         def cb( *a ):
             import cgmToolbox
-            cgmToolbox.buildCGMMenu( *a )
+            cgmToolbox.buildCGMToolsMenu( *a )
 
         menu = mUI.MelMainMenu( l='CGM Tools', pmc=cb, tearOff=True )
         setattr( maya, '_cgmToolboxMenu', menu )
-
+		
+		
+def uiMainMenu_add():
+	if not hasattr(maya,'_cgmMenu'):
+		def build(*a):
+			import cgmToolbox
+			cgmToolbox.uiBuild_cgmMenu(*a)
+		menu = mUI.MelMainMenu(l='CGM', pmc=build, tearOff = True)
+		setattr(maya,'_cgmMenu',menu)
 
 class AutoStartInstaller(object):
     '''
@@ -364,7 +372,7 @@ class AutoStartInstaller(object):
 
 
 
-def buildCGMMenu( *a ):
+def buildCGMToolsMenu( *a ):
     menu = maya._cgmToolboxMenu
     menu.clear()
 
@@ -384,6 +392,47 @@ def loadCGMPlugin( pluginName ):
             mc.loadPlugin( pluginName, quiet=True )
         except:
             maya.OpenMaya.MGlobal.displayError( 'Failed to load cgmMirror.py plugin - is it in your plugin path?' )
+
+
+from cgm.core.tools.lib import td_tools_ui as TDTOOLS
+reload(TDTOOLS)
+def uiBuild_cgmMenu( *args ):
+	_str_func = 'uiBuild_cgmMenu'
+	menu = maya._cgmMenu
+	menu.clear()
+	
+	reload(TDTOOLS)	
+	_l_sel = mc.ls(sl=True)
+	if _l_sel:_b_sel = True
+	_b_sel_pair = False
+	_b_sel_few = False
+	_len_sel = len(_l_sel)
+	if _len_sel  >= 2:
+			_b_sel_pair = True
+	if _len_sel >2:
+			_b_sel_few = True		
+	
+
+	#log.info("|{0}| >> Selected: {1}".format(_str_func,_l_sel))        
+
+		
+		
+	mUI.MelMenuItem(menu, l='Open Tool Win',
+		            c=lambda *args: ToolboxWindow())
+	
+	#>>TD ----------------------------------------------------------------------
+	_td = mc.menuItem(p=menu,l='TD/Create',subMenu = True, tearOff = True)
+	TDTOOLS.uiSection_selection(_td)
+	TDTOOLS.uiSection_attributes(_td)		
+	TDTOOLS.uiSection_distance(_td,_l_sel,_b_sel_pair)	
+	TDTOOLS.uiSection_joints(_td)
+	TDTOOLS.uiSection_sdk(_td)
+	TDTOOLS.uiSection_shapes(_td,_l_sel,_b_sel_pair)	
+	TDTOOLS.uiSection_curves(_td)
+	TDTOOLS.uiSection_mesh(_td)
+	TDTOOLS.uiSection_skin(_td)
+	TDTOOLS.uiSection_nodes(_td)
+		
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tools
@@ -497,7 +546,7 @@ def loadMorpheusMaker( *a ):
 
 
 def loadLocalCGMPythonSetup( *a ):
-    evalMel('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_Deformers as cgmDeformers;from cgm.core import cgm_General as cgmGeneral;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;from cgm.core import cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as cgmValid")')
+    evalMel('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_Deformers as cgmDeformers;from cgm.core import cgm_General as cgmGen;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;from cgm.core import cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as cgmValid")')
 #Unittest =====================================================================
 def unittest_All( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
@@ -556,7 +605,7 @@ def goTo_stackOverflow( *a ):
 
 def get_enviornmentInfo( *a ):
     try:
-        cgmGeneral.report_enviornment()
+        cgmGen.report_enviornment()
     except Exception,error:
         log.warning("[Failed to report enviornment]{%s}"%error)
 

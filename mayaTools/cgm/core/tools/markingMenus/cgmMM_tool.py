@@ -52,6 +52,9 @@ from cgm.tools import tdTools
 from cgm.tools import setTools
 from cgm.tools import attrTools
 
+from cgm.core.tools.lib import td_tools_ui as TDUI
+reload(TDUI)
+
 
 from cgm.lib.ml import (ml_breakdownDragger,
                         ml_resetChannels,
@@ -505,70 +508,11 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
     def bUI_menuBottom_td(self,parent):
         _contextMode = self.var_contextTD.value
         
-        uiSelect = mc.menuItem(parent = parent, l='Select*', subMenu=True)
+        TDUI.uiSection_selection(parent)
+
+        TDUI.uiSection_distance(parent,self._l_sel,self._b_sel_pair)	
         
-        for s in ['selection','children','heirarchy','scene']:
-            mc.menuItem(p=uiSelect, l=s,subMenu=True)
-            
-            mc.menuItem(l='Joints', subMenu = False,
-                        c=cgmGen.Callback(MMCONTEXT.select,s,'joint'))
-            mc.menuItem(l='Curves', subMenu = False,
-                        c=cgmGen.Callback(MMCONTEXT.select,s,'nurbsCurve'))
-            mc.menuItem(l='Mesh', subMenu = False,
-                        c=cgmGen.Callback(MMCONTEXT.select,s,'mesh'))        
-            mc.menuItem(l='Surface', subMenu = False,
-                        c=cgmGen.Callback(MMCONTEXT.select,s,'nurbsSurface'))        
-        
-        """mc.menuItem(l='Joints', subMenu = False,
-                    c=cgmGen.Callback(MMCONTEXT.select,self.var_contextTD.value,'joint'))
-        mc.menuItem(l='Curves', subMenu = False,
-                    c=cgmGen.Callback(MMCONTEXT.select,self.var_contextTD.value,'nurbsCurve'))
-        mc.menuItem(l='Mesh', subMenu = False,
-                    c=cgmGen.Callback(MMCONTEXT.select,self.var_contextTD.value,'mesh'))        
-        mc.menuItem(l='Surface', subMenu = False,
-                    c=cgmGen.Callback(MMCONTEXT.select,self.var_contextTD.value,'nurbsSurface')) """    
-        
-        #-----------------------------------------------------------------------------        
-        _p = mc.menuItem(parent=parent, subMenu = True,
-                         en=self._b_sel_pair,
-                         l = 'Distance')    
-        if self._b_sel_pair:     
-            _n = mc.menuItem(parent=_p, subMenu = True,
-                             l = 'Near')
-            _f = mc.menuItem(parent=_p, subMenu = True,
-                             l = 'Far')
-                             
-            mc.menuItem(parent=_n, 
-                        l = 'Target',
-                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'object'}),                                                                      
-                        )   
-            mc.menuItem(parent=_n, 
-                        l = 'Shape',
-                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Shape',True,**{'mode':'closest','resMode':'shape'}),                                                                      
-                        )               
-            mc.menuItem(parent=_n, 
-                        l = 'Surface Point',
-                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'pointOnSurface'}),                                                                      
-                        )     
-            mc.menuItem(parent=_n, 
-                        l = 'Surface Loc',
-                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'pointOnSurfaceLoc'}),                                                                      
-                        )               
-            mc.menuItem(parent=_n,
-                        l = 'Surface Nodes',
-                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.create_closest_point_node, self._l_sel,'firstToEach','Create closest Point Node',True,**{}),                                                                      
-                        )                 
-        
-        
-        
-            mc.menuItem(parent=_f, 
-                        l = 'Target',
-                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Far Target',True,**{'mode':'far','resMode':'object'}),                                                                      
-                        )                  
-            mc.menuItem(parent=_f, 
-                        l = 'Shape',
-                        c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Far Shape',True,**{'mode':'far','resMode':'shape'}),                                                                      
-                        )  
+
         
         
         if 'joint' in self._l_contextTypes or _contextMode != 'selection':
@@ -588,12 +532,8 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                         ann="General Joint orientation tool\n by Michael Comet")  
             
             #-----------------------------------------------------------------------------
-        
-            uiSDK = mc.menuItem(parent = parent, l='SDK', subMenu=True)
-        
-            mc.menuItem(parent = uiSDK,
-                        l='seShapeTaper',
-                        c=lambda *a: mel.eval('seShapeTaper'),)                
+            TDUI.uiSection_sdk(parent)
+                       
         
         #-----------------------------------------------------------------------------
         _go = False
@@ -608,7 +548,8 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
             
         if _go:
             #>>>Shape ==============================================================================================
-            uiShape = mc.menuItem(parent = parent, l='Shape', subMenu=True)
+            TDUI.uiSection_shapes(parent,self._len_sel,self._b_sel_pair)
+            """uiShape = mc.menuItem(parent = parent, l='Shape', subMenu=True)
             
             
             if self._b_sel_pair:              
@@ -681,29 +622,35 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                         mc.menuItem(en = True,
                                     l=_buffer,
                                     c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],self.var_contextTD.value,'shape'))              
-            
+            """
             #>>>Curve ==============================================================================================
-            uiCurve = mc.menuItem(parent = parent, l='Curve', subMenu=True)
+            TDUI.uiSection_curves(parent)
+            
+            """uiCurve = mc.menuItem(parent = parent, l='Curve', subMenu=True)
             mc.menuItem(parent=uiCurve,
                         l = 'Describe',
                         c = cgmGen.Callback(MMCONTEXT.func_context_all, CURVES.get_python_call, 'selection','shape'),                            
                         )   
             mc.menuItem(parent=uiCurve,
-                        l = 'Mirror')              
+                        l = 'Mirror')  """            
                                     
             #>>>Mesh ==============================================================================================
-            uiMesh = mc.menuItem(parent = parent, l='Mesh', subMenu=True)
+            TDUI.uiSection_mesh(parent)
+            
+            """uiMesh = mc.menuItem(parent = parent, l='Mesh', subMenu=True)
             mc.menuItem(parent = uiMesh,
                         l='cgmMeshTools',
                         c=cgmGen.Callback(meshTools.run))                                 
                         #c=lambda *a: meshTools.run())         
             mc.menuItem(parent = uiMesh,
                         l='abSym',
-                        c=lambda *a: mel.eval('abSymMesh'),)       
+                        c=lambda *a: mel.eval('abSymMesh'),) """      
         
         
             #>>>Skin ==============================================================================================
-            uiSkin = mc.menuItem(parent = parent, l='Skin', subMenu=True)
+            TDUI.uiSection_skin(parent)
+            
+            """uiSkin = mc.menuItem(parent = parent, l='Skin', subMenu=True)
             
             mc.menuItem(parent = uiSkin,
                         l='abWeight',
@@ -711,11 +658,13 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
             mc.menuItem(parent = uiSkin,
                         l='ngSkin',
                         en=False,
-                        c=lambda *a: mel.eval('cometJointOrient'),) 
+                        c=lambda *a: mel.eval('cometJointOrient'),)""" 
         
      
         #>>>Nodes ==============================================================================================
-        uiNodes = mc.menuItem(parent = parent, l='Nodes', subMenu=True)
+        TDUI.uiSection_nodes(parent)
+        
+        """uiNodes = mc.menuItem(parent = parent, l='Nodes', subMenu=True)
         
         _uic_nodes = mc.menuItem(parent = uiNodes,subMenu=True,
                                  l='Create',
@@ -724,9 +673,9 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
             mc.menuItem(parent = _uic_nodes,
                         l=n,
                         c=cgmGen.Callback(NODES.create,'NameMe',n),                   
-                        )                  
+                        )"""                  
         #-----------------------------------------------------------------------------    
-        
+        """
         uiLegacy = mc.menuItem(parent = parent, l='cgmOLD', subMenu=True)
         
         mc.menuItem(parent = uiLegacy,
@@ -737,7 +686,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     c=lambda *a: attrTools.run()) 
         mc.menuItem(parent = uiLegacy,
                     l='tdTools',
-                    c=lambda *a: tdTools.run())          
+                    c=lambda *a: tdTools.run())      """    
         #-----------------------------------------------------------------------------         
         mc.menuItem(p=parent,l = "-"*25,en = False)
                     
