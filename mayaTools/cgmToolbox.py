@@ -424,7 +424,9 @@ def uiBuild_cgmMenu( *args ):
     #>>TD ----------------------------------------------------------------------
     _td = mc.menuItem(p=menu,l='TD/Create',subMenu = True, tearOff = True)
     UICHUNKS.uiSection_selection(_td)
-    UICHUNKS.uiSection_attributes(_td)		
+    UICHUNKS.uiSection_riggingUtils(_td)	
+    UICHUNKS.uiSection_attributes(_td)	
+    UICHUNKS.uiSection_rayCast(_td)	    
     UICHUNKS.uiSection_distance(_td,_l_sel,_b_sel_pair)	
     UICHUNKS.uiSection_joints(_td)
     UICHUNKS.uiSection_sdk(_td)
@@ -471,10 +473,6 @@ def loadRed9( *a ):
     reload(Red9)
     Red9.start()
 
-def startWingServer( *a ):
-    from cgm.core.lib.wing import mayaWingServer as mWingServer
-    reload(mWingServer)
-    mWingServer.startServer()
 
 def loadAttrTools( *a ):
     from cgm.tools import attrTools1
@@ -532,103 +530,12 @@ def reload_cgmCore( *a ):
         cgm.core._reload()	
     except Exception,error:log.warning("[reload_cgmCoreFail]{%s}"%error)
 
-def loadPolyUniteTool( *a ):
-    from cgm.tools import polyUniteTool
-    reload(polyUniteTool)
-    polyUniteTool.run()
-
-def purgeCGMOptionVars( *a ):
-    from cgm.lib import optionVars
-    optionVars.purgeCGM()	
-
-def connectToWingIDE( *a ):
-    try: 
-        reload(cgmDeveloperLib) 
-    except:
-        from cgm.lib import cgmDeveloperLib
-    cgmDeveloperLib.connectToWing()
 
 def testMorpheus( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM
     reload(testCGM)
     testCGM.MorpheusBase_Test()
 
-def loadMorpheusMaker( *a ):
-    try:
-        print("Trying to load Morheus Maker 2014")
-        from morpheusRig_v2.core.tools import MorpheusMaker as mMaker
-        reload(mMaker)    
-        mMaker.go()	
-    except Exception,error:
-        log.error("You appear to be missing the Morpheus pack. Or maybe angered the spirits...")
-        raise Exception,error
-
-
-
-
-def loadLocalCGMPythonSetup( *a ):
-    evalMel('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_Deformers as cgmDeformers;from cgm.core import cgm_General as cgmGen;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;from cgm.core import cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as cgmValid")')
-#Unittest =====================================================================
-def unittest_All( *a ):
-    from cgm.core.tests import cgmMeta_test as testCGM
-    reload(testCGM)
-    testCGM.ut_AllTheThings()
-
-def unittest_cgmMeta( *a ):
-    from cgm.core.tests import cgmMeta_test as testCGM
-    reload(testCGM)
-    testCGM.ut_cgmMeta()
-
-def unittest_cgmPuppet( *a ):
-    from cgm.core.tests import cgmMeta_test as testCGM
-    reload(testCGM)
-    testCGM.ut_cgmPuppet()  
-
-def unittest_cgmLimb( *a ):
-    from cgm.core.tests import cgmMeta_test as testCGM
-    reload(testCGM)
-    testCGM.ut_cgmLimb()  
-
-
-#Help stuff =====================================================================
-def reset_hotkeys( *a ):
-    from cgm.core.classes import HotkeyFactory as HKEY
-    reload(HKEY)
-    HKEY.hotkeys_resetAll()
-
-def goTo_keyframeCoop( *a ):
-    try:
-        import webbrowser
-        webbrowser.open("http://keyframeco-op.com/")
-    except Exception,error:
-        log.warning("[Failed to load Keyframe Co-op]{%s}"%error)
-
-def goTo_cgmVimeo( *a ):
-    try:
-        import webbrowser
-        webbrowser.open("http://vimeo.com/cgmonks")
-    except Exception,error:
-        log.warning("[Failed to load cgm vimeo]{%s}"%error)
-
-def goTo_red9Vimeo( *a ):
-    try:
-        import webbrowser
-        webbrowser.open("http://vimeo.com/user9491246")
-    except Exception,error:
-        log.warning("[Failed to load red9 vimeo]{%s}"%error)
-
-def goTo_stackOverflow( *a ):
-    try:
-        import webbrowser
-        webbrowser.open("http://stackoverflow.com")
-    except Exception,error:
-        log.warning("[Failed to load stackOverflow]{%s}"%error)
-
-def get_enviornmentInfo( *a ):
-    try:
-        cgmGen.report_enviornment()
-    except Exception,error:
-        log.warning("[Failed to report enviornment]{%s}"%error)
 
 #Zoo stuff =====================================================================
 def loadZooToolbox( *a ):
@@ -661,24 +568,13 @@ TOOL_CATS = ( ('animation', (('cgm.locinator', "Launch cgmLocinator 2.0",
                              ('zoo.XferAnim', "Tool for transferring animation - from Hamish McKenzie's zooToolbox",
                               loadXferAnim), 
                              ('zoo.Keymaster', "from Hamish McKenzie's zooToolbox - keymaster gives you a heap of tools to manipulate keyframes - scaling around curve pivots, min/max scaling of curves/keys etc...",
-                              ToolCB( 'source zooKeymaster; zooKeymasterWin;' )),
-
-                             )),
+                              ToolCB( 'source zooKeymaster; zooKeymasterWin;' )))),
 
               ('rigging', (('cgm.attrTools', " NEW Attribute tools",
                             loadAttrTools2),                      
                            ('cgm.meshTools', " Mesh tools",
-                            loadCGMMeshTools),
+                            loadCGMMeshTools))),
 
-                           ('cgm.PolyUniteTool', "Stand alone poly unite tool for Plastic",
-                            loadPolyUniteTool),                        
-                           )),
-
-              ('layout', (('zoo.Shots', "from Hamish McKenzie's zooToolbox -  zooShots is a camera management tool.  It lets you create a bunch of cameras in your scene, and 'edit' them together in time.  The master camera then cuts between each 'shot' camera.  All camera attributes are maintained over the cut - focal length, clipping planes, fstop etc...",
-                           ToolCB('zooShots')),
-                          ('zoo.HUDCtrl', "from Hamish McKenzie's zooToolbox -  zooHUDCtrl lets you easily add stuff to your viewport HUD. ",
-                           ToolCB('zooHUDCtrl')),
-                          )),
               ('legacy', (('cgm.animTools', " Anim tools",
                            loadAnimTools),
                           ('cgm.SetTools', " Set tools",
@@ -691,81 +587,6 @@ TOOL_CATS = ( ('animation', (('cgm.locinator', "Launch cgmLocinator 2.0",
 
                           ('cgm.attrTools OLD', " OLD Attribute tools",
                            loadAttrTools))),
-              ('hotkeys', (('cgmMarkingMenu -',
-                            'cgm Marking menu for pretty much everything we do',
-                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmMM_tool',  'cgmMarkingMenu;', 'cgmMarkingMenuKillUI;','Marking menu for working with rigging tools', 'mel','s')),
-                           ('Zoo Set Menu - selection set menu',
-                            'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
-                            mUI.Callback(HKEY.cgmHotkeyer, 'zooSetMenu', 'zooSetMenu;', 'zooSetMenuKillUI;','zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface','mel','y')),                            
-                           #ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
-
-                           ('Set Menu - menu for cgm.setTools',
-                            'Menu for working with cgm.SetTools. There are a wide fariety of tools for them..',
-                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmSetToolsMM', 'cgmSetToolsMM;', 'cgmSetToolsMMKillUI;','cgmSnap marking menu', 'mel','d')),                            
-                           #ToolCB( "zooHotkeyer cgmSetToolsMM \"cgmSetToolsMM;\" \"cgmSetToolsMMKillUI;\" \"-default d -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
-
-                           ('Tangent Works - tangency manipulation menu',
-                            'zooTangentWks is a marking menu script that provides super fast access to common tangent based operations.  Tangent tightening, sharpening, change tangent types, changing default tangents etc...',
-                            mUI.Callback(HKEY.cgmHotkeyer, 'zooTangentWks',  'zooTangentWks;', 'zooTangentWksKillUI;','tangent works is a marking menu script to speed up working with the graph editor','mel','q')),                            
-                           #ToolCB( "zooHotkeyer zooTangentWks \"zooTangentWks;\" \"zooTangentWksKillUI;\" \"-default q -enableMods 0 -ann tangent works is a marking menu script to speed up working with the graph editor\";" )),
-
-                           ('Snap Tools - snap tools menu',
-                            'cgmSnapToolsMM is a tool for accessing snapping tools from a marking menu...',
-                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmSnap',  'cgmSnapMM;', 'cgmSnapMMKillUI;','cgmSnap marking menu','mel','t')),
-
-                           ('NEW Set Key Menu - key creation menu',
-                            'cgmPuppet key menu - wip',
-                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmPuppetKey', 'cgmPuppetKeyMM;', 'cgmPuppetKeyMMKillUI;','New moduler marking menu for the s key','mel','s')),
-
-                           ('Marking Menu Template - key creation menu',
-                            'template example',
-                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmMMTemplate', 'cgmTemplateMM;', 'cgmTemplateMMKillUI;','Demo marking menu - t','mel','t')),
-
-                           ('Set Key Menu - key creation menu',
-                            'cgmLibrary tools for dealing with keys',
-                            mUI.Callback(HKEY.cgmHotkeyer, 'cgmSetKeyMM',  'cgmSetKeyMM;', 'cgmSetKeyMMKillUI;','designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations', 'mel','s')),                            
-                           #ToolCB( "zooHotkeyer cgmSetKeyMM \"cgmSetKeyMM;\" \"cgmSetKeyMMKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
-
-                           ('Reset Hotkeys', "Reset all hotkeys in current hotkeySet(2016+) or in maya for below 2016",
-                            reset_hotkeys),                            
-                           )),
-
-              ('dev', (('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",
-                        purgeCGMOptionVars),
-                       #('Connect to Wing IDE', " Attempts to connect to Wing IDE",
-                       #                       connectToWingIDE), 
-                       ('Start Wing Server', " Opens a command port for Wing IDE",
-                        startWingServer),   
-                       ('Load Local CGM Python', " Sets up standard cgm ptyhon imports for use in the script editor",
-                        loadLocalCGMPythonSetup),                        
-                       ('Simple cgmGUI', " Base cgmGUI",
-                        loadCGMSimpleGUI),
-                       ('cgm.MorpheusMaker', " Morpheus maker tool",
-                        loadMorpheusMaker),
-                       ('zooToolbox', " Open zooToolbox Window",
-                        loadZooToolbox),        
-                       ('unitTest - cgm', " WARNING - Opens new file...Unit test cgm.core",
-                        unittest_All),  
-                       ('unitTest - cgmMeta', " WARNING - Opens new file...Unit test cgm.core",
-                        unittest_cgmMeta),   
-                       ('unitTest - cgmPuppet', " WARNING - Opens new file...Unit test cgm.core",
-                        unittest_cgmPuppet),   
-                       ('unitTest - cgmLimb', " WARNING - Opens new file...Unit test cgm.core",
-                        unittest_cgmLimb),                           
-                       )),
-              ('help', (('Report Issue', " Report an issue with the toolbox ",
-                         'import webbrowser;webbrowser.open("https://bitbucket.org/jjburton/cgmtools/issues/new");'),                               
-                        ('CG Monks Vimeo', " Tutorials and more ",
-                         goTo_cgmVimeo), 
-                        ('Get Builds', " Find latest builds ",
-                         'import webbrowser;webbrowser.open("https://bitbucket.org/jjburton/cgmtools/downloads?tab=branches");'),                         
-                        ('Red9 Vimeo', " Tutorials and more ",
-                         goTo_red9Vimeo),   
-                        ('Stack Overflow', " This is where we go when code-stumped... ",
-                         goTo_stackOverflow),                          
-                        ('Enviornment Info', " What's your maya enviornment? ",
-                         get_enviornmentInfo),                           
-                        ))
               )
 
 class ToolboxTab(mUI.MelColumnLayout):

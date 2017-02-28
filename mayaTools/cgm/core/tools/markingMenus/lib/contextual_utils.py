@@ -290,7 +290,11 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__)) 
     log.debug("|{0}| >> mode: {1}".format(_str_func, processMode) )
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
-    log.debug("|{0}| >> objects: {1}".format(_str_func, objects))  
+    log.debug("|{0}| >> objects: {1}".format(_str_func, objects)) 
+    
+    if not objects:
+        log.warning("|{0}| >> No targets specifiec. func: {1}".format(_str_func, func.__name__))         
+        return False
     
     
     if processMode in ['each']:
@@ -370,6 +374,10 @@ def func_context_all(func,context = 'selection',mType = None, **kws):
         
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__))  
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
+    
+    if not _l_context:
+        log.warning("|{0}| >> No targets specifiec. func: {1}".format(_str_func, func.__name__))         
+        return False
         
     for i,o in enumerate(_l_context):
         log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
@@ -380,3 +388,4 @@ def func_context_all(func,context = 'selection',mType = None, **kws):
             
     try:mc.select(_l_context)
     except:pass
+    

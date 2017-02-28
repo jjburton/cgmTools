@@ -37,7 +37,7 @@ from cgm.core.tools import meshTools
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools import attrTools as ATTRTOOLS
 from cgm.core.tools import locinator as LOCINATOR
-
+from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 
 from cgm.lib.ml import (ml_breakdownDragger,
@@ -50,6 +50,10 @@ from cgm.lib.ml import (ml_breakdownDragger,
                         ml_convertRotationOrder,
                         ml_copyAnim)
 
+
+_2016 = False
+if cgmGen.__mayaVersion__ >=2016:
+    _2016 = True
 
 def uiSection_selection(parent = None):
     uiSelect = mc.menuItem(parent = parent, l='Select*', subMenu=True,tearOff = True)
@@ -77,53 +81,53 @@ def uiSection_selection(parent = None):
 
 def uiSection_distance(parent = None, selection = None, pairSelected = True):
     _p = mc.menuItem(parent=parent, subMenu = True,tearOff = True,
-                     en=pairSelected,
+                     ann = 'Get info on distance',
                      l = 'Distance')  
 
-    if pairSelected:     
-        _n = mc.menuItem(parent=_p, subMenu = True,
-                         l = 'Near')
-        _f = mc.menuItem(parent=_p, subMenu = True,
-                         l = 'Far')
+    #if pairSelected:     
+    _n = mc.menuItem(parent=_p, subMenu = True,
+                     l = 'Near')
+    _f = mc.menuItem(parent=_p, subMenu = True,
+                     l = 'Far')
 
-        mc.menuItem(parent=_n, 
-                    l = 'Target',
-                    ann = "Find nearest target in from:to selection list",
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'object'}),                                                                      
-                    )   
-        mc.menuItem(parent=_n, 
-                    l = 'Shape',
-                    ann = "Find nearest shape in  from:to selection list",                    
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Near Shape',True,**{'mode':'closest','resMode':'shape'}),                                                                      
-                    )               
-        mc.menuItem(parent=_n, 
-                    l = 'Surface Point',
-                    ann = "Find nearest surface point in from:to selection list",                    
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'pointOnSurface'}),                                                                      
-                    )     
-        mc.menuItem(parent=_n, 
-                    l = 'Surface Loc',
-                    ann = "Find nearest surface point in from:to selection list. And loc it.",                                        
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'pointOnSurfaceLoc'}),                                                                      
-                    )               
-        mc.menuItem(parent=_n,
-                    l = 'Surface Nodes',
-                    ann = "Create nearest surface point nodes in from:to selection list",                                        
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.create_closest_point_node, selection,'firstToEach','Create closest Point Node',True,**{}),                                                                      
-                    )                 
+    mc.menuItem(parent=_n, 
+                l = 'Target',
+                ann = "Find nearest target in from:to selection list",
+                c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'object'}),                                                                      
+                )   
+    mc.menuItem(parent=_n, 
+                l = 'Shape',
+                ann = "Find nearest shape in  from:to selection list",                    
+                c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Near Shape',True,**{'mode':'closest','resMode':'shape'}),                                                                      
+                )               
+    mc.menuItem(parent=_n, 
+                l = 'Surface Point',
+                ann = "Find nearest surface point in from:to selection list",                    
+                c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'pointOnSurface'}),                                                                      
+                )     
+    mc.menuItem(parent=_n, 
+                l = 'Surface Loc',
+                ann = "Find nearest surface point in from:to selection list. And loc it.",                                        
+                c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'pointOnSurfaceLoc'}),                                                                      
+                )               
+    mc.menuItem(parent=_n,
+                l = 'Surface Nodes',
+                ann = "Create nearest surface point nodes in from:to selection list",                                        
+                c = cgmGen.Callback(MMCONTEXT.func_process, DIST.create_closest_point_node, selection,'firstToEach','Create closest Point Node',True,**{}),                                                                      
+                )                 
 
 
 
-        mc.menuItem(parent=_f, 
-                    l = 'Target',
-                    ann = "Find furthest taregt in from:to selection list",                                        
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Far Target',True,**{'mode':'far','resMode':'object'}),                                                                      
-                    )                  
-        mc.menuItem(parent=_f, 
-                    l = 'Shape',
-                    ann = "Find furthest shape in from:to selection list",                                        
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Far Shape',True,**{'mode':'far','resMode':'shape'}),                                                                      
-                    )      
+    mc.menuItem(parent=_f, 
+                l = 'Target',
+                ann = "Find furthest taregt in from:to selection list",                                        
+                c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Far Target',True,**{'mode':'far','resMode':'object'}),                                                                      
+                )                  
+    mc.menuItem(parent=_f, 
+                l = 'Shape',
+                ann = "Find furthest shape in from:to selection list",                                        
+                c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, selection,'firstToRest','Far Shape',True,**{'mode':'far','resMode':'shape'}),                                                                      
+                )      
     return _p
 
 
@@ -147,24 +151,30 @@ def uiSection_joints(parent = None):
     mc.menuItem(parent = uiJoints,
                 l='cometJO',
                 c=lambda *a: mel.eval('cometJointOrient'),
-                ann="General Joint orientation tool\n by Michael Comet")   
+                ann="General Joint orientation tool  by Michael Comet")   
     
     
     
     
 def uiSection_sdk(parent = None):
     _str_func = 'uiSection_sdk'
-    uiSDK = mc.menuItem(parent = parent, l='SDK', subMenu=True)
+    uiSDK = mc.menuItem(parent = parent, l='SDK',
+                        ann = "Functions and tools for dealing with SDKs",                                                                                                                          
+                        subMenu=True)
     
     mc.menuItem(parent = uiSDK,
                 l='seShapeTaper',
+                ann = "Fantastic blendtaper like tool for sdk poses by our pal - Scott Englert",                                                        
                 c=lambda *a: mel.eval('seShapeTaper'),)   
     
     
 def uiSection_curves(parent):
-    uiCurve = mc.menuItem(parent = parent, l='Curve', subMenu=True)
+    uiCurve = mc.menuItem(parent = parent, l='Curve',
+                          ann = "Functions and tools for dealing with curves",                                                                                                  
+                          subMenu=True)
     mc.menuItem(parent=uiCurve,
                 l = 'Describe',
+                ann = "Generate pythonic recreation calls for selected curve shapes",                                                                        
                 c = cgmGen.Callback(MMCONTEXT.func_context_all, CURVES.get_python_call, 'selection','shape'),                            
                 )   
     mc.menuItem(parent=uiCurve,
@@ -175,48 +185,60 @@ def uiSection_shapes(parent = None, selection = None, pairSelected = True):
     _str_func = 'uiSection_shapes'    
     
     #>>>Shape ==============================================================================================
-    uiShape = mc.menuItem(parent = parent, l='Shape', subMenu=True,tearOff = True)
+    uiShape = mc.menuItem(parent = parent, l='Shape', subMenu=True,
+                          ann = "Functions and tools for dealing with shapes",                                                                                                                            
+                          tearOff = True)
 
 
     #---------------------------------------------------------------------------
     mc.menuItem(parent=uiShape,
                 #en = pairSelected,
                 l = 'shapeParent',
-                #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                ann = "shapeParent in place with a from:to selection. Maya's version is not so good",                                                                                                  
                 c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, selection, 'lastFromRest','shapeParent'),
                 rp = "W")   
     _d_combine = {'keepSource':False}
     mc.menuItem(parent=uiShape,
                 #en = pairSelected,                
                 l = 'Combine',
-                #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                ann = "Combine selected curves to the last transform",                                                                                                  
                 c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, selection,'toFrom', **_d_combine),
                 rp = "NW")
     mc.menuItem(parent=uiShape,
                 #en = pairSelected,                
                 l = 'Add',
-                #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                ann = "Add selected shapes to the last transform",                                                                                                  
                 c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, selection,'toFrom', **{}),
                 rp = "NW")      
 
-    _d_replace = {'replaceShapes':True}                
     mc.menuItem(parent=uiShape,
                 l = 'Replace',
-                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, selection,'lastFromRest', 'replaceShapes',**_d_replace),                                                        
+                ann = "Replace the last transforms shapes with the former ones.",                                                                                                                  
+                c = cgmGen.Callback(MMCONTEXT.func_process,
+                                    RIGGING.shapeParent_in_place,
+                                    selection,'lastFromRest', 'replaceShapes',
+                                    **{'replaceShapes':True}),                                                        
                 #c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.shapeParent_in_place, selection,'toFrom', **_d_replace),                            
                 rp = "SW")                  
 
     mc.menuItem(parent=uiShape,
                 l = 'Extract',
+                ann = "Extract selected shapes from their respective transforms",                                                                                                                                  
                 c = cgmGen.Callback(MMCONTEXT.func_context_all, RIGGING.duplicate_shape, 'selection','shape'),                            
                 rp = "SW")              
     #>Color -------------------------------------------------------------------------------------------------
-    uiColorShape = mc.menuItem(parent = uiShape, l='Color*', subMenu=True)
+    uiColorShape = mc.menuItem(parent = uiShape, l='Color', 
+                               ann = "Set overrideColor...",                                                                                       
+                               subMenu=True)
     
     for ctxt in ['selection','children','heirarchy','scene']:
-        uiContext = mc.menuItem(p=uiColorShape, l=ctxt,subMenu=True)    
+        uiContext = mc.menuItem(p=uiColorShape,
+                                ann = "Set overrideColor by {0}".format(ctxt),                                                        
+                                l=ctxt,subMenu=True)    
 
-        uiColorIndexShape = mc.menuItem(p=uiContext,l='Index', subMenu=True)
+        uiColorIndexShape = mc.menuItem(p=uiContext,l='Index',                                         
+                                        ann = "Set overrideColor by {0} by index".format(ctxt),                                                        
+                                        subMenu=True)
         _IndexKeys = SHARED._d_colorsByIndexSets.keys()
         
         for k1 in _IndexKeys:
@@ -225,15 +247,21 @@ def uiSection_shapes(parent = None, selection = None, pairSelected = True):
     
             mc.menuItem(parent=uiColorIndexShape,subMenu = True,
                         en = True,
+                        ann = "Set overrideColor by {0} to {1}...".format(ctxt,k1),                                                                                
                         l=k1)
     
             for k2 in _keys2:
                 mc.menuItem(en = True,
                             l=k2,
+                            ann = "Set overrideColor by {0} to {1}".format(ctxt,k2),                                                                                                            
                             c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_index[k2],ctxt,'shape'))                        
     
-    
-        uiRGBShape = mc.menuItem(parent = uiContext, l='RBG', subMenu=True)            
+            
+        uiRGBShape = mc.menuItem(parent = uiContext,
+                                 en = _2016,
+                                 ann = "Set overrideColor by {0} -- 2016 or above only".format(ctxt),                                                                                         
+                                 l='RBG', subMenu=True)   
+        
         _IndexKeys = SHARED._d_colorSetsRGB.keys()
         for k1 in _IndexKeys:
             _keys2 = SHARED._d_colorSetsRGB.get(k1,[])
@@ -242,6 +270,7 @@ def uiSection_shapes(parent = None, selection = None, pairSelected = True):
     
             mc.menuItem(parent=uiRGBShape,subMenu = _sub,
                         en = True,
+                        ann = "Set overrideColor by {0} to {1}...".format(ctxt,k1),                                                                                                        
                         l=k1,
                         c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[k1],ctxt,'shape'))
     
@@ -252,6 +281,7 @@ def uiSection_shapes(parent = None, selection = None, pairSelected = True):
                 for k2 in _keys2:
                     _buffer = "{0}{1}".format(k1,k2)
                     mc.menuItem(en = True,
+                                ann = "Set overrideColor by {0} to {1}".format(ctxt,k2),                                                                                                                                            
                                 l=_buffer,
                                 c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],ctxt,'shape'))              
 
@@ -262,10 +292,12 @@ def uiSection_mesh(parent):
     uiMesh = mc.menuItem(parent = parent, l='Mesh', subMenu=True,tearOff = True)
     mc.menuItem(parent = uiMesh,
                 l='cgmMeshTools',
+                ann = "Launch cgmMeshTools - a series of tools including meshMath, shapeCasting and proxyMesh",                                                                                                       
                 c=cgmGen.Callback(meshTools.run))                                 
         #c=lambda *a: meshTools.run())         
     mc.menuItem(parent = uiMesh,
                 l='abSym',
+                ann = "abSymMesh by Brendan Ross - fantastic tool for some blendshape work",                                                                                                       
                 c=lambda *a: mel.eval('abSymMesh'),)
     
     
@@ -274,7 +306,8 @@ def uiSection_skin(parent):
     
     uiSkin = mc.menuItem(parent = parent, l='Skin', subMenu=True)
     mc.menuItem(parent = uiSkin,
-                l='abWeight',
+                l='abWeightLifter',
+                ann = "abWeightLifter by Brendan Ross - really good tool for transferring and working with skin data",                                                                                                                       
                 c=lambda *a: mel.eval('abWeightLifter'),)         
     mc.menuItem(parent = uiSkin,
                 l='ngSkin',
@@ -284,21 +317,31 @@ def uiSection_skin(parent):
 def uiSection_attributes(parent):
     _str_func = 'uiSection_attributes'  
     
-    uiAttr = mc.menuItem(parent = parent, l='attributes', subMenu=True, tearOff = True)
+    uiAttr = mc.menuItem(parent = parent, l='Attributes', subMenu=True,
+                         ann = "Function and tools for working with attributes",                                                                                                                                
+                         tearOff = True)
     mc.menuItem(parent = uiAttr,
-                l='attrTools',
+                l='cgmAttrTools',
+                ann = "Launch cgmAttrTools - Collection of tools for making creating, editing and managing attributes a little less painful",                                                                                                                       
                 c=cgmGen.Callback(ATTRTOOLS.ui))   
     
     
     _add = mc.menuItem(parent=uiAttr,subMenu=True,
                        l='Add',
+                       ann = "Add attributes to selected objects...",                                                                                                                              
                        rp='S') 
     _d_attrTypes = {"string":'E','float':'S','enum':'NE','vector':'SW','int':'W','bool':'NW','message':'SE'}
     for _t,_d in _d_attrTypes.iteritems():
         mc.menuItem(parent=_add,
                     l=_t,
+                    ann = "Add a {0} attribute(s) to the selected objects".format(_t),                                                                                                       
                     c = cgmGen.Callback(ATTRTOOLS.uiPrompt_addAttr,_t,**{'autoLoadFail':True}),
-                    rp=_d)      
+                    rp=_d)
+        
+    mc.menuItem(parent=uiAttr, #subMenu = True,
+                l = 'Compare Attrs',
+                ann = "Compare the attributes of selected objects. First object is the base of comparison",                                                                                                                                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, ATTRS.compare_attrs, None, 'firstToRest','Compare Attrs',True,**{}))           
 
     
 def uiSection_nodes(parent):
@@ -319,21 +362,27 @@ def uiSection_animUtils(parent):
     _str_func = 'uiSection_nodes'  
     mc.menuItem(parent = parent,
                 l='cgmLocinator',
+                ann = "Launch cgmLocinator - a tool for aiding in the snapping of things",                                                                                                                                       
                 c=lambda *a: LOCINATOR.ui())       
     mc.menuItem(parent = parent,
             l='autoTangent',
+            ann = "autoTangent by Michael Comet - an oldie but a goodie for those who loathe the graph editor",                                                                                                                                   
             c=lambda *a: mel.eval('autoTangent'))
     mc.menuItem(parent = parent,
                 l='tweenMachine',
+                ann = "tweenMachine by Justin Barrett - Fun little tweening tool",                                                                                                                                                   
                 c=lambda *a: mel.eval('tweenMachine'))
     mc.menuItem(parent = parent,
                 l='mlArcTracer',
+                ann = "mlArcTracer by Morgan Loomis",                                                                                                                                                                   
                 c=lambda *a: ml_arcTracer.ui())         
     mc.menuItem(parent = parent,
                 l='mlCopyAnim',
+                ann = "mlCopyAnim by Morgan Loomis",                                                                                                                                                                                   
                 c=lambda *a: ml_copyAnim.ui())         
     mc.menuItem(parent = parent,
                 l='mlHold',
+                ann = "mlHold by Morgan Loomis",
                 c=lambda *a: ml_hold.ui())  
     mc.menuItem(parent = parent,
                 l='red9.Studio Tools',
@@ -476,30 +525,82 @@ def uiSection_dev(parent):
     mc.menuItem(parent = _unitTests,
                 l='cgm - limb',
                 ann = "WARNING - Opens new file...Unit test cgm.core",
-                c=lambda *a: testCGM.ut_cgmLimb())      
-"""
-('dev', (('Purge CGM Option Vars', " Purge all cgm option vars. Warning will break any open tools",
-        purgeCGMOptionVars),
-       #('Connect to Wing IDE', " Attempts to connect to Wing IDE",
-       #                       connectToWingIDE), 
-       ('Start Wing Server', " Opens a command port for Wing IDE",
-        startWingServer),   
-       ('Load Local CGM Python', " Sets up standard cgm ptyhon imports for use in the script editor",
-        loadLocalCGMPythonSetup),                        
-       ('Simple cgmGUI', " Base cgmGUI",
-        loadCGMSimpleGUI),
-       ('cgm.MorpheusMaker', " Morpheus maker tool",
-        loadMorpheusMaker),
-       ('zooToolbox', " Open zooToolbox Window",
-        loadZooToolbox),        
-       ('unitTest - cgm', " WARNING - Opens new file...Unit test cgm.core",
-        unittest_All),  
-       ('unitTest - cgmMeta', " WARNING - Opens new file...Unit test cgm.core",
-        unittest_cgmMeta),   
-       ('unitTest - cgmPuppet', " WARNING - Opens new file...Unit test cgm.core",
-        unittest_cgmPuppet),   
-       ('unitTest - cgmLimb', " WARNING - Opens new file...Unit test cgm.core",
-        unittest_cgmLimb),   
+                c=lambda *a: testCGM.ut_cgmLimb()) 
+    
+    
+def uiSection_riggingUtils(parent):
+    _str_func = 'uiSection_riggingUtils'  
+    
+    _p = mc.menuItem(parent=parent, subMenu = True,tearOff = True,
+                     ann = 'Series of functions for typical rigging functions',
+                     l = 'Rigging Utils')  
+   
+    _copy = mc.menuItem(parent=_p,subMenu=True,
+                        l='Copy',
+                        ann = 'Copy stuff in a from:to selection',                        
+                        )    
+    _gSet = mc.menuItem(parent=_p,subMenu=True,
+                        l='Group',
+                        ann = 'Grouping functions....',                        
+                        )
 
-"""
+    mc.menuItem(parent=_gSet,
+                l = 'Just Group',
+                ann = 'Simple grouping. Just like ctrl + g',                        
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, None,'each','Group',**{'parent':False,'maintainParent':False}),)  
+    mc.menuItem(parent=_gSet,
+                l = 'Group Me',
+                ann = 'Group selected objects matching transform as well.',                                        
+                #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, None,'each','Group',**{'parent':True,'maintainParent':False}))          
+    mc.menuItem(parent=_gSet,
+                l = 'In Place',
+                ann = 'Group me while maintaining heirarchal position',                                                        
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, None,'each','Group In Place',**{'parent':True,'maintainParent':True}))     
+    
+
+
+    mc.menuItem(parent=_copy,
+                l = 'Transform',
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_transform, None,'eachToFirst','Match Transform'),                    
+                ann = "")
+    mc.menuItem(parent=_copy,
+                l = 'Orienation',
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, None,'eachToFirst','Match Orientation'),                    
+                ann = "")
+
+    mc.menuItem(parent=_copy,
+                l = 'Shapes',
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, None,'lastFromRest','Copy Shapes', **{'snapFirst':True}),
+                ann = "")
+
+    _piv = mc.menuItem(parent=_copy,subMenu=True,
+                       l = 'Pivot',
+                       ann = "")
+
+    mc.menuItem(parent = _piv,
+                l = 'rotatePivot',
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, None,'eachToFirst', 'Match RP',**{'rotatePivot':True,'scalePivot':False}),                                               
+                ann = "Copy the rotatePivot from:to")
+    mc.menuItem(parent = _piv,
+                l = 'scalePivot',
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, None,'eachToFirst', 'Match SP', **{'rotatePivot':False,'scalePivot':True}),                                               
+                ann = "Copy the scalePivot from:to")
+    
+    mc.menuItem(parent=_p,
+                l = 'Constraints',
+                en=False,
+                #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                #c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, None,'eachToFirst','Match Orientation'),                    
+                ann = "")
+    
+    
+def uiSection_rayCast(parent):
+    _str_func = 'uiSection_rayCast'  
+    
+    _p = mc.menuItem(parent=parent, subMenu = True,tearOff = True,
+                     en = False,
+                     ann = 'Series of functions for using cgm raycasting',
+                     l = 'Raycasting')  
+
     
