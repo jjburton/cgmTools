@@ -52,8 +52,8 @@ from cgm.tools import tdTools
 from cgm.tools import setTools
 from cgm.tools import attrTools
 
-from cgm.core.tools.lib import td_tools_ui as TDUI
-reload(TDUI)
+from cgm.core.tools.lib import tool_chunks as UICHUNKS
+reload(UICHUNKS)
 
 
 from cgm.lib.ml import (ml_breakdownDragger,
@@ -472,21 +472,8 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         
     def bUI_menuBottom_anim(self,parent):
         uiUtils= mc.menuItem(parent = parent, l='Utilities', subMenu=True)
-        mc.menuItem(parent = uiUtils,
-                    l='autoTangent',
-                    c=lambda *a: mel.eval('autoTangent'))
-        mc.menuItem(parent = uiUtils,
-                    l='tweenMachine',
-                    c=lambda *a: mel.eval('tweenMachine'))
-        mc.menuItem(parent = uiUtils,
-                    l='mlArcTracer',
-                    c=lambda *a: ml_arcTracer.ui())         
-        mc.menuItem(parent = uiUtils,
-                    l='mlCopyAnim',
-                    c=lambda *a: ml_copyAnim.ui())         
-        mc.menuItem(parent = uiUtils,
-                    l='mlHold',
-                    c=lambda *a: ml_hold.ui())          
+        
+        UICHUNKS.uiSection_animUtils(uiUtils)        
 
         mc.menuItem(p=parent,l = "-"*25,en = False)
                     
@@ -508,9 +495,9 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
     def bUI_menuBottom_td(self,parent):
         _contextMode = self.var_contextTD.value
         
-        TDUI.uiSection_selection(parent)
+        UICHUNKS.uiSection_selection(parent)
 
-        TDUI.uiSection_distance(parent,self._l_sel,self._b_sel_pair)	
+        UICHUNKS.uiSection_distance(parent,self._l_sel,self._b_sel_pair)	
         
 
         
@@ -532,7 +519,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                         ann="General Joint orientation tool\n by Michael Comet")  
             
             #-----------------------------------------------------------------------------
-            TDUI.uiSection_sdk(parent)
+            UICHUNKS.uiSection_sdk(parent)
                        
         
         #-----------------------------------------------------------------------------
@@ -548,7 +535,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
             
         if _go:
             #>>>Shape ==============================================================================================
-            TDUI.uiSection_shapes(parent,self._len_sel,self._b_sel_pair)
+            UICHUNKS.uiSection_shapes(parent,self._len_sel,self._b_sel_pair)
             """uiShape = mc.menuItem(parent = parent, l='Shape', subMenu=True)
             
             
@@ -624,7 +611,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                                     c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],self.var_contextTD.value,'shape'))              
             """
             #>>>Curve ==============================================================================================
-            TDUI.uiSection_curves(parent)
+            UICHUNKS.uiSection_curves(parent)
             
             """uiCurve = mc.menuItem(parent = parent, l='Curve', subMenu=True)
             mc.menuItem(parent=uiCurve,
@@ -635,7 +622,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                         l = 'Mirror')  """            
                                     
             #>>>Mesh ==============================================================================================
-            TDUI.uiSection_mesh(parent)
+            UICHUNKS.uiSection_mesh(parent)
             
             """uiMesh = mc.menuItem(parent = parent, l='Mesh', subMenu=True)
             mc.menuItem(parent = uiMesh,
@@ -648,7 +635,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         
         
             #>>>Skin ==============================================================================================
-            TDUI.uiSection_skin(parent)
+            UICHUNKS.uiSection_skin(parent)
             
             """uiSkin = mc.menuItem(parent = parent, l='Skin', subMenu=True)
             
@@ -662,7 +649,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         
      
         #>>>Nodes ==============================================================================================
-        TDUI.uiSection_nodes(parent)
+        UICHUNKS.uiSection_nodes(parent)
         
         """uiNodes = mc.menuItem(parent = parent, l='Nodes', subMenu=True)
         

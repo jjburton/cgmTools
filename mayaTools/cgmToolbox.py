@@ -43,78 +43,78 @@ def clean_scriptPaths():
     _buffer = maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' )
     mayaScriptPaths = map( cgmPath.Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
     mayaScriptPathsSet = set( mayaScriptPaths )
-    
+
     _l_good = []
     _l_bad = []
     try:
         for path in mayaScriptPathsSet:
-	    log.debug("{0}>> Checking {1}".format(_str_func,path))	    
+            log.debug("{0}>> Checking {1}".format(_str_func,path))	    
             if path.count('/') == 0:
                 log.info("{0}>>Bad path? {1}".format(_str_func,path))
-		
+
             if path not in _l_good:
-		if path.count('.git') == 0:
-		    _l_good.append(path)		    
-		else:
-		    log.info("{0}>> .git in path??: {1}".format(_str_func,path))		    
+                if path.count('.git') == 0:
+                    _l_good.append(path)		    
+                else:
+                    log.info("{0}>> .git in path??: {1}".format(_str_func,path))		    
             else:
                 log.info("{0}>> Duplicate path: {1}".format(_str_func,path))
-                
+
         _loadable = []        
         for i,_p in enumerate(_l_good):
             try:
-		maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % _p )
-		_loadable.append(_p)
-		log.info("{0}>> {1}".format(_str_func,_p))				
+                maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % _p )
+                _loadable.append(_p)
+                log.info("{0}>> {1}".format(_str_func,_p))				
             except:
                 log.error("{0}>> Failed to load: {1}".format(_str_func,_p))
-                
+
         newScriptPath = os.pathsep.join( [ p for p in _loadable ] )
-	maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
-	return True
+        maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % newScriptPath )
+        return True
     except:
         log.error('clean_scriptPaths failure. Restoring: {0}'.format(_buffer))
         maya.mel.eval( 'putenv MAYA_SCRIPT_PATH "%s"' % _buffer )
-	
+
 def clean_pluginPaths():
     _str_func = 'clean_pluginPaths'
     _buffer = maya.mel.eval( 'getenv MAYA_PLUG_IN_PATH' )
     mayaScriptPaths = map( cgmPath.Path, maya.mel.eval( 'getenv MAYA_PLUG_IN_PATH' ).split( os.pathsep ) )
     mayaScriptPathsSet = set( mayaScriptPaths )
-    
+
     _l_good = []
     _l_bad = []
     try:
         for path in mayaScriptPathsSet:
-	    log.debug("{0}>> Checking {1}".format(_str_func,path))
+            log.debug("{0}>> Checking {1}".format(_str_func,path))
             if path.count('/') == 0:
                 log.info("{0}>>Bad path? {1}".format(_str_func,path))
             if path not in _l_good:
                 _l_good.append(path)
             else:
                 log.info("{0}>> Duplicate path: {1}".format(_str_func,path))
-                
+
         _loadable = []        
         for i,_p in enumerate(_l_good):
             try:
-		maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s"' % _p )
-		_loadable.append(_p)
-		log.info("{0}>> {1}".format(_str_func,_p))		
+                maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s"' % _p )
+                _loadable.append(_p)
+                log.info("{0}>> {1}".format(_str_func,_p))		
             except:
                 log.error("{0}>> Failed to load: {1}".format(_str_func,_p))
-                
+
         newScriptPath = os.pathsep.join( [ p for p in _loadable ] )
-	maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s"' % newScriptPath )
-	return True
+        maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s"' % newScriptPath )
+        return True
     except:
         log.error('clean_pluginPaths failure. Restoring: {0}'.format(_buffer))
         maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s"' % _buffer )
-	
+
 def setupCGMScriptPaths():
     thisFile = cgmPath.Path(__file__)
     #thisPath = os.sep.join(__file__.split(os.sep)[:-1])
     thisPath = thisFile.up().osPath()
-    
+
     mayaScriptPaths = map( cgmPath.Path, maya.mel.eval( 'getenv MAYA_SCRIPT_PATH' ).split( os.pathsep ) )
     mayaScriptPathsSet = set( mayaScriptPaths )
     _paths = [os.path.join('cgm','mel','zooPy'),
@@ -123,9 +123,9 @@ def setupCGMScriptPaths():
               os.path.join('cgm','lib','zoo'),
               os.path.join('cgm','lib','zoo','zooMel'),
               os.path.join('cgm','lib','zoo','zooPy'),     
-	          os.path.join('cgm','core','mel'),
+              os.path.join('cgm','core','mel'),
               'Red9']
-    
+
     for path in _paths:
         fullPath = cgmPath.Path( os.path.join(thisPath, path) )
         if fullPath not in mayaScriptPathsSet:
@@ -155,8 +155,8 @@ def setupCGMPlugins():
 
         existingPlugPaths = mUI.removeDupes( existingPlugPaths )
         newPlugPathStr = os.pathsep.join( [ p for p in existingPlugPaths ] )
-	for p in existingPlugPaths:
-	    print p
+        for p in existingPlugPaths:
+            print p
         maya.mel.eval( 'putenv MAYA_PLUG_IN_PATH "%s";' % newPlugPathStr )
 
 """
@@ -168,7 +168,8 @@ def setupCGMToolBox():
     setupCGMScriptPaths()
     setupCGMPlugins()
     #setupDagProcMenu()
-    setupCGMMenu()
+    #setupCGMMenu()
+    uiMainMenu_add()
 
 
 def setupCGMMenu():
@@ -185,15 +186,15 @@ def setupCGMMenu():
 
         menu = mUI.MelMainMenu( l='CGM Tools', pmc=cb, tearOff=True )
         setattr( maya, '_cgmToolboxMenu', menu )
-		
-		
+
+
 def uiMainMenu_add():
-	if not hasattr(maya,'_cgmMenu'):
-		def build(*a):
-			import cgmToolbox
-			cgmToolbox.uiBuild_cgmMenu(*a)
-		menu = mUI.MelMainMenu(l='CGM', pmc=build, tearOff = True)
-		setattr(maya,'_cgmMenu',menu)
+    if not hasattr(maya,'_cgmMenu'):
+        def build(*a):
+            import cgmToolbox
+            cgmToolbox.uiBuild_cgmMenu(*a)
+        menu = mUI.MelMainMenu(l='CGM', pmc=build, tearOff = True)
+        setattr(maya,'_cgmMenu',menu)
 
 class AutoStartInstaller(object):
     '''
@@ -296,10 +297,10 @@ class AutoStartInstaller(object):
             with open( pyUserSetup, 'a' ) as f:
                 for l in buffer:
                     f.write( '\n\n {0}\n'.format(l) )	
-		else:
-			raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup )
-			
-					
+                else:
+                    raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup )
+
+
         """if self.isInstalledPy( pyUserSetup ):
             return
 
@@ -308,7 +309,7 @@ class AutoStartInstaller(object):
                 f.write( '\n\nimport cgmToolbox\n' )
         else:
             raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup )"""
-        
+
     def isInstalledMel( self, melUserSetup ):
         l_lines = ['import cgmToolbox','import cgm.core','cgm.core._reload()']
         l_found = []
@@ -339,20 +340,20 @@ class AutoStartInstaller(object):
         else:
             raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % melUserSetup )
     def createMelUserSetup(self):
-		try:
-			envFile = mc.about(environmentFile = True) or False #Get env variable
-			if not envFile: #See if it got anything
-				print 'No environmental file found'
-			buffer = envFile.split('/')[:-1]#parse to list and pull 'Maya.env'
-			buffer.extend(['scripts','userSetup.mel'])
-			newLocation =  os.sep.join(buffer)
-	
-			f=open(newLocation,'w')
-			f.close()
-			return True
-		except:
-			guiFactory.warning("Couldn't create a mel user file")
-			return False
+        try:
+            envFile = mc.about(environmentFile = True) or False #Get env variable
+            if not envFile: #See if it got anything
+                print 'No environmental file found'
+            buffer = envFile.split('/')[:-1]#parse to list and pull 'Maya.env'
+            buffer.extend(['scripts','userSetup.mel'])
+            newLocation =  os.sep.join(buffer)
+
+            f=open(newLocation,'w')
+            f.close()
+            return True
+        except:
+            guiFactory.warning("Couldn't create a mel user file")
+            return False
     def createPyUserSetup(self):
         try:
             envFile = mc.about(environmentFile = True) or False #Get env variable
@@ -368,7 +369,7 @@ class AutoStartInstaller(object):
         except:
             guiFactory.warning("Couldn't create a mel user file")
             return False
-		
+
 
 
 
@@ -394,45 +395,65 @@ def loadCGMPlugin( pluginName ):
             maya.OpenMaya.MGlobal.displayError( 'Failed to load cgmMirror.py plugin - is it in your plugin path?' )
 
 
-from cgm.core.tools.lib import td_tools_ui as TDTOOLS
-reload(TDTOOLS)
+from cgm.core.tools.lib import tool_chunks as UICHUNKS
+reload(UICHUNKS)
 def uiBuild_cgmMenu( *args ):
-	_str_func = 'uiBuild_cgmMenu'
-	menu = maya._cgmMenu
-	menu.clear()
-	
-	reload(TDTOOLS)	
-	_l_sel = mc.ls(sl=True)
-	if _l_sel:_b_sel = True
-	_b_sel_pair = False
-	_b_sel_few = False
-	_len_sel = len(_l_sel)
-	if _len_sel  >= 2:
-			_b_sel_pair = True
-	if _len_sel >2:
-			_b_sel_few = True		
-	
+    _str_func = 'uiBuild_cgmMenu'
+    menu = maya._cgmMenu
+    menu.clear()
 
-	#log.info("|{0}| >> Selected: {1}".format(_str_func,_l_sel))        
+    reload(UICHUNKS)	
+    _l_sel = mc.ls(sl=True)
+    if _l_sel:_b_sel = True
+    _b_sel_pair = False
+    _b_sel_few = False
+    _len_sel = len(_l_sel)
+    if _len_sel  >= 2:
+        _b_sel_pair = True
+    if _len_sel >2:
+        _b_sel_few = True		
 
-		
-		
-	mUI.MelMenuItem(menu, l='Open Tool Win',
-		            c=lambda *args: ToolboxWindow())
-	
-	#>>TD ----------------------------------------------------------------------
-	_td = mc.menuItem(p=menu,l='TD/Create',subMenu = True, tearOff = True)
-	TDTOOLS.uiSection_selection(_td)
-	TDTOOLS.uiSection_attributes(_td)		
-	TDTOOLS.uiSection_distance(_td,_l_sel,_b_sel_pair)	
-	TDTOOLS.uiSection_joints(_td)
-	TDTOOLS.uiSection_sdk(_td)
-	TDTOOLS.uiSection_shapes(_td,_l_sel,_b_sel_pair)	
-	TDTOOLS.uiSection_curves(_td)
-	TDTOOLS.uiSection_mesh(_td)
-	TDTOOLS.uiSection_skin(_td)
-	TDTOOLS.uiSection_nodes(_td)
-		
+
+    #log.info("|{0}| >> Selected: {1}".format(_str_func,_l_sel))        
+
+
+
+    mUI.MelMenuItem(menu, l='Open Tool Win',
+                    c=lambda *args: ToolboxWindow())
+
+    #>>TD ----------------------------------------------------------------------
+    _td = mc.menuItem(p=menu,l='TD/Create',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_selection(_td)
+    UICHUNKS.uiSection_attributes(_td)		
+    UICHUNKS.uiSection_distance(_td,_l_sel,_b_sel_pair)	
+    UICHUNKS.uiSection_joints(_td)
+    UICHUNKS.uiSection_sdk(_td)
+    UICHUNKS.uiSection_shapes(_td,_l_sel,_b_sel_pair)	
+    UICHUNKS.uiSection_curves(_td)
+    UICHUNKS.uiSection_mesh(_td)
+    UICHUNKS.uiSection_skin(_td)
+    UICHUNKS.uiSection_nodes(_td)
+
+    #>>>Anim ----------------------------------------------------------------------
+    _anim = mc.menuItem(p=menu,l='Anim',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_animUtils(_anim) 
+
+    #>>Layout ----------------------------------------------------------------------
+    _layout = mc.menuItem(p=menu,l='Layout',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_layout(_layout)
+
+    #>>Hotkeys ----------------------------------------------------------------------
+    _hotkeys = mc.menuItem(p=menu,l='Hotkeys',subMenu = True, tearOff = False)
+    UICHUNKS.uiSection_hotkeys(_hotkeys)
+
+    #>>dev ----------------------------------------------------------------------
+    _dev = mc.menuItem(p=menu,l='Dev',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_dev(_dev)		
+
+    #>>Help ----------------------------------------------------------------------
+    _help = mc.menuItem(p=menu,l='Help',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_help(_help)		
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tools
@@ -459,12 +480,12 @@ def loadAttrTools( *a ):
     from cgm.tools import attrTools1
     reload(attrTools1)
     cgmAttrToolsWin = attrTools1.run()
-	
+
 def loadAttrTools2( *a ):
-	from cgm.core.tools import attrTools as attrTools
-	reload(attrTools)
-	attrTools.ui()
-	
+    from cgm.core.tools import attrTools as attrTools
+    reload(attrTools)
+    attrTools.ui()
+
 def loadCGMMeshTools( *a ):
     from cgm.core.tools import meshTools
     reload(meshTools)
@@ -474,11 +495,11 @@ def loadLocinator( *a ):
     from cgm.tools import locinator
     reload(locinator)
     locinator.run()
-	
+
 def loadLocinator2( *a ):
-	from cgm.core.tools import locinator as LOCINATOR
-	reload(LOCINATOR)
-	LOCINATOR.ui()
+    from cgm.core.tools import locinator as LOCINATOR
+    reload(LOCINATOR)
+    LOCINATOR.ui()
 
 def loadAnimTools( *a ):
     from cgm.tools import animTools
@@ -574,7 +595,7 @@ def reset_hotkeys( *a ):
     from cgm.core.classes import HotkeyFactory as HKEY
     reload(HKEY)
     HKEY.hotkeys_resetAll()
-        
+
 def goTo_keyframeCoop( *a ):
     try:
         import webbrowser
@@ -647,7 +668,7 @@ TOOL_CATS = ( ('animation', (('cgm.locinator', "Launch cgmLocinator 2.0",
               ('rigging', (('cgm.attrTools', " NEW Attribute tools",
                             loadAttrTools2),                      
                            ('cgm.meshTools', " Mesh tools",
-                              loadCGMMeshTools),
+                            loadCGMMeshTools),
 
                            ('cgm.PolyUniteTool', "Stand alone poly unite tool for Plastic",
                             loadPolyUniteTool),                        
@@ -662,12 +683,12 @@ TOOL_CATS = ( ('animation', (('cgm.locinator', "Launch cgmLocinator 2.0",
                            loadAnimTools),
                           ('cgm.SetTools', " Set tools",
                            loadSetTools),
-                         ('cgm.locinator', "Tool for creating, updating, locators",
-                         loadLocinator),
-                          
+                          ('cgm.locinator', "Tool for creating, updating, locators",
+                           loadLocinator),
+
                           ('cgm.tdTools', "Series of tools for general purpose TD work - curves, naming, position, deformers",
                            loadTDTools),
-                      
+
                           ('cgm.attrTools OLD', " OLD Attribute tools",
                            loadAttrTools))),
               ('hotkeys', (('cgmMarkingMenu -',
@@ -676,34 +697,34 @@ TOOL_CATS = ( ('animation', (('cgm.locinator', "Launch cgmLocinator 2.0",
                            ('Zoo Set Menu - selection set menu',
                             'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',
                             mUI.Callback(HKEY.cgmHotkeyer, 'zooSetMenu', 'zooSetMenu;', 'zooSetMenuKillUI;','zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface','mel','y')),                            
-                            #ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
+                           #ToolCB( "zooHotkeyer zooSetMenu \"zooSetMenu;\" \"zooSetMenuKillUI;\" \"-default y -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
                            ('Set Menu - menu for cgm.setTools',
                             'Menu for working with cgm.SetTools. There are a wide fariety of tools for them..',
                             mUI.Callback(HKEY.cgmHotkeyer, 'cgmSetToolsMM', 'cgmSetToolsMM;', 'cgmSetToolsMMKillUI;','cgmSnap marking menu', 'mel','d')),                            
-                            #ToolCB( "zooHotkeyer cgmSetToolsMM \"cgmSetToolsMM;\" \"cgmSetToolsMMKillUI;\" \"-default d -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
+                           #ToolCB( "zooHotkeyer cgmSetToolsMM \"cgmSetToolsMM;\" \"cgmSetToolsMMKillUI;\" \"-default d -enableMods 0 -ann zooSetMenu lets you quickly interact with selection sets in your scene through a marking menu interface\";" )),
 
                            ('Tangent Works - tangency manipulation menu',
                             'zooTangentWks is a marking menu script that provides super fast access to common tangent based operations.  Tangent tightening, sharpening, change tangent types, changing default tangents etc...',
                             mUI.Callback(HKEY.cgmHotkeyer, 'zooTangentWks',  'zooTangentWks;', 'zooTangentWksKillUI;','tangent works is a marking menu script to speed up working with the graph editor','mel','q')),                            
-                            #ToolCB( "zooHotkeyer zooTangentWks \"zooTangentWks;\" \"zooTangentWksKillUI;\" \"-default q -enableMods 0 -ann tangent works is a marking menu script to speed up working with the graph editor\";" )),
+                           #ToolCB( "zooHotkeyer zooTangentWks \"zooTangentWks;\" \"zooTangentWksKillUI;\" \"-default q -enableMods 0 -ann tangent works is a marking menu script to speed up working with the graph editor\";" )),
 
                            ('Snap Tools - snap tools menu',
                             'cgmSnapToolsMM is a tool for accessing snapping tools from a marking menu...',
                             mUI.Callback(HKEY.cgmHotkeyer, 'cgmSnap',  'cgmSnapMM;', 'cgmSnapMMKillUI;','cgmSnap marking menu','mel','t')),
-                           
+
                            ('NEW Set Key Menu - key creation menu',
                             'cgmPuppet key menu - wip',
                             mUI.Callback(HKEY.cgmHotkeyer, 'cgmPuppetKey', 'cgmPuppetKeyMM;', 'cgmPuppetKeyMMKillUI;','New moduler marking menu for the s key','mel','s')),
-                           
+
                            ('Marking Menu Template - key creation menu',
                             'template example',
                             mUI.Callback(HKEY.cgmHotkeyer, 'cgmMMTemplate', 'cgmTemplateMM;', 'cgmTemplateMMKillUI;','Demo marking menu - t','mel','t')),
-                           
+
                            ('Set Key Menu - key creation menu',
                             'cgmLibrary tools for dealing with keys',
                             mUI.Callback(HKEY.cgmHotkeyer, 'cgmSetKeyMM',  'cgmSetKeyMM;', 'cgmSetKeyMMKillUI;','designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations', 'mel','s')),                            
-                            #ToolCB( "zooHotkeyer cgmSetKeyMM \"cgmSetKeyMM;\" \"cgmSetKeyMMKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
+                           #ToolCB( "zooHotkeyer cgmSetKeyMM \"cgmSetKeyMM;\" \"cgmSetKeyMMKillUI;\" \"-default s -enableMods 0 -ann designed to replace the set key hotkey, this marking menu script lets you quickly perform all kinda of set key operations\";" )),
 
                            ('Reset Hotkeys', "Reset all hotkeys in current hotkeySet(2016+) or in maya for below 2016",
                             reset_hotkeys),                            
@@ -788,7 +809,7 @@ class ToolboxWindow(mUI.BaseMelWindow):
         self.UI_menu = mUI.MelMenu( l='Setup', pmc=self.buildSetupMenu )
         ToolboxTabs( self )
         self.show()
-        
+
     def buildSetupMenu( self, *a ):
 
         self.UI_menu.clear()
