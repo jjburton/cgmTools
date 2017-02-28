@@ -57,7 +57,7 @@ def update_uiCall(mode = 'self'):
     else:
         MMCONTEXT.func_process(update_obj, None,'each','Match',False,**{'move':_move,'rotate':_rotate,'mode':mode})
 
-def update_obj(obj = None, move = True, rotate = True, mode = 'self',**kws):
+def update_obj(obj = None, move = None, rotate = None, mode = 'self',**kws):
     """
     Updates an tagged loc or matches a tagged object
     
@@ -68,6 +68,11 @@ def update_obj(obj = None, move = True, rotate = True, mode = 'self',**kws):
     :returns
         success(bool)
     """     
+    if move is None:
+        move = cgmMeta.cgmOptionVar('cgmVar_matchModeMove', defaultValue = 1).value
+    if rotate is None:
+        rotate = cgmMeta.cgmOptionVar('cgmVar_matchModeRotate', defaultValue = 1).value      
+        
     def match(obj,move,rotate):
         _locMode = ATTR.get(obj,'cgmLocMode')
         if _locMode:

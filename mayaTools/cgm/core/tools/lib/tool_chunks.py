@@ -603,4 +603,90 @@ def uiSection_rayCast(parent):
                      ann = 'Series of functions for using cgm raycasting',
                      l = 'Raycasting')  
 
+
+from cgm.core.tools.lib import snap_calls as SNAPCALLS
+reload(SNAPCALLS)
+
+def uiSection_snap(parent, selection = None ):
+    _str_func = 'uiSection_snap'
+    
+    if selection is None:
+        selection = mc.ls(sl=True)
+        
+    #>>Snap ----------------------------------------------------------------------------------------
+    mc.menuItem(parent=parent,
+                l = 'Point',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'point'),
+                ann = "Point snap in a from:to selection")
+
+    mc.menuItem(parent=parent,
+                l = 'Parent',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'parent'),
+                ann = "Parent snap in a from:to selection")
+    mc.menuItem(parent=parent,
+                l = 'Orient',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'orient'),
+                ann = "Orient snap in a from:to selection")
+    
+    #>>Aim ----------------------------------------------------------------------------------------
+    mc.menuItem(parent=parent,
+                l = 'Aim',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'aim','eachToLast'),
+                ann = "Aim snap in a from:to selection")
+    
+    _aim = mc.menuItem(parent=parent,subMenu = True,
+                       l = 'Aim Special',
+                       ann = "asdfasdf")
+    mc.menuItem(parent=_aim,
+                l = 'All to last',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'aim','eachToLast'),
+                ann = "Aim all objects to the last in selection")
+    mc.menuItem(parent=_aim,
+                l = 'Selection Order',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'aim','eachToNext'),
+                ann = "Aim in selection order")
+    mc.menuItem(parent=_aim,
+                l = 'First to Midpoint',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'aim','firstToRest'),
+                ann = "Aim the first object to the midpoint of the rest")
+    
+    #>>Raycast ----------------------------------------------------------------------------------------
+    mc.menuItem(parent=parent,
+                l = 'RayCast',
+                c = lambda *a:SNAPCALLS.raySnap_start(selection),
+                ann = "RayCast snap selected objects")
+    mc.menuItem(parent=parent,
+                l = 'AimCast',
+                c = lambda *a:SNAPCALLS.aimSnap_start(selection),
+                ann = "AimCast snap selected objects")    
+    
+    #>>Match ----------------------------------------------------------------------------------------
+    _match= mc.menuItem(parent=parent,subMenu = True,
+                        l = 'Match',
+                        ann = "asdfasdf")
+    
+    mc.menuItem(parent=_match,
+                l = 'Self',
+                c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, selection,'each','Match',False,**{'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                ann = "asdfasdf")
+    mc.menuItem(parent=_match,
+                l = 'Target',
+                c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, selection,'each','Match',False,**{'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                ann = "asdfasdf")
+    mc.menuItem(parent=_match,
+                l = 'Buffer',
+                #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                c = cgmGen.Callback(LOCINATOR.update_obj,**{'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                ann = "asdfasdf")    
+    return
+
+    
+    
+    
+ 
+
+    
+    
+    
+    
     

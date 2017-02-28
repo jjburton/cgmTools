@@ -421,6 +421,12 @@ def uiBuild_cgmMenu( *args ):
     mUI.MelMenuItem(menu, l='Open Tool Win',
                     c=lambda *args: ToolboxWindow())
 
+    
+    #>>Snap ----------------------------------------------------------------------
+    _snap = mc.menuItem(p=menu,l='Snap',subMenu = True, tearOff = True)  
+    UICHUNKS.uiSection_snap(_snap)
+    
+    
     #>>TD ----------------------------------------------------------------------
     _td = mc.menuItem(p=menu,l='TD/Create',subMenu = True, tearOff = True)
     UICHUNKS.uiSection_selection(_td)
