@@ -673,15 +673,18 @@ def uiSection_snap(parent, selection = None ):
     
     #>>Options ----------------------------------------------------------------------------------------
     mc.menuItem(parent=parent,
-                l = '>>> Options',
+                l = '{Options}',
                 c = lambda *a:SNAPCALLS.ui_optionVars(),
                 ann = "Set shared option variables")
     
     return
 
 
-def uiSection_rayCast(parent):
+def uiSection_rayCast(parent, selection = None):
     _str_func = 'uiSection_rayCast'  
+    
+    if selection is None:
+        selection = mc.ls(sl=True)
     
     _p = mc.menuItem(parent=parent, subMenu = True,tearOff = True,
                      ann = 'Series of functions for using cgm raycasting',
@@ -696,13 +699,28 @@ def uiSection_rayCast(parent):
                 c = lambda *a:SNAPCALLS.aimSnap_start(selection),
                 ann = "AimCast snap selected objects")    
     
-    _create = mc.menuItem(parent=parent,subMenu = True,
+    _create = mc.menuItem(parent=_p,subMenu = True,
                           l = 'Cast Create',
                           ann = "Series of options for object creation using rayCasting")
+    _drag = mc.menuItem(parent=_p,subMenu = True,
+                        l = 'Drag Create',
+                        ann = "Series of options for object creation using rayCasting using dragging")    
+    
+    
+    for m in ['locator','joint','jointChain','curve','duplicate','vectorLine','data']:
+        mc.menuItem(parent=_create,
+                    l = m,
+                    c = cgmGen.Callback(SNAPCALLS.rayCast_create,selection,m,False),
+                    ann = "Create {0} by rayCasting".format(m))   
+        mc.menuItem(parent=_drag,
+                    l = m,
+                    c = cgmGen.Callback(SNAPCALLS.rayCast_create,selection,m,True),
+                    ann = "Create {0} by drag rayCasting".format(m))            
+
     
     #>>Options ----------------------------------------------------------------------------------------
     mc.menuItem(parent=_p,
-                l = '>>> Options',
+                l = '{Options}',
                 c = lambda *a:SNAPCALLS.ui_optionVars(),
                 ann = "Set shared option variables")
     

@@ -109,7 +109,10 @@ from cgm.core.classes import DraggerContextFactory as cgmDrag
 reload(cgmDrag)
 def aimSnap_start(targets=[]):
     raySnap_start(targets, None, False, snap=False, aim=True)
-
+    
+def rayCast_create(targets = [],create = None, drag=False):
+    raySnap_start(targets,create = create, drag = drag)
+    
 def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=False):
     
     _str_func = 'raySnap_start'
