@@ -595,14 +595,6 @@ def uiSection_riggingUtils(parent):
                 ann = "")
     
     
-def uiSection_rayCast(parent):
-    _str_func = 'uiSection_rayCast'  
-    
-    _p = mc.menuItem(parent=parent, subMenu = True,tearOff = True,
-                     en = False,
-                     ann = 'Series of functions for using cgm raycasting',
-                     l = 'Raycasting')  
-
 
 from cgm.core.tools.lib import snap_calls as SNAPCALLS
 reload(SNAPCALLS)
@@ -663,23 +655,56 @@ def uiSection_snap(parent, selection = None ):
     #>>Match ----------------------------------------------------------------------------------------
     _match= mc.menuItem(parent=parent,subMenu = True,
                         l = 'Match',
-                        ann = "asdfasdf")
+                        ann = "Series of options from cgmLocinator")
     
     mc.menuItem(parent=_match,
                 l = 'Self',
                 c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, selection,'each','Match',False,**{'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
-                ann = "asdfasdf")
+                ann = "Update selected objects to match object. If the object has no match object, a loc is created")
     mc.menuItem(parent=_match,
                 l = 'Target',
                 c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, selection,'each','Match',False,**{'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
-                ann = "asdfasdf")
+                ann = "Update the match object, not the object itself")
     mc.menuItem(parent=_match,
                 l = 'Buffer',
                 #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                 c = cgmGen.Callback(LOCINATOR.update_obj,**{'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
-                ann = "asdfasdf")    
+                ann = "Update the buffer (if exists)")    
+    
+    #>>Options ----------------------------------------------------------------------------------------
+    mc.menuItem(parent=parent,
+                l = '>>> Options',
+                c = lambda *a:SNAPCALLS.ui_optionVars(),
+                ann = "Set shared option variables")
+    
     return
 
+
+def uiSection_rayCast(parent):
+    _str_func = 'uiSection_rayCast'  
+    
+    _p = mc.menuItem(parent=parent, subMenu = True,tearOff = True,
+                     ann = 'Series of functions for using cgm raycasting',
+                     l = 'Raycasting')
+    
+    mc.menuItem(parent=_p,
+                l = 'RayCast Snap',
+                c = lambda *a:SNAPCALLS.raySnap_start(selection),
+                ann = "RayCast snap selected objects")
+    mc.menuItem(parent=_p,
+                l = 'AimCast',
+                c = lambda *a:SNAPCALLS.aimSnap_start(selection),
+                ann = "AimCast snap selected objects")    
+    
+    _create = mc.menuItem(parent=parent,subMenu = True,
+                          l = 'Cast Create',
+                          ann = "Series of options for object creation using rayCasting")
+    
+    #>>Options ----------------------------------------------------------------------------------------
+    mc.menuItem(parent=_p,
+                l = '>>> Options',
+                c = lambda *a:SNAPCALLS.ui_optionVars(),
+                ann = "Set shared option variables")
     
     
     

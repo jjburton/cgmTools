@@ -835,7 +835,7 @@ def varBuffer_define(self,optionVar):
     sel = mc.ls(sl=True, flatten = True) or []
 
     if not sel:
-        log.error("|{0}| >> No selection found. Cannot define")
+        log.error("|{0}| >> No selection found. Cannot define".format(optionVar.name))
         return False
 
     optionVar.clear()

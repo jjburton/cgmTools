@@ -362,13 +362,17 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         self.var_keyMode = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)
         self.var_aimMode = cgmMeta.cgmOptionVar('cgmVar_aimMode', defaultValue = 'world')        
         self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
-        self.var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0)
-        self.var_rayCastDragInterval = cgmMeta.cgmOptionVar('cgmVar_rayCastDragInterval', defaultValue = .2)        
         self.var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
         self.var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)
         self.var_objDefaultOutAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultOutAxis', defaultValue = 3)                        
-        self.var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])
-        self.var_contextTD = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection')   
+        self.var_contextTD = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection')
+        
+        self.var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])            
+        self.var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_rayCastMode', defaultValue=0)
+        self.var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetMode', defaultValue=0)
+        self.var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetDist', defaultValue=1.0) 
+        self.var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0)
+        self.var_rayCastDragInterval = cgmMeta.cgmOptionVar('cgmVar_rayCastDragInterval', defaultValue = .2) 
         
         LOCINATOR.uiSetupOptionVars(self)
         MMPuppet.uiSetupOptionVars(self)
@@ -897,7 +901,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
             uiMenu = mc.menuItem( p=uiMenu_rayCast, l='Offset', subMenu=True)    
             uiRC = mc.radioMenuItemCollection()
             #self.uiOptions_menuMode = []		
-            _v = self.var_rayCastOffset.value
+            _v = self.var_rayCastOffsetMode.value
             
             for i,item in enumerate(['None','Distance','snapCast']):
                 if i == _v:
@@ -905,8 +909,8 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                 else:_rb = False
                 mc.menuItem(parent=uiMenu,collection = uiRC,
                             label=item,
-                            c = cgmGen.Callback(self.var_rayCastOffset.setValue,i),
-                            #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastOffset.setValue(i)),                                  
+                            c = lambda a:(self.var_rayCastOffsetMode.setValue,i),
+                            #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastOffsetMode.setValue(i)),                                  
                             rb = _rb)       
             
             mc.menuItem(p= uiMenu_rayCast, l='Set Offset',
@@ -929,7 +933,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                 mc.menuItem(parent=uiMenu,collection = uiRC,
                             label=item,
                             c = cgmGen.Callback(self.var_rayCastOrientMode.setValue,i),
-                            #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastOffset.setValue(i)),                                  
+                            #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastOffsetMode.setValue(i)),                                  
                             rb = _rb)         
         except Exception,err:
             log.error("|{0}| failed to load. err: {1}".format(_str_section,err))  
@@ -1247,13 +1251,13 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         #self._l_pivotModes = ['rotatePivot','scalePivot','boundingBox']
         _l_toBuild = [{'l':'None',
                        'rp':'NW',
-                       'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffset.setValue(0))},
+                       'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffsetMode.setValue(0))},
                       {'l':'Distance',
                        'rp':'SW',
-                       'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffset.setValue(1))},
+                       'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffsetMode.setValue(1))},
                       {'l':'snapCast',
                        'rp':'W',
-                       'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffset.setValue(2))},
+                       'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffsetMode.setValue(2))},
                       {'l':'Set Distance -- ({0})'.format(self.var_rayCastOffsetDist.value),
                        'rp':'S',
                        'c':lambda *a:self.raySnap_setAndStart(self.var_rayCastOffsetDist.uiPrompt_value('Set offset'))},
@@ -1262,7 +1266,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                        'c':'pass'}]
         
         for i,m in enumerate(_l_toBuild):
-            if i == self.var_rayCastOffset.value:
+            if i == self.var_rayCastOffsetMode.value:
                 m['l'] = m['l'] + '--(Active)'
                 
             mc.menuItem(parent=_r,
@@ -1554,10 +1558,10 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         Radial menu for snap functionality
         """
         self.create_guiOptionVar('snapPivotMode', defaultValue = 0)
-        self.create_guiOptionVar('rayCastMode', defaultValue = 0)
-        self.create_guiOptionVar('rayCastOffset', defaultValue = 0)
-        self.create_guiOptionVar('rayCastCreate', defaultValue = 0)
-        self.create_guiOptionVar('rayCastOffsetDist', defaultValue = 1.0)
+        #self.create_guiOptionVar('rayCastMode', defaultValue = 0)
+        #self.create_guiOptionVar('rayCastOffset', defaultValue = 0)
+        #self.create_guiOptionVar('rayCastCreate', defaultValue = 0)
+        #self.create_guiOptionVar('rayCastOffsetDist', defaultValue = 1.0)
 
         _r = mc.menuItem(parent=parent,subMenu = True,
                              l = 'Snap',
@@ -1704,9 +1708,9 @@ def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=Fals
     if aim:
         _toAim = targets
 
-    var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastMode', defaultValue=0)
-    var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastOffset', defaultValue=0)
-    var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_rayCastOffsetDist', defaultValue=1.0)
+    var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_rayCastMode', defaultValue=0)
+    var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetMode', defaultValue=0)
+    var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetDist', defaultValue=1.0)
     var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])
     var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0) 
     var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
