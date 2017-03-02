@@ -322,7 +322,9 @@ class go(cgmUI.cgmGUI):
     #@cgmGeneral.Timer
     def setup_Variables(self):
         try:
-            cgmUI.cgmGUI.setup_Variables(self)#Initialize parent ones, then add our own
+            #cgmUI.cgmGUI.setup_Variables(self)#Initialize parent ones, then add our own
+            self.create_guiOptionVar('ShowHelp',defaultValue = 0)
+            
             self.create_guiOptionVar('BaseObject',defaultValue = '')
             self.create_guiOptionVar('AxisMode', defaultValue = 0)#Register the option var    
             self.create_guiOptionVar('PivotMode', defaultValue = 0)#Register the option var     

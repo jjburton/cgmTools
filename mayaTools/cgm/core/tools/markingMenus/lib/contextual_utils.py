@@ -53,7 +53,9 @@ def get_list(context = 'selection', mType = None, getTransform = False):
     
     if _context == 'selection':
         log.debug("|{0}| >> selection mode...".format(_str_func))
-        _l_context = mc.ls(sl=True)
+        if mType:
+            _l_context = mc.ls(sl=True, type=mType)
+        else:_l_context = mc.ls(sl=True)
     elif _context == 'scene':
         log.debug("|{0}| >> scene mode...".format(_str_func))        
         if mType is not None:
@@ -198,7 +200,7 @@ def select(context = 'selection', mType = None):
         
     mc.select(_l_context)
     
-def func_enumrate_all_to_last(func,objects, mode = 'toFrom',**kws):
+def func_enumrate_all_to_last(func,objects= None, mode = 'toFrom',**kws):
     """
     Get data for updating a transform
     
@@ -212,7 +214,8 @@ def func_enumrate_all_to_last(func,objects, mode = 'toFrom',**kws):
     
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__))  
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
-        
+    if objects == None:
+            objects = mc.ls(sl=True)
     for i,o in enumerate(objects[:-1]):
         log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
         try:
@@ -225,7 +228,7 @@ def func_enumrate_all_to_last(func,objects, mode = 'toFrom',**kws):
             
     #mc.select(objects[-1])
 
-def func_all_to_last(func,objects, mode = 'toFrom',**kws):
+def func_all_to_last(func,objects = None, mode = 'toFrom',**kws):
     """
     Function for selection lists
     
@@ -239,7 +242,8 @@ def func_all_to_last(func,objects, mode = 'toFrom',**kws):
     
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__))  
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
-        
+    if objects == None:
+            objects = mc.ls(sl=True)
     #for i,o in enumerate(objects[:-1]):
         #log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
     try:
@@ -293,7 +297,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
     log.debug("|{0}| >> objects: {1}".format(_str_func, objects)) 
     
     if not objects:
-        log.warning("|{0}| >> No targets specifiec. func: {1}".format(_str_func, func.__name__))         
+        log.warning("|{0}| >> No targets specified. func: {1}".format(_str_func, func.__name__))         
         return False
     
     
@@ -376,7 +380,7 @@ def func_context_all(func,context = 'selection',mType = None, **kws):
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
     
     if not _l_context:
-        log.warning("|{0}| >> No targets specifiec. func: {1}".format(_str_func, func.__name__))         
+        log.warning("|{0}| >> No targets specified. func: {1}".format(_str_func, func.__name__))         
         return False
         
     for i,o in enumerate(_l_context):

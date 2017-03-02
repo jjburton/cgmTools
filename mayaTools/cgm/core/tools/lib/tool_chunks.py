@@ -168,14 +168,15 @@ def uiSection_sdk(parent = None):
                 c=lambda *a: mel.eval('seShapeTaper'),)   
     
     
-def uiSection_curves(parent):
+def uiSection_curves(parent, selection = None):
     uiCurve = mc.menuItem(parent = parent, l='Curve',
                           ann = "Functions and tools for dealing with curves",                                                                                                  
                           subMenu=True)
     mc.menuItem(parent=uiCurve,
                 l = 'Describe',
-                ann = "Generate pythonic recreation calls for selected curve shapes",                                                                        
-                c = cgmGen.Callback(MMCONTEXT.func_context_all, CURVES.get_python_call, 'selection','shape'),                            
+                ann = "Generate pythonic recreation calls for selected curve shapes", 
+                c = cgmGen.Callback(MMCONTEXT.func_process, CURVES.get_python_call, selection, 'all','describe'),                
+                #c = cgmGen.Callback(MMCONTEXT.func_context_all, CURVES.get_python_call, 'selection','shape'),                            
                 )   
     mc.menuItem(parent=uiCurve,
                 en=False,
@@ -201,7 +202,8 @@ def uiSection_shapes(parent = None, selection = None, pairSelected = True):
     mc.menuItem(parent=uiShape,
                 #en = pairSelected,                
                 l = 'Combine',
-                ann = "Combine selected curves to the last transform",                                                                                                  
+                ann = "Combine selected curves to the last transform",  
+                #c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, selection, 'eachToLast','Combine',**{'keepSource':False}),                
                 c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, selection,'toFrom', **_d_combine),
                 rp = "NW")
     mc.menuItem(parent=uiShape,

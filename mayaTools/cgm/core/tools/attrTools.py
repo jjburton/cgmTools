@@ -813,7 +813,7 @@ class ui(cgmUI.cgmGUI):
         _sel = mc.ls(sl=True)
         if _sel:
             self.uiFunc_load_selected()        
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def uiFunc_selectAttr(self): 
         _str_func = 'uiFunc_selectAttr'        
         if self.uiPopUpMenu_attr:
@@ -973,16 +973,22 @@ class ui(cgmUI.cgmGUI):
         _len_channelbox = len(_l_channelbox)
         _len_primAttrs = len(_l_primeAttrs)
         if _len_primAttrs and _len_channelbox and _len_primAttrs == _len_channelbox:
+            log.debug("|{0}| >>  Have prime attrs and cb attrs, lens match".format(_str_func))                  
             _b_attrLenMatch = True            
-            for a in _l_primeAttrs:
-                if a in _l_channelbox:
-                    _b_attrLenMatch = False
-                    break
+            #for a in _l_primeAttrs:
+                #if a in _l_channelbox:
+                    #_b_attrLenMatch = False
+                    #break
         elif _len_primAttrs == 1 and _l_channelbox:
+            log.debug("|{0}| >>  1 prime attr and channel box".format(_str_func))                              
             _children = ATTR.get_children(_short,_l_primeAttrs[0])
             if len(_children) == _len_channelbox:
                 _b_attrLenMatch = True
-                
+        else:
+            log.debug("|{0}| >> Didn't hit match check".format(_str_func))                              
+            
+        log.debug("|{0}| >> _b_attrLenMatch: {1}".format(_str_func,_b_attrLenMatch))   
+        
         _l_a = _l_primeAttrs + _l_channelbox
         _l_a = LISTS.get_noDuplicates(_l_a)
         
@@ -1374,7 +1380,7 @@ class ui(cgmUI.cgmGUI):
                 uiPrompt_addAttr(kws['type'],_l_targets)
                 _done = True
             elif _mode == 'connectToPrime':
-                _driver = kws['driver'] 
+                _driver = [kws['driver'] ]
                 
                 for o in _driver:
                     for a in _l_primeAttrs:
@@ -1384,7 +1390,7 @@ class ui(cgmUI.cgmGUI):
                             log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                   
                 _done = True
             elif _mode == 'connectToPrimeFromChannelbox':
-                _driver = kws['driver'] 
+                _driver = [kws['driver'] ]
                 len_primeAttrs = len(_l_primeAttrs)
                 if len_primeAttrs == 1 and len_primeAttrs != len(_l_channelbox):
                     for o in _driver:
