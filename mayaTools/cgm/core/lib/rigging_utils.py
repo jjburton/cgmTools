@@ -339,6 +339,62 @@ def parent_get(obj = None):
         return _parents[0]
     return False
 
+def shapeParent_in_place_NEW(obj = None, shapeSource = None, keepSource = True, replaceShapes = False, snapFirst = False):
+    """
+    Shape parent a curve in place to a obj transform
+    
+    NOTE - 03.02.2017 - This doesn't always work, need to delve into why
+
+    :parameters:
+        obj(str): Object to modify
+        shapeSource(str): Curve to shape parent
+        keepSource(bool): Keep the curve shapeParented as well
+        replaceShapes(bool): Whether to remove the obj's original shapes or not
+        snapFirst(bool): whether to snap source to obj before transfer
+
+    :returns
+        success(bool)
+    """   
+    _str_func = 'shapeParent_in_place'
+    
+    l_shapes = VALID.listArg(shapeSource)
+    
+    log.debug("|{0}|  >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
+    
+    if replaceShapes:
+        _l_objShapes = mc.listRelatives(obj, s=True, fullPath = True)    
+        if _l_objShapes:
+            log.debug("|{0}|  >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
+            mc.delete(_l_objShapes)
+    
+    mc.select (cl=True)
+    for c in l_shapes:
+        try:
+            _shapeCheck = SEARCH.is_shape(c)
+            if not _shapeCheck and not mc.listRelatives(c, f= True,shapes=True, fullPath = True):
+                raise ValueError,"Has no shapes"
+            if coreNames.get_long(obj) == coreNames.get_long(c):
+                raise ValueError,"Cannot parentShape self"
+            
+            
+            if _shapeCheck:
+                _dup_curve = duplicate_shape(c)[0]
+                if snapFirst:
+                    SNAP.go(_dup_curve,obj)                    
+            else:
+                _dup_curve =  mc.duplicate(c)[0]
+                if snapFirst:
+                    SNAP.go(_dup_curve,obj)                
+                            
+            shape = mc.listRelatives (_dup_curve, f= True,shapes=True, fullPath = True)
+            mc.parent (shape,obj,add=True,shape=True)
+            mc.delete(_dup_curve)
+            if not keepSource:
+                mc.delete(c)
+        except Exception,err:
+            log.error("|{0}| >> obj:{1} failed to parentShape {2} >> err: {3}".format(_str_func,obj,c,err))  
+    return True
+
 def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, replaceShapes = False, snapFirst = False):
     """
     Shape parent a curve in place to a obj transform

@@ -117,6 +117,10 @@ def get_shape_info(crvShape):
     """
     _str_func = 'get_shape_info'
     try:
+        if type(crvShape) in [list,tuple]:crvShape = crvShape[0]
+        if cgmValid.get_mayaType(crvShape) != 'nurbsCurve':
+            log.warning("|{0}| >> not a nurbsCurve. Skipping {1}({2})...".format(_str_func,crvShape,cgmValid.get_mayaType(crvShape)))
+            return False        
         _transform = SEARCH.get_transform(crvShape)
         _spans = mc.getAttr(crvShape + '.spans')
         _form = mc.getAttr(crvShape + '.form')
@@ -201,9 +205,13 @@ def get_curve_shape_info(curve):
     """
     _str_func = 'get_curve_shape_info'
     try:
+        if type(curve) in [list,tuple]:curve = curve[0]        
         _shapes = mc.listRelatives(curve, s=True,fullPath=True)
         if not _shapes:
-            return {curve: get_shape_info(curve)}
+            if cgmValid.get_mayaType(curve) == 'nurbsCurve':
+                return {curve: get_shape_info(curve)}
+            log.warning("|{0}| >> not a nurbsCurve. Skipping {1}...".format(_str_func,curve))
+            return False
         _d = {}
         for shape in _shapes:
             if cgmValid.get_mayaType(shape) == 'nurbsCurve':
