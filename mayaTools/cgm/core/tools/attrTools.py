@@ -465,6 +465,13 @@ class ui(cgmUI.cgmGUI):
                     
                     _type = ATTR.get_type(_d)
                     _type = SHARED._d_attrTypes_toShort.get(_type,_type)
+                    _user = False
+                    
+                    _l_flags = []
+                    
+                    if ATTR.is_dynamic(_d):
+                        _user = True
+                        _l_flags.append('u')                      
                     
                     _alias = ATTR.get_alias(_d)
                     _nice = ATTR.get_nameNice(_d)
@@ -475,16 +482,14 @@ class ui(cgmUI.cgmGUI):
                     
                     if _alias:
                         _l_name.append("--alias({0})".format(_alias) )
-                    #if _nice and _nice.lower() != _long:
-                        #_l_name.append("--nice({0})".format(_nice))
+                    if _user and _nice and _nice != _long:
+                        if _nice != ATTR.get_nameNice_string(_long):
+                            _l_name.append("--nice({0})".format(_nice))
                     _l_name.append("--({0})--".format(_type) )
                     
                     _l_report.append("".join(_l_name))
                     
-                    _l_flags = []
-                    
-                    if ATTR.is_dynamic(_d):
-                        _l_flags.append('u')  
+
                         
                     if ATTR.is_hidden(_d):
                         _l_flags.append('h')

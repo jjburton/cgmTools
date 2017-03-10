@@ -515,19 +515,32 @@ def uiSection_dev(parent):
     mc.menuItem(parent = _unitTests,
                 l='cgm - All',
                 ann = "WARNING - Opens new file...Unit test cgm.core",
-                c=lambda *a: testCGM.ut_AllTheThings())
+                c=lambda *a: ut_all())
     mc.menuItem(parent = _unitTests,
                 l='cgm - meta only',
                 ann = "WARNING - Opens new file...Unit test cgm.core",
-                c=lambda *a: testCGM.ut_cgmMeta()) 
+                c=lambda *a: ut_meta()) 
     mc.menuItem(parent = _unitTests,
                 l='cgm - puppet',
                 ann = "WARNING - Opens new file...Unit test cgm.core",
-                c=lambda *a: testCGM.ut_cgmPuppet()) 
+                c=lambda *a: ut_puppet()) 
     mc.menuItem(parent = _unitTests,
                 l='cgm - limb',
                 ann = "WARNING - Opens new file...Unit test cgm.core",
-                c=lambda *a: testCGM.ut_cgmLimb()) 
+                c=lambda *a: ut_limb()) 
+
+def ut_all():
+    reload(testCGM)
+    testCGM.ut_AllTheThings()
+def ut_meta():
+    reload(testCGM)
+    testCGM.ut_cgmMeta()
+def ut_puppet():
+    reload(testCGM)
+    testCGM.ut_cgmPuppet()
+def ut_limb():
+    reload(testCGM)
+    testCGM.ut_cgmLimb()
     
     
 def uiSection_riggingUtils(parent):

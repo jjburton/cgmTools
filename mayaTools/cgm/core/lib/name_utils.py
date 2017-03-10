@@ -32,9 +32,12 @@ def get_short(obj = None):
 
     :returns
         short name(str)
-    """   
-    _str_func = "get_short('{0}')".format(obj)
-            
+    """       
+    try:obj = obj.mNode
+    except:pass
+    
+    _str_func = "get_short('{0}')".format(obj)    
+    
     buffer = mc.ls(obj,shortNames=True) 
     if buffer:
         if len(buffer) == 1:
@@ -55,6 +58,8 @@ def get_long(obj = None):
     :returns
         short name(str)
     """   
+    try:obj = obj.mNode
+    except:pass    
     _str_func = "get_long('{0}')".format(obj)
     
     buffer = mc.ls(obj,l=True)        
@@ -77,7 +82,10 @@ def get_base(obj = None):
     :returns
         short name(str)
     """   
+    try:obj = obj.mNode
+    except:pass    
     _str_func = "get_base('{0}')".format(obj)
+    
     buffer = mc.ls(obj,l=True)      
     
     if buffer:

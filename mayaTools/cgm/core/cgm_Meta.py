@@ -43,6 +43,8 @@ from cgm.lib import lists
 #from cgm.lib import curves
 from cgm.lib import search
 from cgm.lib import attributes
+from cgm.core.lib import attribute_utils as ATTR
+reload(ATTR)
 #from cgm.lib import distance
 #from cgm.lib import deformers
 from cgm.lib import constraints
@@ -138,7 +140,7 @@ class cgmMetaFactory(object):
 
         #Process what to do with it
         #==============             
-        mClass = attributes.doGetAttr(node,'mClass')
+        mClass = ATTR.get(node,'mClass')
         if mClass:
             log.debug("Appears to be a '%s'"%mClass)
             log.debug("Specialized processing not implemented, initializing as...") 
@@ -203,7 +205,7 @@ def set_mClassInline(self, setClass = None):
         if self.isReferenced():
             raise ValueError,"Cannot set a referenced node's mClass"
 
-        _currentMClass = attributes.doGetAttr(self.mNode,'mClass')#...use to avoid exceptions	
+        _currentMClass = ATTR.get(self.mNode,'mClass')#...use to avoid exceptions	
         _b_flushCacheInstance = False
 
         if setClass in [True, 1]:
@@ -367,10 +369,12 @@ class cgmNode(r9Meta.MetaClass):
     def __setMessageAttr__(self,attr,value, force = True, ignoreOverload = False,**kws):
         if ignoreOverload:#just use Mark's
             r9Meta.MetaClass.__setMessageAttr__(self,attr,value,**kws)
-        elif type(value) is list:
+        ATTR.set_message(self.mNode, attr, value)
+        
+        """elif type(value) is list:
             attributes.storeObjectsToMessage(value,self.mNode,attr)
         else:
-            attributes.storeObjectToMessage(value,self.mNode,attr)
+            attributes.storeObjectToMessage(value,self.mNode,attr)"""
 
     """def __setattr__(self,attr,value, force = True, lock = None, **kws):
 	r9Meta.MetaClass.__setattr__(self,attr,value,**kws)
@@ -393,6 +397,11 @@ class cgmNode(r9Meta.MetaClass):
         connecting the attribute you want to connect to that attribute and then when you call an attribute as getMessage, if it is not a message attr
         it tries to trace back that connection to an attribute.
         """
+        _res = ATTR.get_message(self.mNode,attr,simple=True)
+        if _res and longNames:
+            return [names.getLongName(o) for o in _res]
+        return _res
+        
         try:
             if mc.objExists('%s.%s' % (self.mNode,attr)):#self.hasAttr(attr):
                 if mc.getAttr('%s.%s' % (self.mNode,attr),type=True)  == 'message':
@@ -469,13 +478,13 @@ class cgmNode(r9Meta.MetaClass):
         """
         Returns if attribute is keyed
         """	
-        return attributes.isKeyed([self.mNode,attr])
+        return ATTR.is_keyed([self.mNode,attr])
 
     def isAttrConnected(self,attr):
         """
         Returns if attribute is connected
         """		
-        return attributes.isConnected([self.mNode,attr])
+        return ATTR.is_connected([self.mNode,attr])
 
     def getComponents(self,arg = False):
         """
@@ -589,12 +598,15 @@ class cgmNode(r9Meta.MetaClass):
                 except Exception,error:raise StandardError, "[Query]{%s}"%(error)
 
             def _act_(self):
-                try:attributes.storeObjectToMessage(self._node, _mNodeSelf.mNode, self._attr)
-                except Exception,error:raise StandardError, "[Connect]{%s}"%(error)
+                ATTR.set_message(_mNodeSelf.mNode, self._attr, self._node)
+                
+                """try:attributes.storeObjectToMessage(self._node, _mNodeSelf.mNode, self._attr)
+                except Exception,error:raise StandardError, "[Connect]{%s}"%(error)"""
 
                 if self._connectBack is not None:
-                    try:attributes.storeObjectToMessage(_mNodeSelf.mNode,self._node,self._connectBack)
-                    except Exception,error:raise StandardError, "[ConnectBack]{%s}"%(error)
+                    ATTR.set_message(self._node, self._connectBack, _mNodeSelf.mNode,)                    
+                    """try:attributes.storeObjectToMessage(_mNodeSelf.mNode,self._node,self._connectBack)
+                    except Exception,error:raise StandardError, "[ConnectBack]{%s}"%(error)"""
                 return True
         return fncWrap(*args,**kws).go()
 
@@ -618,12 +630,15 @@ class cgmNode(r9Meta.MetaClass):
             #if connectBack and not mc.attributeQuery(connectBack, exists=True, node=node):
                 #add to parent node
                 #mc.addAttr(node,longName=connectBack, at='message', m=False)
-            attributes.storeObjectToMessage(node,self.mNode,attr)
+            
+            ATTR.set_message(self.mNode, attr, node)            
+            #attributes.storeObjectToMessage(node,self.mNode,attr)
             #try:cgmAttr(node,connectBack,attrType='message').doConnectIn("%s.msg"%self.mNode)	    
             #except StandardError,error:raise StandardError,"connect Fail | %s"%error
 
             if connectBack is not None:
-                attributes.storeObjectToMessage(self.mNode,node,connectBack)
+                ATTR.set_message(node, connectBack, self.mNode)            
+                #attributes.storeObjectToMessage(self.mNode,node,connectBack)
                 #try:cgmAttr(self,attr,attrType='message').doConnectIn("%s.msg"%node)
                 #except StandardError,error:raise StandardError,"connectBack Fail | %s"%error
 
@@ -649,17 +664,21 @@ class cgmNode(r9Meta.MetaClass):
             else:
                 log.warning("connectChildrenNodes can't add: '%s'"%node)
 
-        attributes.storeObjectsToMessage(nodesToDo,self.mNode,attr)
+        ATTR.set_message(self.mNode, attr, nodesToDo)            
+        
+        #attributes.storeObjectsToMessage(nodesToDo,self.mNode,attr)
 
         for i,node in enumerate(nodesToDo):
             #attributes.storeObjectToMessage(node,self.mNode,"%s_%s"%(attr,i))
             try:
-                if connectBack is not None:attributes.storeObjectToMessage(self.mNode,node,connectBack)		
+                if connectBack is not None:
+                    ATTR.set_message(node, connectBack, self.mNode)                                
+                    #attributes.storeObjectToMessage(self.mNode,node,connectBack)		
             except StandardError,error:
                 log.warning("connectChildrenNodes: %s"%error)
 
     #msgList Functions =====================================================================
-    def msgList_connect(self, nodes, attr = None, connectBack = None):
+    def msgList_connect(self, nodes, attr = None, connectBack = None, dataAttr = None):
         """
         Because multimessage data can't be counted on for important sequential connections we have
         implemented this.
@@ -670,6 +689,9 @@ class cgmNode(r9Meta.MetaClass):
         @param purge: Whether to purge before build
 
         """	
+        ATTR.msgList_connect(self.mNode, attr, nodes, connectBack,dataAttr)
+        
+        return True
         _str_funcName = "%s.msgList_connect()"%self.p_nameShort  
         #log.debug(">>> %s.msgList_connect( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 	    
         try:
@@ -689,12 +711,17 @@ class cgmNode(r9Meta.MetaClass):
         except StandardError,error:
             raise StandardError, "%s.msgList_connect >>[Error]<< : %s"(self.p_nameShort,error)	
 
-    def msgList_get(self,attr = None, asMeta = True, cull = True):
+    def msgList_get(self,attr = None, dataAttr = None, asMeta = True, cull = True):
         """
         @param attr: Base name for the message attribute sequence. It WILL be appended with '_' as in 'attr_0'
         @param asMeta: Returns a MetaClass object list
         @param cull: Whether to remove empty entries in the returned list
         """
+        _res = ATTR.msgList_get(self.mNode, attr, dataAttr,cull)
+        if asMeta:
+            return validateObjListArg(_res)
+        return _res
+    
         try:
             #log.debug(">>> %s.get_msgList(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
             d_attrs = self.get_sequentialAttrDict(attr)
@@ -743,12 +770,16 @@ class cgmNode(r9Meta.MetaClass):
         except StandardError,error:
             raise StandardError, "%s.msgList_getMessage >>[Error]<< : %s"(self.p_nameShort,error)
 
-    def msgList_append(self, node, attr = None, connectBack = None):
+    def msgList_append(self, node, attr = None, dataAttr = None, connectBack = None):
         """
         Append node to msgList
 
         Returns index
         """
+        try:node = node.mNode
+        except:pass
+        return ATTR.msgList_append(self.mNode,attr,node,dataAttr,connectBack)
+        
         #try:
         i_node = validateObjArg(node,noneValid=True)
         if not i_node:
@@ -772,10 +803,12 @@ class cgmNode(r9Meta.MetaClass):
         #log.debug("-"*100)            	               	
         return True 
 
-    def msgList_index(self, node, attr = None):
+    def msgList_index(self, node, attr = None,dataAttr = None):
         """
         Return the index of a node if it's in a msgList
         """
+        return ATTR.msgList_index(self.mNode,attr,node,dataAttr)
+    
         i_node = validateObjArg(node,noneValid=True)
         if not i_node:
             raise StandardError, " %s.msgList_index >> invalid node: %s"%(self.p_nameShort,node)
@@ -789,10 +822,13 @@ class cgmNode(r9Meta.MetaClass):
         #log.debug("-"*100)            	               	
         return False
 
-    def msgList_remove(self, nodes, attr = None):
+    def msgList_remove(self, nodes, attr = None, dataAttr = None):
         """
         Return the index of a node if it's in a msgList
         """
+        return ATTR.msgList_remove(self.mNode,attr,nodes,dataAttr)
+    
+    
         ml_nodesToRemove = validateObjListArg(nodes,noneValid=True)
         if not ml_nodesToRemove:
             raise StandardError, " %s.msgList_index >> invalid nodes: %s"%(self.p_nameShort,nodes)
@@ -812,10 +848,11 @@ class cgmNode(r9Meta.MetaClass):
         #log.debug("-"*100)            	               	
         return False
 
-    def msgList_purge(self,attr):
+    def msgList_purge(self,attr, dataAttr = None):
         """
         Purge all the attributes of a msgList
         """
+        return ATTR.msgList_purge(self.mNode,attr,dataAttr)
         try:
             #log.debug(">>> %s.get_msgList(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
             d_attrs = self.get_sequentialAttrDict(attr)
@@ -829,10 +866,11 @@ class cgmNode(r9Meta.MetaClass):
         except StandardError,error:
             raise StandardError, "%s.msgList_purge >>[Error]<< : %s"(self.p_nameShort,error)
 
-    def msgList_clean(self,attr,connectBack = None):
+    def msgList_clean(self,attr,dataAttr = None, connectBack = None):
         """
         Removes empty entries and pushes back
         """
+        return ATTR.msgList_clean(self.mNode,attr,dataAttr)
         try:
             #log.debug(">>> %s.msgList_clean(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
             l_attrs = self.msgList_get(attr,False,True)
@@ -842,10 +880,11 @@ class cgmNode(r9Meta.MetaClass):
         except StandardError,error:
             raise StandardError, "%s.msgList_clean >>[Error]<< : %s"(self.p_nameShort,error)
 
-    def msgList_exists(self,attr):
+    def msgList_exists(self,attr, dataAttr = None):
         """
         Fast check to see if we have data on this attr chain
         """
+        return ATTR.msgList_exists(self.mNode,attr,dataAttr)
         try:
             #log.debug(">>> %s.msgList_exists(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)  
             d_attrs = self.get_sequentialAttrDict(attr)
@@ -863,6 +902,8 @@ class cgmNode(r9Meta.MetaClass):
         Get a sequential attr dict. Our attr should be listed without the tail '_'
         ex: {0: u'back_to_back_0', 1: u'back_to_back_1'}
         """
+        return ATTR.get_sequentialAttrDict(self.mNode,attr)
+    
         #log.debug(">>> %s.get_sequentialAttrDict(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)            		
         userAttrs = self.getUserAttrsAsDict()
         d_attrList = {}
@@ -882,24 +923,32 @@ class cgmNode(r9Meta.MetaClass):
 
     #Attr stuff =========================================================================
     def addAttr(self, attr,value = None, attrType = None,enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
-        #log.debug(">>> %s.addAttr(attr = '%s') >> "%(self.p_nameShort,attr) + "="*75)            		        
+        _str_func = 'addAttr'
+        log.debug("|{0}| >> node: {1} | attr: {2} | attrType: {3}".format(_str_func,self.p_nameShort,attr, attrType))
+        
         if attr not in self.UNMANAGED and not attr=='UNMANAGED':  
             if self.hasAttr(attr):#Quick create check for initial value
                 initialCreate = False
                 if self.isReferenced():
                     log.warning('This is a referenced node, cannot add attr: %s.%s'%(self.getShortName(),attr))
-                    return False		
+                    return False
+                
+                #Conversion create
+                #validatedAttrType = attributes.validateRequestedAttrType(attrType)
+                if attrType is not None:
+                    validatedAttrType = ATTR.validate_attrTypeName(attrType)
+                    if validatedAttrType in ['string','float','double','long']:
+                        currentType = ATTR.get_type(self.mNode,attr)
+                        if currentType != validatedAttrType:
+                            log.info("cgmNode.addAttr >> %s != %s : %s.%s. Converting."%(validatedAttrType,currentType,self.getShortName(),attr))
+                            ATTR.convert_type(self.mNode,attr,validatedAttrType)
+                            #cgmAttr(self, attrName = attr, attrType=validatedAttrType)                
             else:
                 initialCreate = True
                 if value is None and initialValue is not None:#If no value and initial value, use it
                     value = initialValue
-
-            validatedAttrType = attributes.validateRequestedAttrType(attrType)
-            if attrType is not None and validatedAttrType in ['string','float','double','long'] and mc.objExists("%s.%s"%(self.mNode,attr)):
-                currentType = mc.getAttr('%s.%s'%(self.mNode,attr),type=True)
-                if currentType != validatedAttrType:
-                    log.info("cgmNode.addAttr >> %s != %s : %s.%s. Converting."%(validatedAttrType,currentType,self.getShortName(),attr))
-                    cgmAttr(self, attrName = attr, attrType=validatedAttrType)
+            
+           
 
             #If type is double3, handle with out own setup as Red's doesn't have it
             #==============    
@@ -928,10 +977,10 @@ class cgmNode(r9Meta.MetaClass):
 
             if value is not None and r9Meta.MetaClass.__getattribute__(self,attr) != value: 
                 #log.debug("'%s.%s' Value (%s) was not properly set during creation to: %s"%(self.getShortName(),attr,r9Meta.MetaClass.__getattribute__(self,attr),value))
-                if attributes.isConnected([self.mNode,attr]):
-                    attributes.doBreakConnection(self.mNode,attr)
+                if ATTR.is_connected([self.mNode,attr]):
+                    ATTR.break_connection(self.mNode,attr)
                 self.__setattr__(attr,value,**kws)
-                #attributes.doSetAttr(self.mNode,attr,value)
+                #ATTR.set(self.mNode,attr,value)
                 #cgmAttr(self, attrName = attr, value=value)#Swictched back to cgmAttr to deal with connected attrs
 
 
@@ -990,7 +1039,7 @@ class cgmNode(r9Meta.MetaClass):
         #assert mc.objExists(self.mNode) is True, "'%s' doesn't exist" %obj
         #if self.hasAttr('mNodeID') and not self.isReferenced():#experiment
             #log.debug(self.mNodeID)
-            #attributes.doSetAttr(self.mNode,'mNodeID',self.getShortName())
+            #ATTR.set(self.mNode,'mNodeID',self.getShortName())
         #self.__dict__['__name__'] = self.getShortName()
 
     def getCGMNameTags(self,ignore=[False]):
@@ -1012,8 +1061,8 @@ class cgmNode(r9Meta.MetaClass):
     def getUserAttrs(self):
         return mc.listAttr(self.mNode, userDefined = True) or []
 
-    def getUserAttrsAsDict(self):
-        return attributes.returnUserAttrsToDict(self.mNode) or {}
+    #def getUserAttrsAsDict(self):
+        #return attributes.returnUserAttrsToDict(self.mNode) or {}
 
     def getNameDict(self):
         return nameTools.returnObjectGeneratedNameDict(self.mNode) or {}  
@@ -1042,7 +1091,7 @@ class cgmNode(r9Meta.MetaClass):
 
     def getMayaAttr(self,attr,**kws):
         """ get the type of the object """
-        return attributes.doGetAttr(self.mNode,attr,**kws)  
+        return ATTR.get(self.mNode,attr,**kws)  
 
     def getAttr(self,attr):
         """ Get the attribute. As an add on to Marks. I don't want errors if it doesn't have the attr, I just want None. """
@@ -1093,8 +1142,8 @@ class cgmNode(r9Meta.MetaClass):
             for a in mc.listAttr(self.mNode,**kws):
                 try:
                     #log.info("Checking %s"%a)
-                    selfBuffer = attributes.doGetAttr(self.mNode,a)
-                    targetBuffer = attributes.doGetAttr(t,a)
+                    selfBuffer = ATTR.get(self.mNode,a)
+                    targetBuffer = ATTR.get(t,a)
                     if a in l_targetAttrs and selfBuffer != targetBuffer:
                         bfr = ("{0} || {1} != {2}".format(a,selfBuffer,targetBuffer))
                         _l_notMatching.append(bfr)
@@ -1256,16 +1305,19 @@ class cgmNode(r9Meta.MetaClass):
     #=========================================================================                   
     def doStore(self,attr,info,overideMessageCheck = False,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
-        attributes.storeInfo(self.mNode,attr,info,overideMessageCheck = overideMessageCheck,*a,**kw)
-        object.__setattr__(self, attr, info)
+        ATTR.store_info(self.mNode,attr,info,**kw)
+        #attributes.storeInfo(self.mNode,attr,info,overideMessageCheck = overideMessageCheck,*a,**kw)
+        #object.__setattr__(self, attr, info)
         #self.update()
 
     def doRemove(self,attr):
         """ Removes an attr from the maya object instanced. """
+        return ATTR.delete(self.mNode,attr)
         if self.isReferenced():
             return log.warning("'%s' is referenced. Cannot delete attrs"%self.mNode)    	
         try:
-            attributes.doDeleteAttr(self.mNode,attr)
+            ATTR.delete(self.mNode,attr)
+            #ATTR.delete(self.mNode,attr)
         except StandardError,error:
             log.error(error)	
             log.warning("'%s.%s' not found"%(self.mNode,attr))	    
@@ -1332,19 +1384,26 @@ class cgmNode(r9Meta.MetaClass):
         Returns
         success(bool)
         """
+        _str_func = 'doCopyNameTagsFromObject'
+        log.info("|{0}| >> node: {1} | target: {2} | ignore: {3}".format(_str_func,self.p_nameShort,target, ignore))
+        
         if type(ignore) not in [list,tuple]:ignore = [ignore]
         try:
             #log.debug(">>> cgmNode.doCopyNametagsFromObject")
             assert mc.objExists(target),"Target doesn't exist"
             targetCGM = nameTools.returnObjectGeneratedNameDict(target,ignore = ignore)
+            cgmGeneral.log_info_dict(targetCGM)
             didSomething = False
 
             for tag in targetCGM.keys():
                 #log.debug("..."+tag)
-                if tag not in ignore and targetCGM[tag] is not None or False:
-                    attributes.doCopyAttr(target,tag,
-                                          self.mNode,connectTargetToSource=False)
-                    didSomething = True
+                if tag not in ignore and targetCGM[tag] not in [None,False]:
+                    if ATTR.has_attr(target,tag):
+                        log.info('copy attr...')
+                        ATTR.copy_to(target,tag,self.mNode)
+                        #ATTR.copy_to(target,tag,
+                                              #self.mNode,connectTargetToSource=False)
+                        didSomething = True
             #self.update()
             return didSomething
         except StandardError,error:
@@ -1376,10 +1435,11 @@ class cgmNode(r9Meta.MetaClass):
                 for attr in attrs:
                     try:
                         default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
-                        attributes.doSetAttr(obj, attr, default)
+                        ATTR.set(obj,attr,default)
+                        #ATTR.set(obj, attr, default)
                         _reset.append(attr)
                     except Exception,err:
-                        #attributes.doSetAttr(obj, attr, 0)
+                        #ATTR.set(obj, attr, 0)
                         log.error("{0}.{1} resetAttrs | error: {2}".format(self.p_nameShort, attr,err))   	
             return _reset
         except Exception,err:
@@ -1450,7 +1510,7 @@ class cgmNode(r9Meta.MetaClass):
                     mc.move (objTrans[0],objTrans[1],objTrans[2], buffer.mNode)			
                     mc.rotate (objRot[0], objRot[1], objRot[2], buffer.mNode, ws=True)
                     for i,a in enumerate(['X','Y','Z']):
-                        attributes.doSetAttr(buffer.mNode, 'rotateAxis{0}'.format(a), objRotAxis[i])                    
+                        ATTR.set(buffer.mNode, 'rotateAxis{0}'.format(a), objRotAxis[i])                    
                     buffer.rotateOrder = self.rotateOrder
                 else:
                     buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)                    
@@ -1818,7 +1878,7 @@ class cgmObject(cgmNode):
             assert mc.objExists(targetObject) is True, "'%s' - target object doesn't exist" %targetObject    
         assert mc.ls(targetObject,type = 'transform'),"'%s' has no transform"%targetObject
         buffer = mc.getAttr(targetObject + '.rotateOrder')
-        attributes.doSetAttr(self.mNode, 'rotateOrder', buffer) 
+        ATTR.set(self.mNode, 'rotateOrder', buffer) 
 
     def doCopyPivot(self,sourceObject):
         """ Copy the pivot from a source object to the current instanced maya object. """
@@ -1948,12 +2008,12 @@ class cgmObject(cgmNode):
             #Get to business
             if attrs is None or False:
                 for a in drawingOverrideAttrsDict:
-                    attributes.doSetAttr(t,a,drawingOverrideAttrsDict[a])
+                    ATTR.set(t,a,drawingOverrideAttrsDict[a])
 
             if type(attrs) is dict:
                 for a in attrs.keys():
                     try:
-                        attributes.doSetAttr(t,a,attrs[a])
+                        ATTR.set(t,a,attrs[a])
                     except:
                         raise AttributeError, "There was a problem setting '%s.%s' to %s"%(self.mNode,a,drawingOverrideAttrsDict[a])
 
@@ -1962,7 +2022,7 @@ class cgmObject(cgmNode):
                 for a in attrs:
                     if a in drawingOverrideAttrsDict:
                         try:
-                            attributes.doSetAttr(self.mNode,a,drawingOverrideAttrsDict[a])
+                            ATTR.set(self.mNode,a,drawingOverrideAttrsDict[a])
                         except:
                             raise AttributeError, "There was a problem setting '%s.%s' to %s"%(self.mNode,a,drawingOverrideAttrsDict[a])
                     else:
@@ -2347,7 +2407,7 @@ class cgmObjectSet(cgmNode):
             if setType in setTypes.keys():
                 doSetType = setTypes.get(setType)
             if search.returnTagInfo(self.mNode,'cgmType') != doSetType:
-                if attributes.storeInfo(self.mNode,'cgmType',doSetType,True):
+                if ATTR.store_info(self.mNode,'cgmType',doSetType):
                     self.doName()
                     log.debug("'%s' renamed!"%(self.mNode))  
                     return self.mNode
@@ -2355,7 +2415,8 @@ class cgmObjectSet(cgmNode):
                     log.warning("'%s' failed to store info"%(self.mNode))  
                     return False
         else:
-            attributes.doDeleteAttr(self.mNode,'cgmType')
+            ATTR.delete(self.mNode,'cgmType')
+            #ATTR.delete(self.mNode,'cgmType')
             self.doName()
             log.debug("'%s' renamed!"%(self.mNode))  
             return self.mNode
@@ -2534,7 +2595,7 @@ class cgmObjectSet(cgmNode):
 
             for attr in dictionary.cgmNameTags:
                 if mc.objExists("%s.%s"%(self.mNode,attr)):
-                    attributes.doCopyAttr(self.mNode,attr,buffer)
+                    ATTR.copy_to(self.mNode,attr,buffer)
 
             return buffer
         except:
@@ -2970,7 +3031,7 @@ class cgmBufferNode(cgmNode):
         """
         ### input check  
         #log.debug("In cgmBuffer.__init__ node is '%s'"%node)
-        raise DeprecationWarning,"Not using this anymore..."
+        #raise DeprecationWarning,"Not using this anymore..."
 
         super(cgmBufferNode, self).__init__(node = node,name = name,nodeType = nodeType) 
 
@@ -3041,7 +3102,7 @@ class cgmBufferNode(cgmNode):
         for attr in self.getUserAttrs():
             if 'item_' in attr:
                 index = int(attr.split('item_')[-1])
-                dataBuffer = attributes.doGetAttr(self.mNode,attr)
+                dataBuffer = ATTR.get(self.mNode,attr)
                 data = dataBuffer
                 self.d_buffer[attr] = data
                 self.d_indexToAttr[index] = attr
@@ -3128,7 +3189,7 @@ class cgmBufferNode(cgmNode):
 
         for key in self.d_buffer.keys():
             if self.d_buffer.get(key) == info:
-                attributes.doDeleteAttr(self.mNode,key)
+                ATTR.delete(self.mNode,key)
                 self.l_buffer.remove(info)
                 self.d_buffer.pop(key)
 
@@ -3166,7 +3227,7 @@ class cgmBufferNode(cgmNode):
         userAttrs = mc.listAttr(self.mNode,userDefined = True) or []
         for attr in userAttrs:
             if 'item_' in attr:
-                attributes.doDeleteAttr(self.mNode,attr)
+                ATTR.delete(self.mNode,attr)
                 #log.debug("Deleted: '%s.%s'"%(self.mNode,attr))  
 
         self.l_buffer = []
@@ -3258,7 +3319,8 @@ class cgmAttr(object):
             assert mc.objExists(objName) is True, "'%s' doesn't exist" %objName
             self.obj = cgmNode(objName)	    
 
-        if attrType:attrType = attributes.validateRequestedAttrType(attrType)
+        #if attrType:attrType = attributes.validateRequestedAttrType(attrType)
+        if attrType:attrType = ATTR.validate_attrTypeName(attrType)
 
         #value/attr type logic check
         #==============  
@@ -3278,9 +3340,9 @@ class cgmAttr(object):
             else:
                 dataReturn = search.returnDataType(value)
                 #log.debug("Trying to create attr of type '%s'"%dataReturn)
-                self.attrType = attributes.validateRequestedAttrType(dataReturn)
+                self.attrType =  ATTR.validate_attrTypeName(dataReturn)
         else:
-            self.attrType = attributes.validateRequestedAttrType(attrType)
+            self.attrType =  ATTR.validate_attrTypeName(attrType)
 
         self.attr = attrName
         initialCreate = False
@@ -3290,7 +3352,7 @@ class cgmAttr(object):
             #log.info("'%s.%s' exists"%(self.obj.mNode,attrName))
             currentType = mc.getAttr('%s.%s'%(self.obj.mNode,attrName),type=True)
             #log.info("Current type is '%s'"%currentType)
-            if not attributes.validateAttrTypeMatch(self.attrType,currentType) and self.attrType is not False:
+            if not ATTR.validate_attrTypeMatch(self.attrType,currentType) and self.attrType is not False:
                 if self.obj.isReferenced():
                     log.error("'%s' is referenced. cannot convert '%s' to '%s'!"%(self.obj.mNode,attrName,attrType))                   
                 self.doConvert(self.attrType)             
@@ -3299,25 +3361,29 @@ class cgmAttr(object):
                 self.attrType = currentType   
         else:
             try:
-                if self.attrType == False:
-                    self.attrType = 'string'
-                    attributes.addStringAttributeToObj(self.obj.mNode,attrName,*a, **kw)
-                elif self.attrType == 'double':
-                    attributes.addFloatAttributeToObject(self.obj.mNode,attrName,*a, **kw)
-                elif self.attrType == 'string':
-                    attributes.addStringAttributeToObj(self.obj.mNode,attrName,*a, **kw)
-                elif self.attrType == 'long':
-                    attributes.addIntegerAttributeToObj(self.obj.mNode,attrName,*a, **kw) 
-                elif self.attrType == 'double3':
-                    attributes.addVectorAttributeToObj(self.obj.mNode,attrName,*a, **kw)
-                elif self.attrType == 'enum':
-                    attributes.addEnumAttrToObj(self.obj.mNode,attrName,*a, **kw)
-                elif self.attrType == 'bool':
-                    attributes.addBoolAttrToObject(self.obj.mNode,attrName,*a, **kw)
-                elif self.attrType == 'message':
-                    attributes.addMessageAttributeToObj(self.obj.mNode,attrName,*a, **kw)
-                else:
-                    log.error("'%s' is an unknown form to this class"%(self.attrType))
+                _type = self.attrType
+                if not _type:
+                    _type = 'string'
+                ATTR.add(self.obj.mNode,attrName,_type)
+                """ if self.attrType == False:
+                     self.attrType = 'string'
+                     attributes.addStringAttributeToObj(self.obj.mNode,attrName,*a, **kw)
+                 elif self.attrType == 'double':
+                     attributes.addFloatAttributeToObject(self.obj.mNode,attrName,*a, **kw)
+                 elif self.attrType == 'string':
+                     attributes.addStringAttributeToObj(self.obj.mNode,attrName,*a, **kw)
+                 elif self.attrType == 'long':
+                     attributes.addIntegerAttributeToObj(self.obj.mNode,attrName,*a, **kw) 
+                 elif self.attrType == 'double3':
+                     attributes.addVectorAttributeToObj(self.obj.mNode,attrName,*a, **kw)
+                 elif self.attrType == 'enum':
+                     attributes.addEnumAttrToObj(self.obj.mNode,attrName,*a, **kw)
+                 elif self.attrType == 'bool':
+                     attributes.addBoolAttrToObject(self.obj.mNode,attrName,*a, **kw)
+                 elif self.attrType == 'message':
+                     attributes.addMessageAttributeToObj(self.obj.mNode,attrName,*a, **kw)
+                 else:
+                     log.error("'%s' is an unknown form to this class"%(self.attrType))"""
                 initialCreate = True
 
             except StandardError,error:
@@ -3389,13 +3455,13 @@ class cgmAttr(object):
                             if type(value) is list and len(self.getChildren()) == len(value): #if we have the same length of values in our list as we have children, use them
                                 cInstance.value = value[i]
                             else:    
-                                attributes.doSetAttr(cInstance.obj.mNode,cInstance.attr, value, *a, **kw)
+                                ATTR.set(cInstance.obj.mNode,cInstance.attr, value, *a, **kw)
                         except Exception,error:
                             fmt_args = [c,error]
                             s_errorMsg = "On child: {0}| error: {1}".format(*fmt_args)			    
                             raise Exception,s_errorMsg
                 else:
-                    attributes.doSetAttr(self.obj.mNode,self.attr, value, *a, **kw)	
+                    ATTR.set(self.obj.mNode,self.attr, value, *a, **kw)	
             object.__setattr__(self, self.attr, self.value)
         except Exception,error:
             fmt_args = [self.obj.p_nameShort, self.p_nameLong, value, error]
@@ -3411,9 +3477,10 @@ class cgmAttr(object):
         """    
         try:
             if self.attrType == 'message':
-                return attributes.returnMessageData(self.obj.mNode,self.attr)
+                return ATTR.get_message(self.obj.mNode,self.attr)
+                #return attributes.returnMessageData(self.obj.mNode,self.attr)
             else:
-                return attributes.doGetAttr(self.obj.mNode,self.attr)
+                return ATTR.get(self.obj.mNode,self.attr)
         except Exception,error:
             log.warning("'%s.%s' failed to get | %s"%(self.obj.mNode,self.attr,error))
 
@@ -3422,7 +3489,7 @@ class cgmAttr(object):
         Deletes an attribute
         """   
         try:
-            attributes.doDeleteAttr(self.obj.mNode,self.attr)
+            ATTR.delete(self.obj.mNode,self.attr)
             log.warning("'%s.%s' deleted"%(self.obj.mNode,self.attr))
             del(self)
 
@@ -3671,6 +3738,8 @@ class cgmAttr(object):
         Keyword arguments:
         arg(string) -- name you want to use as a nice name
         """    
+        return ATTR.renameNice(self.obj.mNode,self.attr,arg)
+    
         fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg]
         s_baseMsg = "{0}.{1}.doNiceName() | arg: {2}".format(*fmt_args)	
         try:
@@ -3685,33 +3754,20 @@ class cgmAttr(object):
 
     #>>> Property - p_nameLong ================== 
     def getNameLong(self):
-        try:
-            return mc.attributeQuery(self.attr, node = self.obj.mNode, longName = True) or False
-        except:
-            if mc.objExists("{0}.{1}".format(self.obj.mNode,self.attr)):
-                return self.attr
-            else:
-                raise RuntimeError,"Attr does not exist: {0}.{1}".format(self.obj.mNode,self.attr)
+        return ATTR.get_nameLong(self.obj.mNode,self.attr)
+
     def doRename(self,arg):
         """ 
         Rename an attribute as something else
 
         Keyword arguments:
         arg(string) -- name you want to use as a nice name
-        """     
-        fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg]
-        s_baseMsg = "{0}.{1}.doRename() | arg: {2}".format(*fmt_args)		
-        try:
-            if arg:
-                if arg != self.p_nameLong:
-                    attributes.doRenameAttr(self.obj.mNode,self.p_nameLong,arg)
-                    self.attr = arg                    
-                else:
-                    log.debug("'%s.%s' already has that nice name!"%(self.obj.mNode,self.attr,arg))
-        except Exception,error:
-            fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg, error]
-            s_errorMsg = "{0}.{1}.doRename() | arg: {2} | error: {3}".format(*fmt_args)	    
-            log.error(s_errorMsg)      
+        """
+        _res = ATTR.rename(self.obj.mNode,self.attr,arg)
+        if _res:
+            self.attr = arg
+        return self.attr
+           
     p_nameLong = property (getNameLong,doRename)
 
     #================================================    
@@ -4057,13 +4113,16 @@ class cgmAttr(object):
     def getDriven(self,obj=False,skipConversionNodes = False,asMeta = False):
         try:
             asMeta = cgmValid.boolArg(asMeta)   
-            if obj:
-                buffer =  attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes) or []
-                if asMeta: return validateObjListArg(buffer)
-                return lists.returnListNoDuplicates(buffer)
-            buffer = attributes.returnDrivenAttribute(self.p_combinedName,skipConversionNodes) or []
-            if asMeta and buffer: return validateAttrListArg(buffer)['ml_plugs']
+            buffer =  ATTR.get_driven(self.obj.mNode,self.attr,obj,skipConversionNodes) or []                
+            #buffer =  attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes) or []
+            if asMeta:
+                if obj:
+                    return validateObjListArg(buffer)
+                else:
+                    return validateAttrListArg(buffer)['ml_plugs']
+            
             return buffer
+
         except Exception,error:
             fmt_args = [self.obj.p_nameShort, self.p_nameLong]
             s_funcMsg = "{0}.{1}.getDriven()".format(*fmt_args)		    
@@ -4074,12 +4133,14 @@ class cgmAttr(object):
     def getDriver(self,obj=False,skipConversionNodes = False,asMeta = False):
         try:
             asMeta = cgmValid.boolArg(asMeta)   
-            if obj:
-                buffer =  attributes.returnDriverObject(self.p_combinedName,skipConversionNodes) or []
-                if asMeta: return validateObjListArg(buffer)
-                return buffer
-            buffer = attributes.returnDriverAttribute(self.p_combinedName,skipConversionNodes) or []
-            if asMeta and buffer: return validateAttrListArg(buffer)['ml_plugs']
+            buffer =  ATTR.get_driver(self.obj.mNode,self.attr,obj,skipConversionNodes) or []                
+            #buffer =  attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes) or []
+            if asMeta:
+                if obj:
+                    return validateObjListArg(buffer)
+                else:
+                    return validateAttrListArg(buffer)['ml_plugs']
+            
             return buffer
         except Exception,error:
             fmt_args = [self.obj.p_nameShort, self.p_nameLong]
@@ -4141,7 +4202,7 @@ class cgmAttr(object):
                 softMin =  copy.copy(self.p_softMin)
                 softMax =  copy.copy(self.p_softMax)
 
-            attributes.doConvertAttrType(self.p_combinedName,attrType)
+            ATTR.convert_type(self.obj.mNode,self.attr,attrType)
 
             #>>> Reset variables
             self.doHidden(hidden)
@@ -4182,16 +4243,11 @@ class cgmAttr(object):
         *a, **kw
         """   
         try:
-            if self.attrType == 'message':
-                return attributes.returnMessageObject(self.obj.mNode,self.attr)
-                if search.returnObjectType(self.value) == 'reference':
-                    if attributes.repairMessageToReferencedTarget(self.obj.mNode,self.attr,*a,**kw):
-                        return attributes.returnMessageObject(self.obj.mNode,self.attr)                        
-            else:
-                return attributes.returnDriverAttribute("%s.%s"%(self.obj.mNode,self.attr))
-
-            #log.debug("'%s.%s' >Message> '%s'"%(self.obj.mNode,self.attr,self.value))
-            return self.value
+            return ATTR.get_message(self.obj.mNode,self.attr)
+            """return attributes.returnMessageObject(self.obj.mNode,self.attr)
+            if search.returnObjectType(self.value) == 'reference':
+                if attributes.repairMessageToReferencedTarget(self.obj.mNode,self.attr,*a,**kw):
+                    return attributes.returnMessageObject(self.obj.mNode,self.attr)"""                        
         except Exception,error:
             fmt_args = [self.obj.p_nameShort, self.p_nameLong, error]
             s_errorMsg = "{0}.{1}.getMessage() | error: {2}".format(*fmt_args)	    
@@ -4228,8 +4284,9 @@ class cgmAttr(object):
         *a, **kw
         """ 
         try:
-            mi_target = validateObjArg(target)
-            return attributes.returnCompatibleAttrs(self.obj.mNode,self.p_nameLong,mi_target.mNode,*a, **kw)
+            #mi_target = validateObjArg(target)
+            return ATTR.get_compatible(self.obj.mNode,self.p_nameLong,target)
+            #return attributes.returnCompatibleAttrs(self.obj.mNode,self.p_nameLong,mi_target.mNode,*a, **kw)
         except Exception,error:
             fmt_args = [self.obj.p_nameShort, self.p_nameLong, target, error]
             s_errorMsg = "{0}.{1}.returnCompatibleFromTarget() | target: {2} | error: {3}".format(*fmt_args)	    
@@ -4253,9 +4310,10 @@ class cgmAttr(object):
                 if mPlug_target.getChildren() and not self.getChildren():
                     for cInstance in mPlug_target.getChildren(asMeta=True):
                         log.info("Single to multi mode. Children detected. Connecting to child: {0}".format(cInstance.p_combinedName))
-                        attributes.doConnectAttr(self.p_combinedName,cInstance.p_combinedName)
+                        ATTR.connect(self.p_combinedName,cInstance.p_combinedName)
+                        #attributes.doConnectAttr(self.p_combinedName,cInstance.p_combinedName)
                 else:
-                    try:attributes.doConnectAttr(self.p_combinedName,mPlug_target.p_combinedName)
+                    try:ATTR.connect(self.p_combinedName,mPlug_target.p_combinedName)
                     except Exception,error:raise Exception,"connection fail: %s"%(error)		    
             else:
                 log.warning("Source failed to validate: %s"%(source) + "="*75)            			    
@@ -4285,9 +4343,9 @@ class cgmAttr(object):
                 if self.getChildren() and not mPlug_source.getChildren():
                     for cInstance in self.getChildren(asMeta=True):
                         log.info("Single to multi mode. Children detected. Connecting to child: {0}".format(cInstance.p_combinedName))
-                        attributes.doConnectAttr(mPlug_source.p_combinedName,cInstance.p_combinedName)
+                        ATTR.connect(mPlug_source.p_combinedName,cInstance.p_combinedName)
                 else:
-                    try:attributes.doConnectAttr(mPlug_source.p_combinedName,self.p_combinedName)
+                    try:ATTR.connect(mPlug_source.p_combinedName,self.p_combinedName)
                     except StandardError,error:raise StandardError,"connection fail: %s"%(error)		
                 #log.debug(">>> %s.doConnectIn <<--<<  %s "%(self.p_combinedShortName,mPlug_source.p_combinedName) + "="*75)            						
             else:
@@ -4329,15 +4387,16 @@ class cgmAttr(object):
             if targetAttrName is None: targetAttrName = self.attr
             convertToMatch = kw.pop('convertToMatch',True)
             values = kw.pop('values',True)
-            inputConnections = kw.pop('inputConnections',False)
-            outgoingConnections = kw.pop('outgoingConnections',False)
+            inConnection = kw.pop('inConnection',False)
+            outConnections = kw.pop('outConnections',False)
             keepSourceConnections = kw.pop('keepSourceConnections',True)
-            copyAttrSettings = kw.pop('copyAttrSettings',True)
+            copySettings = kw.pop('copySettings',True)
+            _driven = kw.pop('driven',None)
             connectSourceToTarget = kw.pop('connectSourceToTarget',False)
             connectTargetToSource = kw.pop('connectTargetToSource',False)  
 
 
-            copyTest = [values,inputConnections,outgoingConnections,keepSourceConnections,connectSourceToTarget,copyAttrSettings]
+            copyTest = [values,inConnection,outConnections,keepSourceConnections,connectSourceToTarget,copySettings]
 
             if sum(copyTest) < 1:
                 log.warning("You must have at least one option for copying selected. Otherwise, you're looking for the 'doDuplicate' function.")            
@@ -4346,28 +4405,28 @@ class cgmAttr(object):
             if '.' in list(target):
                 targetBuffer = target.split('.')
                 if len(targetBuffer) == 2:
-                    attributes.doCopyAttr(self.obj.mNode,
-                                          self.p_nameLong,
-                                          targetBuffer[0],
-                                          targetBuffer[1],
-                                          convertToMatch = convertToMatch,
-                                          values=values, inputConnections = inputConnections,
-                                          outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
-                                          copyAttrSettings = copyAttrSettings, 
-                                          connectTargetToSource = connectTargetToSource, connectSourceToTarget = connectSourceToTarget)               
+                    ATTR.copy_to(self.obj.mNode,
+                                 self.p_nameLong,
+                                 targetBuffer[0],
+                                 targetBuffer[1],
+                                 convertToMatch = convertToMatch,
+                                 values=values, inConnection = inConnection,
+                                 outConnections=outConnections, keepSourceConnections = keepSourceConnections,
+                                 copySettings = copySettings, 
+                                 driven= _driven)               
 
                 else:
                     log.warning("Yeah, not sure what to do with this. Need an attribute call with only one '.'")
             else:
-                attributes.doCopyAttr(self.obj.mNode,
-                                      self.p_nameLong,
-                                      target,
-                                      targetAttrName,
-                                      convertToMatch = convertToMatch,
-                                      values=values, inputConnections = inputConnections,
-                                      outgoingConnections=outgoingConnections, keepSourceConnections = keepSourceConnections,
-                                      copyAttrSettings = copyAttrSettings, 
-                                      connectTargetToSource = connectTargetToSource, connectSourceToTarget = connectSourceToTarget)                                                      
+                ATTR.copy_to(self.obj.mNode,
+                             self.p_nameLong,
+                             target,
+                             targetAttrName,
+                             convertToMatch = convertToMatch,
+                             values=values, inConnection = inConnection,
+                             outConnections=outConnections, keepSourceConnections = keepSourceConnections,
+                             copySettings = copySettings, 
+                             driven= _driven)               
             #except:
             #    log.warning("'%s' failed to copy to '%s'!"%(target,self.p_combinedName))          
             self.doCopySettingsTo([target,targetAttrName])
@@ -4395,7 +4454,7 @@ class cgmAttr(object):
             log.warning("Transferring attr: '{0}' | from '{1}' to '{2}'".format(*fmt_args))	
             s_attrBuffer = copy.copy(self.p_nameLong)
             #mc.copyAttr(self.obj.mNode,self.target.obj.mNode,attribute = [self.target.attr],v = True,ic=True,oc=True,keepSourceConnections=True)
-            attributes.doCopyAttr(self.obj.mNode,
+            ATTR.copy_to(self.obj.mNode,
                                   self.p_nameLong,
                                   mi_target.mNode,
                                   self.p_nameLong,
@@ -4856,7 +4915,7 @@ def getMetaNodesInitializeOnly(mTypes = ['cgmPuppet','cgmMorpheusPuppet','cgmMor
     checkList = mc.ls(type='network')
     l_return = []
     for o in checkList:
-        if attributes.doGetAttr(o,'mClass') in mTypes:
+        if ATTR.get(o,'mClass') in mTypes:
             l_return.append(o)
     if asMeta:
         ml_return = []
@@ -5031,7 +5090,7 @@ def validateObjArg(*args,**kws):
                 self.log_debug("mayaType not None time... %0.6f"%(t2-t1))		    
 
             #Get our cache key
-            _mClass = attributes.doGetAttr(_argShort,'mClass')
+            _mClass = ATTR.get(_argShort,'mClass')
 
             _UUID2016 = False#...a flag to see if we need a reg UUID attr 
             try:_UUID2016= mc.ls(_argShort, uuid=True)[0]
@@ -5041,11 +5100,11 @@ def validateObjArg(*args,**kws):
                 self.log_debug(">2016 UUID: {0}...".format(_UUID2016))
                 _UUID = _UUID2016
                 try:
-                    attributes.doDeleteAttr(_argShort,'UUID')				    
+                    ATTR.delete(_argShort,'UUID')				    
                     self.log_debug("Clearing attr UUID...")
                 except:pass
             else:
-                _UUID = attributes.doGetAttr(_argShort,'UUID')
+                _UUID = ATTR.get(_argShort,'UUID')
 
             self.log_debug("Cache keys|| UUID: {0} | mClass: {1}".format(_UUID,_mClass))
             _wasCached = False
@@ -5069,7 +5128,7 @@ def validateObjArg(*args,**kws):
             if _cached is not None:
                 t1 = time.clock()		
                 self.log_debug("Already cached")
-                _cachedMClass = attributes.doGetAttr(_arg,'mClass') or False
+                _cachedMClass = ATTR.get(_arg,'mClass') or False
                 _cachedType = type(_cached)
                 self.log_debug("Cached mNode: {0}".format(_cached.mNode))		
                 self.log_debug("Cached mClass: {0}".format(_cachedMClass))
@@ -5080,8 +5139,8 @@ def validateObjArg(*args,**kws):
                 if _arg != _cached.mNode:
                     self.log_debug("mNodes don't match. Need new UUID our our new arg")
                     self.log_debug("Clearing UUID...")
-                    #attributes.doDeleteAttr(_arg,'UUID')	
-                    try:attributes.doSetAttr(_argShort,'UUID','')
+                    #ATTR.delete(_arg,'UUID')	
+                    try:ATTR.set(_argShort,'UUID','')
                     except:pass		    
                     _redo = True
 
@@ -5089,11 +5148,11 @@ def validateObjArg(*args,**kws):
                     self.log_debug("cachedType({0}) match ({1})".format(_cachedType,mTypeClass))
                     if setClass and not _cachedMClass:
                         self.log_debug("...ensuring proper categorization next time")
-                        try:attributes.doAddAttr(_argShort, 'mClass','string')
+                        try:ATTR.add(_argShort, 'mClass','string')
                         except:pass		    
-                        try:attributes.doAddAttr(_argShort,'UUID','string')
+                        try:ATTR.add(_argShort,'UUID','string')
                         except:pass
-                        attributes.doSetAttr(_argShort,'mClass',mType,True)
+                        ATTR.set(_argShort,'mClass',mType,True)
                     return _cached
 
                 elif _cachedMClass:#...check our types and subclass stuff
@@ -5106,7 +5165,7 @@ def validateObjArg(*args,**kws):
                             _change = True
 
                         #attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
-                        #attributes.doAddAttr(_arg,'UUID','string')
+                        #ATTR.add(_arg,'UUID','string')
 
                 else:
                     self.log_debug("No cached mClass or type")
@@ -5145,10 +5204,10 @@ def validateObjArg(*args,**kws):
                     if _cachedMClass:
                         self.log_debug("Clearing mClass...")
                         #_cached.mClass = ''
-                        attributes.doDeleteAttr(_argShort,'mClass')
+                        ATTR.delete(_argShort,'mClass')
                     if _UUID:
                         self.log_debug("Clearing UUID...")
-                        attributes.doDeleteAttr(_argShort,'UUID')			
+                        ATTR.delete(_argShort,'UUID')			
                         #_cached.UUID = ''			
                     r9Meta.RED9_META_NODECACHE.pop(_cacheKey)
 
@@ -5161,13 +5220,13 @@ def validateObjArg(*args,**kws):
                     self.log_debug("setClass...")
                     #attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
                     t_attr = time.clock()				    		
-                    try:attributes.doAddAttr(_argShort, 'mClass','string')
+                    try:ATTR.add(_argShort, 'mClass','string')
                     except:pass		    
                     try:
                         if not _UUID2016:
-                            attributes.doAddAttr(_argShort,'UUID','string')
+                            ATTR.add(_argShort,'UUID','string')
                     except:pass
-                    attributes.doSetAttr(_argShort,'mClass',mType,True)
+                    ATTR.set(_argShort,'mClass',mType,True)
                     t2 = time.clock()		    
                     self.log_debug("attrSet %0.6f"%(t2-t_attr))	
                     self.log_debug("setClass %0.6f"%(t2-t1))	
@@ -5175,7 +5234,7 @@ def validateObjArg(*args,**kws):
                     t2 = time.clock()
                     self.log_debug("no setClass. Returning %0.6f"%(t2-t1))	
 
-                _mClass = attributes.doGetAttr(_argShort,'mClass')
+                _mClass = ATTR.get(_argShort,'mClass')
                 if _mClass and _mClass not in _r9ClassRegistry:
                     raise ValueError,"stored mClass not found in class registry. mClass: {0}".format(_mClass)		
                 self.mi_arg =  mTypeClass(_argShort)
@@ -5344,7 +5403,7 @@ def validateObjArgOLD(*args,**kws):
                         else:
                             raise Exception,"We need an arg by now."
 
-                    self.str_foundMClass = attributes.doGetAttr(arg,'mClass')
+                    self.str_foundMClass = ATTR.get(arg,'mClass')
                     _convert = False
                     t2 = time.clock()
                     self.log_debug("mType not None logic... %0.6f"%(t2-t1))		    

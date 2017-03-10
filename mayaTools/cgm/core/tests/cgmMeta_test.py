@@ -14,6 +14,8 @@ import time
 import logging
 
 from cgm.lib import (distance,attributes)
+from cgm.core.lib import attribute_utils as ATTR
+reload(ATTR)
 reload(attributes)
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -28,6 +30,7 @@ from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import PuppetFactory as pFactory
 import cgm.core.tests.test_validateArgs as test_validateArgs
 from cgm.core.cgmPy import os_Utils as cgmOS
+from cgm.core.cgmPy import path_Utils as cgmPath
 reload(test_validateArgs)
 
 import maya.cmds as mc
@@ -131,7 +134,7 @@ def ut_cgmMeta(*args, **kws):
                                 {'step':'cgmObject calls','call':self._cgmObjectCalls_},
                                 {'step':'cgmObjectSet calls','call':self._cgmObjectSetCalls_},
                                 {'step':'cgmOptionVar calls','call':self._cgmOptionVarCalls_},
-                                {'step':'cgmBufferNode calls','call':self._cgmBufferNodeCalls_},
+                                #{'step':'cgmBufferNode calls','call':self._cgmBufferNodeCalls_},
                                 {'step':'NameFactory','call':self._nameFactory_},
                                 {'step':'msgList tests','call':ut_msgList},	                        	                        
                                 ]
@@ -442,7 +445,7 @@ def ut_cgmMeta(*args, **kws):
                 self.cgmIntAttr = cgmMeta.cgmAttr(node,'intTest',value = 7, keyable = True, lock=True)
                 assert node.hasAttr('intTest')        
                 assert self.cgmIntAttr.obj.mNode == node.mNode 
-                assert self.cgmIntAttr.attrType == 'long', self.cgmIntAttr.attrType          
+                assert self.cgmIntAttr.attrType == 'long', "Not long. {0}".format(self.cgmIntAttr.attrType)            
                 assert self.cgmIntAttr.p_locked == True
                 self.cgmIntAttr.p_hidden == False #Unhide        
                 assert self.cgmIntAttr.intTest == 7
@@ -472,13 +475,13 @@ def ut_cgmMeta(*args, **kws):
 
                 #self.log_info('>'*3 + " Int test -- conversion to float and back...")                
                 self.cgmIntAttr.doConvert('float')#Convert to a float
-                assert self.cgmIntAttr.attrType == 'double', self.cgmIntAttr.attrType          
+                assert self.cgmIntAttr.attrType == 'float', "Not float. {0}".format(self.cgmIntAttr.attrType)         
                 assert self.cgmIntAttr.intTest == 6.0
                 #ssert self.cgmIntAttr.getRange() == [1.0,6.0],self.cgmIntAttr.getRange()#should have converted min/max as well
 
 
                 self.cgmIntAttr.doConvert('int')#Convert back
-                assert self.cgmIntAttr.attrType == 'long', self.cgmIntAttr.attrType          
+                assert self.cgmIntAttr.attrType == 'long', "Not long. {0}".format(self.cgmIntAttr.attrType)          
                 assert self.cgmIntAttr.p_locked == True
                 assert self.cgmIntAttr.intTest == 6  
             except Exception,error:raise Exception,"[Int tests]{%s}"%error
@@ -503,39 +506,42 @@ def ut_cgmMeta(*args, **kws):
             except Exception,error:raise Exception,"[float tests]{%s}"%error
 
 
-            try:#Message test
+            """try:#Message test
                 #---------------- 
                 self.cgmSingleMsgAttr = cgmMeta.cgmAttr(node,'messageTest',value = self.pCube.mNode,lock=True) 
                 self.cgmSingleMsgAttr2 = cgmMeta.cgmAttr(node,'messageTest2',value = self.pCube.mNode,lock=True) 
                 assert node.hasAttr('messageTest')                
                 assert node.hasAttr('messageTest2')                        
-                assert [self.pCube.getLongName()] == self.cgmSingleMsgAttr.value, self.cgmSingleMsgAttr.value
-                assert [self.pCube.getLongName()] == self.cgmSingleMsgAttr2.value, self.cgmSingleMsgAttr.value
+                assert [self.pCube.getLongName()] == ATTR.get_messageLong(node.mNode,'messageTest'), "msgAttr1 doesn't match"
+                assert [self.pCube.getLongName()] == ATTR.get_messageLong(node.mNode,'messageTest'), "msgAttr2 doesn't match"
                 assert self.cgmSingleMsgAttr.value == self.cgmSingleMsgAttr2.value #These should be the same thing
 
                 self.cgmSingleMsgAttr.value = self.nCube.mNode#change value
-                assert self.nCube.getLongName() in self.cgmSingleMsgAttr.value, self.cgmSingleMsgAttr.value
-
+                assert self.nCube.getLongName() in ATTR.get_messageLong(node.mNode,'messageTest'), "In list check"
+                
+                self.log_info("multiTest...")
                 self.cgmMultiMsgAttr = cgmMeta.cgmAttr(node,'multiMessageTest',value = [self.nCube.mNode, self.pCube.mNode],lock=True) 
                 assert node.hasAttr('multiMessageTest')                                
                 assert self.cgmMultiMsgAttr.isMulti()
                 assert not self.cgmMultiMsgAttr.isIndexMatters()
-                assert len(self.cgmMultiMsgAttr.value) == 2,self.cgmMultiMsgAttr.value
+                assert len(self.cgmMultiMsgAttr.value) == 2,"multiMessage len fail"
                 assert self.nCube.getLongName() in self.cgmMultiMsgAttr.value
 
+                self.log_info("multiTest. Simle set...")                
                 self.cgmMultiMsgAttr.value = self.nCube.mNode #make a simple message by declaration of content
-                assert not self.cgmMultiMsgAttr.isMulti(),self.cgmMultiMsgAttr.value       
-
+                assert not self.cgmMultiMsgAttr.isMulti(),"multiTest fail."    
+                
+                self.log_info("multiTest. reassign...")                
                 self.cgmMultiMsgAttr.value = [self.nCube.mNode]#Reassign value
-                assert len(self.cgmMultiMsgAttr.value) == 1,self.cgmMultiMsgAttr.value        
-                assert self.cgmMultiMsgAttr.isMulti(),self.cgmMultiMsgAttr.value
-                assert self.cgmMultiMsgAttr.value == [self.nCube.getLongName()]
+                assert len(self.cgmMultiMsgAttr.value) == 1,"multi len after set fail"      
+                assert self.cgmMultiMsgAttr.isMulti(),"isMulti after set fail"
+                assert ATTR.get_messageLong(node.mNode,'multiMessageTest') == [self.nCube.getLongName()]
 
                 self.cgmMultiMsgAttr.value = [self.nCube.mNode, self.pCube.mNode]#And again to what we started with
                 assert self.cgmMultiMsgAttr.value == [self.nCube.mNode, self.pCube.mNode]      
 
                 #attributes.storeInfo(node.mNode,'multiMessageTest',[self.nCube.mNode, self.pCube.mNode])
-            except Exception,error:raise Exception,"[Message tests]{%s}"%error
+            except Exception,error:raise Exception,"[Message tests]{%s}"%error"""
 
             try:#Enum test
                 #---------------- 
@@ -1113,7 +1119,7 @@ def ut_msgList(*args, **kws):
                                 {'step':'Index','call':self._index_},	
                                 {'step':'Remove','call':self._remove_},		
                                 {'step':'Purge','call':self._purge_},	
-                                #{'step':'Clean','call':self._clean_},		                        	                        	                        	                        
+                                {'step':'Clean','call':self._clean_},		                        	                        	                        	                        
                                 ]
         def _setup_(self,**kws):
             try:#Create msgList objects
@@ -1183,7 +1189,7 @@ def ut_msgList(*args, **kws):
             md_objs = self.md_msgListObjs
 
             try:
-                mi_catcher.msgList_append(md_objs[2],'msgAttr','connectBack')
+                mi_catcher.msgList_append(md_objs[2],'msgAttr',connectBack = 'connectBack')
             except Exception,error:raise Exception,"[append connect]{%s}"%error    
 
             try:#check connections
@@ -1204,9 +1210,9 @@ def ut_msgList(*args, **kws):
             mi_catcher = self.mi_catcherObj
             md_objs = self.md_msgListObjs
 
-            assert mi_catcher.msgList_index(md_objs[0],attr = 'msgAttr') == 0,"[index 0]{%s}"%mi_catcher.msgList_index(md_objs[0],attr = 'msgAttr')
-            assert mi_catcher.msgList_index(md_objs[1],attr = 'msgAttr') == 1,"[index 1]{%s}"%mi_catcher.msgList_index(md_objs[1],attr = 'msgAttr')
-            assert mi_catcher.msgList_index(md_objs[2],attr = 'msgAttr') == 2,"[index 2]{%s}"%mi_catcher.msgList_index(md_objs[2],attr = 'msgAttr')
+            assert mi_catcher.msgList_index(md_objs[0],attr = 'msgAttr') == 0,"[index 0]"
+            assert mi_catcher.msgList_index(md_objs[1],attr = 'msgAttr') == 1,"[index 1]"
+            assert mi_catcher.msgList_index(md_objs[2],attr = 'msgAttr') == 2,"[index 2]"
 
         def _remove_(self,**kws):
             mi_catcher = self.mi_catcherObj
@@ -1348,8 +1354,8 @@ def ut_cgmPuppet(*args, **kws):
             try:#Assertions on the masterNull
                 #----------------------------------------------------------
                 #self.log_info('>'*3 + " Assertions on the masterNull...")
-                assert Puppet.masterNull.getShortName() == Puppet.cgmName
-                assert Puppet.masterNull.puppet.mNode == Puppet.mNode,Puppet.masterNull.puppet
+                #assert Puppet.masterNull.mNode == Puppet.cgmName,"Short name doesn't match cgmName"
+                assert Puppet.masterNull.puppet.mNode == Puppet.mNode,"Puppet walk from masterNull fail"
 
 
                 masterDefaultValues = {'cgmType':['string','ignore'],
@@ -1360,7 +1366,7 @@ def ut_cgmPuppet(*args, **kws):
                     assert mc.getAttr('%s.%s'%(Puppet.masterNull.mNode,attr), type=True) == masterDefaultValues.get(attr)[0], "Type is '%s'"%(mc.getAttr('%s.%s' %(Puppet.masterNull.mNode,attr), type=True))
                     if len(masterDefaultValues.get(attr)) > 1:#assert that value
                         log.debug("%s"% attributes.doGetAttr(Puppet.masterNull.mNode,attr))
-                        assert attributes.doGetAttr(Puppet.masterNull.mNode,attr) == masterDefaultValues.get(attr)[1]
+                        assert attributes.doGetAttr(Puppet.masterNull.mNode,attr) == masterDefaultValues.get(attr)[1],"MasterDefault value keys dont' match. {0}".format(attr)
             except Exception,error:raise Exception,"[masterNull]{%s}"%error
 
             Puppet2 = 'Failed'
@@ -1502,9 +1508,9 @@ def ut_cgmLimb(*args, **kws):
                 self._str_geo = 'Morphy_Body_GEO'
                 #import cgm.core.tests as fldr_cgmTests
                 #reload(fldr_cgmTests)
-                _path_folder = cgmOS.Path(cgm.core.tests.__file__).up()		
+                _path_folder = cgmPath.Path(cgm.core.tests.__file__).up()		
                 l_mayaTestFiles = cgmOS.get_lsFromPath(cgm.core.tests.__file__)
-                _path_folder = cgmOS.Path(cgm.core.tests.__file__).up()
+                _path_folder = cgmPath.Path(cgm.core.tests.__file__).up()
             except Exception,error:raise Exception,"[Query]{%s}"%error
 
             try:mc.file(new=True,f=True)

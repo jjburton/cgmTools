@@ -80,6 +80,24 @@ d_attrCategoryLists = {'transform':('translateX','translateY','translateZ',
 
 #>>> Utilities
 #===================================================================
+
+
+def get_nameNice_string(attr):
+    """
+    Convert a long name to what an assumed nice name of that attribute would be. Mainly for ui checking to see if to show
+    nice name or not
+
+    :parameters:
+        attr
+        
+    Thanks to: http://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case
+    """
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1 \2', attr)
+    _res = re.sub('([a-z0-9])([A-Z])', r'\1 \2', s1)
+    _resUpper = _res.upper()
+    
+    return _resUpper[0] + _res[1:]
+
 def validate_value(node, attr = None, value = None):
     """
     Validate an value to an attribute
@@ -809,10 +827,13 @@ def validate_attrTypeName(attrType):
     :returns
         validatedType(string)
     """         
+    _str_func = 'validate_attrTypeName'    
     for option in _d_attrTypes.keys():
         if attrType in _d_attrTypes.get(option): 
             return option
-    raise ValueError,"Invalid type: {0}".format(attrType)
+    #log.debug("|{0}| >> Invalid type: {1}".format(_str_func,attrType))
+    return False
+    #raise ValueError,"Invalid type: {0}".format(attrType)
 
 def is_keyed(*a):
     """   
@@ -1539,12 +1560,17 @@ def renameNice(node=None, attr=None, name=None):
     else:
         _d = validate_arg(node,attr) 
 
+    _lock = is_locked(_d)
+    if _lock:
+        set_lock(_d,False)
+        
     _longName = get_nameLong(_d)
     #try:
     if name:
         mc.addAttr(_d['combined'],edit = True, niceName = name)
     elif name == False:
         mc.addAttr(_d['combined'],edit = True, niceName = _d['attr'])
+    if _lock:set_lock(_d,True)
     return get_nameNice(_d)    
 
 def get_nameLong(*a):
@@ -1580,23 +1606,33 @@ def rename(obj=None, attr=None, name=None):
         status(bool)
     """ 
     _str_func = 'rename'
+    _res = None
+    
     if name is None:
         name = attr
         attr = None
         _d = validate_arg(obj) 
     else:
         _d = validate_arg(obj,attr) 
-
+    
+    _lock = is_locked(_d)
+    if _lock:
+        set_lock(_d,False)
+    
     _longName = get_nameLong(_d)
     #try:
     if name:
         if name != _longName:
             mc.renameAttr("{0}.{1}".format(_d['obj'],_longName),name)
             #attributes.doRenameAttr(_d['obj'],_longName,name)
-            return True
+            _res = True
         else:
             log.debug("|{0}| >> nice name is already: {1} | combined:{2}".format(_str_func,name,_d['combined']))
-            return False
+            _res = False
+    
+    if _lock:set_lock(obj,name,True)
+    if _res is not None:
+        return _res
     raise ValueError,"No new attr name provided"
 
 def is_dynamic(*a):
@@ -1924,6 +1960,12 @@ def get_driven(node, attr = None, getNode = False, skipConversionNodes = False, 
             return False
     return False 
 
+def get_messageLong(*a,**kws):
+    _res = get_message(*a,**kws)
+    if _res:
+        return [NAMES.get_long(o) for o in _res]
+    return _res
+
 def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = None, simple = False):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
@@ -2184,7 +2226,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
         if not mc.addAttr(_combined,q=True,m=True):#not multi...
             log.debug("|{0}| >> messageSimple...".format(_str_func))
             if _buffer and NAMES.get_long(_buffer[0]) == _messageLong:
-                log.info("|{0}| >> message match. Good to go".format(_str_func))                            
+                log.debug("|{0}| >> message match. Good to go".format(_str_func))                            
                 return True
             else:
                 break_connection(_d)
@@ -2193,7 +2235,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
         else:
             log.debug("|{0}| >> multimessage...".format(_str_func))  
             if _buffer and NAMES.get_long(_buffer[0]) == _messageLong:
-                log.info("|{0}| >> message match. Good to go".format(_str_func))                            
+                log.debug("|{0}| >> message match. Good to go".format(_str_func))                            
                 return True
             else:
                 connections = get_driven(_combined)
@@ -2433,12 +2475,12 @@ def datList_purge(node = None, attr = None, dataAttr=None):
     for k in d_attrs.keys():
         str_attr = d_attrs[k]
         delete(node,str_attr)
-        log.info("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,str_attr))
+        log.debug("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,str_attr))
         
     try:
         if r9Meta.MetaClass(node).hasAttr(_str_dataAttr):
             delete(node,_str_dataAttr)
-            log.info("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,_str_dataAttr))
+            log.debug("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,_str_dataAttr))
     except:pass
     
     return True    
@@ -2492,8 +2534,8 @@ def msgList_connect(node = None, attr = None, data = None, connectBack = None, d
     _str_func = 'msgList_connect'    
     
     _l_dat = VALID.objStringList(data,noneValid=True)
-    log.info("|{0}| >> node: {1} | attr: {2} | connectBack: {3}".format(_str_func,node,attr,connectBack))
-    log.info("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
+    log.debug("|{0}| >> node: {1} | attr: {2} | connectBack: {3}".format(_str_func,node,attr,connectBack))
+    log.debug("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
     
     datList_purge(node,attr)
     
@@ -2683,7 +2725,7 @@ def datList_index(node = None, attr = None, data = None, mode = None, dataAttr =
         _str_long = NAMES.get_long(data)
         #log.info(_l_long)
         #log.info(_str_long)
-        if NAMES.get_long(data) in _l_long:
+        if _str_long in _l_long:
             idx = _l_long.index(_str_long)
     elif data in _l_dat:
         if _l_dat.count(data) > 1:
@@ -2699,8 +2741,11 @@ def datList_index(node = None, attr = None, data = None, mode = None, dataAttr =
         raise ValueError,"Data not found"
     return idx
 
-def msgList_append(node = None, attr = None, data = None,dataAttr=None):
-    return datList_append(node,attr,data,'message',dataAttr)
+def msgList_append(node = None, attr = None, data = None,dataAttr=None,connectBack = None):
+    _res = datList_append(node,attr,data,'message',dataAttr)
+    if connectBack is not None:
+        set_message(data,connectBack,node,dataAttr)
+    return _res
 
 def datList_append(node = None, attr = None, data = None, mode = None, dataAttr = None):
     """   
@@ -2716,7 +2761,7 @@ def datList_append(node = None, attr = None, data = None, mode = None, dataAttr 
     """
     _str_func = 'datList_append'    
     
-    log.info("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
+    log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
     
     if dataAttr is not None:
         _str_dataAttr = dataAttr
@@ -2795,7 +2840,7 @@ def datList_remove(node = None, attr = None, data = None, mode = None, dataAttr 
         for i in d_attrs.keys():
             _o = get_message(node, d_attrs[i],"{0}_datdict".format(attr), dataKey=i)
             if _o and NAMES.get_long(_o) in _l_dat_long:
-                log.warning("|{0}| >> removing... | idx: {1} | attr: {2} | value: {3}".format(_str_func,i,d_attrs[i],_o))
+                log.debug("|{0}| >> removing... | idx: {1} | attr: {2} | value: {3}".format(_str_func,i,d_attrs[i],_o))
                 delete(node,d_attrs[i])       
                 _action = True
     else:
@@ -2803,7 +2848,7 @@ def datList_remove(node = None, attr = None, data = None, mode = None, dataAttr 
         for i in d_attrs.keys():
             _v =  get(node,d_attrs[i])
             if _v in _data:
-                log.warning("|{0}| >> removing... | idx: {1} | attr: {2} | value: {3}".format(_str_func,i,d_attrs[i],_v))
+                log.debug("|{0}| >> removing... | idx: {1} | attr: {2} | value: {3}".format(_str_func,i,d_attrs[i],_v))
                 delete(node,d_attrs[i])
                 _action = True
     return _action
@@ -3022,7 +3067,9 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Fa
 
     
     if attrType is None:
-        if len(_data)==3:
+        if mc.objExists(_data[0]):
+            attrType = 'message'
+        elif len(_data)==3:
             attrType = 'double3'
         elif len(_data)>3:
             attrType = 'doubleArray'
@@ -3030,17 +3077,21 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Fa
     log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
     
     #>> Store our data #-------------------------------------------------------------------------
-    mi_node = r9Meta.MetaClass(node)
-    _except = False
-    if mi_node.hasAttr(attr):
-        try:set(node,attr,data)
-        except:
-            log.warning("|{0}| >> removing... | node: {1} | attr: {2} | value: {3}".format(_str_func,node,attr,mi_node.__getattribute__(attr)))        
-            delete(node,attr)
-
-            mi_node.addAttr(attr,_data[0], attrType = attrType)
+    
+    if attrType == 'message':
+        set_message(node,attr,_data)
     else:
-        mi_node.addAttr(attr,data, attrType = attrType)
+        mi_node = r9Meta.MetaClass(node)
+        _except = False
+        if mi_node.hasAttr(attr):
+            try:set(node,attr,data)
+            except:
+                log.warning("|{0}| >> removing... | node: {1} | attr: {2} | value: {3}".format(_str_func,node,attr,mi_node.__getattribute__(attr)))        
+                delete(node,attr)
+    
+                mi_node.addAttr(attr,_data[0], attrType = attrType)
+        else:
+            mi_node.addAttr(attr,data, attrType = attrType)
         
     if lock:
         set_lock(node,attr,lock)
