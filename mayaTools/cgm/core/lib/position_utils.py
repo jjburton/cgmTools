@@ -32,6 +32,8 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import node_utils as NODE
 from cgm.core.lib import attribute_utils as ATTR
+from cgm.core.lib import list_utils as LISTS
+reload(LISTS)
 #Cannot import: DIST,
 #>>> Utilities
 #===================================================================
@@ -176,6 +178,24 @@ def get_bb_center(arg = None):
     
     return [((_box[0] + _box[3])/2),((_box[4] + _box[1])/2), ((_box[5] + _box[2])/2)]
 
+def get_bb_size(arg = None):
+    """
+    Get the bb size of a given arg
+    
+    :parameters:
+        arg(str/list): Object(s) to check
+
+
+    :returns
+        boundingBox size(list)
+    """   
+    _str_func = 'get_bb_size'
+    _arg = VALID.stringListArg(arg,False,_str_func)   
+    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))    
+    
+    _box = mc.exactWorldBoundingBox(_arg)
+    return [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
+
 def get_uv_position(mesh, uvValue):
     """
     Get a uv position in world space. UV should be normalized.
@@ -251,3 +271,59 @@ def get_info(target = None, boundingBox = False):
     #cgmGen.log_info_dict(_d,'|{0}.{1}| info...'.format(__name__,_str_func))
 
     return _d
+
+
+def layout_byColumn(objList = None,columns=3,startPos = [0,0,0]):
+    """
+    Get a uv position in world space. UV should be normalized.
+    
+    :parameters:
+        objList(list) | list of objects to arrange
+        uValue(float) | uValue  
+        vValue(float) | vValue 
+
+    :returns
+        pos(double3)
+
+    """        
+    _str_func = 'layout_byColumn'
+    
+    if objList is None:
+        objList = mc.ls(sl=True)
+    
+    if not objList:
+        raise ValueError,"|{0}| >> No objList'".format(_str_func)
+    
+    _l_x = []
+    _l_y = []
+    
+    for obj in objList:
+        _bfr = get_bb_size(obj)
+        log.debug("|{0}| >> obj: {1} | size: {2}'".format(_str_func,obj,_bfr))
+        _l_x.append(_bfr[0])
+        _l_y.append(_bfr[1])
+
+    for obj in objList:
+        mc.move(0,0,0,obj,a=True)
+
+    sizeX = max(_l_x) * 1.75
+    sizeY = max(_l_y) * 1.75
+
+    startX = startPos[0]
+    startY = startPos[1]
+    startZ = startPos[2]
+
+    col=1
+    objectCnt = 0
+    #sort the list
+    
+    _l_sorted = LISTS.get_chunks(objList,columns)
+    
+    bufferY = startY
+    for row in _l_sorted:
+        bufferX = startX
+        for obj in row:
+            mc.xform(obj,os=True,t=[bufferX,bufferY,startZ])
+            bufferX += sizeX
+        bufferY -= sizeY    
+    

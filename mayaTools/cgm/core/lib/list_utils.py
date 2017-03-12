@@ -39,3 +39,20 @@ def get_noDuplicates(l):
             _l.append(v)
     return _l
 
+def get_chunks(l, n):
+    """
+    Get chunks of the list
+        
+    :parameters:
+        l(list) | list of things to chunkify
+        n(int) | number of chunks  
+
+    :returns
+        List of chunks(list)
+    
+    SOURCE:
+    http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python/312644#312644
+    """       
+    return [l[i:i+n] for i in range(0, len(l), n)]
+
+
