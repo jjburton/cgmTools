@@ -614,6 +614,10 @@ def uiSection_riggingUtils(parent):
 from cgm.core.tools.lib import snap_calls as SNAPCALLS
 reload(SNAPCALLS)
 
+def call_optionVar_ui():
+    reload(SNAPCALLS)    
+    SNAPCALLS.ui_optionVars()
+
 def uiSection_snap(parent, selection = None ):
     _str_func = 'uiSection_snap'
     
@@ -689,7 +693,7 @@ def uiSection_snap(parent, selection = None ):
     #>>Options ----------------------------------------------------------------------------------------
     mc.menuItem(parent=parent,
                 l = '{Options}',
-                c = lambda *a:SNAPCALLS.ui_optionVars(),
+                c = lambda *a:call_optionVar_ui(),
                 ann = "Set shared option variables")
     
     return
@@ -736,7 +740,7 @@ def uiSection_rayCast(parent, selection = None):
     #>>Options ----------------------------------------------------------------------------------------
     mc.menuItem(parent=_p,
                 l = '{Options}',
-                c = lambda *a:SNAPCALLS.ui_optionVars(),
+                c = lambda *a:call_optionVar_ui(),
                 ann = "Set shared option variables")
     
     
