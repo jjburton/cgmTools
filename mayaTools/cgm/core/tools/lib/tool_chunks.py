@@ -40,6 +40,7 @@ from cgm.core.tools import attrTools as ATTRTOOLS
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
+from cgm.core.tools.lib import snap_calls as UISNAPCALLS
 
 from cgm.lib.ml import (ml_breakdownDragger,
                         ml_resetChannels,
@@ -186,14 +187,14 @@ def uiSection_curves(parent, selection = None):
                 )   
     mc.menuItem(parent=uiCurve,
                 l='Create Control Curve',
-                c=lambda *a:uiFunc_createCurve(),
+                c=lambda *a:UISNAPCALLS.uiFunc_createCurve(),
                 ann='Create control curves from stored optionVars. Shape: {0} | Color: {1} | Direction: {2}'.format(var_curveCreateType.value,
                                                                                                                     var_defaultCreateColor.value,
                                                                                                                     SHARED._l_axis_by_string[var_createAimAxis.value]))                    
     #mUI.MelSpacer(_row_curveCreate,w=10)                                              
     mc.menuItem(parent=uiCurve,
                 l='One of each',
-                c=lambda *a:uiFunc_createOneOfEach(),
+                c=lambda *a:UISNAPCALLS.uiFunc_createOneOfEach(),
                 ann='Create one of each curve stored in cgm libraries. Size: {0} '.format(var_createSizeValue.value) )       
 
     
