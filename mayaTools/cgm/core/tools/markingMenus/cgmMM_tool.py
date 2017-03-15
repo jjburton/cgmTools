@@ -53,6 +53,8 @@ from cgm.tools import setTools
 from cgm.tools import attrTools
 
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
+from cgm.core.tools.lib import snap_calls as UISNAPCALLS
+
 reload(UICHUNKS)
 
 
@@ -374,8 +376,12 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         self.var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0)
         self.var_rayCastDragInterval = cgmMeta.cgmOptionVar('cgmVar_rayCastDragInterval', defaultValue = .2) 
         
+        
+        
+        
         LOCINATOR.uiSetupOptionVars(self)
         MMPuppet.uiSetupOptionVars(self)
+        UISNAPCALLS.uiSetupOptionVars_curveCreation(self)
         
     ##@cgmGen.Timer
     def bUI_radialRoot_td(self,parent):
@@ -1004,6 +1010,11 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = cgmGen.Callback(self.bc_create_curve),
                     rp = "S")
+        mc.menuItem(parent=_r,
+                    l = 'Control: {0}'.format(self.var_curveCreateType.value),#'Control Curve',
+                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                    c = cgmGen.Callback(UISNAPCALLS.uiFunc_createCurve),
+                    rp = "SW")        
         
         
         #>>Locator ------------------------------------------------------------------------------------------

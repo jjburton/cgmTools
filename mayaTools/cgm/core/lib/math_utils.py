@@ -275,7 +275,7 @@ def is_float_equivalent(f1,f2,places=4):
     _str_func = 'is_float_equivalent'
     
     #zeroCheck
-    l_zeros = [-0.0,0.0]
+    l_zeros = [-0.0,0.0,-2e-20]
 
     if round(f1,places) in l_zeros and round(f2,places) in l_zeros:
         log.debug("|{0}| >> zero match: {1}|{2}".format(_str_func,f1,f2))

@@ -56,6 +56,58 @@ def get_bb_size(arg = None):
     _box = mc.exactWorldBoundingBox(_arg)
     return [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
 
+def get_createSize(arg = None, mode = None):
+    """
+    Attempt to find a good size for control creation or 
+    
+    :parameters:
+        arg(str/list): Object(s) to check
+
+
+    :returns
+        boundingBox size(list)
+    """     
+    def is_resGood(res = None):
+        if MATHUTILS.is_float_equivalent(res,0.000) or res == -2e+20:
+            return False
+        return True
+    
+    _str_func = 'get_createSize'
+    _arg = VALID.objString(arg,noneValid=False,calledFrom=_str_func)
+    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))    
+    
+    _bb_max = max(get_bb_size(_arg))
+    log.debug("|{0}| >> bbSize: {1} ".format(_str_func,_bb_max))  
+    if not MATHUTILS.is_float_equivalent(_bb_max,0.000) and not _bb_max == -2e+20:
+        return _bb_max
+    
+    log.debug("|{0}| >> Zero boundingBox object...".format(_str_func))
+    
+    _children = mc.listRelatives(_arg,children = True, type='transform') or False
+    if _children:
+        _closestChild = get_by_dist(_arg, _children,'close','object')
+        log.debug("|{0}| >> closest child mode. | closest: {1} ".format(_str_func,_closestChild))
+        _res = get_distance_between_points(POS.get(_arg),POS.get(_closestChild))
+        if is_resGood(_res):
+            return _res
+        log.debug("|{0}| >> child mode fail...".format(_str_func))
+    
+    _parent = mc.listRelatives(_arg,parent = True, type='transform') or False
+    if _parent:
+        log.debug("|{0}| >> Parent mode...".format(_str_func))
+        _res =  get_distance_between_points(POS.get(_arg),POS.get(_parent))
+        if is_resGood(_res):
+            return _res        
+        log.debug("|{0}| >> Parent mode fail...".format(_str_func))
+        
+    raise RuntimeError,"Shouldn't have gotten here. Failed at finding value"
+        
+    
+    
+    
+    
+    
+
 
 def get_by_dist(source = None, targets = None, mode = 'close', resMode = 'point',
                 sourcePivot = 'rp', targetPivot = 'rp'):

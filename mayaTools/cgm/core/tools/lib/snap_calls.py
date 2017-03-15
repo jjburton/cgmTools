@@ -256,6 +256,7 @@ class ui_optionVars(cgmUI.cgmGUI):
             self.var_defaultCreateColor = cgmMeta.cgmOptionVar('cgmVar_defaultCreateColor', defaultValue = 'yellow')
             self.var_createSizeMode = cgmMeta.cgmOptionVar('cgmVar_createSizeMode', defaultValue=0)
             self.var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)
+            self.var_createSizeMulti = cgmMeta.cgmOptionVar('cgmVar_createSizeMultiplierValue', defaultValue=1.25)
             
                 
             self.var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
@@ -587,38 +588,7 @@ class ui_optionVars(cgmUI.cgmGUI):
         self.uiPopup_createShape()
         self.uiPopup_createColor()
         
-        #>>>Create Size Modes -------------------------------------------------------------------------------------
-        _row_createSize = mUI.MelHSingleStretchLayout(_shape_inside,ut='cgmUISubTemplate')
-        mUI.MelSpacer(_row_createSize,w=5)                                              
-        mUI.MelLabel(_row_createSize,l='Size Mode:')
-        _row_createSize.setStretchWidget(mUI.MelSeparator(_row_createSize)) 
         
-        uiRC = mUI.MelRadioCollection()
-        _on = self.var_createSizeMode.value
-        #self.var_createSizeValue
-        for i,item in enumerate(['guess','fixed','cast']):
-            if i == _on:
-                _rb = True
-            else:_rb = False
-            
-            uiRC.createButton(_row_createSize,label=item,sl=_rb,
-                              onCommand = cgmGen.Callback(self.var_createSizeMode.setValue,i))
-            mUI.MelSpacer(_row_createSize,w=2)    
-     
-        
-        mUI.MelLabel(_row_createSize,l='Size:')
-        self.uiFF_shapeSize = mUI.MelFloatField(_row_createSize, w = 50,
-                                                value = self.var_createSizeValue.value)
-        mUI.MelSpacer(_row_createSize,w=5)                                              
-        
-        _row_createSize.layout()         
-        
-        
-        #_uiIF_shapeSize = mUI.MelIntField(_row_createSize,ut='cgmUITemplate',
-        #                                  en=True)    
-        
-        
-
         #>>>Create Aim defaults mode -------------------------------------------------------------------------------------
         _d = {'aim':self.var_createAimAxis,
               }
@@ -647,8 +617,55 @@ class ui_optionVars(cgmUI.cgmGUI):
                 mUI.MelSpacer(_row,w=2)       
             
             
-            _row.layout()     
-            
+            _row.layout()    
+        
+        #>>>Create Size Modes -------------------------------------------------------------------------------------
+        _row_createSize = mUI.MelHSingleStretchLayout(_shape_inside,ut='cgmUISubTemplate')
+        mUI.MelSpacer(_row_createSize,w=5)                                              
+        mUI.MelLabel(_row_createSize,l='Size Mode:')
+        _row_createSize.setStretchWidget(mUI.MelSeparator(_row_createSize)) 
+    
+        uiRC = mUI.MelRadioCollection()
+        _on = self.var_createSizeMode.value
+        #self.var_createSizeValue
+        for i,item in enumerate(['guess','fixed','cast']):
+            if i == _on:
+                _rb = True
+            else:_rb = False
+    
+            uiRC.createButton(_row_createSize,label=item,sl=_rb,
+                              onCommand = cgmGen.Callback(self.var_createSizeMode.setValue,i))
+            mUI.MelSpacer(_row_createSize,w=2)    
+    
+    
+        cgmUI.add_Button(_row_createSize,'Size',
+                         lambda *a:self.var_createSizeValue.uiPrompt_value('Set Size'),
+                         'Set the create size value')   
+        cgmUI.add_Button(_row_createSize,'Mutltiplier',
+                         lambda *a:self.var_createSizeMulti.uiPrompt_value('Set create size multiplier'),
+                         'Set the create size multiplier value') 
+        mUI.MelSpacer(_row_createSize,w=5)                                              
+    
+        _row_createSize.layout()  
+        
+        #>>>Create -------------------------------------------------------------------------------------
+        #_row_curveCreate = mUI.MelHSingleStretchLayout(_shape_inside,ut='cgmUISubTemplate') 
+        _row_curveCreate = mUI.MelHLayout(_shape_inside,ut='cgmUISubTemplate',padding = 5)   
+        
+        cgmUI.add_Button(_row_curveCreate,'Create',
+                         lambda *a:uiFunc_createCurve(),
+                         'Create control curves from stored optionVars. Shape: {0} | Color: {1} | Direction: {2}'.format(self.var_curveCreateType.value,
+                                                                                                                                 self.var_defaultCreateColor.value,
+                                                                                                                                 SHARED._l_axis_by_string[self.var_createAimAxis.value]))                    
+        #mUI.MelSpacer(_row_curveCreate,w=10)                                              
+        cgmUI.add_Button(_row_curveCreate,'One of each',
+                        lambda *a:uiFunc_createOneOfEach(),
+                        'Create one of each curve stored in cgm libraries. Size: {0} '.format(self.var_createSizeValue.value) )       
+        
+        _row_curveCreate.layout()
+        
+
+    
     def cb_setCreateShape(self,shape):
         self.var_curveCreateType.setValue(shape)
         self.uiField_shape(edit=True,label=shape)
@@ -736,6 +753,32 @@ uiMenuAim = mc.menuItem( parent = uiMenu_objDefault, l='Obj Aim', subMenu=True)
                                 c = cgmGen.Callback(self.var_objDefaultAimAxis.setValue,i),
                                 rb = _rb)  
 """
+def uiFunc_createOneOfEach():
+    var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)        
+    CURVES.create_oneOfEach(var_createSizeValue.value)
+    
+def uiFunc_createCurve():
+    reload(CURVES)
+    var_createAimAxis = cgmMeta.cgmOptionVar('cgmVar_createAimAxis', defaultValue = 2)
+    var_curveCreateType = cgmMeta.cgmOptionVar('cgmVar_curveCreateType', defaultValue = 'circle')
+    var_defaultCreateColor = cgmMeta.cgmOptionVar('cgmVar_defaultCreateColor', defaultValue = 'yellow')
+    var_createSizeMode = cgmMeta.cgmOptionVar('cgmVar_createSizeMode', defaultValue=0)
+    var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)
+    var_createSizeMulti = cgmMeta.cgmOptionVar('cgmVar_createSizeMultiplierValue', defaultValue=1.25)        
+    CURVES.create_controlCurve(mc.ls(sl=True),
+                               var_curveCreateType.value,
+                               var_defaultCreateColor.value,
+                               var_createSizeMode.value,
+                               var_createSizeValue.value,
+                               var_createSizeMulti.value,
+                               SHARED._l_axis_by_string[var_createAimAxis.value])
+def uiSetupOptionVars_curveCreation(self):
+    self.var_createAimAxis = cgmMeta.cgmOptionVar('cgmVar_createAimAxis', defaultValue = 2)
+    self.var_curveCreateType = cgmMeta.cgmOptionVar('cgmVar_curveCreateType', defaultValue = 'circle')
+    self.var_defaultCreateColor = cgmMeta.cgmOptionVar('cgmVar_defaultCreateColor', defaultValue = 'yellow')
+    self.var_createSizeMode = cgmMeta.cgmOptionVar('cgmVar_createSizeMode', defaultValue=0)
+    self.var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)
+    self.var_createSizeMulti = cgmMeta.cgmOptionVar('cgmVar_createSizeMultiplierValue', defaultValue=1.25) 
     
     
     

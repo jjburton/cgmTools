@@ -33,6 +33,9 @@ reload(RIGGING)
 from cgm.core.lib import shape_utils as SHAPES
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import position_utils as POS
+from cgm.core.lib import snap_utils as SNAP
+from cgm.core.lib import distance_utils as DIST
+from cgm.core.lib import attribute_utils as ATTR
 reload(SHAPES)
 from cgm.lib import (distance,
                      locators,
@@ -324,6 +327,7 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
         _l_res.append(mc.curve( d = 3,p = [[2.6645352591003756e-17, 3.061616997868383e-17, -0.5], [-0.13060193748187074, 3.061616997868383e-17, -0.5], [-0.39180581244561213, 2.3991186704942353e-17, -0.39180581244561213], [-0.55409709377719396, 9.8316773080939295e-33, -1.605634753618615e-16], [-0.39180581244561224, -2.399118670494235e-17, 0.39180581244561202], [-1.6696026817952597e-16, -3.3928661615554573e-17, 0.55409709377719407], [0.39180581244561191, -2.3991186704942356e-17, 0.39180581244561219], [0.55409709377719396, -1.8223150339523961e-32, 2.9760662996402926e-16], [0.39180581244561252, 2.3991186704942341e-17, -0.39180581244561191], [0.13060193748187082, 3.061616997868383e-17, -0.49999999999999989], [4.4408920985006264e-17, 3.061616997868383e-17, -0.49999999999999994]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)))
         _l_res.append(mc.curve( d = 3,p = [[9.8607613152626478e-34, 0.5, -2.6645352591003756e-17], [-7.9970622349807886e-18, 0.5, 0.13060193748187074], [-2.3991186704942353e-17, 0.39180581244561213, 0.39180581244561213], [-3.3928661615554567e-17, 1.605634753618615e-16, 0.55409709377719396], [-2.3991186704942366e-17, -0.39180581244561202, 0.39180581244561224], [-1.0223367900542009e-32, -0.55409709377719407, 1.6696026817952597e-16], [2.3991186704942341e-17, -0.39180581244561219, -0.39180581244561191], [3.3928661615554567e-17, -2.9760662996402926e-16, -0.55409709377719396], [2.3991186704942381e-17, 0.39180581244561191, -0.39180581244561252], [7.9970622349807916e-18, 0.49999999999999989, -0.13060193748187082], [2.465190328815662e-33, 0.49999999999999994, -4.4408920985006264e-17]],k = (0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0, 8.0)))
     elif name == 'cube':
+        #_res = mc.curve( d = 1,p = [[-0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5], [-0.5, 0.5, 0.5], [-0.5, -0.5, 0.5], [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5], [0.5, -0.5, 0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [0.5, -0.5, -0.5], [-0.5, -0.5, -0.5], [-0.5, 0.5, -0.5]],k = (0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0))
         _res = mc.curve( d = 1,p = [[-0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5], [-0.5, 0.5, 0.5], [-0.5, -0.5, 0.5], [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5], [0.5, -0.5, 0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [0.5, -0.5, -0.5], [-0.5, -0.5, -0.5], [-0.5, 0.5, -0.5]],k = (0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0))
     elif name == 'pyramid':
         _res = mc.curve( d = 1,p = [[0.0, 2.2204460492503131e-16, 1.0], [0.5, 0.5, -1.1102230246251565e-16], [-0.5, 0.5, -1.1102230246251565e-16], [0.0, 2.2204460492503131e-16, 1.0], [-0.5, -0.5, 1.1102230246251565e-16], [0.5, -0.5, 1.1102230246251565e-16], [0.0, 2.2204460492503131e-16, 1.0], [0.5, 0.5, -1.1102230246251565e-16], [0.5, -0.5, 1.1102230246251565e-16], [-0.5, -0.5, 1.1102230246251565e-16], [-0.5, 0.5, -1.1102230246251565e-16]],k = (0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0))
@@ -587,8 +591,66 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
 
     
     
+def controlCurve_update(target = None):
+    """
+    Update a controlCurve target. Supports a few specialized functions
+    """
     
+    _targets = cgmValid.objStringList(target,'nurbsCurve',noneValid=True,calledFrom=_str_func)
+
     
+def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
+                        sizeMode = 'guess',size = 1, sizeMulti = None, direction = 'z+' ):
+    """ 
+    Get curve from a predefined set
+
+    :parameters:
+        target(str) - target(s) to create curves from
+        shape(str) - shape to use for creation
+        color(str) - color key to use. See SHARED._d_colors_to_index for details...
+        sizeMode(str) - Mode for sizing
+            guess
+            fixed
+            cast - NOT IMPLEMENTED
+        size(float)
+        sizeMulti(float/None) - Multiplier for detected size
+        direction(str) - Direction the curve should face
+
+    :returns
+        created(list)   
+    """    
+    _str_func = 'create_controlCurve'
+    _targets = cgmValid.objStringList(target,noneValid=True,calledFrom=_str_func)
+    _sizeMode = cgmValid.kw_fromList(sizeMode,['guess','fixed','cast'],True,calledFrom=_str_func)
+    
+    log.info("|{0}| >> target:{1} | shape:{2} | color:{3} | sizeMode:{4} | size:{5} | direction:{6}".format(_str_func,_targets,shape,color,sizeMode,size,direction))
+    
+    _res = []
+    if not _targets:
+        _targets = [False]
+        _sizeMode = 'fixed'
+    for t in _targets:
+        #Figure out size
+        if _sizeMode == 'guess':
+            _size = DIST.get_createSize(t)
+            if sizeMulti is not None:
+                _size = _size * sizeMulti
+        elif _sizeMode == 'cast':
+            raise ValueError,"cast not implemented"
+        else:
+            _size = size
+        
+        #Create shape        
+        _curveShape = create_fromName(shape,size = _size,direction=direction)
+        if t:
+            _curveShape = mc.rename(_curveShape,"{0}_crv".format(NAMES.get_base(t)))
+            SNAP.go(_curveShape,t,True,True,True,True)
+            ATTR.set_message(_curveShape,'cgmSource',t)
+        #Color
+        RIGGING.override_color(_curveShape,color)
+        _res.append(_curveShape)
+    return _res
+
 #>>>>PRE Refactor ====================================================================================================================================
 def returnSplitCurveList(*args, **kws):
     """

@@ -28,6 +28,7 @@ reload(Red9)
 from cgm.lib.zoo.zooPyMaya import xferAnimUI
 
 from cgm.core import cgm_General as cgmGen
+from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import rigging_utils as RIGGING
@@ -169,6 +170,11 @@ def uiSection_sdk(parent = None):
     
     
 def uiSection_curves(parent, selection = None):
+    var_curveCreateType = cgmMeta.cgmOptionVar('cgmVar_curveCreateType', defaultValue = 'circle')
+    var_defaultCreateColor = cgmMeta.cgmOptionVar('cgmVar_defaultCreateColor', defaultValue = 'yellow')
+    var_createAimAxis = cgmMeta.cgmOptionVar('cgmVar_createAimAxis', defaultValue = 2)
+    var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)
+
     uiCurve = mc.menuItem(parent = parent, l='Curve',
                           ann = "Functions and tools for dealing with curves",                                                                                                  
                           subMenu=True)
@@ -179,8 +185,27 @@ def uiSection_curves(parent, selection = None):
                 #c = cgmGen.Callback(MMCONTEXT.func_context_all, CURVES.get_python_call, 'selection','shape'),                            
                 )   
     mc.menuItem(parent=uiCurve,
+                l='Create Control Curve',
+                c=lambda *a:uiFunc_createCurve(),
+                ann='Create control curves from stored optionVars. Shape: {0} | Color: {1} | Direction: {2}'.format(var_curveCreateType.value,
+                                                                                                                    var_defaultCreateColor.value,
+                                                                                                                    SHARED._l_axis_by_string[var_createAimAxis.value]))                    
+    #mUI.MelSpacer(_row_curveCreate,w=10)                                              
+    mc.menuItem(parent=uiCurve,
+                l='One of each',
+                c=lambda *a:uiFunc_createOneOfEach(),
+                ann='Create one of each curve stored in cgm libraries. Size: {0} '.format(var_createSizeValue.value) )       
+
+    
+    mc.menuItem(parent=uiCurve,
                 en=False,
-                l = 'Mirror')      
+                l = 'Mirror')  
+    
+    #>>Options ----------------------------------------------------------------------------------------
+    mc.menuItem(parent=uiCurve,
+                l = '{Options}',
+                c = lambda *a:call_optionVar_ui(),
+                ann = "Set shared option variables")    
 
 def uiSection_shapes(parent = None, selection = None, pairSelected = True):
     _str_func = 'uiSection_shapes'    
@@ -745,7 +770,7 @@ def uiSection_rayCast(parent, selection = None):
     
     
     
- 
+   
 
     
     

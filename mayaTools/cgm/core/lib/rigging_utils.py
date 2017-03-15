@@ -702,7 +702,7 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
     #...little dummy proofing..
     _type = type(key)
     
-    if not issubclass(_type,str):
+    if _type not in [str,unicode] :
         log.debug("|{0}|  >> Not a string arg for key...".format(_str_func))
         
         if rgb is None and issubclass(_type,list) or issubclass(_type,tuple):
