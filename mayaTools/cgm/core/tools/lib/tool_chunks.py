@@ -187,7 +187,7 @@ def uiSection_curves(parent, selection = None):
                 )   
     mc.menuItem(parent=uiCurve,
                 l='Create Control Curve',
-                c=lambda *a:UISNAPCALLS.uiFunc_createCurve(),
+                c=cgmGen.Callback(UISNAPCALLS.uiFunc_createCurve),
                 ann='Create control curves from stored optionVars. Shape: {0} | Color: {1} | Direction: {2}'.format(var_curveCreateType.value,
                                                                                                                     var_defaultCreateColor.value,
                                                                                                                     SHARED._l_axis_by_string[var_createAimAxis.value]))                    
