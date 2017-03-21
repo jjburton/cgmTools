@@ -694,6 +694,8 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         self.bUI_optionMenu_resetMode(uiOptions)
         self.bUI_optionMenu_rayCast(uiOptions)
         LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
+        mc.menuItem(parent = uiOptions, l='Option UI', 
+                    c=cgmGen.Callback(UISNAPCALLS.ui_optionVars))
         
         uiBuffers = mc.menuItem(parent = parent, l='Buffers', subMenu=True)
         LOCINATOR.uiBuffer_control(self, uiBuffers)
@@ -1010,11 +1012,17 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = cgmGen.Callback(self.bc_create_curve),
                     rp = "S")
-        mc.menuItem(parent=_r,
-                    l = 'Control: {0}'.format(self.var_curveCreateType.value),#'Control Curve',
-                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+        _control = mc.menuItem(parent=_r,subMenu = True,
+                               l = 'Control: {0}'.format(self.var_curveCreateType.value),#'Control Curve',
+                               rp = "W") 
+        mc.menuItem(parent=_control,
+                    l = 'Create: {0}'.format(self.var_curveCreateType.value),#'Control Curve',
                     c = cgmGen.Callback(UISNAPCALLS.uiFunc_createCurve),
-                    rp = "SW")        
+                    rp = "W")  
+        mc.menuItem(parent=_control,
+                    l = 'Change options'.format(self.var_curveCreateType.value),#'Control Curve',
+                    c = cgmGen.Callback(UISNAPCALLS.ui_optionVars),
+                    rp = "SW")          
         
         
         #>>Locator ------------------------------------------------------------------------------------------
