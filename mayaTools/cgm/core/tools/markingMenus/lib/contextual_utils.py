@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -54,7 +54,11 @@ def get_list(context = 'selection', mType = None, getTransform = False):
     if _context == 'selection':
         log.debug("|{0}| >> selection mode...".format(_str_func))
         if mType:
-            _l_context = mc.ls(sl=True, type=mType)
+            if mType == 'shape':
+                _bfr = mc.ls(sl=True)
+                for o in _bfr:
+                    _l_context.extend(mc.listRelatives(o,shapes=True,f=True))
+            else:_l_context = mc.ls(sl=True, type=mType)
         else:_l_context = mc.ls(sl=True)
     elif _context == 'scene':
         log.debug("|{0}| >> scene mode...".format(_str_func))        
@@ -166,7 +170,7 @@ def color_override(value = None, context = 'selection', mType = None):
     _context = context.lower()
     _l_context = get_list(_context, mType)
     _l_context.extend(get_list(_context,'joint'))
-    log.debug("|{0}| >> value: {1} | mType: {2} | context: {3}".format(_str_func,value,mType,_context))             
+    log.info("|{0}| >> value: {1} | mType: {2} | context: {3}".format(_str_func,value,mType,_context))             
         
     for o in _l_context:
         try:

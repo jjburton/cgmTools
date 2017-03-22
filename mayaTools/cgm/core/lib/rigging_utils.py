@@ -789,8 +789,9 @@ def duplicate_shape(shape):
     
             parentObj = mc.listRelatives(shape, p=True, fullPath=True)
             mc.delete( mc.parentConstraint(parentObj,_bfr[0]))
-    
-            return _bfr
+            _l_shapes = mc.listRelatives(_bfr[0],s=True,f=True)
+            
+            return [_bfr[0]] + _l_shapes
         else:
             log.debug("|{0}|  >> mesh shape assumed...".format(_str_func))            
             _transform = SEARCH.get_transform(shape)

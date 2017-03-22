@@ -1941,7 +1941,7 @@ def get_context(self, context = None, report = False):
             #for a in _l_primeAttrs:
                 #_l_targets.append( "{0}.{1}".format(mNode.mNode, a))
     else:
-        _l_targets = CONTEXT.get_list(context,_type,_trans)
+        _l_targets = CONTEXT.get_list(context,None,_trans)#..._type
         
     if report:
         log.info(cgmGEN._str_hardLine)
