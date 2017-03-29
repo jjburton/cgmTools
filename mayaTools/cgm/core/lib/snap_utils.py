@@ -119,7 +119,7 @@ def go(obj = None, target = None,
     mc.xform(_target, rp=infoDict['position'], ws = True, p=True)        
     mc.xform(_target, sp=infoDict['scalePivot'], ws = True, p=True)     
     
-def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',ignoreAimAttrs = False):
+def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',vectorUp = None,ignoreAimAttrs = False):
     """
     Aim functionality.
     
@@ -132,6 +132,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
             'local'-- use standard maya aiming with local axis
             'world' -- use standard maya aiming with world axis
             'matrix' -- use Bokser's fancy method
+            'vector' -- maya standard with vector up axis
 
     :returns
         success(bool)
@@ -206,7 +207,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
                                        upVector = mAxis_up.p_vector,
                                        worldUpType = 'scene',)
         mc.delete(_constraint + [_loc])"""
-    elif mode in ['local','world']:
+    elif mode in ['local','world','vector']:
             _loc = mc.spaceLocator()[0]
             mc.move (position[0],position[1],position[2], _loc, ws=True)  
             mAxis_aim = VALID.simpleAxis(aimAxis)
@@ -219,7 +220,10 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
                                                upVector = mAxis_up.p_vector,
                                                worldUpType = 'scene',) 
             else:
-                _vUp = MATH.get_obj_vector(_obj,upAxis)
+                if mode == 'vector':
+                    _vUp = vectorUp
+                else:
+                    _vUp = MATH.get_obj_vector(_obj,upAxis)
                 _constraint = mc.aimConstraint(_loc,_obj,
                                                maintainOffset = False,
                                                aimVector = mAxis_aim.p_vector,
@@ -232,7 +236,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
 
     return True
 
-def aim_atMidPoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mode='local'):
+def aim_atMidPoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mode='local',vectorUp = None):
     """
     Aim functionality.
     
@@ -241,9 +245,12 @@ def aim_atMidPoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mod
         target(str): object to copy from
         aimAxis(str): axis that is pointing forward
         upAxis(str): axis that is pointing up
+        vectorUp(vector): Only relevent during vector mode
         mode(str): 
-            'local'-- use Bokser's fancy method
-            'world' -- use standard maya aiming
+            'local'-- use standard maya aiming with local axis
+            'world' -- use standard maya aiming with world axis
+            'matrix' -- use Bokser's fancy method
+            'vector' -- maya standard with vector up axis
     :returns
         success(bool)
     """  
@@ -259,9 +266,9 @@ def aim_atMidPoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mod
 
     targetPos /= len(_targets)
 
-    aim_atPoint(_obj, MATH.Vector3.AsArray(targetPos), aimAxis, upAxis,mode = mode)
+    aim_atPoint(_obj, MATH.Vector3.AsArray(targetPos), aimAxis, upAxis,mode = mode,vectorUp=vectorUp)
 
-def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local'):
+def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local',vectorUp = None):
     """
     Aim functionality.
     
@@ -270,9 +277,12 @@ def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local')
         target(str): object to copy from
         aimAxis(str): axis that is pointing forward
         upAxis(str): axis that is pointing up
+        vectorUp(vector): Only relevent during vector mode
         mode(str): 
-            'local'-- use Bokser's fancy method
-            'world' -- use standard maya aiming
+            'local'-- use standard maya aiming with local axis
+            'world' -- use standard maya aiming with world axis
+            'matrix' -- use Bokser's fancy method
+            'vector' -- maya standard with vector up axis
     :returns
         success(bool)
     """  
@@ -284,7 +294,7 @@ def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local')
     targetPos = POS.get(_target)
     log.debug("|{0}| >> obj: {1} | target:{2} | mode: {3}".format(_str_func,_obj,_target,mode))             
 
-    aim_atPoint(_obj, targetPos, aimAxis, upAxis, mode)
+    aim_atPoint(_obj, targetPos, aimAxis, upAxis, mode,vectorUp)
 
     return True
 

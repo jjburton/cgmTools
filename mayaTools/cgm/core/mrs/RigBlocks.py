@@ -30,6 +30,7 @@ log.setLevel(logging.DEBUG)
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_PuppetMeta as PUPPETMETA
 
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTRS
@@ -39,7 +40,7 @@ from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.rigger.lib import joint_Utils as JOINTS
-
+reload(SNAP)
 #from cgm.core.lib import nameTools
 #from cgm.core.rigger import ModuleFactory as mFactory
 #from cgm.core.rigger import PuppetFactory as pFactory
@@ -214,42 +215,133 @@ class factory(object):
         log.debug("|{0}| >> mInstance: {1}".format(_str_func,self._mi_root))
         pass
     
+    def skeletonize(self):
+        #Build skeleton
+        #Wire and name
+        pass
+    
+    def module_verify(self):
+        _str_func = 'module_verify'
+        
+        if self._mi_root is None:
+            raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
+        _mRoot = self._mi_root        
+        
+        _bfr = _mRoot.getMessage('moduleTarget')
+        if _bfr:
+            log.debug("|{0}| >> moduleTarget found: {1}".format(_str_func,_bfr))            
+            mModule = cgmMeta.validateObjArg(_bfr,'cgmObject')
+        else:
+            log.debug("|{0}| >> Creating moduleTarget...".format(_str_func))   
+            _kws = self.module_getBuildKWS()
+            mModule = PUPPETMETA.cgmModule(**_kws)
+            
+        ATTRS.set_message(_mRoot.mNode, 'moduleTarget', mModule.mNode,simple = True)
+        ATTRS.set_message(mModule.mNode, 'rigHelper', _mRoot.mNode,simple = True)
+        
+        return mModule
+    
+    def module_getBuildKWS(self):
+        _str_func = 'module_getBuildKWS'
+        
+        if self._mi_root is None:
+            raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
+        _mRoot = self._mi_root
+
+        d_kws = {}
+        d_kws['name'] = str(_mRoot.blockType)
+        
+        #Direction
+        str_direction = _mRoot.getEnumValueString('direction')
+        log.debug("|{0}| >> direction: {1}".format(_str_func,str_direction))            
+        if str_direction in ['left','right']:
+            d_kws['direction'] = str_direction
+        #Position
+        str_position = _mRoot.getEnumValueString('position')	
+        log.debug("|{0}| >> position: {1}".format(_str_func,str_position))            
+        if str_position != 'none':
+            d_kws['position'] = str_position
+            
+        cgmGEN.log_info_dict(d_kws,"{0} d_kws".format(_str_func))
+        return d_kws
+    
+    def puppet_verify(self):
+        _str_func = 'puppet_verify'
+        if self._mi_root is None:
+            raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
+        _mRoot = self._mi_root     
+        
+        mi_module = _mRoot.moduleTarget
+        if not mi_module:
+            mi_module = self.module_verify()
+            
+        if mi_module.getMessage('modulePuppet'):
+            return False
+    
+        mi_puppet = PUPPETMETA.cgmPuppet(name = mi_module.getNameAlias())
+        
+        mi_puppet.connectModule(mi_module)	
+        
+        if mi_module.getMessage('moduleMirror'):
+            mi_puppet.connectModule(mi_module.moduleMirror)
+        
+        mi_puppet.gatherModules()#Gather any modules in the chain
+        return mi_puppet        
+        
+    
+def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
+    _str_func = 'get_posList_fromStartEnd'
+    _base = 'joint_base_placer'
+    _top = 'joint_top_placer'  
+    
+    #>>Get positions ==================================================================================    
+    _l_pos = []
+    
+    if split == 1:
+        _l_pos = [DIST.get_average_position([start,end])]
+    elif split == 2:
+        _l_pos = [start,end]
+    else:
+        _vec = MATH.get_vector_of_two_points(start, end)
+        _max = DIST.get_distance_between_points(start,end)
+        
+        log.debug("|{0}| >> start: {1} | end: {2} | vector: {3}".format(_str_func,start,end,_vec))   
+        
+        _split = _max/(split-1)
+        for i in range(split-1):
+            _p = DIST.get_pos_by_vec_dist(start, _vec, _split * i)
+            _l_pos.append( _p)
+        _l_pos.append(end)
+        _radius = _split/4    
+    return _l_pos
     
 def build_skeleton(joints = 1, curve=None):
     _str_func = 'build_skeleton'
     
-    _base = 'joint_base_placer'
-    _top = 'joint_top_placer'
+
     _axisAim = 'z+'
     _axisUp = 'y+'
     _worldUp = 'orient_crv'
-    
-    _axisWorldUp = MATH.get_obj_vector(_worldUp,'y+')
-    
-    
-    #>>Get positions ==================================================================================
-    _p_start = POS.get(_base)
-    _p_top = POS.get(_top)
-    
-    _l_pos = []
     _radius = 1
     
-    if joints == 1:
-        _l_pos = [DIST.get_average_position([_p_start,_p_top])]
-    elif joints == 2:
-        _l_pos = [_p_start,_p_top]
+    _axisWorldUp = MATH.get_obj_vector(_worldUp,'y+')
+    mc.select(cl=True)
+    
+    #>>Get positions ================================================================================
+    if curve is not None:
+        _l_pos = CURVES.returnSplitCurveList(curve,joints,rebuildSpans=10)
+        
     else:
-        _vec = MATH.get_vector_of_two_points(_p_start, _p_top)
-        _max = DIST.get_distance_between_points(_p_start,_p_top)
-        
-        log.debug("|{0}| >> start: {1} | end: {2} | vector: {3}".format(_str_func,_p_start,_p_top,_vec))   
-        
-        _split = _max/(joints-1)
-        for i in range(joints-1):
-            _p = DIST.get_pos_by_vec_dist(_p_start, _vec, _split * i)
-            _l_pos.append( _p)
-        _l_pos.append(_p_top)
-        _radius = _split/2
+        _base = 'joint_base_placer'
+        _top = 'joint_top_placer'     
+        _p_start = POS.get(_base)
+        _p_top = POS.get(_top)    
+        _l_pos = get_posList_fromStartEnd(_p_start,_p_top,joints)        
+    
+    _len = len(_l_pos)
+    if _len > 1:    
+        _baseDist = DIST.get_distance_between_points(_l_pos[0],_l_pos[1])   
+        _radius = _baseDist/4
     
     #>>Create joints =================================================================================
     _ml_joints = []
@@ -269,11 +361,13 @@ def build_skeleton(joints = 1, curve=None):
     for i,mJnt in enumerate(_ml_joints[:-1]):
         if i > 0:
             mJnt.parent = _ml_joints[i-1]
-            
+            #...after our first object, we use our last object's up axis to be our new up vector.
+            #...this keeps joint chains that twist around from flipping. Ideally...
+            _axisWorldUp = MATH.get_obj_vector(_ml_joints[i-1].mNode,'y+')
         mDup = mJnt.doDuplicate(parentOnly = True)
         mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
         
-        SNAP.aim(mDup.mNode,_ml_joints[i+1].mNode,_axisAim,_axisUp,'world')
+        SNAP.aim(mDup.mNode,_ml_joints[i+1].mNode,_axisAim,_axisUp,'vector',_axisWorldUp)
         
         
         #_rot = mJnt.rotate
@@ -283,15 +377,41 @@ def build_skeleton(joints = 1, curve=None):
         mDup.delete()
         
     #>>Last joint....        
-    _ml_joints[-1].parent = _ml_joints[-2]
-    _ml_joints[-1].jointOrient = 0,0,0
+    if _len > 1:
+        _ml_joints[-1].parent = _ml_joints[-2]
+        _ml_joints[-1].jointOrient = 0,0,0
     #_ml_joints[-1].rotate = _ml_joints[-2].rotate
     #_ml_joints[-1].rotateAxis = _ml_joints[-2].rotateAxis
     
     #JOINTS.metaFreezeJointOrientation(_ml_joints)
     
     #>>Wiring and naming =================================================================================
+    """
+    ml_handles = []
+    ml_handleJoints = []
+    for i_obj in mi_go._ml_controlObjects:
+        if i_obj.hasAttr('handleJoint'):
+            #d_buffer = i_obj.handleJoint.d_jointFlags
+            #d_buffer['isHandle'] = True
+            #i_obj.handleJoint.d_jointFlags = d_buffer
+            ml_handleJoints.append(i_obj.handleJoint)
+
+    mi_go._mi_rigNull.msgList_connect(ml_handleJoints,'handleJoints','rigNull')
+    mi_go._mi_rigNull.msgList_connect(ml_moduleJoints,'skinJoints')     
+    """
     
+    
+    
+    
+    
+    _ml_joints[0].addAttr('cgmName','box')
+    
+    for i,mJnt in enumerate(_ml_joints):
+        mJnt.addAttr('cgmIterator',i)
+        mJnt.doName()
+        
+        
+    #>>HelperJoint setup???
 
             
             
