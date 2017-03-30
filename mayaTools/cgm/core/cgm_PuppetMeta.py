@@ -37,6 +37,7 @@ from cgm.core.lib import nameTools
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import PuppetFactory as pFactory
 from cgm.core.classes import NodeFactory as nodeF
+from cgm.core.lib import attribute_utils as ATTR
 from cgm.lib import (modules,
                      distance,
                      deformers,
@@ -56,13 +57,13 @@ class cgmPuppet(cgmMeta.cgmNode):
     #@cgmGeneral.Timer
     def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
         """Constructor"""
-	
+
         '''#>>>Keyword args
         puppet = kws.pop('puppet',None)
 
         #Need a simple return of
         puppets = pFactory.simplePuppetReturn()
-	
+
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Finding the network node and name info from the provided information
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>          
@@ -97,40 +98,40 @@ class cgmPuppet(cgmMeta.cgmNode):
         #if log.getEffectiveLevel() == 10:log.debug("Puppet is '%s'"%name)
         if puppet is None:puppetCreatedState = True
         else:puppetCreatedState = False'''
-	
+
         super(cgmPuppet, self).__init__(node = node, name = name, nodeType = 'network') 
-	
-	#====================================================================================	
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
-	    return
-	#====================================================================================
-	
+
+        #====================================================================================	
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
+            return
+        #====================================================================================
+
         #self.UNMANAGED.extend(['i_masterNull','_UTILS'])
-	for a in 'i_masterNull','_UTILS':
-	    if a not in self.UNMANAGED:
-		self.UNMANAGED.append(a) 	
-	self._UTILS = pFactory
+        for a in 'i_masterNull','_UTILS':
+            if a not in self.UNMANAGED:
+                self.UNMANAGED.append(a) 	
+        self._UTILS = pFactory
 
         #self.__justCreatedState__ = puppetCreatedState
 
         try:#>>> Puppet Network Initialization Procedure ==================       
-	    if self.isReferenced():# or initializeOnly:
-		pass
-		#if not self.initialize():
-		    #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
-		    #raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
-	    elif self.__justCreatedState__ or doVerify:
-		#if log.getEffectiveLevel() == 10:log.debug("Verifying...")
-		try:
-		    if not self.__verify__(name,**kws):
-			#log.critical("'%s' failed to __verify__!"%name)
-			raise StandardError,"'%s' failed to verify!"%name
-		except Exception,error:
-		    raise Exception,"%s >>> verify fail | error : %s"%(self.p_nameShort,error) 
-    
-	except Exception,error:raise Exception,"verify checks...| {0}".format(error)
+            if self.isReferenced():# or initializeOnly:
+                pass
+                #if not self.initialize():
+                    #log.warning("'%s' failed to initialize. Please go back to the non referenced file to repair!"%name)
+                    #raise StandardError,"'%s' failed to initialize. Please go back to the non referenced file to repair!"%name
+            elif self.__justCreatedState__ or doVerify:
+                #if log.getEffectiveLevel() == 10:log.debug("Verifying...")
+                try:
+                    if not self.__verify__(name,**kws):
+                        #log.critical("'%s' failed to __verify__!"%name)
+                        raise StandardError,"'%s' failed to verify!"%name
+                except Exception,error:
+                    raise Exception,"%s >>> verify fail | error : %s"%(self.p_nameShort,error) 
+
+        except Exception,error:raise Exception,"verify checks...| {0}".format(error)
 
     #====================================================================================
     #@cgmGeneral.Timer    
@@ -147,7 +148,7 @@ class cgmPuppet(cgmMeta.cgmNode):
             if not issubclass(type(self),cgmPuppet):
                 log.error("'%s' is not a puppet. It's mClass is '%s'"%(self.mNode, attributes.doGetAttr(self.mNode,'mClass')))
                 return False
-    
+
             return True
         except Exception,error:raise Exception,"self.initialize fail >> {0}".format(error)
 
@@ -423,7 +424,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         """
         kws['mPuppet'] = self			
         return pFactory.get_mirrorIndexDict(*args,**kws)
-	
+
     def state_set(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
@@ -431,7 +432,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         """
         kws['mPuppet'] = self	
         return pFactory.state_set(*args,**kws)
-	
+
     def get_nextMirrorIndex(self,*args,**kws):
         """
         """
@@ -472,7 +473,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         _str_funcName = "%s.animKey()"%self.p_nameShort  
         start = time.clock()
         b_return = None
-	_l_callSelection = mc.ls(sl=True) or []
+        _l_callSelection = mc.ls(sl=True) or []
         try:
             try:buffer = self.puppetSet.getList()
             except:buffer = []
@@ -482,7 +483,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 b_return =  True
             b_return = False
             log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
-	    if _l_callSelection:mc.select(_l_callSelection)                	    
+            if _l_callSelection:mc.select(_l_callSelection)                	    
             return b_return
         except Exception,error:
             log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
@@ -528,15 +529,15 @@ class cgmPuppet(cgmMeta.cgmNode):
     def templateSettings_call(self,*args,**kws):
         '''
         Call for doing multiple functions with templateSettings.
-	
-	:parameters:
+
+        :parameters:
             mode | string
-	        reset:reset controls
-		store:store data to modules
-		load:load data from modules
-		query:get current data
-		export:export to a pose file
-		import:import from a  pose file
+        reset:reset controls
+        store:store data to modules
+        load:load data from modules
+        query:get current data
+        export:export to a pose file
+        import:import from a  pose file
             filepath | string/None -- if None specified, user will be prompted
         '''
         kws['mPuppet'] = self			
@@ -595,9 +596,9 @@ class cgmPuppet(cgmMeta.cgmNode):
                           {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
                           ]
                 nodeF.build_mdNetwork(visArg)
-        except Exception,error:
-            log.error("_verifyMasterControl>> visNetwork fail! "%error)
-            raise StandardError,error 	
+        except Exception,err:
+            log.error("{0} >> visNetwork fail! {1}".format(_str_funcName,err))
+            raise StandardError,err 	
 
         # Settings setup
         # Setup the settings network
@@ -638,7 +639,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         if not self.masterNull.getMessage('skeletonGroup'):
             #Make it and link it
             i_grp = mi_masterControl.doDuplicateTransform()
-	    i_grp = cgmMeta.validateObjArg(i_grp,'cgmObject',setClass = True)
+            i_grp = cgmMeta.validateObjArg(i_grp,'cgmObject',setClass = True)
             i_grp.doRemove('cgmName')
             i_grp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
             i_grp.parent = mi_masterControl.mNode
@@ -660,7 +661,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         i_geoGroup.overrideEnabled = 1		
         cgmMeta.cgmAttr(i_settings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
         cgmMeta.cgmAttr(i_settings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))  
-        
+
         self.masterNull.worldSpaceObjectsGroup.parent = mi_masterControl
 
         return True
@@ -668,19 +669,19 @@ class cgmPuppet(cgmMeta.cgmNode):
 class cgmMorpheusPuppet(cgmPuppet):
     """
     def __init__(self, node = None, name = None, initializeOnly = False, *args,**kws):
-	cgmPuppet.__init__(self, node = node, name = name, initializeOnly = initializeOnly, *args,**kws)
+    cgmPuppet.__init__(self, node = node, name = name, initializeOnly = initializeOnly, *args,**kws)
         """
-    
+
     def get_customizationNetwork(self):
-	"""
-	Call to check message connections for a customization network
-	"""
-	for plug in mc.listConnections("{0}.message".format(self.mNode)):
-	    #log.info("Checking {0}".format(plug))
-	    if attributes.doGetAttr(plug,'mClass') == 'cgmMorpheusMakerNetwork':
-		return cgmMeta.asMeta(plug)
-	return False
-    
+        """
+        Call to check message connections for a customization network
+        """
+        for plug in mc.listConnections("{0}.message".format(self.mNode)):
+            #log.info("Checking {0}".format(plug))
+            if attributes.doGetAttr(plug,'mClass') == 'cgmMorpheusMakerNetwork':
+                return cgmMeta.asMeta(plug)
+        return False
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special objects
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
@@ -695,13 +696,13 @@ class cgmMasterNull(cgmMeta.cgmObject):
             node = name
 
         super(cgmMasterNull, self).__init__(node=node, name = name)
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================	
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================	
 
-	#====================================================================================
+        #====================================================================================
         if not self.isReferenced():   
             if self.__justCreatedState__ or doVerify:
                 if not self.__verify__(**kws):
@@ -721,7 +722,8 @@ class cgmMasterNull(cgmMeta.cgmObject):
             #if log.getEffectiveLevel() == 10:log.debug("Puppet provided!")
             #if log.getEffectiveLevel() == 10:log.debug(puppet.cgmName)
             #if log.getEffectiveLevel() == 10:log.debug(puppet.mNode)
-            self.doStore('cgmName',puppet.mNode+'.cgmName')
+            #self.doStore('cgmName',puppet.mNode+'.cgmName')
+            ATTR.copy_to(puppet.mNode,'cgmName',self.mNode,driven='target')
             self.addAttr('puppet',attrType = 'messageSimple')
             if not self.connectParentNode(puppet,'puppet','masterNull'):
                 raise StandardError,"Failed to connect masterNull to puppet network!"
@@ -742,7 +744,7 @@ class cgmMasterNull(cgmMeta.cgmObject):
     def __bindData__(self):
         pass
 
-class cgmInfoNode(cgmMeta.cgmNode):
+class cgmInfoNode2(cgmMeta.cgmNode):
     """"""
     def __init__(self,node = None, name = None, doVerify = False, *args,**kws):
         """Constructor"""
@@ -754,13 +756,13 @@ class cgmInfoNode(cgmMeta.cgmNode):
 
         #>>>Keyword args
         super(cgmInfoNode, self).__init__(node=node, name = name,*args,**kws)
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================	
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================	
 
-	#====================================================================================
+        #====================================================================================
         #if log.getEffectiveLevel() == 10:log.debug("puppet :%s"%puppet)
         if puppet:
             self.doStore('cgmName',puppet.mNode+'.cgmName')
@@ -808,13 +810,13 @@ class cgmMasterControl(cgmMeta.cgmObject):
         """Constructor"""				
         #>>>Keyword args
         super(cgmMasterControl, self).__init__(*args,**kws)
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================	
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================	
 
-	#====================================================================================
+        #====================================================================================
         #if log.getEffectiveLevel() == 10:log.debug(">>> cgmMasterControl.__init__")
         #if kws:log.debug("kws: %s"%str(kws))
         #if args:log.debug("args: %s"%str(args)) 	
@@ -832,7 +834,8 @@ class cgmMasterControl(cgmMeta.cgmObject):
             #if log.getEffectiveLevel() == 10:log.debug("Puppet provided!")
             #if log.getEffectiveLevel() == 10:log.debug(puppet.cgmName)
             #if log.getEffectiveLevel() == 10:log.debug(puppet.mNode)
-            self.doStore('cgmName',puppet.mNode+'.cgmName')
+            #self.doStore('cgmName',puppet.mNode+'.cgmName')
+            ATTR.copy_to(puppet.mNode,'cgmName',self.mNode,driven='target')
             self.addAttr('puppet',attrType = 'messageSimple')
             self.connectParentNode(puppet,'puppet','masterControl') 	
 
@@ -966,13 +969,13 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
 
         #>>> Keyword args
         super(cgmModuleBufferNode, self).__init__(node=node, name = name,*args,**kws)
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================	
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================	
 
-	#====================================================================================	
+        #====================================================================================	
         #if log.getEffectiveLevel() == 10:log.debug(">"*10 + " cgmModuleBufferNode.init.... " + "<"*10)
         #if log.getEffectiveLevel() == 10:log.debug(args)
         #if log.getEffectiveLevel() == 10:log.debug(kws)        
@@ -1059,14 +1062,14 @@ defaultSettings = {'partType':'none'}
 # Modules
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 moduleNulls_toMake = 'rig','template' #These will be created and connected to a module and parented under them    
-moduleBuffers_toMake = ['coreNames']
+#moduleBuffers_toMake = ['coreNames']
 
 rigNullAttrs_toMake = {'version':'string',#Attributes to be initialzed for any module
-                       'fk':'bool',
-                       'ik':'bool',
+                       #'fk':'bool',
+                       #'ik':'bool',
                        'gutsLock':'int',
                        'gutsVis':'int',                       
-                       'skinJoints':'message',
+                       #'skinJoints':'message',
                        'dynSwitch':'messageSimple'}
 
 templateNullAttrs_toMake = {'version':'string',
@@ -1115,19 +1118,20 @@ class cgmModule(cgmMeta.cgmObject):
         # Verify or Initialize
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
         super(cgmModule, self).__init__(*args,**kws) 
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	log.debug("cgmModule.__init__ ...")	
-	#====================================================================================	
-	#self.UNMANAGED.extend(['_UTILS','kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly', 'kw_handles','kw_rollJoints','kw_callNameTags'])	
-	for a in '_UTILS','kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_handles','kw_rollJoints','kw_callNameTags':
-	    if a not in self.UNMANAGED:
-		self.UNMANAGED.append(a)  		
-	self._UTILS = mFactory
 
-	#====================================================================================
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        log.debug("cgmModule.__init__ ...")	
+        #====================================================================================	
+        #self.UNMANAGED.extend(['_UTILS','kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly', 'kw_handles','kw_rollJoints','kw_callNameTags'])	
+        for a in '_UTILS','kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_handles','kw_rollJoints','kw_callNameTags':
+            if a not in self.UNMANAGED:
+                self.UNMANAGED.append(a)  		
+        self._UTILS = mFactory
+
+        #====================================================================================
         #Keywords - need to set after the super call
         #==============         
         doVerify = kws.get('doVerify') or False
@@ -1214,7 +1218,7 @@ class cgmModule(cgmMeta.cgmObject):
 
         #Attributes
         #==============  
-        self.addAttr('moduleType',initialValue = 'segment',lock=True)
+        self.addAttr('moduleType',initialValue = 'base',lock=True)
 
         self.addAttr('moduleParent',attrType='messageSimple')#Changed to message for now till Mark decides if we can use single
         self.addAttr('modulePuppet',attrType='messageSimple')
@@ -1226,7 +1230,7 @@ class cgmModule(cgmMeta.cgmObject):
         self.addAttr('rigNull',attrType='messageSimple',lock=True)
         self.addAttr('templateNull',attrType='messageSimple',lock=True)
         self.addAttr('deformNull',attrType='messageSimple',lock=True)	
-        self.addAttr('coreNames',attrType='messageSimple',lock=True)
+        #self.addAttr('coreNames',attrType='messageSimple',lock=True)
 
         #if log.getEffectiveLevel() == 10:log.debug("Module null good...")
         #>>> Rig/Template Nulls ==================   
@@ -1253,7 +1257,7 @@ class cgmModule(cgmMeta.cgmObject):
 
             attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
 
-        for attr in moduleBuffers_toMake:
+        """for attr in moduleBuffers_toMake:
             obj = attributes.returnMessageObject(self.mNode,attr)# Find the object
             Attr = 'i_' + attr#Get a better attribute store string           
             if mc.objExists( obj ):
@@ -1264,7 +1268,7 @@ class cgmModule(cgmMeta.cgmObject):
                     return False               
             else:#Make it
                 self.__dict__[Attr]= cgmModuleBufferNode(module = self, name = attr, bufferType = attr, overideMessageCheck = True)#Create and initialize
-            self.__dict__[Attr].__verify__()
+            self.__dict__[Attr].__verify__()"""
 
         #Attrbute checking
         #=================
@@ -1448,7 +1452,7 @@ class cgmModule(cgmMeta.cgmObject):
         """
         kws['mModule'] = self	
         return mFactory.template_update(*args,**kws) 
-    
+
     def templateSettings_call(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
@@ -1456,7 +1460,7 @@ class cgmModule(cgmMeta.cgmObject):
         """
         kws['mModule'] = self	
         return mFactory.templateSettings_call(*args,**kws) 
-    
+
     def doTemplate(self,*args,**kws):
         """
         from cgm.core.rigger import ModuleFactory as mFactory
@@ -1472,7 +1476,7 @@ class cgmModule(cgmMeta.cgmObject):
         """
         kws['mModule'] = self	
         return mFactory.deleteTemplate(*args,**kws) 
- 
+
 
     #>>> Skeletonize
     #===========================================================  
@@ -1605,16 +1609,16 @@ class cgmModule(cgmMeta.cgmObject):
     #========================================================================
     def animKey(self,**kws):
         try:
-	    
-	    _result = False
-	    _l_callSelection = mc.ls(sl=True) or []
-	    
+
+            _result = False
+            _l_callSelection = mc.ls(sl=True) or []
+
             buffer = self.rigNull.moduleSet.getList()
             if buffer:
                 mc.select(buffer)
                 mc.setKeyframe(**kws)
                 _result = True
-	    if _l_callSelection:mc.select(_l_callSelection)
+            if _l_callSelection:mc.select(_l_callSelection)
             return _result
         except Exception,error:
             log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
@@ -1794,11 +1798,11 @@ class cgmLimb(cgmModule):
             kws['name'] = kws['mType']
 
         super(cgmLimb, self).__init__(*args,**kws) 
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================
 
     def __verify__(self,**kws):
         cgmModule.__verify__(self,**kws)
@@ -1831,7 +1835,7 @@ class cgmLimb(cgmModule):
                 self.templateNull.addAttr(attr, initialValue = settings[attr],lock = True) 
 
         return True
-    
+
 #>>> SimpleFace  =====================================================================================================
 d_simpleFace_rigNullAttrs_toMake = {'gui_main':'messageSimple',
                                     'gui_cam':'messageSimple',
@@ -1850,30 +1854,30 @@ d_simpleFace_templateNullAttrs_toMake = {'rigBlock_eye_left':'messageSimple',
 
 class cgmSimpleBSFace(cgmModule):
     def __init__(self,*args,**kws):
-	""" 
-	Intializes an simpleFace master class handler
-	"""
-	_str_funcName = "cgmSimpleBSFace.__init__"    
-	if 'name' not in kws.keys() and 'mType' in kws.keys():
-	    kws['name'] = kws['mType']
-	    
-	super(cgmSimpleBSFace, self).__init__(*args,**kws) 
-	
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================
-	
+        """ 
+        Intializes an simpleFace master class handler
+        """
+        _str_funcName = "cgmSimpleBSFace.__init__"    
+        if 'name' not in kws.keys() and 'mType' in kws.keys():
+            kws['name'] = kws['mType']
+
+        super(cgmSimpleBSFace, self).__init__(*args,**kws) 
+
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================
+
     def __verify__(self,**kws):
-	cgmModule.__verify__(self,**kws)
+        cgmModule.__verify__(self,**kws)
 
-	self.moduleType = 'simpleFace'
+        self.moduleType = 'simpleFace'
 
-	#>>> Attributes ...
-	self.__verifyAttributesOn__(self.rigNull,d_simpleFace_rigNullAttrs_toMake)
-	self.__verifyAttributesOn__(self.templateNull,d_simpleFace_templateNullAttrs_toMake)
-	return True
+        #>>> Attributes ...
+        self.__verifyAttributesOn__(self.rigNull,d_simpleFace_rigNullAttrs_toMake)
+        self.__verifyAttributesOn__(self.templateNull,d_simpleFace_templateNullAttrs_toMake)
+        return True
 
 #>>> Eyeball =====================================================================================================
 d_eyeball_rigNullAttrs_toMake = {'irisControl':'bool',#Whether we should have a iris setup
@@ -1911,14 +1915,14 @@ class cgmEyeball(cgmModule):
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
         super(cgmEyeball, self).__init__(*args,**kws) 
-	
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================	
 
-	#====================================================================================
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================	
+
+        #====================================================================================
     def __verify__(self,**kws):
         cgmModule.__verify__(self,**kws)
         moduleType = kws.pop('mType','eyeball')	
@@ -1968,13 +1972,13 @@ class cgmEyelids(cgmModule):
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
         super(cgmEyelids, self).__init__(*args,**kws) 
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================	
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================	
 
-	#====================================================================================
+        #====================================================================================
     def __verify__(self,**kws):
         cgmModule.__verify__(self,**kws)
         moduleType = kws.pop('mType','eyelids')	
@@ -2024,11 +2028,11 @@ class cgmEyebrow(cgmModule):
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
         super(cgmEyebrow, self).__init__(*args,**kws) 
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================
     def __verify__(self,**kws):
         cgmModule.__verify__(self,**kws)
 
@@ -2060,7 +2064,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #These lists should be set up per rigblock as a way to get controls from message links
     _l_controlLinks = []
     _l_controlmsgLists = []
-    
+
     def __init__(self,*args,**kws):
         """ 
         The root of the idea of cgmRigBlock is to be a sizing mechanism and build options for
@@ -2072,29 +2076,29 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         """
         _str_funcName = "cgmRigBlock.__init__"   
-	log.debug("{0}...".format(_str_funcName))		
+        log.debug("{0}...".format(_str_funcName))		
         #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
         #if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
         #if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args)))    
 
         #>>Verify or Initialize
         super(cgmRigBlock, self).__init__(*args,**kws) 
-	log.debug("{0} cache check...".format(_str_funcName))			
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	log.debug("{0} cache check fail...".format(_str_funcName))		
-	
-	#====================================================================================
+        log.debug("{0} cache check...".format(_str_funcName))			
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        log.debug("{0} cache check fail...".format(_str_funcName))		
+
+        #====================================================================================
         #Keywords - need to set after the super call
         #==============         
         __doVerify__ = kws.get('doVerify') or False
 
-	#self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags'])	
-	for a in 'kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags':
-	    if a not in self.UNMANAGED:
-		self.UNMANAGED.append(a) 	
+        #self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags'])	
+        for a in 'kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags':
+            if a not in self.UNMANAGED:
+                self.UNMANAGED.append(a) 	
         self.kw_name= kws.get('name',False)        
         self.kw_moduleParent = kws.get('moduleParent',False)
         self.kw_forceNew = kws.get('forceNew',False)
@@ -2107,7 +2111,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #>>> Initialization Procedure ================== 
         if not self.isReferenced():
             if self.__justCreatedState__ or __doVerify__:	
-		log.debug("{0} verify...".format(_str_funcName))				
+                log.debug("{0} verify...".format(_str_funcName))				
                 if not self.__verify__(**kws):
                     log.critical("'%s' failed to verify!"%self.mNode)
                     raise StandardError,"'%s' failed to verify!"%self.mNode 
@@ -2197,33 +2201,33 @@ class cgmRigBlock(cgmMeta.cgmControl):
         Function which MUST be overloaded
         """	
         #>>> Gather basic info for module build
-	_str_func = "{0}.get_controls() >> ".format(self.p_nameShort)
-	if asMeta:
-	    _result = [self]
-	else:
-	    _result = [self.mNode]
-	for plug in self.__class__._l_controlLinks:
-	    if asMeta:
-		_buffer = self.getMessageAsMeta(plug)
-		if _buffer:
-		    _result.append(_buffer)
-	    else:
-		_buffer = self.getMessage(plug)
-		if _buffer:
-		    _result.extend(_buffer)
-		else:
-		    log.error("{2} Failed to find message on: {0}.{1}".format(self.p_nameShort,plug,_str_func))
-	if not self.__class__._l_controlmsgLists:
-	    log.debug("{0} No msgList attrs registered".format(_str_func))
-	else:
-	    for plug in self.__class__._l_controlmsgLists:
-		_buffer = self.msgList_get(plug, asMeta = asMeta)
-		if _buffer:
-		    _result.extend(_buffer)
-		else:
-		    log.error("{2} Failed to find msgList on: {0}.{1}".format(self.p_nameShort,plug,_str_func))	    
-	return _result
-    
+        _str_func = "{0}.get_controls() >> ".format(self.p_nameShort)
+        if asMeta:
+            _result = [self]
+        else:
+            _result = [self.mNode]
+        for plug in self.__class__._l_controlLinks:
+            if asMeta:
+                _buffer = self.getMessageAsMeta(plug)
+                if _buffer:
+                    _result.append(_buffer)
+            else:
+                _buffer = self.getMessage(plug)
+                if _buffer:
+                    _result.extend(_buffer)
+                else:
+                    log.error("{2} Failed to find message on: {0}.{1}".format(self.p_nameShort,plug,_str_func))
+        if not self.__class__._l_controlmsgLists:
+            log.debug("{0} No msgList attrs registered".format(_str_func))
+        else:
+            for plug in self.__class__._l_controlmsgLists:
+                _buffer = self.msgList_get(plug, asMeta = asMeta)
+                if _buffer:
+                    _result.extend(_buffer)
+                else:
+                    log.error("{2} Failed to find msgList on: {0}.{1}".format(self.p_nameShort,plug,_str_func))	    
+        return _result
+
     def __buildSimplePuppet__(self):
         """
         Build a simple puppet for itself
@@ -2266,11 +2270,11 @@ class cgmEyeballBlock(cgmRigBlock):
                          'uprLidJoints':5,'lwrLidJoints':5}
     d_helperSettings = {'iris':{'plug':'irisHelper','check':'buildIris'},
                         'pupil':{'plug':'pupilHelper','check':'buildIris'}}
-    
+
     #These lists should be set up per rigblock as a way to get controls from message links
     _l_controlLinks = ['pupilHelper','irisHelper','uprLidHelper','lwrLidHelper']
     _l_controlmsgLists = []
-    
+
     def __init__(self,*args,**kws):
         """ 
         """
@@ -2282,11 +2286,11 @@ class cgmEyeballBlock(cgmRigBlock):
         if 'name' not in kws.keys():
             kws['name'] = 'eye'  
         super(cgmEyeballBlock, self).__init__(*args,**kws) 
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================
     def __verify__(self,**kws):
         _str_funcName = "cgmEyeballBlock.__verify__(%s)"%self.p_nameShort    
         #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
@@ -2351,7 +2355,7 @@ class cgmEyeballBlock(cgmRigBlock):
         md_curves = {}
         for k in l_buildOrder:
             str_return = d_buildCurves.get(k)
-	    mi_obj = cgmMeta.asMeta(str_return,'cgmObject',setClass = True)
+            mi_obj = cgmMeta.asMeta(str_return,'cgmObject',setClass = True)
             mi_obj.addAttr('cgmName',k)#tag
             mi_obj.addAttr('cgmType',value = 'rigHelper',lock=True)		    
             curves.setCurveColorByName(mi_obj.mNode,self.color[0])#Set the color	    			
@@ -2457,7 +2461,7 @@ class cgmEyeballBlock(cgmRigBlock):
 
             mi_pupilMirror.ty = self.pupilHelper.ty
             mi_pupilMirror.tz = self.pupilHelper.tz
-	    mi_pupilMirror.sy = self.pupilHelper.sy
+            mi_pupilMirror.sy = self.pupilHelper.sy
         except Exception,error:raise StandardError,"[{0} - iris/pupil] | error: {1} ".format(_str_funcName,error)
 
         try:
@@ -2624,11 +2628,11 @@ class cgmEyebrowBlock(cgmRigBlock):
         if 'name' not in kws.keys():
             kws['name'] = 'brow'  
         super(cgmEyebrowBlock, self).__init__(*args,**kws) 
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================
     def __verify__(self,**kws):
         _str_funcName = "cgmEyebrowBlock.__verify__(%s)"%self.p_nameShort    
         #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
@@ -2819,11 +2823,11 @@ class cgmMouthNose(cgmModule):
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
         super(cgmMouthNose, self).__init__(*args,**kws) 
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================
     def __verify__(self,*args,**kws):
         cgmModule.__verify__(self,*args,**kws)
         self.moduleType = 'mouthNose'
@@ -2899,16 +2903,16 @@ class cgmMouthNoseBlock(cgmRigBlock):
     def __init__(self,*args,**kws):
         """ 
         """
-	log.debug("cgmMouthNoseBlock.__init__...")
+        log.debug("cgmMouthNoseBlock.__init__...")
         if not kws:kws = {}
         if 'name' not in kws.keys():
             kws['name'] = 'mouthNose'  
         super(cgmMouthNoseBlock, self).__init__(*args,**kws) 
-	#>>> TO USE Cached instance ---------------------------------------------------------
-	if self.cached:
-	    #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
-	    return
-	#====================================================================================
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            #log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
+            return
+        #====================================================================================
     def __verify__(self,*args,**kws):
         cgmRigBlock.__verify__(self,*args,**kws)
 

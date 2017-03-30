@@ -1941,9 +1941,9 @@ def get_driven(node, attr = None, getNode = False, skipConversionNodes = False, 
         if not objectBuffer:
             return False
         if longNames:	
-            return NAMES.get_long(objectBuffer[0])
+            return [NAMES.get_long(o) for o in objectBuffer]
         else:
-            return NAMES.get_short(objectBuffer[0])      
+            return [NAMES.get_short(o) for o in objectBuffer]     
     else:
         if (mc.connectionInfo (_combined,isSource=True)) == True:
             destinationBuffer = mc.listConnections (_combined, scn = skipConversionNodes, d = True, s = False, plugs = True)

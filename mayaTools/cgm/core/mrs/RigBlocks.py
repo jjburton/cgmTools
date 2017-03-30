@@ -33,7 +33,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 
 from cgm.core.lib import curve_Utils as CURVES
-from cgm.core.lib import attribute_utils as ATTRS
+from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
@@ -71,8 +71,12 @@ class factory(object):
     def __init__(self, root = None, *a,**kws):
         """
         Core rig block factory. Runs processes for rig blocks.
-        
-        
+            
+        :parameters:
+            root(str) | root object to check for wiring
+    
+        :returns
+            factory instance
         """
         _str_func = 'factory._init_'
         
@@ -84,8 +88,8 @@ class factory(object):
         
         self._mi_root = None
         
-        _verify = kws.get('verify',False)
-        log.debug("|{0}| >> verify: {1}".format(_str_func,_verify))
+        #_verify = kws.get('verify',False)
+        #log.debug("|{0}| >> verify: {1}".format(_str_func,_verify))
         
         if root is not None:
             self.rigBlock_set(root)
@@ -100,6 +104,13 @@ class factory(object):
     
     def get_attrCreateDict(self,blockType = None):
         """
+        Data checker to see the create attr dict for a given blockType regardless of what's loaded
+            
+        :parameters:
+            blockType(str) | rigBlock type
+    
+        :returns
+            dict
         """
         _str_func = 'get_attrCreateDict'
         
@@ -142,6 +153,15 @@ class factory(object):
        
     
     def rigBlock_verify(self, blockType = None):
+        """
+        Verify a given loaded root object as a given blockType
+            
+        :parameters:
+            blockType(str) | rigBlock type
+    
+        :returns
+            success(bool)
+        """        
         _str_func = 'rigBlock_verify'
         
         if self._mi_root is None:
@@ -156,14 +176,13 @@ class factory(object):
             raise ValueError, "|{0}| >> Failed to get attr dict".format(_str_func,blockType)
         
         #Need to get the type, the get the attribute lists and data from the module
-        #...attributes
         
         _mRoot.verifyAttrDict(self._d_attrsToVerify,keyable = False, hidden = False)
         _mRoot.addAttr('blockType', value = blockType,lock=True)	
         
         
         for k,v in self._d_attrToVerifyDefaults.iteritems():
-            try:ATTRS.set(_mRoot.mNode,k,v)
+            try:ATTR.set(_mRoot.mNode,k,v)
             except Exception,err:
                 log.error("|{0}| >> Failed to set default value. || key: {1} | value: {2} ||| err: {3}".format(_str_func,k,v,err))                
             
@@ -184,16 +203,12 @@ class factory(object):
         #==============  
         for k in self.kw_callNameTags.keys():
             if self.kw_callNameTags.get(k):
-                #if log.getEffectiveLevel() == 10:log.debug(k + " : " + str(self.kw_callNameTags.get(k)))                
                 self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
-                #if log.getEffectiveLevel() == 10:log.debug(str(self.getNameDict()))
-                #if log.getEffectiveLevel() == 10:log.debug(self.__dict__[k])
     
     
         #Attrbute checking
         #=================
         self.verifyAttrDict(d_rigBlockAttrs_toMake,keyable = False, hidden = False)
-        #if log.getEffectiveLevel() == 10:log.debug("%s.__verify__ >>> kw_callNameTags: %s"%(self.p_nameShort,self.kw_callNameTags))	    	
         d_enumToCGMTag = {'cgmDirection':'direction','cgmPosition':'position'}
         for k in d_enumToCGMTag.keys():
             if k in self.kw_callNameTags.keys():
@@ -204,10 +219,22 @@ class factory(object):
     
         return True        
         
-    
     def rigBlock_set(self,root=None):
+        """
+        Set the active rigBlock to our factory
+            
+        :parameters:
+            root(str) | node to set as our rigBlock
+    
+        :returns
+            success(bool)
+        """            
         _str_func = 'rigBlock_set'
         log.debug("|{0}| >> root kw: {1}".format(_str_func,root))
+        self._mi_root = False
+        self._mi_module = False
+        self._mi_puppet = False   
+        
         if root is None:
             return False
         
@@ -215,33 +242,75 @@ class factory(object):
         log.debug("|{0}| >> mInstance: {1}".format(_str_func,self._mi_root))
         pass
     
-    def skeletonize(self):
+    def skeletonize(self,forceNew = False):
+        """
+        Create a the base joints of a rigBlock
+            
+        :parameters:
+            forceNew(bool) | whether to rebuild on call or not
+    
+        :returns
+            joints(mList)
+        """           
+        _str_func = 'skeletonize'
+        
+        if self._mi_root is None:
+            raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
+        
+        #If check for module,puppet
+        if not self._mi_module:
+            self.module_verify()
+        if not self._mi_puppet:
+            self.puppet_verify()
+            
+        #If skeletons there, delete?
+        #Get positions
+        
+        
         #Build skeleton
+        
+        
         #Wire and name
         pass
     
     def module_verify(self):
+        """
+        Verify a loaded rigBlock's module or create if necessary
+            
+        :returns
+            moduleInstance(cgmModule)
+        """           
         _str_func = 'module_verify'
+        self._mi_module = False
         
         if self._mi_root is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
         _mRoot = self._mi_root        
         
         _bfr = _mRoot.getMessage('moduleTarget')
+        _kws = self.module_getBuildKWS()
+        
         if _bfr:
             log.debug("|{0}| >> moduleTarget found: {1}".format(_str_func,_bfr))            
             mModule = cgmMeta.validateObjArg(_bfr,'cgmObject')
         else:
             log.debug("|{0}| >> Creating moduleTarget...".format(_str_func))   
-            _kws = self.module_getBuildKWS()
             mModule = PUPPETMETA.cgmModule(**_kws)
             
-        ATTRS.set_message(_mRoot.mNode, 'moduleTarget', mModule.mNode,simple = True)
-        ATTRS.set_message(mModule.mNode, 'rigHelper', _mRoot.mNode,simple = True)
+        ATTR.set_message(_mRoot.mNode, 'moduleTarget', mModule.mNode,simple = True)
+        ATTR.set_message(mModule.mNode, 'rigHelper', _mRoot.mNode,simple = True)
         
+        ATTR.set(mModule.mNode,'moduleType',_kws['name'],lock=True)
+        self._mi_module = mModule
         return mModule
     
     def module_getBuildKWS(self):
+        """
+        Get expected build kws for a new module
+            
+        :returns
+            dict
+        """            
         _str_func = 'module_getBuildKWS'
         
         if self._mi_root is None:
@@ -266,7 +335,15 @@ class factory(object):
         return d_kws
     
     def puppet_verify(self):
+        """
+        Verify a loaded rigBlock's puppet or create if necessary
+            
+        :returns
+            puppetInstance(cgmPuppet)
+        """            
         _str_func = 'puppet_verify'
+        self._mi_puppet = False
+        
         if self._mi_root is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
         _mRoot = self._mi_root     
@@ -274,9 +351,13 @@ class factory(object):
         mi_module = _mRoot.moduleTarget
         if not mi_module:
             mi_module = self.module_verify()
-            
-        if mi_module.getMessage('modulePuppet'):
-            return False
+        
+        _bfr = mi_module.getMessage('modulePuppet')
+        if _bfr:
+            log.debug("|{0}| >> modulePuppet found: {1}".format(_str_func,_bfr))                        
+            mi_puppet = mi_module.modulePuppet
+            self._mi_puppet = mi_puppet
+            return mi_puppet            
     
         mi_puppet = PUPPETMETA.cgmPuppet(name = mi_module.getNameAlias())
         
@@ -286,6 +367,7 @@ class factory(object):
             mi_puppet.connectModule(mi_module.moduleMirror)
         
         mi_puppet.gatherModules()#Gather any modules in the chain
+        self._mi_puppet = mi_puppet
         return mi_puppet        
         
     

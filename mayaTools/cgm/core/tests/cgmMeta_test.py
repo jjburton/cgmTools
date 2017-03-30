@@ -1436,8 +1436,8 @@ def ut_cgmPuppet(*args, **kws):
                 assert Module1.i_rigNull.hasAttr('cgmType')
 
                 assert Module1.i_rigNull.cgmType == 'rigNull','%s'%Module1.i_rigNull.cgmType
-                assert Module1.i_rigNull.ik == False
-                assert Module1.i_rigNull.fk == False
+                #assert Module1.i_rigNull.ik == False
+                #assert Module1.i_rigNull.fk == False
 
                 assert Module1.i_rigNull.mNode == Module1.rigNull.mNode
             except Exception,error:raise Exception,"[rigNull and compare]{%s}"%error
@@ -1450,11 +1450,11 @@ def ut_cgmPuppet(*args, **kws):
                 assert Module1.i_templateNull.handles == 3,'%s'%Module1.i_templateNull.handles
             except Exception,error:raise Exception,"[templateNull]{%s}"%error
 
-            try:#Assertions on the coreNames bufferNode
+            """try:#Assertions on the coreNames bufferNode
                 #----------------------------------------------------------
                 #self.log_info('>'*3 + " Assertions on the coreNames bufferNode...") 
                 assert Module1.coreNames.mClass == 'cgmModuleBufferNode'
-            except Exception,error:raise Exception,"[coreNames]{%s}"%error
+            except Exception,error:raise Exception,"[coreNames]{%s}"%error"""
 
             try:#Connect Modules
                 #----------------------------------------------------------
