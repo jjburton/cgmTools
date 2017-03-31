@@ -281,7 +281,7 @@ def gatherModules(*args,**kws):
                 _str_module = mModule.p_nameShort
                 self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)		    				    				
                 try:self._mi_puppet.connectModule(mModule,**kws)
-                except Exception,error:raise Exception,"[mModule : %s]{%s}"%(_str_module,error)	
+                except Exception,error:log.error("[mModule : %s]{%s}"%(_str_module,error))	
     return fncWrap(*args,**kws).go()
 
 def getModuleFromDict(*args,**kws):

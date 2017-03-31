@@ -149,9 +149,77 @@ class factory(object):
             #print k
         
         return True
-        
-       
     
+    def get_skeletonCreateDict(self,blockType = None):
+            """
+            Data checker to see the skeleton create dict for a given blockType regardless of what's loaded
+                
+            :parameters:
+                blockType(str) | rigBlock type
+        
+            :returns
+                dict
+            """
+            _str_func = 'get_skeletonCreateDict'
+            
+            _mod = _d_blockTypes.get(blockType,False)
+            if not _mod:
+                log.warning("|{0}| >> No module found for: {1}".format(_str_func,blockType))
+                return False       
+                    
+            if self._mi_root is None:
+                raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
+            
+            _root = self._mi_root.mNode
+            
+            #Validate mode data -------------------------------------------------------------------------
+            try:_d_skeletonSetup = _mod.d_skeletonSetup
+            except:_d_skeletonSetup = {}
+            
+            _mode = _d_skeletonSetup.get('mode',False)
+            _targetsMode = _d_skeletonSetup.get('targetsMode','msgList')
+            _targetsCall = _d_skeletonSetup.get('targets',False)
+            _l_targets = []
+            
+            log.debug("|{0}| >> mode: {1} | targetsMode: {2} | targetsCall: {3}".format(_str_func,_mode,_targetsMode,_targetsCall))
+            
+            #...get our targets
+            if _targetsMode == 'msgList':
+                _l_targets = ATTR.msgList_get(_root, _targetsCall)
+            else:
+                raise ValueError,"targetsMode: {0} is not implemented".format(_targetsMode)
+            
+            log.debug("|{0}| >> Targets: {1}".format(_str_func,_l_targets))            
+            
+            _helperOrient = ATTR.get_message(_root,'helperOrient')
+            if not _helperOrient:
+                log.debug("|{0}| >> No helper orient. Using root.".format(_str_func))   
+                _axisWorldUp = MATH.get_obj_vector(_root,'y+')                 
+            else:
+                log.debug("|{0}| >> helperOrient: {1}".format(_str_func,_helperOrient))            
+                _axisWorldUp = MATH.get_obj_vector(_helperOrient[0],'y+') 
+            log.debug("|{0}| >> axisWorldUp: {1}".format(_str_func,_axisWorldUp))  
+            
+            _joints = ATTR.get(_root,'joints')
+            
+            
+            #...get our positional data
+            if _mode == 'vectorCast':
+                _p_start = POS.get(_l_targets[0])
+                _p_top = POS.get(_l_targets[1])    
+                _l_pos = get_posList_fromStartEnd(_p_start,_p_top,_joints)   
+          
+            else:
+                raise ValueError,"mode: {0} is not implemented".format(_mode)                
+            
+            _d_res = {'positions':_l_pos,
+                      'jointCount':_joints,
+                      'helpers':{'orient':_helperOrient,
+                                 'targets':_l_targets},
+                      'worldUpAxis':_axisWorldUp}
+            cgmGEN.log_info_dict(_d_res,_str_func)
+            return _d_res
+
     def rigBlock_verify(self, blockType = None):
         """
         Verify a given loaded root object as a given blockType
@@ -253,25 +321,44 @@ class factory(object):
             joints(mList)
         """           
         _str_func = 'skeletonize'
-        
-        if self._mi_root is None:
-            raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
-        
+        _blockType = self._mi_root.blockType
+        #Get positions
+        _d_create = self.get_skeletonCreateDict(_blockType)
+
         #If check for module,puppet
         if not self._mi_module:
             self.module_verify()
         if not self._mi_puppet:
             self.puppet_verify()
-            
-        #If skeletons there, delete?
-        #Get positions
         
+        #If skeletons there, delete?    
+        _bfr = self._mi_module.rigNull.msgList_get('skinJoints')
+        if _bfr:
+            log.debug("|{0}| >> Joints detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr
         
         #Build skeleton
+        _ml_joints = build_skeleton(_d_create['positions'],worldUpAxis=_d_create['worldUpAxis'])
         
         
-        #Wire and name
-        pass
+        #Wire and name        
+        self._mi_module.rigNull.msgList_connect(_ml_joints,'skinJoints')
+        self._mi_module.rigNull.msgList_connect(_ml_joints,'moduleJoints')
+        
+        
+        #...need to do this better...
+        #>>>HANDLES,CORENAMES
+        _ml_joints[0].addAttr('cgmName',_blockType)
+        for i,mJnt in enumerate(_ml_joints):
+            mJnt.addAttr('cgmIterator',i)
+            mJnt.doName()
+        
+        return _ml_joints
+
     
     def module_verify(self):
         """
@@ -397,29 +484,17 @@ def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
         _radius = _split/4    
     return _l_pos
     
-def build_skeleton(joints = 1, curve=None):
+def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+', worldUpAxis = [0,1,0],asMeta = True):
     _str_func = 'build_skeleton'
     
-
-    _axisAim = 'z+'
-    _axisUp = 'y+'
-    _worldUp = 'orient_crv'
-    _radius = 1
-    
-    _axisWorldUp = MATH.get_obj_vector(_worldUp,'y+')
+    _axisAim = axisAim
+    _axisUp = axisUp
+    _axisWorldUp = worldUpAxis
+    _l_pos = positionList
+    _radius = 1    
     mc.select(cl=True)
     
     #>>Get positions ================================================================================
-    if curve is not None:
-        _l_pos = CURVES.returnSplitCurveList(curve,joints,rebuildSpans=10)
-        
-    else:
-        _base = 'joint_base_placer'
-        _top = 'joint_top_placer'     
-        _p_start = POS.get(_base)
-        _p_top = POS.get(_top)    
-        _l_pos = get_posList_fromStartEnd(_p_start,_p_top,joints)        
-    
     _len = len(_l_pos)
     if _len > 1:    
         _baseDist = DIST.get_distance_between_points(_l_pos[0],_l_pos[1])   
@@ -466,7 +541,9 @@ def build_skeleton(joints = 1, curve=None):
     #_ml_joints[-1].rotateAxis = _ml_joints[-2].rotateAxis
     
     #JOINTS.metaFreezeJointOrientation(_ml_joints)
-    
+    if asMeta:
+        return _ml_joints
+    return [mJnt.mNode for mJnt in _ml_joints]
     #>>Wiring and naming =================================================================================
     """
     ml_handles = []

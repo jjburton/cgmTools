@@ -31,6 +31,9 @@ from Red9.core import Red9_Meta as r9Meta
 #>>>Block data
 __version__ = 'alpha.03232017'
 
+d_skeletonSetup = {'mode':'vectorCast',
+                   'targetsMode':'msgList',
+                   'targets':'jointPlacers'}
 
 d_attrsToMake = {'joints':'int',
                  'proxyType':'none:castMesh',
