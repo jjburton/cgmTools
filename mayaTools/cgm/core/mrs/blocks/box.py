@@ -39,7 +39,8 @@ d_attrsToMake = {'joints':'int',
                  'proxyType':'none:castMesh',
                  'buildBank':'bool'} 
 
-d_defaultSettings = {'version':__version__,'joints':1,
+d_defaultSettings = {'version':__version__,
+                     'joints':1,
                      'blockType':__name__.split('.')[-1],
                      'buildBank':True,'direction':'center',
                      'proxyType':'castMesh'}
@@ -50,7 +51,8 @@ d_defaultSettings = {'version':__version__,'joints':1,
 #These lists should be set up per rigblock as a way to get controls from message links
 #auto validate controlLinks as messageSimple attrs
 _l_controlLinks = ['helperBase','helperTop','helperOrient']
-_l_controlmsgLists = ['helperJoints']
+_l_controlmsgLists = ['jointPlacers','loftTargets']
+#_l_proxyLoftLinks = ['helperBase','helperTop']#...each of these in turn must have a loftCurve link
 
 
 #>>> Skeleton
@@ -59,6 +61,10 @@ __l_jointAttrs__ = ['rigJoints','influenceJoints','fkJoints','ikJoints','blendJo
 __d_preferredAngles__ = {'shoulder':[0,-10,10],'elbow':[0,-10,0]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
 __d_controlShapes__ = {'shape':['segmentIK','controlsFK','midIK','settings','hand']}
 
+
+def is_valid(root = None):
+    return True
+    raise Exception,'test'
 
 def build_joints(root=None,module=None):
     """
