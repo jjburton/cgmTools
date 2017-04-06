@@ -447,7 +447,44 @@ class factory(object):
 
         return _ml_joints
 
-    def create_proxyMesh(self,mode=''):
+    def create_mesh(self,mode='simple',castMesh = None):
+        """
+        Create mesh from our module..
+
+        :parameters:
+            mode(string) | kind of mesh to cast
+                simple
+                recast
+                jointProxy
+
+        :returns
+            mesh(str)
+        """          
+        _str_func = 'create_mesh'
+        
+        _mode = mode
+        _castMesh = castMesh
+        
+        if self._mi_root is None:
+            raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
+        _root = self._mi_root.mNode    
+                
+        _joints = ATTR.get(_root,'joints')
+        
+        log.debug("|{0}| >> mode: {1} | count: {2} | ".format(_str_func,_mode,_joints))
+        
+        if _mode == 'simple':
+            return build_loftMesh(_root,_joints)
+        elif _mode in ['jointProxy','recast']:
+            if not self._mi_module:
+                raise ValueError,"|{0}| >> Module necessary for mode: {1}.".format(_str_func,_mode)
+            pass
+        else:
+            raise NotImplementedError,"|{0}| >> mode not implemented: {1}".format(_str_func,_mode)
+        
+
+        
+        
         #Get our cast curves
         pass
 
@@ -665,10 +702,9 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
     #>>HelperJoint setup???
     
     
-def build_loft(root, jointCount = 3, degree = 3):
+def build_loftMesh(root, jointCount = 3, degree = 3):
     _str_func = 'build_loft'
     
-    #_root = 'box_root_crv'
     _l_targets = ATTR.msgList_get(root,'loftTargets')
     
     
@@ -676,9 +712,11 @@ def build_loft(root, jointCount = 3, degree = 3):
     log.debug("|{0}| >> loftTargets: {1}".format(_str_func,_l_targets))
     
     #tess method - general, uType 1, vType 2+ joint count
-    _res = mc.loft(_l_targets, o = True, n = "{0}_proxy_geo".format(root), d = degree, po = 1 )
     
-    _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
+    #>>Body -----------------------------------------------------------------
+    _res_body = mc.loft(_l_targets, o = True, d = degree, po = 1 )
+
+    _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
     _tessellate = _inputs[0]
     
     _d = {'format':2,#General
@@ -686,10 +724,35 @@ def build_loft(root, jointCount = 3, degree = 3):
           'uNumber': 1 + jointCount}
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)
+
+    _l_combine = [_res_body[0]]
+    
+    #>>Top bottom -----------------------------------------------------------------
+    for crv in _l_targets[0],_l_targets[-1]:
+        _res = mc.planarSrf(crv,po=1)
+        _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
+        _tessellate = _inputs[0]        
+        _d = {'format':2,#General
+              'polygonType':1,#'quads',
+              'vNumber':1,
+              'uNumber':1}
+        for a,v in _d.iteritems():
+            ATTR.set(_tessellate,a,v)
+        _l_combine.append(_res[0])
         
-    #mc.select(_res[0])
-    #mc.polyCloseBorder(_res[0])
-    return _res
+    _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(root))
+    return _res[0]
+
+def build_jointProxyMesh(root):
+    _str_func = 'build_jointProxyMesh'
+    
+    _l_targets = ATTR.msgList_get(root,'loftTargets')
+    _l_joints = [u'box_0_jnt', u'box_1_jnt', u'box_2_jnt', u'box_3_jnt', u'box_4_jnt']
+    _castMesh = 'box_root_crv_grp_box_root_crv_proxy_geo'
+    
+    
+    
+    
     
     
     
