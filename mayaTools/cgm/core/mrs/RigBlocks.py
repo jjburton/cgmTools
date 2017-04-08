@@ -41,6 +41,7 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.rigger.lib import joint_Utils as JOINTS
 from cgm.core.lib import search_utils as SEARCH
+from cgm.core.lib import rayCaster as RAYS
 reload(SNAP)
 #from cgm.core.lib import nameTools
 #from cgm.core.rigger import ModuleFactory as mFactory
@@ -703,7 +704,10 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
     
     
 def build_loftMesh(root, jointCount = 3, degree = 3):
-    _str_func = 'build_loft'
+    """
+    Create from root
+    """
+    _str_func = 'build_loftMesh'
     
     _l_targets = ATTR.msgList_get(root,'loftTargets')
     
@@ -743,13 +747,95 @@ def build_loftMesh(root, jointCount = 3, degree = 3):
     _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(root))
     return _res[0]
 
-def build_jointProxyMesh(root):
+def build_jointProxyMesh(root,degree = 3):
     _str_func = 'build_jointProxyMesh'
     
     _l_targets = ATTR.msgList_get(root,'loftTargets')
     _l_joints = [u'box_0_jnt', u'box_1_jnt', u'box_2_jnt', u'box_3_jnt', u'box_4_jnt']
     _castMesh = 'box_root_crv_grp_box_root_crv_proxy_geo'
+    _name = ATTR.get(root,'blockType')
     
+    #>>Make a nurbs body -----------------------------------------------------------------
+    _res_body = mc.loft(_l_targets, o = True, d = degree, po = 0 )
+    
+    #>>Cast intersections to get v values -----------------------------------------------------------------
+    #...get our initial range for casting
+    #_l_dist = DIST.get_distance_between_points([POS.get(j) for j in _l_joints])
+    #log.debug("|{0}| >> average dist: {1}".format(_str_func,_average))   
+    
+    _l_newCurves = []
+    for j in _l_joints:
+        _d = RAYS.cast(_res_body[0],j,'y+')
+        log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
+        #cgmGEN.log_info_dict(_d,j)
+        _v = _d['uvs'][_res_body[0]][0][0]
+        log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
+        
+        #>>For each v value, make a new curve -----------------------------------------------------------------        
+        #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
+        _crv = mc.duplicateCurve("{0}.u[{1}]".format(_res_body[0],_v), ch = 0, rn = 0, local = 0)
+        log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
+        _l_newCurves.append(_crv[0])
+    
+    
+    #>>Reloft those sets of curves and cap them -----------------------------------------------------------------
+    log.debug("|{0}| >> Create new mesh objs. Curves: {1} ...".format(_str_func,_l_newCurves))        
+    _l_new = []
+    for i,c in enumerate(_l_newCurves[:-1]):
+        _pair = [c,_l_newCurves[i+1]]
+        _mesh = create_loftMesh(_pair, name="{0}_{1}".format(_name,i))
+        RIGGING.match_transform(_mesh,_l_joints[i])
+        _l_new.append(_mesh)
+    
+    #...clean up 
+    mc.delete(_l_newCurves + _res_body)
+    #>>Parent to the joints ----------------------------------------------------------------- 
+    
+    return _l_new
+
+def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1 ):
+    _str_func = 'create_loftMesh'
+    
+    if targets == None:
+        targets = mc.ls(sl=True)
+    if not targets:
+        raise ValueError, "|{0}| >> Failed to get attr dict".format(_str_func,blockType)
+    
+    
+    mc.select(cl=True)
+    log.debug("|{0}| >> targets: {1}".format(_str_func,targets))
+    
+    #tess method - general, uType 1, vType 2+ joint count
+    
+    #>>Body -----------------------------------------------------------------
+    _res_body = mc.loft(targets, o = True, d = degree, po = 1 )
+
+    _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
+    _tessellate = _inputs[0]
+    
+    _d = {'format':2,#General
+          'polygonType':1,#'quads',
+          'uNumber': 1 + divisions}
+    for a,v in _d.iteritems():
+        ATTR.set(_tessellate,a,v)
+
+    _l_combine = [_res_body[0]]
+    
+    #>>Top bottom -----------------------------------------------------------------
+    for crv in targets[0],targets[-1]:
+        _res = mc.planarSrf(crv,po=1)
+        _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
+        _tessellate = _inputs[0]        
+        _d = {'format':2,#General
+              'polygonType':1,#'quads',
+              'vNumber':1,
+              'uNumber':1}
+        for a,v in _d.iteritems():
+            ATTR.set(_tessellate,a,v)
+        _l_combine.append(_res[0])
+        
+    _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
+    return _res[0]    
     
     
     
