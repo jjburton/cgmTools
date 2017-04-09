@@ -328,9 +328,16 @@ class factory(object):
 
         if _mRoot.isReferenced():
             raise ValueError,"Referenced node. Cannot verify"
-
+        
+        if blockType == None:
+            blockType = ATTR.get(_mRoot.mNode,'blockType')
+        if not blockType:
+            raise ValueError,"No blockType specified or found."
+            
+        
+        
         if not self.get_attrCreateDict(blockType):
-            raise ValueError, "|{0}| >> Failed to get attr dict".format(_str_func,blockType)
+            raise ValueError, "|{0}| >> Failed to get attr dict. blockType:{1}".format(_str_func,blockType)
 
         #Need to get the type, the get the attribute lists and data from the module
 
@@ -477,11 +484,14 @@ class factory(object):
         if _mode == 'simple':
             return build_loftMesh(_root,_joints)
         elif _mode in ['jointProxy','recast']:
-            if not self._mi_module:
+            if not self.module_verify():
                 raise ValueError,"|{0}| >> Module necessary for mode: {1}.".format(_str_func,_mode)
-            pass
-        else:
-            raise NotImplementedError,"|{0}| >> mode not implemented: {1}".format(_str_func,_mode)
+            
+            if _mode == 'jointProxy':
+                log.info(_root)
+                return build_jointProxyMesh(_root)
+        #else:
+        raise NotImplementedError,"|{0}| >> mode not implemented: {1}".format(_str_func,_mode)
         
 
         
