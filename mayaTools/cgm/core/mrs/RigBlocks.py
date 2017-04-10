@@ -713,7 +713,7 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
     #>>HelperJoint setup???
     
     
-def build_loftMesh(root, jointCount = 3, degree = 3):
+def build_loftMesh(root, jointCount = 3, degree = 3, merge = True):
     """
     Create from root
     """
@@ -755,6 +755,10 @@ def build_loftMesh(root, jointCount = 3, degree = 3):
         _l_combine.append(_res[0])
         
     _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(root))
+    if merge:
+        mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
+        #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
+    mc.polySetToFaceNormal(_res[0],setUserNormal = True)    
     return _res[0]
 
 def build_jointProxyMesh(root,degree = 3):
@@ -803,7 +807,7 @@ def build_jointProxyMesh(root,degree = 3):
     
     return _l_new
 
-def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1 ):
+def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, merge = True ):
     _str_func = 'create_loftMesh'
     
     if targets == None:
@@ -845,6 +849,11 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1 ):
         _l_combine.append(_res[0])
         
     _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
+    
+    if merge:
+        mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
+        #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
+    mc.polySetToFaceNormal(_res[0],setUserNormal = True)
     return _res[0]    
     
     
