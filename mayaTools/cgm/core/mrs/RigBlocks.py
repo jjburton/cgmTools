@@ -713,9 +713,15 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
     #>>HelperJoint setup???
     
     
-def build_loftMesh(root, jointCount = 3, degree = 3, merge = True):
+def build_loftMesh(root, jointCount = 3, degree = 3, cap = True, merge = True):
     """
-    Create from root
+    Core rig block factory. Runs processes for rig blocks.
+
+    :parameters:
+        root(str) | root object to check for wiring
+
+    :returns
+        factory instance
     """
     _str_func = 'build_loftMesh'
     
@@ -739,26 +745,29 @@ def build_loftMesh(root, jointCount = 3, degree = 3, merge = True):
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)
 
-    _l_combine = [_res_body[0]]
     
-    #>>Top bottom -----------------------------------------------------------------
-    for crv in _l_targets[0],_l_targets[-1]:
-        _res = mc.planarSrf(crv,po=1)
-        _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
-        _tessellate = _inputs[0]        
-        _d = {'format':2,#General
-              'polygonType':1,#'quads',
-              'vNumber':1,
-              'uNumber':1}
-        for a,v in _d.iteritems():
-            ATTR.set(_tessellate,a,v)
-        _l_combine.append(_res[0])
-        
-    _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(root))
-    if merge:
-        mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
-        #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
-    mc.polySetToFaceNormal(_res[0],setUserNormal = True)    
+    #>>Top/Bottom bottom -----------------------------------------------------------------
+    if cap:
+        _l_combine = [_res_body[0]]        
+        for crv in _l_targets[0],_l_targets[-1]:
+            _res = mc.planarSrf(crv,po=1)
+            _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
+            _tessellate = _inputs[0]        
+            _d = {'format':2,#General
+                  'polygonType':1,#'quads',
+                  'vNumber':1,
+                  'uNumber':1}
+            for a,v in _d.iteritems():
+                ATTR.set(_tessellate,a,v)
+            _l_combine.append(_res[0])
+            
+        _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(root))
+        if merge:
+            mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
+            #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
+        mc.polySetToFaceNormal(_res[0],setUserNormal = True) 
+    else:
+        _res = _res_body
     return _res[0]
 
 def build_jointProxyMesh(root,degree = 3):
@@ -807,7 +816,21 @@ def build_jointProxyMesh(root,degree = 3):
     
     return _l_new
 
-def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, merge = True ):
+def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, cap = True, merge = True ):
+    """
+    Create lofted mesh from target curves.
+
+    :parameters:
+        targets(list) | List of curves to loft
+        name(str) | Base name for created objects
+        degree(int) | degree of surface
+        divisions(int) | how many splits in the created mesh
+        cap(bool) | whether to cap the top and bottom
+        merge(bool) | whether to merge the caps to the base mesh
+
+    :returns
+        created(list)
+    """    
     _str_func = 'create_loftMesh'
     
     if targets == None:
@@ -832,27 +855,30 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, me
           'uNumber': 1 + divisions}
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)
-
-    _l_combine = [_res_body[0]]
-    
-    #>>Top bottom -----------------------------------------------------------------
-    for crv in targets[0],targets[-1]:
-        _res = mc.planarSrf(crv,po=1)
-        _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
-        _tessellate = _inputs[0]        
-        _d = {'format':2,#General
-              'polygonType':1,#'quads',
-              'vNumber':1,
-              'uNumber':1}
-        for a,v in _d.iteritems():
-            ATTR.set(_tessellate,a,v)
-        _l_combine.append(_res[0])
         
-    _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
-    
-    if merge:
-        mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
-        #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
+    if cap:
+        _l_combine = [_res_body[0]]
+        
+        #>>Top bottom -----------------------------------------------------------------
+        for crv in targets[0],targets[-1]:
+            _res = mc.planarSrf(crv,po=1)
+            _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
+            _tessellate = _inputs[0]        
+            _d = {'format':2,#General
+                  'polygonType':1,#'quads',
+                  'vNumber':1,
+                  'uNumber':1}
+            for a,v in _d.iteritems():
+                ATTR.set(_tessellate,a,v)
+            _l_combine.append(_res[0])
+            
+        _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
+        
+        if merge:
+            mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
+            #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
+    else:
+        _res = _res_body
     mc.polySetToFaceNormal(_res[0],setUserNormal = True)
     return _res[0]    
     
