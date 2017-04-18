@@ -42,6 +42,8 @@ from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.rigger.lib import joint_Utils as JOINTS
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
+from cgm.core.cgmPy import validateArgs as VALID
+
 reload(SNAP)
 #from cgm.core.lib import nameTools
 #from cgm.core.rigger import ModuleFactory as mFactory
@@ -774,7 +776,13 @@ def build_jointProxyMesh(root,degree = 3):
     _str_func = 'build_jointProxyMesh'
     
     _l_targets = ATTR.msgList_get(root,'loftTargets')
-    _l_joints = [u'box_0_jnt', u'box_1_jnt', u'box_2_jnt', u'box_3_jnt', u'box_4_jnt']
+    #_l_joints = [u'box_0_jnt', u'box_1_jnt', u'box_2_jnt', u'box_3_jnt', u'box_4_jnt']
+    
+    _mi_root = cgmMeta.cgmObject(root)
+    _mi_module = _mi_root.moduleTarget
+    _mi_rigNull = _mi_module.rigNull
+    
+    _l_joints = _mi_rigNull.msgList_get('skinJoints',asMeta = False)
     _castMesh = 'box_root_crv_grp_box_root_crv_proxy_geo'
     _name = ATTR.get(root,'blockType')
     
@@ -881,6 +889,67 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
         _res = _res_body
     mc.polySetToFaceNormal(_res[0],setUserNormal = True)
     return _res[0]    
+
+def create_remesh(mesh = None, joints = None, curve=None, positions = None,
+                  name = 'test', vector = None, 
+                  degree = 3, divisions = 1, cap = True, merge = True ):
+    """
+    Given a series of positions, or objects, or a curve and a mesh - loft retopology it
+
+    :parameters:
+        targets(list) | List of curves to loft
+        name(str) | Base name for created objects
+        degree(int) | degree of surface
+        divisions(int) | how many splits in the created mesh
+        cap(bool) | whether to cap the top and bottom
+        merge(bool) | whether to merge the caps to the base mesh
+
+    :returns
+        created(list)
+    """    
+    _str_func = 'create_remesh'
+    _l_pos = False
+    
+    #Validate
+    if positions:
+        _len_passed = len(positions)
+        log.debug("|{0}| >> Positions passed... len:{1} | {2}".format(_str_func,_len_passed,positions))        
+        _mode = 'positions'
+        
+        if _len_passed > divisions:
+            log.warning("|{0}| >> More positions passed than divisions... positions:{1} | divisions:{2}".format(_str_func,_len_passed,divisions))                    
+            return False
+        else:
+            log.debug("|{0}| >> Splitting Positions")
+            _p_start = POS.get(_l_targets[0])
+            _p_top = POS.get(_l_targets[1])    
+            _l_pos = get_posList_fromStartEnd(_p_start,_p_top,_joints)          
+        
+        
+    else:
+        if joints:
+            log.debug("|{0}| >> joints passed... len:{1} | {2}".format(_str_func,len(joints),joints))                    
+            _mode = 'joint'
+            _objs = joints
+        elif curve:
+            log.debug("|{0}| >> curve passed... len:{1} | {2}".format(_str_func,len(curve),curve))                                
+            _mode = 'curve'
+        
+    #>>Get our positions
+    if not _l_pos:
+        log.warning("|{0}| >> Must have _l_pos by now.".format(_str_func))                    
+        return False       
+    
+    #>If we have a curve, split it
+    #>If we have a series of joints, get pos
+    
+    #>>Get our vectors
+    _vec = [0,1,0]
+    
+    
+    #>>Cast our Loft curves
+    
+    
     
     
     
