@@ -45,3 +45,32 @@ from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 
 
+
+
+#Dave, here's the a few calls we need...
+#Here's some code examples when I initially looked at it...
+from cgm.core.cgmPy import os_Utils as cgmOS
+cgmOS.get_lsFromPath(cgm.core.mrs.blocks.__file__,'*.py')
+
+import cgm.core.mrs.blocks.box
+cgm.core.mrs.blocks
+cgm.core.mrs.blocks.box.__name__.split('.')[-1]
+
+#Both of these should 'walk' the appropriate dirs to get their updated data. They'll be used for both ui and regular stuff
+def get_rigBlocks_dict():
+    """
+    This module needs to return a dict like this:
+    
+    {'blockName':moduleInstance(ex mrs.blocks.box),
+    }
+    """
+    pass
+def get_rigBLocks_byCategory():
+    """
+    This module needs to return a dict like this:
+    
+    {blocks:[box,bank,etc],
+     blocksSubdir:[1,2,3,etc]
+    }
+    """    
+    pass

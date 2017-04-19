@@ -34,7 +34,8 @@ from cgm.core.cgmPy import path_Utils as cgmPath
 #===================================================================
 def get_lsFromPath(str_path = None, 
                    matchArg = None, 
-                   calledFrom = None,**kwargs):
+                   calledFrom = None,
+                   removeInit = True, **kwargs):
     """
     Return files or folders of a specific type from a given path
 
@@ -53,6 +54,11 @@ def get_lsFromPath(str_path = None,
         TypeError | if 'matchArg' is not a string
        
     """
+    def prepReturn(result,removeInit):
+        for r in result:
+            if '__init__' in r:
+                result.remove(r)
+        return result
     log.debug("get_lsFromPath str_path =  {1} | matchArg={0}".format(matchArg,str_path))
     
     _str_funcRoot = 'get_lsFromPath'
