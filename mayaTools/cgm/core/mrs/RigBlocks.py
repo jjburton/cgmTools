@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 # From cgm ==============================================================
@@ -343,14 +343,16 @@ class factory(object):
 
         #Need to get the type, the get the attribute lists and data from the module
 
-        _mRoot.verifyAttrDict(self._d_attrsToVerify,keyable = False, hidden = False)
+        #_mRoot.verifyAttrDict(self._d_attrsToVerify,keyable = False, hidden = False)
         _mRoot.addAttr('blockType', value = blockType,lock=True)	
 
 
         for k,v in self._d_attrToVerifyDefaults.iteritems():
-            try:ATTR.set(_mRoot.mNode,k,v)
-            except Exception,err:
-                log.error("|{0}| >> Failed to set default value. || key: {1} | value: {2} ||| err: {3}".format(_str_func,k,v,err))                
+            log.debug("|{0}| type: ({3}) >>  Setting attr >> '{1}' | value: {2} ".format(_str_func,k,v,blockType)) 
+            _mRoot.addAttr(k,defaultValue = v, keyable = False, hidden = False)
+            #try:ATTR.set(_mRoot.mNode,k,v)
+            #except Exception,err:
+                #log.error("|{0}| >> Failed to set default value. || key: {1} | value: {2} ||| err: {3}".format(_str_func,k,v,err))                
 
         return True
 
@@ -531,6 +533,9 @@ class factory(object):
 
         ATTR.set(mModule.mNode,'moduleType',_kws['name'],lock=True)
         self._mi_module = mModule
+        
+        assert mModule.isModule(),"Not a module: {0}".format(mModule)
+        
         return mModule
 
     def module_getBuildKWS(self):
