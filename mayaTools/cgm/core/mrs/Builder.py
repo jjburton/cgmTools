@@ -31,6 +31,7 @@ import maya.cmds as mc
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core import cgm_RigMeta as RIGMETA
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 
 from cgm.core.lib import curve_Utils as CURVES
@@ -90,16 +91,19 @@ class go(object):
         self._call_kws['rigBlock'] = rigBlock
         self._call_kws['autoBuild'] = autoBuild
         self._call_kws['ignoreRigCheck'] = ignoreRigCheck
-        #cgmGEN.log_info_dict(self._call_kws,_str_func)
+        cgmGEN.log_info_dict(self._call_kws,_str_func)
         
         if not fnc_check_rigBlock(self):
             raise RuntimeError,"|{0}| >> RigBlock checks failed. See warnings and errors.".format(_str_func)
-            
+        log.debug("|{0}| >> RigBlock check passed".format(_str_func) + cgmGEN._str_subLine)
+   
         if not fnc_check_module(self):
             raise RuntimeError,"|{0}| >> Module checks failed. See warnings and errors.".format(_str_func)
+        log.debug("|{0}| >> Module check passed...".format(_str_func)+ cgmGEN._str_subLine)
         
         if not fnc_rigNeed(self):
             raise RuntimeError,"|{0}| >> No rig need see errors".format(_str_func)
+        log.debug("|{0}| >> Rig needed...".format(_str_func)+ cgmGEN._str_subLine)
             
         #_verify = kws.get('verify',False)
         #log.debug("|{0}| >> verify: {1}".format(_str_func,_verify))
@@ -126,6 +130,13 @@ def fnc_check_rigBlock(self):
     _d['mBlock'] = BlockFactory._mi_root
     _d['mFactory'] = BlockFactory
     _d['shortName'] = BlockFactory._mi_root.getShortName()
+    
+    _buildModule = is_buildable(_d['mBlock'].blockType)
+    if not _buildModule:
+        log.error("|{0}| >> No build module found for: {1}".format(_str_func,_d['mBlock'].blockType))        
+        return False
+    _d['buildModule'] =  _buildModule   #if not is_buildable
+    _d['buildVersion'] = _buildModule.__version__
 
     self._d_dat_block = _d    
     cgmGEN.log_info_dict(_d,_str_func + " blockDat")   
@@ -142,13 +153,23 @@ def fnc_check_module(self):
     _d = {}    
     BlockFactory.module_verify()
     _mModule = BlockFactory._mi_module
+    _mRigNull = _mModule.rigNull
     _d['mModule'] = _mModule
-    _d['mRigNull'] = _mModule.rigNull
+    _d['mRigNull'] = _mRigNull
     _d['shortName'] = _mModule.getShortName()
+    _d['version'] = _mModule.rigNull.version
     
     _d['mModuleParent'] = False
     if _mModule.getMessage('moduleParent'):
         _d['mModuleParent'] = _mModule.moduleParent
+        
+        
+    if not _mRigNull.getMessage('dynSwitch'):
+        _mDynSwitch = RIGMETA.cgmDynamicSwitch(dynOwner=_mRigNull.mNode)
+        log.debug("|{0}| >> Created dynSwitch: {1}".format(_str_func,_mDynSwitch))        
+    else:
+        _mDynSwitch = _mRigNull.dynSwitch  
+    _d['mDynSwitch'] = _mDynSwitch
         
     #>>Puppet -----------------------------------------------------------------------------------    
     BlockFactory.puppet_verify()
@@ -184,7 +205,7 @@ def is_buildable(blockType = 'box'):
     
     _res = True
     _buildModule = _d_blockTypes[blockType]
-    
+    return _buildModule
     for a in _l_requiredModuleDat:
         if not _buildModule.__dict__.get(a):
             log.warning("|{0}| >> [{1}] Missing data: {2}".format(_str_func,blockType,a))
@@ -202,6 +223,9 @@ def fnc_rigNeed(self):
     
     _mModule = self._d_dat_module['mModule']    
     _mModuleParent = self._d_dat_module['mModuleParent']
+    _version = self._d_dat_module['version']
+    _buildVersion = self._d_dat_block['buildVersion']
+    
     _d_callKWS = self._call_kws
     
     if _mModuleParent:
@@ -216,10 +240,18 @@ def fnc_rigNeed(self):
     if _b_rigged and not _d_callKWS['forceNew'] and _d_callKWS['ignoreRigCheck'] is not True:
         log.warning("|{0}| >> Already rigged and not forceNew".format(_str_func))                    
         return False
-        
-    #if not is_buildable
-     
+             
     _b_outOfDate = False
+    if _version != _buildVersion:
+        _b_outOfDate = True
+        log.warning("|{0}| >> Versions don't match: rigNull: {1} | buildModule: {2}".format(_str_func,_version,_buildVersion))                            
+    else:
+        if _d_callKWS['forceNew'] and _mModule.isRigged():
+            log.warning("|{0}| >> Force new and is rigged. Deleting rig...".format(_str_func))                    
+            #_mModule.rigDelete()
+        else:
+            log.info("|{0}| >> Up to date.".format(_str_func))                    
+            return False
     
     return True
     
