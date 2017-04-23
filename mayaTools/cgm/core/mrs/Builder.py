@@ -79,9 +79,11 @@ class go(object):
         self._callBlock = None
         self._call_kws = {}
         self._rigBlock = None
-        self._d_dat_block = {}
-        self._d_dat_module = {}
-
+        self._d_block = {}
+        self._d_module = {}
+        self._d_joints = {}
+        self._d_orientation = {}         
+        
         if a:log.debug("|{0}| >> a: {1}".format(_str_func,a))
         if kws:#...intial population
             self._call_kws = kws
@@ -104,6 +106,11 @@ class go(object):
         if not fnc_rigNeed(self):
             raise RuntimeError,"|{0}| >> No rig need see errors".format(_str_func)
         log.debug("|{0}| >> Rig needed...".format(_str_func)+ cgmGEN._str_subLine)
+        
+        if not fnc_bufferDat(self):
+            raise RuntimeError,"|{0}| >> Failed to buffer data. See warnings and errors.".format(_str_func)
+            
+        
             
         #_verify = kws.get('verify',False)
         #log.debug("|{0}| >> verify: {1}".format(_str_func,_verify))
@@ -138,7 +145,7 @@ def fnc_check_rigBlock(self):
     _d['buildModule'] =  _buildModule   #if not is_buildable
     _d['buildVersion'] = _buildModule.__version__
 
-    self._d_dat_block = _d    
+    self._d_block = _d    
     cgmGEN.log_info_dict(_d,_str_func + " blockDat")   
     
     return True
@@ -147,7 +154,7 @@ def fnc_check_rigBlock(self):
 def fnc_check_module(self):
     _str_func = 'fnc_check_module'  
     _res = True
-    BlockFactory = self._d_dat_block['mFactory']
+    BlockFactory = self._d_block['mFactory']
     
     #>>Module -----------------------------------------------------------------------------------  
     _d = {}    
@@ -185,8 +192,8 @@ def fnc_check_module(self):
             log.warning("|{0}| >> Skeletonization failed".format(_str_func))            
             _res = False
     
-    self._d_dat_module = _d    
-    cgmGEN.log_info_dict(_d,_str_func + " moduleDat")    
+    self._d_module = _d    
+    #cgmGEN.log_info_dict(_d,_str_func + " moduleDat")    
     return _res    
     
     
@@ -221,10 +228,10 @@ def fnc_rigNeed(self):
     """
     _str_func = 'fnc_rigNeed'  
     
-    _mModule = self._d_dat_module['mModule']    
-    _mModuleParent = self._d_dat_module['mModuleParent']
-    _version = self._d_dat_module['version']
-    _buildVersion = self._d_dat_block['buildVersion']
+    _mModule = self._d_module['mModule']    
+    _mModuleParent = self._d_module['mModuleParent']
+    _version = self._d_module['version']
+    _buildVersion = self._d_block['buildVersion']
     
     _d_callKWS = self._call_kws
     
@@ -256,31 +263,111 @@ def fnc_rigNeed(self):
     return True
     
     
+def fnc_bufferDat(self):
     """
-    if self._mi_moduleParent:
-                if not self._mi_moduleParent.isRigged():
-                    raise StandardError,"'module parent is not rigged yet: '{0}'".format(self._mi_moduleParent.getShortName())
-
-            #Then we want to see if we have a moduleParent to see if it's rigged yet
-            __b_rigged = self._mi_module.isRigged()
-            if __b_rigged and not self._b_forceNew and self._b_ignoreRigCheck is not True:
-                return self._SuccessReturn_("Aready rigged and not forceNew")
-
-            if not isBuildable(self):
-                raise StandardError,"The builder for module type '{0}' is not ready".format(self._partType)
-
-            try:
-                self._outOfDate = False
-                if self._version != self._buildVersion:
-                    self._outOfDate = True	    
-                    self.log_warning("Rig version out of date: {0} != {1}".format(self._version,self._buildVersion))	
-                else:
-                    if self._b_forceNew and self._mi_module.isRigged():
-                        self._mi_module.rigDelete()
-                    self.log_debug("Rig version up to date !")
-            except Exception,error:raise Exception,"Version check fail | error: {0}".format(error)    
+    Function to check if a go instance needs to be rigged
     
     """
+    _str_func = 'fnc_bufferDat'  
+    
+    _mModule = self._d_module['mModule']    
+    _mModuleParent = self._d_module['mModuleParent']
+    _mPuppet = self._d_module['mPuppet']
+    _mRigNull = self._d_module['mRigNull']
+    _version = self._d_module['version']
+    _buildVersion = self._d_block['buildVersion']
+    
+    _d_callKWS = self._call_kws
+    
+    #>>Module dat ------------------------------------------------------------------------------
+    _d = {}
+    _d['partName'] = _mModule.getPartNameBase()
+    _d['partType'] = _mModule.moduleType.lower() or False
+    
+    _d['l_moduleColors'] = _mModule.getModuleColors() 
+    _d['l_coreNames'] = []#...need to do this
+    _d['mTemplateNull'] = _mModule.templateNull
+    _d['bodyGeo'] = _mPuppet.getGeo() or ['Morphy_Body_GEO']
+    _d['direction'] = _mModule.getAttr('cgmDirection')
+    
+    _d['mirrorDirection'] = _mModule.get_mirrorSideAsString()
+    _d['f_skinOffset'] = _mPuppet.getAttr('skinDepth') or 1
+    _d['mMasterNull'] = _mPuppet.masterNull
+    
+    #>MasterControl....
+    if not _mPuppet.getMessage('masterControl'):
+        log.info("|{0}| >> Creating masterControl...".format(_str_func))                    
+        _mPuppet._verifyMasterControl(size = 5)
+        
+    _d['mMasterControl'] = _mPuppet.masterControl
+    _d['mPlug_globalScale'] =  cgmMeta.cgmAttr(_d['mMasterControl'].mNode,'scaleY')	 
+    _d['mMasterSettings'] = _d['mMasterControl'].controlSettings
+    _d['mMasterDeformGroup'] = _mPuppet.masterNull.deformGroup
+    
+    _d['mMasterNull'].worldSpaceObjectsGroup.parent = _mPuppet.masterControl
+      
+    self._d_module.update(_d)
+    
+    cgmGEN.log_info_dict(self._d_module,_str_func + " moduleDat")      
+    log.info(cgmGEN._str_subLine)
+    
+
+    #>>Joint dat ------------------------------------------------------------------------------
+    _d = {}
+    
+    _d['ml_moduleJoints'] = _mRigNull.msgList_get('moduleJoints',cull=True)
+    if not _d['ml_moduleJoints']:
+        log.warning("|{0}| >> No module joints found".format(_str_func))                    
+        return False
+    
+    _d['l_moduleJoints'] = []
+    
+    for mJnt in _d['ml_moduleJoints']:
+        _d['l_moduleJoints'].append(mJnt.p_nameShort)
+        ATTR.set(mJnt.mNode,'displayLocalAxis',0)
+        
+    _d['ml_skinJoints'] = _mModule.rig_getSkinJoints()
+    if not _d['ml_skinJoints']:
+        log.warning("|{0}| >> No skin joints found".format(_str_func))                    
+        return False      
+    
+    
+    self._d_joints = _d
+    cgmGEN.log_info_dict(self._d_joints,_str_func + " jointsDat")      
+    log.info(cgmGEN._str_subLine)    
+    
+    #>>Orientation dat ------------------------------------------------------------------------------
+    _d = {}
+    
+    _mOrientation = VALID.simpleOrientation('zyx')#cgmValid.simpleOrientation(str(modules.returnSettingsData('jointOrientation')) or 'zyx')
+    _d['str'] = _mOrientation.p_string
+    _d['vectorAim'] = _mOrientation.p_aim.p_vector
+    _d['vectorUp'] = _mOrientation.p_up.p_vector
+    _d['vectorOut'] = _mOrientation.p_out.p_vector
+    
+    _d['vectorAimNeg'] = _mOrientation.p_aimNegative.p_vector
+    _d['vectorUpNeg'] = _mOrientation.p_upNegative.p_vector
+    _d['vectorOutNeg'] = _mOrientation.p_outNegative.p_vector    
+    
+    self._d_orientation = _d
+    cgmGEN.log_info_dict(self._d_orientation,_str_func + " orientationDat")      
+    log.info(cgmGEN._str_subLine)    
+    
+    return True
+    
+    """
+    try:#Master control ---------------------------------------------------------
+        self._i_masterControl = self._mi_module.modulePuppet.masterControl
+        self.mPlug_globalScale = cgmMeta.cgmAttr(self._i_masterControl.mNode,'scaleY')	    
+        self._i_masterSettings = self._i_masterControl.controlSettings
+        self._i_masterDeformGroup = self._mi_module.modulePuppet.masterNull.deformGroup	 
+    except Exception,error:raise Exception,"Master control | error: {0}".format(error)
+
+
+    #>>> Some place holders ----------------------------------------------------	    
+    self._md_controlShapes = {}    
+    """
+    
 
     
     
