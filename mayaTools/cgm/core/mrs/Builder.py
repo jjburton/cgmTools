@@ -45,7 +45,7 @@ from cgm.core.rigger.lib import joint_Utils as JOINTS
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
-
+from cgm.core.classes import NodeFactory as NODEFAC
 reload(SNAP)
 
 from cgm.core.mrs import RigBlocks as RIGBLOCKS
@@ -110,6 +110,9 @@ class go(object):
         if not fnc_bufferDat(self):
             raise RuntimeError,"|{0}| >> Failed to buffer data. See warnings and errors.".format(_str_func)
             
+        if not fnc_moduleRigChecks(self):
+            raise RuntimeError,"|{0}| >> Failed to process module rig Checks. See warnings and errors.".format(_str_func)
+            
         
             
         #_verify = kws.get('verify',False)
@@ -160,6 +163,8 @@ def fnc_check_module(self):
     _d = {}    
     BlockFactory.module_verify()
     _mModule = BlockFactory._mi_module
+    self._mi_module = _mModule
+    
     _mRigNull = _mModule.rigNull
     _d['mModule'] = _mModule
     _d['mRigNull'] = _mRigNull
@@ -181,6 +186,8 @@ def fnc_check_module(self):
     #>>Puppet -----------------------------------------------------------------------------------    
     BlockFactory.puppet_verify()
     _mPuppet = _mModule.modulePuppet
+    self._mi_puppet = _mPuppet
+    
     _d['mPuppet'] = _mPuppet
     _mPuppet.__verifyGroups__()
     
@@ -195,8 +202,60 @@ def fnc_check_module(self):
     self._d_module = _d    
     #cgmGEN.log_info_dict(_d,_str_func + " moduleDat")    
     return _res    
+
+
+def fnc_moduleRigChecks(self):
+    _str_func = 'fnc_moduleRigChecks'  
+    _res = True
+    _start = time.clock()
     
     
+    #>>Connect switches ----------------------------------------------------------------------------------- 
+    _str_settings = self._d_module['mMasterSettings'].getShortName()
+    _str_partBase = self._d_module['partName'] + '_rig'
+    _str_moduleRigNull = self._d_module['mRigNull'].getShortName()
+    
+    _mMasterSettings = self._d_module['mMasterSettings']
+    
+    _mMasterSettings.addAttr(_str_partBase,enumName = 'off:lock:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+    
+    try:NODEFAC.argsToNodes("{0}.gutsVis = if {1}.{2} > 0".format(_str_moduleRigNull,
+                                                                _str_settings,
+                                                                _str_partBase)).doBuild()
+    except Exception,err:
+        raise Exception,"|{0}| >> visArg failed [{1}]".format(_str_func,err)
+    
+    try:NODEFAC.argsToNodes("{0}.gutsLock = if {1}.{2} == 2:0 else 2".format(_str_moduleRigNull,
+                                                                          _str_settings,
+                                                                          _str_partBase)).doBuild()
+    except Exception,err:
+        raise Exception,"|{0}| >> lock arg failed [{1}]".format(_str_func,err)
+
+    self._d_module['mRigNull'].overrideEnabled = 1		
+    cgmMeta.cgmAttr(_str_moduleRigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(_str_moduleRigNull,'overrideVisibility'))
+    cgmMeta.cgmAttr(_str_moduleRigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(_str_moduleRigNull,'overrideDisplayType'))    
+
+    #log.debug("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)   
+    
+   
+    #>>> Object Set -----------------------------------------------------------------------------------
+    self._mi_module.__verifyObjectSet__()
+    
+    log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f seconds"%(time.clock()-_start)))            
+    
+    return _res
+    
+
+    
+    
+def _fncStep_moduleRigChecks_(self):
+    #>>>Connect switches
+    try: verify_moduleRigToggles(self)
+    except Exception,error:raise Exception,"Module rig toggle fail | error: {0}".format(error)
+
+    #>>> Object Set
+    try: self._mi_module.__verifyObjectSet__()
+    except Exception,error:raise Exception,"Object set fail | error: {0}".format(error)
     
     
 def is_buildable(blockType = 'box'):
