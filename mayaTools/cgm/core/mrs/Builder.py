@@ -33,7 +33,7 @@ from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
-
+from cgm.core.classes import GuiFactory as CGMUI
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
@@ -54,7 +54,7 @@ from cgm.core.mrs.blocks import box
 reload(box)
 
 _d_blockTypes = {'box':box}
-_l_requiredModuleDat = ['__version__','__d_controlShapes','_l_jointAttrs__','__d_buildOrder__']#...data required in a given module
+_l_requiredModuleDat = ['__version__','__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']#...data required in a given module
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Factory
@@ -488,8 +488,49 @@ class go(object):
 
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))            
     
-    def doBuild(self,**kws):
-        pass
+    def doBuild(self,buildTo = '',**kws):
+        _str_func = 'doBuild'  
+        _start = time.clock()        
+        
+        try:
+            _l_buildOrder = self._d_block['buildModule'].__l_buildOrder__
+            _len = len(_l_buildOrder)
+            
+            if not _len:
+                log.error("|{0}| >> No steps to build!".format(_str_func))                    
+                return False
+            #Build our progress Bar
+            mayaMainProgressBar = CGMUI.doStartMayaProgressBar(_len)
+            
+            for i,fnc in enumerate(_l_buildOrder):
+                try:	
+                    #str_name = d_build[k].get('name','noName')
+                    #func_current = d_build[k].get('function')
+                    #_str_subFunc = str_name
+                    _str_subFunc = fnc.__name__
+        
+                    mc.progressBar(mayaMainProgressBar, edit=True,
+                                   status = "|{0}| >>Rigging>> step: {1}...".format(_str_func,_str_subFunc), progress=i+1)    
+                    fnc(self)
+        
+                    if buildTo is not None:
+                        _Break = False
+                        if VALID.stringArg(buildTo):
+                            if buildTo.lower() == _str_subFunc:
+                                _Break = True
+                        elif buildTo == i:
+                            _Break = True
+                                
+                        if _Break:
+                            log.debug("|{0}| >> Stopped at step: [{1}]".format(_str_func, _str_subFunc))   
+                            break
+                except Exception,err:
+                    raise Exception,"Fail step: {0} | err: [{1}]".format(fnc.__name__,err)  
+        
+            CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+        except Exception,err:
+            CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    		
+            raise Exception,"|{0}| >> err: {1}".format(_str_func,err)        
     
         
 
@@ -506,9 +547,10 @@ def is_buildable(blockType = 'box'):
     
     _res = True
     _buildModule = _d_blockTypes[blockType]
-    return _buildModule
+    _keys = _buildModule.__dict__.keys()
+    
     for a in _l_requiredModuleDat:
-        if not _buildModule.__dict__.get(a):
+        if a not in _keys:
             log.warning("|{0}| >> [{1}] Missing data: {2}".format(_str_func,blockType,a))
             _res = False
             

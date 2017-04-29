@@ -28,7 +28,7 @@ from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 
-#>>>Block data
+#>>>Block data =================================================================================
 __version__ = 'alpha.03232017'
 
 d_skeletonSetup = {'mode':'vectorCast',
@@ -61,6 +61,8 @@ __l_jointAttrs__ = ['rigJoints','influenceJoints','fkJoints','ikJoints','blendJo
 __d_preferredAngles__ = {'shoulder':[0,-10,10],'elbow':[0,-10,0]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
 __d_controlShapes__ = {'shape':['segmentIK','controlsFK','midIK','settings','hand']}
 
+def create():
+    pass
 
 def is_valid(root = None):
     return True
@@ -71,10 +73,21 @@ def build_joints(root=None,module=None):
     Core rig block factory. Runs processes for rig blocks.
     """ 
     _str_func = 'build_joints'
+    return True
+
+def func1(self):
+    _str_func = 'func1'
+    log.debug("|{0}| >> ...".format(_str_func))   
+    
+def func2(self):
+    _str_func = 'func2'
+    log.debug("|{0}| >> ...".format(_str_func)) 
+def func3(self):
+    _str_func = 'func3'
+    log.debug("|{0}| >> ...".format(_str_func)) 
     
     
-    
-    
+__l_buildOrder__ = [func1,func2,func3]
 
 
 
