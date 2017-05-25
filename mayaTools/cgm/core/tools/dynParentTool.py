@@ -38,7 +38,8 @@ from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import list_utils as LISTS
 from cgm.core.tools.markingMenus.lib import contextual_utils as CONTEXT
 from cgm.core.cgmPy import str_Utils as STRINGS
-
+from cgm.core.tools import attrTools as ATTRTOOLS
+from cgm.lib import lists
 #>>> Root settings =============================================================
 __version__ = 'Alpha 1.0.05232017'
 
@@ -79,6 +80,8 @@ class ui(cgmUI.cgmGUI):
             #self.create_guiOptionVar('valuesMode',  defaultValue = 'primeNode')                        
             #self.create_guiOptionVar('context',  defaultValue = 'loaded')            
             self.uiScrollList_parents = False
+            self._mNode = False
+            self._mGroup = False
 
     def build_menus(self):
         #self.uiMenu_context = mUI.MelMenu( l='Context', pmc=self.buildMenu_context)           
@@ -97,12 +100,15 @@ class ui(cgmUI.cgmGUI):
                 
     def uiFunc_clear_loaded(self):
         _str_func = 'uiFunc_clear_loaded'  
-        self._d_attrs = {}
-        self._ml_nodes = []
-           
-        self.uiReport_objects()
-        self.uiScrollList_attr.clear()
-        self._d_uiCheckBoxes['shared'](edit = True, en=True)
+        self._mNode = False
+        self._mGroup = False
+        self._utf_obj(edit=True, l='')      
+        self.uiField_report(edit=True, l='...')
+        #self.uiReport_objects()
+        self.uiScrollList_parents.clear()
+        
+        for o in self._l_toEnable:
+            o(e=True, en=False)        
         
 
     def uiFunc_load_selected(self, bypassAttrCheck = False):
@@ -120,14 +126,12 @@ class ui(cgmUI.cgmGUI):
             self._mNode = mNode
             
             self._utf_obj(edit=True, l=_short)
-            
+            self.uiFunc_updateDynParentDisplay()
         else:
             log.warning("|{0}| >> Nothing selected.".format(_str_func))            
-            self._utf_obj(edit=True, l='')      
-                
-        
-        self.uiReport_do()
-        #self.uiScrollList_attr.clear()        
+            self.uiFunc_clear_loaded()
+            
+        #self.uiReport_do()
         #self.uiFunc_updateScrollAttrList()
         
 
@@ -143,329 +147,95 @@ class ui(cgmUI.cgmGUI):
             for o in self._l_toEnable:
                 o(e=True, en=False)
                 
-        elif not ATTR.get_message(self._mNode.mNode,'dynParentGroup'):
+        _d = get_dict(self._mNode.mNode)
+        
+        if _d:
+            log.info("|{0}| >> dynParentGroup detected...".format(_str_func))
+            
+            self._utf_obj(edit=True, l=_d['dynChild'].p_nameShort)
+            
+            _l_report = ["mode: {0}".format(_d['mode']),'targets: {0}'.format(len(_d['dynParents']))]
+            self.uiField_report(edit=True, label = 'DynGroup: {0}'.format(' | '.join(_l_report)))            
+            self._mNode = _d['dynChild']
+            self._mGroup = _d['dynGroup']
+            self._uiList_modeButtons[_d['mode']].select()        
+            
+            for o in self._l_toEnable:
+                o(e=True, en=True)  
+                
+            self.uiFunc_updateScrollParentList()
+        else:
             log.info("|{0}| >> No dynParentGroup".format(_str_func))                        
             #Not dynParentGroup
             _short = self._mNode.p_nameShort            
             self._utf_obj(edit=True, l=_short)
-            
+    
             self.uiField_report(edit=True, label = 'No dynParentGroup detected')
-            
+    
             for o in self._l_toEnable:
-                o(e=True, en=False)                
-        else:
-            log.info("|{0}| >> dynParentGroup detected...".format(_str_func))
-            _d = get_dict(self._mNode.mNode)
-            if _d:
-                _l_report = ["mode: {0}".format(_d['mode']),'parents: {0}'.format(len(_d['dynParents']))]
-                self.uiField_report(edit=True, label = 'DynGroup: {0}'.format(' | '.join(_l_report)))            
-                
-            else:    
-                self.uiField_report(edit=True, label = 'DynGroup found')            
-            for o in self._l_toEnable:
-                o(e=True, en=True)            
+                o(e=True, en=False)               
+                   
         
     def uiFunc_updateScrollParentList(self):
         _str_func = 'uiFunc_updateScrollParentList'          
-        self._l_attrsToLoad = []
-        _d_processed = {}
+        self.uiScrollList_parents.clear()
         
-        if not self._ml_nodes:
+        if not self._mGroup:
             return False      
         
-        #for k in ui._checkBoxKeys:
-            #log.info("{0} : {1}".format(k, self._d_uiCheckBoxes[k].getValue()))
-        #['shared','keyable','transforms','user','other']
+        ml_parents = self._mGroup.msgList_get('dynParents')
         
-        _shared = self._d_uiCheckBoxes['shared'].getValue()
-        #_keyable = self._d_uiCheckBoxes['keyable'].getValue()
-        _default = self._d_uiCheckBoxes['default'].getValue()
-        _user = self._d_uiCheckBoxes['user'].getValue()
-        _others = self._d_uiCheckBoxes['others'].getValue()
-        _sort = self._d_uiCheckBoxes['sort'].getValue()
+        _l_dat = []
+        _len = len(ml_parents)        
         
-        if _user:
-            self.row_move(edit =True, vis = True)
-        else:
-            self.row_move(edit = True, vis = False)
-        
-        #_transforms = self._d_uiCheckBoxes['trans'].getValue()        
-        #_other = self._d_uiCheckBoxes['other'].getValue()
-        
-        for mObj in self._ml_nodes:
-            _short = mObj.p_nameShort
-            _d_processed[_short] = []
-            _l_processed = _d_processed[_short] 
-            _is_transform = VALID.is_transform(_short)           
-            _l = mc.listAttr(_short, settable=True) or []
-            if _is_transform:
-                _l.extend(SHARED._d_attrCategoryLists['transform']) 
-            else:
-                _l.extend(mc.listAttr(_short, inUse=True) or [])
-            """if _default:
-                _l.extend( mc.listAttr(_short) or [])
-                #if VALID.getTransform(_short):
-                    #_l.extend(SHARED._d_attrCategoryLists['transform'])                
-            
-            #if _user:_l.extend(mc.listAttr(_short, ud=True) or [])
-            
-            if _others:
-                _l.extend( mc.listAttr(_short, settable=True) or [])"""
-                
-                
-            _l = LISTS.get_noDuplicates(_l)
-
-            for a in _l:
-                try:
-                    if a.count('.')>0:
-                        continue
-                    _d = ATTR.validate_arg(_short,a)
-                    _dyn = ATTR.is_dynamic(_d)
-                    _hidden = ATTR.is_hidden(_d)
-                    
-                    if _default:
-                        if _is_transform:
-                            if not _hidden and not _dyn:
-                                _l_processed.append(a)
-                            if _d['attr'] in SHARED._d_attrCategoryLists['transform'] or _d['attr'] in ['translate','rotate','scale']:
-                                _l_processed.append(a)
-                        else:
-                            if a not in ['isHistoricallyInteresting','nodeState','binMembership','caching','frozen']:
-                                _l_processed.append(a)
-                    if _user and _dyn:
-                        _l_processed.append(a)
-                    if _others and a not in _l_processed:
-                        _l_processed.append(a)
-                    """if _numeric:
-                        if ATTR.is_numeric(_d):
-                            _l_processed.append(a)
-                    else:
-                        _l_processed.append(a)"""
-                except Exception,err:
-                    log.warning("|{0}| >> Failed to process: {1} : {2} || err:{3}".format(_str_func, _short, a,err))
-
-        for a in ['ghostDriver','hyperLayout','attributeAliasList']:
-            if a in _l_processed:_l_processed.remove(a)
-        
-        
-        if _shared and len(self._ml_nodes)>1:
-            self._l_attrsToLoad = _d_processed[self._ml_nodes[0].p_nameShort]#...start with our first object
-            _l_good = []
-            for mObj in self._ml_nodes[1:]:
-                _l = _d_processed[mObj.p_nameShort]
-                for a in self._l_attrsToLoad:
-                    if a not in _l:
-                        log.debug("|{0}| >> '{1}' not shared. removing...".format(_str_func, a))                           
-                        #self._l_attrsToLoad.remove(a)
-                    else:
-                        _l_good.append(a)
-            self._l_attrsToLoad = LISTS.get_noDuplicates(_l_good)
-            
-        else:
-            for k,l in _d_processed.iteritems():
-                self._l_attrsToLoad.extend(l)
-                
-            self._l_attrsToLoad = LISTS.get_noDuplicates(self._l_attrsToLoad)
-        
-        if _sort:
-            self._l_attrsToLoad.sort()
-        
-        """for a in self._l_attrsToLoad:
-            log.info("|{0}| >> {1} : {2}".format(_str_func, _short, a))   
-        log.info(cgmGEN._str_subLine)"""
-
-        #...menu...
-        log.debug("|{0}| >> List....".format(_str_func,))                
-        self.uiScrollList_attr.clear()
-        _len = len(self._ml_nodes)
-        
-        if not self._l_attrsToLoad:
+        if not ml_parents:
             return False
         
-        _progressBar = cgmUI.doStartMayaProgressBar(len(self._l_attrsToLoad),"Processing...")
+        #...menu...
+        _progressBar = cgmUI.doStartMayaProgressBar(_len,"Processing...")
+        _mode = self._mGroup.dynMode
+        
         try:
-            for a in self._l_attrsToLoad:
+            for i,mObj in enumerate(ml_parents):
+                _short = mObj.p_nameShort
+                log.debug("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
                 
-                mc.progressBar(_progressBar, edit=True, status = ("{0} Processing attribute: {1}".format(_str_func,a)), step=1)                    
+                mc.progressBar(_progressBar, edit=True, status = ("{0} Processing Parent: {1}".format(_str_func,_short)), step=1)                    
                 
-                try:
-                    _short = self._ml_nodes[0].p_nameShort
-                    _d = ATTR.validate_arg(_short,a)
+                _l_report = [str(i)]
+                
+                _alias = ATTR.get(_short,'cgmAlias')
+                if _alias:
+                    _l_report.append("{0} ({1})".format(_alias,_short))
+                    #_l_report.append('alias ({0})'.format(_alias))
+                else:
+                    _l_report.append(_short)
                     
-                    _l_report = []
-                    
-                    _type = ATTR.get_type(_d)
-                    _type = SHARED._d_attrTypes_toShort.get(_type,_type)
-                    _user = False
-                    
-                    _l_flags = []
-                    
-                    if ATTR.is_dynamic(_d):
-                        _user = True
-                        _l_flags.append('u')                      
-                    
-                    _alias = ATTR.get_alias(_d)
-                    _nice = ATTR.get_nameNice(_d)
-                    _long = ATTR.get_nameLong(_d)
-                    
-                    _l_name = []
-                    _l_name.append(_long)
-                    
-                    if _alias:
-                        _l_name.append("--alias({0})".format(_alias) )
-                    if _user and _nice and _nice != _long:
-                        if _nice != ATTR.get_nameNice_string(_long):
-                            _l_name.append("--nice({0})".format(_nice))
-                    _l_name.append("--({0})--".format(_type) )
-                    
-                    _l_report.append("".join(_l_name))
-                    
+                #if i == ATTR.get(self)
+                if _mode == 0:
+                    if self._mNode.space == i:
+                        _l_report.append('((Space))')
+                elif _mode == 1:
+                    if self._mNode.orientTo == i:
+                        _l_report.append('((Orient))')
+                else:
+                    if self._mNode.orientTo == i:
+                        _l_report.append('((Orient))')
+                    if self._mNode.follow == i:
+                        _l_report.append('((Follow))')
 
-                        
-                    if ATTR.is_hidden(_d):
-                        _l_flags.append('h')
-                    else:
-                        _l_flags.append('v')                     
-                    
-                    if ATTR.is_keyable(_d):
-                        _l_flags.append('k')   
-                        
-                    if ATTR.is_locked(_d):
-                        _l_flags.append('l')
-                                               
-                    """if ATTR.is_readable(_d):
-                        _l_flags.append('R')
-                    if ATTR.is_writable(_d):
-                        _l_flags.append('W')"""
-                    if _l_flags:
-                        #_l_report.append("flg {0}".format(''.join(_l_flags)))
-                        _l_report.append(' '.join(_l_flags))
-                        
-                    if ATTR.get_driver(_d):
-                        if ATTR.is_keyed(_d):
-                            _l_report.append("<anim" )                        
-                        else:
-                            _l_report.append("<<<" )
-                    if ATTR.get_driven(_d):
-                        _l_report.append(">>>" )
-                        
+                _str = " \ ".join(_l_report)
+                log.debug("|{0}| >> str: {1}".format(_str_func, _str))  
+                
+                self.uiScrollList_parents.append(_str)
 
-                    if ATTR.is_numeric(_d):
-                        _d_flags = ATTR.get_numericFlagsDict(_d)
-                        if _d_flags.get('default') not in [False,None]:
-                            _l_report.append("dv={0}".format(_d_flags.get('default')))
-                        if _d_flags.get('min') not in [False,None]:
-                            _l_report.append("m={0}".format(_d_flags.get('min'))) 
-                        if _d_flags.get('max') not in [False,None]:
-                            _l_report.append("M={0}".format(_d_flags.get('max')))     
-                        if _d_flags.get('softMin') not in [False,None]:
-                            _l_report.append("sm={0}".format(_d_flags.get('softMin')))
-                        if _d_flags.get('softMax') not in [False,None]:
-                            _l_report.append("sM={0}".format(_d_flags.get('softMax')))                                
-                        
-                    if _type == 'enum':
-                        _v = ATTR.get(_d)
-                        _options = ATTR.get_enum(_d).split(':')
-                        _options[_v] = "[ {0} ]".format(_options[_v])
-                        _v = (' , '.join(_options))
-                    else:
-                        _v = "{0}".format(ATTR.get(_d))
-                        for chk in [':']:
-                            if chk in _v:
-                                _v = 'NONDISPLAYABLE'
-                                continue
-                        if len(_v)> 20 and _type not in ['msg']:
-                            _v = _v[:20] + "...  "
-                    _l_report.append(_v)
-                        
-                    #_str = " -- ".join(_l_report)
-                    self.uiScrollList_attr.append(" // ".join(_l_report))
-                except Exception,err:
-                    log.info("|{0}| >> {1}.{2} | failed to query. Removing. err: {3}".format(_str_func, _short, a, err))  
-                    self._l_attrsToLoad.remove(a)
-                log.debug("|{0}| >> {1} : {2}".format(_str_func, _short, a))  
         except Exception,err:
             try:cgmUI.doEndMayaProgressBar(_progressBar)
-            except:pass
-            raise Exception,err
+            except:
+                raise Exception,err
 
-        #menu(edit=True,cc = uiAttrUpdate)
         cgmUI.doEndMayaProgressBar(_progressBar)
         
-        
-        #Reselect
-        if self._l_attrsSelected:
-            _indxs = []
-            for a in self._l_attrsSelected:
-                log.debug("|{0}| >> Selected? {1}".format(_str_func,a))                              
-                if a in self._l_attrsToLoad:
-                    self.uiScrollList_attr.selectByIdx(self._l_attrsToLoad.index(a))
-                    
-                    
-                    
-        return False
-    
-        if self.SourceObject and self.SourceObject.update(self.SourceObject.nameLong):
-            if self.HideNonstandardOptionVar.value:
-                self._l_attrsToLoad.extend(self.SourceObject.transformAttrs)
-                self._l_attrsToLoad.extend(self.SourceObject.userAttrs)
-                self._l_attrsToLoad.extend(self.SourceObject.keyableAttrs)
-    
-                self._l_attrsToLoad = lists.returnListNoDuplicates(self._l_attrsToLoad)
-            else:
-                self._l_attrsToLoad.extend( mc.listAttr(self.SourceObject.nameLong) )
-    
-            if self.HideTransformsOptionVar.value:
-                for a in self.SourceObject.transformAttrs:
-                    if a in self._l_attrsToLoad:
-                        self._l_attrsToLoad.remove(a)
-    
-            if self.HideUserDefinedOptionVar.value:
-                for a in self.SourceObject.userAttrs:
-                    if a in self._l_attrsToLoad:
-                        self._l_attrsToLoad.remove(a)	
-    
-            if self.HideParentAttrsOptionVar.value:
-                for a in self._l_attrsToLoad:
-                    if (mc.attributeQuery(a, node = self.SourceObject.nameLong, listChildren=True)) is not None:
-                        self._l_attrsToLoad.remove(a)
-    
-            if self.HideCGMAttrsOptionVar.value:
-                buffer = []
-                for a in self._l_attrsToLoad:
-                    if 'cgm' not in a:
-                        buffer.append(a)
-                if buffer:
-                    self._l_attrsToLoad = buffer
-    
-        if self._l_attrsToLoad:	    
-            return True
-    
-        return False        
-            
-        
-    def uiReport_do(self):
-        if self._mNode:
-            self.uiFunc_updateDynParentDisplay()
-                
-        else:
-            self.uiField_report(edit=True, label = '...')
-            
-        return
-        if self._d_attrs:
-            if len(self._ml_nodes) == 1:
-                _short = self._ml_nodes[0].p_nameShort
-                _str_report = ' | '.join([_short,
-                                         "attrs: {0}".format(len(self._d_attrs[_short]))])
-            else:
-                
-                _l = [mObj.p_nameBase for mObj in self._ml_nodes]                
-                _str_report = '<{0}> , '.format(_l[0]) + ' , '.join(_l[1:])
-                if len(_str_report) >= 100:
-                    _str_report = "{0} Objects. Report to see them all".format(len(self._ml_nodes))
-            self.uiField_attrReport(edit=True, label = _str_report)   
-        else:
-            self.uiField_attrReport(edit=True, label = '...')
         
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'
@@ -533,6 +303,22 @@ class ui(cgmUI.cgmGUI):
         #self._l_toEnable.append(_row_modeSelect)
         #if self.CreateAttrTypeOptionVar.value:
         
+        #>>> Group Buttons Row ---------------------------------------------------------------------------------------
+        _row_groupsButtons = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 2,en=True)
+    
+        cgmUI.add_Button(_row_groupsButtons,'Rebuild',
+                         cgmGEN.Callback(self.uiFunc_dynGroup_rebuild),                         
+                         "Rebuild a dynParentGroup. If it doens't exist, create it.")        
+    
+        cgmUI.add_Button(_row_groupsButtons,'Clear',
+                         cgmGEN.Callback(self.uiFunc_dynGroup_clear),                         
+                         "Remove a dynParentGroup")
+        
+        cgmUI.add_Button(_row_groupsButtons,'Copy',
+                         cgmGEN.Callback(self.uiFunc_dynGroup_copy),                         
+                         "Copy the loaded dynParentGroup data to selected objects")
+        
+        _row_groupsButtons.layout()           
         
         
         #>>>Push Values header ---------------------------------------------------------------------------------------        
@@ -540,32 +326,32 @@ class ui(cgmUI.cgmGUI):
         _header_parents = cgmUI.add_Header('Parents')        
         
         #>>> Parents list ---------------------------------------------------------------------------------------
-        self.uiScrollList_parents = mUI.MelObjectScrollList(_MainForm, allowMultiSelection=True,en=False)
+        self.uiScrollList_parents = mUI.MelObjectScrollList(_MainForm, allowMultiSelection=True,en=False,
+                                                            dcc = self.uiFunc_dc_fromList,
+                                                            selectCommand = self.uiFunc_selectParent_inList)
+        
                                                             #dcc = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}),
-                                                            #selectCommand = self.uiFunc_selectAttr)
 
         self._l_toEnable.append(self.uiScrollList_parents)
 
         
-        #>>> Button Row ---------------------------------------------------------------------------------------
-        _row_buttons = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 5,en=False)
-        self._l_toEnable.append(_row_buttons)
+        #>>> Parent Buttons Row ---------------------------------------------------------------------------------------
+        _row_parentsButtons = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 2,en=False)
+        self._l_toEnable.append(_row_parentsButtons)
             
-        cgmUI.add_Button(_row_buttons,'Add',
-                         cgmGEN.Callback(self.uiFunc_load_selected),
-                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-                         "Load selected nodes to the ui. First in selection is prime node.")
-        cgmUI.add_Button(_row_buttons,'Remove',
-                         cgmGEN.Callback(self.uiFunc_updateScrollParentList),                         
-                         "Refresh the attributes in the scroll list. Useful if keyed.")        
-
-        cgmUI.add_Button(_row_buttons,'Clear',
-                         cgmGEN.Callback(self.uiFunc_clear_loaded),                         
-                         "Clear loaded nodes")
-        cgmUI.add_Button(_row_buttons,'Rebuild',
-                         cgmGEN.Callback(self.uiFunc_clear_loaded),                         
-                         "Clear loaded nodes")        
-        _row_buttons.layout()        
+        cgmUI.add_Button(_row_parentsButtons,'Add',
+                         cgmGEN.Callback(self.uiFunc_dynGroup_addParents),                         
+                         "Add selected objects as dynParent nodes")     
+        cgmUI.add_Button(_row_parentsButtons,'Remove',
+                         cgmGEN.Callback(self.uiFunc_dynGroup_removeParents),                        
+                         "Refresh the attributes in the scroll list. Useful if keyed.")   
+        cgmUI.add_Button(_row_parentsButtons,'Move Up',
+                         cgmGEN.Callback(self.uiFunc_dynParents_reorder,0),                        
+                         "Refresh the attributes in the scroll list. Useful if keyed.")         
+        cgmUI.add_Button(_row_parentsButtons,'Move Dn',
+                         cgmGEN.Callback(self.uiFunc_dynParents_reorder,1),                        
+                         "Refresh the attributes in the scroll list. Useful if keyed.") 
+        _row_parentsButtons.layout()        
         
         
         #>>> Layout form ---------------------------------------------------------------------------------------
@@ -579,526 +365,421 @@ class ui(cgmUI.cgmGUI):
                         (_row_report,"right",0),                        
                         (self.uiScrollList_parents,"left",0),
                         (self.uiScrollList_parents,"right",0),
-                        (_row_buttons,"left",0),
-                        (_row_buttons,"right",0),
+                        (_row_parentsButtons,"left",0),
+                        (_row_parentsButtons,"right",0),
+                        (_row_groupsButtons,"left",0),
+                        (_row_groupsButtons,"right",0),                        
                         (_header_parents,"left",0),
                         (_header_parents,"right",0),
                         (_row_modeSelect,"left",5),
                         (_row_modeSelect,"right",5),
-                        (_row_buttons,"bottom",0),
+                        (_row_parentsButtons,"bottom",0),
 
                         ],
                   ac = [(_row_objLoad,"top",2,_header_top),
                         (_row_report,"top",0,_row_objLoad),
                         (_row_modeSelect,"top",2,_row_report),
-                        (_header_parents,"top",2,_row_modeSelect),
+                        (_row_groupsButtons,"top",2,_row_modeSelect),                        
+                        (_header_parents,"top",2,_row_groupsButtons),
                         (self.uiScrollList_parents,"top",0,_header_parents),
-                        (self.uiScrollList_parents,"bottom",2,_row_buttons),
+                        (self.uiScrollList_parents,"bottom",2,_row_parentsButtons),
                         
                        ],
-                  attachNone = [(_row_buttons,"top")])	        
+                  attachNone = [(_row_parentsButtons,"top")])	        
         
         _sel = mc.ls(sl=True)
         if _sel:
             self.uiFunc_load_selected()                
 
         return
-        
-        
-        
-        
-        
-
-        
-        #mc.setParent()
-        #cgmUI.add_LineBreak()
-        #mc.setParent()        
-        #cgmUI.add_SectionBreak()
-        
-
-        #>>>Objects Buttons Row ---------------------------------------------------------------------------------------
-        _row_attrCreate = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 5)
-    
-        cgmUI.add_Button(_row_attrCreate,'Load Selected',
-                         cgmGEN.Callback(self.uiFunc_load_selected),
-                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-                         "Load selected nodes to the ui. First in selection is prime node.")
-        cgmUI.add_Button(_row_attrCreate,'Refresh',
-                         cgmGEN.Callback(self.uiFunc_updateScrollAttrList),                         
-                         "Refresh the attributes in the scroll list. Useful if keyed.")        
-
-        cgmUI.add_Button(_row_attrCreate,'Clear',
-                         cgmGEN.Callback(self.uiFunc_clear_loaded),                         
-                         "Clear loaded nodes")
-        _row_attrCreate.layout()  
-        
-        return
-        #Flags ---------------------------------------------------------------------------------------------
-        _row_attrFlags = mUI.MelHSingleStretchLayout(_MainForm,ut='cgmUISubTemplate',padding = 5)
-        
-        mUI.MelSpacer(_row_attrFlags,w=5)
-        self._d_uiCheckBoxes['sort'] = mUI.MelCheckBox(_row_attrFlags,label = 'Sort',
-                                                       v=True,
-                                                       cc = cgmGEN.Callback(self.uiFunc_updateScrollAttrList))                
-
-        mUI.MelLabel(_row_attrFlags,l = 'Show')
-        _row_attrFlags.setStretchWidget( mUI.MelSeparator(_row_attrFlags) )
-        for item in ui._checkBoxKeys:
-            if item in ['shared','default','user']:_cb = True
-            else:_cb = False
-            self._d_uiCheckBoxes[item] = mUI.MelCheckBox(_row_attrFlags,label = item,
-                                                         v = _cb,
-                                                         cc = cgmGEN.Callback(self.uiFunc_updateScrollAttrList))
-        _row_attrFlags.layout()
-        
-        #>>>Manage Attribute Section ---------------------------------------------------------------------------------------
-        self.uiScrollList_attr = mUI.MelObjectScrollList(_MainForm, allowMultiSelection=True,
-                                                         dcc = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}),
-                                                         selectCommand = self.uiFunc_selectAttr)
-        
-        
-             
-        #>>>Push Values header ---------------------------------------------------------------------------------------        
-        mc.setParent(_MainForm)        
-        _header_push = cgmUI.add_Header('Push Values')
-        
-        #>>>Push Values Row --------------------------------------------------------------------------------------------
-        self.row_setValue = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 2)
-        
-        cgmUI.add_Button(self.row_setValue,'<<Back',
-                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'back'}),                
-                         "Push values to all previous frames") 
-        cgmUI.add_Button(self.row_setValue,'<Prev',
-                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'previous'}),                
-                         "Push current values to the previous key")
-        
-        cgmUI.add_Button(self.row_setValue,'Current',
-                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'current'}),                
-                         "Push current values in context")
-        cgmUI.add_Button(self.row_setValue,'All',
-                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'all'}),                
-                         "Push current values in context")
-
-
-        cgmUI.add_Button(self.row_setValue,'Next>',
-                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'next'}),                
-                         "Push current values to the next key")
-        cgmUI.add_Button(self.row_setValue,'Fwd>>',
-                         cgmGEN.Callback(self.uiFunc_pushValue,**{'mode':'forward'}),                
-                         "Push values to all future keys")
-
-        self.row_setValue.layout()
-        
-        _MainForm(edit = True,
-                  af = [(_header,"top",0),
-                        (_header,"left",0),
-                        (_header,"right",0),
-                        (self.uiScrollList_attr,"left",0),
-                        (self.uiScrollList_attr,"right",0),
-                        (_row_attrReport,"left",0),
-                        (_row_attrReport,"right",0),
-                        (_row_attrCreate,"left",0),
-                        (_row_attrCreate,"right",0),
-                        (_row_attrFlags,"left",0),
-                        (_row_attrFlags,"right",0),
-                        (_row_move,"left",0),
-                        (_row_move,"right",0),                        
-                        (_header_push,"left",0),
-                        (_header_push,"right",0),                         
-                        #(_row_keyModes,"left",5),
-                        #(_row_keyModes,"right",5),  
-                        #(_row_valueModes,"left",5),
-                        #(_row_valueModes,"right",5),                          
-                        (self.row_setValue,"left",0),
-                        (self.row_setValue,"right",0),                          
-                        (self.row_setValue,"bottom",2),
-                        ],
-                  ac = [(_row_attrReport,"top",2,_header),
-                        (_row_attrCreate,"top",2,_row_attrReport),
-                        (_row_attrFlags,"top",2,_row_attrCreate),
-                        (_row_move,"bottom",0,_header_push),                                                
-                        (_header_push,"bottom",2,self.row_setValue),                        
-                        #(_row_keyModes,"bottom",0,_row_valueModes),
-                        #(_row_valueModes,"bottom",0,self.row_setValue),                        
-                        (self.uiScrollList_attr,"top",2,_row_attrFlags),
-                        (self.uiScrollList_attr,"bottom",0,_row_move)],
-                  attachNone = [(self.row_setValue,"top")])	        
-            
-        _sel = mc.ls(sl=True)
-        if _sel:
-            self.uiFunc_load_selected()        
+ 
     #@cgmGEN.Timer
-    def uiFunc_selectAttr(self): 
-        _str_func = 'uiFunc_selectAttr'        
-        if self.uiPopUpMenu_attr:
-            self.uiPopUpMenu_attr.clear()
-            self.uiPopUpMenu_attr.delete()
-            self.uiPopUpMenu_attr = None
+    def uiFunc_selectParent_inList(self): 
+        _str_func = 'uiFunc_selectParent_inList'        
+        if self.uiPopUpMenu_parent:
+            self.uiPopUpMenu_parent.clear()
+            self.uiPopUpMenu_parent.delete()
+            self.uiPopUpMenu_parent = None
             
-        _indices = self.uiScrollList_attr.getSelectedIdxs() or []
-        log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))                           
+            
+        ml_parents = self._mGroup.msgList_get('dynParents')
+        _indices = self.uiScrollList_parents.getSelectedIdxs() or []
+        log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))    
+        
         if not _indices:
             return
         
-        self.uiPopUpMenu_attr = mUI.MelPopupMenu(self.uiScrollList_attr,button = 3)
-        _popUp = self.uiPopUpMenu_attr     
+        self.uiPopUpMenu_parent = mUI.MelPopupMenu(self.uiScrollList_parents,button = 3)
+        _popUp = self.uiPopUpMenu_parent           
+                
+        if len(_indices) == 1:
+            _b_single = True
+            
+            log.debug("|{0}| >> Single pop up mode".format(_str_func))  
+            _short = ml_parents[_indices[0]].p_nameShort
+            mUI.MelMenuItem(_popUp,
+                            label = "Single: {0}".format(_short),
+                            en=False)            
+        else:
+            log.debug("|{0}| >> Multi pop up mode".format(_str_func))  
+            mUI.MelMenuItem(_popUp,
+                            label = "Mutli",
+                            en=False)  
+            _b_single = False
+            
         
+        if _b_single:
+            mUI.MelMenuItem(_popUp,
+                            label ='Alias',
+                            ann = 'Enter value desired in prompt',
+                            c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'alias'}))
+            mUI.MelMenuItem(_popUp,
+                            label ='Clear Alias',
+                            ann = 'Remove any alias',
+                            c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'aliasClear'}))
+            mUI.MelMenuItem(_popUp,
+                            label ='Switch To',
+                            ann = 'Switch the mode to selected parent',
+                            c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'switch'}))            
+
+        #Select
+        mUI.MelMenuItem(_popUp,
+                        label ='Select',
+                        ann = 'Select specified indice parents',
+                        c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'select'}))  
+        mUI.MelMenuItem(_popUp,
+                        label ='Move Up',
+                        ann = 'Move selected up in list',
+                        c = cgmGEN.Callback(self.uiFunc_dynParents_reorder,0)) 
+        mUI.MelMenuItem(_popUp,
+                        label ='Move Down',
+                        ann = 'Move selected down in list',
+                        c = cgmGEN.Callback(self.uiFunc_dynParents_reorder,1)) 
+        #Remove
+        cgmGEN.Callback(self.uiFunc_dynParents_reorder,0),                        
         
-        _b_single = False
-        if len(_indices)==1:_b_single = True
-        
-        _short = self._ml_nodes[0].p_nameShort
-        _dynamic = False
-        _numberChanges = False    
-        _hidden = False
-        _connectionsIn = False
-        _connectionsOut = False
-        
-        
-        _res_context = get_context(self,self.var_context.value,False)
-        
-        _primeNode =_res_context['primeNode']
-        _l_primeAttrs = _res_context['attrs']
-        _l_targets = _res_context['targets'] 
-        _l_channelbox = _res_context['channelbox']
-        _d_prime = None
-        
-        print(cgmGEN._str_subLine)
-        self._l_attrsSelected = []
-        
-        
-        for i,idx in enumerate(_indices):
-            _a = self._l_attrsToLoad[idx]
-            self._l_attrsSelected.append(_a)
-            _d = ATTR.validate_arg(_short, _a)
-            _v = ATTR.get(_d)
-            log.info("{1}.{2} | value: {3}".format(_str_func, _short,_a, _v))
-            if i == 0:
-                _d_prime = _d
-                if ATTR.is_dynamic(_d):
-                    _dynamic = True
-                    if ATTR.is_numeric(_d):
-                        _numberChanges = True
-                        log.debug("|{0}| >> {1}.{2}...setting up value change popup".format(_str_func, _short,_a))                           
-                if ATTR.is_hidden(_d):
-                    _hidden = True
-                _l_connectionsIn = ATTR.get_driver(_d,skipConversionNodes=True)
-                if _l_connectionsIn:
-                    _connectionsIn = True
-                _l_connectionsOut = ATTR.get_driven(_d,skipConversionNodes=True)
-                if _l_connectionsOut:
-                    _connectionsOut = True
+        return
         
                 
-        #>>>Pop up menu--------------------------------------------------------------------------------------------        
-        mUI.MelMenuItem(_popUp,
-                        label = "prime: {0}".format(self._l_attrsToLoad[_indices[0]]),
-                        en=False)
-        mUI.MelMenuItem(_popUp,
-                        label ='Set Value',
-                        ann = 'Enter value desired in pompt. If message, select object(s) to store',
-                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}))        
-        mUI.MelMenuItemDiv(_popUp)
-        
-        
-        #Standard Flags--------------------------------
-        _flags = mUI.MelMenuItem(_popUp, subMenu = True,
-                                label = 'Standard Flags')  
-        
-        mUI.MelMenuItem(_flags,
-                        label ='Lock and Hide',
-                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'lock':True,'hidden':True}))         
-        mUI.MelMenuItem(_flags,
-                        label ='Unlock and Show',
-                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'lock':False,'hidden':False}))         
-        
-        _l_boolToMake = ['keyable','lock','hidden']
-        
-        
-        for item in _l_boolToMake:
-            _menu = mUI.MelMenuItem(_flags, subMenu = True,
-                                label = item.capitalize())
-            mUI.MelMenuItem(_menu,
-                        label ='True',
-                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{item:True}))        
-            mUI.MelMenuItem(_menu,
-                        label ='False',
-                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{item:False}))    
-        
-        
-        #Connections --------------------------------
-        #_connections = mUI.MelMenuItem(_popUp, subMenu = True,
-                                       #label = "Connections")
-        
-        _in = mUI.MelMenuItem(_popUp, subMenu = True,
-                              label = "In")
-        _out = mUI.MelMenuItem(_popUp, subMenu = True,
-                               label = "Out")
-        
  
-    def uiFunc_attrManage_fromScrollList(self,**kws):
-        def simpleProcess(self, indicies, attrs, func,**kws):
-            for i in indicies:
-                _a = attrs[i]
-                for mNode in self._ml_nodes:
-                    try:
-                        _short = mNode.p_nameShort
-                        _d = ATTR.validate_arg(_short,_a)
-                        if not _d:
-                            log.warning("|{0}| >> not validated. skipping: {1}.{2}".format(_str_func, _short,_a))                           
-                            continue
-                        
-                        func(_d,**kws)
-                    except Exception,err:
-                        log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _short,_a,err))            
+ 
+    def uiFunc_parentManage_fromScrollList(self,**kws):          
         
-        _str_func = 'attrManage_fromScrollList'
-        _indices = self.uiScrollList_attr.getSelectedIdxs()
+        _str_func = 'uiFunc_parentManage_fromScrollList'
+        _indices = self.uiScrollList_parents.getSelectedIdxs()
                 
-        _keyable = kws.get('keyable',None)
-        _lock = kws.get('lock',None)
-        _hidden = kws.get('hidden',None)
         _mode = kws.get('mode',None)
         _fromPrompt = None
         
-        _res_context = get_context(self,self.var_context.value,False)
-
-        _primeNode =_res_context['primeNode']
-        _l_primeAttrs = _res_context['attrs']
-        _l_targets = _res_context['targets']        
-        _l_channelbox = _res_context['channelbox'] 
+        if not self._mGroup:
+            log.error("|{0}| >> No Group Loaded".format(_str_func))                                                        
+            return False
         
-        if _indices:
-            _d_baseAttr = ATTR.validate_arg(self._ml_nodes[0].mNode,self._l_attrsToLoad[_indices[0]])
-        else:
-            _d_baseAttr = False
+        ml_parents = self._mGroup.msgList_get('dynParents')
             
-        _aType = ATTR.get_type(_d_baseAttr)
-        _str_base = NAMES.get_base(_d_baseAttr['combined'])
+        
+        if not _indices:
+            log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
+            return False
+        
+        _ml_targets = [ml_parents[i] for i in _indices]
+        log.debug("|{0}| >> targets: {1}".format(_str_func,[mObj.mNode for mObj in _ml_targets]))                                                        
+        
+        
         _done = False
-        #Get attr types...
 
         if _mode is not None:
-            if _mode == 'delete':
-                simpleProcess(self, _indices, self._l_attrsToLoad, ATTR.delete)
-                _done = True             
-            elif _mode == 'rename':
-                _fromPrompt = uiPrompt_getValue("Enter Name","Primary attr: '{0}' | type: {1}".format(_str_base,_aType),_d_baseAttr['attr'])                
-                if _fromPrompt is None:
-                    log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
-                    return False
-            elif _mode == 'addAttr':
-                uiPrompt_addAttr(kws['type'],_l_targets)
-                _done = True
-            elif _mode == 'connectToPrime':
-                _driver = [kws['driver'] ]
-                
-                for o in _driver:
-                    for a in _l_primeAttrs:
-                        try:
-                            ATTR.connect("{0}.{1}".format(o,a), "{0}.{1}".format(_primeNode,a))
-                        except Exception,err:
-                            log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                   
-                _done = True
-            elif _mode == 'connectToPrimeFromChannelbox':
-                _driver = [kws['driver'] ]
-                len_primeAttrs = len(_l_primeAttrs)
-                if len_primeAttrs == 1 and len_primeAttrs != len(_l_channelbox):
-                    for o in _driver:
-                        try:
-                            for i,a in enumerate(ATTR.get_children(_d_baseAttr)):
-                                ATTR.connect("{0}.{1}".format(o,_l_channelbox[i]),"{0}.{1}".format(_primeNode,a))                        
-                        except Exception,err:
-                            log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                    
-                else:
-                    for o in _driver:
-                        for i,a in enumerate(_l_primeAttrs):
-                            try:
-                                ATTR.connect("{0}.{1}".format(o,_l_channelbox[i]),"{0}.{1}".format(_primeNode,a))
-                            except Exception,err:
-                                log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                   
-                _done = True                
-            elif _mode == 'connectFromPrime':
-                _driven = kws['driven'] 
-                for o in _driven:
-                    for a in _l_primeAttrs:
-                        try:
-                            ATTR.connect("{0}.{1}".format(_primeNode,a),"{0}.{1}".format(o,a))
-                        except Exception,err:
-                            log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                   
-                _done = True
-            elif _mode == 'connectFromPrimeToChannelbox':
-                _driven = kws['driven'] 
-                len_primeAttrs = len(_l_primeAttrs)
-                if len_primeAttrs == 1 and len_primeAttrs != len(_l_channelbox):
-                    for o in _driven:
-                        try:
-                            for i,a in enumerate(ATTR.get_children(_d_baseAttr)):
-                                ATTR.connect( "{0}.{1}".format(_primeNode,a),"{0}.{1}".format(o,_l_channelbox[i]))                        
-                        except Exception,err:
-                            log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                    
-                else:
-                    for o in _driven:
-                        for i,a in enumerate(_l_primeAttrs):
-                            try:
-                                ATTR.connect("{0}.{1}".format(_primeNode,a),"{0}.{1}".format(o,_l_channelbox[i]))
-                            except Exception,err:
-                                log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _primeNode,a,err))                   
-                _done = True                     
-            elif _mode in ['alias','nameNice','duplicate','copyTo','copyConnectback','copyConnectto']:
-                if _mode == 'alias':
-                    _plug = ATTR.get_alias(_d_baseAttr)
-                elif _mode == 'duplicate':
-                    _plug = _d_baseAttr['attr']+'DUP'                 
-                elif _mode == 'nameNice':
-                    _plug = ATTR.get_nameNice(_d_baseAttr)
-                else:
-                    _plug = ATTR.get_nameLong(_d_baseAttr)
-                _kws = {'title':"Enter {0}".format(_mode),'message':'Enter a new {0} name.'.format(_mode)}
-                if _plug:
-                    _kws['text'] = _plug
-                
-                _fromPrompt = uiPrompt_getValue(**_kws)   
-                
-                if _fromPrompt is None:
-                    log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
-                    return False
-                
-                
-            elif _mode in ['default','min','max','softMin','softMax']:
-                _d_plugs = {'default':ATTR.get_default,'min':ATTR.get_min,'max':ATTR.get_max,
-                            'softMin':ATTR.get_softMin,'softMax':ATTR.get_softMax}
-                
-                _plug = _d_plugs[_mode](_d_baseAttr)
-
-                _kws = {'title':"Enter {0}".format(_mode),'message':'Enter a new {0}.'.format(_mode)}
-                if _plug:
-                    _kws['text'] = _plug
+            log.debug("|{0}| >> mode: {1}".format(_str_func,_mode))  
             
-                _fromPrompt = uiPrompt_getValue(**_kws)   
-            
+            if _mode == 'alias':
+                _fromPrompt = ATTRTOOLS.uiPrompt_getValue("Enter Alias","Type in your alias to be used in the marking menu")
                 if _fromPrompt is None:
-                    log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
+                    log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode)) 
                     return False
-                log.info(_fromPrompt)  
-                
-            elif _mode == 'value':
-                if _aType == 'message':
-                    _sel = mc.ls(sl=True)
-                    if not _sel:
-                        log.error("|{0}| >>  Mode: {1} | No selection".format(_str_func,_mode))                                                                       
-                        return False
-                    log.info("|{0}| >>  Mode: {1} | storing {2}".format(_str_func,_mode,_sel))  
-                    #self._ml_nodes[0].__dict__[self._l_attrsToLoad[_indices[0]]] = _sel
-                    ATTR.set_message(self._ml_nodes[0].mNode, self._l_attrsToLoad[_indices[0]], _sel)
-                    _done = True
                 else:
-                    _fromPrompt = uiPrompt_getValue("Enter Value","Primary attr: '{0}' | type: {1} | v: {2}".format(_str_base,_aType, ATTR.get(_d_baseAttr)))
-                    if _fromPrompt is None:
-                        log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
-                        return False
-                    else:
-                        log.info("|{0}| >>  from prompt: {1} ".format(_str_func,_fromPrompt))  
+                    log.info("|{0}| >>  from prompt: {1} ".format(_str_func,_fromPrompt))  
+                    _fromPrompt = STRINGS.strip_invalid(_fromPrompt,',[]{}()', functionSwap = False, noNumberStart = False)
+                
+                if _fromPrompt:
+                    for mObj in _ml_targets:
+                        mObj.addAttr('cgmAlias',value = _fromPrompt)
                         
-                    _fromPrompt = STRINGS.strip_invalid(_fromPrompt,'[]{}()', functionSwap = False, noNumberStart = False)
-                    if ',' in _fromPrompt:
-                        _fromPrompt = _fromPrompt.split(',')                
-                    #log.info(_fromPrompt)  
+            elif _mode == 'aliasClear':
+                for mObj in _ml_targets:
+                    mObj.delAttr('cgmAlias')    
                     
-            elif _mode.startswith('convert'):
-                _convertString = _mode.split('convert')[-1].lower()
-                log.info("|{0}| >>  convert string: {1} ".format(_str_func,_convertString))                                                               
+            elif _mode == 'select':
+                mc.select([mObj.mNode for mObj in _ml_targets])
                 
-            elif _mode in ['moveUp','moveDown']:
-                pass
+            elif _mode == 'switchTo':
+                _dynMode = self._mGroup.dynMode
+                if _dynMode == 0:
+                    self._mGroup.doSwitchSpace('space',_indices[0])
+                elif _dynMode == 1:
+                    self._mGroup.doSwitchSpace('orientTo',_indices[0])
+                else:
+                    self._mGroup.doSwitchSpace('orientTo',_indices[0])
+                    
+                    
+            
+
             else:
                 log.error("|{0}| >>  Mode: {1} | Not implented...".format(_str_func,_mode))                                               
                 return False
             
-        if _done:
-            self.uiFunc_updateScrollAttrList()
-            return True
+        self.uiFunc_updateDynParentDisplay()
+        return True
 
+        
+    def uiFunc_get_buildDict(self):
+        _str_func = 'uiFunc_get_buildDict' 
+        _d = {}
+
+        _idx = self._uiRC_mode.getSelectedIndex()
+        _d['dynMode'] = _idx
+        
+        cgmGEN.log_info_dict(_d,_str_func)
+        return _d
+        
+            
+    def uiFunc_dynGroup_rebuild(self):
+        _str_func = 'uiFunc_dynGroup_rebuild' 
+        
+        if not self._mNode:
+            log.error("|{0}| >> No dyChild loaded to ui".format(_str_func))                                            
+            return False
+        
+        _d_exists = get_dict(self._mNode.mNode)
+        _d_build = self.uiFunc_get_buildDict()
+        _d_build['dynChild'] = self._mNode
+        if _d_exists and _d_exists.get('dynMode') != _d_build.get('dynMode'):
+            log.error("|{0}| >> Modes don't match".format(_str_func))                                            
+            
+        
+        
+        #Build...
+        verify_obj(self._mNode, _d_build.get('dynMode'))
+        
+        
+        self.uiFunc_updateDynParentDisplay()
+        
+        
+    def uiFunc_dynGroup_clear(self):
+        _str_func = 'uiFunc_dynGroup_clear' 
+    
+        if not self._mGroup:
+            log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
+            return False    
+        self._mGroup.doPurge()
+        
+        self.uiFunc_updateDynParentDisplay()
+        
+    def uiFunc_dynGroup_copy(self):
+        _str_func = 'uiFunc_dynGroup_copy' 
+    
+        if not self._mNode:
+            log.error("|{0}| >> No dyChild loaded to ui".format(_str_func))                                            
+            return False  
+        if not self._mGroup:
+            log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
+            return False              
+        
+        _l_context = CONTEXT.get_list('selection')
+        _ml_copyTo = []
+        for o in _l_context:
+            mObj = cgmMeta.validateObjArg(o)
+            if mObj == self._mNode:
+                log.error("|{0}| >> Cannot copy to self".format(_str_func))                                            
+            elif not VALID.is_transform(o):
+                log.error("|{0}| >> Not a transform: {1}".format(_str_func,o))                                                            
+            else:
+                _ml_copyTo.append(mObj)
+        
+        if not _ml_copyTo:
+            log.error("|{0}| >> No acceptable targets found".format(_str_func))                                            
+            return False
+        
+        _d_build = {}
+        for mObj in _ml_copyTo:
+            if ATTR.get_message(mObj.mNode,'dynParentGroup'):
+                mObj.dynParentGroup.doPurge()
+                
+            _d_build['dynChild'] = mObj.mNode
+            _d_build['dynMode'] = self._mGroup.dynMode
+            _d_build['dynParents'] = self._mGroup.msgList_get('dynParents')
+            _mi_group = cgmRigMeta.cgmDynParentGroup(**_d_build)
+            
+    def uiFunc_dynGroup_addParents(self):
+        _str_func = 'uiFunc_dynGroup_clear' 
+    
+        if not self._mGroup:
+            log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
+            return False    
+        
+        _l_context = CONTEXT.get_list('selection')
+        _ml_add = []
+        for o in _l_context:
+            mObj = cgmMeta.validateObjArg(o)
+            if mObj == self._mNode:
+                log.error("|{0}| >> Cannot add self as parent".format(_str_func))                                            
+            elif not VALID.is_transform(o):
+                log.error("|{0}| >> Not a transform: {1}".format(_str_func,o))                                                            
+            else:
+                _ml_add.append(mObj)  
+                
+        if not _ml_add:
+            log.error("|{0}| >> No eligible targets selected".format(_str_func))                                                                        
+            return False
+        
+        for mObj in _ml_add:
+            self._mGroup.addDynParent(mObj)
+            
+        self._mGroup.rebuild()
+        self.uiFunc_updateDynParentDisplay()
+        
+    def uiFunc_dc_fromList(self):
+        _str_func = 'uiFunc_dc_fromList'   
+    
+        if not self._mGroup:
+            log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
+            return False          
+    
+        ml_parents = self._mGroup.msgList_get('dynParents')
+        _indices = self.uiScrollList_parents.getSelectedIdxs() or []
+    
+        if _indices:
+            ml_parents[_indices[0]].select()
+                        
+    def uiFunc_dynGroup_removeParents(self):
+        _str_func = 'uiFunc_dynGroup_removeParents'   
+        
+        if not self._mGroup:
+            log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
+            return False          
+        
+        _l_context = CONTEXT.get_list('selection')
+        _ml_remove = []
+        ml_parents = self._mGroup.msgList_get('dynParents')
+        
+        for o in _l_context:
+            mObj = cgmMeta.validateObjArg(o)
+            if mObj == self._mNode:
+                log.error("|{0}| >> Cannot remove self as parent".format(_str_func))                                            
+            elif not VALID.is_transform(o):
+                log.error("|{0}| >> Not a transform: {1}".format(_str_func,o))                                                            
+            else:
+                _ml_remove.append(mObj)  
+                
+        _indices = self.uiScrollList_parents.getSelectedIdxs() or []
+        if _indices:
+            for i in _indices:
+                if ml_parents[i] not in _ml_remove:
+                    _ml_remove.append(ml_parents[i])
+    
+        if not _ml_remove:
+            log.error("|{0}| >> No eligible targets selected".format(_str_func))                                                                        
+            return False  
+        
+        log.error("|{0}| >> To remove: {1}".format(_str_func,_ml_remove))                                            
+        self._mGroup.clearParents()
+        
+        for mObj in _ml_remove:
+            _short = mObj.mNode
+            log.info(mObj.mNode)
+            for i,mP in enumerate(ml_parents):
+                if mP.mNode == _short:
+                    ml_parents.pop(i)
+                
+        for mObj in ml_parents:
+            self._mGroup.addDynParent(mObj)
+        
+        self._mGroup.rebuild()        
+            
+        self.uiFunc_updateDynParentDisplay()
+        
+    def uiFunc_dynParents_reorder(self,direction = 0):
+        """
+        direction(int) - 0 is is negative (up), 1 is positive (dn)
+
+        """
+        _str_func = 'uiFunc_dynGroup_removeParents'   
+        
+        if not self._mGroup:
+            log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
+            return False          
+        
+        _l_context = CONTEXT.get_list('selection')
+        _ml_remove = []
+        ml_parents = self._mGroup.msgList_get('dynParents')
+        _l_parents = [mObj.mNode for mObj in ml_parents]
+      
+        _indices = self.uiScrollList_parents.getSelectedIdxs() or []
+        
+        if not _indices:
+            log.error("|{0}| >> No targets specified in parent list".format(_str_func))                                            
+            return False  
+        
+        _to_move = []
         for i in _indices:
-            _a = self._l_attrsToLoad[i]
-            #for mNode in self._ml_nodes:
-            for node in _l_targets:
-                try:
-                    _short = NAMES.get_short(node)
-                    _d = ATTR.validate_arg(_short,_a)
-                    log.info("|{0}| >> on...{1}.{2}".format(_str_func, _short,_a))                                                                   
+            _to_move.append(_l_parents[i])
+            
+        _initialValue = _l_parents[_indices[0]]
+        
+        _to_move = lists.reorderListInPlace(_l_parents,_to_move,direction)
+        
+        self._mGroup.clearParents()
+        
+        for o in _l_parents:
+            self._mGroup.addDynParent(o)
+        
+        self._mGroup.rebuild()
+        self.uiFunc_updateDynParentDisplay()
+        
+        
+        self.uiScrollList_parents.selectByIdx(_l_parents.index(_initialValue))
+        return True
+            
                     
-                    if _mode in ['duplicate','copyTo','copyConnectto','copyConnectback']:
-                        if not _fromPrompt:raise ValueError,"Must have new name"
-                        if _mode == 'duplicate':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True)                                                 
-                        if _mode == 'copyTo':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True)
-                        if _mode == 'copyConnectto':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True,driven='target')
-                        if _mode == 'copyConnectback':ATTR.copy_to(self._ml_nodes[0].mNode,_d['attr'],_d['node'], _fromPrompt,outConnections=False,inConnection = True,driven='source')                        
-                        continue
-
-                    #...the remainder of these happen after validation of attr
-                    if not _d or not mc.objExists(_d['combined']):
-                        log.warning("|{0}| >> not validated. skipping: {1}.{2}".format(_str_func, _short,_a))                           
-                        continue
-                    
-                    if _keyable is not None:
-                        log.warning("|{0}| >> {1}.{2} keyable: {3}".format(_str_func, _short,_a,_keyable))                                               
-                        ATTR.set_keyable(_d,_keyable)
-                    if _lock is not None:
-                        log.warning("|{0}| >> {1}.{2} lock: {3}".format(_str_func, _short,_a,_lock))                           
-                        ATTR.set_lock(_d,_lock)        
-                    if _hidden is not None:
-                        log.warning("|{0}| >> {1}.{2} hidden: {3}".format(_str_func, _short,_a,_hidden))                                               
-                        ATTR.set_hidden(_d,_hidden)
-                        
-                    if _mode is not None:
-                        if _mode == 'value':
-                            _v = None
-                            try:
-                                _v = ATTR.validate_value(_d,value =_fromPrompt)
-                            except Exception,err:
-                                log.error("|{0}| >> {1}.{2} | Mode: {3} | Failed to validate value from prompt: {4} | err: {5}".format(_str_func, _short,_a,_mode,_fromPrompt,err))                                               
-                                continue
-                            if _v is not None:
-                                ATTR.set(_d, value = _v)
-                        elif _mode == 'alias':
-                            if not _fromPrompt:_fromPrompt=False
-                            ATTR.set_alias(_d, _fromPrompt)
-                        elif _mode == 'nameNice':
-                            if not _fromPrompt:_fromPrompt=False
-                            ATTR.renameNice(_d, _fromPrompt)                            
-                        elif _mode == 'rename':
-                            if not _fromPrompt:raise ValueError,"Must have new name"
-                            ATTR.rename(_d, _fromPrompt) 
-                        elif _mode in ['moveUp','moveDown']:
-                            if _mode == 'moveUp':
-                                _direction = 0
-                            else:
-                                _direction = 1
-                            if ATTR.is_dynamic(_d):
-                                ATTR.reorder(_short, _a, _direction)
-                            else:
-                                log.error("|{0}| >> {1}.{2} | Mode: {3} | Attr must be userDefined to be dynamic".format(_str_func, _short,_a,_mode))                                                                               
-                        
-                        elif _mode in ['default','min','max','softMin','softMax']:
-                            _d_plugs = {'default':ATTR.set_default,'min':ATTR.set_min,'max':ATTR.set_max,
-                                        'softMin':ATTR.set_softMin,'softMax':ATTR.set_softMax}
-                            if not _fromPrompt:_fromPrompt=False
-                            else:_fromPrompt = float(_fromPrompt)
-                            _d_plugs[_mode](_d,_fromPrompt)
-                            
-                        elif _mode.startswith('convert'):
-                            if not ATTR.is_dynamic(_d):
-                                log.error("|{0}| >> {1}.{2} | Mode: {3} | Not dynamic. Continuing to next...".format(_str_func, _short,_a,_mode))                                               
-                            ATTR.convert_type(_d,_convertString) 
-                            
-                        else:
-                            log.error("|{0}| >> {1}.{2} | Mode: {3} | Not implented or failed to meet criteria".format(_str_func, _short,_a,_mode))                                               
-                            
-                except Exception,err:
-                    log.error("|{0}| >> {1}.{2} failed to process: {3}".format(_str_func, _short,_a,err))                                               
-        self.uiFunc_updateScrollAttrList()
-                    
+    
+    def reorder(self, direction = 0):
+        """   
+        :Acknowledgement:
+        Thank you to - http://www.the-area.com/forum/autodesk-maya/mel/how-can-we-reorder-an-attribute-in-the-channel-box/
+    
+        Reorders attributes on an object
+    
+        :parameters:
+            node(str) -- 
+            attrs(list) must be attributes on the object
+            direction(int) - 0 is is negative (up on the channelbox), 1 is positive (up on the channelbox)
+    
+        :returns
+            status(bool)
+        """
+        _str_func = 'reorder'    
+        
+        attrs = VALID.listArg(attrs)
+        
+        for a in attrs:
+            assert mc.objExists(node+'.'+a) is True, "|{0}|>> . '{1}.{2}' doesn't exist. Swing and a miss...".format(_str_func,node,a)
+            
+        _l_user = mc.listAttr(node,userDefined = True)
+        _to_move = []
+        
+        for a in _l_user:
+            if not is_hidden(node,a):
+                _to_move.append(a)
+    
+        log.info(_to_move)
+        _to_move = lists.reorderListInPlace(_to_move,attrs,direction)
+        log.info(_to_move)
+        
+        #To reorder, we need delete and undo in the order we want
+        _d_locks = {}
+        _l_relock = []    
+        
+            
+        
 
 def verify_obj(obj = None, mode = 0):
     """
@@ -1112,26 +793,29 @@ def verify_obj(obj = None, mode = 0):
         info(dict)
     """   
     _str_func = "verify_obj"
-    _l_context = CONTEXT.get_list('selection')
     _buildD = {}
     
-    _len_context = len(_l_context)
-    if not _l_context:
-        log.error("|{0}| >> Nothing selected.".format(_str_func))                                               
-        return False
-    
-    _buildD['dynChild'] = _l_context[0]
-    
-    if _len_context > 1:
-        _buildD['dynParents'] = _l_context[1:]
+    if not obj:
+        _l_context = CONTEXT.get_list('selection')
+        
+        _len_context = len(_l_context)
+        if not _l_context:
+            log.error("|{0}| >> Nothing selected.".format(_str_func))                                               
+            return False
+        
+        _buildD['dynChild'] = _l_context[0]
+        
+        if _len_context > 1:
+            _buildD['dynParents'] = _l_context[1:]
+    else:
+        _buildD['dynChild'] = obj
     
     #>>>Logging what we're gonna do.
     log.info("|{0}| >> Building....".format(_str_func))                                               
     log.info("|{0}| >> dynChild: {1}".format(_str_func,_buildD['dynChild'])) 
- 
 
     #Initialize group
-    _mi_group = cgmRigMeta.cgmDynParentGroup(dynChild = _buildD['dynChild'])
+    _mi_group = cgmRigMeta.cgmDynParentGroup(dynChild = _buildD['dynChild'], dynMode=mode)
     
     #Add parents
     if _buildD.get('dynParents'):    
@@ -1142,7 +826,7 @@ def verify_obj(obj = None, mode = 0):
     
     _mi_group.rebuild()    
     
-    mc.select(_l_context)
+    #mc.select(_l_context)
     return True    
 
 
@@ -1181,18 +865,55 @@ def get_dict(obj = None):
         return False
     
     log.info(cgmGEN._str_hardLine)
-    log.info("|{0}| >> dynChild: {1}".format(_str_func,mObj.mNode))
-    log.info("|{0}| >> dynGroup: {1}".format(_str_func,mGroup.mNode))
+    #log.info("|{0}| >> dynChild: {1}".format(_str_func,mObj.mNode))
+    #log.info("|{0}| >> dynGroup: {1}".format(_str_func,mGroup.mNode))
     _d['mode'] = mGroup.dynMode
     _d['dynParents'] = mGroup.msgList_get('dynParents')
     _d['dynDrivers'] = mGroup.msgList_get('dynDrivers')
+    _d['dynChild'] = mObj
+    _d['dynGroup'] = mGroup
     
     _d['aliases'] = []
     for p in _d['dynParents']:
         _d['aliases'].append(ATTR.get(p,'cgmAlias'))
     
-    cgmGEN.log_info_dict(_d,'Data:')
+    #cgmGEN.log_info_dict(_d,'Data:')
     return _d
+
+def get_state(obj = None):
+    """
+    Given an object selection. Get a data dict of the dynParentGroup on that object
+    
+    :parameters
+        obj(string): Node or selection based
+
+    :returns
+        info(dict)
+d_DynParentGroupModeAttrs = {0:['space'],
+                             1:['orientTo'],
+                             2:['orientTo','follow']}        
+        
+        
+        
+    """   
+    _str_func = "get_state"
+    
+    _d = get_dict(obj)
+    
+    if not _d:
+        return False 
+    
+    _mGroup = _d['dynGroup']
+    _mode = _d['mode']
+    _dynChild = _d['dynChild']
+    
+    if _mode == 0:
+        return _dynChild.space
+    elif _mode == 1:
+        return _dynChild.orientTo
+    else:
+        return _dynChild.orientTo, _dynChild.follow
+    
     
     
     

@@ -37,6 +37,8 @@ from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.tools import meshTools
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools import attrTools as ATTRTOOLS
+from cgm.core.tools import dynParentTool as DYNPARENTTOOL
+
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
@@ -391,7 +393,12 @@ def uiSection_animUtils(parent):
     mc.menuItem(parent = parent,
                 l='cgmLocinator',
                 ann = "Launch cgmLocinator - a tool for aiding in the snapping of things",                                                                                                                                       
-                c=lambda *a: LOCINATOR.ui())       
+                c=lambda *a: LOCINATOR.ui()) 
+    mc.menuItem(parent = parent,
+                l='cgmDynParentTool',
+                ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
+                c=lambda *a: DYNPARENTTOOL.ui())   
+    
     mc.menuItem(parent = parent,
             l='autoTangent',
             ann = "autoTangent by Michael Comet - an oldie but a goodie for those who loathe the graph editor",                                                                                                                                   
@@ -600,7 +607,6 @@ def uiSection_riggingUtils(parent):
                 c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, None,'each','Group In Place',**{'parent':True,'maintainParent':True}))     
     
 
-
     mc.menuItem(parent=_copy,
                 l = 'Transform',
                 c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_transform, None,'eachToFirst','Match Transform'),                    
@@ -627,6 +633,14 @@ def uiSection_riggingUtils(parent):
                 l = 'scalePivot',
                 c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, None,'eachToFirst', 'Match SP', **{'rotatePivot':False,'scalePivot':True}),                                               
                 ann = "Copy the scalePivot from:to")
+    
+    mc.menuItem(parent=_p,
+                l = 'DynParent Tool',
+                en=True,
+                c=cgmGen.Callback(DYNPARENTTOOL.ui),
+                #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                #c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, None,'eachToFirst','Match Orientation'),                    
+                ann = "Tool for modifying and setting up dynamic parent groups")
     
     mc.menuItem(parent=_p,
                 l = 'Constraints',

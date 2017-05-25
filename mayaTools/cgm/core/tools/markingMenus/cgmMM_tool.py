@@ -26,6 +26,8 @@ from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
+from cgm.core.tools import dynParentTool as DYNPARENTTOOL
+
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
 reload(MMPuppet)
@@ -1486,8 +1488,13 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     en = self._b_sel,
                     l = 'In Place',
                     c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, self._l_sel,'each','Group In Place',**{'parent':True,'maintainParent':True}),                                                                 
-                    rp = "NW")       
+                    rp = "NW")    
         
+        mc.menuItem(parent = _r,
+                    rp='N',
+                    l='cgmDynParentTool',
+                    ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
+                    c=lambda *a: DYNPARENTTOOL.ui())           
         
         
         _p = mc.menuItem(parent=_r, subMenu = True,
