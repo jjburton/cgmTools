@@ -483,6 +483,8 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         #Bottom---------------------------------------------------
         
     def bUI_menuBottom_anim(self,parent):
+        DYNPARENTTOOL.uiMenu_changeSpace(self,parent)             
+        
         uiUtils= mc.menuItem(parent = parent, l='Utilities', subMenu=True)
         
         UICHUNKS.uiSection_animUtils(uiUtils)        

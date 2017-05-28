@@ -21,7 +21,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -563,7 +563,7 @@ def func_multiReset(self):
     if l_slBuffer:mc.select(l_slBuffer)		    	    
     killUI()		
 
-def func_multiChangeDynParent(self,attr,option):
+def func_multiChangeDynParentOLD(self,attr,option):
     """
     execute a command and let the menu know not do do the default button action but just kill the ui
     """	
