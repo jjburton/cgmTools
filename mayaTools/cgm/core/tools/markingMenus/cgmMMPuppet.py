@@ -42,6 +42,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core.lib import list_utils as LISTS
 
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
+from cgm.core.tools import dynParentTool as DYNPARENTTOOL
 
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
@@ -107,8 +108,11 @@ def bUI_lower(self,parent):
     _optionVar_val_moduleOn = self.var_PuppetMMBuildModule.value
     _optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value  
     
+    #Change space menu
+    DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False)                 
     
-    timeStart_objectList = time.clock()    
+    timeStart_objectList = time.clock() 
+    
     #>>  Individual objects....  ============================================================================
     if self._ml_objList:
         self._d_mObjInfo = {}
@@ -122,21 +126,6 @@ def bUI_lower(self,parent):
                 break
             d_buffer = {}
             
-            #>>> Space switching ------------------------------------------------------------------	
-            _dynParentGroup = ATTR.get_message(mObj.mNode,'dynParentGroup')
-            if _dynParentGroup:
-                i_dynParent = cgmMeta.validateObjArg(_dynParentGroup[0],'cgmDynParentGroup',True)
-                d_buffer['dynParent'] = {'mi_dynParent':i_dynParent,'attrs':[],'attrOptions':{}}#Build our data gatherer					    
-                if i_dynParent:
-                    for a in cgmRigMeta.d_DynParentGroupModeAttrs[i_dynParent.dynMode]:
-                        if mObj.hasAttr(a):
-                            d_buffer['dynParent']['attrs'].append(a)
-                            lBuffer_attrOptions = []
-                            #for i,o in enumerate(cgmMeta.cgmAttr(mObj.mNode,a).p_enum):
-                            for i,o in enumerate(ATTR.get_enumList(_short,a)):
-                                lBuffer_attrOptions.append(o)
-                            d_buffer['dynParent']['attrOptions'][a] = lBuffer_attrOptions
-            self._d_mObjInfo[mObj] = d_buffer
 
             #>>> Module --------------------------------------------------------------------------
             if _optionVar_val_moduleOn or _optionVar_val_puppetOn:
@@ -167,93 +156,7 @@ def bUI_lower(self,parent):
                             self._l_puppets.append(buffer[0])
                     except Exception,err:
                         log.debug("|{0}| >> No puppet. obj: {1} | err: {2}".format(_str_func, _short, err))                
-        #for k in self._d_mObjInfo.keys():
-            #log.debug("%s: %s"%(k.getShortName(),self._d_mObjInfo.get(k)))
-        #cgmGen.print_dict(self._d_mObjInfo)
-        #Build the menu
         
-        #=========================================================================================
-        #>> Find Common options ------------------------------------------------------------------
-        timeStart_commonOptions = time.clock()    
-        l_commonAttrs = []
-        d_commonOptions = {}
-        bool_firstFound = False
-        for mObj in self._d_mObjInfo.keys():
-            if 'dynParent' in self._d_mObjInfo[mObj].keys():
-                attrs = self._d_mObjInfo[mObj]['dynParent'].get('attrs') or []
-                attrOptions = self._d_mObjInfo[mObj]['dynParent'].get('attrOptions') or {}
-                if self._d_mObjInfo[mObj].get('dynParent'):
-                    if not l_commonAttrs and not bool_firstFound:
-                        log.debug('first found')
-                        l_commonAttrs = attrs
-                        state_firstFound = True
-                        d_commonOptions = attrOptions
-                    elif attrs:
-                        log.debug(attrs)
-                        for a in attrs:
-                            if a in l_commonAttrs:
-                                for option in d_commonOptions[a]:			
-                                    if option not in attrOptions[a]:
-                                        d_commonOptions[a].remove(option)
-
-        log.debug("|{0}| >> Common Attrs: {1}".format(_str_func, l_commonAttrs))                
-        log.debug("|{0}| >> Common Options: {1}".format(_str_func, d_commonOptions))    
-        log.debug("|{0}| >> Common options build: {1}".format(_str_func,  '%0.3f seconds  ' % (time.clock()-timeStart_commonOptions)))    
-        
-
-
-        #>> Build ------------------------------------------------------------------
-        int_lenObjects = len(self._d_mObjInfo.keys())
-        # Mutli
-        if int_lenObjects == 1:
-            #MelMenuItem(parent,l="-- Object --",en = False)	    					
-            use_parent = parent
-            state_multiObject = False
-        else:
-            #MelMenuItem(parent,l="-- Objects --",en = False)	    			
-            #iSubM_objects = mUI.MelMenuItem(parent,l="Objects(%s)"%(int_lenObjects),subMenu = True)
-            iSubM_objects = mc.menuItem(p=parent,l="Objects(%s)"%(int_lenObjects),subMenu = True)
-            
-            use_parent = iSubM_objects
-            state_multiObject = True		
-            if l_commonAttrs and [d_commonOptions.get(a) for a in l_commonAttrs]:
-                for atr in d_commonOptions.keys():
-                    #tmpMenu = mUI.MelMenuItem( parent, l="multi Change %s"%atr, subMenu=True)
-                    tmpMenu = mc.menuItem( p=parent, l="multi Change %s"%atr, subMenu=True)                    
-                    for i,o in enumerate(d_commonOptions.get(atr)):
-                        mc.menuItem(p=tmpMenu,l = "%s"%o,
-                                    c = cgmUI.Callback(func_multiChangeDynParent,atr,o))
-        # Individual ----------------------------------------------------------------------------
-        #log.debug("%s"%[k.getShortName() for k in self._d_mObjInfo.keys()])
-        for mObj in self._d_mObjInfo.keys():
-            _short = mObj.p_nameShort
-            d_buffer = self._d_mObjInfo.get(mObj) or False
-            if d_buffer:
-                if state_multiObject:
-                    #iTmpObjectSub = mUI.MelMenuItem(use_parent,l=" %s  "%mObj.getBaseName(),subMenu = True)
-                    iTmpObjectSub = mc.menuItem(p=use_parent,l=" %s  "%mObj.getBaseName(),subMenu = True)                    
-                else:
-                    mc.menuItem(p=parent,l="-- %s --"%_short,en = False)
-                    iTmpObjectSub = use_parent
-                if d_buffer.get('dynParent'):
-                    mi_dynParent = d_buffer['dynParent'].get('mi_dynParent')
-                    d_attrOptions = d_buffer['dynParent'].get('attrOptions') or {}			
-                    for a in d_attrOptions.keys():
-                        if mObj.hasAttr(a):
-                            lBuffer_attrOptions = []
-                            tmpMenu = mc.menuItem( p=iTmpObjectSub, l="Change %s"%a, subMenu=True)
-                            v = ATTR.get("%s.%s"%(_short,a))
-                            for i,o in enumerate(ATTR.get_enumList(_short,a)):#enumerate(cgmMeta.cgmAttr(mObj.mNode,a).p_enum)
-                                if i == v:b_enable = False
-                                else:b_enable = True
-                                mc.menuItem(p=tmpMenu,l = "%s"%o,en = b_enable,
-                                            c = cgmUI.Callback(mi_dynParent.doSwitchSpace,a,i))
-                else:
-                    log.debug("|{0}| >> lacks dynParent: {1}".format(_str_func, _short))                
-                    
-    log.debug("|{0}| >> Object list build: {1}".format(_str_func,  '%0.3f seconds  ' % (time.clock()-timeStart_objectList)))    
-
-    
     
     #>>> Module =====================================================================================================
     timeStart_ModuleStuff = time.clock() 

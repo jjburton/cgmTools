@@ -661,11 +661,10 @@ def valueArg(numberToCheck=None, noneValid=True,
     else:_str_funcName = "{0}({1})".format(_str_funcRoot,numberToCheck) 
     
     if not isinstance(numberToCheck, (float, int)):
-        if numberToCheck is None and noneValid is True:
-            pass
-        else:
-            raise TypeError('numberToCheck must be an int or a float and noneValid is False')
-
+        if noneValid is False:
+            raise TypeError('numberToCheck must be an int or a float and noneValid is False. numberToCheck: {0}'.format(numberToCheck))
+        else:return False
+        
     result = None
 
     if result is None and inRange is not None:

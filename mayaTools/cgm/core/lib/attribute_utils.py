@@ -494,14 +494,20 @@ def set(node, attr = None, value = None, lock = False,**kws):
     elif _validType == 'message':
         set_message(_obj, _attr, value)
     elif _validType == 'enum':
-        _l = get_enum(_d).split(':')
-        
-        if value in _l:
-            mc.setAttr(_combined, _l.index(value), **kws)
-        elif value is not None and value <= len(_l):
-            mc.setAttr(_combined, value, **kws)  
+        _l = get_enum(_d).split(':')        
+        if ':' in value:
+            if len(_l) != len(value.split(':')):
+                raise ValueError,"Must have matching len for editing. Current: {0} | requested: {1}".format(_l,value)
+            mc.addAttr(_combined, edit=True, en = value, **kws)              
         else:
-            mc.setAttr(_combined,value, **kws)
+            _l = get_enum(_d).split(':')
+            
+            if value in _l:
+                mc.setAttr(_combined, _l.index(value), **kws)
+            elif value is not None and value <= len(_l):
+                mc.setAttr(_combined, value, **kws)  
+            else:
+                mc.setAttr(_combined,value, **kws)
         
     else:
         mc.setAttr(_combined,value, **kws)
@@ -539,7 +545,8 @@ def set_lock(node, attr = None, arg = None):
         for i,c in enumerate(_children):
             mc.setAttr("{0}.{1}".format(_obj,c),lock = arg)    
     else:
-        mc.setAttr(_combined,lock=arg)  
+        mc.setAttr(_combined,lock=arg) 
+         
         
 def set_keyable(node, attr = None, arg = None):
     """   
@@ -2451,7 +2458,31 @@ def get_sequentialAttrDict(node, attr = None):
                     _res[int(_int_)] = a
                 except:
                     log.debug("|{0}| >> {1}.{2} failed to int. | int: {3}".format(_str_func,NAMES.get_short(node),a,_int_))     	               	
-    return _res	
+    return _res
+
+def get_nextAvailableSequentialAttrIndex(node, attr = None):
+    """   
+    Get next available attribute in sequence.
+
+    :parameters:
+        *a(varied): - Uses validate_arg 
+
+    :returns
+        type(string)
+    """ 
+    _str_func = 'get_nextAvailableSequentialAttrIndex'
+    
+    _exists = False
+    _i = 0
+    while _exists == False and _i < 100:
+        _attr = "{0}_{1}".format(attr,_i)
+        log.info("|{0}| >> attr: {1}".format(_str_func,_attr))        
+        if has_attr(node,_attr):
+            _i += 1
+        else:
+            _exists = True
+            return _i            
+    return False
 
 def datList_purge(node = None, attr = None, dataAttr=None):
     """   

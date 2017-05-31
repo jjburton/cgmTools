@@ -1012,7 +1012,7 @@ class cgmNode(r9Meta.MetaClass):
             if attr in [None,False,True]:
                 log.warning("cgmNode.get_nextAvailableAttr>>> bad attr arg: '%s'"%attr)
                 return False
-            cnt = self.returnNextAvailableAttrCnt(attr)
+            cnt =  ATTR.get_nextAvailableSequentialAttrIndex(self.mNode,attr)
             return "%s%s"%(attr,cnt)
         except Exception,error:raise Exception,"[%s.get_nextSequentialAttr(attr = %s]{%s}"%(self.p_nameShort,attr,error)
 
@@ -1021,17 +1021,8 @@ class cgmNode(r9Meta.MetaClass):
             if attr in [None,False,True]:
                 log.warning("cgmNode.returnNextAvailableAttrCnt>>> bad attr arg: '%s'"%attr)
                 return False
-            """ Get's the next available item number """        
-            userAttrs = self.getUserAttrsAsDict()
-            countList = []
-            for key in userAttrs.keys():
-                if attr in key:
-                    splitBuffer = key.split(attr)
-                    countList.append(int(splitBuffer[-1]))
-            for i in range(500):
-                if i not in countList:
-                    return i
-            return False
+            """ Get's the next available item number """ 
+            return ATTR.get_nextAvailableSequentialAttrIndex(self.mNode,attr)
         except Exception,error:raise Exception,"[%s.returnNextAvailableAttrCnt(attr = %s]{%s}"%(self.p_nameShort,attr,error)
 
     #def update(self):
@@ -3087,7 +3078,8 @@ class cgmBufferNode(cgmNode):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>     
     def returnNextAvailableCnt(self):
         """ Get's the next available item number """        
-        return self.returnNextAvailableAttrCnt('item_')
+        return ATTR.get_nextAvailableSequentialAttrIndex(self.mNode,'item')
+
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Data
@@ -3430,6 +3422,10 @@ class cgmAttr(object):
             self.doLocked(lock)
 
         #log.debug("'%s' initialized. Value: '%s'"%(self.p_combinedName,self.value))
+    def __repr__(self):
+        try:return "{0}(node: '{1}', attr: '{2}')".format(self.__class__, self.obj.p_nameShort, self.attr)
+        except:return self    
+    
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -4113,7 +4109,12 @@ class cgmAttr(object):
     def getDriven(self,obj=False,skipConversionNodes = False,asMeta = False):
         try:
             asMeta = cgmValid.boolArg(asMeta)   
-            buffer =  ATTR.get_driven(self.obj.mNode,self.attr,obj,skipConversionNodes) or []                
+            buffer =  ATTR.get_driven(self.obj.mNode,self.attr,obj,skipConversionNodes) or []
+            #log.info(self.obj.mNode)
+            ##log.info(self.attr)
+            #log.info(obj)
+            #log.info(skipConversionNodes)
+            #log.info(buffer)
             #buffer =  attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes) or []
             if asMeta:
                 if obj:

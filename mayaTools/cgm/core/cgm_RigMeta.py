@@ -141,7 +141,7 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
             index_attr = l_attrs.index(mPlug_attr.p_combinedName)
 
         else:#add it
-            index =  self.returnNextAvailableAttrCnt("dynStoredAttr_")
+            index =  ATTR.get_nextAvailableSequentialAttrIndex(self.mNode,"dynStoredAttr")
             log.debug("%s.verifyStoredAttr>> Attr to register: '%s'"%(self.getShortName(),mPlug_attr.p_combinedShortName))
             self.doStore('dynStoredAttr_%s'%index,mPlug_attr.p_combinedName)	
             l_attrs.append(mPlug_attr.p_combinedName)
@@ -878,7 +878,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
             index_matchAttr = l_matchAttrs.index(mPlug_matchAttr.p_combinedName)
 
         else:#add it
-            index =  self.returnNextAvailableAttrCnt("dynMatchAttr_")
+            index = ATTR.get_nextAvailableSequentialAttrIndex(self.mNode,"dynMatchAttr")
             log.debug("%s.addDynAttrMatchTarget>> Attr to register: '%s'"%(self.getShortName(),mPlug_matchAttr.p_combinedShortName))
             self.doStore('dynMatchAttr_%s'%index,mPlug_matchAttr.p_combinedName)	
             l_matchAttrs.append(mPlug_matchAttr.p_combinedName)
@@ -1388,13 +1388,36 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         except Exception,error:
             raise Exception, ">>> %s.__verify__() Fail! >> %s"%(self.p_nameShort,error)
 
+    def update_enums(self):
+        _str_func = 'update_enums'
+        
+        l_dynParents = self.msgList_getMessage('dynParents',False)
+        l_parentShortNames = [cgmMeta.cgmNode(o).getNameAlias() for o in l_dynParents]
+        mChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],cgmMeta.cgmObject,noneValid=False)
+        
+        for a in d_DynParentGroupModeAttrs[self.dynMode]:
+            if mChild.hasAttr(a):
+                ATTR.set(mChild.mNode, a, ':'.join(l_parentShortNames))
+            else:
+                log.error("|{0}| >> dynChild lacks attr: {1}. Cannot update".format(_str_func,a))
 
+                
+        
+        
     def rebuild(self,*a,**kw):
         """ Rebuilds the buffer data cleanly """ 
-        log.debug(">>> %s.rebuild() >> "%(self.p_nameShort) + "="*75) 		        	
+        log.debug(">>> %s.rebuild() >> "%(self.p_nameShort) + "="*75) 
+        _str_func = 'rebuild'
+        
+        if self.isReferenced():
+            log.error("|{0}| >> Referenced node. Cannot rebuild. Updating enums".format(_str_func))
+            self.update_enums()
+            return 
+        
         #Must have at least 2 targets
         l_dynParents = self.msgList_getMessage('dynParents',False)
         if len(l_dynParents)<2:
+            self.update_enums()            
             log.error("cgmDynParentGroup.rebuild>> Need at least two dynParents. Build failed: '%s'"%self.getShortName())
             return False
         i_child = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],cgmMeta.cgmObject,noneValid=False)
@@ -1436,7 +1459,6 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         self.verifyConstraints()
         self._setLocks(True)	
         return 'Done'    
-        #Check constraint
 
     def addDynChild(self,arg):
         log.debug(">>> %s.addDynChild(arg = %s) >> "%(self.p_nameShort,arg) + "="*75) 		        		

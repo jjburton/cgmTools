@@ -32,6 +32,7 @@ from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import nameTools
 from cgm.core.classes import NodeFactory as NodeF
+from cgm.core.lib import attribute_utils as ATTR
 from cgm.lib import (distance,
                      attributes,
                      curves,
@@ -3662,6 +3663,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
 
 
 def create_spaceLocatorForObject(obj,parentTo = False):
+    raise Exception,"use cgm.core.rigger.lib.spacePivot_utils"
     try:#Get size
         i_obj = cgmMeta.validateObjArg(obj,cgmMeta.cgmObject,noneValid=False)    
         i_parent = cgmMeta.validateObjArg(parentTo,cgmMeta.cgmObject,noneValid=True)    
@@ -3673,18 +3675,21 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
 
     try:#>>>Create #====================================================
-        i_control = cgmMeta.asMeta(curves.createControlCurve('pivotLocator',size),'cgmObject',setClass=True)
+        from cgm.core.lib import curve_Utils as CURVES
+        #CURVES.create_controlCurve(i_obj.mNode,'jack')
+        i_control = cgmMeta.asMeta(CURVES.create_controlCurve(i_obj.mNode,'jack')[0],'cgmObject',setClass=True)
+        log.info(i_control)
         try:l_color = curves.returnColorsFromCurve(i_obj.mNode)
         except Exception,error:raise Exception,"color | %s"%(error)          
         log.debug("l_color: %s"%l_color)
         curves.setColorByIndex(i_control.mNode,l_color[0])
     except Exception,error:raise Exception,"%s >> create | %s"%(_str_funcName,error)  
-
+    
     try:#>>>Snap and Lock
         #====================================================	
         Snap.go(i_control,i_obj.mNode,move=True, orient = True)
     except Exception,error:raise Exception,"%s >> snapNLock | %s"%(_str_funcName,error)  
-
+    
     try:#>>>Copy Transform
         #====================================================   
         i_newTransform = i_obj.doDuplicateTransform()
@@ -3697,16 +3702,16 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         i_control = i_newTransform
         mc.delete(mBuffer.mNode)
     except Exception,error:raise Exception,"%s >> copy transform | %s"%(_str_funcName,error)  
-
+    
     try:#>>>Register
         #====================================================    
         #Attr
-        i = i_obj.returnNextAvailableAttrCnt('pivot_')
+        i = ATTR.get_nextAvailableSequentialAttrIndex(i_obj.mNode,"pivot")
         str_pivotAttr = str("pivot_%s"%i)
         str_objName = str(i_obj.getShortName())
         str_pivotName = str(i_control.getShortName())
     except Exception,error:raise Exception,"%s >> register | %s"%(_str_funcName,error)  
-
+    
     try:#Build the network
         i_obj.addAttr(str_pivotAttr,enumName = 'off:lock:on', defaultValue = 2, value = 0, attrType = 'enum',keyable = False, hidden = False)
         i_control.overrideEnabled = 1
@@ -3715,14 +3720,14 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         d_ret = NodeF.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_pivotName,str_objName,str_pivotAttr)).doBuild()
         log.debug(d_ret)
     except Exception,error:raise Exception,"%s >> network | %s"%(_str_funcName,error)  
-
+    
     try:
         for shape in mc.listRelatives(i_control.mNode,shapes=True,fullPath=True):
             log.debug(shape)
             mc.connectAttr("%s.overrideVisibility"%i_control.mNode,"%s.overrideVisibility"%shape,force=True)
             mc.connectAttr("%s.overrideDisplayType"%i_control.mNode,"%s.overrideDisplayType"%shape,force=True)
     except Exception,error:raise Exception,"%s >> shape connect | %s"%(_str_funcName,error)  
-
+    
     try:#Vis 
         #>>>Name stuff
         #====================================================
@@ -3737,7 +3742,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
 
         i_control.addAttr('cgmAlias',(i_obj.getNameAlias()+'_pivot_%s'%i),lock=True)
     except Exception,error:raise Exception,"%s >> vis | %s"%(_str_funcName,error)  
-
+    
     try:#Store on object
         #====================================================    
         i_obj.addAttr("spacePivots", attrType = 'message',lock=True)

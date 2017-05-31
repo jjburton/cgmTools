@@ -39,6 +39,8 @@ from cgm.core.lib import list_utils as LISTS
 from cgm.core.tools.markingMenus.lib import contextual_utils as CONTEXT
 from cgm.core.cgmPy import str_Utils as STRINGS
 from cgm.core.tools import attrTools as ATTRTOOLS
+from cgm.core.rigger.lib import spacePivot_utils as SPACEPIVOT
+
 from cgm.lib import lists
 #>>> Root settings =============================================================
 __version__ = 'Alpha 1.0.05232017'
@@ -76,16 +78,14 @@ class ui(cgmUI.cgmGUI):
 
             self.uiPopUpMenu_parent = False
             self._l_toEnable = []
-            self.create_guiOptionVar('dynParentMode',  defaultValue = ui.__modes[0])
-            #self.create_guiOptionVar('valuesMode',  defaultValue = 'primeNode')                        
-            #self.create_guiOptionVar('context',  defaultValue = 'loaded')            
+            self.create_guiOptionVar('dynParentMode',  defaultValue = ui.__modes[0])       
             self.uiScrollList_parents = False
             self._mNode = False
             self._mGroup = False
 
     def build_menus(self):
-        #self.uiMenu_context = mUI.MelMenu( l='Context', pmc=self.buildMenu_context)           
         self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=self.buildMenu_switch) 
+        self.uiMenu_pivot = mUI.MelMenu( l='Pivot', pmc=self.buildMenu_pivot)         
         self.uiMenu_help = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)         
     
     def buildMenu_help( self, *args):
@@ -97,12 +97,24 @@ class ui(cgmUI.cgmGUI):
                     rp = 'N')    
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   
-        
+        mUI.MelMenuItem( self.uiMenu_help, l="Update Parent D",
+                         c=lambda *a: self.uiFunc_updateDynParentDisplay )        
     def buildMenu_switch(self, *args):
         self.uiMenu_switch.clear()
         
         self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )        
-        uiMenu_changeSpace(self,self.uiMenu_switch,True)     
+        uiMenu_changeSpace(self,self.uiMenu_switch,True)   
+        
+    def buildMenu_pivot(self, *args):
+        self.uiMenu_pivot.clear()
+        
+        mUI.MelMenuItem( self.uiMenu_pivot, l="Add Single",
+                         c=lambda *a: self.uiFunc_spacePivot_add(1) ) 
+        mUI.MelMenuItem( self.uiMenu_pivot, l="Add Multiple",
+                         c=lambda *a: self.uiFunc_spacePivot_addFromPrompt() )         
+        mUI.MelMenuItem( self.uiMenu_pivot, l="Clear",
+                         c=lambda *a: self.uiFunc_spacePivot_clear() )         
+    
 
                 
     def uiFunc_clear_loaded(self):
@@ -128,7 +140,7 @@ class ui(cgmUI.cgmGUI):
         #Get our raw data
         if _sel:
             mNode = cgmMeta.validateObjArg(_sel[0])
-            _short = mNode.p_nameShort            
+            _short = mNode.p_nameBase            
             log.debug("|{0}| >> Target: {1}".format(_str_func, _short))
             self._mNode = mNode
             
@@ -159,12 +171,17 @@ class ui(cgmUI.cgmGUI):
         if _d:
             log.info("|{0}| >> dynParentGroup detected...".format(_str_func))
             
-            self._utf_obj(edit=True, l=_d['dynChild'].p_nameShort)
-            
-            _l_report = ["mode: {0}".format(_d['mode']),'targets: {0}'.format(len(_d['dynParents']))]
-            self.uiField_report(edit=True, label = 'DynGroup: {0}'.format(' | '.join(_l_report)))            
+            self._utf_obj(edit=True, l=_d['dynChild'].p_nameBase)
+                   
             self._mNode = _d['dynChild']
             self._mGroup = _d['dynGroup']
+            
+            _l_report = ["mode: {0}".format(_d['mode']),'targets: {0}'.format(len(_d['dynParents']))]
+            
+            if self._mNode.isReferenced():
+                _l_report.insert(0,"Referenced!")
+            self.uiField_report(edit=True, label = 'DynGroup: {0}'.format(' | '.join(_l_report)))                 
+            
             self._uiList_modeButtons[_d['mode']].select()        
             
             for o in self._l_toEnable:
@@ -213,10 +230,10 @@ class ui(cgmUI.cgmGUI):
                 
                 _alias = ATTR.get(_short,'cgmAlias')
                 if _alias:
-                    _l_report.append("{0} ({1})".format(_alias,_short))
+                    _l_report.append("{0} ({1})".format(_alias,mObj.p_nameBase))
                     #_l_report.append('alias ({0})'.format(_alias))
                 else:
-                    _l_report.append(_short)
+                    _l_report.append(mObj.p_nameBase)
                     
                 #if i == ATTR.get(self)
                 if _mode == 0:
@@ -231,13 +248,17 @@ class ui(cgmUI.cgmGUI):
                     if self._mNode.follow == i:
                         _l_report.append('((Follow))')
 
+                if mObj.isReferenced():
+                    _l_report.append("Referenced")
                 _str = " \ ".join(_l_report)
                 log.debug("|{0}| >> str: {1}".format(_str_func, _str))  
                 
                 self.uiScrollList_parents.append(_str)
 
         except Exception,err:
-            try:cgmUI.doEndMayaProgressBar(_progressBar)
+            try:
+                log.error("|{0}| >> err: {1}".format(_str_func, err))  
+                cgmUI.doEndMayaProgressBar(_progressBar)
             except:
                 raise Exception,err
 
@@ -380,7 +401,7 @@ class ui(cgmUI.cgmGUI):
                         (_header_parents,"right",0),
                         (_row_modeSelect,"left",5),
                         (_row_modeSelect,"right",5),
-                        (_row_parentsButtons,"bottom",0),
+                        (_row_parentsButtons,"bottom",10),
 
                         ],
                   ac = [(_row_objLoad,"top",2,_header_top),
@@ -505,11 +526,19 @@ class ui(cgmUI.cgmGUI):
                 
                 if _fromPrompt:
                     for mObj in _ml_targets:
-                        mObj.addAttr('cgmAlias',value = _fromPrompt)
-                        
+                        if mObj.hasAttr('cgmAlias'):
+                            ATTR.set(mObj.mNode,'cgmAlias',value= _fromPrompt)
+                        else:
+                            mObj.addAttr('cgmAlias',value = _fromPrompt)
+                    #self._mGroup.rebuild()
+                    self._mGroup.update_enums()
+                    self.uiFunc_updateDynParentDisplay()
             elif _mode == 'aliasClear':
                 for mObj in _ml_targets:
                     mObj.delAttr('cgmAlias')    
+                #self._mGroup.rebuild()
+                self._mGroup.update_enums()                
+                self.uiFunc_updateDynParentDisplay()                
                     
             elif _mode == 'select':
                 mc.select([mObj.mNode for mObj in _ml_targets])
@@ -552,6 +581,10 @@ class ui(cgmUI.cgmGUI):
             log.error("|{0}| >> No dyChild loaded to ui".format(_str_func))                                            
             return False
         
+        if self._mNode.isReferenced():
+            log.error("|{0}| >> Does not work on referenced nodes".format(_str_func))                                            
+            return False
+        
         _d_exists = get_dict(self._mNode.mNode)
         _d_build = self.uiFunc_get_buildDict()
         _d_build['dynChild'] = self._mNode
@@ -573,6 +606,11 @@ class ui(cgmUI.cgmGUI):
         if not self._mGroup:
             log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
             return False    
+        
+        if self._mGroup.isReferenced():
+            log.error("|{0}| >> Does not work on referenced dynGroups".format(_str_func))                                            
+            return False        
+        
         self._mGroup.doPurge()
         
         self.uiFunc_updateDynParentDisplay()
@@ -586,6 +624,9 @@ class ui(cgmUI.cgmGUI):
         if not self._mGroup:
             log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
             return False              
+        if self._mGroup.isReferenced():
+            log.error("|{0}| >> Does not work on referenced dynGroups".format(_str_func))                                            
+            return False
         
         _l_context = CONTEXT.get_list('selection')
         _ml_copyTo = []
@@ -613,13 +654,17 @@ class ui(cgmUI.cgmGUI):
             _mi_group = cgmRigMeta.cgmDynParentGroup(**_d_build)
             
     def uiFunc_dynGroup_addParents(self):
-        _str_func = 'uiFunc_dynGroup_clear' 
+        _str_func = 'uiFunc_dynGroup_addParents' 
     
         if not self._mGroup:
             log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
             return False    
         
-        _l_context = CONTEXT.get_list('selection')
+        if self._mGroup.isReferenced():
+            log.error("|{0}| >> Does not work on referenced dynGroups".format(_str_func))                                            
+            return False
+        
+        _l_context = CONTEXT.get_list('selection',getTransform=True)
         _ml_add = []
         for o in _l_context:
             mObj = cgmMeta.validateObjArg(o)
@@ -660,6 +705,10 @@ class ui(cgmUI.cgmGUI):
             log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
             return False          
         
+        if self._mGroup.isReferenced():
+            log.error("|{0}| >> Does not work on referenced dynGroups".format(_str_func))                                            
+            return False        
+
         _l_context = CONTEXT.get_list('selection')
         _ml_remove = []
         ml_parents = self._mGroup.msgList_get('dynParents')
@@ -710,7 +759,9 @@ class ui(cgmUI.cgmGUI):
         if not self._mGroup:
             log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
             return False          
-        
+        if self._mGroup.isReferenced():
+            log.error("|{0}| >> Does not work on referenced dynGroups".format(_str_func))                                            
+            return False        
         _l_context = CONTEXT.get_list('selection')
         _ml_remove = []
         ml_parents = self._mGroup.msgList_get('dynParents')
@@ -743,7 +794,74 @@ class ui(cgmUI.cgmGUI):
         return True
             
                     
+    def uiFunc_spacePivot_add(self,count=1):
+        _str_func = 'uiFunc_spacePivot_clear' 
     
+        if not self._mGroup:
+            log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
+            return False  
+        if self._mGroup.isReferenced():
+            log.error("|{0}| >> Does not work on referenced dynGroups".format(_str_func))                                            
+            return False        
+        
+        ml_pivots = SPACEPIVOT.add(self._mNode.mNode, False, count=1)
+        
+
+        for mPivot in ml_pivots:
+            self._mGroup.addDynParent(mPivot.mNode)
+        
+        self._mGroup.rebuild()
+        self.uiFunc_updateDynParentDisplay()   
+        
+        return 
+    def uiFunc_spacePivot_addFromPrompt(self):
+        _str_func = 'uiFunc_spacePivot_addFromPrompt'
+        
+        if not self._mGroup:
+            log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
+            return False  
+        if self._mGroup.isReferenced():
+            log.error("|{0}| >> Does not work on referenced dynGroups".format(_str_func))                                            
+            return False            
+        
+        _fromPrompt = ATTRTOOLS.uiPrompt_getValue("Enter Number","How many space pivots do you want?")
+        if _fromPrompt is None:
+            log.error("|{0}| >>  Count: {1} | No value gathered...".format(_str_func,_mode)) 
+            return False       
+        
+        try:_fromPrompt = int(_fromPrompt)
+        except:pass
+        
+        _v = VALID.valueArg(_fromPrompt,noneValid=True)
+        if not _v:
+            log.error("|{0}| >>  Invalid: {1} | No value gathered...".format(_str_func,_fromPrompt)) 
+            return False
+        log.info("|{0}| >>  Count: {1}...".format(_str_func,_v)) 
+        
+        ml_pivots = SPACEPIVOT.add(self._mNode.mNode, False, count=_v)
+        
+        for mPivot in ml_pivots:
+            self._mGroup.addDynParent(mPivot.mNode)
+        
+        self._mGroup.rebuild()
+        self.uiFunc_updateDynParentDisplay()          
+        
+    def uiFunc_spacePivot_clear(self):
+        _str_func = 'uiFunc_spacePivot_clear' 
+    
+        if not self._mNode:
+            log.error("|{0}| >> No dynChild loaded to ui".format(_str_func))                                            
+            return False    
+        if self._mNode.isReferenced():
+            log.error("|{0}| >> Does not work on referenced nodes".format(_str_func))                                            
+            return False 
+        
+        if SPACEPIVOT.clear(self._mNode.mNode):
+            self._mGroup.rebuild()
+        self.uiFunc_updateDynParentDisplay()   
+        
+        return         
+        
     def reorder(self, direction = 0):
         """   
         :Acknowledgement:
