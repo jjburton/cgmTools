@@ -39,7 +39,7 @@ from cgm.core.cgmPy import str_Utils as STRINGS
 reload(STRINGS)
 reload(SEARCH)
 #>>> Root settings =============================================================
-__version__ = 'Alpha 2.0.02152017'
+__version__ = '2.0.05312017'
 
 #__toolURL__ = 'www.cgmonks.com'
 #__author__ = 'Josh Burton'
@@ -780,6 +780,10 @@ class ui(cgmUI.cgmGUI):
 
         self.row_setValue.layout()
         
+        
+        #>>>Footer
+        _row_cgm = cgmUI.add_cgmFooter(_MainForm)
+        
         _MainForm(edit = True,
                   af = [(_header,"top",0),
                         (_header,"left",0),
@@ -803,17 +807,21 @@ class ui(cgmUI.cgmGUI):
                         (self.row_setValue,"left",0),
                         (self.row_setValue,"right",0),                          
                         (self.row_setValue,"bottom",2),
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),                        
+                        (_row_cgm,"bottom",0),                        
                         ],
                   ac = [(_row_attrReport,"top",2,_header),
                         (_row_attrCreate,"top",2,_row_attrReport),
                         (_row_attrFlags,"top",2,_row_attrCreate),
                         (_row_move,"bottom",0,_header_push),                                                
-                        (_header_push,"bottom",2,self.row_setValue),                        
+                        (_header_push,"bottom",2,self.row_setValue),
+                        (self.row_setValue,"bottom",2,_row_cgm),                                                
                         #(_row_keyModes,"bottom",0,_row_valueModes),
                         #(_row_valueModes,"bottom",0,self.row_setValue),                        
                         (self.uiScrollList_attr,"top",2,_row_attrFlags),
                         (self.uiScrollList_attr,"bottom",0,_row_move)],
-                  attachNone = [(self.row_setValue,"top")])	        
+                  attachNone = [(_row_cgm,"top")])	        
             
         _sel = mc.ls(sl=True)
         if _sel:

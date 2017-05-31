@@ -9,7 +9,7 @@ Website : http://www.cgmonks.com
 2.0 rewrite
 ================================================================
 """
-__version__ = '2.0.02162017'
+__version__ = '2.0.05312017'
 
 
 # From Python =============================================================
@@ -844,7 +844,7 @@ class ui(cgmUI.cgmGUI):
     DEFAULT_SIZE = 180, 275
     DEFAULT_MENU = None
     RETAIN = True
-    MIN_BUTTON = True
+    MIN_BUTTON = False
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
 
@@ -882,7 +882,8 @@ class ui(cgmUI.cgmGUI):
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'
         
-        ui_tabs = mUI.MelTabLayout( self )
+        _MainForm = mUI.MelFormLayout(self)            
+        ui_tabs = mUI.MelTabLayout( _MainForm,w=180,ut='cgmUISubTemplate' )
         uiTab_update = mUI.MelColumnLayout(ui_tabs)
         uiTab_create = mUI.MelColumnLayout( ui_tabs )
         
@@ -892,6 +893,19 @@ class ui(cgmUI.cgmGUI):
         self.buildTab_create(uiTab_create)
         self.buildTab_update(uiTab_update)
         
+        _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
+        _MainForm(edit = True,
+                  af = [(ui_tabs,"top",0),
+                        (ui_tabs,"left",0),
+                        (ui_tabs,"right",0),                        
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),                        
+                        (_row_cgm,"bottom",0),
+    
+                        ],
+                  ac = [(ui_tabs,"bottom",2,_row_cgm),
+                        ],
+                  attachNone = [(_row_cgm,"top")])          
     def build_menus(self):
         #pmc
         self.uiMenu_options = mUI.MelMenu( l='Options', pmc = cgmGen.Callback(self.buildMenu_options) )

@@ -21,6 +21,7 @@ __website__ = 'www.cgmonks.com'
 __defaultSize__ = 200, 300
 
 #>>> From Maya =============================================================
+import os
 import maya.cmds as mc
 import maya.mel as mel
 import copy
@@ -33,7 +34,11 @@ if mayaVersion >= 2011:
     currentGenUI = True
 else:
     currentGenUI = False
-
+    
+#>>> From Red9 =============================================================
+from Red9.core import Red9_Meta as r9Meta
+from Red9.core import Red9_General as r9General
+    
 #>>> From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.lib import (search,
@@ -42,9 +47,9 @@ from cgm.lib import (search,
 
 from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.core.lib import name_utils as NAMES
-#>>> From Red9 =============================================================
-from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
+from cgm.core.cgmPy import path_Utils as CGMPATH
+
+
 
 #>>>======================================================================
 import logging
@@ -643,6 +648,16 @@ def add_TextBlock(text, align = 'center'):
         textBlock.append(mc.separator(style = 'single', visible = True))
         return textBlock
 
+def add_cgmFooter(parent = False):
+    from cgm import images as cgmImagesFolder
+    
+    _row_cgm = mUI.MelRow(parent, bgc = [.25,.25,.25], h = 20)
+    _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up()
+    _path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
+    mc.iconTextButton(style='iconOnly',image1=_path_image,
+                      c=lambda *a:(log.info("Will fix this soon:)")))  
+    return _row_cgm
+        
 def return_SplitLines(text, size):
     lineList = []
     wordsList = text.split(' ')

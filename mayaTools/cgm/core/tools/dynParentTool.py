@@ -13,10 +13,11 @@ Website : http://www.cgmonks.com
 import copy
 import re
 import time
+import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 import maya.cmds as mc
@@ -40,10 +41,10 @@ from cgm.core.tools.markingMenus.lib import contextual_utils as CONTEXT
 from cgm.core.cgmPy import str_Utils as STRINGS
 from cgm.core.tools import attrTools as ATTRTOOLS
 from cgm.core.rigger.lib import spacePivot_utils as SPACEPIVOT
-
+from cgm.core.cgmPy import path_Utils as CGMPATH
 from cgm.lib import lists
 #>>> Root settings =============================================================
-__version__ = 'Alpha 1.0.05232017'
+__version__ = '0.905312017'
 
 #__toolURL__ = 'www.cgmonks.com'
 #__author__ = 'Josh Burton'
@@ -58,7 +59,7 @@ class ui(cgmUI.cgmGUI):
     WINDOW_TITLE = 'cgmDynParentTool - {0}'.format(__version__)
     DEFAULT_MENU = None
     RETAIN = True
-    MIN_BUTTON = True
+    MIN_BUTTON = False
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 250,300
@@ -82,7 +83,8 @@ class ui(cgmUI.cgmGUI):
             self.uiScrollList_parents = False
             self._mNode = False
             self._mGroup = False
-
+            self.uiPopUpMenu_dynChild = None
+            
     def build_menus(self):
         self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=self.buildMenu_switch) 
         self.uiMenu_pivot = mUI.MelMenu( l='Pivot', pmc=self.buildMenu_pivot)         
@@ -93,7 +95,7 @@ class ui(cgmUI.cgmGUI):
     
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
-                    c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/attrtools-2-0/");',                        
+                    c='import webbrowser;webbrowser.open("https://docs.google.com/document/d/1ztN9wZfYunvGlao2iRL5WSc9oJTN021Bk6LNZqhbrL8/edit?usp=sharing");',                        
                     rp = 'N')    
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   
@@ -121,7 +123,7 @@ class ui(cgmUI.cgmGUI):
         _str_func = 'uiFunc_clear_loaded'  
         self._mNode = False
         self._mGroup = False
-        self._utf_obj(edit=True, l='')      
+        self._utf_obj(edit=True, l='',en=False)      
         self.uiField_report(edit=True, l='...')
         #self.uiReport_objects()
         self.uiScrollList_parents.clear()
@@ -143,8 +145,7 @@ class ui(cgmUI.cgmGUI):
             _short = mNode.p_nameBase            
             log.debug("|{0}| >> Target: {1}".format(_str_func, _short))
             self._mNode = mNode
-            
-            self._utf_obj(edit=True, l=_short)
+
             self.uiFunc_updateDynParentDisplay()
         else:
             log.warning("|{0}| >> Nothing selected.".format(_str_func))            
@@ -161,18 +162,30 @@ class ui(cgmUI.cgmGUI):
         if not self._mNode:
             log.info("|{0}| >> No target.".format(_str_func))                        
             #No obj
-            self._utf_obj(edit=True, l='')
+            self._utf_obj(edit=True, l='',en=False)
+            self._mGroup = False
             
             for o in self._l_toEnable:
                 o(e=True, en=False)
                 
         _d = get_dict(self._mNode.mNode)
         
+        self._utf_obj(edit=True, en=True)
+        
+        if self.uiPopUpMenu_dynChild:
+            self.uiPopUpMenu_dynChild.clear()
+            self.uiPopUpMenu_dynChild.delete()
+            self.uiPopUpMenu_dynChild = None
+        
         if _d:
             log.info("|{0}| >> dynParentGroup detected...".format(_str_func))
             
-            self._utf_obj(edit=True, l=_d['dynChild'].p_nameBase)
-                   
+            _short = l=_d['dynChild'].p_nameBase
+            self._utf_obj(edit=True, ann=_short)
+            if len(_short)>20:
+                _short = _short[:20]+"..."
+            self._utf_obj(edit=True, l=_short)    
+                                   
             self._mNode = _d['dynChild']
             self._mGroup = _d['dynGroup']
             
@@ -192,6 +205,9 @@ class ui(cgmUI.cgmGUI):
             log.info("|{0}| >> No dynParentGroup".format(_str_func))                        
             #Not dynParentGroup
             _short = self._mNode.p_nameShort            
+            self._utf_obj(edit=True, ann=_short)
+            if len(_short)>20:
+                _short = _short[:20]+"..."
             self._utf_obj(edit=True, l=_short)
     
             self.uiField_report(edit=True, label = 'No dynParentGroup detected')
@@ -199,6 +215,17 @@ class ui(cgmUI.cgmGUI):
             for o in self._l_toEnable:
                 o(e=True, en=False)               
                    
+        self.uiPopUpMenu_dynChild = mUI.MelPopupMenu(self._utf_obj,button = 1)
+        mc.menuItem(parent = self.uiPopUpMenu_dynChild,l='Select Loaded',c=lambda *a:(self._mNode.select()))
+        if self._mGroup:
+            mc.menuItem(parent = self.uiPopUpMenu_dynChild,l='Select dynGroup',c=lambda *a:(self._mGroup.select()))
+        else:
+            mc.menuItem(parent = self.uiPopUpMenu_dynChild,l='Select dynGroup',en=False)
+            
+        if _d and _d.get('dynParents'):
+            mc.menuItem(parent = self.uiPopUpMenu_dynChild,l='Select dynParents',c=lambda *a:(mc.select([mObj.mNode for mObj in _d['dynParents']])))
+        else:
+            mc.menuItem(parent = self.uiPopUpMenu_dynChild,l='Select dynParents',en=False)
         
     def uiFunc_updateScrollParentList(self):
         _str_func = 'uiFunc_updateScrollParentList'          
@@ -275,12 +302,17 @@ class ui(cgmUI.cgmGUI):
         #>>>Objects Load Row ---------------------------------------------------------------------------------------
         _row_objLoad = mUI.MelHSingleStretchLayout(_MainForm,ut='cgmUITemplate',padding = 5)        
         
-        mUI.MelSpacer(_row_objLoad,w=20)
+        mUI.MelSpacer(_row_objLoad,w=10)
         mUI.MelLabel(_row_objLoad, 
                      l='dynChild:')
         
         _utf_objLoad = mUI.MelLabel(_row_objLoad,ut='cgmUITemplate',l='',
-                                    en=False)
+                                    en=True)
+        
+        #self.uiPopUpMenu_dynChild = mUI.MelPopupMenu(_utf_objLoad,button = 1)
+        #mc.menuItem(self.uiPopUpMenu_dynChild,l='Select',c=lambda *a:(self._mNode.select()))
+           
+        
         self._utf_obj = _utf_objLoad
         cgmUI.add_Button(_row_objLoad,'<<',
                          cgmGEN.Callback(self.uiFunc_load_selected),
@@ -289,7 +321,7 @@ class ui(cgmUI.cgmGUI):
         
         
         _row_objLoad.setStretchWidget(_utf_objLoad)
-        mUI.MelSpacer(_row_objLoad,w=20)
+        mUI.MelSpacer(_row_objLoad,w=10)
         
         _row_objLoad.layout()
         
@@ -379,9 +411,21 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_Button(_row_parentsButtons,'Move Dn',
                          cgmGEN.Callback(self.uiFunc_dynParents_reorder,1),                        
                          "Refresh the attributes in the scroll list. Useful if keyed.") 
-        _row_parentsButtons.layout()        
+        _row_parentsButtons.layout()   
+    
         
         
+        #>>>CGM Row
+        # bgc = [.5972,0,0]
+        _row_cgm = cgmUI.add_cgmFooter(_MainForm)
+        """_row_cgm = mUI.MelRow(_MainForm, bgc = [.25,.25,.25], h = 20)
+        from cgm.core.cgmPy import path_Utils as CGMPATH
+        from cgm import images as cgmImagesFolder
+        _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up()
+        _path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
+        mc.iconTextButton(style='iconOnly',image1=_path_image,
+                          c=lambda *a:(log.info('test')))"""
+                    #c=lambda *args:(r9Setup.red9ContactInfo()),h=22,w=200)            
         #>>> Layout form ---------------------------------------------------------------------------------------
         _MainForm(edit = True,
                   af = [(_header_top,"top",0),
@@ -401,7 +445,9 @@ class ui(cgmUI.cgmGUI):
                         (_header_parents,"right",0),
                         (_row_modeSelect,"left",5),
                         (_row_modeSelect,"right",5),
-                        (_row_parentsButtons,"bottom",10),
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),                        
+                        (_row_cgm,"bottom",0),
 
                         ],
                   ac = [(_row_objLoad,"top",2,_header_top),
@@ -411,9 +457,10 @@ class ui(cgmUI.cgmGUI):
                         (_header_parents,"top",2,_row_groupsButtons),
                         (self.uiScrollList_parents,"top",0,_header_parents),
                         (self.uiScrollList_parents,"bottom",2,_row_parentsButtons),
+                        (_row_parentsButtons,"bottom",2,_row_cgm),
                         
                        ],
-                  attachNone = [(_row_parentsButtons,"top")])	        
+                  attachNone = [(_row_cgm,"top")])	        
         
         _sel = mc.ls(sl=True)
         if _sel:
@@ -427,8 +474,7 @@ class ui(cgmUI.cgmGUI):
         if self.uiPopUpMenu_parent:
             self.uiPopUpMenu_parent.clear()
             self.uiPopUpMenu_parent.delete()
-            self.uiPopUpMenu_parent = None
-            
+            self.uiPopUpMenu_parent = None        
             
         ml_parents = self._mGroup.msgList_get('dynParents')
         _indices = self.uiScrollList_parents.getSelectedIdxs() or []

@@ -44,7 +44,7 @@ reload(DraggerContextFactory)
 mayaVersion = cgmGeneral.__mayaVersion__
 
 #>>> Root settings =============================================================
-__version__ = 'Alpha - 09.19.2016'
+__version__ = '0.05312017'
 __toolName__ = 'cgmMeshTools'
 __description__ = "These are tools for working with mesh"
 #__toolURL__ = 'www.cgmonks.com'
@@ -283,7 +283,8 @@ class go(cgmUI.cgmGUI):
     #@cgmGeneral.Timer        
     def build_layoutWrapper(self,parent):
         try:
-            uiColumn_main = mUI.MelColumn(self)
+            _MainForm = mUI.MelFormLayout(self,ut='cgmUISubTemplate')            
+            uiColumn_main = mUI.MelColumn(_MainForm,w=300)
 
             #>>> Tab replacement
             self._l_tabOptions = ['math','cast','utils']	
@@ -316,7 +317,21 @@ class go(cgmUI.cgmGUI):
             #self.reports_updateAll()
             #self.presets_updateLists()
             self.baseObject_set(self.var_BaseObject.value)
-
+            
+            
+            _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
+            _MainForm(edit = True,
+                      af = [(uiColumn_main,"top",0),
+                            (uiColumn_main,"left",0),
+                            (uiColumn_main,"right",0),                        
+                            (_row_cgm,"left",0),
+                            (_row_cgm,"right",0),                        
+                            (_row_cgm,"bottom",0),
+            
+                            ],
+                      ac = [(uiColumn_main,"bottom",2,_row_cgm),
+                            ],
+                      attachNone = [(_row_cgm,"top")])            
         except Exception,error:
             raise Exception,"{0} build_layoutWrapper failed | {1}".format(self._str_reportStart,error)
     #@cgmGeneral.Timer
