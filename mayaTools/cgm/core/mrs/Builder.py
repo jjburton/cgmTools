@@ -13,7 +13,7 @@ import random
 import re
 import copy
 import time
-
+import os
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_AnimationUtils as r9Anim
@@ -22,7 +22,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -46,12 +46,114 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.classes import NodeFactory as NODEFAC
-
+from cgm.core.cgmPy import path_Utils as PATH
 from cgm.core.mrs import RigBlocks as RIGBLOCKS
 from cgm.core.mrs.blocks import box
 
-_d_blockTypes = {'box':box}
+_d_blockTypes = {}
 _l_requiredModuleDat = ['__version__','__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']#...data required in a given module
+
+
+def get_block_dict():
+    """
+    Data gather for available blocks.
+
+    :parameters:
+
+    :returns
+        _d_modules, _d_categories, _l_unbuildable
+        _d_modules(dict) - keys to modules
+        _d_categories(dict) - categories to list of entries
+        _l_unbuildable(list) - list of unbuildable modules
+    """
+    _str_func = 'get_block_dict'    
+    
+    _b_debug = log.isEnabledFor(logging.DEBUG)
+    
+    import blocks
+    _path = PATH.Path(blocks.__path__[0])
+    _l_duplicates = []
+    _l_unbuildable = []
+    _base = _path.split()[-1]
+    _d_files =  {}
+    _d_modules = {}
+    _d_import = {}
+    _d_categories = {}
+    
+    log.debug("|{0}| >> Checking base: {1} | path: {2}".format(_str_func,_base,_path))   
+    _i = 0
+    for root, dirs, files in os.walk(_path, True, None):
+        # Parse all the files of given path and reload python modules
+        _mRoot = PATH.Path(root)
+        _split = _mRoot.split()
+        _subRoot = _split[-1]
+        _splitUp = _split[_split.index(_base):]
+        
+        log.debug("|{0}| >> On subroot: {1} | path: {2}".format(_str_func,_subRoot,root))   
+        log.debug("|{0}| >> On split: {1}".format(_str_func,_splitUp))   
+        
+        if len(_split) == 1:
+            _cat = 'base'
+        else:_cat = _split[-1]
+        _l_cat = []
+        _d_categories[_cat]=_l_cat
+        
+        for f in files:
+            key = False
+            
+            if f.endswith('.py'):
+                    
+                if f == '__init__.py':
+                    continue
+                else:
+                    name = f[:-3]    
+            else:
+                continue
+                    
+            if _i == 'cat':
+                key = '.'.join([_base,name])                            
+            else:
+                key = '.'.join(_splitUp + [name])    
+                if key:
+                    log.debug("|{0}| >> ... {1}".format(_str_func,key))                      
+                    if name not in _d_modules.keys():
+                        _d_files[key] = os.path.join(root,f)
+                        _d_import[name] = key
+                        _l_cat.append(name)
+                        try:
+                            module = __import__(key, globals(), locals(), ['*'], -1)
+                            reload(module) 
+                            _d_modules[name] = module
+                            if not is_buildable(module):
+                                _l_unbuildable.append(name)
+                        except Exception, e:
+                            for arg in e.args:
+                                log.error(arg)
+                            raise RuntimeError,"Stop"  
+                                          
+                    else:
+                        _l_duplicates.append("{0} >> {1} ".format(key, os.path.join(root,f)))
+            _i+=1
+            
+    if _b_debug:
+        cgmGEN.log_info_dict(_d_modules,"Modules")        
+        cgmGEN.log_info_dict(_d_files,"Files")
+        cgmGEN.log_info_dict(_d_import,"Imports")
+        cgmGEN.log_info_dict(_d_categories,"Categories")
+    
+    if _l_duplicates:
+        log.info(cgmGEN._str_subLine)
+        log.info("|{0}| >> DUPLICATE MODULES....".format(_str_func))
+        for m in _l_duplicates:
+            print(m)
+        raise Exception,"Must resolve"
+    log.debug("|{0}| >> Found {1} modules under: {2}".format(_str_func,len(_d_files.keys()),_path))     
+    if _l_unbuildable:
+        log.info(cgmGEN._str_subLine)
+        log.error("|{0}| >> ({1}) Unbuildable modules....".format(_str_func,len(_l_unbuildable)))
+        for m in _l_unbuildable:
+            print(">>>    " + m) 
+    return _d_modules, _d_categories, _l_unbuildable
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Factory
@@ -147,7 +249,11 @@ class go(object):
         _d['mFactory'] = BlockFactory
         _d['shortName'] = BlockFactory._mi_root.getShortName()
         
-        _buildModule = is_buildable(_d['mBlock'].blockType)
+        _blockType = _d['mBlock'].blockType
+        _res = get_block_dict()
+        if _res[0].get(_blockType) and _blockType not in _res[2]:
+            _buildModule = _res[0].get(_blockType)
+            
         if not _buildModule:
             log.error("|{0}| >> No build module found for: {1}".format(_str_func,_d['mBlock'].blockType))        
             return False
@@ -568,24 +674,31 @@ class go(object):
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
         return ml_rigJoints
 
-def is_buildable(blockType = 'box'):
+def is_buildable(blockModule):
     """
     Function to check if a givin block module is buildable or not
     
     """
     _str_func = 'is_buildable'  
+    """_d_blockTypes = get_block_dict()[0]
     
     if blockType not in _d_blockTypes.keys():
         log.error("|{0}| >> [{1}] Module not in dict".format(_str_func,blockType))            
-        return False
+        return False"""
     
     _res = True
-    _buildModule = _d_blockTypes[blockType]
+    #_buildModule = _d_blockTypes[blockType]
+    _buildModule = blockModule
+    try:
+        _blockType = _buildModule.__name__.split('.')[-1]
+    except:
+        log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,_buildModule))        
+        return False
     _keys = _buildModule.__dict__.keys()
     
     for a in _l_requiredModuleDat:
         if a not in _keys:
-            log.error("|{0}| >> [{1}] Missing data: {2}".format(_str_func,blockType,a))
+            log.error("|{0}| >> [{1}] Missing data: {2}".format(_str_func,_blockType,a))
             _res = False
             
     if _res:return _buildModule
