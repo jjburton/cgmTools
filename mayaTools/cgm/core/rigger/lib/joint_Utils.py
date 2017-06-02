@@ -46,7 +46,6 @@ from cgm.lib import (distance,
                      nodes,
                      joints,
                      cgmMath)
-reload(distance)
 
 #>>> Utilities
 #===================================================================

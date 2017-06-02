@@ -23,7 +23,6 @@ import maya
 import maya.mel as mel
 
 import Red9
-reload(Red9)
 
 from cgm.lib.zoo.zooPyMaya import xferAnimUI
 

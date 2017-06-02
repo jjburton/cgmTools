@@ -19,7 +19,7 @@ from Red9.core import (Red9_General,
                        Red9_CoreUtils,
                        Red9_AnimationUtils,
                        Red9_PoseSaver) 
-import cgm_General
+"""import cgm_General
 import cgm_Meta
 import cgm_Deformers
 import cgm_PuppetMeta
@@ -36,15 +36,141 @@ import classes.DraggerContextFactory
 import classes.SnapFactory
 import lib.rayCaster
 import lib.meta_Utils
-import lib.shapeCaster
+import lib.shapeCaster"""
 
-try:import morpheusRig_v2.core.morpheus_meta
-except:print("Morpheus Rig core not found.")
-
+import cgm_General as cgmGen
 import os
-from cgm.core.lib.zoo.path import Path
+import reloadFactory as RELOAD
+#import cgm.core.cgmPy.path_Utils as PATH
 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
+_l_core_order = ['cgm_General',
+                 'cgm_Meta',
+                 'cgm_Deformers',
+                 'cgm_PuppetMeta',
+                 'cgm_RigMeta',
+                 'cgmPy.validateArgs',
+                 'rigger.ModuleFactory',
+                 'rigger.JointFactory',
+                 'rigger.TemplateFactory',
+                 'rigger.PuppetFactory',
+                 'rigger.RigFactory',
+                 'rigger.ModuleShapeCaster',
+                 'rigger.ModuleControlFactory',
+                 'classes.DraggerContextFactory',
+                 'classes.SnapFactory',
+                 'lib.rayCaster',
+                 'lib.meta_Utils',
+                 'lib.shapeCaster']
+
+_l_ignoreTags = ['cgm.core.examples',
+                 'cgm.lib.gigs',
+                 'cgm.lib.zoo',
+                 'cgm.projects',
+                 'cgmMeta_test']
+
+import cgm
+import copy
+
+from cgm.core.cgmPy import os_Utils as cgmOS
+reload(cgmOS)
+@cgmGen.Timer
 def _reload():
+    _str_func = '_reload'
+    
+    _d_modules, _l_ordered, _l_pycd = cgmOS.get_module_data(cgm.__path__[0],cleanPyc=True)
+    _l_finished = []
+    _l_cull = copy.copy(_l_ordered)
+    
+    Red9.core._reload()   
+
+    for m in _l_core_order:
+        _k = 'cgm.core.' + m
+        
+        #log.debug("|{0}| >> Checking for: {1}".format(_str_func,m))
+        if _k not in _d_modules.keys():
+            log.debug("|{0}| >> Not found in queried sub modules: {1}".format(_str_func,_k))
+        else:
+            try:
+                module = __import__(_k, globals(), locals(), ['*'], -1)
+                reload(module) 
+                log.debug("|{0}| >> ... {1}".format(_str_func,m))  
+                _l_finished.append(_k)
+                _l_cull.remove(_k)
+            except Exception, e:
+                for arg in e.args:
+                    log.error(arg)
+                raise RuntimeError,"Stop"
+            """log.debug("|{0}| >> Cull: {1} | Ordered: {2}".format(_str_func,
+                                                                 len(_l_cull),
+                                                                 len(_l_ordered)))"""            
+
+                
+    log.debug("|{0}| >> Ordered modules completed...".format(_str_func))
+    
+    try:reload(morpheusRig_v2.core.morpheus_meta)
+    except:
+        log.debug("|{0}| >> Morpheus Rig core not found.".format(_str_func))
+                
+        
+    Red9_Meta.registerMClassNodeMapping(nodeTypes = ['transform','objectSet','clamp','setRange','pointOnCurveInfo','decomposeMatrix','remapValue','ramp',
+                                                     'ikSplineSolver','blendColors','blendTwoAttr','addDoubleLinear','condition','multiplyDivide','plusMinusAverage'])
+
+    print('CGM Core Reloaded and META REGISTRY updated')     
+    
+    _d_failed = {}
+    _l_skip = []
+    for m in _l_ordered:
+        _k = 'cgm.core.' + m
+        for t in _l_ignoreTags:
+            if t in _k:
+                _l_skip.append(m)        
+    
+    for m in _l_pycd:
+    #for m in _l_ordered:
+        if m in _l_skip:
+            log.debug("|{0}| >> Skipping {1} | containts skip tag".format(_str_func,m))
+            continue
+        _k = 'cgm.core.' + m
+        
+            
+        if m not in _l_finished:
+            if m not in _d_modules.keys():
+                log.debug("|{0}| >> Not found in queried dict: {1}".format(_str_func,m))
+            else:
+                try:
+                    module = __import__(m, globals(), locals(), ['*'], -1)
+                    reload(module) 
+                    log.debug("|{0}| >> ... {1}".format(_str_func,m))  
+                    _l_finished.append(m)
+                    _l_cull.remove(m)
+                except Exception, e:
+                    #log.error("|{0}| >> Failed: {1}".format(_str_func,m))  
+                    #for arg in e.args:
+                        #log.error(arg)
+                    _d_failed[m] = e.args
+                    
+    if _d_failed:   
+        log.info(cgmGen._str_subLine)        
+        #log.info("|{0}| >> {1} modules failed to import".format(_str_func,len(_d_failed.keys())))  
+        cgmGen.log_info_dict(_d_failed,"|{0}| >> {1} modules failed to import".format(_str_func,len(_d_failed.keys())))
+        #for k in _d_failed.keys():
+            #log.info("|{0}| >> {1}".format(_str_func,m))
+    print('CGM Core Reload complete')     
+
+        
+
+        
+            
+
+
+
+def _reloadBAK():
     '''
     reload carefully and re-register the RED9_META_REGISTRY
     '''

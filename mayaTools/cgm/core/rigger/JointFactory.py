@@ -20,13 +20,11 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
-reload(jntUtils)
 from cgm.core.lib import rayCaster as rayCast
 from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.rigger.lib import module_Utils as modUtils
-reload(modUtils)
 from cgm.lib import (cgmMath,
                      joints,
                      rigging,
@@ -39,8 +37,7 @@ from cgm.lib import (cgmMath,
                      lists,
                      settings,
                      modules)
-reload(joints)
-reload(cgmMath)
+
 from cgm.core.lib import nameTools
 
 #>>> Register rig functions

@@ -44,7 +44,6 @@ from cgm.lib import lists
 from cgm.lib import search
 from cgm.lib import attributes
 from cgm.core.lib import attribute_utils as ATTR
-reload(ATTR)
 #from cgm.lib import distance
 #from cgm.lib import deformers
 from cgm.lib import constraints

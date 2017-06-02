@@ -15,14 +15,11 @@ import logging
 
 from cgm.lib import (distance,attributes)
 from cgm.core.lib import attribute_utils as ATTR
-reload(ATTR)
-reload(attributes)
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import NodeFactory as NodeF
@@ -31,8 +28,6 @@ from cgm.core.rigger import PuppetFactory as pFactory
 import cgm.core.tests.test_validateArgs as test_validateArgs
 from cgm.core.cgmPy import os_Utils as cgmOS
 from cgm.core.cgmPy import path_Utils as cgmPath
-reload(test_validateArgs)
-
 import maya.cmds as mc
 
 DIR_SEPARATOR = '/' 

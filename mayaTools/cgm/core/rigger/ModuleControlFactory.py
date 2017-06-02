@@ -25,7 +25,6 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger.lib import rig_Utils as rUtils
-reload(rUtils)
 
 from cgm.lib import (attributes,
                      cgmMath,

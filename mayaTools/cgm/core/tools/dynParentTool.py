@@ -19,14 +19,10 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
-
 import maya.cmds as mc
-
 
 import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core import cgm_RigMeta as cgmRigMeta
-
-reload(cgmUI)
 mUI = cgmUI.mUI
 
 from cgm.core.lib import shared_data as SHARED

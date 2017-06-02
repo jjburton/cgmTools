@@ -46,12 +46,9 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.classes import NodeFactory as NODEFAC
-reload(SNAP)
 
 from cgm.core.mrs import RigBlocks as RIGBLOCKS
-reload(RIGBLOCKS)
 from cgm.core.mrs.blocks import box
-reload(box)
 
 _d_blockTypes = {'box':box}
 _l_requiredModuleDat = ['__version__','__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']#...data required in a given module
@@ -532,7 +529,44 @@ class go(object):
             CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    		
             raise Exception,"|{0}| >> err: {1}".format(_str_func,err)        
     
+    def build_rigJoints(self):
+        _str_func = 'build_rigJoints'  
+        _res = True
+        _start = time.clock()
         
+        _ml_skinJoints = self._d_joints['ml_skinJoints']
+        
+        #>>Check if exists -----------------------------------------------------------------------------------  
+        l_rigJointsExist = self._mi_rigNull.msgList_get('rigJoints',asMeta = False, cull = True)
+        if l_rigJointsExist:
+            log.warning("|{0}| >> Deleting existing chain!".format(_str_func))                    
+            mc.delete(l_rigJointsExist)
+            
+        #>>Build -----------------------------------------------------------------------------------          
+        l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in _ml_skinJoints],po=True,ic=True,rc=True)
+        ml_rigJoints = [cgmMeta.cgmObject(j) for j in l_rigJoints]
+
+        for i,mJnt in enumerate(ml_rigJoints):
+            mJnt.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
+            l_rigJoints[i] = mJnt.mNode
+            mJnt.connectChildNode(_ml_skinJoints[i],'skinJoint','rigJoint')#Connect	    
+            if mJnt.hasAttr('scaleJoint'):
+                if mJnt.scaleJoint in self._ml_skinJoints:
+                    int_index = self._ml_skinJoints.index(mJnt.scaleJoint)
+                    mJnt.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
+            if mJnt.hasAttr('rigJoint'):mJnt.doRemove('rigJoint')
+            mJnt.doName()
+            
+        ml_rigJoints[0].parent = False
+	
+        #>>Connect back -----------------------------------------------------------------------------------                  
+        self._d_joints['ml_rigJoints'] = ml_rigJoints
+        self._d_joints['l_rigJoints'] = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]
+        self._mi_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
+
+       
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+        return ml_rigJoints
 
 def is_buildable(blockType = 'box'):
     """
@@ -542,7 +576,7 @@ def is_buildable(blockType = 'box'):
     _str_func = 'is_buildable'  
     
     if blockType not in _d_blockTypes.keys():
-        log.warning("|{0}| >> [{1}] Module not in dict".format(_str_func,blockType))            
+        log.error("|{0}| >> [{1}] Module not in dict".format(_str_func,blockType))            
         return False
     
     _res = True
@@ -551,7 +585,7 @@ def is_buildable(blockType = 'box'):
     
     for a in _l_requiredModuleDat:
         if a not in _keys:
-            log.warning("|{0}| >> [{1}] Missing data: {2}".format(_str_func,blockType,a))
+            log.error("|{0}| >> [{1}] Missing data: {2}".format(_str_func,blockType,a))
             _res = False
             
     if _res:return _buildModule

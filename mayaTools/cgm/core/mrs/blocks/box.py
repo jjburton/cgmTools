@@ -75,6 +75,8 @@ def build_joints(root=None,module=None):
     _str_func = 'build_joints'
     return True
 
+
+#Example stuff ================================================================================
 def func1(self):
     _str_func = 'func1'
     log.debug("|{0}| >> ...".format(_str_func))   
@@ -85,9 +87,21 @@ def func2(self):
 def func3(self):
     _str_func = 'func3'
     log.debug("|{0}| >> ...".format(_str_func)) 
-    
-    
 __l_buildOrder__ = [func1,func2,func3]
+
+
+
+def rigSkeleton(self):
+    _str_func = 'rigSkeleton'
+    
+    
+    
+    #>>>Rig Skeleton ================================================================================
+    ml_rigJoints = self.build_rigChain()
+    ml_rigJoints[0].parent = False#Parent to world
+    self._go._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints',"rigNull")
+
+    self.ml_rigJoints = ml_rigJoints#pass to wrapper    
 
 
 

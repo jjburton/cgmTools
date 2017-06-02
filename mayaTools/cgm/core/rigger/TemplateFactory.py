@@ -23,7 +23,6 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger.lib import module_Utils as modUtils
-reload(modUtils)
 from cgm.lib import (modules,
                      cgmMath,
                      curves,
@@ -35,13 +34,11 @@ from cgm.lib import (modules,
                      position,
                      search,
                      logic)
-reload(attributes)
-reload(constraints)
+
 from cgm.core.lib import nameTools
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.classes import DraggerContextFactory as dragFactory
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
-reload(mShapeCast)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Modules

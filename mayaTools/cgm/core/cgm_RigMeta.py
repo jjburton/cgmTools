@@ -35,8 +35,6 @@ from cgm.lib import (lists,
                      guiFactory,
                      locators)
 
-reload(attributes)
-reload(search)
 
 #=========================================================================
 import logging

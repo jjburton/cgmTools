@@ -28,9 +28,6 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import list_utils as LISTS
-
-reload(VALID)
-
 from cgm.lib import lists
 
 _d_attrTypes = {'message':('message','msg'),
@@ -495,7 +492,7 @@ def set(node, attr = None, value = None, lock = False,**kws):
         set_message(_obj, _attr, value)
     elif _validType == 'enum':
         _l = get_enum(_d).split(':')        
-        if ':' in value:
+        if VALID.stringArg(value) and ':' in value:
             if len(_l) != len(value.split(':')):
                 raise ValueError,"Must have matching len for editing. Current: {0} | requested: {1}".format(_l,value)
             mc.addAttr(_combined, edit=True, en = value, **kws)              

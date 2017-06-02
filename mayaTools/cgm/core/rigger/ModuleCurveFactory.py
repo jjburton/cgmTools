@@ -25,8 +25,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
-reload(RayCast)
-reload(Snap)
+
 from cgm.lib import (cgmMath,
                      locators,
                      modules,

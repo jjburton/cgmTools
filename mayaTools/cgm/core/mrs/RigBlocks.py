@@ -44,14 +44,12 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 
-reload(SNAP)
 #from cgm.core.lib import nameTools
 #from cgm.core.rigger import ModuleFactory as mFactory
 #from cgm.core.rigger import PuppetFactory as pFactory
 #from cgm.core.classes import NodeFactory as nodeF
 
 from cgm.core.mrs.blocks import box
-reload(box)
 
 _d_blockTypes = {'box':box}
 

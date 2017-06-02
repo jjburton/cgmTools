@@ -51,7 +51,6 @@ from cgm.lib import (cgmMath,
                      curves,
                      lists,
                      )
-reload(rigging)
 l_modulesDone  = ['torso','neckhead','leg','clavicle','arm','finger','thumb','eyeball','eyelids','eyebrow','mouthnose']
 __l_faceModules__ = cgmRigsData.__l_faceModules__
 

@@ -11,7 +11,7 @@ Help for learning the basis of cgmMeta.cgmBlendshape
 ================================================================
 """
 from cgm.core import cgm_Meta as cgmMeta
-cgm.core._reload()#...this is the core reloader
+#cgm.core._reload()#...this is the core reloader
 
 #==============================================================================================
 #>> cgmMeta.cgmBlendshape
