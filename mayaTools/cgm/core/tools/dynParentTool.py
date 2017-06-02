@@ -96,7 +96,8 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   
         mUI.MelMenuItem( self.uiMenu_help, l="Update Parent D",
-                         c=lambda *a: self.uiFunc_updateDynParentDisplay )        
+                         c=lambda *a: self.uiFunc_updateDynParentDisplay )      
+        
     def buildMenu_switch(self, *args):
         self.uiMenu_switch.clear()
         
@@ -1165,7 +1166,7 @@ def uiMenu_changeSpace(self, parent, showNoSel = False):
             #MelMenuItem(parent,l="-- Object --",en = False)	    					
             use_parent = parent
             state_multiObject = False
-        else:
+        elif l_commonAttrs:
             #MelMenuItem(parent,l="-- Objects --",en = False)	    			
             #iSubM_objects = mUI.MelMenuItem(parent,l="Objects(%s)"%(int_lenObjects),subMenu = True)
             iSubM_objects = mc.menuItem(p=parent,l="Objects(%s)"%(int_lenObjects),subMenu = True)

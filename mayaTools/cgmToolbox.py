@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 from cgm.core import cgm_General as cgmGen
-
+import cgm.core.classes.GuiFactory as cgmUI
 try:
     #try to connect to wing - otherwise don't worry
     import wingdbstub
@@ -504,7 +504,12 @@ def loadLocinator2( *a ):
     from cgm.core.tools import locinator as LOCINATOR
     reload(LOCINATOR)
     LOCINATOR.ui()
-
+    
+def loadDynParentTool( *a ):
+    from cgm.core.tools import dynParentTool as DYNPARENTTOOL
+    reload(DYNPARENTTOOL)
+    DYNPARENTTOOL.ui()
+    
 def loadAnimTools( *a ):
     from cgm.tools import animTools
     reload(animTools)
@@ -569,6 +574,8 @@ class ToolCB(object):
 #NOTE: the press callback should take *a as its args
 TOOL_CATS = ( ('animation', (('cgm.locinator', "Launch cgmLocinator 2.0",
                               loadLocinator2),
+                             ('cgm.dynParentTool', "Launch cgmDynParentTool",
+                              loadDynParentTool),                             
                              ('red9.studioTools', "Launch Red 9's tools - hit it twice for now",
                               loadRed9),                             
                              ('zoo.XferAnim', "Tool for transferring animation - from Hamish McKenzie's zooToolbox",
@@ -599,12 +606,26 @@ class ToolboxTab(mUI.MelColumnLayout):
     def __new__( cls, parent, toolTuples ):
         return mUI.MelColumnLayout.__new__( cls, parent )
     def __init__( self, parent, toolTuples ):
-        mUI.MelColumnLayout.__init__( self, parent )
+        _MainForm = mUI.MelFormLayout(self)            
+        _column = mUI.MelColumnLayout( _MainForm, parent )
 
         for toolStr, annStr, pressCB in toolTuples:
             assert pressCB is not None
-            mUI.MelButton( self, l=toolStr, ann=annStr, c=pressCB,ut = 'cgmUITemplate' )
-
+            mUI.MelButton( _column, l=toolStr, ann=annStr, c=pressCB,ut = 'cgmUITemplate' )
+            
+        _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
+        _MainForm(edit = True,
+                  af = [(_column,"top",0),
+                        (_column,"left",0),
+                        (_column,"right",0),                        
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),                        
+                        (_row_cgm,"bottom",0),
+    
+                        ],
+                  ac = [(_column,"bottom",2,_row_cgm),
+                        ],
+                  attachNone = [(_row_cgm,"top")])
 
 class ToolboxTabs(mUI.MelTabLayout):
     def __init__( self, parent ):
