@@ -40,7 +40,7 @@ import lib.shapeCaster"""
 
 import cgm_General as cgmGen
 import os
-import reloadFactory as RELOAD
+#import reloadFactory as RELOAD
 #import cgm.core.cgmPy.path_Utils as PATH
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
