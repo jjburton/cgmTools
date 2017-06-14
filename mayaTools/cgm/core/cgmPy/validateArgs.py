@@ -603,7 +603,10 @@ def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False
     else:_str_funcName = "{0}({1})".format(_str_funcRoot,l_args) 
 
     result = []
-
+    if l_args is None:
+        if noneValid:return False
+        else:raise ValueError,"Arg is none and not noneValid"
+        
     if not isinstance(l_args, (list, tuple)):l_args = [l_args]
 
     for arg in l_args:

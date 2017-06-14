@@ -27,7 +27,8 @@ from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
-
+from cgm.core.mrs import Builder as RBUILDER
+reload(RBUILDER)
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
 reload(MMPuppet)
@@ -1497,7 +1498,11 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     l='cgmDynParentTool',
                     ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
                     c=lambda *a: DYNPARENTTOOL.ui())           
-        
+        mc.menuItem(parent = _r,
+                    rp='S',
+                    l='MRS',
+                    ann = "WIP",                                                                                                                                       
+                    c=lambda *a: RBUILDER.ui())           
         
         _p = mc.menuItem(parent=_r, subMenu = True,
                          en=self._b_sel_few,

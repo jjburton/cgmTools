@@ -2057,6 +2057,7 @@ d_rigBlockAttrs_toMake = {'version':'string',#Attributes to be initialzed for an
                           'direction':'none:left:right:center',
                           'position':'none:front:back:upper:lower:forward',
                           'moduleTarget':'messageSimple',
+                          'blockState':'string',
                           'blockMirror':'messageSimple'}
 
 class cgmRigBlock(cgmMeta.cgmControl):

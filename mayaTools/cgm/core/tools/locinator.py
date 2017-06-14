@@ -27,19 +27,14 @@ import maya.mel as mel
 
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as VALID
-reload(VALID)
 from cgm.core import cgm_General as cgmGen
-reload(cgmGen)
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
 import cgm.core.classes.GuiFactory as cgmUI
-reload(SNAP)
-reload(LOC)
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
-reload(MMCONTEXT)
 
 import cgm.core.classes.GuiFactory as cgmUI
 reload(cgmUI)

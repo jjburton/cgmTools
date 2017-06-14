@@ -15,6 +15,7 @@ import random
 import re
 import copy
 import time
+import os
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -43,15 +44,20 @@ from cgm.core.rigger.lib import joint_Utils as JOINTS
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
+from cgm.core.cgmPy import path_Utils as PATH
+
+
+
+_l_requiredModuleDat = ['__version__','__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']#...data required in a given module
 
 #from cgm.core.lib import nameTools
 #from cgm.core.rigger import ModuleFactory as mFactory
 #from cgm.core.rigger import PuppetFactory as pFactory
 #from cgm.core.classes import NodeFactory as nodeF
 
-from cgm.core.mrs.blocks import box
+#from cgm.core.mrs.blocks import box
 
-_d_blockTypes = {'box':box}
+#_d_blockTypes = {'box':box}
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Rig Blocks
@@ -70,7 +76,7 @@ class factory(object):
     _l_controlLinks = []
     _l_controlmsgLists = []	
 
-    def __init__(self, root = None, *a,**kws):
+    def __init__(self, root = None, blockType = None, *a,**kws):
         """
         Core rig block factory. Runs processes for rig blocks.
 
@@ -88,20 +94,43 @@ class factory(object):
             cgmGEN.log_info_dict(kws,_str_func)
             #log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
 
-        self._mi_root = None
+        self._mi_block = None
 
         #_verify = kws.get('verify',False)
         #log.debug("|{0}| >> verify: {1}".format(_str_func,_verify))
-
+        
         if root is not None:
             self.set_rigBlock(root)
+            
+        if blockType is not None:
+            self.create_rigBlock(blockType)
 
     def __repr__(self):
-        try:return "{0}(root: {1})".format(self.__class__, self._mi_root)
+        try:return "{0}(root: {1})".format(self.__class__, self._mi_block)
         except:return self
 
-    def create(self):
-        raise NotImplementedError,"Not yet..."
+    def create_rigBlock(self,blockType = None, size = 1):
+        _str_func = 'create_rigBlock'
+        _start = time.clock()
+        
+        _d = get_modules_dict()
+        
+        if blockType not in _d.keys():
+            log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,blockType))        
+            return False
+        
+        _module = _d[blockType]
+        
+        if 'create' not in _module.__dict__.keys():
+            log.error("|{0}| >> [{1}] | Failed to query create function.".format(_str_func,blockType))        
+            return False
+        
+        _mObj = _module.create(size = size)
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
+        
+        self.set_rigBlock(_mObj)
+        self.verify(blockType)
+        return _mObj
 
 
     def get_attrCreateDict(self,blockType = None):
@@ -116,7 +145,7 @@ class factory(object):
         """
         _str_func = 'get_attrCreateDict'
 
-        _mod = _d_blockTypes.get(blockType,False)
+        _mod = get_modules_dict().get(blockType,False)
         if not _mod:
             log.warning("|{0}| >> No module found for: {1}".format(_str_func,blockType))
             return False
@@ -141,7 +170,7 @@ class factory(object):
             for l in _l_msgLinks:
                 _d[l] = 'messageSimple'
 
-        #cgmGEN.log_info_dict(_d,_str_func + " '{0}' attributes to create".format(blockType))
+        cgmGEN.log_info_dict(_d,_str_func + " '{0}' attributes to create".format(blockType))
         #cgmGEN.log_info_dict(d_defaultSettings,_str_func + " '{0}' defaults".format(blockType))
 
         self._d_attrsToVerify = _d
@@ -238,7 +267,48 @@ class factory(object):
         
         return True
             
+    def get_infoBlock_report(self):
+        """
+        Get a report of data 
+
+        :returns
+            list
+        """
+        _str_func = 'get_infoBlock_report'
         
+        
+        if self._mi_block is None:
+            raise ValueError,"|{0}| >> No root loaded.".format(_str_func) 
+        
+        _d = get_modules_dict()   
+        _blockType = self._mi_block.blockType
+        if _blockType not in _d.keys():
+            log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,_blockType))        
+            return False        
+
+        _mod = _d.get(_blockType,False)
+        
+        _short = self._mi_block.p_nameShort
+        
+        _res = []
+        
+        _res.append("{0} : {1}".format('blockType',_blockType))
+        _res.append("{0} : {1}".format('blockState',ATTR.get(_short,'blockState')))
+        
+        _res.append("version: {0} | moduleVersion: {1}".format(ATTR.get(_short,'version'),_mod.__version__))
+        
+        for a in 'direction','position':
+            if ATTR.get(_short,a):
+                _res.append("{0} : {1}".format(a,ATTR.get_enumValueString(_short,a)))
+        
+        for msg in 'blockMirror','moduleTarget':
+            _res.append("{0} : {1}".format(msg,ATTR.get(_short,msg)))            
+        #Msg checks        
+        #for link in  
+        #Module data
+                
+        return _res
+    
     def get_skeletonCreateDict(self,blockType = None):
         """
         Data checker to see the skeleton create dict for a given blockType regardless of what's loaded
@@ -256,10 +326,10 @@ class factory(object):
             log.warning("|{0}| >> No module found for: {1}".format(_str_func,blockType))
             return False       
 
-        if self._mi_root is None:
+        if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
 
-        _root = self._mi_root.mNode
+        _root = self._mi_block.mNode
 
         #Validate mode data -------------------------------------------------------------------------
         try:_d_skeletonSetup = _mod.d_skeletonSetup
@@ -321,10 +391,10 @@ class factory(object):
         """        
         _str_func = 'rigBlock_verify'
 
-        if self._mi_root is None:
+        if self._mi_block is None:
             raise ValueError,"No root loaded."
 
-        _mRoot = self._mi_root
+        _mRoot = self._mi_block
 
         if _mRoot.isReferenced():
             raise ValueError,"Referenced node. Cannot verify"
@@ -333,21 +403,22 @@ class factory(object):
             blockType = ATTR.get(_mRoot.mNode,'blockType')
         if not blockType:
             raise ValueError,"No blockType specified or found."
-            
-        
-        
+
         if not self.get_attrCreateDict(blockType):
             raise ValueError, "|{0}| >> Failed to get attr dict. blockType:{1}".format(_str_func,blockType)
 
         #Need to get the type, the get the attribute lists and data from the module
 
         #_mRoot.verifyAttrDict(self._d_attrsToVerify,keyable = False, hidden = False)
+        _mRoot.verifyAttrDict(self._d_attrsToVerify)
+        
+        #s_mRoot.blockType = blockType
         _mRoot.addAttr('blockType', value = blockType,lock=True)	
-
+        _mRoot.blockState = 'template'
 
         for k,v in self._d_attrToVerifyDefaults.iteritems():
-            log.debug("|{0}| type: ({3}) >>  Setting attr >> '{1}' | value: {2} ".format(_str_func,k,v,blockType)) 
-            _mRoot.addAttr(k,defaultValue = v, keyable = False, hidden = False)
+            log.info("|{0}| type: ({3}) >>  Setting attr >> '{1}' | value: {2} ".format(_str_func,k,v,blockType)) 
+            _mRoot.addAttr(k, initialValue = v, keyable = False, hidden = False)
             #try:ATTR.set(_mRoot.mNode,k,v)
             #except Exception,err:
                 #log.error("|{0}| >> Failed to set default value. || key: {1} | value: {2} ||| err: {3}".format(_str_func,k,v,err))                
@@ -397,15 +468,15 @@ class factory(object):
         """            
         _str_func = 'rigBlock_set'
         log.debug("|{0}| >> root kw: {1}".format(_str_func,root))
-        self._mi_root = False
+        self._mi_block = False
         self._mi_module = False
         self._mi_puppet = False   
 
         if root is None:
             return False
 
-        self._mi_root = cgmMeta.validateObjArg(root,'cgmObject')
-        log.debug("|{0}| >> mInstance: {1}".format(_str_func,self._mi_root))
+        self._mi_block = cgmMeta.validateObjArg(root,'cgmObject')
+        log.debug("|{0}| >> mInstance: {1}".format(_str_func,self._mi_block))
         pass
 
     def skeletonize(self,forceNew = False):
@@ -419,7 +490,7 @@ class factory(object):
             joints(mList)
         """           
         _str_func = 'skeletonize'
-        _blockType = self._mi_root.blockType
+        _blockType = self._mi_block.blockType
         #>> Get positions -----------------------------------------------------------------------------------
         _d_create = self.get_skeletonCreateDict(_blockType)
 
@@ -475,9 +546,9 @@ class factory(object):
         _mode = mode
         _castMesh = castMesh
         
-        if self._mi_root is None:
+        if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
-        _root = self._mi_root.mNode    
+        _root = self._mi_block.mNode    
                 
         _joints = ATTR.get(_root,'joints')
         
@@ -512,9 +583,9 @@ class factory(object):
         _str_func = 'module_verify'
         self._mi_module = False
 
-        if self._mi_root is None:
+        if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
-        _mRoot = self._mi_root        
+        _mRoot = self._mi_block        
 
         _bfr = _mRoot.getMessage('moduleTarget')
         _kws = self.module_getBuildKWS()
@@ -545,9 +616,9 @@ class factory(object):
         """            
         _str_func = 'module_getBuildKWS'
 
-        if self._mi_root is None:
+        if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
-        _mRoot = self._mi_root
+        _mRoot = self._mi_block
 
         d_kws = {}
         d_kws['name'] = str(_mRoot.blockType)
@@ -576,9 +647,9 @@ class factory(object):
         _str_func = 'puppet_verify'
         self._mi_puppet = False
 
-        if self._mi_root is None:
+        if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
-        _mRoot = self._mi_root     
+        _mRoot = self._mi_block     
 
         mi_module = _mRoot.moduleTarget
         if not mi_module:
@@ -951,6 +1022,158 @@ def create_remesh(mesh = None, joints = None, curve=None, positions = None,
     
     
     #>>Cast our Loft curves
+
+def get_from_scene():
+    """
+    Gather all rig blocks data in scene
+
+    :parameters:
+
+    :returns
+        _d_modules, _d_categories, _l_unbuildable
+        _d_modules(dict) - keys to modules
+        _d_categories(dict) - categories to list of entries
+        _l_unbuildable(list) - list of unbuildable modules
+    """
+    _str_func = 'get_from_scene'
+    
+    _l_rigBlocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock')
+    
+    return _l_rigBlocks
+
+def get_modules_dict():
+    return get_modules_dat()[0]
+
+def get_modules_dat():
+    """
+    Data gather for available blocks.
+
+    :parameters:
+
+    :returns
+        _d_modules, _d_categories, _l_unbuildable
+        _d_modules(dict) - keys to modules
+        _d_categories(dict) - categories to list of entries
+        _l_unbuildable(list) - list of unbuildable modules
+    """
+    _str_func = 'get_modules_dict'    
+    
+    _b_debug = log.isEnabledFor(logging.DEBUG)
+    
+    import cgm.core.mrs.blocks as blocks
+    _path = PATH.Path(blocks.__path__[0])
+    _l_duplicates = []
+    _l_unbuildable = []
+    _base = _path.split()[-1]
+    _d_files =  {}
+    _d_modules = {}
+    _d_import = {}
+    _d_categories = {}
+    
+    log.debug("|{0}| >> Checking base: {1} | path: {2}".format(_str_func,_base,_path))   
+    _i = 0
+    for root, dirs, files in os.walk(_path, True, None):
+        # Parse all the files of given path and reload python modules
+        _mRoot = PATH.Path(root)
+        _split = _mRoot.split()
+        _subRoot = _split[-1]
+        _splitUp = _split[_split.index(_base):]
+        
+        log.debug("|{0}| >> On subroot: {1} | path: {2}".format(_str_func,_subRoot,root))   
+        log.debug("|{0}| >> On split: {1}".format(_str_func,_splitUp))   
+        
+        if len(_split) == 1:
+            _cat = 'base'
+        else:_cat = _split[-1]
+        _l_cat = []
+        _d_categories[_cat]=_l_cat
+        
+        for f in files:
+            key = False
+            
+            if f.endswith('.py'):
+                    
+                if f == '__init__.py':
+                    continue
+                else:
+                    name = f[:-3]    
+            else:
+                continue
+                    
+            if _i == 'cat':
+                key = '.'.join([_base,name])                            
+            else:
+                key = '.'.join(_splitUp + [name])    
+                if key:
+                    log.debug("|{0}| >> ... {1}".format(_str_func,key))                      
+                    if name not in _d_modules.keys():
+                        _d_files[key] = os.path.join(root,f)
+                        _d_import[name] = key
+                        _l_cat.append(name)
+                        try:
+                            module = __import__(key, globals(), locals(), ['*'], -1)
+                            reload(module) 
+                            _d_modules[name] = module
+                            if not is_buildable(module):
+                                _l_unbuildable.append(name)
+                        except Exception, e:
+                            for arg in e.args:
+                                log.error(arg)
+                            raise RuntimeError,"Stop"  
+                                          
+                    else:
+                        _l_duplicates.append("{0} >> {1} ".format(key, os.path.join(root,f)))
+            _i+=1
+            
+    if _b_debug:
+        cgmGEN.log_info_dict(_d_modules,"Modules")        
+        cgmGEN.log_info_dict(_d_files,"Files")
+        cgmGEN.log_info_dict(_d_import,"Imports")
+        cgmGEN.log_info_dict(_d_categories,"Categories")
+    
+    if _l_duplicates and _b_debug:
+        log.debug(cgmGEN._str_subLine)
+        log.debug("|{0}| >> DUPLICATE MODULES....".format(_str_func))
+        for m in _l_duplicates:
+            print(m)
+        raise Exception,"Must resolve"
+    log.debug("|{0}| >> Found {1} modules under: {2}".format(_str_func,len(_d_files.keys()),_path))     
+    if _l_unbuildable and _b_debug:
+        log.info(cgmGEN._str_subLine)
+        log.info("|{0}| >> ({1}) Unbuildable modules....".format(_str_func,len(_l_unbuildable)))
+        for m in _l_unbuildable:
+            print(">>>    " + m) 
+    return _d_modules, _d_categories, _l_unbuildable
+
+def is_buildable(blockModule):
+    """
+    Function to check if a givin block module is buildable or not
+    
+    """
+    _str_func = 'is_buildable'  
+    """_d_blockTypes = get_modules_dict()[0]
+    
+    if blockType not in _d_blockTypes.keys():
+        log.error("|{0}| >> [{1}] Module not in dict".format(_str_func,blockType))            
+        return False"""
+    
+    _res = True
+    #_buildModule = _d_blockTypes[blockType]
+    _buildModule = blockModule
+    try:
+        _blockType = _buildModule.__name__.split('.')[-1]
+    except:
+        log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,_buildModule))        
+        return False
+    _keys = _buildModule.__dict__.keys()
+    
+    for a in _l_requiredModuleDat:
+        if a not in _keys:
+            log.debug("|{0}| >> [{1}] Missing data: {2}".format(_str_func,_blockType,a))
+            _res = False
+            
+    if _res:return _buildModule
+    return _res
     
     
     

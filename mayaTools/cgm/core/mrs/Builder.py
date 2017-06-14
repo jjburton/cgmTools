@@ -22,7 +22,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -34,6 +34,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 from cgm.core.classes import GuiFactory as CGMUI
+reload(CGMUI)
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
@@ -48,112 +49,12 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.classes import NodeFactory as NODEFAC
 from cgm.core.cgmPy import path_Utils as PATH
 from cgm.core.mrs import RigBlocks as RIGBLOCKS
-from cgm.core.mrs.blocks import box
+reload(RIGBLOCKS)
+#from cgm.core.mrs.blocks import box
+from cgm.core.lib import shared_data as SHARED
 
 _d_blockTypes = {}
-_l_requiredModuleDat = ['__version__','__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']#...data required in a given module
 
-
-def get_block_dict():
-    """
-    Data gather for available blocks.
-
-    :parameters:
-
-    :returns
-        _d_modules, _d_categories, _l_unbuildable
-        _d_modules(dict) - keys to modules
-        _d_categories(dict) - categories to list of entries
-        _l_unbuildable(list) - list of unbuildable modules
-    """
-    _str_func = 'get_block_dict'    
-    
-    _b_debug = log.isEnabledFor(logging.DEBUG)
-    
-    import blocks
-    _path = PATH.Path(blocks.__path__[0])
-    _l_duplicates = []
-    _l_unbuildable = []
-    _base = _path.split()[-1]
-    _d_files =  {}
-    _d_modules = {}
-    _d_import = {}
-    _d_categories = {}
-    
-    log.debug("|{0}| >> Checking base: {1} | path: {2}".format(_str_func,_base,_path))   
-    _i = 0
-    for root, dirs, files in os.walk(_path, True, None):
-        # Parse all the files of given path and reload python modules
-        _mRoot = PATH.Path(root)
-        _split = _mRoot.split()
-        _subRoot = _split[-1]
-        _splitUp = _split[_split.index(_base):]
-        
-        log.debug("|{0}| >> On subroot: {1} | path: {2}".format(_str_func,_subRoot,root))   
-        log.debug("|{0}| >> On split: {1}".format(_str_func,_splitUp))   
-        
-        if len(_split) == 1:
-            _cat = 'base'
-        else:_cat = _split[-1]
-        _l_cat = []
-        _d_categories[_cat]=_l_cat
-        
-        for f in files:
-            key = False
-            
-            if f.endswith('.py'):
-                    
-                if f == '__init__.py':
-                    continue
-                else:
-                    name = f[:-3]    
-            else:
-                continue
-                    
-            if _i == 'cat':
-                key = '.'.join([_base,name])                            
-            else:
-                key = '.'.join(_splitUp + [name])    
-                if key:
-                    log.debug("|{0}| >> ... {1}".format(_str_func,key))                      
-                    if name not in _d_modules.keys():
-                        _d_files[key] = os.path.join(root,f)
-                        _d_import[name] = key
-                        _l_cat.append(name)
-                        try:
-                            module = __import__(key, globals(), locals(), ['*'], -1)
-                            reload(module) 
-                            _d_modules[name] = module
-                            if not is_buildable(module):
-                                _l_unbuildable.append(name)
-                        except Exception, e:
-                            for arg in e.args:
-                                log.error(arg)
-                            raise RuntimeError,"Stop"  
-                                          
-                    else:
-                        _l_duplicates.append("{0} >> {1} ".format(key, os.path.join(root,f)))
-            _i+=1
-            
-    if _b_debug:
-        cgmGEN.log_info_dict(_d_modules,"Modules")        
-        cgmGEN.log_info_dict(_d_files,"Files")
-        cgmGEN.log_info_dict(_d_import,"Imports")
-        cgmGEN.log_info_dict(_d_categories,"Categories")
-    
-    if _l_duplicates:
-        log.info(cgmGEN._str_subLine)
-        log.info("|{0}| >> DUPLICATE MODULES....".format(_str_func))
-        for m in _l_duplicates:
-            print(m)
-        raise Exception,"Must resolve"
-    log.debug("|{0}| >> Found {1} modules under: {2}".format(_str_func,len(_d_files.keys()),_path))     
-    if _l_unbuildable:
-        log.info(cgmGEN._str_subLine)
-        log.error("|{0}| >> ({1}) Unbuildable modules....".format(_str_func,len(_l_unbuildable)))
-        for m in _l_unbuildable:
-            print(">>>    " + m) 
-    return _d_modules, _d_categories, _l_unbuildable
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Factory
@@ -250,7 +151,7 @@ class go(object):
         _d['shortName'] = BlockFactory._mi_root.getShortName()
         
         _blockType = _d['mBlock'].blockType
-        _res = get_block_dict()
+        _res = get_block_lib_dat()
         if _res[0].get(_blockType) and _blockType not in _res[2]:
             _buildModule = _res[0].get(_blockType)
             
@@ -674,37 +575,602 @@ class go(object):
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
         return ml_rigJoints
 
-def is_buildable(blockModule):
-    """
-    Function to check if a givin block module is buildable or not
+   
     
-    """
-    _str_func = 'is_buildable'  
-    """_d_blockTypes = get_block_dict()[0]
-    
-    if blockType not in _d_blockTypes.keys():
-        log.error("|{0}| >> [{1}] Module not in dict".format(_str_func,blockType))            
-        return False"""
-    
-    _res = True
-    #_buildModule = _d_blockTypes[blockType]
-    _buildModule = blockModule
-    try:
-        _blockType = _buildModule.__name__.split('.')[-1]
-    except:
-        log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,_buildModule))        
-        return False
-    _keys = _buildModule.__dict__.keys()
-    
-    for a in _l_requiredModuleDat:
-        if a not in _keys:
-            log.error("|{0}| >> [{1}] Missing data: {2}".format(_str_func,_blockType,a))
-            _res = False
-            
-    if _res:return _buildModule
-    return _res
-            
+#=====================================================================================================
+import cgm.core.classes.GuiFactory as cgmUI
+mUI = cgmUI.mUI
 
+#>>> Root settings =============================================================
+__version__ = 'ALPHA 0.06122017'
+
+
+class ui(cgmUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'cgmBuilder_ui'    
+    WINDOW_TITLE = 'Builder - {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = True
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 500,400
+    __modes = 'space','orient','follow'
+    
+    def insert_init(self,*args,**kws):
+            if kws:log.debug("kws: %s"%str(kws))
+            if args:log.debug("args: %s"%str(args))
+            log.info(self.__call__(q=True, title=True))
+    
+            self.__version__ = __version__
+            self.__toolName__ = 'Builder'		
+            #self.l_allowedDockAreas = []
+            self.WINDOW_TITLE = ui.WINDOW_TITLE
+            self.DEFAULT_SIZE = ui.DEFAULT_SIZE
+
+            self.uiPopUpMenu_parent = False
+            self._l_toEnable = []
+            #self.create_guiOptionVar('dynParentMode',  defaultValue = ui.__modes[0])       
+            self.uiScrollList_parents = False
+            self.uiPopUpMenu_blocks = None
+            
+            self._blockRoot = None
+            self._blockCurrent = None
+            self._blockFactory = RIGBLOCKS.factory()
+            
+            self.create_guiOptionVar('blockAttrsFrameCollapse',defaultValue = 0) 
+            self.create_guiOptionVar('blockInfoFrameCollapse',defaultValue = 0) 
+            
+            
+    def build_menus(self):
+        self.uiMenu_add = mUI.MelMenu( l='Add', pmc=self.buildMenu_add) 
+        #self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=self.buildMenu_switch) 
+        #self.uiMenu_pivot = mUI.MelMenu( l='Pivot', pmc=self.buildMenu_pivot)         
+        self.uiMenu_help = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)         
+    
+    def buildMenu_add( self, *args):
+        self.uiMenu_add.clear()   
+        
+        _d = RIGBLOCKS.get_modules_dat()
+            
+        for b in _d[1]['blocks']:
+            mUI.MelMenuItem(self.uiMenu_add, l=b,
+                            c=cgmGEN.Callback(self.uiFunc_block_build,b)) 
+                
+        for c in _d[1].keys():
+            if c == 'blocks':continue
+
+            _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,
+                                    l=c)
+            for b in _d[1][c]:
+                mUI.MelMenuItem(_sub, l=b)
+                
+    def uiUpdate_building(self):
+        _str_func = 'uiUpdate_building'   
+        
+        self.uiFunc_updateScrollList_blocks()
+        
+        
+            
+    def uiFunc_block_build(self, blockType = None):
+        _str_func = 'uiFunc_block_build'
+        
+        _block = self._blockFactory.create_rigBlock(blockType)
+        
+        log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,self._blockFactory._mi_block))        
+        
+        self.uiUpdate_building()
+        
+        self.uiFunc_block_setActive(self._ml_blocks.index(self._blockFactory._mi_block))
+        
+    def uiFunc_scrollList_block_select(self): 
+        _str_func = 'uiFunc_scrollList_block_select'  
+        
+        if self.uiPopUpMenu_blocks:
+            self.uiPopUpMenu_blocks.clear()
+            self.uiPopUpMenu_blocks.delete()
+            self.uiPopUpMenu_blocks = None        
+
+        _indices = self.uiScrollList_blocks.getSelectedIdxs() or []
+        #log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))    
+    
+        if not _indices:
+            return
+        
+        _ml = RIGBLOCKS.get_from_scene()
+        if not _ml:
+            self.uiScrollList_blocks.clear()
+            self.uiFunc_block_clearActive()
+            return
+        
+        
+        _index = _indices[0]
+        self._ml_blocks = _ml        
+        _mBlock = _ml[_index]
+        
+    
+        self.uiPopUpMenu_blocks = mUI.MelPopupMenu(self.uiScrollList_blocks,button = 3)
+        _popUp = self.uiPopUpMenu_blocks  
+        
+        mUI.MelMenuItem(_popUp,
+                        label = "Select",
+                        en=True,
+                        c=cgmGEN.Callback(_mBlock.select))            
+        
+        return
+    
+    
+        if len(_indices) == 1:
+            _b_single = True
+    
+            log.debug("|{0}| >> Single pop up mode".format(_str_func))  
+            _short = ml_parents[_indices[0]].p_nameShort
+            mUI.MelMenuItem(_popUp,
+                            label = "Single: {0}".format(_short),
+                            en=False)            
+        else:
+            log.debug("|{0}| >> Multi pop up mode".format(_str_func))  
+            mUI.MelMenuItem(_popUp,
+                            label = "Mutli",
+                            en=False)  
+            _b_single = False
+    
+    
+        if _b_single:
+            mUI.MelMenuItem(_popUp,
+                            label ='Alias',
+                            ann = 'Enter value desired in prompt',
+                            c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'alias'}))
+            mUI.MelMenuItem(_popUp,
+                            label ='Clear Alias',
+                            ann = 'Remove any alias',
+                            c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'aliasClear'}))
+    
+        mUI.MelMenuItem(_popUp,
+                        label ='Select',
+                        ann = 'Select specified indice parents',
+                        c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'select'}))  
+        mUI.MelMenuItem(_popUp,
+                        label ='Move Up',
+                        ann = 'Move selected up in list',
+                        c = cgmGEN.Callback(self.uiFunc_dynParents_reorder,0)) 
+        mUI.MelMenuItem(_popUp,
+                        label ='Move Down',
+                        ann = 'Move selected down in list',
+                        c = cgmGEN.Callback(self.uiFunc_dynParents_reorder,1)) 
+    
+        self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )        
+        uiMenu_changeSpace(self,_popUp)
+    
+        return
+    
+    def uiFunc_block_clearActive(self):
+        self.uiField_inspector(edit=True, label = '')
+        self._blockCurrent = None
+        self.uiFrame_blockAttrs.clear()
+        self.uiFrame_blockInfo.clear()
+        
+        
+    def uiFunc_block_setActive(self, index = None):
+        _str_func = 'uiFunc_block_setActive'
+        
+        _ml = RIGBLOCKS.get_from_scene()
+        self._ml_blocks = _ml
+        if not _ml:
+            self.uiFunc_block_clearActive()
+            return
+                
+        if index:
+            if index not in range(len(_ml)):
+                log.warning("|{0}| >> Invalid index: {1}".format(_str_func, index))    
+                return
+        else:
+            _indices = self.uiScrollList_blocks.getSelectedIdxs() or []
+            #log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))    
+        
+            if not _indices:
+                log.warning("|{0}| >> Nothing selected".format(_str_func))                    
+                return
+            
+            index = _indices[0]
+        
+        log.info("|{0}| >> To set: {1}".format(_str_func, _ml[index].mNode))
+        
+        self._blockFactory.set_rigBlock( _ml[index] )
+        self._blockCurrent = _ml[index]
+        _short = self._blockCurrent.p_nameShort
+        
+        #>>>Inspector ======================================================================================
+        #>>>Report -----------------------------------------------------------------------------------------
+        
+        _l_report = [self._blockCurrent.blockType, self._blockCurrent.blockState, self._blockCurrent.p_nameBase]
+        
+        if ATTR.get(_short,'direction'):
+            _l_report.append( ATTR.get(_short,'blockState'))
+        
+        if self._blockCurrent.isReferenced():
+            _l_report.insert(0,"Referenced!")
+            
+        self.uiField_inspector(edit=True, label = '{0}'.format(' | '.join(_l_report)))
+        
+        #>>>Info ----------------------------------------------------------------------------------------
+        self.uiFrame_blockInfo.clear()
+        
+        for l in self._blockFactory.get_infoBlock_report():
+            mUI.MelLabel(self.uiFrame_blockInfo,l=l)
+            
+        #>>>Attrs ----------------------------------------------------------------------------------------
+        self.uiFrame_blockAttrs.clear()
+        
+        for a in self._blockCurrent.getAttrs(ud=True):
+            mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get(_short,a)))
+        
+        
+        
+        
+        
+        
+                
+                
+    def buildMenu_help( self, *args):
+        self.uiMenu_help.clear()
+    
+        mc.menuItem(parent=self.uiMenu_help,
+                    l = 'Get Help',
+                    c='import webbrowser;webbrowser.open("https://docs.google.com/document/d/1ztN9wZfYunvGlao2iRL5WSc9oJTN021Bk6LNZqhbrL8/edit?usp=sharing");',                        
+                    rp = 'N')    
+        mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
+                         c=lambda *a: cgmUI.log_selfReport(self) )   
+        mUI.MelMenuItem( self.uiMenu_help, l="Update Display",
+                         c=lambda *a: self.uiUpdate_building() )      
+        
+ 
+    def uiFunc_clear_loaded(self):
+        _str_func = 'uiFunc_clear_loaded'  
+        self._mNode = False
+        self._mGroup = False
+        self._utf_obj(edit=True, l='',en=False)      
+        self.uiField_report(edit=True, l='...')
+        #self.uiReport_objects()
+        self.uiScrollList_parents.clear()
+        
+        for o in self._l_toEnable:
+            o(e=True, en=False)        
+        
+    
+    def uiFunc_updateScrollList_blocks(self):
+        _str_func = 'uiFunc_updateScrollList_blocks'          
+        self.uiScrollList_blocks.clear()
+        
+        _ml = RIGBLOCKS.get_from_scene()
+        self._ml_blocks = _ml
+        
+        _len = len(_ml)
+        
+        if not _ml:
+            log.warning("|{0}| >> No blocks found in scene.".format(_str_func)) 
+            self.uiFunc_block_clearActive()
+            return False      
+
+        #...menu...
+        _progressBar = cgmUI.doStartMayaProgressBar(_len,"Processing...")
+        
+        try:
+            for i,mObj in enumerate(_ml):
+                _short = mObj.p_nameShort
+                log.info("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
+                
+                mc.progressBar(_progressBar, edit=True, status = ("{0} Processing Block: {1}".format(_str_func,_short)), step=1)                    
+                
+                _l_report = [ATTR.get(_short,'blockType')]
+                                
+                _l_report.append(ATTR.get(_short,'blockState'))
+                
+                _l_report.append(mObj.p_nameBase)                
+                
+                if mObj.isReferenced():
+                    _l_report.append("Referenced")
+                    
+                _str = " ~ ".join(_l_report)
+                log.debug("|{0}| >> str: {1}".format(_str_func, _str))  
+                
+                self.uiScrollList_blocks.append(_str)
+
+        except Exception,err:
+            try:
+                log.error("|{0}| >> err: {1}".format(_str_func, err))  
+                cgmUI.doEndMayaProgressBar(_progressBar)
+            except:
+                raise Exception,err
+
+        cgmUI.doEndMayaProgressBar(_progressBar)    
+                    
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper'
+    
+        _MainForm = mUI.MelFormLayout(self,ut='cgmUISubTemplate')
+        
+        ui_tabs = mUI.MelTabLayout( _MainForm,w=180 )
+        
+        uiTab_setup = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
+        self.uiTab_setup = uiTab_setup
+        
+        uiTab_utils = mUI.MelColumnLayout( ui_tabs )
+        
+        for i,tab in enumerate(['Setup','Utils']):
+            ui_tabs.setLabel(i,tab)
+            
+        self.buildTab_setup(uiTab_setup)
+        #self.buildTab_create(uiTab_create)
+        #self.buildTab_update(uiTab_update)
+    
+        _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
+        _MainForm(edit = True,
+                  af = [(ui_tabs,"top",0),
+                        (ui_tabs,"left",0),
+                        (ui_tabs,"right",0),                        
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),                        
+                        (_row_cgm,"bottom",0),
+    
+                        ],
+                  ac = [(ui_tabs,"bottom",0,_row_cgm),
+                        ],
+                  attachNone = [(_row_cgm,"top")])
+        
+    def buildTab_setup(self,parent):
+        _MainForm = parent
+        #_MainForm = mUI.MelScrollLayout(parent)	        
+        _row_report = mUI.MelHLayout(_MainForm ,ut='cgmUIInstructionsTemplate',h=20)
+        self.uiField_report = mUI.MelLabel(_row_report,
+                                           bgc = SHARED._d_gui_state_colors.get('help'),
+                                           label = '...',
+                                           h=20)
+        _row_report.layout()         
+        
+        
+        _LeftColumn = mUI.MelObjectScrollList(_MainForm, ut='cgmUISubTemplate',
+                                              allowMultiSelection=False,en=True,
+                                              dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
+                                              selectCommand = self.uiFunc_scrollList_block_select,
+                                              
+                                              w = 200)
+        #dcc = self.uiFunc_dc_fromList,
+        #selectCommand = self.uiFunc_selectParent_inList)
+    
+                                    #dcc = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}),
+        self.uiScrollList_blocks = _LeftColumn
+        self._l_toEnable.append(self.uiScrollList_blocks)        
+        
+        
+        _RightColumn = mUI.MelScrollLayout(_MainForm,useTemplate = 'cgmUITemplate')
+        
+        cgmUI.add_Header('Active',overrideUpper=True) 
+        self.uiField_inspector= mUI.MelLabel(_RightColumn,
+                                             bgc = SHARED._d_gui_state_colors.get('help'),
+                                             label = '...',
+                                             h=20) 
+        
+        
+        # ------------------------------------------------------------------------------------
+        _frame_info = mUI.MelFrameLayout(_RightColumn,label = 'Info',vis=True,
+                                        collapse=self.var_blockInfoFrameCollapse.value,
+                                        collapsable=True,
+                                        enable=True,
+                                        useTemplate = 'cgmUIHeaderTemplate',
+                                        expandCommand = lambda:self.var_blockInfoFrameCollapse.setValue(0),
+                                        collapseCommand = lambda:self.var_blockInfoFrameCollapse.setValue(1)
+                                        )	
+        self.uiFrame_blockInfo = _frame_info
+        
+        _frame_info_inside = mUI.MelColumnLayout(_frame_info,useTemplate = 'cgmUISubTemplate')  
+        self.uiFrame_blockInfo = _frame_info_inside        
+        
+        #Attrs ------------------------------------------------------------------------------------
+        _frame_attr = mUI.MelFrameLayout(_RightColumn,label = 'Attrs',vis=True,
+                                        collapse=self.var_blockAttrsFrameCollapse.value,
+                                        collapsable=True,
+                                        enable=True,
+                                        useTemplate = 'cgmUIHeaderTemplate',
+                                        expandCommand = lambda:self.var_blockAttrsFrameCollapse.setValue(0),
+                                        collapseCommand = lambda:self.var_blockAttrsFrameCollapse.setValue(1)
+                                        )	
+        self.uiFrame_blockAttrs = _frame_attr
+        
+        _frame_attr_inside = mUI.MelColumnLayout(_frame_attr,useTemplate = 'cgmUISubTemplate')  
+        self.uiFrame_blockAttrs = _frame_attr_inside
+
+        #>>> Layout form ---------------------------------------------------------------------------------------
+        _MainForm(edit = True,
+                  af = [(_row_report,"top",0),
+                        (_row_report,"left",0),
+                        (_row_report,"right",0),
+                        
+                        (_LeftColumn,"left",0),
+                        (_RightColumn,"right",0),                        
+                        (_RightColumn,"bottom",0),
+                        (_LeftColumn,"bottom",0),
+
+                        ],
+                  ac = [(_LeftColumn,"top",0,_row_report),
+                        (_RightColumn,"top",0,_row_report),
+                        (_RightColumn,"left",0,_LeftColumn),
+                        
+                        #(_RightColumn,"bottom",0,_row_cgm),
+                        #(_LeftColumn,"bottom",0,_row_cgm),
+
+                        
+                       ],
+                  attachNone = [])#(_row_cgm,"top")	  
+        
+        self.uiUpdate_building()        
+        
+        
+        
+    def build_layoutWrapperOLD(self,parent):
+        _str_func = 'build_layoutWrapper'
+        self._d_uiCheckBoxes = {}
+        
+        _MainForm = mUI.MelFormLayout(parent,ut='cgmUISubTemplate')
+        
+        #_header_top = cgmUI.add_Header('cgmDynParentGroup',overrideUpper=True)     
+        _row_report = mUI.MelHLayout(_MainForm ,ut='cgmUIInstructionsTemplate',h=20)
+        self.uiField_report = mUI.MelLabel(_row_report,
+                                           bgc = SHARED._d_gui_state_colors.get('help'),
+                                           label = '...',
+                                           h=20)
+        _row_report.layout()         
+        
+        #_LeftColumn = mUI.MelColumn(_MainForm,ut='cgmUISubTemplate',w=100)
+        #cgmUI.add_Header('Blocks',overrideUpper=True)  
+        
+        _LeftColumn = mUI.MelObjectScrollList(_MainForm, #ut='cgmUISubTemplate',
+                                              allowMultiSelection=False,en=True,
+                                              dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
+                                              selectCommand = self.uiFunc_scrollList_block_select,
+                                              w = 200)
+        #dcc = self.uiFunc_dc_fromList,
+        #selectCommand = self.uiFunc_selectParent_inList)
+    
+                                    #dcc = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}),
+        self.uiScrollList_blocks = _LeftColumn
+        self._l_toEnable.append(self.uiScrollList_blocks)        
+        
+        
+        _RightColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUITemplate')
+        
+        cgmUI.add_Header('Inspector',overrideUpper=True) 
+        self.uiField_inspector= mUI.MelLabel(_RightColumn,
+                                             bgc = SHARED._d_gui_state_colors.get('help'),
+                                             label = '...',
+                                             h=20) 
+        
+        
+        _frame_attr = mUI.MelFrameLayout(_RightColumn,label = 'Attr',vis=True,
+                                        collapse=self.var_attrFrameCollapse.value,
+                                        collapsable=True,
+                                        enable=True,
+                                        useTemplate = 'cgmUIHeaderTemplate',
+                                        expandCommand = lambda:self.var_attrFrameCollapse.setValue(0),
+                                        collapseCommand = lambda:self.var_attrFrameCollapse.setValue(1)
+                                        )	
+        _frame_attr_inside = mUI.MelColumnLayout(_frame_attr,useTemplate = 'cgmUISubTemplate')     
+        CGMUI.add_Button(_frame_attr_inside)
+        
+        #>>>CGM Row
+        _row_cgm = cgmUI.add_cgmFooter(_MainForm)
+        
+               
+        #>>> Layout form ---------------------------------------------------------------------------------------
+        _MainForm(edit = True,
+                  af = [(_row_report,"top",0),
+                        (_row_report,"left",0),
+                        (_row_report,"right",0),
+                        
+                        (_LeftColumn,"left",0),
+                        (_RightColumn,"right",0),                        
+                       
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),                        
+                        (_row_cgm,"bottom",0),
+
+                        ],
+                  ac = [(_LeftColumn,"top",0,_row_report),
+                        (_RightColumn,"top",0,_row_report),
+                        (_RightColumn,"left",0,_LeftColumn),
+                        
+                        (_RightColumn,"bottom",0,_row_cgm),
+                        (_LeftColumn,"bottom",0,_row_cgm),
+
+                        
+                       ],
+                  attachNone = [(_row_cgm,"top")])	        
+        
+        self.uiUpdate_building()
+        
+        #_sel = mc.ls(sl=True)
+        #if _sel:
+            #self.uiFunc_load_selected()                
+
+        return
+ 
+    #@cgmGEN.Timer
+    def uiFunc_selectParent_inList(self): 
+        _str_func = 'uiFunc_selectParent_inList'        
+        if self.uiPopUpMenu_parent:
+            self.uiPopUpMenu_parent.clear()
+            self.uiPopUpMenu_parent.delete()
+            self.uiPopUpMenu_parent = None        
+            
+        ml_parents = self._mGroup.msgList_get('dynParents')
+        _indices = self.uiScrollList_parents.getSelectedIdxs() or []
+        log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))    
+        
+        if not _indices:
+            return
+        
+        self.uiPopUpMenu_parent = mUI.MelPopupMenu(self.uiScrollList_parents,button = 3)
+        _popUp = self.uiPopUpMenu_parent           
+                
+        if len(_indices) == 1:
+            _b_single = True
+            
+            log.debug("|{0}| >> Single pop up mode".format(_str_func))  
+            _short = ml_parents[_indices[0]].p_nameShort
+            mUI.MelMenuItem(_popUp,
+                            label = "Single: {0}".format(_short),
+                            en=False)            
+        else:
+            log.debug("|{0}| >> Multi pop up mode".format(_str_func))  
+            mUI.MelMenuItem(_popUp,
+                            label = "Mutli",
+                            en=False)  
+            _b_single = False
+            
+        
+        if _b_single:
+            mUI.MelMenuItem(_popUp,
+                            label ='Alias',
+                            ann = 'Enter value desired in prompt',
+                            c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'alias'}))
+            mUI.MelMenuItem(_popUp,
+                            label ='Clear Alias',
+                            ann = 'Remove any alias',
+                            c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'aliasClear'}))
+
+        mUI.MelMenuItem(_popUp,
+                        label ='Select',
+                        ann = 'Select specified indice parents',
+                        c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'select'}))  
+        mUI.MelMenuItem(_popUp,
+                        label ='Move Up',
+                        ann = 'Move selected up in list',
+                        c = cgmGEN.Callback(self.uiFunc_dynParents_reorder,0)) 
+        mUI.MelMenuItem(_popUp,
+                        label ='Move Down',
+                        ann = 'Move selected down in list',
+                        c = cgmGEN.Callback(self.uiFunc_dynParents_reorder,1)) 
+        
+        self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )        
+        uiMenu_changeSpace(self,_popUp)
+        
+        return
+
+        
+    def uiFunc_dc_fromList(self):
+        _str_func = 'uiFunc_dc_fromList'   
+    
+        if not self._mGroup:
+            log.error("|{0}| >> No dynGroup loaded to ui".format(_str_func))                                            
+            return False          
+    
+        ml_parents = self._mGroup.msgList_get('dynParents')
+        _indices = self.uiScrollList_parents.getSelectedIdxs() or []
+    
+        if _indices:
+            ml_parents[_indices[0]].select()
+                        
+    
 
 
 

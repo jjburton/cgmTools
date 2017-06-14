@@ -456,6 +456,7 @@ def initializeTemplates():
     mc.formLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor)    
     mc.textScrollList(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
     mc.frameLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
+    mc.tabLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
 
     # Define our header template
     if mc.uiTemplate( 'cgmUIHeaderTemplate', exists=True ):
@@ -485,6 +486,7 @@ def initializeTemplates():
     mc.textField(dt = 'cgmUISubTemplate',backgroundColor = [1,1,1],h=20)
     mc.textScrollList(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
     mc.frameLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
+    mc.tabLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
 
 
     # Define our instructional template

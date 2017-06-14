@@ -14,6 +14,7 @@ Key:
 # From Python =============================================================
 import re
 import os
+import stat
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -266,7 +267,7 @@ def get_module_data(path = None, level = None, mode = 0, cleanPyc = False):
             
         if level is not None and _i >= level:break 
         _i +=1
-    
+        
     if cleanPyc:
         _l_failed = []
         log.debug("|{0}| >> Found {1} pyc files under: {2}".format(_str_func,len(_l_pyc),path))                        
