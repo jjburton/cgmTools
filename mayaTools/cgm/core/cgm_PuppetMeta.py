@@ -199,6 +199,7 @@ class cgmPuppet(cgmMeta.cgmNode):
             else:
                 self.i_masterNull = self.masterNull#Linking to instance for faster processing. Good idea?
                 self.i_masterNull.__verify__()
+                
             if self.i_masterNull.getShortName() != self.cgmName:
                 self.masterNull.doName()
                 if self.i_masterNull.getShortName() != self.cgmName:
@@ -207,6 +208,9 @@ class cgmPuppet(cgmMeta.cgmNode):
             attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
         except Exception,error:
             raise Exception,"%s >>> MasterNull | error : %s"%(_str_funcName,error)	
+        
+        self.__verifyGroups__()
+
 
         try:#Quick select sets ================================================================
             self.__verifyObjectSet__()
@@ -2051,13 +2055,14 @@ class cgmEyebrow(cgmModule):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Rig Blocks
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-d_rigBlockAttrs_toMake = {'version':'string',#Attributes to be initialzed for any module
-                          'buildAs':'string',
-                          'autoMirror':'bool',
-                          'direction':'none:left:right:center',
-                          'position':'none:front:back:upper:lower:forward',
+d_rigBlockAttrs_toMake = {'version':'string',#Attributes to be initialzed for any block
+                          #'buildAs':'string',
+                          #'autoMirror':'bool',
+                          #'direction':'none:left:right:center',
+                          #'position':'none:front:back:upper:lower:forward',
                           'moduleTarget':'messageSimple',
                           'blockState':'string',
+                          'blockDat':'string',
                           'blockMirror':'messageSimple'}
 
 class cgmRigBlock(cgmMeta.cgmControl):
@@ -2135,7 +2140,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #>>> Block transform ==================                   
         self.addAttr('mClass', initialValue='cgmRigBlock',lock=True) 
-        self.addAttr('cgmType',value = 'rigHelper',lock=True)	
+        #self.addAttr('cgmType',value = 'rigHelper',lock=True)	
 
         if self.kw_name:#If we have a name, store it
             self.addAttr('cgmName',self.kw_name,attrType='string',lock=True)
@@ -2166,6 +2171,26 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         return True
 
+    def doName(self, *a, **kws):
+        """
+        Override to handle difference with rig block
+        
+        """
+        _str_func = 'doName'
+        
+        #Get Raw name
+        _d = nameTools.returnObjectGeneratedNameDict(self.mNode)
+        
+        for a in 'puppetName','baseName':
+            if self.hasAttr(a):
+                _d['cgmName'] = ATTR.get(self.mNode,a)
+                
+        _d['cgmTypeModifier'] = ATTR.get(self.mNode,'blockType')
+        _d['cgmType'] = 'block'
+        
+        #Check for special attributes to replace data, name
+        self.rename(nameTools.returnCombinedNameFromDict(_d))
+        
     def __verifyModule__(self):
         """ 
         Verify

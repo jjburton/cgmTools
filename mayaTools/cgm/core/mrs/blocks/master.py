@@ -34,24 +34,26 @@ from cgm.core import cgm_PuppetMeta as cgmPUPPET
 #>>>Block data =================================================================================
 __version__ = 'alpha.06142017'
 
-d_attrsToMake = {'proxyType':'none:castMesh'} 
+l_attrsStandard = ['proxyType','hasRootJoint']
+d_attrsToMake = {'puppetName':'string'}
 
 d_defaultSettings = {'version':__version__,
-                     'characterName':'JimBob',
-                     'blockType':__name__.split('.')[-1],
-                     'proxyType':'castMesh'}
+                     'puppetName':'NotBatman',
+                     'proxyType':1}
 
 
-def create(size = 1, name = 'JimBob'):
+def create(size = 1):
     """
-    Creation should entail
+    Creation should entail curve creation
     """
     _mObj = cgmPUPPET.cgmRigBlock(None)
     _crv = CURVES.create_controlCurve(None,shape='circleArrow',direction = 'y+', size = size)
-    
     RIG.shapeParent_in_place(_mObj.mNode,_crv,False)
 
     return _mObj
+
+def rig():
+    pass
 
 
 

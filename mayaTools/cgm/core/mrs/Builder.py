@@ -145,15 +145,14 @@ class go(object):
         BlockFactory = RIGBLOCKS.factory(self._call_kws['rigBlock'])
         BlockFactory.verify()
         
-        _d['mBlock'] = BlockFactory._mi_root
+        _d['mBlock'] = BlockFactory._mi_block
         self._rigBlock = _d['mBlock']
         _d['mFactory'] = BlockFactory
-        _d['shortName'] = BlockFactory._mi_root.getShortName()
+        _d['shortName'] = BlockFactory._mi_block.getShortName()
         
         _blockType = _d['mBlock'].blockType
-        _res = get_block_lib_dat()
-        if _res[0].get(_blockType) and _blockType not in _res[2]:
-            _buildModule = _res[0].get(_blockType)
+        
+        _buildModule = RIGBLOCKS.get_blockModule(_blockType)
             
         if not _buildModule:
             log.error("|{0}| >> No build module found for: {1}".format(_str_func,_d['mBlock'].blockType))        
@@ -172,6 +171,10 @@ class go(object):
         _str_func = 'fnc_check_module'  
         _res = True
         BlockFactory = self._d_block['mFactory']
+        
+        if BlockFactory._mi_block.blockType in ['master']:
+            return True
+        
         _start = time.clock()
         
         #>>Module -----------------------------------------------------------------------------------  
@@ -272,6 +275,7 @@ class go(object):
         """
         _str_func = 'fnc_rigNeed'  
         
+
         _mModule = self._d_module['mModule']    
         _mModuleParent = self._d_module['mModuleParent']
         _version = self._d_module['version']
@@ -696,7 +700,10 @@ class ui(cgmUI.cgmGUI):
                         label = "Select",
                         en=True,
                         c=cgmGEN.Callback(_mBlock.select))            
-        
+        mUI.MelMenuItem(_popUp,
+                        label = "Verify",
+                        en=True,
+                        c=cgmGEN.Callback(self._blockFactory.verify))          
         return
     
     
@@ -783,7 +790,7 @@ class ui(cgmUI.cgmGUI):
         #>>>Inspector ======================================================================================
         #>>>Report -----------------------------------------------------------------------------------------
         
-        _l_report = [self._blockCurrent.blockType, self._blockCurrent.blockState, self._blockCurrent.p_nameBase]
+        _l_report = [self._blockCurrent.blockType, self._blockCurrent.blockState, "node: {0}".format(self._blockCurrent.p_nameBase)]
         
         if ATTR.get(_short,'direction'):
             _l_report.append( ATTR.get(_short,'blockState'))
@@ -866,7 +873,14 @@ class ui(cgmUI.cgmGUI):
                                 
                 _l_report.append(ATTR.get(_short,'blockState'))
                 
-                _l_report.append(mObj.p_nameBase)                
+                if mObj.hasAttr('puppetName'):
+                    _l_report.append(mObj.puppetName)                
+                    
+                elif mObj.hasAttr('baseName'):
+                    _l_report.append(mObj.baseName)                
+                    
+                else:
+                    _l_report.append(mObj.p_nameBase)                
                 
                 if mObj.isReferenced():
                     _l_report.append("Referenced")

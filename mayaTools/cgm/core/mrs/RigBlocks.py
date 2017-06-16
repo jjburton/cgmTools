@@ -45,10 +45,10 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
+from cgm.core.mrs.lib import shared_dat as BLOCKSHARED
+reload(BLOCKSHARED)
 
 
-
-_l_requiredModuleDat = ['__version__','__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']#...data required in a given module
 
 #from cgm.core.lib import nameTools
 #from cgm.core.rigger import ModuleFactory as mFactory
@@ -63,11 +63,7 @@ _l_requiredModuleDat = ['__version__','__d_controlShapes__','__l_jointAttrs__','
 # Rig Blocks
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 d_attrstoMake = {'version':'string',#Attributes to be initialzed for any module
-                 'buildAs':'string',
                  'blockType':'string',
-                 #'autoMirror':'bool',
-                 'direction':'none:left:right:center',
-                 'position':'none:front:back:upper:lower:forward',
                  'moduleTarget':'messageSimple',
                  'blockMirror':'messageSimple'}
 
@@ -109,7 +105,7 @@ class factory(object):
         try:return "{0}(root: {1})".format(self.__class__, self._mi_block)
         except:return self
 
-    def create_rigBlock(self,blockType = None, size = 1):
+    def create_rigBlock(self,blockType = None, size = 1, blockParent = None):
         _str_func = 'create_rigBlock'
         _start = time.clock()
         
@@ -158,8 +154,17 @@ class factory(object):
 
         try:_l_msgLinks = _mod._l_controlLinks
         except:_l_msgLinks = []
+        
+        _d = copy.copy(d_attrstoMake)     
+        
+        _l_standard = _mod.__dict__.get('l_attrsStandard',[])
+        log.info("|{0}| >> standard: {1} ".format(_str_func,_l_standard))                        
+        for k in _l_standard:
+            if k in BLOCKSHARED._d_attrsTo_make.keys():
+                _d[k] = BLOCKSHARED._d_attrsTo_make[k]
+        
 
-        _d = copy.copy(d_attrstoMake)
+        #_d = {}
         for k,v in d_attrsFromModule.iteritems():
             if k in _d.keys():
                 log.warning("|{0}| >> key: {1} already in to create list of attributes from default. | blockType: {2}".format(_str_func,k,blockType))                
@@ -302,7 +307,8 @@ class factory(object):
                 _res.append("{0} : {1}".format(a,ATTR.get_enumValueString(_short,a)))
         
         for msg in 'blockMirror','moduleTarget':
-            _res.append("{0} : {1}".format(msg,ATTR.get(_short,msg)))            
+            _res.append("{0} : {1}".format(msg,ATTR.get(_short,msg)))  
+            
         #Msg checks        
         #for link in  
         #Module data
@@ -410,19 +416,37 @@ class factory(object):
         #Need to get the type, the get the attribute lists and data from the module
 
         #_mRoot.verifyAttrDict(self._d_attrsToVerify,keyable = False, hidden = False)
-        _mRoot.verifyAttrDict(self._d_attrsToVerify)
+        #_mRoot.verifyAttrDict(self._d_attrsToVerify)
         
         #s_mRoot.blockType = blockType
         _mRoot.addAttr('blockType', value = blockType,lock=True)	
         _mRoot.blockState = 'template'
+        
+        _keys = self._d_attrsToVerify.keys()
+        _keys.sort()
+        #for a,t in self._d_attrsToVerify.iteritems():
+        for a in _keys:
+            v = self._d_attrToVerifyDefaults.get(a,None)
+            t = self._d_attrsToVerify[a]
+            
+            log.info("|{0}| ({3}) >>  Setting attr >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
+            
+            if ':' in t:
+                _mRoot.addAttr(a,initialValue = v, attrType = 'enum', enumName= t)		    
+            else:
+                _mRoot.addAttr(a,initialValue = v, attrType = t)            
 
-        for k,v in self._d_attrToVerifyDefaults.iteritems():
-            log.info("|{0}| type: ({3}) >>  Setting attr >> '{1}' | value: {2} ".format(_str_func,k,v,blockType)) 
-            _mRoot.addAttr(k, initialValue = v, keyable = False, hidden = False)
+        #for k,v in self._d_attrToVerifyDefaults.iteritems():
+            #log.info("|{0}| type: ({3}) >>  Setting attr >> '{1}' | value: {2} ".format(_str_func,k,v,blockType)) 
+            #_mRoot.addAttr(k, initialValue = v, keyable = False, hidden = False)
             #try:ATTR.set(_mRoot.mNode,k,v)
             #except Exception,err:
                 #log.error("|{0}| >> Failed to set default value. || key: {1} | value: {2} ||| err: {3}".format(_str_func,k,v,err))                
 
+        
+        
+        _mRoot.doName()
+        
         return True
 
 
@@ -586,6 +610,9 @@ class factory(object):
         if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
         _mRoot = self._mi_block        
+        
+        if self._mi_block.blockType == 'master':
+            return True
 
         _bfr = _mRoot.getMessage('moduleTarget')
         _kws = self.module_getBuildKWS()
@@ -624,12 +651,16 @@ class factory(object):
         d_kws['name'] = str(_mRoot.blockType)
 
         #Direction
-        str_direction = _mRoot.getEnumValueString('direction')
+        str_direction = None
+        if _mRoot.hasAttr('direction'):
+            str_direction = _mRoot.getEnumValueString('direction')
         log.debug("|{0}| >> direction: {1}".format(_str_func,str_direction))            
         if str_direction in ['left','right']:
             d_kws['direction'] = str_direction
         #Position
-        str_position = _mRoot.getEnumValueString('position')	
+        str_position = None
+        if _mRoot.hasAttr('position'):
+            str_position = _mRoot.getEnumValueString('position')	
         log.debug("|{0}| >> position: {1}".format(_str_func,str_position))            
         if str_position != 'none':
             d_kws['position'] = str_position
@@ -650,27 +681,48 @@ class factory(object):
         if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
         _mRoot = self._mi_block     
+        
+        if self._mi_block.blockType == 'master':
+            if not _mRoot.getMessage('moduleTarget'):
+                mi_puppet = PUPPETMETA.cgmPuppet(name = _mRoot.puppetName)
+                ATTR.set_message(_mRoot.mNode, 'moduleTarget', mi_puppet.mNode,simple = True)
+            else:
+                mi_puppet = _mRoot.moduleTarget
+                
+            mi_puppet.__verify__()
+        else:
+            mi_module = _mRoot.moduleTarget
+            if not mi_module:
+                mi_module = self.module_verify()
+    
+            _bfr = mi_module.getMessage('modulePuppet')
+            if _bfr:
+                log.debug("|{0}| >> modulePuppet found: {1}".format(_str_func,_bfr))                        
+                mi_puppet = mi_module.modulePuppet
+            else:
+                mi_puppet = PUPPETMETA.cgmPuppet(name = mi_module.getNameAlias())
+            
+            if mi_module.getMessage('moduleMirror'):
+                mi_puppet.connectModule(mi_module.moduleMirror)            
 
-        mi_module = _mRoot.moduleTarget
-        if not mi_module:
-            mi_module = self.module_verify()
+            mi_puppet.connectModule(mi_module)	
 
-        _bfr = mi_module.getMessage('modulePuppet')
-        if _bfr:
-            log.debug("|{0}| >> modulePuppet found: {1}".format(_str_func,_bfr))                        
-            mi_puppet = mi_module.modulePuppet
-            self._mi_puppet = mi_puppet
-            return mi_puppet            
-
-        mi_puppet = PUPPETMETA.cgmPuppet(name = mi_module.getNameAlias())
-
-        mi_puppet.connectModule(mi_module)	
-
-        if mi_module.getMessage('moduleMirror'):
-            mi_puppet.connectModule(mi_module.moduleMirror)
-
-        mi_puppet.gatherModules()#Gather any modules in the chain
+            mi_puppet.gatherModules()#Gather any modules in the chain
+            
         self._mi_puppet = mi_puppet
+        
+        if not mi_puppet.getMessage('masterNull'):
+            mi_puppet.__verify__()
+        
+        if not mi_puppet.masterNull.getMessage('blocksGroup'):
+            mGroup = cgmMeta.cgmObject(name='blocks')#Create and initialize
+            mGroup.doName()
+            mGroup.parent = mi_puppet.masterNull
+
+            mGroup.connectParentNode(mi_puppet.masterNull.mNode,'puppet', 'blocksGroup') 
+            ATTR.set_standardFlags(mGroup.mNode)
+            #ATTR.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode ) 	    
+        
         return mi_puppet        
 
 
@@ -1114,8 +1166,8 @@ def get_modules_dat():
                             module = __import__(key, globals(), locals(), ['*'], -1)
                             reload(module) 
                             _d_modules[name] = module
-                            if not is_buildable(module):
-                                _l_unbuildable.append(name)
+                            #if not is_buildable(module):
+                                #_l_unbuildable.append(name)
                         except Exception, e:
                             for arg in e.args:
                                 log.error(arg)
@@ -1145,35 +1197,94 @@ def get_modules_dat():
             print(">>>    " + m) 
     return _d_modules, _d_categories, _l_unbuildable
 
+
+def get_blockModule(blockType):
+    """
+    Function to check if a givin block module is buildable or not
+        
+    :parameters:
+        blockType(str): Object to modify
+
+    :returns
+        success(bool)
+    """
+    _str_func = 'get_blockModule'  
+    
+    _res = True
+    
+    if VALID.stringArg(blockType):
+        _d = get_modules_dict()
+        _buildModule = _d.get(blockType,False)
+        if not _buildModule:
+            log.error("|{0}| >> [{1}] | Failed to query name in library ".format(_str_func,blockType))   
+            return False
+    else:
+        _buildModule = blockModule
+    try:
+        _blockType = _buildModule.__name__.split('.')[-1]
+    except:
+        log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,_buildModule))        
+        return False
+    
+    return _buildModule        
+ 
+
 def is_buildable(blockModule):
     """
     Function to check if a givin block module is buildable or not
     
     """
     _str_func = 'is_buildable'  
-    """_d_blockTypes = get_modules_dict()[0]
-    
-    if blockType not in _d_blockTypes.keys():
-        log.error("|{0}| >> [{1}] Module not in dict".format(_str_func,blockType))            
-        return False"""
     
     _res = True
     #_buildModule = _d_blockTypes[blockType]
-    _buildModule = blockModule
+    
+    if VALID.stringArg(blockModule):
+        _d = get_modules_dict()
+        _buildModule = _d.get(blockModule,False)
+    
+    else:
+        _buildModule = blockModule
     try:
         _blockType = _buildModule.__name__.split('.')[-1]
     except:
         log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,_buildModule))        
         return False
+    
     _keys = _buildModule.__dict__.keys()
     
-    for a in _l_requiredModuleDat:
+    for a in BLOCKSHARED._l_requiredModuleDat:
         if a not in _keys:
-            log.debug("|{0}| >> [{1}] Missing data: {2}".format(_str_func,_blockType,a))
+            log.warning("|{0}| >> [{1}] Missing data: {2}".format(_str_func,_blockType,a))
             _res = False
             
     if _res:return _buildModule
     return _res
+
+
+def is_blockModule_valid(blockType):
+    """
+    Function to check if a given blockType module is buildable, rigable, skeleton
+    
+    """    
+    _str_func = 'is_blockModule_valid'
+    _res = True
+    
+    _buildModule = get_blockModule(blockType)
+    if not _buildModule:
+        return False
+    
+    _keys = _buildModule.__dict__.keys()
+    
+    for a in BLOCKSHARED._l_requiredModuleDat:
+        if a not in _keys:
+            log.warning("|{0}| >> [{1}] Missing data: {2}".format(_str_func,_blockType,a))
+            _res = False
+            
+    if _res:return _buildModule
+    return _res
+
+
     
     
     

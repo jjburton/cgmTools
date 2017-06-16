@@ -1317,8 +1317,11 @@ class cgmNode(r9Meta.MetaClass):
         #log.debug(">>> %s.verifyAttrDict >> "%(self.p_nameShort) + "="*75)            	        	
         if type(d_attrs) is not dict:
             raise StandardError,"Not a dict: %s"%self.p_nameShort
-
-        for attr in sorted(d_attrs.keys()):
+        
+        _keys = d_attrs.keys()
+        _keys.sort()
+        
+        for attr in _keys:
             try:	
                 buffer = d_attrs.get(attr)
                 if ':' in buffer:

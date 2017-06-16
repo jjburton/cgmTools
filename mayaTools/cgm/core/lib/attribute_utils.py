@@ -425,6 +425,31 @@ def set_keyframe(node, attr = None, value = None, time = None):
             log.error("|{0}| >>  failed to set... f{1} : {2}.{3} --> {4} | {5}".format(_str_func,time,_node,_attr,value, err))
         
 
+def set_standardFlags(node, lock=True,visible=False,keyable=False,hidden = None,
+                      attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']):
+    """   
+    Multi set keyable,lock, visible, hidden, etc...
+
+    :parameters:
+        node(str)
+        attr(str)
+        value(varied): -
+        forceLock -- lock after setting
+        **kws -- pass through for getAttr on certain types
+
+    :returns
+        value(s)
+    """ 
+    _str_func = 'set_standardFlags'
+    
+    for a in attrs:
+        try:
+            mc.setAttr ((node+'.'+a),lock=lock, keyable=keyable, channelBox=visible)                   
+        except Exception, e:
+            log.error("|{0}| >>  {1}.{2} failed...".format(_str_func,node,a))            
+            for arg in e.args:
+                logger.warning(arg)
+
 def set(node, attr = None, value = None, lock = False,**kws):
     """   
     Replacement for setAttr which get's message objects as well as parses double3 type 

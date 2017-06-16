@@ -11,6 +11,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 from cgm.core import cgm_General as cgmGen
+
 import cgm.core.classes.GuiFactory as cgmUI
 try:
     #try to connect to wing - otherwise don't worry
