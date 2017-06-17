@@ -463,6 +463,25 @@ def boolArg(arg=None, calledFrom = None, **kwargs):
     
     return result
 
+def mNodeString(arg):
+    """
+    Simple check to see if an arg is has an mNode call rather than doing this try/except everywhere.
+    """
+    try:arg = arg.mNode
+    except:pass
+    
+    return arg
+
+def mNodeStringList(l):
+    l = listArg(l)
+    
+    _res = []
+    for o in l:
+        try:o = o.mNode
+        except:pass
+        _res.append(o)
+    return _res
+        
 def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, calledFrom = None, **kwargs):
     """
     Return 'arg' if 'arg' is an existing, uniquely named Maya object, meeting
@@ -490,7 +509,10 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
         TypeError | if isTransform is True, 'arg' is not a transform, and noneValid is False
     """
     log.debug("validateArgs.objString arg = {0}".format(arg))
-
+    
+    try:arg = arg.mNode
+    except:pass
+    
     _str_funcRoot = 'objString'
     if calledFrom: _str_funcName = "{0}.{1} | arg:{2}".format(calledFrom,_str_funcRoot,arg)    
     else:_str_funcName = "{0} | arg:{1}".format(_str_funcRoot,arg) 

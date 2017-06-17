@@ -762,22 +762,22 @@ def log_info_dict(arg = None,tag = 'Stored Dict'):
             raise TypeError,"[Not a dict. arg: {0}]".format(arg)
         try:
             l_keys = arg.keys()
-            log.info('Dict: {0} '.format(tag) + _str_subLine)			    
+            print('Dict: {0} '.format(tag) + _str_subLine)			    
             l_keys.sort()
             for k in l_keys:
                 try:str_key = k.p_nameShort
                 except:str_key = k
                 buffer = arg[k]
                 if isinstance(buffer,dict):
-                    log.info(">" + " Nested Dict: '{0}' ".format(str_key) + _str_subLine)
+                    print(">" + " Nested Dict: '{0}' ".format(str_key) + _str_subLine)
                     l_bufferKeys = buffer.keys()
                     l_bufferKeys.sort()
                     for k2 in l_bufferKeys:
-                        log.info("-"*2 +'>' + " '{0}' : {1} ".format(k2,buffer[k2]))			
+                        print("-"*2 +'>' + " '{0}' : {1} ".format(k2,buffer[k2]))			
                 else:
-                    log.info(">" + " '{0}' : {1} ".format(str_key,arg[k]))		    
+                    print(">" + " '{0}' : {1} ".format(str_key,arg[k]))		    
         except Exception,error:
-            log.warning("[Not a dict. arg: {0} | error: {1} ]".format(arg,error))
+            print("[Not a dict. arg: {0} | error: {1} ]".format(arg,error))
     except:pass
 
 def print_dict(arg = None,tag = 'Stored Dict', module = "Stuff..."):

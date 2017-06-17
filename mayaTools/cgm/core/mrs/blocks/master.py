@@ -42,15 +42,18 @@ d_defaultSettings = {'version':__version__,
                      'proxyType':1}
 
 
-def create(size = 1):
+def build_rigBlock(self,size = 1):
     """
     Creation should entail curve creation
     """
-    _mObj = cgmPUPPET.cgmRigBlock(None)
+    #_mObj = cgmPUPPET.cgmRigBlock(None)
     _crv = CURVES.create_controlCurve(None,shape='circleArrow',direction = 'y+', size = size)
-    RIG.shapeParent_in_place(_mObj.mNode,_crv,False)
+    RIG.shapeParent_in_place(self.mNode,_crv,False)
 
-    return _mObj
+    return True
+
+def build_skeleton(self):
+    pass
 
 def rig():
     pass

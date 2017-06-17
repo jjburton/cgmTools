@@ -57,6 +57,9 @@ def go(obj = None, target = None,
     """   
     _str_func = 'go'
     
+    try:obj = obj.mNode
+    except:pass    
+    
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
     _target = VALID.objString(target, noneValid=False, calledFrom = __name__ + _str_func + ">> validate target")
     
@@ -117,7 +120,8 @@ def go(obj = None, target = None,
     
     #mTarget = r9Meta.getMObject(target)
     mc.xform(_target, rp=infoDict['position'], ws = True, p=True)        
-    mc.xform(_target, sp=infoDict['scalePivot'], ws = True, p=True)     
+    mc.xform(_target, sp=infoDict['scalePivot'], ws = True, p=True)    
+    
     
 def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',vectorUp = None,ignoreAimAttrs = False):
     """
@@ -138,6 +142,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
         success(bool)
     """ 
     _str_func = 'aimAtPoint'
+    
     
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
     
@@ -255,7 +260,7 @@ def aim_atMidPoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mod
         success(bool)
     """  
     _str_func = 'aimAtMidpoint'
-
+    
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
     _targets = VALID.objStringList(targets, noneValid=False, calledFrom = __name__ + _str_func + ">> validate targets")
 
@@ -287,7 +292,7 @@ def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local',
         success(bool)
     """  
     _str_func = 'aim'
-
+          
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
     _target = VALID.objString(target, noneValid=False, calledFrom = __name__ + _str_func + ">> validate target")
 
@@ -310,7 +315,7 @@ def matchTarget_set(obj = None, target = None):
         success(bool)
     """     
     _str_func = 'matchTarget_set'
-    
+        
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
     _target = VALID.objString(target, noneValid=False, calledFrom = __name__ + _str_func + ">> validate target")
     

@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -33,13 +33,16 @@ from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import node_utils as NODE
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import list_utils as LISTS
+from cgm.core.lib import euclid as EUCLID
+
 reload(LISTS)
-#Cannot import: DIST,
+reload(SHARED)
+#Cannot import: DIST, TRANS
 #>>> Utilities
 #===================================================================
 _d_pos_modes = {'xform':['x']}
 
-def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
+def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', asVector = False):
     """
     General call for querying position data in maya.
     Note -- pivot and space are ingored in boundingBox mode which returns the center pivot in worldSpace
@@ -51,27 +54,27 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
             rotatePivot
             scalePivot
             boundingBox -- Returns the calculated center pivot position based on bounding box
-        space(str): World,Object
+        space(str): World,Object,Local
         mode(str):
             xform -- Utilizes tranditional checking with xForm or pointPosition for components
+        asVector(bool) - whether to return as Vector or not
     :returns
         success(bool)
-    """   
+    """
     _str_func = 'get_pos'
     _obj = VALID.stringArg(obj,False,_str_func)
     _pivot = VALID.kw_fromDict(pivot, SHARED._d_pivotArgs, noneValid=False,calledFrom=_str_func)
     _targets = VALID.stringListArg(targets, noneValid=True,calledFrom=_str_func)    
     _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom=_str_func)
     _mode = VALID.kw_fromDict(mode,_d_pos_modes,noneValid=False,calledFrom=_str_func)
-        
+    _res = False
+    
     if _pivot == 'boundingBox':
         log.debug("|{0}|...boundingBox pivot...".format(_str_func))                
         _res = get_bb_center(_obj)
         if MATH.is_vector_equivalent(_res,[0,0,0]) and not mc.listRelatives(_obj,s=True):
             _pivot = 'rp'
             log.warning("|{0}|...boundingBox pivot is zero, using rp....".format(_str_func))                
-        else:
-            return _res
           
     if '[' in _obj:
         if ":" in _obj:
@@ -85,7 +88,7 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
         else: kws_pp['local'] = True      
                     
         if _cType == 'polyVertex':
-            return mc.pointPosition(_obj,**kws_pp)
+            _res = mc.pointPosition(_obj,**kws_pp)
         elif _cType == 'polyEdge':
             mc.select(cl=True)
             mc.select(_obj)
@@ -94,7 +97,7 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
             posList = []
             for vert in edgeVerts:
                 posList.append(mc.pointPosition(vert,**kws_pp))
-            return MATH.get_average_pos(posList)
+            _res = MATH.get_average_pos(posList)
         elif _cType == 'polyFace':
             mc.select(cl=True)
             mc.select(_obj)
@@ -103,24 +106,39 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform'):
             posList = []
             for vert in edgeVerts:
                 posList.append(mc.pointPosition(vert,**kws_pp))
-            return MATH.get_average_pos(posList)
+            _res = MATH.get_average_pos(posList)
         elif _cType in ['surfaceCV','curveCV','editPoint','surfacePoint','curvePoint']:
-            return mc.pointPosition (_obj,**kws_pp)
-        raise RuntimeError,"|{0}| >> Shouldn't have gotten here. Need another check for component type. '{1}'".format(_str_func,_cType)
+            _res = mc.pointPosition (_obj,**kws_pp)
+            
+        if not _res:
+            raise RuntimeError,"|{0}| >> Shouldn't have gotten here. Need another check for component type. '{1}'".format(_str_func,_cType)
 
     else:
-        log.debug("|{0}| >> obj: {1} | pivot: {2} | space: {3} | mode: {4}".format(_str_func,_obj,_pivot,_space,_mode))             
-        kws = {'q':True,'rp':False,'sp':False,'os':False,'ws':False}
-        if _pivot == 'rp':kws['rp'] = True
-        else: kws['sp'] = True
+        log.debug("|{0}| >> obj: {1} | pivot: {2} | space: {3} | mode: {4} | asVector: {5}".format(_str_func,_obj,_pivot,_space,_mode,asVector))             
+        if _space == 'local' or _pivot == 'local':
+            _res  = ATTR.get(_obj,'translate')            
+        #elif _pivot == 'local':
+            #if _space == 'world':
+            #    _res = mc.xform(_obj, q=True, rp = True, ws=True )
+            #else:
+            #    _res = ATTR.get(_obj,'translate')            
+        else:
+            kws = {'q':True,'rp':False,'sp':False,'os':False,'ws':False}
+            if _pivot == 'rp':kws['rp'] = True
+            else: kws['sp'] = True
+            
+            if _space == 'object':kws['os']=True
+            else:kws['ws']=True
+            
+            log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
         
-        if _space == 'object':kws['os']=True
-        else:kws['ws']=True
-        
-        log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
+            _res = mc.xform(_obj,**kws )
     
-        return mc.xform(_obj,**kws )
-    
+    if _res is not None:
+        if asVector:
+            log.debug("|{0}| >> asVector...".format(_str_func))             
+            return EUCLID.Vector3(_res[0], _res[1], _res[2])
+        return _res
     raise RuntimeError,"|{0}| >> Shouldn't have gotten here: obj: {1}".format(_str_func,_obj)
     
 def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
@@ -140,63 +158,112 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
     _obj = VALID.stringArg(obj,False,_str_func)
     _pivot = VALID.kw_fromDict(pivot, SHARED._d_pivotArgs, noneValid=False,calledFrom=_str_func)
     _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom=_str_func)
+    
+    try:pos = [pos.x,pos.y,pos.z]
+    except:pass
     _pos = pos
               
     if VALID.is_component(_obj):
         raise NotImplementedError,"Haven't implemented component move"
     else:
         log.debug("|{0}| >> obj: {1} | pos: {4} | pivot: {2} | space: {3}".format(_str_func,_obj,_pivot,_space,_pos))             
-        kws = {'rpr':False,'spr':False,'os':False,'ws':False,'r':False}
+        if _space == 'local' or _pivot == 'local':
+            ATTR.set(_obj,'translate',pos) 
+        else:
+            kws = {'rpr':False,'spr':False,'os':False,'ws':False,'r':False}
+            
+            if _pivot == 'rp':kws['rpr'] = True
+            else: kws['spr'] = True
+            
+            if _space == 'object':
+                kws['os']=True
+                kws['rpr'] = False
+            else:kws['ws']=True
+            
+            log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
         
-        if _pivot == 'rp':kws['rpr'] = True
-        else: kws['spr'] = True
-        
-        if _space == 'object':
-            kws['os']=True
-            kws['rpr'] = False
-        else:kws['ws']=True
-        
-        log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
+            return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )  
     
-        return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )  
+def get_local(obj = None, asVector = False):
+    """
+    Query the local translate
     
-def get_bb_center(arg = None):
+    :parameters:
+        obj(str): obj to query
+        asVector(bool) - whether to return as Vector or not
+
+    :returns
+        pos(list/Vector3)
+    """   
+    _str_func = 'get_local'
+        
+    return get(VALID.mNodeString(obj),'local',asVector = asVector)
+
+def set_local(obj = None, pos = None):
+    """
+    Set the local translate
+    
+    :parameters:
+        obj(str): obj to set
+
+    :returns
+        pos(list/Vector3)
+    """   
+    _str_func = 'set_local'
+        
+    return set(VALID.mNodeString(obj), pos, 'local')
+
+def get_bb_center(obj = None, asVector =False):
     """
     Get the bb center of a given arg
     
     :parameters:
-        arg(str/list): Object(s) to check
+        obj(str/list): Object(s) to check
+        asVector(bool) - whether to return as Vector or not
 
     :returns
         boundingBox size(list)
     """   
     _str_func = 'get_bb_center'
-    _arg = VALID.stringListArg(arg,False,_str_func)   
-    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))   
+    #_arg = VALID.stringListArg(obj,False,_str_func) 
+    _arg = VALID.mNodeStringList(obj)
+    log.debug("|{0}| >> obj: '{1}' ".format(_str_func,_arg))   
     
     _box = mc.exactWorldBoundingBox(_arg)
     
-    return [((_box[0] + _box[3])/2),((_box[4] + _box[1])/2), ((_box[5] + _box[2])/2)]
+    _res = [((_box[0] + _box[3])/2),((_box[4] + _box[1])/2), ((_box[5] + _box[2])/2)]
+    
+    if asVector:
+        log.debug("|{0}| >> asVector...".format(_str_func))             
+        return EUCLID.Vector3(_res[0], _res[1], _res[2])
+    return _res
 
-def get_bb_size(arg = None):
+def get_bb_size(obj = None,asVector = False):
     """
     Get the bb size of a given arg
     
     :parameters:
         arg(str/list): Object(s) to check
-
+        asVector(bool) - whether to return as Vector or not
 
     :returns
-        boundingBox size(list)
+        boundingBox size(list/Vector3)
     """   
     _str_func = 'get_bb_size'
-    _arg = VALID.stringListArg(arg,False,_str_func)   
-    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))    
+    #_arg = VALID.stringListArg(arg,False,_str_func)   
+    _arg = VALID.mNodeString(obj)
+    
+    log.debug("|{0}| >> obj: '{1}' ".format(_str_func,_arg))    
     
     _box = mc.exactWorldBoundingBox(_arg)
-    return [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
+    
+    _res = [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
+    if asVector:
+        log.debug("|{0}| >> asVector...".format(_str_func))             
+        return EUCLID.Vector3(_res[0], _res[1], _res[2])
+    return _res    
 
-def get_uv_position(mesh, uvValue):
+def get_uv_position(mesh, uvValue,asVector = False):
     """
     Get a uv position in world space. UV should be normalized.
     
@@ -204,6 +271,7 @@ def get_uv_position(mesh, uvValue):
         mesh(string) | Surface uv resides on
         uValue(float) | uValue  
         vValue(float) | vValue 
+        asVector(bool) - whether to return as Vector or not
 
     :returns
         pos(double3)
@@ -217,9 +285,13 @@ def get_uv_position(mesh, uvValue):
     
     _pos = get(_follicle[1])
     mc.delete(_follicle)
+    
+    if asVector:
+        log.debug("|{0}| >> asVector...".format(_str_func))             
+        return EUCLID.Vector3(_pos[0], _pos[1], _pos[2])    
     return _pos
 
-def get_uv_normal(mesh, uvValue):
+def get_uv_normal(mesh, uvValue,asVector = False):
     """
     Get a normal at a uv
     
@@ -227,6 +299,7 @@ def get_uv_normal(mesh, uvValue):
         mesh(string) | Surface uv resides on
         uValue(float) | uValue  
         vValue(float) | vValue 
+        asVector(bool) - whether to return as Vector or not
 
     :returns
         pos(double3)
@@ -240,6 +313,9 @@ def get_uv_normal(mesh, uvValue):
     
     _normal = ATTR.get(_follicle[0],'outNormal')
     mc.delete(_follicle)
+    if asVector:
+        log.debug("|{0}| >> asVector...".format(_str_func))             
+        return EUCLID.Vector3(_normal[0], _normal[1], _normal[2])    
     return _normal
 
 def get_info(target = None, boundingBox = False):

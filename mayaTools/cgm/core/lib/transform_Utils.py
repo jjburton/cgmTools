@@ -1,115 +1,155 @@
 """
 ------------------------------------------
-GuiFactory: cgm.core
+snap_utils: cgm.core.lib.transform_utils
 Author: Josh Burton
 email: jjburton@cgmonks.com
-
 Website : http://www.cgmonks.com
 ------------------------------------------
 
-Class based ui builder for cgmTools
-================================================================
+Unified location for transform calls. metanode instances may by passed
 """
 
-#>>> From Maya =============================================================
-import maya.cmds as mc
-import maya.mel as mel
+# From Python =============================================================
 import copy
+import re
 
-#>>> From Red9 =============================================================
-from Red9.core import Red9_Meta as r9Meta
-from Red9.core import Red9_General as r9General
-
-#>>> From cgm ==============================================================
-from cgm.core import cgm_General as cgmGeneral
-from cgm.core.cgmPy import validateArgs as cgmValid
-from cgm.core.lib import math_utils as MATHUTILS
-import euclid as EUCLID
-
-from cgm.lib import (search,
-                     lists,
-                     attributes,
-                     guiFactory,
-                     deformers,
-                     dictionary)
-
-#>>>======================================================================
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-#=========================================================================
-_d_KWARG_mTransform = {'kw':'mTransform', "default":None, 'help':"This must be a transform", "argType":"Transform"}
 
-class TransformFunction(cgmGeneral.cgmFuncCls):
-    def __init__(self,*args,**kws):
-	"""
-	"""
-	super(TransformFunction, self).__init__(self,*args,**kws)	
-	self._str_funcName = 'TransformFunction'	
-	self._l_ARGS_KWS_DEFAULTS = [{'kw':'mTransform', "default":None, 'help':"This is your RigFactory go instance", "argType":"RigFactory.go"},
-	                             ]
-	self.__dataBind__(*args, **kws)
-	
-	try:
-	    try:mi_transform = kws['mTransform']
-	    except:
-		try:mi_transform = args[0]
-		except:raise StandardError,"No kw or arg transform found'"
-	    try:mi_transform.mNode
-	    except:mi_transform = r9Meta.MetaClass(mi_transform)
-	except Exception,error:raise Exception,"TransformFunction failed to initialize | %s"%error
-	
-	self._mi_transform = mi_transform
-	self._b_ExceptionInterupt = True
-	
-def getDeformers2(*args,**kws):
-    class fncWrap(TransformFunction):
-	def __init__(self,*args,**kws):
-	    """
-	    """	
-	    super(fncWrap, self).__init__(*args,**kws)
-	    self._str_funcName = "getDeformers('%s')"%self._mi_puppet.cgmName
-	    self._l_ARGS_KWS_DEFAULTS = [_d_KWARG_mTransform,
-	                                 {'kw':'deformerTypes', "default":['all'], 'help':"kinds of deformers you'd like to get", "argType":"RigFactory.go"}
-	                                 ]
-					 
-	    self.__dataBind__(*args,**kws)
-	    raise NotImplementedError, "Not sure this is needed"
-	    #=================================================================
-	    
-	def __func__(self):
-	    """
-	    """
-	    return deformers.returnObjectDeformers(self._mi_transform.mNode,self.d_kws['deformerTypes'])
-    return fncWrap(*args,**kws).go()
+# From Maya =============================================================
+import maya.cmds as mc
+from maya import mel
+# From Red9 =============================================================
 
-def get_deformers(self,deformerTypes = 'all'):
+# From cgm ==============================================================
+from cgm.core import cgm_General as cgmGeneral
+from cgm.core.cgmPy import validateArgs as VALID
+from cgm.core.lib import shared_data as SHARED
+#from cgm.core.lib import search_utils as SEARCH
+from cgm.core.lib import math_utils as MATH
+#from cgm.core.lib import distance_utils as DIST
+from cgm.core.lib import position_utils as POS
+from cgm.core.lib import snap_utils as SNAP
+
+from cgm.core.lib import euclid as EUCLID
+from cgm.core.lib import attribute_utils as ATTR
+
+
+#Link up some of our ther functions for ease of call
+position_get = POS.get
+position_set = POS.set
+
+localPosition_get = POS.get_local
+localPosition_set = POS.set_local
+
+snap = SNAP.go
+aim = SNAP.aim
+aim_atPoint = SNAP.aim_atPoint
+aim_atMidPoint = SNAP.aim_atMidPoint
+verify_aimAttrs = SNAP.verify_aimAttrs
+
+
+
+"""
+@property 
+def localPosition(self):
+    '''Return the local space position of the transform'''
+    pos = mc.getAttr( self.GetAttrString("translate") )[0]
+    return Vector3(pos[0], pos[1], pos[2])
+
+@localPosition.setter
+def localPosition(self, new_pos):
+    '''Set the local space position of the transform'''
+    mc.setAttr( self.GetAttrString("translate"), new_pos.x, new_pos.y, new_pos.z, type="double3" ) 
+
+@property
+def eulerAngles(self):
+    '''Return the rotation of the transform in euler angles'''
+    rot = mc.getAttr( self.GetAttrString("rotate") )[0]
+    return Vector3( rot[0], rot[1], rot[2] )
+
+@eulerAngles.setter
+def eulerAngles(self, new_rot):
+    '''Set the rotation of the transform in euler angles'''
+    mc.setAttr( self.GetAttrString("rotate"), new_rot.x, new_rot.y, new_rot.z, type="double3" )
+
+@property 
+def localScale(self):
+    '''Return the local space scale of the transform'''
+    scale = mc.getAttr( self.GetAttrString("scale") )[0]
+    return Vector3( scale[0], scale[1], scale[2] )
+
+@localScale.setter
+def localScale(self, new_scale):
+    '''Set the scale of the transform in local space'''
+    mc.setAttr( self.GetAttrString("scale"), new_scale.x, new_scale.y, new_scale.z, type="double3" )
+
+@property
+def lossyScale(self):
+    lossyScale = self.localScale
+    for parent in self.parents:
+        lossyScale = lossyScale * parent.localScale
+    return lossyScale
+"""
+
+def rotation():
+    pass
+
+
+
+def worldMatrix(node = None, asMatrix = False):
     """
+    Query the worldMatrix of a given node
     
-    """	
-    try:_str_funcName = "{0}.get_deformers()".format(self.p_nameShort)
-    except:_str_funcName = "get_deformers()"
+    :parameters:
+        node(str): node to query
+        asMatrix(bool): whether to return a EUCLID.Matrix4
+
+    :returns
+        matrix
+    """   
+    _str_func = 'matrix'
     
-    try:
-	return deformers.returnObjectDeformers(self.mNode,deformerTypes)
-    except StandardError,error:
-	log.error("Self: {0}".format(self))
-	log.error("deformerTypes: {0}".format(deformerTypes))	
-	raise StandardError, "{0} fail | error: {1}"(_str_funcName,error)
+    node = VALID.mNodeString(node)
+
+    try:matrix_a = mc.xform( node,q=True,m=True, ws=True )
+    except Exception, e:
+        if not VALID.is_transform(node):
+            log.error("|{0}| >> Not a transform: '{1}'".format(_str_func,node))                        
+            return False
+        
+        log.error("|{0}| >> Failed: '{1}'".format(_str_func,node))
+        #for arg in e.args:
+            #log.error(arg)
+        raise Exception,e 
+        
+    if not asMatrix:
+        return matrix_a
     
-def isSkinned(self):
-    """
+    current_matrix = EUCLID.Matrix4()
+    current_matrix.a = matrix_a[0]
+    current_matrix.b = matrix_a[1]
+    current_matrix.c = matrix_a[2]
+    current_matrix.d = matrix_a[3]
+    current_matrix.e = matrix_a[4]
+    current_matrix.f = matrix_a[5]
+    current_matrix.g = matrix_a[6]
+    current_matrix.h = matrix_a[7]
+    current_matrix.i = matrix_a[8]
+    current_matrix.j = matrix_a[9]
+    current_matrix.k = matrix_a[10]
+    current_matrix.l = matrix_a[11]
+    current_matrix.m = matrix_a[12]
+    current_matrix.n = matrix_a[13]
+    current_matrix.o = matrix_a[14]
+    current_matrix.p = matrix_a[15]
     
-    """	
-    try:_str_funcName = "{0}.isSkinned()".format(self.p_nameShort)
-    except:_str_funcName = "isSkinned()"
-    
-    try:
-	if get_deformers(self,'skinCluster'):
-	    return True
-	return False
-    except StandardError,error:
-	log.error("Self: {0}".format(self))
-	log.error("deformerTypes: {0}".format(deformerTypes))	
-	raise StandardError, "{0} fail | error: {1}"(_str_funcName,error)
+    return current_matrix
+
+
+
+
+

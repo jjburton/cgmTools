@@ -121,7 +121,9 @@ class factory(object):
             log.error("|{0}| >> [{1}] | Failed to query create function.".format(_str_func,blockType))        
             return False
         
-        _mObj = _module.create(size = size)
+        _mObj = PUPPETMETA.cgmRigBlock(None)
+        _module.build_rigBlock(_mObj,size = size)
+        
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
         
         self.set_rigBlock(_mObj)
@@ -281,7 +283,6 @@ class factory(object):
         """
         _str_func = 'get_infoBlock_report'
         
-        
         if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func) 
         
@@ -400,13 +401,13 @@ class factory(object):
         if self._mi_block is None:
             raise ValueError,"No root loaded."
 
-        _mRoot = self._mi_block
+        _mBlock = self._mi_block
 
-        if _mRoot.isReferenced():
+        if _mBlock.isReferenced():
             raise ValueError,"Referenced node. Cannot verify"
         
         if blockType == None:
-            blockType = ATTR.get(_mRoot.mNode,'blockType')
+            blockType = ATTR.get(_mBlock.mNode,'blockType')
         if not blockType:
             raise ValueError,"No blockType specified or found."
 
@@ -415,12 +416,12 @@ class factory(object):
 
         #Need to get the type, the get the attribute lists and data from the module
 
-        #_mRoot.verifyAttrDict(self._d_attrsToVerify,keyable = False, hidden = False)
-        #_mRoot.verifyAttrDict(self._d_attrsToVerify)
+        #_mBlock.verifyAttrDict(self._d_attrsToVerify,keyable = False, hidden = False)
+        #_mBlock.verifyAttrDict(self._d_attrsToVerify)
         
-        #s_mRoot.blockType = blockType
-        _mRoot.addAttr('blockType', value = blockType,lock=True)	
-        _mRoot.blockState = 'template'
+        #s_mBlock.blockType = blockType
+        _mBlock.addAttr('blockType', value = blockType,lock=True)	
+        _mBlock.blockState = 'template'
         
         _keys = self._d_attrsToVerify.keys()
         _keys.sort()
@@ -432,53 +433,14 @@ class factory(object):
             log.info("|{0}| ({3}) >>  Setting attr >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
             
             if ':' in t:
-                _mRoot.addAttr(a,initialValue = v, attrType = 'enum', enumName= t)		    
+                _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t)		    
             else:
-                _mRoot.addAttr(a,initialValue = v, attrType = t)            
+                _mBlock.addAttr(a,initialValue = v, attrType = t)            
 
-        #for k,v in self._d_attrToVerifyDefaults.iteritems():
-            #log.info("|{0}| type: ({3}) >>  Setting attr >> '{1}' | value: {2} ".format(_str_func,k,v,blockType)) 
-            #_mRoot.addAttr(k, initialValue = v, keyable = False, hidden = False)
-            #try:ATTR.set(_mRoot.mNode,k,v)
-            #except Exception,err:
-                #log.error("|{0}| >> Failed to set default value. || key: {1} | value: {2} ||| err: {3}".format(_str_func,k,v,err))                
-
-        
-        
-        _mRoot.doName()
+        _mBlock.doName()
         
         return True
 
-
-        return False
-        #>>> Block transform ==================                   
-        _mRoot.addAttr('mClass', initialValue='cgmRigBlock',lock=True) 
-        _mRoot.addAttr('cgmType', value = 'rigHelper',lock=True)	
-
-        if self.kw_name:#If we have a name, store it
-            _mRoot.addAttr('cgmName',self.kw_name,attrType='string',lock=True)
-        elif 'buildAs' in kws.keys():
-            _mRoot.addAttr('cgmName',kws['buildAs'],attrType='string',lock=True)	    
-
-        #Store tags from init call
-        #==============  
-        for k in self.kw_callNameTags.keys():
-            if self.kw_callNameTags.get(k):
-                self.addAttr(k,value = self.kw_callNameTags.get(k),lock = True)
-
-
-        #Attrbute checking
-        #=================
-        self.verifyAttrDict(d_rigBlockAttrs_toMake,keyable = False, hidden = False)
-        d_enumToCGMTag = {'cgmDirection':'direction','cgmPosition':'position'}
-        for k in d_enumToCGMTag.keys():
-            if k in self.kw_callNameTags.keys():
-                try:self.__setattr__(d_enumToCGMTag.get(k),self.kw_callNameTags.get(k))
-                except Exception,error: log.error("%s.__verify__ >>> Failed to set key: %s | data: %s | error: %s"%(self.p_nameShort,k,self.kw_callNameTags.get(k),error))
-
-        self.doName()   
-
-        return True        
 
     def set_rigBlock(self,root=None):
         """
@@ -502,6 +464,160 @@ class factory(object):
         self._mi_block = cgmMeta.validateObjArg(root,'cgmObject')
         log.debug("|{0}| >> mInstance: {1}".format(_str_func,self._mi_block))
         pass
+    
+    def get_rigBlockData( self, blockType = None ):
+        _str_func = 'get_rigBlockData'
+
+        if self._mi_block is None:
+            raise ValueError,"No root loaded."
+
+        _mBlock = self._mi_block
+        _short = _mBlock.p_nameShort
+             
+        log.info("|{0}| >> [{1}] |...".format(_str_func,_short))
+        
+        _res = {}
+        
+        #Block data
+        _res['block'] = {}
+        _d_block = _res['block']
+        
+        for a in mc.listAttr(_short,ud=True):
+            _d_block[a] = ATTR.get(_short,a)
+        
+        #Children Data
+        #Sub Data
+        #Positional data
+        _res['pos'] = {}
+        _d_pos = _res['pos']        
+        for i,mObj in enumerate([_mBlock]):
+            _d_pos[i] = [mObj.getPosition(),'euler','localScale']
+        
+        cgmGEN.log_info_dict(_res, "Block Data [{0}]".format(_short))
+        return _res
+        
+        
+    
+    def rebuild_rigBlock( self, blockType = None ):
+        _str_func = 'rebuild_rigBlock'
+
+        if self._mi_block is None:
+            raise ValueError,"No root loaded."
+
+        _mBlock = self._mi_block
+        _short = _mBlock.p_nameShort
+        
+        _blockType = _mBlock.blockType
+        
+        if _mBlock.isReferenced():
+            raise ValueError,"Referenced node. Cannot rebuild"        
+        
+        #Get blockParent
+        _blockParent = _mBlock.parent
+        log.info("|{0}| >> [{2}] | _blockParent: {1}".format(_str_func,_blockParent,_short))
+        
+        #Get Template positions
+        log.info("|{0}| >> [{1}] | NEED TO GET template positions".format(_str_func,_short))
+        
+        #Get Block Children
+        log.info("|{0}| >> [{1}] | NEED TO GET block children".format(_str_func,_short))
+        
+        #Get UD Attrs
+        _d_ud = {}
+        for a in mc.listAttr(_short,ud=True):
+            _d_ud[a] = ATTR.get(_short,a)
+            
+        #Destroy
+        _mBlock.delete()
+        
+        #Create New
+        _mBlock = self.create_rigBlock(_blockType)
+        _short = _mBlock.p_nameShort
+        
+        #Reattach Children
+        log.info("|{0}| >> [{1}] | NEED TO reattach children".format(_str_func,_short))
+        
+        #Restore Positions
+        log.debug("|{0}| >> [{1}] | NEED TO restore template positions".format(_str_func,_short))
+        
+        #Set UD Attrs
+        for a,v in _d_ud.iteritems():
+            log.info("|{0}| >> [{1}] | Setting attr: {2} = {3}".format(_str_func,_short,a,v))
+            ATTR.set(_short,a,v)
+            
+        
+        log.info("|{0}| >> [{1}] | NEED TO set UD ATTRS ".format(_str_func,_short))
+        
+        #If blockParent = set
+        if _blockParent:
+            _mBlock.parent = _blockParent
+        
+        return True
+        selected = Selected()
+
+        oldBlock = Block.LoadRigBlock(blockTransform)
+
+        # Copy positions to an array
+        templatePositions = []
+        for templateObj in oldBlock.templatePositions:
+            templatePositions.append( [templateObj.localPosition, templateObj.eulerAngles, templateObj.localScale] )
+
+
+        # Get block children
+        blockParent = oldBlock.parent
+        blockChildren = []
+        for child in oldBlock.attachPoints:
+            blockChildren.append(child.children)
+            for c in child.children:
+                c.parent = None
+
+        # Get block properties
+        baseName = oldBlock.baseName
+        part     = oldBlock.part
+        side     = oldBlock.side
+        size     = oldBlock.size
+
+        # Get user defined attributes
+        blockAttrs = {}
+        for attr in oldBlock.blockAttributes:
+            blockAttrs[attr] = oldBlock.GetAttr(attr)
+
+        blockClass = oldBlock.blockType
+
+        # Destroy old block
+        Node.Destroy(oldBlock)
+
+        # Create new block
+        print "baseName:", baseName, "part:", part, "side:", side, "class: ", blockClass
+        newBlock = blockClass( baseName=baseName, part=part, side=side )
+
+        for i, children in enumerate(blockChildren):
+            for child in children:
+                child.parent = newBlock.attachPoints[i]
+
+        newBlock.size = size
+
+        for i, obj in enumerate(newBlock.templatePositions):
+            for p,attr in enumerate(['tx', 'ty', 'tz']):
+                if not mc.getAttr(obj.GetAttrString(attr), l=True):
+                    obj.SetAttr(attr, templatePositions[i][0][p])
+            for p,attr in enumerate(['rx', 'ry', 'rz']):
+                if not mc.getAttr(obj.GetAttrString(attr), l=True):
+                    obj.SetAttr(attr, templatePositions[i][1][p])
+            for p,attr in enumerate(['sx', 'sy', 'sz']):
+                if not mc.getAttr(obj.GetAttrString(attr), l=True):
+                    obj.SetAttr(attr, templatePositions[i][2][p])
+
+        for attr in blockAttrs:
+            newBlock.SetAttr(attr, blockAttrs[attr])
+
+        if blockParent:
+            newBlock.parent = blockParent
+
+        Select(selected)
+    
+    
+    
 
     def skeletonize(self,forceNew = False):
         """
@@ -537,11 +653,9 @@ class factory(object):
         #Build skeleton -----------------------------------------------------------------------------------
         _ml_joints = build_skeleton(_d_create['positions'],worldUpAxis=_d_create['worldUpAxis'])
 
-
         #Wire and name        
         self._mi_module.rigNull.msgList_connect(_ml_joints,'skinJoints')
         self._mi_module.rigNull.msgList_connect(_ml_joints,'moduleJoints')
-
 
         #...need to do this better...
         #>>>HANDLES,CORENAMES -----------------------------------------------------------------------------------
@@ -609,12 +723,12 @@ class factory(object):
 
         if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
-        _mRoot = self._mi_block        
+        _mBlock = self._mi_block        
         
         if self._mi_block.blockType == 'master':
             return True
 
-        _bfr = _mRoot.getMessage('moduleTarget')
+        _bfr = _mBlock.getMessage('moduleTarget')
         _kws = self.module_getBuildKWS()
 
         if _bfr:
@@ -624,8 +738,8 @@ class factory(object):
             log.debug("|{0}| >> Creating moduleTarget...".format(_str_func))   
             mModule = PUPPETMETA.cgmModule(**_kws)
 
-        ATTR.set_message(_mRoot.mNode, 'moduleTarget', mModule.mNode,simple = True)
-        ATTR.set_message(mModule.mNode, 'rigHelper', _mRoot.mNode,simple = True)
+        ATTR.set_message(_mBlock.mNode, 'moduleTarget', mModule.mNode,simple = True)
+        ATTR.set_message(mModule.mNode, 'rigHelper', _mBlock.mNode,simple = True)
 
         ATTR.set(mModule.mNode,'moduleType',_kws['name'],lock=True)
         self._mi_module = mModule
@@ -645,22 +759,22 @@ class factory(object):
 
         if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
-        _mRoot = self._mi_block
+        _mBlock = self._mi_block
 
         d_kws = {}
-        d_kws['name'] = str(_mRoot.blockType)
+        d_kws['name'] = str(_mBlock.blockType)
 
         #Direction
         str_direction = None
-        if _mRoot.hasAttr('direction'):
-            str_direction = _mRoot.getEnumValueString('direction')
+        if _mBlock.hasAttr('direction'):
+            str_direction = _mBlock.getEnumValueString('direction')
         log.debug("|{0}| >> direction: {1}".format(_str_func,str_direction))            
         if str_direction in ['left','right']:
             d_kws['direction'] = str_direction
         #Position
         str_position = None
-        if _mRoot.hasAttr('position'):
-            str_position = _mRoot.getEnumValueString('position')	
+        if _mBlock.hasAttr('position'):
+            str_position = _mBlock.getEnumValueString('position')	
         log.debug("|{0}| >> position: {1}".format(_str_func,str_position))            
         if str_position != 'none':
             d_kws['position'] = str_position
@@ -680,18 +794,18 @@ class factory(object):
 
         if self._mi_block is None:
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
-        _mRoot = self._mi_block     
+        _mBlock = self._mi_block     
         
         if self._mi_block.blockType == 'master':
-            if not _mRoot.getMessage('moduleTarget'):
-                mi_puppet = PUPPETMETA.cgmPuppet(name = _mRoot.puppetName)
-                ATTR.set_message(_mRoot.mNode, 'moduleTarget', mi_puppet.mNode,simple = True)
+            if not _mBlock.getMessage('moduleTarget'):
+                mi_puppet = PUPPETMETA.cgmPuppet(name = _mBlock.puppetName)
+                ATTR.set_message(_mBlock.mNode, 'moduleTarget', mi_puppet.mNode,simple = True)
             else:
-                mi_puppet = _mRoot.moduleTarget
+                mi_puppet = _mBlock.moduleTarget
                 
             mi_puppet.__verify__()
         else:
-            mi_module = _mRoot.moduleTarget
+            mi_module = _mBlock.moduleTarget
             if not mi_module:
                 mi_module = self.module_verify()
     
@@ -1126,8 +1240,8 @@ def get_modules_dat():
     _i = 0
     for root, dirs, files in os.walk(_path, True, None):
         # Parse all the files of given path and reload python modules
-        _mRoot = PATH.Path(root)
-        _split = _mRoot.split()
+        _mBlock = PATH.Path(root)
+        _split = _mBlock.split()
         _subRoot = _split[-1]
         _splitUp = _split[_split.index(_base):]
         

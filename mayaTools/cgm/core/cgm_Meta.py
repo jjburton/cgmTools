@@ -26,12 +26,14 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import OM_Utils as cgmOM
 #reload(cgmOM)
 from cgm.core.lib import nameTools
 from cgm.core.lib import rigging_utils as coreRigging
 from cgm.core.lib import position_utils as POS
+from cgm.core.lib import transform_utils as TRANS
+
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import name_utils as coreNames
 from cgm.core.lib import search_utils as SEARCH
@@ -144,7 +146,7 @@ class cgmMetaFactory(object):
             log.debug("Appears to be a '%s'"%mClass)
             log.debug("Specialized processing not implemented, initializing as...") 
 
-        objType = cgmValid.get_mayaType(node)
+        objType = VALID.get_mayaType(node)
         if objType == 'objectSet':
             log.debug("'%s' Appears to be an objectSet, initializing as cgmObjectSet"%node)	    
             return cgmObjectSet(node,*args,**kws)
@@ -256,7 +258,7 @@ class cgmNode(r9Meta.MetaClass):
         component = False	
         if node is not None:
             node = names.getShortName(node)
-            if '.' in node and cgmValid.get_mayaType(node) in l_componentTypes:
+            if '.' in node and VALID.get_mayaType(node) in l_componentTypes:
                 componentMode = True
                 component = node.split('.')[-1]
 
@@ -694,7 +696,7 @@ class cgmNode(r9Meta.MetaClass):
         _str_funcName = "%s.msgList_connect()"%self.p_nameShort  
         #log.debug(">>> %s.msgList_connect( attr = '%s', connectBack = '%s') >> "%(self.p_nameShort,attr,connectBack) + "="*75) 	    
         try:
-            #ml_nodes = cgmValid.objStringList(nodes,noneValid=True)	    
+            #ml_nodes = VALID.objStringList(nodes,noneValid=True)	    
             ml_nodes = validateObjListArg(nodes,noneValid=True)
             if ml_nodes:self.msgList_purge(attr)#purge first
             for i,mi_node in enumerate(ml_nodes):
@@ -1118,7 +1120,7 @@ class cgmNode(r9Meta.MetaClass):
 
     def compareAttrs(self,targets,**kws):
         """ compare the attributes of one object to another """
-        _l_targets = cgmValid.objStringList(targets)
+        _l_targets = VALID.objStringList(targets)
         log.info(cgmGeneral._str_hardLine)   
         
         for t in _l_targets:
@@ -1644,7 +1646,7 @@ class cgmObject(cgmNode):
         """
         try:
             if target: #if we have a target parent
-                if cgmValid.isListArg(target):
+                if VALID.isListArg(target):
                     target = target[0]
                     print("Target arg is list, using first entry")
                 try:
@@ -1686,7 +1688,24 @@ class cgmObject(cgmNode):
 
     parent = property(getParent, doParent)
     p_parent = property(getParent, doParent)
-
+    #_parent = property(getParent,doParent)
+    
+    def do_snap(self,*a,**kws):
+        return TRANS.snap(self, *a,**kws)
+    
+    def get_position(self,*a,**kws):
+        return TRANS.position_get(self, *a,**kws)
+        
+    def get_worldMatrix(self,*a,**kws):
+        return TRANS.worldMatrix(self,*a,**kws)
+    
+    def get_localPosition(self,*a,**kws):
+        return TRANS.localPosition_get(self,*a,**kws) 
+    def set_localPosition(self,*a,**kws):
+        return TRANS.localPosition_set(self,*a,**kws)
+    
+    p_localPosition = property(get_localPosition,set_localPosition)
+    
     #=========================================================================      
     # Get Info
     #========================================================================= 	
@@ -1831,7 +1850,7 @@ class cgmObject(cgmNode):
     def getDeformers(self,deformerTypes = 'all',asMeta = False):
         _deformers = []
         _result = []	
-        _deformerTypes = cgmValid.listArg(deformerTypes)
+        _deformerTypes = VALID.listArg(deformerTypes)
         objHistory = mc.listHistory(self.mNode,pruneDagObjects=True)
         if objHistory:
             for node in objHistory:
@@ -3521,7 +3540,7 @@ class cgmAttr(object):
         s_baseMsg = "{0}.{1}.setEnum() | enumCommand: {2}".format(*fmt_args)	
         try:
             if self.attrType == 'enum':
-                if ":".join(self.p_enum) != cgmValid.stringListArg(enumCommand):
+                if ":".join(self.p_enum) != VALID.stringListArg(enumCommand):
                     mc.addAttr ((self.obj.mNode+'.'+self.attr), e = True, at=  'enum', en = enumCommand)
                     #log.debug("'%s.%s' has been updated!"%(self.obj.mNode,self.attr))
                 else:log.info("%s | already set"%s_baseMsg)
@@ -3549,7 +3568,7 @@ class cgmAttr(object):
         arg(bool)
         """ 
         try:
-            arg =  cgmValid.boolArg(arg)
+            arg =  VALID.boolArg(arg)
             if arg:
                 if self.getChildren():
                     #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
@@ -3596,7 +3615,7 @@ class cgmAttr(object):
         arg(bool)
         """ 
         try:
-            arg =  cgmValid.boolArg(arg)
+            arg =  VALID.boolArg(arg)
             if arg:
                 if self.getChildren():
                     #log.debug("'%s' has children, running set command on '%s'"%(self.p_combinedShortName,"','".join(self.getChildren())))
@@ -3646,7 +3665,7 @@ class cgmAttr(object):
         fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg]
         s_baseMsg = "{0}.{1}.doKeyable() | arg: {2}".format(*fmt_args)		
         try:
-            arg =  cgmValid.boolArg(arg)
+            arg =  VALID.boolArg(arg)
 
             if self.attrType not in KeyableTypes:
                 #log.debug("'%s' not a keyable attrType"%self.attrType)
@@ -3707,7 +3726,7 @@ class cgmAttr(object):
         fmt_args = [self.obj.p_nameShort, self.p_nameLong, arg]
         s_baseMsg = "{0}.{1}.doAlias() | arg: {2}".format(*fmt_args)		
         try:
-            arg = cgmValid.stringArg(arg)
+            arg = VALID.stringArg(arg)
             if arg:
                 try:
                     if arg != self.p_nameAlias:
@@ -4066,7 +4085,7 @@ class cgmAttr(object):
     #>>> Family ==================  
     def getChildren(self,asMeta = False):
         try:
-            asMeta = cgmValid.boolArg(asMeta)
+            asMeta = VALID.boolArg(asMeta)
             try:buffer = mc.attributeQuery(self.attr, node = self.obj.mNode, listChildren=True) or []
             except:buffer = []
             if asMeta:
@@ -4081,7 +4100,7 @@ class cgmAttr(object):
 
     def getParent(self,asMeta = False):
         try:
-            asMeta = cgmValid.boolArg(asMeta)
+            asMeta = VALID.boolArg(asMeta)
             buffer = mc.attributeQuery(self.attr, node = self.obj.mNode, listParent=True) or []
             if asMeta:
                 return [cgmAttr(self.obj.mNode,c) for c in buffer]
@@ -4095,7 +4114,7 @@ class cgmAttr(object):
 
     def getSiblings(self,asMeta = False):
         try:
-            asMeta = cgmValid.boolArg(asMeta)
+            asMeta = VALID.boolArg(asMeta)
             buffer = mc.attributeQuery(self.attr, node = self.obj.mNode, listSiblings=True) or []
             if asMeta:
                 return [cgmAttr(self.obj.mNode,c) for c in buffer]
@@ -4110,7 +4129,7 @@ class cgmAttr(object):
     #>>> Connections ==================  
     def getDriven(self,obj=False,skipConversionNodes = False,asMeta = False):
         try:
-            asMeta = cgmValid.boolArg(asMeta)   
+            asMeta = VALID.boolArg(asMeta)   
             buffer =  ATTR.get_driven(self.obj.mNode,self.attr,obj,skipConversionNodes) or []
             #log.info(self.obj.mNode)
             ##log.info(self.attr)
@@ -4135,7 +4154,7 @@ class cgmAttr(object):
 
     def getDriver(self,obj=False,skipConversionNodes = False,asMeta = False):
         try:
-            asMeta = cgmValid.boolArg(asMeta)   
+            asMeta = VALID.boolArg(asMeta)   
             buffer =  ATTR.get_driver(self.obj.mNode,self.attr,obj,skipConversionNodes) or []                
             #buffer =  attributes.returnDrivenObject(self.p_combinedName,skipConversionNodes) or []
             if asMeta:
@@ -4975,7 +4994,7 @@ def asMeta(*args,**kws):
         elif kws:
             arg = kws['arg']
 
-        if cgmValid.isListArg(arg):#make sure it's not a list
+        if VALID.isListArg(arg):#make sure it's not a list
             return validateObjListArg(*args,**kws)
         return validateObjArg(*args,**kws)
     except Exception,error:
