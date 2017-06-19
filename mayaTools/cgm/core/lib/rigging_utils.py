@@ -33,6 +33,7 @@ from cgm.core.lib import name_utils as coreNames
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import snap_utils as SNAP
+from cgm.core.lib import transform_utils as TRANS
 #NO DIST
 
 #>>> Utilities
@@ -279,65 +280,8 @@ def copy_pivot(obj = None, source = None, rotatePivot = True, scalePivot = True)
         mc.xform(obj,ws=True, sp = pos)   
     return True
 
-def parent_set(obj = None, parent = False):
-    """
-    Takes care of parenting transforms and returning new names.
-    
-    :parameters:
-        obj(str): Object to modify
-        parent(str): Parent object or False for world
-
-    :returns
-        correct name(str)
-    """   
-    _str_func = 'parent_set'
-    obj = valid_arg_single(obj, 'obj', _str_func)
-    if parent:
-        parent = valid_arg_single(parent, 'parent', _str_func)    
-        
-    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
-    log.debug("|{0}| >> parent:{1}".format(_str_func,parent))
-    
-    _parents = mc.listRelatives(obj,parent=True,type='transform')
-    
-    if parent:
-        try:
-            return mc.parent(obj,parent)[0]
-        except Exception,err:
-            log.error("|{0}| >> Failed to parent '{1}' to '{2}' | err: {3}".format(_str_func, obj,parent, err))    
-            return obj
-        #if parent in str(mc.ls(obj,long=True)):
-            #return obj
-        #else:
-            #return mc.parent(obj,parent)[0]
-    else:
-        if _parents:
-            return mc.parent(obj, world = True)[0]
-        else:
-            return obj
-    raise ValueError,"Shouldn't have arrived here."
-
-def parent_get(obj = None):
-    """
-    Takes care of parenting transforms and returning new names
-    
-    :parameters:
-        obj(str): Object to modify
-        
-    :returns
-        correct name(str)
-    """   
-    _str_func = 'parent_get'
-    
-    obj = valid_arg_single(obj, 'obj', _str_func)
-        
-    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
-    
-    _parents = mc.listRelatives(obj,parent=True, type='transform') or False
-    
-    if _parents:
-        return _parents[0]
-    return False
+parent_get = TRANS.parent_get
+parent_set = TRANS.parent_set
 
 def shapeParent_in_place_NEW(obj = None, shapeSource = None, keepSource = True, replaceShapes = False, snapFirst = False):
     """
@@ -590,55 +534,8 @@ def create_joint_at(obj = None):
 
     return create_at(obj, create = 'joint')
 
-def group_me(obj = None,
-             parent = False, maintainParent = False, rotateAxis = True,
-             rotatePivot = True, scalePivot = True):
-    """
-    A bridge function utilizing both copy_pivot and copy_orientation in a single call
-    
-    :parameters:
-        obj(str): Object to modify
-        parent(str): Whether to parent the object to the new group
-        maintainParent(bool): Whether to maintain parent of the object
-        rotateAxis(bool): whether to copy the rotateAxis
-        rotatePivot(bool): whether to copy the rotatePivot
-        scalePivot(bool): whether to copy the scalePivot
-
-    :returns
-        success(bool)
-    """   
-    _str_func = 'group_me'
-    
-    obj = valid_arg_single(obj, 'obj', _str_func)
-    
-    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
-    
-    _oldParent = False
-    if maintainParent:
-        _oldParent = parent_get(obj)
-        
-    group = create_at(obj)
-    
-
-    if maintainParent == True and _oldParent:
-        group = parent_set(group,_oldParent)
-        
-    if parent:
-        _wasLocked = []  
-        for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
-            attrBuffer = '%s.%s'%(obj,attr)
-            if mc.getAttr(attrBuffer,lock=True):
-                _wasLocked.append(attr)
-                mc.setAttr(attrBuffer,lock=False)                
-            #attributes.doSetAttr(obj,attr,0)          
-        obj = parent_set(obj,group)        
-    
-        if _wasLocked:
-            for attr in _wasLocked:
-                attrBuffer = '%s.%s'%(obj,attr)
-                mc.setAttr(attrBuffer,lock=True)                
-
-    return mc.rename(group, "|{0}|_grp".format(coreNames.get_base(obj)))  
+ 
+group_me = TRANS.group_me
 
 def snapDEPRECIATE(obj = None, source = None,
          position = True, rotation = True, rotateAxis = True,

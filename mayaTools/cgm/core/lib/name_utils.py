@@ -47,7 +47,7 @@ def get_short(obj = None):
             log.error(" "*4 + "{0}:'{1}'".format(i,o))
         raise ValueError,"{0} || More than one object with name".format(_str_func)
     raise ValueError("{0} || No object exists!".format(_str_func))
-
+short = get_short
 def get_long(obj = None):
     """
     Return the long name of an object
@@ -71,7 +71,7 @@ def get_long(obj = None):
             log.error(" "*4 + "{0}:'{1}'".format(i,o))
         raise ValueError,"{0} || More than one object with name".format(_str_func)
     raise ValueError("{0} || No object exists!".format(_str_func))
-
+long = get_long
 def get_base(obj = None):
     """
     Return the base name of an object. Base being without any '|' or what not
@@ -96,5 +96,5 @@ def get_base(obj = None):
             log.error(" "*4 + "{0}:'{1}'".format(i,o))
         raise ValueError,"{0} || More than one object with name".format(_str_func)
     raise ValueError("{0} || No object exists!".format(_str_func)) 
-
+base = get_base
 

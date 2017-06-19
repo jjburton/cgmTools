@@ -1690,21 +1690,35 @@ class cgmObject(cgmNode):
     p_parent = property(getParent, doParent)
     #_parent = property(getParent,doParent)
     
+    #Make Dave happy stuff============================================================================
     def do_snap(self,*a,**kws):
         return TRANS.snap(self, *a,**kws)
+    p_snap = property(do_snap)
     
     def get_position(self,*a,**kws):
         return TRANS.position_get(self, *a,**kws)
-        
-    def get_worldMatrix(self,*a,**kws):
-        return TRANS.worldMatrix(self,*a,**kws)
+    
     
     def get_localPosition(self,*a,**kws):
-        return TRANS.localPosition_get(self,*a,**kws) 
+        return TRANS.positionLocal_get(self,*a,**kws) 
     def set_localPosition(self,*a,**kws):
-        return TRANS.localPosition_set(self,*a,**kws)
+        return TRANS.positionLocal_set(self,*a,**kws)
+    p_posLocal = property(get_localPosition,set_localPosition)
+     
     
-    p_localPosition = property(get_localPosition,set_localPosition)
+    def get_worldPosition(self,*a,**kws):
+        return TRANS.position_get(self,*a,**kws)
+    def set_worldPosition(self,position = None):
+        return TRANS.position_set(self,position)    
+    p_posWorld = property(get_worldPosition,set_worldPosition)
+    
+    
+    def get_worldMatrix(self,*a,**kws):
+        return TRANS.worldMatrix(self,*a,**kws) 
+    
+    p_worldMatrix = property(get_worldMatrix)
+    
+    
     
     #=========================================================================      
     # Get Info

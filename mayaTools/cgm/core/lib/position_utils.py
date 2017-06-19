@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -42,7 +42,7 @@ reload(SHARED)
 #===================================================================
 _d_pos_modes = {'xform':['x']}
 
-def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', asVector = False):
+def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', asEuclid = False):
     """
     General call for querying position data in maya.
     Note -- pivot and space are ingored in boundingBox mode which returns the center pivot in worldSpace
@@ -57,12 +57,12 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
         space(str): World,Object,Local
         mode(str):
             xform -- Utilizes tranditional checking with xForm or pointPosition for components
-        asVector(bool) - whether to return as Vector or not
+        asEuclid(bool) - whether to return as Vector or not
     :returns
         success(bool)
     """
     _str_func = 'get_pos'
-    _obj = VALID.stringArg(obj,False,_str_func)
+    _obj = VALID.mNodeString(obj)
     _pivot = VALID.kw_fromDict(pivot, SHARED._d_pivotArgs, noneValid=False,calledFrom=_str_func)
     _targets = VALID.stringListArg(targets, noneValid=True,calledFrom=_str_func)    
     _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom=_str_func)
@@ -114,7 +114,7 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
             raise RuntimeError,"|{0}| >> Shouldn't have gotten here. Need another check for component type. '{1}'".format(_str_func,_cType)
 
     else:
-        log.debug("|{0}| >> obj: {1} | pivot: {2} | space: {3} | mode: {4} | asVector: {5}".format(_str_func,_obj,_pivot,_space,_mode,asVector))             
+        log.debug("|{0}| >> obj: {1} | pivot: {2} | space: {3} | mode: {4} | asEuclid: {5}".format(_str_func,_obj,_pivot,_space,_mode,asEuclid))             
         if _space == 'local' or _pivot == 'local':
             _res  = ATTR.get(_obj,'translate')            
         #elif _pivot == 'local':
@@ -135,8 +135,8 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
             _res = mc.xform(_obj,**kws )
     
     if _res is not None:
-        if asVector:
-            log.debug("|{0}| >> asVector...".format(_str_func))             
+        if asEuclid:
+            log.debug("|{0}| >> asEuclid...".format(_str_func))             
             return EUCLID.Vector3(_res[0], _res[1], _res[2])
         return _res
     raise RuntimeError,"|{0}| >> Shouldn't have gotten here: obj: {1}".format(_str_func,_obj)
@@ -155,7 +155,7 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
         success(bool)
     """   
     _str_func = 'set_pos'
-    _obj = VALID.stringArg(obj,False,_str_func)
+    _obj = VALID.mNodeString(obj)
     _pivot = VALID.kw_fromDict(pivot, SHARED._d_pivotArgs, noneValid=False,calledFrom=_str_func)
     _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom=_str_func)
     
@@ -184,20 +184,20 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
         
             return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )  
     
-def get_local(obj = None, asVector = False):
+def get_local(obj = None, asEuclid = False):
     """
     Query the local translate
     
     :parameters:
         obj(str): obj to query
-        asVector(bool) - whether to return as Vector or not
+        asEuclid(bool) - whether to return as Vector or not
 
     :returns
         pos(list/Vector3)
     """   
     _str_func = 'get_local'
         
-    return get(VALID.mNodeString(obj),'local',asVector = asVector)
+    return get(VALID.mNodeString(obj),'local',asEuclid = asEuclid)
 
 def set_local(obj = None, pos = None):
     """
@@ -213,13 +213,13 @@ def set_local(obj = None, pos = None):
         
     return set(VALID.mNodeString(obj), pos, 'local')
 
-def get_bb_center(obj = None, asVector =False):
+def get_bb_center(obj = None, asEuclid =False):
     """
     Get the bb center of a given arg
     
     :parameters:
         obj(str/list): Object(s) to check
-        asVector(bool) - whether to return as Vector or not
+        asEuclid(bool) - whether to return as Vector or not
 
     :returns
         boundingBox size(list)
@@ -233,18 +233,18 @@ def get_bb_center(obj = None, asVector =False):
     
     _res = [((_box[0] + _box[3])/2),((_box[4] + _box[1])/2), ((_box[5] + _box[2])/2)]
     
-    if asVector:
-        log.debug("|{0}| >> asVector...".format(_str_func))             
+    if asEuclid:
+        log.debug("|{0}| >> asEuclid...".format(_str_func))             
         return EUCLID.Vector3(_res[0], _res[1], _res[2])
     return _res
 
-def get_bb_size(obj = None,asVector = False):
+def get_bb_size(obj = None,asEuclid = False):
     """
     Get the bb size of a given arg
     
     :parameters:
         arg(str/list): Object(s) to check
-        asVector(bool) - whether to return as Vector or not
+        asEuclid(bool) - whether to return as Vector or not
 
     :returns
         boundingBox size(list/Vector3)
@@ -258,12 +258,12 @@ def get_bb_size(obj = None,asVector = False):
     _box = mc.exactWorldBoundingBox(_arg)
     
     _res = [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
-    if asVector:
-        log.debug("|{0}| >> asVector...".format(_str_func))             
+    if asEuclid:
+        log.debug("|{0}| >> asEuclid...".format(_str_func))             
         return EUCLID.Vector3(_res[0], _res[1], _res[2])
     return _res    
 
-def get_uv_position(mesh, uvValue,asVector = False):
+def get_uv_position(mesh, uvValue,asEuclid = False):
     """
     Get a uv position in world space. UV should be normalized.
     
@@ -271,7 +271,7 @@ def get_uv_position(mesh, uvValue,asVector = False):
         mesh(string) | Surface uv resides on
         uValue(float) | uValue  
         vValue(float) | vValue 
-        asVector(bool) - whether to return as Vector or not
+        asEuclid(bool) - whether to return as Vector or not
 
     :returns
         pos(double3)
@@ -286,12 +286,12 @@ def get_uv_position(mesh, uvValue,asVector = False):
     _pos = get(_follicle[1])
     mc.delete(_follicle)
     
-    if asVector:
-        log.debug("|{0}| >> asVector...".format(_str_func))             
+    if asEuclid:
+        log.debug("|{0}| >> asEuclid...".format(_str_func))             
         return EUCLID.Vector3(_pos[0], _pos[1], _pos[2])    
     return _pos
 
-def get_uv_normal(mesh, uvValue,asVector = False):
+def get_uv_normal(mesh, uvValue,asEuclid = False):
     """
     Get a normal at a uv
     
@@ -299,7 +299,7 @@ def get_uv_normal(mesh, uvValue,asVector = False):
         mesh(string) | Surface uv resides on
         uValue(float) | uValue  
         vValue(float) | vValue 
-        asVector(bool) - whether to return as Vector or not
+        asEuclid(bool) - whether to return as Vector or not
 
     :returns
         pos(double3)
@@ -313,8 +313,8 @@ def get_uv_normal(mesh, uvValue,asVector = False):
     
     _normal = ATTR.get(_follicle[0],'outNormal')
     mc.delete(_follicle)
-    if asVector:
-        log.debug("|{0}| >> asVector...".format(_str_func))             
+    if asEuclid:
+        log.debug("|{0}| >> asEuclid...".format(_str_func))             
         return EUCLID.Vector3(_normal[0], _normal[1], _normal[2])    
     return _normal
 
