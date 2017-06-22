@@ -1242,7 +1242,6 @@ def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],*a, **kws):
     else:
         _d = validate_arg(obj,attr)     
     
-    
     _combined = _d['combined']
     _node = _d['node']
     _attr = _d['attr']
@@ -2794,10 +2793,10 @@ def datList_index(node = None, attr = None, data = None, mode = None, dataAttr =
         raise ValueError,"Data not found"
     return idx
 
-def msgList_append(node = None, attr = None, data = None,dataAttr=None,connectBack = None):
-    _res = datList_append(node,attr,data,'message',dataAttr)
+def msgList_append(node = None, attr = None, data = None, dataAttr=None,connectBack = None):
+    _res = datList_append(node, attr,data,'message',dataAttr)
     if connectBack is not None:
-        set_message(data,connectBack,node,dataAttr)
+        set_message(data, connectBack, node, dataAttr)
     return _res
 
 def datList_append(node = None, attr = None, data = None, mode = None, dataAttr = None):
@@ -2827,7 +2826,7 @@ def datList_append(node = None, attr = None, data = None, mode = None, dataAttr 
     
         
     if mode == 'message':
-        set_message(node, "{0}_{1}".format(attr,_idx),data,_str_dataAttr, dataKey=_idx)
+        set_message(node, "{0}_{1}".format(attr,_idx), data, _str_dataAttr, dataKey=_idx)
     else:
         store_info(node,"{0}_{1}".format(attr,_idx),data)
 

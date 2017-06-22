@@ -542,35 +542,69 @@ def uiSection_dev(parent):
                 ann = "Attempt to load the Morpheus Maker - ALPHA",
                 c=lambda *a: load_MorpheusMaker())    
     
+    
+    
     _unitTests = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
                              l='UT')
+    
+    
+    
     mc.menuItem(parent = _unitTests,
-                l='cgm - All',
-                ann = "WARNING - Opens new file...Unit test cgm.core",
-                c=lambda *a: ut_all())
+                    l='cgm - All',
+                    ann = "WARNING - Opens new file...Unit test cgm.core",
+                    c=lambda *a: ut_all())    
     mc.menuItem(parent = _unitTests,
-                l='cgm - meta only',
-                ann = "WARNING - Opens new file...Unit test cgm.core",
-                c=lambda *a: ut_meta()) 
+                    l='cgm - Core',
+                    ann = "WARNING - Opens new file...Unit test cgm.core",
+                    c=lambda *a: ut_core())    
     mc.menuItem(parent = _unitTests,
-                l='cgm - puppet',
-                ann = "WARNING - Opens new file...Unit test cgm.core",
-                c=lambda *a: ut_puppet()) 
+                    l='cgm - Meta',
+                    ann = "WARNING - Opens new file...Unit test cgm.core",
+                    c=lambda *a: ut_meta()) 
+    
+    mc.menuItem(parent = _unitTests, l = '----------------')
+    
     mc.menuItem(parent = _unitTests,
-                l='cgm - limb',
+                l='OLD - All',
                 ann = "WARNING - Opens new file...Unit test cgm.core",
-                c=lambda *a: ut_limb()) 
+                c=lambda *a: ut_allOLD())
+    mc.menuItem(parent = _unitTests,
+                l='OLD - meta only',
+                ann = "WARNING - Opens new file...Unit test cgm.core",
+                c=lambda *a: ut_metaOLD()) 
+    mc.menuItem(parent = _unitTests,
+                l='OLD - puppet',
+                ann = "WARNING - Opens new file...Unit test cgm.core",
+                c=lambda *a: ut_puppetOLD()) 
+    mc.menuItem(parent = _unitTests,
+                l='OLD - limb',
+                ann = "WARNING - Opens new file...Unit test cgm.core",
+                c=lambda *a: ut_limbOLD()) 
+
 
 def ut_all():
+    import cgm.core.tests.cgmTests as cgmTests
+    reload(cgmTests)
+    cgmTests.go()    
+def ut_meta():
+    import cgm.core.tests.test_cgmMeta as cgmMetaTest
+    reload(cgmMetaTest)
+    cgmMetaTest.main(verbosity = 1)    
+def ut_core():
+    import cgm.core.tests.test_coreLib as test_coreLib
+    reload(test_coreLib)
+    test_coreLib.main(verbosity = 1)    
+
+def ut_allOLD():
     reload(testCGM)
     testCGM.ut_AllTheThings()
-def ut_meta():
+def ut_metaOLD():
     reload(testCGM)
     testCGM.ut_cgmMeta()
-def ut_puppet():
+def ut_puppetOLD():
     reload(testCGM)
     testCGM.ut_cgmPuppet()
-def ut_limb():
+def ut_limbOLD():
     reload(testCGM)
     testCGM.ut_cgmLimb()
     

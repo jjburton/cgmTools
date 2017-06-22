@@ -14,10 +14,12 @@ Unit Tests for the validateArgs module
 import unittest
 import logging
 
+
+from cgm.core import cgm_General as cgmGEN
 # LOGGING ====================================================================
 log = logging.getLogger(__name__.split('.')[-1])
 log.setLevel(logging.WARNING)
-
+"""
 modules = [
 	'boolArgs',
 	'objString',
@@ -27,10 +29,14 @@ modules = [
 
 def main(**kwargs):	
 	v = kwargs.get('verbosity', 2)
-
+	logging.info(cgmGEN._str_hardBreak)
+	
+	logging.info("Testing: {0}...".format(__name__.split('.')[-1]))
 	suite = unittest.TestSuite()
 
 	for mod in modules:
+		logging.info(cgmGEN._str_hardBreak)
+		logging.info("Testing module: {0}".format(mod))		
 		module = "cgm.core.tests.test_validateArgs.test_validateArgs_{0}".format(mod)
 
 		try:
@@ -41,4 +47,4 @@ def main(**kwargs):
 
 		suite.addTest( unittest.defaultTestLoader.loadTestsFromName(module) )
 
-	unittest.TextTestRunner(verbosity=v).run(suite)
+	unittest.TextTestRunner(verbosity=v).run(suite)"""

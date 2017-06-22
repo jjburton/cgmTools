@@ -24,8 +24,8 @@ import maya.mel as mel
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGen
-from cgm.core.cgmPy import validateArgs as coreValid
-reload(coreValid)
+from cgm.core.cgmPy import validateArgs as VALID
+reload(VALID)
 from cgm.core.lib import shared_data as coreShared
 from cgm.core.lib import name_utils as NAME
 from cgm.core.lib import attribute_utils as ATTR
@@ -34,10 +34,10 @@ from cgm.lib import attributes
 from cgm.lib import lists
 #>>> Utilities
 #===================================================================   
-is_shape = coreValid.is_shape
-is_transform = coreValid.is_transform    
-get_mayaType = coreValid.get_mayaType
-get_transform = coreValid.get_transform 
+is_shape = VALID.is_shape
+is_transform = VALID.is_transform    
+get_mayaType = VALID.get_mayaType
+get_transform = VALID.get_transform 
 
 def get_tag(node = None, tag = None):
     """
@@ -50,7 +50,7 @@ def get_tag(node = None, tag = None):
         status(bool)
     """   
     _str_func = 'get_tag'
-    _node = coreValid.stringArg(node,False,_str_func) 
+    _node = VALID.stringArg(node,False,_str_func) 
     
     if (mc.objExists('%s.%s' %(_node,tag))) == True:
         messageQuery = (mc.attributeQuery (tag,node=_node,msg=True))
@@ -58,7 +58,7 @@ def get_tag(node = None, tag = None):
             returnBuffer = attributes.returnMessageData(_node,tag,False)
             if not returnBuffer:
                 return False
-            elif coreValid.get_mayaType(returnBuffer[0]) == 'reference':
+            elif VALID.get_mayaType(returnBuffer[0]) == 'reference':
                 if attributes.repairMessageToReferencedTarget(_node,tag):
                     return attributes.returnMessageData(_node,tag,False)[0]
                 return returnBuffer[0]
@@ -84,7 +84,7 @@ def get_all_parents(node = None, shortNames = True):
         parents(list)
     """   
     _str_func = 'get_all_parents'
-    _node = coreValid.stringArg(node,False,_str_func) 
+    _node = VALID.stringArg(node,False,_str_func) 
     
     _l_parents = []
     tmpObj = node
@@ -287,6 +287,24 @@ def get_selectedFromChannelBox(attributesOnly = False):
                     _res.append("{0}.{1}".format(item,attr))
             return _res
     return False 
+
+def get_referencePrefix(node = None):
+    """
+    Get the reference prefix of a node...
+
+    :parameters:
+        node(str): What you want to get the keys of
+
+    :returns
+        list of keys(list)
+    """ 
+    _str_func = 'get_referencePrefix'
+    _node =  VALID.mNodeString(node)
+    
+    if mc.referenceQuery(_node, isNodeReferenced=True):
+        splitBuffer = _node.split(':')
+        return (':'.join(splitBuffer[:-1]))
+    return False
 
 
 

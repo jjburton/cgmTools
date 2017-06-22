@@ -35,7 +35,7 @@ from cgm.core.lib import position_utils as POS
 from cgm.core.lib import transform_utils as TRANS
 
 from cgm.core.lib import distance_utils as DIST
-from cgm.core.lib import name_utils as coreNames
+from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
 #import cgm.lib
 #import cgm.lib as cgmLIB
@@ -242,8 +242,401 @@ class cgmTest(r9Meta.MetaClass):
         log.info("setClass: {0}".format(setClass))			
         log.info("kws: {0}".format(kws))		
 
-
 class cgmNode(r9Meta.MetaClass):
+    def __init__(self,node = None, name = None,nodeType = 'network', **kws):
+            """ 
+            Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
+            """
+            _str_func = 'cgmNodeNew.__init__'
+            if node is None or name is not None and not mc.objExists(name):
+                createdState = True
+            else:createdState = False
+    
+            #ComponentMode ----------------------------------------------------------------------
+            componentMode = False
+            component = False	
+            if node is not None:
+                if VALID.is_component(node):
+                    componentMode = True
+                    component = node.split('.')[-1]
+                    node = node.split('.')[0]
+    
+            _autofill = kws.get('autofill',False)
+    
+            super(cgmNode, self).__init__(node,name = name,nodeType = nodeType,autofill = _autofill, **kws)
+    
+    
+            #>>> TO USE Cached instance ---------------------------------------------------------
+            if self.cached:
+                log.debug("|{0}| >> using cache: {1}".format(_str_func,self._lastDagPath))
+                return
+
+            #====================================================================================
+            #...see if extending unmanaged is necessary    	
+            for a in '__justCreatedState__','__componentMode__','__component__':
+                if a not in self.UNMANAGED:
+                    self.UNMANAGED.append(a)   	
+            try:
+                object.__setattr__(self, '__componentMode__', componentMode)
+                object.__setattr__(self, '__component__', component)
+                object.__setattr__(self, '__justCreatedState__', createdState)	    
+            except Exception, e:
+                log.error("|{0}| >> Failed to extend...".format(_str_func))                
+                r9Meta.printMetaCacheRegistry()                
+                for arg in e.args:
+                    log.error(arg)            
+                raise Exception,e
+
+    def hasAttr(self, attr):
+        '''
+        simple wrapper check for attrs on the mNode itself.
+        Note this is not run in some of the core internal calls in this baseClass
+        '''
+        if self.isValidMObject():
+            try:
+                _result = self._MFnDependencyNode.hasAttribute(attr)
+                if not _result:#..this pass gets the alias
+                    #Must rewrap the mobj, if you don't it kills the existing mNode and corrupts its cache entry
+                    #2011 bails because it lacks the api call anyway, 2012 and up work with this
+                    mobj=OM.MObject()
+                    selList=OM.MSelectionList()
+                    selList.add(self._MObject)
+                    selList.getDependNode(0,mobj)		    
+                    _result = self._MFnDependencyNode.findAlias(attr,mobj)
+                return _result
+            except Exception,e:
+                #log.error('hasAttr failure...{0}'.format(err))#...this was just to see if I had an error
+                for arg in e.args:
+                    log.error(arg)                  
+                return mc.objExists("{0}.{1}".format(self.mNode, attr)) 
+            
+    #========================================================================================================    
+    #>>> Overloads - Departures from red9's core...
+    #======================================================================================================== 
+    def __setMessageAttr__(self,attr,value, force = True, ignoreOverload = False,**kws):
+        if ignoreOverload:#just use Mark's
+            r9Meta.MetaClass.__setMessageAttr__(self,attr,value,**kws)
+        else:
+            ATTR.set_message(self.mNode, attr, value)   
+            
+    def addAttr(self, attr,value = None, attrType = None, enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
+        _str_func = 'addAttr'
+        
+        log.debug("|{0}| >> node: {1} | attr: {2} | attrType: {3}".format(_str_func,self.p_nameShort,attr, attrType))
+        
+        if attr not in self.UNMANAGED and not attr=='UNMANAGED':  
+            if self.hasAttr(attr):#Quick create check for initial value
+                initialCreate = False
+                if self.isReferenced():
+                    log.warning('This is a referenced node, cannot add attr: %s.%s'%(self.getShortName(),attr))
+                    return False
+                
+                #Conversion create
+                #validatedAttrType = attributes.validateRequestedAttrType(attrType)
+                if attrType is not None:
+                    validatedAttrType = ATTR.validate_attrTypeName(attrType)
+                    if validatedAttrType in ['string','float','double','long']:
+                        currentType = ATTR.get_type(self.mNode,attr)
+                        if currentType != validatedAttrType:
+                            log.info("cgmNode.addAttr >> %s != %s : %s.%s. Converting."%(validatedAttrType,currentType,self.getShortName(),attr))
+                            ATTR.convert_type(self.mNode,attr,validatedAttrType)
+                            #cgmAttr(self, attrName = attr, attrType=validatedAttrType)                
+            else:
+                initialCreate = True
+                if value is None and initialValue is not None:#If no value and initial value, use it
+                    value = initialValue
+            
+            if enumName is None and attrType is 'enum':
+                enumName = "off:on"		
+                
+            if value is not None and not attrType:
+                if VALID.isListArg(value):
+                    log.debug("|{0}| >> value arg and no attrType...{1}".format(_str_func,value))
+                    _good = True
+                    for v in value:
+                        if VALID.valueArg(v) is False:
+                            log.debug("|{0}| >> not a number: {1}".format(_str_func,v))
+                            _good = False
+                            break
+                    if _good and len(value) == 3:
+                        log.debug("|{0}| >> all values, setting to double3.{1}".format(_str_func,value))                        
+                        attrType = 'double3'
+
+            if attrType == 'enum':
+                r9Meta.MetaClass.addAttr(self,attr,value=value,attrType = attrType,enumName = enumName, *args,**kws)
+            else:
+                r9Meta.MetaClass.addAttr(self,attr,value=value,attrType = attrType, *args,**kws)	
+
+            if value is not None and r9Meta.MetaClass.__getattribute__(self,attr) != value: 
+                if ATTR.is_connected([self.mNode,attr]):
+                    ATTR.break_connection(self.mNode,attr)
+                self.__setattr__(attr,value,**kws)
+  
+            #Easy carry for flag handling - until implemented
+            #==============  
+            if keyable is not None or hidden is not None:
+                cgmAttr(self, attrName = attr, keyable=keyable,hidden = hidden)
+            if lock is not None:
+                mc.setAttr(('%s.%s'%(self.mNode,attr)),lock=lock)	
+
+            return True
+        return False
+    
+    #========================================================================================================
+    #>>> Names...
+    #========================================================================================================
+    def getNameShort(self):
+        return NAMES.short(self.mNode)
+   
+    def getNameLong(self):
+        return NAMES.long(self.mNode)
+    
+    def getNameBase(self):
+        return NAMES.base(self.mNode)	
+    
+    getShortName = getNameShort
+    getLongName = getNameLong
+    getBaseName = getNameBase
+
+    #Some name properties
+    p_nameShort = property(getNameShort)
+    p_nameLong = property(getNameLong)
+    p_nameBase = property(getNameBase)   
+    
+    #Reference Prefix
+    #==============    
+    def getReferencePrefix(self):
+        return SEARCH.get_referencePrefix(self)
+    p_referencePrefix = property(getReferencePrefix)   
+    
+    #cgmNaming stuff...
+    #================================================================
+    def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,fastName = True,**kws):
+        """
+        Rename an object with our name tag system
+        
+        :parameters:
+            sceneUnique(bool): Whether to make a scene unique name
+            nameChildren(bool): Whether to rename children
+            fastIterate(bool)
+            fastName(bool)
+            
+        :returns
+            newName(str)
+        """   
+        if fastName:
+            d_updatedNamesDict = self.getNameDict()
+            ignore = kws.get('ignore') or []
+            if 'cgmName' not in d_updatedNamesDict.keys():
+                if self.getMayaType() !='group' and 'cgmName' not in ignore:
+                    d_updatedNamesDict['cgmName'] = self.getShortName()
+
+            _str_nameCandidate =  nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
+            mc.rename(self.mNode, _str_nameCandidate	)
+        else:
+            if sceneUnique:
+                log.error("Remove this cgmNode.doName sceneUnique call")
+            if self.isReferenced():
+                log.error("'%s' is referenced. Cannot change name"%self.mNode)
+                return False	
+            #Name it
+            NameFactory(self).doName(nameChildren = nameChildren,fastIterate=fastIterate,**kws)	  
+        return self.mNode
+            
+    def getNameDict(self):
+        return nameTools.returnObjectGeneratedNameDict(self.mNode) or {}  
+    
+    def getNameAlias(self):
+        if self.hasAttr('cgmAlias'):
+            return self.cgmAlias
+        buffer =  nameTools.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
+        if buffer:return buffer
+        else:return self.getBaseName()
+        
+    def doCopyNameTagsFromObject(self,target,ignore=[False]):
+        """
+        Get name tags from a target object (connected)
+
+        Keywords
+        ignore(list) - tags to ignore
+
+        Returns
+        success(bool)
+        """
+        _str_func = 'doCopyNameTagsFromObject'
+        
+        log.debug("|{0}| >> node: {1} | target: {2} | ignore: {3}".format(_str_func,self.p_nameShort,target, ignore))
+        
+        if type(ignore) not in [list,tuple]:ignore = [ignore]
+        
+        assert mc.objExists(target),"Target doesn't exist"
+        
+        targetCGM = nameTools.returnObjectGeneratedNameDict(target,ignore = ignore)
+        #cgmGeneral.log_info_dict(targetCGM)
+        didSomething = False
+
+        for tag in targetCGM.keys():
+            #log.debug("..."+tag)
+            if tag not in ignore and targetCGM[tag] not in [None,False]:
+                if ATTR.has_attr(target,tag):
+                    ATTR.copy_to(target,tag,self.mNode)
+                    #ATTR.copy_to(target,tag,
+                                          #self.mNode,connectTargetToSource=False)
+                    didSomething = True
+        #self.update()
+        return didSomething
+
+    #========================================================================================================
+    #>>> Transforms...
+    #========================================================================================================
+    def getParent(self,asMeta = False):
+        buffer = TRANS.parent_get(self)
+        if buffer and asMeta:
+            return validateObjArg(buffer,mType = cgmObject)
+        return buffer
+
+    p_parent = property(getParent)
+    parent = p_parent
+    
+    #========================================================================================================     
+    #>>> Attributes 
+    #========================================================================================================      
+    def attr_isKeyed(self,attr):
+        return ATTR.is_keyed([self.mNode,attr])
+        #return ATTR.is_keyed(self, *a,**kws)
+    
+    def attr_isConnected(self,attr):
+        return ATTR.is_connected([self.mNode,attr])
+    
+    def attr_storeInfo(self,*a,**kws):
+        return ATTR.store_info(self.mNode,*a,**kws)
+    doStore = attr_storeInfo
+    
+    def doRemove(self,a):
+        _str_func = 'doRemove'
+        log.warning("|{0}| >> please remove call...".format(_str_func))
+        return self.delAttr(a)
+    
+    #========================================================================================================     
+    #>>> Query 
+    #========================================================================================================     
+    def getMayaType(self):
+        return VALID.get_mayaType(self.mNode)
+    
+    #========================================================================================================     
+    #>>> Message stuff 
+    #========================================================================================================        
+    def getMessage(self,attr,fullPath = True):
+        """
+        This maybe odd to some, but we treat traditional nodes as regular message connections. However, sometimes, you want a message like connection
+        to an attribute. To do this, we devised a method of creating a compaptble attr on the object to recieve the message, 
+        connecting the attribute you want to connect to that attribute and then when you call an attribute as getMessage, if it is not a message attr
+        it tries to trace back that connection to an attribute.
+        """
+        _res = ATTR.get_message(self.mNode,attr,simple=True)
+        if _res and fullPath:
+            return [NAMES.long(o) for o in _res]
+        return _res    
+    
+    def getMessageAsMeta(self,attr):
+        """
+        This is for when you need to build a attr name in 
+        """
+        _str_func = 'getMessageAsMeta'
+        buffer = self.getMessage(attr)
+        if not buffer:
+            return False
+        if '.' in buffer:
+            try:return validateAttrArg(buffer)['mi_plug']
+            except Exception,e:
+                log.error("|{0}| >> Failed to query attr: {1}.{2} ...".format(_str_func,self.p_nameShort,attr))                                
+                for arg in e.args:
+                    log.error(arg)      
+                raise Exception,e
+        if len(buffer) == 1:
+            return validateObjArg(buffer)
+        else:
+            return validateObjListArg(buffer)
+    #========================================================================================================     
+    #>>> msgLists... 
+    #========================================================================================================        
+    def msgList_connect(self,*a,**kws):
+        """
+        Append node to msgList
+
+        Returns index
+        """
+        return ATTR.msgList_connect(self.mNode,*a,**kws)
+    
+    def msgList_get(self,*a,**kws):
+        """
+        Append node to msgList
+
+        Returns index
+        """
+        _asMeta = kws.get('asMeta',True)
+        
+        try:kws.pop('asMeta')
+        except:pass
+        
+        _res = ATTR.msgList_get(self.mNode,*a,**kws)
+        if _asMeta:
+            return validateObjListArg(_res)
+        return _res
+
+    def msgList_append(self,*a,**kws):
+        """
+        Append node to msgList
+
+        Returns index
+        """
+        return ATTR.msgList_append(self.mNode,*a,**kws)
+      
+
+    def msgList_index(self,*a,**kws):
+        """
+        Return the index of a node if it's in a msgList
+        """
+        return ATTR.msgList_index(self.mNode,*a,**kws)
+    
+
+    def msgList_remove(self,*a,**kws):
+        """
+        Return the index of a node if it's in a msgList
+        """
+        return ATTR.msgList_remove(self.mNode,*a,**kws)
+  
+
+    def msgList_purge(self,*a,**kws):
+        """
+        Purge all the attributes of a msgList
+        """
+        return ATTR.msgList_purge(self.mNode,*a,**kws)
+        
+
+    def msgList_clean(self,*a,**kws):
+        """
+        Removes empty entries and pushes back
+        """
+        return ATTR.msgList_clean(self.mNode,*a,**kws)
+
+
+    def msgList_exists(self,*a,**kws):
+        """
+        Fast check to see if we have data on this attr chain
+        """
+        return ATTR.msgList_exists(self.mNode,*a,**kws)
+        
+
+    def get_sequentialAttrDict(self,attr = None):
+        """
+        Get a sequential attr dict. Our attr should be listed without the tail '_'
+        ex: {0: u'back_to_back_0', 1: u'back_to_back_1'}
+        """
+        return ATTR.get_sequentialAttrDict(self.mNode,attr)
+    
+                
+class cgmNodeOLD(r9Meta.MetaClass):
     #def __bind__(self):pass	
     def __init__(self,node = None, name = None,nodeType = 'network', **kws):
         """ 
@@ -1098,14 +1491,14 @@ class cgmNode(r9Meta.MetaClass):
         return enums[self.getAttr(attr)]
 
     def getShortName(self):
-        return coreNames.get_short(self.mNode)
+        return NAMES.get_short(self.mNode)
 
     def getBaseName(self):
-        return coreNames.get_base(self.mNode)
+        return NAMES.get_base(self.mNode)
 
 
     def getLongName(self):
-        return coreNames.get_long(self.mNode)	
+        return NAMES.get_long(self.mNode)	
 
     #Some name properties
     p_nameShort = property(getShortName)
@@ -2478,13 +2871,13 @@ class cgmObjectSet(cgmNode):
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Data
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-    def doesContain(self,obj):
-        assert mc.objExists(obj),"'%s' doesn't exist"%obj
-        buffer = mc.ls(obj,shortNames=True)        
+    def contains(self,obj):
+        _short = NAMES.short(obj)
         for o in self.getList():
-            if str(o) ==  buffer[0]:
+            if NAMES.short(o) == _short:
                 return True
         return False
+    doesContain = contains
 
     def getParents(self):
         """ 
@@ -2527,7 +2920,7 @@ class cgmObjectSet(cgmNode):
 
         """
         if not mc.objExists(info):
-            log.warning("'%s' doesn't exist. Cannot add to object set."%info)
+            log.debug("'%s' doesn't exist. Cannot add to object set."%info)
             return False
         if info == self.mNode:
             return False
@@ -2541,8 +2934,8 @@ class cgmObjectSet(cgmNode):
         except Exception, error:
             log.error("'append fail | {0}' failed to add to '{1}' | {2}"%(info,self.mNode,error))    
 
-    def addObj(self,info,*a,**kws):  
-        self.append(info,*a,**kws)
+    addObj = append
+    add = append
 
     def addSelected(self): 
         """ Store selected objects """
@@ -2566,7 +2959,7 @@ class cgmObjectSet(cgmNode):
         if not SelectCheck:
             log.warning("No selection found")   
 
-    def removeObj(self,info,*a,**kw):
+    def remove(self,info,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
         buffer = mc.ls(info,shortNames=True)   
         info = buffer[0]
@@ -2580,7 +2973,7 @@ class cgmObjectSet(cgmNode):
 
         except:
             log.error("'%s' failed to remove from '%s'"%(info,self.mNode))    
-
+    removeObj = remove
     def removeSelected(self): 
         """ Store elected objects """
         SelectCheck = False
@@ -2615,17 +3008,15 @@ class cgmObjectSet(cgmNode):
 
     def copy(self):
         """ Duplicate a set """
-        try:
-            buffer = mc.sets(name = ('%s_Copy'%self.mNode), copy = self.mNode)
-            log.debug("'%s' duplicated!"%(self.mNode))
+        buffer = mc.sets(name = ('%s_Copy'%self.mNode), copy = self.mNode)
+        log.debug("'%s' duplicated!"%(self.mNode))
 
-            for attr in dictionary.cgmNameTags:
-                if mc.objExists("%s.%s"%(self.mNode,attr)):
-                    ATTR.copy_to(self.mNode,attr,buffer)
+        for attr in dictionary.cgmNameTags:
+            if mc.objExists("%s.%s"%(self.mNode,attr)):
+                ATTR.copy_to(self.mNode,attr,buffer)
 
-            return buffer
-        except:
-            log.error("'%s' failed to copy"%(self.mNode)) 
+        return cgmObjectSet(buffer)
+
 
     def select(self):
         """ 
@@ -5022,7 +5413,274 @@ def asMeta(*args,**kws):
         log.error("...cgmMeta.asMeta failure --------------------------------------------------")
         raise Exception,error
 
-def validateObjArg(*args,**kws):
+def validateObjArg(arg = None, mType = None, noneValid = False, default_mType = 'cgmNode', mayaType = None, setClass = False):
+    """
+    validate an objArg to be able to get instance of the object
+
+    @kws
+    0 - 'arg'(mObject - None) -- mObject instance or string
+    1 - 'mType'(mClass - None) -- what mType to be looking for
+    2 - 'noneValid'(bool - False) -- Whether None is a valid argument or not
+    3 - 'default_mType'(mClass - <class 'cgm.core.cgm_Meta.cgmNode'>) -- What type to initialize as if no mClass is set
+    4 - 'mayaType'(str/list - None) -- If the object needs to be a certain object type
+    5 - 'setClass'
+    """    
+    _str_fun = 'validateObjArg'
+    
+
+    #Pull kws local ====================================================================
+    #arg = _d_kws['arg']
+    #mType = _d_kws['mType']
+    #noneValid = _d_kws['noneValid']
+    #default_mType = _d_kws['default_mType']
+    #mayaType = _d_kws['mayaType']		
+    #setClass = _d_kws['setClass']	
+    mTypeClass = False
+    _r9ClassRegistry = r9Meta.getMClassMetaRegistry()
+    _convert = False
+
+    if mType is not None:
+        t1 = time.clock()
+        if not type(mType) in [unicode,str]:
+            try: mType = mType.__name__
+            except Exception,error:
+                raise ValueError,"mType not a string and not a usable class name. mType: {0}".format(mType)	
+        if mType not in _r9ClassRegistry:
+            raise ValueError,"mType not found in class registry. mType: {0}".format(mType)
+        t2 = time.clock()
+        log.debug("initial mType... %0.6f"%(t2-t1))
+    #------------------------------------------------------------------------------------
+    _mi_arg = False
+
+    argType = type(arg)
+    if argType in [list,tuple]:#make sure it's not a list
+        if len(arg) ==1:
+            arg = arg[0]
+        elif arg == []:
+            arg = None
+        else:raise ValueError,"arg cannot be list or tuple or longer than 1 length: %s"%arg	
+        
+    if not noneValid:
+        if arg in [None,False]:
+            raise ValueError,"Invalid arg({0}). noneValid = False".format(arg)
+    else:
+        if arg in [None,False]:
+            if arg not in [None,False]:log.warning("%s arg fail: %s"%(__str_reportStart,arg))
+            return False
+    try:
+        arg.mNode
+        _mi_arg = arg
+        _arg = arg.mNode
+        log.debug("instance already...")		
+    except:
+        log.debug("not an instance arg...")
+        try:_arg = names.getLongName(arg)
+        except Exception,err:
+            if noneValid:return False
+            raise Exception,err
+    if not _arg:
+        if noneValid:return False
+        else:
+            raise ValueError,"'{0}' is not a valid arg. Validated to {1}".format(arg,_arg)
+
+    _argShort = names.getShortName(_arg)
+
+    log.debug("Checking: '{0} | mType: {1}'".format(_arg,mType))
+    mTypeClass = _r9ClassRegistry.get(mType)
+
+    if mayaType is not None and len(mayaType):
+        t1 = time.clock()		
+        log.debug("Checking mayaType...")
+        if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
+        else: l_mayaTypes = mayaType
+        #str_type = search.returnObjectType(_mi_arg.getComponent())
+        str_type = search.returnObjectType(_arg)
+        if str_type not in l_mayaTypes:
+            if noneValid:
+                log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(__str_reportStart,_argShort,str_type,l_mayaTypes))
+                return False
+            raise StandardError,"'%s' mayaType: '%s' not in: '%s'"%(_argShort,str_type,l_mayaTypes)			    	
+        t2 = time.clock()
+        log.debug("mayaType not None time... %0.6f"%(t2-t1))		    
+
+    #Get our cache key
+    _mClass = ATTR.get(_argShort,'mClass')
+
+    _UUID2016 = False#...a flag to see if we need a reg UUID attr 
+    try:_UUID2016= mc.ls(_argShort, uuid=True)[0]
+    except:pass
+
+    if _UUID2016:
+        log.debug(">2016 UUID: {0}...".format(_UUID2016))
+        _UUID = _UUID2016
+        try:
+            ATTR.delete(_argShort,'UUID')				    
+            log.debug("Clearing attr UUID...")
+        except:pass
+    else:
+        _UUID = ATTR.get(_argShort,'UUID')
+
+    log.debug("Cache keys|| UUID: {0} | mClass: {1}".format(_UUID,_mClass))
+    _wasCached = False
+
+    #See if it's in the cache
+    _keys = r9Meta.RED9_META_NODECACHE.keys()
+    _cacheKey = None
+    _cached = None
+    _unicodeArg = unicode( _arg)
+
+    if _UUID in _keys:
+        _cacheKey = _UUID
+        _cached = r9Meta.RED9_META_NODECACHE.get(_UUID)
+    elif _unicodeArg in _keys:
+        _cacheKey = _unicodeArg
+        _cached = r9Meta.RED9_META_NODECACHE.get(_unicodeArg)	
+
+    #_cached = r9Meta.RED9_META_NODECACHE.get(_UUID,None) or r9Meta.RED9_META_NODECACHE.get(_arg,None)
+    log.debug("cacheKey: {0}".format(_cacheKey))
+
+    if _cached is not None:
+        t1 = time.clock()		
+        log.debug("Already cached")
+        _cachedMClass = ATTR.get(_arg,'mClass') or False
+        _cachedType = type(_cached)
+        log.debug("Cached mNode: {0}".format(_cached.mNode))		
+        log.debug("Cached mClass: {0}".format(_cachedMClass))
+        log.debug("Cached Type: {0}".format(_cachedType))
+        _change = False
+        _redo = False
+        #...gonna see if our cache is obviously wrong
+        if _arg != _cached.mNode:
+            log.debug("mNodes don't match. Need new UUID our our new arg")
+            log.debug("Clearing UUID...")
+            #ATTR.delete(_arg,'UUID')	
+            try:ATTR.set(_argShort,'UUID','')
+            except:pass		    
+            _redo = True
+
+        elif _cachedType == mTypeClass:
+            log.debug("cachedType({0}) match ({1})".format(_cachedType,mTypeClass))
+            if setClass and not _cachedMClass:
+                log.debug("...ensuring proper categorization next time")
+                try:ATTR.add(_argShort, 'mClass','string')
+                except:pass		    
+                try:ATTR.add(_argShort,'UUID','string')
+                except:pass
+                ATTR.set(_argShort,'mClass',mType,True)
+            return _cached
+
+        elif _cachedMClass:#...check our types and subclass stuff
+            if mType is not None:
+                if _cachedType != mTypeClass:
+                    log.debug("cached Type doesn't match({0})".format(mTypeClass))			    			
+                    _change = True
+                elif _cachedMClass != mType:
+                    log.debug("mClass value ({0}). doesn't match({1})".format(_cachedMClass,mType))
+                    _change = True
+
+                #attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
+                #ATTR.add(_arg,'UUID','string')
+
+        else:
+            log.debug("No cached mClass or type")
+            _change = True
+
+            if issubclass(type(_cached), mTypeClass ):
+                log.debug("subclass match")
+                _change = False
+                if setClass:
+                    log.debug("subclass match not good enough")
+                    _change = True
+
+        if _change:
+            log.debug("..subclass check")
+            if issubclass(_cachedType, mTypeClass) and not setClass:
+                log.debug("...but is subclass")
+                _change = False
+            else:
+                log.debug("...not a subclass")			
+
+        if not _change and not _redo:
+            t2 = time.clock()
+            log.debug("Cache good %0.6f"%(t2-t1))		    
+            return _cached
+        elif _change:
+            log.debug("conversion necessary.removing from cache")
+            _wasCached = True
+            if _cachedMClass:
+                log.debug("Clearing mClass...")
+                #_cached.mClass = ''
+                ATTR.delete(_argShort,'mClass')
+            if _UUID:
+                log.debug("Clearing UUID...")
+                ATTR.delete(_argShort,'UUID')			
+                #_cached.UUID = ''			
+            r9Meta.RED9_META_NODECACHE.pop(_cacheKey)
+
+        t2 = time.clock()
+        log.debug("Cache check %0.6f"%(t2-t1))	
+
+    if mType:
+        t1 = time.clock()				    		
+        if setClass or _wasCached:
+            log.debug("setClass...")
+            #attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
+            t_attr = time.clock()				    		
+            try:ATTR.add(_argShort, 'mClass','string')
+            except:pass		    
+            try:
+                if not _UUID2016:
+                    ATTR.add(_argShort,'UUID','string')
+            except:pass
+            ATTR.set(_argShort,'mClass',mType,True)
+            t2 = time.clock()		    
+            log.debug("attrSet %0.6f"%(t2-t_attr))	
+            log.debug("setClass %0.6f"%(t2-t1))	
+        else:
+            t2 = time.clock()
+            log.debug("no setClass. Returning %0.6f"%(t2-t1))	
+
+        _mClass = ATTR.get(_argShort,'mClass')
+        if _mClass and _mClass not in _r9ClassRegistry:
+            raise ValueError,"stored mClass not found in class registry. mClass: {0}".format(_mClass)		
+        _mi_arg =  mTypeClass(_argShort)
+    else:
+        t1 = time.clock()				    				
+        log.debug("no mType arg...")
+        if _mClass:
+            if _mClass not in _r9ClassRegistry:
+                raise ValueError,"stored mClass not found in class registry. mClass: {0}".format(_mClass)			
+            mTypeClass = _r9ClassRegistry.get(_mClass)
+            log.debug("mClass registered... '{0}' | {1}".format(_argShort,mTypeClass))		    
+            _mi_arg =  mTypeClass(_argShort)
+        else:
+            if default_mType:
+                log.debug("no mType.Using default...")
+                if not type(default_mType) in [unicode,str]:
+                    try: default_mType = default_mType.__name__
+                    except Exception,error:
+                        raise ValueError,"mType not a string and not a usable class name. default_mType: {0}".format(default_mType)				
+                try:_mi_arg =  _r9ClassRegistry.get(default_mType)(_argShort)
+                except Exception,error:
+                    raise Exception,"default mType ({1}) initialization fail | {0}".format(error,default_mType)				
+            elif isTransform(_argShort):
+                log.debug("Transform...")
+                try:_mi_arg = cgmObject(_argShort) 
+                except Exception,error:
+                    raise Exception,"cgmObject initialization fail | {0}".format(error)	
+            else:
+                log.debug("Node...")
+                try:_mi_arg = cgmNode(_argShort) 
+                except Exception,error:
+                    raise Exception,"cgmNode initialization fail | {0}".format(error)	
+        log.debug("leaving mType None...")
+        t2 = time.clock()
+        log.debug("... %0.6f"%(t2-t1))				
+
+    log.debug("Returning...{0}".format(_mi_arg))
+    return _mi_arg	  
+
+def validateObjArgOLD(*args,**kws):
     """
     validate an objArg to be able to get instance of the object
 
@@ -5311,7 +5969,13 @@ def validateObjArg(*args,**kws):
             return self.mi_arg	  
     return fncWrap(*args,**kws).go()  
 
-def validateObjArgOLD(*args,**kws):
+
+
+
+
+
+
+def validateObjListArg(l_args = None, mType = None, noneValid = False, default_mType = 'cgmNode', mayaType = None, setClass = False,**kws):
     """
     validate an objArg to be able to get instance of the object
 
@@ -5323,230 +5987,15 @@ def validateObjArgOLD(*args,**kws):
     4 - 'mayaType'(str/list - None) -- If the object needs to be a certain object type
     5 - 'setClass'
     """    
-    class fncWrap(cgmGeneral.cgmFuncCls):
-        def __init__(self,*args,**kws):
-            """
-            """	
-            super(fncWrap, self).__init__(*args, **kws)
-            self._str_funcName= "validateObjArgOLD"
-            #self._b_reportTimes = True	    
-            self._l_ARGS_KWS_DEFAULTS = [{'kw':'arg',"default":None,'help':"mObject instance or string","argType":"mObject"},
-                                         {'kw':'mType',"default":None,'help':"what mType to be looking for","argType":"mClass"},
-                                         {'kw':'noneValid',"default":False,'help':"Whether None is a valid argument or not","argType":"bool"},
-                                         {'kw':'default_mType',"default":None,'help':"What type to initialize as if no mClass is set","argType":"mClass"},
-                                         {'kw':'mayaType',"default":None,'help':"If the object needs to be a certain object type","argType":"str/list"},
-                                         {'kw':'setClass',"default":None,'help':"Flag for reinitialization to this class","argType":"bool"}]	                                 
-            self.__dataBind__(*args,**kws)
-            #=================================================================
-
-        def __func__(self,*args,**kws):
-            #Pull kws local ====================================================================
-            arg = self.d_kws['arg']
-            mType = self.d_kws['mType']
-            noneValid = self.d_kws['noneValid']
-            default_mType = self.d_kws['default_mType']
-            mayaType = self.d_kws['mayaType']		
-            setClass = self.d_kws['setClass']	
-            mTypeClass = False
-            _r9ClassRegistry = r9Meta.getMClassMetaRegistry()
-            if mType is not None:
-                t1 = time.clock()
-                if not type(mType) in [unicode,str]:
-                    try: mType = mType.__name__
-                    except Exception,error:
-                        raise ValueError,"mType not a string and not a usable class name. mType: {0}".format(mType)	
-                if mType not in _r9ClassRegistry:
-                    raise ValueError,"mType not found in class registry. mType: {0}".format(mType)
-                t2 = time.clock()
-                self.log_debug("initial mType... %0.6f"%(t2-t1))
-            #------------------------------------------------------------------------------------
-            self.mi_arg = False
-
-            argType = type(arg)
-            if argType in [list,tuple]:#make sure it's not a list
-                if len(arg) ==1:
-                    arg = arg[0]
-                elif arg == []:
-                    arg = None
-                else:raise ValueError,"arg cannot be list or tuple or longer than 1 length: %s"%arg	
-            if not noneValid:
-                if arg in [None,False]:
-                    raise ValueError,"arg cannot be None"
-            else:
-                if arg in [None,False]:
-                    if arg not in [None,False]:log.warning("%s arg fail: %s"%(self._str_reportStart,arg))
-                    return False
-            try:
-                arg.mNode
-                self.mi_arg = arg
-                arg = arg.mNode
-                self.log_debug("instance already...")		
-            except:
-                self.mi_arg = False
-                #if noneValid:
-                    #self.log_debug("Valid none arg...")
-                    #return False	    
-            self.log_debug("Checking: '{0}'".format(arg))	
-
-            if not self.mi_arg:
-                #if we don't have an mi_arg so we're gonna get one
-                self.log_debug("non metaArg passed...")		
-                t1 = time.clock()
-
-                if not mc.objExists(arg):
-                    if noneValid:
-                        self.log_debug("Valid none arg...")
-                        return False
-                    else:raise ValueError,"Obj doesn't exist: '{0}'".format(arg)
-
-                if mType is None:
-                    self.log_debug("no mType arg...")
-                    if default_mType:
-                        self.log_debug("no mType.Using default...")
-                        if not type(default_mType) in [unicode,str]:
-                            try: default_mType = default_mType.__name__
-                            except Exception,error:
-                                raise ValueError,"mType not a string and not a usable class name. default_mType: {0}".format(default_mType)				
-
-                        try:self.mi_arg = _r9ClassRegistry.get(default_mType)(arg)
-                        except Exception,error:
-                            raise Exception,"default mType ({1}) initialization fail | {0}".format(error,default_mType)				
-                    elif isTransform(arg):
-                        self.log_debug("Transform...")
-                        try:self.mi_arg = cgmObject(arg) 
-                        except Exception,error:
-                            raise Exception,"cgmObject initialization fail | {0}".format(error)	
-                    else:
-                        self.log_debug("Node")
-                        try:self.mi_arg = cgmNode(arg) 
-                        except Exception,error:
-                            raise Exception,"cgmNode initialization fail | {0}".format(error)	
-                    self.log_debug("leaving mType None...")
-                    t2 = time.clock()
-                    self.log_debug("... %0.6f"%(t2-t1))		    
-            try:#...mType check
-                if mType is not None:
-                    self.log_debug("checking mType: {0}".format(mType))
-                    t1 = time.clock()
-
-                    self.log_debug("mi_arg: {0}".format(self.mi_arg))
-
-                    mTypeClass = _r9ClassRegistry.get(mType)
-
-                    if arg is None:
-                        if self.mi_arg:
-                            arg = self.mi_arg.mNode
-                        else:
-                            raise Exception,"We need an arg by now."
-
-                    self.str_foundMClass = ATTR.get(arg,'mClass')
-                    _convert = False
-                    t2 = time.clock()
-                    self.log_debug("mType not None logic... %0.6f"%(t2-t1))		    
-                    if self.str_foundMClass:
-                        self.log_debug("foundMClass: {0}".format(self.str_foundMClass))
-                        t1 = time.clock()			
-                        if self.str_foundMClass == mType:
-                            self.log_debug("mType Matches")
-                            if not self.mi_arg:
-                                #self.mi_arg = r9Meta.MetaClass(arg)
-                                self.mi_arg = mTypeClass(arg)
-                        elif setClass:
-                            self.log_debug("mType doesn't match")
-                            _convert = True
-                        #else:
-                            #raise Exception,"Found class('{0}') doesn't match mType('{1}') and setClass flag not on.".format(self.str_foundMClass,mType)
-                        t2 = time.clock()
-                        self.log_debug("... %0.6f"%(t2-t1))			    
-                    else:
-                        self.log_debug("No found mClass")
-
-                    if not self.mi_arg:
-                        self.mi_arg = mTypeClass(arg)
-
-                    try:
-                        if not issubclass(type(self.mi_arg), mTypeClass ):
-                            self.log_debug("subclass match fail. need to convert...")
-                            if setClass:
-                                _convert = True
-                            else:
-                                raise Exception,"[setClass False. mTypeClass: {0} | type:{1}]".format(mTypeClass,
-                                                                                                      type( self.mi_arg))
-                    except Exception,error:
-                        raise Exception,"[subclass match check failure | {0} ]".format(error)
-
-
-
-                    if _convert:#....conversion
-                        t1 = time.clock()			
-                        self.log_debug("Converting to {0}.".format(mType))
-                        try: 
-                            #_bfr = cgmNode(arg).convertMClassType(mType)
-                            try:_node = cgmNode(arg)
-                            except Exception,error:raise Exception,"Intial! | {0}".format(error)
-                            self.log_debug("initial... %0.6f"%(time.clock()-t1))						    
-                            self.log_debug(_node)
-                            try:r9Meta.removeFromCache(_node)
-                            except Exception,error:raise Exception,"remove! | {0} | node: {1}".format(error,_node)			    
-                            self.log_debug("remove... %0.6f"%(time.clock()-t1))			
-
-                            try:_bfr = r9Meta.convertMClassType(_node,mType)
-                            except Exception,error:raise Exception,"conversion! | {0}".format(error)	
-                            self.log_debug("convert... %0.6f"%(time.clock()-t1))			
-
-                        except Exception,error:
-                            raise Exception,"Convsersion fail! | {0}".format(error)
-                        self.mi_arg = _bfr
-                        t2 = time.clock()
-                        self.log_debug("Convert time... %0.6f"%(t2-t1))			
-                    #raise Exception,"Found class doesn't match mType and setClass flag not on."
-
-
-            except Exception,error:
-                raise Exception,"mType check fail | {0}".format(error)
-
-            if not self.mi_arg:
-                raise Exception,"We should have an instance by now!"
-
-            if setClass:
-                t1 = time.clock()		
-                if not self.mi_arg.hasAttr('mClass'):
-                    self.log_debug("Adding mClass attr")
-                    self.mi_arg.addAttr('mClass',type(self.mi_arg).__name__,lock = True)
-                    self.log_debug("add mClass attr... %0.6f"%(time.clock()-t1))					    
-
-                #if not self.mi_arg.cached:
-                    #Only cache if setClass...???
-                try:
-                    if not self.mi_arg.cached or not self.mi_arg.hasAttr('UUID'):
-                        self.log_debug("Caching...")
-                        self.mi_arg.addAttr('UUID',attrType = 'string',lock = True)				
-                        r9Meta.registerMClassNodeCache(self.mi_arg)
-                        self.log_debug("cache... %0.6f"%(time.clock()-t1))			
-
-                except Exception,error:
-                    raise Exception,"Caching fail | {0}".format(error)
-                t2 = time.clock()
-                self.log_debug("setClass time... %0.6f"%(t2-t1))		
-            if mayaType is not None and len(mayaType):
-                t1 = time.clock()		
-                self.log_debug("Checking mayaType...")
-                if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
-                else: l_mayaTypes = mayaType
-                str_type = search.returnObjectType(self.mi_arg.getComponent())
-                if str_type not in l_mayaTypes:
-                    if noneValid:
-                        log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(self._str_reportStart,self.mi_arg.p_nameShort,str_type,l_mayaTypes))
-                        return False
-                    raise StandardError,"'%s' mayaType: '%s' not in: '%s'"%(self.mi_arg.p_nameShort,str_type,l_mayaTypes)			    	
-                t2 = time.clock()
-                self.log_debug("mayaType not None time... %0.6f"%(t2-t1))	    
-            self.log_debug("Returning...")
-            return self.mi_arg	  
-
-    return fncWrap(*args,**kws).go()
-
-def validateObjListArg(*args,**kws):
+    _str_fun = 'validateObjArg'
+    if type(l_args) not in [list,tuple]:l_args = [l_args]
+    returnList = []
+    for arg in l_args:
+        buffer = validateObjArg(arg,**kws)
+        if buffer:returnList.append(buffer)
+    return returnList	        
+    
+def validateObjListArgOLD(*args,**kws):
     """
     validate an objArg to be able to get instance of the object
 

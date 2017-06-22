@@ -390,13 +390,13 @@ def parents_get(node = None, fullPath = True):
     _node =  VALID.mNodeString(node)
     
     _l_parents = []
-    tmpObj = node
+    tmpObj = _node
     noParent = False
     while noParent == False:
         tmpParent = mc.listRelatives(tmpObj,allParents=True,fullPath=True)
         if tmpParent:
             if len(tmpParent) > 1:
-                raise ValueError,"Resolve what to do with muliple parents...{0} | {1}".format(node,tmpParent)
+                raise ValueError,"Resolve what to do with muliple parents...{0} | {1}".format(_node,tmpParent)
             _l_parents.append(tmpParent[0])
             tmpObj = tmpParent[0]
         else:

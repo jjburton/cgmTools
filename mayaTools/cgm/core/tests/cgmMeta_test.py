@@ -25,7 +25,7 @@ from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.rigger import ModuleFactory as mFactory
 from cgm.core.rigger import PuppetFactory as pFactory
-import cgm.core.tests.test_validateArgs as test_validateArgs
+#import cgm.core.tests.test_validateArgs as test_validateArgs
 from cgm.core.cgmPy import os_Utils as cgmOS
 from cgm.core.cgmPy import path_Utils as cgmPath
 import maya.cmds as mc
@@ -93,7 +93,7 @@ def ut_AllTheThings(*args, **kws):
                                 ]                       
     return fncWrap(*args, **kws).go()
 
-def ut_cgmLibraries(*args, **kws):
+"""def ut_cgmLibraries(*args, **kws):
     class fncWrap(cgmGeneral.cgmFuncCls):
         '''
         Batch tester for cgm core library of functions
@@ -106,7 +106,7 @@ def ut_cgmLibraries(*args, **kws):
             self.__dataBind__(*args, **kws)
             self.l_funcSteps = [{'step':'validateArgs','call':test_validateArgs.main},
                                 ]
-    return fncWrap(*args, **kws).go()
+    return fncWrap(*args, **kws).go()"""
 
 def ut_cgmMeta(*args, **kws):
     class fncWrap(cgmGeneral.cgmFuncCls):

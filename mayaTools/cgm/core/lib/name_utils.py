@@ -72,6 +72,7 @@ def get_long(obj = None):
         raise ValueError,"{0} || More than one object with name".format(_str_func)
     raise ValueError("{0} || No object exists!".format(_str_func))
 long = get_long
+
 def get_base(obj = None):
     """
     Return the base name of an object. Base being without any '|' or what not
