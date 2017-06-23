@@ -60,10 +60,19 @@ class Test_cgmObject(unittest.TestCase):
         TRANS.set_random(pCube,posLocal = True, rotLocal = True)
         TRANS.set_random(nCube,posLocal = True, rotLocal = True)
         
+        
+        #Components ==============================================================================
+        _l_vtx = pCube.getComponents('vtx')
+        _l_face = pCube.getComponents('face')
+        self.assertEqual(len(_l_vtx),
+                         8)
+        self.assertEqual(len(_l_face),
+                         6)        
+        
         #Snap ==============================================================================
         TRANS.set_random(pCube2, posWorld=True,rotWorld = True)
     
-        pCube.snap(pCube2)
+        pCube.doSnap(pCube2)
         self.assertEqual(MATH.is_vector_equivalent(pCube.p_position,
                                                    pCube2.p_position),
                          True,"{0} != {1}".format(pCube.p_position, pCube2.p_position))        
@@ -72,7 +81,7 @@ class Test_cgmObject(unittest.TestCase):
                          True,"{0} != {1}".format(pCube.p_orient, pCube2.p_orient))          
         
         #Heirarchy ======================================================================
-        self.assertNotEqual(pCube.getSibblings(),
+        self.assertNotEqual(pCube.getSiblings(),
                             False)       
         
         
@@ -159,8 +168,8 @@ class Test_cgmObject(unittest.TestCase):
                                                    pCube.rotate),
                          False)
         
-        log.info(nCube)
-        log.info(pCube)
+        #log.info(nCube)
+        #log.info(pCube)
         nCube.p_orient = pCube.p_orient
         self.assertEqual(MATH.is_vector_equivalent(nCube.rotate,
                                                    pCube.rotate),
@@ -176,8 +185,15 @@ class Test_cgmObject(unittest.TestCase):
                          [4,4,4])      
         
         
- 
-        
+        #>> Pivots ===================================================================
+        pCube.p_rotatePivot = pCube2.p_rotatePivot
+        self.assertEqual(MATH.is_vector_equivalent(pCube.p_rotatePivot,
+                                                   pCube2.p_rotatePivot),
+                         True)          
+        pCube.p_scalePivot = pCube2.p_scalePivot
+        self.assertEqual(MATH.is_vector_equivalent(pCube.p_scalePivot,
+                                                   pCube2.p_scalePivot),
+                         True)          
         
         #self.assertNotEqual(nCube.p_orei,
         #                    pCube.p_posWorld)        
@@ -187,23 +203,31 @@ class Test_cgmObject(unittest.TestCase):
         #                        TRANS.position_get(pCube),
         #                        7)
         
-        #DrawOverride...?
-        #Copy pivot?
+        #>> draw override ======================
+        pCube.doOverrideColor(index = 20)
+        for mShape in pCube.getShapes(True):
+            self.assertEqual(mShape.overrideEnabled,
+                             True)    
+            self.assertEqual(mShape.overrideColor,
+                             20)            
+            
+        #>> Contraints ===================================================================
+        pCube2.p_parent = False
+        _contraint = mc.parentConstraint([pCube.mNode,nCube.mNode], pCube2.mNode, maintainOffset = True)
+        _mConstraint = cgmMeta.cgmNode(_contraint[0])
+        
+        self.assertEqual(pCube2.getConstraintsByDrivingObject(pCube.mNode,True),
+                         [_mConstraint])
+        self.assertItemsEqual([mObj.mNode for mObj in pCube2.getConstrainingObjects(True)],
+                              [pCube.mNode,nCube.mNode])
+        
+        self.assertEqual([_mConstraint],
+                         pCube2.getConstraintsTo(True))
+        
+        self.assertEqual(pCube2.getConstraintsFrom(True),
+                         [_mConstraint])
     
-    def holder(self):
-        try:#setDrawingOverrideSettings
-            self.pCube.overrideEnabled = 1     
-            TestDict = {'overrideColor':20,'overrideVisibility':1}
-            self.pCube.setDrawingOverrideSettings(TestDict, pushToShapes=True)
-    
-            assert self.pCube.overrideEnabled == 1
-            assert self.pCube.overrideColor == 20
-            assert self.pCube.overrideVisibility == 1
-    
-            for shape in self.pCube.getShapes():
-                for a in TestDict.keys():
-                    assert attributes.doGetAttr(shape,a) == TestDict[a],"'%s.%s' is not %s"%(shape,a,TestDict[a])
-        except Exception,error:raise Exception,"[Drawing overrides]{%s}"%error
+
   
 
 class Test_cgmObjectSet(unittest.TestCase):

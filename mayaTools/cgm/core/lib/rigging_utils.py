@@ -97,8 +97,8 @@ def match_orientation(obj = None, source = None,
     """   
     _str_func = 'match_orientation'
     
-    obj = valid_arg_single(obj, 'obj', _str_func)
-    source = valid_arg_single(source, 'source', _str_func) 
+    obj = VALID.mNodeString(obj)
+    source = VALID.mNodeString(source)
     
     log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
     log.debug("|{0}| >> source:{1}".format(_str_func,source))
@@ -204,8 +204,8 @@ def match_transform(obj = None, source = None,
     """   
     _str_func = 'match_transform'
     
-    obj = valid_arg_single(obj, 'obj', _str_func)
-    source = valid_arg_single(source, 'source', _str_func) 
+    obj = VALID.mNodeString(obj)
+    source = VALID.mNodeString(source)
     
     log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
     log.debug("|{0}| >> source:{1}".format(_str_func,source))
@@ -266,8 +266,8 @@ def copy_pivot(obj = None, source = None, rotatePivot = True, scalePivot = True)
         success(bool)
     """   
     _str_func = 'copy_pivot'
-    obj = valid_arg_single(obj, 'obj', _str_func)
-    source = valid_arg_single(source, 'source', _str_func) 
+    obj = VALID.mNodeString(obj)
+    source = VALID.mNodeString(source)
     
     log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
     log.debug("|{0}| >> source:{1}".format(_str_func,source))
@@ -475,7 +475,7 @@ def create_at(obj = None, create = 'null'):
     """   
     _str_func = 'create_at'
     
-    obj = valid_arg_single(obj, 'obj', _str_func)
+    obj = VALID.mNodeString(obj)
     _l_toCreate = ['null','joint','locator']
     _create = VALID.kw_fromList(create, _l_toCreate, calledFrom=_str_func)
     
@@ -536,28 +536,6 @@ def create_joint_at(obj = None):
 
  
 group_me = TRANS.group_me
-
-def snapDEPRECIATE(obj = None, source = None,
-         position = True, rotation = True, rotateAxis = True,
-         objPivot = 'rp', sourcePivot = 'rp'):
-    """
-    A bridge function utilizing both copy_pivot and copy_orientation in a single call
-    
-    :parameters:
-        obj(str): Object to modify
-        sourceObject(str): object to copy from
-        rotateOrder(bool): whether to copy the rotateOrder while preserving rotations
-        rotateAxis(bool): whether to copy the rotateAxis
-        rotatePivot(bool): whether to copy the rotatePivot
-        scalePivot(bool): whether to copy the scalePivot
-
-    :returns
-        success(bool)
-    """   
-    _str_func = 'match_transform'
-    
-    obj = valid_arg_single(obj, 'obj', _str_func)
-    source = valid_arg_single(source, 'source', _str_func)
     
 def override_color(target = None, key = None, index = None, rgb = None, pushToShapes = True):
     """
@@ -593,25 +571,29 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
     if not _shapes:
         raise ValueError,"|{0}|  >> Not a shape and has no shapes: '{1}'".format(_str_func,target)        
     
+    #log.info(key)
+    #log.info(index)
+    #log.info(rgb)
     if index is None and rgb is None and key is None:
         raise ValueError,"|{0}|  >> Must have a value for index,rgb or key".format(_str_func)
     
     #...little dummy proofing..
-    _type = type(key)
-    
-    if _type not in [str,unicode] :
-        log.debug("|{0}|  >> Not a string arg for key...".format(_str_func))
+    if key:
+        _type = type(key)
         
-        if rgb is None and issubclass(_type,list) or issubclass(_type,tuple):
-            log.debug("|{0}|  >> vector arg for key...".format(_str_func))            
-            rgb = key
-            key = None
-        elif index is None and issubclass(_type,int):
-            log.debug("|{0}|  >> int arg for key...".format(_str_func))            
-            index = key
-            key = None
-        else:
-            raise ValueError,"|{0}|  >> Not sure what to do with this key arg: {1}".format(_str_func,key)
+        if _type not in [str,unicode] :
+            log.debug("|{0}|  >> Not a string arg for key...".format(_str_func))
+            
+            if rgb is None and issubclass(_type,list) or issubclass(_type,tuple):
+                log.debug("|{0}|  >> vector arg for key...".format(_str_func))            
+                rgb = key
+                key = None
+            elif index is None and issubclass(_type,int):
+                log.debug("|{0}|  >> int arg for key...".format(_str_func))            
+                index = key
+                key = None
+            else:
+                raise ValueError,"|{0}|  >> Not sure what to do with this key arg: {1}".format(_str_func,key)
     
     _b_RBGMode = False
     _b_2016Plus = False

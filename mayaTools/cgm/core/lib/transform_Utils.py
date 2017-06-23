@@ -53,6 +53,10 @@ aim = SNAP.aim
 aim_atPoint = SNAP.aim_atPoint
 aim_atMidPoint = SNAP.aim_atMidPoint
 verify_aimAttrs = SNAP.verify_aimAttrs
+
+bbSize_get = POS.get_bb_size
+bbCenter_get = POS.get_bb_center
+
 """
     _d ['scalePivot']=get(target,'sp','world')
     _d ['rotation']= mc.xform (_target, q=True, ws=True, ro=True)
@@ -142,6 +146,127 @@ def set_random(node=None, posLocal = False, rotLocal = False, posWorld = False, 
     for attr in 'scaleX','scaleY','scaleZ':
         self.nCube.__setattr__(attr,random.choice([1,.5,.75]))
     self.nCube.rotateOrder = random.choice(range(1,5))"""
+
+
+def rotatePivot_get(node=None, asEuclid = False):
+    """
+    Query the world space rotatePivot of a given node
+    
+    :parameters:
+        node(str): node to query
+        asEuclid(bool): whether to return a EUCLID.Vector3
+
+    :returns
+        rotation(vector/asEuclid.Vector3)
+    """   
+    _str_func = 'rotatePivot_get'
+    
+    node = VALID.mNodeString(node)
+    
+    _res = mc.xform(node, q=True, ws=True, rp = True)
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
+    
+    if asEuclid:
+        return EUCLID.Vector3(_res[0],_res[1],_res[2])
+    return _res
+
+def scalePivot_get(node=None, asEuclid = False):
+    """
+    Query the world space rotatePivot of a given node
+    
+    :parameters:
+        node(str): node to query
+        asEuclid(bool): whether to return a EUCLID.Vector3
+
+    :returns
+        rotation(vector/asEuclid.Vector3)
+    """   
+    _str_func = 'scalePivot_get'
+    
+    node = VALID.mNodeString(node)
+    
+    _res = mc.xform(node, q=True, ws=True, sp = True)
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
+    
+    if asEuclid:
+        return EUCLID.Vector3(_res[0],_res[1],_res[2])
+    return _res
+
+def pivots_recenter(node=None):
+    """
+    Recenter the rp and scp viots
+    
+    :parameters:
+        node(str): node to query
+
+    :returns
+        rotation(vector/asEuclid.Vector3)
+    """   
+    _str_func = 'pivots_recenter'
+    
+    _node = VALID.mNodeString(node)
+    
+    mc.xform (_node,  ws=True, cp= True, p=True)
+    
+def pivots_zeroTransform(node=None):
+    """
+    Recenter the rp and scp pivots using ztp xform call
+    
+    :parameters:
+        node(str): node to query
+
+    """   
+    _str_func = 'rotatePivot_set'
+    
+    _node = VALID.mNodeString(node)
+    
+    mc.xform (_node,  ws=True, ztp= True, p=False)
+    
+def rotatePivot_set(node=None, new_pos = None):
+    """
+    Set the rotatePivot of a given obj in worldSpace
+    
+    :parameters:
+        node(str): node to query
+        new_pos(double3): Value to set. May be Euclid.Vector3
+
+    :returns
+        rotation(vector/asEuclid.Vector3)
+    """   
+    _str_func = 'rotatePivot_set'
+    
+    _node = VALID.mNodeString(node)
+    
+    try:new_pos = VALID.euclidVector3List(new_pos)
+    except:pass
+    
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_pos,_node))
+    
+    mc.xform (_node,  ws=True, rp= new_pos, p=True)
+    
+def scalePivot_set(node=None, new_pos = None):
+    """
+    Set the rotatePivot of a given obj in worldSpace
+    
+    :parameters:
+        node(str): node to query
+        new_pos(double3): Value to set. May be Euclid.Vector3
+
+    :returns
+        rotation(vector/asEuclid.Vector3)
+    """   
+    _str_func = 'rotatePivot_set'
+    
+    _node = VALID.mNodeString(node)
+    
+    try:new_pos = VALID.euclidVector3List(new_pos)
+    except:pass
+    
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_pos,_node))
+    
+    mc.xform (_node,  ws=True, sp= new_pos, p=True)
+
+ 
 
 def rotateAxis_get(node=None, asEuclid = False):
     """
@@ -692,7 +817,7 @@ def get_listPathTo(node, node2,fullPath = True):
         return [NAME.get_short(o) for o in _res]
     return _res
 
-def sibblings_get(node = None, fullPath = True):
+def siblings_get(node = None, fullPath = True):
     """
     Get all the parents of a given node where the last parent is the top of the heirarchy
     
@@ -701,9 +826,9 @@ def sibblings_get(node = None, fullPath = True):
         fullPath(bool): Whether you want long names or not
 
     :returns
-        sibblings(list)
+        siblings(list)
     """   
-    _str_func = 'sibblings_get'
+    _str_func = 'siblings_get'
     _node =  VALID.mNodeString(node)
     
     _l_res = []

@@ -32,6 +32,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATHUTILS
 from cgm.core.lib import name_utils as NAMES
+from cgm.core.lib import list_utils as LIST
 reload(POS)
 reload(MATHUTILS)
 
@@ -545,6 +546,52 @@ def get_closest_point_data_from_mesh(targetObj = None, targetPoint = None, mesh 
     mc.delete(_node)
     return _res
 
+def get_normalizedWeightsByDistanceToObj(obj,targets):
+    """
+    Returns a normalized weight set based on distance from object to targets.
+    Most useful for setting up constaints by weight value
+    
+    :parameters:
+        obj(str): base object
+        targets(list): 
+
+
+    :returns
+        normalized weights(list)
+    """   
+    _str_func = 'get_normalizedWeightsByDistanceToObj'
+    
+    obj = VALID.mNodeString(obj)
+    _p_base = POS.get(obj)
+    
+    targets = VALID.mNodeStringList(targets)
+    
+    weights = []
+    distances = []
+    distanceObjDict = {}
+    objDistanceDict = {}
+    
+    for t in targets:
+        _p = POS.get(t)
+        buffer = get_distance_between_points(_p_base,_p) # get the distance
+        distances.append(buffer)
+        distanceObjDict[buffer] = t
+        objDistanceDict[t] = buffer
+        
+    distances = LIST.get_noDuplicates(distances)
+    normalizedDistances = MATHUTILS.normalizeList(distances) # get normalized distances to 1
+    
+    #normalizedSorted = copy.copy(normalizedDistances)
+    #normalizedSorted.sort() #sort our distances
+    #normalizedSorted.reverse() # reverse the sort for weight values    
+    
+    for i,t in enumerate(targets):
+        dist = objDistanceDict[t] 
+        index = distances.index(dist)
+        weights.append( normalizedDistances[index] )
+    
+    return weights    
+ 
 
 
 def get_normalized_uv(mesh, uValue, vValue):

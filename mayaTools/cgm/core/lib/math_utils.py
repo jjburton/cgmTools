@@ -472,3 +472,18 @@ def convert_aim_vectors_to_different_axis(aim, up, aimAxis="z+", upAxis="y+"):
 
     return wantedAim, wantedUp
 
+
+def normalizeList(L, normalizeTo=1):
+    '''normalize values of a list to make its max = normalizeTo'''
+    vMax = max(L)
+    return [ x/(vMax*1.0)*normalizeTo for x in L]
+
+def normalizeListToSum(L, normalizeTo=1.0):
+    """normalize values of a list to make sum = normalizeTo
+    
+    For example [.2, .5] becomes [0.33333333333333331, 0.66666666666666663] for a sum of 1.0
+    
+    Thanks to:
+    http://stackoverflow.com/questions/26785354/normalizing-a-list-of-numbers-in-python
+    """
+    return [float(i)/normalizeTo for i in [float(i)/sum(L) for i in L]]
