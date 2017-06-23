@@ -12,6 +12,7 @@ Unified location for transform calls. metanode instances may by passed
 # From Python =============================================================
 import copy
 import re
+import random
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -58,6 +59,90 @@ verify_aimAttrs = SNAP.verify_aimAttrs
     _d ['rotateOrder']=mc.xform (_target, q=True, roo=True )
     _d ['rotateAxis'] = mc.xform(_target, q=True, os = True, ra=True)
 """
+
+
+"""
+
+"""
+_d_set_modes = {'local':['l','object','os'],'world':['w','absolute']}
+def set_random(node=None, posLocal = False, rotLocal = False, posWorld = False, rotWorld = False, 
+               relative = False, 
+               scale = False, scaleUniform = False, rotateOrder = False,
+               posRange = [1,10], rotRange = [-45,45], scaleRange = [.5,5]):
+    """
+    Set random values on a given node. Useful for testing purposes
+    
+    :parameters:
+        node(str): node to query
+        posLocal(bool) - local move
+        rotLocal(bool) - local rotate
+        
+        asEuclid(bool): whether to return a EUCLID.Vector3
+
+    :returns
+        rotation(vector/asEuclid.Vector3)
+    """   
+    _str_func = 'set_random'
+    
+    _node = VALID.mNodeString(node)
+    #_mode = VALID.kw_fromDict(mode,_d_set_modes,noneValid=False,calledFrom=_str_func)
+    log.debug("|{0}| >> node: [{1}] | posLocal: {2}| posWorld: {3} | rotLocal: {4} | rotWorld: {5} | scale: {6} | rotOrder: {7}".format(_str_func,_node,posLocal,posWorld,rotLocal,rotWorld,scale,rotateOrder))
+    log.debug("|{0}| >> relative: {4} | posRange: {1} | rotRange: {2} | scaleRange: {3}".format(_str_func,posRange,rotRange,scaleRange,relative))
+             
+    
+    if posLocal + posWorld + rotLocal + rotWorld + scale + scaleUniform + rotateOrder == 0:
+        raise ValueError,"No options specified"
+    if relative:
+        raise NotImplemented,"relative not implemented"
+    
+    if posLocal or posWorld:
+        _pos = [random.uniform(posRange[0],posRange[1]) for i in range(3)]
+        log.debug("|{0}| >> randomPos: {1}".format(_str_func,_pos)) 
+        
+        if posLocal:
+            translate_set(_node, _pos)
+        if posWorld:
+            position_set(_node, _pos)
+            
+    if rotLocal or rotWorld:
+        _rot = [random.uniform(rotRange[0],rotRange[1]) for i in range(3)]
+        log.debug("|{0}| >> randomRot: {1}".format(_str_func,_rot)) 
+        
+        if rotLocal:
+            rotate_set(_node,_rot)
+        if rotWorld:
+            orient_set(_node,_rot)
+            
+    if scale:
+        _scale = [random.uniform(scaleRange[0],scaleRange[1]) for i in range(3)]
+        log.debug("|{0}| >> randomScale: {1}".format(_str_func,_scale)) 
+        
+        ATTR.set(_node,'scale',_scale)
+        
+    if scaleUniform:
+        _v = random.uniform(scaleRange[0],scaleRange[1]) 
+        _scale = [_v,_v,_v]
+        log.debug("|{0}| >> randomScale: {1}".format(_str_func,_scale)) 
+        ATTR.set(_node,'scale',_scale)
+        
+    if rotateOrder:
+        ATTR.set(_node,'rotateOrder', random.choice(range(1,5)))
+        
+    
+    return
+    """
+    for attr in 'translateX','translateY','translateZ','rotateX','rotateY','rotateZ':
+    self.pCube.__setattr__(attr,random.choice(range(1,10)))
+    for attr in 'scaleX','scaleY','scaleZ':
+        self.pCube.__setattr__(attr,random.choice([1,.5,.75]))
+    self.pCube.rotateOrder = random.choice(range(1,5))#0 not an option for accurate testing
+
+    for attr in 'translateX','translateY','translateZ','rotateX','rotateY','rotateZ':
+        self.nCube.__setattr__(attr,random.choice(range(1,10)))
+    for attr in 'scaleX','scaleY','scaleZ':
+        self.nCube.__setattr__(attr,random.choice([1,.5,.75]))
+    self.nCube.rotateOrder = random.choice(range(1,5))"""
+
 def rotateAxis_get(node=None, asEuclid = False):
     """
     Query the local rotateAxis of a given node
@@ -74,7 +159,7 @@ def rotateAxis_get(node=None, asEuclid = False):
     node = VALID.mNodeString(node)
     
     _res = mc.xform(node, q=True, ws = True, ra=True)
-    log.info("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
     
     if asEuclid:
         return EUCLID.Vector3(_res[0],_res[1],_res[2])
@@ -98,7 +183,7 @@ def rotateAxis_set(node=None, new_rot = None):
     try:new_rot = VALID.euclidVector3List(new_rot)
     except:pass
     
-    log.info("|{0}| >> [{2}] = {1}".format(_str_func,new_rot,_node))
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_rot,_node))
     
     mc.xform (_node,  ws=True, ra= new_rot,p=False)
 
@@ -119,7 +204,7 @@ def rotate_get(node=None, asEuclid = False):
     node = VALID.mNodeString(node)
     
     _res = ATTR.get(node,'rotate')
-    log.info("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
     
     if asEuclid:
         return EUCLID.Vector3(_res[0],_res[1],_res[2])
@@ -144,7 +229,7 @@ def rotate_set(node=None, new_rot = None):
     try:new_rot = VALID.euclidVector3List(new_rot)
     except:pass
     
-    log.info("|{0}| >> [{2}] = {1}".format(_str_func,new_rot,_node))
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_rot,_node))
     
     ATTR.set(_node,'rotate',new_rot)
     
@@ -170,7 +255,7 @@ def orient_get(node=None, asEuclid = False):
     node = VALID.mNodeString(node)
     
     _res = mc.xform (node, q=True, ws=True, ro=True)
-    log.info("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
     
     if asEuclid:
         return EUCLID.Vector3(_res[0],_res[1],_res[2])
@@ -194,7 +279,7 @@ def orient_set(node=None, new_rot = None):
     try:new_rot = VALID.euclidVector3List(new_rot)
     except:pass
     
-    log.info("|{0}| >> [{2}] = {1}".format(_str_func,new_rot,_node))
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_rot,_node))
     mc.xform (_node,  ws=True, ro=new_rot, p = False)
 
 def orientObject_get(node=None, asEuclid = False):
@@ -213,7 +298,7 @@ def orientObject_get(node=None, asEuclid = False):
     node = VALID.mNodeString(node)
     
     _res = mc.xform (node, q=True, os=True, ro=True)
-    log.info("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
     
     if asEuclid:
         return EUCLID.Vector3(_res[0],_res[1],_res[2])
@@ -237,7 +322,7 @@ def orientObject_set(node=None, new_rot = None):
     try:new_rot = VALID.euclidVector3List(new_rot)
     except:pass
     
-    log.info("|{0}| >> [{2}] = {1}".format(_str_func,new_rot,_node))
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_rot,_node))
     mc.xform (_node,  os=True, ro=new_rot, p = False)
     
     
@@ -280,7 +365,7 @@ def scaleLocal_set(node=None, new_scale = [1,1,1]):
     try:new_scale = VALID.euclidVector3List(new_scale)
     except:pass
     
-    log.info("|{0}| >> [{2}] = {1}".format(_str_func,new_scale,_node))
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_scale,_node))
     
     ATTR.set(_node,'scale',new_scale)
     
@@ -353,7 +438,7 @@ def parent_set(node = None, parent = False):
             return node
     raise ValueError,"Shouldn't have arrived here."
 
-def parent_get(node = None):
+def parent_get(node = None, fullPath = True):
     """
     Takes care of parenting transforms and returning new names
     
@@ -369,7 +454,7 @@ def parent_get(node = None):
         
     log.debug("|{0}| >> node:{1}".format(_str_func,node))    
     
-    _parents = mc.listRelatives(node,parent=True, type='transform') or False
+    _parents = mc.listRelatives(node,parent=True, type='transform', fullPath = fullPath) or False
     
     if _parents:
         return _parents[0]
@@ -907,7 +992,7 @@ def worldMatrix_get(node = None, asEuclid = False):
 
 
 def group_me(obj = None,
-             parent = False, maintainParent = False, rotateAxis = True,
+             parent = False, maintainParent = True, rotateAxis = True,
              rotatePivot = True, scalePivot = True,zeroScale = False):
     """
     A bridge function utilizing both copy_pivot and copy_orientation in a single call

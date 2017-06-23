@@ -115,14 +115,19 @@ class Test_general(unittest.TestCase):
         
         self.assertEqual(issubclass(type(i_null),cgmMeta.cgmObject),True)#..."Null as cgmObject
 
-        _objs = [mc.joint(), mc.group(em=True), mc.createNode('multiplyDivide')]
+        _objs = [mc.joint(), mc.group(em=True), mc.createNode('multiplyDivide',name='multiplyDivideValideObjArg')]
         for i,obj in enumerate(_objs):
-            n1 = cgmMeta.validateObjArg(obj,'cgmObject')
             if i == 2:
-                self.assertEqual(issubclass(type(n1),cgmMeta.cgmNode),True)
+                self.assertRaises(ValueError,
+                                  cgmMeta.validateObjArg,
+                                  obj,'cgmObject')
+                mc.delete(obj)
+                                  
+                #issubclass(type(n1),cgmMeta.cgmNode),True, type(n1))
             else:
-                self.assertEqual(issubclass(type(n1),cgmMeta.cgmObject),True)
-            n1.delete()  
+                n1 = cgmMeta.validateObjArg(obj,'cgmObject')                
+                self.assertEqual(issubclass(type(n1),cgmMeta.cgmObject),True, type(n1))
+                n1.delete()  
             
     def test_validateObjListArg(self):
         pass

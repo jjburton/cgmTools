@@ -503,8 +503,11 @@ def set(node, attr = None, value = None, lock = False,**kws):
     
     _children = get_children(_d)
     if _children:
-        if len(_children) != len(value):
-            raise ValueError,"Must have matching len for value and children. Children: {0} | value: {1}".format(_children,value)
+        if VALID.isListArg(value):
+            if len(_children) != len(value):
+                raise ValueError,"Must have matching len for value and children. Children: {0} | value: {1}".format(_children,value)
+        else:
+            value = [value for i in range(len(_children))]
         for i,c in enumerate(_children):
             mc.setAttr("{0}.{1}".format(_obj,c),value[i], **kws)
     elif _validType == 'long':

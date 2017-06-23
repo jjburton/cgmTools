@@ -444,7 +444,7 @@ class cgmNode(r9Meta.MetaClass):
         return self.mNode
             
     def getNameDict(self):
-        return nameTools.returnObjectGeneratedNameDict(self.mNode) or {}  
+        return nameTools.returnObjectGeneratedNameDict(self.mNode) or {} 
     
     def getNameAlias(self):
         if self.hasAttr('cgmAlias'):
@@ -452,6 +452,7 @@ class cgmNode(r9Meta.MetaClass):
         buffer =  nameTools.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
         if buffer:return buffer
         else:return self.getBaseName()
+    p_nameAlias = getNameAlias
         
     def doCopyNameTagsFromObject(self,target,ignore=[False]):
         """
@@ -498,6 +499,11 @@ class cgmNode(r9Meta.MetaClass):
     p_parent = property(getParent)
     parent = p_parent
     
+    def getSibblings(self,asMeta = False):
+        _res = TRANS.sibblings_get(self)
+        if _res and asMeta:
+            return validateObjArg(_res,'cgmNode')
+        return _res      
     #========================================================================================================     
     #>>> Attributes 
     #========================================================================================================      
@@ -516,6 +522,24 @@ class cgmNode(r9Meta.MetaClass):
         _str_func = 'doRemove'
         log.warning("|{0}| >> please remove call...".format(_str_func))
         return self.delAttr(a)
+    
+    def resetAttrs(self, attrs = None):
+        obj = self.p_nameShort
+
+        if attrs == None:
+            attrs = mc.listAttr(obj, keyable=True, unlocked=True) or False
+        else:
+            attrs = VALID.listArg(attrs)
+        _reset = []
+        for attr in attrs:
+            try:
+                default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
+                ATTR.set(obj,attr,default)
+                _reset.append(attr)
+            except Exception,err:
+                log.error("{0}.{1} resetAttrs | error: {2}".format(obj, attr,err))   	
+        return _reset
+
     
     #========================================================================================================     
     #>>> Query 
@@ -628,7 +652,7 @@ class cgmNode(r9Meta.MetaClass):
         return ATTR.msgList_exists(self.mNode,*a,**kws)
         
 
-    def get_sequentialAttrDict(self,attr = None):
+    def attr_getSequentialDict(self,attr = None):
         """
         Get a sequential attr dict. Our attr should be listed without the tail '_'
         ex: {0: u'back_to_back_0', 1: u'back_to_back_1'}
@@ -1979,8 +2003,539 @@ class cgmNodeOLD(r9Meta.MetaClass):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObject - sublass to cgmNode
-#=========================================================================        
-class cgmObject(cgmNode):  
+#=========================================================================   
+class cgmObject(cgmNode):     
+    def __init__(self,node = None, name = 'cgmObject', **kws):
+        """
+        asdfas
+        """
+        super(cgmObject, self).__init__(node = node, name = name,nodeType = 'transform')
+
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            log.info("Cached...")
+            return
+        
+        if not VALID.is_transform(self.mNode):
+            raise ValueError, "[{0}] not a transform! The cgmObject class was designed to work with objects with transforms".format(self.mNode)
+        
+        self.p_translate = self.translate    
+        self.p_rotate = self.rotate
+        self.p_scale = self.scale   
+        self.p_eulerAngles = self.rotate
+        
+
+    #========================================================================================================
+    #>>> Heirarchy ...
+    #========================================================================================================  
+    def getParent(self,asMeta = False,fullPath = True):
+        _res = TRANS.parent_get(self,fullPath)
+        if _res and asMeta:
+            return validateObjArg(_res,'cgmObject')
+        return _res
+
+
+    def doParent(self,target = False):
+        """
+        Function for parenting a maya instanced object while maintaining a correct object instance.
+
+        Keyword arguments:
+        parent(string) -- Target parent
+        """
+
+        if target: #if we have a target parent
+            if VALID.isListArg(target):
+                target = target[0]
+                print("Target arg is list, using first entry")
+            try:
+                bfr_target = target.p_nameLong
+            except:
+                try:
+                    bfr_target = cgmNode(target).p_nameLong
+                except Exception,error:
+                    if not mc.objExists(target):
+                        raise Exception,"'{0}' - target object doesn't exist" .format(target) 
+                    raise Exception,error
+                    #raise Exception,error
+
+            if bfr_target == self.getParent():
+                return True
+
+            try:#...simply try 		
+                mc.parent(self.mNode,bfr_target)
+                return True
+            except:pass
+
+            try:
+                mc.parent(self.mNode, bfr_target)
+                return True
+            except Exception,error:
+                raise Exception,error
+            raise Exception,"Failed to parent"
+        else:#If not, do so to world
+            rigging.doParentToWorld(self.mNode)
+            return True
+
+    parent = property(getParent, doParent)
+    p_parent = property(getParent, doParent)
+    
+    def getParents(self, asMeta = False, fullPath = False):
+        """
+        Get all the parents of a given node where the last parent is the top of the heirarchy
+        
+        :parameters:
+            node(str): Object to check
+            asMeta(bool): Whether to return data as meta or not
+            fullPath(bool): Whether you want long names or not
+    
+        :returns
+            parents(list)
+        """ 
+        _res = TRANS.parents_get(self,fullPath)
+        if _res and asMeta:
+            return validateObjListArg(_res,'cgmObject')
+        return _res  
+    
+    def getSibblings(self,asMeta = False, fullPath = False):
+        """
+        Get all the sibblings of a given node that share the same heirarchal level
+        
+        :parameters:
+            node(str): Object to check
+            asMeta(bool): Whether to return data as meta or not
+            fullPath(bool): Whether you want long names or not
+    
+        :returns
+            sibblings(list)
+        """         
+        _res = TRANS.sibblings_get(self, fullPath)
+        if _res and asMeta:
+            return validateObjListArg(_res,'cgmObject')
+        return _res  
+    
+    def getDescendents(self, asMeta = False, fullPath = False):
+        """
+        Get all the children of a given node
+        
+        :parameters:
+            node(str): Object to check
+            asMeta(bool): Whether to return data as meta or not
+            fullPath(bool): Whether you want long names or not
+    
+        :returns
+            children(list)
+        """         
+        _res = TRANS.descendents_get(self, fullPath)
+        if _res and asMeta:
+            return validateObjListArg(_res,'cgmObject')
+        return _res 
+    
+    def getChildren(self, asMeta = False, fullPath = False):
+        """
+        Get the children of a given node
+        
+        :parameters:
+            node(str): Object to check
+            asMeta(bool): Whether to return data as meta or not
+            fullPath(bool): Whether you want long names or not
+    
+        :returns
+            children(list)
+        """         
+        _res = TRANS.children_get(self, fullPath)
+        if _res and asMeta:
+            return validateObjListArg(_res,'cgmObject')
+        return _res  
+    
+    def getShapes(self, asMeta = False, fullPath = False):
+        """
+        Get all the shapes of a given node where the last parent is the top of the heirarchy
+        
+        :parameters:
+            node(str): Object to check
+            asMeta(bool): Whether to return data as meta or not
+            fullPath(bool): Whether you want long names or not
+    
+        :returns
+            parents(list)
+        """         
+        _res = TRANS.shapes_get(self, fullPath)
+        if _res and asMeta:
+            return validateObjListArg(_res,'cgmObject')
+        return _res
+    
+    def getListPathTo(self,target,asMeta = False, fullPath = False):
+        """
+        Get the list path from one node to another in a given heirarchy
+        
+        :parameters:
+            node(str): Object to check
+            asMeta(bool): Whether to return data as meta or not
+            fullPath(bool): Whether you want long names or not
+    
+        :returns
+            listPath(list)
+        """         
+        _res = TRANS.get_listPathTo(self, target, fullPath)
+        if _res and asMeta:
+            return validateObjListArg(_res,'cgmObject')
+        return _res   
+    
+    def isParentTo(self,child):
+        """
+        Query whether a given node is a child of our mNode
+        
+        :parameters:
+            node(str): Object to check
+            child(str): Whether to return data as meta or not
+    
+        :returns
+            status(bool)
+        """         
+        return TRANS.is_parentTo(self,child)
+    def isChildTo(self,parent):
+        """
+        Query whether a given node is a parent of our mNode
+        
+        :parameters:
+            node(str): Object to check
+            child(str): Whether to return data as meta or not
+    
+        :returns
+            status(bool)
+        """                 
+        return TRANS.is_childTo(self,parent)
+    
+    #========================================================================================================
+    #>>> Position/Rotation/Scale ...
+    #========================================================================================================      
+    #Make Dave happy stuff============================================================================
+    def snap(self,*a,**kws):
+        return TRANS.snap(self, *a,**kws)
+    
+    #...trans ------------------------------------------------------------------------------     
+    def getPosition(self,*a,**kws):
+        return TRANS.position_get(self, *a,**kws)
+    def setPosition(self,*a,**kws):
+        return TRANS.position_set(self, *a,**kws)  
+    """
+    def getLocalPosition(self,*a,**kws):
+        return TRANS.positionLocal_get(self,*a,**kws) 
+    def setLocalPosition(self,*a,**kws):
+        return TRANS.positionLocal_set(self,*a,**kws)
+     
+    def getWorldPosition(self,*a,**kws):
+        return TRANS.position_get(self,*a,**kws)
+    def setWorldPosition(self,position = None):
+        return TRANS.position_set(self,position)"""    
+    p_position = property(getPosition,setPosition)
+    
+    
+    #...rot ------------------------------------------------------------------------------
+    def getOrient(self,*a,**kws):
+        return TRANS.orient_get(self,*a,**kws)
+    def setOrient(self,*a,**kws):
+        return TRANS.orient_set(self,*a,**kws)
+    
+    p_orient = property(getOrient,setOrient)
+    
+    def getRotateAxis(self,*a,**kws):
+        return TRANS.rotateAxis_get(self,*a,**kws)
+    def setRotateAxis(self,*a,**kws):
+        return TRANS.rotateAxis_set(self,*a,**kws)
+    p_rotateAxis = property(getRotateAxis,setRotateAxis)
+        
+    #...scale ------------------------------------------------------------------------------
+    def getScaleLossy(self,*a,**kws):
+        return TRANS.scaleLossy_get(self,*a,**kws)  
+    
+    
+    #...matrix ------------------------------------------------------------------------------
+    def getWorldMatrix(self,*a,**kws):
+            return TRANS.worldMatrix(self,*a,**kws)     
+    p_worldMatrix = property(getWorldMatrix)
+    
+    
+    
+    #========================================================================================================
+    #>>> Get info...
+    #========================================================================================================
+    """
+    def getTransformAttrs(self):
+        self.transformAttrs = []
+        for attr in 'translate','translateX','translateY','translateZ','rotate','rotateX','rotateY','rotateZ','scaleX','scale','scaleY','scaleZ','visibility','rotateOrder':
+            if mc.objExists(self.mNode+'.'+attr):
+                self.transformAttrs.append(attr)
+        return self.transformAttrs"""
+
+    #def getFamilyDict(self,asMeta = False):
+        #""" Get the parent, child and shapes of the object."""
+        #return {'parent':self.getParent(asMeta=asMeta),'children':self.getChildren(asMeta=asMeta),'shapes':self.getShapes(asMeta=asMeta)} or {}
+
+ 
+
+    def returnPositionOutPlug(self,autoLoc=True):
+        try:
+            if self.getMayaType() == 'locator':
+                return cgmNode(mc.listRelatives(self.mNode,shapes=True)[0]).returnPositionOutPlug()	    
+            else:
+                buffer = cgmNode.returnPositionOutPlug(self)
+                if not buffer and autoLoc:
+                    #See if we have one
+                    if self.getMessage('positionLoc'):
+                        i_loc = cgmObject(self.getMessage('positionLoc')[0])		    
+                    else:
+                        i_loc = self.doLoc()
+                        i_loc.parent = self.mNode
+                        self.connectChildNode(i_loc,'positionLoc','owner')
+                    return cgmNode(mc.listRelatives(i_loc.mNode,shapes=True)[0]).returnPositionOutPlug()	    		    
+                else:return buffer
+        except StandardError,error:
+            log.error("returnPositionOutPlug(cgmObject overload)>> error: %s"%error)
+            raise StandardError,error 
+
+    
+    """def getMatchObject(self):
+        matchObject = search.returnTagInfo(self.mNode,'cgmMatchObject')
+        if mc.objExists(matchObject):
+            #log.debug("Match object found")
+            return matchObject
+        return False"""
+
+    def getDeformers(self,deformerTypes = 'all',asMeta = False):
+        _deformers = []
+        _result = []	
+        _deformerTypes = VALID.listArg(deformerTypes)
+        objHistory = mc.listHistory(self.mNode,pruneDagObjects=True)
+        if objHistory:
+            for node in objHistory:
+                typeBuffer = mc.nodeType(node, inherited=True)
+                if 'geometryFilter' in typeBuffer:
+                    _deformers.append(node)
+        if len(_deformers)>0:
+            if _deformerTypes == ['all']:
+                _result = _deformers
+            else:
+                foundDeformers = []
+                #Do a loop to figure out if the types are there
+                _deformerTypes = [str(d).lower() for d in _deformerTypes]		
+                for d in _deformers:
+                    if str(search.returnObjectType(d)).lower() in _deformerTypes:
+                        foundDeformers.append(d)
+                if foundDeformers:
+                    _result = foundDeformers
+        if asMeta:
+            return validateObjListArg(_result,mType = 'cgmNode')
+        return _result	
+
+    #=========================================================================  
+    # Rigging Functions
+    #=========================================================================  
+    def doCopyPivot(self,sourceObject):
+        """ Copy the pivot from a source object to the current instanced maya object. """
+        try:
+            #If we have an Object Factory instance, link it
+            sourceObject.mNode
+            sourceObject = sourceObject.mNode
+            #log.debug("Source is an instance")                        
+        except:
+            #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+            assert mc.objExists(sourceObject) is True, "'%s' - source object doesn't exist" %sourceObject
+
+        assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
+        return coreRigging.copy_pivot(self.mNode,sourceObject)
+
+    def doCopyTransform(self,sourceObject):
+        """ Copy the transform from a source object to the current instanced maya object. """
+        try:
+            #If we have an Object Factory instance, link it
+            sourceObject = sourceObject.mNode
+            #log.debug("Source is an instance")                        
+        except:
+            #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+            assert mc.objExists(sourceObject) is True, "'%s' - source object doesn't exist" %sourceObject
+
+        #assert mc.ls(sourceObject,type = 'transform'),"'%s' has no transform"%sourceObject
+        return coreRigging.copy_transform(self.mNode, sourceObject)
+
+    def doGroup(self,maintain=False, asMeta = False):
+        """
+        Grouping function for a maya instanced object.
+
+        Keyword arguments:
+        maintain(bool) -- whether to parent the maya object in place or not (default False)
+
+        """
+        try:
+            buffer = rigging.groupMeObject(self.mNode,True,maintain)   
+            if buffer and asMeta:
+                return cgmObject(buffer)
+            return buffer
+        except Exception,error:raise Exception,"[%s.doGroup(maintain = %s, asMeta = %s]{%s}"%(self.p_nameShort,maintain, asMeta,error)
+
+    def doZeroGroup(self,connect=True):
+        """
+        Zero Grouping function for a maya instanced object.
+
+        Keyword arguments:
+        maintain(bool) -- whether to parent the maya object in place or not (default False)
+        """
+        i_group = validateObjArg(self.doGroup(True), cgmObject)
+        i_group.addAttr('cgmTypeModifier','zero')
+        if connect:self.connectChildNode(i_group,'zeroGroup','cgmName')
+        i_group.doName()	
+        return i_group
+
+    def doDuplicateTransform(self,copyAttrs = False):
+        """
+        Duplicates an objects tranform
+
+        Keyword arguments:
+        copyAttrs(bool) -- whether to copy attrs to the new transform (default False)
+
+        """
+        try:
+            i_obj = cgmObject( rigging.groupMeObject(self.mNode,parent = False)) 
+            if copyAttrs:
+                for attr in self.getUserAttrs():
+                    cgmAttr(self,attr).doCopyTo(i_obj.mNode,attr,connectSourceToTarget = False)	    
+                self.addAttr('cgmType','null',lock=True)
+                i_obj.doName()
+            elif i_obj.hasAttr('cgmName'):
+                i_obj.doRemove('cgmName')
+                mc.rename(i_obj.mNode, self.p_nameBase+'_Transform')
+            return i_obj
+        except StandardError,error:
+            log.error("doDuplicateTransform fail! | %s"%error) 
+            raise StandardError
+
+    def doAddChild(self,child = False):
+        """
+        Function for adding a child
+
+        Keyword arguments:
+        child(string) -- Target child
+        """
+        if not mc.objExists(child):
+            log.warning("Specified child '%s' doesn't exist"%child)
+            return False
+
+        if child in self.getChildren():
+            return True
+
+        if child: #if we have a target child
+            #log.debug("Child is '%s'"%child)
+            try:
+                mc.parent(child,self.mNode)
+            except:
+                #log.debug("'%s' already has target as child"%self.mNode)
+                return False
+
+    def setDrawingOverrideSettings(self, attrs = None, pushToShapes = False):
+        """
+        Function for changing drawing override settings on on object
+
+        Keyword arguments:
+        attrs -- default will set all override attributes to default settings
+                 (dict) - pass a dict in and it will attempt to set the key to it's indexed value ('attr':1}
+                 (list) - if a name is provided and that attr is an override attr, it'll reset only that one
+        """
+        # First make sure the drawing override attributes exist on our instanced object
+        for a in drawingOverrideAttrsDict:
+            assert mc.objExists('%s.%s'%(self.mNode,a)),"'%s.%s' doesn't exist"%(self.mNode,a)
+
+        #Get what to act on
+        targets = [self.mNode]
+        if pushToShapes:
+            shapes = self.getShapes()
+            if shapes:
+                targets.extend(shapes)
+
+        for t in targets:
+            #Get to business
+            if attrs is None or False:
+                for a in drawingOverrideAttrsDict:
+                    ATTR.set(t,a,drawingOverrideAttrsDict[a])
+
+            if type(attrs) is dict:
+                for a in attrs.keys():
+                    try:
+                        ATTR.set(t,a,attrs[a])
+                    except:
+                        raise AttributeError, "There was a problem setting '%s.%s' to %s"%(self.mNode,a,drawingOverrideAttrsDict[a])
+
+
+            if type(attrs) is list:
+                for a in attrs:
+                    if a in drawingOverrideAttrsDict:
+                        try:
+                            ATTR.set(self.mNode,a,drawingOverrideAttrsDict[a])
+                        except:
+                            raise AttributeError, "There was a problem setting '%s.%s' to %s"%(self.mNode,a,drawingOverrideAttrsDict[a])
+                    else:
+                        log.warning("'%s.%s' doesn't exist"%(t,a)) 
+                        
+    #========================================================================================================
+    #>>> Constraints ...
+    #========================================================================================================
+    def getConstraintsTo(self,asMeta = False):	
+        try:
+            buffer = constraints.returnObjectConstraints(self.mNode)
+            if asMeta and buffer:
+                return validateObjListArg(buffer, mType = cgmNode)
+            return buffer
+        except Exception,error:raise Exception,"[%s.getConstraintsTo(asMeta = %s]{%s}"%(self.p_nameShort, asMeta,error)
+
+    def getConstraintsFrom(self,asMeta = False):
+        try:
+            buffer = constraints.returnObjectDrivenConstraints(self.mNode)
+            if asMeta and buffer:
+                return validateObjListArg(buffer, mType = cgmNode)
+            return buffer
+        except Exception,error:raise Exception,"[%s.getConstraintsFrom(asMeta = %s]{%s}"%(self.p_nameShort, asMeta,error)
+
+    def getConstrainingObjects(self,asMeta = False):
+        try:
+            l_constainingObjects = []	    
+            ml_buffer = self.getConstraintsTo(True)
+            if ml_buffer:
+                for mConstraint in ml_buffer:
+                    targets = constraints.returnConstraintTargets(mConstraint.mNode)
+                    if targets:l_constainingObjects.extend(targets)
+
+            if asMeta and buffer:
+                return validateObjListArg(l_constainingObjects, mType = cgmObject)
+            return l_constainingObjects
+        except Exception,error:raise Exception,"[%s.getConstrainingObjects(asMeta = %s]{%s}"%(self.p_nameShort, asMeta,error)
+
+    def isConstrainedBy(self,obj):
+        l_constraints = self.getConstraintsTo()
+        if not l_constraints:
+            return False
+        else:
+            try:
+                #If we have an Object Factory instance, link it
+                obj.mNode
+                i_obj = obj
+            except:
+                #If it fails, check that the object name exists and if so, initialize a new Object Factory instance
+                assert mc.objExists(obj) is True, "'%s' doesn't exist" %obj
+                i_obj = cgmNode(obj)
+            #log.debug("obj: %s"%i_obj.getShortName())
+            #log.debug("l_constraints: %s"%l_constraints)
+            #for i_c in [r9Meta.MetaClass(c) for c in l_constraints]:
+            returnList = []
+            for c in l_constraints:
+                targets = constraints.returnConstraintTargets(c)
+                #log.debug("%s : %s"%(cgmNode(c).getShortName(),targets))
+                if i_obj.getShortName() in targets:
+                    returnList.append(c)
+            if returnList:return returnList	
+        return False
+        
+        
+        
+class cgmObjectOLD(cgmNode):  
     def __init__(self,node = None, name = 'null', **kws):
         """ 
         Utilizing Red 9's MetaClass. Intialized a object in cgm's system. If no object is passed it 
@@ -5413,7 +5968,9 @@ def asMeta(*args,**kws):
         log.error("...cgmMeta.asMeta failure --------------------------------------------------")
         raise Exception,error
 
-def validateObjArg(arg = None, mType = None, noneValid = False, default_mType = 'cgmNode', mayaType = None, setClass = False):
+def validateObjArg(arg = None, mType = None, noneValid = False,
+                   default_mType = 'cgmNode',
+                   mayaType = None, setClass = False):
     """
     validate an objArg to be able to get instance of the object
 
@@ -5975,7 +6532,7 @@ def validateObjArgOLD(*args,**kws):
 
 
 
-def validateObjListArg(l_args = None, mType = None, noneValid = False, default_mType = 'cgmNode', mayaType = None, setClass = False,**kws):
+def validateObjListArg(l_args = None, mType = None, noneValid = False, default_mType = 'cgmNode', mayaType = None, setClass = False):
     """
     validate an objArg to be able to get instance of the object
 
@@ -5990,6 +6547,7 @@ def validateObjListArg(l_args = None, mType = None, noneValid = False, default_m
     _str_fun = 'validateObjArg'
     if type(l_args) not in [list,tuple]:l_args = [l_args]
     returnList = []
+    kws = {'mType':mType,'noneValid':noneValid,'default_mType':default_mType,'mayaType':mayaType,'setClass':setClass}
     for arg in l_args:
         buffer = validateObjArg(arg,**kws)
         if buffer:returnList.append(buffer)

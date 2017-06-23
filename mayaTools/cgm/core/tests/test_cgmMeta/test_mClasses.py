@@ -22,6 +22,8 @@ try:
     from cgm.core import cgm_Meta as cgmMeta
     from cgm.core.cgmPy import validateArgs as VALID
     from cgm.core.lib import attribute_utils as ATTR
+    from cgm.core.lib import transform_utils as TRANS
+    from cgm.core.lib import math_utils as MATH
     
 except ImportError:
     raise StandardError('objString test can only be run in Maya')
@@ -35,7 +37,174 @@ log.setLevel(logging.INFO)
 class Test_cgmAttr(unittest.TestCase):
     pass
 class Test_cgmObject(unittest.TestCase):
-    pass
+    def test_cgmObject_base(self):
+        mObj = cgmMeta.cgmObject(name = 'cgmObjectTester')
+        mObj.rotateOrder = 0
+        
+        self.assertEqual(VALID.is_transform(mObj.mNode),
+                         True)
+        
+        _node = mc.createNode('multiplyDivide',name='cgmObjectCallMD_node')
+        self.assertRaises(ValueError,
+                          cgmMeta.cgmObject,
+                          _node)
+        
+        
+    def test_cgmObject_existing(self):
+        self.maxDiff = 1000
+        
+        
+        pCube = cgmMeta.cgmObject( mc.polyCube(name = 'cgmObject_poly')[0] )
+        pCube2 = cgmMeta.cgmObject( mc.polyCube(name = 'cgmObject_poly2')[0] )        
+        nCube = cgmMeta.cgmObject( mc.nurbsCube(name = 'cgmObject_nurbs')[0] )   
+        TRANS.set_random(pCube,posLocal = True, rotLocal = True)
+        TRANS.set_random(nCube,posLocal = True, rotLocal = True)
+        
+        #Snap ==============================================================================
+        TRANS.set_random(pCube2, posWorld=True,rotWorld = True)
+    
+        pCube.snap(pCube2)
+        self.assertEqual(MATH.is_vector_equivalent(pCube.p_position,
+                                                   pCube2.p_position),
+                         True,"{0} != {1}".format(pCube.p_position, pCube2.p_position))        
+        self.assertEqual(MATH.is_vector_equivalent(pCube.p_orient,
+                                                   pCube2.p_orient),
+                         True,"{0} != {1}".format(pCube.p_orient, pCube2.p_orient))          
+        
+        #Heirarchy ======================================================================
+        self.assertNotEqual(pCube.getSibblings(),
+                            False)       
+        
+        
+        pCube.parent = nCube
+        self.assertEqual(pCube.parent,
+                         nCube.mNode)
+        self.assertEqual(pCube.getParent(),
+                         nCube.mNode)
+        
+        self.assertEqual(pCube.isChildTo(nCube),
+                         True)
+        self.assertEqual(nCube.isParentTo(pCube),
+                         True)        
+        self.assertEqual(pCube.p_nameShort in nCube.getChildren(),
+                         True)
+        self.assertIsNot(pCube.getShapes(),False)
+        
+
+
+        #self.assertEqual(pCube.getTransformAttrs(),
+                         #nCube.getTransformAttrs())
+        
+        
+        pCube.parent = False
+        self.assertEqual(pCube.parent,
+                         False)  
+        
+        
+        
+        #Parent series ==============================================================================
+        pCube2.parent = pCube
+        nCube.parent = pCube2
+        
+        self.assertEqual(pCube.getListPathTo(nCube,asMeta=True),
+                         [pCube,pCube2,nCube])
+        
+        self.assertIsNotNone(pCube.getDescendents(),
+                             )        
+        self.assertEqual(nCube.getParents(True),
+                         [pCube2,pCube])
+        
+        #getTransformAttrs?
+        #doAddChild?
+        #doCopyRotateOrder
+        
+        #>> Rotate Order...
+        pCube.rotateOrder = 2
+        nCube.rotateOrder = pCube.rotateOrder
+        self.assertEqual(pCube.rotateOrder,
+                         nCube.rotateOrder)
+        
+        #>> Group ===============================================================================
+        _pos = TRANS.position_get(pCube2)
+        #TRANS.group_me(pCube2,True,True)
+        pCube2.doGroup(True)
+        
+        self.assertEqual(MATH.is_vector_equivalent(_pos, TRANS.position_get(pCube2)),
+                         True)
+        
+        
+        #>> Transform ===============================================================================
+        nCube.parent = False
+        nCube.translate = pCube.translate
+                
+        self.assertEqual(MATH.is_vector_equivalent(nCube.translate,
+                                                   pCube.translate),
+                        True)        
+        
+        TRANS.set_random(nCube,posLocal = True, rotLocal = True)        
+        self.assertNotEqual(nCube.p_position,
+                            pCube.p_position)
+        nCube.p_position = pCube.p_position
+        self.assertEqual(MATH.is_vector_equivalent(nCube.translate,
+                                                   pCube.translate),
+                        True)        
+        
+        #...rot -------------------------------------------------------------------------------
+        nCube.rotate = pCube.rotate
+        self.assertEqual(MATH.is_vector_equivalent(nCube.rotate,
+                                                   pCube.rotate),
+                         True)    
+        TRANS.set_random(nCube, rotWorld = True) 
+        self.assertEqual(MATH.is_vector_equivalent(nCube.rotate,
+                                                   pCube.rotate),
+                         False)
+        
+        log.info(nCube)
+        log.info(pCube)
+        nCube.p_orient = pCube.p_orient
+        self.assertEqual(MATH.is_vector_equivalent(nCube.rotate,
+                                                   pCube.rotate),
+                         True)
+        
+        #...scale -----------------------------------------------------------------------------
+        nCube.resetAttrs('scale')
+        mGroup = nCube.doGroup(True,True)
+        mGroup.scale = 2,2,2
+        nCube.scale = 2,2,2
+        
+        self.assertEqual(nCube.getScaleLossy(),
+                         [4,4,4])      
+        
+        
+ 
+        
+        
+        #self.assertNotEqual(nCube.p_orei,
+        #                    pCube.p_posWorld)        
+        
+        
+        #self.assertAlmostEquals(_pos,
+        #                        TRANS.position_get(pCube),
+        #                        7)
+        
+        #DrawOverride...?
+        #Copy pivot?
+    
+    def holder(self):
+        try:#setDrawingOverrideSettings
+            self.pCube.overrideEnabled = 1     
+            TestDict = {'overrideColor':20,'overrideVisibility':1}
+            self.pCube.setDrawingOverrideSettings(TestDict, pushToShapes=True)
+    
+            assert self.pCube.overrideEnabled == 1
+            assert self.pCube.overrideColor == 20
+            assert self.pCube.overrideVisibility == 1
+    
+            for shape in self.pCube.getShapes():
+                for a in TestDict.keys():
+                    assert attributes.doGetAttr(shape,a) == TestDict[a],"'%s.%s' is not %s"%(shape,a,TestDict[a])
+        except Exception,error:raise Exception,"[Drawing overrides]{%s}"%error
+  
 
 class Test_cgmObjectSet(unittest.TestCase):
     def test_cgmObjectSet_all(self):
@@ -45,6 +214,8 @@ class Test_cgmObjectSet(unittest.TestCase):
         
         mPCube = cgmMeta.cgmObject( mc.polyCube(name = 'cgmObjectSetTarget_poly')[0] )
         mNCube = cgmMeta.cgmObject( mc.nurbsCube(name = 'cgmObjectSetTarget_nurbs')[0] )   
+        TRANS.set_random(mPCube,posLocal = True, rotLocal = True)
+        TRANS.set_random(mNCube,posLocal = True, rotLocal = True)
 
 
         self.assertEqual(mObjectSetAnim.value,
@@ -173,7 +344,10 @@ class Test_msgList(unittest.TestCase):
     def setUp(self):
         
         try:self.mi_catcherObj = cgmMeta.cgmNode('msgListCatcher')
-        except:self.mi_catcherObj = cgmMeta.cgmNode(name= 'msgListCatcher',nodeType = 'transform')
+        except:
+            self.mi_catcherObj = cgmMeta.cgmNode(name= 'msgListCatcher',nodeType = 'transform')
+            TRANS.set_random(self.mi_catcherObj,posLocal = True, rotLocal = True)
+            
         
         self.md_msgListObjs = {}
         self.l_strLong = []
@@ -181,7 +355,10 @@ class Test_msgList(unittest.TestCase):
         self.ml_objs = []
         for i in range(5):
             try:mObj = cgmMeta.cgmNode('msgListTarget_%i'%i)
-            except:mObj = cgmMeta.cgmNode(name = 'msgListTarget_%i'%i,nodeType = 'transform')
+            except:
+                mObj = cgmMeta.cgmNode(name = 'msgListTarget_%i'%i,nodeType = 'transform')
+                TRANS.set_random(mObj,posLocal = True, rotLocal = True)
+                
             self.md_msgListObjs[i] = mObj
             self.l_strLong.append(mObj.mNode)
             self.l_strShort.append(mObj.p_nameShort)
@@ -338,6 +515,7 @@ class Test_cgmNode(unittest.TestCase):
         _str_func = 'test_attributeHandling'
         
         mObj = cgmMeta.cgmNode(name = 'attrHandlingTest', nodeType = 'transform')
+        TRANS.set_random(mObj,posLocal = True, rotLocal = True)
         
         _d_attrTypesToDefaults = {'string':'this_is_a_string',
                                   'float':1.333,
@@ -435,8 +613,7 @@ class Test_cgmNode(unittest.TestCase):
         self.assertEqual(mObj.jsonTest,testDict )
         for k,v in testDict.iteritems():
             self.assertEqual(mObj.jsonTest[k],v)
-        
-
+  
         del(mObj.boolTestFromValue)
         self.assertEqual(mc.objExists(_short),True)
         self.assertEqual(mObj.hasAttr('boolTestFromValue'),False)
@@ -446,12 +623,15 @@ class Test_cgmNode(unittest.TestCase):
         
     def test_cgmNode_messageHandling(self):
         mObj = cgmMeta.cgmNode(name = 'msgHandlingTest', nodeType = 'transform')
+        TRANS.set_random(mObj,posLocal = True, rotLocal = True)
+        
         _short = mObj.mNode
         
         ml_cubes = []
         for i in range(4):
             _cube =  mc.polyCube(n = 'msgHandlingObj_{0}'.format(i))
             ml_cubes.append(cgmMeta.cgmNode(_cube[0]))
+            TRANS.set_random(_cube[0],posLocal = True, rotLocal = True)
         
         #...connect
         mObj.addAttr('msgMultiTest', value=[ml_cubes[0].mNode,ml_cubes[1].mNode,ml_cubes[2].mNode], attrType='message')   #multi Message attr
@@ -490,7 +670,7 @@ class Test_cgmNode(unittest.TestCase):
         _l = ['transform','objectSet','clamp','setRange',
               'addDoubleLinear','condition','multiplyDivide','plusMinusAverage']
         for t in _l:
-            mNode = cgmMeta.cgmNode(name = t, nodeType = t)
+            mNode = cgmMeta.cgmNode(name = t + 'CreateByType', nodeType = t)
             if VALID.get_mayaType(mNode.mNode) != t:
                 raise Exception,"'{0}' nodeType not created. Type is '{1}'".format(t,VALID.get_mayaType(mNode.mNode))
 

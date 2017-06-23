@@ -50,6 +50,7 @@ def go(obj = None, target = None,
     
     :parameters:
         obj(str): Object to modify
+        target(str): Object to snap to
         sourceObject(str): object to copy from
 
     :returns
@@ -60,8 +61,8 @@ def go(obj = None, target = None,
     try:obj = obj.mNode
     except:pass    
     
-    _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
-    _target = VALID.objString(target, noneValid=False, calledFrom = __name__ + _str_func + ">> validate target")
+    _obj = VALID.mNodeString(obj)
+    _target = VALID.mNodeString(target)
     
     _pivot = VALID.kw_fromDict(pivot, SHARED._d_pivotArgs, noneValid=False,calledFrom= __name__ + _str_func + ">> validate pivot")
     _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom= __name__ + _str_func + ">> validate space")  
