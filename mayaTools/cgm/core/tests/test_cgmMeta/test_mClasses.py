@@ -37,7 +37,7 @@ log.setLevel(logging.INFO)
 class Test_cgmAttr(unittest.TestCase):
     pass
 class Test_cgmObject(unittest.TestCase):
-    def test_cgmObject_base(self):
+    def test_base(self):
         mObj = cgmMeta.cgmObject(name = 'cgmObjectTester')
         mObj.rotateOrder = 0
         
@@ -50,7 +50,7 @@ class Test_cgmObject(unittest.TestCase):
                           _node)
         
         
-    def test_cgmObject_existing(self):
+    def test_existing(self):
         self.maxDiff = 1000
         
         
@@ -231,7 +231,7 @@ class Test_cgmObject(unittest.TestCase):
   
 
 class Test_cgmObjectSet(unittest.TestCase):
-    def test_cgmObjectSet_all(self):
+    def test_all(self):
         mObjectSetDefault = cgmMeta.cgmObjectSet('defaultObjectSet')
         mObjectSetAnim = cgmMeta.cgmObjectSet(name='cgmObjectAnimationSet',setType = 'animation', qssState = True)
         mObjectSetAnim2 = cgmMeta.cgmObjectSet(name='cgmObjectAnimationSet2',setType = 'animation', qssState = True) 
@@ -364,7 +364,7 @@ class Test_cgmObjectSet(unittest.TestCase):
 class Test_cgmOptionVar(unittest.TestCase):
     pass
 
-class Test_msgList(unittest.TestCase):    
+class Test_cgmNode_msgList(unittest.TestCase):    
     def setUp(self):
         
         try:self.mi_catcherObj = cgmMeta.cgmNode('msgListCatcher')
@@ -388,7 +388,7 @@ class Test_msgList(unittest.TestCase):
             self.l_strShort.append(mObj.p_nameShort)
             self.ml_objs.append(mObj)        
         
-    def test_cgmNodeMsgList_a_connect(self):
+    def test_a_connect(self):
         mi_catcher = self.mi_catcherObj
         md_objs = self.md_msgListObjs
         
@@ -404,7 +404,7 @@ class Test_msgList(unittest.TestCase):
         self.assertEqual(md_objs[0].connectBack,
                          self.mi_catcherObj)
         
-    def test_cgmNodeMsgList_b_get(self):
+    def test_b_get(self):
         mi_catcher = self.mi_catcherObj
         md_objs = self.md_msgListObjs    
         
@@ -417,7 +417,7 @@ class Test_msgList(unittest.TestCase):
                          [mObj.p_nameShort for mObj in self.ml_objs[:2]]
                          )     
         
-    def test_cgmNodeMsgList_c_append(self):
+    def test_c_append(self):
         mi_catcher = self.mi_catcherObj
         md_objs = self.md_msgListObjs
 
@@ -438,7 +438,7 @@ class Test_msgList(unittest.TestCase):
         self.assertEqual(len(ml_buffer),3)
         
         
-    def test_cgmNodeMsgList_d_index(self):
+    def test_d_index(self):
         mi_catcher = self.mi_catcherObj
         md_objs = self.md_msgListObjs
         
@@ -449,7 +449,7 @@ class Test_msgList(unittest.TestCase):
         self.assertEqual(mi_catcher.msgList_index('msgAttr',md_objs[1].mNode),
                          1)            
 
-    def test_cgmNodeMsgList_e_remove(self):
+    def test_e_remove(self):
         mi_catcher = self.mi_catcherObj
         md_objs = self.md_msgListObjs 
         
@@ -462,7 +462,7 @@ class Test_msgList(unittest.TestCase):
         self.assertEqual(len(ml_buffer),
                          2)     
         
-    def test_cgmNodeMsgList_f_purge(self):
+    def test_f_purge(self):
         mi_catcher = self.mi_catcherObj
         md_objs = self.md_msgListObjs 
         
@@ -475,7 +475,7 @@ class Test_msgList(unittest.TestCase):
         self.assertEqual(len(ml_buffer),
                          0)            
     
-    def test_cgmNodeMsgList_g_clean(self):
+    def test_g_clean(self):
         mi_catcher = self.mi_catcherObj
         md_objs = self.md_msgListObjs
         ml_objs = self.ml_objs    
@@ -498,7 +498,7 @@ class Test_msgList(unittest.TestCase):
          
     
 class Test_cgmNode(unittest.TestCase):                   
-    def test_cgmNode_base(self):
+    def test_base(self):
         mNode = cgmMeta.cgmNode(name = 'Hogwarts', nodeType = 'transform')
         
         #Name calls ==============================================================================
@@ -535,7 +535,7 @@ class Test_cgmNode(unittest.TestCase):
         self.assertEqual(mc.objExists(_str),False)
         mc.Undo()
         
-    def test_cgmNode_attributeHandling(self):
+    def test_attributeHandling(self):
         _str_func = 'test_attributeHandling'
         
         mObj = cgmMeta.cgmNode(name = 'attrHandlingTest', nodeType = 'transform')
@@ -645,7 +645,7 @@ class Test_cgmNode(unittest.TestCase):
         mc.undo()
              
         
-    def test_cgmNode_messageHandling(self):
+    def test_messageHandling(self):
         mObj = cgmMeta.cgmNode(name = 'msgHandlingTest', nodeType = 'transform')
         TRANS.set_random(mObj,posLocal = True, rotLocal = True)
         
@@ -684,13 +684,13 @@ class Test_cgmNode(unittest.TestCase):
         self.assertEqual(mObj.msgSingleTest2, [ml_cubes[0].mNode])
 
 
-    def test_cgmNode_datList(self):
+    def test_datList(self):
         #_str_func = 'test_msgList'
         #log.info("To do...{0}".format(_str_func))     
         #raise NotImplementedError
         pass
     
-    def test_cgmNode_nodeTypes_create(self):
+    def test_nodeTypes_create(self):
         _l = ['transform','objectSet','clamp','setRange',
               'addDoubleLinear','condition','multiplyDivide','plusMinusAverage']
         for t in _l:

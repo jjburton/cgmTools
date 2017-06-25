@@ -383,6 +383,71 @@ class cgmNode(r9Meta.MetaClass):
 
             return True
         return False
+
+    def connectChildNode(self, node, attr, connectBack = None, srcAttr=None):
+        """
+        Replacing Mark's connect child with our own which connects to .message connections.
+
+        Fast method of connecting message links to the mNode as parents
+        @param node: Maya nodes to connect to this mNode
+        @param attr: Name for the message attribute on self to connec to the parent
+
+        @param srcAttr: If given this becomes the attr on the node which connects it 
+                        to the parent. If NOT given the connection attr is the parent.message
+        """
+        if issubclass(type(node), r9Meta.MetaClass):
+            node=node.mNode        
+
+        ATTR.set_message(node, attr, self.mNode)            
+
+        if connectBack is not None:
+            ATTR.set_message(self.mNode, connectBack,node )            
+        return True    
+    
+    def connectParentNode(self, node, attr, connectBack = None, srcAttr=None):
+        """
+        Replacing Mark's connect Parent with our own which connects to .message connections.
+
+        Fast method of connecting message links to the mNode as parents
+        @param node: Maya nodes to connect to this mNode
+        @param attr: Name for the message attribute on self to connec to the parent
+
+        @param srcAttr: If given this becomes the attr on the node which connects it 
+                        to the parent. If NOT given the connection attr is the parent.message
+        """
+        if issubclass(type(node), r9Meta.MetaClass):
+            node=node.mNode        
+        #if connectBack and not mc.attributeQuery(connectBack, exists=True, node=node):
+            #add to parent node
+            #mc.addAttr(node,longName=connectBack, at='message', m=False)
+        
+        ATTR.set_message(self.mNode, attr, node)            
+
+        if connectBack is not None:
+            ATTR.set_message(node, connectBack, self.mNode)            
+        return True
+
+
+    def connectChildrenNodes(self, nodes, attr, connectBack = None, force=True):
+        """
+        Replacement connector using .msg connections
+        """
+        if type(nodes) not in [list,tuple]:nodes=[nodes]
+        nodesToDo = []
+        for node in nodes:
+            if issubclass(type(node), r9Meta.MetaClass):
+                nodesToDo.append(node.mNode) 
+            elif mc.objExists(node):
+                nodesToDo.append(node) 
+            else:
+                log.warning("connectChildrenNodes can't add: '%s'"%node)
+
+        ATTR.set_message(self.mNode, attr, nodesToDo)            
+        
+        if connectBack is not None:
+            for i,node in enumerate(nodesToDo):
+                ATTR.set_message(node, connectBack, self.mNode)                                
+
     
     #========================================================================================================
     #>>> Names...
@@ -615,7 +680,25 @@ class cgmNode(r9Meta.MetaClass):
             except Exception,err:
                 log.error("{0}.{1} resetAttrs | error: {2}".format(obj, attr,err))   	
         return _reset
-
+    
+    
+    def verifyAttrDict(self,d_attrs,**kws):
+        if type(d_attrs) is not dict:
+            raise ValueError,"Not a dict: %s"%self.p_nameShort
+        
+        _keys = d_attrs.keys()
+        _keys.sort()
+        
+        for attr in _keys:
+            try:	
+                buffer = d_attrs.get(attr)
+                if ':' in buffer:
+                    self.addAttr(attr,attrType = 'enum', enumName= buffer,**kws)		    
+                else:
+                    self.addAttr(attr,attrType = buffer,**kws)
+            except StandardError,error:
+                log.error("%s.verifyAttrDict >>> Failed to add attr: %s | data: %s | error: %s"%(self.p_nameShort,attr,d_attrs.get(attr),error))
+        return True
     
     #========================================================================================================     
     #>>> Query 
@@ -845,7 +928,7 @@ class cgmNodeOLD(r9Meta.MetaClass):
         #log.info("{1} | kws: {0}".format(kws,'in cgmNode'))
         #log.info("{1} | args: {0}".format(args,'in cgmNode'))
 
-        super(cgmNode, self).__init__(node,name = name,nodeType = nodeType,autofill = _autofill, **kws)
+        super(cgmNodeOLD, self).__init__(node,name = name,nodeType = nodeType,autofill = _autofill, **kws)
 
 
         #>>> TO USE Cached instance ---------------------------------------------------------
@@ -2173,7 +2256,7 @@ class cgmObject(cgmNode):
 
         #>>> TO USE Cached instance ---------------------------------------------------------
         if self.cached:
-            log.info("Cached...")
+            #log.info("Cached...")
             return
         
         if not VALID.is_transform(self.mNode):
@@ -2641,7 +2724,7 @@ class cgmObjectOLD(cgmNode):
 	log.error("'%s' has no transform"%_NodeSelf.mNode)
 
 	'''
-        super(cgmObject, self).__init__(node = node, name = name,nodeType = 'transform')
+        super(cgmObjectOLD, self).__init__(node = node, name = name,nodeType = 'transform')
         #log.info("{1} | setClass: {0}".format(setClass,'in cgmObject'))
         #log.info("{1} | kws: {0}".format(kws,'in cgmObject'))	
         #>>> TO Check the cache if it needs to be cleared ----------------------------------	
@@ -6053,7 +6136,41 @@ def asMeta(*args,**kws):
                 log.error("kw: {0}".format(items))	
         log.error("...cgmMeta.asMeta failure --------------------------------------------------")
         raise Exception,error
-
+    
+def createMetaNode(mType = None, *args, **kws):
+    _str_func = 'createMetaNode'
+    
+    _r9ClassRegistry = r9Meta.getMClassMetaRegistry()
+    
+    if not type(mType) in [unicode,str]:
+        try: mType = mType.__name__
+        except Exception,error:
+            raise ValueError,"mType not a string and not a usable class name. mType: {0}".format(mType)	
+    if mType not in _r9ClassRegistry:
+        raise ValueError,"mType not found in class registry. mType: {0}".format(mType)    
+    
+    _call = _r9ClassRegistry.get(mType)
+    
+    log.debug("|{0}| >> mType: {1} | class: {2}".format(_str_func,mType,_call))             
+    
+  
+    try:    
+        return _call(*args,**kws)
+    except Exception,error:
+        log.info("|{0}| >> mType: {1} | class: {2}".format(_str_func,mType,_call))                     
+        if args:
+            log.info("|{0}| >> Args...".format(_str_func))                         
+            for i,arg in enumerate(args):
+                log.info("    arg {0}: {1}".format(i,arg))
+        if kws:
+            log.info("|{0}| >> Kws...".format(_str_func))                                     
+            for items in kws.items():
+                log.info("    kw: {0}".format(items))        
+        
+    
+    
+    
+    
 def validateObjArg(arg = None, mType = None, noneValid = False,
                    default_mType = None,
                    mayaType = None, setClass = False):
@@ -6068,8 +6185,7 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
     4 - 'mayaType'(str/list - None) -- If the object needs to be a certain object type
     5 - 'setClass'
     """    
-    _str_fun = 'validateObjArg'
-    
+    _str_func = 'validateObjArg'
 
     #Pull kws local ====================================================================
     #arg = _d_kws['arg']

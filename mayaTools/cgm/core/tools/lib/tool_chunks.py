@@ -552,15 +552,19 @@ def uiSection_dev(parent):
     mc.menuItem(parent = _unitTests,
                     l='cgm - All',
                     ann = "WARNING - Opens new file...Unit test cgm.core",
-                    c=lambda *a: ut_all())    
+                    c=lambda *a: ut_cgmTestCall())    
     mc.menuItem(parent = _unitTests,
                     l='cgm - Core',
                     ann = "WARNING - Opens new file...Unit test cgm.core",
-                    c=lambda *a: ut_core())    
+                    c=lambda *a: ut_cgmTestCall('coreLib'))    
     mc.menuItem(parent = _unitTests,
                     l='cgm - Meta',
                     ann = "WARNING - Opens new file...Unit test cgm.core",
-                    c=lambda *a: ut_meta()) 
+                    c=lambda *a: ut_cgmTestCall('cgmMeta'))   
+    mc.menuItem(parent = _unitTests,
+                l='cgm - mClasses',
+                ann = "WARNING - Opens new file...Unit test cgm.core",
+                c=lambda *a: ut_cgmTestCall('mClasses'))     
     
     mc.menuItem(parent = _unitTests, l = '----------------')
     
@@ -581,19 +585,11 @@ def uiSection_dev(parent):
                 ann = "WARNING - Opens new file...Unit test cgm.core",
                 c=lambda *a: ut_limbOLD()) 
 
-
-def ut_all():
+    
+def ut_cgmTestCall(*args):
     import cgm.core.tests.cgmTests as cgmTests
     reload(cgmTests)
-    cgmTests.go()    
-def ut_meta():
-    import cgm.core.tests.test_cgmMeta as cgmMetaTest
-    reload(cgmMetaTest)
-    cgmMetaTest.main(verbosity = 1)    
-def ut_core():
-    import cgm.core.tests.test_coreLib as test_coreLib
-    reload(test_coreLib)
-    test_coreLib.main(verbosity = 1)    
+    cgmTests.main(*args)    
 
 def ut_allOLD():
     reload(testCGM)

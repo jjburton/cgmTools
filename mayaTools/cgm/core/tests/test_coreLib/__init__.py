@@ -55,6 +55,8 @@ def main(**kwargs):
 		for t2 in t:
 			for t3 in t2:
 				print t3
+				print t3._testMethodName
+				
 				for k in t3.__dict__.keys():
 					print k
 				#exec("reload({0})".format(t3))

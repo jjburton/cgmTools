@@ -579,7 +579,7 @@ def get_normalizedWeightsByDistanceToObj(obj,targets):
         objDistanceDict[t] = buffer
         
     distances = LIST.get_noDuplicates(distances)
-    normalizedDistances = MATHUTILS.normalizeList(distances) # get normalized distances to 1
+    normalizedDistances = MATHUTILS.normalizeListToSum(distances) # get normalized distances to 1
     
     #normalizedSorted = copy.copy(normalizedDistances)
     #normalizedSorted.sort() #sort our distances

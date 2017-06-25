@@ -15,7 +15,7 @@ import unittest
 import logging
 import unittest.runner
 import maya.standalone
-
+import time
 try:
     import maya.cmds as mc   
     from Red9.core import Red9_Meta as r9Meta
@@ -40,7 +40,7 @@ class Test_r9Issues(unittest.TestCase):
         
         #return 'ok'
         
-    def test_r9_caching(self):
+    def test_caching(self):
         self.assertEquals(self.r9Node1.cached,None,)
         
         self.r9Node1.addAttr('mClass','MetaClass')
@@ -49,7 +49,7 @@ class Test_r9Issues(unittest.TestCase):
         self.assertEquals(self.r9Node1.cached,True)
         self.assertEquals(self.r9Node1,r9Node1Cached)
         
-    def test_r9_duplicate(self):
+    def test_duplicate(self):
         self.r9Node1_dup = r9Meta.MetaClass(mc.duplicate(self.r9Node1.mNode)[0])        
         self.assertNotEqual(self.r9Node1,self.r9Node1_dup)
         self.r9Node1_dup.delete()
@@ -88,7 +88,6 @@ class Test_general(unittest.TestCase):
         
         n1.delete() 
         
-    #@cgmGEN.Timer
     def test_validateObjArg(self):
         null = mc.group(em=True)    
         i_node = cgmMeta.cgmNode(nodeType='transform')
@@ -131,6 +130,35 @@ class Test_general(unittest.TestCase):
             
     def test_validateObjListArg(self):
         pass
+    
+    def test_createMetaNode(self):
+        _r9ClassRegistry = r9Meta.getMClassMetaRegistry()
+        _l_mask = ['cgmBlendShape','cgmBufferNode',
+                   'cgmPuppet','cgmDynParentGroup','cgmDynamicMatch',#RESOLVE ASAP
+                   'cgmMorpheusPuppet',
+                   'cgmInfoNode2','cgmModuleBufferNode','cgmTest',
+                   'cgmMasterControl',
+                   'cgmEyeballBlock','cgmMouthNoseBlock','cgmEyebrowBlock',
+                   #...these pass but don't need
+                   'cgmNodeOLD','cgmEyelids','cgmMouthNose','cgmEyebrow','cgmSimpleBSFace','cgmEyeball','cgmObjectOLD']
+        #for mType in ['cgmNode','cgmObject','cgmControl','cgmObjectList']:
+        for mType in _r9ClassRegistry.keys():
+            if 'cgm' in mType and mType not in _l_mask:
+                _t_start = time.clock()
+                try:
+                    mObj = cgmMeta.createMetaNode(mType,name = 'createTest_{0}'.format(mType))
+                except Exception,err:
+                    log.error("{0} failure...".format(mType))
+                    for arg in err.args:
+                        log.error(arg)  
+                    #log.error(cgmGEN._str_subLine)
+                    raise Exception,err
+                
+                self.assertEqual(issubclass(type(mObj),_r9ClassRegistry[mType]),True, mObj)
+                mObj.delete()   
+                print("[{0}] completed in  {1} seconds".format(mType, "%0.3f"%(time.clock()-_t_start))) 
+                
+            
         
 class Test_NameFactory(unittest.TestCase):
     pass
