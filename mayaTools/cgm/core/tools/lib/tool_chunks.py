@@ -502,6 +502,8 @@ from cgm.lib import optionVars
 from cgm.core.lib.wing import mayaWingServer as mWingServer
 from cgm.lib import cgmDeveloperLib
 from cgm.core.tests import cgmMeta_test as testCGM
+import cgm.core.tests.cgmTests as CGMTEST
+reload(CGMTEST)
 
 def loadLocalPython():
     mel.eval('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_Deformers as cgmDeformers;from cgm.core import cgm_General as cgmGen;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;from cgm.core import cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as VALID")')
@@ -545,10 +547,26 @@ def uiSection_dev(parent):
     
     
     _unitTests = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
-                             l='UT')
+                             l='Unittesting')
     
     
     
+    mc.menuItem(parent = _unitTests,
+                l='cgm - All',
+                ann = "WARNING - Opens new file...Unit test cgm.core",
+                c=cgmGen.Callback(ut_cgmTestCall))   
+    mc.menuItem(parent = _unitTests,
+                l='cgm - All (Debug)',
+                ann = "Only reports tests to run",
+                c=cgmGen.Callback(ut_cgmTestCall,'all', **{'testCheck':True}))   
+    
+
+    _test = mc.menuItem(parent = _unitTests,subMenu = True,tearOff = True,
+                        l='Test Modules') 
+    _testCheck = mc.menuItem(parent = _unitTests,subMenu = True,tearOff = True,
+                             l='Debug Modules')      
+    
+    """
     mc.menuItem(parent = _unitTests,
                 l='cgm - All (Test Check)',
                 ann = "Only reports tests to wrun",
@@ -568,7 +586,27 @@ def uiSection_dev(parent):
     mc.menuItem(parent = _unitTests,
                 l='cgm - mClasses',
                 ann = "WARNING - Opens new file...Unit test cgm.core",
-                c=lambda *a: ut_cgmTestCall('mClasses'))     
+                c=lambda *a: ut_cgmTestCall('mClasses'))     """
+    
+    for m,l in CGMTEST._d_modules.iteritems():
+        _mCheck = mc.menuItem(parent = _testCheck,subMenu = True,tearOff = True,
+                              l='Debug ' + m)   
+        _mTest = mc.menuItem(parent = _test,subMenu = True,tearOff = True,
+                             l='Test ' + m)   
+        for t in ['all'] + l:
+            _t = t
+            if t == 'all':
+                _t = m
+            mc.menuItem(parent = _mCheck,
+                        l=t,
+                        ann = "TEST LIST ONLY - {0} | {1}".format(m,t),
+                        c=cgmGen.Callback(ut_cgmTestCall,_t, **{'testCheck':True}))   
+                        
+                        #c=lambda *a: ut_cgmTestCall(_t, testCheck = True))   
+            mc.menuItem(parent = _mTest,
+                        l=t,
+                        ann = "WARNING - Opens new file.... Test: {0} | {1}".format(m,t),
+                        c=cgmGen.Callback(ut_cgmTestCall,_t, **{'testCheck':False}))   
     
     mc.menuItem(parent = _unitTests, l = '----------------')
     
