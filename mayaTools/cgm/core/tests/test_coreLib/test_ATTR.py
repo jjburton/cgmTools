@@ -1,8 +1,8 @@
 """
 ------------------------------------------
-cgm_Meta: cgm.core.test
-Author: Ryan Porter
-email: ryan.m.porter@gmail.com
+cgm_Meta: cgm.core.test.test_coreLib.test_ATTR
+Author: Josh Burton
+email: jjburton@gmail.com
 
 Website : http://www.cgmonks.com
 ------------------------------------------

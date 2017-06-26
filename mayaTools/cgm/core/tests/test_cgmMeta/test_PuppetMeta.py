@@ -41,7 +41,7 @@ class Test_cgmPuppet(unittest.TestCase):
         except:
             self.mi_puppet = cgmMeta.createMetaNode('cgmPuppet',name = 'cgmPuppetTesting')
             
-    def test_network(self):
+    def test_a_network(self):
         mPuppet = self.mi_puppet
         
         self.assertEqual(issubclass(type(mPuppet),PUPPETMETA.cgmPuppet),
@@ -80,7 +80,7 @@ class Test_cgmPuppet(unittest.TestCase):
         
         
             
-    def test_masterNull(self):
+    def test_b_masterNull(self):
             mPuppet = self.mi_puppet
             mMasterNull = mPuppet.masterNull
             

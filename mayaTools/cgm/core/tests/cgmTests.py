@@ -29,7 +29,7 @@ log.setLevel(logging.INFO)
 
 
 _d_modules = {'cgmMeta':['base','mClasses','PuppetMeta'],
-              'coreLib':['ATTR','VALID']}
+              'coreLib':['ATTR','VALID','NODEFACTORY']}
 _l_all_order = ['coreLib','cgmMeta']
 
 
@@ -119,7 +119,7 @@ def main(tests = 'all', verbosity = 1, testCheck = False, **kwargs):
                     _len_all += 1
             #print(cgmGEN._str_subLine)
             if testCheck is not True:
-                print(">>> Module complete : {0} | {1} ...".format(mod,format(module)))		
+                print("<<< Module complete : {0} | {1} ...".format(mod,format(module)))		
         
     if testCheck is not True:
         print("Completed [{0}] tests in [{1}] modules >> Time >> = {2} seconds".format(_len_all, len(_l_testModules), "%0.3f"%(time.clock()-_t_start))) 

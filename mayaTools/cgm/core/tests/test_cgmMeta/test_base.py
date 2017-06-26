@@ -54,7 +54,6 @@ class Test_r9Issues(unittest.TestCase):
         self.assertNotEqual(self.r9Node1,self.r9Node1_dup)
         self.r9Node1_dup.delete()
 
-
 class Test_general(unittest.TestCase):   
     def test_mClassConversion_r9(self):
         n1 = cgmMeta.cgmNode(name='test_setClass',nodeType = 'transform')
@@ -163,8 +162,75 @@ class Test_general(unittest.TestCase):
                 
             
         
-class Test_NameFactory(unittest.TestCase):
-    pass
+class Test_NameFactory(unittest.TestCase):            
+    def test_base(self):
+        NF = cgmMeta.NameFactory
+        
+        i_net1 = cgmMeta.cgmNode(name = 'NameFactoryTest',nodeType = 'network')        
+        i_net1.addAttr('cgmName','net', attrType = 'string')
+        
+        self.assertEqual(NF(i_net1).getBaseIterator(),
+                         0)
+        
+        
+        i_net2 = cgmMeta.cgmNode(mc.duplicate(i_net1.mNode)[0] )
+        self.assertEqual(NF(i_net1).getMatchedSiblings(),
+                        [i_net2])
+        self.assertEqual(NF(i_net2).getMatchedSiblings(),
+                         [i_net1])        
+        
+        self.assertEqual(NF(i_net1).getBaseIterator(),
+                         1)
+        
+        self.assertDictEqual(i_net1.getNameDict(),
+                             i_net2.getNameDict())        
+
+        i_net1.doName(fastName= False, fastIterate=False)
+        self.assertEqual(NF(i_net2).getBaseIterator(),
+                         2)        
+
+        NF(i_net2).doNameObject(fastIterate = False)
+        self.assertIn('2',
+                      list(i_net2.mNode))
+        
+        
+        
+    def _nameFactory_(self,**kws):	    
+
+    
+        try:#Transform nodes
+            try:
+                i_trans1a = cgmMeta.cgmObject(name = 'trans')
+                i_parent = cgmMeta.cgmObject(name = 'parent')
+                i_parent.addAttr('cgmName','nameParent', attrType = 'string')
+            except Exception,error:
+                raise Exception,"Setup | {0}".format(error)
+    
+            try:i_trans1b = cgmMeta.cgmObject(mc.duplicate(i_trans1a.mNode)[0] )
+            except Exception,error:
+                raise Exception,"duplicate | {0}".format(error)
+            try:
+                i_trans1a.parent = i_parent.mNode
+                i_trans1b.parent = i_parent.mNode
+            except Exception,error:
+                raise Exception,"parent | {0}".format(error)		    
+            assert i_trans1b in i_trans1a.getSiblings(asMeta = True),"In getSiblins? %s"%i_trans1a.getSiblings()
+            #assert NF(i_trans1a).getMatchedSiblings() == [i_trans1b],"%s"%NF(i_trans1a).getMatchedSiblings()
+            #assert NF(i_trans1b).getMatchedSiblings() == [i_trans1a],"%s"%NF(i_trans1b).getMatchedSiblings()        
+            #assert NF(i_trans1b).returnUniqueGeneratedName(fastIterate = False) == NF(i_trans1a).returnUniqueGeneratedName(fastIterate = False),"Not returning same name buffer"
+        except Exception,error:raise Exception,"TransformNodes | {0}".format(error)
+    
+        #Name different ways
+        bufferName =  NF(i_trans1a).returnUniqueGeneratedName(fastIterate = False)
+        NF(i_trans1a).doNameObject(i_trans1b,fastIterate = False)#name second object from firsts call
+        assert i_trans1b.getShortName() == bufferName,"Not the expected name after alternate naming method"
+        buffer1Name =  NF(i_trans1a).returnUniqueGeneratedName(fastIterate = False)
+        buffer2Name = i_trans1b.getShortName()
+        NF(i_parent).doName(nameChildren = True,fastIterate = False)#Name Heir
+        assert i_trans1b.getShortName() == buffer2Name,"%s != %s"%(i_trans1b.getShortName(),buffer2Name)
+    
+        for i_n in [i_net1,i_net2,i_trans1a,i_trans1b,i_parent]:
+            assert issubclass(type(i_n),cgmMeta.cgmNode),"%s not a cgmNode"%i_n    
 
 # FUNCTIONS ==================================================================       
 def main(**kwargs):

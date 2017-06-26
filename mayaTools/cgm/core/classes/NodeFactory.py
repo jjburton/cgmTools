@@ -1854,7 +1854,6 @@ def test_argsToNodes(deleteObj = True):
         assert i_obj.condResult == 1,"condResult should be 1"
 
     except StandardError,error:
-        log.info(d_return)
         log.error("test_argsToNodes>>Condition Failure! '%s'"%(error))
         raise StandardError,error  
 

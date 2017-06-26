@@ -27,7 +27,7 @@ from maya import mel
 
 # From cgm ==============================================================
 #CANNOT import Rigging
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 #from cgm.core.lib import search_utils as SEARCH
@@ -854,8 +854,13 @@ def siblings_get(node = None, fullPath = True):
                 if str(c) != _comb:
                     _l_res.append(c)
         else:
-            log.debug("|{0}| >> something else...".format(_str_func))               
-            raise ValueError,"Shouldn't have arrived. node: [{0}] | type: {1}".format(_node,_type)
+            _long = NAME.long(_node)            
+            log.debug("|{0}| >> something else...".format(_str_func))     
+            _l = mc.ls(type=_type)
+            for o in _l:
+                if NAME.long(o) != _long:
+                    _l_res.append(o)
+            #raise ValueError,"Shouldn't have arrived. node: [{0}] | type: {1}".format(_node,_type)
     elif parents_get(_node):
         log.debug("|{0}| >> parented...".format(_str_func))
         _long = NAME.long(_node)

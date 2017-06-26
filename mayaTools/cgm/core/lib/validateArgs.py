@@ -22,8 +22,8 @@ import sys
 
 # From cgm ==============================================================
 from cgm.lib import search
-from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
+from cgm.core import cgm_General as cgmGEN
+reload(cgmGEN)
 
 # Shared Defaults ========================================================
 
