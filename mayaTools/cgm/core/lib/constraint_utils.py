@@ -81,9 +81,9 @@ def get_constraintsFrom(node=None, fullPath = False):
     _res = mc.listConnections(node,source = False, destination = True,skipConversionNodes = True, type='constraint') or []
 
     _res = LISTS.get_noDuplicates(_res)
-    _l_objectConstraints = get_affecting(node)
-    for c in _l_objectConstraints:
-        if c in _res:_res.remove(c)
+    #_l_objectConstraints = get(node)
+    #for c in _l_objectConstraints:
+        #if c in _res:_res.remove(c)
     
     if fullPath:
         return [NAMES.long(o) for o in _res]

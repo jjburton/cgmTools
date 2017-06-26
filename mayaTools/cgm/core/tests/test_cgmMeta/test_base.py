@@ -142,21 +142,24 @@ class Test_general(unittest.TestCase):
                    #...these pass but don't need
                    'cgmNodeOLD','cgmEyelids','cgmMouthNose','cgmEyebrow','cgmSimpleBSFace','cgmEyeball','cgmObjectOLD']
         #for mType in ['cgmNode','cgmObject','cgmControl','cgmObjectList']:
-        for mType in _r9ClassRegistry.keys():
-            if 'cgm' in mType and mType not in _l_mask:
-                _t_start = time.clock()
-                try:
-                    mObj = cgmMeta.createMetaNode(mType,name = 'createTest_{0}'.format(mType))
-                except Exception,err:
-                    log.error("{0} failure...".format(mType))
-                    for arg in err.args:
-                        log.error(arg)  
-                    #log.error(cgmGEN._str_subLine)
-                    raise Exception,err
-                
-                self.assertEqual(issubclass(type(mObj),_r9ClassRegistry[mType]),True, mObj)
-                mObj.delete()   
-                print("[{0}] completed in  {1} seconds".format(mType, "%0.3f"%(time.clock()-_t_start))) 
+        #for mType in _r9ClassRegistry.keys():
+            #if 'cgm' in mType and mType not in _l_mask:
+        for mType in ['cgmNode','cgmObject','cgmControl','cgmObjectSet',
+                      'cgmPuppet','cgmModule',
+                      'cgmDynParentGroup','cgmDynamicMatch','cgmPuppet','cgmModule']:
+            _t_start = time.clock()
+            try:
+                mObj = cgmMeta.createMetaNode(mType,name = 'createTest_{0}'.format(mType))
+            except Exception,err:
+                log.error("{0} failure...".format(mType))
+                for arg in err.args:
+                    log.error(arg)  
+                #log.error(cgmGEN._str_subLine)
+                raise Exception,err
+            
+            self.assertEqual(issubclass(type(mObj),_r9ClassRegistry[mType]),True, mObj)
+            mObj.delete()   
+            print("[{0}] completed in  {1} seconds".format(mType, "%0.3f"%(time.clock()-_t_start))) 
                 
             
         

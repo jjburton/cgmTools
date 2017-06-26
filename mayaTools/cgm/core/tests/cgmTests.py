@@ -1,31 +1,3 @@
-from cgm.core import cgm_General as cgmGeneral
-import cgm.core.tests.test_cgmMeta as cgmMetaTest
-import cgm.core.tests.test_coreLib as test_coreLib
-from cgm.core.cgmPy import validateArgs as VALID
-
-def go(*args, **kws):
-    class fncWrap(cgmGeneral.cgmFuncCls):
-        def __init__(self,*args, **kws):
-            super(fncWrap, self).__init__(*args, **kws)
-            self._str_funcName = 'test_AllTheThings'	
-            self._b_autoProgressBar = 1
-            self._b_reportTimes = 1
-            self._b_pushCleanKWs = 1
-            self._b_ExceptionInterupt = False
-            self.__dataBind__(*args, **kws)
-            self.l_funcSteps = [{'step':'cgmCore','call':self.ut_core},
-                                {'step':'cgmMeta','call':self.ut_meta},	                        
-                                ]                       
-        def ut_meta(self):
-            reload(cgmMetaTest)
-            cgmMetaTest.main(verbosity = 1)
-        def ut_core(self):
-            reload(test_coreLib)
-            test_coreLib.main(verbosity = 1)
-            
-            
-    return fncWrap(*args, **kws).go()
-
 
 # IMPORTS ====================================================================
 import unittest
@@ -36,9 +8,10 @@ import maya.standalone
 import logging
 import time
 
-from cgm.core import cgm_General as cgmGEN
-import cgm.core
-from cgm.core.cgmPy import path_Utils as PATH
+import cgm.core.cgm_General as cgmGEN
+import cgm.core.cgmPy.path_Utils as PATH
+import cgm.core.cgmPy.validateArgs as VALID
+
 import maya.cmds as mc
 
 def sceneSetup():
@@ -55,7 +28,7 @@ log.setLevel(logging.INFO)
 #_d_moduleRoots = {'cgmMeta':"cgm.core.tests.test_cgmMeta.test",
 
 
-_d_modules = {'cgmMeta':['base','mClasses'],
+_d_modules = {'cgmMeta':['base','mClasses','PuppetMeta'],
               'coreLib':['ATTR','VALID']}
 _l_all_order = ['coreLib','cgmMeta']
 
@@ -100,13 +73,15 @@ def main(tests = 'all', verbosity = 1, testCheck = False, **kwargs):
                     _key = "{0}.{1}".format(k,t)
                     _l_testModules.append(_key)
                     _d_testModulePaths[_key] = "test_{0}.test_{1}".format(k,t)
-    cgmGEN.log_info_dict(_d_testModulePaths)
+    
+    #cgmGEN.log_info_dict(_d_testModulePaths)
     
     if not _l_testModules:
         raise ValueError,"No modules detected to test. Test arg: {0}".format(tests)
     
     #....meat of it...
     if testCheck is not True:
+        import cgm
         cgm.core._reload() 
         sceneSetup()
         
@@ -114,13 +89,11 @@ def main(tests = 'all', verbosity = 1, testCheck = False, **kwargs):
     _t_start = time.clock()
     _len_all = 0    
     
+    print(cgmGEN._str_hardBreak)
     for mod in _l_testModules:
-            print("Testing module: {0}".format(mod))
             suite = unittest.TestSuite()
-            print(cgmGEN._str_hardBreak)
-            print(">>> Testing: {0} ".format(mod) + '-'*100)		
-    
             module = "cgm.core.tests.{0}".format(_d_testModulePaths[mod])
+            print(">>> Testing: {0} | {1}".format(mod,module) + '-'*100)		
     
             try:
                 exec("import {0}".format(module))
@@ -136,16 +109,17 @@ def main(tests = 'all', verbosity = 1, testCheck = False, **kwargs):
             if testCheck is not True:
                 unittest.TextTestRunner(verbosity=v).run(suite)
     
-            print("Tests: ")
+            #print("Tests: ")
             for t in tests:
                 for t2 in t:
                     if v == 1:
                         _class = t2.__class__.__name__.split('Test_')[-1]
                         _test = t2._testMethodName.split('test_')[-1]
-                        print( "   > " + "{0} | {1}".format(_class,_test) )
+                        print( "    > " + "{0} | {1}".format(_class,_test) )
                     _len_all += 1
-            print(cgmGEN._str_subLine)
-            print(">>> Module complete : {0} | {1} ...".format(mod,format(module)))		
+            #print(cgmGEN._str_subLine)
+            if testCheck is not True:
+                print(">>> Module complete : {0} | {1} ...".format(mod,format(module)))		
         
     if testCheck is not True:
         print("Completed [{0}] tests in [{1}] modules >> Time >> = {2} seconds".format(_len_all, len(_l_testModules), "%0.3f"%(time.clock()-_t_start))) 

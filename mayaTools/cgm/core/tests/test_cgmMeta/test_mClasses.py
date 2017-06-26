@@ -36,6 +36,7 @@ log.setLevel(logging.INFO)
   
 class Test_cgmAttr(unittest.TestCase):
     pass
+
 class Test_cgmObject(unittest.TestCase):
     def test_base(self):
         mObj = cgmMeta.cgmObject(name = 'cgmObjectTester')

@@ -765,10 +765,20 @@ class cgmNode(r9Meta.MetaClass):
         return ATTR.msgList_connect(self.mNode,*a,**kws)
     
     def msgList_get(self,*a,**kws):
-        """
-        Append node to msgList
-
-        Returns index
+        """   
+        Get msgList return.
+        
+        :parameters:
+            attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+            mode(str) -- what kind of data to be looking for
+                NONE - just get the data
+                message - getMessage
+            dataAttr(str) - Attr to store extra info. If none specified, makes default
+            cull(bool) - Cull for empty entries
+            asMeta(bool) - Whether to return data as meta or not
+    
+        :returns
+            msgList(list)
         """
         _asMeta = kws.get('asMeta',True)
         
@@ -6156,7 +6166,7 @@ def createMetaNode(mType = None, *args, **kws):
   
     try:    
         return _call(*args,**kws)
-    except Exception,error:
+    except Exception,err:
         log.info("|{0}| >> mType: {1} | class: {2}".format(_str_func,mType,_call))                     
         if args:
             log.info("|{0}| >> Args...".format(_str_func))                         
@@ -6165,7 +6175,11 @@ def createMetaNode(mType = None, *args, **kws):
         if kws:
             log.info("|{0}| >> Kws...".format(_str_func))                                     
             for items in kws.items():
-                log.info("    kw: {0}".format(items))        
+                log.info("    kw: {0}".format(items))   
+                
+        for arg in err.args:
+            log.error(arg)            
+        raise Exception,err
         
     
     

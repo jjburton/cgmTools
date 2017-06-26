@@ -56,6 +56,543 @@ class cgmPuppet(cgmMeta.cgmNode):
     #----------------------------------------------------------------------
     #@cgmGeneral.Timer
     def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
+        _str_func = 'cgmPuppet.__init__'
+        log.debug("|{0}| >> ...".format(_str_func))                        
+        """
+        if node:
+            _buffer = ATTR.get_message(node,'puppet')
+            if _buffer:
+                log.info("|{0}| >> Passed masterNull [{1}]. Using puppet [{2}]".format(_str_func,node,_buffer[0]))                
+                node = _buffer [0]"""
+    
+        super(cgmPuppet, self).__init__(node = node, name = name, nodeType = 'network') 
+
+        #====================================================================================	
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
+            return
+        #====================================================================================
+
+        #self.UNMANAGED.extend(['i_masterNull','_UTILS'])
+        for a in 'i_masterNull','_UTILS':
+            if a not in self.UNMANAGED:
+                self.UNMANAGED.append(a) 	
+        self._UTILS = pFactory
+
+        if self.__justCreatedState__ or doVerify:
+            if self.isReferenced():
+                log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
+                return
+            elif not self.__verify__(name,**kws):
+                raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
+          
+    #====================================================================================
+
+    def __verify__(self,name = None):
+        """"""
+        """ 
+        Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
+
+        RETURNS:
+        success(bool)
+        """             
+        _short = self.p_nameShort
+        _str_funcName = "cgmPuppet.__verify__({0})".format(_short)
+
+        #============== 
+        #Puppet Network Node ================================================================
+        self.addAttr('mClass', initialValue='cgmPuppet',lock=True)  
+        if name is not None and name:
+            self.addAttr('cgmName',name, attrType='string', lock = True)
+        self.addAttr('cgmType','puppetNetwork')
+        self.addAttr('version',initialValue = 1.0, lock=True)  
+        self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
+        self.addAttr('masterControl',attrType = 'messageSimple',lock=True)  	
+        self.addAttr('moduleChildren',attrType = 'message',lock=True) 
+        self.addAttr('unifiedGeo',attrType = 'messageSimple',lock=True) 
+
+        #Settings ============================================================================
+        defaultFont = modules.returnSettingsData('defaultTextFont')
+        self.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
+        self.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
+        self.addAttr('axisUp',enumName = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
+        self.addAttr('axisOut',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
+        self.addAttr('skinDepth',attrType = 'float',initialValue=.75,lock=True)   
+
+        self.doName()
+
+        #MasterNull ===========================================================================
+        if not self.getMessage('masterNull'):#If we don't have a masterNull, make one
+            cgmMasterNull(puppet = self)
+        else:
+            self.masterNull.__verify__()
+            
+        if self.masterNull.getShortName() != self.cgmName:
+            self.masterNull.doName()
+            if self.masterNull.getShortName() != self.cgmName:
+                log.warning("Master Null name still doesn't match what it should be.")
+        
+        ATTR.set_standardFlags(self.masterNull.mNode,attrs=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
+        #self.__verifyGroups__()
+
+
+        #Quick select sets ================================================================
+        self.__verifyObjectSet__()
+
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Groups
+        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+        self.__verifyGroups__()
+
+        return True
+
+    def changeName(self,name = ''):
+        if name == self.cgmName:
+            log.error("Puppet already named '%s'"%self.cgmName)
+            return
+        if name != '' and type(name) is str:
+            log.warn("Changing name from '%s' to '%s'"%(self.cgmName,name))
+            self.cgmName = name
+            self.__verify__()
+
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # Puppet Utilities
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    def __verifyGroups__(self):
+        _short = self.p_nameShort
+        _str_func = "__verifyGroups__({0})".format(_short)
+        
+        mMasterNull = self.masterNull
+        
+        if not mMasterNull:
+            raise ValueError, "No masterNull"
+        
+        for attr in 'deform','noTransform','geo','parts','worldSpaceObjects':
+            _link = attr+'Group'
+            mGroup = mMasterNull.getMessage(_link,asMeta=True)# Find the group
+            if mGroup:mGroup = mGroup[0]
+                                                
+            if not mGroup:
+                mGroup = cgmMeta.cgmObject(name=attr)#Create and initialize
+                mGroup.doName()
+                mGroup.connectParentNode(mMasterNull.mNode,'puppet', attr+'Group')
+                
+            log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
+
+            # Few Case things
+            #==============            
+            if attr == 'geo':
+                mGroup.p_parent = mMasterNull.noTransformGroup
+            elif attr == 'deform' and self.getMessage('masterControl'):
+                mGroup.p_parent = self.getMessage('masterControl')[0]	    
+            else:    
+                mGroup.p_parent = mMasterNull
+            ATTR.set_standardFlags(mGroup.mNode)
+
+
+
+    def __verifyObjectSet__(self):
+        _str_func = "__verifyObjectSet__({0})".format(self.p_nameShort)
+        #Quick select sets ================================================================
+        if not self.getMessage('puppetSet'):#
+            mSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
+            mSet.connectParentNode(self.mNode,'puppet','puppetSet')
+
+        ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+        #cgmMeta.cgmAttr(self,'cgmName').doCopyTo(i_selectSet.mNode,connectTargetToSource =True)
+        mSet.doName()		    
+
+
+
+    def tracePuppet(self):
+        pass #Do this later.Trace a puppet to be able to fully delete everything.
+        #self.nodes_list.append()
+        raise NotImplementedError
+    """
+    def doName(self,sceneUnique=False,nameChildren=False,**kws):
+        #if not self.getTransform() and self.__justCreatedState__:
+            #log.error("Naming just created nodes, causes recursive issues. Name after creation")
+            #return False
+        if self.isReferenced():
+            log.error("'%s' is referenced. Cannot change name"%self.mNode)
+            return False
+        mc.rename(self.mNode,nameTools.returnCombinedNameFromDict(self.getNameDict()))"""
+
+    def delete(self):
+        """
+        Delete the Puppet
+        """
+        mc.delete(self.masterNull.mNode)
+        mc.delete(self.mNode)
+        del(self)
+
+    def addModule(self,mClass = 'cgmModule',**kws):
+        """
+        Create and connect a new module
+
+        moduleType(string) - type of module to create
+
+        p = cgmPM.cgmPuppet(name='Morpheus')
+        p.addModule(mClass = 'cgmLimb',mType = 'torso')
+        p.addModule(mClass = 'cgmLimb',mType = 'neck', moduleParent = 'spine_part')
+        p.addModule(mClass = 'cgmLimb',mType = 'head', moduleParent = 'neck_part')
+        p.addModule(mClass = 'cgmLimb',mType = 'arm',direction = 'left', moduleParent = 'spine_part')
+        """   
+        if mClass == 'cgmModule':
+            tmpModule = cgmModule(**kws)   
+        elif mClass == 'cgmLimb':
+            tmpModule = cgmLimb(**kws)
+        else:
+            log.warning("'%s' is not a known module type. Cannot initialize"%mClass)
+            return False
+
+        self.connectModule(tmpModule)
+        return tmpModule
+
+    ##@r9General.Timer
+    def connectModule(self,module,force = True,**kws):
+        """
+        Connects a module to a puppet
+
+        module(string)
+        """
+        #See if it's connected
+        #If exists, connect
+        #Get instance
+        #==============	
+        buffer = copy.copy(self.getMessage('moduleChildren')) or []#Buffer till we have have append functionality	
+        #self.i_masterNull = self.masterNull
+
+        try:
+            module.mNode#see if we have an instance
+            if module.mNode in buffer and force != True:
+                #log.warning("'%s' already connnected to '%s'"%(module.getShortName(),self.i_masterNull.getShortName()))
+                return False 	    
+        except:
+            if mc.objExists(module):
+                if mc.ls(module,long=True)[0] in buffer and force != True:
+                    #log.warning("'%s' already connnected to '%s'"%(module,self.i_masterNull.getShortName()))
+                    return False
+
+                module = r9Meta.MetaClass(module)#initialize
+
+            else:
+                log.warning("'%s' doesn't exist"%module)#if it doesn't initialize, nothing is there		
+                return False	
+
+        #Logic checks
+        #==============	
+        if not module.hasAttr('mClass'):
+            log.warning("'%s' lacks an mClass attr"%module.mNode)	    
+            return False
+
+        elif module.mClass not in cgmModuleTypes:
+            log.warning("'%s' is not a recognized module type"%module.mClass)
+            return False
+
+        #Connect
+        #==============	
+        else:
+            #if log.getEffectiveLevel() == 10:log.debug("Current children: %s"%self.getMessage('moduleChildren'))
+            #if log.getEffectiveLevel() == 10:log.debug("Adding '%s'!"%module.getShortName())    
+
+            buffer.append(module.mNode)
+            self.__setMessageAttr__('moduleChildren',buffer) #Going to manually maintaining these so we can use simpleMessage attr  parents
+            module.modulePuppet = self.mNode
+            #del self.moduleChildren
+            #self.connectChildren(buffer,'moduleChildren','modulePuppet',force=force)#Connect	    
+            #module.__setMessageAttr__('modulePuppet',self.mNode)#Connect puppet to 
+
+        #module.parent = self.i_partsGroup.mNode
+        module.doParent(self.masterNull.partsGroup.mNode)
+
+        return True
+
+    def getGeo(self,*args,**kws):
+        kws['mPuppet'] = self
+        return pFactory.getGeo(*args,**kws)
+
+    def getUnifiedGeo(self,*args,**kws):
+        kws['mPuppet'] = self	
+        return pFactory.getUnifiedGeo(*args,**kws)
+
+    def getModuleFromDict(self,*args,**kws):
+        """
+        Pass a check dict of attributes and arguments. If that module is found, it returns it.
+        checkDict = {'moduleType':'torso',etc}
+        """
+        kws['mPuppet'] = self	
+        return pFactory.getModuleFromDict(*args,**kws)
+
+    def getModules(self,*args,**kws):
+        """
+        Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
+        """
+        kws['mPuppet'] = self	
+        return pFactory.getModules(*args,**kws)   
+
+    def getOrderedModules(self,*args,**kws):
+        """
+        Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
+        """
+        kws['mPuppet'] = self		
+        return pFactory.getOrderedModules(*args,**kws)
+
+    def get_mirrorIndexDict(self,*args,**kws):
+        """
+        """
+        kws['mPuppet'] = self			
+        return pFactory.get_mirrorIndexDict(*args,**kws)
+
+    def state_set(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.setState)
+        """
+        kws['mPuppet'] = self	
+        return pFactory.state_set(*args,**kws)
+
+    def get_nextMirrorIndex(self,*args,**kws):
+        """
+        """
+        kws['mPuppet'] = self			
+        return pFactory.get_nextMirrorIndex(*args,**kws) 
+
+    def gatherModules(self,*args,**kws):
+        """
+        Gathers all connected module children to the puppet
+        """
+        kws['mPuppet'] = self
+        return pFactory.gatherModules(*args,**kws)    
+
+    def getState(self,*args,**kws):
+        """
+        Returns puppet state. That is the minimum state of it's modules
+        """
+        kws['mPuppet'] = self	
+        return pFactory.getState(*args,**kws) 
+
+    #>>> Animation
+    #========================================================================
+    def animSetAttr(self,*args,**kws):
+        kws['mPuppet'] = self
+        return pFactory.animSetAttr(*args,**kws) 
+
+        #return pFactory.animSetAttr(self,attr, value, settingsOnly)
+    def controlSettings_setModuleAttrs(self,*args,**kws):
+        kws['mPuppet'] = self
+        return pFactory.controlSettings_setModuleAttrs(*args,**kws)     
+
+    def toggle_subVis(self):
+        try:
+            self.masterControl.controlVis.subControls = not self.masterControl.controlVis.subControls
+        except:pass
+
+    def anim_key(self,**kws):
+        _str_funcName = "%s.animKey()"%self.p_nameShort  
+        start = time.clock()
+        b_return = None
+        _l_callSelection = mc.ls(sl=True) or []
+        try:
+            try:buffer = self.puppetSet.getList()
+            except:buffer = []
+            if buffer:
+                mc.select(buffer)
+                mc.setKeyframe(**kws)
+                b_return =  True
+            b_return = False
+            log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+            if _l_callSelection:mc.select(_l_callSelection)                	    
+            return b_return
+        except Exception,error:
+            log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
+            return False
+
+    def mirrorMe(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.mirrorMe(*args,**kws)
+
+    def mirror_do(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.mirror_do(*args,**kws)
+
+    def mirrorSetup_verify(self,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.mirrorSetup_verify(**kws)   
+
+    def anim_reset(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.animReset(*args,**kws)
+
+    def anim_select(self):
+        _str_funcName = "%s.anim_select()"%self.p_nameShort  
+        start = time.clock()
+        try:self.puppetSet.select()
+        except:pass
+        log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+        return buffer
+
+    def isCustomizable(self):
+        return False 
+
+    def isTemplated(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.isTemplated(*args,**kws)
+    #def poseStore_templateSettings(self,*args,**kws):
+        #kws['mPuppet'] = self			
+        #return pFactory.poseStore_templateSettings(*args,**kws)
+    #def poseLoad_templateSettings(self,*args,**kws):
+        #kws['mPuppet'] = self			
+        #return pFactory.poseLoad_templateSettings(*args,**kws)
+
+    def templateSettings_call(self,*args,**kws):
+        '''
+        Call for doing multiple functions with templateSettings.
+
+        :parameters:
+            mode | string
+        reset:reset controls
+        store:store data to modules
+        load:load data from modules
+        query:get current data
+        export:export to a pose file
+        import:import from a  pose file
+            filepath | string/None -- if None specified, user will be prompted
+        '''
+        kws['mPuppet'] = self			
+        return pFactory.templateSettings_call(*args,**kws)
+
+    def isSized(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.isSized(*args,**kws)
+    
+    def isSkeletonized(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.isSkeletonized(*args,**kws)
+
+    def _verifyMasterControl(self,**kws):
+        """ 
+        """
+        _str_funcName = "cgmPuppet._verifyMasterControl(%s)"%self.p_nameShort    
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+        # Master Curve
+        #==================================================================
+        masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
+        if mc.objExists( masterControl ):
+            #If exists, initialize it                                 	    
+            mi_masterControl = self.masterControl
+        else:#Make it
+            #Get size
+            if not kws.get('size'):
+                if self.getGeo():
+                    averageBBSize = distance.returnBoundingBoxSizeToAverage(self.masterNull.geoGroup.mNode)
+                    kws['size'] = averageBBSize * .75
+                elif len(self.moduleChildren) == 1 and self.moduleChildren[0].getMessage('helper'):
+                    averageBBSize = distance.returnBoundingBoxSizeToAverage(self.moduleChildren[0].getMessage('helper'))		
+                    kws['size'] = averageBBSize * 1.5
+                elif 'size' not in kws.keys():kws['size'] = 50
+            mi_masterControl = cgmMasterControl(puppet = self,**kws)#Create and initialize
+            mi_masterControl.__verify__()
+        mi_masterControl.parent = self.masterNull.mNode
+        mi_masterControl.doName()
+        """    
+	except Exception,error:
+	    log.error("_verifyMasterControl>> masterControl fail! "%error)
+	    raise StandardError,error """
+
+        # Vis setup
+        # Setup the vis network
+        #====================================================================
+        try:
+            if not mi_masterControl.hasAttr('controlVis') or not mi_masterControl.getMessage('controlVis'):
+                log.error("This is an old master control or the vis control has been deleted. rebuild")
+            else:
+                iVis = mi_masterControl.controlVis
+                visControls = 'left','right','sub','main'
+                visArg = [{'result':[iVis,'leftSubControls_out'],'drivers':[[iVis,'left'],[iVis,'subControls'],[iVis,'controls']]},
+                          {'result':[iVis,'rightSubControls_out'],'drivers':[[iVis,'right'],[iVis,'subControls'],[iVis,'controls']]},
+                          {'result':[iVis,'subControls_out'],'drivers':[[iVis,'subControls'],[iVis,'controls']]},		      
+                          {'result':[iVis,'leftControls_out'],'drivers':[[iVis,'left'],[iVis,'controls']]},
+                          {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
+                          ]
+                nodeF.build_mdNetwork(visArg)
+        except Exception,err:
+            log.error("{0} >> visNetwork fail! {1}".format(_str_funcName,err))
+            raise StandardError,err 	
+
+        # Settings setup
+        # Setup the settings network
+        #====================================================================	
+        i_settings = mi_masterControl.controlSettings
+        str_nodeShort = str(i_settings.getShortName())
+        #Skeleton/geo settings
+        for attr in ['skeleton','geo',]:
+            i_settings.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+            nodeF.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+            nodeF.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+
+        #Geotype
+        i_settings.addAttr('geoType',enumName = 'reg:proxy', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+        for i,attr in enumerate(['reg','proxy']):
+            nodeF.argsToNodes("%s.%sVis = if %s.geoType == %s:1 else 0"%(str_nodeShort,attr,str_nodeShort,i)).doBuild()    
+
+        #Divider
+        i_settings.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
+
+        #i_settings.addAttr('templateVis',attrType = 'float',lock=True,hidden = True)
+        #i_settings.addAttr('templateLock',attrType = 'float',lock=True,hidden = True)	
+        #i_settings.addAttr('templateStuff',enumName = 'off:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+        #nodeF.argsToNodes("%s.templateVis = if %s.templateStuff > 0"%(i_settings.getShortName(),i_settings.getShortName())).doBuild()
+        #nodeF.argsToNodes("%s.templateLock = if %s.templateStuff == 1:0 else 2"%(i_settings.getShortName(),i_settings.getShortName())).doBuild()	
+
+
+        #>>> Deform group
+        #=====================================================================	
+        if self.masterNull.getMessage('deformGroup'):
+            self.masterNull.deformGroup.parent = mi_masterControl.mNode
+
+        mi_masterControl.addAttr('cgmAlias','world',lock = True)
+
+
+        #>>> Skeleton Group
+        #=====================================================================	
+        if not self.masterNull.getMessage('skeletonGroup'):
+            #Make it and link it
+            i_grp = mi_masterControl.doDuplicateTransform()
+            i_grp = cgmMeta.validateObjArg(i_grp,'cgmObject',setClass = True)
+            i_grp.doRemove('cgmName')
+            i_grp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
+            i_grp.parent = mi_masterControl.mNode
+            self.masterNull.connectChildNode(i_grp,'skeletonGroup','module')
+
+            i_grp.doName()
+
+        self._i_skeletonGroup = self.masterNull.skeletonGroup	
+
+        #Verify the connections
+        self._i_skeletonGroup.overrideEnabled = 1             
+        cgmMeta.cgmAttr(i_settings,'skeletonVis',lock=False).doConnectOut("%s.%s"%(self._i_skeletonGroup.mNode,'overrideVisibility'))    
+        cgmMeta.cgmAttr(i_settings,'skeletonLock',lock=False).doConnectOut("%s.%s"%(self._i_skeletonGroup.mNode,'overrideDisplayType'))    
+
+
+        #>>>Connect some flags
+        #=====================================================================
+        i_geoGroup = self.masterNull.geoGroup
+        i_geoGroup.overrideEnabled = 1		
+        cgmMeta.cgmAttr(i_settings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
+        cgmMeta.cgmAttr(i_settings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))  
+
+        self.masterNull.worldSpaceObjectsGroup.parent = mi_masterControl
+
+        return True
+
+
+class cgmPuppetOLD(cgmMeta.cgmNode):
+    """"""
+    #----------------------------------------------------------------------
+    #@cgmGeneral.Timer
+    def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
         """Constructor"""
 
         '''#>>>Keyword args

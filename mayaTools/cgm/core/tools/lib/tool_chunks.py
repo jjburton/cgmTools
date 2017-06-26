@@ -550,17 +550,21 @@ def uiSection_dev(parent):
     
     
     mc.menuItem(parent = _unitTests,
-                    l='cgm - All',
-                    ann = "WARNING - Opens new file...Unit test cgm.core",
-                    c=lambda *a: ut_cgmTestCall())    
+                l='cgm - All (Test Check)',
+                ann = "Only reports tests to wrun",
+                c=lambda *a: ut_cgmTestCall('all',testCheck = True))      
     mc.menuItem(parent = _unitTests,
-                    l='cgm - Core',
-                    ann = "WARNING - Opens new file...Unit test cgm.core",
-                    c=lambda *a: ut_cgmTestCall('coreLib'))    
+                l='cgm - All',
+                ann = "WARNING - Opens new file...Unit test cgm.core",
+                c=lambda *a: ut_cgmTestCall())    
     mc.menuItem(parent = _unitTests,
-                    l='cgm - Meta',
-                    ann = "WARNING - Opens new file...Unit test cgm.core",
-                    c=lambda *a: ut_cgmTestCall('cgmMeta'))   
+                l='cgm - Core',
+                ann = "WARNING - Opens new file...Unit test cgm.core",
+                c=lambda *a: ut_cgmTestCall('coreLib'))    
+    mc.menuItem(parent = _unitTests,
+                l='cgm - Meta',
+                ann = "WARNING - Opens new file...Unit test cgm.core",
+                c=lambda *a: ut_cgmTestCall('cgmMeta'))   
     mc.menuItem(parent = _unitTests,
                 l='cgm - mClasses',
                 ann = "WARNING - Opens new file...Unit test cgm.core",
@@ -586,10 +590,10 @@ def uiSection_dev(parent):
                 c=lambda *a: ut_limbOLD()) 
 
     
-def ut_cgmTestCall(*args):
+def ut_cgmTestCall(*args,**kws):
     import cgm.core.tests.cgmTests as cgmTests
     reload(cgmTests)
-    cgmTests.main(*args)    
+    cgmTests.main(*args,**kws)    
 
 def ut_allOLD():
     reload(testCGM)

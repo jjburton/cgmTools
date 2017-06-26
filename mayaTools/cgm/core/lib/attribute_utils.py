@@ -2680,9 +2680,11 @@ def datList_get(node = None, attr = None, mode = None, dataAttr = None, cull = F
         mode(str) -- what kind of data to be looking for
             NONE - just get the data
             message - getMessage
+        dataAttr(str) - Attr to store extra info. If none specified, makes default
+        cull(bool) - Cull for empty entries
 
     :returns
-        status(bool)
+        dataList(list)
     """
     _str_func = 'datList_get'
     
