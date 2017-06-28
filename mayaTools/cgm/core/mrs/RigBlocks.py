@@ -46,6 +46,10 @@ from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
 from cgm.core.mrs.lib import shared_dat as BLOCKSHARED
+from cgm.core.mrs.lib import general_utils as BLOCKGEN
+from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
+
+from cgm.core.lib import nameTools
 reload(BLOCKSHARED)
 
 
@@ -59,15 +63,365 @@ reload(BLOCKSHARED)
 
 #_d_blockTypes = {'box':box}
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Rig Blocks
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+#====================================================================================	
+# Rig Block Meta
+#====================================================================================	
 d_attrstoMake = {'version':'string',#Attributes to be initialzed for any module
                  'blockType':'string',
-                 'moduleTarget':'messageSimple',
+                 #'moduleTarget':'messageSimple',
+                 'attachPoint':'base:end:closest:surface',                                    
+                 'baseSize':'float',
+                 'blockState':'string',
+                 'blockDat':'string', 
+                 'blockParent':'messageSimple',
                  'blockMirror':'messageSimple'}
+d_defaultAttrSettings = {'blockState':'define',
+                         'baseSize':1.0}
+
+class cgmRigBlock(cgmMeta.cgmControl):
+    #These lists should be set up per rigblock as a way to get controls from message links
+    _l_controlLinks = []
+    _l_controlmsgLists = []
+
+    def __init__(self, node = None, blockType = None, *args,**kws):
+        """ 
+        The root of the idea of cgmRigBlock is to be a sizing mechanism and build options for
+        our modular rigger.
+
+        Args:
+        node = existing module in scene
+        name = treated as a base name
+
+        """
+        _str_func = "cgmRigBlock.__init__"   
+        
+        if node is None and blockType is None:
+            raise ValueError,"|{0}| >> Must have either a node or a blockType specified.".format(_str_func)
+        if blockType and not is_buildable(blockType):
+            log.warning("|{0}| >> Unbuildable blockType specified".format(_str_func))
+            
+        #>>Verify or Initialize
+        super(cgmRigBlock, self).__init__(node = node, name = blockType) 
+        
+        #====================================================================================	
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
+            return
+        #====================================================================================	
+
+        #====================================================================================
+        #Keywords - need to set after the super call
+        #==============         
+        _doVerify = kws.get('doVerify',False) or False
+        self._factory = factory(self.mNode)
+        self._callKWS = kws
+        #self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags'])	
+
+        #>>> Initialization Procedure ================== 
+        if self.__justCreatedState__ or _doVerify:
+            log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
+            if self.isReferenced():
+                log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
+                return
+            elif not self.verify(blockType):
+                raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
+            
+            #>>>Auto flags...
+            _blockModule = get_blockModule(self.blockType)
+            if _blockModule.__dict__.get('__autoTemplate__'):
+                log.info("|{0}| >> AutoTemplate...".format(_str_func))  
+                try:
+                    self.p_blockState = 'template'
+                except Exception,err:
+                    for arg in err.args:
+                        log.error(arg)  
+                        
+    def verify(self, blockType = None, size = None):
+        """ 
+
+        """
+        _str_func = "cgmRigBlock.verifyBlockType" 
+        
+        if size == None:
+            size = self._callKWS.get('size')
+            
+        _start = time.clock()
+
+        if self.isReferenced():
+            raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
+        
+        #if blockType and not is_blockType_valid(blockType):
+            #raise ValueError,"|{0}| >> Invalid blocktype specified".format(_str_func)
+        
+        _type = self.getMayaAttr('blockType')
+        if blockType is not None and _type is not None and _type != blockType:
+            raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
+        
+        _module = get_blockModule(blockType)
+                
+        if not _module:
+            log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,blockType))        
+            return False
+                
+        #if 'build_rigBlock' not in _module.__dict__.keys():
+            #log.error("|{0}| >> [{1}] | Failed to query create function.".format(_str_func,blockType))        
+            #return False
+        
+        #>>> Attributes --------------------------------------------------------------------------------
+        self._factory.verify(blockType)    
+        
+        #>>> Base shapes --------------------------------------------------------------------------------
+        if size:
+            self.baseSize = size
+
+        
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))         
+        return True
+        
+
+    def doName(self, *a, **kws):
+        """
+        Override to handle difference with rig block
+
+        """
+        _str_func = 'doName'
+
+        #Get Raw name
+        _d = nameTools.returnObjectGeneratedNameDict(self.mNode)
+
+        for a in 'puppetName','baseName':
+            if self.hasAttr(a):
+                _d['cgmName'] = ATTR.get(self.mNode,a)
+
+        _d['cgmTypeModifier'] = ATTR.get(self.mNode,'blockType')
+        _d['cgmType'] = 'block'
+        
+        if self.getMayaAttr('position'):
+            _d['cgmPosition'] = self.getEnumValueString('position')
+        if self.getMayaAttr('direction'):
+            _d['cgmDirection'] = self.getEnumValueString('direction')
+
+        #Check for special attributes to replace data, name
+        self.rename(nameTools.returnCombinedNameFromDict(_d))
+
+    def getControls(self, asMeta = False):
+        """
+        Function which MUST be overloaded
+        """	
+        #>>> Gather basic info for module build
+        _str_func = "{0}.get_controls() >> ".format(self.p_nameShort)
+        if asMeta:
+            _result = [self]
+        else:
+            _result = [self.mNode]
+        for plug in self.__class__._l_controlLinks:
+            if asMeta:
+                _buffer = self.getMessageAsMeta(plug)
+                if _buffer:
+                    _result.append(_buffer)
+            else:
+                _buffer = self.getMessage(plug)
+                if _buffer:
+                    _result.extend(_buffer)
+                else:
+                    log.error("{2} Failed to find message on: {0}.{1}".format(self.p_nameShort,plug,_str_func))
+        if not self.__class__._l_controlmsgLists:
+            log.debug("{0} No msgList attrs registered".format(_str_func))
+        else:
+            for plug in self.__class__._l_controlmsgLists:
+                _buffer = self.msgList_get(plug, asMeta = asMeta)
+                if _buffer:
+                    _result.extend(_buffer)
+                else:
+                    log.error("{2} Failed to find msgList on: {0}.{1}".format(self.p_nameShort,plug,_str_func))	    
+        return _result
+    
+    #========================================================================================================     
+    #>>> Heirarchy 
+    #========================================================================================================      
+    def getBlockRoot(self,asMeta = True):
+        _mParent = self.getBlockParent(asMeta)
+        while _mParent:
+            _mCheck = _mParent.getBlockParent(asMeta)
+            if not _mCheck:
+                return _mParent
+            else:_mParent = _mCheck
+        
+        if not asMeta:
+            return _mParent.mNode
+        return _mParent
+        """
+        self.getParentMetaNode(mType = 'cgmRigBlock')
+        objs = [GetNodeType(x) for x in self.fullPath.split('|')[:-1]]
+        rootBlock = self
+    
+        for obj in objs:
+            if not obj:
+                continue
+            if( mc.objExists(obj.GetAttrString("bp_block")) ):
+                rootBlock = Block.LoadRigBlock( obj )
+                break
+    
+        return rootBlock """
+    p_blockRoot = property(getBlockRoot)
+    
+    def getBlockParent(self,asMeta=True):
+        _str_func = 'getBlockParent'
+        _res = False
+        
+        _mBlockParent = self.getMessage('blockParent',asMeta = True)
+        if _mBlockParent:
+            _res = _mBlockParent
+        
+        for mParent in self.getParents(asMeta=True):
+            if issubclass(type(mParent), cgmRigBlock):
+                _res = mParent
+        if _res and not asMeta:
+            return _res.mNode
+        return _res
+
+    def setBlockParent(self, parent = False, attachPoint = None):
+        _str_func = 'setBlockParent'
+        if not parent:
+            self.blockParent = False
+            self.p_parent = False
+        
+        else:
+            self.connectParentNode(parent, 'blockParent')
+            if attachPoint:
+                self.p_parent = attachPoint
+            else:
+                self.p_parent = parent
+            
+    p_blockParent = property(getBlockParent,setBlockParent)
+    
+    def getBlockChildren(self,asMeta=True):
+        _str_func = 'getBlockChildren'
+        ml_nodeChildren = self.getChildMetaNodes(mType = ['cgmRigBlock'])
+        ml_children = self.getChildren(asMeta = True)
+        
+        for mChild in ml_children:
+            if mChild not in ml_nodeChildren and issubclass(type(mChild),cgmRigBlock):
+                log.info("|{0}| >> Found as reg child: {1}".format(_str_func,mChild.mNode))        
+                ml_nodeChildren.append(mChild)
+        
+        if not asMeta:
+            return [mChild.mNode for mChild in ml_nodeChildren]
+        return ml_nodeChildren
+    
+    p_blockChildren = property(getBlockChildren)
+
+  
+    
+    #========================================================================================================     
+    #>>> Info 
+    #========================================================================================================      
+    def getBlockAttributes(self):
+        """
+        keyable and unlocked attributes
+        """
+        _res = []
+        _short = self.mNode
+        for attr in self.getAttrs(ud=True):
+            if ATTR.is_keyable(_short,attr):#and not ATTR.is_locked(_short,attr)
+                _res.append(attr)
+        return _res
+    p_blockAttributes = property(getBlockAttributes)
+    
+    
+    #========================================================================================================     
+    #>>> States 
+    #========================================================================================================      
+    def getState(self, asString = True):
+        _str_func = '[{0}] getState'.format(self.p_nameShort)
+        #if asString:
+        #    return self.blockState
+        #return BLOCKSHARED._l_blockStates.index(self.blockState)
+        _blockModule = get_blockModule(self.blockType)
+        _goodState = False
+        _l_blockStates = BLOCKSHARED._l_blockStates
+        
+        _state = self.blockState
+        if _state not in BLOCKSHARED._l_blockStates:
+            log.info("|{0}| >> Failed a previous change: {1}. Reverting to previous".format(_str_func,_state))                    
+            _state = _state.split('>')[0]
+            self.blockState = _state
+            self.changeState(_state),#rebuild=True)
+        
+        
+        if _state == 'define':
+            _goodState = 'define'
+        else:
+            if _blockModule.__dict__['is_{0}'.format(_state)](self):
+                log.info("|{0}| >> blockModule test...".format(_str_func))                    
+                _goodState = _state
+            else:
+                _idx = _l_blockStates.index(_state) - 1
+                log.info("|{0}| >> blockModule test failed. Testing: {1}".format(_str_func, _l_blockStates[_idx]))                
+                while not _blockModule.__dict__['is_{0}'.format(_l_blockStates[_idx])](self) and _idx > 0:
+                    log.info("|{0}| >> Failed {1}. Going down".format(_str_func,_l_blockStates[_idx]))
+                    _blockModule.__dict__['{0}Delete'.format(_l_blockStates[_idx])](self)
+                    #self.changeState(_l_blockStates[_idx])
+                    _idx -= 1
+                _goodState = _l_blockStates[_idx]
+                    
+                
+        if _goodState != self.blockState:
+            log.info("|{0}| >> Passed: {1}. Changing buffer state".format(_str_func,_goodState))                    
+            self.blockState = _goodState
+            
+        if asString:
+            return _goodState
+        return _l_blockStates.index(_goodState)
+    
+    
+    
+ 
+    def changeState(self, state = None, children = True):
+        return self._factory.changeState(state)    
+    p_blockState = property(getState,changeState)
+    
+    
+    
+    #========================================================================================================     
+    #>>> Skeleton and Mesh generation 
+    #========================================================================================================      
+    def isSkeletonized(self):
+        _str_func = '[{0}] isSkeletonized'.format(self.p_nameShort)
+        
+        _blockModule = get_blockModule(self.blockType)
+        
+        _call = _blockModule.__dict__.get('is_skeletonized',False)
+        if _call:
+            log.info("|{0}| >> blockModule check...".format(_str_func))                                
+            return _call(self)
+        return False
+    
+    def doSkeletonize(self):
+        _str_func = '[{0}] doSkeletonize'.format(self.p_nameShort)
+        
+        _blockModule = get_blockModule(self.blockType)
+                
+        _call = _blockModule.__dict__.get('skeletonize',False)
+        if _call:
+            log.info("|{0}| >> blockModule check...".format(_str_func))                                
+            return _call(self)
+        return False
+    
+
+    
 
 
+    #========================================================================================================     
+    #>>> Mirror 
+    #========================================================================================================      
+       
+
+
+#====================================================================================	
+# Factory
+#====================================================================================	
 class factory(object):
     _l_controlLinks = []
     _l_controlmsgLists = []	
@@ -105,10 +459,10 @@ class factory(object):
         try:return "{0}(root: {1})".format(self.__class__, self._mi_block)
         except:return self
 
-    def create_rigBlock(self,blockType = None, size = 1, blockParent = None):
+    def create_rigBlock(self, blockType = None, size = 1, blockParent = None):
         _str_func = 'create_rigBlock'
         _start = time.clock()
-        
+        """
         _d = get_modules_dict()
         
         if blockType not in _d.keys():
@@ -117,17 +471,17 @@ class factory(object):
         
         _module = _d[blockType]
         
-        if 'create' not in _module.__dict__.keys():
+        if 'build_rigBlock' not in _module.__dict__.keys():
             log.error("|{0}| >> [{1}] | Failed to query create function.".format(_str_func,blockType))        
-            return False
+            return False"""
         
-        _mObj = PUPPETMETA.cgmRigBlock(None)
-        _module.build_rigBlock(_mObj,size = size)
+        _mObj = cgmRigBlock(blockType=blockType)
+        #_module.build_rigBlock(_mObj,size = size)
         
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
         
-        self.set_rigBlock(_mObj)
-        self.verify(blockType)
+        #self.set_rigBlock(_mObj)
+        #self.verify(blockType)
         return _mObj
 
 
@@ -148,11 +502,14 @@ class factory(object):
             log.warning("|{0}| >> No module found for: {1}".format(_str_func,blockType))
             return False
 
+        
         try:d_attrsFromModule = _mod.d_attrsToMake
         except:d_attrsFromModule = {}
-
-        try:d_defaultSettings = _mod.d_defaultSettings
-        except:d_defaultSettings = {}
+        
+        d_defaultSettings = copy.copy(d_defaultAttrSettings)
+        
+        try:d_defaultSettings.update(_mod.d_defaultSettings)
+        except:pass
 
         try:_l_msgLinks = _mod._l_controlLinks
         except:_l_msgLinks = []
@@ -165,8 +522,6 @@ class factory(object):
             if k in BLOCKSHARED._d_attrsTo_make.keys():
                 _d[k] = BLOCKSHARED._d_attrsTo_make[k]
         
-
-        #_d = {}
         for k,v in d_attrsFromModule.iteritems():
             if k in _d.keys():
                 log.warning("|{0}| >> key: {1} already in to create list of attributes from default. | blockType: {2}".format(_str_func,k,blockType))                
@@ -178,7 +533,7 @@ class factory(object):
                 _d[l] = 'messageSimple'
 
         cgmGEN.log_info_dict(_d,_str_func + " '{0}' attributes to create".format(blockType))
-        #cgmGEN.log_info_dict(d_defaultSettings,_str_func + " '{0}' defaults".format(blockType))
+        cgmGEN.log_info_dict(d_defaultSettings,_str_func + " '{0}' defaults".format(blockType))
 
         self._d_attrsToVerify = _d
         self._d_attrToVerifyDefaults = d_defaultSettings
@@ -316,6 +671,7 @@ class factory(object):
                 
         return _res
     
+        
     def get_skeletonCreateDict(self,blockType = None):
         """
         Data checker to see the skeleton create dict for a given blockType regardless of what's loaded
@@ -328,7 +684,7 @@ class factory(object):
         """
         _str_func = 'get_skeletonCreateDict'
 
-        _mod = _d_blockTypes.get(blockType,False)
+        _mod = get_blockModule(blockType)
         if not _mod:
             log.warning("|{0}| >> No module found for: {1}".format(_str_func,blockType))
             return False       
@@ -419,9 +775,7 @@ class factory(object):
         #_mBlock.verifyAttrDict(self._d_attrsToVerify,keyable = False, hidden = False)
         #_mBlock.verifyAttrDict(self._d_attrsToVerify)
         
-        #s_mBlock.blockType = blockType
-        _mBlock.addAttr('blockType', value = blockType,lock=True)	
-        _mBlock.blockState = 'template'
+
         
         _keys = self._d_attrsToVerify.keys()
         _keys.sort()
@@ -433,14 +787,330 @@ class factory(object):
             log.info("|{0}| ({3}) >>  Setting attr >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
             
             if ':' in t:
-                _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t)		    
+                _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
             else:
-                _mBlock.addAttr(a,initialValue = v, attrType = t)            
+                if t == 'string':
+                    _l = True
+                else:_l = False
+                _mBlock.addAttr(a,initialValue = v, attrType = t,lock=_l, keyable = False)            
 
+        _mBlock.addAttr('blockType', value = blockType,lock=True)	
+        #_mBlock.blockState = 'base'
         _mBlock.doName()
         
         return True
+    
+    def getState(self):
+            """
+            Change the state of a loaded rigBlock
+            
+            :parameters:
+                state(str) | state to change to
+    
+            :returns
+                success(bool)
+            """        
+    
+            if self._mi_block is None:
+                raise ValueError,"No root loaded."
+    
+            _mBlock = self._mi_block
+    
+            _str_func = '[{0}] getState'.format(_mBlock.p_nameBase)
+            
+            
+            
+            
+    def changeState(self, state = None, rebuildFrom = None, forceNew = False):
+        """
+        Change the state of a loaded rigBlock
+        
+        :parameters:
+            state(str) | state to change to
 
+        :returns
+            success(bool)
+        """        
+
+        if self._mi_block is None:
+            raise ValueError,"No root loaded."
+
+        _mBlock = self._mi_block
+
+        if _mBlock.isReferenced():
+            raise ValueError,"Referenced node. Cannot verify"
+        
+        _str_func = '[{0}] changeState'.format(_mBlock.p_nameBase)
+        
+        #>Validate our data ------------------------------------------------------
+        d_upStateFunctions = {'template':self.template,
+                              'prerig':self.prerig,
+                              'rig':self.rig,
+                              }
+        d_downStateFunctions = {'define':self.templateDelete,#deleteSizeInfo,
+                                'template':self.prerigDelete,#deleteSkeleton,
+                                'prerig':self.rigDelete,#rigDelete,
+                                }
+        d_deleteStateFunctions = {'define':False,#deleteSizeInfo,
+                                  'template':False,#deleteTemplate,#handle from factory now
+                                  'prerig':False,#deleteSkeleton,
+                                  'rig':False,#rigDelete,
+                                  }        
+        stateArgs = BLOCKGEN.validate_stateArg(state)
+        _l_moduleStates = BLOCKSHARED._l_blockStates
+        
+        if not stateArgs:
+            return False
+    
+        _idx_target = stateArgs[0]
+        _state_target = stateArgs[1]
+        
+        log.info("|{0}| >> Target state: {1} | {2}".format(_str_func,_state_target,_idx_target))
+        
+        #>>> Meat
+        #========================================================================
+        currentState = _mBlock.getState(False) 
+        
+        if currentState == _idx_target and rebuildFrom is None and not forceNew:
+            if not forceNew:
+                log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,_mBlock.mNode,currentState))                
+            return True
+        
+        
+        #If we're here, we're going to move through the set states till we get to our spot
+        
+        log.info("|{0}| >> Changing states...".format(_str_func))
+        if _idx_target > currentState:
+            startState = currentState+1        
+            doStates = _l_moduleStates[startState:_idx_target+1]
+            log.info("|{0}| >> Going up. First stop: {1} | All stops: {2}".format(_str_func, _l_moduleStates[startState],doStates))
+            
+            for doState in doStates:
+                #if doState in d_upStateFunctions.keys():
+                log.info("|{0}| >> Up to: {1} ....".format(_str_func, doState))
+                if not d_upStateFunctions[doState]():
+                    log.info("|{0}| >> Failed: {1} ....".format(_str_func, doState))
+                    return False
+                #else:
+                #    log.info("|{0}| >> No upstate function for {1} ....".format(_str_func, doState))
+            return True
+        elif _idx_target < currentState:#Going down
+            l_reverseModuleStates = copy.copy(_l_moduleStates)
+            l_reverseModuleStates.reverse()
+            startState = currentState 
+            rev_start = l_reverseModuleStates.index( _l_moduleStates[startState] )+1
+            rev_end = l_reverseModuleStates.index( _l_moduleStates[_idx_target] )+1
+            doStates = l_reverseModuleStates[rev_start:rev_end]
+            log.info("|{0}| >> Going down. First stop: {1} | All stops: {2}".format(_str_func, startState, doStates))
+            
+            for doState in doStates:
+                log.info("|{0}| >> Down to: {1} ....".format(_str_func, doState))
+                if not d_downStateFunctions[doState]():
+                    log.info("|{0}| >> Failed: {1} ....".format(_str_func, doState))
+                    return False 
+            return True
+        else:
+            log.error('Forcing recreate')
+            if stateName in d_upStateFunctions.keys():
+                if not d_upStateFunctions[stateName](self._mi_module,*args,**kws):return False
+                return True	            
+    
+    def template(self):
+        if self._mi_block is None:
+            raise ValueError,"No root loaded."
+        _mBlock = self._mi_block
+
+        if _mBlock.isReferenced():
+            raise ValueError,"Referenced node."
+        
+        _str_func = '[{0}] template'.format(_mBlock.p_nameBase)
+        
+        _str_state = _mBlock.blockState
+        
+        if _mBlock.blockState != 'define':
+            raise ValueError,"{0} is not in define state. state: {1}".format(_str_func, _str_state)
+        
+        #>>>Children ------------------------------------------------------------------------------------
+        
+        
+        #>>>Meat ------------------------------------------------------------------------------------
+        _mBlock.blockState = 'define>template'#...buffering that we're in process
+        
+        _mBlockModule = get_blockModule(_mBlock.blockType)
+        
+        if 'template' in _mBlockModule.__dict__.keys():
+            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            _mBlockModule.template(_mBlock)
+        
+        for mShape in _mBlock.getShapes(asMeta=True):
+            mShape.doName()
+            
+        _mBlock.blockState = 'template'#...yes now in this state
+        return True
+
+    
+    def templateDelete(self):
+        if self._mi_block is None:
+            raise ValueError,"No root loaded."
+        _mBlock = self._mi_block
+
+        if _mBlock.isReferenced():
+            raise ValueError,"Referenced node."
+        
+        _str_func = '[{0}] templateDelete'.format(_mBlock.p_nameBase)
+        _str_state = _mBlock.blockState
+        
+        if _mBlock.blockState != 'template':
+            raise ValueError,"{0} is not in template state. state: {1}".format(_str_func, _str_state)
+        
+        
+        #>>>Children ------------------------------------------------------------------------------------
+        
+        
+        #>>>Meat ------------------------------------------------------------------------------------
+        _mBlock.blockState = 'template>define'        
+        
+        _mBlockModule = get_blockModule(_mBlock.blockType)
+        _mBlockCall = False
+        if 'templateDelete' in _mBlockModule.__dict__.keys():
+            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            _mBlockCall = _mBlockModule.templateDelete    
+            
+        #Delete our shapes...
+        mc.delete(_mBlock.getShapes())
+        
+        if _mBlockCall:
+            _mBlockCall(_mBlock)
+            
+        _mBlock.blockState = 'define'
+        
+        return True
+        
+        
+    
+    def prerig(self):
+        if self._mi_block is None:
+            raise ValueError,"No root loaded."
+        _mBlock = self._mi_block
+
+        if _mBlock.isReferenced():
+            raise ValueError,"Referenced node."
+        
+        _str_func = '[{0}] prerig'.format(_mBlock.p_nameBase)
+        _str_state = _mBlock.blockState
+        
+        if _mBlock.blockState != 'template':
+            raise ValueError,"{0} is not in template state. state: {1}".format(_str_func, _str_state)
+        
+        #>>>Children ------------------------------------------------------------------------------------
+        
+        
+        #>>>Meat ------------------------------------------------------------------------------------
+        _mBlock.blockState = 'template>prerig'#...buffering that we're in process
+        
+        _mBlockModule = get_blockModule(_mBlock.blockType)
+        
+        if 'prerig' in _mBlockModule.__dict__.keys():
+            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            _mBlockModule.prerig(_mBlock)
+ 
+        _mBlock.blockState = 'prerig'#...yes now in this state
+        return True
+    
+    def prerigDelete(self):
+        if self._mi_block is None:
+            raise ValueError,"No root loaded."
+        _mBlock = self._mi_block
+
+        if _mBlock.isReferenced():
+            raise ValueError,"Referenced node."
+        
+        _str_func = '[{0}] prerigDelete'.format(_mBlock.p_nameBase)
+        _str_state = _mBlock.blockState
+
+        if _mBlock.blockState != 'prerig':
+            raise ValueError,"{0} is not in prerig state. state: {1}".format(_str_func, _str_state)
+        
+        
+        #>>>Children ------------------------------------------------------------------------------------
+        
+        
+        #>>>Meat ------------------------------------------------------------------------------------        
+        _mBlock.blockState = 'prerig>template'        
+        
+        _mBlockModule = get_blockModule(_mBlock.blockType)
+        _mBlockCall = False
+        if 'prerigDelete' in _mBlockModule.__dict__.keys():
+            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            _mBlockCall = _mBlockModule.prerigDelete    
+            
+        
+        if _mBlockCall:
+            _mBlockCall(_mBlock)
+            
+        _mBlock.blockState = 'template'
+        
+        return True
+    
+    def rig(self):
+        #Master control
+        if self._mi_block is None:
+            raise ValueError,"No root loaded."
+        _mBlock = self._mi_block
+
+        if _mBlock.isReferenced():
+            raise ValueError,"Referenced node."
+        
+        _str_func = '[{0}] rig'.format(_mBlock.p_nameBase)
+        _str_state = _mBlock.blockState
+        
+        
+        if _mBlock.blockState != 'prerig':
+            raise ValueError,"{0} is not in prerig state. state: {1}".format(_str_func, _str_state)      
+        
+        #>>>Children ------------------------------------------------------------------------------------
+        
+        
+        #>>>Meat ------------------------------------------------------------------------------------
+        _mBlock.blockState = 'prerig>rig'#...buffering that we're in process
+        _mBlockModule = get_blockModule(_mBlock.blockType)
+        
+        if 'rig' in _mBlockModule.__dict__.keys():
+            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            _mBlockModule.rig(_mBlock)
+            
+        _mBlock.blockState = 'rig'#...yes now in this state
+        return True
+    
+    def rigDelete(self):
+        if self._mi_block is None:
+            raise ValueError,"No root loaded."
+        _mBlock = self._mi_block
+
+        if _mBlock.isReferenced():
+            raise ValueError,"Referenced node."
+        
+        _str_func = '[{0}] rigDelete'.format(_mBlock.p_nameBase)
+        _str_state = _mBlock.blockState
+        
+        if _mBlock.blockState != 'rig':
+            raise ValueError,"{0} is not in rig state. state: {1}".format(_str_func, _str_state)
+        
+        _mBlock.blockState = 'rig>prerig'        
+        
+        _mBlockModule = get_blockModule(_mBlock.blockType)
+        _mBlockCall = False
+        if 'rigDelete' in _mBlockModule.__dict__.keys():
+            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            _mBlockCall = _mBlockModule.rigDelete    
+            
+        
+        if _mBlockCall:
+            _mBlockCall(_mBlock)
+            
+        _mBlock.blockState = 'prerig'
+        
+        return True
 
     def set_rigBlock(self,root=None):
         """
@@ -460,7 +1130,7 @@ class factory(object):
 
         if root is None:
             return False
-
+        
         self._mi_block = cgmMeta.validateObjArg(root,'cgmObject')
         log.debug("|{0}| >> mInstance: {1}".format(_str_func,self._mi_block))
         pass
@@ -538,7 +1208,7 @@ class factory(object):
         log.info("|{0}| >> [{1}] | NEED TO reattach children".format(_str_func,_short))
         
         #Restore Positions
-        log.debug("|{0}| >> [{1}] | NEED TO restore template positions".format(_str_func,_short))
+        log.info("|{0}| >> [{1}] | NEED TO restore template positions".format(_str_func,_short))
         
         #Set UD Attrs
         for a,v in _d_ud.iteritems():
@@ -833,380 +1503,15 @@ class factory(object):
             mGroup.doName()
             mGroup.parent = mi_puppet.masterNull
 
-            mGroup.connectParentNode(mi_puppet.masterNull.mNode,'puppet', 'blocksGroup') 
+            mGroup.connectParentNode(mi_puppet.masterNull.mNode, 'puppet','blocksGroup') 
             ATTR.set_standardFlags(mGroup.mNode)
             #ATTR.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode ) 	    
         
         return mi_puppet        
 
-
-def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
-    _str_func = 'get_posList_fromStartEnd'
-    _base = 'joint_base_placer'
-    _top = 'joint_top_placer'  
-
-    #>>Get positions ==================================================================================    
-    _l_pos = []
-
-    if split == 1:
-        _l_pos = [DIST.get_average_position([start,end])]
-    elif split == 2:
-        _l_pos = [start,end]
-    else:
-        _vec = MATH.get_vector_of_two_points(start, end)
-        _max = DIST.get_distance_between_points(start,end)
-
-        log.debug("|{0}| >> start: {1} | end: {2} | vector: {3}".format(_str_func,start,end,_vec))   
-
-        _split = _max/(split-1)
-        for i in range(split-1):
-            _p = DIST.get_pos_by_vec_dist(start, _vec, _split * i)
-            _l_pos.append( _p)
-        _l_pos.append(end)
-        _radius = _split/4    
-    return _l_pos
-
-def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+', worldUpAxis = [0,1,0],asMeta = True):
-    _str_func = 'build_skeleton'
-
-    _axisAim = axisAim
-    _axisUp = axisUp
-    _axisWorldUp = worldUpAxis
-    _l_pos = positionList
-    _radius = 1    
-    mc.select(cl=True)
-
-    #>>Get positions ================================================================================
-    _len = len(_l_pos)
-    if _len > 1:    
-        _baseDist = DIST.get_distance_between_points(_l_pos[0],_l_pos[1])   
-        _radius = _baseDist/4
-
-    #>>Create joints =================================================================================
-    _ml_joints = []
-
-    log.debug("|{0}| >> pos list...".format(_str_func)) 
-    for i,p in enumerate(_l_pos):
-        log.debug("|{0}| >> {1}:{2}".format(_str_func,i,p)) 
-
-        _mJnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
-        _mJnt.displayLocalAxis = 1
-        _mJnt.radius = _radius
-
-        _ml_joints.append ( _mJnt )
-        _mJnt.parent = False
-
-    #>>Orient chain...
-    for i,mJnt in enumerate(_ml_joints[:-1]):
-        if i > 0:
-            mJnt.parent = _ml_joints[i-1]
-            #...after our first object, we use our last object's up axis to be our new up vector.
-            #...this keeps joint chains that twist around from flipping. Ideally...
-            _axisWorldUp = MATH.get_obj_vector(_ml_joints[i-1].mNode,'y+')
-        mDup = mJnt.doDuplicate(parentOnly = True)
-        mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
-
-        SNAP.aim(mDup.mNode,_ml_joints[i+1].mNode,_axisAim,_axisUp,'vector',_axisWorldUp)
-
-
-        #_rot = mJnt.rotate
-        mJnt.rotate = 0,0,0
-        mJnt.jointOrient = mDup.rotate
-        #mJnt.rotate = 0,0,0
-        mDup.delete()
-
-    #>>Last joint....        
-    if _len > 1:
-        _ml_joints[-1].parent = _ml_joints[-2]
-        _ml_joints[-1].jointOrient = 0,0,0
-    #_ml_joints[-1].rotate = _ml_joints[-2].rotate
-    #_ml_joints[-1].rotateAxis = _ml_joints[-2].rotateAxis
-
-    #JOINTS.metaFreezeJointOrientation(_ml_joints)
-    if asMeta:
-        return _ml_joints
-    return [mJnt.mNode for mJnt in _ml_joints]
-    #>>Wiring and naming =================================================================================
-    """
-    ml_handles = []
-    ml_handleJoints = []
-    for i_obj in mi_go._ml_controlObjects:
-        if i_obj.hasAttr('handleJoint'):
-            #d_buffer = i_obj.handleJoint.d_jointFlags
-            #d_buffer['isHandle'] = True
-            #i_obj.handleJoint.d_jointFlags = d_buffer
-            ml_handleJoints.append(i_obj.handleJoint)
-
-    mi_go._mi_rigNull.msgList_connect(ml_handleJoints,'handleJoints','rigNull')
-    mi_go._mi_rigNull.msgList_connect(ml_moduleJoints,'skinJoints')     
-    """
-
-
-
-
-
-    _ml_joints[0].addAttr('cgmName','box')
-
-    for i,mJnt in enumerate(_ml_joints):
-        mJnt.addAttr('cgmIterator',i)
-        mJnt.doName()
-
-
-    #>>HelperJoint setup???
-    
-    
-def build_loftMesh(root, jointCount = 3, degree = 3, cap = True, merge = True):
-    """
-    Core rig block factory. Runs processes for rig blocks.
-
-    :parameters:
-        root(str) | root object to check for wiring
-
-    :returns
-        factory instance
-    """
-    _str_func = 'build_loftMesh'
-    
-    _l_targets = ATTR.msgList_get(root,'loftTargets')
-    
-    
-    mc.select(cl=True)
-    log.debug("|{0}| >> loftTargets: {1}".format(_str_func,_l_targets))
-    
-    #tess method - general, uType 1, vType 2+ joint count
-    
-    #>>Body -----------------------------------------------------------------
-    _res_body = mc.loft(_l_targets, o = True, d = degree, po = 1 )
-
-    _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
-    _tessellate = _inputs[0]
-    
-    _d = {'format':2,#General
-          'polygonType':1,#'quads',
-          'uNumber': 1 + jointCount}
-    for a,v in _d.iteritems():
-        ATTR.set(_tessellate,a,v)
-
-    
-    #>>Top/Bottom bottom -----------------------------------------------------------------
-    if cap:
-        _l_combine = [_res_body[0]]        
-        for crv in _l_targets[0],_l_targets[-1]:
-            _res = mc.planarSrf(crv,po=1)
-            _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
-            _tessellate = _inputs[0]        
-            _d = {'format':2,#General
-                  'polygonType':1,#'quads',
-                  'vNumber':1,
-                  'uNumber':1}
-            for a,v in _d.iteritems():
-                ATTR.set(_tessellate,a,v)
-            _l_combine.append(_res[0])
-            
-        _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(root))
-        if merge:
-            mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
-            #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
-        mc.polySetToFaceNormal(_res[0],setUserNormal = True) 
-    else:
-        _res = _res_body
-    return _res[0]
-
-def build_jointProxyMesh(root,degree = 3):
-    _str_func = 'build_jointProxyMesh'
-    
-    _l_targets = ATTR.msgList_get(root,'loftTargets')
-    #_l_joints = [u'box_0_jnt', u'box_1_jnt', u'box_2_jnt', u'box_3_jnt', u'box_4_jnt']
-    
-    _mi_root = cgmMeta.cgmObject(root)
-    _mi_module = _mi_root.moduleTarget
-    _mi_rigNull = _mi_module.rigNull
-    
-    _l_joints = _mi_rigNull.msgList_get('skinJoints',asMeta = False)
-    _castMesh = 'box_root_crv_grp_box_root_crv_proxy_geo'
-    _name = ATTR.get(root,'blockType')
-    
-    #>>Make a nurbs body -----------------------------------------------------------------
-    _res_body = mc.loft(_l_targets, o = True, d = degree, po = 0 )
-    
-    #>>Cast intersections to get v values -----------------------------------------------------------------
-    #...get our initial range for casting
-    #_l_dist = DIST.get_distance_between_points([POS.get(j) for j in _l_joints])
-    #log.debug("|{0}| >> average dist: {1}".format(_str_func,_average))   
-    
-    _l_newCurves = []
-    for j in _l_joints:
-        _d = RAYS.cast(_res_body[0],j,'y+')
-        log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
-        #cgmGEN.log_info_dict(_d,j)
-        _v = _d['uvs'][_res_body[0]][0][0]
-        log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
-        
-        #>>For each v value, make a new curve -----------------------------------------------------------------        
-        #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
-        _crv = mc.duplicateCurve("{0}.u[{1}]".format(_res_body[0],_v), ch = 0, rn = 0, local = 0)
-        log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
-        _l_newCurves.append(_crv[0])
-    
-    
-    #>>Reloft those sets of curves and cap them -----------------------------------------------------------------
-    log.debug("|{0}| >> Create new mesh objs. Curves: {1} ...".format(_str_func,_l_newCurves))        
-    _l_new = []
-    for i,c in enumerate(_l_newCurves[:-1]):
-        _pair = [c,_l_newCurves[i+1]]
-        _mesh = create_loftMesh(_pair, name="{0}_{1}".format(_name,i))
-        RIGGING.match_transform(_mesh,_l_joints[i])
-        _l_new.append(_mesh)
-    
-    #...clean up 
-    mc.delete(_l_newCurves + _res_body)
-    #>>Parent to the joints ----------------------------------------------------------------- 
-    
-    return _l_new
-
-def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, cap = True, merge = True ):
-    """
-    Create lofted mesh from target curves.
-
-    :parameters:
-        targets(list) | List of curves to loft
-        name(str) | Base name for created objects
-        degree(int) | degree of surface
-        divisions(int) | how many splits in the created mesh
-        cap(bool) | whether to cap the top and bottom
-        merge(bool) | whether to merge the caps to the base mesh
-
-    :returns
-        created(list)
-    """    
-    _str_func = 'create_loftMesh'
-    
-    if targets == None:
-        targets = mc.ls(sl=True)
-    if not targets:
-        raise ValueError, "|{0}| >> Failed to get attr dict".format(_str_func,blockType)
-    
-    
-    mc.select(cl=True)
-    log.debug("|{0}| >> targets: {1}".format(_str_func,targets))
-    
-    #tess method - general, uType 1, vType 2+ joint count
-    
-    #>>Body -----------------------------------------------------------------
-    _res_body = mc.loft(targets, o = True, d = degree, po = 1 )
-
-    _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
-    _tessellate = _inputs[0]
-    
-    _d = {'format':2,#General
-          'polygonType':1,#'quads',
-          'uNumber': 1 + divisions}
-    for a,v in _d.iteritems():
-        ATTR.set(_tessellate,a,v)
-        
-    if cap:
-        _l_combine = [_res_body[0]]
-        
-        #>>Top bottom -----------------------------------------------------------------
-        for crv in targets[0],targets[-1]:
-            _res = mc.planarSrf(crv,po=1)
-            _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
-            _tessellate = _inputs[0]        
-            _d = {'format':2,#General
-                  'polygonType':1,#'quads',
-                  'vNumber':1,
-                  'uNumber':1}
-            for a,v in _d.iteritems():
-                ATTR.set(_tessellate,a,v)
-            _l_combine.append(_res[0])
-            
-        _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
-        
-        if merge:
-            mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
-            #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
-    else:
-        _res = _res_body
-    mc.polySetToFaceNormal(_res[0],setUserNormal = True)
-    return _res[0]    
-
-def create_remesh(mesh = None, joints = None, curve=None, positions = None,
-                  name = 'test', vector = None, 
-                  degree = 3, divisions = 1, cap = True, merge = True ):
-    """
-    Given a series of positions, or objects, or a curve and a mesh - loft retopology it
-
-    :parameters:
-        targets(list) | List of curves to loft
-        name(str) | Base name for created objects
-        degree(int) | degree of surface
-        divisions(int) | how many splits in the created mesh
-        cap(bool) | whether to cap the top and bottom
-        merge(bool) | whether to merge the caps to the base mesh
-
-    :returns
-        created(list)
-    """    
-    _str_func = 'create_remesh'
-    _l_pos = False
-    
-    #Validate
-    if positions:
-        _len_passed = len(positions)
-        log.debug("|{0}| >> Positions passed... len:{1} | {2}".format(_str_func,_len_passed,positions))        
-        _mode = 'positions'
-        
-        if _len_passed > divisions:
-            log.warning("|{0}| >> More positions passed than divisions... positions:{1} | divisions:{2}".format(_str_func,_len_passed,divisions))                    
-            return False
-        else:
-            log.debug("|{0}| >> Splitting Positions")
-            _p_start = POS.get(_l_targets[0])
-            _p_top = POS.get(_l_targets[1])    
-            _l_pos = get_posList_fromStartEnd(_p_start,_p_top,_joints)          
-        
-        
-    else:
-        if joints:
-            log.debug("|{0}| >> joints passed... len:{1} | {2}".format(_str_func,len(joints),joints))                    
-            _mode = 'joint'
-            _objs = joints
-        elif curve:
-            log.debug("|{0}| >> curve passed... len:{1} | {2}".format(_str_func,len(curve),curve))                                
-            _mode = 'curve'
-        
-    #>>Get our positions
-    if not _l_pos:
-        log.warning("|{0}| >> Must have _l_pos by now.".format(_str_func))                    
-        return False       
-    
-    #>If we have a curve, split it
-    #>If we have a series of joints, get pos
-    
-    #>>Get our vectors
-    _vec = [0,1,0]
-    
-    
-    #>>Cast our Loft curves
-
-def get_from_scene():
-    """
-    Gather all rig blocks data in scene
-
-    :parameters:
-
-    :returns
-        _d_modules, _d_categories, _l_unbuildable
-        _d_modules(dict) - keys to modules
-        _d_categories(dict) - categories to list of entries
-        _l_unbuildable(list) - list of unbuildable modules
-    """
-    _str_func = 'get_from_scene'
-    
-    _l_rigBlocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock')
-    
-    return _l_rigBlocks
-
+#====================================================================================	
+#>> Utilities
+#====================================================================================	
 def get_modules_dict():
     return get_modules_dat()[0]
 
@@ -1333,7 +1638,7 @@ def get_blockModule(blockType):
             log.error("|{0}| >> [{1}] | Failed to query name in library ".format(_str_func,blockType))   
             return False
     else:
-        _buildModule = blockModule
+        _buildModule = blockType
     try:
         _blockType = _buildModule.__name__.split('.')[-1]
     except:
@@ -1366,12 +1671,16 @@ def is_buildable(blockModule):
         return False
     
     _keys = _buildModule.__dict__.keys()
-    
+    _l_missing = []
     for a in BLOCKSHARED._l_requiredModuleDat:
         if a not in _keys:
-            log.warning("|{0}| >> [{1}] Missing data: {2}".format(_str_func,_blockType,a))
+            _l_missing.append(a)
             _res = False
             
+    if _l_missing:
+        log.warning("|{0}| >> [{1}] Missing data...".format(_str_func,_blockType))
+        for i,a in enumerate(_l_missing):
+            log.warning("|{0}| >> {1} : {2}".format(_str_func,i,a))    
     if _res:return _buildModule
     return _res
 
@@ -1398,8 +1707,26 @@ def is_blockModule_valid(blockType):
     if _res:return _buildModule
     return _res
 
-
+def is_blockType_valid(blockType):
+    """
+    Function to check if a given blockType is valid
     
+    """    
+    _str_func = 'is_blockType_valid'
+    _res = True
+    
+    _d = get_modules_dict()
+    if blockType not in _d.keys():
+        log.warning("|{0}| >> [{1}] Not found. | {2}".format(_str_func,blockType,_d.keys()))
+        return False
+    return True
+   
+    
+
+#=========================================================================      
+# R9 Stuff - We force the update on the Red9 internal registry  
+#=========================================================================    
+r9Meta.registerMClassInheritanceMapping()#Pushes our classes in
     
     
     

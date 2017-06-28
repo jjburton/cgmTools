@@ -605,8 +605,10 @@ def is_transform(node = None):
     _node = stringArg(node,False,_str_func) 
     log.debug("|{0}| >> node: '{1}' ".format(_str_func,_node))    
     
-    buffer = mc.ls(_node,type = 'transform',long = True)
-    if buffer and buffer[0]==mc.ls(_node,l=True)[0]:
+    #buffer = mc.ls(_node,type = 'transform',long = True)
+    #if buffer and buffer[0]==mc.ls(_node,l=True)[0]:
+        #return True
+    if mc.nodeType(_node) in ['transform','joint']:
         return True
     if not mc.objExists(_node):
         log.error("|{0}| >> node: '{1}' doesn't exist".format(_str_func,_node))    

@@ -73,7 +73,7 @@ class Test_cgmObject(unittest.TestCase):
         #Snap ==============================================================================
         TRANS.set_random(pCube2, posWorld=True,rotWorld = True)
     
-        pCube.doSnap(pCube2)
+        pCube.doSnapTo(pCube2)
         self.assertEqual(MATH.is_vector_equivalent(pCube.p_position,
                                                    pCube2.p_position),
                          True,"{0} != {1}".format(pCube.p_position, pCube2.p_position))        

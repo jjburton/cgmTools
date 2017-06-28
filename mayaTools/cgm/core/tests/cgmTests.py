@@ -28,7 +28,7 @@ log.setLevel(logging.INFO)
 #_d_moduleRoots = {'cgmMeta':"cgm.core.tests.test_cgmMeta.test",
 
 
-_d_modules = {'cgmMeta':['base','mClasses','PuppetMeta'],
+_d_modules = {'cgmMeta':['base','mClasses','PuppetMeta','RigBlocks'],
               'coreLib':['ATTR','VALID','NODEFACTORY']}
 _l_all_order = ['coreLib','cgmMeta']
 

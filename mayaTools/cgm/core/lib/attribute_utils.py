@@ -2031,7 +2031,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
     
     if not mc.objExists(_combined):
         log.debug("|{0}| >> {1} | No attribute exists".format(_str_func,_combined))        
-        return
+        return False
     _type = get_type(_d)
     if _type in ['string']:
         log.debug("|{0}| >> special message attr...".format(_str_func))
@@ -2084,7 +2084,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
                 return repairMessageToReferencedTarget(storageObject,messageAttr)
     return False    
     
-def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = None, simple = False):
+def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = None, simple = False, connectBack = None):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
     Get attributes driven by an attribute
@@ -3049,10 +3049,12 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
     if _driven:
         log.debug("|{0}| >> Driven: {1}".format(_str_func,_driven))
         for c in _driven:
-            log.debug("|{0}| >> driven: {1}".format(_str_func,c))
-            try:connect(_d_targetAttr['combined'],c)
-            except Exception,err:
-                log.error("|{0}| >> Failed to connect {1} >--> {2} | err: {3}".format(_str_func,_d_targetAttr['combined'],c,err))        
+            _d_driven = validate_arg(c)
+            if _d_driven['combined'] != _d_targetAttr['combined']:
+                log.debug("|{0}| >> driven: {1}".format(_str_func,c))
+                try:connect(_d_targetAttr['combined'],c)
+                except Exception,err:
+                    log.error("|{0}| >> Failed to connect {1} >--> {2} | err: {3}".format(_str_func,_d_targetAttr['combined'],c,err))        
         
         
     if copySettings:
@@ -3107,7 +3109,7 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
         
     return True
 
-def store_info(node = None, attr = None, data = None, attrType = None, lock = False):
+def store_info(node = None, attr = None, data = None, attrType = None, lock = True):
     """   
     Append datList.
     

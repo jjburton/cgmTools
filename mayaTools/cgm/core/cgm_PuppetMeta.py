@@ -98,7 +98,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         success(bool)
         """             
         _short = self.p_nameShort
-        _str_funcName = "cgmPuppet.__verify__({0})".format(_short)
+        _str_func = "cgmPuppet.__verify__({0})".format(_short)
 
         #============== 
         #Puppet Network Node ================================================================
@@ -195,7 +195,10 @@ class cgmPuppet(cgmMeta.cgmNode):
     def __verifyObjectSet__(self):
         _str_func = "__verifyObjectSet__({0})".format(self.p_nameShort)
         #Quick select sets ================================================================
-        if not self.getMessage('puppetSet'):#
+        mSet = self.getMessage('puppetSet',asMeta=True)
+        if mSet:
+            mSet = mSet[0]
+        else:#
             mSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
             mSet.connectParentNode(self.mNode,'puppet','puppetSet')
 
@@ -390,7 +393,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         except:pass
 
     def anim_key(self,**kws):
-        _str_funcName = "%s.animKey()"%self.p_nameShort  
+        _str_func = "%s.animKey()"%self.p_nameShort  
         start = time.clock()
         b_return = None
         _l_callSelection = mc.ls(sl=True) or []
@@ -402,7 +405,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 mc.setKeyframe(**kws)
                 b_return =  True
             b_return = False
-            log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+            log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     
             if _l_callSelection:mc.select(_l_callSelection)                	    
             return b_return
         except Exception,error:
@@ -426,11 +429,11 @@ class cgmPuppet(cgmMeta.cgmNode):
         return pFactory.animReset(*args,**kws)
 
     def anim_select(self):
-        _str_funcName = "%s.anim_select()"%self.p_nameShort  
+        _str_func = "%s.anim_select()"%self.p_nameShort  
         start = time.clock()
         try:self.puppetSet.select()
         except:pass
-        log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+        log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     
         return buffer
 
     def isCustomizable(self):
@@ -474,15 +477,15 @@ class cgmPuppet(cgmMeta.cgmNode):
     def _verifyMasterControl(self,**kws):
         """ 
         """
-        _str_funcName = "cgmPuppet._verifyMasterControl(%s)"%self.p_nameShort    
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+        _str_func = "_verifyMasterControl({0})".format(self.p_nameShort)
+        self.__verifyGroups__()#...make sure everythign is there
+        
         # Master Curve
         #==================================================================
         masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
         if mc.objExists( masterControl ):
-            #If exists, initialize it                                 	    
             mi_masterControl = self.masterControl
-        else:#Make it
+        else:
             #Get size
             if not kws.get('size'):
                 if self.getGeo():
@@ -518,7 +521,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                           ]
                 nodeF.build_mdNetwork(visArg)
         except Exception,err:
-            log.error("{0} >> visNetwork fail! {1}".format(_str_funcName,err))
+            log.error("{0} >> visNetwork fail! {1}".format(_str_func,err))
             raise StandardError,err 	
 
         # Settings setup
@@ -559,21 +562,24 @@ class cgmPuppet(cgmMeta.cgmNode):
         #=====================================================================	
         if not self.masterNull.getMessage('skeletonGroup'):
             #Make it and link it
-            i_grp = mi_masterControl.doDuplicateTransform()
-            i_grp = cgmMeta.validateObjArg(i_grp,'cgmObject',setClass = True)
-            i_grp.doRemove('cgmName')
-            i_grp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
-            i_grp.parent = mi_masterControl.mNode
-            self.masterNull.connectChildNode(i_grp,'skeletonGroup','module')
+            #i_grp = mi_masterControl.doDuplicateTransform()
+            mGrp = cgmMeta.createMetaNode('cgmObject')
+            mGrp.doSnapTo(mi_masterControl.mNode)
+            
+            #mGrp.doRemove('cgmName')
+            mGrp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
+            mGrp.parent = mi_masterControl.mNode
+            self.masterNull.connectChildNode(mGrp,'skeletonGroup','module')
 
-            i_grp.doName()
+            mGrp.doName()
+        else:
+            mGrp = self.masterNull.skeletonGroup
 
-        self._i_skeletonGroup = self.masterNull.skeletonGroup	
 
         #Verify the connections
-        self._i_skeletonGroup.overrideEnabled = 1             
-        cgmMeta.cgmAttr(i_settings,'skeletonVis',lock=False).doConnectOut("%s.%s"%(self._i_skeletonGroup.mNode,'overrideVisibility'))    
-        cgmMeta.cgmAttr(i_settings,'skeletonLock',lock=False).doConnectOut("%s.%s"%(self._i_skeletonGroup.mNode,'overrideDisplayType'))    
+        mGrp.overrideEnabled = 1             
+        cgmMeta.cgmAttr(i_settings,'skeletonVis',lock=False).doConnectOut("%s.%s"%(mGrp.mNode,'overrideVisibility'))    
+        cgmMeta.cgmAttr(i_settings,'skeletonLock',lock=False).doConnectOut("%s.%s"%(mGrp.mNode,'overrideDisplayType'))    
 
 
         #>>>Connect some flags
@@ -698,8 +704,8 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
         RETURNS:
         success(bool)
         """             
-        _str_funcName = "cgmPuppet.__verify__(%s)"%self.p_nameShort
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+        _str_func = "cgmPuppet.__verify__(%s)"%self.p_nameShort
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)	
 
         #============== 
         try:#Puppet Network Node ================================================================
@@ -714,7 +720,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
             self.addAttr('moduleChildren',attrType = 'message',lock=True) 
             self.addAttr('unifiedGeo',attrType = 'messageSimple',lock=True) 
         except Exception,error:
-            raise StandardError,"%s >>> Puppet network |error : %s"%(_str_funcName,error)
+            raise StandardError,"%s >>> Puppet network |error : %s"%(_str_func,error)
 
         try:#Settings ============================================================================
             #if log.getEffectiveLevel() == 10:log.debug(2)	
@@ -728,7 +734,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
             self.doName()
             #if log.getEffectiveLevel() == 10:log.debug("Network good...")
         except Exception,error:
-            raise StandardError,"%s >>> Settings |error : %s"%(_str_funcName,error)
+            raise StandardError,"%s >>> Settings |error : %s"%(_str_func,error)
 
         try:#MasterNull ===========================================================================
             if not self.getMessage('masterNull'):#If we don't have a masterNull, make one
@@ -744,7 +750,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
                     #return False
             attributes.doSetLockHideKeyableAttr(self.i_masterNull.mNode,channels=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
         except Exception,error:
-            raise Exception,"%s >>> MasterNull | error : %s"%(_str_funcName,error)	
+            raise Exception,"%s >>> MasterNull | error : %s"%(_str_func,error)	
         
         self.__verifyGroups__()
 
@@ -753,7 +759,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
             self.__verifyObjectSet__()
 
         except Exception,error:
-            raise Exception,"%s >>> ObjectSet | error : %s"%(_str_funcName,error)
+            raise Exception,"%s >>> ObjectSet | error : %s"%(_str_func,error)
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # Groups
@@ -761,7 +767,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
         try:
             self.__verifyGroups__()
         except Exception,error:
-            raise Exception,"%s >>> groups |error : %s"%(_str_funcName,error)	
+            raise Exception,"%s >>> groups |error : %s"%(_str_func,error)	
 
         return True
 
@@ -778,7 +784,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
     # Puppet Utilities
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
     def __verifyGroups__(self):
-        _str_funcName = "__verifyGroups__({0})".format(self.p_nameShort)
+        _str_func = "__verifyGroups__({0})".format(self.p_nameShort)
         try:#Quick select sets ================================================================
             #if log.getEffectiveLevel() == 10:log.debug(5)
             mi_masterNull = self.masterNull
@@ -805,12 +811,12 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
                 else:    
                     self.__dict__[Attr].doParent(mi_masterNull)
                 attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode ) 	    
-        except Exception,error:raise Exception,"{0} | error : {1}".format(_str_funcName,error)    
+        except Exception,error:raise Exception,"{0} | error : {1}".format(_str_func,error)    
 
 
 
     def __verifyObjectSet__(self):
-        _str_funcName = "__verifyObjectSet__({0})".format(self.p_nameShort)
+        _str_func = "__verifyObjectSet__({0})".format(self.p_nameShort)
         try:#Quick select sets ================================================================
             if not self.getMessage('puppetSet'):#
                 i_selectSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
@@ -820,7 +826,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
             cgmMeta.cgmAttr(self,'cgmName').doCopyTo(i_selectSet.mNode,connectTargetToSource =True)
             i_selectSet.doName()		    
 
-        except Exception,error:raise Exception,"{0} >>> ObjectSet | error : {1}".format(_str_funcName,error)
+        except Exception,error:raise Exception,"{0} >>> ObjectSet | error : {1}".format(_str_func,error)
 
 
     def tracePuppet(self):
@@ -1011,7 +1017,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
         except:pass
 
     def anim_key(self,**kws):
-        _str_funcName = "%s.animKey()"%self.p_nameShort  
+        _str_func = "%s.animKey()"%self.p_nameShort  
         start = time.clock()
         b_return = None
         _l_callSelection = mc.ls(sl=True) or []
@@ -1023,7 +1029,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
                 mc.setKeyframe(**kws)
                 b_return =  True
             b_return = False
-            log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+            log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     
             if _l_callSelection:mc.select(_l_callSelection)                	    
             return b_return
         except Exception,error:
@@ -1047,11 +1053,11 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
         return pFactory.animReset(*args,**kws)
 
     def anim_select(self):
-        _str_funcName = "%s.anim_select()"%self.p_nameShort  
+        _str_func = "%s.anim_select()"%self.p_nameShort  
         start = time.clock()
         try:self.puppetSet.select()
         except:pass
-        log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     
+        log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     
         return buffer
 
     def isCustomizable(self):
@@ -1094,8 +1100,8 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
     def _verifyMasterControl(self,**kws):
         """ 
         """
-        _str_funcName = "cgmPuppet._verifyMasterControl(%s)"%self.p_nameShort    
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+        _str_func = "cgmPuppet._verifyMasterControl(%s)"%self.p_nameShort    
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)	
         # Master Curve
         #==================================================================
         masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
@@ -1138,7 +1144,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
                           ]
                 nodeF.build_mdNetwork(visArg)
         except Exception,err:
-            log.error("{0} >> visNetwork fail! {1}".format(_str_funcName,err))
+            log.error("{0} >> visNetwork fail! {1}".format(_str_func,err))
             raise StandardError,err 	
 
         # Settings setup
@@ -1535,8 +1541,8 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
         RETURNS:
         success(bool)
         """ 
-        _str_funcName = "cgmModuleBufferNode.__verify__(%s)"%(self.p_nameShort)
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
+        _str_func = "cgmModuleBufferNode.__verify__(%s)"%(self.p_nameShort)
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)  
 
         cgmMeta.cgmBufferNode.__verify__(self,**kws)
 
@@ -1713,8 +1719,8 @@ class cgmModule(cgmMeta.cgmObject):
         RETURNS:
         success(bool)
         """  
-        _str_funcName = "cgmModule.initialize(%s)"%(self.p_nameShort)
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  	
+        _str_func = "cgmModule.initialize(%s)"%(self.p_nameShort)
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)  	
         #Puppet Network Node
         #==============
         if not issubclass(type(self),cgmModule):
@@ -1737,7 +1743,7 @@ class cgmModule(cgmMeta.cgmObject):
         RETURNS:
         success(bool)
         """
-        _str_funcName = "cgmModule.__verify__(%s)"%(self.p_nameShort)      
+        _str_func = "cgmModule.__verify__(%s)"%(self.p_nameShort)      
         self.addAttr('mClass', initialValue='cgmModule',lock=True) 
         self.addAttr('cgmType',value = 'module',lock=True)
 
@@ -1855,8 +1861,8 @@ class cgmModule(cgmMeta.cgmObject):
                 log.error(">>> %s.%s >> failed: %s"%(self.p_nameShort,attr,error))     
 
     def __verifyObjectSet__(self):
-        _str_funcName = "__verifyObjectSet__(%s)"%self.p_nameShort
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)		
+        _str_func = "__verifyObjectSet__(%s)"%self.p_nameShort
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)		
         try:#Quick select sets ================================================================
             if not self.rigNull.getMessage('moduleSet'):#
                 i_selectSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
@@ -1874,7 +1880,7 @@ class cgmModule(cgmMeta.cgmObject):
                 except Exception,error:raise Exception,"Failed to add to puppetSet | error: {0}".format(error)
 
         except Exception,error:
-            raise StandardError,"%s >>> ObjectSet | error : %s"%(_str_funcName,error)
+            raise StandardError,"%s >>> ObjectSet | error : %s"%(_str_func,error)
 
     def getModuleColors(self):
         direction = search.returnTagInfo(self.mNode,'cgmDirection')
@@ -1890,20 +1896,20 @@ class cgmModule(cgmMeta.cgmObject):
         """
         Call to figure out a module's settings control
         """
-        _str_funcName = "getSettingsControl(%s)"%self.p_nameShort
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)  
+        _str_func = "getSettingsControl(%s)"%self.p_nameShort
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)  
         mi_rigNull = self.rigNull#Link
         try:
             return mi_rigNull.settings#fastest check
-        except:log.debug("%s >>> No settings connected. Probably not rigged, so let's check ..."%_str_funcName)
+        except:log.debug("%s >>> No settings connected. Probably not rigged, so let's check ..."%_str_func)
         if self.moduleType in __l_faceModuleTypes__:
-            #if log.getEffectiveLevel() == 10:log.debug("%s >>> Face module..."%_str_funcName)
+            #if log.getEffectiveLevel() == 10:log.debug("%s >>> Face module..."%_str_func)
             try:return self.moduleParent.rigNull.settings#fastest check
-            except:log.debug("%s >>> No moduleParent settings connected..."%_str_funcName)	    
+            except:log.debug("%s >>> No moduleParent settings connected..."%_str_func)	    
             try:return self.modulePuppet.masterControl.controlSettings#fastest check
-            except:log.debug("%s >>> No masterControl settings found..."%_str_funcName)	    
+            except:log.debug("%s >>> No masterControl settings found..."%_str_func)	    
 
-        log.error("%s >>> Unable to find settings control."%(_str_funcName))
+        log.error("%s >>> Unable to find settings control."%(_str_func))
         return False
 
     def doSetParentModule(self,*args,**kws):
@@ -2398,7 +2404,7 @@ class cgmSimpleBSFace(cgmModule):
         """ 
         Intializes an simpleFace master class handler
         """
-        _str_funcName = "cgmSimpleBSFace.__init__"    
+        _str_func = "cgmSimpleBSFace.__init__"    
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
 
@@ -2448,10 +2454,10 @@ class cgmEyeball(cgmModule):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
-        _str_funcName = "cgmEyeball.__init__"    
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
-        #if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
-        #if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
+        _str_func = "cgmEyeball.__init__"    
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)	
+        #if kws:log.debug("%s >>> kws: %s"%(_str_func,str(kws)))         
+        #if args:log.debug("%s >>> args: %s"%(_str_func,str(args))) 
 
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
@@ -2505,10 +2511,10 @@ class cgmEyelids(cgmModule):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
-        _str_funcName = "cgmEyelids.__init__"    
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
-        #if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
-        #if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
+        _str_func = "cgmEyelids.__init__"    
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)	
+        #if kws:log.debug("%s >>> kws: %s"%(_str_func,str(kws)))         
+        #if args:log.debug("%s >>> args: %s"%(_str_func,str(args))) 
 
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
@@ -2561,10 +2567,10 @@ class cgmEyebrow(cgmModule):
         nameModifier(string)
         forceNew(bool) --whether to force the creation of another if the object exists
         """
-        _str_funcName = "cgmEyebrow.__init__"    
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
-        #if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
-        #if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args))) 
+        _str_func = "cgmEyebrow.__init__"    
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)	
+        #if kws:log.debug("%s >>> kws: %s"%(_str_func,str(kws)))         
+        #if args:log.debug("%s >>> args: %s"%(_str_func,str(args))) 
 
         if 'name' not in kws.keys() and 'mType' in kws.keys():
             kws['name'] = kws['mType']
@@ -2602,15 +2608,14 @@ d_rigBlockAttrs_toMake = {'version':'string',#Attributes to be initialzed for an
                           'blockDat':'string',
                           'blockMirror':'messageSimple'}
 
-class cgmRigBlock(cgmMeta.cgmControl):
-    ##@r9General.Timer
+class cgmRigBlockOLD(cgmMeta.cgmControl):
     #These lists should be set up per rigblock as a way to get controls from message links
     _l_controlLinks = []
     _l_controlmsgLists = []
 
     def __init__(self,*args,**kws):
         """ 
-        The root of the idea of cgmRigBlock is to be a sizing mechanism and build options for
+        The root of the idea of cgmRigBlockOLD is to be a sizing mechanism and build options for
         our modular rigger.
 
         Args:
@@ -2618,20 +2623,20 @@ class cgmRigBlock(cgmMeta.cgmControl):
         name = treated as a base name
 
         """
-        _str_funcName = "cgmRigBlock.__init__"   
-        log.debug("{0}...".format(_str_funcName))		
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
-        #if kws:log.debug("%s >>> kws: %s"%(_str_funcName,str(kws)))         
-        #if args:log.debug("%s >>> args: %s"%(_str_funcName,str(args)))    
+        _str_func = "cgmRigBlockOLD.__init__"   
+        log.debug("{0}...".format(_str_func))		
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)	
+        #if kws:log.debug("%s >>> kws: %s"%(_str_func,str(kws)))         
+        #if args:log.debug("%s >>> args: %s"%(_str_func,str(args)))    
 
         #>>Verify or Initialize
-        super(cgmRigBlock, self).__init__(*args,**kws) 
-        log.debug("{0} cache check...".format(_str_funcName))			
+        super(cgmRigBlockOLD, self).__init__(*args,**kws) 
+        log.debug("{0} cache check...".format(_str_func))			
         #>>> TO USE Cached instance ---------------------------------------------------------
         if self.cached:
             log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
             return
-        log.debug("{0} cache check fail...".format(_str_funcName))		
+        log.debug("{0} cache check fail...".format(_str_func))		
 
         #====================================================================================
         #Keywords - need to set after the super call
@@ -2654,7 +2659,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #>>> Initialization Procedure ================== 
         if not self.isReferenced():
             if self.__justCreatedState__ or __doVerify__:	
-                log.debug("{0} verify...".format(_str_funcName))				
+                log.debug("{0} verify...".format(_str_func))				
                 if not self.__verify__(**kws):
                     log.critical("'%s' failed to verify!"%self.mNode)
                     raise StandardError,"'%s' failed to verify!"%self.mNode 
@@ -2669,14 +2674,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
 	RETURNS:
 	success(bool)
 	"""
-        _str_funcName = "cgmRigBlock.__verify__"    
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmRigBlockOLD.__verify__"    
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
 
         if self.isReferenced():
-            raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
+            raise StandardError,"%s >>> is referenced. Cannot verify"%_str_func
 
         #>>> Block transform ==================                   
-        self.addAttr('mClass', initialValue='cgmRigBlock',lock=True) 
+        self.addAttr('mClass', initialValue='cgmRigBlockOLD',lock=True) 
         #self.addAttr('cgmType',value = 'rigHelper',lock=True)	
 
         if self.kw_name:#If we have a name, store it
@@ -2732,12 +2737,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """ 
         Verify
         """
-        _str_funcName = "cgmRigBlock.__verifyModule__"    
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmRigBlockOLD.__verifyModule__"    
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
 
         #First see if we have a module
         if not self.getMessage('moduleTarget'):
-            #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> No module found. Building... "%(_str_funcName))
+            #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> No module found. Building... "%(_str_func))
             self.__buildModule__()
         return True
 
@@ -2795,14 +2800,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         Build a simple puppet for itself
         """
-        _str_funcName = "cgmRigBlock.__buildSimplePuppet__(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmRigBlockOLD.__buildSimplePuppet__(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         mi_module = self.moduleTarget
         if not mi_module:
             try:
                 mi_module = self.__buildModule__()
             except Exception,error:
-                raise StandardError, ">>> %s>>> module build failed. error: %s"%(_str_funcName,error)
+                raise StandardError, ">>> %s>>> module build failed. error: %s"%(_str_func,error)
         if mi_module.getMessage('modulePuppet'):
             return False
 
@@ -2817,7 +2822,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """For overload"""
         pass
 
-class cgmEyeballBlock(cgmRigBlock):
+class cgmEyeballBlock(cgmRigBlockOLD):
     d_attrsToMake = {'buildIris':'bool',
                      'buildPupil':'bool',
                      'buildLids':'bool',
@@ -2841,8 +2846,8 @@ class cgmEyeballBlock(cgmRigBlock):
     def __init__(self,*args,**kws):
         """ 
         """
-        _str_funcName = "cgmEyeballBlock.__init__"  
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmEyeballBlock.__init__"  
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         #if kws:log.debug("kws: %s"%str(kws))         
         #if args:log.debug("args: %s"%str(args))  
 
@@ -2855,9 +2860,9 @@ class cgmEyeballBlock(cgmRigBlock):
             return
         #====================================================================================
     def __verify__(self,**kws):
-        _str_funcName = "cgmEyeballBlock.__verify__(%s)"%self.p_nameShort    
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
-        cgmRigBlock.__verify__(self,**kws)
+        _str_func = "cgmEyeballBlock.__verify__(%s)"%self.p_nameShort    
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)	
+        cgmRigBlockOLD.__verify__(self,**kws)
 
         #>>> Attributes ..
         self.addAttr('buildAs','cgmEyeball',lock=True)
@@ -2872,10 +2877,10 @@ class cgmEyeballBlock(cgmRigBlock):
         return True
 
     def __rebuildShapes__(self,size = None):
-        _str_funcName = "cgmEyeballBlock.__rebuildShapes__(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+        _str_func = "cgmEyeballBlock.__rebuildShapes__(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)	
         if self.isReferenced():
-            raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
+            raise StandardError,"%s >>> is referenced. Cannot verify"%_str_func
 
         l_shapes = self.getShapes()
         if l_shapes:
@@ -2954,8 +2959,8 @@ class cgmEyeballBlock(cgmRigBlock):
         #attributes.doSetLockHideKeyableAttr(self.mNode,lock=True,visible=False,keyable=False,channels=['tx','ty','rx','ry','rz','sx','sz','v'])
 
     def __mirrorBuild__(self):
-        _str_funcName = "cgmEyeballBlock.__buildMirror__(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmEyeballBlock.__buildMirror__(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
 
         try:
             try:#Mirror Block =====================================================================
@@ -2997,15 +3002,15 @@ class cgmEyeballBlock(cgmRigBlock):
             except Exception,error:raise StandardError,"Color mirror| error: %s "%(error)
             self.__mirrorPush__()
             return mi_mirror
-        except Exception,error:raise StandardError,"%s >> | error: %s "%(_str_funcName,error)
+        except Exception,error:raise StandardError,"%s >> | error: %s "%(_str_func,error)
 
     def __mirrorPush__(self):
-        cgmRigBlock.__buildModule__(self)
-        _str_funcName = "cgmEyeballBlock.__pushToMirror__(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        cgmRigBlockOLD.__buildModule__(self)
+        _str_func = "cgmEyeballBlock.__pushToMirror__(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         try:
             if not self.getMessage('blockMirror'):
-                log.warning("%s >> no blockMirror found"%_str_funcName)
+                log.warning("%s >> no blockMirror found"%_str_func)
                 return False
             mi_mirror = self.blockMirror
 
@@ -3013,7 +3018,7 @@ class cgmEyeballBlock(cgmRigBlock):
             mi_mirror.ty = self.ty
             mi_mirror.tz = self.tz
             mi_mirror.sy = self.sy 
-        except Exception,error:raise StandardError,"[{0} - main mirror] | error: {1} ".format(_str_funcName,error)
+        except Exception,error:raise StandardError,"[{0} - main mirror] | error: {1} ".format(_str_func,error)
 
         try:
             mi_pupilMirror = mi_mirror.pupilHelper
@@ -3025,7 +3030,7 @@ class cgmEyeballBlock(cgmRigBlock):
             mi_pupilMirror.ty = self.pupilHelper.ty
             mi_pupilMirror.tz = self.pupilHelper.tz
             mi_pupilMirror.sy = self.pupilHelper.sy
-        except Exception,error:raise StandardError,"[{0} - iris/pupil] | error: {1} ".format(_str_funcName,error)
+        except Exception,error:raise StandardError,"[{0} - iris/pupil] | error: {1} ".format(_str_func,error)
 
         try:
             mi_uprLidMirror = mi_mirror.uprLidHelper
@@ -3034,14 +3039,14 @@ class cgmEyeballBlock(cgmRigBlock):
             crvUtils.mirrorCurve(self.uprLidHelper.mNode, mi_uprLidMirror.mNode,mirrorAcross='x')
             crvUtils.mirrorCurve(self.lwrLidHelper.mNode, mi_lwrLidMirror.mNode,mirrorAcross='x')	    
 
-        except Exception,error:raise StandardError,"[{0} - eyelids] | error: {1} ".format(_str_funcName,error)
+        except Exception,error:raise StandardError,"[{0} - eyelids] | error: {1} ".format(_str_func,error)
 
 
 
     def __buildModule__(self):
-        cgmRigBlock.__buildModule__(self)
-        _str_funcName = "cgmEyeballBlock.__buildModule__(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        cgmRigBlockOLD.__buildModule__(self)
+        _str_func = "cgmEyeballBlock.__buildModule__(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         try:
             bfr_name = self._d_buildKWS.get('name') or None
             bfr_position = self._d_buildKWS.get('position') or None
@@ -3065,7 +3070,7 @@ class cgmEyeballBlock(cgmRigBlock):
             except Exception,error:raise StandardError,"Failed to build eyelids module | error: %s "%(error)
             try:#Mirror ============================================================
                 if self.autoMirror:
-                    #if log.getEffectiveLevel() == 10:log.debug("%s >> mirror mode"%(_str_funcName))
+                    #if log.getEffectiveLevel() == 10:log.debug("%s >> mirror mode"%(_str_func))
                     if not self.getMessage('blockMirror'):
                         mi_mirror = self.__mirrorBuild__()
                     else:
@@ -3096,13 +3101,13 @@ class cgmEyeballBlock(cgmRigBlock):
 
             #>>>Let's do our manual sizing
             return i_module
-        except Exception,error:raise StandardError,"%s >>>  error: %s "%(_str_funcName,error)
+        except Exception,error:raise StandardError,"%s >>>  error: %s "%(_str_func,error)
 
     def __storeNames__(self):
         #Store our names
-        _str_funcName = "cgmEyeballBlock.__storeNames__(%s)"%self.p_nameShort   	
+        _str_func = "cgmEyeballBlock.__storeNames__(%s)"%self.p_nameShort   	
         if not self.getMessage("moduleTarget"):
-            raise StandardError," %s >>> No Module!"%(_str_funcName)
+            raise StandardError," %s >>> No Module!"%(_str_func)
 
         l_names= ['eyeball']
         if self.buildIris:l_names.append('iris')
@@ -3111,16 +3116,16 @@ class cgmEyeballBlock(cgmRigBlock):
         try:#Mirror ============================================================
             if self.autoMirror:
                 self.moduleTarget.moduleMirror.coreNames.value = l_names
-        except Exception,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_funcName,error)
+        except Exception,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_func,error)
 
         return True
 
     def __updateSizeData__(self):
         """For overload"""
-        _str_funcName = "cgmEyeballBlock.__updateSizeData__(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmEyeballBlock.__updateSizeData__(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         if not self.getMessage('moduleTarget'):
-            raise StandardError,">>> %s >>> No module found "%(_str_funcName)
+            raise StandardError,">>> %s >>> No module found "%(_str_func)
 
         i_module = self.moduleTarget#Lilnk
         l_pos = [self.getPosition()]
@@ -3132,18 +3137,18 @@ class cgmEyeballBlock(cgmRigBlock):
 		if self.getAttr(d_helpercheck[k].get('check')) and self.getMessage(d_helpercheck[k].get('plug')):
 		    l_pos.append(self.getMessageAsMeta(d_helpercheck[k].get('plug')).getPosition())
 	    except Exception,error:
-		log.error(">>> %s >>> helper check failed: %s | error: %s"%(_str_funcName,k,error))	
+		log.error(">>> %s >>> helper check failed: %s | error: %s"%(_str_func,k,error))	
 	"""
         ##ml_helpers = self.msgList_get('ml_helpers')#Get our helpers
         """
 	if self.buildPupil:
 	    try:l_pos.append(self.pupilHelper.getPosition())
-	    except Exception,error:raise StandardError,"%s >>> Missing Pupil helper | error: %s "%(_str_funcName,error)
+	    except Exception,error:raise StandardError,"%s >>> Missing Pupil helper | error: %s "%(_str_func,error)
 	if self.buildIris:
 	    try:l_pos.append(self.irisHelper.getPosition())
-	    except Exception,error:raise StandardError,"%s >>> Missing Iris helper | error: %s "%(_str_funcName,error)
+	    except Exception,error:raise StandardError,"%s >>> Missing Iris helper | error: %s "%(_str_func,error)
 
-	log.info("%s >>> l_pos: %s"%(_str_funcName,l_pos))		
+	log.info("%s >>> l_pos: %s"%(_str_func,l_pos))		
 
 	#Push handles
 	i_module.templateNull.handles = len(l_pos)
@@ -3153,7 +3158,7 @@ class cgmEyeballBlock(cgmRigBlock):
 	"""
         return True
 
-class cgmEyebrowBlock(cgmRigBlock):
+class cgmEyebrowBlock(cgmRigBlockOLD):
     d_attrsToMake = {'buildTemple':'bool',
                      'buildSquashStretch':'bool',                                          
                      'buildUprCheek':'bool',                     
@@ -3183,8 +3188,8 @@ class cgmEyebrowBlock(cgmRigBlock):
     def __init__(self,*args,**kws):
         """ 
         """
-        _str_funcName = "cgmEyebrowBlock.__init__"  
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmEyebrowBlock.__init__"  
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         #if kws:log.debug("kws: %s"%str(kws))         
         #if args:log.debug("args: %s"%str(args))  
 
@@ -3197,9 +3202,9 @@ class cgmEyebrowBlock(cgmRigBlock):
             return
         #====================================================================================
     def __verify__(self,**kws):
-        _str_funcName = "cgmEyebrowBlock.__verify__(%s)"%self.p_nameShort    
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
-        cgmRigBlock.__verify__(self,**kws)
+        _str_func = "cgmEyebrowBlock.__verify__(%s)"%self.p_nameShort    
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)	
+        cgmRigBlockOLD.__verify__(self,**kws)
 
         #>>> Attributes ..
         self.addAttr('buildAs','cgmEyebrow',lock=True)
@@ -3214,10 +3219,10 @@ class cgmEyebrowBlock(cgmRigBlock):
         return True
 
     def __rebuildShapes__(self,size = None):
-        _str_funcName = "cgmEyebrowBlock.__rebuildShapes__(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)	
+        _str_func = "cgmEyebrowBlock.__rebuildShapes__(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)	
         if self.isReferenced():
-            raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
+            raise StandardError,"%s >>> is referenced. Cannot verify"%_str_func
 
         ml_shapes = cgmMeta.validateObjListArg( self.getShapes(),noneValid=True )
         self.color = getSettingsColors( self.getAttr('cgmDirection') )
@@ -3235,7 +3240,7 @@ class cgmEyebrowBlock(cgmRigBlock):
 
         #>>> Delete shapes
         if ml_shapes:
-            #if log.getEffectiveLevel() == 10:log.debug("%s >>> deleting: %s"%(_str_funcName,ml_shapes))	    
+            #if log.getEffectiveLevel() == 10:log.debug("%s >>> deleting: %s"%(_str_func,ml_shapes))	    
             mc.delete([mObj.mNode for mObj in ml_shapes])
 
         #>>> Main Shape
@@ -3291,23 +3296,23 @@ class cgmEyebrowBlock(cgmRigBlock):
             cgmMeta.cgmAttr(self,a,keyable=False,lock=True,hidden=True)
 
     def mirrorBrowCurvesTMP(self):
-        _str_funcName = "cgmEyebrowBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmEyebrowBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         try:
             crvUtils.mirrorCurve(self.getMessage('leftBrowHelper')[0],self.getMessage('rightBrowHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
-        except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error))
+        except Exception,error:log.error("%s >> | error: %s "%(_str_func,error))
         try:
             crvUtils.mirrorCurve(self.getMessage('leftTemplateHelper')[0],self.getMessage('rightTemplateHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
-        except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error)) 
+        except Exception,error:log.error("%s >> | error: %s "%(_str_func,error)) 
 
         try:
             crvUtils.mirrorCurve(self.getMessage('leftUprCheekHelper')[0],self.getMessage('rightUprCheekHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
-        except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error)) 
+        except Exception,error:log.error("%s >> | error: %s "%(_str_func,error)) 
 
     def __buildModule__(self):
-        cgmRigBlock.__buildModule__(self)
-        _str_funcName = "cgmEyebrowBlock.__buildModule__(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        cgmRigBlockOLD.__buildModule__(self)
+        _str_func = "cgmEyebrowBlock.__buildModule__(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         try:
             bfr_name = self._d_buildKWS.get('name') or None
             bfr_position = self._d_buildKWS.get('position') or None
@@ -3323,7 +3328,7 @@ class cgmEyebrowBlock(cgmRigBlock):
             try:#Mirror ============================================================
                 if self.autoMirror:
                     pass
-                    #if log.getEffectiveLevel() == 10:log.debug("%s >> mirror mode"%(_str_funcName))
+                    #if log.getEffectiveLevel() == 10:log.debug("%s >> mirror mode"%(_str_func))
             except Exception,error:raise StandardError,"Failed to mirror | error: %s "%(error)
 
             #self.__storeNames__()
@@ -3333,13 +3338,13 @@ class cgmEyebrowBlock(cgmRigBlock):
 
             #>>>Let's do our manual sizing
             return i_module
-        except Exception,error:raise StandardError,"%s >>>  error: %s "%(_str_funcName,error)
+        except Exception,error:raise StandardError,"%s >>>  error: %s "%(_str_func,error)
 
     def __storeNames__(self):
         #Store our names
-        _str_funcName = "cgmEyebrowBlock.__storeNames__(%s)"%self.p_nameShort   	
+        _str_func = "cgmEyebrowBlock.__storeNames__(%s)"%self.p_nameShort   	
         if not self.getMessage("moduleTarget"):
-            raise StandardError," %s >>> No Module!"%(_str_funcName)
+            raise StandardError," %s >>> No Module!"%(_str_func)
 
         l_names= ['brow']
         if self.buildIris:l_names.append('iris')
@@ -3348,16 +3353,16 @@ class cgmEyebrowBlock(cgmRigBlock):
         try:#Mirror ============================================================
             if self.autoMirror:
                 self.moduleTarget.moduleMirror.coreNames.value = l_names
-        except Exception,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_funcName,error)
+        except Exception,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_func,error)
 
         return True
 
     def __updateSizeData__(self):
         """For overload"""
-        _str_funcName = "cgmEyebrowBlock.__updateSizeData__(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmEyebrowBlock.__updateSizeData__(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         if not self.getMessage('moduleTarget'):
-            raise StandardError,">>> %s >>> No module found "%(_str_funcName)
+            raise StandardError,">>> %s >>> No module found "%(_str_func)
 
         i_module = self.moduleTarget#Lilnk
         l_pos = [self.getPosition()]
@@ -3404,7 +3409,7 @@ class cgmMouthNose(cgmModule):
             self.templateNull.addAttr(attr, value = settings[attr],lock = True)   
         return True
 
-class cgmMouthNoseBlock(cgmRigBlock):
+class cgmMouthNoseBlock(cgmRigBlockOLD):
     d_attrsToMake = {'buildSquashStretch':'bool',
                      'buildNose':'bool',                                                               
                      'buildNostril':'bool',                                          
@@ -3477,7 +3482,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
             return
         #====================================================================================
     def __verify__(self,*args,**kws):
-        cgmRigBlock.__verify__(self,*args,**kws)
+        cgmRigBlockOLD.__verify__(self,*args,**kws)
 
         #>>> Attributes ..
         self.addAttr('buildAs','cgmMouthNose',lock=True)
@@ -3496,7 +3501,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
             def __init__(self,*args,**kws): 
                 super(fncWrap, self).__init__(*args,**kws)	
                 self.mi_mNode = _mNodeSelf
-                self._str_funcName= "cgmMouthNoseBlock.__rebuildShapes__(%s)"%self.mi_mNode.p_nameShort	
+                self._str_func= "cgmMouthNoseBlock.__rebuildShapes__(%s)"%self.mi_mNode.p_nameShort	
                 self._l_ARGS_KWS_DEFAULTS = [{'kw':'size',"default":None,'help':"Sizing parameter for the build","argType":"int"}]		
                 self.__dataBind__(*args,**kws)	
                 #self.l_funcSteps = [{'step':'Get Data','call':self._getData}]
@@ -3505,7 +3510,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
                 size = self.d_kws['size']
 
                 if _mNodeSelf.isReferenced():
-                    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_funcName
+                    raise StandardError,"%s >>> is referenced. Cannot verify"%_str_func
 
                 ml_shapes = cgmMeta.validateObjListArg( _mNodeSelf.getShapes(),noneValid=True )
                 self.color = getSettingsColors( _mNodeSelf.getAttr('cgmDirection') )
@@ -3619,27 +3624,27 @@ class cgmMouthNoseBlock(cgmRigBlock):
         return fncWrap(*args,**kws).go()
 
     def mirrorBrowCurvesTMP(self):
-        _str_funcName = "cgmMouthNoseBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmMouthNoseBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         try:
             crvUtils.mirrorCurve(self.getMessage('leftBrowHelper')[0],self.getMessage('rightBrowHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
-        except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error))
+        except Exception,error:log.error("%s >> | error: %s "%(_str_func,error))
         try:
             crvUtils.mirrorCurve(self.getMessage('leftTemplateHelper')[0],self.getMessage('rightTemplateHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
-        except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error)) 
+        except Exception,error:log.error("%s >> | error: %s "%(_str_func,error)) 
 
         try:
             crvUtils.mirrorCurve(self.getMessage('leftUprCheekHelper')[0],self.getMessage('rightUprCheekHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
-        except Exception,error:log.error("%s >> | error: %s "%(_str_funcName,error)) 
+        except Exception,error:log.error("%s >> | error: %s "%(_str_func,error)) 
 
     def __buildModule__(self,*args,**kws):
-        cgmRigBlock.__buildModule__(self,*args,**kws)
+        cgmRigBlockOLD.__buildModule__(self,*args,**kws)
         _mNodeSelf = self
         class fncWrap(cgmMeta.cgmMetaFunc):
             def __init__(self,*args,**kws): 
                 super(fncWrap, self).__init__(*args,**kws)
                 self.mi_mNode = _mNodeSelf
-                self._str_funcName= "cgmMouthNoseBlock.__buildModule__(%s)"%self.mi_mNode.p_nameShort	
+                self._str_func= "cgmMouthNoseBlock.__buildModule__(%s)"%self.mi_mNode.p_nameShort	
                 #self._l_ARGS_KWS_DEFAULTS = [{'kw':'size',"default":None,'help':"Sizing parameter for the build","argType":"int"}]		
                 self.__dataBind__(*args,**kws)	
                 self.l_funcSteps = [{'step':'Mouth Build','call':self._checkMouthModule}]
@@ -3669,7 +3674,7 @@ class cgmMouthNoseBlock(cgmRigBlock):
 	    try:#Mirror ============================================================
 		if self.autoMirror:
 		    pass
-		    #if log.getEffectiveLevel() == 10:log.debug("%s >> mirror mode"%(_str_funcName))
+		    #if log.getEffectiveLevel() == 10:log.debug("%s >> mirror mode"%(_str_func))
 	    except Exception,error:raise StandardError,"Failed to mirror | error: %s "%(error)
 
 	    #self.__storeNames__()
@@ -3679,13 +3684,13 @@ class cgmMouthNoseBlock(cgmRigBlock):
 
 	    #>>>Let's do our manual sizing
 	    return i_module
-	except Exception,error:raise StandardError,"%s >>>  error: %s "%(_str_funcName,error)
+	except Exception,error:raise StandardError,"%s >>>  error: %s "%(_str_func,error)
 	"""
     def __storeNames__(self):
         #Store our names
-        _str_funcName = "cgmMouthNoseBlock.__storeNames__(%s)"%self.p_nameShort   	
+        _str_func = "cgmMouthNoseBlock.__storeNames__(%s)"%self.p_nameShort   	
         if not self.getMessage("moduleTarget"):
-            raise StandardError," %s >>> No Module!"%(_str_funcName)
+            raise StandardError," %s >>> No Module!"%(_str_func)
 
         l_names= ['brow']
         if self.buildIris:l_names.append('iris')
@@ -3694,16 +3699,16 @@ class cgmMouthNoseBlock(cgmRigBlock):
         try:#Mirror ============================================================
             if self.autoMirror:
                 self.moduleTarget.moduleMirror.coreNames.value = l_names
-        except Exception,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_funcName,error)
+        except Exception,error:raise StandardError,"%s >>>  mirror error: %s "%(_str_func,error)
 
         return True
 
     def __updateSizeData__(self):
         """For overload"""
-        _str_funcName = "cgmMouthNoseBlock.__updateSizeData__(%s)"%self.p_nameShort   
-        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+        _str_func = "cgmMouthNoseBlock.__updateSizeData__(%s)"%self.p_nameShort   
+        #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         if not self.getMessage('moduleTarget'):
-            raise StandardError,">>> %s >>> No module found "%(_str_funcName)
+            raise StandardError,">>> %s >>> No module found "%(_str_func)
 
         i_module = self.mi_module#Lilnk
         l_pos = [self.getPosition()]

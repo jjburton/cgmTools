@@ -49,9 +49,8 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.classes import NodeFactory as NODEFAC
 from cgm.core.cgmPy import path_Utils as PATH
 from cgm.core.mrs import RigBlocks as RIGBLOCKS
-reload(RIGBLOCKS)
-#from cgm.core.mrs.blocks import box
 from cgm.core.lib import shared_data as SHARED
+from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
 
 _d_blockTypes = {}
 
@@ -632,7 +631,7 @@ class ui(cgmUI.cgmGUI):
         #self.uiMenu_pivot = mUI.MelMenu( l='Pivot', pmc=self.buildMenu_pivot)         
         self.uiMenu_help = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)         
     
-    def buildMenu_add( self, *args):
+    def buildMenu_add( self, *args, **kws):
         self.uiMenu_add.clear()   
         
         _d = RIGBLOCKS.get_modules_dat()
@@ -640,14 +639,15 @@ class ui(cgmUI.cgmGUI):
         for b in _d[1]['blocks']:
             mUI.MelMenuItem(self.uiMenu_add, l=b,
                             c=cgmGEN.Callback(self.uiFunc_block_build,b)) 
-                
         for c in _d[1].keys():
             if c == 'blocks':continue
 
             _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,
                                     l=c)
             for b in _d[1][c]:
-                mUI.MelMenuItem(_sub, l=b)
+                mUI.MelMenuItem(_sub, l=b,
+                                c=cgmGEN.Callback(self.uiFunc_block_build,b),                                    
+                                )
                 
     def uiUpdate_building(self):
         _str_func = 'uiUpdate_building'   
@@ -659,13 +659,14 @@ class ui(cgmUI.cgmGUI):
     def uiFunc_block_build(self, blockType = None):
         _str_func = 'uiFunc_block_build'
         
-        _block = self._blockFactory.create_rigBlock(blockType)
+        _mBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = blockType)
+        #self._blockFactory.create_rigBlock(blockType)
         
-        log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,self._blockFactory._mi_block))        
+        log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))        
         
         self.uiUpdate_building()
         
-        self.uiFunc_block_setActive(self._ml_blocks.index(self._blockFactory._mi_block))
+        self.uiFunc_block_setActive(self._ml_blocks.index(_mBlock))
         
     def uiFunc_scrollList_block_select(self): 
         _str_func = 'uiFunc_scrollList_block_select'  
@@ -681,7 +682,7 @@ class ui(cgmUI.cgmGUI):
         if not _indices:
             return
         
-        _ml = RIGBLOCKS.get_from_scene()
+        _ml = BUILDERUTILS.get_from_scene()
         if not _ml:
             self.uiScrollList_blocks.clear()
             self.uiFunc_block_clearActive()
@@ -761,7 +762,7 @@ class ui(cgmUI.cgmGUI):
     def uiFunc_block_setActive(self, index = None):
         _str_func = 'uiFunc_block_setActive'
         
-        _ml = RIGBLOCKS.get_from_scene()
+        _ml = BUILDERUTILS.get_from_scene()
         self._ml_blocks = _ml
         if not _ml:
             self.uiFunc_block_clearActive()
@@ -849,7 +850,7 @@ class ui(cgmUI.cgmGUI):
         _str_func = 'uiFunc_updateScrollList_blocks'          
         self.uiScrollList_blocks.clear()
         
-        _ml = RIGBLOCKS.get_from_scene()
+        _ml = BUILDERUTILS.get_from_scene()
         self._ml_blocks = _ml
         
         _len = len(_ml)
@@ -868,31 +869,41 @@ class ui(cgmUI.cgmGUI):
                 log.info("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
                 
                 mc.progressBar(_progressBar, edit=True, status = ("{0} Processing Block: {1}".format(_str_func,_short)), step=1)                    
+                _l_report = []
                 
-                _l_report = [ATTR.get(_short,'blockType')]
+                if mObj.getMayaAttr('position'):
+                    _l_report.append( mObj.getEnumValueString('position') )
+                if mObj.getMayaAttr('direction'):
+                    _l_report.append( mObj.getEnumValueString('direction') )
+                    
+                _l_report.append( ATTR.get(_short,'blockType') )
                                 
-                _l_report.append(ATTR.get(_short,'blockState'))
+                #_l_report.append(ATTR.get(_short,'blockState'))
+                _l_report.append("[{0}]".format(mObj.getState()))
                 
+                """
                 if mObj.hasAttr('puppetName'):
                     _l_report.append(mObj.puppetName)                
                     
-                elif mObj.hasAttr('baseName'):
+                if mObj.hasAttr('baseName'):
                     _l_report.append(mObj.baseName)                
-                    
                 else:
-                    _l_report.append(mObj.p_nameBase)                
+                    _l_report.append(mObj.p_nameBase)"""                
                 
                 if mObj.isReferenced():
                     _l_report.append("Referenced")
                     
-                _str = " ~ ".join(_l_report)
+                _str = " - ".join(_l_report)
+                
                 log.debug("|{0}| >> str: {1}".format(_str_func, _str))  
                 
-                self.uiScrollList_blocks.append(_str)
+                self.uiScrollList_blocks.append(str(_str))
 
         except Exception,err:
             try:
                 log.error("|{0}| >> err: {1}".format(_str_func, err))  
+                for a in err:
+                    log.error(a)
                 cgmUI.doEndMayaProgressBar(_progressBar)
             except:
                 raise Exception,err

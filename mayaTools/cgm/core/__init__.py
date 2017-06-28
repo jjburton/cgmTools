@@ -53,6 +53,7 @@ _l_core_order = ['cgm_General',
                  'cgm_Meta',
                  'cgm_Deformers',
                  'cgm_PuppetMeta',
+                 'mrs.RigBlocks',
                  'cgm_RigMeta',
                  'cgmPy.validateArgs',
                  'rigger.ModuleFactory',
@@ -122,7 +123,7 @@ def _reload():
                                                      'ikSplineSolver','blendColors','blendTwoAttr','addDoubleLinear','condition','multiplyDivide','plusMinusAverage'])
 
     print('CGM Core Reloaded and META REGISTRY updated')     
-    
+    return
     _d_failed = {}
     _l_skip = []
     for m in _l_ordered:
