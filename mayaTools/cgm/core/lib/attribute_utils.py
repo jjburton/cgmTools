@@ -425,8 +425,8 @@ def set_keyframe(node, attr = None, value = None, time = None):
             log.error("|{0}| >>  failed to set... f{1} : {2}.{3} --> {4} | {5}".format(_str_func,time,_node,_attr,value, err))
         
 
-def set_standardFlags(node, lock=True,visible=False,keyable=False,hidden = None,
-                      attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']):
+def set_standardFlags(node, attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v'],
+                      lock=True,visible=False,keyable=False):
     """   
     Multi set keyable,lock, visible, hidden, etc...
 
@@ -444,11 +444,17 @@ def set_standardFlags(node, lock=True,visible=False,keyable=False,hidden = None,
     
     for a in attrs:
         try:
-            mc.setAttr ((node+'.'+a),lock=lock, keyable=keyable, channelBox=visible)                   
+            _v = validate_arg(node,a)
+            #mc.setAttr ((node+'.'+a),lock=lock, keyable=keyable, channelBox=visible)    
+            set_lock(_v,lock)
+            set_hidden(_v, not visible)
+            set_keyable(_v,keyable)
+            #if hidden is not None:
+                #set_hidden(_v,hidden)
         except Exception, e:
             log.error("|{0}| >>  {1}.{2} failed...".format(_str_func,node,a))            
             for arg in e.args:
-                logger.warning(arg)
+                log.warning(arg)
 
 def set(node, attr = None, value = None, lock = False,**kws):
     """   
@@ -3111,12 +3117,16 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
 
 def store_info(node = None, attr = None, data = None, attrType = None, lock = True):
     """   
-    Append datList.
+    Store information to an attribute.
+    
+    Supported: message,doubleArray,json dicts and much more
     
     :parameters:
         node(str) -- 
         attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
         data(varied) -- data to add
+        attrType(varied) -- specify, if not specified will pick best guess
+        lock(bool)
 
     :returns
         status(bool)

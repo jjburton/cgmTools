@@ -26,9 +26,10 @@ from maya import mel
 # From Red9 =============================================================
 
 # From cgm ==============================================================
-#CANNOT import Rigging
+#CANNOT import Rigging, CURVES
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
+import cgm.core.lib.distance_utils as DIST
 from cgm.core.lib import shared_data as SHARED
 #from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
@@ -39,7 +40,8 @@ from cgm.core.lib import snap_utils as SNAP
 
 from cgm.core.lib import euclid as EUCLID
 from cgm.core.lib import attribute_utils as ATTR
-
+reload(MATH)
+reload(DIST)
 
 #Link up some of our ther functions for ease of call
 position_get = POS.get
@@ -56,6 +58,9 @@ verify_aimAttrs = SNAP.verify_aimAttrs
 
 bbSize_get = POS.get_bb_size
 bbCenter_get = POS.get_bb_center
+
+vector_byAxis = MATH.get_obj_vector
+position_getByAxisDistance = DIST.get_pos_by_axis_dist
 
 """
     _d ['scalePivot']=get(target,'sp','world')
@@ -169,6 +174,9 @@ def rotatePivot_get(node=None, asEuclid = False):
     if asEuclid:
         return EUCLID.Vector3(_res[0],_res[1],_res[2])
     return _res
+
+
+
 
 def scalePivot_get(node=None, asEuclid = False):
     """
@@ -448,7 +456,18 @@ def orientObject_set(node=None, new_rot = None):
     except:pass
     
     log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_rot,_node))
-    mc.xform (_node,  os=True, ro=new_rot, p = False)
+    mc.xform (_node,  os=True, ro=new_rot, p = False) 
+    
+    
+def scale_to_size(node = None, size = 1.0, mode = 'shape'):
+    if mode == 'shape':
+        currentSize = DIST.get_size_byShapes(node)
+    else:
+        boundingBoxSize =  DIST.get_bb_size(node)
+        currentSize = max(boundingBoxSize)
+    multiplier = size/currentSize
+    mc.scale(multiplier,multiplier,multiplier, node, relative = True)
+    #mc.makeIdentity(node,apply=True,scale=True)   
     
     
 def scaleLocal_get(node=None, asEuclid = False):
@@ -1063,9 +1082,6 @@ def transformInversePoint(node = None, v = None):
 
     result_matrix = transform_matrix * current_matrix.inverse() * scale_matrix
     return EUCLID.Vector3(result_matrix.m, result_matrix.n, result_matrix.o) 
-
-
-
 
 
 

@@ -564,7 +564,7 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
         log.debug("|{0}|  >> overrideEnabled  on target...".format(_str_func))            
         _shapes.append(mTarget.mNode)
     if pushToShapes:
-        _bfr = mc.listRelatives(target, s=True)
+        _bfr = mc.listRelatives(target, s=True, fullPath=True)
         if _bfr:
             _shapes.extend(_bfr)
             

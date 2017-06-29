@@ -508,6 +508,14 @@ def euclidVector3(arg):
     
     return arg
 
+def euclidVector3Arg(arg):
+    _str_func = 'euclidVector3Arg'
+    if not issubclass(type(arg),EUCLID.Vector3):
+        if isListArg(arg) and len(arg) == 3:
+            return EUCLID.Vector3(float(arg[0]),float(arg[1]),float(arg[2]))
+        else:
+            raise ValueError,"|{0}| >> arg: {1}".format(_str_func,arg)
+    return arg
 
 def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, calledFrom = None, **kwargs):
     """

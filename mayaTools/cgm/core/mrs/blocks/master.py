@@ -29,6 +29,7 @@ from cgm.core.lib import rigging_utils as RIG
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import attribute_utils as ATTR
 reload(ATTR)
+import cgm.core.lib.distance_utils as DIST
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 
@@ -40,15 +41,29 @@ __autoTemplate__ = True
 
 l_attrsStandard = ['proxyType','hasRootJoint','moduleTarget']
 
-d_attrsToMake = {'puppetName':'string'}
+d_attrsToMake = {'puppetName':'string',
+                 'rootJoint':'messageSimple'}
 
 d_defaultSettings = {'version':__version__,
                      'puppetName':'NotBatman',
+                     'hasRootJoint':True, 
                      'baseSize':10,
                      'attachPoint':'end',
                      'proxyType':1}
 
 
+#=============================================================================================================
+#>> Define
+#=============================================================================================================
+def define(self):
+    _short = self.mNode
+    ATTR.set(_short,'translate',[0,0,0])
+    ATTR.set(_short,'rotate',[0,0,0])
+    ATTR.set_standardFlags(self.mNode,attrs=['translate','rotate','sx','sz'])
+    for a in ['x','z']:
+        ATTR.connect("{0}.sy".format(_short),"{0}.s{1}".format(_short,a))
+    ATTR.set_alias(_short,'sy','blockScale')
+    
 #=============================================================================================================
 #>> Template
 #=============================================================================================================
@@ -72,7 +87,7 @@ def prerig(self):
     pass
 
 def prerigDelete(self):
-    try:self.moduleTarget.delete()
+    try:self.moduleTarget.masterNull.delete()
     except Exception,err:
         for a in err:
             print a
@@ -100,7 +115,7 @@ def is_prerig(self):
 #=============================================================================================================
 def rig(self):
     #
-    self.moduleTarget._verifyMasterControl(size = self.baseSize)
+    self.moduleTarget._verifyMasterControl(size = DIST.get_size_byShapes(self,'max'))
     
     if self.hasRootJoint:
         if not is_skeletonized(self):
@@ -131,7 +146,6 @@ def is_rig(self):
         for l in l_links:
             if not _mPlug[0].getMessage(l):
                 _l_missing.append(plug.p_nameBase + '.' + l)
-                
 
     if _l_missing:
         log.info("|{0}| >> Missing...".format(_str_func))  
@@ -151,9 +165,6 @@ def skeletonize(self):
     if self.hasRootJoint:
         mJoint = self.doCreateAt('joint')
         mJoint.connectParentNode(self,'module','rootJoint')
-        #mJoint.parent = self.moduleTarget.masterNull.skeletonGroup        
-        #mJoint.connectParentNode(self.moduleTarget.masterNull.mNode,'module','rootJoint')
-        #mJoint.doStore('cgmName',"{0}.puppetName".format(self.mNode))
         self.copyAttrTo('puppetName',mJoint.mNode,'cgmName',driven='target')
         mJoint.doStore('cgmTypeModifier','root')
         mJoint.doName()
@@ -166,7 +177,11 @@ def is_skeletonized(self):
             return False
     return True
 
-
+def skeletonDelete(self):
+    if is_skeletonized(self):
+        log.warning("MUST ACCOUNT FOR CHILD JOINTS")
+        mc.delete(self.getMessage('rootJoint'))
+    return True
             
 
 

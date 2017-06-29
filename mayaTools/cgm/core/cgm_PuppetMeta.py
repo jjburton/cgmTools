@@ -31,7 +31,10 @@ log.setLevel(logging.INFO)
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-from cgm.core.lib import curve_Utils as crvUtils
+from cgm.core.lib import curve_Utils as CURVES
+import cgm.core.lib.shape_utils as SHAPES
+import cgm.core.lib.rigging_utils as RIG
+import cgm.core.lib.distance_utils as DIST
 import cgm_Meta as cgmMeta
 from cgm.core.lib import nameTools
 from cgm.core.rigger import ModuleFactory as mFactory
@@ -473,7 +476,7 @@ class cgmPuppet(cgmMeta.cgmNode):
     def isSkeletonized(self,*args,**kws):
         kws['mPuppet'] = self			
         return pFactory.isSkeletonized(*args,**kws)
-
+    @cgmGeneral.Timer
     def _verifyMasterControl(self,**kws):
         """ 
         """
@@ -499,10 +502,7 @@ class cgmPuppet(cgmMeta.cgmNode):
             mi_masterControl.__verify__()
         mi_masterControl.parent = self.masterNull.mNode
         mi_masterControl.doName()
-        """    
-	except Exception,error:
-	    log.error("_verifyMasterControl>> masterControl fail! "%error)
-	    raise StandardError,error """
+        
 
         # Vis setup
         # Setup the vis network
@@ -1352,7 +1352,195 @@ class cgmMasterControl(cgmMeta.cgmObject):
     """
     Make a master control curve
     """
-    ##@r9General.Timer	    
+    def __init__(self,*args,**kws):
+        """Constructor"""				
+        #>>>Keyword args
+        super(cgmMasterControl, self).__init__(*args,**kws)
+        
+        #====================================================================================	
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
+            return
+        #====================================================================================
+        
+        doVerify = kws.get('doVerify') or False
+
+        if self.__justCreatedState__ or doVerify:
+            if not self.__verify__(*args,**kws):
+                raise StandardError,"Failed to verify!"	
+
+    @cgmGeneral.Timer
+    def __verify__(self,*args,**kws):
+        puppet = kws.pop('puppet',False)
+        if puppet and not self.isReferenced():
+            ATTR.copy_to(puppet.mNode,'cgmName',self.mNode,driven='target')
+            self.connectParentNode(puppet,'puppet','masterControl')
+        else:
+            self.addAttr('cgmName','MasterControl')
+
+        #Check for shapes, if not, build
+        self.color =  modules.returnSettingsData('colorMaster',True)
+
+        #>>> Attributes
+        if kws and 'name' in kws.keys():
+            self.addAttr('cgmName', kws.get('name'), attrType = 'string')
+
+        self.addAttr('cgmType','controlMaster',attrType = 'string')
+        #self.addAttr('axisAim',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=2, keyable = False, hidden=True)
+        #self.addAttr('axisUp',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=1, keyable = False, hidden=True)
+        #self.addAttr('axisOut',attrType = 'enum', enumName= 'x+:y+:z+:x-:y-:z-',initialValue=0, keyable = False, hidden=True)
+        #self.addAttr('setRO',attrType = 'enum', enumName= 'xyz:yzx:zxy:xzy:yxz:zyx',initialValue=0, keyable = True, hidden=False)
+        #attributes.doConnectAttr('%s.setRO'%self.mNode,'%s.rotateOrder'%self.mNode,True)
+
+        self.addAttr('controlVis', attrType = 'messageSimple',lock=True)
+        self.addAttr('visControl', attrType = 'bool',keyable = False,initialValue= 1)
+
+        self.addAttr('controlSettings', attrType = 'messageSimple',lock=True)
+        self.addAttr('settingsControl', attrType = 'bool',keyable = False,initialValue= 1)
+
+        #Connect and Lock the scale stuff
+        attributes.doConnectAttr(('%s.scaleY'%self.mNode),('%s.scaleX'%self.mNode),True)
+        attributes.doConnectAttr(('%s.scaleY'%self.mNode),('%s.scaleZ'%self.mNode),True)
+        cgmMeta.cgmAttr(self,'scaleX',lock=True,hidden=True)
+        cgmMeta.cgmAttr(self,'scaleZ',lock=True,hidden=True)
+        yAttr = cgmMeta.cgmAttr(self,'scaleY')
+        yAttr.p_nameAlias = 'masterScale'
+        
+        #=====================================================================
+        #>>> Curves!
+        #=====================================================================
+        #>>> Master curves
+        _shapes = self.getShapes()
+        if len(_shapes)<3:
+            self.rebuildControlCurve(**kws)
+        #======================
+        _size = DIST.get_size_byShapes(self.mNode)
+        _controlVis = self.getMessage('controlVis')
+        _controlSettings = self.getMessage('controlSettings')
+        
+        if not _controlVis or not _controlSettings:
+            _d = {'controlVis':['eye',-45,'visControl'],
+                  'controlSettings':['gear',45,'settingsControl']}
+            _distance = _size *.4
+            _subSize = _size *.15
+            mLoc = self.doLoc()
+            
+            for k in _d.keys():
+                mCrv = cgmMeta.validateObjArg(CURVES.create_fromName(_d[k][0],_subSize,'y+'),'cgmObject',setClass=True)
+                mLoc.ry = _d[k][1]
+                mCrv.p_position = mLoc.getPositionByAxisDistance('z+',_distance)
+                mCrv.p_parent = self.mNode
+
+                mCrv.rename(_d[k][2])
+                
+                ATTR.set_standardFlags(mCrv.mNode)
+                RIG.override_color(mCrv.mNode,'yellowBright')                
+
+                ATTR.connect("{0}.{1}".format(self.mNode,_d[k][2]),"{0}.v".format(mCrv.mNode))
+                
+                if k == 'controlVis':
+                    mCrv.addAttr('controls',attrType = 'bool',keyable = False, initialValue = 1)
+                    mCrv.addAttr('subControls',attrType = 'bool',keyable = False, initialValue = 1)
+                    
+                    self.controlVis = mCrv.mNode
+                    
+                elif k == 'controlSettings':
+                    self.controlSettings = mCrv.mNode
+                
+            mLoc.delete()
+                
+        """
+        #>>> Sub controls
+        if not self.getMessage('controlVis'):
+            buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 135, controls = ['controlVisibility'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
+            i_c = cgmMeta.cgmObject(buffer.get('controlVisibility'))
+            i_c.addAttr('mClass','cgmObject')
+            i_c.doName()	
+            curves.setCurveColorByName(i_c.mNode,self.color[0])#Set the color
+            self.controlVis = i_c.mNode #Link it
+
+            attributes.doConnectAttr(('%s.visControl'%self.mNode),('%s.v'%i_c.mNode),True)
+
+            #Vis control attrs
+            self.controlVis.addAttr('controls', attrType = 'bool',keyable = False,initialValue= 1)
+            self.controlVis.addAttr('subControls', attrType = 'bool',keyable = False,initialValue= 1)
+            
+        #>>> Settings Control
+        if not self.getMessage('controlSettings'):
+            buffer = controlBuilder.childControlMaker(self.mNode, baseAim = [0,1,0], baseUp = [0,0,-1], offset = 225, controls = ['controlSettings'], mode = ['incremental',90],distanceMultiplier = .8, zeroGroups = True,lockHide = True)
+            i_c = cgmMeta.validateObjArg(buffer.get('controlSettings'),'cgmObject',setClass = True)
+            i_c.doName()	
+            curves.setCurveColorByName(i_c.mNode,self.color[0])#Set the color	    
+            self.controlSettings = i_c.mNode #Link it	
+
+            attributes.doConnectAttr(('%s.settingsControl'%self.mNode),('%s.v'%i_c.mNode),True)"""
+        self.doName()
+
+
+        return True
+
+    ##@r9General.Timer
+    def rebuildControlCurve(self, size = None,font = None,**kws):
+        """
+        Rebuild the master control curve
+        """
+        l_shapes = self.getShapes()
+        self.color =  modules.returnSettingsData('colorMaster',True)
+        
+        #>>> Figure out the control size 	
+        if size == None:#
+            if l_shapes:
+                size = DIST.get_size_byShapes(self.mNode)
+            else:
+                size = 10
+        #>>> Figure out font	
+        if font == None:#
+            if kws and 'font' in kws.keys():font = kws.get('font')		
+            else:font = 'arial'
+            
+        #>>> Delete shapes
+        if l_shapes:
+            mc.delete(l_shapes)
+
+        #>>> Build the new
+        mCrv = cgmMeta.validateObjArg(CURVES.create_fromName('masterAnim',size,'z+'),'cgmObject',setClass=True)
+        RIG.shapeParent_in_place(self.mNode,mCrv.mNode,keepSource=False)       
+        l_shapes = self.getShapes(fullPath=True)
+        RIG.override_color(l_shapes[0],'yellow')
+        RIG.override_color(l_shapes[1],'white')        
+        
+        #i_o = cgmMeta.cgmObject( curves.createControlCurve('masterAnim',size))#Create and initialize
+        #curves.setCurveColorByName( i_o.mNode,self.color[0] )
+        #curves.setCurveColorByName( i_o.getShapes()[1],self.color[1] )
+
+        #>>> Build the text curve if cgmName exists
+        if self.hasAttr('cgmName'):
+            nameSize = max(DIST.get_bb_size(l_shapes[1]))
+            log.info(l_shapes[1])
+            log.info(nameSize)
+            _textCurve = CURVES.create_text(self.cgmName, font, size = nameSize * .8)
+            ATTR.set(_textCurve,'rx',-90)
+            RIG.override_color(_textCurve,'yellow')
+            RIG.shapeParent_in_place(self.mNode,_textCurve,keepSource=False)
+            
+            """rootShapes = i_o.getShapes()#Get the shapes
+            nameScaleBuffer = distance.returnAbsoluteSizeCurve(rootShapes[1])#Get the scale
+            nameScale = max(nameScaleBuffer) * .8#Get the new scale
+            masterText = curves.createTextCurveObject(self.cgmName,size=nameScale,font=font)
+            curves.setCurveColorByName(masterText,self.color[0])#Set the color
+            mc.setAttr((masterText+'.rx'), -90)#Rotate the curve
+            curves.parentShapeInPlace(self.mNode,masterText)#Shape parent it
+            mc.delete(masterText)"""
+
+
+        self.doName()    
+
+
+class cgmMasterControlOLD(cgmMeta.cgmObject):
+    """
+    Make a master control curve
+    """
     def __init__(self,*args,**kws):
         """Constructor"""				
         #>>>Keyword args
@@ -1374,7 +1562,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
                 if not self.__verify__(*args,**kws):
                     raise StandardError,"Failed!"	
 
-    ##@r9General.Timer	
+    @cgmGeneral.Timer
     def __verify__(self,*args,**kws):
         puppet = kws.pop('puppet',False)
         if puppet and not self.isReferenced():
@@ -3036,8 +3224,8 @@ class cgmEyeballBlock(cgmRigBlockOLD):
             mi_uprLidMirror = mi_mirror.uprLidHelper
             mi_lwrLidMirror = mi_mirror.lwrLidHelper
 
-            crvUtils.mirrorCurve(self.uprLidHelper.mNode, mi_uprLidMirror.mNode,mirrorAcross='x')
-            crvUtils.mirrorCurve(self.lwrLidHelper.mNode, mi_lwrLidMirror.mNode,mirrorAcross='x')	    
+            CURVES.mirrorCurve(self.uprLidHelper.mNode, mi_uprLidMirror.mNode,mirrorAcross='x')
+            CURVES.mirrorCurve(self.lwrLidHelper.mNode, mi_lwrLidMirror.mNode,mirrorAcross='x')	    
 
         except Exception,error:raise StandardError,"[{0} - eyelids] | error: {1} ".format(_str_func,error)
 
@@ -3299,14 +3487,14 @@ class cgmEyebrowBlock(cgmRigBlockOLD):
         _str_func = "cgmEyebrowBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
         #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         try:
-            crvUtils.mirrorCurve(self.getMessage('leftBrowHelper')[0],self.getMessage('rightBrowHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+            CURVES.mirrorCurve(self.getMessage('leftBrowHelper')[0],self.getMessage('rightBrowHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
         except Exception,error:log.error("%s >> | error: %s "%(_str_func,error))
         try:
-            crvUtils.mirrorCurve(self.getMessage('leftTemplateHelper')[0],self.getMessage('rightTemplateHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+            CURVES.mirrorCurve(self.getMessage('leftTemplateHelper')[0],self.getMessage('rightTemplateHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
         except Exception,error:log.error("%s >> | error: %s "%(_str_func,error)) 
 
         try:
-            crvUtils.mirrorCurve(self.getMessage('leftUprCheekHelper')[0],self.getMessage('rightUprCheekHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+            CURVES.mirrorCurve(self.getMessage('leftUprCheekHelper')[0],self.getMessage('rightUprCheekHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
         except Exception,error:log.error("%s >> | error: %s "%(_str_func,error)) 
 
     def __buildModule__(self):
@@ -3627,14 +3815,14 @@ class cgmMouthNoseBlock(cgmRigBlockOLD):
         _str_func = "cgmMouthNoseBlock.mirrorBrowCurves(%s)"%self.p_nameShort   
         #if log.getEffectiveLevel() == 10:log.debug(">>> %s >>> "%(_str_func) + "="*75)
         try:
-            crvUtils.mirrorCurve(self.getMessage('leftBrowHelper')[0],self.getMessage('rightBrowHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+            CURVES.mirrorCurve(self.getMessage('leftBrowHelper')[0],self.getMessage('rightBrowHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
         except Exception,error:log.error("%s >> | error: %s "%(_str_func,error))
         try:
-            crvUtils.mirrorCurve(self.getMessage('leftTemplateHelper')[0],self.getMessage('rightTemplateHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+            CURVES.mirrorCurve(self.getMessage('leftTemplateHelper')[0],self.getMessage('rightTemplateHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
         except Exception,error:log.error("%s >> | error: %s "%(_str_func,error)) 
 
         try:
-            crvUtils.mirrorCurve(self.getMessage('leftUprCheekHelper')[0],self.getMessage('rightUprCheekHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
+            CURVES.mirrorCurve(self.getMessage('leftUprCheekHelper')[0],self.getMessage('rightUprCheekHelper')[0],mirrorAcross='x',mirrorThreshold = .05)
         except Exception,error:log.error("%s >> | error: %s "%(_str_func,error)) 
 
     def __buildModule__(self,*args,**kws):

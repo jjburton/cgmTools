@@ -16,6 +16,7 @@ import re
 import copy
 import time
 import os
+import cPickle as pickle
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -52,7 +53,7 @@ from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
 from cgm.core.lib import nameTools
 reload(BLOCKSHARED)
 
-
+get_from_scene = BUILDERUTILS.get_from_scene
 
 #from cgm.core.lib import nameTools
 #from cgm.core.rigger import ModuleFactory as mFactory
@@ -72,7 +73,7 @@ d_attrstoMake = {'version':'string',#Attributes to be initialzed for any module
                  'attachPoint':'base:end:closest:surface',                                    
                  'baseSize':'float',
                  'blockState':'string',
-                 'blockDat':'string', 
+                 'blockDat':'string',#...for pickle? 
                  'blockParent':'messageSimple',
                  'blockMirror':'messageSimple'}
 d_defaultAttrSettings = {'blockState':'define',
@@ -97,11 +98,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
         if node is None and blockType is None:
             raise ValueError,"|{0}| >> Must have either a node or a blockType specified.".format(_str_func)
+        
         if blockType and not is_buildable(blockType):
             log.warning("|{0}| >> Unbuildable blockType specified".format(_str_func))
             
         #>>Verify or Initialize
         super(cgmRigBlock, self).__init__(node = node, name = blockType) 
+        self._blockModule = get_blockModule(blockType or self.blockType)        
         
         #====================================================================================	
         #>>> TO USE Cached instance ---------------------------------------------------------
@@ -141,7 +144,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """ 
 
         """
-        _str_func = "cgmRigBlock.verifyBlockType" 
+        _str_func = '[{0}] verify'.format(self.p_nameShort)
         
         if size == None:
             size = self._callKWS.get('size')
@@ -158,9 +161,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if blockType is not None and _type is not None and _type != blockType:
             raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
         
-        _module = get_blockModule(blockType)
-                
-        if not _module:
+        _mBlockModule = get_blockModule(blockType)
+        
+        if not _mBlockModule:
             log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,blockType))        
             return False
                 
@@ -174,7 +177,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #>>> Base shapes --------------------------------------------------------------------------------
         if size:
             self.baseSize = size
-
+            
+        _mBlockModule = get_blockModule(self.blockType)
+        if 'define' in _mBlockModule.__dict__.keys():
+            log.info("|{0}| >> BlockModule define call found...".format(_str_func))            
+            _mBlockModule.define(self)      
         
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))         
         return True
@@ -185,16 +192,17 @@ class cgmRigBlock(cgmMeta.cgmControl):
         Override to handle difference with rig block
 
         """
-        _str_func = 'doName'
+        _short = self.p_nameShort
+        _str_func = '[{0}] doName'.format(_short)
 
         #Get Raw name
-        _d = nameTools.returnObjectGeneratedNameDict(self.mNode)
+        _d = nameTools.returnObjectGeneratedNameDict(_short)
 
         for a in 'puppetName','baseName':
             if self.hasAttr(a):
-                _d['cgmName'] = ATTR.get(self.mNode,a)
+                _d['cgmName'] = ATTR.get(_short,a)
 
-        _d['cgmTypeModifier'] = ATTR.get(self.mNode,'blockType')
+        _d['cgmTypeModifier'] = ATTR.get(_short,'blockType')
         _d['cgmType'] = 'block'
         
         if self.getMayaAttr('position'):
@@ -210,11 +218,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
         Function which MUST be overloaded
         """	
         #>>> Gather basic info for module build
-        _str_func = "{0}.get_controls() >> ".format(self.p_nameShort)
+        _str_func = " get_controls >> "
         if asMeta:
             _result = [self]
         else:
             _result = [self.mNode]
+            
         for plug in self.__class__._l_controlLinks:
             if asMeta:
                 _buffer = self.getMessageAsMeta(plug)
@@ -281,7 +290,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             return _res.mNode
         return _res
 
-    def setBlockParent(self, parent = False, attachPoint = None):
+    def setBlockParent(self, parent = False, attachPoint = None):        
         _str_func = 'setBlockParent'
         if not parent:
             self.blockParent = False
@@ -329,10 +338,152 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return _res
     p_blockAttributes = property(getBlockAttributes)
     
+    def getBlockDat(self):
+        """
+        Carry from Bokser stuff...
+        """
+        _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
+        _ml_controls = self.getControls(True)
+        _short = self.p_nameShort
+        #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
+        _d = {#"name":_short, 
+              "blockType":self.blockType,
+              "blockState":self.p_blockState,
+              "baseName":self.getMayaAttr('puppetName') or self.getMayaAttr('baseName'), 
+              #"part":self.part,
+              ##"blockPosition":self.getEnumValueString('position'),
+              ##"blockDirection":self.getEnumValueString('direction'),
+              "size":DIST.get_size_byShapes(self),
+              ###"attachPoint":self.getEnumValueString('attachPoint'),
+              #"_rig":self._rig.name if self._rig else None, 
+              #"_template":self._template.name if self._template else None, 
+              #"_controls":self._controls.name if self._controls else None, 
+              #"_attach":self._attach.name if self._attach else None, 
+              #"_noTouch":self._noTouch.name if self._noTouch else None, 
+              #"controls":[mObj.mNode for mObj in _ml_controls],
+              "positions":[mObj.p_position for mObj in _ml_controls],
+              "orientations":[mObj.p_orient for mObj in _ml_controls],
+              "scale":[mObj.scale for mObj in _ml_controls],
+              "isSkeletonized":self.isSkeletonized(),
+              #"templatePositions":[x.name for x in self.templatePositions or []], 
+              #"templateOrientation":[x.name for x in self.templateOrientation or []], 
+              #"templateNodes":[x.name for x in self.templateNodes or []], 
+              #"controls":[x.name for x in self.controls or []], 
+              #"rigJoints":[x.name for x in self.rigJoints or []], 
+              #"skinJoints":[x.name for x in self.skinJoints or []], 
+              #"ikJoints":[x.name for x in self.ikJoints or []], 
+              #"fkJoints":[x.name for x in self.fkJoints or []], 
+              #"ikControls":[x.name for x in self.ikControls or []], 
+              #"fkControls":[x.name for x in self.fkControls or []], 
+              #"settingsControl":self.settingsControl.name if self.settingsControl else None, 
+              #"ikSwitchNodes":[x.name for x in self.ikSwitchNodes or []], 
+              #"fkSwitchNodes":[x.name for x in self.fkSwitchNodes or []], 
+              #"attachPoints":[x.name for x in self.attachPoints or []],
+              "version":self.version, 
+              "ud":{}
+              }   
+        
+        for a in self.getAttrs(ud=True):
+            if a not in _l_udMask:
+                if ATTR.get_type(_short,'enum'):
+                    _d['ud'][a] = ATTR.get_enumValueString(_short,a)                    
+                else:
+                    _d['ud'][a] = ATTR.get(_short,a)
+        
+        cgmGEN.log_info_dict(_d,'[{0}] blockDat'.format(self.p_nameShort))
+        return _d
+        
+    def saveBlockDat(self):
+        self.blockDat = self.getBlockDat()
+        
+    def loadBlockDat(self,blockDat = None):
+        _short = self.p_nameShort        
+        _str_func = '[{0}] loadBlockDat'.format(_short)
+        
+        if blockDat is None:
+            log.info("|{0}| >> No blockDat passed. Checking self...".format(_str_func))    
+            blockDat = self.blockDat
+            
+        if not issubclass(type(blockDat),dict):
+            raise ValueError,"|{0}| >> blockDat must be dict. type: {1} | blockDat: {2}".format(_str_func,type(blockDat),blockDat) 
+        
+        _blockType = blockDat.get('blockType')
+        if _blockType != self.blockType:
+            raise ValueError,"|{0}| >> blockTypes don't match. self: {1} | blockDat: {2}".format(_str_func,self.blockType,_blockType) 
+        
+        #.>>>..UD ----------------------------------------------------------------------------------------------------
+        log.info("|{0}| >> ud...".format(_str_func)+ '-'*80)
+        _ud = blockDat.get('ud')
+        if not blockDat.get('ud'):
+            raise ValueError,"|{0}| >> No ud data found".format(_str_func) 
+        for a,v in _ud.iteritems():
+            _current = ATTR.get(_short,a)
+            if _current != v:
+                try:
+                    if ATTR.get_type(_short,a) in ['message']:
+                        log.info("|{0}| >> userDefined '{1}' skipped. Not loading message data".format(_str_func,a))                     
+                    else:
+                        log.info("|{0}| >> userDefined '{1}' mismatch. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                        ATTR.set(_short,a,v)
+                except Exception,err:
+                    log.error("|{0}| >> userDefined '{1}' failed to change. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                    r9Meta.printMetaCacheRegistry()                
+                    for arg in err.args:
+                        log.error(arg)                      
+
+        #>>State ----------------------------------------------------------------------------------------------------
+        log.info("|{0}| >> State".format(_str_func) + '-'*80)
+        _state = blockDat.get('blockState')
+        _current = self.getState()
+        if _state != _current:
+            log.info("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current,_state)) 
+            self.p_blockState = _state
+            
+        #>>Controls ----------------------------------------------------------------------------------------------------
+        log.info("|{0}| >> Controls".format(_str_func)+ '-'*80)
+        _pos = blockDat.get('positions')
+        _orients = blockDat.get('orientations')
+        _scale = blockDat.get('scale')
+        
+        _ml_controls = self.getControls(True)
+        if len(_ml_controls) != len(_pos):
+            log.error("|{0}| >> Control dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_controls),len(_pos))) 
+        else:
+            log.info("|{0}| >> loading Controls...".format(_str_func))
+            for i,mObj in enumerate(_ml_controls):
+                mObj.p_position = _pos[i]
+                mObj.p_orient = _orients[i]
+                for ii,v in enumerate(_scale[i]):
+                    _a = 's'+'xyz'[ii]
+                    if not self.isAttrConnected(_a):
+                        ATTR.set(_short,_a,v)
+
+        #>>Generators ----------------------------------------------------------------------------------------------------
+        log.info("|{0}| >> Generators".format(_str_func)+ '-'*80)
+        _d = {"isSkeletonized":[self.isSkeletonized,self.doSkeletonize,self.skeletonDelete]}
+        
+        for k,calls in _d.iteritems():
+            _block = bool(blockDat.get(k))
+            _current = calls[0]()
+            if _state != _current:
+                log.info("|{0}| >> {1} States don't match. self: {2} | blockDat: {3}".format(_str_func,k,_current,_block)) 
+                if _block == False:
+                    calls[2]()                         
+                else:
+                    calls[1]()     
+                
+                
+                
+        return True
+    p_blockDat = property(getBlockDat,loadBlockDat)
+
     
     #========================================================================================================     
     #>>> States 
     #========================================================================================================      
+    def rebuild(self,*args,**kws):
+        return self._factory.rebuild_rigBlock(*args,**kws)
+    
     def getState(self, asString = True):
         _str_func = '[{0}] getState'.format(self.p_nameShort)
         #if asString:
@@ -349,7 +500,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
             self.blockState = _state
             self.changeState(_state),#rebuild=True)
         
-        
         if _state == 'define':
             _goodState = 'define'
         else:
@@ -359,7 +509,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             else:
                 _idx = _l_blockStates.index(_state) - 1
                 log.info("|{0}| >> blockModule test failed. Testing: {1}".format(_str_func, _l_blockStates[_idx]))                
-                while not _blockModule.__dict__['is_{0}'.format(_l_blockStates[_idx])](self) and _idx > 0:
+                while _idx > 0 and not _blockModule.__dict__['is_{0}'.format(_l_blockStates[_idx])](self):
                     log.info("|{0}| >> Failed {1}. Going down".format(_str_func,_l_blockStates[_idx]))
                     _blockModule.__dict__['{0}Delete'.format(_l_blockStates[_idx])](self)
                     #self.changeState(_l_blockStates[_idx])
@@ -375,9 +525,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             return _goodState
         return _l_blockStates.index(_goodState)
     
-    
-    
- 
+
     def changeState(self, state = None, children = True):
         return self._factory.changeState(state)    
     p_blockState = property(getState,changeState)
@@ -409,8 +557,17 @@ class cgmRigBlock(cgmMeta.cgmControl):
             return _call(self)
         return False
     
-
-    
+    def skeletonDelete(self):
+        _str_func = '[{0}] deleteSkeleton'.format(self.p_nameShort)
+        
+        _blockModule = get_blockModule(self.blockType)
+                
+        _call = _blockModule.__dict__.get('skeletonDelete',False)
+        if _call:
+            log.info("|{0}| >> blockModule check...".format(_str_func))                                
+            return _call(self)
+        
+        return True    
 
 
     #========================================================================================================     
@@ -484,7 +641,9 @@ class factory(object):
         #self.verify(blockType)
         return _mObj
 
-
+    #========================================================================================================     
+    #>>> Queries 
+    #========================================================================================================  
     def get_attrCreateDict(self,blockType = None):
         """
         Data checker to see the create attr dict for a given blockType regardless of what's loaded
@@ -752,12 +911,12 @@ class factory(object):
         :returns
             success(bool)
         """        
-        _str_func = 'rigBlock_verify'
 
         if self._mi_block is None:
             raise ValueError,"No root loaded."
 
         _mBlock = self._mi_block
+        _str_func = '[{0}] factory.verify'.format(_mBlock.p_nameShort)
 
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node. Cannot verify"
@@ -775,8 +934,6 @@ class factory(object):
         #_mBlock.verifyAttrDict(self._d_attrsToVerify,keyable = False, hidden = False)
         #_mBlock.verifyAttrDict(self._d_attrsToVerify)
         
-
-        
         _keys = self._d_attrsToVerify.keys()
         _keys.sort()
         #for a,t in self._d_attrsToVerify.iteritems():
@@ -784,7 +941,7 @@ class factory(object):
             v = self._d_attrToVerifyDefaults.get(a,None)
             t = self._d_attrsToVerify[a]
             
-            log.info("|{0}| ({3}) >>  Setting attr >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
+            log.info("|{0}| Setting attr >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
             
             if ':' in t:
                 _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
@@ -796,31 +953,14 @@ class factory(object):
 
         _mBlock.addAttr('blockType', value = blockType,lock=True)	
         #_mBlock.blockState = 'base'
-        _mBlock.doName()
         
+        _mBlock.doName()
+
         return True
+    #========================================================================================================     
+    #>>> States 
+    #========================================================================================================  
     
-    def getState(self):
-            """
-            Change the state of a loaded rigBlock
-            
-            :parameters:
-                state(str) | state to change to
-    
-            :returns
-                success(bool)
-            """        
-    
-            if self._mi_block is None:
-                raise ValueError,"No root loaded."
-    
-            _mBlock = self._mi_block
-    
-            _str_func = '[{0}] getState'.format(_mBlock.p_nameBase)
-            
-            
-            
-            
     def changeState(self, state = None, rebuildFrom = None, forceNew = False):
         """
         Change the state of a loaded rigBlock
@@ -840,7 +980,7 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node. Cannot verify"
         
-        _str_func = '[{0}] changeState'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.changeState'.format(_mBlock.p_nameBase)
         
         #>Validate our data ------------------------------------------------------
         d_upStateFunctions = {'template':self.template,
@@ -923,7 +1063,7 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
         
-        _str_func = '[{0}] template'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.template'.format(_mBlock.p_nameBase)
         
         _str_state = _mBlock.blockState
         
@@ -957,7 +1097,7 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
         
-        _str_func = '[{0}] templateDelete'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.templateDelete'.format(_mBlock.p_nameBase)
         _str_state = _mBlock.blockState
         
         if _mBlock.blockState != 'template':
@@ -973,9 +1113,13 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
         if 'templateDelete' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            log.info("|{0}| >> BlockModule templateDelete call found...".format(_str_func))            
             _mBlockCall = _mBlockModule.templateDelete    
             
+        if 'define' in _mBlockModule.__dict__.keys():
+                    log.info("|{0}| >> BlockModule define call found...".format(_str_func))            
+                    _mBlockCall = _mBlockModule.define   
+                    
         #Delete our shapes...
         mc.delete(_mBlock.getShapes())
         
@@ -996,7 +1140,7 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
         
-        _str_func = '[{0}] prerig'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.prerig'.format(_mBlock.p_nameBase)
         _str_state = _mBlock.blockState
         
         if _mBlock.blockState != 'template':
@@ -1011,7 +1155,7 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         
         if 'prerig' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            log.info("|{0}| >> BlockModule prerig call found...".format(_str_func))            
             _mBlockModule.prerig(_mBlock)
  
         _mBlock.blockState = 'prerig'#...yes now in this state
@@ -1025,7 +1169,7 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
         
-        _str_func = '[{0}] prerigDelete'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.prerigDelete'.format(_mBlock.p_nameBase)
         _str_state = _mBlock.blockState
 
         if _mBlock.blockState != 'prerig':
@@ -1041,7 +1185,7 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
         if 'prerigDelete' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            log.info("|{0}| >> BlockModule prerigDelete call found...".format(_str_func))            
             _mBlockCall = _mBlockModule.prerigDelete    
             
         
@@ -1061,7 +1205,7 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
         
-        _str_func = '[{0}] rig'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.rig'.format(_mBlock.p_nameBase)
         _str_state = _mBlock.blockState
         
         
@@ -1076,7 +1220,7 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         
         if 'rig' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            log.info("|{0}| >> BlockModule rig call found...".format(_str_func))            
             _mBlockModule.rig(_mBlock)
             
         _mBlock.blockState = 'rig'#...yes now in this state
@@ -1090,7 +1234,7 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
         
-        _str_func = '[{0}] rigDelete'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.rigDelete'.format(_mBlock.p_nameBase)
         _str_state = _mBlock.blockState
         
         if _mBlock.blockState != 'rig':
@@ -1101,7 +1245,7 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
         if 'rigDelete' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            log.info("|{0}| >> BlockModule rigDelete call found...".format(_str_func))            
             _mBlockCall = _mBlockModule.rigDelete    
             
         
@@ -1111,7 +1255,10 @@ class factory(object):
         _mBlock.blockState = 'prerig'
         
         return True
-
+    
+    #========================================================================================================     
+    #>>> Self changes 
+    #========================================================================================================  
     def set_rigBlock(self,root=None):
         """
         Set the active rigBlock to our factory
@@ -1166,130 +1313,67 @@ class factory(object):
         cgmGEN.log_info_dict(_res, "Block Data [{0}]".format(_short))
         return _res
         
-        
-    
-    def rebuild_rigBlock( self, blockType = None ):
-        _str_func = 'rebuild_rigBlock'
+    #========================================================================================================     
+    #>>> Rigblock 
+    #========================================================================================================      
+    def rebuild_rigBlock( self, deleteOriginal = True ):
+        """
+        Rebuild a rigBlock
 
+        :parameters:
+            deleteOriginal(bool) | Whether to delete original or not. If True, the new one is loaded to the factory
+
+        :returns
+            success(bool)
+        """ 
         if self._mi_block is None:
             raise ValueError,"No root loaded."
 
         _mBlock = self._mi_block
         _short = _mBlock.p_nameShort
         
+        _str_func = '[{0}] factory.rebuild_rigBlock'.format(_mBlock.p_nameBase)
         _blockType = _mBlock.blockType
         
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node. Cannot rebuild"        
         
-        #Get blockParent
-        _blockParent = _mBlock.parent
-        log.info("|{0}| >> [{2}] | _blockParent: {1}".format(_str_func,_blockParent,_short))
-        
-        #Get Template positions
-        log.info("|{0}| >> [{1}] | NEED TO GET template positions".format(_str_func,_short))
+        _blockParent = _mBlock.p_blockParent
         
         #Get Block Children
-        log.info("|{0}| >> [{1}] | NEED TO GET block children".format(_str_func,_short))
-        
-        #Get UD Attrs
-        _d_ud = {}
-        for a in mc.listAttr(_short,ud=True):
-            _d_ud[a] = ATTR.get(_short,a)
-            
-        #Destroy
-        _mBlock.delete()
+        _ml_blockChildren = _mBlock.getBlockChildren(True)
+        if _ml_blockChildren:
+            log.info("|{0}| >> [{1}] | Block children...".format(_str_func,_short))            
+            for mChild in _ml_blockChildren:
+                mChild.p_blockParent = False
+
+        _blockDat = _mBlock.p_blockDat
+
         
         #Create New
-        _mBlock = self.create_rigBlock(_blockType)
-        _short = _mBlock.p_nameShort
+        _mBlockNEW = self.create_rigBlock(_blockType)
+        _short = _mBlockNEW.p_nameShort
+        
+        _mBlockNEW.p_blockDat = _blockDat
         
         #Reattach Children
-        log.info("|{0}| >> [{1}] | NEED TO reattach children".format(_str_func,_short))
-        
-        #Restore Positions
-        log.info("|{0}| >> [{1}] | NEED TO restore template positions".format(_str_func,_short))
-        
-        #Set UD Attrs
-        for a,v in _d_ud.iteritems():
-            log.info("|{0}| >> [{1}] | Setting attr: {2} = {3}".format(_str_func,_short,a,v))
-            ATTR.set(_short,a,v)
-            
-        
-        log.info("|{0}| >> [{1}] | NEED TO set UD ATTRS ".format(_str_func,_short))
+        if _ml_blockChildren:
+            log.info("|{0}| >> [{1}] | reconnecting children...".format(_str_func,_short))            
+            for mChild in _ml_blockChildren:
+                mChild.p_blockParent = _mBlockNEW        
         
         #If blockParent = set
         if _blockParent:
-            _mBlock.parent = _blockParent
+            _mBlockNEW.parent = _blockParent
         
-        return True
-        selected = Selected()
-
-        oldBlock = Block.LoadRigBlock(blockTransform)
-
-        # Copy positions to an array
-        templatePositions = []
-        for templateObj in oldBlock.templatePositions:
-            templatePositions.append( [templateObj.localPosition, templateObj.eulerAngles, templateObj.localScale] )
+        if deleteOriginal:
+            _mBlock.delete()
+            self.set_rigBlock(_mBlockNEW)
+        
+        return _mBlockNEW
 
 
-        # Get block children
-        blockParent = oldBlock.parent
-        blockChildren = []
-        for child in oldBlock.attachPoints:
-            blockChildren.append(child.children)
-            for c in child.children:
-                c.parent = None
-
-        # Get block properties
-        baseName = oldBlock.baseName
-        part     = oldBlock.part
-        side     = oldBlock.side
-        size     = oldBlock.size
-
-        # Get user defined attributes
-        blockAttrs = {}
-        for attr in oldBlock.blockAttributes:
-            blockAttrs[attr] = oldBlock.GetAttr(attr)
-
-        blockClass = oldBlock.blockType
-
-        # Destroy old block
-        Node.Destroy(oldBlock)
-
-        # Create new block
-        print "baseName:", baseName, "part:", part, "side:", side, "class: ", blockClass
-        newBlock = blockClass( baseName=baseName, part=part, side=side )
-
-        for i, children in enumerate(blockChildren):
-            for child in children:
-                child.parent = newBlock.attachPoints[i]
-
-        newBlock.size = size
-
-        for i, obj in enumerate(newBlock.templatePositions):
-            for p,attr in enumerate(['tx', 'ty', 'tz']):
-                if not mc.getAttr(obj.GetAttrString(attr), l=True):
-                    obj.SetAttr(attr, templatePositions[i][0][p])
-            for p,attr in enumerate(['rx', 'ry', 'rz']):
-                if not mc.getAttr(obj.GetAttrString(attr), l=True):
-                    obj.SetAttr(attr, templatePositions[i][1][p])
-            for p,attr in enumerate(['sx', 'sy', 'sz']):
-                if not mc.getAttr(obj.GetAttrString(attr), l=True):
-                    obj.SetAttr(attr, templatePositions[i][2][p])
-
-        for attr in blockAttrs:
-            newBlock.SetAttr(attr, blockAttrs[attr])
-
-        if blockParent:
-            newBlock.parent = blockParent
-
-        Select(selected)
-    
-    
-    
-
-    def skeletonize(self,forceNew = False):
+    def create_skeleton(self,forceNew = False):
         """
         Create a the base joints of a rigBlock
 
@@ -1380,7 +1464,9 @@ class factory(object):
         #Get our cast curves
         pass
 
-
+    #========================================================================================================     
+    #>>> PuppetMeta 
+    #========================================================================================================  
     def module_verify(self):
         """
         Verify a loaded rigBlock's module or create if necessary

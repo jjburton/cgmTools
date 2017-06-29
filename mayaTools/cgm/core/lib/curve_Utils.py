@@ -29,6 +29,7 @@ from cgm.core.cgmPy import validateArgs as cgmValid
 reload(cgmValid)
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rigging_utils as RIGGING
+import cgm.core.lib.transform_utils as TRANS
 reload(RIGGING)
 from cgm.core.lib import shape_utils as SHAPES
 from cgm.core.lib import name_utils as NAMES
@@ -661,6 +662,7 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
         _sizeMode = 'fixed'
     for t in _targets:
         #Figure out size
+        
         if _sizeMode == 'guess':
             _size = DIST.get_createSize(t)
             if sizeMulti is not None:
@@ -680,6 +682,44 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
         RIGGING.override_color(_curveShape,color)
         _res.append(_curveShape)
     return _res
+
+@cgmGeneral.Timer
+def create_text(text = 'test', font = 'arial', size = None, centerPivot = True):
+    """
+    Create a unified text curve
+    
+    :parameters
+        text(str): Text we want
+        font(str): 
+        size(float): If None, default maya size is passed
+        centerPivot(bool): whether to recenter pivot and object to world
+
+    :returns
+        curve(str)
+    """   
+    _str_func = "create_text"
+    textBuffer = mc.textCurves(cch = False, f = font, t = text)[0]
+    _l_combine = []
+    for c in TRANS.descendents_get(textBuffer):
+        if TRANS.shapes_get(c):
+            _l_combine.append(c)
+    
+    _curve = SHAPES.combine(_l_combine)
+    _curve = TRANS.parent_set(_curve,False)
+    mc.delete(textBuffer)
+    
+    if centerPivot:
+        TRANS.pivots_recenter(_curve)
+        TRANS.position_set(_curve,[0,0,0])
+        mc.makeIdentity(_curve, apply = True, t=True,s=True,r=True)
+        
+    if size:
+        TRANS.scale_to_size(_curve,size,'bb')
+        mc.makeIdentity(_curve, apply = True, t=True,s=True,r=True)
+    
+    return _curve
+    
+
 
 #>>>>PRE Refactor ====================================================================================================================================
 def returnSplitCurveList(*args, **kws):

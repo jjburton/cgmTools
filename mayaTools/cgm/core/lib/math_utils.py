@@ -19,7 +19,7 @@ log.setLevel(logging.INFO)
 import maya.cmds as mc
 from maya import mel
 #import cgm.core.lib.euclid as euclid
-import euclid as euclid
+import euclid as EUCLID
 
 # From Red9 =============================================================
 
@@ -30,42 +30,42 @@ from cgm.core.lib import shared_data as SHARED
 Lerp and Slerp functions translated from taken from https://keithmaggio.wordpress.com/2011/02/15/math-magician-lerp-slerp-and-nlerp/
 '''
 
-class Vector3(euclid.Vector3):
+class Vector3(EUCLID.Vector3):
     @staticmethod
     def    forward():
-        return euclid.Vector3(0,0,1)
+        return EUCLID.Vector3(0,0,1)
 
     @staticmethod
     def    back():
-        return euclid.Vector3(0,0,-1)
+        return EUCLID.Vector3(0,0,-1)
 
     @staticmethod
     def    left():
-        return euclid.Vector3(-1,0,0)
+        return EUCLID.Vector3(-1,0,0)
 
     @staticmethod
     def    right():
-        return euclid.Vector3(1,0,0)
+        return EUCLID.Vector3(1,0,0)
 
     @staticmethod
     def    up():
-        return euclid.Vector3(0,1,0)
+        return EUCLID.Vector3(0,1,0)
 
     @staticmethod
     def    down():
-        return euclid.Vector3(0,-1,0)
+        return EUCLID.Vector3(0,-1,0)
 
 
     @staticmethod
     def    zero():
-        return euclid.Vector3(0,0,0)
+        return EUCLID.Vector3(0,0,0)
 
     @staticmethod
     def    one():
-        return euclid.Vector3(1,1,1)
+        return EUCLID.Vector3(1,1,1)
 
     #def __init__(self, x=0, y=0, z=0):
-    #    super(euclid.Vector3, self).__init__(x, y, z)
+    #    super(EUCLID.Vector3, self).__init__(x, y, z)
 
     @staticmethod
     def Lerp(start, end, percent):
@@ -98,7 +98,7 @@ class Vector3(euclid.Vector3):
     @staticmethod
     def Create(v):
         '''Returns a Vector object from a 3 value array'''
-        return euclid.Vector3(v[0], v[1], v[2])
+        return EUCLID.Vector3(v[0], v[1], v[2])
 
     @staticmethod
     def AsArray(v):
@@ -151,13 +151,14 @@ def get_vector_of_two_points(point1,point2):
     return _new.x,_new.y,_new.z    
 
 
-def get_obj_vector(obj = None, axis = 'z+'):
+def get_obj_vector(obj = None, axis = 'z+',asEuclid = False):
     """
     Get the vector along an object axis
     
     :parameters:
         obj(string)
         axis(str)
+        asEuclid(bool) - data return format
 
     :returns
         vector(s)
@@ -167,9 +168,9 @@ def get_obj_vector(obj = None, axis = 'z+'):
 
     """         
     _str_func = 'get_obj_vector'
-    
-    if not mc.objExists(obj):
-        raise ValueError,"Must have an obj to get a vector when no vector is provided"
+    obj = VALID.mNodeString(obj)
+    #if not mc.objExists(obj):
+        #raise ValueError,"Must have an obj to get a vector when no vector is provided"
 
     d_matrixVectorIndices = {'x':[0,1,2],
                              'y': [4,5,6],
@@ -188,6 +189,8 @@ def get_obj_vector(obj = None, axis = 'z+'):
     if list(axis)[1] == '-':
         for i,v in enumerate(vector):
             vector[i]=-v
+    if asEuclid:
+        return EUCLID.Vector3(vector[0],vector[1],vector[2])          
     return vector
     
     
@@ -324,7 +327,7 @@ def isclose(a, b, rel_tol=1e-04, abs_tol=0.0):
 
 def get_world_matrix(obj):
     matrix_a = mc.xform( obj, q=True, m=True, ws=True )
-    current_matrix = euclid.Matrix4()
+    current_matrix = EUCLID.Matrix4()
     current_matrix.a = matrix_a[0]
     current_matrix.b = matrix_a[1]
     current_matrix.c = matrix_a[2]
@@ -359,12 +362,12 @@ def transform_direction(obj, v):
 
     s = Vector3.Create( mc.getAttr('%s.scale' % obj)[0] )
 
-    transform_matrix = euclid.Matrix4()
+    transform_matrix = EUCLID.Matrix4()
     transform_matrix.m = v.x
     transform_matrix.n = v.y
     transform_matrix.o = v.z
 
-    scale_matrix = euclid.Matrix4()
+    scale_matrix = EUCLID.Matrix4()
     scale_matrix.a = s.x
     scale_matrix.f = s.y
     scale_matrix.k = s.z

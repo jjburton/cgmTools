@@ -588,7 +588,6 @@ class cgmNode(r9Meta.MetaClass):
         """
         Returns if what is stored is a component
         """
-        raise DeprecationWarning,'No longer'        
         if self.__componentMode__ and self.__component__:
             buffer = '%s.%s'%(self.mNode,self.__component__)
             if mc.objExists(buffer):return True
@@ -657,9 +656,47 @@ class cgmNode(r9Meta.MetaClass):
         return ATTR.is_connected([self.mNode,attr])
     
     def doStore(self,*a,**kws):
+        """   
+        Store information to an attribute.
+        
+        Supported: message,doubleArray,json dicts and much more
+        
+        :parameters:
+            node(str) -- 
+            attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+            data(varied) -- data to add
+            attrType(varied) -- specify, if not specified will pick best guess
+            lock(bool)
+    
+        :returns
+            status(bool)
+        """        
         return ATTR.store_info(self.mNode,*a,**kws)
+    
     def copyAttrTo(self,*a,**kws):
-        return ATTR.copy_to(self.mNode,*a,**kws)    
+        """   
+        Copy attributes from one object to another as well as other options. If the attribute already
+        exists, it'll copy the values. If it doesn't, it'll make it. If it needs to convert, it can.
+        It will not make toast.  
+    
+        :parameters:
+            fromAttr(string) - source attribute
+            toObject(string) - obj to copy to
+            toAttr(string) -- name of the attr to copy to . Default is None which will create an 
+                          attribute of the fromAttr name on the toObject if it doesn't exist
+            convertToMatch(bool) -- whether to automatically convert attribute if they need to be. Default True                  
+            values(bool) -- copy values. default True
+            inputConnections(bool) -- default False
+            outGoingConnections(bool) -- default False
+            keepSourceConnections(bool)-- keeps connections on source. default True
+            copySettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
+            driven(string) -- 'source','target' - whether to connect source>target or target>source
+    
+        :returns
+            success(bool)
+        """         
+        return ATTR.copy_to(self.mNode,*a,**kws)  
+    
     def getMayaAttr(self,*a,**kws):
         return ATTR.get(self.mNode,*a,**kws)
     
@@ -675,6 +712,16 @@ class cgmNode(r9Meta.MetaClass):
         return self.delAttr(a)
     
     def resetAttrs(self, attrs = None):
+        """   
+        Reset specified attributes to their default values
+        
+        :parameters:
+            node(str) -- 
+            attrs(str/list) -- attributes to reset
+            
+        :returns
+            list of reset attrs(list)
+        """        
         obj = self.p_nameShort
 
         if attrs == None:
@@ -854,6 +901,57 @@ class cgmNode(r9Meta.MetaClass):
     #========================================================================================================     
     #>>> Utilities... 
     #========================================================================================================      
+    def doLoc(self,forceBBCenter = False,nameLink = False, fastMode = False):
+        """
+        Create a locator from an object
+    
+        Keyword arguments:
+        forceBBCenter(bool) -- whether to force a bounding box center (default False)
+        nameLink(bool) -- whether to copy name tags or link the object to cgmName
+        """
+        #_str_func = '{0}.doLoc'.format(self.p_nameShort)
+        #t_master = time.time()	            
+        #t1 = time.time()	
+         
+        buffer = False
+        if self.isComponent():
+            buffer =  locators.locMeObject(self.getComponent(),forceBBCenter = forceBBCenter)
+            #log.info("{0}>> component loc: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t1)))
+            #t1 = time.time()	            
+        else:
+            #if self.isTransform():
+            #log.info("{0}>> transform loc: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t1)))
+            #t1 = time.time()     
+            if fastMode:
+                buffer = cgmObject(mc.spaceLocator()[0])
+                
+                objTrans = mc.xform(self.mNode, q=True, ws=True, sp=True)
+                objRot = mc.xform(self.mNode, q=True, ws=True, ro=True)
+                objRotAxis = mc.xform(self.mNode, q=True, os=True, ra=True)
+            
+                mc.move (objTrans[0],objTrans[1],objTrans[2], buffer.mNode)			
+                mc.rotate (objRot[0], objRot[1], objRot[2], buffer.mNode, ws=True)
+                for i,a in enumerate(['X','Y','Z']):
+                    ATTR.set(buffer.mNode, 'rotateAxis{0}'.format(a), objRotAxis[i])                    
+                buffer.rotateOrder = self.rotateOrder
+            else:
+                buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)                    
+        if not buffer:
+            return False
+        
+        i_loc = validateObjArg(buffer,'cgmObject',setClass = True)#setClass=True
+        #log.info("{0}>> validate: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t1)))
+        #t1 = time.time()            
+        #if nameLink:
+            #i_loc.connectChildNode(self,'cgmName')
+        if not nameLink:
+            i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
+            i_loc.doName()
+            #log.info("{0}>> name: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t1)))
+            #t1 = time.time()            
+        #log.info("{0}>> total: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t_master)))            
+        return i_loc
+    
     def doDuplicate(self, **kws):
         """
         Return a duplicated object instance
@@ -2305,7 +2403,7 @@ class cgmObject(cgmNode):
         Keyword arguments:
         parent(string) -- Target parent
         """
-
+        return TRANS.parent_set(self.mNode,target)
         if target: #if we have a target parent
             if VALID.isListArg(target):
                 target = target[0]
@@ -2392,6 +2490,7 @@ class cgmObject(cgmNode):
         if _res and asMeta:
             return validateObjListArg(_res)
         return _res 
+    getAllChildren = getDescendents
     
     def getChildren(self, asMeta = False, fullPath = False):
         """
@@ -2529,6 +2628,13 @@ class cgmObject(cgmNode):
     def getBBCenter(self):
         return POS.get_bb_size(self,*a,**kws) 
     
+    
+    #...vectors
+    def getAxisVector(self,*a,**kws):
+        return TRANS.vector_byAxis(self.mNode, *a,**kws)     
+    def getPositionByAxisDistance(self,*a,**kws):
+        reload(TRANS)
+        return TRANS.position_getByAxisDistance(self.mNode, *a,**kws)    
     #...matrix ------------------------------------------------------------------------------
     def getWorldMatrix(self,*a,**kws):
             return TRANS.worldMatrix(self,*a,**kws)     

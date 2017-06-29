@@ -26,6 +26,7 @@ try:
     #from cgm.core.lib import math_utils as MATH
     #from cgm.core import cgm_PuppetMeta as PUPPETMETA
     from cgm.core.mrs import RigBlocks as RBLOCKS
+    #from cgm.core.mrs.lib import general_utils as RBLOCKGEN
     
 except ImportError:
     raise StandardError('objString test can only be run in Maya')
@@ -39,9 +40,37 @@ class Test_RigBlocks(unittest.TestCase):
     def setUp(self):
         pass
     
-    def test_queries(self):
+    def test_get_from_scene(self):
+        _buffer = RBLOCKS.get_from_scene()
+        _RigBlock = False
+        if not _buffer:
+            self.assertEqual(RBLOCKS.get_from_scene(),
+                             [])             
+            _RigBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = 'master')
+            self.assertEqual(RBLOCKS.get_from_scene(),
+                             [_RigBlock])
+            _RigBlock.delete()
+        else:
+            self.assertIsNotNone(_buffer)        
+        
+    def test_get_modules_dict(self):
         _d_moduleDat = RBLOCKS.get_modules_dat()
         self.assertIsNotNone(_d_moduleDat)
+        
+    def test_get_blockModule(self):
+        self.assertIsNotNone(RBLOCKS.get_blockModule('master'))
+        self.assertEqual(RBLOCKS.get_blockModule('okra'),
+                         False)          
+        #self.assertRaises(ValueError,RBLOCKS.get_blockModule,'okra')
+        
+    def test_is_buidable(self):
+        self.assertIsNot(RBLOCKS.is_buildable('master'),
+                         False)
+        self.assertEqual(RBLOCKS.is_buildable('okra'),
+                         False)  
+    def test_is_blockType_valid(self):
+        pass
+
         
     def test_blockTypes(self):
         _l_modulesToTest = ['master','doodad']
@@ -62,7 +91,6 @@ class Test_RigBlocks(unittest.TestCase):
                 _t_step = time.clock()
                 mBlock.changeState(i)
                 print("[{0}] Step: {1} complate in {2} seconds".format(blockType, i, "%0.3f"%(time.clock()-_t_step)) + '-'*80) 
-                
             print("[{0}] completed in  {1} seconds".format(blockType, "%0.3f"%(time.clock()-_t_start))) 
     
     

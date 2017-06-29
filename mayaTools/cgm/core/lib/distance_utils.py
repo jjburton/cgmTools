@@ -16,7 +16,7 @@ from math import sqrt,pow
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -56,6 +56,41 @@ def get_bb_size(arg = None):
     
     _box = mc.exactWorldBoundingBox(_arg)
     return [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
+
+def get_size_byShapes(arg, mode = 'max'):
+    _str_func = 'get_sizeByShapes'
+    _arg = VALID.mNodeString(arg)   
+    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))  
+    
+    _l_bb = []
+    _sizeX = []
+    _sizeY = []
+    _sizeZ = []
+    
+    _shapes = mc.listRelatives(_arg,s=True,fullPath=True)
+    if not _shapes:
+        if VALID.is_shape(arg):
+            _shapes = [arg]
+        else:
+            raise ValueError,"|{0}| >> '{1}' has no shapes.".format(_str_func,_arg)
+    for s in _shapes:
+        _bfr = get_bb_size(s)
+        _l_bb.append(_bfr)
+        _sizeX.append(_bfr[0])
+        _sizeY.append(_bfr[1])
+        _sizeZ.append(_bfr[2])
+    
+    log.debug("|{0}| >> sx: '{1}' ".format(_str_func,_sizeX))  
+    log.debug("|{0}| >> sy: '{1}' ".format(_str_func,_sizeY))  
+    log.debug("|{0}| >> sz: '{1}' ".format(_str_func,_sizeZ))  
+    
+    
+    if mode == 'max':
+        return max(max(_sizeX), max(_sizeY), max(_sizeZ))
+    else:
+        raise ValueError,"|{0}| >> unknown mode: {1}".format(_str_func,mode)
+        
+    
 
 def get_createSize(arg = None, mode = None):
     """
@@ -275,6 +310,7 @@ def get_pos_by_vec_dist(startPos,vec,distance = 1):
         distance(float)
     """         
     _str_func = 'get_pos_by_vec_dist'
+    vec = VALID.euclidVector3Arg(vec)
     
     _startPos = MATHUTILS.Vector3(startPos[0],startPos[1],startPos[2])
     _dir = MATHUTILS.Vector3(vec[0],vec[1],vec[2])
@@ -282,6 +318,22 @@ def get_pos_by_vec_dist(startPos,vec,distance = 1):
     _new = _startPos + _dir * distance
     
     return _new.x,_new.y,_new.z
+
+def get_pos_by_axis_dist(obj, axis, distance = 1):
+    """
+    Get a point in space given an object, an axis and a distance
+    
+    :parameters:
+        obj(string)
+        axis(str)
+        asEuclid(bool) - data return format   
+    :returns
+        distance(float)
+    """
+    obj =  VALID.mNodeString(obj)
+    _vector = MATHUTILS.get_obj_vector(obj,axis,False)
+    return get_pos_by_vec_dist(POS.get(obj),_vector,distance)
+    
 
 
 def get_closest_point(source = None, targetSurface = None, loc = False):
