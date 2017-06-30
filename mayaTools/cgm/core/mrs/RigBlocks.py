@@ -133,7 +133,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             #>>>Auto flags...
             _blockModule = get_blockModule(self.blockType)
             if _blockModule.__dict__.get('__autoTemplate__'):
-                log.info("|{0}| >> AutoTemplate...".format(_str_func))  
+                log.debug("|{0}| >> AutoTemplate...".format(_str_func))  
                 try:
                     self.p_blockState = 'template'
                 except Exception,err:
@@ -182,7 +182,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             
         _mBlockModule = get_blockModule(self.blockType)
         if 'define' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule define call found...".format(_str_func))            
+            log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
             _mBlockModule.define(self)      
         
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))         
@@ -354,7 +354,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
         for mChild in ml_children:
             if mChild not in ml_nodeChildren and issubclass(type(mChild),cgmRigBlock):
-                log.info("|{0}| >> Found as reg child: {1}".format(_str_func,mChild.mNode))        
+                log.debug("|{0}| >> Found as reg child: {1}".format(_str_func,mChild.mNode))        
                 ml_nodeChildren.append(mChild)
         
         if not asMeta:
@@ -364,13 +364,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
     p_blockChildren = property(getBlockChildren)
     
     def getBlockHeirarchyBelow(self,asMeta=True):
-        _res = BLOCKGEN.walk_rigBlockHeirarchyDict(self,asMeta=asMeta)
+        _res = BLOCKGEN.walk_rigBlock_heirarchy(self,asMeta=asMeta)
         if not _res:
             return False
         #cgmGEN.walk_dat(_res,"{0}.getBlockHeirarchyBelow...".format(self.mNode))
         if asMeta:
             return _res[self]
         return _res[self.mNode]
+    
+    def printBlockHeirarchy(self,asMeta):
+        pass
 
     
     #========================================================================================================     
@@ -451,7 +454,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _str_func = '[{0}] loadBlockDat'.format(_short)
         
         if blockDat is None:
-            log.info("|{0}| >> No blockDat passed. Checking self...".format(_str_func))    
+            log.debug("|{0}| >> No blockDat passed. Checking self...".format(_str_func))    
             blockDat = self.blockDat
             
         if not issubclass(type(blockDat),dict):
@@ -462,7 +465,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             raise ValueError,"|{0}| >> blockTypes don't match. self: {1} | blockDat: {2}".format(_str_func,self.blockType,_blockType) 
         
         #.>>>..UD ----------------------------------------------------------------------------------------------------
-        log.info("|{0}| >> ud...".format(_str_func)+ '-'*80)
+        log.debug("|{0}| >> ud...".format(_str_func)+ '-'*80)
         _ud = blockDat.get('ud')
         if not blockDat.get('ud'):
             raise ValueError,"|{0}| >> No ud data found".format(_str_func) 
@@ -471,9 +474,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if _current != v:
                 try:
                     if ATTR.get_type(_short,a) in ['message']:
-                        log.info("|{0}| >> userDefined '{1}' skipped. Not loading message data".format(_str_func,a))                     
+                        log.debug("|{0}| >> userDefined '{1}' skipped. Not loading message data".format(_str_func,a))                     
                     else:
-                        log.info("|{0}| >> userDefined '{1}' mismatch. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                        log.debug("|{0}| >> userDefined '{1}' mismatch. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
                         ATTR.set(_short,a,v)
                 except Exception,err:
                     log.error("|{0}| >> userDefined '{1}' failed to change. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
@@ -482,15 +485,15 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         log.error(arg)                      
 
         #>>State ----------------------------------------------------------------------------------------------------
-        log.info("|{0}| >> State".format(_str_func) + '-'*80)
+        log.debug("|{0}| >> State".format(_str_func) + '-'*80)
         _state = blockDat.get('blockState')
         _current = self.getState()
         if _state != _current:
-            log.info("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current,_state)) 
+            log.debug("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current,_state)) 
             self.p_blockState = _state
             
         #>>Controls ----------------------------------------------------------------------------------------------------
-        log.info("|{0}| >> Controls".format(_str_func)+ '-'*80)
+        log.debug("|{0}| >> Controls".format(_str_func)+ '-'*80)
         _pos = blockDat.get('positions')
         _orients = blockDat.get('orientations')
         _scale = blockDat.get('scale')
@@ -499,7 +502,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if len(_ml_controls) != len(_pos):
             log.error("|{0}| >> Control dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_controls),len(_pos))) 
         else:
-            log.info("|{0}| >> loading Controls...".format(_str_func))
+            log.debug("|{0}| >> loading Controls...".format(_str_func))
             for i,mObj in enumerate(_ml_controls):
                 mObj.p_position = _pos[i]
                 mObj.p_orient = _orients[i]
@@ -509,14 +512,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         ATTR.set(_short,_a,v)
 
         #>>Generators ----------------------------------------------------------------------------------------------------
-        log.info("|{0}| >> Generators".format(_str_func)+ '-'*80)
+        log.debug("|{0}| >> Generators".format(_str_func)+ '-'*80)
         _d = {"isSkeletonized":[self.isSkeletonized,self.doSkeletonize,self.skeletonDelete]}
         
         for k,calls in _d.iteritems():
             _block = bool(blockDat.get(k))
             _current = calls[0]()
             if _state != _current:
-                log.info("|{0}| >> {1} States don't match. self: {2} | blockDat: {3}".format(_str_func,k,_current,_block)) 
+                log.debug("|{0}| >> {1} States don't match. self: {2} | blockDat: {3}".format(_str_func,k,_current,_block)) 
                 if _block == False:
                     calls[2]()                         
                 else:
@@ -545,7 +548,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
         _state = self.blockState
         if _state not in BLOCKSHARED._l_blockStates:
-            log.info("|{0}| >> Failed a previous change: {1}. Reverting to previous".format(_str_func,_state))                    
+            log.debug("|{0}| >> Failed a previous change: {1}. Reverting to previous".format(_str_func,_state))                    
             _state = _state.split('>')[0]
             self.blockState = _state
             self.changeState(_state),#rebuild=True)
@@ -554,13 +557,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
             _goodState = 'define'
         else:
             if _blockModule.__dict__['is_{0}'.format(_state)](self):
-                log.info("|{0}| >> blockModule test...".format(_str_func))                    
+                log.debug("|{0}| >> blockModule test...".format(_str_func))                    
                 _goodState = _state
             else:
                 _idx = _l_blockStates.index(_state) - 1
-                log.info("|{0}| >> blockModule test failed. Testing: {1}".format(_str_func, _l_blockStates[_idx]))                
+                log.debug("|{0}| >> blockModule test failed. Testing: {1}".format(_str_func, _l_blockStates[_idx]))                
                 while _idx > 0 and not _blockModule.__dict__['is_{0}'.format(_l_blockStates[_idx])](self):
-                    log.info("|{0}| >> Failed {1}. Going down".format(_str_func,_l_blockStates[_idx]))
+                    log.debug("|{0}| >> Failed {1}. Going down".format(_str_func,_l_blockStates[_idx]))
                     _blockModule.__dict__['{0}Delete'.format(_l_blockStates[_idx])](self)
                     #self.changeState(_l_blockStates[_idx])
                     _idx -= 1
@@ -568,7 +571,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     
                 
         if _goodState != self.blockState:
-            log.info("|{0}| >> Passed: {1}. Changing buffer state".format(_str_func,_goodState))                    
+            log.debug("|{0}| >> Passed: {1}. Changing buffer state".format(_str_func,_goodState))                    
             self.blockState = _goodState
             
         if asString:
@@ -592,7 +595,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
         _call = _blockModule.__dict__.get('is_skeletonized',False)
         if _call:
-            log.info("|{0}| >> blockModule check...".format(_str_func))                                
+            log.debug("|{0}| >> blockModule check...".format(_str_func))                                
             return _call(self)
         return False
     
@@ -603,7 +606,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 
         _call = _blockModule.__dict__.get('skeletonize',False)
         if _call:
-            log.info("|{0}| >> blockModule check...".format(_str_func))                                
+            log.debug("|{0}| >> blockModule check...".format(_str_func))                                
             return _call(self)
         return False
     
@@ -614,7 +617,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 
         _call = _blockModule.__dict__.get('skeletonDelete',False)
         if _call:
-            log.info("|{0}| >> blockModule check...".format(_str_func))                                
+            log.debug("|{0}| >> blockModule check...".format(_str_func))                                
             return _call(self)
         
         return True    
@@ -623,7 +626,25 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #========================================================================================================     
     #>>> Mirror 
     #========================================================================================================      
-       
+    #========================================================================================================     
+    #>>> Utilities 
+    #========================================================================================================      
+            
+    def contextual_methodCall(self, context = 'self', func = 'getShortName',*args,**kws):
+        """
+        Function to contextually call a series of rigBlocks and run a methodCall on them with 
+        args and kws
+            
+        :parameters:
+            context(str): self,below,root,scene
+            func(str): string of the method call to use. mBlock.getShortName(), is just 'getShortName'
+            *args,**kws - pass through for method call
+    
+        :returns
+            list of results(list)
+        """        
+        return contextual_method_call(self, context, func, *args, **kws)
+
 
 
 #====================================================================================	
@@ -726,7 +747,7 @@ class factory(object):
         _d = copy.copy(d_attrstoMake)     
         
         _l_standard = _mod.__dict__.get('l_attrsStandard',[])
-        log.info("|{0}| >> standard: {1} ".format(_str_func,_l_standard))                        
+        log.debug("|{0}| >> standard: {1} ".format(_str_func,_l_standard))                        
         for k in _l_standard:
             if k in BLOCKSHARED._d_attrsTo_make.keys():
                 _d[k] = BLOCKSHARED._d_attrsTo_make[k]
@@ -998,7 +1019,7 @@ class factory(object):
             v = self._d_attrToVerifyDefaults.get(a,None)
             t = self._d_attrsToVerify[a]
             
-            log.info("|{0}| Setting attr >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
+            log.debug("|{0}| Setting attr >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
             
             if ':' in t:
                 _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
@@ -1062,7 +1083,7 @@ class factory(object):
         _idx_target = stateArgs[0]
         _state_target = stateArgs[1]
         
-        log.info("|{0}| >> Target state: {1} | {2}".format(_str_func,_state_target,_idx_target))
+        log.debug("|{0}| >> Target state: {1} | {2}".format(_str_func,_state_target,_idx_target))
         
         #>>> Meat
         #========================================================================
@@ -1070,26 +1091,29 @@ class factory(object):
         
         if currentState == _idx_target and rebuildFrom is None and not forceNew:
             if not forceNew:
-                log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,_mBlock.mNode,currentState))                
+                log.debug("|{0}| >> block [{1}] already in {2} state".format(_str_func,_mBlock.mNode,currentState))                
             return True
         
         
         #If we're here, we're going to move through the set states till we get to our spot
         
-        log.info("|{0}| >> Changing states...".format(_str_func))
+        log.debug("|{0}| >> Changing states...".format(_str_func))
         if _idx_target > currentState:
             startState = currentState+1        
             doStates = _l_moduleStates[startState:_idx_target+1]
-            log.info("|{0}| >> Going up. First stop: {1} | All stops: {2}".format(_str_func, _l_moduleStates[startState],doStates))
+            log.debug("|{0}| >> Going up. First stop: {1} | All stops: {2}".format(_str_func, _l_moduleStates[startState],doStates))
             
             for doState in doStates:
                 #if doState in d_upStateFunctions.keys():
-                log.info("|{0}| >> Up to: {1} ....".format(_str_func, doState))
+                log.debug("|{0}| >> Up to: {1} ....".format(_str_func, doState))
                 if not d_upStateFunctions[doState]():
-                    log.info("|{0}| >> Failed: {1} ....".format(_str_func, doState))
+                    log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
+                    return False
+                elif _mBlock.p_blockState != doState:
+                    log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))                    
                     return False
                 #else:
-                #    log.info("|{0}| >> No upstate function for {1} ....".format(_str_func, doState))
+                #    log.debug("|{0}| >> No upstate function for {1} ....".format(_str_func, doState))
             return True
         elif _idx_target < currentState:#Going down
             l_reverseModuleStates = copy.copy(_l_moduleStates)
@@ -1098,13 +1122,16 @@ class factory(object):
             rev_start = l_reverseModuleStates.index( _l_moduleStates[startState] )+1
             rev_end = l_reverseModuleStates.index( _l_moduleStates[_idx_target] )+1
             doStates = l_reverseModuleStates[rev_start:rev_end]
-            log.info("|{0}| >> Going down. First stop: {1} | All stops: {2}".format(_str_func, startState, doStates))
+            log.debug("|{0}| >> Going down. First stop: {1} | All stops: {2}".format(_str_func, startState, doStates))
             
             for doState in doStates:
-                log.info("|{0}| >> Down to: {1} ....".format(_str_func, doState))
+                log.debug("|{0}| >> Down to: {1} ....".format(_str_func, doState))
                 if not d_downStateFunctions[doState]():
-                    log.info("|{0}| >> Failed: {1} ....".format(_str_func, doState))
+                    log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
                     return False 
+                elif _mBlock.p_blockState != doState:
+                    log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))                    
+                    return False                
             return True
         else:
             log.error('Forcing recreate')
@@ -1136,7 +1163,7 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         
         if 'template' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule call found...".format(_str_func))            
+            log.debug("|{0}| >> BlockModule call found...".format(_str_func))            
             _mBlockModule.template(_mBlock)
         
         for mShape in _mBlock.getShapes(asMeta=True):
@@ -1170,11 +1197,11 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
         if 'templateDelete' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule templateDelete call found...".format(_str_func))            
+            log.debug("|{0}| >> BlockModule templateDelete call found...".format(_str_func))            
             _mBlockCall = _mBlockModule.templateDelete    
             
         if 'define' in _mBlockModule.__dict__.keys():
-                    log.info("|{0}| >> BlockModule define call found...".format(_str_func))            
+                    log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
                     _mBlockCall = _mBlockModule.define   
                     
         #Delete our shapes...
@@ -1212,7 +1239,7 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         
         if 'prerig' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule prerig call found...".format(_str_func))            
+            log.debug("|{0}| >> BlockModule prerig call found...".format(_str_func))            
             _mBlockModule.prerig(_mBlock)
  
         _mBlock.blockState = 'prerig'#...yes now in this state
@@ -1242,7 +1269,7 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
         if 'prerigDelete' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule prerigDelete call found...".format(_str_func))            
+            log.debug("|{0}| >> BlockModule prerigDelete call found...".format(_str_func))            
             _mBlockCall = _mBlockModule.prerigDelete    
             
         
@@ -1277,7 +1304,7 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         
         if 'rig' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule rig call found...".format(_str_func))            
+            log.debug("|{0}| >> BlockModule rig call found...".format(_str_func))            
             _mBlockModule.rig(_mBlock)
             
         _mBlock.blockState = 'rig'#...yes now in this state
@@ -1302,7 +1329,7 @@ class factory(object):
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
         if 'rigDelete' in _mBlockModule.__dict__.keys():
-            log.info("|{0}| >> BlockModule rigDelete call found...".format(_str_func))            
+            log.debug("|{0}| >> BlockModule rigDelete call found...".format(_str_func))            
             _mBlockCall = _mBlockModule.rigDelete    
             
         
@@ -1348,7 +1375,7 @@ class factory(object):
         _mBlock = self._mi_block
         _short = _mBlock.p_nameShort
              
-        log.info("|{0}| >> [{1}] |...".format(_str_func,_short))
+        log.debug("|{0}| >> [{1}] |...".format(_str_func,_short))
         
         _res = {}
         
@@ -1400,7 +1427,7 @@ class factory(object):
         #Get Block Children
         _ml_blockChildren = _mBlock.getBlockChildren(True)
         if _ml_blockChildren:
-            log.info("|{0}| >> [{1}] | Block children...".format(_str_func,_short))            
+            log.debug("|{0}| >> [{1}] | Block children...".format(_str_func,_short))            
             for mChild in _ml_blockChildren:
                 mChild.p_blockParent = False
 
@@ -1415,7 +1442,7 @@ class factory(object):
         
         #Reattach Children
         if _ml_blockChildren:
-            log.info("|{0}| >> [{1}] | reconnecting children...".format(_str_func,_short))            
+            log.debug("|{0}| >> [{1}] | reconnecting children...".format(_str_func,_short))            
             for mChild in _ml_blockChildren:
                 mChild.p_blockParent = _mBlockNEW        
         
@@ -1510,17 +1537,16 @@ class factory(object):
                 raise ValueError,"|{0}| >> Module necessary for mode: {1}.".format(_str_func,_mode)
             
             if _mode == 'jointProxy':
-                log.info(_root)
+                log.debug(_root)
                 return build_jointProxyMesh(_root)
         #else:
         raise NotImplementedError,"|{0}| >> mode not implemented: {1}".format(_str_func,_mode)
-        
-
         
         
         #Get our cast curves
         pass
 
+    
     #========================================================================================================     
     #>>> PuppetMeta 
     #========================================================================================================  
@@ -1753,8 +1779,8 @@ def get_modules_dat():
         raise Exception,"Must resolve"
     log.debug("|{0}| >> Found {1} modules under: {2}".format(_str_func,len(_d_files.keys()),_path))     
     if _l_unbuildable and _b_debug:
-        log.info(cgmGEN._str_subLine)
-        log.info("|{0}| >> ({1}) Unbuildable modules....".format(_str_func,len(_l_unbuildable)))
+        log.debug(cgmGEN._str_subLine)
+        log.debug("|{0}| >> ({1}) Unbuildable modules....".format(_str_func,len(_l_unbuildable)))
         for m in _l_unbuildable:
             print(">>>    " + m) 
     return _d_modules, _d_categories, _l_unbuildable
@@ -1863,6 +1889,71 @@ def is_blockType_valid(blockType):
         log.warning("|{0}| >> [{1}] Not found. | {2}".format(_str_func,blockType,_d.keys()))
         return False
     return True
+
+#========================================================================================================     
+#>>> Contextual call 
+#========================================================================================================
+def contextual_method_call(mBlock, context = 'self', func = 'getShortName',*args,**kws):
+    """
+    Function to contextually call a series of rigBlocks and run a methodCall on them with 
+    args and kws
+        
+    :parameters:
+        mBlock(str): rigBlock starting point
+        context(str): self,below,root,scene
+        func(str): string of the method call to use. mBlock.getShortName(), is just 'getShortName'
+        *args,**kws - pass through for method call
+
+    :returns
+        list of results(list)
+    """
+    _str_func = 'contextual_method_call'
+    _l_context = BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,context,True,False)
+    _res = []
+    
+    if not args:
+        args = []
+        
+    if not kws:
+        kws = {}
+        _kwString = None  
+    else:
+        _l = []
+        for k,v in kws.iteritems():
+            _l.append("{0}={1}".format(k,v))
+        _kwString = ','.join(_l)
+
+    if not _l_context:
+        log.error("|{0}| >> No data in context".format(_str_func,))
+        return False
+    
+    for mBlock in _l_context:
+        try:
+            log.debug("|{0}| >> On: {1}".format(_str_func,mBlock.mNode))            
+            res = getattr(mBlock,func)(*args,**kws) or None
+            print("|{0}| >> {1}.{2}({3},{4}) = {5}".format(_str_func,mBlock.p_nameShort,func,','.join(a for a in args),_kwString, res))                        
+            _res.append(res)
+        except Exception,err:
+            log.error(cgmGEN._str_hardLine)
+            log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+            log.error("block: {0} | func: {1}".format(mBlock.p_nameShort,func))            
+            if args:
+                log.error("Args...")
+                for a in args:
+                    log.error("      {0}".format(a))
+            if kws:
+                log.error(" KWS...".format(_str_func))
+                for k,v in kws.iteritems():
+                    log.error("      {1} : {2}".format(k,v))   
+            log.error("Errors...")
+            for a in err.args:
+                log.error(a)
+            _res.append('ERROR')
+            log.error(cgmGEN._str_subLine)
+    
+    return _res
+
+
 
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  

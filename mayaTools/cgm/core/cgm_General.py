@@ -808,7 +808,6 @@ def walk_dat(arg = None, tag = None, counter = 0):
             except:str_key = k
             buffer = arg[k]          
             walk_dat(buffer,str_key,counter)
-    
     else:
         if counter == 0:
             print('{0} : '.format(tag) + str(arg))			                
@@ -817,7 +816,31 @@ def walk_dat(arg = None, tag = None, counter = 0):
 
     return    
 
+def walk_heirarchy_dict_to_list(arg = None, l_return = None):
+    '''
+    Get an ordered list from a heirarchal dictionary.
+    {'blockroot1':{'child1_1':{'child1_1_1':{},'child1_1_2':{}}},'blockroot2':{'child2_1':{}}}
 
+    :parameters:
+    arg | dict
+    tag | string
+    label for the dict to log.
+
+    :raises:
+    TypeError | if not passed a dict
+    '''
+    if l_return is None:
+        l_return = []
+            
+    if isinstance(arg,dict):
+        l_keys = arg.keys()	
+        
+        for k in l_keys:
+            l_return.append(k)
+            walk_heirarchy_dict_to_list(arg[k],l_return)
+		                
+    return l_return
+        
 
     
 def print_dict(arg = None,tag = 'Stored Dict', module = "Stuff..."):
@@ -935,6 +958,7 @@ class Callback(object):
             for a in err.args:
                 log.info(a)
             raise Exception,err
+        
 #>>> Sub funcs ==============================================================================
 def subTimer(func):
     '''

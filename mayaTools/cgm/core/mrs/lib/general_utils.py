@@ -93,7 +93,7 @@ def get_scene_block_heirarchy(asMeta = True):
     
     for mBlock in _ml_rigBlocks:#...find our roots
         if not mBlock.p_blockParent:
-            log.info("|{0}| >> Root: {1}".format(_str_func,mBlock.mNode))    
+            log.debug("|{0}| >> Root: {1}".format(_str_func,mBlock.mNode))    
             if asMeta:
                 k = mBlock
             else:
@@ -141,13 +141,13 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
     
         #>>>Build strings
         _short = mBlock.p_nameShort
-        #log.info("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
+        #log.debug("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
 
         _l_report = []
 
         #_l_parents = mBlock.getBlockParents(True)
 
-        #log.info("{0} : {1}".format(mBlock.mNode, _l_parents))
+        #log.debug("{0} : {1}".format(mBlock.mNode, _l_parents))
 
         s_start = ''
         #_len = len(_l_parents)
@@ -178,8 +178,8 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
             _l_report.append("Referenced")
 
         _str = s_start + " - ".join(_l_report)
-        print _str
-        #log.info("|{0}| >> str: {1}".format(_str_func, _str))      
+        log.debug(_str + "   >> " + mBlock.mNode)
+        #log.debug("|{0}| >> str: {1}".format(_str_func, _str))      
         stringList.append(_str)        
         blockList.append(mBlock)
  
@@ -200,20 +200,31 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
 
     return blockList,stringList
 
-def walk_rigBlockHeirarchyDict(mBlock,dataDict = None, asMeta = True):
+def walk_rigBlock_heirarchy(mBlock,dataDict = None, asMeta = True,l_processed = None):
     """
     
     https://stackoverflow.com/questions/22241679/display-hierarchy-of-selected-object-only    
     """
     #def walk_down(mBlock,dataDict,asMeta):
         
-    _str_func = 'walk_rigBlockHeirarchyDict'
+    _str_func = 'walk_rigBlock_heirarchy'
+    
     mBlock = cgmMeta.validateObjArg(mBlock,'cgmRigBlock')
+    log.debug("|{0}| >> mBlock: {1}".format(_str_func,mBlock.mNode)  )      
     
     if not mBlock:
         raise ValueError,"No block"
+    
     if dataDict is None:
         dataDict = {}
+    if l_processed is None:
+        l_processed = []
+        
+    if mBlock in l_processed:
+        log.debug("|{0}| >> Already processed: {1}".format(_str_func,mBlock.mNode)  )      
+        return    
+    else:l_processed.append(mBlock)
+                
     if not asMeta:
         key = mBlock.mNode
     else:
@@ -222,14 +233,72 @@ def walk_rigBlockHeirarchyDict(mBlock,dataDict = None, asMeta = True):
     ml_children = mBlock.getBlockChildren(asMeta) or []
     
     if not dataDict.get(key):
-        dataDict[key] = {}        
-        for k in ml_children:
-            dataDict[key][k] = {}
+        dataDict[key] = {} 
+    else:
+        log.debug("|{0}| >> Already processed key: {1}".format(_str_func,key)  )      
+        return
     
-    log.debug("|{0}| >> [{1}] Children: {2}".format(_str_func,key,ml_children))
-        
+    log.debug("|{0}| >> [{1}] Children: {2} | {3}".format(_str_func,key,len(ml_children),ml_children))
+ 
     for mChild in ml_children:
-        walk_rigBlockHeirarchyDict(mChild,dataDict[key] ,asMeta)
+        #if not dataDict[key].get(mChild):
+            #dataDict[key][mChild] = {}   
+        """if dataDict[key].get(mChild):
+            log.info("|{0}| >> Already processed child key: {1}".format(_str_func,mChild)  )      
+            continue
+        dataDict[key][mChild] = {}"""
+        walk_rigBlock_heirarchy(mChild,dataDict[key],asMeta,l_processed)
     
     #cgmGEN.walk_dat(dataDict)
     return dataDict
+
+def get_rigBlock_heirarchy_context(mBlock, context = 'below', asList = False, report = True):
+    """
+
+    Get a contextual heirarchal dict/list of an mBlock. 
+    
+    :parameters:
+        mBlock(str): RigBlock
+        context(str):
+            self
+            below
+            root
+            scene
+            
+        asList(bool): Whether you want an ordered list or a dict
+        report(bool): Reports the data in a useful format
+
+    :returns
+        parents(list)
+           
+    """
+    #def walk_down(mBlock,dataDict,asMeta):
+        
+    _str_func = 'get_rigBlock_heirarchy_context'
+    
+    mBlock = cgmMeta.validateObjArg(mBlock,'cgmRigBlock')
+    log.debug("|{0}| >> mBlock: {1} | context: {2}".format(_str_func,mBlock.mNode,context)  )  
+    
+    if context == 'self':
+        _res = {mBlock:{}}
+    elif context == 'below':
+        _res = walk_rigBlock_heirarchy(mBlock)
+    elif context == 'root':
+        _root = mBlock.p_blockRoot
+        if not _root:
+            _res = walk_rigBlock_heirarchy(mBlock)            
+        else:
+            _res = walk_rigBlock_heirarchy(mBlock.p_blockRoot)
+    elif context == 'scene':
+        _res = get_scene_block_heirarchy()
+    else:
+        raise ValueError,"|{0}| >> unknown context: {1}".format(_str_func,context)
+    
+    if report:
+        log.debug("|{0}| >> report...".format(_str_func))        
+        cgmGEN.walk_dat(_res,"{0} | context: {1}".format(mBlock.mNode,context))
+        
+    if asList:
+        log.debug("|{0}| >> asList...".format(_str_func))
+        return cgmGEN.walk_heirarchy_dict_to_list(_res)
+    return _res

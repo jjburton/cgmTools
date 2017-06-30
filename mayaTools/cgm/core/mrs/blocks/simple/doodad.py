@@ -107,6 +107,7 @@ def rig(self):
         mJoint = self.doCreateAt('joint')
         mJoint.parent = self.moduleTarget.masterNull.skeletonGroup
         mJoint.connectParentNode(self,'module','rootJoint')
+    raise NotImplementedError,"Not done."
 
 def rigDelete(self):
     try:self.moduleTarget.masterControl.delete()

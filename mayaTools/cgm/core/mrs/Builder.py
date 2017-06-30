@@ -22,7 +22,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -683,9 +683,6 @@ class ui(cgmUI.cgmGUI):
         if not self._ml_blocks:
             log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
             return False            
-    
-        #_ml_targets = [ml_parents[i] for i in _indices]
-        #log.debug("|{0}| >> targets: {1}".format(_str_func,[mObj.mNode for mObj in _ml_targets]))   
         
         _index = _indices[0]
         _mBlock = self._ml_blocks[_index]
@@ -702,10 +699,42 @@ class ui(cgmUI.cgmGUI):
                 if not _mActiveBlock:
                     log.error("|{0}| >> mode: {1} requires active block".format(_str_func,_mode)) 
                     return
-                _mBlock.p_blockParent = _mActiveBlock
+                _mBlock.p_blockParent = _mBlock
                 
                 
-        self.uiUpdate_scrollList_blocks()
+        self.uiUpdate_scrollList_blocks(mBlock)
+        
+    def uiFunc_contextualCall(self,*args,**kws):
+        _str_func = ''
+        
+        _startMode = self.var_contextStartMode.value   
+        _contextMode = self._l_contextModes[self.var_contextMode.value]
+        
+        if _startMode == 0 :#Active
+            mBlock = self._blockCurrent
+            
+            if not mBlock:
+                log.error("|{0}| >> No Active block".format(_str_func))
+                return False
+        else:
+            _indices = self.uiScrollList_blocks.getSelectedIdxs()
+            if not _indices:
+                log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
+                return False    
+            if not self._ml_blocks:
+                log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
+                return False    
+            
+            _index = _indices[0]
+            try:mBlock = self._ml_blocks[_index]   
+            except:
+                log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
+                return False                   
+            
+        RIGBLOCKS.contextual_method_call(mBlock,_contextMode,*args,**kws)
+        self.uiUpdate_scrollList_blocks(mBlock)
+        
+        
             
     def uiScrollList_block_select(self): 
         _str_func = 'uiScrollList_block_select'  
@@ -745,9 +774,7 @@ class ui(cgmUI.cgmGUI):
                         label = "To active")        
         
         
-        
-        
-        #>>Utilities ------------------------------------------------------------------------------------------
+        #>>Utilities ------------------------------------------------------------------------------------------       
         mUI.MelMenuItem(_popUp,
                         label = "Select",
                         en=True,
@@ -759,7 +786,9 @@ class ui(cgmUI.cgmGUI):
         
         #>>Context ============================================================================================
         _menu_context = mUI.MelMenuItem(_popUp,subMenu=True,
-                                       label = "Context: {0}".format(self._l_changeModes[self.var_changeStateMode.value]))
+                                       label = "Context: {0}".format(self._l_contextModes[self.var_contextMode.value]))
+         
+        
         
         _menu_blockDat = mUI.MelMenuItem(_menu_context,subMenu=True,
                                          label = "blockDat")        
@@ -911,7 +940,7 @@ class ui(cgmUI.cgmGUI):
             o(e=True, en=False)        
         
     
-    def uiUpdate_scrollList_blocks(self):
+    def uiUpdate_scrollList_blocks(self, select = None):
         _str_func = 'uiUpdate_scrollList_blocks'          
         self.uiScrollList_blocks.clear()
         
@@ -921,8 +950,8 @@ class ui(cgmUI.cgmGUI):
         _ml,_l_strings = BLOCKGEN.get_uiScollList_dat()
         
         for i,s in enumerate(_l_strings):
-            print("{0} : {1}".format(_ml[i].mNode,s))
-        
+            log.debug("|{0}| >> {1} : {2}".format(_str_func,_ml[i].mNode,s)) 
+                    
         #_ml = BLOCKGEN.get_from_scene()
         
         self._ml_blocks = _ml
@@ -950,7 +979,11 @@ class ui(cgmUI.cgmGUI):
             except:
                 raise Exception,err
 
-        cgmUI.doEndMayaProgressBar(_progressBar)    
+        cgmUI.doEndMayaProgressBar(_progressBar) 
+        
+        if select:
+            if select in self._ml_blocks:
+                self.uiScrollList_blocks.selectByIdx(self._ml_blocks.index(select))
                     
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'
@@ -1016,46 +1049,79 @@ class ui(cgmUI.cgmGUI):
         self.uiField_inspector= mUI.MelLabel(_RightColumn,
                                              bgc = SHARED._d_gui_state_colors.get('help'),
                                              label = '...',
-                                             h=20) 
+                                             h=20)  
         
-        #State mode  -------------------------------------------------------------------------------          
-        self.create_guiOptionVar('changeStateMode',defaultValue = 0)       
+        #Context mode  -------------------------------------------------------------------------------          
+        self.create_guiOptionVar('contextMode',defaultValue = 0)       
     
-        _rc_changeStateMode = mUI.MelRadioCollection()
+        _rc_contextMode = mUI.MelRadioCollection()
         
-        self._l_changeModes = ['self','below','root','scene']
-        _d_ann = {'self':'Change the blockState only of the active block',
-                  'below':'Change the blockState of the active block and below',
-                  'root':'Change the blockState of the active blocks root and below',
-                  'scene':'Change the blockState of all blocks in the scene. Careful skippy!',}
+        self._l_contextModes = ['self','below','root','scene']
+        _d_ann = {'self':'Context is only of the active/sel block',
+                  'below':'Context is active/sel block and below',
+                  'root':'Context is active/sel root and below',
+                  'scene':'Context is all blocks in the scene. Careful skippy!',}
         
         #build our sub section options
         #MelHSingleStretchLayout
-        _row_changeStateModes = mUI.MelHSingleStretchLayout(_RightColumn,ut='cgmUISubTemplate',padding = 5)
-        mUI.MelSpacer(_row_changeStateModes,w=1)
-        mUI.MelLabel(_row_changeStateModes,l = 'Mode:')
-        _row_changeStateModes.setStretchWidget( mUI.MelSeparator(_row_changeStateModes) )
+        _row_contextModes = mUI.MelHSingleStretchLayout(_RightColumn,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_contextModes,w=1)
+        mUI.MelLabel(_row_contextModes,l = 'Context:')
+        _row_contextModes.setStretchWidget( mUI.MelSeparator(_row_contextModes) )
     
-        _on = self.var_changeStateMode.value
-        for i,item in enumerate(self._l_changeModes):
+        _on = self.var_contextMode.value
+        for i,item in enumerate(self._l_contextModes):
             if i == _on:_rb = True
             else:_rb = False
-            _rc_changeStateMode.createButton(_row_changeStateModes,label=self._l_changeModes[i],sl=_rb,
+            _rc_contextMode.createButton(_row_contextModes,label=self._l_contextModes[i],sl=_rb,
                                              ann = _d_ann[item],
-                                             onCommand = cgmGEN.Callback(self.var_changeStateMode.setValue,i))
-            mUI.MelSpacer(_row_changeStateModes,w=2)
+                                             onCommand = cgmGEN.Callback(self.var_contextMode.setValue,i))
+            mUI.MelSpacer(_row_contextModes,w=2)
 
-        _row_changeStateModes.layout()         
+        _row_contextModes.layout()         
   
+        #Context Start  -------------------------------------------------------------------------------          
+        self.create_guiOptionVar('contextStartMode',defaultValue = 0)       
+    
+        _rc_contextStartMode = mUI.MelRadioCollection()
+    
+        self._l_contextStartModes = ['active','selected']
+        _d_ann = {'active':'Context begins with active block',
+                  'selected':'Context beghins with selected block in the picker on the left',}
+    
+        #build our sub section options
+        #MelHSingleStretchLayout
+        _row_contextStartModes = mUI.MelHSingleStretchLayout(_RightColumn,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_contextStartModes,w=1)
+        mUI.MelLabel(_row_contextStartModes,l = 'Begin actions with:')
+        _row_contextStartModes.setStretchWidget( mUI.MelSeparator(_row_contextStartModes) )
+        
+        _on = self.var_contextStartMode.value
+        for i,item in enumerate(self._l_contextStartModes):
+            if i == _on:_rb = True
+            else:_rb = False
+            _rc_contextStartMode.createButton(_row_contextStartModes,label=self._l_contextStartModes[i],sl=_rb,
+                                              ann = _d_ann[item],
+                                              onCommand = cgmGEN.Callback(self.var_contextStartMode.setValue,i))
+            mUI.MelSpacer(_row_contextStartModes,w=2)
+    
+        _row_contextStartModes.layout()       
         
         #Push Rows  -------------------------------------------------------------------------------  
         mc.setParent(_RightColumn)
         CGMUI.add_LineSubBreak()
         _row_push = mUI.MelHLayout(_RightColumn,ut='cgmUISubTemplate',padding = 2)
-        CGMUI.add_Button(_row_push,'Define>')
-        CGMUI.add_Button(_row_push,'<Template>')
-        CGMUI.add_Button(_row_push,'<PreRig>')
-        CGMUI.add_Button(_row_push,'<Rig')
+        CGMUI.add_Button(_row_push,'Define>',
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','define',**{}))
+        CGMUI.add_Button(_row_push,'<Template>',
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','template',**{}))
+                         
+        CGMUI.add_Button(_row_push,'<PreRig>',
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','prerig',**{}))
+
+        CGMUI.add_Button(_row_push,'<Rig',
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','rig',**{}))
+
         _row_push.layout()
                
         
