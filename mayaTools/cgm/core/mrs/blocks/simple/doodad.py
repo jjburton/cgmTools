@@ -128,7 +128,7 @@ def is_rig(self):
             continue
         for l in l_links:
             if not _mPlug[0].getMessage(l):
-                _l_missing.append(plug.p_nameBase + '.' + l)
+                _l_missing.append(_mPlug[0].p_nameBase + '.' + l)
                 
 
     if _l_missing:

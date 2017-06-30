@@ -544,21 +544,6 @@ def create_remesh(mesh = None, joints = None, curve=None, positions = None,
     
     #>>Cast our Loft curves
 
-def get_from_scene():
-    """
-    Gather all rig blocks data in scene
 
-    :parameters:
 
-    :returns
-        _d_modules, _d_categories, _l_unbuildable
-        _d_modules(dict) - keys to modules
-        _d_categories(dict) - categories to list of entries
-        _l_unbuildable(list) - list of unbuildable modules
-    """
-    _str_func = 'get_from_scene'
     
-    _l_rigBlocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock')
-    
-    return _l_rigBlocks
-

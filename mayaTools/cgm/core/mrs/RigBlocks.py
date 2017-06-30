@@ -49,11 +49,11 @@ from cgm.core.cgmPy import path_Utils as PATH
 from cgm.core.mrs.lib import shared_dat as BLOCKSHARED
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
-
+reload(BUILDERUTILS)
 from cgm.core.lib import nameTools
 reload(BLOCKSHARED)
 
-get_from_scene = BUILDERUTILS.get_from_scene
+get_from_scene = BLOCKGEN.get_from_scene
 
 #from cgm.core.lib import nameTools
 #from cgm.core.rigger import ModuleFactory as mFactory
@@ -104,7 +104,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
             
         #>>Verify or Initialize
         super(cgmRigBlock, self).__init__(node = node, name = blockType) 
-        self._blockModule = get_blockModule(blockType or self.blockType)        
         
         #====================================================================================	
         #>>> TO USE Cached instance ---------------------------------------------------------
@@ -119,6 +118,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _doVerify = kws.get('doVerify',False) or False
         self._factory = factory(self.mNode)
         self._callKWS = kws
+        self._blockModule = None
         #self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags'])	
 
         #>>> Initialization Procedure ================== 
@@ -140,6 +140,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     for arg in err.args:
                         log.error(arg)  
                         
+        self._blockModule = get_blockModule(blockType or ATTR.get(self.mNode,'blockType'))        
+ 
     def verify(self, blockType = None, size = None):
         """ 
 
@@ -281,14 +283,42 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
         _mBlockParent = self.getMessage('blockParent',asMeta = True)
         if _mBlockParent:
-            _res = _mBlockParent
-        
-        for mParent in self.getParents(asMeta=True):
-            if issubclass(type(mParent), cgmRigBlock):
-                _res = mParent
+            _res = _mBlockParent[0]
+        else:
+            for mParent in self.getParents(asMeta=True):
+                if issubclass(type(mParent), cgmRigBlock):
+                    _res = mParent
         if _res and not asMeta:
             return _res.mNode
         return _res
+    
+    def getBlockParents(self,asMeta=True):
+        """
+        Get all the parents of a given node where the last parent is the top of the heirarchy
+        
+        :parameters:
+            node(str): Object to check
+            fullPath(bool): Whether you want long names or not
+    
+        :returns
+            parents(list)
+        """   
+        _str_func = 'getBlockParents'
+        
+        _ml_parents = []
+        tmpObj = self
+        noParent = False
+        while noParent == False:
+            tmpParent = tmpObj.getBlockParent(True)
+            if tmpParent:
+                _ml_parents.append(tmpParent)
+                tmpObj = tmpParent
+            else:
+                noParent = True
+                
+        if _ml_parents and not asMeta:
+            return [mObj.mNode for mObj in _ml_parents]
+        return _ml_parents
 
     def setBlockParent(self, parent = False, attachPoint = None):        
         _str_func = 'setBlockParent'
@@ -297,6 +327,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
             self.p_parent = False
         
         else:
+            if parent == self:
+                raise ValueError, "Cannot blockParent to self"
+                
+            if parent.blockParent == self:
+                raise ValueError, "Cannot blockParent to block whose parent is self"
+
             self.connectParentNode(parent, 'blockParent')
             if attachPoint:
                 self.p_parent = attachPoint
@@ -308,6 +344,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def getBlockChildren(self,asMeta=True):
         _str_func = 'getBlockChildren'
         ml_nodeChildren = self.getChildMetaNodes(mType = ['cgmRigBlock'])
+        if self in ml_nodeChildren:
+            ml_nodeChildren.remove(self)
+        for mChild in ml_nodeChildren:
+            if not issubclass(type(mChild),cgmRigBlock):
+                ml_nodeChildren.remove(mChild)
+            
         ml_children = self.getChildren(asMeta = True)
         
         for mChild in ml_children:
@@ -320,8 +362,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return ml_nodeChildren
     
     p_blockChildren = property(getBlockChildren)
+    
+    def getBlockHeirarchyBelow(self,asMeta=True):
+        _res = BLOCKGEN.walk_rigBlockHeirarchyDict(self,asMeta=asMeta)
+        if not _res:
+            return False
+        #cgmGEN.walk_dat(_res,"{0}.getBlockHeirarchyBelow...".format(self.mNode))
+        if asMeta:
+            return _res[self]
+        return _res[self.mNode]
 
-  
     
     #========================================================================================================     
     #>>> Info 
@@ -802,6 +852,7 @@ class factory(object):
         
         _d = get_modules_dict()   
         _blockType = self._mi_block.blockType
+        _mBlock = self._mi_block
         if _blockType not in _d.keys():
             log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,_blockType))        
             return False        
@@ -812,17 +863,23 @@ class factory(object):
         
         _res = []
         
-        _res.append("{0} : {1}".format('blockType',_blockType))
-        _res.append("{0} : {1}".format('blockState',ATTR.get(_short,'blockState')))
+        #_res.append("{0} : {1}".format('blockType',_blockType))
+        #_res.append("{0} : {1}".format('blockState',ATTR.get(_short,'blockState')))
         
-        _res.append("version: {0} | moduleVersion: {1}".format(ATTR.get(_short,'version'),_mod.__version__))
+        _res.append("blockParent : {0}".format(_mBlock.getBlockParent(False)))
+        _res.append("blockChildren : {0}".format(len(_mBlock.getBlockChildren(False))))
+        for msg in 'blockMirror','moduleTarget':
+            _res.append("{0} : {1}".format(msg,ATTR.get(_short,msg)))          
+        _res.append("skeletonized : {0}".format(_mBlock.isSkeletonized()))
+        #_res.append("blockChildren : {0}".format(_mBlock.getBlockChildren(False)))
+        
+        _res.append("       version: {0}".format(ATTR.get(_short,'version')))
+        _res.append("module version: {0}".format(_mod.__version__))
         
         for a in 'direction','position':
             if ATTR.get(_short,a):
                 _res.append("{0} : {1}".format(a,ATTR.get_enumValueString(_short,a)))
         
-        for msg in 'blockMirror','moduleTarget':
-            _res.append("{0} : {1}".format(msg,ATTR.get(_short,msg)))  
             
         #Msg checks        
         #for link in  
@@ -1806,8 +1863,6 @@ def is_blockType_valid(blockType):
         log.warning("|{0}| >> [{1}] Not found. | {2}".format(_str_func,blockType,_d.keys()))
         return False
     return True
-   
-    
 
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  

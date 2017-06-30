@@ -779,7 +779,47 @@ def log_info_dict(arg = None,tag = 'Stored Dict'):
         except Exception,error:
             print("[Not a dict. arg: {0} | error: {1} ]".format(arg,error))
     except:pass
+    
+def walk_dat(arg = None, tag = None, counter = 0):
+    '''
+    Log a dictionary.
 
+    :parameters:
+    arg | dict
+    tag | string
+    label for the dict to log.
+
+    :raises:
+    TypeError | if not passed a dict
+    '''
+    if isinstance(arg,dict):
+        l_keys = arg.keys()
+        if counter == 0:
+            print('> {0} '.format(tag) + _str_hardLine)			                
+        elif len(l_keys)<2:
+            print('-'* counter + '> {0} '.format(tag))		            
+        else:
+            print('-'* counter + '> {0} '.format(tag) + _str_subLine)		
+        
+        counter+=1                
+        l_keys.sort()
+        for k in l_keys:
+            try:str_key = k.p_nameShort
+            except:str_key = k
+            buffer = arg[k]          
+            walk_dat(buffer,str_key,counter)
+    
+    else:
+        if counter == 0:
+            print('{0} : '.format(tag) + str(arg))			                
+        else:
+            print(' '* counter + ' {0} : '.format(tag) + str(arg))			                
+
+    return    
+
+
+
+    
 def print_dict(arg = None,tag = 'Stored Dict', module = "Stuff..."):
     '''
     Log a dictionary.
@@ -892,6 +932,8 @@ class Callback(object):
                 log.info("args: {0}".format(self._args))
             if self._kwargs:
                 log.info("kws: {0}".format(self._kwargs))
+            for a in err.args:
+                log.info(a)
             raise Exception,err
 #>>> Sub funcs ==============================================================================
 def subTimer(func):

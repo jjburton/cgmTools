@@ -357,6 +357,10 @@ def get(*a, **kws):
     _combined = _d['combined']
     _obj = _d['obj']
     _attr = _d['attr']
+    
+    if kws:
+        if not kws.get('sl') or not kws.get('silent'):
+            kws['sl'] = True
 
     log.debug("|{0}| >> arg: {1}".format(_str_func,a))    
     if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
