@@ -2492,7 +2492,7 @@ class cgmObject(cgmNode):
         return _res 
     getAllChildren = getDescendents
     
-    def getChildren(self, asMeta = False, fullPath = False):
+    def getChildren(self, asMeta = False, fullPath = True):
         """
         Get the children of a given node
         

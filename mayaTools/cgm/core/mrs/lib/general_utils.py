@@ -153,7 +153,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
         #_len = len(_l_parents)
         if counter:
             if counter == 1:
-                s_start = ">"            
+                s_start = "-"            
             else:
                 s_start = "-"*counter + '>'
 
@@ -223,6 +223,7 @@ def walk_rigBlock_heirarchy(mBlock,dataDict = None, asMeta = True,l_processed = 
     if mBlock in l_processed:
         log.debug("|{0}| >> Already processed: {1}".format(_str_func,mBlock.mNode)  )      
         return    
+    
     else:l_processed.append(mBlock)
                 
     if not asMeta:
@@ -296,9 +297,52 @@ def get_rigBlock_heirarchy_context(mBlock, context = 'below', asList = False, re
     
     if report:
         log.debug("|{0}| >> report...".format(_str_func))        
-        cgmGEN.walk_dat(_res,"{0} | context: {1}".format(mBlock.mNode,context))
+        #cgmGEN.walk_dat(_res,"Walking rigBLock: {0} | context: {1}".format(mBlock.mNode,context))
+        print_heirarchy_dict(_res,"Walking rigBlock: {0} | context: {1}".format(mBlock.p_nameShort,context))
         
     if asList:
         log.debug("|{0}| >> asList...".format(_str_func))
         return cgmGEN.walk_heirarchy_dict_to_list(_res)
     return _res
+
+def print_heirarchy_dict(arg = None, tag = None, counter = 0):
+    '''
+    Log a dictionary.
+
+    :parameters:
+    arg | dict
+    tag | string
+    label for the dict to log.
+
+    :raises:
+    TypeError | if not passed a dict
+    '''
+    if isinstance(arg,dict):
+        l_keys = arg.keys()
+        _int = int(counter+1/2)
+        if counter == 0:
+            print('# {0} '.format(tag) + cgmGEN._str_hardLine)	
+        elif counter == 1:
+            print('{0} '.format(tag))	
+        else:
+            print(' '* _int + ' |'+'_'* _int + ' {0} '.format(tag))
+            #print('-'* counter + '> {0} '.format(tag))		            
+        #else:
+            #print(' '* _int + '|||'+'_'* _int + ' {0} '.format(tag) + cgmGEN._str_subLine)		
+    
+   
+        counter +=1
+            
+        l_keys.sort()
+        for k in l_keys:
+            try:str_key = k.p_nameShort
+            except:str_key = k
+            buffer = arg[k]          
+            print_heirarchy_dict(buffer,str_key,counter)
+    else:
+        if counter == 0:
+            print('{0} : '.format(tag) + str(arg))			                
+        else:
+            print(' '* counter + ' {0} : '.format(tag) + str(arg))			                
+
+    return   

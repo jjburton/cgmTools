@@ -801,7 +801,7 @@ def walk_dat(arg = None, tag = None, counter = 0):
         else:
             print('-'* counter + '> {0} '.format(tag) + _str_subLine)		
         
-        counter+=1                
+        counter+=2                
         l_keys.sort()
         for k in l_keys:
             try:str_key = k.p_nameShort

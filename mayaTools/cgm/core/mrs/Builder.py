@@ -627,11 +627,71 @@ class ui(cgmUI.cgmGUI):
             
             
     def build_menus(self):
+        self.uiMenu_block = mUI.MelMenu( l='Block', pmc=self.buildMenu_block)         
         self.uiMenu_add = mUI.MelMenu( l='Add', pmc=self.buildMenu_add) 
         #self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=self.buildMenu_switch) 
         #self.uiMenu_pivot = mUI.MelMenu( l='Pivot', pmc=self.buildMenu_pivot)         
         self.uiMenu_help = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)         
     
+    def buildMenu_block( self, *args, **kws):
+        self.uiMenu_block.clear()  
+        _str_context = "{0} {1}".format(self._l_contextStartModes[self.var_contextStartMode.value],
+                                        self._l_contextModes[self.var_contextMode.value])
+        #c = cgmGEN.Callback(self.uiFunc_contextualCall,'select',None,**{}))
+        mUI.MelMenuItem(self.uiMenu_block, l="Context: {0}".format(_str_context),
+                        en=False)  
+        
+        
+        _d_ui_annotations = {'select':"Select rigBlocks in maya from ui. Context: {0}".format(_str_context),
+                             'rebuild':"Rebuild blocks from define state. Context: {0}".format(_str_context),
+                             'select':"Select the contextual blocks. Context: {0}".format(_str_context),
+                             'select':"Select the contextual blocks. Context: {0}".format(_str_context),
+                             'select':"Select the contextual blocks. Context: {0}".format(_str_context),
+                             'select':"Select the contextual blocks. Context: {0}".format(_str_context),
+                             'select':"Select the contextual blocks. Context: {0}".format(_str_context),
+                             'verify':"Verify the attributes rigBlocks. Context: {0}".format(_str_context)}
+        
+        
+        mUI.MelMenuItem(self.uiMenu_block, l="Select",
+                        ann = _d_ui_annotations.get('select',"NEED select"),
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'select'))
+        mUI.MelMenuItem(self.uiMenu_block, l="Rebuild",
+                        ann = _d_ui_annotations.get('rebuild',"NEED rebuild"),
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'rebuild'))        
+        mUI.MelMenuItem(self.uiMenu_block, l="Verify",
+                        ann = _d_ui_annotations.get('verify',"NEED verify"),
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'verify'))        
+        mUI.MelMenuItem(self.uiMenu_block, l="Visualize Heirarchy",
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'VISUALIZEHEIRARCHY'))        
+        _mBlockDat = mUI.MelMenuItem(self.uiMenu_block, l="BlockDat",subMenu=True)
+        mUI.MelMenuItem(self.uiMenu_block, l="Report",
+                        en=False)       
+        
+        _mSkeleton = mUI.MelMenuItem(self.uiMenu_block, l="Skeleton",
+                                     subMenu = True)         
+
+      
+        #>>BlockData ---------------------------------------------------------------------
+        mUI.MelMenuItem(_mBlockDat, l="Save",
+                        ann = _d_ui_annotations.get('save BlockDat',"NEED saveBlockDat"),
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'saveBlockDat'))        
+        mUI.MelMenuItem(_mBlockDat, l="Load",
+                        ann = _d_ui_annotations.get('load BlockDat',"NEED load BlockDat"),
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'loadBlockDat'))        
+        mUI.MelMenuItem(_mBlockDat, l="Copy - TO DO",
+                        en=False,
+                        ann = _d_ui_annotations.get('load BlockDat',"NEED load BlockDat"),
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'loadBlockDat'))  
+        
+        #>>Skeleton -----------------------------------------------------------------------
+        mUI.MelMenuItem(_mSkeleton, l="Generate",
+                        ann = _d_ui_annotations.get('Skeletonize',"NEED Skeletonize"),
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'skeletonize'))        
+        mUI.MelMenuItem(_mSkeleton, l="Delete",
+                        ann = _d_ui_annotations.get('DeleteSkeleton',"NEED load DeleteSkeleton"),
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'loadBlockDat'))          
+  
+                    
     def buildMenu_add( self, *args, **kws):
         self.uiMenu_add.clear()   
         
@@ -849,7 +909,8 @@ class ui(cgmUI.cgmGUI):
         return
     
     def uiFunc_block_clearActive(self):
-        self.uiField_inspector(edit=True, label = '')
+        #self.uiField_inspector(edit=True, label = '')
+        self.uiField_report(edit=True, label = '')        
         self._blockCurrent = None
         self.uiFrame_blockAttrs.clear()
         self.uiFrame_blockInfo.clear()
@@ -886,7 +947,7 @@ class ui(cgmUI.cgmGUI):
         #>>>Inspector ======================================================================================
         #>>>Report -----------------------------------------------------------------------------------------
         
-        _l_report = ["node: {0}".format(self._blockCurrent.p_nameBase), self._blockCurrent.blockType,]
+        _l_report = ["Active: {0}".format(self._blockCurrent.p_nameShort), self._blockCurrent.blockType,]
         
         if ATTR.get(_short,'direction'):
             _l_report.append( ATTR.get_enumValueString(_short,'direction'))
@@ -894,7 +955,8 @@ class ui(cgmUI.cgmGUI):
         if self._blockCurrent.isReferenced():
             _l_report.insert(0,"Referenced!")
             
-        self.uiField_inspector(edit=True, label = '{0}'.format(' | '.join(_l_report)))
+        #self.uiField_inspector(edit=True, label = '{0}'.format(' | '.join(_l_report)))
+        self.uiField_report(edit=True, label = '[ ' + '{0}'.format(' ] [ '.join(_l_report))+ ' ]')
         
         #>>>Info ----------------------------------------------------------------------------------------
         self.uiFrame_blockInfo.clear()
@@ -1046,10 +1108,10 @@ class ui(cgmUI.cgmGUI):
         _RightColumn = mUI.MelScrollLayout(_MainForm,useTemplate = 'cgmUITemplate')
         
         cgmUI.add_Header('Active',overrideUpper=True) 
-        self.uiField_inspector= mUI.MelLabel(_RightColumn,
+        """self.uiField_inspector= mUI.MelLabel(_RightColumn,
                                              bgc = SHARED._d_gui_state_colors.get('help'),
                                              label = '...',
-                                             h=20)  
+                                             h=20)  """
         
         #Context mode  -------------------------------------------------------------------------------          
         self.create_guiOptionVar('contextMode',defaultValue = 0)       
@@ -1211,11 +1273,12 @@ class ui(cgmUI.cgmGUI):
         
         _RightColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUITemplate')
         
-        cgmUI.add_Header('Inspector',overrideUpper=True) 
+        cgmUI.add_Header('Inspector',overrideUpper=True)
+        """
         self.uiField_inspector= mUI.MelLabel(_RightColumn,
                                              bgc = SHARED._d_gui_state_colors.get('help'),
                                              label = '...',
-                                             h=20) 
+                                             h=20) """
         
         
         _frame_attr = mUI.MelFrameLayout(_RightColumn,label = 'Attr',vis=True,

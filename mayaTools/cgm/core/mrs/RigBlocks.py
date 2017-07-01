@@ -105,6 +105,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #>>Verify or Initialize
         super(cgmRigBlock, self).__init__(node = node, name = blockType) 
         
+                
         #====================================================================================	
         #>>> TO USE Cached instance ---------------------------------------------------------
         if self.cached:
@@ -140,7 +141,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     for arg in err.args:
                         log.error(arg)  
                         
-        self._blockModule = get_blockModule(blockType or ATTR.get(self.mNode,'blockType'))        
+        self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
+                        
  
     def verify(self, blockType = None, size = None):
         """ 
@@ -160,9 +162,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
             #raise ValueError,"|{0}| >> Invalid blocktype specified".format(_str_func)
         
         _type = self.getMayaAttr('blockType')
-        if blockType is not None and _type is not None and _type != blockType:
-            raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
-        
+        if blockType is not None:
+            if _type is not None and _type != blockType:
+                raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
+        else:
+            blockType = _type
         _mBlockModule = get_blockModule(blockType)
         
         if not _mBlockModule:
@@ -344,13 +348,15 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def getBlockChildren(self,asMeta=True):
         _str_func = 'getBlockChildren'
         ml_nodeChildren = self.getChildMetaNodes(mType = ['cgmRigBlock'])
+        
         if self in ml_nodeChildren:
             ml_nodeChildren.remove(self)
+            
         for mChild in ml_nodeChildren:
             if not issubclass(type(mChild),cgmRigBlock):
                 ml_nodeChildren.remove(mChild)
             
-        ml_children = self.getChildren(asMeta = True)
+        ml_children = self.getChildren(asMeta = True, fullPath=True)#...always full path
         
         for mChild in ml_children:
             if mChild not in ml_nodeChildren and issubclass(type(mChild),cgmRigBlock):
@@ -443,7 +449,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 else:
                     _d['ud'][a] = ATTR.get(_short,a)
         
-        cgmGEN.log_info_dict(_d,'[{0}] blockDat'.format(self.p_nameShort))
+        cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
         return _d
         
     def saveBlockDat(self):
@@ -513,7 +519,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #>>Generators ----------------------------------------------------------------------------------------------------
         log.debug("|{0}| >> Generators".format(_str_func)+ '-'*80)
-        _d = {"isSkeletonized":[self.isSkeletonized,self.doSkeletonize,self.skeletonDelete]}
+        _d = {"isSkeletonized":[self.isSkeletonized,self.doSkeletonize,self.deleteSkeleton]}
         
         for k,calls in _d.iteritems():
             _block = bool(blockDat.get(k))
@@ -610,7 +616,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             return _call(self)
         return False
     
-    def skeletonDelete(self):
+    def deleteSkeleton(self):
         _str_func = '[{0}] deleteSkeleton'.format(self.p_nameShort)
         
         _blockModule = get_blockModule(self.blockType)
@@ -669,7 +675,7 @@ class factory(object):
         if a:log.debug("|{0}| >> a: {1}".format(_str_func,a))
         if kws:
             self._call_kws = kws
-            cgmGEN.log_info_dict(kws,_str_func)
+            cgmGEN.walk_dat(kws,_str_func)
             #log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
 
         self._mi_block = None
@@ -762,8 +768,8 @@ class factory(object):
             for l in _l_msgLinks:
                 _d[l] = 'messageSimple'
 
-        cgmGEN.log_info_dict(_d,_str_func + " '{0}' attributes to create".format(blockType))
-        cgmGEN.log_info_dict(d_defaultSettings,_str_func + " '{0}' defaults".format(blockType))
+        cgmGEN.walk_dat(_d,_str_func + " '{0}' attributes to verify".format(blockType))
+        cgmGEN.walk_dat(d_defaultSettings,_str_func + " '{0}' defaults".format(blockType))
 
         self._d_attrsToVerify = _d
         self._d_attrToVerifyDefaults = d_defaultSettings
@@ -976,7 +982,7 @@ class factory(object):
                   'helpers':{'orient':_helperOrient,
                              'targets':_l_targets},
                   'worldUpAxis':_axisWorldUp}
-        cgmGEN.log_info_dict(_d_res,_str_func)
+        cgmGEN.walk_dat(_d_res,_str_func)
         return _d_res
 
     def verify(self, blockType = None):
@@ -1394,7 +1400,7 @@ class factory(object):
         for i,mObj in enumerate([_mBlock]):
             _d_pos[i] = [mObj.getPosition(),'euler','localScale']
         
-        cgmGEN.log_info_dict(_res, "Block Data [{0}]".format(_short))
+        cgmGEN.walk_dat(_res, "Block Data [{0}]".format(_short))
         return _res
         
     #========================================================================================================     
@@ -1618,7 +1624,7 @@ class factory(object):
         if str_position != 'none':
             d_kws['position'] = str_position
 
-        cgmGEN.log_info_dict(d_kws,"{0} d_kws".format(_str_func))
+        cgmGEN.walk_dat(d_kws,"{0} d_kws".format(_str_func))
         return d_kws
 
     def puppet_verify(self):
@@ -1766,10 +1772,10 @@ def get_modules_dat():
             _i+=1
             
     if _b_debug:
-        cgmGEN.log_info_dict(_d_modules,"Modules")        
-        cgmGEN.log_info_dict(_d_files,"Files")
-        cgmGEN.log_info_dict(_d_import,"Imports")
-        cgmGEN.log_info_dict(_d_categories,"Categories")
+        cgmGEN.walk_dat(_d_modules,"Modules")        
+        cgmGEN.walk_dat(_d_files,"Files")
+        cgmGEN.walk_dat(_d_import,"Imports")
+        cgmGEN.walk_dat(_d_categories,"Categories")
     
     if _l_duplicates and _b_debug:
         log.debug(cgmGEN._str_subLine)
@@ -1908,6 +1914,10 @@ def contextual_method_call(mBlock, context = 'self', func = 'getShortName',*args
         list of results(list)
     """
     _str_func = 'contextual_method_call'
+    
+    if func == 'VISUALIZEHEIRARCHY':
+        BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,context,False,True)
+        return True
     _l_context = BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,context,True,False)
     _res = []
     
@@ -1927,16 +1937,21 @@ def contextual_method_call(mBlock, context = 'self', func = 'getShortName',*args
         log.error("|{0}| >> No data in context".format(_str_func,))
         return False
     
+    if func in ['select']:
+        mc.select([mBlock.mNode for mBlock in _l_context])
+        return
+    
     for mBlock in _l_context:
+        _short = mBlock.p_nameShort
         try:
-            log.debug("|{0}| >> On: {1}".format(_str_func,mBlock.mNode))            
+            log.debug("|{0}| >> On: {1}".format(_str_func,_short))            
             res = getattr(mBlock,func)(*args,**kws) or None
-            print("|{0}| >> {1}.{2}({3},{4}) = {5}".format(_str_func,mBlock.p_nameShort,func,','.join(a for a in args),_kwString, res))                        
+            print("|{0}| >> {1}.{2}({3},{4}) = {5}".format(_str_func,_short,func,','.join(a for a in args),_kwString, res))                        
             _res.append(res)
         except Exception,err:
             log.error(cgmGEN._str_hardLine)
             log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
-            log.error("block: {0} | func: {1}".format(mBlock.p_nameShort,func))            
+            log.error("block: {0} | func: {1}".format(_short,func))            
             if args:
                 log.error("Args...")
                 for a in args:

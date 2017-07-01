@@ -96,7 +96,7 @@ class Test_cgmObject(unittest.TestCase):
                          True)
         self.assertEqual(nCube.isParentTo(pCube),
                          True)        
-        self.assertEqual(pCube.p_nameShort in nCube.getChildren(),
+        self.assertEqual(pCube.p_nameShort in nCube.getChildren(fullPath=False),
                          True)
         self.assertIsNot(pCube.getShapes(),False)
         
