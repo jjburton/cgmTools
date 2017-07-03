@@ -454,7 +454,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
     def saveBlockDat(self):
         self.blockDat = self.getBlockDat()
-        
+    def resetBlockDat(self):
+        #This needs more work.
+        self._factory.verify(self.blockType, forceReset=True) 
     def loadBlockDat(self,blockDat = None):
         _short = self.p_nameShort        
         _str_func = '[{0}] loadBlockDat'.format(_short)
@@ -985,12 +987,13 @@ class factory(object):
         cgmGEN.walk_dat(_d_res,_str_func)
         return _d_res
 
-    def verify(self, blockType = None):
+    def verify(self, blockType = None, forceReset = False):
         """
         Verify a given loaded root object as a given blockType
 
         :parameters:
             blockType(str) | rigBlock type
+            forceReset(bool) | Push default attrs to the ribBlock
 
         :returns
             success(bool)
@@ -1028,12 +1031,18 @@ class factory(object):
             log.debug("|{0}| Setting attr >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
             
             if ':' in t:
-                _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
+                if forceReset:
+                    _mBlock.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
+                else:
+                    _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
             else:
                 if t == 'string':
                     _l = True
                 else:_l = False
-                _mBlock.addAttr(a,initialValue = v, attrType = t,lock=_l, keyable = False)            
+                if forceReset:
+                    _mBlock.addAttr(a, v, attrType = t,lock=_l, keyable = False)                                
+                else:
+                    _mBlock.addAttr(a,initialValue = v, attrType = t,lock=_l, keyable = False)            
 
         _mBlock.addAttr('blockType', value = blockType,lock=True)	
         #_mBlock.blockState = 'base'

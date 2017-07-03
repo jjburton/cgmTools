@@ -601,6 +601,14 @@ class ui(cgmUI.cgmGUI):
     DEFAULT_SIZE = 550,400
     __modes = 'space','orient','follow'
     
+    _d_ui_annotations = {'select':"Select rigBlocks in maya from ui.",
+                         'rebuild':"Rebuild blocks from define state",
+                         'save blockDat':'Save current blockDat to the block',
+                         'load blockDat':'Load existing blockDat from the block to current settings',
+                         'reset blockDat': 'Reset blockDat to defaults as defined by the module',
+                         'copy blockDat': 'Copy the blockDat from one block to another',
+                         'verify':"Verify the attributes rigBlocks"}    
+    
     def insert_init(self,*args,**kws):
             if kws:log.debug("kws: %s"%str(kws))
             if args:log.debug("args: %s"%str(args))
@@ -798,7 +806,7 @@ class ui(cgmUI.cgmGUI):
             
     def uiScrollList_block_select(self): 
         _str_func = 'uiScrollList_block_select'  
-        
+
         if self.uiPopUpMenu_blocks:
             self.uiPopUpMenu_blocks.clear()
             self.uiPopUpMenu_blocks.delete()
@@ -812,6 +820,12 @@ class ui(cgmUI.cgmGUI):
         _ml = self._ml_blocks
         _index = _indices[0]
         _mBlock = _ml[_index]
+        
+        if _mBlock.mNode == None:
+            log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, _index))                        
+            self.uiUpdate_scrollList_blocks()
+            return
+        
         _mActiveBlock = self._blockCurrent
         _str_activeBlock = False
         if _mActiveBlock:
@@ -918,11 +932,14 @@ class ui(cgmUI.cgmGUI):
         
     def uiFunc_block_setActive(self, index = None):
         _str_func = 'uiFunc_block_setActive'
+          
         
         _ml = self._ml_blocks
         if not _ml:
             self.uiFunc_block_clearActive()
             return
+        
+
                 
         if index:
             if index not in range(len(_ml)):
@@ -938,6 +955,11 @@ class ui(cgmUI.cgmGUI):
             
             index = _indices[0]
         
+        if _ml[index].mNode == None:
+            log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, index))            
+            self.uiUpdate_scrollList_blocks()                    
+            return
+        
         log.info("|{0}| >> To set: {1}".format(_str_func, _ml[index].mNode))
         
         self._blockFactory.set_rigBlock( _ml[index] )
@@ -947,7 +969,7 @@ class ui(cgmUI.cgmGUI):
         #>>>Inspector ======================================================================================
         #>>>Report -----------------------------------------------------------------------------------------
         
-        _l_report = ["Active: {0}".format(self._blockCurrent.p_nameShort), self._blockCurrent.blockType,]
+        _l_report = ["Active: {0}".format(self._blockCurrent.p_nameShort), self._blockCurrent.blockType, self._blockCurrent.blockState.upper()]
         
         if ATTR.get(_short,'direction'):
             _l_report.append( ATTR.get_enumValueString(_short,'direction'))
@@ -957,6 +979,11 @@ class ui(cgmUI.cgmGUI):
             
         #self.uiField_inspector(edit=True, label = '{0}'.format(' | '.join(_l_report)))
         self.uiField_report(edit=True, label = '[ ' + '{0}'.format(' ] [ '.join(_l_report))+ ' ]')
+        
+        #>>>Settings ----------------------------------------------------------------------------------------
+        self.uiUpdate_blockDat()#<<< build our blockDat frame
+        
+                    
         
         #>>>Info ----------------------------------------------------------------------------------------
         self.uiFrame_blockInfo.clear()
@@ -975,7 +1002,105 @@ class ui(cgmUI.cgmGUI):
                     mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get(_short,a)))
         
          
-                
+    def uiCallback_setAttrFromField(self, obj, attr, attrType, field):
+        _v = field.getValue()
+        ATTR.set(obj,attr,_v)
+        
+        if attrType == 'enum':
+            field.setValue(ATTR.get_enumValueString(obj,attr))            
+        else:
+            field.setValue(ATTR.get(obj,attr))
+        
+    def uiCallback_blockDatButton(self,func,*args,**kws):
+        func(*args,**kws)
+        self.uiUpdate_blockDat()
+        
+    def uiUpdate_blockDat(self):
+        self.uiFrame_blockSettings.clear()
+        #_d_ui_annotations = {}
+    
+        _mBlockDat = mUI.MelHLayout(self.uiFrame_blockSettings,ut='cgmUISubTemplate',padding = 2)
+        CGMUI.add_Button(_mBlockDat, "Save",
+                         cgmGEN.Callback(self._blockCurrent.saveBlockDat),
+                         self._d_ui_annotations.get('save blockDat'))       
+        CGMUI.add_Button(_mBlockDat, "Load",
+                         cgmGEN.Callback(self._blockCurrent.loadBlockDat),
+                         self._d_ui_annotations.get('load blockDat') )       
+        CGMUI.add_Button(_mBlockDat, "Copy",
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'loadBlockDat'),
+                         self._d_ui_annotations.get('copy blockDat'),                         
+                         en=False)         
+    
+        CGMUI.add_Button(_mBlockDat,'Reset',
+                         cgmGEN.Callback(self._blockCurrent.resetBlockDat), 
+                         self._d_ui_annotations.get('reset blockDat'))                                
+        CGMUI.add_Button(_mBlockDat,'Refresh',
+                         cgmGEN.Callback(self.uiUpdate_blockDat),
+                         "Resync the ui blockDat with any changes you've made in viewport.")
+    
+        _mBlockDat.layout()                
+        
+        
+        _short = self._blockCurrent.p_nameShort
+        
+        _l_attrs = []
+        for a in self._blockCurrent.getAttrs():
+            try:
+                if not ATTR.is_hidden(_short,a) or ATTR.is_keyable(_short,a):
+                    _l_attrs.append(a)
+                    """if ATTR.get_type(_short,a) == 'enum':
+                            mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                    
+                        else:
+                            mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get(_short,a)))"""        
+            except: pass
+    
+        _sidePadding = 25
+        self._d_attrFields = {}
+        _l_attrs.sort()
+        for a in _l_attrs:
+            _type = ATTR.get_type(_short,a)
+    
+            _hlayout = mUI.MelHSingleStretchLayout(self.uiFrame_blockSettings,padding = 5)
+            mUI.MelSpacer(_hlayout,w=_sidePadding)
+    
+            _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))            
+    
+            if _type not in ['bool']:#Some labels parts of fields
+                mUI.MelLabel(_hlayout,l="{0} :".format(a))   
+    
+            if _type == 'bool':
+                mUI.MelCheckBox(_hlayout, l="{0}:".format(a),
+                                #annotation = "Copy values",		                           
+                                value = ATTR.get(_short,a),
+                                onCommand = cgmGEN.Callback(ATTR.set,_short,a,1),
+                                offCommand = cgmGEN.Callback(ATTR.set,_short,a,0))
+    
+            elif _type == 'double':
+                self._d_attrFields[a] = mUI.MelFloatField(_hlayout,w = 50,#l="{0}:".format(a)
+                                                          value = ATTR.get(_short,a),                                                          
+                                                          )
+                self._d_attrFields[a](e=True,
+                                      #annotation = "Copy values",		                           
+                                      cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                            self._d_attrFields[a]),
+                                      #ec = cgmGEN.Callback(log.info,_field),
+                                      )
+                log.info(self._d_attrFields[a](q=True, v=True))
+    
+            elif _type == 'enum':
+                _optionMenu = mUI.MelOptionMenu(_hlayout)
+                _optionMenu(e=True,
+                            cc = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                 _optionMenu),) 
+                for option in ATTR.get_enumList(_short,a):
+                    _optionMenu.append(option)
+                _optionMenu.setValue(ATTR.get_enumValueString(_short,a))
+            else:
+                mUI.MelLabel(_hlayout,l="{0}({1}):{2}".format(a,_type,ATTR.get(_short,a)))        
+    
+            mUI.MelSpacer(_hlayout,w=_sidePadding)                
+            _hlayout.layout()            
+        
     def buildMenu_help( self, *args):
         self.uiMenu_help.clear()
     
@@ -1107,6 +1232,10 @@ class ui(cgmUI.cgmGUI):
         
         _RightColumn = mUI.MelScrollLayout(_MainForm,useTemplate = 'cgmUITemplate')
         
+        
+        #=============================================================================================
+        #>> Top
+        #=============================================================================================
         cgmUI.add_Header('Active',overrideUpper=True) 
         """self.uiField_inspector= mUI.MelLabel(_RightColumn,
                                              bgc = SHARED._d_gui_state_colors.get('help'),
@@ -1187,6 +1316,22 @@ class ui(cgmUI.cgmGUI):
         _row_push.layout()
                
         
+        #Settings Frame ------------------------------------------------------------------------------------
+        self.create_guiOptionVar('blockSettingsFrameCollapse',defaultValue = 0)       
+    
+        _frame_blockSettings = mUI.MelFrameLayout(_RightColumn,label = 'Block Dat',vis=True,
+                                                  collapse=self.var_blockSettingsFrameCollapse.value,
+                                                  collapsable=True,
+                                                  enable=True,
+                                                  useTemplate = 'cgmUIHeaderTemplate',
+                                                  expandCommand = lambda:self.var_blockSettingsFrameCollapse.setValue(0),
+                                                  collapseCommand = lambda:self.var_blockSettingsFrameCollapse.setValue(1)
+                                                  )	
+        self.uiFrameLayout_blockSettings = _frame_blockSettings
+    
+        _frame_settings_inside = mUI.MelColumnLayout(_frame_blockSettings,useTemplate = 'cgmUISubTemplate')  
+        self.uiFrame_blockSettings = _frame_settings_inside           
+        
         #Info ------------------------------------------------------------------------------------
         _frame_info = mUI.MelFrameLayout(_RightColumn,label = 'Info',vis=True,
                                         collapse=self.var_blockInfoFrameCollapse.value,
@@ -1196,12 +1341,13 @@ class ui(cgmUI.cgmGUI):
                                         expandCommand = lambda:self.var_blockInfoFrameCollapse.setValue(0),
                                         collapseCommand = lambda:self.var_blockInfoFrameCollapse.setValue(1)
                                         )	
-        self.uiFrame_blockInfo = _frame_info
+        self.uiFrameLayout_blockInfo = _frame_info
         
         _frame_info_inside = mUI.MelColumnLayout(_frame_info,useTemplate = 'cgmUISubTemplate')  
         self.uiFrame_blockInfo = _frame_info_inside        
         
-        #Attrs ------------------------------------------------------------------------------------
+        
+        #Settings ------------------------------------------------------------------------------------
         _frame_attr = mUI.MelFrameLayout(_RightColumn,label = 'Attrs',vis=True,
                                         collapse=self.var_blockAttrsFrameCollapse.value,
                                         collapsable=True,
@@ -1210,7 +1356,7 @@ class ui(cgmUI.cgmGUI):
                                         expandCommand = lambda:self.var_blockAttrsFrameCollapse.setValue(0),
                                         collapseCommand = lambda:self.var_blockAttrsFrameCollapse.setValue(1)
                                         )	
-        self.uiFrame_blockAttrs = _frame_attr
+        self.uiFrameLayout_blockAttrs = _frame_attr
         
         _frame_attr_inside = mUI.MelColumnLayout(_frame_attr,useTemplate = 'cgmUISubTemplate')  
         self.uiFrame_blockAttrs = _frame_attr_inside
