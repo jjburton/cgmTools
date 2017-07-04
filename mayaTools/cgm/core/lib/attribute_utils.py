@@ -2672,7 +2672,6 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
         
         for i,_data in enumerate(_l_dat):
             str_attr = "{0}_{1}".format(attr,i)
-            
             store_info(node, str_attr, _data, mode)
            
     return True
@@ -3147,7 +3146,7 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Tr
         elif len(_data)>3:
             attrType = 'doubleArray'
             
-    log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
+    log.info("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
     
     #>> Store our data #-------------------------------------------------------------------------
     
@@ -3156,15 +3155,15 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Tr
     else:
         mi_node = r9Meta.MetaClass(node)
         _except = False
+      
         if mi_node.hasAttr(attr):
-            try:set(node,attr,data)
+            try:set(node,attr,_data[0])
             except:
                 log.warning("|{0}| >> removing... | node: {1} | attr: {2} | value: {3}".format(_str_func,node,attr,mi_node.__getattribute__(attr)))        
                 delete(node,attr)
-    
                 mi_node.addAttr(attr,_data[0], attrType = attrType)
         else:
-            mi_node.addAttr(attr,data, attrType = attrType)
+            mi_node.addAttr(attr,_data[0], attrType = attrType)
         
     if lock:
         set_lock(node,attr,lock)

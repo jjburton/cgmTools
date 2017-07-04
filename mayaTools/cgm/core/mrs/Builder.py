@@ -643,7 +643,7 @@ class ui(cgmUI.cgmGUI):
     
     def buildMenu_block( self, *args, **kws):
         self.uiMenu_block.clear()  
-        _str_context = "{0} {1}".format(self._l_contextStartModes[self.var_contextStartMode.value],
+        _str_context = "Context: {0} {1}".format(self._l_contextStartModes[self.var_contextStartMode.value],
                                         self._l_contextModes[self.var_contextMode.value])
         #c = cgmGEN.Callback(self.uiFunc_contextualCall,'select',None,**{}))
         mUI.MelMenuItem(self.uiMenu_block, l="Context: {0}".format(_str_context),
@@ -681,16 +681,19 @@ class ui(cgmUI.cgmGUI):
       
         #>>BlockData ---------------------------------------------------------------------
         mUI.MelMenuItem(_mBlockDat, l="Save",
-                        ann = _d_ui_annotations.get('save BlockDat',"NEED saveBlockDat"),
+                        ann = self._d_ui_annotations.get('save blockDat') + _str_context,
                         c = cgmGEN.Callback(self.uiFunc_contextualCall,'saveBlockDat'))        
         mUI.MelMenuItem(_mBlockDat, l="Load",
-                        ann = _d_ui_annotations.get('load BlockDat',"NEED load BlockDat"),
+                        ann = self._d_ui_annotations.get('load blockDat') + _str_context,
                         c = cgmGEN.Callback(self.uiFunc_contextualCall,'loadBlockDat'))        
         mUI.MelMenuItem(_mBlockDat, l="Copy - TO DO",
                         en=False,
-                        ann = _d_ui_annotations.get('load BlockDat',"NEED load BlockDat"),
+                        ann = self._d_ui_annotations.get('copy blockDat') + _str_context,
                         c = cgmGEN.Callback(self.uiFunc_contextualCall,'loadBlockDat'))  
-        
+        mUI.MelMenuItem(_mBlockDat, l="Reset",
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'resetBlockDat'), 
+                        ann = self._d_ui_annotations.get('reset blockDat') + _str_context)        
+          
         #>>Skeleton -----------------------------------------------------------------------
         mUI.MelMenuItem(_mSkeleton, l="Generate",
                         ann = _d_ui_annotations.get('Skeletonize',"NEED Skeletonize"),
@@ -1047,11 +1050,14 @@ class ui(cgmUI.cgmGUI):
         for a in self._blockCurrent.getAttrs():
             try:
                 if not ATTR.is_hidden(_short,a) or ATTR.is_keyable(_short,a):
-                    _l_attrs.append(a)
-                    """if ATTR.get_type(_short,a) == 'enum':
-                            mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                    
-                        else:
-                            mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get(_short,a)))"""        
+                    if a not in ['translateX','translateY','translateZ',
+                                 'rotateX','rotateY','rotateZ',
+                                 'scaleX','scaleY','scaleZ']:
+                        _l_attrs.append(a)
+                        """if ATTR.get_type(_short,a) == 'enum':
+                                mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                    
+                            else:
+                                mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get(_short,a)))"""        
             except: pass
     
         _sidePadding = 25
@@ -1066,26 +1072,33 @@ class ui(cgmUI.cgmGUI):
             _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))            
     
             if _type not in ['bool']:#Some labels parts of fields
-                mUI.MelLabel(_hlayout,l="{0} :".format(a))   
+                mUI.MelLabel(_hlayout,l="{0}:".format(a))   
     
             if _type == 'bool':
-                mUI.MelCheckBox(_hlayout, l="{0}:".format(a),
+                mUI.MelCheckBox(_hlayout, l=":{0}".format(a),
                                 #annotation = "Copy values",		                           
                                 value = ATTR.get(_short,a),
                                 onCommand = cgmGEN.Callback(ATTR.set,_short,a,1),
                                 offCommand = cgmGEN.Callback(ATTR.set,_short,a,0))
     
-            elif _type == 'double':
-                self._d_attrFields[a] = mUI.MelFloatField(_hlayout,w = 50,#l="{0}:".format(a)
+            elif _type in ['double','doubleAngle','doubleLinear']:
+                self._d_attrFields[a] = mUI.MelFloatField(_hlayout,w = 50,
                                                           value = ATTR.get(_short,a),                                                          
                                                           )
                 self._d_attrFields[a](e=True,
-                                      #annotation = "Copy values",		                           
                                       cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
                                                             self._d_attrFields[a]),
-                                      #ec = cgmGEN.Callback(log.info,_field),
                                       )
-                log.info(self._d_attrFields[a](q=True, v=True))
+            elif _type == 'long':
+                self._d_attrFields[a] = mUI.MelIntField(_hlayout,w = 50,
+                                                         value = ATTR.get(_short,a),
+                                                         maxValue=20,
+                                                         minValue=1,
+                                                          )
+                self._d_attrFields[a](e=True,
+                                      cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                            self._d_attrFields[a]),
+                                      )                
     
             elif _type == 'enum':
                 _optionMenu = mUI.MelOptionMenu(_hlayout)

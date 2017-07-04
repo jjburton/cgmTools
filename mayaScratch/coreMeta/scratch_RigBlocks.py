@@ -1,14 +1,15 @@
 from cgm.core.mrs import RigBlocks as RBLOCKS
+import cgm.core.cgm_Meta as cgmMeta
+
 reload(RBLOCKS)
 
 import cgm.core
 reload(cgm.core)
 cgm.core._reload()
 
-_root = 'NotBatman_master_block1'
+_root = 'NotBatman_master_block'
 mBlock = RBLOCKS.cgmRigBlock(blockType = 'master', size = 1)
 mBlock = RBLOCKS.cgmRigBlock(_root)
-
 
 
 #>>>Heirarchy ============================================================================
@@ -45,3 +46,14 @@ BlockFactory.changeState('define')
 #>>>Utilities
 #====================================================================================================
 RBLOCKS.get_blockModule('master')
+
+
+
+#====================================================================================================
+#>>>Blockshare data
+#====================================================================================================
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+reload(BLOCKSHARE)
+for a,v in BLOCKSHARE._d_attrsTo_make.iteritems():
+    print "'{0}' - ({1})".format(a,v)
+

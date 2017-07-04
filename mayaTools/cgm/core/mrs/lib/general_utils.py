@@ -131,7 +131,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
         
     l_keys = arg.keys()
     if not l_keys:
-        return False
+        return [],[]
         
     l_keys.sort()
     counter+=1

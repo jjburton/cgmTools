@@ -412,7 +412,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
               #"part":self.part,
               ##"blockPosition":self.getEnumValueString('position'),
               ##"blockDirection":self.getEnumValueString('direction'),
-              "size":DIST.get_size_byShapes(self),
               ###"attachPoint":self.getEnumValueString('attachPoint'),
               #"_rig":self._rig.name if self._rig else None, 
               #"_template":self._template.name if self._template else None, 
@@ -441,6 +440,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
               "version":self.version, 
               "ud":{}
               }   
+        
+        if self.getShapes():
+            _d["size"] = DIST.get_size_byShapes(self),
+        else:
+            _d['size'] = self.baseSize
+            
         
         for a in self.getAttrs(ud=True):
             if a not in _l_udMask:
@@ -1035,6 +1040,9 @@ class factory(object):
                     _mBlock.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
                 else:
                     _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
+            elif t == 'stringDatList':
+                mc.select(cl=True)
+                ATTR.datList_connect(_mBlock.mNode, a, v, mode='string')
             else:
                 if t == 'string':
                     _l = True
@@ -1446,8 +1454,8 @@ class factory(object):
             for mChild in _ml_blockChildren:
                 mChild.p_blockParent = False
 
-        _blockDat = _mBlock.p_blockDat
-
+        _blockDat = _mBlock.getBlockDat()
+        _mBlock.rename(_short + '_OLD')
         
         #Create New
         _mBlockNEW = self.create_rigBlock(_blockType)
