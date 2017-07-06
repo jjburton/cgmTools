@@ -138,7 +138,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
     
     for k in l_keys:
         mBlock = k
-    
+        print mBlock
         #>>>Build strings
         _short = mBlock.p_nameShort
         #log.debug("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
@@ -159,8 +159,8 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
 
         if mBlock.getMayaAttr('position'):
             _l_report.append( mBlock.getEnumValueString('position') )
-        if mBlock.getMayaAttr('direction'):
-            _l_report.append( mBlock.getEnumValueString('direction') )
+        if mBlock.getMayaAttr('side'):
+            _l_report.append( mBlock.getEnumValueString('side') )
 
         _l_report.append( ATTR.get(_short,'blockType') )
         if mBlock.hasAttr('puppetName'):

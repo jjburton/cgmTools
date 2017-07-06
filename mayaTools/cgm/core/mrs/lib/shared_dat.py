@@ -19,16 +19,17 @@ _l_requiredModuleDat = ['__version__',
                         'rig','is_rig','rigDelete']
 
 #These are our default attrs to make library. To be called via modules
-_d_attrsTo_make = {'direction':'none:left:right:center',
+_d_attrsTo_make = {'side':'none:left:right:center',
                    'position':'none:front:back:upper:lower:forward',
                    'basicShape':'circle:square:pyramid:semiSphere:sphere:cube',
                    'conType':'main:sub:direct',    
-                   'coreNames':'stringDatList',
+                   'baseNames':'stringDatList',
                    'hasRootJoint':'bool',
                    'numberControls':'int',
                    'numberJoints':'int',
                    'buildDirect':'bool',
                    'buildIK':'bool',
+                   'buildAdditiveScale':'bool',                   
                    'customStartOrientation':'bool',
                    'moduleTarget':'messageSimple',
                    'proxyType':'none:castMesh'}

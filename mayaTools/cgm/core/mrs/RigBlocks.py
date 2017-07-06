@@ -26,7 +26,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 # From cgm ==============================================================
@@ -37,6 +37,7 @@ from cgm.core import cgm_PuppetMeta as PUPPETMETA
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
+import cgm.core.lib.transform_utils as TRANS
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import snap_utils as SNAP
@@ -118,6 +119,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #==============         
         _doVerify = kws.get('doVerify',False) or False
         self._factory = factory(self.mNode)
+        
         self._callKWS = kws
         self._blockModule = None
         #self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags'])	
@@ -141,7 +143,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     for arg in err.args:
                         log.error(arg)  
                         
-        self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
+        #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
                         
  
     def verify(self, blockType = None, size = None):
@@ -213,8 +215,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
         if self.getMayaAttr('position'):
             _d['cgmPosition'] = self.getEnumValueString('position')
-        if self.getMayaAttr('direction'):
-            _d['cgmDirection'] = self.getEnumValueString('direction')
+        if self.getMayaAttr('side'):
+            _d['cgmDirection'] = self.getEnumValueString('side')
 
         #Check for special attributes to replace data, name
         self.rename(nameTools.returnCombinedNameFromDict(_d))
@@ -326,6 +328,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     def setBlockParent(self, parent = False, attachPoint = None):        
         _str_func = 'setBlockParent'
+        
         if not parent:
             self.blockParent = False
             self.p_parent = False
@@ -334,8 +337,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if parent == self:
                 raise ValueError, "Cannot blockParent to self"
                 
-            if parent.blockParent == self:
-                raise ValueError, "Cannot blockParent to block whose parent is self"
+            #if parent.getMessage('blockParent') and parent.blockParent == self:
+                #raise ValueError, "Cannot blockParent to block whose parent is self"
 
             self.connectParentNode(parent, 'blockParent')
             if attachPoint:
@@ -347,8 +350,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
     
     def getBlockChildren(self,asMeta=True):
         _str_func = 'getBlockChildren'
-        ml_nodeChildren = self.getChildMetaNodes(mType = ['cgmRigBlock'])
-        
+        #ml_nodeChildren = self.getChildMetaNodes(mType = ['cgmRigBlock'])
+        ml_nodeChildren = self.getChildMetaNodes(mAttrs = 'mClass=cgmRigBlock')
         if self in ml_nodeChildren:
             ml_nodeChildren.remove(self)
             
@@ -411,7 +414,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
               "baseName":self.getMayaAttr('puppetName') or self.getMayaAttr('baseName'), 
               #"part":self.part,
               ##"blockPosition":self.getEnumValueString('position'),
-              ##"blockDirection":self.getEnumValueString('direction'),
+              ##"blockDirection":self.getEnumValueString('side'),
               ###"attachPoint":self.getEnumValueString('attachPoint'),
               #"_rig":self._rig.name if self._rig else None, 
               #"_template":self._template.name if self._template else None, 
@@ -569,9 +572,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if _state == 'define':
             _goodState = 'define'
         else:
-            if _blockModule.__dict__['is_{0}'.format(_state)](self):
-                log.debug("|{0}| >> blockModule test...".format(_str_func))                    
-                _goodState = _state
+            _call = getattr(_blockModule,'is_{0}'.format(_state))
+            if _call and _call(self):
+                log.debug("|{0}| >> blockModule test...".format(_str_func))     
+                _goodState = _state  
             else:
                 _idx = _l_blockStates.index(_state) - 1
                 log.debug("|{0}| >> blockModule test failed. Testing: {1}".format(_str_func, _l_blockStates[_idx]))                
@@ -642,7 +646,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #========================================================================================================     
     #>>> Utilities 
     #========================================================================================================      
-            
+    def asHandleFactory(self):
+        return handleFactory(self.mNode)
     def contextual_methodCall(self, context = 'self', func = 'getShortName',*args,**kws):
         """
         Function to contextually call a series of rigBlocks and run a methodCall on them with 
@@ -660,8 +665,349 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
 
 
+class handleFactory(object):
+    _l_controlLinks = []
+    _l_controlmsgLists = []	
+
+    def __init__(self, node = None, baseShape = None,  baseSize = 1,
+                 shapeDirection = 'z+', aimDirection = 'z+', upDirection = 'y+',
+                 rigBlock = None, *a,**kws):
+        """
+        :returns
+            factory instance
+        """
+        _str_func = 'handleFactory._init_'
+        
+        if a:log.debug("|{0}| >> a: {1}".format(_str_func,a))
+        if kws:
+            self._call_kws = kws
+            cgmGEN.walk_dat(kws,_str_func)
+            #log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
+
+        self._mTransform = None
+
+        #if node is None:
+            #self._mTransform = cgmMeta.createMetaNode('cgmObject',nodeType = 'transform', nameTools = baseShape)
+            #self.rebuildSimple(baseShape,baseSize,shapeDirection)
+        if node is not None:
+            self.setHandle(node)
+            
+    def setHandle(self,arg = None):
+        if not VALID.is_transform(arg):
+            raise ValueError,"must be a transform"
+        
+        self._mTransform = cgmMeta.validateObjArg(arg,'cgmObject')
+        
+    def rebuildSimple(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
+        self.cleanShapes()
+        
+        if baseShape is None:
+            baseShape = 'square'
+        
+        self._mTransform.addAttr('baseShape', baseShape,attrType='string')
+        
+        SNAP.verify_aimAttrs(self._mTransform.mNode, aim = 'z+', up = 'y+')
+        
+        if baseSize is not None:
+            self._mTransform.doStore('baseSize',baseSize)
+        
+        _baseSize = self._mTransform.baseSize
+        
+        _baseShape = self._mTransform.getMayaAttr('baseShape') 
+        #_crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
+        #TRANS.snap(_crv, self._mTransform.mNode)
+        mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
+        RIGGING.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
+        
+        # CURVES.create_fromName('square', color = 'yellow', direction = 'y+', sizeMode = 'fixed', size = _size * .5)
+        
+        #self.color()
+        
+        if not self._mTransform.hasAttr('cgmName'):
+            self._mTransform.doStore('cgmName',baseShape)
+        self._mTransform.doStore('cgmType','blockHandle')
+        self._mTransform.doName()
+        return True
+        
+    def verify(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
+        SNAP.verify_aimAttrs(self._mTransform.mNode, aim = 'z+', up = 'y+')
+        return True
+        
+    def cleanShapes(self):
+        if self._mTransform.getShapes():
+            mc.delete(self._mTransform.getShapes())     
+            
+        for link in ['loftShape']:
+            _buffer = self._mTransform.getMessage(link)
+            if _buffer:
+                mc.delete(_buffer)
+                
+            
+    def getBaseCreateSize(self):
+        _maxLossy = max(self._mTransform.getScaleLossy())
+        _baseSize = self._mTransform.baseSize * _maxLossy    
+        return _baseSize
+    
+    def color(self, target = None, side = None, controlType = None):
+        mTransform = self._mTransform
+        _side = 'center'
+        _controlType = 'main'        
+        
+        if mTransform.getMessage('rigBlock'):
+            pass
+        else:
+            if mTransform.hasAttr('side'):
+                _bfr = mTransform.getEnumValueString('side')
+                if _bfr in ['left','right','center']:
+                    _side = _bfr
+
+            
+        if target is None:
+            target = self._mTransform.mNode
+        RIGGING.colorControl(target,_side,_controlType,transparent = True)
+            
+    def get_baseDat(self, baseShape = None, baseSize = None, shapeDirection = None):
+        _str_func = 'get_baseDat'
+        
+        if not self._mTransform:
+            log.error("|{0}| >> Must have an handle loaded".format(_str_func))                                
+            return False
+        
+        if self._mTransform.hasAttr('baseShape'):
+            _baseShape = self._mTransform.baseShape
+        elif baseShape:
+            _baseShape = baseShape
+        else:
+            _baseShape = 'square'
+            
+        if self._mTransform.hasAttr('baseSize'):
+            _baseSize = self._mTransform.baseSize
+        elif baseSize is not None:
+            _baseSize = baseSize
+        else:
+            _baseSize = 1.0
+            
+        return [_baseShape,_baseSize]
+        
+        
+    def buildBaseShape(self, baseShape = None, baseSize = None, shapeDirection = 'z+' ):
+        _baseDat = self.get_baseDat(baseShape,baseSize)
+        _baseShape = _baseDat[0]
+        _baseSize = _baseDat[1]
+        
+        _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
+        TRANS.snap(_crv, self._mTransform.mNode) 
+        mCrv = cgmMeta.validateObjArg(_crv)
+        
+        #...lossy
+        _lossy = self._mTransform.getScaleLossy()
+        mCrv.scaleX = mCrv.scaleX * _lossy[0]
+        mCrv.scaleY = mCrv.scaleY * _lossy[1]
+        mCrv.scaleZ = mCrv.scaleZ * _lossy[2]
+
+        return mCrv
+    
+    def rebuildAsLoftTarget(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
+        self.cleanShapes()      
+        
+        _baseDat = self.get_baseDat(baseShape,baseSize)
+        _baseShape = _baseDat[0]
+        _baseSize = _baseDat[1]    
+        
+        _offsetSize = _baseSize + 1.1
+        _dist = self._mTransform.baseSize *.01
+        _mShapeDirection = VALID.simpleAxis(shapeDirection)
+        
+        #>>> make our offset shapes to control our handle
+        for i,p in enumerate(['upper','lower']):
+            mCrv = self.buildBaseShape(_baseShape,_offsetSize,shapeDirection)
+            if i == 0:
+                _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,_dist)
+            else:
+                _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,-_dist)
+                
+            mCrv.p_position = _pos
+            RIGGING.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
+            
+        self.color(self._mTransform.mNode)
+        
+        #>>>make our loft curve
+        mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
+        mCrv.doStore('cgmName',self._mTransform.mNode)
+        mCrv.doStore('cgmType','loftCurve')
+        mCrv.doName()
+        mCrv.p_parent = self._mTransform
+        self.color(mCrv.mNode,controlType='sub')
+        
+        for s in mCrv.getShapes(asMeta=True):
+            s.overrideEnabled = 1
+            s.overrideDisplayType = 2
+        mCrv.connectParentNode(self._mTransform,'handle','loftShape')
+            
+            
+            
+            
+            
+            
+class cgmRigBlockHandle(cgmMeta.cgmControl):
+    def __init__(self, node = None, baseShape = None,  baseSize = 1, shapeDirection = 'z+',
+                 aimDirection = 'z+', upDirection = 'y+',
+                 rigBlock = None, *args,**kws):
+        """ 
+
+        """
+        _str_func = "cgmRigBlockHandle.__init__"   
+        
+        if node is None:
+            if baseShape is None:
+                raise ValueError,"|{0}| >> Must have either a node or a baseShape specified.".format(_str_func)
+            
+        #>>Verify or Initialize
+        super(cgmRigBlockHandle, self).__init__(node = node, name = baseShape, nodeType = 'transform') 
+
+        #====================================================================================	
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:
+            log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
+            return
+        #====================================================================================	
+
+        #====================================================================================
+        #Keywords - need to set after the super call
+        #==============         
+        _doVerify = kws.get('doVerify',False) or False
+        self._callKWS = kws
+        
+
+        #>>> Initialization Procedure ================== 
+        if self.__justCreatedState__ or _doVerify:
+            log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
+            if self.isReferenced():
+                log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
+                return
+            elif not self.verify(baseShape, baseSize, shapeDirection):
+                raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
+            
+    def verify(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
+        self.cleanShapes()
+        
+        if baseShape is None:
+            baseShape = 'square'
+        self.addAttr('baseShape', baseShape,attrType='string')
+        
+        SNAP.verify_aimAttrs(self.mNode, aim = 'z+', up = 'y+')
+        
+        if baseSize is not None:
+            self.doStore('baseSize',baseSize)
+        
+        _baseSize = self.baseSize
+        
+        _baseShape = self.getMayaAttr('baseShape') 
+        #_crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
+        #TRANS.snap(_crv, self.mNode)
+        mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
+        RIGGING.shapeParent_in_place(self.mNode,mCrv.mNode,False)
+        
+        # CURVES.create_fromName('square', color = 'yellow', direction = 'y+', sizeMode = 'fixed', size = _size * .5)
+        
+        self.color()
+        
+        self.doStore('cgmType','blockHandle')
+        self.doName()
+        return True
+    
+    def cleanShapes(self):
+        if self.getShapes():
+            mc.delete(self.getShapes())     
+            
+        for link in ['loftShape']:
+            _buffer = self.getMessage(link)
+            if _buffer:
+                mc.delete(_buffer)
+                
+            
+    def getBaseCreateSize(self):
+        _maxLossy = max(self.getScaleLossy())
+        _baseSize = self.baseSize * _maxLossy    
+        return _baseSize
+    
+    def color(self, target = None, side = None, controlType = None):
+        if self.getMessage('rigBlock'):
+            pass
+        else:
+            _side = 'center'
+            _controlType = 'main'
+            
+        if target is None:
+            target = self.mNode
+        RIGGING.colorControl(target,_side,_controlType,transparent = True)
+            
+    def template(self):
+        #...build loftCurve, wire
+        self.verify()
+        pass
+    
+    def buildBaseShape(self, baseShape = None, baseSize = None, shapeDirection = 'z+' ):
+        if baseSize is not None:
+            self.doStore('baseSize',baseSize)
+            
+        _baseSize = self.baseSize
+        
+        _baseShape = self.getMayaAttr('baseShape') 
+        _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
+        TRANS.snap(_crv, self.mNode) 
+        mCrv = cgmMeta.validateObjArg(_crv)
+        
+        #...lossy
+        _lossy = self.getScaleLossy()
+        mCrv.scaleX = mCrv.scaleX * _lossy[0]
+        mCrv.scaleY = mCrv.scaleY * _lossy[1]
+        mCrv.scaleZ = mCrv.scaleZ * _lossy[2]
+
+        return mCrv
+    
+    def rebuildAsLoftTarget(self, baseShape = 'square', baseSize = None, shapeDirection = 'z+'):
+        self.cleanShapes()      
+        
+        if baseSize is None:
+            _baseSize = self.baseSize        
+        else:
+            _baseSize = baseSize      
+        
+        _offsetSize = _baseSize + 1.1
+        _dist = self.baseSize *.01
+        _baseShape = self.getMayaAttr('baseShape')
+        _mShapeDirection = VALID.simpleAxis(shapeDirection)
+        
+        #>>> make our offset shapes to control our handle
+        for i,p in enumerate(['upper','lower']):
+            mCrv = self.buildBaseShape(_baseShape,_offsetSize,shapeDirection)
+            if i == 0:
+                _pos = self.getPositionByAxisDistance(_mShapeDirection.p_string,_dist)
+            else:
+                _pos = self.getPositionByAxisDistance(_mShapeDirection.p_string,-_dist)
+                
+            mCrv.p_position = _pos
+            RIGGING.shapeParent_in_place(self.mNode,mCrv.mNode,False)
+            
+        #>>>make our loft curve
+        mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
+        mCrv.doStore('cgmName',self.mNode)
+        mCrv.doStore('cgmType','loftCurve')
+        mCrv.doName()
+        mCrv.p_parent = self
+        self.color(mCrv.mNode,controlType='sub')
+        
+        for s in mCrv.getShapes(asMeta=True):
+            s.overrideEnabled = 1
+            s.overrideDisplayType = 2
+        mCrv.connectParentNode(self,'handle','loftShape')
+        
+        
+
+
 #====================================================================================	
-# Factory
+# Factories
 #====================================================================================	
 class factory(object):
     _l_controlLinks = []
@@ -910,7 +1256,7 @@ class factory(object):
         _res.append("       version: {0}".format(ATTR.get(_short,'version')))
         _res.append("module version: {0}".format(_mod.__version__))
         
-        for a in 'direction','position':
+        for a in 'side','position':
             if ATTR.get(_short,a):
                 _res.append("{0} : {1}".format(a,ATTR.get_enumValueString(_short,a)))
         
@@ -1205,10 +1551,12 @@ class factory(object):
             raise ValueError,"Referenced node."
         
         _str_func = '[{0}] factory.templateDelete'.format(_mBlock.p_nameBase)
+        
+
         _str_state = _mBlock.blockState
         
         if _mBlock.blockState != 'template':
-            raise ValueError,"{0} is not in template state. state: {1}".format(_str_func, _str_state)
+            log.error("{0} is not in template state. state: {1}".format(_str_func, _str_state))
         
         
         #>>>Children ------------------------------------------------------------------------------------
@@ -1219,6 +1567,10 @@ class factory(object):
         
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
+        
+        if _mBlock.getMessage('templateNull'):
+            _mBlock.templateNull.delete()
+        
         if 'templateDelete' in _mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule templateDelete call found...".format(_str_func))            
             _mBlockCall = _mBlockModule.templateDelete    
@@ -1627,12 +1979,12 @@ class factory(object):
         d_kws['name'] = str(_mBlock.blockType)
 
         #Direction
-        str_direction = None
-        if _mBlock.hasAttr('direction'):
-            str_direction = _mBlock.getEnumValueString('direction')
-        log.debug("|{0}| >> direction: {1}".format(_str_func,str_direction))            
-        if str_direction in ['left','right']:
-            d_kws['direction'] = str_direction
+        str_side = None
+        if _mBlock.hasAttr('side'):
+            str_side = _mBlock.getEnumValueString('side')
+        log.debug("|{0}| >> side: {1}".format(_str_func,str_side))            
+        if str_side in ['left','right']:
+            d_kws['side'] = str_side
         #Position
         str_position = None
         if _mBlock.hasAttr('position'):

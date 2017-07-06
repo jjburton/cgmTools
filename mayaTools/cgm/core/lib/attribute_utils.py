@@ -436,13 +436,11 @@ def set_standardFlags(node, attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz
 
     :parameters:
         node(str)
-        attr(str)
-        value(varied): -
-        forceLock -- lock after setting
-        **kws -- pass through for getAttr on certain types
+        attrs(str)
+        lock(bool)
+        visible(bool)
+        keyable(bool)
 
-    :returns
-        value(s)
     """ 
     _str_func = 'set_standardFlags'
     

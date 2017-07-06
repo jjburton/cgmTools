@@ -801,7 +801,8 @@ class ui(cgmUI.cgmGUI):
             except:
                 log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
                 return False                   
-            
+        
+        log.info(mBlock)
         RIGBLOCKS.contextual_method_call(mBlock,_contextMode,*args,**kws)
         self.uiUpdate_scrollList_blocks(mBlock)
         
@@ -974,8 +975,8 @@ class ui(cgmUI.cgmGUI):
         
         _l_report = ["Active: {0}".format(self._blockCurrent.p_nameShort), self._blockCurrent.blockType, self._blockCurrent.blockState.upper()]
         
-        if ATTR.get(_short,'direction'):
-            _l_report.append( ATTR.get_enumValueString(_short,'direction'))
+        if ATTR.get(_short,'side'):
+            _l_report.append( ATTR.get_enumValueString(_short,'side'))
         
         if self._blockCurrent.isReferenced():
             _l_report.insert(0,"Referenced!")
@@ -1049,6 +1050,7 @@ class ui(cgmUI.cgmGUI):
         _l_attrs = []
         for a in self._blockCurrent.getAttrs():
             try:
+                _type = ATTR.get_type(_short,a)
                 if not ATTR.is_hidden(_short,a) or ATTR.is_keyable(_short,a):
                     if a not in ['translateX','translateY','translateZ',
                                  'rotateX','rotateY','rotateZ',
@@ -1058,6 +1060,8 @@ class ui(cgmUI.cgmGUI):
                                 mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                    
                             else:
                                 mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get(_short,a)))"""        
+                elif _type in ['string'] and '_' in a:
+                    _l_attrs.append(a)
             except: pass
     
         _sidePadding = 25
@@ -1072,10 +1076,10 @@ class ui(cgmUI.cgmGUI):
             _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))            
     
             if _type not in ['bool']:#Some labels parts of fields
-                mUI.MelLabel(_hlayout,l="{0}:".format(a))   
+                mUI.MelLabel(_hlayout,l="{0} -".format(a))   
     
             if _type == 'bool':
-                mUI.MelCheckBox(_hlayout, l=":{0}".format(a),
+                mUI.MelCheckBox(_hlayout, l="- {0}".format(a),
                                 #annotation = "Copy values",		                           
                                 value = ATTR.get(_short,a),
                                 onCommand = cgmGEN.Callback(ATTR.set,_short,a,1),
@@ -1099,7 +1103,14 @@ class ui(cgmUI.cgmGUI):
                                       cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
                                                             self._d_attrFields[a]),
                                       )                
-    
+            elif _type == 'string':
+                self._d_attrFields[a] = mUI.MelTextField(_hlayout,w = 75,
+                                                         text = ATTR.get(_short,a),
+                                                          )
+                self._d_attrFields[a](e=True,
+                                      cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                            self._d_attrFields[a]),
+                                      )
             elif _type == 'enum':
                 _optionMenu = mUI.MelOptionMenu(_hlayout)
                 _optionMenu(e=True,

@@ -700,6 +700,45 @@ class cgmNode(r9Meta.MetaClass):
     def getMayaAttr(self,*a,**kws):
         return ATTR.get(self.mNode,*a,**kws)
     
+    def getMayaAttrString(self,attr=None, nameCall = 'short'):
+        return "{0}.{1}".format(getattr(NAMES,nameCall)(self.mNode), attr)
+    
+    def doConnectIn(self, attr=None, source = None, transferConnections = False, lock=False):
+        """   
+        Connect a source to a given attribute(s) on our node. You may only have one source. You may have multiple
+        attrs
+    
+        :parameters:
+            attr(list/string) - Can connect multiple at once
+            source(string) - What we're plugging in. If a value with no '.' is input, it will look for that attr on our node
+    
+        :returns
+            success(bool)
+        """         
+        if not VALID.isListArg(attr):
+            attr = [attr]
+        
+        _res = []  
+        for a in attr:    
+            if '.' in source:
+                _res.append( ATTR.connect(source, self.getMayaAttrString(a),transferConnections, lock) )          
+            else:
+                _res.append( ATTR.connect(self.getMayaAttrString(source), self.getMayaAttrString(a),transferConnections, lock) ) 
+        return _res
+    
+    def doConnectOut(self, attr=None, target = None, transferConnections = False, lock=False):
+        if not VALID.isListArg(target):
+            target = [target]
+        
+        _res = []    
+        for t in target:
+            if '.' in t:
+                _res.append( ATTR.connect(self.getMayaAttrString(attr),t,transferConnections, lock) ) 
+            else:
+                _res.append( ATTR.connect(self.getMayaAttrString(attr),self.getMayaAttrString(t),transferConnections, lock) )             
+            
+        return _res
+    
     def getEnumValueString(self,attr):
         return ATTR.get_enumValueString(self.mNode,attr)
     
@@ -738,6 +777,19 @@ class cgmNode(r9Meta.MetaClass):
                 log.error("{0}.{1} resetAttrs | error: {2}".format(obj, attr,err))   	
         return _reset
     
+    def setAttrFlags(self,*a,**kws):
+        """   
+        Multi set keyable,lock, visible, hidden, etc...
+    
+        :parameters:
+            node(str)
+            attrs(str)
+            lock(bool)
+            visible(bool)
+            keyable(bool)
+    
+        """        
+        return ATTR.set_standardFlags(self.mNode,*a,**kws)    
     
     def verifyAttrDict(self,d_attrs,**kws):
         if type(d_attrs) is not dict:
@@ -2370,6 +2422,10 @@ class cgmObject(cgmNode):
         """
         asdfas
         """
+        if kws and kws.get('nodeType') == 'joint':
+            if node == None:
+                mc.select(cl=True)
+                node = mc.joint(name = name)
         super(cgmObject, self).__init__(node = node, name = name,nodeType = 'transform')
 
         #>>> TO USE Cached instance ---------------------------------------------------------
@@ -6284,7 +6340,6 @@ def createMetaNode(mType = None, *args, **kws):
     _call = _r9ClassRegistry.get(mType)
     
     log.debug("|{0}| >> mType: {1} | class: {2}".format(_str_func,mType,_call))             
-    
   
     try:    
         return _call(*args,**kws)

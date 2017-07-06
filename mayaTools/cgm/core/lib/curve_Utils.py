@@ -631,7 +631,7 @@ def controlCurve_update(target = None):
 
     
 def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
-                        sizeMode = 'guess',size = 1, sizeMulti = None, direction = 'z+' ):
+                        sizeMode = 'guess',size = 1, sizeMulti = None, direction = 'z+'):
     """ 
     Get curve from a predefined set
 
@@ -681,6 +681,7 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
         #Color
         RIGGING.override_color(_curveShape,color)
         _res.append(_curveShape)
+                    
     return _res
 
 @cgmGeneral.Timer

@@ -34,11 +34,12 @@ import cgm.core.lib.distance_utils as DIST
 from cgm.core import cgm_Meta as cgmMeta
 
 #=============================================================================================================
-#>> Block data
+#>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.06142017'
 __autoTemplate__ = True
 
+#>>>Attrs ----------------------------------------------------------------------------------------------------
 l_attrsStandard = ['proxyType','hasRootJoint','moduleTarget']
 
 d_attrsToMake = {'puppetName':'string',
@@ -57,11 +58,10 @@ d_defaultSettings = {'version':__version__,
 #=============================================================================================================
 def define(self):
     _short = self.mNode
-    ATTR.set(_short,'translate',[0,0,0])
-    ATTR.set(_short,'rotate',[0,0,0])
-    ATTR.set_standardFlags(self.mNode,attrs=['translate','rotate','sx','sz'])
-    for a in ['x','z']:
-        ATTR.connect("{0}.sy".format(_short),"{0}.s{1}".format(_short,a))
+    self.translate = 0,0,0
+    self.rotate = 0,0,0
+    self.setAttrFlags(attrs=['translate','rotate','sx','sz'])
+    self.doConnectOut('sy',['sx','sz'])
     ATTR.set_alias(_short,'sy','blockScale')
     
 #=============================================================================================================

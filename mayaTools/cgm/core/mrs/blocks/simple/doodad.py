@@ -32,22 +32,21 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core import cgm_Meta as cgmMeta
 
 #=============================================================================================================
-#>> Block data
+#>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.06272017'
 __autoTemplate__ = True
 
-l_attrsStandard = ['direction','position',
+#>>>Attrs ----------------------------------------------------------------------------------------------------
+l_attrsStandard = ['side','position',
                    'proxyType','hasRootJoint',
                    'moduleTarget','basicShape']
-
-#d_attrsToMake = {'puppetName':'string'}
 
 d_defaultSettings = {'version':__version__,
                      'baseSize':1,
                      'attachPoint':'end',
                      'basicShape':'cube',
-                     'direction':'right',
+                     'side':'right',
                      'proxyType':1}
 
 

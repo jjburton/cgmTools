@@ -649,6 +649,69 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
                 mShape.overrideRGBColors = 0
             mShape.overrideColor = _color
 
+def getControlShader(direction = 'center', controlType = 'main', transparent = False):
+    _node = "cgmBlockShader_{0}{1}".format(direction,controlType.capitalize())
+    log.info(_node)
+    _set = False
+    if not mc.objExists(_node):
+        _node = mc.shadingNode('phong',n =_node, asShader = True)
+        _set = mc.sets(renderable=True, noSurfaceShader = True, em=True, name = _node + 'SG')
+        ATTR.connect("{0}.outColor".format(_node), "{0}.surfaceShader".format(_set))
+
+        _color = SHARED._d_side_colors[direction][controlType]
+        _rgb = SHARED._d_colors_to_RGB[_color]
+    
+        ATTR.set(_node,'colorR',_rgb[0])
+        ATTR.set(_node,'colorG',_rgb[1])
+        ATTR.set(_node,'colorB',_rgb[2])
+        
+        if transparent:
+            ATTR.set(_node,'ambientColorR',_rgb[0])
+            ATTR.set(_node,'ambientColorG',_rgb[1])
+            ATTR.set(_node,'ambientColorB',_rgb[2])        
+            ATTR.set(_node,'transparency',.8)
+            ATTR.set(_node,'incandescence',0)
+      
+    if not _set:
+        _set = ATTR.get_driven(_node,'outColor',True)[0] 
+        
+    return _node, _set
+    
+    
+    
+def colorControl(target = None, direction = 'center', controlType = 'main', pushToShapes = True, shaderSetup = True, transparent = False):
+    """
+    Sets the override color on shapes and more
+    
+    :parameters
+        target(str): What to color - shape or transform with shapes
+       
+
+    :returns
+        info(dict)
+    """   
+    
+    _str_func = "color_control"
+    if not target:raise ValueError,"|{0}|  >> Must have a target".format(_str_func)
+    l_targets = VALID.listArg(target)
+    
+    _color = SHARED._d_side_colors[direction][controlType]
+    _shader = False
+    _set = False
+   
+    for t in l_targets:
+        override_color(t,_color,pushToShapes=pushToShapes )
+        
+        if shaderSetup and VALID.get_mayaType(t) in ['nurbsSurface','mesh']:
+            if not _shader:
+                _shader, _set = getControlShader(direction,controlType,transparent)
+            mc.sets(t, e=True, forceElement = _set)        
+            
+    return True
+
+
+
+
 def duplicate_shape(shape):
     """
     mc.duplicate can't duplicate a shape. This provides for it
