@@ -345,7 +345,7 @@ def is_prerig(self):
 #=============================================================================================================
 #>> rig
 #=============================================================================================================
-def rig(self):    
+"""def rig(self):    
     if self.hasRootJoint:
         mJoint = self.doCreateAt('joint')
         mJoint.parent = self.moduleTarget.masterNull.skeletonGroup
@@ -380,7 +380,7 @@ def is_rig(self):
         for l in _l_missing:
             log.info("|{0}| >> {1}".format(_str_func,l))  
         return False
-    return True
+    return True"""
 
 
 

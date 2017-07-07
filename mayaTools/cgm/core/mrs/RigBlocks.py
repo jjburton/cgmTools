@@ -85,7 +85,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     _l_controlLinks = []
     _l_controlmsgLists = []
 
-    def __init__(self, node = None, blockType = None, *args,**kws):
+    def __init__(self, node = None, blockType = None, blockParent = None, *args,**kws):
         """ 
         The root of the idea of cgmRigBlock is to be a sizing mechanism and build options for
         our modular rigger.
@@ -106,7 +106,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #>>Verify or Initialize
         super(cgmRigBlock, self).__init__(node = node, name = blockType) 
         
-                
+        if blockParent is not None:
+            try:
+                self.p_blockParent = blockParent
+            except Exception,err:
+                log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
+                for arg in err.args:
+                    log.error(arg)                  
         #====================================================================================	
         #>>> TO USE Cached instance ---------------------------------------------------------
         if self.cached:
@@ -351,9 +357,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def getBlockChildren(self,asMeta=True):
         _str_func = 'getBlockChildren'
         #ml_nodeChildren = self.getChildMetaNodes(mType = ['cgmRigBlock'])
-        ml_nodeChildren = self.getChildMetaNodes(mAttrs = 'mClass=cgmRigBlock')
-        if self in ml_nodeChildren:
-            ml_nodeChildren.remove(self)
+        
+        #ml_nodeChildren = self.getChildMetaNodes(mAttrs = 'mClass=cgmRigBlock')
+        #if self in ml_nodeChildren:
+            #ml_nodeChildren.remove(self)
+        ml_nodeChildren = []
+        for link in ATTR.get_driven(self.mNode,'message') or []:
+            if link.endswith('.blockParent'):
+                ml_nodeChildren.append(cgmMeta.validateObjArg(link.split('.')[0],'cgmObject'))
             
         for mChild in ml_nodeChildren:
             if not issubclass(type(mChild),cgmRigBlock):
@@ -372,22 +383,22 @@ class cgmRigBlock(cgmMeta.cgmControl):
     
     p_blockChildren = property(getBlockChildren)
     
-    def getBlockHeirarchyBelow(self,asMeta=True):
+    def getBlockHeirarchyBelow(self,asMeta=True,report = False):
         _res = BLOCKGEN.walk_rigBlock_heirarchy(self,asMeta=asMeta)
         if not _res:
             return False
-        #cgmGEN.walk_dat(_res,"{0}.getBlockHeirarchyBelow...".format(self.mNode))
+        if report:cgmGEN.walk_dat(_res,"{0}.getBlockHeirarchyBelow...".format(self.mNode))
         if asMeta:
             return _res[self]
         return _res[self.mNode]
     
-    def printBlockHeirarchy(self,asMeta):
-        pass
 
     
     #========================================================================================================     
     #>>> Info 
     #========================================================================================================      
+    def getModuleStatus(self,state = None):
+        return get_blockModule_status(self.blockType, state)
     def getBlockDat_templateControls(self,report = False):
         _short = self.p_nameShort        
         _str_func = '[{0}] loadBlockDat'.format(_short)
@@ -430,7 +441,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return _res
     p_blockAttributes = property(getBlockAttributes)
     
-    def getBlockDat(self):
+    def getBlockDat(self,report = True):
         """
         Carry from Bokser stuff...
         """
@@ -495,7 +506,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 else:
                     _d['ud'][a] = ATTR.get(_short,a)
         
-        cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
+        if report:cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
         return _d
         
     def saveBlockDat(self):
@@ -740,7 +751,52 @@ class cgmRigBlock(cgmMeta.cgmControl):
             list of results(list)
         """        
         return contextual_method_call(self, context, func, *args, **kws)
+    
+    def string_methodCall(self, func = 'getShortName', *args,**kws):
+        """
+        Function to call a self function by string. For menus and other reasons
+        """
+        _str_func = 'string_methodCall'
+        _short = self.p_nameShort
+        
+        if not args:
+            _str_args = ''
+        else:
+            _str_args = ','.join(a for a in args) + ','
+                
+        if not kws:
+            kws = {}
+            _kwString = ''  
+        else:
+            _l = []
+            for k,v in kws.iteritems():
+                _l.append("{0}={1}".format(k,v))
+            _kwString = ','.join(_l)  
 
+        try:
+            log.debug("|{0}| >> On: {1}".format(_str_func,_short))     
+            print("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
+            res = getattr(self,func)(*args,**kws) or None
+        except Exception,err:
+            log.error(cgmGEN._str_hardLine)
+            log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+            log.error("block: {0} | func: {1}".format(_short,func))            
+            if args:
+                log.error("Args...")
+                for a in args:
+                    log.error("      {0}".format(a))
+            if kws:
+                log.error(" KWS...".format(_str_func))
+                for k,v in kws.iteritems():
+                    log.error("      {0} : {1}".format(k,v))   
+            log.error("Errors...")
+            for a in err.args:
+                log.error(a)
+            log.error(cgmGEN._str_subLine)
+            raise Exception,err
+        
+        print res
+        return res
 
 
 class handleFactory(object):
@@ -2364,6 +2420,112 @@ def is_blockModule_valid(blockType):
     if _res:return _buildModule
     return _res
 
+
+_l_requiredModuleDat = ['__version__',
+                        'template','is_template','templateDelete',
+                        'prerig','is_prerig','prerigDelete',
+                        'rig','is_rig','rigDelete']
+
+_d_requiredModuleDat = {'define':['__version__'],
+                        'template':['template','is_template','templateDelete'],
+                        'prerig':['prerig','is_prerig','prerigDelete'],
+                        'rig':['rig','is_rig','rigDelete']}
+
+
+def get_blockModule_status2(blockType):
+    """
+    Function to check if a given blockType  is defineable, prerigable
+    
+    """      
+    _str_func = 'get_blockModule_status'
+    _res = {}
+    
+    _buildModule = get_blockModule(blockType)
+    if not _buildModule:
+        return False    
+    
+    for state in ['define','template','prerig','rig']:
+        l_tests = _d_requiredModuleDat[state]
+        _good = True
+        for test in l_tests:
+            if not getattr(_buildModule, test, False):
+                log.warning("|{0}| >> [{1}] Missing data: {2}".format(_str_func,_blockType,a))
+                _good = False  
+        _res[state] = _good
+        
+        if state == 'define':
+            print("|{0}| >> [{1}] version: {2}".format(_str_func,_blockType,_buildModule.get('__version__',False)))            
+        
+    return _res
+    
+def get_blockModule_status(blockModule, state = None):
+    """
+    Function to check if a blockModule is buildable by state or given a state if that one is okay
+    
+    """
+    _str_func = 'get_blockModule_status'  
+    
+    #_buildModule = _d_blockTypes[blockType]
+    
+    if VALID.stringArg(blockModule):
+        _buildModule = get_blockModule(blockModule)
+    
+    else:
+        _buildModule = blockModule
+        
+    try:
+        _blockType = _buildModule.__name__.split('.')[-1]
+    except:
+        log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,_buildModule))        
+        return False
+    
+    if state is None:
+        _res = {}        
+        for state in ['define','template','prerig','rig']:
+            l_tests = _d_requiredModuleDat[state]
+            _good = True
+            print("|{0}| >> [{1}]{2}".format(_str_func,_blockType,state) + cgmGEN._str_subLine)            
+            for test in l_tests:
+                if not getattr(_buildModule, test, False):
+                    print("|{0}| >> [{1}] {2}: Fail".format(_str_func,_blockType,test))
+                    _good = False  
+                else:
+                    print("|{0}| >> [{1}] {2}: Pass".format(_str_func,_blockType,test))                    
+            _res[state] = _good
+            
+            if state == 'define':
+                print("|{0}| >> [{1}] version: {2}".format(_str_func,_blockType,_buildModule.__dict__.get('__version__',False)))            
+    
+    else:
+        l_tests = _d_requiredModuleDat[state]
+        _res = True
+        for test in l_tests:
+            if not getattr(_buildModule, test, False):
+                print("|{0}| >> [{1}] Missing {3} data: {2}".format(_str_func,_blockType,test,state))
+                _res = False   
+                
+        if state == 'define':
+            print("|{0}| >> [{1}] version: {2}".format(_str_func,_blockType,_buildModule.__dict__.get('__version__',False)))                    
+        
+    return _res
+    
+    """
+    _keys = _buildModule.__dict__.keys()
+    _l_missing = []
+    for a in BLOCKSHARE._l_requiredModuleDat:
+        if a not in _keys:
+            _l_missing.append(a)
+            _res = False
+            
+    if _l_missing:
+        log.warning("|{0}| >> [{1}] Missing data...".format(_str_func,_blockType))
+        for i,a in enumerate(_l_missing):
+            log.warning("|{0}| >> {1} : {2}".format(_str_func,i,a))  """
+            
+    #if _res:return _buildModule
+    return _res
+    
+
 def is_blockType_valid(blockType):
     """
     Function to check if a given blockType is valid
@@ -2441,7 +2603,7 @@ def contextual_method_call(mBlock, context = 'self', func = 'getShortName',*args
             if kws:
                 log.error(" KWS...".format(_str_func))
                 for k,v in kws.iteritems():
-                    log.error("      {1} : {2}".format(k,v))   
+                    log.error("      {0} : {1}".format(k,v))   
             log.error("Errors...")
             for a in err.args:
                 log.error(a)

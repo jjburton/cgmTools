@@ -166,8 +166,8 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
         if mBlock.hasAttr('puppetName'):
             _l_report.append(mBlock.puppetName)   
         #_l_report.append(ATTR.get(_short,'blockState'))
-        _l_report.append("[{0}]".format(mBlock.getState()))
-
+        _l_report.append("[{0}]".format(mBlock.getState().upper()))
+        
         """
         if mObj.hasAttr('baseName'):
             _l_report.append(mObj.baseName)                

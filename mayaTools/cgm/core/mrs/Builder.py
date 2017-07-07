@@ -646,8 +646,6 @@ class ui(cgmUI.cgmGUI):
         _str_context = "Context: {0} {1}".format(self._l_contextStartModes[self.var_contextStartMode.value],
                                         self._l_contextModes[self.var_contextMode.value])
         #c = cgmGEN.Callback(self.uiFunc_contextualCall,'select',None,**{}))
-        mUI.MelMenuItem(self.uiMenu_block, l="Context: {0}".format(_str_context),
-                        en=False)  
         
         
         _d_ui_annotations = {'select':"Select rigBlocks in maya from ui. Context: {0}".format(_str_context),
@@ -657,7 +655,17 @@ class ui(cgmUI.cgmGUI):
                              'select':"Select the contextual blocks. Context: {0}".format(_str_context),
                              'select':"Select the contextual blocks. Context: {0}".format(_str_context),
                              'select':"Select the contextual blocks. Context: {0}".format(_str_context),
-                             'verify':"Verify the attributes rigBlocks. Context: {0}".format(_str_context)}
+                             'verify':"Verify the attributes rigBlocks. Context: {0}".format(_str_context)}        
+        
+        mUI.MelMenuItem(self.uiMenu_block, l="Clear active",
+                        en = bool(self._blockCurrent),
+                        ann = _d_ui_annotations.get('Clear Active',"NEED select"),
+                        c = cgmGEN.Callback(self.uiFunc_block_clearActive))
+        
+        
+        
+        mUI.MelMenuItem(self.uiMenu_block, l="Context: {0} ---".format(_str_context),
+                        en=False)  
         
         
         mUI.MelMenuItem(self.uiMenu_block, l="Select",
@@ -731,7 +739,13 @@ class ui(cgmUI.cgmGUI):
     def uiFunc_block_build(self, blockType = None):
         _str_func = 'uiFunc_block_build'
         
-        _mBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = blockType)
+        #index = _indices[0]
+        #_mBlock = self._ml_blocks[_index]
+        mActiveBlock = None
+        if self._blockCurrent:
+            mActiveBlock = self._blockCurrent.mNode      
+        
+        _mBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = blockType, blockParent = mActiveBlock)
         #self._blockFactory.create_rigBlock(blockType)
         
         log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))        
@@ -770,10 +784,13 @@ class ui(cgmUI.cgmGUI):
                 if not _mActiveBlock:
                     log.error("|{0}| >> mode: {1} requires active block".format(_str_func,_mode)) 
                     return
-                _mBlock.p_blockParent = _mBlock
+                _mBlock.p_blockParent = _mActiveBlock
+            elif  _mode == 'clearParentBlock':
+                _mBlock.p_blockParent = False
+
                 
                 
-        self.uiUpdate_scrollList_blocks(mBlock)
+        self.uiUpdate_scrollList_blocks(_mBlock)
         
     def uiFunc_contextualCall(self,*args,**kws):
         _str_func = ''
@@ -802,10 +819,9 @@ class ui(cgmUI.cgmGUI):
                 log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
                 return False                   
         
-        log.info(mBlock)
         RIGBLOCKS.contextual_method_call(mBlock,_contextMode,*args,**kws)
         self.uiUpdate_scrollList_blocks(mBlock)
-        
+        self.uiUpdate_blockDat()
         
             
     def uiScrollList_block_select(self): 
@@ -850,7 +866,10 @@ class ui(cgmUI.cgmGUI):
                         ann = 'Set parent block to active block: {0}'.format(_str_activeBlock),
                         c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'setParentToActive'}),
                         label = "To active")        
-        
+        mUI.MelMenuItem(_menu_parent,
+                        ann = 'Clear parent block',
+                        c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'clearParentBlock'}),
+                        label = "Clear")            
         
         #>>Utilities ------------------------------------------------------------------------------------------       
         mUI.MelMenuItem(_popUp,
@@ -860,8 +879,25 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(_popUp,
                         label = "Verify",
                         en=True,
-                        c=cgmGEN.Callback(self._blockFactory.verify))          
+                        c=cgmGEN.Callback(_mBlock.verify))   
         
+        #>>Queries -----------------------------------------------------------------------------------------------
+        _queries = mUI.MelMenuItem(_popUp, subMenu = True,
+                                   label = "Queries",
+                                   en=True,)   
+        
+        _d_queries = {'getBlockChildren':{'asMeta':False},
+                      'getBlockParents':{'asMeta':False},
+                      'getBlockHeirarchyBelow':{'asMeta':False,'report':True},
+                      'printBlockDat':{},
+                      'getModuleStatus':{},
+                      'getBlockDat':{'report':True}}
+        for q,d_kws in _d_queries.iteritems():
+            mUI.MelMenuItem(_queries,
+                            label = q,
+                            c=cgmGEN.Callback( _mBlock.string_methodCall, q, **d_kws) )             
+        
+        return
         #>>Context ============================================================================================
         _menu_context = mUI.MelMenuItem(_popUp,subMenu=True,
                                        label = "Context: {0}".format(self._l_contextModes[self.var_contextMode.value]))
@@ -973,7 +1009,7 @@ class ui(cgmUI.cgmGUI):
         #>>>Inspector ======================================================================================
         #>>>Report -----------------------------------------------------------------------------------------
         
-        _l_report = ["Active: {0}".format(self._blockCurrent.p_nameShort), self._blockCurrent.blockType, self._blockCurrent.blockState.upper()]
+        _l_report = ["Active: {0}".format(self._blockCurrent.p_nameShort), self._blockCurrent.blockType]
         
         if ATTR.get(_short,'side'):
             _l_report.append( ATTR.get_enumValueString(_short,'side'))
@@ -1060,7 +1096,9 @@ class ui(cgmUI.cgmGUI):
                                 mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                    
                             else:
                                 mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get(_short,a)))"""        
-                elif _type in ['string'] and '_' in a:
+                elif _type in ['string'] and '_' in a and not a.endswith('dict'):
+                    _l_attrs.append(a)
+                elif a in ['puppetName']:
                     _l_attrs.append(a)
             except: pass
     
