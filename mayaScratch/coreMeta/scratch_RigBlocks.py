@@ -1,4 +1,6 @@
 from cgm.core.mrs import RigBlocks as RBLOCKS
+import cgm.core.mrs.RigBlocks as BLOCKS
+
 import cgm.core.cgm_Meta as cgmMeta
 
 reload(RBLOCKS)

@@ -2734,8 +2734,8 @@ def datList_get(node = None, attr = None, mode = None, dataAttr = None, cull = F
 
     if cull:
         l_return = [o for o in l_return if o]
-        #if asMeta: ml_return = [o for o in ml_return if o]
-    
+    if l_return.count(False) == len(l_return):
+        return []
     return l_return
 
 def datList_getAttrs(node = None, attr = None):

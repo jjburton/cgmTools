@@ -26,7 +26,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 # From cgm ==============================================================
@@ -47,12 +47,12 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
-from cgm.core.mrs.lib import shared_dat as BLOCKSHARED
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
 reload(BUILDERUTILS)
 from cgm.core.lib import nameTools
-reload(BLOCKSHARED)
+reload(BLOCKSHARE)
 
 get_from_scene = BLOCKGEN.get_from_scene
 
@@ -388,6 +388,35 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #========================================================================================================     
     #>>> Info 
     #========================================================================================================      
+    def getBlockDat_templateControls(self,report = False):
+        _short = self.p_nameShort        
+        _str_func = '[{0}] loadBlockDat'.format(_short)
+        
+        _ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+        if not _ml_templateHandles:
+            return False
+        
+        _ml_controls = [self] + _ml_templateHandles
+        
+        _l_orientHelpers = []
+        for i,mObj in enumerate(_ml_templateHandles):
+            log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
+            if mObj.getMessage('orientHelper'):
+                _l_orientHelpers.append(mObj.orientHelper.rotate)
+            else:
+                _l_orientHelpers.append(False)
+                
+        _d = {'positions':[mObj.p_position for mObj in _ml_templateHandles],
+              'orientations':[mObj.p_orient for mObj in _ml_templateHandles],
+              'scales':[mObj.scale for mObj in _ml_templateHandles],
+              'orientHelpers':_l_orientHelpers}
+        
+        if self.getMessage('orientHelper'):
+            _d['rootOrientHelper'] = self.orientHelper.rotate
+        
+        if report:cgmGEN.walk_dat(_d,'[{0}] template blockDat'.format(self.p_nameShort))
+        return _d
+    
     def getBlockAttributes(self):
         """
         keyable and unlocked attributes
@@ -395,7 +424,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _res = []
         _short = self.mNode
         for attr in self.getAttrs(ud=True):
-            if ATTR.is_keyable(_short,attr):#and not ATTR.is_locked(_short,attr)
+            _type = ATTR.get_type(_short,attr)
+            if not ATTR.is_hidden(_short,attr):#and not ATTR.is_locked(_short,attr)
                 _res.append(attr)
         return _res
     p_blockAttributes = property(getBlockAttributes)
@@ -407,6 +437,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
         _ml_controls = self.getControls(True)
         _short = self.p_nameShort
+        _blockState_int = self.getState(False)
         #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
         _d = {#"name":_short, 
               "blockType":self.blockType,
@@ -426,6 +457,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
               "orientations":[mObj.p_orient for mObj in _ml_controls],
               "scale":[mObj.scale for mObj in _ml_controls],
               "isSkeletonized":self.isSkeletonized(),
+              #...these will be indexed against the number of handles
               #"templatePositions":[x.name for x in self.templatePositions or []], 
               #"templateOrientation":[x.name for x in self.templateOrientation or []], 
               #"templateNodes":[x.name for x in self.templateNodes or []], 
@@ -449,10 +481,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
         else:
             _d['size'] = self.baseSize
             
+        if _blockState_int >= 1:
+            _d['template'] = self.getBlockDat_templateControls()
+            
         
         for a in self.getAttrs(ud=True):
             if a not in _l_udMask:
-                if ATTR.get_type(_short,'enum'):
+                _type = ATTR.get_type(_short,a)
+                if _type in ['message']:
+                    continue
+                elif _type == 'enum':
                     _d['ud'][a] = ATTR.get_enumValueString(_short,a)                    
                 else:
                     _d['ud'][a] = ATTR.get(_short,a)
@@ -462,9 +500,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
     def saveBlockDat(self):
         self.blockDat = self.getBlockDat()
+        
     def resetBlockDat(self):
         #This needs more work.
         self._factory.verify(self.blockType, forceReset=True) 
+        
+    def printBlockDat(self):
+        cgmGEN.walk_dat(self.blockDat,'[{0}] blockDat'.format(self.p_nameShort))
+        
     def loadBlockDat(self,blockDat = None):
         _short = self.p_nameShort        
         _str_func = '[{0}] loadBlockDat'.format(_short)
@@ -480,7 +523,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if _blockType != self.blockType:
             raise ValueError,"|{0}| >> blockTypes don't match. self: {1} | blockDat: {2}".format(_str_func,self.blockType,_blockType) 
         
-        #.>>>..UD ----------------------------------------------------------------------------------------------------
+        #.>>>..UD ====================================================================================
         log.debug("|{0}| >> ud...".format(_str_func)+ '-'*80)
         _ud = blockDat.get('ud')
         if not blockDat.get('ud'):
@@ -500,7 +543,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     for arg in err.args:
                         log.error(arg)                      
 
-        #>>State ----------------------------------------------------------------------------------------------------
+        #>>State ====================================================================================
         log.debug("|{0}| >> State".format(_str_func) + '-'*80)
         _state = blockDat.get('blockState')
         _current = self.getState()
@@ -508,7 +551,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             log.debug("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current,_state)) 
             self.p_blockState = _state
             
-        #>>Controls ----------------------------------------------------------------------------------------------------
+        #>>Controls ====================================================================================
         log.debug("|{0}| >> Controls".format(_str_func)+ '-'*80)
         _pos = blockDat.get('positions')
         _orients = blockDat.get('orientations')
@@ -526,8 +569,43 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     _a = 's'+'xyz'[ii]
                     if not self.isAttrConnected(_a):
                         ATTR.set(_short,_a,v)
+                        
+        #>>Template Controls ====================================================================================
+        _int_state = self.getState(False)
+        if _int_state > 0:
+            log.info("|{0}| >> template dat....".format(_str_func))             
+            _d_template = blockDat.get('template',False)
+            if not _d_template:
+                log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+            else:
+                _ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+                if not _ml_templateHandles:
+                    log.error("|{0}| >> No template handles found".format(_str_func))
+                else:
+                    _posTempl = _d_template.get('positions')
+                    _orientsTempl = _d_template.get('orientations')
+                    _scaleTempl = _d_template.get('scales')
+                    if len(_ml_templateHandles) != len(_posTempl):
+                        log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
+                    else:
+                        for i,mObj in enumerate(_ml_templateHandles):
+                            log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
+                            mObj.p_position = _posTempl[i]
+                            mObj.p_orient = _orientsTempl[i]
+                            _tmp_short = mObj.mNode
+                            for ii,v in enumerate(_scaleTempl[i]):
+                                _a = 's'+'xyz'[ii]
+                                if not self.isAttrConnected(_a):
+                                    ATTR.set(_tmp_short,_a,v)     
+                if _d_template.get('rootOrientHelper'):
+                    if self.getMessage('orientHelper'):
+                        self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
+                    else:
+                        log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
+                        
+                    
 
-        #>>Generators ----------------------------------------------------------------------------------------------------
+        #>>Generators ====================================================================================
         log.debug("|{0}| >> Generators".format(_str_func)+ '-'*80)
         _d = {"isSkeletonized":[self.isSkeletonized,self.doSkeletonize,self.deleteSkeleton]}
         
@@ -557,13 +635,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _str_func = '[{0}] getState'.format(self.p_nameShort)
         #if asString:
         #    return self.blockState
-        #return BLOCKSHARED._l_blockStates.index(self.blockState)
+        #return BLOCKSHARE._l_blockStates.index(self.blockState)
         _blockModule = get_blockModule(self.blockType)
         _goodState = False
-        _l_blockStates = BLOCKSHARED._l_blockStates
+        _l_blockStates = BLOCKSHARE._l_blockStates
         
         _state = self.blockState
-        if _state not in BLOCKSHARED._l_blockStates:
+        if _state not in BLOCKSHARE._l_blockStates:
             log.debug("|{0}| >> Failed a previous change: {1}. Reverting to previous".format(_str_func,_state))                    
             _state = _state.split('>')[0]
             self.blockState = _state
@@ -646,8 +724,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #========================================================================================================     
     #>>> Utilities 
     #========================================================================================================      
-    def asHandleFactory(self):
-        return handleFactory(self.mNode)
+    def asHandleFactory(self,*a,**kws):
+        return handleFactory(*a,**kws)
     def contextual_methodCall(self, context = 'self', func = 'getShortName',*args,**kws):
         """
         Function to contextually call a series of rigBlocks and run a methodCall on them with 
@@ -669,7 +747,7 @@ class handleFactory(object):
     _l_controlLinks = []
     _l_controlmsgLists = []	
 
-    def __init__(self, node = None, baseShape = None,  baseSize = 1,
+    def __init__(self, node = None, baseShape = 'square',  baseSize = 1,
                  shapeDirection = 'z+', aimDirection = 'z+', upDirection = 'y+',
                  rigBlock = None, *a,**kws):
         """
@@ -685,7 +763,9 @@ class handleFactory(object):
             #log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
 
         self._mTransform = None
-
+        self._baseShape = baseShape
+        self._baseSize = baseSize
+        
         #if node is None:
             #self._mTransform = cgmMeta.createMetaNode('cgmObject',nodeType = 'transform', nameTools = baseShape)
             #self.rebuildSimple(baseShape,baseSize,shapeDirection)
@@ -737,7 +817,7 @@ class handleFactory(object):
         if self._mTransform.getShapes():
             mc.delete(self._mTransform.getShapes())     
             
-        for link in ['loftShape']:
+        for link in ['loftCurve']:
             _buffer = self._mTransform.getMessage(link)
             if _buffer:
                 mc.delete(_buffer)
@@ -766,24 +846,30 @@ class handleFactory(object):
             target = self._mTransform.mNode
         RIGGING.colorControl(target,_side,_controlType,transparent = True)
             
+    
     def get_baseDat(self, baseShape = None, baseSize = None, shapeDirection = None):
         _str_func = 'get_baseDat'
         
-        if not self._mTransform:
-            log.error("|{0}| >> Must have an handle loaded".format(_str_func))                                
-            return False
+    
+        if not self._mTransform or self._mTransform.mNode is None:
+            if baseShape:
+                name=baseShape
+            else:
+                name='handleFactory_shape'
+            self._mTransform = cgmMeta.createMetaNode('cgmObject', name = name, nodeType = 'transform',)
+            log.error("|{0}| >> Must have an handle loaded. One Generated".format(_str_func))                                
         
-        if self._mTransform.hasAttr('baseShape'):
-            _baseShape = self._mTransform.baseShape
-        elif baseShape:
+        if baseShape:
             _baseShape = baseShape
+        elif self._mTransform.hasAttr('baseShape'):
+            _baseShape = self._mTransform.baseShape
         else:
             _baseShape = 'square'
             
-        if self._mTransform.hasAttr('baseSize'):
-            _baseSize = self._mTransform.baseSize
-        elif baseSize is not None:
+        if baseSize is not None:
             _baseSize = baseSize
+        elif self._mTransform.hasAttr('baseSize'):
+            _baseSize = self._mTransform.baseSize
         else:
             _baseSize = 1.0
             
@@ -797,7 +883,7 @@ class handleFactory(object):
         
         _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
         TRANS.snap(_crv, self._mTransform.mNode) 
-        mCrv = cgmMeta.validateObjArg(_crv)
+        mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
         
         #...lossy
         _lossy = self._mTransform.getScaleLossy()
@@ -807,15 +893,43 @@ class handleFactory(object):
 
         return mCrv
     
-    def rebuildAsLoftTarget(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
-        self.cleanShapes()      
-        
+    def addOrientHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z-', setAttrs = {}):
         _baseDat = self.get_baseDat(baseShape,baseSize)
         _baseShape = _baseDat[0]
-        _baseSize = _baseDat[1]    
+        _baseSize = _baseDat[1]
         
-        _offsetSize = _baseSize + 1.1
-        _dist = self._mTransform.baseSize *.01
+        mHandle = self._mTransform
+        _bfr = mHandle.getMessage('orientHelper')
+        if _bfr:
+            mc.delete(_bfr)
+
+        
+        #Orientation helper ======================================================================================
+        _orientHelper = CURVES.create_controlCurve(mHandle.mNode,'arrowSingle',  direction= shapeDirection, sizeMode = 'fixed', size = _baseSize * .75)
+        mOrientCurve = cgmMeta.validateObjArg(_orientHelper, mType = 'cgmObject',setClass=True)
+        
+        mOrientCurve.doStore('cgmType','orientHandle')
+        mOrientCurve.doName()    
+        
+        mOrientCurve.p_parent = mHandle
+        
+        for a,v in setAttrs.iteritems():
+            ATTR.set(mOrientCurve.mNode, a, v)
+            
+        RIGGING.match_transform(mOrientCurve.mNode, mHandle)
+        mOrientCurve.connectParentNode(mHandle.mNode,'handle','orientHelper')      
+
+        return mOrientCurve
+        
+    def rebuildAsLoftTarget(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
+        _baseDat = self.get_baseDat(baseShape,baseSize)
+        _baseShape = _baseDat[0]
+        _baseSize = _baseDat[1]   
+        
+        self.cleanShapes()      
+        
+        _offsetSize = _baseSize * 1.3
+        _dist = _baseSize *.05
         _mShapeDirection = VALID.simpleAxis(shapeDirection)
         
         #>>> make our offset shapes to control our handle
@@ -842,9 +956,9 @@ class handleFactory(object):
         for s in mCrv.getShapes(asMeta=True):
             s.overrideEnabled = 1
             s.overrideDisplayType = 2
-        mCrv.connectParentNode(self._mTransform,'handle','loftShape')
+        mCrv.connectParentNode(self._mTransform,'handle','loftCurve')
             
-            
+        return mCrv
             
             
             
@@ -1108,8 +1222,8 @@ class factory(object):
         _l_standard = _mod.__dict__.get('l_attrsStandard',[])
         log.debug("|{0}| >> standard: {1} ".format(_str_func,_l_standard))                        
         for k in _l_standard:
-            if k in BLOCKSHARED._d_attrsTo_make.keys():
-                _d[k] = BLOCKSHARED._d_attrsTo_make[k]
+            if k in BLOCKSHARE._d_attrsTo_make.keys():
+                _d[k] = BLOCKSHARE._d_attrsTo_make[k]
         
         for k,v in d_attrsFromModule.iteritems():
             if k in _d.keys():
@@ -1444,7 +1558,7 @@ class factory(object):
                                   'rig':False,#rigDelete,
                                   }        
         stateArgs = BLOCKGEN.validate_stateArg(state)
-        _l_moduleStates = BLOCKSHARED._l_blockStates
+        _l_moduleStates = BLOCKSHARE._l_blockStates
         
         if not stateArgs:
             return False
@@ -1574,16 +1688,15 @@ class factory(object):
         if 'templateDelete' in _mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule templateDelete call found...".format(_str_func))            
             _mBlockCall = _mBlockModule.templateDelete    
+            _mBlockCall(_mBlock)
             
         if 'define' in _mBlockModule.__dict__.keys():
-                    log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
-                    _mBlockCall = _mBlockModule.define   
-                    
+            log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
+            _mBlockCall = _mBlockModule.define   
+            _mBlockCall(_mBlock)
+            
         #Delete our shapes...
         mc.delete(_mBlock.getShapes())
-        
-        if _mBlockCall:
-            _mBlockCall(_mBlock)
             
         _mBlock.blockState = 'define'
         
@@ -2216,7 +2329,7 @@ def is_buildable(blockModule):
     
     _keys = _buildModule.__dict__.keys()
     _l_missing = []
-    for a in BLOCKSHARED._l_requiredModuleDat:
+    for a in BLOCKSHARE._l_requiredModuleDat:
         if a not in _keys:
             _l_missing.append(a)
             _res = False
@@ -2243,7 +2356,7 @@ def is_blockModule_valid(blockType):
     
     _keys = _buildModule.__dict__.keys()
     
-    for a in BLOCKSHARED._l_requiredModuleDat:
+    for a in BLOCKSHARE._l_requiredModuleDat:
         if a not in _keys:
             log.warning("|{0}| >> [{1}] Missing data: {2}".format(_str_func,_blockType,a))
             _res = False

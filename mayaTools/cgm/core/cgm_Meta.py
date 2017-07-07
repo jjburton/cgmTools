@@ -895,7 +895,11 @@ class cgmNode(r9Meta.MetaClass):
         except:pass
         
         _res = ATTR.msgList_get(self.mNode,*a,**kws)
-        if _asMeta:
+        
+        #if not _res:
+            #return []
+
+        if _res and _asMeta:
             return validateObjListArg(_res)
         return _res
 
@@ -6324,8 +6328,8 @@ def asMeta(*args,**kws):
                 log.error("kw: {0}".format(items))	
         log.error("...cgmMeta.asMeta failure --------------------------------------------------")
         raise Exception,error
-    
-def createMetaNode(mType = None, *args, **kws):
+createMetaNode = r9Meta.createMetaNode
+def createMetaNodeBAK(mType = None, *args, **kws):
     _str_func = 'createMetaNode'
     
     _r9ClassRegistry = r9Meta.getMClassMetaRegistry()

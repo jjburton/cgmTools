@@ -28,9 +28,10 @@ log.setLevel(logging.INFO)
 #_d_moduleRoots = {'cgmMeta':"cgm.core.tests.test_cgmMeta.test",
 
 
-_d_modules = {'cgmMeta':['base','mClasses','PuppetMeta','RigBlocks'],
-              'coreLib':['ATTR','VALID','NODEFACTORY']}
-_l_all_order = ['coreLib','cgmMeta']
+_d_modules = {'cgmMeta':['base','mClasses','PuppetMeta'],
+              'coreLib':['ATTR','VALID','NODEFACTORY'],
+              'MRS':['RigBlocks']}
+_l_all_order = ['coreLib','cgmMeta','MRS']
 
 
 def main(tests = 'all', verbosity = 1, testCheck = False, **kwargs):	
