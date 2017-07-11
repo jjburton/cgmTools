@@ -293,7 +293,7 @@ class go(object):
 
                 try:ml_uprLidHandles = self._mi_rigNull.msgList_get('handleJoints_upr')
                 except Exception,error:raise Exception,"Missing uprlid handleJoints | error: %s "%(error)
-                try:ml_lwrLidHandles = self._mi_rigNull.msgList_getMessage('handleJoints_lwr')
+                try:ml_lwrLidHandles = self._mi_rigNull.msgList_get('handleJoints_lwr',asMeta = False)
                 except Exception,error:raise Exception,"Missing lwrlid handleJoints | error: %s "%(error)  
                 log.info("%s >>> ml_uprLidHandles : %s "%(_str_funcName,[mObj.mNode for mObj in ml_uprLidHandles]))	
                 log.info("%s >>> ml_lwrLidHandles : %s"%(_str_funcName,[mObj.mNode for mObj in ml_lwrLidHandles]))		
@@ -331,7 +331,7 @@ class go(object):
 
             self.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in ml_handleCrvs]
             self.md_ReturnControls['ml_handleCurves'] = ml_handleCrvs
-            self._mi_rigNull.msgList_connect(ml_handleCrvs,'handleCurves','owner')
+            self._mi_rigNull.msgList_connect('handleCurves',ml_handleCrvs,'owner')
             log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 
         except Exception,error:
@@ -683,7 +683,7 @@ class go(object):
 
             self.d_returnControls['segmentFK'] = l_segmentControls 
             self.md_ReturnControls['segmentFK'] = ml_segmentControls
-            self._mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFK','owner')
+            self._mi_rigNull.msgList_connect('shape_segmentFK',ml_segmentControls,'owner')
             log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 
         except Exception,error:
@@ -801,7 +801,7 @@ class go(object):
 
             self.d_returnControls['segmentFK_Loli'] = l_segmentControls 
             self.md_ReturnControls['segmentFK_Loli'] = ml_segmentControls
-            self._mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentFKLoli','owner')
+            self._mi_rigNull.msgList_connect('shape_segmentFKLoli',ml_segmentControls,'owner')
             log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         	    
         except Exception,error:
             log.error("build_segmentFKLoliHandles fail]{%s}"%error) 
@@ -1248,7 +1248,7 @@ class go(object):
     
                 self.d_returnControls['segmentIK'] = l_segmentControls 
                 self.md_ReturnControls['segmentIK'] = ml_segmentControls
-                self._mi_rigNull.msgList_connect(ml_segmentControls,'shape_segmentIK','owner')
+                self._mi_rigNull.msgList_connect('shape_segmentIK',ml_segmentControls,'owner')
     
                 if len(self.l_segments)>2:
                     objects = self.l_controlSnapObjects[-2:]
@@ -2037,7 +2037,7 @@ class go(object):
 
         self.d_returnControls['segmentIK'] = l_segmentControls 
         self.md_ReturnControls['segmentIK'] = ml_SegmentControls
-        self._mi_rigNull.msgList_connect(ml_SegmentControls,'shape_segmentIK','owner')
+        self._mi_rigNull.msgList_connect('shape_segmentIK',ml_SegmentControls,'owner')
         log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 
         #except Exception,error:
@@ -2396,11 +2396,11 @@ def shapeCast_eyebrow(*args,**kws):
     def _connect_(self): 
         self.mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
         self.mi_go.md_ReturnControls['ml_handleCurves'] = self.ml_handles
-        self._mi_rigNull.msgList_connect(self.ml_handleCrvs,'shape_handleCurves','owner')
+        self._mi_rigNull.msgList_connect('shape_handleCurves',self.ml_handleCrvs,'owner')
 
         self.mi_go.d_returnControls['l_pinCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
         self.mi_go.md_ReturnControls['ml_pinCurves'] = self.ml_handles
-        self._mi_rigNull.msgList_connect(self.ml_pinHandles,'shape_pinCurves','owner')
+        self._mi_rigNull.msgList_connect('shape_pinCurves',self.ml_pinHandles,'owner')
 
         return True
 
@@ -2944,11 +2944,11 @@ def shapeCast_mouthNose(*args,**kws):
         def _connect_(self): 
             self.mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
             self.mi_go.md_ReturnControls['ml_handleCurves'] = self.ml_handles
-            self._mi_rigNull.msgList_connect(self.ml_handleCrvs,'shape_handleCurves','owner')
+            self._mi_rigNull.msgList_connect('shape_handleCurves',self.ml_handleCrvs,'owner')
 
             self.mi_go.d_returnControls['l_pinCurves'] = [mObj.p_nameShort for mObj in self.ml_handles]
             self.mi_go.md_ReturnControls['ml_pinCurves'] = self.ml_handles
-            self._mi_rigNull.msgList_connect(self.ml_pinHandles,'shape_pinCurves','owner')
+            self._mi_rigNull.msgList_connect('shape_pinCurves',self.ml_pinHandles,'owner')
 
             return True
 
@@ -3449,7 +3449,7 @@ def shapeCast_eyelids(*args,**kws):
             try:#connect ===========================================================
                 mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in ml_handleCrvs]
                 mi_go.md_ReturnControls['ml_handleCurves'] = ml_handleCrvs
-                mi_go._mi_rigNull.msgList_connect(ml_handleCrvs,'handleCurves','owner')
+                mi_go._mi_rigNull.msgList_connect('handleCurves',ml_handleCrvs,'owner')
             except Exception,error: raise Exception,"[Connect] error: %s"%error
 
     #We wrap it so that it autoruns and returns

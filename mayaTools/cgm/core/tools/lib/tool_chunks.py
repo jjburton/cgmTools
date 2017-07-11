@@ -34,10 +34,12 @@ from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.tools import meshTools
+reload(meshTools)
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools import attrTools as ATTRTOOLS
+reload(ATTRTOOLS)
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
-
+reload(DYNPARENTTOOL)
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY

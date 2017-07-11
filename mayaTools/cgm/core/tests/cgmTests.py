@@ -1,7 +1,6 @@
 
 # IMPORTS ====================================================================
 import unittest
-
 import unittest.runner
 import maya.standalone
 
@@ -29,7 +28,7 @@ log.setLevel(logging.INFO)
 
 
 _d_modules = {'cgmMeta':['base','mClasses','PuppetMeta'],
-              'coreLib':['ATTR','VALID','NODEFACTORY'],
+              'coreLib':['PATH','ATTR','VALID','NODEFACTORY'],
               'MRS':['RigBlocks']}
 _l_all_order = ['coreLib','cgmMeta','MRS']
 

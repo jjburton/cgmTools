@@ -85,7 +85,7 @@ def __bindSkeletonSetup__(self):
             if i_jnt in ml_handleJoints:
                 if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
                 i_dupJnt = i_jnt.doDuplicate()#Duplicate
-                i_dupJnt.addAttr('cgmNameModifier','scale')#Tag
+                i_dupJnt.addAttr('cgmTypeModifier','scale')#Tag
                 i_jnt.doName()#Rename
                 i_dupJnt.doName()#Rename
                 i_dupJnt.parent = i_jnt#Parent
@@ -97,7 +97,7 @@ def __bindSkeletonSetup__(self):
         for i,i_jnt in enumerate(ml_handleJoints[1:]):
             i_jnt.parent = ml_handleJoints[i].mNode	
 
-        self._mi_module.rigNull.msgList_connect(ml_skinJoints,'skinJoints')    	
+        self._mi_module.rigNull.msgList_connect('skinJoints',ml_skinJoints)    	
 
         #log.info("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
         #log.info("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))			
@@ -203,9 +203,9 @@ def build_rigSkeleton(*args, **kws):
                 #>>> Store em all to our instance
                 mi_go._i_rigNull.connectChildNode(i_startJnt,'startAnchor','rigNull')
                 mi_go._i_rigNull.connectChildNode(i_endJnt,'endAnchor','rigNull')	
-                mi_go._i_rigNull.msgList_connect(ml_anchors,'anchorJoints','rigNull')
-                mi_go._i_rigNull.msgList_connect(ml_segmentJoints,'segmentJoints','rigNull')	
-                mi_go._i_rigNull.msgList_connect(ml_influenceJoints,'influenceJoints','rigNull')
+                mi_go._i_rigNull.msgList_connect('anchorJoints',ml_anchors,'rigNull')
+                mi_go._i_rigNull.msgList_connect('segmentJoints',ml_segmentJoints,'rigNull')	
+                mi_go._i_rigNull.msgList_connect('influenceJoints',ml_influenceJoints,'rigNull')
 
 
                 mi_go.get_report()
@@ -359,7 +359,7 @@ def build_controls(*args, **kws):
                         raise Exception,"%s failed | error: %s"%(i_obj.mNode,error)
 
                 i_loc.delete()
-                mi_go._i_rigNull.msgList_connect(ml_segmentsFK,'controlsFK','rigNull')
+                mi_go._i_rigNull.msgList_connect('controlsFK',ml_segmentsFK,'rigNull')
                 ml_controlsAll.extend(ml_segmentsFK)	
                 ml_segmentsFK[0].masterGroup.parent = mi_go._i_deformNull.mNode
 
@@ -375,7 +375,7 @@ def build_controls(*args, **kws):
                     i_obj.masterGroup.parent = mi_go._i_deformNull.mNode
                     mPlug_result_moduleSubDriver.doConnectOut("%s.visibility"%i_obj.mNode)	    
 
-                mi_go._i_rigNull.msgList_connect(ml_shapes_segmentIK,'segmentHandles','rigNull')
+                mi_go._i_rigNull.msgList_connect('segmentHandles',ml_shapes_segmentIK,'rigNull')
                 ml_controlsAll.extend(ml_shapes_segmentIK)	
             except Exception,error:raise Exception,"IK Segments! | error: {0}".format(error)
 
@@ -400,7 +400,7 @@ def build_controls(*args, **kws):
                         mCtrl.addAttr('mirrorIndex', value = (int_strt + i))		
                     except Exception,error: raise Exception,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 
-                mi_go._i_rigNull.msgList_connect(ml_controlsAll,'controlsAll')
+                mi_go._i_rigNull.msgList_connect('controlsAll',ml_controlsAll)
                 mi_go._i_rigNull.moduleSet.extend(ml_controlsAll)#Connect to quick select set	
             except Exception,error:raise Exception,"Connect controls! | error: {0}".format(error)
             return True
@@ -458,8 +458,8 @@ def build_deformation(*args, **kws):
 
                 i_curve = curveSegmentReturn['mi_segmentCurve']
                 i_curve.parent = mi_go._i_rigNull.mNode
-                mi_go._i_rigNull.msgList_connect([i_curve],'segmentCurves','rigNull')
-                mi_go._i_rigNull.msgList_connect(ml_segmentJoints,'segmentJoints','rigNull')	#Reconnect to reset. Duplication from createCGMSegment causes issues	
+                mi_go._i_rigNull.msgList_connect('segmentCurves',[i_curve],'rigNull')
+                mi_go._i_rigNull.msgList_connect('segmentJoints',ml_segmentJoints,'rigNull')	#Reconnect to reset. Duplication from createCGMSegment causes issues	
                 i_curve.segmentGroup.parent = mi_go._i_rigNull.mNode
 
             except Exception,error:raise Exception,"Control segment! | error: {0}".format(error)
@@ -609,8 +609,8 @@ def build_deformation2(self):
 
         i_curve = curveSegmentReturn['mi_segmentCurve']
         i_curve.parent = self._i_rigNull.mNode
-        self._i_rigNull.msgList_connect([i_curve],'segmentCurves','rigNull')
-        self._i_rigNull.msgList_connect(ml_segmentJoints,'segmentJoints','rigNull')	#Reconnect to reset. Duplication from createCGMSegment causes issues	
+        self._i_rigNull.msgList_connect('segmentCurves',[i_curve],'rigNull')
+        self._i_rigNull.msgList_connect('segmentJoints',ml_segmentJoints,'rigNull')	#Reconnect to reset. Duplication from createCGMSegment causes issues	
         i_curve.segmentGroup.parent = self._i_rigNull.mNode
 
         log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 

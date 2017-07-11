@@ -1759,7 +1759,7 @@ class cgmModuleBufferNode(cgmMeta.cgmBufferNode):
             self.connectParentNode(module,'module',bufferType) 
 
         if self.getMessage('module'):
-            self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
+            self.doStore('cgmName',self.getMessage('module',False)[0])#not long name
             #self.doStore('cgmName',self.getMessage('module',False)[0],overideMessageCheck = True)#not long name
         self.doName()       
         #self.doName(**kws)  
@@ -1899,7 +1899,8 @@ class cgmModule(cgmMeta.cgmObject):
     def atMFactory(self,func,*args,**kws):
         kws['mModule'] = self	
         return mFactory.__dict__[func](self,*args,**kws)
-
+    
+    
     def initialize(self,**kws):
         """ 
         Initializes the various components a moduleNull for a character/asset.
@@ -1965,7 +1966,7 @@ class cgmModule(cgmMeta.cgmObject):
         self.addAttr('rigNull',attrType='messageSimple',lock=True)
         self.addAttr('templateNull',attrType='messageSimple',lock=True)
         self.addAttr('deformNull',attrType='messageSimple',lock=True)	
-        #self.addAttr('coreNames',attrType='messageSimple',lock=True)
+        self.addAttr('coreNames',attrType='messageSimple',lock=True)
 
         #if log.getEffectiveLevel() == 10:log.debug("Module null good...")
         #>>> Rig/Template Nulls ==================   

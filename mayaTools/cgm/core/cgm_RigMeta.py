@@ -257,7 +257,7 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
         else:#add it
             ml_dynMatchSets.append(ml_dynMatchSet)
             index_dynMatchSet = ml_dynMatchSets.index(ml_dynMatchSet)
-            self.msgList_connect(ml_dynMatchSet,'ml_dynMatchSet_%s'%index_dynMatchSet)	    
+            self.msgList_connect('ml_dynMatchSet_%s'%index_dynMatchSet,ml_dynMatchSet)	    
             #if index != index_dynMatchSet:
                 #raise StandardError, "%s.addSwitch>> match set indexes do not match!"%self.getShortName()  	    
         #======================================================================	
@@ -1082,7 +1082,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
             #>>> Connect it
             log.debug("cgmDynamicMatch.addDynMatchTarget>> Adding target: '%s'"%i_dMatchTarget.getShortName())
             ml_dynMatchTargets.append(i_dMatchTarget)	
-            self.msgList_connect(ml_dynMatchTargets,'dynMatchTargets')#Connect the nodes
+            self.msgList_connect('dynMatchTargets',ml_dynMatchTargets)#Connect the nodes
             log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_get('dynMatchTargets',False))
 
             #Verify our driver for the target
@@ -1125,7 +1125,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
             log.debug("dynDriver: creating")	
             i_driver = i_dynObject.doDuplicateTransform()
             l_dynDrivers.insert(index,i_driver.mNode)
-            self.msgList_connect(l_dynDrivers,'dynDrivers','dynMaster')
+            self.msgList_connect('dynDrivers',l_dynDrivers,'dynMaster')
 
         i_driver = cgmMeta.validateObjArg(i_driver,'cgmObject',setClass = True)
         i_driver.parent = i_dMatchTarget.mNode
@@ -1615,7 +1615,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
                     i_condNode.doName()	 
             except Exception,error:
                 raise Exception,"cgmDynParentGroup.verifyConstraints>> Connection fail! | %s"%(error)
-            self.msgList_connect(ml_nodes,'dynNodes','dynMaster')
+            self.msgList_connect('dynNodes',ml_nodes,'dynMaster')
 
             for i_c in ml_children:
                 i_c.parent = self.mNode
@@ -1662,7 +1662,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             log.debug("dynDriver: creating")	
             i_driver = i_dynChild.doDuplicateTransform()
             l_dynDrivers.insert(index,i_driver.mNode)
-            self.msgList_connect(l_dynDrivers,'dynDrivers','dynMaster')
+            self.msgList_connect('dynDrivers',l_dynDrivers,'dynMaster')
             #i_driver = i_dParent.doDuplicateTransform()
 
         i_driver.parent = i_dParent.mNode

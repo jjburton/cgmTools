@@ -47,7 +47,6 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.rigger.lib import module_Utils as modUtils
 from cgm.core.rigger.lib import cgmRigs_sharedData as cgmRigsData
-from cgm.core.rigger.lib import segment_utils as cgmSegment
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
@@ -103,7 +102,7 @@ def __bindSkeletonSetup__(self):
                 if i_jnt.cgmName in ['sternum','pelvis']:
                     i_jnt.parent = ml_moduleJoints[0].mNode#Parent sternum to root
                     i_dupJnt = i_jnt.doDuplicate(parentOnly = True)#Duplicate
-                    i_dupJnt.addAttr('cgmNameModifier','scale')#Tag
+                    i_dupJnt.addAttr('cgmTypeModifier','scale')#Tag
                     i_jnt.doName()#Rename
                     i_dupJnt.doName()#Rename
                     i_dupJnt.parent = i_jnt#Parent
@@ -115,7 +114,7 @@ def __bindSkeletonSetup__(self):
                     ml_skinJoints.append(i_dupJnt)#Append
                     log.debug("%s.__bindSkeletonSetup__ >> Created scale joint for '%s' >> '%s'"%(self._strShortName,i_jnt.getShortName(),i_dupJnt.getShortName()))
 
-        self._mi_module.rigNull.msgList_connect(ml_skinJoints,'skinJoints')    	
+        self._mi_module.rigNull.msgList_connect('skinJoints',ml_skinJoints)    	
         #log.debug("moduleJoints: len - %s | %s"%(len(ml_moduleJoints),[i_jnt.getShortName() for i_jnt in ml_moduleJoints]))	
         #log.debug("skinJoints: len - %s | %s"%(len(ml_skinJoints),[i_jnt.getShortName() for i_jnt in ml_skinJoints]))
         #log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
@@ -137,7 +136,26 @@ def build_rigSkeleton(*args, **kws):
 
             #>>>Create joint chains
             #=============================================================    
+            try:#>>Segment chain -----------------------------------------------------------            		
+                ml_skinJoints = mi_go._ml_skinJoints
+                ml_moduleJoints = mi_go._ml_moduleJoints
+                ml_handleJoints = []
+                ml_segmentHandleJoints = []
 
+                l_segmentJoints = mc.duplicate(mi_go._l_moduleJoints[1:-1],po=True,ic=True,rc=True)
+                ml_segmentJoints = []
+                for i,j in enumerate(l_segmentJoints):
+                    i_j = cgmMeta.asMeta(j,'cgmObject',setClass = True)
+                    i_j.addAttr('cgmTypeModifier','segment',attrType='string')
+                    i_j.addAttr('cgmIterator',i,lock = 1)	    
+                    i_j.doName()
+                    l_segmentJoints[i] = i_j.mNode
+                    ml_segmentJoints.append(i_j)
+                    if i == 0:
+                        ml_segmentJoints[0].parent = False#Parent to world
+                    else:
+                        ml_segmentJoints[i].parent = ml_segmentJoints[i-1].mNode#Parent to Last	
+            except Exception,error:raise Exception,"segment chain fail!  | error: {0}".format(error)
 
 
             try:#>>Rig chain ----------------------------------------------------------- 	
@@ -190,32 +208,7 @@ def build_rigSkeleton(*args, **kws):
                     i_obj.rotateOrder = 2#<<<<<<<<<<<<<<<<This would have to change for other orientations
             except Exception,error:raise Exception,"Anchor chain fail! | error: {0}".format(error)
 
-            try:#>>Segment chain -----------------------------------------------------------            		
-                ml_skinJoints = mi_go._ml_skinJoints
-                ml_moduleJoints = mi_go._ml_moduleJoints
 
-                l_segmentJoints = mc.duplicate(mi_go._l_moduleJoints[1:-1],po=True,ic=True,rc=True)
-                ml_segmentJoints = []
-                for i,j in enumerate(l_segmentJoints):
-                    i_j = cgmMeta.asMeta(j,'cgmObject',setClass = True)
-                    i_j.addAttr('cgmTypeModifier','segment',attrType='string')
-                    i_j.addAttr('cgmIterator',i,lock = 1)	    
-                    i_j.doName()
-                    l_segmentJoints[i] = i_j.mNode
-                    ml_segmentJoints.append(i_j)
-                    
-                    mi_skinJoint = ml_moduleJoints[1+i]
-                    i_j.connectParentNode(mi_skinJoint.mNode, 'skinJoint')
-                    #i_j.connectParentNode(mi_skinJoint.rigJoint, 'rigJoint')
-                    
-                    i_j.delAttr('scaleJoint')
-                    
-                    if i == 0:
-                        ml_segmentJoints[0].parent = False#Parent to world
-                    else:
-                        ml_segmentJoints[i].parent = ml_segmentJoints[i-1].mNode#Parent to Last	
-            except Exception,error:raise Exception,"segment chain fail!  | error: {0}".format(error)
-            
             try:#Influence chain for influencing the surface ----------------------------------------------------------- 
                 ml_influenceJoints = []
                 for i_jnt in ml_handleJoints[1:-1]:
@@ -231,18 +224,13 @@ def build_rigSkeleton(*args, **kws):
                         ml_influenceJoints.append(i_new)
                 for i_jnt in ml_influenceJoints:
                     i_jnt.parent = False
-                    
-                if mi_go._b_noRollMode:
-                    mJnt = ml_influenceJoints.pop(1)
-                    mJnt.delete()
-                    
 
                 #>>> Store em all to our instance -----------------------------------------------------------
                 mi_go._i_rigNull.connectChildNode(i_startJnt,'startAnchor','rigNull')
                 mi_go._i_rigNull.connectChildNode(i_endJnt,'endAnchor','rigNull')
-                mi_go._i_rigNull.msgList_connect(ml_anchors,'anchorJoints','rigNull')
-                mi_go._i_rigNull.msgList_connect(ml_influenceJoints,'influenceJoints','rigNull')
-                mi_go._i_rigNull.msgList_connect(ml_segmentJoints,'segmentJoints','rigNull')
+                mi_go._i_rigNull.msgList_connect('anchorJoints',ml_anchors,'rigNull')
+                mi_go._i_rigNull.msgList_connect('influenceJoints',ml_influenceJoints,'rigNull')
+                mi_go._i_rigNull.msgList_connect('segmentJoints',ml_segmentJoints,'rigNull')
             except Exception,error:raise Exception,"Influence joints fail! | error: {0}".format(error)
 
             try:#connections	
@@ -279,7 +267,7 @@ def build_shapes(*args, **kws):
         def build_shapes(self):
             try:#>>>Build our Shapes =============================================================
                 mi_go = self.d_kws['goInstance']
-                mShapeCast.go(mi_go._mi_module,['cog','hips','torsoIK','segmentFK_Loli'],storageInstance=mi_go)#This will store controls to a dict called    
+                mShapeCast.go(mi_go._mi_module,['cog','hips','torsoIK','segmentFK'],storageInstance=mi_go)#This will store controls to a dict called    
             except Exception,error:raise Exception,"build shapes | error : {0}".format(error)  
     return fncWrap(*args, **kws).go()
 
@@ -298,8 +286,8 @@ def build_controls(*args, **kws):
         def _fncStep_process(self):
             mi_go = self.d_kws['goInstance']
 
-            #if not mi_go.isShaped():	
-                #raise Exception,"build_controls>>> No shapes found connected"
+            if not mi_go.isShaped():	
+                raise Exception,"build_controls>>> No shapes found connected"
 
             try:#>>> Get some special pivot xforms
                 ml_segmentJoints = mi_go._i_rigNull.msgList_get('segmentJoints',asMeta=True,cull=True) 
@@ -319,7 +307,7 @@ def build_controls(*args, **kws):
 
                 mi_cogShape = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_cog'),cgmMeta.cgmObject)
                 mi_hipsShape = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_hips'),cgmMeta.cgmObject)
-                ml_segmentFKShapes = cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('shape_segmentFKLoli',asMeta = False, cull = True),cgmMeta.cgmObject)
+                ml_segmentFKShapes = cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('shape_segmentFK',asMeta = False, cull = True),cgmMeta.cgmObject)
                 ml_segmentIKShapes = cgmMeta.validateObjListArg(mi_go._i_rigNull.msgList_get('shape_segmentIK',asMeta = False, cull = True),cgmMeta.cgmObject)
                 mi_handleIKShape = cgmMeta.validateObjArg(mi_go._i_rigNull.getMessage('shape_handleIK'),cgmMeta.cgmObject)
 
@@ -372,7 +360,7 @@ def build_controls(*args, **kws):
                                                                    mirrorSide=mi_go._str_mirrorDirection,mirrorAxis="translateX,rotateY,rotateZ",) 
                     i_obj = d_buffer['instance']
                     i_obj.drawStyle = 6#Stick joint draw style	    
-                mi_go._i_rigNull.msgList_connect(ml_segmentsFK,'controlsFK','rigNull')
+                mi_go._i_rigNull.msgList_connect('controlsFK',ml_segmentsFK,'rigNull')
                 ml_controlsAll.extend(ml_segmentsFK)	
 
             except Exception,error:raise Exception,"FK Segments fail | error: {0}".format(error)
@@ -391,7 +379,7 @@ def build_controls(*args, **kws):
                     i_obj = d_buffer['instance']
                     mPlug_result_moduleSubDriver.doConnectOut("%s.visibility"%i_obj.mNode)	    
                     i_obj.masterGroup.parent = mi_go._i_deformNull.mNode
-                mi_go._i_rigNull.msgList_connect(ml_segmentsIK,'segmentHandles','rigNull')
+                mi_go._i_rigNull.msgList_connect('segmentHandles',ml_segmentsIK,'rigNull')
                 ml_controlsAll.extend(ml_segmentsIK)	
 
             except Exception,error:raise Exception,"IK Segments fail | error: {0}".format(error)
@@ -460,7 +448,7 @@ def build_controls(*args, **kws):
                 for i,mCtrl in enumerate(ml_controlsAll):
                     mCtrl.mirrorIndex = i
                 #Push connections
-                mi_go._i_rigNull.msgList_connect(ml_controlsAll,'controlsAll')
+                mi_go._i_rigNull.msgList_connect('controlsAll',ml_controlsAll)
                 mi_go._i_rigNull.moduleSet.extend(ml_controlsAll)
             except Exception,error:raise Exception,"connect fail | error: {0}".format(error)
 
@@ -496,53 +484,50 @@ def build_deformation(*args, **kws):
                 mi_cog = mi_go._i_rigNull.cog
 
             except Exception,error:raise Exception,"get data fail! | error : {0}".format(error)  
-            
 
+
+            #Control Segment
             #====================================================================================
             try:#Control Segment
                 capAim = mi_go._jointOrientation[0].capitalize()
                 i_startControl = ml_segmentHandles[0]
                 i_endControl = ml_segmentHandles[-1]
                 #Create segment
-                curveSegmentReturn = cgmSegment.create_basic([i_jnt.mNode for i_jnt in ml_segmentJoints],
+                curveSegmentReturn = rUtils.createCGMSegment([i_jnt.mNode for i_jnt in ml_segmentJoints],
                                                              addSquashStretch=True,
                                                              addTwist=True,
-                                                             connectBy = 'scale',
-                                                             addMidTwist = not mi_go._b_noRollMode,
                                                              influenceJoints=[ml_influenceJoints[0],ml_influenceJoints[-1]],
                                                              startControl=ml_segmentHandles[0],
                                                              endControl=ml_segmentHandles[-1],
                                                              orientation=mi_go._jointOrientation,
                                                              baseName=mi_go._partName,
-                                                             additiveScaleSetup = True,#mi_go._b_addMidTwist,
-                                                             additiveScaleConnect=True,
+                                                             additiveScaleSetup=True,
+                                                             connectAdditiveScale=True,
                                                              moduleInstance=mi_go._mi_module)
 
                 i_curve = curveSegmentReturn['mi_segmentCurve']
-                mi_go._i_rigNull.msgList_connect([i_curve],'segmentCurves','rigNull')	
-                i_curve.segmentGroup.parent = mi_go._i_rigNull
-                i_curve.parent = mi_go._i_rigNull
+                mi_go._i_rigNull.msgList_connect('segmentCurves',[i_curve],'rigNull')	
+                i_curve.segmentGroup.parent = mi_go._i_rigNull.mNode
                 """
-                for o in  [ml_influenceJoints[1].mNode,
-                       curveSegmentReturn['mi_segmentCurve'].mNode,
-                       ml_influenceJoints[0].mNode,
-                       ml_influenceJoints[-1].mNode,
-                       ml_segmentHandles[1].mNode,
-                       mi_go._partName,
-                       mi_go._jointOrientation]:
-                    log.debug(o)
-                return"""
-                if mi_go._b_addMidTwist:
-                    midReturn = rUtils.addCGMSegmentSubControl(ml_influenceJoints[1].mNode,
-                                                               segmentCurve = i_curve,
-                                                               baseParent=ml_influenceJoints[0],
-                                                               endParent=ml_influenceJoints[-1],
-                                                               midControls=ml_segmentHandles[1],
-                                                               baseName=mi_go._partName,
-                                                               controlTwistAxis =  'r'+mi_go._jointOrientation[0],
-                                                               orientation=mi_go._jointOrientation)
-                    for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
-                        i_grp.parent = mi_cog.mNode
+		for o in  [ml_influenceJoints[1].mNode,
+			   curveSegmentReturn['mi_segmentCurve'].mNode,
+			   ml_influenceJoints[0].mNode,
+			   ml_influenceJoints[-1].mNode,
+			   ml_segmentHandles[1].mNode,
+			   mi_go._partName,
+			   mi_go._jointOrientation]:
+		    log.debug(o)
+		return"""
+                midReturn = rUtils.addCGMSegmentSubControl(ml_influenceJoints[1].mNode,
+                                                           segmentCurve = i_curve,
+                                                           baseParent=ml_influenceJoints[0],
+                                                           endParent=ml_influenceJoints[-1],
+                                                           midControls=ml_segmentHandles[1],
+                                                           baseName=mi_go._partName,
+                                                           controlTwistAxis =  'r'+mi_go._jointOrientation[0],
+                                                           orientation=mi_go._jointOrientation)
+                for i_grp in midReturn['ml_followGroups']:#parent our follow Groups
+                    i_grp.parent = mi_cog.mNode
 
             except Exception,error:raise Exception,"Control segment fail! | error : {0}".format(error)  
 
@@ -555,7 +540,7 @@ def build_deformation(*args, **kws):
 
                 try:NodeF.argsToNodes("%s.fkTwistResult = %s.fkTwistSum * %s.fkTwistInfluence"%(str_curve,str_curve,str_curve)).doBuild()
                 except Exception,error:
-                    raise Exception,"fkTwistResult node arg fail: %s"%error	
+                    raise Exception,"verify_moduleRigToggles>> fkwistResult node arg fail: %s"%error	
 
 
                 drivers = ["%s.%s"%(curveSegmentReturn['mi_segmentCurve'].mNode,"fkTwistResult")]
@@ -568,7 +553,6 @@ def build_deformation(*args, **kws):
 
             except Exception,error:raise Exception,"Top twist driver fail! | error : {0}".format(error)  
 
-            
             try:#Setup bottom twist driver
                 #log.debug("%s.r%s"%(ml_segmentHandles[0].getShortName(),mi_go._jointOrientation[0]))
                 #log.debug("%s.r%s"%(mi_hips.getShortName(),mi_go._jointOrientation[0]))
@@ -596,12 +580,12 @@ def build_deformation(*args, **kws):
                 l_keys = i_buffer.d_indexToAttr.keys()
                 f_factor = 3.0/len(l_keys)
                 for i,k in enumerate(l_keys):
-                    v_use = abs(len(l_keys) - (f_factor * (i+1)))
+                    v_use = len(l_keys) - (f_factor * (i+1))
                     attrName = 'spine_%s'%k
                     cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_cog.mNode,attrName,connectSourceToTarget = True)
                     cgmMeta.cgmAttr(mi_cog.mNode,attrName,value =v_use, defaultValue = v_use, keyable = False, hidden = False)
                 cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
-                #cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
+                cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(mi_cog.mNode,connectSourceToTarget=True)
             except Exception,error:raise Exception,"Attribute connections fail! | error : {0}".format(error)  
             return True	    
 
@@ -688,25 +672,23 @@ def build_rig(*args, **kws):
 
             mi_go.collect_worldDynDrivers()
 
-            #moving this to rig section and there's no reason for it to be an extra condition node??
             #FK influence on twist from the space it's in
             try:
                 str_curve = mi_segmentCurve.getShortName()
                 NodeF.argsToNodes("%s.fkTwistInfluence = if %s.space == 0:1 else 0"%(str_curve,mi_handleIK.getShortName())).doBuild()
-            except Exception,error:raise Exception,"Twist influence fail! | error : {0}".format(error)
+            except Exception,error:raise Exception,"Twist influence fail! | error : {0}".format(error)  
 
             try:#Set up some defaults
                 #====================================================================================	
                 mPlug_segStart = cgmMeta.cgmAttr(ml_segmentHandles[0],'followRoot')
                 mPlug_segStart.p_defaultValue = .3
                 mPlug_segStart.value = .3
-                if mi_go._b_noRollMode:
-                    mPlug_segMid = cgmMeta.cgmAttr(ml_segmentHandles[1],'linearSplineFollow')
-                    mPlug_segMid.p_defaultValue = 1
-                    mPlug_segMid.value = 1
-                    mPlug_segMidAim = cgmMeta.cgmAttr(ml_segmentHandles[1],'startEndAim')
-                    mPlug_segMidAim.p_defaultValue = .5
-                    mPlug_segMidAim.value = .5   
+                mPlug_segMid = cgmMeta.cgmAttr(ml_segmentHandles[1],'linearSplineFollow')
+                mPlug_segMid.p_defaultValue = 1
+                mPlug_segMid.value = 1
+                mPlug_segMidAim = cgmMeta.cgmAttr(ml_segmentHandles[1],'startEndAim')
+                mPlug_segMidAim.p_defaultValue = .5
+                mPlug_segMidAim.value = .5   
                 mPlug_segEnd = cgmMeta.cgmAttr(ml_segmentHandles[-1],'followRoot')
                 mPlug_segEnd.p_defaultValue = .8
                 mPlug_segEnd.value = .8
@@ -715,7 +697,7 @@ def build_rig(*args, **kws):
             try:#Parent and constrain joints
                 #====================================================================================
                 ml_segmentJoints[0].parent = mi_cog.mNode#Segment to cog
-                #ml_segmentSplineJoints[0].parent = mi_cog.mNode#Spline Segment to cog <<<<OLD METHOD
+                ml_segmentSplineJoints[0].parent = mi_cog.mNode#Spline Segment to cog
 
                 #Put the start and end controls in the heirarchy
                 ml_segmentHandles[0].masterGroup.parent = mi_segmentAttachStart.mNode
@@ -733,22 +715,21 @@ def build_rig(*args, **kws):
 		mc.scaleConstraint(ml_anchorJoints[-1].mNode,mi_segmentAnchorEnd.mNode,maintainOffset=True)
 		'''
                 #Parent the sternum to the anchor
-                ml_handleJoints[-2].parent = ml_anchorJoints[-1]
+                ml_handleJoints[-2].parent = ml_anchorJoints[-1].mNode
                 #ml_rigJoints[-1].parent = mi_handleIK.mNode
-                
 
                 #Parent the influence joints --------------------------------------------------------------
-                ml_influenceJoints[0].parent = ml_segmentHandles[0]
-                ml_influenceJoints[-1].parent = ml_segmentHandles[-1]
+                ml_influenceJoints[0].parent = ml_segmentHandles[0].mNode
+                ml_influenceJoints[-1].parent = ml_segmentHandles[-1].mNode
 
                 if ml_handleJoints[-2].getMessage('scaleJoint'):#
-                    ml_handleJoints[-2].scaleJoint.parent = ml_segmentHandles[-1]
+                    ml_handleJoints[-2].scaleJoint.parent = ml_segmentHandles[-1].mNode
 
 
                 #Parent anchors to controls ---------------------------------------------------------------
-                ml_anchorJoints[0].parent = mi_hips#parent pelvis anchor to hips
-                ml_anchorJoints[1].parent = mi_hips
-                ml_anchorJoints[-1].parent = mi_handleIK
+                ml_anchorJoints[0].parent = mi_hips.mNode#parent pelvis anchor to hips
+                ml_anchorJoints[1].parent = mi_hips.mNode
+                ml_anchorJoints[-1].parent = mi_handleIK.mNode
 
                 #Connect rig pelvis to anchor pelvis ---------------------------------------------------------------
                 mc.pointConstraint(ml_anchorJoints[0].mNode,ml_handleJoints[0].mNode,maintainOffset=False)
@@ -756,42 +737,14 @@ def build_rig(*args, **kws):
                 mc.scaleConstraint(ml_anchorJoints[0].mNode,ml_handleJoints[0].mNode,maintainOffset=False)#Maybe hips    
 
                 l_rigJoints = [i_jnt.mNode for i_jnt in ml_rigJoints]
-                """for i,i_jnt in enumerate(ml_segmentJoints[:-1]):
+                for i,i_jnt in enumerate(ml_segmentJoints[:-1]):
                     #Don't try scale constraints in here, they're not viable
-                    if i == 1 and mi_go._b_noRollMode:
-                        continue
                     attachJoint = distance.returnClosestObject(i_jnt.mNode,l_rigJoints)
                     log.debug("'%s'>>drives>>'%s'"%(i_jnt.getShortName(),attachJoint))
                     pntConstBuffer = mc.pointConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)
                     orConstBuffer = mc.orientConstraint(i_jnt.mNode,attachJoint,maintainOffset=False,weight=1)
                     mc.connectAttr((i_jnt.mNode+'.s'),(attachJoint+'.s'))
-                    for i,i_jnt in enumerate(ml_segmentJoints[:-1]):
-                    self.log_info("On " + i_jnt.p_nameShort)                    
-                    if i == 1 and mi_go._b_noRollMode:
-                        self.log_info("Skipping " + i_jnt.p_nameShort)
-                        continue                    
-                    mi_rigJoint = i_jnt.rigJoint
-                    mi_rigJoint.parent = i_jnt                    
-                    """
-                
-                if mi_go._b_noRollMode:#If no roll mode
-                    for i,i_jnt in enumerate(ml_segmentJoints):
-                        self.log_info("On " + i_jnt.p_nameShort) 
-                        mi_rigJoint = i_jnt.rigJoint
-                        if i == 1:
-                            mi_rigJoint.parent = ml_segmentHandles[i]
-                        else:
-                            mi_rigJoint.parent = i_jnt
-                    #ml_segmentHandles[1].masterGroup.parent = ml_segmentJoints[1]                
-                    #pntConstBuffer = mc.parentConstraint(ml_segmentHandles[1].masterGroup.mNode,ml_segmentJoints[1].mNode,maintainOffset=False,weight=1)
-                    pntConstBuffer = mc.parentConstraint(ml_segmentJoints[1].mNode,ml_segmentHandles[1].masterGroup.mNode,maintainOffset=True,weight=1)
-                    pntConstBuffer = mc.scaleConstraint(ml_segmentJoints[1].mNode,ml_segmentHandles[1].masterGroup.mNode,maintainOffset=True,weight=1)                        
-                else:
-                    for i,i_jnt in enumerate(ml_segmentJoints[:-1]):
-                        self.log_info("On " + i_jnt.p_nameShort)                                       
-                        mi_rigJoint = i_jnt.rigJoint
-                        mi_rigJoint.parent = i_jnt
-                       
+
                 mc.pointConstraint(ml_anchorJoints[-1].mNode,ml_handleJoints[-2].mNode,maintainOffset=False)
                 mc.orientConstraint(ml_anchorJoints[-1].mNode,ml_handleJoints[-2].mNode,maintainOffset=False)
                 mc.connectAttr((ml_anchorJoints[-1].mNode+'.s'),(ml_handleJoints[-2].mNode+'.s'))
@@ -829,14 +782,13 @@ def build_rig(*args, **kws):
                         mc.parentConstraint(mi_hips.mNode,i_jnt.mNode,maintainOffset=True)	    
                 else:
                     attributes.doSetLockHideKeyableAttr(mi_hips.mNode,lock=True, visible=False, keyable=False, channels=['sx','sy','sz'])
-                    
             except Exception,error:raise Exception,"Scale joint fail! | error : {0}".format(error)  
 
 
             #sub vis,control groups
             #====================================================================================
             try:#Vis/locks	
-                #attributes.doSetLockHideKeyableAttr(mi_handleIK.mNode,lock=True, visible=False, keyable=False, channels=['sx','sy','sz'])
+                attributes.doSetLockHideKeyableAttr(mi_handleIK.mNode,lock=True, visible=False, keyable=False, channels=['sx','sy','sz'])
                 for mCtrl in (ml_controlsFK + [mi_cog,mi_hips,mi_handleIK] + ml_segmentHandles):
                     try:
                         mCtrl._setControlGroupLocks()	
@@ -845,10 +797,8 @@ def build_rig(*args, **kws):
                 for mCtrl in ml_segmentHandles:
                     cgmMeta.cgmAttr(mCtrl,"s%s"%orientation[0],lock=True,hidden=True,keyable=False)
 
-                for mCtrl in ml_controlsFK + [mi_hips, mi_handleIK]:
+                for mCtrl in ml_controlsFK + ml_segmentHandles:
                     cgmMeta.cgmAttr(mCtrl,"v",lock=True,hidden=True,keyable=False)
-                    cgmMeta.cgmAttr(mCtrl,"scale",lock=True,hidden=True,keyable=False)
-                    
             except Exception,error:raise Exception,"subVis fail! | error : {0}".format(error)  
 
             #Final stuff

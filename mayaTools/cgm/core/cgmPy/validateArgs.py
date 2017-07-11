@@ -78,7 +78,7 @@ def get_mayaType(node = None):
         if _len == 1:
             return mc.objectType(_shapes[0])
         elif _len > 1:
-            log.warning("|{0}| >> node: '{1}' has multiple shapes. returning type for '{2}'. Remaining shapes:{3}".format(_str_func,_node,_shapes[0],_shapes[1:]))    
+            log.debug("|{0}| >> node: '{1}' has multiple shapes. returning type for '{2}'. Remaining shapes:{3}".format(_str_func,_node,_shapes[0],_shapes[1:]))    
             _shapeType = False
             for s in _shapes:
                 sType = mc.objectType(s)

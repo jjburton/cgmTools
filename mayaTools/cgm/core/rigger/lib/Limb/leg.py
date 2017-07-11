@@ -105,16 +105,22 @@ def build_shapes(*args, **kws):
                     log.info("%s.build_shapes>>> segmentIK chain %s: %s"%(mi_go._strShortName,i,mi_go._md_controlShapes))
                     ml_segmentIKShapes.extend(mi_go._md_controlShapes['segmentIK'])
 
-                    mi_go._i_rigNull.msgList_connect(mi_go._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,"rigNull")		
+                    mi_go._i_rigNull.msgList_connect('shape_segmentIK_%s'%i,
+                                                     mi_go._md_controlShapes['segmentIK'],
+                                                     "rigNull")		
 
-                mi_go._i_rigNull.msgList_connect(ml_segmentIKShapes,'shape_segmentIK',"rigNull")		
+                mi_go._i_rigNull.msgList_connect('shape_segmentIK',
+                                                 ml_segmentIKShapes,
+                                                 "rigNull")		
 
                 #Rest of it
                 l_toBuild = ['segmentFK_Loli','settings','midIK','foot']
                 mShapeCast.go(mi_go._mi_module,l_toBuild, storageInstance=mi_go)#This will store controls to a dict called    
                 log.info(mi_go._md_controlShapes)
                 log.info(mi_go._md_controlPivots)
-                mi_go._i_rigNull.msgList_connect(mi_go._md_controlShapes['segmentFK_Loli'],'shape_controlsFK',"rigNull")	
+                mi_go._i_rigNull.msgList_connect('shape_controlsFK',
+                                                 mi_go._md_controlShapes['segmentFK_Loli'],
+                                                 "rigNull")	
                 mi_go._i_rigNull.connectChildNode(mi_go._md_controlShapes['midIK'],'shape_midIK',"rigNull")
                 mi_go._i_rigNull.connectChildNode(mi_go._md_controlShapes['settings'],'shape_settings',"rigNull")		
                 mi_go._i_rigNull.connectChildNode(mi_go._md_controlShapes['foot'],'shape_foot',"rigNull")
@@ -176,7 +182,7 @@ def __bindSkeletonSetup__(self):
             if i_jnt in ml_handleJoints and i_jnt.getAttr('cgmName') not in ['ball']:
                 if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
                 i_dupJnt = i_jnt.doDuplicate()#Duplicate
-                i_dupJnt.addAttr('cgmNameModifier','scale')#Tag
+                i_dupJnt.addAttr('cgmTypeModifier','scale')#Tag
                 i_jnt.doName()#Rename
                 i_dupJnt.doName()#Rename
                 i_dupJnt.parent = i_jnt#Parent
@@ -380,9 +386,9 @@ def build_rigSkeleton(*args, **kws):
 
 
             try:#>>> Store em all to our instance #=====================================================================
-                mi_go._i_rigNull.msgList_connect(ml_ikNoFlipJoints,'ikNoFlipJoints',"rigNull")
-                mi_go._i_rigNull.msgList_connect(ml_ikPVJoints,'ikPVJoints',"rigNull")
-                mi_go._i_rigNull.msgList_connect(ml_influenceJoints,'influenceJoints',"rigNull")
+                mi_go._i_rigNull.msgList_connect('ikNoFlipJoints',ml_ikNoFlipJoints,"rigNull")
+                mi_go._i_rigNull.msgList_connect('ikPVJoints',ml_ikPVJoints,"rigNull")
+                mi_go._i_rigNull.msgList_connect('influenceJoints',ml_influenceJoints,"rigNull")
 
                 log.info("fkJoints>> %s"%mi_go._i_rigNull.msgList_getMessage('fkJoints',False))
                 log.info("ikJoints>> %s"%mi_go._i_rigNull.msgList_getMessage('ikJoints',False))
@@ -1247,7 +1253,7 @@ def build_controls(*args, **kws):
                     i_obj.delete()
 
                 #ml_controlsFK[0].masterGroup.parent = mi_go._i_constrainNull.mNode
-                mi_go._i_rigNull.msgList_connect(ml_fkJoints,'controlsFK',"rigNull")
+                mi_go._i_rigNull.msgList_connect('controlsFK',ml_fkJoints,"rigNull")
                 ml_controlsAll.extend(ml_fkJoints)	
 
             except Exception,error:raise Exception,"fk segment fail! | error: {0}".format(error)
@@ -1327,7 +1333,7 @@ def build_controls(*args, **kws):
                         ml_controlChain.append(i_obj)
 
                         mPlug_result_moduleSubDriver.doConnectOut("%s.visibility"%i_obj.mNode)
-                    mi_go._i_rigNull.msgList_connect(ml_controlChain,'segmentHandles_%s'%i,"rigNull")
+                    mi_go._i_rigNull.msgList_connect('segmentHandles_%s'%i,ml_controlChain,"rigNull")
                     ml_controlsAll.extend(ml_controlChain)	
                     if i == 1:
                         #Need to do a few special things for our main segment handle
@@ -1379,7 +1385,7 @@ def build_controls(*args, **kws):
                 for i,mCtrl in enumerate(ml_controlsAll):
                     mCtrl.mirrorIndex = i
 
-                mi_go._i_rigNull.msgList_connect(ml_controlsAll,'controlsAll')
+                mi_go._i_rigNull.msgList_connect('controlsAll',ml_controlsAll)
                 mi_go._i_rigNull.moduleSet.extend(ml_controlsAll)#Connect to quick select set	
 
             except Exception,error:raise Exception,"Connect/mirror index fail! | error: {0}".format(error)
@@ -1675,7 +1681,9 @@ def build_deformation(*args, **kws):
                     mPlug_TwistEndResult.doConnectOut("%s.twistEnd"%i_curve.mNode)
 
                     #Reconnect children nodes
-                    mi_go._i_rigNull.msgList_connect(ml_segmentChains[i],'segment%s_Joints'%i,"rigNull")#Reconnect to reset. Duplication from createCGMSegment causes issues	
+                    mi_go._i_rigNull.msgList_connect('segment%s_Joints'%i,
+                                                     ml_segmentChains[i],
+                                                     "rigNull")#Reconnect to reset. Duplication from createCGMSegment causes issues	
 
                     #>>> Attributes 
                     #================================================================================================================
@@ -1718,7 +1726,8 @@ def build_deformation(*args, **kws):
 	    """
             #TODO
             try:#Connection		
-                mi_go._i_rigNull.msgList_connect(ml_segmentCurves,'segmentCurves',"rigNull")
+                mi_go._i_rigNull.msgList_connect('segmentCurves',
+                                                 ml_segmentCurves,"rigNull")
 
             except Exception,error:raise Exception,"Connections fail! | error: {0}".format(error)
             return True	    
@@ -2026,7 +2035,9 @@ def build_deformation2(self):
             mPlug_TwistEndResult.doConnectOut("%s.twistEnd"%i_curve.mNode)
 
             #Reconnect children nodes
-            self._i_rigNull.msgList_connect(ml_segmentChains[i],'segment%s_Joints'%i,"rigNull")#Reconnect to reset. Duplication from createCGMSegment causes issues	
+            self._i_rigNull.msgList_connect('segment%s_Joints'%i,
+                                            ml_segmentChains[i],
+                                            "rigNull")#Reconnect to reset. Duplication from createCGMSegment causes issues	
 
             #>>> Attributes 
             #================================================================================================================
@@ -2071,7 +2082,7 @@ def build_deformation2(self):
         time_sub = time.clock() 
         log.info(">>> %s >> %s "%(_str_funcName,_str_subFunc) + "="*50)  
 
-        self._i_rigNull.msgList_connect(ml_segmentCurves,'segmentCurves',"rigNull")
+        self._i_rigNull.msgList_connect('segmentCurves',ml_segmentCurves,"rigNull")
 
         log.info("%s >> Time >> %s = %0.3f seconds " % (_str_funcName,_str_subFunc,(time.clock()-time_sub)) + "-"*75) 
     except Exception,error:

@@ -131,7 +131,7 @@ def build_rigSkeleton(goInstance = None):
 		    ml_rigJoints.append(i_j)
 		ml_rigJoints[0].parent = False#Parent to deformGroup
 		
-		self._go._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints',"rigNull")
+		self._go._i_rigNull.msgList_connect('rigJoints',ml_rigJoints,"rigNull")
 	    except Exception,error:
 		log.error("build_rigSkeleton>>Build rig joints fail!")
 		raise Exception,error   
@@ -203,11 +203,11 @@ def build_rigSkeleton(goInstance = None):
 	    
 	    try:#>>> Store em all to our instance
 		#=====================================================================	
-		self._go._i_rigNull.msgList_connect(self._go._l_skinJoints,'skinJoints',"rigNull")#push back to reset
+		self._go._i_rigNull.msgList_connect('skinJoints',self._go._l_skinJoints,"rigNull")#push back to reset
 		
-		self._go._i_rigNull.msgList_connect(ml_fkJoints,'fkJoints',"rigNull")
-		self._go._i_rigNull.msgList_connect(ml_blendJoints,'blendJoints',"rigNull")
-		self._go._i_rigNull.msgList_connect(ml_ikJoints,'ikJoints',"rigNull")
+		self._go._i_rigNull.msgList_connect('fkJoints',ml_fkJoints,"rigNull")
+		self._go._i_rigNull.msgList_connect('blendJoints',ml_blendJoints,"rigNull")
+		self._go._i_rigNull.msgList_connect('ikJoints',ml_ikJoints,"rigNull")
 	
 	    except Exception,error:
 		log.error("build_finger>>StoreJoints fail!")
@@ -254,7 +254,7 @@ def build_rigSkeleton2(self):
 	    ml_rigJoints.append(i_j)
 	ml_rigJoints[0].parent = False#Parent to deformGroup
 	
-	self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints',"rigNull")
+	self._i_rigNull.msgList_connect('rigJoints',ml_rigJoints,"rigNull")
     except Exception,error:
 	log.error("build_rigSkeleton>>Build rig joints fail!")
 	raise Exception,error   
@@ -323,11 +323,11 @@ def build_rigSkeleton2(self):
  
     try:#>>> Store em all to our instance
 	#=====================================================================	
-	self._i_rigNull.msgList_connect(self._l_skinJoints,'skinJoints',"rigNull")#push back to reset
+	self._i_rigNull.msgList_connect('skinJoints',self._l_skinJoints,"rigNull")#push back to reset
 	
-	self._i_rigNull.msgList_connect(ml_fkJoints,'fkJoints',"rigNull")
-	self._i_rigNull.msgList_connect(ml_blendJoints,'blendJoints',"rigNull")
-	self._i_rigNull.msgList_connect(ml_ikJoints,'ikJoints',"rigNull")
+	self._i_rigNull.msgList_connect('fkJoints',ml_fkJoints,"rigNull")
+	self._i_rigNull.msgList_connect('blendJoints',ml_blendJoints,"rigNull")
+	self._i_rigNull.msgList_connect('ikJoints',ml_ikJoints,"rigNull")
 
     except Exception,error:
 	log.error("build_finger>>StoreJoints fail!")
@@ -399,7 +399,9 @@ def build_shapes(goInstance = None):
 		mShapeCast.go(self._go._mi_module,l_toBuild, storageInstance=self._go)#This will store controls to a dict called    
 		log.info(self._go._md_controlShapes)
 		log.info(self._go._md_controlPivots)
-		self._go._i_rigNull.msgList_connect(self._go._md_controlShapes['segmentFK'],'shape_controlsFK',"rigNull")	
+		self._go._i_rigNull.msgList_connect('shape_controlsFK',
+				                            self._go._md_controlShapes['segmentFK'],
+				                            "rigNull")	
 		self._go._i_rigNull.connectChildNode(self._go._md_controlShapes['settings'],'shape_settings',"rigNull")		
 		self._go._i_rigNull.connectChildNode(self._go._md_controlShapes['moduleCap'],'shape_cap',"rigNull")
 		
@@ -459,7 +461,9 @@ def build_shapes2(self):
 	mShapeCast.go(self._mi_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
 	log.info(self._md_controlShapes)
 	log.info(self._md_controlPivots)
-	self._i_rigNull.msgList_connect(self._md_controlShapes['segmentFK'],'shape_controlsFK',"rigNull")	
+	self._i_rigNull.msgList_connect('shape_controlsFK',
+		                            self._md_controlShapes['segmentFK'],
+		                            "rigNull")	
 	self._i_rigNull.connectChildNode(self._md_controlShapes['settings'],'shape_settings',"rigNull")		
 	self._i_rigNull.connectChildNode(self._md_controlShapes['moduleCap'],'shape_cap',"rigNull")
 	
@@ -549,7 +553,7 @@ def build_controls(goInstance = None):
 		    i_obj.delete()
 		    
 		#ml_controlsFK[0].masterGroup.parent = self._go._i_constrainNull.mNode
-		self._go._i_rigNull.msgList_connect(ml_fkJoints,'controlsFK',"rigNull")
+		self._go._i_rigNull.msgList_connect('controlsFK',ml_fkJoints,"rigNull")
 		l_controlsAll.extend(ml_fkJoints[:-1])	
 	    
 	    except Exception,error:	
@@ -620,7 +624,7 @@ def build_controls(goInstance = None):
 		    mCtrl.addAttr('mirrorIndex', value = (int_strt + i))		
 		except Exception,error: raise Exception,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 
-	    try:self._go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll','rigNull')
+	    try:self._go._i_rigNull.msgList_connect('controlsAll',self.ml_controlsAll,'rigNull')
 	    except Exception,error: raise Exception,"Controls all connect| %s"%error	    
 	    try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
 	    except Exception,error: raise Exception,"Failed to set module objectSet | %s"%error
@@ -707,7 +711,7 @@ def build_controls2(self):
 	    i_obj.delete()
 	    
 	#ml_controlsFK[0].masterGroup.parent = self._i_constrainNull.mNode
-	self._i_rigNull.msgList_connect(ml_fkJoints,'controlsFK',"rigNull")
+	self._i_rigNull.msgList_connect('controlsFK',ml_fkJoints,"rigNull")
 	l_controlsAll.extend(ml_fkJoints)	
     
     except Exception,error:	
@@ -828,7 +832,7 @@ def build_controls2(self):
 	log.error("%s.build_controls>>> Add Control Attrs Fail!"%self._strShortName)	
 	
     #Connect all controls
-    self._i_rigNull.msgList_connect(l_controlsAll,'controlsAll')
+    self._i_rigNull.msgList_connect('controlsAll',l_controlsAll)
     
     return True
     

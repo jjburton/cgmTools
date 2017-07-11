@@ -654,10 +654,15 @@ def add_cgmFooter(parent = False):
     from cgm import images as cgmImagesFolder
     
     _row_cgm = mUI.MelRow(parent, bgc = [.25,.25,.25], h = 20)
-    _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up()
-    _path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
-    mc.iconTextButton(style='iconOnly',image1=_path_image,
-                      c=lambda *a:(log.info("Will fix this soon:)")))  
+    try:
+        _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up().asFriendly()
+        _path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
+        mc.iconTextButton(style='iconOnly',image =_path_image,
+                          c=lambda *a:(log.info("Will fix this soon:)")))  
+    except Exception,err:
+        log.warning("Failed to add cgmFooter")
+        for arg in err.args:
+            log.error(arg)
     return _row_cgm
         
 def return_SplitLines(text, size):

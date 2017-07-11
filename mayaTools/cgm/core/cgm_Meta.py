@@ -576,7 +576,6 @@ class cgmNode(r9Meta.MetaClass):
         """
         Replacement mNode call for component mode
         """
-        raise DeprecationWarning,'No longer'
         if self.__componentMode__ and self.__component__:
             buffer = '%s.%s'%(self.mNode,self.__component__)
             if mc.objExists(buffer):return buffer
@@ -607,10 +606,8 @@ class cgmNode(r9Meta.MetaClass):
         :returns
             list of components(list)
         """           
-        try:return mc.ls(['%s.%s[*]'%(self.mNode,arg)],flatten=flatten)
-        except StandardError,error:
-            log.error(error)
-            return False
+        return mc.ls(['%s.%s[*]'%(self.mNode,arg)],flatten=flatten)
+
         """
         else:
             try:
@@ -645,6 +642,36 @@ class cgmNode(r9Meta.MetaClass):
             except StandardError,error:
                 log.warning("getComponents: %s"%error)	
                 return False    """
+        
+    def getPosition(self,*a,**kws):
+        if self.isComponent():
+            return POS.get(self.getComponent(),*a,**kws)        
+        return TRANS.position_get(self.mNode, *a,**kws)
+    
+    def getPosition(self,space = 'world'):
+        if self.isComponent():
+            return POS.get(self.getComponent())
+            objType = self.getMayaType()	    
+            if objType in ['polyVertex','polyUV','surfaceCV','curveCV','editPoint','nurbsUV','curvePoint']:
+                if worldSpace:return mc.pointPosition(self.getComponent(),world = True)
+                return mc.pointPosition(self.getComponent(),local = True)
+            elif objType in ['polyFace','polyEdge']:
+                mc.select(cl=True)
+                mc.select(self.getComponent())
+                mel.eval("PolySelectConvert 3")
+                verts = mc.ls(sl=True,fl=True)
+                posList = []
+                for vert in verts:
+                    if worldSpace:posList.append( mc.pointPosition(vert,world = True) )
+                    else:posList.append( mc.pointPosition(vert,local = True) )			    
+                pos = DIST.get_average_position(posList)
+                mc.select(cl=True)
+                return pos
+            else:
+                raise NotImplementedError,"Don't know how to position '%s's componentType: %s"%(self.getShortName,objType)
+
+        else:
+            return POS.get(self.getComponent(),space = 'world')    
     #========================================================================================================     
     #>>> Attributes 
     #========================================================================================================      
@@ -699,7 +726,7 @@ class cgmNode(r9Meta.MetaClass):
     
     def getMayaAttr(self,*a,**kws):
         return ATTR.get(self.mNode,*a,**kws)
-    
+    getAttr = getMayaAttr#...TEMP
     def getMayaAttrString(self,attr=None, nameCall = 'short'):
         return "{0}.{1}".format(getattr(NAMES,nameCall)(self.mNode), attr)
     
@@ -872,7 +899,9 @@ class cgmNode(r9Meta.MetaClass):
         Returns index
         """
         return ATTR.msgList_connect(self.mNode,*a,**kws)
-    
+    def msgList_getMessage(self,*a,**kws):#TEMP
+        return ATTR.msgList_get(self.mNode,*a,**kws)
+
     def msgList_get(self,*a,**kws):
         """   
         Get msgList return.
@@ -909,6 +938,7 @@ class cgmNode(r9Meta.MetaClass):
 
         Returns index
         """
+        
         return ATTR.msgList_append(self.mNode,*a,**kws)
       
 
@@ -953,6 +983,83 @@ class cgmNode(r9Meta.MetaClass):
         ex: {0: u'back_to_back_0', 1: u'back_to_back_1'}
         """
         return ATTR.get_sequentialAttrDict(self.mNode,attr)
+    
+    def datList_connect(self,*a,**kws):
+        """
+        Append node to datList
+
+        Returns index
+        """
+        return ATTR.datList_connect(self.mNode,*a,**kws)
+    
+    def datList_get(self,*a,**kws):
+        """   
+        Get datList return.
+        
+        :parameters:
+            attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+            mode(str) -- what kind of data to be looking for
+                NONE - just get the data
+                message - getMessage
+            dataAttr(str) - Attr to store extra info. If none specified, makes default
+            cull(bool) - Cull for empty entries
+            asMeta(bool) - Whether to return data as meta or not
+    
+        :returns
+            datList(list)
+        """
+        _asMeta = kws.get('asMeta',True)
+        
+
+        
+        _res = ATTR.datList_get(self.mNode,*a,**kws)
+        
+        #if not _res:
+            #return []
+
+        return _res
+
+    def datList_append(self,*a,**kws):
+        """
+        Append node to datList
+
+        Returns index
+        """
+        return ATTR.datList_append(self.mNode,*a,**kws)
+      
+
+    def datList_index(self,*a,**kws):
+        """
+        Return the index of a node if it's in a datList
+        """
+        return ATTR.datList_index(self.mNode,*a,**kws)
+    
+
+    def datList_remove(self,*a,**kws):
+        """
+        Return the index of a node if it's in a datList
+        """
+        return ATTR.datList_remove(self.mNode,*a,**kws)
+  
+
+    def datList_purge(self,*a,**kws):
+        """
+        Purge all the attributes of a datList
+        """
+        return ATTR.datList_purge(self.mNode,*a,**kws)
+        
+
+    def datList_clean(self,*a,**kws):
+        """
+        Removes empty entries and pushes back
+        """
+        return ATTR.datList_clean(self.mNode,*a,**kws)
+
+    def datList_exists(self,*a,**kws):
+        """
+        Fast check to see if we have data on this attr chain
+        """
+        return ATTR.datList_exists(self.mNode,*a,**kws)    
     
     #========================================================================================================     
     #>>> Utilities... 
@@ -1076,6 +1183,18 @@ class cgmNode(r9Meta.MetaClass):
         """       
         #key = None, index = None, rgb = None, pushToShapes = True,
         return RIGGING.override_color(self.mNode,*a,**kws)
+    #========================================================================================================     
+    #>>> THESE ARE GOING AWAY... 
+    #========================================================================================================    
+    def getCGMNameTags(self,ignore=[False]):#TEMP...till transition to new rigger is done
+        """
+        Get the cgm name tags of an object.
+        """
+        self.cgm = {}
+        for tag in l_cgmNameTags:
+            if tag not in ignore:
+                self.cgm[tag] = search.findRawTagInfo(self.mNode,tag)
+        return self.cgm        
 
 class cgmNodeOLD(r9Meta.MetaClass):
     #def __bind__(self):pass	
@@ -2022,7 +2141,7 @@ class cgmNodeOLD(r9Meta.MetaClass):
             raise StandardError, "%s.doTagAndName >> d_tags not dict : %s"(self.p_nameShort,d_tags)		    
         try:
             for tag in d_tags.keys():
-                self.doStore(tag,d_tags[tag],overideMessageCheck=overideMessageCheck)
+                self.doStore(tag,d_tags[tag])
             self.doName()
         except StandardError,error:
             #log.debug("#>>>Tags:")
@@ -2640,12 +2759,12 @@ class cgmObject(cgmNode):
         TRANS.aim_atPoint(self,*a,**kws)    
     
     #...trans ------------------------------------------------------------------------------     
-    def getPosition(self,*a,**kws):
-        return TRANS.position_get(self, *a,**kws)
+    """def getPosition(self,*a,**kws):
+        return TRANS.position_get(self, *a,**kws)"""
     def setPosition(self,*a,**kws):
         return TRANS.position_set(self, *a,**kws)  
  
-    p_position = property(getPosition,setPosition)
+    p_position = property(cgmNode.getPosition,setPosition)
     
     
     #...rot ------------------------------------------------------------------------------
@@ -4401,8 +4520,8 @@ class cgmBufferNode(cgmNode):
                 raise StandardError,"cgmBufferNode.__init__>> failed to verify : '%s'!"%self.getShortName()
             if value is not None:
                 self.value = value	
-
         self.updateData()
+
 
     def __verify__(self,**kws):
         #log.debug("cgmBufferNode>>> in %s.__verify__()"%self.getShortName())
@@ -4424,9 +4543,9 @@ class cgmBufferNode(cgmNode):
         self.purge()#wipe it to reset it
         if type(value) is list or type(value) is tuple:
             for i in value:
-                self.store(i,overideMessageCheck = self.messageOverride)
+                self.store(i)
         else:
-            self.store(value,overideMessageCheck = self.messageOverride) 
+            self.store(value) 
 
     value = property(getValue, setValue)#get,set
 
@@ -4448,7 +4567,7 @@ class cgmBufferNode(cgmNode):
         self.d_indexToAttr = {}
         l_itemAttrs = []
         d_indexToAttr = {}
-        for attr in self.getUserAttrs():
+        for attr in self.getAttrs(ud=True):
             if 'item_' in attr:
                 index = int(attr.split('item_')[-1])
                 dataBuffer = ATTR.get(self.mNode,attr)
@@ -4498,7 +4617,7 @@ class cgmBufferNode(cgmNode):
         if self.messageOverride:
             cgmAttr(self.mNode,('item_'+str(cnt)),value = info,lock=True)	    
         else:
-            attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)	    
+            attributes.storeInfo(self.mNode,('item_'+str(cnt)),info)	    
 
         #attributes.storeInfo(self.mNode,('item_'+str(cnt)),info,overideMessageCheck = self.messageOverride)
         self.updateData()
@@ -4515,14 +4634,14 @@ class cgmBufferNode(cgmNode):
         channelBoxCheck = search.returnSelectedAttributesFromChannelBox()
         if channelBoxCheck:
             for item in channelBoxCheck:
-                self.store(item,overideMessageCheck = self.messageOverride)
+                self.store(item)
             return
 
         # Otherwise add the objects themselves
         toStore = mc.ls(sl=True,flatten=True) or []
         for item in toStore:
             try:
-                self.store(item,overideMessageCheck = self.messageOverride)
+                self.store(item)
             except:
                 log.warning("Couldn't store '%s'"%(item))     
 

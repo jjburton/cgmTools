@@ -763,7 +763,7 @@ def rigDisconnect(*args,**kws):
             else:_b_faceState = False
 
             mc.select(cl=True)
-            mc.select(mi_module.rigNull.msgList_getMessage('controlsAll'))
+            mc.select(mi_module.rigNull.msgList_get('controlsAll',asMeta = False))
             ml_resetChannels.main(transformsOnly = False)
 
             mi_rigNull = mi_module.rigNull
@@ -934,7 +934,7 @@ def isTemplated(*args,**kws):
                 #=====================================================================================
                 ml_controlObjects = mi_module.templateNull.msgList_get('controlObjects')
                 for attr in 'controlObjects','orientHelpers':
-                    if not mi_module.templateNull.msgList_getMessage(attr):
+                    if not mi_module.templateNull.msgList_get(attr,asMeta=False):
                         self.log_warning("No data found on '%s'"%attr)
                         return False        
 
@@ -1272,7 +1272,7 @@ def returnExpectedJointCount(*args,**kws):
                 self.log_warning("Can't count expected joints. 0 handles: '%s'")
                 return False
 
-            if mi_module.templateNull.getAttr('rollJoints'):
+            if mi_module.templateNull.getMayaAttr('rollJoints'):
                 rollJoints = mi_module.templateNull.rollJoints 
                 d_rollJointOverride = mi_module.templateNull.rollOverride 
 
@@ -1703,8 +1703,8 @@ def templateSettings_call(*args,**kws):
             try:#>>> We need to setup our value normalizer value
                 #self.log_info("Distance between : {0} and {1}".format(ml_controlObjects[0].getParent(asMeta = 1).p_nameShort,ml_controlObjects[-1].getParent(asMeta = 1).p_nameShort))
                 #self.f_crvLength_current = distance.returnDistanceBetweenPoints(ml_controlObjects[0].getParent(asMeta = 1).getPosition(),ml_controlObjects[-1].getParent(asMeta = 1).getPosition())		
-                #self.f_crvLength_stored =  mi_templateNull.getAttr('moduleBaseLength') or None
-                self.f_crvLength_stored =  mi_templateNull.getAttr('curveBaseLength') or None
+                #self.f_crvLength_stored =  mi_templateNull.getMayaAttr('moduleBaseLength') or None
+                self.f_crvLength_stored =  mi_templateNull.getMayaAttr('curveBaseLength') or None
                 self.f_crvLength_current = distance.returnCurveLength(mi_templateNull.getMessage('curve')[0]) 
                 #...we'll get the current values after initial reset
             except Exception,error:raise Exception,"[Validate normalize data | {0}]".format(error)                
@@ -2209,7 +2209,7 @@ def poseRead_templateSettings(*args,**kws):
                 ml_controlObjects
                 #self.log_info("Distance between : {0} and {1}".format(ml_controlObjects[0].getParent(asMeta = 1).p_nameShort,ml_controlObjects[-1].getParent(asMeta = 1).p_nameShort))
                 self.f_crvLength_current = distance.returnDistanceBetweenPoints(ml_controlObjects[0].getParent(asMeta = 1).getPosition(),ml_controlObjects[-1].getParent(asMeta = 1).getPosition())		
-                self.f_crvLength_stored =  mi_templateNull.getAttr('moduleBaseLength') or None
+                self.f_crvLength_stored =  mi_templateNull.getMayaAttr('moduleBaseLength') or None
 
             except Exception,error:raise StandardError,"[Validate normalize data | {0}]".format(error)
 
@@ -2527,7 +2527,7 @@ def get_mirror(*args,**kws):
                 kws = self.d_kws		
             except Exception,error:raise StandardError,"[Query]{%s}"%error
             l_direction = ['left','right']
-            if mi_module.getAttr('cgmDirection') not in l_direction:
+            if mi_module.getMayaAttr('cgmDirection') not in l_direction:
                 self.log_debug("Module doesn't have direction")
                 return False
             int_direction = l_direction.index(mi_module.cgmDirection)
@@ -3038,7 +3038,7 @@ def get_moduleSiblings(*args,**kws):
                         ml_return.append(mi_module)
                 elif mi_module.moduleType == mModule.moduleType or mi_module.moduleType in l_sibblingIgnoreCheck:
                     self.log_debug("Type match match : %s"%mModule)		    
-                    if mi_module.getAttr('cgmDirection') != mModule.getAttr('cgmDirection') or mi_module.moduleType in l_sibblingIgnoreCheck:
+                    if mi_module.getMayaAttr('cgmDirection') != mModule.getMayaAttr('cgmDirection') or mi_module.moduleType in l_sibblingIgnoreCheck:
                         self.log_debug("Appending: %s"%mModule)
                         ml_return.append(mModule)
             return ml_return
@@ -3179,12 +3179,12 @@ def animSelect_children(*args,**kws):
                 kws = self.d_kws		
             except Exception,error:raise StandardError,"[Query]{%s}"%error
             
-            l_controls = mi_module.rigNull.msgList_getMessage('controlsAll') or []
+            l_controls = mi_module.rigNull.msgList_get('controlsAll',asMeta = False) or []
             ml_children = get_allModuleChildren(**kws)
             int_lenMax = len(ml_children)
             for i,i_c in enumerate(ml_children):
                 self.progressBar_set(status = "Remaining to process... ", progress = i, maxValue = int_lenMax)		    				    		    
-                buffer = i_c.rigNull.msgList_getMessage('controlsAll')
+                buffer = i_c.rigNull.msgList_get('controlsAll',asMeta = False)
                 if buffer:
                     l_controls.extend(buffer)
 
@@ -3245,14 +3245,14 @@ def animPushPose_siblings(*args,**kws):
             except Exception,error:raise StandardError,"[Query]{%s}"%error
 
             ml_buffer = get_moduleSiblings(**kws)
-            l_moduleControls = self._mi_module.rigNull.msgList_getMessage('controlsAll')
+            l_moduleControls = self._mi_module.rigNull.msgList_get('controlsAll',asMeta = False)
             int_lenMax = len(ml_buffer)		
             l_controls = []
             for i,i_c in enumerate(ml_buffer):
                 try:		    
                     _str_child = i_c.p_nameShort
                     self.progressBar_set(status = "%s >> step:'%s' "%(self._str_reportStart,_str_child), progress = i, maxValue = int_lenMax)		    				    		    			
-                    l_siblingControls = i_c.rigNull.msgList_getMessage('controlsAll')
+                    l_siblingControls = i_c.rigNull.msgList_get('controlsAll',asMeta = False)
                     for i,c in enumerate(l_siblingControls):
                         #log.info("%s %s >> %s"%(self._str_reportStart,l_moduleControls[i],c))
                         r9Anim.AnimFunctions().copyAttributes(nodes=[l_moduleControls[i],c])
@@ -3359,7 +3359,7 @@ def get_mirrorSideAsString(*args,**kws):
                 mi_module = self._mi_module
                 kws = self.d_kws		
             except Exception,error:raise StandardError,"[Query]{%s}"%error
-            _str_direction = mi_module.getAttr('cgmDirection') 
+            _str_direction = mi_module.getMayaAttr('cgmDirection') 
             if _str_direction is not None and _str_direction.lower() in ['right','left']:
                 return _str_direction.capitalize()
             else:return 'Centre'	    

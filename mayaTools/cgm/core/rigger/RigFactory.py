@@ -378,7 +378,7 @@ def go(*args, **kws):
                 for key in checkShapes.keys():
                     for subkey in checkShapes[key]:
                         if not self._i_rigNull.getMessage('{0}_{1}'.format(key,subkey)):
-                            if not self._i_rigNull.msgList_getMessage('{0}_{1}'.format(key,subkey)):
+                            if not self._i_rigNull.msgList_get('{0}_{1}'.format(key,subkey),asMeta = False):
                                 if not self._i_rigNull.msgList_get('{0}'.format(subkey),False):
                                     self.log_error("isShaped >>> Missing {0} '{1}' ".format(key,subkey))
                                     return False
@@ -391,7 +391,7 @@ def go(*args, **kws):
             _str_funcName = "go.isRigSkeletonized({0})".format(self._strShortName)  
             try:
                 for key in self._l_jointAttrs:
-                    if not self._i_rigNull.getMessage('{0}'.format(key)) and not self._i_rigNull.msgList_getMessage('{0}'.format(key)):
+                    if not self._i_rigNull.getMessage('{0}'.format(key)) and not self._i_rigNull.msgList_get('{0}'.format(key),asMeta = False):
                         self.log_error("isRigSkeletonized >>> Missing key '{0}'".format(key))
                         return False		
                 return True
@@ -943,7 +943,6 @@ def go(*args, **kws):
                         l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
                         log.debug("segment chain %s: %s"%(i,l_chain))
                         self._i_rigNull.msgList_connect(ml_chain,'segment%s_Joints'%i,"rigNull")
-                        log.debug("segment%s_Joints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_Joints'%i,False)))
 
                 log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
                 return ml_segmentChains
@@ -1020,7 +1019,6 @@ def go(*args, **kws):
                     l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
                     log.debug("%s.build_simpleInfuenceChains>>> split chain: %s"%(self._mi_module.getShortName(),l_chain))
                     self._i_rigNull.msgList_connect(ml_chain,'segment%s_InfluenceJoints'%i,"rigNull")
-                    log.debug("segment%s_InfluenceJoints>> %s"%(i,self._i_rigNull.msgList_getMessage('segment%s_InfluenceJoints'%i,False)))
 
                 log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
                 return {'ml_influenceChains':ml_influenceChains,'ml_influenceJoints':ml_influenceJoints,'ml_segmentHandleJoints':ml_segmentHandleJoints}
@@ -1371,7 +1369,7 @@ def get_influenceChains(self):
         ml_influenceChains = []
         for i in range(100):
             str_check = 'segment%s_InfluenceJoints'%i
-            buffer = self.rigNull.msgList_getMessage(str_check)
+            buffer = self.rigNull.msgList_get(str_check,asMeta = False)
             log.debug("Checking %s: %s"%(str_check,buffer))
             if buffer:
                 l_influenceChains.append(buffer)
@@ -1394,7 +1392,7 @@ def get_segmentHandleChains(self):
         l_segmentHandleChains = []
         ml_segmentHandleChains = []
         for i in range(50):
-            buffer = self.rigNull.msgList_getMessage('segmentHandles_%s'%i,False)
+            buffer = self.rigNull.msgList_get('segmentHandles_%s'%i,asMeta = False)
             if buffer:
                 l_segmentHandleChains.append(buffer)
                 ml_segmentHandleChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
@@ -1417,7 +1415,7 @@ def get_segmentChains(self):
         l_segmentChains = []
         ml_segmentChains = []
         for i in range(50):
-            buffer = self.rigNull.msgList_getMessage('segment%s_Joints'%i,False)
+            buffer = self.rigNull.msgList_get('segment%s_Joints'%i,asMeta = False)
             if buffer:
                 l_segmentChains.append(buffer)
                 ml_segmentChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
@@ -1840,7 +1838,7 @@ def verify_eyeLook(*args,**kws):
                 mi_dynGroup = mi_eyeLookShape.dynParentGroup
                 mi_dynGroup.dynMode = 0
                 ml_spacePivots = False
-                if mi_eyeLookShape.msgList_getMessage('spacePivots'):
+                if mi_eyeLookShape.msgList_get('spacePivots',asMeta = False):
                     ml_spacePivots = mi_eyeLookShape.msgList_get('spacePivots',asMeta = True)
                     self.ml_dynParentsToAdd.extend(ml_spacePivots)		    
                     self.ml_controlsAll.extend(ml_spacePivots)

@@ -339,7 +339,7 @@ def doSkeletonizeEyeball(self):
             raise StandardError, "eye orb fail! | %s"%(_str_funcName,error)
 
         #Connect back
-        self._mi_rigNull.msgList_connect(ml_moduleJoints,'moduleJoints','rigNull')
+        self._mi_rigNull.msgList_connect('moduleJoints',ml_moduleJoints,'rigNull')
         log.info("%s >>> built the following joints: %s"%(_str_funcName,[o.p_nameShort for o in ml_moduleJoints]))
     except Exception,error:
         raise StandardError, "%s >>> Orient fail | Error: %s"%(_str_funcName,error)
@@ -349,8 +349,8 @@ def doSkeletonizeEyeball(self):
     try:
         for mJnt in ml_moduleJoints:
             mJnt.doName()
-        self._mi_rigNull.msgList_connect(ml_moduleJoints,'handleJoints') 
-        self._mi_rigNull.msgList_connect(ml_moduleJoints,'skinJoints') 
+        self._mi_rigNull.msgList_connect('handleJoints',ml_moduleJoints) 
+        self._mi_rigNull.msgList_connect('skinJoints',ml_moduleJoints) 
     except Exception,error:
         raise StandardError, "%s >>> Skin/Handle connect fail | Error: %s"%(_str_funcName,error)
 
@@ -385,9 +385,9 @@ def doSkeletonizeEyelids(self):
         except Exception,error:raise StandardError,"%s >>> Missing uprlid helper | error: %s "%(_str_funcName,error)
         try:mi_lwrLidBase = cgmMeta.validateObjArg(mi_helper.getMessage('lwrLidHelper'),noneValid=False)
         except Exception,error:raise StandardError,"%s >>> Missing uprlid helper | error: %s "%(_str_funcName,error)
-        try:int_lwrLidJoints = mi_helper.getAttr('lwrLidJoints')
+        try:int_lwrLidJoints = mi_helper.getMayaAttr('lwrLidJoints')
         except Exception,error:raise StandardError,"%s >>> Missing lwrLid joint count | error: %s "%(_str_funcName,error)
-        try:int_uprLidJoints = mi_helper.getAttr('uprLidJoints')
+        try:int_uprLidJoints = mi_helper.getMayaAttr('uprLidJoints')
         except Exception,error:raise StandardError,"%s >>> Missing uprLid joint count | error: %s "%(_str_funcName,error)       
         log.info("%s >>> helper: '%s'"%(_str_funcName,mi_helper.p_nameShort))
         log.info("%s >>> mi_uprLidBase: '%s'"%(_str_funcName,mi_uprLidBase.p_nameShort))
@@ -450,7 +450,7 @@ def doSkeletonizeEyelids(self):
                     raise StandardError,"curve: %s | pos count: %s | error: %s "%(k,i,error) 
             #d_buildCurves[k]['nestedml_joints'] = l_jointBuffer #nested list
             d_buildCurves[k]['ml_endJoints'] = ml_endJoints #nested list
-            self._mi_rigNull.msgList_connect(ml_endJoints,'moduleJoints_%s'%k,'rigNull')  		
+            self._mi_rigNull.msgList_connect('moduleJoints_%s'%k,ml_endJoints,'rigNull')  		
     except Exception,error:
         raise StandardError,"[{0} build] | error: {1} ".format(_str_funcName,error)  
     try:
@@ -505,8 +505,8 @@ def doSkeletonizeEyelids(self):
     #===========================
     try:
         #self._mi_rigNull.msgList_connect(ml_moduleJoints,'handleJoints') 
-        self._mi_rigNull.msgList_connect(ml_moduleJoints,'skinJoints') 
-        self._mi_rigNull.msgList_connect(ml_moduleJoints,'moduleJoints') 
+        self._mi_rigNull.msgList_connect('skinJoints',ml_moduleJoints) 
+        self._mi_rigNull.msgList_connect('moduleJoints',ml_moduleJoints) 
 
     except Exception,error:
         raise StandardError, "%s >>> Skin/Handle connect fail | Error: %s"%(_str_funcName,error)
@@ -869,8 +869,8 @@ def doSkeletonizeEyebrow(goInstance = None):
             return True
 
         def _connect_(self): 
-            self.mi_go._mi_rigNull.msgList_connect(self.ml_moduleJoints,'moduleJoints','rigNull')
-            self.mi_go._mi_rigNull.msgList_connect(self.ml_moduleJoints,'skinJoints')
+            self.mi_go._mi_rigNull.msgList_connect('moduleJoints',self.ml_moduleJoints,'rigNull')
+            self.mi_go._mi_rigNull.msgList_connect('skinJoints',self.ml_moduleJoints)
 
             return True
 
@@ -985,7 +985,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                     jntUtils.metaFreezeJointOrientation(mi_root)
                     mc.delete([mi_upLoc.mNode,mi_aimLoc.mNode])
                 except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error) 
-                self.mi_go._mi_rigNull.msgList_connect(mi_root,'jawJoint')		
+                self.mi_go._mi_rigNull.msgList_connect('jawJoint',mi_root)		
             except Exception,error:raise StandardError,"jaw root | %s "%(error) 
 
             try:#JawLine ==============================================================================================
@@ -1032,7 +1032,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                         except Exception,error:
                             raise StandardError,"snap to mesh | pos count: %s | error: %s "%(k,i,error) 
                     self.ml_moduleJoints.extend(ml_createdbuffer)		    
-                    self.mi_go._mi_rigNull.msgList_connect(ml_createdbuffer,"%s_%sJoint"%(str_direction,tag))		
+                    self.mi_go._mi_rigNull.msgList_connect("%s_%sJoint"%(str_direction,tag),ml_createdbuffer)		
 
                 for d in l_build:#Second loop aims....
                     str_direction = d['direction']		    
@@ -1150,8 +1150,8 @@ def doSkeletonizeMouthNose(*args,**kws):
                             md_sides['rightCorner'] = [ml_buffer[-1]]	
                             self.md_moduleJoints['leftLipCorner'] = ml_buffer[0]
                             self.md_moduleJoints['rightLipCorner'] = ml_buffer[-1] 
-                            self.mi_go._mi_rigNull.msgList_connect(ml_buffer[0],"left_lipCornerJoint")			    			    
-                            self.mi_go._mi_rigNull.msgList_connect(ml_buffer[-1],"right_lipCornerJoint")			    			    
+                            self.mi_go._mi_rigNull.msgList_connect("left_lipCornerJoint",ml_buffer[0])			    			    
+                            self.mi_go._mi_rigNull.msgList_connect("right_lipCornerJoint",ml_buffer[-1])			    			    
                         else:
                             md_sides['left'] = ml_buffer[:int_mid]
                             md_sides['center'] = [ml_buffer[int_mid]]			
@@ -1278,7 +1278,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                     mi_root.doName()
                     self.ml_moduleJoints.append(mi_root)
                     md_noseBuilt[tag] = mi_root
-                    self.mi_go._mi_rigNull.msgList_connect(mi_root,"%sJoint"%(tag))
+                    self.mi_go._mi_rigNull.msgList_connect("%sJoint"%(tag),mi_root)
                     mi_root.__setattr__("t%s"%self.str_orientation[2],0)#center
 
                 except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)
@@ -1315,7 +1315,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                         md_noseBuilt[tag] = mi_jnt
                         self.md_moduleJoints[tag] = mi_jnt
                         #Store it...
-                        self.mi_go._mi_rigNull.msgList_connect(mi_jnt,"%sJoint"%(tag))
+                        self.mi_go._mi_rigNull.msgList_connect("%sJoint"%(tag),mi_jnt)
                         if tag in ['noseTop','noseUnder']:
                             mi_jnt.__setattr__("t%s"%self.str_orientation[2],0)#center
                     except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)  
@@ -1409,7 +1409,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                             jntUtils.metaFreezeJointOrientation(mJnt)		    
                         except Exception,error:raise StandardError,"%s orient fail | %s "%(str_mdTag,error) 
                     #Store it...	    
-                    self.mi_go._mi_rigNull.msgList_connect(ml_createdbuffer,"%s_%sJoint"%(str_direction,tag))		    
+                    self.mi_go._mi_rigNull.msgList_connect("%s_%sJoint"%(str_direction,tag),ml_createdbuffer)		    
             except Exception,error:raise StandardError,"Nostril | %s "%(error) 	    
 
             self.md_noseBuilt = md_noseBuilt
@@ -1491,7 +1491,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                     except Exception,error:raise StandardError,"[second orient fail]{%s}"%(error) 		
 
                 #Store it...	    
-                self.mi_go._mi_rigNull.msgList_connect(ml_createdbuffer,"%s_%sJoint"%(k,'smileLine'))		   
+                self.mi_go._mi_rigNull.msgList_connect("%s_%sJoint"%(k,'smileLine'),ml_createdbuffer)		   
             return True
 
         def _buildTongue_(self):
@@ -1550,7 +1550,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                     jntUtils.metaFreezeJointOrientation(mi_jnt)
                 except Exception,error:raise StandardError,"| pos count: %s | Freeze orientation fail | error: %s "%(i,error)       		
             #Store it...		    
-            self.mi_go._mi_rigNull.msgList_connect(ml_tongueJoints,"%sJoint"%('tongue'))		    
+            self.mi_go._mi_rigNull.msgList_connect("%sJoint"%('tongue'),ml_tongueJoints)		    
             return True	
         
         def _buildTeeth_(self):
@@ -1575,10 +1575,10 @@ def doSkeletonizeMouthNose(*args,**kws):
                         
                         if p is 'upper':
                             mi_jnt.parent = self.str_rootJoint
-                            self.mi_go._mi_rigNull.msgList_connect(mi_jnt,'teethUprJoint')		                            
+                            self.mi_go._mi_rigNull.msgList_connect('teethUprJoint',mi_jnt)		                            
                         else:
                             mi_jnt.parent = self.md_moduleJoints['jaw']      
-                            self.mi_go._mi_rigNull.msgList_connect(mi_jnt,'teethLwrJoint')		                                                        
+                            self.mi_go._mi_rigNull.msgList_connect('teethLwrJoint',mi_jnt)		                                                        
                     except Exception,error:raise StandardError,"%s create and name fail | %s "%(tag,error)
                     
                     try:#Orient -------------------------------------------------------------------------
@@ -1642,7 +1642,7 @@ def doSkeletonizeMouthNose(*args,**kws):
                     except Exception,error:raise StandardError,"curve: %s | pos count: %s | Freeze orientation fail | error: %s "%(k,i,error)       
                 d_buildCurves[k]['ml_joints'] = ml_cheekJoints #nested list
                 #Store it...	    
-                self.mi_go._mi_rigNull.msgList_connect(ml_jointBuffer,"%s_%sJoint"%(k,'uprCheek'))		
+                self.mi_go._mi_rigNull.msgList_connect("%s_%sJoint"%(k,'uprCheek'),ml_jointBuffer)		
             return True
 
         def _buildCheek_(self): 
@@ -1753,15 +1753,15 @@ def doSkeletonizeMouthNose(*args,**kws):
                 except Exception,error:raise StandardError,"[%s orient fail]{%s}"%(k,error) 		
                 d_buildCurves[k]['ml_joints'] = ml_cheekJoints #nested list
                 #Store it...	    
-                self.mi_go._mi_rigNull.msgList_connect(ml_cheekJoints,"%s_%sJoint"%(k,'cheek'))				
+                self.mi_go._mi_rigNull.msgList_connect("%s_%sJoint"%(k,'cheek'),ml_cheekJoints)				
             return True
 
         def _connect_(self): 
             log.info("%s len - %s"%(self._str_reportStart,len(self.ml_moduleJoints)))	    
             #for mi_jnt in self.ml_moduleJoints:
                 #log.info("'%s'"%(mi_jnt.p_nameShort))
-            self.mi_go._mi_rigNull.msgList_connect(self.ml_moduleJoints,'moduleJoints','rigNull')
-            self.mi_go._mi_rigNull.msgList_connect(self.ml_moduleJoints,'skinJoints')	    
+            self.mi_go._mi_rigNull.msgList_connect('moduleJoints','rigNull',self.ml_moduleJoints)
+            self.mi_go._mi_rigNull.msgList_connect('skinJoints',self.ml_moduleJoints)	    
             return True
 
     #We wrap it so that it autoruns and returns
@@ -1826,7 +1826,7 @@ def build_limbSkeleton(*args, **kws):
                 if mi_go._mi_module.getMessage('moduleParent'):
                     self.log_debug("Found moduleParent, checking joints...")
                     self.mi_parentRigNull = mi_go._mi_module.moduleParent.rigNull
-                    self.l_parentJoints = self.mi_parentRigNull.msgList_getMessage('moduleJoints')
+                    self.l_parentJoints = self.mi_parentRigNull.msgList_get('moduleJoints',asMeta=False)
                     if self.l_parentJoints:
                         parent_pos = distance.returnWorldSpacePosition( self.l_parentJoints[-1] )
                         self.log_debug("parentPos: %s"%parent_pos)  
@@ -1850,7 +1850,7 @@ def build_limbSkeleton(*args, **kws):
                         self.log_debug("Single joint: moduleParent mode")
                         #Need to grab the last joint for this module
                         self.l_limbJoints = [self.l_parentJoints[-1]]
-                        self.mi_parentRigNull.msgList_connect(self.l_parentJoints[:-1],'moduleJoints','rigNull')
+                        self.mi_parentRigNull.msgList_connect('moduleJoints',self.l_parentJoints[:-1],'rigNull')
                         mi_go.b_parentStole = True	    
                     else:
                         self.log_debug("Single joint: no parent mode")
@@ -1861,7 +1861,7 @@ def build_limbSkeleton(*args, **kws):
                     if self.mi_parentJointToUse:
                         self.log_debug("Stealing parent joint : {0} | will no longer exist".format(self.mi_parentJointToUse.mNode))
                         #We're going to reconnect all but the last joint back to the parent module and delete the last parent joint which we're replacing
-                        self.mi_parentRigNull.msgList_connect(self.l_parentJoints[:-1],'moduleJoints','rigNull')
+                        self.mi_parentRigNull.msgList_connect('moduleJoints',self.l_parentJoints[:-1],'rigNull')
                         mc.delete(self.mi_parentJointToUse.mNode)
                         mi_go.b_parentStole = True
 
@@ -1940,7 +1940,7 @@ def build_limbSkeleton(*args, **kws):
 
 
             try:#>>>Store it
-                mi_go._mi_rigNull.msgList_connect(self.l_limbJoints,'moduleJoints','rigNull')
+                mi_go._mi_rigNull.msgList_connect('moduleJoints',self.l_limbJoints,'rigNull')
             except Exception,error:raise Exception,"Store msgList fail | {0} ".format(error)
 
             #>>>Store these joints and rename the heirarchy
@@ -1989,8 +1989,8 @@ def build_limbSkeleton(*args, **kws):
                     #i_obj.handleJoint.d_jointFlags = d_buffer
                     ml_handleJoints.append(i_obj.handleJoint)
 
-            mi_go._mi_rigNull.msgList_connect(ml_handleJoints,'handleJoints','rigNull')
-            mi_go._mi_rigNull.msgList_connect(ml_moduleJoints,'skinJoints') 
+            mi_go._mi_rigNull.msgList_connect('handleJoints',ml_handleJoints,'rigNull')
+            mi_go._mi_rigNull.msgList_connect('skinJoints',ml_moduleJoints) 
 
             return True 
     return fncWrap_build_limbTemplate(*args, **kws).go()
@@ -2191,8 +2191,8 @@ def doOrientSegment(*args, **kws):
             except Exception,error:raise Exception,"bring data local fail | {0} ".format(error)
 
             for i,mJnt in enumerate(self.ml_moduleJoints):
-                self.log_debug(mJnt.getAttr('cgmName'))
-                if mJnt.getAttr('cgmName') in ['ankle']:
+                self.log_debug(mJnt.getMayaAttr('cgmName'))
+                if mJnt.getMayaAttr('cgmName') in ['ankle']:
                     self.log_debug("Copy orient from parent mode: %s"%mJnt.getShortName())
                     joints.doCopyJointOrient(mJnt.parent,mJnt.mNode)
 
@@ -2262,7 +2262,7 @@ def connectToParentModule(self):
     try:
         log.debug(">>> %s.connectToParentModule >> "%self.p_nameShort + "="*75)  
         try:
-            l_moduleJoints = self.rigNull.msgList_getMessage('moduleJoints') 
+            l_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta=False) 
 
             if self._UTILS.isRootModule(self):
                 log.info("NEED TO CONNECT TO PUPPET")
@@ -2271,7 +2271,7 @@ def connectToParentModule(self):
                 except Exception,error:raise Exception,"root module parent fail | {0} ".format(error)
 
             else:
-                l_moduleJoints = self.rigNull.msgList_getMessage('moduleJoints') 
+                l_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta = False) 
 
                 if not self.getMessage('moduleParent'):
                     return False
@@ -2282,13 +2282,13 @@ def connectToParentModule(self):
                     if i_parent.isSkeletonized():#>> If we have a module parent
                         #>> If we have another anchor
                         if self.moduleType == 'eyelids':
-                            str_targetObj = i_parent.rigNull.msgList_getMessage('moduleJoints')[0]
+                            str_targetObj = i_parent.rigNull.msgList_get('moduleJoints',asMeta = False)[0]
                             for jnt in l_moduleJoints:
                                 #mJoint.parent = str_targetObj
                                 rigging.doParentReturnName(jnt,str_targetObj)
 
                         else:
-                            l_parentSkinJoints = i_parent.rigNull.msgList_getMessage('moduleJoints')
+                            l_parentSkinJoints = i_parent.rigNull.msgList_get('moduleJoints',asMeta = False)
                             str_targetObj = distance.returnClosestObject(l_moduleJoints[0],l_parentSkinJoints)
                             rigging.doParentReturnName(l_moduleJoints[0],str_targetObj)		
                     else:

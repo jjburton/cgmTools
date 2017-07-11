@@ -282,7 +282,7 @@ def registerControl(*args,**kws):
                                 i_group.addAttr('cgmIterator',str(i+1),lock=True)
                                 i_group.doName()
                             self.ml_groups.append(i_group)
-                        self.mi_control.msgList_connect(self.ml_groups,"extraGroups",'groupChild')
+                        self.mi_control.msgList_connect("extraGroups",self.ml_groups,'groupChild')
                     except Exception,error:raise StandardError,"extra Groups | %s"%(error)
 
                 if addConstraintGroup:#ConstraintGroups

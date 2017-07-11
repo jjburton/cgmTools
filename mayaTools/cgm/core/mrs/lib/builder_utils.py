@@ -367,7 +367,7 @@ def build_loftMesh(root, jointCount = 3, degree = 3, cap = True, merge = True):
         _res = _res_body
     return _res[0]
 
-def build_jointProxyMesh(root,degree = 3):
+def build_jointProxyMesh(root,degree = 3, jointUp = 'y+'):
     _str_func = 'build_jointProxyMesh'
     
     _l_targets = ATTR.msgList_get(root,'loftTargets')
@@ -391,7 +391,7 @@ def build_jointProxyMesh(root,degree = 3):
     
     _l_newCurves = []
     for j in _l_joints:
-        _d = RAYS.cast(_res_body[0],j,'y+')
+        _d = RAYS.cast(_res_body[0],j,jointUp)
         log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
         #cgmGEN.log_info_dict(_d,j)
         _v = _d['uvs'][_res_body[0]][0][0]

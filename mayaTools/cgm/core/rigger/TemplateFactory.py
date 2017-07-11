@@ -623,7 +623,7 @@ def build_limbTemplate(*args, **kws):
             #=============================      
             mi_go._mi_templateNull.curve = self._mi_crv.mNode
             mi_go._mi_templateNull.root = self._mi_rootControl.mNode
-            mi_go._mi_templateNull.msgList_connect(self.l_tmplHandles,'controlObjects')
+            mi_go._mi_templateNull.msgList_connect('controlObjects',self.l_tmplHandles)
 
             mi_go._mi_rootControl =self._mi_rootControl#link to carry
 
@@ -789,7 +789,7 @@ def doMakeLimbTemplate2(self):
         #=============================      
         self._mi_templateNull.curve = i_crv.mNode
         self._mi_templateNull.root = i_rootControl.mNode
-        self._mi_templateNull.msgList_connect(templHandleList,'controlObjects')
+        self._mi_templateNull.msgList_connect('controlObjects',templHandleList)
 
         self._mi_rootControl = i_rootControl#link to carry
     except Exception,error:raise Exception,"store | {0}".format(error)
@@ -915,7 +915,7 @@ def doCreateOrientationHelpers(self):
             bufferList = []
             for o in self._ml_orientHelpers:
                 bufferList.append(o.mNode)
-            self._mi_templateNull.msgList_connect(bufferList,'orientHelpers')
+            self._mi_templateNull.msgList_connect('orientHelpers',bufferList)
             self._mi_orientRootHelper = i_orientRootControl
         except Exception,error:raise Exception,"forward data | {0}".format(error)
         return True

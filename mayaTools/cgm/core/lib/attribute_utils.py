@@ -2595,8 +2595,8 @@ def msgList_connect(node = None, attr = None, data = None, connectBack = None, d
         status(bool)
     """
     _str_func = 'msgList_connect'    
-    
-    _l_dat = VALID.objStringList(data,noneValid=True)
+    _l_dat = VALID.mNodeStringList(data)
+    #_l_dat = VALID.objStringList(data,noneValid=True)
     log.debug("|{0}| >> node: {1} | attr: {2} | connectBack: {3}".format(_str_func,node,attr,connectBack))
     log.debug("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
     
@@ -2756,7 +2756,7 @@ def datList_getAttrs(node = None, attr = None):
 msgList_getAttrs = datList_getAttrs
 
 def msgList_index(node = None, attr = None, data = None, dataAttr = None):
-    return datList_index(node,attr,data,'message',dataAttr)
+    return datList_index(node,attr,VALID.mNodeString(data),'message',dataAttr)
 
 def datList_index(node = None, attr = None, data = None, mode = None, dataAttr = None):
     """   
@@ -2805,10 +2805,11 @@ def datList_index(node = None, attr = None, data = None, mode = None, dataAttr =
         raise ValueError,"Data not found"
     return idx
 
-def msgList_append(node = None, attr = None, data = None, dataAttr=None,connectBack = None):
-    _res = datList_append(node, attr,data,'message',dataAttr)
+def msgList_append(node = None, attr = None, data = None, connectBack = None,dataAttr=None):
+    _data = VALID.mNodeString(data)
+    _res = datList_append(node, attr,VALID.mNodeString(data),'message',dataAttr)
     if connectBack is not None:
-        set_message(data, connectBack, node, dataAttr)
+        set_message(_data, connectBack, node, dataAttr)
     return _res
 
 def datList_append(node = None, attr = None, data = None, mode = None, dataAttr = None):
@@ -2869,7 +2870,7 @@ def datList_removeByIndex(node = None, attr = None, indices = None):
 msgList_removeByIndex = datList_removeByIndex   
   
 def msgList_remove(node = None, attr = None, data = None, dataAttr = None):
-    return datList_remove(node,attr,data,'message',dataAttr)
+    return datList_remove(node,attr,VALID.mNodeString(data),'message',dataAttr)
 
 def datList_remove(node = None, attr = None, data = None, mode = None, dataAttr = None):
     """   
@@ -3144,7 +3145,7 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Tr
         elif len(_data)>3:
             attrType = 'doubleArray'
             
-    log.info("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
+    log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
     
     #>> Store our data #-------------------------------------------------------------------------
     

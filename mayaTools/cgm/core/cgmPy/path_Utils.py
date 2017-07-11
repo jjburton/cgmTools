@@ -43,10 +43,10 @@ def cleanPath( pathString ):
     maya will often put double, sometimes triple slashes, different slash types etc
     '''
     pathString = os.path.expanduser( str( pathString ) )
-    path = pathString.strip().replace( OTHER_SEPARATOR, PATH_SEPARATOR )
+    path = pathString.strip().doReplace( OTHER_SEPARATOR, PATH_SEPARATOR )
     isUNC = path.startswith( UNC_PREFIX )
     while UNC_PREFIX in path:
-        path = path.replace( UNC_PREFIX, PATH_SEPARATOR )
+        path = path.doReplace( UNC_PREFIX, PATH_SEPARATOR )
 
     if isUNC:
         path = PATH_SEPARATOR + path
@@ -501,24 +501,24 @@ class Path(str):
 
         return self._toksToPath( toksToJoin, self.isUNC, self.hasTrailing )
     
-    def replace( self, search, replace='', caseMatters=None ):
+    def doReplace( self, search, replace='', caseMatters=None ):
         '''
         a simple search replace method - works on path tokens.  if caseMatters is None, then the system
         default case sensitivity is used
         '''
-        print('path.replace...')
-        idx = self.find( search, caseMatters )
+        print('path.doReplace...')
+        idx = self.doFind( search, caseMatters )
         toks = list( self.split() )
         toks[ idx ] = replace
 
         return self._toksToPath( toks, self.isUNC, self.hasTrailing )
     
-    def find( self, search, caseMatters=None ):
+    def doFind( self, search, caseMatters=None ):
         '''
         returns the index of the given path token
         '''
         try:
-            print('path.find...')            
+            print('path.doFind...')            
             _bfr = str(self)
             if caseMatters is None:
                 #in this case assume system case sensitivity - ie sensitive only on *nix platforms

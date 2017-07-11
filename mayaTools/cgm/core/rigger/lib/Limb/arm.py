@@ -94,10 +94,10 @@ def __bindSkeletonSetup__(self):
 
         for i,i_jnt in enumerate(ml_moduleJoints):
             ml_skinJoints.append(i_jnt)		
-            if i_jnt in ml_handleJoints and i_jnt.getAttr('cgmName') not in ['ball']:
+            if i_jnt in ml_handleJoints and i_jnt.getMayaAttr('cgmName') not in ['ball']:
                 if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
                 i_dupJnt = i_jnt.doDuplicate(parentOnly = True)#Duplicate
-                i_dupJnt.addAttr('cgmNameModifier','scale')#Tag
+                i_dupJnt.addAttr('cgmTypeModifier','scale')#Tag
                 i_jnt.doName()#Rename
                 i_dupJnt.doName()#Rename
                 i_dupJnt.parent = i_jnt#Parent
@@ -139,7 +139,7 @@ def build_rigSkeleton(goInstance = None):
             try:#Rig chain
                 ml_rigJoints = self._go.build_rigChain()
                 ml_rigJoints[0].parent = False#Parent to world
-                self._go._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints',"rigNull")
+                self._go._i_rigNull.msgList_connect('rigJoints',ml_rigJoints,"rigNull")
 
                 self.ml_rigJoints = ml_rigJoints#pass to wrapper
             except Exception,error: raise Exception,"Rig chain | %s"%error
@@ -179,14 +179,14 @@ def build_rigSkeleton(goInstance = None):
                         cgmMeta.cgmAttr(mJoint.mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%self.ml_fkDriverJoints[i].mNode)
             except Exception,error: raise Exception,"Failed to create mirror chain | %s"%error
 
-            self._go._i_rigNull.msgList_connect(ml_fkJoints,'fkJoints',"rigNull")
+            self._go._i_rigNull.msgList_connect('fkJoints',ml_fkJoints,"rigNull")
             self.ml_fkJoints = ml_fkJoints#pass to wrapper
 
         def build_rotateOrders(self):#==========================================================================
             d_fkRotateOrders = {'elbow':2}#old hip - 5
 
             for i_obj in self.ml_fkJoints:
-                if i_obj.getAttr('cgmName') in d_fkRotateOrders.keys():
+                if i_obj.getMayaAttr('cgmName') in d_fkRotateOrders.keys():
                     i_obj.rotateOrder = d_fkRotateOrders.get(i_obj.cgmName)   		
                 else:
                     i_obj.rotateOrder = self._go._jointOrientation
@@ -199,7 +199,7 @@ def build_rigSkeleton(goInstance = None):
             self.ml_influenceJoints= d_influenceChainReturns['ml_influenceJoints']	
             self.ml_segmentHandleJoints = d_influenceChainReturns['ml_segmentHandleJoints']
 
-            self._go._i_rigNull.msgList_connect(self.ml_influenceJoints,'influenceJoints',"rigNull")
+            self._go._i_rigNull.msgList_connect('influenceJoints',self.ml_influenceJoints,"rigNull")
 
             if len(self.ml_segmentHandleJoints)!=3:
                 raise Exception,"Don't have 3 influence joints: '%s'"%(self.ml_segmentHandleJoints)
@@ -258,7 +258,7 @@ def build_shapes(goInstance = None):
                     log.debug("%s.build_shapes>>> segmentIK chain %s: %s"%(self._go._strShortName,i,self._go._md_controlShapes))
                     ml_segmentIKShapes.extend(self._go._md_controlShapes['segmentIK'])
 
-                    self._go._i_rigNull.msgList_connect(self._go._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,"rigNull")		
+                    self._go._i_rigNull.msgList_connect('shape_segmentIK_%s'%i,self._go._md_controlShapes['segmentIK'],"rigNull")		
             except Exception,error: raise Exception,"Failed to generate initial shapes | %s"%error
 
             self._go._i_rigNull.msgList_connect(ml_segmentIKShapes,'shape_segmentIK',"rigNull")		
@@ -266,7 +266,9 @@ def build_shapes(goInstance = None):
             #Rest of it
             l_toBuild = ['segmentFK_Loli','settings','midIK','hand']
             mShapeCast.go(self._go._mi_module,l_toBuild, storageInstance=self._go)#This will store controls to a dict called    
-            self._go._i_rigNull.msgList_connect(self._go._md_controlShapes['segmentFK_Loli'],'shape_controlsFK',"rigNull")	
+            self._go._i_rigNull.msgList_connect('shape_controlsFK',
+                                                self._go._md_controlShapes['segmentFK_Loli'],
+                                                "rigNull")	
             self._go._i_rigNull.connectChildNode(self._go._md_controlShapes['midIK'],'shape_midIK',"rigNull")
             self._go._i_rigNull.connectChildNode(self._go._md_controlShapes['settings'],'shape_settings',"rigNull")		
             self._go._i_rigNull.connectChildNode(self._go._md_controlShapes['hand'],'shape_hand',"rigNull")
@@ -357,7 +359,7 @@ def build_controls(goInstance = None):
                 i_obj.delete()
 
             log.info("%s fk: %s"%(self._str_reportStart,self.ml_fkJoints))
-            self._go._i_rigNull.msgList_connect(ml_fkJoints,'controlsFK',"rigNull")	    
+            self._go._i_rigNull.msgList_connect('controlsFK',ml_fkJoints,"rigNull")	    
             self.ml_controlsAll.extend(ml_fkJoints)#append	
 
         def build_ik(self):
@@ -423,7 +425,7 @@ def build_controls(goInstance = None):
                     ml_controlChain.append(i_obj)
 
                     self.mPlug_result_moduleSubDriver.doConnectOut("%s.visibility"%i_obj.mNode)
-                self._go._i_rigNull.msgList_connect(ml_controlChain,'segmentHandles_%s'%i,"rigNull")
+                self._go._i_rigNull.msgList_connect('segmentHandles_%s'%i,ml_controlChain,"rigNull")
                 self.ml_controlsAll.extend(ml_controlChain)
                 log.info("%s control chain %s: %s"%(self._str_reportStart,i,ml_controlChain))	    
 
@@ -465,7 +467,7 @@ def build_controls(goInstance = None):
                     mCtrl.addAttr('mirrorIndex', value = (int_strt + i))		
                 except Exception,error: raise Exception,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 
-            try:self._go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll')
+            try:self._go._i_rigNull.msgList_connect('controlsAll',self.ml_controlsAll)
             except Exception,error: raise Exception,"Controls all connect| %s"%error	    
             try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
             except Exception,error: raise Exception,"Failed to set module objectSet | %s"%error
@@ -1391,7 +1393,7 @@ def build_deformationOLD(self):
             mPlug_TwistEndResult.doConnectOut("%s.twistEnd"%i_curve.mNode)
 
             #Reconnect children nodes
-            self._i_rigNull.msgList_connect(ml_segmentChains[i],'segment%s_Joints'%i,"rigNull")#Reconnect to reset. Duplication from createCGMSegment causes issues	
+            self._i_rigNull.msgList_connect('segment%s_Joints'%i,ml_segmentChains[i],"rigNull")#Reconnect to reset. Duplication from createCGMSegment causes issues	
 
             #>>> Attributes 
             #================================================================================================================
@@ -1414,7 +1416,7 @@ def build_deformationOLD(self):
         raise Exception,error	
 
     #TODO	
-    self._i_rigNull.msgList_connect(ml_segmentCurves,'segmentCurves',"rigNull")
+    self._i_rigNull.msgList_connect('segmentCurves',ml_segmentCurves,"rigNull")
 
     return True
 

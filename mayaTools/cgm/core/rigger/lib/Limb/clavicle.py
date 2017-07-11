@@ -99,7 +99,7 @@ def build_rigSkeleton(goInstance = None):
                 i_j.doName()
                 ml_rigJoints.append(i_j)
             ml_rigJoints[0].parent = False#Parent to world		
-            self._go._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints',"rigNull")
+            self._go._i_rigNull.msgList_connect('rigJoints',ml_rigJoints,"rigNull")
 
             self.ml_rigJoints = ml_rigJoints#pass to wrapper
 
@@ -132,7 +132,7 @@ def build_rigSkeleton(goInstance = None):
 			"""
             except Exception,error: raise Exception,"Failed to create mirror chain | %s"%error
 
-            self._go._i_rigNull.msgList_connect(ml_fkJoints,'fkJoints',"rigNull")
+            self._go._i_rigNull.msgList_connect('fkJoints',ml_fkJoints,"rigNull")
             self.ml_fkJoints = ml_fkJoints#pass to wrapper
 
         def build_rotateOrders(self):
@@ -244,8 +244,8 @@ def build_controls(goInstance = None):
             self.ml_controlsAll.extend([ml_fkJoints[0]])	
 
         def build_connections(self):
-            self._go._i_rigNull.msgList_connect([self.ml_fkJoints[0]],'controlsFK',"rigNull")	    
-            self._go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll')
+            self._go._i_rigNull.msgList_connect('controlsFK',[self.ml_fkJoints[0]],"rigNull")	    
+            self._go._i_rigNull.msgList_connect('controlsAll',self.ml_controlsAll)
             int_strt = self._go._i_puppet.get_nextMirrorIndex( self._go._str_mirrorDirection )
 
             try:
