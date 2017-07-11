@@ -164,7 +164,14 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
     _pos = pos
               
     if VALID.is_component(_obj):
-        raise NotImplementedError,"Haven't implemented component move"
+        if _space == 'object':
+            kws['os']=True
+            kws['rpr'] = False
+        else:kws['ws']=True
+        
+        log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
+    
+        return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )        
     else:
         log.debug("|{0}| >> obj: {1} | pos: {4} | pivot: {2} | space: {3}".format(_str_func,_obj,_pivot,_space,_pos))             
         if _space == 'local' or _pivot == 'local':
