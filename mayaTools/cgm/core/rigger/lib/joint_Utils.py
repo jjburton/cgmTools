@@ -232,7 +232,7 @@ def metaFreezeJointOrientation(targetJoints):
             #t1 = time.time()			
 
             log.debug("group...")
-            str_group = mi_zLoc.doGroup() #group for easy move
+            str_group = mi_zLoc.doGroup(asMeta = False) #group for easy move
             mi_yLoc.parent = str_group
             #log.info('{0} group'.format(i))
 

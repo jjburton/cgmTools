@@ -496,7 +496,7 @@ def create_distanceMeasure(*args, **kws):
                 for str_key in _d_check.keys():
                     try:
                         _d = _d_check[str_key]
-                        buffer = _d['mObj'].returnPositionOutPlug()
+                        buffer = _d['mObj'].getPositionOutPlug()
                         if not buffer:
                             raise StandardError,"{Failed to find out plug for}"
                         mc.connectAttr (buffer,
@@ -716,14 +716,14 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
         """
         baseDist = distance.returnDistanceBetweenObjects(i_baseParent.mNode,i_endParent.mNode)/4
         #Start up
-        i_upStart = i_baseParent.duplicateTransform()
+        i_upStart = i_baseParent.doCreateAt()
         i_upStart.addAttr('cgmType','midStartAimUp',attrType='string',lock=True)
         i_upStart.doName()
         i_upStart.parent = i_baseParent.mNode  
         attributes.doSetAttr(i_upStart.mNode,'t%s'%orientation[1],baseDist)
 
         #End up
-        i_upEnd = i_endParent.duplicateTransform()
+        i_upEnd = i_endParent.doCreateAt()
         i_upEnd.addAttr('cgmType','midEndAimUp',attrType='string',lock=True)
         i_upEnd.doName()    
         i_upEnd.parent = False    
@@ -755,28 +755,28 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             #=============================================================	
             #>>>PointTargets
             #linear follow
-            i_linearFollowNull = i_obj.duplicateTransform()
+            i_linearFollowNull = i_obj.doCreateAt()
             i_linearFollowNull.addAttr('cgmType','linearFollow',attrType='string',lock=True)
             i_linearFollowNull.doName()
             #i_linearFollowNull.parent = i_anchorStart.mNode     
-            i_linearPosNull = i_obj.duplicateTransform()
+            i_linearPosNull = i_obj.doCreateAt()
             i_linearPosNull.addAttr('cgmType','linearPos',attrType='string',lock=True)
             i_linearPosNull.doName()
 
             #splineFollow
-            i_splineFollowNull = i_obj.duplicateTransform()
+            i_splineFollowNull = i_obj.doCreateAt()
             i_splineFollowNull.addAttr('cgmType','splineFollow',attrType='string',lock=True)
             i_splineFollowNull.doName()	
 
             #>>>Orient Targets
             #aimstart
-            i_aimStartNull = i_obj.duplicateTransform()
+            i_aimStartNull = i_obj.doCreateAt()
             i_aimStartNull.addAttr('cgmType','aimStart',attrType='string',lock=True)
             i_aimStartNull.doName()
             i_aimStartNull.parent = i_followGroup.mNode    
 
             #aimEnd
-            i_aimEndNull = i_obj.duplicateTransform()
+            i_aimEndNull = i_obj.doCreateAt()
             i_aimEndNull.addAttr('cgmType','aimEnd',attrType='string',lock=True)
             i_aimEndNull.doName()
             i_aimEndNull.parent = i_followGroup.mNode   
@@ -1199,7 +1199,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
     try:#Make some up locs for the base and end aim
         baseDist = distance.returnDistanceBetweenObjects(i_baseParent.mNode,i_endParent.mNode)/4
         #Start up
-        i_upStart = i_baseParent.duplicateTransform()
+        i_upStart = i_baseParent.doCreateAt()
         i_upStart.addAttr('cgmType','midStartAimUp',attrType='string',lock=True)
         i_upStart.doName()
         i_upStart.parent = i_baseParent.mNode  
@@ -1207,7 +1207,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
 
 
         #End up
-        i_upEnd = i_endParent.duplicateTransform()
+        i_upEnd = i_endParent.doCreateAt()
         i_upEnd.addAttr('cgmType','midEndAimUp',attrType='string',lock=True)
         i_upEnd.doName()    
         i_upEnd.parent = False    
@@ -1240,28 +1240,28 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
             #=============================================================	
             #>>>PointTargets
             #linear follow
-            i_linearFollowNull = i_obj.duplicateTransform()
+            i_linearFollowNull = i_obj.doCreateAt()
             i_linearFollowNull.addAttr('cgmType','linearFollow',attrType='string',lock=True)
             i_linearFollowNull.doName()
             #i_linearFollowNull.parent = i_anchorStart.mNode     
-            i_linearPosNull = i_obj.duplicateTransform()
+            i_linearPosNull = i_obj.doCreateAt()
             i_linearPosNull.addAttr('cgmType','linearPos',attrType='string',lock=True)
             i_linearPosNull.doName()
 
             #splineFollow
-            i_splineFollowNull = i_obj.duplicateTransform()
+            i_splineFollowNull = i_obj.doCreateAt()
             i_splineFollowNull.addAttr('cgmType','splineFollow',attrType='string',lock=True)
             i_splineFollowNull.doName()	
 
             #>>>Orient Targets
             #aimstart
-            i_aimStartNull = i_obj.duplicateTransform()
+            i_aimStartNull = i_obj.doCreateAt()
             i_aimStartNull.addAttr('cgmType','aimStart',attrType='string',lock=True)
             i_aimStartNull.doName()
             i_aimStartNull.parent = i_followGroup.mNode    
 
             #aimEnd
-            i_aimEndNull = i_obj.duplicateTransform()
+            i_aimEndNull = i_obj.doCreateAt()
             i_aimEndNull.addAttr('cgmType','aimEnd',attrType='string',lock=True)
             i_aimEndNull.doName()
             i_aimEndNull.parent = i_followGroup.mNode   
@@ -1581,14 +1581,14 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 
     try:#Build Transforms =====================================================================================
         #Start Anchor
-        i_anchorStart = ml_jointList[0].duplicateTransform()
+        i_anchorStart = ml_jointList[0].doCreateAt()
         i_anchorStart.addAttr('cgmType','anchor',attrType='string',lock=True)
         i_anchorStart.doName()
         i_anchorStart.parent = False  
 
 
         #End Anchor
-        i_anchorEnd = ml_jointList[-1].duplicateTransform()
+        i_anchorEnd = ml_jointList[-1].doCreateAt()
         i_anchorEnd.addAttr('cgmType','anchor',attrType='string',lock=True)
         i_anchorEnd.doName()    
         i_anchorEnd.parent = False
@@ -1601,14 +1601,14 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         ml_rigObjects = []
         #>>>Aims
         #Start Aim
-        i_aimStartNull = ml_jointList[0].duplicateTransform()
+        i_aimStartNull = ml_jointList[0].doCreateAt()
         i_aimStartNull.addAttr('cgmType','aim',attrType='string',lock=True)
         i_aimStartNull.doName()
         i_aimStartNull.parent = i_anchorStart.mNode   
         i_aimStartNull.rotateOrder = 0
 
         #End Aim
-        i_aimEndNull = ml_jointList[-1].duplicateTransform()
+        i_aimEndNull = ml_jointList[-1].doCreateAt()
         i_aimEndNull.addAttr('cgmType','aim',attrType='string',lock=True)
         i_aimEndNull.doName()
         i_aimEndNull.parent = i_anchorEnd.mNode 
@@ -1619,14 +1619,14 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 	if addTwist:
 	    #>>>Twist loc
 	    #Start Aim
-	    i_twistStartNull = ml_jointList[0].duplicateTransform()
+	    i_twistStartNull = ml_jointList[0].doCreateAt()
 	    i_twistStartNull.addAttr('cgmType','twist',attrType='string',lock=True)
 	    i_twistStartNull.doName()
 	    i_twistStartNull.parent = i_anchorStart.mNode     
 	    ml_rigObjects.append(i_twistStartNull)
 
 	    #End Aim
-	    i_twistEndNull = ml_jointList[-1].duplicateTransform()
+	    i_twistEndNull = ml_jointList[-1].doCreateAt()
 	    i_twistEndNull.addAttr('cgmType','twist',attrType='string',lock=True)
 	    i_twistEndNull.doName()
 	    i_twistEndNull.parent = i_anchorEnd.mNode  
@@ -1635,20 +1635,20 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         #=====================================	
         #>>>Attach
         #Start Attach
-        i_attachStartNull = ml_jointList[0].duplicateTransform()
+        i_attachStartNull = ml_jointList[0].doCreateAt()
         i_attachStartNull.addAttr('cgmType','attach',attrType='string',lock=True)
         i_attachStartNull.doName()
         i_attachStartNull.parent = i_anchorStart.mNode     
 
         #End Attach
-        i_attachEndNull = ml_jointList[-1].duplicateTransform()
+        i_attachEndNull = ml_jointList[-1].doCreateAt()
         i_attachEndNull.addAttr('cgmType','attach',attrType='string',lock=True)
         i_attachEndNull.doName()
         i_attachEndNull.parent = i_anchorEnd.mNode  
 
         #=====================================	
         #>>>Up locs
-        i_startUpNull = ml_jointList[0].duplicateTransform()
+        i_startUpNull = ml_jointList[0].doCreateAt()
         i_startUpNull.parent = i_anchorStart.mNode  
         i_startUpNull.addAttr('cgmType','up',attrType='string',lock=True)
         i_startUpNull.doName()
@@ -1656,7 +1656,7 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
         attributes.doSetAttr(i_startUpNull.mNode,'t%s'%orientation[2],baseDist)#We're gonna push these out
 
         #End
-        i_endUpNull = ml_jointList[-1].duplicateTransform()
+        i_endUpNull = ml_jointList[-1].doCreateAt()
         i_endUpNull.parent = i_anchorEnd.mNode     	
         i_endUpNull.addAttr('cgmType','up',attrType='string',lock=True)
         i_endUpNull.doName()
@@ -1678,14 +1678,14 @@ def createCGMSegment(jointList, influenceJoints = None, addSquashStretch = True,
 
 
         #Start Aim Target
-        i_aimStartTargetNull = ml_jointList[-1].duplicateTransform()
+        i_aimStartTargetNull = ml_jointList[-1].doCreateAt()
         i_aimStartTargetNull.addAttr('cgmType','aimTargetStart',attrType='string',lock=True)
         i_aimStartTargetNull.doName()
         i_aimStartTargetNull.parent = ml_influenceJoints[-1].mNode     
         ml_rigObjects.append(i_aimStartTargetNull)
 
         #End AimTarget
-        i_aimEndTargetNull = ml_jointList[0].duplicateTransform()
+        i_aimEndTargetNull = ml_jointList[0].doCreateAt()
         i_aimEndTargetNull.addAttr('cgmType','aimTargetEnd',attrType='string',lock=True)
         i_aimEndTargetNull.doName()
         i_aimEndTargetNull.parent = ml_influenceJoints[0].mNode  
@@ -2484,7 +2484,7 @@ def createSegmentCurve(*args,**kws):
 
                     #>>> loc ----------------------------------------------------------------
                     mi_upLoc = mJnt.doLoc(fastMode = True)#Make up Loc
-                    mi_locRotateGroup = mJnt.duplicateTransform(False)#group in place
+                    mi_locRotateGroup = mJnt.doCreateAt()#group in place  THIS MAY NOTE BE RIGHT, WAS (FALSE)
                     mi_locRotateGroup.parent = ml_driverJoints[i].mNode
                     mi_locRotateGroup.doStore('cgmName',mJnt.mNode)	    
                     mi_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
@@ -2734,8 +2734,8 @@ def createSegmentCurve(*args,**kws):
             try:#>> Connect and close =============================================================================
                 mi_segmentCurve.connectChildNode(mi_jntScaleBufferNode,'scaleBuffer','segmentCurve')
                 mi_segmentCurve.connectChildNode(mi_IK_Handle,'ikHandle','segmentCurve')
-                mi_segmentCurve.msgList_connect(ml_joints,'drivenJoints','segmentCurve')       
-                mi_segmentCurve.msgList_connect(ml_driverJoints,'driverJoints','segmentCurve')   
+                mi_segmentCurve.msgList_connect('drivenJoints',ml_joints,'segmentCurve')       
+                mi_segmentCurve.msgList_connect('driverJoints',ml_driverJoints,'segmentCurve')   
             except Exception,error:raise Exception,"[Final Connections | error: {0}".format(error) 
 
             try:#Return Prep ====================================================================================
@@ -3035,7 +3035,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             #if i_jnt != ml_jointList[-1]:
 
             i_upLoc = i_jnt.doLoc()#Make up Loc
-            i_locRotateGroup = i_jnt.duplicateTransform(False)#group in place
+            i_locRotateGroup = i_jnt.doCreateAt()#group in place
             i_locRotateGroup.parent = ml_driverJoints[i].mNode
             i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
             i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
@@ -3280,8 +3280,8 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
 
     try:#>>> Store em all to our instance
         i_segmentCurve.connectChildNode(i_jntScaleBufferNode,'scaleBuffer','segmentCurve')
-        i_segmentCurve.msgList_connect(ml_jointList,'drivenJoints','segmentCurve')       
-        i_segmentCurve.msgList_connect(ml_driverJoints,'driverJoints','segmentCurve')   
+        i_segmentCurve.msgList_connect('drivenJoints',ml_jointList,'segmentCurve')       
+        i_segmentCurve.msgList_connect('driverJoints',ml_driverJoints,'segmentCurve')   
     except Exception,error:
         raise StandardError,"%s >> final connect | error: %s"%(_str_funcName,error) 
 
@@ -3412,7 +3412,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
         #First part of full ribbon wist setup
         if i_jnt != ml_jointList[-1]:
             i_upLoc = i_jnt.doLoc()#Make up Loc
-            i_locRotateGroup = i_jnt.duplicateTransform(False)#group in place
+            i_locRotateGroup = i_jnt.doCreateAt()#group in place
             i_locRotateGroup.parent = ml_driverJoints[i].mNode
             i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
             i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
@@ -3651,8 +3651,8 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
 
     #>>> Store em all to our instance
     i_segmentCurve.connectChildNode(i_jntScaleBufferNode,'scaleBuffer','segmentCurve')
-    i_segmentCurve.msgList_connect(ml_jointList,'drivenJoints','segmentCurve')       
-    i_segmentCurve.msgList_connect(ml_driverJoints,'driverJoints','segmentCurve')   
+    i_segmentCurve.msgList_connect('drivenJoints',ml_jointList,'segmentCurve')       
+    i_segmentCurve.msgList_connect('driverJoints',ml_driverJoints,'segmentCurve')   
 
     return {'mi_segmentCurve':i_segmentCurve,'segmentCurve':i_segmentCurve.mNode,'mi_ikHandle':i_ikHandle,'mi_segmentGroup':i_grp,
             'l_driverJoints':[i_jnt.getShortName() for i_jnt in ml_driverJoints],'ml_driverJoints':ml_driverJoints,
@@ -3748,7 +3748,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         if i_control.getLongName() not in i_obj.getMessage('spacePivots',True):
             buffer = i_obj.getMessage('spacePivots',True)
             buffer.append(i_control.mNode)
-            i_obj.msgList_append(buffer,'spacePivots','controlTarget')
+            i_obj.msgList_append('spacePivots',buffer,'controlTarget')
         log.debug("spacePivots: %s"%i_obj.msgList_get('spacePivots',asMeta = True))
     except Exception,error:raise Exception,"%s >> store | %s"%(_str_funcName,error)  
 
@@ -4888,7 +4888,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
 	"""
         if i_jnt != ml_jointList[-1]:
             i_upLoc = i_jnt.doLoc()#Make up Loc
-            i_locRotateGroup = i_jnt.duplicateTransform(False)#group in place
+            i_locRotateGroup = i_jnt.doCreateAt()#group in place
             i_locRotateGroup.parent = i_follicleTrans.mNode
             i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
             i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
@@ -5225,7 +5225,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
 	"""
         if i_jnt != ml_jointList[-1]:
             i_upLoc = i_jnt.doLoc()#Make up Loc
-            i_locRotateGroup = i_jnt.duplicateTransform(False)#group in place
+            i_locRotateGroup = i_jnt.doCreateAt()#group in place
             i_locRotateGroup.parent = i_follicleTrans.mNode
             i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
             i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
@@ -6660,7 +6660,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
         #First part of full ribbon wist setup
         if i_jnt != ml_jointList[-1]:
             i_upLoc = i_jnt.doLoc()#Make up Loc
-            i_locRotateGroup = i_jnt.duplicateTransform(False)#group in place
+            i_locRotateGroup = i_jnt.doCreateAt()#group in place
             i_locRotateGroup.parent = ml_splineIKJoints[i].mNode
             i_locRotateGroup.doStore('cgmName',i_jnt.mNode)         
             i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
@@ -6823,8 +6823,8 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
 
     #>>> Store em all to our instance
     i_segmentCurve.connectChildNode(i_jntScaleBufferNode,'scaleBuffer','segmentCurve')
-    i_segmentCurve.msgList_connect(ml_jointList,'bindJoints','segmentCurve')       
-    i_segmentCurve.msgList_connect(ml_splineIKJoints,'splineIKJoints','segmentCurve')   
+    i_segmentCurve.msgList_connect('bindJoints',ml_jointList,'segmentCurve')       
+    i_segmentCurve.msgList_connect('splineIKJoints',ml_splineIKJoints,'segmentCurve')   
 
     return {'mi_segmentCurve':i_segmentCurve,'segmentCurve':i_segmentCurve.mNode,
             'l_splineIKJoints':[i_jnt.getShortName() for i_jnt in ml_splineIKJoints],'ml_splineIKJoints':ml_splineIKJoints,

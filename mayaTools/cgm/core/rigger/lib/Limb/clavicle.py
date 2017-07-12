@@ -203,7 +203,7 @@ def build_controls(goInstance = None):
 
         def build_groups(self):
             for grp in ['controlsFK']:
-                i_dup = self._go._i_constrainNull.doDuplicateTransform(True)
+                i_dup = self._go._i_constrainNull.doCreateAt(copyAttrs=True)
                 i_dup.parent = self._go._i_constrainNull.mNode
                 i_dup.addAttr('cgmTypeModifier',grp,lock=True)
                 i_dup.doName()

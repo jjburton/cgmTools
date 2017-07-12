@@ -22,6 +22,7 @@ from Red9.core import Red9_General as r9General
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+import cgm.core.cgm_General as cgmGEN
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.lib import curve_Utils as crvUtils
@@ -29,7 +30,7 @@ import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.position_utils as POS
-from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as VALID
 from cgm.lib import guiFactory
 
 reload(RayCast)
@@ -192,6 +193,7 @@ def createWrapControlShape(targetObjects,
                            points = 8,
                            curveDegree = 1,
                            insetMult = None,#Inset multiplier
+                           minRotate = None, maxRotate = None,
                            posOffset = [],
                            rootOffset = [],#offset root before cast
                            rootRotate = None,
@@ -201,11 +203,13 @@ def createWrapControlShape(targetObjects,
                            l_specifiedRotates = None,
                            maxDistance = 1000,
                            closestInRange = True,
+                           vectorOffset = None,
                            midMeshCast = False,
+                           subSize = None,#For ball on loli for example
                            rotateBank = None,
                            joinHits = None,#keys to processed hits to see what to join
                            axisToCheck = ['x','y'],
-                           ):#'segment,radial,disc' 
+                           **kws):#'segment,radial,disc' 
     """
     This function lathes an axis of an object, shoot rays out the aim axis at the provided mesh and returning hits. 
     it then uses this information to build a curve shape.
@@ -244,7 +248,7 @@ def createWrapControlShape(targetObjects,
     _extendMode = []
 
     if type(targetObjects) not in [list,tuple]:targetObjects = [targetObjects]
-    targetGeo = cgmValid.objStringList(targetGeo, calledFrom = _str_funcName)
+    targetGeo = VALID.objStringList(targetGeo, calledFrom = _str_funcName)
 
 
     assert type(points) is int,"Points must be int: %s"%points
@@ -264,7 +268,7 @@ def createWrapControlShape(targetObjects,
     else:single_aimAxis = aimAxis
     log.debug("Single aim: %s"%single_aimAxis)
     log.debug("createWrapControlShape>> midMeshCast: %s"%midMeshCast)
-
+    log.debug("|{0}| >> extendMode: {1}".format(_str_funcName,extendMode))            
     #>> Info
     l_groupsBuffer = []
     il_curvesToCombine = []
@@ -333,13 +337,14 @@ def createWrapControlShape(targetObjects,
 
 
     elif extendMode == 'radial':
+        log.debug("|{0}| >> radial...".format(_str_funcName))            
         d_handleInner = createMeshSliceCurve(targetGeo,mi_rootLoc,midMeshCast=midMeshCast,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
         mi_buffer = cgmMeta.cgmObject(d_handleInner['curve'])#instance curve	
         l_sliceReturns.append(d_handleInner)
         il_curvesToCombine.append(mi_buffer)    
 
     elif extendMode == 'disc':
-        log.debug("disc mode")
+        log.debug("|{0}| >> disc...".format(_str_funcName))            
         d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
         #discOffset = d_size[ d_size.keys()[0]]*insetMult
         size = False
@@ -371,7 +376,7 @@ def createWrapControlShape(targetObjects,
         mi_rootLoc.tz = 0
 
     elif extendMode == 'cylinder':
-        log.debug("cylinder mode")
+        log.debug("|{0}| >> cylinder...".format(_str_funcName))            
         d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
         discOffset = d_size[ d_size.keys()[0]]*insetMult
         log.debug("d_size: %s"%d_size)
@@ -386,22 +391,24 @@ def createWrapControlShape(targetObjects,
         mi_rootLoc.__setattr__('t%s'%latheAxis,0)
 
     elif extendMode == 'loliwrap':
-        log.debug("lolipop mode")
-        l_absSize = [abs(i) for i in posOffset]
+        log.debug("|{0}| >> lolipop...".format(_str_funcName))            
+        #l_absSize = [abs(i) for i in posOffset]
         size = False
-        if l_absSize:
-            log.debug("l_absSize: %s"%l_absSize)
-            size = max(l_absSize)*1.25
+        #if l_absSize:
+            #log.debug("l_absSize: %s"%l_absSize)
+            #size = max(l_absSize)*1.25
+        if subSize is not None:
+            size = subSize
         if not size:
             d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
-            log.debug("d_size: %s"%d_size)
+            log.info("d_size: %s"%d_size)
             l_size = d_size[single_aimAxis]
-            size = l_size#/1.5
-        log.debug("loli size: %s"%size)
+            size = l_size/3
+        log.info("loli size: %s"%size)
         i_ball = cgmMeta.cgmObject(curves.createControlCurve('sphere',size = size))
 
     elif extendMode == 'endCap':
-        log.debug("endCap mode!")
+        log.debug("|{0}| >> endCap...".format(_str_funcName))            
         returnBuffer1 = createMeshSliceCurve(targetGeo,mi_rootLoc.mNode,
                                              aimAxis = '{0}+'.format(latheAxis),
                                              latheAxis = objectUp[0],
@@ -429,9 +436,15 @@ def createWrapControlShape(targetObjects,
 
     #Now cast our root since we needed to move it with segment mode before casting
     if extendMode == 'cylinder':
+        log.debug("|{0}| >> cylinder move...".format(_str_funcName))                    
         mi_rootLoc.__setattr__('t%s'%latheAxis,-discOffset)
 
-    d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,latheAxis=latheAxis,midMeshCast=midMeshCast,aimAxis=aimAxis,posOffset = posOffset,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
+    log.debug("|{0}| >> Rootcast...".format(_str_funcName))                    
+    
+    d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,minRotate=minRotate,maxRotate=maxRotate,latheAxis=latheAxis,midMeshCast=midMeshCast,aimAxis=aimAxis,posOffset = posOffset,points = points,vectorOffset=vectorOffset,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
+    #d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,**kws)  
+    log.debug("|{0}| >> Rootcast done".format(_str_funcName) + cgmGEN._str_subLine)                    
+    
     if extendMode == 'disc':
         l_sliceReturns.insert(1,d_rootCastInfo)	
     else:
@@ -476,7 +489,8 @@ def createWrapControlShape(targetObjects,
     mc.delete(mi_rootLoc.parent)#delete the loc
 
     l_curvesToCombine = [mi_obj.mNode for mi_obj in il_curvesToCombine]#Build our combine list before adding connectors         
-    log.debug(d_rootCastInfo['processedHits'])
+    log.debug("|{0}| >> processed: {1}".format(_str_funcName,d_rootCastInfo['processedHits']))            
+    
     if joinMode and extendMode not in ['loliwrap','endCap'] and len(l_sliceReturns)>1:
         if joinHits:
             keys = d_rootCastInfo['processedHits'].keys()
@@ -565,7 +579,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 
         log.debug("mi_obj: {0}".format(mi_obj.mNode))
 
-        mesh = cgmValid.objStringList(mesh,['mesh','nurbsSurface'], calledFrom = _str_funcName)
+        mesh = VALID.objStringList(mesh,['mesh','nurbsSurface'], calledFrom = _str_funcName)
         #if len(mc.ls(mesh))>1:
             #log.error("{0}>>> More than one mesh named. Using first: {1}".format(_str_funcName,mesh))
         #mesh = mesh[0]
@@ -617,7 +631,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
             
     #midMeshCast
     if midMeshCast:
-        axisToCheck = axisToCheck or kws.get('axisToCheck') or [a for a in ['x','y','z'] if a != latheAxis]
+        axisToCheck = axisToCheck or [a for a in ['x','y','z'] if a != latheAxis]
         log.debug("createMeshSliceCurve>> axisToCheck: %s"%axisToCheck)
         try:
             Snap.go(mi_loc.parent,mesh[0],True,False,midSurfacePos=True, axisToCheck = axisToCheck)
@@ -655,19 +669,21 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
         #If we don't have data, we're gonna build it
         if minRotate is not None or maxRotate is not None:
             #add a point if we don't have a full loop
-            points = points+1	
-        rotateBaseValue = len(range(int(rotateFloor),int(rotateCeiling)+1))/points
+            #points = points+1	
+            pass
+        
+        rotateBaseValue = len(range(int(rotateFloor),int(rotateCeiling)))/points
         #rotateBaseValue = (rotateCeiling - rotateFloor)/points
 
-        log.debug("rotateBaseValue: %s"%rotateBaseValue)
+        log.debug("|{0}| >> floor: {1} | ceiling {2} | baseValue: {3}".format(_str_funcName,rotateFloor,rotateCeiling,rotateBaseValue))     
 
         #Build our rotate values
-        for i in range(points):
-            l_rotateSettings.append( (rotateBaseValue*(i)) + initialRotate +rotateFloor)
+        for i in range(points+1):
+            l_rotateSettings.append( (rotateBaseValue*(i)) + initialRotate + rotateFloor)
 
     if not l_rotateSettings:raise ValueError, "Should have had some l_rotateSettings by now"
     log.debug("rotateSettings: %s"%l_rotateSettings)
-
+    
 
     try:#>>> Pew, pew !
         #================================================================
@@ -719,8 +735,10 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 
                 d_rawHitFromValue[rotateValue] = hit
 
-            except StandardError,error:
-                raise StandardError,"createMeshSliceCurve>> error: %s"%error 
+            except Exception,error:
+                for arg in error.args:
+                    log.error(arg)
+                raise Exception,"createMeshSliceCurve>> error: %s"%error 
             log.debug("rotateValue %s | raw hit: %s"%(rotateValue,hit))
             if hit and not cgmMath.isVectorEquivalent(hit,d_rawHitFromValue.get(l_rotateSettings[i-1])):
                 log.debug("last raw: %s"%d_rawHitFromValue.get(l_rotateSettings[i-1]))
@@ -789,7 +807,6 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 curveBuffer = mc.curve (d=curveDegree, periodic = True, p = l_pos, k = [i for i in range(0,knot_len)], os=True)
                 for i,ep in enumerate(mc.ls("{0}.ep[*]".format(curveBuffer),flatten=True)):
                     #Second loop to put ep's where we want them. Necessary only because I couldn't get curve create to work right closed
-                    #mc.move (l_pos[i][0],l_pos[i][1],l_pos[i][2], ep, ws=True)
                     POS.set(ep,l_pos[i])
                     
             else:
@@ -797,7 +814,6 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 #curveBuffer = mc.curve (d=curveDegree, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
                 knot_len = len(l_pos)+curveDegree-1		
                 curveBuffer = mc.curve (d=curveDegree, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)   
-
             if returnDict:
                 return {'curve':curveBuffer,
                         'processedHits':d_processedHitFromValue,
@@ -805,5 +821,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
             else:
                 return curveBuffer
     except Exception,error:
-        raise ValueError,"Post process | {0}".format(error) 
+        for arg in error.args:
+            log.error(arg)
+        raise Exception,"Post process | {0}".format(error) 
     return False    

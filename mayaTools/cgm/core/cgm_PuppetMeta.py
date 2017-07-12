@@ -30,7 +30,7 @@ log.setLevel(logging.INFO)
 #========================================================================
 
 # From cgm ==============================================================
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.lib.shape_utils as SHAPES
 import cgm.core.lib.rigging_utils as RIG
@@ -57,7 +57,7 @@ _l_moduleStates = mFactory._l_moduleStates
 class cgmPuppet(cgmMeta.cgmNode):
     """"""
     #----------------------------------------------------------------------
-    #@cgmGeneral.Timer
+    #@cgmGEN.Timer
     def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
         _str_func = 'cgmPuppet.__init__'
         log.debug("|{0}| >> ...".format(_str_func))                        
@@ -149,7 +149,51 @@ class cgmPuppet(cgmMeta.cgmNode):
         self.__verifyGroups__()
 
         return True
-
+    
+    def atFactory(self, func = 'get_report', *args,**kws):
+        """
+        Function to call a self function by string. For menus and other reasons
+        """
+        _str_func = 'atFactory'
+        _short = self.p_nameShort
+        _res = None
+        
+        if not args:
+            _str_args = ''
+            args = [self]
+        else:
+            _str_args = ','.join(str(a) for a in args) + ','
+            args = [self] + [a for a in args]
+        if not kws:
+            kws = {}
+            _kwString = ''  
+        else:
+            _l = []
+            for k,v in kws.iteritems():
+                _l.append("{0}={1}".format(k,v))
+            _kwString = ','.join(_l)  
+        try:
+            log.debug("|{0}| >> On: {1}".format(_str_func,_short))     
+            log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
+            _res = getattr(pFactory,func)(*args,**kws)
+        except Exception,err:
+            log.error(cgmGEN._str_hardLine)
+            log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+            log.error("Node: {0} | func: {1}".format(_short,func))            
+            if args:
+                log.error("Args...")
+                for a in args:
+                    log.error("      {0}".format(a))
+            if kws:
+                log.error(" KWS...".format(_str_func))
+                for k,v in kws.iteritems():
+                    log.error("      {0} : {1}".format(k,v))   
+            log.error("Errors...")
+            for a in err.args:
+                log.error(a)
+            log.error(cgmGEN._str_subLine)
+            raise Exception,err
+        return _res
     def changeName(self,name = ''):
         if name == self.cgmName:
             log.error("Puppet already named '%s'"%self.cgmName)
@@ -315,9 +359,8 @@ class cgmPuppet(cgmMeta.cgmNode):
 
         return True
 
-    def getGeo(self,*args,**kws):
-        kws['mPuppet'] = self
-        return pFactory.getGeo(*args,**kws)
+    def getGeo(self):
+        return pFactory.getGeo(self)
 
     def getUnifiedGeo(self,*args,**kws):
         kws['mPuppet'] = self	
@@ -476,7 +519,7 @@ class cgmPuppet(cgmMeta.cgmNode):
     def isSkeletonized(self,*args,**kws):
         kws['mPuppet'] = self			
         return pFactory.isSkeletonized(*args,**kws)
-    @cgmGeneral.Timer
+    @cgmGEN.Timer
     def _verifyMasterControl(self,**kws):
         """ 
         """
@@ -597,7 +640,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 class cgmPuppetOLD(cgmMeta.cgmNode):
     """"""
     #----------------------------------------------------------------------
-    #@cgmGeneral.Timer
+    #@cgmGEN.Timer
     def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
         """Constructor"""
 
@@ -677,7 +720,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
         except Exception,error:raise Exception,"verify checks...| {0}".format(error)
 
     #====================================================================================
-    #@cgmGeneral.Timer    
+    #@cgmGEN.Timer    
     def initialize(self):
         """ 
         Initializes the various components a masterNull for a character/asset.
@@ -695,7 +738,7 @@ class cgmPuppetOLD(cgmMeta.cgmNode):
             return True
         except Exception,error:raise Exception,"self.initialize fail >> {0}".format(error)
 
-    #@cgmGeneral.Timer
+    #@cgmGEN.Timer
     def __verify__(self,name = None):
         """"""
         """ 
@@ -1370,7 +1413,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
             if not self.__verify__(*args,**kws):
                 raise StandardError,"Failed to verify!"	
 
-    @cgmGeneral.Timer
+    @cgmGEN.Timer
     def __verify__(self,*args,**kws):
         puppet = kws.pop('puppet',False)
         if puppet and not self.isReferenced():
@@ -1562,7 +1605,7 @@ class cgmMasterControlOLD(cgmMeta.cgmObject):
                 if not self.__verify__(*args,**kws):
                     raise StandardError,"Failed!"	
 
-    @cgmGeneral.Timer
+    @cgmGEN.Timer
     def __verify__(self,*args,**kws):
         puppet = kws.pop('puppet',False)
         if puppet and not self.isReferenced():
@@ -1896,11 +1939,54 @@ class cgmModule(cgmMeta.cgmObject):
             #raise StandardError,"'%s' failed to initialize!"%self.mNode
 
     ##@r9General.Timer
-    def atMFactory(self,func,*args,**kws):
-        kws['mModule'] = self	
-        return mFactory.__dict__[func](self,*args,**kws)
+    #def atMFactory(self,func,*args,**kws):
+        #kws['mModule'] = self	
+        #return mFactory.__dict__[func](self,*args,**kws)
     
-    
+    def atFactory(self, func = 'getState', *args,**kws):
+        """
+        Function to call a self function by string. For menus and other reasons
+        """
+        _str_func = 'atFactory'
+        _short = self.p_nameShort
+        _res = None
+        if not args:
+            _str_args = ''
+            args = [self]
+        else:
+            _str_args = ','.join(str(a) for a in args) + ','
+            args = [self] + [a for a in args]
+
+        if not kws:
+            kws = {}
+            _kwString = ''  
+        else:
+            _l = []
+            for k,v in kws.iteritems():
+                _l.append("{0}={1}".format(k,v))
+            _kwString = ','.join(_l)  
+        try:
+            log.debug("|{0}| >> On: {1}".format(_str_func,_short))     
+            log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
+            _res = getattr(mFactory,func)(*args,**kws)
+        except Exception,err:
+            log.error(cgmGEN._str_hardLine)
+            log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+            log.error("Node: {0} | func: {1}".format(_short,func))            
+            if args:
+                log.error("Args...")
+                for a in args:
+                    log.error("      {0}".format(a))
+            if kws:
+                log.error(" KWS...".format(_str_func))
+                for k,v in kws.iteritems():
+                    log.error("      {0} : {1}".format(k,v))   
+            log.error("Errors...")
+            for a in err.args:
+                log.error(a)
+            log.error(cgmGEN._str_subLine)
+            raise Exception,err
+        return _res
     def initialize(self,**kws):
         """ 
         Initializes the various components a moduleNull for a character/asset.
@@ -2018,7 +2104,7 @@ class cgmModule(cgmMeta.cgmObject):
 
         return True
 
-    #@cgmGeneral.Timer
+    #@cgmGEN.Timer
     def __verifyAttributesOn__(self,null,dictToUse):
         #Attrbute checking
         #=================
@@ -2504,7 +2590,7 @@ limbTypes = {'segment':{'handles':3,'rollOverride':'{}','curveDegree':1,'rollJoi
              }
 
 class cgmLimb(cgmModule):
-    #@cgmGeneral.Timer    
+    #@cgmGEN.Timer    
     def __init__(self,*args,**kws):
         """ 
         Intializes an module master class handler
@@ -2623,7 +2709,7 @@ d_eyeball_rigNullAttrs_toMake = {'irisControl':'bool',#Whether we should have a 
 d_eyeball_templateNullAttrs_toMake = {}
 
 class cgmEyeball(cgmModule):
-    #@cgmGeneral.Timer    
+    #@cgmGEN.Timer    
     def __init__(self,*args,**kws):
         """ 
         Intializes an eyeball master class handler
@@ -2680,7 +2766,7 @@ d_eyelids_rigNullAttrs_toMake = {}
 d_eyelids_templateNullAttrs_toMake = {}
 
 class cgmEyelids(cgmModule):
-    #@cgmGeneral.Timer    
+    #@cgmGEN.Timer    
     def __init__(self,*args,**kws):
         """ 
         Intializes an eyelids master class handler

@@ -16,7 +16,7 @@ from Red9.core import Red9_CoreUtils as r9Core
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as VALID
 from cgm.lib import (search,attributes,lists,cgmMath)
 from cgm.core import cgm_General as cgmGeneral
 from cgm.lib.ml import ml_resetChannels
@@ -132,7 +132,43 @@ def state_set(*args,**kws):
                 except Exception,error: log.error("%s module: %s | %s"%(self._str_reportStart,_str_module,error))
     return fncWrap(*args,**kws).go()
 
-def get_report(*args,**kws):
+
+def get_report(self, moduleReport = False, rigReport = False):
+    _str_func = 'get_report'
+    ml_modules = getModules(self)
+    int_lenModules = len(ml_modules)
+    
+    _b_rigReport = VALID.boolArg(rigReport,calledFrom=_str_func)
+    _b_moduleReport = VALID.boolArg(moduleReport,calledFrom=_str_func)   
+    
+    if not _b_rigReport and not _b_moduleReport:
+        log.error("|{0}| >> No options selected".format(_str_func))     
+        return False
+    
+    if _b_moduleReport:
+        log.info("|{0}| >> Module Report".format(_str_func) + cgmGeneral._str_hardBreak)     
+
+        for i,mModule in enumerate(ml_modules):
+            _str_module = mModule.p_nameShort
+            mi_rigNull = mModule.rigNull
+            mi_templateNull = mModule.templateNull
+            #self.progressBar_set(status = "Module Report: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)
+
+            print("'{0}' | state: '{1}' | template version: {2} | rig version: {3}".format(mModule.p_nameShort,
+                                                                                           cgmGeneral._l_moduleStates[mModule.getState()],
+                                                                                           mi_templateNull.getMayaAttr('version'),
+                                                                                           mi_rigNull.getMayaAttr('version')))
+        
+    for mModule in ml_modules:
+        if _b_rigReport:
+            if mModule.isRigged():
+                mModule.atFactory('rig_getReport')
+            else:
+                print("|{0}| >> Module not rigged: {1}".format(_str_func,mModule.p_nameShort))     
+                
+
+    
+def get_report2(*args,**kws):
     '''
     Puppet reporting tool
     '''
@@ -157,8 +193,8 @@ def get_report(*args,**kws):
                     int_lenModules = len(self.ml_modules)		    
                 except Exception,error: raise Exception,"Link meta fail | error: {0}".format(error)
 
-                _b_rigReport = cgmValid.boolArg(self.d_kws['rigReport'],calledFrom=self._str_reportStart)
-                _b_moduleReport = cgmValid.boolArg(self.d_kws['moduleReport'],calledFrom=self._str_reportStart)
+                _b_rigReport = VALID.boolArg(self.d_kws['rigReport'],calledFrom=self._str_reportStart)
+                _b_moduleReport = VALID.boolArg(self.d_kws['moduleReport'],calledFrom=self._str_reportStart)
 
                 if not _b_rigReport and not _b_moduleReport:
                     self.log_error("Nothing set to find. Check your kws")
@@ -219,11 +255,16 @@ def getUnifiedGeo(*args,**kws):
             return False
     return fncWrap(*args,**kws).go()
 
-def getGeo(*args,**kws):
+def getGeo(self,*args,**kws):
+    _res = []
+    for mObj in self.masterNull.geoGroup.getDescendents(asMeta = True):
+        if mObj.getMayaType() in geoTypes:
+            _res.append(mObj.p_nameShort)
+    return _res
+
+    """
     class fncWrap(PuppetFunc):
-        def __init__(self,*args,**kws):
-            """
-            """	
+        def __init__(self,*args,**kws):	
             super(fncWrap, self).__init__(*args,**kws)
             self._str_funcName = "puppet.getGeo('%s')"%self._mi_puppet.cgmName	
             self._str_funcHelp = "Get all the geo in our geo groups"	    
@@ -237,6 +278,7 @@ def getGeo(*args,**kws):
                     geo.append(buff[0])
             return geo
     return fncWrap(*args,**kws).go()
+    """
 
 def getModules(*args,**kws):
     class fncWrap(PuppetFunc):
@@ -545,7 +587,7 @@ def templateSettings_call(*args,**kws):
             """
             l_modes = 'reset','store','load','query','export','import','update','markStarterData'
             str_mode = self.d_kws['mode']
-            str_mode = cgmValid.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
+            str_mode = VALID.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
             
             if str_mode not in l_modes:
                 self.log_error("Mode : {0} not in list: {1}".format(str_mode,l_modes))
@@ -558,7 +600,7 @@ def templateSettings_call(*args,**kws):
                 if str_mode == 'import':
                     fileMode = 1
                 else:fileMode = 0
-                _filepath = cgmValid.filepath(self.d_kws.get('filepath'), fileMode = fileMode, fileFilter = 'Template Config file (*.pose)')
+                _filepath = VALID.filepath(self.d_kws.get('filepath'), fileMode = fileMode, fileFilter = 'Template Config file (*.pose)')
                 if not _filepath:
                     self.log_error("Invalid filepath")
                     return False
@@ -624,7 +666,7 @@ def mirrorSetup_verify(*args,**kws):
 
             l_modes = ['template','anim']
             str_mode = self.d_kws['mode']
-            self.str_mode = cgmValid.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
+            self.str_mode = VALID.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
             if self.str_mode not in l_modes:
                 raise ValueError,"Mode : {0} not in list: {1}".format(str_mode,l_modes)
 
@@ -1069,10 +1111,10 @@ def get_joints(*args,**kws):
                     self.ml_modules = getModules(self._mi_puppet)		    
                 except Exception,error: raise Exception,"Link meta fail | error: {0}".format(error)
 
-                _b_skinJoints = cgmValid.boolArg(self.d_kws['skinJoints'],calledFrom=self._str_reportStart)
-                _b_moduleJoints = cgmValid.boolArg(self.d_kws['moduleJoints'],calledFrom=self._str_reportStart)                
-                _b_rigJoints = cgmValid.boolArg(self.d_kws['rigJoints'],calledFrom=self._str_reportStart)
-                _b_select = cgmValid.boolArg(self.d_kws['select'],calledFrom=self._str_reportStart)
+                _b_skinJoints = VALID.boolArg(self.d_kws['skinJoints'],calledFrom=self._str_reportStart)
+                _b_moduleJoints = VALID.boolArg(self.d_kws['moduleJoints'],calledFrom=self._str_reportStart)                
+                _b_rigJoints = VALID.boolArg(self.d_kws['rigJoints'],calledFrom=self._str_reportStart)
+                _b_select = VALID.boolArg(self.d_kws['select'],calledFrom=self._str_reportStart)
 
                 if not _b_skinJoints and not _b_moduleJoints and not _b_rigJoints:
                     self.log_error("Nothing set to find. Check your kws")
@@ -1125,8 +1167,8 @@ def get_controls(*args,**kws):
                     self.ml_modules = getModules(self._mi_puppet)
                 except Exception,error: raise Exception,"Link meta fail | error: {0}".format(error)
 
-                _str_mode = cgmValid.stringArg(self.d_kws['mode'],calledFrom=self._str_reportStart)
-                _b_select = cgmValid.boolArg(self.d_kws['select'],calledFrom=self._str_reportStart)
+                _str_mode = VALID.stringArg(self.d_kws['mode'],calledFrom=self._str_reportStart)
+                _b_select = VALID.boolArg(self.d_kws['select'],calledFrom=self._str_reportStart)
 
             except Exception,error: raise Exception,"Inital data fail | error: {0}".format(error)
 
@@ -1157,6 +1199,7 @@ def get_jointsBindDict(*args,**kws):
     d_bindJointKeys_to_matchData = {'all':{},
                                     'body':{'faceModuleOK':False},
                                     'face':{'ignoreCheck':True},
+                                    'noScaleRoots':{},
                                     'bodyNoEyes':{'l_ignore':['eyeball']},
                                     'bodyWithLids':{'l_ignore':['eyeball','mouthNose']},
                                     'eyeballs':{'isModule':'eyeball'},
@@ -1281,7 +1324,10 @@ def get_jointsBindDict(*args,**kws):
                             if hasAttrs:
                                 l_ = []
                                 for mJnt in l_use:
-                                    _good = False                                    
+                                    _good = False   
+                                    if key == 'noScaleRoots':
+                                        if mJnt.hasAttr('scaleJoint'):
+                                            continue
                                     for a1 in hasAttrs.keys():
                                         if mJnt.getMayaAttr(a1) == hasAttrs[a1]:
                                             self.log_debug("--- '{0}' hasAttrs match '{1}' == '{2}'".format(mJnt.p_nameShort,a1,hasAttrs[a1]))                                            
@@ -1337,14 +1383,14 @@ def mirror_do(*args,**kws):
             try:		
                 l_modes = ['template','anim']
                 str_mode = self.d_kws['mode']
-                self.str_mode = cgmValid.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
+                self.str_mode = VALID.stringArg(str_mode,noneValid=False,calledFrom = self._str_funcName)
                 if self.str_mode not in l_modes:
                     raise ValueError,"Mode : '{0}' not in list: {1}".format(str_mode,l_modes)
             except Exception,error: raise Exception,"Mode validate | error: {0}".format(error)
 
             try:
                 l_mirrorModes = ['symLeft','symRight']
-                self.str_mirrorMode = cgmValid.stringArg(self.d_kws['mirrorMode'],noneValid=False,calledFrom = self._str_funcName)
+                self.str_mirrorMode = VALID.stringArg(self.d_kws['mirrorMode'],noneValid=False,calledFrom = self._str_funcName)
                 if self.str_mirrorMode not in l_mirrorModes:
                     raise ValueError,"Mode : '{0}' not in list: {1}".format(self.str_mirrorMode,l_mirrorModes)
             except Exception,error: raise Exception,"Mirror Mode validate | error: {0}".format(error)	    

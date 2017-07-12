@@ -151,6 +151,7 @@ def template(self):
     self.copyAttrTo(_baseNameAttrs[1],mOrientCurve.mNode,'cgmName',driven='target')
     mOrientCurve.doName()    
     mOrientCurve.setAttrFlags(['rz','rx','translate','scale','v'])
+    mOrientCurve.p_parent = templateNull
     CORERIG.colorControl(mOrientCurve.mNode,_side,'sub')
     #mOrientCurve.connectParentNode(self.mNode,'handle','orientHelper')
     
@@ -315,8 +316,26 @@ def template(self):
 #>> Prerig
 #=============================================================================================================
 def prerig(self):
-    self._factory.module_verify()    
-
+    self._factory.module_verify()  
+    
+    ml_templateHandles = self.msgList_get('templateHandles')
+    #>>New handles ==================================================================================================
+    #Get positions
+    import cgm.core.lib.distance_utils as DIST
+    import cgm.core.lib.position_utils as POS
+    import cgm.core.lib.math_utils as MATH
+    #DIST.get_pos_by_axis_dist(obj, axis)
+    mEndHandle = self.ml_templateHandles[-1]
+    _vec = MATH.get_vector_of_two_points(self.mNode, mEndHandle.mNode)
+    _offsetDist = DIST.get_distance_between_points(self.p_position, mEndHandle.p_position) / self.numberControls
+    _startPos = self.p_position
+    _l_pos = [ DIST.get_pos_by_vec_dist(_startPos, _vic, (_offsetDist * i)) for i in range(self.numberControls)]
+    
+    
+    #>>Joint placers ==================================================================================================
+    
+    #>>Loft Mesh ==================================================================================================
+    
 
 def prerigDelete(self):
     try:self.moduleTarget.delete()

@@ -616,7 +616,11 @@ def is_transform(node = None):
     #buffer = mc.ls(_node,type = 'transform',long = True)
     #if buffer and buffer[0]==mc.ls(_node,l=True)[0]:
         #return True
-    if mc.nodeType(_node) in ['transform','joint']:
+    #if mc.nodeType(_node) in ['transform','joint']:
+        #return True
+    for a in ['translate','rotate','scale']:
+        if not mc.objExists("{0}.{1}".format(node,a)):
+            return False
         return True
     if not mc.objExists(_node):
         log.error("|{0}| >> node: '{1}' doesn't exist".format(_str_func,_node))    

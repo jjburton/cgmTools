@@ -758,11 +758,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         _str_func = 'string_methodCall'
         _short = self.p_nameShort
+        res = None
         
         if not args:
             _str_args = ''
         else:
-            _str_args = ','.join(a for a in args) + ','
+            _str_args = ','.join(str(a) for a in args) + ','
+
                 
         if not kws:
             kws = {}
@@ -776,7 +778,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         try:
             log.debug("|{0}| >> On: {1}".format(_str_func,_short))     
             print("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
-            res = getattr(self,func)(*args,**kws) or None
+            res = getattr(self,func)(*args,**kws)
         except Exception,err:
             log.error(cgmGEN._str_hardLine)
             log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
@@ -794,6 +796,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 log.error(a)
             log.error(cgmGEN._str_subLine)
             raise Exception,err
+        return res
         
         print res
         return res

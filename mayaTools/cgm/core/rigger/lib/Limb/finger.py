@@ -376,7 +376,7 @@ def build_controls(goInstance = None):
 
             #>>>Make a few extra groups for storing controls and what not to in the deform group
             for grp in ['controlsFK','controlsIK']:
-                i_dup = self._go._i_constrainNull.doDuplicateTransform(True)
+                i_dup = self._go._i_constrainNull.doCreateAt(copyAttrs=True)
                 i_dup.parent = self._go._i_constrainNull.mNode
                 i_dup.addAttr('cgmTypeModifier',grp,lock=True)
                 i_dup.doName()

@@ -265,10 +265,8 @@ def build_shapes(*args, **kws):
             #=================================================================
 
         def build_shapes(self):
-            try:#>>>Build our Shapes =============================================================
-                mi_go = self.d_kws['goInstance']
-                mShapeCast.go(mi_go._mi_module,['cog','hips','torsoIK','segmentFK'],storageInstance=mi_go)#This will store controls to a dict called    
-            except Exception,error:raise Exception,"build shapes | error : {0}".format(error)  
+            mi_go = self.d_kws['goInstance']
+            mShapeCast.go(mi_go._mi_module,['cog','hips','torsoIK','segmentFK'],storageInstance=mi_go)#This will store controls to a dict called    
     return fncWrap(*args, **kws).go()
 
 

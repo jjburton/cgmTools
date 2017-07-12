@@ -27,6 +27,8 @@ import maya.cmds as mc
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_General as r9General
 from Red9.core import Red9_AnimationUtils as r9Anim
+from cgm.core.cgmPy import validateArgs as VALID
+from cgm.core.lib import rayCaster as RayCast
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -88,7 +90,7 @@ class go(object):
 		self.i_obj = i_node		
 	    else :
 		self.i_obj = cgmMeta.cgmObject(obj)
-	assert self.i_obj.isTransform() or self.i_obj.isComponent(),"Not a snappable object. Not a transform: '%s"%self.i_obj.getShortName()      
+	assert VALID.is_transform(self.i_obj.mNode) or self.i_obj.isComponent(),"Not a snappable object. Not a transform: '%s"%self.i_obj.getShortName()      
 	
 	#>>> Pass through args
 	self.b_snaptoSurface = snapToSurface

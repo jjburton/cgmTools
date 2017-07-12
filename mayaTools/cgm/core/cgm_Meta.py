@@ -648,7 +648,7 @@ class cgmNode(r9Meta.MetaClass):
             return POS.get(self.getComponent(),*a,**kws)        
         return TRANS.position_get(self.mNode, *a,**kws)
     
-    def getPosition(self,space = 'world'):
+    def getPositionOLD(self,space = 'world'):
         if self.isComponent():
             return POS.get(self.getComponent())
             objType = self.getMayaType()	    
@@ -672,6 +672,23 @@ class cgmNode(r9Meta.MetaClass):
 
         else:
             return POS.get(self.getComponent(),space = 'world')    
+        
+    def getTransform(self,asMeta = False):
+        _res = VALID.getTransform(self.mNode)
+        
+        if _res and asMeta:
+            return cgmObject(_res)
+        return _res
+        """Find the transform of the object"""
+        buffer = mc.ls(self.mNode, type = 'transform') or False
+        if buffer:
+            return buffer[0]
+        else:
+            buffer = mc.listRelatives(self.mNode,parent=True,type='transform') or False
+        if buffer:
+            return buffer[0]
+        return False    
+    
     #========================================================================================================     
     #>>> Attributes 
     #========================================================================================================      
@@ -856,14 +873,18 @@ class cgmNode(r9Meta.MetaClass):
     #========================================================================================================     
     #>>> Message stuff 
     #========================================================================================================        
-    def getMessage(self,attr,fullPath = True,asMeta = False):
+    def getMessage(self,attr,fullPath = True, asMeta = False, dataAttr = None, dataKey = None, simple = True,*args,**kws):
         """
         This maybe odd to some, but we treat traditional nodes as regular message connections. However, sometimes, you want a message like connection
         to an attribute. To do this, we devised a method of creating a compaptble attr on the object to recieve the message, 
         connecting the attribute you want to connect to that attribute and then when you call an attribute as getMessage, if it is not a message attr
         it tries to trace back that connection to an attribute.
+        simple MUST be True by default
         """
-        _res = ATTR.get_message(self.mNode,attr,simple=True)
+        _str_func = 'getMessage'
+        _res = ATTR.get_message(self.mNode,attr,dataAttr=dataAttr,dataKey=dataKey,simple=simple)
+        #_res = ATTR.get_message(self.mNode,attr,simple=True)
+        
         if asMeta and _res:
             return validateObjListArg(_res)
         if _res and fullPath:
@@ -2734,6 +2755,7 @@ class cgmObject(cgmNode):
             status(bool)
         """         
         return TRANS.is_parentTo(self,child)
+    isParentOf = isParentTo
     def isChildTo(self,parent):
         """
         Query whether a given node is a parent of our mNode
@@ -2746,7 +2768,7 @@ class cgmObject(cgmNode):
             status(bool)
         """                 
         return TRANS.is_childTo(self,parent)
-    
+    isChildOf = isChildTo
     #========================================================================================================
     #>>> Position/Rotation/Scale ...
     #========================================================================================================      
@@ -2846,7 +2868,7 @@ class cgmObject(cgmNode):
 
 
     def getPositionOutPlug(self,autoLoc=True):
-        raise ValueError,"Where are we using this?"
+        #raise ValueError,"Where are we using this?"
         if self.getMayaType() == 'locator':
             return cgmNode(self.getShapes()[0]).getPositionOutPlug()	    
         else:
@@ -2898,9 +2920,11 @@ class cgmObject(cgmNode):
         """ Copy the transform from a source object to the current instanced maya object. """
         return RIGGING.match_transform(self, source,rotateOrder,rotateAxis,rotatePivot,scalePivot)
 
-    def doGroup(self,maintain=False, asMeta = False):
+    def doGroup(self,maintain=False, parentTo = True, asMeta = False, typeModifier = None):
         #buffer = rigging.groupMeObject(self.mNode,True,maintain)  
-        buffer = TRANS.group_me(self,True,maintain)
+        buffer = TRANS.group_me(self,parentTo,maintain)
+        if typeModifier:
+            ATTR.store_info(buffer,'cgmTypeModifier',typeModifier)
         if buffer and asMeta:
             return cgmObject(buffer)
         return buffer
@@ -3027,7 +3051,26 @@ class cgmObject(cgmNode):
         if asMeta and buffer:
             return validateObjListArg(buffer)
         return buffer
-        
+    
+    
+    def isConstrainedBy(self,obj):        
+        l_constraints = self.getConstraintsTo()
+        if not l_constraints:
+            return False
+        else:
+            try:
+                obj.mNode
+                i_obj = obj
+            except:
+                i_obj = cgmObject(obj)
+
+            returnList = []
+            for c in l_constraints:
+                targets = CONSTRAINT.get_targets(c,fullPath=True)
+                if i_obj.getLongName() in targets:
+                    returnList.append(c)
+            if returnList:return returnList	
+        return False
         
         
 class cgmObjectOLD(cgmNode):  

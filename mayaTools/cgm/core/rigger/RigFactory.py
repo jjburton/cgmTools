@@ -800,7 +800,7 @@ def go(*args, **kws):
                     mJnt.doName()		
                 self._ml_rigJoints = ml_rigJoints
                 self._l_rigJoints = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]
-                self._i_rigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
+                self._i_rigNull.msgList_connect('rigJoints',ml_rigJoints,'rigNull')#connect	
                 log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)	    
                 return ml_rigJoints
             except Exception,error:
@@ -829,7 +829,7 @@ def go(*args, **kws):
                 #self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back
                 log.debug("%s.buildHandleChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_handleChain]))
                 if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
-                    self._i_rigNull.msgList_connect(ml_handleChain,connectNodesAs,'rigNull')#Push back
+                    self._i_rigNull.msgList_connect(connectNodesAs,ml_handleChain,'rigNull')#Push back
 
                 log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
                 return ml_handleChain
@@ -853,7 +853,7 @@ def go(*args, **kws):
 
                 log.debug("%s.duplicate_jointChain >> built '%s handle chain: %s"%(self._strShortName,typeModifier,[i_j.getShortName() for i_j in ml_dupChain]))
                 if connectNodesAs not in [None,False] and type(connectNodesAs) in [str,unicode]:
-                    self._i_rigNull.msgList_connect(ml_dupChain,connectNodesAs,'rigNull')#Push back
+                    self._i_rigNull.msgList_connect(connectNodesAs,ml_dupChain,'rigNull')#Push back
 
                 log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
                 return ml_dupChain
@@ -942,7 +942,7 @@ def go(*args, **kws):
                     for i,ml_chain in enumerate(ml_segmentChains):
                         l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
                         log.debug("segment chain %s: %s"%(i,l_chain))
-                        self._i_rigNull.msgList_connect(ml_chain,'segment%s_Joints'%i,"rigNull")
+                        self._i_rigNull.msgList_connect('segment%s_Joints'%i,ml_chain,"rigNull")
 
                 log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
                 return ml_segmentChains
@@ -1018,7 +1018,7 @@ def go(*args, **kws):
                 for i,ml_chain in enumerate(ml_influenceChains):
                     l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
                     log.debug("%s.build_simpleInfuenceChains>>> split chain: %s"%(self._mi_module.getShortName(),l_chain))
-                    self._i_rigNull.msgList_connect(ml_chain,'segment%s_InfluenceJoints'%i,"rigNull")
+                    self._i_rigNull.msgList_connect('segment%s_InfluenceJoints'%i,ml_chain,"rigNull")
 
                 log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)
                 return {'ml_influenceChains':ml_influenceChains,'ml_influenceJoints':ml_influenceJoints,'ml_segmentHandleJoints':ml_segmentHandleJoints}

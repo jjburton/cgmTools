@@ -110,7 +110,7 @@ def create(obj,parentTo = False):
 
     #>>>Copy Transform
     #====================================================   
-    i_newTransform = i_obj.doDuplicateTransform()
+    i_newTransform = i_obj.doCreateAt()
 
     #Need to move this to default cgmNode stuff
     mBuffer = i_control
@@ -161,7 +161,7 @@ def create(obj,parentTo = False):
     if i_control.getLongName() not in _l_spacePivots:
         #_l_spacePivots = i_obj.getMessage('spacePivots',True)
         #_l_spacePivots.append(i_control.mNode)
-        i_obj.msgList_append(i_control,'spacePivots','controlTarget')
+        i_obj.msgList_append('spacePivots',i_control,'controlTarget')
     log.debug("spacePivots: %s"%i_obj.msgList_get('spacePivots',asMeta = True))
 
     #parent

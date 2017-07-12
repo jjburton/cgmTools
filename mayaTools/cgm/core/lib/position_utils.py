@@ -141,7 +141,7 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
         return _res
     raise RuntimeError,"|{0}| >> Shouldn't have gotten here: obj: {1}".format(_str_func,_obj)
     
-def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
+def set(obj = None, pos = None, pivot = 'rp', space = 'ws', relative = False):
     """
     General call for querying position data in maya.
     Note -- pivot and space are ingored in boundingBox mode which returns the center pivot in worldSpace
@@ -164,9 +164,10 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
     _pos = pos
               
     if VALID.is_component(_obj):
+        kws = {'ws':False,'os':False, 'r':relative}
         if _space == 'object':
             kws['os']=True
-            kws['rpr'] = False
+            #kws['rpr'] = False
         else:kws['ws']=True
         
         log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
@@ -177,7 +178,7 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws'):
         if _space == 'local' or _pivot == 'local':
             ATTR.set(_obj,'translate',pos) 
         else:
-            kws = {'rpr':False,'spr':False,'os':False,'ws':False,'r':False}
+            kws = {'rpr':False,'spr':False,'os':False,'ws':False,'r':relative}
             
             if _pivot == 'rp':kws['rpr'] = True
             else: kws['spr'] = True

@@ -20,12 +20,13 @@ import maya.cmds as mc
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
-from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger.lib import rig_Utils as rUtils
-
+import cgm.core.rigger.lib.spacePivot_utils as SPACEPIVOTS
+reload(SPACEPIVOTS)
 from cgm.lib import (attributes,
                      cgmMath,
                      locators,
@@ -132,9 +133,9 @@ def registerControl(*args,**kws):
             i_obj = self.mi_control
             self.mi_control = cgmMeta.asMeta(i_obj,'cgmControl', setClass=True)
 
-            self.str_mirrorAxis = cgmValid.stringArg(self.d_kws['mirrorAxis'],calledFrom = self._str_funcCombined)
-            self.str_mirrorSide = cgmValid.stringArg(self.d_kws['mirrorSide'],calledFrom = self._str_funcCombined)
-            self.b_makeMirrorable = cgmValid.boolArg(self.d_kws['makeMirrorable'],calledFrom = self._str_funcCombined)
+            self.str_mirrorAxis = VALID.stringArg(self.d_kws['mirrorAxis'],calledFrom = self._str_funcCombined)
+            self.str_mirrorSide = VALID.stringArg(self.d_kws['mirrorSide'],calledFrom = self._str_funcCombined)
+            self.b_makeMirrorable = VALID.boolArg(self.d_kws['makeMirrorable'],calledFrom = self._str_funcCombined)
 
             self._addMirrorAttributeBridges = self.d_kws.get('addMirrorAttributeBridges') or False
             if self._addMirrorAttributeBridges :
@@ -300,7 +301,8 @@ def registerControl(*args,**kws):
                 parent = self.mi_control.getMessage('masterGroup')[0]
                 for i in range(int(addSpacePivots)):
                     try:
-                        i_pivot = rUtils.create_spaceLocatorForObject(self.mi_control.mNode,parent)
+                        #i_pivot = rUtils.create_spaceLocatorForObject(self.mi_control.mNode,parent)
+                        i_pivot = SPACEPIVOTS.create(self.mi_control.mNode,parent)
                         self.ml_spacePivots.append(i_pivot)
                         #log.info("spacePivot created: {0}".format(i_pivot.p_nameShort))			
                     except Exception,error:
@@ -375,8 +377,8 @@ def registerControl(*args,**kws):
 
             if self._addMirrorAttributeBridges:
                 for l_bridge in self._addMirrorAttributeBridges:
-                    _attrName = cgmValid.stringArg(l_bridge[0])
-                    _attrToBridge = cgmValid.stringArg(l_bridge[1])
+                    _attrName = VALID.stringArg(l_bridge[0])
+                    _attrToBridge = VALID.stringArg(l_bridge[1])
                     if not self.mi_control.hasAttr(_attrToBridge):
                         raise StandardError,"['%s' lacks the bridge attr '%s']"%(self.mi_control.p_nameShort,_attrToBridge)
 

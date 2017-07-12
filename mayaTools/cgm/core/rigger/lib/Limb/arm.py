@@ -326,7 +326,7 @@ def build_controls(goInstance = None):
 
         def build_groups(self):
             for grp in ['controlsFK','controlsIK']:
-                i_dup = self._go._i_constrainNull.doDuplicateTransform(True)
+                i_dup = self._go._i_constrainNull.doCreateAt(copyAttrs=True)
                 i_dup.parent = self._go._i_constrainNull.mNode
                 i_dup.addAttr('cgmTypeModifier',grp,lock=True)
                 i_dup.doName()
@@ -1812,7 +1812,7 @@ def build_twistDriver_shoulder(goInstance = None):
 
             #=============================================================================
             try:#setup stable shoulder rotate group  
-                i_rotGroup = self._go._i_constrainNull.doDuplicateTransform(False)
+                i_rotGroup = self._go._i_constrainNull.doCreateAt()
                 i_rotGroup.addAttr('cgmType','stableShoulderTwistRotGroup')
                 i_rotGroup.doName()
                 ml_twistObjects.append(i_rotGroup)
@@ -1931,7 +1931,7 @@ def build_twistDriver_wrist(goInstance = None):
 
             #=============================================================================
             try:#setup stable wrist rotate group  
-                i_rotGroup = mi_controlIK.doDuplicateTransform(False)
+                i_rotGroup = mi_controlIK.doCreateAt()
                 i_rotGroup.addAttr('cgmType','stableShoulderTwistRotGroup')
                 i_rotGroup.doName()
                 ml_twistObjects.append(i_rotGroup)

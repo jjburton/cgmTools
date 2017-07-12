@@ -2842,7 +2842,8 @@ def datList_append(node = None, attr = None, data = None, mode = None, dataAttr 
         set_message(node, "{0}_{1}".format(attr,_idx), data, _str_dataAttr, dataKey=_idx)
     else:
         store_info(node,"{0}_{1}".format(attr,_idx),data)
-
+    
+    return _idx
 
 def datList_removeByIndex(node = None, attr = None, indices = None):
     """   
