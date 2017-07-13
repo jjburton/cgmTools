@@ -12,7 +12,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -71,12 +71,12 @@ def returnBaseControlSize(mi_obj,mesh,axis=True,closestInRange = True):
         if not mi_obj:
             raise ValueError,"mi_obj kw: {0} ".format(mi_obj)
 
-        _str_funcName = "returnBaseControlSize(%s)"%mi_obj.p_nameShort
-        log.debug(">> %s "%(_str_funcName) + "="*75)
+        _str_func = "returnBaseControlSize(%s)"%mi_obj.p_nameShort
+        log.debug(">> %s "%(_str_func) + "="*75)
         start = time.clock()
 
-        log.debug("%s >> mesh: %s "%(_str_funcName,mesh))  
-        log.debug("%s >> axis: %s "%(_str_funcName,axis)) 
+        log.debug("%s >> mesh: %s "%(_str_func,mesh))  
+        log.debug("%s >> axis: %s "%(_str_func,axis)) 
 
         try:
             d_axisToDo = {}
@@ -97,7 +97,7 @@ def returnBaseControlSize(mi_obj,mesh,axis=True,closestInRange = True):
                         d_axisToDo[a.lower()] = buffer
                     else:
                         log.warning("Don't know what with: '%s'"%a)
-            log.debug("%s >> d_axisToDo: %s "%(_str_funcName,d_axisToDo))  
+            log.debug("%s >> d_axisToDo: %s "%(_str_func,d_axisToDo))  
             if not d_axisToDo:return False	    
         except Exception,error:
             raise Exception,"Axis check | {0}".format(error)
@@ -127,10 +127,10 @@ def returnBaseControlSize(mi_obj,mesh,axis=True,closestInRange = True):
             raise Exception,"No intersections found"
 
         #>>Add the average
-        log.debug("%s >> d_returnDistances: %s "%(_str_funcName,d_returnDistances))        	
+        log.debug("%s >> d_returnDistances: %s "%(_str_func,d_returnDistances))        	
         d_returnDistances['average'] = (sum([d_returnDistances.get(k) for k in d_returnDistances.keys()]))/len(d_returnDistances.keys())
 
-        log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)     	
+        log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     	
         return d_returnDistances    
     except Exception,error:
         raise Exception," returnBaseControlSize | {0}".format(error)
@@ -242,13 +242,13 @@ def createWrapControlShape(targetObjects,
     Exception | if reached
 
     """     
-    _str_funcName = "createWrapControlShape"
-    log.debug(">> %s >> "%(_str_funcName) + "="*75)  
+    _str_func = "createWrapControlShape"
+    log.debug(">> %s >> "%(_str_func) + "="*75)  
     _joinModes = []
     _extendMode = []
 
     if type(targetObjects) not in [list,tuple]:targetObjects = [targetObjects]
-    targetGeo = VALID.objStringList(targetGeo, calledFrom = _str_funcName)
+    targetGeo = VALID.objStringList(targetGeo, calledFrom = _str_func)
 
 
     assert type(points) is int,"Points must be int: %s"%points
@@ -266,9 +266,10 @@ def createWrapControlShape(targetObjects,
 
     if len(aimAxis) == 2:single_aimAxis = aimAxis[0]
     else:single_aimAxis = aimAxis
+    mAxis_aim = VALID.simpleAxis(aimAxis)
     log.debug("Single aim: %s"%single_aimAxis)
     log.debug("createWrapControlShape>> midMeshCast: %s"%midMeshCast)
-    log.debug("|{0}| >> extendMode: {1}".format(_str_funcName,extendMode))            
+    log.debug("|{0}| >> extendMode: {1}".format(_str_func,extendMode))            
     #>> Info
     l_groupsBuffer = []
     il_curvesToCombine = []
@@ -337,14 +338,14 @@ def createWrapControlShape(targetObjects,
 
 
     elif extendMode == 'radial':
-        log.debug("|{0}| >> radial...".format(_str_funcName))            
+        log.debug("|{0}| >> radial...".format(_str_func))            
         d_handleInner = createMeshSliceCurve(targetGeo,mi_rootLoc,midMeshCast=midMeshCast,curveDegree=curveDegree,latheAxis=latheAxis,aimAxis=aimAxis,posOffset = 0,points = points,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
         mi_buffer = cgmMeta.cgmObject(d_handleInner['curve'])#instance curve	
         l_sliceReturns.append(d_handleInner)
         il_curvesToCombine.append(mi_buffer)    
 
     elif extendMode == 'disc':
-        log.debug("|{0}| >> disc...".format(_str_funcName))            
+        log.debug("|{0}| >> disc...".format(_str_func))            
         d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
         #discOffset = d_size[ d_size.keys()[0]]*insetMult
         size = False
@@ -376,7 +377,7 @@ def createWrapControlShape(targetObjects,
         mi_rootLoc.tz = 0
 
     elif extendMode == 'cylinder':
-        log.debug("|{0}| >> cylinder...".format(_str_funcName))            
+        log.debug("|{0}| >> cylinder...".format(_str_func))            
         d_size = returnBaseControlSize(mi_rootLoc,targetGeo,axis=[aimAxis])#Get size
         discOffset = d_size[ d_size.keys()[0]]*insetMult
         log.debug("d_size: %s"%d_size)
@@ -391,7 +392,7 @@ def createWrapControlShape(targetObjects,
         mi_rootLoc.__setattr__('t%s'%latheAxis,0)
 
     elif extendMode == 'loliwrap':
-        log.debug("|{0}| >> lolipop...".format(_str_funcName))            
+        log.debug("|{0}| >> lolipop...".format(_str_func))            
         #l_absSize = [abs(i) for i in posOffset]
         size = False
         #if l_absSize:
@@ -408,7 +409,7 @@ def createWrapControlShape(targetObjects,
         i_ball = cgmMeta.cgmObject(curves.createControlCurve('sphere',size = size))
 
     elif extendMode == 'endCap':
-        log.debug("|{0}| >> endCap...".format(_str_funcName))            
+        log.debug("|{0}| >> endCap...".format(_str_func))            
         returnBuffer1 = createMeshSliceCurve(targetGeo,mi_rootLoc.mNode,
                                              aimAxis = '{0}+'.format(latheAxis),
                                              latheAxis = objectUp[0],
@@ -436,14 +437,14 @@ def createWrapControlShape(targetObjects,
 
     #Now cast our root since we needed to move it with segment mode before casting
     if extendMode == 'cylinder':
-        log.debug("|{0}| >> cylinder move...".format(_str_funcName))                    
+        log.debug("|{0}| >> cylinder move...".format(_str_func))                    
         mi_rootLoc.__setattr__('t%s'%latheAxis,-discOffset)
 
-    log.debug("|{0}| >> Rootcast...".format(_str_funcName))                    
+    log.debug("|{0}| >> Rootcast...".format(_str_func))                    
 
     d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,minRotate=minRotate,maxRotate=maxRotate,latheAxis=latheAxis,midMeshCast=midMeshCast,aimAxis=aimAxis,posOffset = posOffset,points = points,vectorOffset=vectorOffset,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
     #d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,**kws)  
-    log.debug("|{0}| >> Rootcast done".format(_str_funcName) + cgmGEN._str_subLine)                    
+    log.debug("|{0}| >> Rootcast done".format(_str_func) + cgmGEN._str_subLine)                    
 
     if extendMode == 'disc':
         l_sliceReturns.insert(1,d_rootCastInfo)	
@@ -454,12 +455,23 @@ def createWrapControlShape(targetObjects,
     if extendMode == 'loliwrap':
         SNAP.go(i_ball.mNode,mi_rootLoc.mNode,True, True)#Snap to main object
 
-        log.debug("hitReturns: %s"%d_rootCastInfo['hitReturns'])
+        #log.debug("hitReturns: %s"%d_rootCastInfo['hitReturns'])
+        #cgmGEN.walk_dat(d_rootCastInfo['hitReturns'],'hitReturns')
+        
         mi_crv = cgmMeta.cgmObject( d_rootCastInfo['curve'] )
-
-        #pos = distance.returnWorldSpacePosition("%s"%distance.returnMidU(mi_crv.mNode))
-        pos = d_rootCastInfo['processedHits'][0]
-        dist = distance.returnDistanceBetweenPoints(i_ball.getPosition(),pos) * 2
+        """
+        d_return = RayCast.findMeshIntersectionFromObjectAxis(targetGeo,mi_rootLoc.mNode,mAxis_aim.p_string) or {}
+        if not d_return.get('hit'):
+            log.info(d_return)
+            raise ValueError,"No hit on loli check"
+        pos = d_return.get('hit')
+        dist = distance.returnDistanceBetweenPoints(i_ball.getPosition(),pos) * 2"""
+        
+        if vectorOffset is not None:
+            dist = vectorOffset + subSize * 4
+        else:
+            dist = max(posOffset) + subSize * 4
+            
         if '-' in aimAxis:
             distM = -dist
         else:
@@ -490,7 +502,7 @@ def createWrapControlShape(targetObjects,
     mc.delete(mi_rootLoc.parent)#delete the loc
 
     l_curvesToCombine = [mi_obj.mNode for mi_obj in il_curvesToCombine]#Build our combine list before adding connectors         
-    log.debug("|{0}| >> processed: {1}".format(_str_funcName,d_rootCastInfo['processedHits']))            
+    log.debug("|{0}| >> processed: {1}".format(_str_func,d_rootCastInfo['processedHits']))            
 
     if joinMode and extendMode not in ['loliwrap','endCap'] and len(l_sliceReturns)>1:
         if joinHits:
@@ -571,7 +583,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     Exception | if reached
 
     """       
-    _str_funcName = 'createMeshSliceCurve'
+    _str_func = 'createMeshSliceCurve'
 
     try:
         mi_obj = cgmMeta.validateObjArg(mi_obj,mType = 'cgmObject', noneValid = True)
@@ -580,9 +592,9 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 
         log.debug("mi_obj: {0}".format(mi_obj.mNode))
 
-        mesh = VALID.objStringList(mesh,['mesh','nurbsSurface'], calledFrom = _str_funcName)
+        mesh = VALID.objStringList(mesh,['mesh','nurbsSurface'], calledFrom = _str_func)
         #if len(mc.ls(mesh))>1:
-            #log.error("{0}>>> More than one mesh named. Using first: {1}".format(_str_funcName,mesh))
+            #log.error("{0}>>> More than one mesh named. Using first: {1}".format(_str_func,mesh))
         #mesh = mesh[0]
         log.debug("mesh: {0}".format(mesh))
         log.debug("points: {0}".format(points))
@@ -625,6 +637,8 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
         if vectorOffset is None:
             if posOffset is not None:
                 vectorOffset = max(posOffset)
+    log.debug("|{0}| >> vectorOffset: {1}".format(_str_func, vectorOffset))
+    
 
     if posOffset is not None:
         if MATH.is_vector_equivalent(posOffset,[0,0,0]):
@@ -676,16 +690,17 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
         rotateBaseValue = len(range(int(rotateFloor),int(rotateCeiling)))/points
         #rotateBaseValue = (rotateCeiling - rotateFloor)/points
 
-        log.debug("|{0}| >> floor: {1} | ceiling {2} | baseValue: {3}".format(_str_funcName,rotateFloor,rotateCeiling,rotateBaseValue))     
+        log.debug("|{0}| >> floor: {1} | ceiling {2} | baseValue: {3} | points: {4}".format(_str_func,rotateFloor,rotateCeiling,rotateBaseValue,points))     
 
         #Build our rotate values
-        for i in range(points+1):
+        for i in range(points-1):
             l_rotateSettings.append( (rotateBaseValue*(i)) + initialRotate + rotateFloor)
-
+        l_rotateSettings.append(rotateCeiling)
+        
     if not l_rotateSettings:raise ValueError, "Should have had some l_rotateSettings by now"
     log.debug("rotateSettings: %s"%l_rotateSettings)
 
-
+    
     try:#>>> Pew, pew !
         #================================================================
         for i,rotateValue in enumerate(l_rotateSettings):
@@ -746,27 +761,26 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 if markHits or offsetMode != 'vector':
                     mi_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator(n='loc_%s'%i)[0])
                     mc.move (hit[0],hit[1],hit[2], mi_tmpLoc.mNode,ws=True)	                    
-                if posOffset:
-                    if offsetMode =='vector':
-                        """constBuffer = mc.aimConstraint(mi_obj.mNode,mi_tmpLoc.mNode,
-                                                       aimVector=[0,0,-1],
-                                                       upVector=[0,1,0],
-                                                       worldUpType = 'scene')"""
-                        _baseVector = MATH.get_vector_of_two_points(pos_base,
-                                                                    hit)
-                        _baseDist = DIST.get_distance_between_points(pos_base, 
-                                                                     hit)
-                        hit = DIST.get_pos_by_vec_dist(pos_base,_baseVector, _baseDist + vectorOffset)
-                    else:
-                        constBuffer = mc.normalConstraint(mesh,mi_tmpLoc.mNode,
-                                                          aimVector=[0,0,1],
-                                                          upVector=[0,1,0],
-                                                          worldUpType = 'scene')
-                        mc.delete(constBuffer)
-                        mc.move(posOffset[0],posOffset[1],posOffset[2], [mi_tmpLoc.mNode], r=True, rpr = True, os = True, wd = True)
-                        hit = mi_tmpLoc.getPosition()
-                        if not markHits:
-                            mi_tmpLoc.delete()
+                if offsetMode =='vector':
+                    """constBuffer = mc.aimConstraint(mi_obj.mNode,mi_tmpLoc.mNode,
+                                                   aimVector=[0,0,-1],
+                                                   upVector=[0,1,0],
+                                                   worldUpType = 'scene')"""
+                    _baseVector = MATH.get_vector_of_two_points(pos_base,
+                                                                hit)
+                    _baseDist = DIST.get_distance_between_points(pos_base, 
+                                                                 hit)
+                    hit = DIST.get_pos_by_vec_dist(pos_base,_baseVector, _baseDist + vectorOffset)
+                elif posOffset:
+                    constBuffer = mc.normalConstraint(mesh,mi_tmpLoc.mNode,
+                                                      aimVector=[0,0,1],
+                                                      upVector=[0,1,0],
+                                                      worldUpType = 'scene')
+                    mc.delete(constBuffer)
+                    mc.move(posOffset[0],posOffset[1],posOffset[2], [mi_tmpLoc.mNode], r=True, rpr = True, os = True, wd = True)
+                    hit = mi_tmpLoc.getPosition()
+                    if not markHits:
+                        mi_tmpLoc.delete()
 
                 l_pos.append(hit)
                 d_processedHitFromValue[rotateValue] = hit

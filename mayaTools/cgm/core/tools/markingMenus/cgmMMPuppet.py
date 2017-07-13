@@ -350,7 +350,7 @@ def bUI_lower(self,parent):
                 try:#puppet settings ===========================================================================
                     mmPuppetSettingsMenu = mc.menuItem(p = parent, l='Settings', subMenu=True)
                     mmPuppetControlSettings = mPuppet.masterControl.controlSettings 
-                    l_settingsUserAttrs = mmPuppetControlSettings.getUserAttrs()
+                    l_settingsUserAttrs = mmPuppetControlSettings.getAttrs(ud=True)
 
                     mc.menuItem(p = mmPuppetSettingsMenu, l="visSub Show",
                                      c = cgmGen.Callback(mPuppet.animSetAttr,'visSub',1,True))				

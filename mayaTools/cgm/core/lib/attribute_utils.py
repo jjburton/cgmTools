@@ -2068,7 +2068,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
             return _msgBuffer
         
         _dataAttr = 'cgmMsgData'
-        if dataAttr is not None:
+        if dataAttr:
             _dataAttr = dataAttr
     
         if '.' in _dataAttr or issubclass(type(_dataAttr),dict):

@@ -330,7 +330,174 @@ def build_shapes(goInstance = None):
 
 #>>> Controls
 #===================================================================
-def build_controls(goInstance = None):
+def build_controls(self):
+
+    if not self.isShaped():
+        raise Exception,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
+    if not self.isRigSkeletonized():
+        raise Exception,"%s.build_controls>>> needs shapes to build controls"%self._strShortName
+    """
+    __d_controlShapes__ = {'shape':['controlsFK','midIK','settings','hand'],
+             'pivot':['toe','heel','ball','inner','outer
+    for shape in __d_controlShapes__['shape']:
+    self.__dict__['mi_%s'%shape] = cgmMeta.validateObjArg(self._i_rigNull.msgList_getMessage('shape_%s'%shape),noneValid=False)
+    log.info(self.__dict__['mi_%s'%shape] )"""
+    ml_controlsFK = cgmMeta.validateObjListArg(self._i_rigNull.msgList_get('shape_controlsFK',asMeta=False),cgmMeta.cgmObject)
+    ml_segmentIK = cgmMeta.validateObjListArg(self._i_rigNull.msgList_get('shape_segmentIK',asMeta=False),cgmMeta.cgmObject)
+    #self._i_rigNull.msgList_connect(self._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,"rigNull")		
+    l_segmentIKChains = []
+    ml_segmentIKChains = []
+    for i in range(50):
+        buffer = self._i_rigNull.msgList_get('shape_segmentIK_%s'%i,asMeta=False)
+        if buffer:
+            l_segmentIKChains.append(buffer)
+            ml_segmentIKChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
+        else:
+            break  
+
+    #mi_midIK = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_midIK'),cgmMeta.cgmObject)
+    mi_settings= cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
+    ml_fkJoints = cgmMeta.validateObjListArg(self._i_rigNull.msgList_get('fkJoints',asMeta=False),cgmMeta.cgmObject)
+    mi_cap = cgmMeta.validateObjArg(self._i_rigNull.getMessage('shape_moduleCap'),cgmMeta.cgmObject)
+
+    log.info("mi_settings: '%s'"%mi_settings.getShortName())
+    log.info("mi_cap: '%s'"%mi_cap.getShortName())    
+    log.info("ml_fkJoints: %s"%[i_o.getShortName() for i_o in ml_fkJoints])
+
+    #>>>Make a few extra groups for storing controls and what not to in the deform group
+    for grp in ['controlsFK','controlsIK']:
+        i_dup = self._i_constrainNull.doCreateAt(copyAttrs=True)
+        i_dup.parent = self._i_constrainNull.mNode
+        i_dup.addAttr('cgmTypeModifier',grp,lock=True)
+        i_dup.doName()
+
+        self._i_constrainNull.connectChildNode(i_dup,grp,'owner')
+
+    l_controlsAll = []
+    #==================================================================
+    try:#>>>> FK Segments
+        if len( ml_controlsFK )<3:
+            raise Exception,"%s.build_controls>>> Must have at least three fk controls"%self._strShortName	    
+
+        #for i,i_obj in enumerate(ml_controlsFK[1:]):#parent
+            #i_obj.parent = ml_controlsFK[i].mNode
+        ml_fkJoints[0].parent = self._i_constrainNull.controlsFK.mNode
+
+        for i,i_obj in enumerate(ml_controlsFK):
+            d_buffer = mControlFactory.registerControl(i_obj,shapeParentTo=ml_fkJoints[i],setRotateOrder=3,
+                                                       mirrorSide=self._str_mirrorDirection, mirrorAxis="translateX",		                                           		                                               
+                                                       makeAimable=True,typeModifier='fk',) 	    
+
+            i_obj = d_buffer['instance']
+            i_obj.axisAim = "%s+"%self._jointOrientation[0]
+            i_obj.axisUp= "%s+"%self._jointOrientation[1]	
+            i_obj.axisOut= "%s+"%self._jointOrientation[2]
+            try:i_obj.drawStyle = 2#Stick joint draw style	    
+            except:self.log_error("{0} Failed to set drawStyle".format(i_obj.p_nameShort))		    
+            cgmMeta.cgmAttr(i_obj,'radius',hidden=True)
+
+        for i_obj in ml_controlsFK:
+            i_obj.delete()
+
+        #ml_controlsFK[0].masterGroup.parent = self._i_constrainNull.mNode
+        self._i_rigNull.msgList_connect('controlsFK',ml_fkJoints,"rigNull")
+        l_controlsAll.extend(ml_fkJoints[:-1])	
+
+    except Exception,error:	
+        log.error("%s.build_controls>>> Build fk fail!"%self._strShortName)
+        raise Exception,error
+
+    #==================================================================    
+    try:#>>>> IK Handle
+        i_IKEnd = mi_cap
+        i_IKEnd.parent = False
+        d_buffer = mControlFactory.registerControl(i_IKEnd,copyPivot=ml_fkJoints[-2].mNode,setRotateOrder=3,
+                                                   mirrorSide=self._str_mirrorDirection, mirrorAxis="translateX,rotateY,rotateZ",	                                               		                                           
+                                                   typeModifier='ik',addSpacePivots = 1, addDynParentGroup = True,
+                                                   addConstraintGroup=True,
+                                                   makeAimable = True)
+        i_IKEnd = d_buffer['instance']	
+        i_IKEnd.masterGroup.parent = self._i_constrainNull.controlsIK.mNode
+
+        #i_loc.delete()#delete
+        self._i_rigNull.connectChildNode(i_IKEnd,'controlIK',"rigNull")#connect
+        l_controlsAll.append(i_IKEnd)	
+
+        #Set aims
+        i_IKEnd.axisAim = 'z+'
+        i_IKEnd.axisUp= 'y+'
+
+    except Exception,error:
+        log.error("%s.build_controls>>> Build ik handle fail!"%self._strShortName)	
+        raise Exception,error   
+
+    try:#>>>> Settings
+        d_buffer = mControlFactory.registerControl(mi_settings,addExtraGroups=0,typeModifier='settings',autoLockNHide=True,
+                                                   mirrorSide=self._str_mirrorDirection, mirrorAxis="",	                                               		                                           
+                                                   setRotateOrder=2)       
+        i_obj = d_buffer['instance']
+        i_obj.masterGroup.parent = self._i_constrainNull.mNode
+        self._i_rigNull.connectChildNode(mi_settings,'settings',"rigNull")
+        l_controlsAll.append(mi_settings)
+
+        mi_settings.addAttr('blend_FKIK', defaultValue = 0, attrType = 'float', minValue = 0, maxValue = 1, keyable = False,hidden = False,lock=True)
+
+        self.mPlug_result_moduleSubDriver = self.build_visSub()	
+
+    except Exception,error:
+        log.error("%s.build_controls>>> Build settings fail!"%self._strShortName)		
+        raise Exception,error    
+
+
+    #==================================================================    
+    try:#>>>> Add all of our Attrs
+        #Add driving attrs
+        mPlug_length = cgmMeta.cgmAttr(i_IKEnd,'length',attrType='float',defaultValue = 1,minValue=0,keyable = True)		
+        mPlug_fingerSpin = cgmMeta.cgmAttr(i_IKEnd,'fingerSpin',attrType='float',defaultValue = 0,keyable = True)
+        mPlug_stretch = cgmMeta.cgmAttr(i_IKEnd,'autoStretch',attrType='float',defaultValue = 1,keyable = True)
+        mPlug_lengthUpr= cgmMeta.cgmAttr(i_IKEnd,'lengthUpr',attrType='float',defaultValue = 1,minValue=0,keyable = True)
+        mPlug_lengthLwr = cgmMeta.cgmAttr(i_IKEnd,'lengthLwr',attrType='float',defaultValue = 1,minValue=0,keyable = True)	
+
+    except Exception,error:
+        log.error("%s.build_controls>>> Add Control Attrs Fail!"%self._strShortName)	
+
+    self.ml_controlsAll = l_controlsAll
+    #return True
+
+    try:#>> Extra controls gather...
+        ml_extraControls = []
+        for i,mCtrl in enumerate(self.ml_controlsAll):
+            try:
+                for str_a in cgmRigsData.__l_moduleControlMsgListHooks__:
+                    buffer = mCtrl.msgList_get(str_a)
+                    if buffer:
+                        ml_extraControls.extend(buffer)
+                        log.info("Extra controls : {0}".format(buffer))
+            except Exception,error:
+                self.log_error("mCtrl failed to search for msgList : {0}".format(mCtrl))
+                self.log_error("Fail error : {0}".format(error))
+        self.ml_controlsAll.extend(ml_extraControls)			
+    except Exception,error:raise Exception,"Extra control gather fail! | error: {0}".format(error)      	    
+
+
+    int_strt = self._i_puppet.get_nextMirrorIndex( self._str_mirrorDirection )
+    for i,mCtrl in enumerate(self.ml_controlsAll):
+        try:
+            mCtrl.addAttr('mirrorIndex', value = (int_strt + i))		
+        except Exception,error: raise Exception,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
+
+    try:self._i_rigNull.msgList_connect('controlsAll',self.ml_controlsAll,'rigNull')
+    except Exception,error: raise Exception,"Controls all connect| %s"%error	    
+    try:self._i_rigNull.moduleSet.extend(self.ml_controlsAll)
+    except Exception,error: raise Exception,"Failed to set module objectSet | %s"%error
+
+    return True
+
+
+
+
+
+def build_controls2(goInstance = None):
     class fncWrap(modUtils.rigStep):
         def __init__(self,goInstance = None):
             super(fncWrap, self).__init__(goInstance)
@@ -654,7 +821,7 @@ def build_FKIK(goInstance = None):
                 i_spinGroup.addAttr('cgmName','%sNoFlipSpin'%self._go._partName)
                 i_spinGroup.doName()
 
-                i_spinGroup.doZeroGroup()
+                i_spinGroup.doGroup(True,True,typeModifier='zero')
                 mi_rpHandleNF.parent = i_spinGroup.mNode
 
                 #Setup arg

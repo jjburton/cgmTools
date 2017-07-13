@@ -513,6 +513,18 @@ class cgmNode(r9Meta.MetaClass):
     def getNameDict(self):
         return nameTools.returnObjectGeneratedNameDict(self.mNode) or {} 
     
+    def doTagAndName(self,d_tags, **kws):
+        """
+        Add tags and name in one fell swoop
+        """
+        if type(d_tags)is not dict:
+            raise ValueError, "%s.doTagAndName >> d_tags not dict : %s"(self.p_nameShort,d_tags)		    
+        for tag in d_tags.keys():
+            self.doStore(tag,d_tags[tag])
+        self.doName()
+        return self.mNode
+
+            
     def getNameAlias(self):
         if self.hasAttr('cgmAlias'):
             return self.cgmAlias

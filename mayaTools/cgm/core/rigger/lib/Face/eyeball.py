@@ -43,7 +43,7 @@ from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
 
 from cgm.core.rigger.lib import rig_Utils as rUtils
-
+reload(rUtils)
 from cgm.lib import (attributes,
                      joints,
                      skinning,
@@ -223,7 +223,7 @@ def build_controls(*args, **kws):
             mi_go = self._go#Rig Go instance link
 
             for grp in ['controlsFKNull','controlsIKNull','eyeTrackNull']:
-                i_dup = mi_go._i_constrainNull.doDuplicateTransform(True)
+                i_dup = mi_go._i_constrainNull.doCreateAt(copyAttrs=True)
                 i_dup.parent = mi_go._i_constrainNull.mNode
                 i_dup.addAttr('cgmTypeModifier',grp,lock=True)
                 i_dup.doName()
@@ -382,7 +382,7 @@ def build_controls(*args, **kws):
                 try:mCtrl.addAttr('mirrorIndex', value = (int_start + i))		
                 except Exception,error: raise StandardError,"Failed to register mirror index | mCtrl: %s | %s"%(mCtrl,error)
 
-            try:self._go._i_rigNull.msgList_connect(self.ml_controlsAll,'controlsAll')
+            try:self._go._i_rigNull.msgList_connect('controlsAll',self.ml_controlsAll)
             except Exception,error: raise StandardError,"[Controls all connect]{%s}"%error	    
             try:self._go._i_rigNull.moduleSet.extend(self.ml_controlsAll)
             except Exception,error: raise StandardError,"[Failed to set module objectSet]{%s}"%error

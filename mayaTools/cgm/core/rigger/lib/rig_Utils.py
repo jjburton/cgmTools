@@ -30,6 +30,7 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.classes import SnapFactory as Snap
+import cgm.core.lib.snap_utils as SNAP
 from cgm.core.lib import nameTools
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import attribute_utils as ATTR
@@ -146,7 +147,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
         else:mi_target = mi_ball
 
         #> Build our group ---------------------------------------------------
-        mi_group = mi_target.doDuplicateTransform(copyAttrs = False)
+        mi_group = mi_target.doCreateAt(copyAttrs = False)
         if d_nameTags: mi_group.doTagAndName(d_nameTags)
         d_return['mi_rigGroup'] = mi_group #store to return dict
 
@@ -189,7 +190,7 @@ def createEyeballRig(eyeballObject = None, ballJoint = None,
 
             #See if we have an aim target
             if mi_aimTarget:
-                Snap.go(mi_aimLoc,mi_aimTarget.mNode)#Snap to the target
+                SNAP.go(mi_aimLoc,mi_aimTarget.mNode)#Snap to the target
                 mi_aimLoc.parent = mi_aimTarget#Parent it
             else:
                 mi_aimLoc.__setattr__('t%s'%orientation[0],f_averageSize*5)
@@ -345,7 +346,7 @@ def create_simpleEyelidSetup(uprLidJoint = None, lwrLidJoint = None,
         mi_target = mi_ballJoint
 
         #> Build our group ---------------------------------------------------
-        mi_group = mi_target.doDuplicateTransform(copyAttrs = False)
+        mi_group = mi_target.doCreateAt(copyAttrs = False)
         if d_nameTags: mi_group.doTagAndName(d_nameTags)
         d_return['mi_rigGroup'] = mi_group #store to return dict
 
@@ -3686,12 +3687,12 @@ def create_spaceLocatorForObject(obj,parentTo = False):
     
     try:#>>>Snap and Lock
         #====================================================	
-        Snap.go(i_control,i_obj.mNode,move=True, orient = True)
+        SNAP.go(i_control,i_obj.mNode)
     except Exception,error:raise Exception,"%s >> snapNLock | %s"%(_str_funcName,error)  
     
     try:#>>>Copy Transform
         #====================================================   
-        i_newTransform = i_obj.doDuplicateTransform()
+        i_newTransform = i_obj.doCreateAt()
 
         #Need to move this to default cgmNode stuff
         mBuffer = i_control

@@ -11,7 +11,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -107,20 +107,27 @@ class go(object):
             self.l_coreNames = self._mi_module.coreNames.value
             self._mi_templateNull = self._mi_module.templateNull#speed link
             self._mi_rigNull = self._mi_module.rigNull#speed link
-            self._targetMesh = self._mi_puppet.getUnifiedGeo() or self._mi_puppet.getGeo()[0] or 'Morphy_Body_GEO1'#>>>>>>>>>>>>>>>>>this needs better logic   
+            self._targetMesh = self._mi_puppet.getUnifiedGeo()
+            if not self._targetMesh:
+                _bfr = self._mi_puppet.getUnifiedGeo()
+                if _bfr:
+                    self._targetMesh = _bfr[0]
+                else:
+                    raise ValueError,"Need a mesh"
             self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
             self._ml_controlObjects = self._mi_templateNull.msgList_get('controlObjects')
-
+            log.info('initial...done')
             #>>> part name 
             self.str_partName = self._mi_module.getPartNameBase()
             self.str_partType = self._mi_module.moduleType or False
 
-            self._direction = self._mi_module.getAttr('cgmDirection') or None
-
+            self._direction = self._mi_module.getMayaAttr('cgmDirection') or None
+            log.info("part...done")
             #>>> Instances and joint stuff
             self.str_jointOrientation = str(modules.returnSettingsData('jointOrientation')) or 'zyx'#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   
-            self.f_skinOffset = self._mi_puppet.getAttr('skinDepth') or 1 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<		
+            self.f_skinOffset = self._mi_puppet.getMayaAttr('skinDepth') or 1 #Need to get from puppet!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<		
             self._verifyCastObjects()#verify cast objects
+            log.info('castObjects')
             self.d_returnControls = {}	
             self.md_ReturnControls = {}	
             self.d_returnPivots = {}		
@@ -129,7 +136,9 @@ class go(object):
             self.md_segmentHandles = {}
             self._baseModuleDistance = self._returnBaseDistance()
             self._baseModuleThickness = self._returnBaseThickness()
+            
         except Exception,error:
+            
             raise Exception,"{0} >> [Module data gather fail] error: {1}".format(self._strShortName,error)	
         
         #>>> We need to figure out which control to make
@@ -147,13 +156,10 @@ class go(object):
             log.debug("No arguments for shapes to cast.Initializing only.")
         for key in self.l_controlsToMakeArg:
             try:
-                if kws:
-                    self.d_controlBuildFunctions[key](kws)#Run it
-                else:
-                    try:
-                        self.d_controlBuildFunctions[key](self)
-                    except:
-                        self.d_controlBuildFunctions[key]()
+                try:
+                    self.d_controlBuildFunctions[key](self,**kws)
+                except:
+                    self.d_controlBuildFunctions[key](**kws)
             except Exception,error:
                 if kws:
                     cgmGeneral.walk_dat(kws)
@@ -282,8 +288,9 @@ class go(object):
         except Exception,error:
             raise Exception,"%s >> %s"%(_str_funcName,error)  
     def _returnBaseDistance(self):
-        return distance.returnDistanceBetweenObjects(self.l_controlSnapObjects[0],self.l_controlSnapObjects[-1])/10
-
+        if len(self.l_controlSnapObjects) >1:
+            return distance.returnDistanceBetweenObjects(self.l_controlSnapObjects[0],self.l_controlSnapObjects[-1])/10
+        return 1
     def build_eyelids(self):
         _str_funcName = "go.build_eyelids(%s)"%self._strShortName
         log.info(">>> %s >>> "%(_str_funcName) + "="*75)
@@ -725,8 +732,10 @@ class go(object):
         self.curveDegree = 1
         self.minRotate = None
         self.maxRotate = None
+        self.vectorOffset = None
         if 'neck' in self.str_partType:
-            d_kws = {'default':{'posOffset':[0,0,self.f_skinOffset*5],
+            d_kws = {'default':{'posOffset':[],
+                                'vectorOffset':self.f_skinOffset*5,                                
                                 'minRotate':-70,
                                 'maxRotate':70,                                
                                 'latheAxis':'z',
@@ -736,9 +745,9 @@ class go(object):
                                 'aimAxis':'y+'},
                      0:{'rootOffset':[0,0,2],},
                      -1:{'l_specifiedRotates':None,
-                         'vectorOffset':self.f_skinOffset*10,
+                         'vectorOffset':self.f_skinOffset*5,
                          'points':9,
-                         'rootOffset':[0,0,2],
+                         'rootOffset':[0,0,0],
                          'closedCurve':False,
                          'curveDegree':3,
                          'minRotate':-90,
@@ -813,6 +822,7 @@ class go(object):
                                                             minRotate = self.minRotate,
                                                             maxRotate = self.maxRotate,
                                                             subSize=self.subSize ,
+                                                            vectorOffset=self.vectorOffset,
                                                             l_specifiedRotates = self.l_specifiedRotates,
                                                             posOffset = self.posOffset,
                                                             rootOffset = self.rootOffset,
@@ -823,6 +833,22 @@ class go(object):
             mi_newCurve = returnBuffer['instance']
             mi_newCurve.doCopyPivot(obj)
             
+            if 'head' in obj:
+                print 'Head mode!'
+                crv1 = ShapeCast.createMeshSliceCurve(self._targetMesh,obj,'y','z+',
+                                                      minRotate=-90,maxRotate=90,
+                                                      closedCurve=False,
+                                                      #posOffset= [0,0,self.f_skinOffset*5],
+                                                      vectorOffset=self.vectorOffset,
+                                                     )
+                crv2 = ShapeCast.createMeshSliceCurve(self._targetMesh,obj,'x','z+',
+                                                      minRotate=-90,maxRotate=0,
+                                                      closedCurve=False,
+                                                      offsetMode='vector',
+                                                      #posOffset= [0,0,self.f_skinOffset*5],
+                                                      vectorOffset=self.vectorOffset,
+                                                     )                
+                coreRigging.shapeParent_in_place(mi_newCurve.mNode,[crv1,crv2],False)
             #>>> Color
             curves.setCurveColorByName(mi_newCurve.mNode,self.l_moduleColors[0])                    
             mi_newCurve.addAttr('cgmType',attrType='string',value = 'loliHandle',lock=True)	
@@ -2078,18 +2104,14 @@ class ShapeCasterFunc(cgmGeneral.cgmFuncCls):
     def __init__(self,*args,**kws):
         """
         """
-        try:
-            try:goInstance = args[0]
-            except:goInstance = kws['goInstance']
-            if not issubclass(type(goInstance),go):
-                raise Exception,"Not a ModuleShapeCaster.go instance: '%s'"%goInstance
-            assert mc.objExists(goInstance._mi_module.mNode),"Module no longer exists"
-        except Exception,error:raise Exception,error
+        try:goInstance = args[0]
+        except:goInstance = kws['goInstance']
+        assert mc.objExists(goInstance._mi_module.mNode),"Module no longer exists"
 
         super(ShapeCasterFunc, self).__init__(*args,**kws)
 
         self._str_funcName = 'ModuleShapeCaster(%s)'%goInstance._mi_module.p_nameShort
-        self._l_ARGS_KWS_DEFAULTS = [{'kw':'goInstance',"default":goInstance}]
+        self._l_ARGS_KWS_DEFAULTS = [{'kw':'goInstance',"default":None}]
 
         self.__dataBind__(*args,**kws)
         self.mi_go = goInstance
@@ -3020,15 +3042,19 @@ def shapeCast_eyeball(*args,**kws):
             self._f_midMulti = 2.5
 
             #Orient info ------------------------------------------------------------------------------------------------
+            self.log_info('orient...')
+            
             self.v_aimNegative = cgmValid.simpleAxis(self.str_orientation[0]+"-").p_vector
             self.v_aim = cgmValid.simpleAxis(self.str_orientation[0]).p_vector	
             self.v_up = cgmValid.simpleAxis(self.str_orientation[1]).p_vector	
-
             #Find our helpers -------------------------------------------------------------------------------------------
+            self.log_info('main helpers...')
+            
             self.mi_helper = cgmMeta.validateObjArg(self.mi_module.getMessage('helper'),noneValid=True)
             if not self.mi_helper:raise Exception,"%s >>> No suitable helper found"%(_str_funcName)
 
             #Find our helpers -------------------------------------------------------------------------------------------
+            self.log_info('sub helpers...')            
             for attr in self.mi_helper.getAttrs(userDefined = True):#Get allof our Helpers
                 if "Helper" in attr:
                     try:self.__dict__["mi_%s"%attr.replace('Helper','Crv')] = cgmMeta.validateObjArg(self.mi_helper.getMessage(attr),noneValid=False)
@@ -3038,9 +3064,12 @@ def shapeCast_eyeball(*args,**kws):
             self._b_buildPupil = self.mi_helper.buildPupil	    
 
             #>> Find our joint lists ===================================================================
+            self.log_info('jointlist...')            
             ml_rigJoints = self.mi_module.rigNull.msgList_get('rigJoints')	    
 
             #>> calculate ------------------------------------------------------------------------
+            self.log_info('calculate...')
+            
             self.f_baseDistance = distance.returnDistanceBetweenObjects(self.mi_helper.mNode,
                                                                         self.mi_helper.pupilHelper.mNode)
             
@@ -3053,6 +3082,8 @@ def shapeCast_eyeball(*args,**kws):
             self.f_pupilSize = distance.returnCurveDiameter(self.mi_pupilCrv.mNode)
 
             #>> Get the iris/pupil base position
+            self.log_info('baseDat...')
+            
             mi_loc = cgmMeta.cgmNode("%s|curveShape2.ep[3]"%self.mi_helper.mNode).doLoc(fastMode = True)
             mi_loc.parent = self.mi_helper
             mi_loc.tz *= -1
@@ -3439,48 +3470,45 @@ def shapeCast_eyelids(*args,**kws):
             self.f_baseDistance = ( distance.returnCurveDiameter(self.mi_helper.pupilHelper.mNode))/1
 
         def _buildShapes_(self):
-            try:#query ===========================================================
-                mi_go = self.mi_go
-                mi_helper = self.mi_helper
-                __baseDistance = self.f_baseDistance 
-                ml_uprLidHandles = self.ml_uprLidHandles 
-                ml_lwrLidHandles = self.ml_lwrLidHandles
-            except Exception,error: raise Exception,"!Query]{%s}"%error
+            #query ===========================================================
+            mi_go = self.mi_go
+            mi_helper = self.mi_helper
+            __baseDistance = self.f_baseDistance 
+            ml_uprLidHandles = self.ml_uprLidHandles 
+            ml_lwrLidHandles = self.ml_lwrLidHandles
 
-            try:#Curve creation ===========================================================
-                ml_handleCrvs = []
-                for mObj in ml_uprLidHandles + ml_lwrLidHandles:
-                    try:
-                        if mObj.getAttr('isSubControl') or mObj in [ml_uprLidHandles[0],ml_uprLidHandles[-1]]:
-                            _size = __baseDistance * .6
-                        else:_size = __baseDistance
-                        mi_crv =  cgmMeta.asMeta(curves.createControlCurve('circle',size = _size,direction=mi_go.str_jointOrientation[0]+'+'),'cgmObject',setClass=False)	
-                        SNAP.go(mi_crv,mObj.mNode,move=True,orient=False)
-                        str_grp = mi_crv.doGroup()
-                        mi_crv.__setattr__("t%s"%mi_go.str_jointOrientation[0],__baseDistance)
-                        mi_crv.parent = False
-                        mc.delete(str_grp)
+            #Curve creation ===========================================================
+            ml_handleCrvs = []
+            for mObj in ml_uprLidHandles + ml_lwrLidHandles:
+                try:
+                    if mObj.getAttr('isSubControl') or mObj in [ml_uprLidHandles[0],ml_uprLidHandles[-1]]:
+                        _size = __baseDistance * .6
+                    else:_size = __baseDistance
+                    mi_crv =  cgmMeta.asMeta(curves.createControlCurve('circle',size = _size,direction=mi_go.str_jointOrientation[0]+'+'),'cgmObject',setClass=False)	
+                    SNAP.go(mi_crv,mObj.mNode)
+                    str_grp = mi_crv.doGroup()
+                    mi_crv.__setattr__("t%s"%mi_go.str_jointOrientation[0],__baseDistance*2)
+                    mi_crv.parent = False
+                    mc.delete(str_grp)
 
-                        #>>Color curve		    		    
-                        if mObj.getAttr('isSubControl'):
-                            curves.setCurveColorByName(mi_crv.mNode,mi_go.l_moduleColors[1])  
-                        else:curves.setCurveColorByName(mi_crv.mNode,mi_go.l_moduleColors[0])  
-                        #>>Copy tags and name		    
-                        mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
-                        mi_crv.doName()
-                        mi_crv.connectChildNode(mObj,'handleJoint','controlCurve')
-                        ml_handleCrvs.append(mi_crv)
-                        #>>Copy pivot
-                        mi_crv.doCopyPivot(mObj.mNode)
-                    except Exception,error:
-                        raise Exception,"(handle: '%s' | error: %s )"%(mObj.p_nameShort,error)  
-            except Exception,error: raise Exception,"[Curve create] > %s"%error
+                    #>>Color curve		    		    
+                    if mObj.getAttr('isSubControl'):
+                        curves.setCurveColorByName(mi_crv.mNode,mi_go.l_moduleColors[1])  
+                    else:curves.setCurveColorByName(mi_crv.mNode,mi_go.l_moduleColors[0])  
+                    #>>Copy tags and name		    
+                    mi_crv.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+                    mi_crv.doName()
+                    mi_crv.connectChildNode(mObj,'handleJoint','controlCurve')
+                    ml_handleCrvs.append(mi_crv)
+                    #>>Copy pivot
+                    mi_crv.doCopyPivot(mObj.mNode)
+                except Exception,error:
+                    raise Exception,"(handle: '%s' | error: %s )"%(mObj.p_nameShort,error)  
 
-            try:#connect ===========================================================
-                mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in ml_handleCrvs]
-                mi_go.md_ReturnControls['ml_handleCurves'] = ml_handleCrvs
-                mi_go._mi_rigNull.msgList_connect('handleCurves',ml_handleCrvs,'owner')
-            except Exception,error: raise Exception,"[Connect] error: %s"%error
+            #connect ===========================================================
+            mi_go.d_returnControls['l_handleCurves'] = [mObj.p_nameShort for mObj in ml_handleCrvs]
+            mi_go.md_ReturnControls['ml_handleCurves'] = ml_handleCrvs
+            mi_go._mi_rigNull.msgList_connect('handleCurves',ml_handleCrvs,'owner')
 
     #We wrap it so that it autoruns and returns
     return fncWrap(*args,**kws).go()  

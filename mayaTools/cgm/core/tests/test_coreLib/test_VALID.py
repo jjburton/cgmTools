@@ -19,7 +19,8 @@ import maya.standalone
 try:
     import cgm.core.cgmPy.validateArgs as validateArgs
     reload(validateArgs)
-    
+    import cgm.core.lib.shared_data as SHARED
+    reload(SHARED)
     import maya.cmds as mc
     
 except ImportError:
@@ -404,6 +405,28 @@ class Test_valueArgs(unittest.TestCase):
                 isEquivalent=4.2
             )
         )
+        
+# CLASSES ====================================================================
+class Test_simpleAxis(unittest.TestCase):
+    '''
+    TestCase for validateArgs.stringArgs
+    '''
+    def test_axisToStrings(self):
+        for k,v in SHARED._d_axis_string_to_vector.iteritems():
+            self.assertEqual(validateArgs.simpleAxis(k).p_vector,
+                             v)
+            
+        for k,v in SHARED._d_axis_string_to_vector.iteritems():
+            self.assertEqual(validateArgs.simpleAxis(v).p_string,
+                             k)        
+            
+    def test_vectorToAxis(self):
+        for k,v in SHARED._d_axis_vector_to_string.iteritems():
+            self.assertEqual(validateArgs.simpleAxis(k).p_string,
+                             v)  
+
+        
+        
 # FUNCTIONS ==================================================================       
 """def main(**kwargs):
     #testCases = [Test_r9Issues,]

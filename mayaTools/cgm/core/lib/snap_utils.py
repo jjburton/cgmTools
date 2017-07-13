@@ -76,7 +76,7 @@ def go(obj = None, target = None,
         kws['ws']=True
     else:kws['os']=True  
     
-    cgmGeneral.walk_dat(kws)
+    #cgmGeneral.walk_dat(kws)
     
     if position:
         kws_move = copy.copy(kws)
@@ -91,10 +91,10 @@ def go(obj = None, target = None,
         else:
             log.debug("|{0}|...postion...".format(_str_func))
             pos = POS.get(target,_pivot,_space,_mode)
-            log.info(pos)
+            #log.info(pos)
             #cgmGeneral.print_dict(kws,'move kws','snap.go')
             mc.move (pos[0],pos[1],pos[2], _obj, **kws_move)
-            log.info(POS.get(_obj))
+            #log.info(POS.get(_obj))
     if rotateAxis:
         log.debug("|{0}|...rotateAxis...".format(_str_func))        
         mc.xform(obj,ra = mc.xform(_target, q=True, ra=True, **kws), p=True, **kws)    
@@ -152,6 +152,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
             'world' -- use standard maya aiming with world axis
             'matrix' -- use Bokser's fancy method
             'vector' -- maya standard with vector up axis
+            'object' -- maya standard with object
 
     :returns
         success(bool)
@@ -227,7 +228,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
                                        upVector = mAxis_up.p_vector,
                                        worldUpType = 'scene',)
         mc.delete(_constraint + [_loc])"""
-    elif mode in ['local','world','vector']:
+    elif mode in ['local','world','vector','object']:
             _loc = mc.spaceLocator()[0]
             mc.move (position[0],position[1],position[2], _loc, ws=True)  
             mAxis_aim = VALID.simpleAxis(aimAxis)
@@ -239,6 +240,15 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
                                                aimVector = mAxis_aim.p_vector,
                                                upVector = mAxis_up.p_vector,
                                                worldUpType = 'scene',) 
+            elif mode == 'object':
+                vectorUp = VALID.mNodeString(vectorUp)
+                _constraint = mc.aimConstraint(_loc,_obj,
+                                               maintainOffset = False,
+                                               aimVector = mAxis_aim.p_vector,
+                                               upVector = mAxis_up.p_vector,
+                                               worldUpType = 'object',
+                                               worldUpObject = vectorUp)
+                                               #worldUpVector = _vUp)
             else:
                 if mode == 'vector':
                     _vUp = vectorUp
@@ -252,7 +262,8 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
                                                worldUpVector = _vUp)                 
                 
             mc.delete(_constraint + [_loc])    
-        
+    else:
+        raise NotImplementedError,"mode: {0}".format(mode)
 
     return True
 

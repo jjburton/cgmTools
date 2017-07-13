@@ -215,7 +215,7 @@ class cgmPuppet(cgmMeta.cgmNode):
         if not mMasterNull:
             raise ValueError, "No masterNull"
         
-        for attr in 'deform','noTransform','geo','parts','worldSpaceObjects':
+        for attr in 'deform','noTransform','geo','parts','worldSpaceObjects','puppetSpaceObjects':
             _link = attr+'Group'
             mGroup = mMasterNull.getMessage(_link,asMeta=True)# Find the group
             if mGroup:mGroup = mGroup[0]
@@ -231,7 +231,7 @@ class cgmPuppet(cgmMeta.cgmNode):
             #==============            
             if attr == 'geo':
                 mGroup.p_parent = mMasterNull.noTransformGroup
-            elif attr == 'deform' and self.getMessage('masterControl'):
+            elif attr in ['deform','puppetSpaceObjects'] and self.getMessage('masterControl'):
                 mGroup.p_parent = self.getMessage('masterControl')[0]	    
             else:    
                 mGroup.p_parent = mMasterNull

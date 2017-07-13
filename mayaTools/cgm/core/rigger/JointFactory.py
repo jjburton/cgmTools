@@ -25,6 +25,7 @@ from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.classes import GuiFactory as gui
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.rigger.lib import module_Utils as modUtils
+import cgm.core.lib.snap_utils as SNAP
 from cgm.lib import (cgmMath,
                      joints,
                      rigging,
@@ -483,9 +484,10 @@ def doSkeletonizeEyelids(self):
                             mi_target = d_buildCurves['upr']['ml_joints'][0]
                         else:
                             mi_target = ml_jointBuffer[i-1]"""
-
-                    constraintBuffer = mc.aimConstraint(mi_target.mNode,mJnt.mNode,maintainOffset = False, **passKWS)
-                    mc.delete(constraintBuffer)  			    
+                    
+                    #SNAP.aim(mJnt.mNode,mi_helper.mNode,v_aimNegative,v_up,'vector',[0,1,0])
+                    #constraintBuffer = mc.aimConstraint(mi_target.mNode,mJnt.mNode,maintainOffset = False, **passKWS)
+                    #mc.delete(constraintBuffer)  			    
                     #mi_end.parent = mi_root
                 except Exception,error:raise StandardError,"curve: %s | pos count: %s | Constraint fail | error: %s "%(k,i,error)       
                 try:#copy orient

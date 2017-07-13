@@ -297,8 +297,8 @@ def stringArg(arg=None, noneValid=True, calledFrom = None, **kwargs):
     log.debug("validateArgs.stringArg arg={0} noneValid={1}".format(arg, noneValid))
 
     _str_funcRoot = 'stringArg'
-    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
-    else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg)    
+    if calledFrom: _str_func = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
+    else:_str_func = "{0}({1})".format(_str_funcRoot,arg)    
     
     if not arg:
         if noneValid:return False
@@ -313,7 +313,7 @@ def stringArg(arg=None, noneValid=True, calledFrom = None, **kwargs):
         if noneValid:
             result = False
         else:
-            fmt_args = (arg, _str_funcName, type(arg).__name__)
+            fmt_args = (arg, _str_func, type(arg).__name__)
             s_errorMsg = "Arg {0} from func '{1}' is type '{2}', not 'str'"
 
             raise TypeError(s_errorMsg.format(*fmt_args))
@@ -409,8 +409,8 @@ def stringListArg(l_args=None, noneValid=False, calledFrom = None, **kwargs):
     log.debug("validateArgs.stringArg arg={0} noneValid={1}".format(str(l_args), noneValid))
     
     _str_funcRoot = 'stringListArg'
-    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,l_args)    
-    else:_str_funcName = "{0}({1})".format(_str_funcRoot,l_args)    
+    if calledFrom: _str_func = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,l_args)    
+    else:_str_func = "{0}({1})".format(_str_funcRoot,l_args)    
     
     result = []
     if l_args is None:
@@ -424,7 +424,7 @@ def stringListArg(l_args=None, noneValid=False, calledFrom = None, **kwargs):
             result.append(tmp)
         else:
             log.warning(
-                "Arg {0} from func '{1}' ".format(arg, _str_funcName) +\
+                "Arg {0} from func '{1}' ".format(arg, _str_func) +\
                 " is type '{0}', not 'str'".format(type(arg).__name__)
             )
     return result
@@ -450,15 +450,15 @@ def boolArg(arg=None, calledFrom = None, **kwargs):
     log.debug("validateArgs.boolArg arg={0}".format(arg))
 
     _str_funcRoot = 'boolArg'
-    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
-    else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg) 
+    if calledFrom: _str_func = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
+    else:_str_func = "{0}({1})".format(_str_funcRoot,arg) 
     
     result = arg
 
     if isinstance(arg, int) and arg in [0,1]:
         result = bool(arg)
     elif not isinstance(arg, bool):
-        fmt_args = [arg, _str_funcName, type(arg).__name__]
+        fmt_args = [arg, _str_func, type(arg).__name__]
         s_errorMsg = "Arg {0} from func '{1}' is type '{2}', not 'bool' or 0/1".format(*fmt_args)
     
         raise TypeError(s_errorMsg)
@@ -549,8 +549,8 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
     except:pass
     
     _str_funcRoot = 'objString'
-    if calledFrom: _str_funcName = "{0}.{1} | arg:{2}".format(calledFrom,_str_funcRoot,arg)    
-    else:_str_funcName = "{0} | arg:{1}".format(_str_funcRoot,arg) 
+    if calledFrom: _str_func = "{0}.{1} | arg:{2}".format(calledFrom,_str_funcRoot,arg)    
+    else:_str_func = "{0} | arg:{1}".format(_str_funcRoot,arg) 
 
     result = None 
     
@@ -558,16 +558,16 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
         arg = arg[0]  
     
     if not isinstance(arg, basestring):
-        raise TypeError('{0}: arg must be string'.format(_str_funcName))
+        raise TypeError('{0}: arg must be string'.format(_str_func))
 
     if len(mc.ls(arg)) > 1:
-        raise NameError("{1}: More than one object is named '{0}'".format(arg,_str_funcName))
+        raise NameError("{1}: More than one object is named '{0}'".format(arg,_str_func))
 
     if result is None and not mc.objExists(arg):
         if noneValid:
             result = False
         else:
-            raise NameError("{1}: '{0}' does not exist".format(arg,_str_funcName))
+            raise NameError("{1}: '{0}' does not exist".format(arg,_str_func))
     
     if result != False and mayaType is not None:
         l_mayaTypes = mayaType
@@ -581,7 +581,7 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
                 result = False
             else:
                 str_mayaTypes_formatted = ', '.join(l_mayaTypes)
-                fmt_args = [arg, str_argMayaType, str_mayaTypes_formatted, _str_funcName]
+                fmt_args = [arg, str_argMayaType, str_mayaTypes_formatted, _str_func]
 
                 raise TypeError("{3}: Arg {0} is type '{1}', expected '{2}'".format(*fmt_args))
 
@@ -591,7 +591,7 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
                 result = False
             else:
                 str_argMayaType = get_mayaType(arg)
-                fmt_args = [arg, str_argMayaType, _str_funcName]
+                fmt_args = [arg, str_argMayaType, _str_func]
                 raise TypeError("{2}: 'Arg {0}' is type {1}, expected 'transform'".format(*fmt_args))
 
     if result is None:
@@ -662,8 +662,8 @@ def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False
     log.debug("validateArgs.objString arg={0}".format(l_args))
 
     _str_funcRoot = 'objStringList'
-    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,l_args)    
-    else:_str_funcName = "{0}({1})".format(_str_funcRoot,l_args) 
+    if calledFrom: _str_func = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,l_args)    
+    else:_str_func = "{0}({1})".format(_str_funcRoot,l_args) 
 
     result = []
     if l_args is None:
@@ -681,7 +681,7 @@ def objStringList(l_args=None, mayaType=None, noneValid=False, isTransform=False
         else:
             str_argMayaType = get_mayaType(arg)
             log.warning(
-                "Arg {0} from func '{1}' ".format(arg, _str_funcName) +\
+                "Arg {0} from func '{1}' ".format(arg, _str_func) +\
                 " is Maya type '{2}', not 'str'".format(str_argMayaType)
             )
 
@@ -723,8 +723,8 @@ def valueArg(numberToCheck=None, noneValid=True,
                         is also specified.
     '''
     _str_funcRoot = 'valueArg'
-    if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,numberToCheck)    
-    else:_str_funcName = "{0}({1})".format(_str_funcRoot,numberToCheck) 
+    if calledFrom: _str_func = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,numberToCheck)    
+    else:_str_func = "{0}({1})".format(_str_funcRoot,numberToCheck) 
     
     if not isinstance(numberToCheck, (float, int)):
         if noneValid is False:
@@ -801,15 +801,15 @@ class simpleOrientation():
     def __init__(self,arg=None, calledFrom = None, **kwargs):
         
         _str_funcRoot = 'simpleOrientation'
-        if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
-        else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg)    
+        if calledFrom: _str_func = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
+        else:_str_func = "{0}({1})".format(_str_funcRoot,arg)    
         
-        log.debug('Caller: {0}, arg: {1}'.format(_str_funcName, arg))
+        log.debug('Caller: {0}, arg: {1}'.format(_str_func, arg))
 
         str_arg = stringArg(arg, noneValid=True)
 
         if str_arg is False:
-            fmt_args = [str_arg, _str_funcName]
+            fmt_args = [str_arg, _str_func]
             error_msg = "Arg '{0}'' from function '{1}' must be a string"
 
             raise ValueError(error_msg.format(*fmt_args))
@@ -818,7 +818,7 @@ class simpleOrientation():
 
         if not d_rotateOrder.has_key(str_arg):
             fmt_args = [str_arg, 
-                        _str_funcName, 
+                        _str_func, 
                         'xyz, yzx, zxy, xzy, yxz, or zyx']
             error_msg = 'Arg {0} from function {1} must be a rotation order: {2}'
 
@@ -885,14 +885,14 @@ d_vectorToString = {
 
 
 
-class simpleAxis():
+class simpleAxis(object):
     """ 
     """
     def __init__(self,arg,calledFrom = None):
         _str_funcRoot = 'simpleAxis'
-        if calledFrom: _str_funcName = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
-        else:_str_funcName = "{0}({1})".format(_str_funcRoot,arg) 
-        #log.debug('Caller: {0}, arg: {1}'.format(_str_funcName, arg))
+        if calledFrom: _str_func = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
+        else:_str_func = "{0}({1})".format(_str_funcRoot,arg) 
+        #log.debug('Caller: {0}, arg: {1}'.format(_str_func, arg))
     
         self.__str_axis = None
         self.__v_axis = None
@@ -900,29 +900,33 @@ class simpleAxis():
         str_arg = arg
         
         if isListArg(arg, types=int):
+            #str_arg = '['+','.join([str(v) for v in arg]) + ']'
             str_arg = str(list(arg))
         elif isinstance(arg, basestring):
             pass
         else:
             fmt_args = [str_arg, 
-                        _str_funcName]
+                        _str_func]
             error_msg = 'Arg {0} from function {1} must be an axis or a vector'
             raise ValueError(error_msg.format(*fmt_args))
 
         str_arg = str_arg.replace(' ','')
-
+        
         if SHARED._d_short_axis_to_long.has_key(str_arg):
             self.__str_axis = SHARED._d_short_axis_to_long[str_arg]
             self.__v_axis = SHARED._d_axis_string_to_vector.get(self.__str_axis)
         elif SHARED._d_axis_string_to_vector.has_key(str_arg):
             self.__str_axis = str_arg
             self.__v_axis = SHARED._d_axis_string_to_vector[str_arg]
-        elif d_vectorToString.has_key(str_arg):
+        elif SHARED.d_vectorToString.has_key(str_arg):
             self.__str_axis = d_vectorToString[str_arg]
             self.__v_axis = d_stringTovector(self.__str_axis)
+        elif SHARED._d_axis_vector_to_string.has_key(str_arg):
+            self.__str_axis = SHARED._d_axis_vector_to_string[str_arg]
+            self.__v_axis = SHARED._d_axis_string_to_vector.get(self.__str_axis)            
         else:
             fmt_args = [str_arg, 
-                        _str_funcName]
+                        _str_func]
             error_msg = 'Arg {0} from function {1} is an invalid axis or vector'
             raise ValueError(error_msg.format(*fmt_args))
 
@@ -949,7 +953,9 @@ class simpleAxis():
         
     #def __repr__(self):
         #return 
-    
+    def __repr__(self):
+        try:return "{0}(str: {1}, vec: {2})".format(self.__class__, self.p_string, self.p_vector)
+        except:return self    
     
 #>>> Transforms ==========================================================================
 getTransform = get_transform
@@ -975,8 +981,8 @@ def MeshDict(mesh = None, pointCounts = True, calledFrom = None):
     
 
     """        
-    _str_funcName = 'MeshDict'
-    if calledFrom: _str_funcName = "{0} calling {1}".format(calledFrom,_str_funcName) 
+    _str_func = 'MeshDict'
+    if calledFrom: _str_func = "{0} calling {1}".format(calledFrom,_str_func) 
     
     _mesh = None 
     
@@ -984,7 +990,7 @@ def MeshDict(mesh = None, pointCounts = True, calledFrom = None):
         _bfr = mc.ls(sl=True)
         if not _bfr:raise ValueError,"No selection found and no source arg"
         mesh = _bfr[0]
-        log.info("{0}>> No source specified, found: '{1}'".format(_str_funcName,mesh))
+        log.info("{0}>> No source specified, found: '{1}'".format(_str_func,mesh))
            
     _type = get_mayaType(mesh)
     _shape = None
@@ -998,7 +1004,7 @@ def MeshDict(mesh = None, pointCounts = True, calledFrom = None):
         _callObjType = 'shapeCall'
         _mesh = getTransform(mesh)
     else:
-        raise ValueError,"{0} error. Not a usable mesh type : obj: '{1}' | type: {2}".format(_str_funcName, mesh, _type)
+        raise ValueError,"{0} error. Not a usable mesh type : obj: '{1}' | type: {2}".format(_str_func, mesh, _type)
 
     _shapes = mc.listRelatives(_mesh,shapes=True,fullPath=False)
     
@@ -1075,25 +1081,25 @@ def kw_fromDict(arg = None ,d = None, indexCallable = False, returnIndex = False
         calledFrom | string -- calling function for error reporting
 
     """        
-    _str_funcName = 'kw_fromDict'
-    if calledFrom: _str_funcName = "{0} calling {1}".format(calledFrom,_str_funcName) 
+    _str_func = 'kw_fromDict'
+    if calledFrom: _str_func = "{0} calling {1}".format(calledFrom,_str_func) 
        
     if arg is None or d is None:
-        raise ValueError,"{0}: Must have k and d arguments | arg: {1} | d: {2}".format(_str_funcName, arg, d)
+        raise ValueError,"{0}: Must have k and d arguments | arg: {1} | d: {2}".format(_str_func, arg, d)
     
     if not isinstance(d, dict):
-        raise ValueError,"{0}: d arg must be a dict | d: {1}".format(_str_funcName,d)
+        raise ValueError,"{0}: d arg must be a dict | d: {1}".format(_str_func,d)
     
     for k in d.keys():
         if isStringEquivalent(k,arg):return k
         _l = d[k]
         if not isListArg(_l):
-            raise ValueError,"{0}: Invalid list on dict key | k: {1} | Not a list: {2}".format(_str_funcName,k,_l)
+            raise ValueError,"{0}: Invalid list on dict key | k: {1} | Not a list: {2}".format(_str_func,k,_l)
         for o in _l:
             if isStringEquivalent(o,arg):return k 
             
     if not noneValid:
-        raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, d)
+        raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_func, arg, d)
 
 def kw_fromList(arg = None ,l = None, indexCallable = False, returnIndex = False, noneValid = False, calledFrom = None):
     """
@@ -1108,17 +1114,17 @@ def kw_fromList(arg = None ,l = None, indexCallable = False, returnIndex = False
         calledFrom | string -- calling function for error reporting
 
     """        
-    _str_funcName = 'kw_fromList'
+    _str_func = 'kw_fromList'
     _res = None
-    if calledFrom: _str_funcName = "{0} calling {1}".format(calledFrom,_str_funcName) 
+    if calledFrom: _str_func = "{0} calling {1}".format(calledFrom,_str_func) 
        
     if arg is None or l is None:
         if noneValid:return False
-        raise ValueError,"{0}: Must have k and l arguments | arg: {1} | l: {2}".format(_str_funcName, arg, l)
+        raise ValueError,"{0}: Must have k and l arguments | arg: {1} | l: {2}".format(_str_func, arg, l)
     
     if not isListArg(l):
         if noneValid:return False        
-        raise ValueError,"{0}: l arg must be a list | l: {1} | type:{2}".format(_str_funcName,l,type(l))
+        raise ValueError,"{0}: l arg must be a list | l: {1} | type:{2}".format(_str_func,l,type(l))
     
     if returnIndex:
         if type(arg) is int:
@@ -1132,7 +1138,7 @@ def kw_fromList(arg = None ,l = None, indexCallable = False, returnIndex = False
             else:_res = o      
         if isStringEquivalent(o,arg):_res = o
     if _res is None and not noneValid:
-        raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_funcName, arg, l)
+        raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_func, arg, l)
     return _res
         
     
