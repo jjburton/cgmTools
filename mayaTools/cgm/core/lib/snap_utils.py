@@ -76,6 +76,7 @@ def go(obj = None, target = None,
         kws['ws']=True
     else:kws['os']=True  
     
+    cgmGeneral.walk_dat(kws)
     
     if position:
         kws_move = copy.copy(kws)
@@ -97,14 +98,27 @@ def go(obj = None, target = None,
     if rotateAxis:
         log.debug("|{0}|...rotateAxis...".format(_str_func))        
         mc.xform(obj,ra = mc.xform(_target, q=True, ra=True, **kws), p=True, **kws)    
-        
-    if rotation:
-        log.debug("|{0}|...rotation...".format(_str_func))
-        rot = mc.xform (_target, q=True, ro=True, **kws)
-        mc.xform(_obj, ro = rot, **kws)
     if rotateOrder:
         log.debug("|{0}|...rotateOrder...".format(_str_func))
         mc.xform(obj,roo = mc.xform(_target, q=True, roo=True), p=True)
+    if rotation:
+        log.debug("|{0}|...rotation...".format(_str_func))
+        _t_ro = ATTR.get_enumValueString(_target,'rotateOrder')
+        _obj_ro = ATTR.get_enumValueString(obj,'rotateOrder')
+        if _t_ro != _obj_ro:
+            #Creating a loc to get our target space rotateOrder into new space
+            log.debug("|{0}|...rotateOrders don't match...".format(_str_func))
+            _loc = mc.spaceLocator(n='tmp_roTranslation')[0]
+            ATTR.set(_loc,'rotateOrder',_t_ro)
+            rot = mc.xform (_target, q=True, ro=True, **kws )   
+            mc.xform(_loc, ro = rot, **kws)
+            mc.xform(_loc, roo = _obj_ro, p=True)
+            rot = mc.xform (_loc, q=True, ro=True, **kws )   
+            mc.delete(_loc)
+        else:
+            rot = mc.xform (_target, q=True, ro=True, **kws )
+        mc.xform(_obj, ro = rot, **kws)
+    
     if scalePivot:
         log.debug("|{0}|...scalePivot...".format(_str_func))
         mc.xform(obj,sp = mc.xform(_target, q=True, sp=True,**kws), p=True, **kws)

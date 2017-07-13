@@ -316,7 +316,7 @@ def createWrapControlShape(targetObjects,
                 #Snap.go(mi_endLoc.mNode,mi_rootLoc.mNode,move=False,aim=True,aimVector=aimVector,upVector=objectUpVector)
                 #Snap.go(mi_endLoc.mNode,mi_rootLoc.mNode,move=False,orient=True)	
                 SNAP.go(mi_endLoc.mNode,mi_rootLoc.mNode,position=False,rotation=True)		    
-                
+
                 mi_endLoc.doGroup()
 
                 if i == len(targetObjects[1:])-1:
@@ -440,11 +440,11 @@ def createWrapControlShape(targetObjects,
         mi_rootLoc.__setattr__('t%s'%latheAxis,-discOffset)
 
     log.debug("|{0}| >> Rootcast...".format(_str_funcName))                    
-    
+
     d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,curveDegree=curveDegree,minRotate=minRotate,maxRotate=maxRotate,latheAxis=latheAxis,midMeshCast=midMeshCast,aimAxis=aimAxis,posOffset = posOffset,points = points,vectorOffset=vectorOffset,returnDict=True,closedCurve = closedCurve, maxDistance = maxDistance, closestInRange=closestInRange, rotateBank=rotateBank, l_specifiedRotates = l_specifiedRotates,axisToCheck = axisToCheck)  
     #d_rootCastInfo = createMeshSliceCurve(targetGeo,mi_rootLoc,**kws)  
     log.debug("|{0}| >> Rootcast done".format(_str_funcName) + cgmGEN._str_subLine)                    
-    
+
     if extendMode == 'disc':
         l_sliceReturns.insert(1,d_rootCastInfo)	
     else:
@@ -457,9 +457,9 @@ def createWrapControlShape(targetObjects,
         log.debug("hitReturns: %s"%d_rootCastInfo['hitReturns'])
         mi_crv = cgmMeta.cgmObject( d_rootCastInfo['curve'] )
 
-        #Pos data
-        pos = distance.returnWorldSpacePosition("%s"%distance.returnMidU(mi_crv.mNode))
-        dist = distance.returnDistanceBetweenPoints(i_ball.getPosition(),pos)
+        #pos = distance.returnWorldSpacePosition("%s"%distance.returnMidU(mi_crv.mNode))
+        pos = d_rootCastInfo['processedHits'][0]
+        dist = distance.returnDistanceBetweenPoints(i_ball.getPosition(),pos) * 2
         if '-' in aimAxis:
             distM = -dist
         else:
@@ -471,17 +471,18 @@ def createWrapControlShape(targetObjects,
         i_ball.__setattr__('t%s'%single_aimAxis,distM)
         i_ball.parent = False
         mc.delete(pBuffer)
+        
         uPos = distance.returnClosestUPosition(i_ball.mNode,mi_crv.mNode)
 
-        Snap.go(i_ball.mNode,mi_rootLoc.mNode,move = False, orient = False, aim=True, aimVector=[0,0,-1])
-
-        if posOffset:
-            mc.move(posOffset[0]*3,posOffset[1]*3,posOffset[2]*3, [i_ball.mNode], r = True, rpr = True, os = True, wd = True)
+        SNAP.aim(i_ball.mNode,mi_rootLoc.mNode,aimAxis='z-')
+        #if posOffset:
+                #mc.move(posOffset[0]*3,posOffset[1]*3,posOffset[2]*3, [i_ball.mNode], r = True, rpr = True, os = True, wd = True)
         #Make the curve between the two 
         mi_traceCrv = cgmMeta.cgmObject( mc.curve(degree = 1, ep = [uPos,i_ball.getPosition()]) )
 
         #Combine
         il_curvesToCombine.extend([i_ball,mi_traceCrv])
+
 
     mi_root = cgmMeta.cgmObject(d_rootCastInfo['curve'])#instance curve
     il_curvesToCombine.append(mi_root)    
@@ -490,7 +491,7 @@ def createWrapControlShape(targetObjects,
 
     l_curvesToCombine = [mi_obj.mNode for mi_obj in il_curvesToCombine]#Build our combine list before adding connectors         
     log.debug("|{0}| >> processed: {1}".format(_str_funcName,d_rootCastInfo['processedHits']))            
-    
+
     if joinMode and extendMode not in ['loliwrap','endCap'] and len(l_sliceReturns)>1:
         if joinHits:
             keys = d_rootCastInfo['processedHits'].keys()
@@ -603,7 +604,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     d_processedHitFromValue = {}
     d_rawHitFromValue = {}
     pos_base = mi_obj.p_position
-    
+
     for axis in ['x','y','z']:
         if axis in latheAxis:latheAxis = axis
 
@@ -624,11 +625,11 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
         if vectorOffset is None:
             if posOffset is not None:
                 vectorOffset = max(posOffset)
-                
+
     if posOffset is not None:
         if MATH.is_vector_equivalent(posOffset,[0,0,0]):
             posOffset = None
-            
+
     #midMeshCast
     if midMeshCast:
         axisToCheck = axisToCheck or [a for a in ['x','y','z'] if a != latheAxis]
@@ -671,7 +672,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
             #add a point if we don't have a full loop
             #points = points+1	
             pass
-        
+
         rotateBaseValue = len(range(int(rotateFloor),int(rotateCeiling)))/points
         #rotateBaseValue = (rotateCeiling - rotateFloor)/points
 
@@ -683,7 +684,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 
     if not l_rotateSettings:raise ValueError, "Should have had some l_rotateSettings by now"
     log.debug("rotateSettings: %s"%l_rotateSettings)
-    
+
 
     try:#>>> Pew, pew !
         #================================================================
@@ -800,7 +801,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 #l_pos2 = l_pos + [l_pos[0]]
                 l_pos.extend(l_pos[:curveDegree])
                 #_cvs.extend(_cvs[:_degree])
-                
+
                 #knot_len = len(l_pos2)+curveDegree-1
                 knot_len = len(l_pos)+curveDegree-1		                
                 #curveBuffer = mc.curve (d=curveDegree, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
@@ -808,7 +809,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 for i,ep in enumerate(mc.ls("{0}.ep[*]".format(curveBuffer),flatten=True)):
                     #Second loop to put ep's where we want them. Necessary only because I couldn't get curve create to work right closed
                     POS.set(ep,l_pos[i])
-                    
+
             else:
                 #knot_len = len(l_pos)+curveDegree-1		
                 #curveBuffer = mc.curve (d=curveDegree, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)

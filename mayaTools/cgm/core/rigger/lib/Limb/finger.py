@@ -37,7 +37,7 @@ from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 reload(NodeF)
-
+import cgm.core.lib.snap_utils as SNAP
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
@@ -290,7 +290,7 @@ def build_shapes(goInstance = None):
             l_influenceChains = []
             ml_influenceChains = []
             for i in range(50):
-                buffer = self._go._i_rigNull.msgList_getMessage('segment%s_InfluenceJoints'%i)
+                buffer = self._go._i_rigNull.msgList_get('segment%s_InfluenceJoints'%i,asMeta = False)
                 if buffer:
                     l_influenceChains.append(buffer)
                     ml_influenceChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
@@ -352,13 +352,13 @@ def build_controls(goInstance = None):
 	    for shape in __d_controlShapes__['shape']:
 		self._go.__dict__['mi_%s'%shape] = cgmMeta.validateObjArg(self._go._i_rigNull.msgList_getMessage('shape_%s'%shape),noneValid=False)
 		log.info(self._go.__dict__['mi_%s'%shape] )"""
-            ml_controlsFK = cgmMeta.validateObjListArg(self._go._i_rigNull.msgList_getMessage('shape_controlsFK'),cgmMeta.cgmObject)
-            ml_segmentIK = cgmMeta.validateObjListArg(self._go._i_rigNull.msgList_getMessage('shape_segmentIK'),cgmMeta.cgmObject)
+            ml_controlsFK = cgmMeta.validateObjListArg(self._go._i_rigNull.msgList_get('shape_controlsFK',asMeta=False),cgmMeta.cgmObject)
+            ml_segmentIK = cgmMeta.validateObjListArg(self._go._i_rigNull.msgList_get('shape_segmentIK',asMeta=False),cgmMeta.cgmObject)
             #self._go._i_rigNull.msgList_connect(self._go._md_controlShapes['segmentIK'],'shape_segmentIK_%s'%i,"rigNull")		
             l_segmentIKChains = []
             ml_segmentIKChains = []
             for i in range(50):
-                buffer = self._go._i_rigNull.msgList_getMessage('shape_segmentIK_%s'%i)
+                buffer = self._go._i_rigNull.msgList_get('shape_segmentIK_%s'%i,asMeta=False)
                 if buffer:
                     l_segmentIKChains.append(buffer)
                     ml_segmentIKChains.append(cgmMeta.validateObjListArg(buffer,cgmMeta.cgmObject))
@@ -366,8 +366,8 @@ def build_controls(goInstance = None):
                     break  
 
             #mi_midIK = cgmMeta.validateObjArg(self._go._i_rigNull.getMessage('shape_midIK'),cgmMeta.cgmObject)
-            mi_settings= cgmMeta.validateObjArg(self._go._i_rigNull.getMessage('shape_settings'),cgmMeta.cgmObject)
-            ml_fkJoints = cgmMeta.validateObjListArg(self._go._i_rigNull.msgList_getMessage('fkJoints'),cgmMeta.cgmObject)
+            mi_settings= cgmMeta.validateObjArg(self._go._i_rigNull.get('shape_settings',asMeta=False),cgmMeta.cgmObject)
+            ml_fkJoints = cgmMeta.validateObjListArg(self._go._i_rigNull.msgList_get('fkJoints',asMeta=False),cgmMeta.cgmObject)
             mi_cap = cgmMeta.validateObjArg(self._go._i_rigNull.getMessage('shape_moduleCap'),cgmMeta.cgmObject)
 
             log.info("mi_settings: '%s'"%mi_settings.getShortName())
@@ -638,7 +638,7 @@ def build_FKIK(goInstance = None):
                 mi_rpHandleNF = d_ankleNoFlipReturn['mi_rpHandle']
 
                 #No Flip RP handle
-                Snap.go(mi_rpHandleNF,i_tmpLoc.mNode,True)#Snape to hand control, then move it out...
+                SNAP.go(mi_rpHandleNF,i_tmpLoc.mNode,True,False)#Snape to hand control, then move it out...
                 i_tmpLoc.delete()
 
                 mi_rpHandleNF.doCopyNameTagsFromObject(self._go._mi_module.mNode, ignore = ['cgmName','cgmType'])

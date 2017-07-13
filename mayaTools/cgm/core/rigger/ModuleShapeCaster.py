@@ -11,7 +11,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -31,6 +31,7 @@ from cgm.core.lib import rigging_utils as coreRigging
 from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.lib import meta_Utils as metaUtils
 from cgm.core.lib import shapeCaster as ShapeCast
+import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.snap_utils as SNAP
 reload(Snap)
 import cgm.core.lib.transform_utils as TRANS
@@ -729,7 +730,7 @@ class go(object):
                                 'minRotate':-70,
                                 'maxRotate':70,                                
                                 'latheAxis':'z',
-                                'subSize':self._baseModuleDistance * 2,
+                                #'subSize':self._baseModuleDistance * 2,
                                 'closedCurve':False,
                                 'rootOffset':[],
                                 'aimAxis':'y+'},
@@ -762,13 +763,13 @@ class go(object):
             if self._direction == 'left':
                 self.aimAxis = 'x+'
             else:self.aimAxis = 'x-'
+            
         elif 'arm' in self.str_partType:
             d_kws = {'default':{'closedCurve':True,
                                 'latheAxis':'z',
-                                'l_specifiedRotates':[],
                                 'rootOffset':[],
                                 'rootRotate':None},
-                     0:{}}	
+                     0:{'rootOffset':[0,0,self.f_skinOffset*8]}}	
             #d_kws[0]['l_specifiedRotates'] = [-90,-60,-30,0,30,60,90]
             #d_kws[0]['closedCurve'] = False
 
@@ -794,7 +795,7 @@ class go(object):
         for i,obj in enumerate(l_toDo):			
             #make ball
             self._pushKWsDict(d_kws,i)
-            log.debug("On obj: {0}".format(obj))
+            log.info("On obj: {0}".format(NAMES.short(obj)))
             
             #Few more special cases
             """if cgmMeta.cgmObject(obj).getAttr('cgmName') in ['ankle']:
@@ -805,6 +806,7 @@ class go(object):
             returnBuffer = ShapeCast.createWrapControlShape(obj,self._targetMesh,
                                                             curveDegree=self.curveDegree,
                                                             insetMult = .2,
+                                                            points = 9,
                                                             closedCurve= self.closedCurve,
                                                             aimAxis = self.aimAxis,
                                                             latheAxis = self.latheAxis,
@@ -1396,7 +1398,7 @@ class go(object):
             grp = mi_rootLoc.doGroup(True)
             mi_rootLoc.__setattr__("t%s"%self.str_jointOrientation[1],dist_move*_moveMultiplier)
 
-            SNAP.go(i_gear.mNode,mi_rootLoc.mNode,move = True, orient = True)	    
+            SNAP.go(i_gear.mNode,mi_rootLoc.mNode,True,True)	    
             mc.delete(mi_rootLoc.parent)
             mi_sizeLoc.delete()	    
 

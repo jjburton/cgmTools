@@ -137,7 +137,7 @@ class Test_cgmObject(unittest.TestCase):
         #>> Group ===============================================================================
         _pos = TRANS.position_get(pCube2)
         #TRANS.group_me(pCube2,True,True)
-        pCube2.doGroup(True)
+        pCube2.doGroup(True,asMeta=True)
         
         self.assertEqual(MATH.is_vector_equivalent(_pos, TRANS.position_get(pCube2)),
                          True)
@@ -178,7 +178,7 @@ class Test_cgmObject(unittest.TestCase):
         
         #...scale -----------------------------------------------------------------------------
         nCube.resetAttrs('scale')
-        mGroup = nCube.doGroup(True,True)
+        mGroup = nCube.doGroup(True,True,asMeta=True)
         mGroup.scale = 2,2,2
         nCube.scale = 2,2,2
         
@@ -215,7 +215,7 @@ class Test_cgmObject(unittest.TestCase):
         #>> Contraints ===================================================================
         pCube2.p_parent = False
         _contraint = mc.parentConstraint([pCube.mNode,nCube.mNode], pCube2.mNode, maintainOffset = True)
-        _mConstraint = cgmMeta.cgmNode(_contraint[0])
+        _mConstraint = cgmMeta.cgmObject(_contraint[0])
         
         self.assertEqual(pCube2.getConstraintsByDrivingObject(pCube.mNode,True),
                          [_mConstraint])

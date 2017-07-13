@@ -861,7 +861,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
                 i_upEnd.addAttr('cgmType','midEndAimUp',attrType='string',lock=True)
                 i_upEnd.doName()                
             except Exception,error:
-                raise StandardError,"decomposeMatrix | error: %s"%(_str_funcName,error)                   
+                raise StandardError,"decomposeMatrix | error: %s"%(error)                   
 
             cBuffer = mc.aimConstraint(i_baseParent.mNode,
                                        i_aimStartNull.mNode,
