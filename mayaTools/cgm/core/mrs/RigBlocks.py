@@ -1549,28 +1549,31 @@ class factory(object):
         _keys.sort()
         #for a,t in self._d_attrsToVerify.iteritems():
         for a in _keys:
-            v = self._d_attrToVerifyDefaults.get(a,None)
-            t = self._d_attrsToVerify[a]
-            
-            log.debug("|{0}| Setting attr >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
-            
-            if ':' in t:
-                if forceReset:
-                    _mBlock.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
+            try:
+                v = self._d_attrToVerifyDefaults.get(a,None)
+                t = self._d_attrsToVerify[a]
+                
+                log.debug("|{0}| Add attr >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
+                
+                if ':' in t:
+                    if forceReset:
+                        _mBlock.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
+                    else:
+                        _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
+                elif t == 'stringDatList':
+                    mc.select(cl=True)
+                    ATTR.datList_connect(_mBlock.mNode, a, v, mode='string')
                 else:
-                    _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
-            elif t == 'stringDatList':
-                mc.select(cl=True)
-                ATTR.datList_connect(_mBlock.mNode, a, v, mode='string')
-            else:
-                if t == 'string':
-                    _l = True
-                else:_l = False
-                if forceReset:
-                    _mBlock.addAttr(a, v, attrType = t,lock=_l, keyable = False)                                
-                else:
-                    _mBlock.addAttr(a,initialValue = v, attrType = t,lock=_l, keyable = False)            
-
+                    if t == 'string':
+                        _l = True
+                    else:_l = False
+                    if forceReset:
+                        _mBlock.addAttr(a, v, attrType = t,lock=_l, keyable = False)                                
+                    else:
+                        _mBlock.addAttr(a,initialValue = v, attrType = t,lock=_l, keyable = False)            
+            except Exception,err:
+                log.error("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
+                raise Exception,err
         _mBlock.addAttr('blockType', value = blockType,lock=True)	
         #_mBlock.blockState = 'base'
         

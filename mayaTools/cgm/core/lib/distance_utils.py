@@ -598,6 +598,24 @@ def get_closest_point_data_from_mesh(targetObj = None, targetPoint = None, mesh 
     mc.delete(_node)
     return _res
 
+def get_normalizedWeightsByDistance(obj,targets,normalizeTo=1.0):
+    _str_func = 'get_normalizedWeightsByDistance'
+    
+    pos_obj = POS.get(VALID.mNodeString(obj))
+    targets = VALID.mNodeStringList(targets)
+    
+    _l_dist = []
+    for t in targets:
+        _l_dist.append(get_distance_between_points(pos_obj,POS.get(t)))
+    vList = MATHUTILS.normalizeListToSum(_l_dist,normalizeTo)
+    log.debug("|{0}| >> targets: {1} ".format(_str_func,targets))                     
+    log.debug("|{0}| >> raw: {1} ".format(_str_func,_l_dist))             
+    log.debug("|{0}| >> normalize: {1} ".format(_str_func,vList))  
+    vList = [normalizeTo - v for v in vList]
+    
+    return vList
+    
+
 def get_normalizedWeightsByDistanceToObj(obj,targets):
     """
     Returns a normalized weight set based on distance from object to targets.
@@ -630,7 +648,6 @@ def get_normalizedWeightsByDistanceToObj(obj,targets):
         distanceObjDict[buffer] = t
         objDistanceDict[t] = buffer
         
-    distances = LIST.get_noDuplicates(distances)
     normalizedDistances = MATHUTILS.normalizeListToSum(distances) # get normalized distances to 1
     
     #normalizedSorted = copy.copy(normalizedDistances)

@@ -549,6 +549,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         else:_go = True
             
         if _go:
+            UICHUNKS.uiSection_arrange(parent,self._len_sel, self._b_sel_pair)
             #>>>Shape ==============================================================================================
             UICHUNKS.uiSection_shapes(parent,self._len_sel,self._b_sel_pair)
             """uiShape = mc.menuItem(parent = parent, l='Shape', subMenu=True)

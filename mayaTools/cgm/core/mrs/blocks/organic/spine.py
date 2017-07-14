@@ -31,6 +31,13 @@ from cgm.core.lib import snap_utils as SNAP
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.classes.NodeFactory as NODEFACTORY
 import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.distance_utils as DIST
+import cgm.core.lib.position_utils as POS
+import cgm.core.lib.math_utils as MATH
+import cgm.core.lib.constraint_utils as CONSTRAINT
+import cgm.core.lib.locator_utils as LOC
+for m in DIST,POS,MATH,CONSTRAINT,LOC:
+    reload(m)
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 
@@ -50,7 +57,9 @@ l_attrsStandard = ['side',
                    'hasRootJoint',
                    'buildIK',
                    'loftShape',
+                   'loftSplit',
                    'loftSides',
+                   'loftDegree',
                    'numberControls',
                    'baseNames',
                    'numberJoints',
@@ -65,9 +74,11 @@ d_defaultSettings = {'version':__version__,
                      'buildIK':True,
                      'numberControls':3,
                      'loftSides':3,
+                     'loftSplit':4,
+                     'loftDegree':'cubic',
                      'loftShape':'square',
                      'numberJoints':4,
-                     'baseNames':['pelvis','spine','sternum','shoulders'],#...our datList values
+                     'baseNames':['pelvis','spine','shoulders'],#...our datList values
                      'proxyType':1}
 
 #=============================================================================================================
@@ -316,39 +327,159 @@ def template(self):
 #>> Prerig
 #=============================================================================================================
 def prerig(self):
+    _str_func = 'prerig'
+    
+    _short = self.p_nameShort
+    _size = self.baseSize
+    _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
+    
+    _side = 'center'
+    if self.getMayaAttr('side'):
+        _side = self.getEnumValueString('side')
+    
+    log.info("|{0}| >> [{1}] | baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
+        
     self._factory.module_verify()  
     
+    if self.numberControls<3:
+        raise ValueError,"You really need more than 3 handles for a spine. Perhaps another block type."
+    
+    #Create preRig Null  ==================================================================================
+    if not self.getMessage('prerigNull'):
+        str_prerigNull = CORERIG.create_at(self.mNode)
+        mPrerigNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
+        mPrerigNull.connectParentNode(self, 'rigBlock','prerigNull') 
+        mPrerigNull.doStore('cgmName', self.mNode)
+        mPrerigNull.doStore('cgmType','prerigNull')
+        mPrerigNull.doName()
+        mPrerigNull.p_parent = self
+        mPrerigNull.setAttrFlags()
+    else:
+        mPrerigNull = self.prerigNull    
+    
+    
     ml_templateHandles = self.msgList_get('templateHandles')
+    
+    
     #>>New handles ==================================================================================================
+    mHandleFactory = self.asHandleFactory(self.mNode)   
+    _vec_root_up = self.getAxisVector('z-')
+    
     #Get positions
-    import cgm.core.lib.distance_utils as DIST
-    import cgm.core.lib.position_utils as POS
-    import cgm.core.lib.math_utils as MATH
     #DIST.get_pos_by_axis_dist(obj, axis)
-    mEndHandle = self.ml_templateHandles[-1]
-    _vec = MATH.get_vector_of_two_points(self.mNode, mEndHandle.mNode)
-    _offsetDist = DIST.get_distance_between_points(self.p_position, mEndHandle.p_position) / self.numberControls
-    _startPos = self.p_position
-    _l_pos = [ DIST.get_pos_by_vec_dist(_startPos, _vic, (_offsetDist * i)) for i in range(self.numberControls)]
+    mEndHandle = ml_templateHandles[-1]
+    _pos_me = self.p_position
+    _pos_end = mEndHandle.p_position
     
+    _vec = MATH.get_vector_of_two_points(_pos_me, _pos_end)
+    _offsetDist = DIST.get_distance_between_points(_pos_me,_pos_end) / self.numberControls
+    _l_pos = [ DIST.get_pos_by_vec_dist(_pos_me, _vec, (_offsetDist * i)) for i in range(self.numberControls)] + [_pos_end]
     
-    #>>Joint placers ==================================================================================================
+    ml_handles = []
+    for i,p in enumerate(_l_pos[1:-1]):
+        mHandle = mHandleFactory.buildBaseShape(self.getEnumValueString('loftShape'), _size, shapeDirection = 'y+')
+        ml_handles.append(mHandle)
+        mHandle.p_position = p
+        SNAP.aim_atPoint(mHandle.mNode,_l_pos[i+1], 'y+','z-', vectorUp = _vec_root_up)
+        
+        self.copyAttrTo(_baseNameAttrs[1],mHandle.mNode,'cgmName',driven='target')
+        mHandle.doStore('cgmType','blockHandle')
+        mHandle.doStore('cgmIterator',i)
+        mHandle.doName()
+        
+        mHandle.p_parent = mPrerigNull
+        mGroup = mHandle.doGroup(True,True,asMeta=True)
+        _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,[self.mNode,mEndHandle.mNode])
+        _point = mc.pointConstraint([self.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
+        _scale = mc.scaleConstraint([self.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
+        
+        for c in _point,_scale:
+            CONSTRAINT.set_weightsByDistance(c[0],_vList)
+        
+        #Convert to loft curve setup ----------------------------------------------------
+        mHandleFactory = self.asHandleFactory(mHandle.mNode)
+        
+        mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
+        
+        mHandleFactory.rebuildAsLoftTarget(self.getEnumValueString('loftShape'), _size, shapeDirection = 'y+')
+    
+        #mTopCurve.setAttrFlags(['rotate','tx','tz'])
+        #mc.transformLimits(mTopCurve.mNode,  tz = [-.25,.25], etz = [1,1], ty = [.1,1], ety = [1,0])
+        #mTopLoftCurve = mTopCurve.loftCurve
+        
+        CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
+        #LOC.create(position = p)
+        
+    ml_handles.insert(0,self)
+    ml_handles.append(mEndHandle)
     
     #>>Loft Mesh ==================================================================================================
+    targets = [mObj.loftCurve.mNode for mObj in ml_handles]
     
+    _res_body = mc.loft(targets, o = True, d = 3, po = 1 )
+    mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+    _inputs = mc.listHistory(mLoft.mNode,pruneDagObjects=True)
+    _tessellate = _inputs[0]
+    _loft = _inputs[1]
+    log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
+    _d = {'format':2,#General
+          'polygonType':1,#'quads',
+          'uNumber': 1 + len(ml_handles)}
+    
+    for a,v in _d.iteritems():
+        ATTR.set(_tessellate,a,v)    
+        
+    mLoft.overrideEnabled = 1
+    mLoft.overrideDisplayType = 2
+    
+    mLoft.p_parent = mPrerigNull
+    mLoft.resetAttrs()
+    
+    mLoft.doStore('cgmName',self.mNode)
+    mLoft.doStore('cgmType','shapeApprox')
+    mLoft.doName()
+    
+    #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
+    #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
 
+    mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
+    
+    #Color our stuff...
+    CORERIG.colorControl(mLoft.mNode,_side,'main',transparent = False)
+    
+    mLoft.inheritsTransform = 0
+    for s in mLoft.getShapes(asMeta=True):
+        s.overrideDisplayType = 2    
+        
+    #...wire some controls
+    _arg = "{0}.out_vSplit = {1} + {2} + 1".format(targets[0],
+                                                  self.getMayaAttrString('numberControls','short'),
+                                                  self.getMayaAttrString('loftSplit'))
+
+    NODEFACTORY.argsToNodes(_arg).doBuild()
+    #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
+    _arg = "{0}.out_degree = if {1} == 0:1 else 3".format(targets[0],
+                                                          self.getMayaAttrString('loftDegree','short'))
+  
+    NODEFACTORY.argsToNodes(_arg).doBuild()    
+
+    ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.uNumber".format(_tessellate))
+    ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate)) 
+    
+    ATTR.connect("{0}.out_degree".format(targets[0]), "{0}.degree".format(_loft))    
+    #ATTR.copy_to(_loft,'degree',self.mNode,'loftDegree',driven = 'source')
+    #>>Joint placers ==================================================================================================
+    
 def prerigDelete(self):
-    try:self.moduleTarget.delete()
-    except Exception,err:
-        for a in err:
-            print a
+    self.moduleTarget.delete()
+    self.prerigNull.delete()
     return True   
 
 def is_prerig(self):
     _str_func = 'is_prerig'
     _l_missing = []
 
-    _d_links = {self : ['moduleTarget']}
+    _d_links = {self : ['moduleTarget','prerigNull']}
 
     for plug,l_links in _d_links.iteritems():
         for l in l_links:

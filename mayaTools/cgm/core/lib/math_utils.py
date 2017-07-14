@@ -26,6 +26,8 @@ import euclid as EUCLID
 # From cgm ==============================================================
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
+
+#DO NOT IMPORT: DIST
 '''
 Lerp and Slerp functions translated from taken from https://keithmaggio.wordpress.com/2011/02/15/math-magician-lerp-slerp-and-nlerp/
 '''

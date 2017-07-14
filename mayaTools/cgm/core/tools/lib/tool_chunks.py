@@ -44,7 +44,7 @@ from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
-
+import cgm.core.lib.arrange_utils as ARRANGE
 from cgm.lib.ml import (ml_breakdownDragger,
                         ml_resetChannels,
                         ml_deleteKey,
@@ -83,6 +83,17 @@ def uiSection_selection(parent = None):
     
     return uiSelect
 
+def uiSection_arrange(parent = None, selection = None, pairSelected = True):
+    #>>Arrange ----------------------------------------------------------------------------------------
+    _arrange= mc.menuItem(parent=parent,subMenu = True,
+                          l = 'Arrange',
+                          ann = "Ordered layout of selected items")    
+    mc.menuItem(parent=_arrange,
+                l = 'Along line',
+                c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),                                               
+                ann = "Layout on line from first to last item")    
+    
+    
 
 def uiSection_distance(parent = None, selection = None, pairSelected = True):
     _p = mc.menuItem(parent=parent, subMenu = True,tearOff = True,
@@ -802,6 +813,15 @@ def uiSection_snap(parent, selection = None ):
                 #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
                 c = cgmGen.Callback(LOCINATOR.update_obj,**{'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                 ann = "Update the buffer (if exists)")    
+    
+    #>>Arrange ----------------------------------------------------------------------------------------
+    _arrange= mc.menuItem(parent=parent,subMenu = True,
+                          l = 'Arrange',
+                          ann = "Ordered layout of selected items")    
+    mc.menuItem(parent=_arrange,
+                l = 'Along line',
+                c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),                                               
+                ann = "Layout on line from first to last item")
     
     #>>Options ----------------------------------------------------------------------------------------
     mc.menuItem(parent=parent,

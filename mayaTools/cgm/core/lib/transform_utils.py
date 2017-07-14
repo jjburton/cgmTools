@@ -33,7 +33,6 @@ import cgm.core.lib.distance_utils as DIST
 from cgm.core.lib import shared_data as SHARED
 #from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
-#from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import name_utils as NAME
 from cgm.core.lib import snap_utils as SNAP

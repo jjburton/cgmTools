@@ -32,7 +32,9 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import list_utils as LISTS
 from cgm.core.lib import name_utils as NAMES
-
+import cgm.core.lib.math_utils as MATH
+import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.distance_utils as DIST
 #returnObjectConstraints
 #returnObjectDrivenConstraints
 #returnConstraintTargets
@@ -142,6 +144,30 @@ def get_targetWeightsDict(node=None):
 
     return _d
 
+def get_targetWeightsAttrs(node=None):
+    """
+    Get the constraints a given node drives
+    
+    :parameters:
+        node(str): node to query
+
+    :returns
+        list of attrs(list)
+    """   
+    _str_func = 'get_targetWeightsDict'
+    
+    node = VALID.mNodeString(node)
+    
+    _type = VALID.get_mayaType(node)
+    _d = {}
+    _l = []
+
+    _call = _d_type_to_call.get(_type,False)
+    if not _call:
+        raise ValueError,"|{0}| >> {1} not a known type of constraint. node: {2}".format(_str_func,_type,node)
+
+    return _call(node,q=True, weightAliasList=True)
+
 def get_constraintsByDrivingObject(node=None, driver = None, fullPath = False):
     """
     Get a list of constraints driving a node by the drivers of those constraints.
@@ -176,6 +202,59 @@ def get_constraintsByDrivingObject(node=None, driver = None, fullPath = False):
                 _res.append(c)
     if _res and not fullPath:
         return [NAMES.short(o) for o in _res]
-    return _res    
+    return _res   
+
+
+def get_driven(constraint = None):
+    """    
+    Get driven transforms from a given transform
     
+    :parameters:
+        constraint(str): node to query
+        
+    :returns
+        driven transform(str)
+    """       
+    _str_func = 'get_driven'
+    return ATTR.get_driver('{0}.constraintParentInverseMatrix'.format(constraint),getNode=True) or None
+    
+
+def set_weightsByDistance(constraint=None,vList = None):
+    """    
+    :parameters:
+        node(str): node to query
+
+    :returns
+        list of constraints(list)
+    """   
+    _str_func = 'set_weightsByDistance'
+    
+    log.debug("|{0}| >> constraint: {1} ".format(_str_func,constraint))             
+    
+    #if vList:
+        #raise NotImplementedError,'Not yet'
+        
+    _attrs = get_targetWeightsAttrs(constraint)
+        
+    if not vList:
+        pos_obj = TRANS.position_get(get_driven(constraint))
+        targets = get_targets(constraint)
+        _l_dist = []
+        for t in targets:
+            _l_dist.append(DIST.get_distance_between_points(pos_obj,TRANS.position_get(t)))
+        vList = MATH.normalizeList(_l_dist)
+        log.debug("|{0}| >> targets: {1} ".format(_str_func,targets))                     
+        log.debug("|{0}| >> raw: {1} ".format(_str_func,_l_dist))             
+    log.debug("|{0}| >> normalize: {1} ".format(_str_func,vList))             
+    log.debug("|{0}| >> attrs: {1} ".format(_str_func,_attrs))             
+    
+    if len(_attrs) != len(vList):
+        raise ValueError,"Len of attrs and valueList do not match: {0} | {1}".format(len(_attrs),len(vList))
+
+    for i,v in enumerate(vList):
+        ATTR.set(constraint,_attrs[i],v)
+
+    return vList   
+
+
  
