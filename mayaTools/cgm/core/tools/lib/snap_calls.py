@@ -64,7 +64,9 @@ def snap_action(objects = None, snapMode = 'point',selectionMode = 'eachToLast')
     """
     """
     _str_func = 'snap_action'
-    
+    if objects is None:
+        objects = mc.ls(sl=True)
+        
     if snapMode == 'aim':
         aim_axis = SHARED._l_axis_by_string[var_objDefaultAimAxis.value]
         up_axis = SHARED._l_axis_by_string[var_objDefaultUpAxis.value]
@@ -79,7 +81,7 @@ def snap_action(objects = None, snapMode = 'point',selectionMode = 'eachToLast')
         kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,'scalePivot' : False,
                'pivot' : 'rp', 'space' : 'w', 'mode' : 'xform'}
         
-        if snapMode == 'point':
+        if snapMode in ['point','closestPoint']:
             kws['position'] = True
         elif snapMode == 'orient':
             kws['rotation'] = True
@@ -93,13 +95,16 @@ def snap_action(objects = None, snapMode = 'point',selectionMode = 'eachToLast')
         
         _pivotMode = var_snapPivotMode.value
         
-        if not _pivotMode:pass#0 handled by default
-        elif _pivotMode == 1:
-            kws['pivot'] = 'sp'
-        elif _pivotMode == 2:
-            kws['pivot'] = 'boundingBox'
+        if snapMode == 'closestPoint':
+            kws['pivot'] = 'closestPoint'
         else:
-            raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)        
+            if not _pivotMode:pass#0 handled by default
+            elif _pivotMode == 1:
+                kws['pivot'] = 'sp'
+            elif _pivotMode == 2:
+                kws['pivot'] = 'boundingBox'
+            else:
+                raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)        
     
         MMCONTEXT.func_process(SNAP.go, objects ,selectionMode, 'Snap', **kws)
     

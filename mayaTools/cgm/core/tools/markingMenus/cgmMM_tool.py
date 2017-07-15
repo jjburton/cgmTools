@@ -1604,11 +1604,20 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
     
         #---------------------------------------------------------------------------
     
-        mc.menuItem(parent=_r,
-                        l = 'Point',
-                        en = self._b_sel_pair,
-                        c = lambda *a:snap_action(self,'point'),
-                        rp = 'NW')		            
+        _pnt = mc.menuItem(parent=_r,subMenu = True,
+                           l = 'Point',
+                           rp = 'NW')	
+        mc.menuItem(parent=_pnt,
+                    l = 'Object',
+                    en = self._b_sel_pair,
+                    c = lambda *a:snap_action(self,'point'),
+                    rp = 'NW')	        
+        mc.menuItem(parent=_pnt,
+                    l = 'Closest on Target',
+                    en = self._b_sel_pair,
+                    c = lambda *a:snap_action(self,'closestPoint'),
+                    rp = 'W')	
+        
         mc.menuItem(parent=_r,
                         l = 'Parent',
                         en = self._b_sel_pair,                        
@@ -1842,7 +1851,7 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
         kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,'scalePivot' : False,
                'pivot' : 'rp', 'space' : 'w', 'mode' : 'xform'}
         
-        if snapMode == 'point':
+        if snapMode in ['point','closestPoint']:
             kws['position'] = True
         elif snapMode == 'orient':
             kws['rotation'] = True
@@ -1856,13 +1865,16 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
         
         _pivotMode = self.var_snapPivotMode.value
         
-        if not _pivotMode:pass#0 handled by default
-        elif _pivotMode == 1:
-            kws['pivot'] = 'sp'
-        elif _pivotMode == 2:
-            kws['pivot'] = 'boundingBox'
+        if snapMode == 'closestPoint':
+            kws['pivot'] = 'closestPoint'
         else:
-            raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)        
+            if not _pivotMode:pass#0 handled by default
+            elif _pivotMode == 1:
+                kws['pivot'] = 'sp'
+            elif _pivotMode == 2:
+                kws['pivot'] = 'boundingBox'
+            else:
+                raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)        
     
         MMCONTEXT.func_process(SNAP.go, self._l_sel ,selectionMode, 'Snap', **kws)
     

@@ -87,6 +87,8 @@ def go(obj = None, target = None,
         if _pivot == 'closestPoint':
             log.debug("|{0}|...closestPoint...".format(_str_func))        
             _targetType = SEARCH.get_mayaType(_target)
+            p = DIST.get_by_dist(_obj,_target,resMode='pointOnSurface')
+            POS.set(_obj,p)
                 
         else:
             log.debug("|{0}|...postion...".format(_str_func))

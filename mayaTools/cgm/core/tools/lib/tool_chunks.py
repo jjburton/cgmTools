@@ -89,10 +89,13 @@ def uiSection_arrange(parent = None, selection = None, pairSelected = True):
                           l = 'Arrange',
                           ann = "Ordered layout of selected items")    
     mc.menuItem(parent=_arrange,
-                l = 'Along line',
+                l = 'Along line - Even',
                 c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),                                               
-                ann = "Layout on line from first to last item")    
-    
+                ann = "Layout on line from first to last item evenly")    
+    mc.menuItem(parent=_arrange,
+                l = 'Along line - Spaced',
+                c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
+                ann = "Layout on line from first to last item closest as possible to original position")   
     
 
 def uiSection_distance(parent = None, selection = None, pairSelected = True):
@@ -744,15 +747,16 @@ def call_optionVar_ui():
 
 def uiSection_snap(parent, selection = None ):
     _str_func = 'uiSection_snap'
-    
-    if selection is None:
-        selection = mc.ls(sl=True)
         
     #>>Snap ----------------------------------------------------------------------------------------
     mc.menuItem(parent=parent,
                 l = 'Point',
                 c = lambda *a:SNAPCALLS.snap_action(selection,'point'),
                 ann = "Point snap in a from:to selection")
+    mc.menuItem(parent=parent,
+                l = 'Point - closest',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'closestPoint'),
+                ann = "Closest point on target")    
 
     mc.menuItem(parent=parent,
                 l = 'Parent',
@@ -819,10 +823,13 @@ def uiSection_snap(parent, selection = None ):
                           l = 'Arrange',
                           ann = "Ordered layout of selected items")    
     mc.menuItem(parent=_arrange,
-                l = 'Along line',
+                l = 'Along line(Even)',
                 c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),                                               
                 ann = "Layout on line from first to last item")
-    
+    mc.menuItem(parent=_arrange,
+                l = 'Along line(Spaced)',
+                c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
+                ann = "Layout on line from first to last item closest as possible to original position")   
     #>>Options ----------------------------------------------------------------------------------------
     mc.menuItem(parent=parent,
                 l = '{Options}',

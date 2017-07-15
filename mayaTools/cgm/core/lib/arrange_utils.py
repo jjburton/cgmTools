@@ -10,6 +10,7 @@ Website : http://www.cgmonks.com
 # From Python =============================================================
 import copy
 import re
+import sys
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -34,6 +35,8 @@ from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.position_utils as POS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.distance_utils as DIST
+import cgm.core.lib.snap_utils as SNAP
+
 #>>> Utilities
 #===================================================================
 
@@ -84,12 +87,15 @@ def layout_byColumn(objList,columns=3,startPos = [0,0,0]):
         bufferY -= sizeY  
         
 
-def alongLine(objList = None):
+def alongLine(objList = None, mode = 'even'):
     """    
     Arrange a list of objects evenly along a vector from first to last
     
     :parameters:
         objList(list): objects to layout
+        mode(string)
+            'even' - evenly distributed along line
+            'spaced' - distribute along line as close as possible to current position
 
     :returns
         list of constraints(list)
@@ -104,14 +110,27 @@ def alongLine(objList = None):
     _pos_start = POS.get(objList[0])
     _pos_end = POS.get(objList[-1])
     
-    _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
-    _offsetDist = DIST.get_distance_between_points(_pos_start,_pos_end) / (_len - 1)
-    _l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(_len)]
-    log.info("|{0}| >> offset: {1} ".format(_str_func,_offsetDist))             
-    log.info("|{0}| >> l_pos: {1} ".format(_str_func,_l_pos))             
-    
-    for i,o in enumerate(objList[1:-1]):
-        POS.set(o,_l_pos[i+1])
+    if mode == 'even':
+        _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
+        _offsetDist = DIST.get_distance_between_points(_pos_start,_pos_end) / (_len - 1)
+        _l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(_len)]
+        log.info("|{0}| >> offset: {1} ".format(_str_func,_offsetDist))   
+        log.info("|{0}| >> l_pos: {1} ".format(_str_func,_l_pos)) 
+        for i,o in enumerate(objList[1:-1]):
+            POS.set(o,_l_pos[i+1])        
+            
+    elif mode == 'spaced':
+        curveBuffer = mc.curve (d=1, ep = [_pos_start,_pos_end])
+        _l_pos = []
+        for i,o in enumerate(objList[1:-1]):
+            #SNAP.go(o,curveBuffer,pivot= 'closestPoint')
+            p = DIST.get_by_dist(o,curveBuffer,resMode='pointOnSurface')
+            POS.set(o,p)
+            _l_pos.append(p)
+        mc.delete(curveBuffer)
+    else:
+        try:raise ValueError,"{0} >> mode not supported: {1}".format(sys._getframe().f_code.co_name, mode)
+        except:raise ValueError,"mode not supported: {0}".format(mode)
         
     return _l_pos
     
