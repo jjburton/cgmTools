@@ -262,31 +262,28 @@ class go(object):
         #Start by casting along template up and out
         _str_funcName = "go._returnBaseThickness(%s)"%self._strShortName
         log.info(">>> %s ..."%(_str_funcName) + "="*75)
-        try:
-            log.info("%s >> self.l_controlSnapObjects = %s"%(_str_funcName,self.l_controlSnapObjects))
-            log.info("%s >> self._targetMesh = %s"%(_str_funcName,self._targetMesh))	    
-            if self.l_controlSnapObjects and self._targetMesh:
-                midIndex = int(len(self.l_controlSnapObjects)/2)
-                log.info("%s >> midIndex = %s"%(_str_funcName,midIndex))	    		
-                try:
-                    d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self.str_jointOrientation[1],self.str_jointOrientation[2]])
-                except Exception,error:
-                    log.info("cast objects: {0}".format(self.l_controlSnapObjects))
-                    log.info("target mesh: {0}".format(self._targetMesh))
-                    log.info("axis: {0}".format(self.str_jointOrientation))
-                    raise Exception,"shapeCast.returnBaseControlSize send | {0}".format(error)
-                #log.info("%s >> d_return = %s"%(_str_funcName,d_return))	    		
-                #l_lengths = [d_return[k] for k in d_return.keys()]
-                #log.info("%s >> l_lengths = %s"%(_str_funcName,l_lengths))	    				
-                #average = (sum(l_lengths))/len(l_lengths)
-                return d_return['average'] *1.25
-            elif self._mi_module.getMessage('helper'):
-                return distance.returnBoundingBoxSizeToAverage(self._mi_module.getMessage('helper'))
-            else:
-                raise Exception, "%s >> Not enough info to figure out"%_str_funcName
+        log.info("%s >> self.l_controlSnapObjects = %s"%(_str_funcName,self.l_controlSnapObjects))
+        log.info("%s >> self._targetMesh = %s"%(_str_funcName,self._targetMesh))	    
+        if self.l_controlSnapObjects and self._targetMesh:
+            midIndex = int(len(self.l_controlSnapObjects)/2)
+            log.info("%s >> midIndex = %s"%(_str_funcName,midIndex))	    		
+            try:
+                d_return = ShapeCast.returnBaseControlSize(self.l_controlSnapObjects[midIndex],self._targetMesh,axis=[self.str_jointOrientation[1],self.str_jointOrientation[2]])
+            except Exception,error:
+                log.info("cast objects: {0}".format(self.l_controlSnapObjects))
+                log.info("target mesh: {0}".format(self._targetMesh))
+                log.info("axis: {0}".format(self.str_jointOrientation))
+                raise Exception,"shapeCast.returnBaseControlSize send | {0}".format(error)
+            #log.info("%s >> d_return = %s"%(_str_funcName,d_return))	    		
+            #l_lengths = [d_return[k] for k in d_return.keys()]
+            #log.info("%s >> l_lengths = %s"%(_str_funcName,l_lengths))	    				
+            #average = (sum(l_lengths))/len(l_lengths)
+            return d_return['average'] *1.25
+        elif self._mi_module.getMessage('helper'):
+            return distance.returnBoundingBoxSizeToAverage(self._mi_module.getMessage('helper'))
+        else:
+            raise Exception, "%s >> Not enough info to figure out"%_str_funcName
 
-        except Exception,error:
-            raise Exception,"%s >> %s"%(_str_funcName,error)  
     def _returnBaseDistance(self):
         if len(self.l_controlSnapObjects) >1:
             return distance.returnDistanceBetweenObjects(self.l_controlSnapObjects[0],self.l_controlSnapObjects[-1])/10
@@ -1008,7 +1005,7 @@ class go(object):
         #mi_castLoc = cgmMeta.dupe(mi_startLoc,asMeta = True)[0]
         mi_castLoc = mi_startLoc.doDuplicate()
         
-        SNAP.go(mi_castLoc,self._targetMesh,True,False,midSurfacePos=True, axisToCheck = [self.str_jointOrientation[2]])
+        Snap.go(mi_castLoc,self._targetMesh,True,False,midSurfacePos=True, axisToCheck = [self.str_jointOrientation[2]])
         
         #Distance stuff    
         d_return = RayCast.findFurthestPointInRangeFromObject(self._targetMesh, mi_endLoc.mNode, axis_distanceDirectionCast, pierceDepth=self.f_skinOffset*2) or {}

@@ -309,7 +309,7 @@ class clickMesh(ContextualPick):
 
         if mesh is None and not self._str_castPlane:                
             log.debug("|clickMesh| >> Using all visible mesh!")
-            for l in mc.ls(type='mesh',visible = True), mc.ls(type='nurbsSurface',visible = True):
+            for l in mc.ls(type='mesh',visible = True, long=True), mc.ls(type='nurbsSurface',long=True, visible = True):
                 for o in l:
                     self.addTargetMesh( o )#             
 

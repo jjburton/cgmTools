@@ -77,7 +77,7 @@ def get_nonintermediate(shape):
     _str_func = "get_nonintermediate"
     
     if not VALID.is_shape(shape):
-        _shapes = mc.listRelatives(shape)
+        _shapes = mc.listRelatives(shape, fullPath = True)
         _l_matches = []
         for s in _shapes:
             if not ATTR.get(s,'intermediateObject'):
@@ -89,7 +89,7 @@ def get_nonintermediate(shape):
     elif ATTR.get(shape,'intermediateObject'):
         _type = VALID.get_mayaType(shape)
         _trans = SEARCH.get_transform(shape)
-        _shapes = mc.listRelatives(_trans,s=True,type=_type)
+        _shapes = mc.listRelatives(_trans,s=True,type=_type, fullPath = True)
         _l_matches = []
         for s in _shapes:
             if not ATTR.get(s,'intermediateObject'):

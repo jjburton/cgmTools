@@ -1462,5 +1462,22 @@ def mirrorCurve(*args, **kws):
 
     return fncWrap(*args, **kws).go()
 
+import pprint
+import cgm.core.lib.math_utils as MATH
+reload(MATH)
+import cgm.core.lib.list_utils as LISTS
 
-
+def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
+    _l_ep_source = mc.ls("{0}.cv[*]".format(base),flatten=True)
+    _l_ep_target = mc.ls("{0}.cv[*]".format(target),flatten = True)
+    
+    if len(_l_ep_source) != len(_l_ep_target):
+        raise ValueError,"Len of source ({0}) != target ({1})".format(len(_l_ep_source),len(_l_ep_target))
+    
+    for i,ep in enumerate(_l_ep_source):
+        _pos = POS.get(ep)
+        _mult = [-1,1,1]
+        POS.set(_l_ep_target[i], MATH.list_mult(_pos,_mult))
+    
+    pprint.pprint(vars())
+    
