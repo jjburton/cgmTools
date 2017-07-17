@@ -414,10 +414,10 @@ def build_controls(*args, **kws):
                 i_hips.parent = i_cog.mNode#parent
                 i_loc = i_hips.doLoc(fastMode = True)
                 mc.move (hipPivotPos[0],hipPivotPos[1],hipPivotPos[2], i_loc.mNode)
-
+                #copyPivot=i_loc.mNode
                 d_buffer =  mControlFactory.registerControl(i_hips,addSpacePivots = 2, addDynParentGroup = True,
                                                             mirrorSide=mi_go._str_mirrorDirection, mirrorAxis="translateX,rotateY,rotateZ",
-                                                            addConstraintGroup=True, makeAimable = True,copyPivot=i_loc.mNode,setRotateOrder=5)
+                                                            addConstraintGroup=True, makeAimable = True,setRotateOrder=5)
                 mi_go._i_rigNull.connectChildNode(i_hips,'hips','rigNull')
                 i_hips = d_buffer['instance']
                 i_loc.delete()
@@ -542,10 +542,15 @@ def build_deformation(*args, **kws):
 
 
                 drivers = ["%s.%s"%(curveSegmentReturn['mi_segmentCurve'].mNode,"fkTwistResult")]
-
+                """
                 for mObj in ml_segmentHandles[-1],mi_handleIK,mi_handleIK.dynParentGroup:
-                    drivers.append("%s.r%s"%(mObj.mNode,mi_go._jointOrientation[0]))
+                    drivers.append("%s.r%s"%(mObj.mNode,mi_go._jointOrientation[0]))"""
 
+                for mObj in [ml_segmentHandles[-1]]:
+                    drivers.append("%s.r%s"%(mObj.mNode,mi_go._jointOrientation[0]))
+                for mObj in mi_handleIK,mi_handleIK.dynParentGroup:
+                    drivers.append("%s.r%s"%(mObj.mNode,mi_go._jointOrientation[1]))
+                                    
                 NodeF.createAverageNode(drivers,
                                         [curveSegmentReturn['mi_segmentCurve'].mNode,"twistEnd"],1)
 
@@ -555,9 +560,14 @@ def build_deformation(*args, **kws):
                 #log.debug("%s.r%s"%(ml_segmentHandles[0].getShortName(),mi_go._jointOrientation[0]))
                 #log.debug("%s.r%s"%(mi_hips.getShortName(),mi_go._jointOrientation[0]))
                 drivers = []
-
+                """
                 for mObj in ml_segmentHandles[0],mi_hips,mi_hips.dynParentGroup:
+                    drivers.append("%s.r%s"%(mObj.mNode,mi_go._jointOrientation[0]))"""
+
+                for mObj in [ml_segmentHandles[0]]:
                     drivers.append("%s.r%s"%(mObj.mNode,mi_go._jointOrientation[0]))
+                for mObj in mi_hips,mi_hips.dynParentGroup:
+                    drivers.append("%s.r%s"%(mObj.mNode,mi_go._jointOrientation[1]))
 
                 #log.debug("driven: %s"%("%s.r%s"%(ml_anchorJoints[1].mNode,mi_go._jointOrientation[0])))
                 NodeF.createAverageNode(drivers,

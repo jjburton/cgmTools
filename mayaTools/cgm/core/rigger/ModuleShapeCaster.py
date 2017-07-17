@@ -278,7 +278,7 @@ class go(object):
             #l_lengths = [d_return[k] for k in d_return.keys()]
             #log.info("%s >> l_lengths = %s"%(_str_funcName,l_lengths))	    				
             #average = (sum(l_lengths))/len(l_lengths)
-            return d_return['average'] *1.25
+            return d_return['average'] #*1.25
         elif self._mi_module.getMessage('helper'):
             return distance.returnBoundingBoxSizeToAverage(self._mi_module.getMessage('helper'))
         else:
@@ -607,6 +607,8 @@ class go(object):
                                                         insetMult = .2,
                                                         closedCurve=True,
                                                         points = 8,
+                                                        closestInRange=False,
+                                                        maxDistance=self._baseModuleThickness,                                                        
                                                         posOffset = [0,0,self.f_skinOffset*3],
                                                         extendMode='')
         mi_crvRound = returnBuffer['instance']
@@ -615,6 +617,8 @@ class go(object):
                                                       latheAxis='x',aimAxis='y+',
                                                       curveDegree=3,
                                                       closedCurve=False,
+                                                      closestInRange=False,
+                                                      maxDistance=self._baseModuleThickness,
                                                       l_specifiedRotates=[0,-30,-60,-90,-120,-150,-180],
                                                       posOffset = [0,0,self.f_skinOffset*3],
                                                       )
@@ -656,7 +660,7 @@ class go(object):
             self.l_specifiedRotates = None
             d_kws = False
             self.posOffset = [0,0,self.f_skinOffset*3]
-            self.maxDistance = self._baseModuleThickness
+            self.maxDistance = self._baseModuleThickness 
             self.joinHits = [0,2,4,6,8]	  
             self.points = 10
 
@@ -676,6 +680,7 @@ class go(object):
                                                                 joinMode=True,
                                                                 maxDistance=self.maxDistance,		                                      
                                                                 joinHits = self.joinHits,
+                                                                closestInRange=False,
                                                                 extendMode='segment')
                 mi_crv = returnBuffer['instance']	    
                 #>>> Color
@@ -1223,7 +1228,7 @@ class go(object):
                 #log.debug("curve: %s | rot int: %s | grp: %s"%(mi_crvBase.mNode,i, i_grp.mNode))
                 i_grp.rotateX = i_grp.rotateX + rot
                 #Shoot
-                d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_crvBase.mNode)
+                d_return = RayCast.findMeshIntersectionFromObjectAxis(self._targetMesh,mi_crvBase.mNode,firstHit=False)
                 if not d_return.get('hit'):
                     log.info(d_return)
                     raise Exception,"build_cog>> failed to get hit. Mesh '{0}' object probably isn't in mesh".format(self._targetMesh.mNode)
@@ -1280,6 +1285,7 @@ class go(object):
                                                                 insetMult = .5,
                                                                 posOffset = [0,0,self.f_skinOffset],
                                                                 joinMode=True,
+                                                                closestInRange = False,
                                                                 maxDistance=self._baseModuleThickness,		                                      
                                                                 extendMode='disc')
                 mi_crv = returnBuffer['instance']	    
@@ -2067,6 +2073,7 @@ class go(object):
                                                             rootOffset = self.rootOffset,
                                                             closedCurve = self.closedCurve,
                                                             midMeshCast = self.midMeshCast,
+                                                            closestInRange=False,
                                                             l_specifiedRotates = self.l_specifiedRotates,
                                                             joinMode=self.joinMode,
                                                             extendMode='disc',
