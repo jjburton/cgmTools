@@ -54,7 +54,7 @@ from cgm.tools import locinator
 from cgm.tools import tdTools
 from cgm.tools import setTools
 from cgm.tools import attrTools
-
+import cgm.core.lib.name_utils as NAMES
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
 

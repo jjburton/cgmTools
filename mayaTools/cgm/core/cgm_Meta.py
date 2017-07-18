@@ -476,6 +476,7 @@ class cgmNode(r9Meta.MetaClass):
         return SEARCH.get_referencePrefix(self)
     p_referencePrefix = property(getReferencePrefix)   
     
+    #getNodeChildren = getChildren
     #cgmNaming stuff...
     #================================================================
     def doName(self,sceneUnique=False,nameChildren=False,fastIterate = True,fastName = True,**kws):
@@ -500,6 +501,10 @@ class cgmNode(r9Meta.MetaClass):
 
             _str_nameCandidate =  nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
             mc.rename(self.mNode, _str_nameCandidate	)
+            if nameChildren:
+                for mObj in validateObjListArg(TRANS.descendents_get(self.mNode)):
+                    mObj.doName()
+                    
         else:
             if sceneUnique:
                 log.error("Remove this cgmNode.doName sceneUnique call")

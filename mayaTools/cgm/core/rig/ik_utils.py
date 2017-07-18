@@ -1,6 +1,6 @@
 """
 ------------------------------------------
-segment_utils: cgm.core.rig
+ik_utils: cgm.core.rig
 Author: Josh Burton
 email: jjburton@cgmonks.com
 Website : http://www.cgmonks.com
@@ -35,32 +35,17 @@ from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import rig_Utils
 from cgm.core.classes import NodeFactory as NodeF
 import cgm.core.rig.joint_utils as JOINTS
-import cgm.core.rig.ik_utils as IK
-reload(IK)
-"""from cgm.lib import (distance,
-                     attributes,
-                     curves,
-                     deformers,
-                     lists,
-                     rigging,
-                     skinning,
-                     dictionary,
-                     search,
-                     nodes,
-                     joints,
-                     cgmMath)"""   
 
-def create_curveSetup(jointList = None,
-                      useCurve = None,
-                      orientation = 'zyx',
-                      secondaryAxis = 'y+',
-                      baseName = None,
-                      connectBy = 'translate',
-                      advancedTwistSetup = False,
-                      addMidTwist = False,
-                      extendTwistToEnd = False,
-                      reorient = False,                      
-                      moduleInstance = None):
+
+def spline(jointList = None,
+           useCurve = None,
+           orientation = 'zyx',
+           secondaryAxis = 'y+',
+           baseName = None,
+           connectBy = 'translate',
+           advancedTwistSetup = False,
+           extendTwistToEnd = False,
+           reorient = False):
 
     """
     Root of the segment setup.
@@ -84,25 +69,15 @@ def create_curveSetup(jointList = None,
         extendTwistToEnd(bool - False) | Whether to extned the twist to the end by default
 
     :returns:
-        Dict ------------------------------------------------------------------
-        'mi_segmentCurve'(cgmObject) | segment curve
-        'segmentCurve'(str) | segment curve string
-        'mi_ikHandle'(cgmObject) | spline ik Handle
-        'mi_segmentGroup'(cgmObject) | segment group containing most of the guts
-        'l_driverJoints'(list) | list of string driver joint names
-        'ml_driverJoints'(metalist) | cgmObject instances of driver joints
-        'scaleBuffer'(str) | scale buffer node
-        'mi_scaleBuffer'(cgmBufferNode) | scale buffer node for the setup
-        'mPlug_extendTwist'(cgmAttr) | extend twist attribute instance
-        'l_drivenJoints'(list) | list of string driven joint names
-        'ml_drivenJoints'(metalist) | cgmObject instances of driven joints
+        mi_ikHandle, mi_ikEffector, mi_splineSolver, mi_splineCurve
+        
 
     :raises:
         Exception | if reached
 
     """   	 
 
-    _str_func = 'create'
+    _str_func = 'splineIK'
 
     #>>> Verify =============================================================================================
     ml_joints = cgmMeta.validateObjListArg(jointList,mType = 'cgmObject', mayaType=['joint'], noneValid = False)
@@ -114,13 +89,12 @@ def create_curveSetup(jointList = None,
     str_orientation = mi_mayaOrientation.p_string
     str_secondaryAxis = VALID.stringArg(secondaryAxis,noneValid=True)
     str_baseName = VALID.stringArg(baseName,noneValid=True)
+    if str_baseName is None:str_baseName = 'testSegmentCurve' 
+    
     str_connectBy = VALID.stringArg(connectBy,noneValid=True)		
-    b_addMidTwist = VALID.boolArg(addMidTwist)
     b_advancedTwistSetup = VALID.boolArg(advancedTwistSetup)
     b_extendTwistToEnd= VALID.boolArg(extendTwistToEnd)
 
-    if b_addMidTwist and int_lenJoints <4:
-        raise ValueError,"must have at least 3 joints for a mid twist setup"
     if int_lenJoints<3:
         raise ValueError,"needs at least three joints"
 
@@ -137,131 +111,75 @@ def create_curveSetup(jointList = None,
 
     outChannel = str_orientation[2]#outChannel
     upChannel = '{0}up'.format(str_orientation[1])#upChannel
-
-    #module -----------------------------------------------------------------------------------------------
-    mi_module = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
-    try:mi_module.isModule()
-    except:mi_module = False
-
-    mi_rigNull = False	
-    if mi_module:
-        log.debug("|{0}| >> Module found. mi_module: {1}...".format(_str_func,mi_module))                                    
-        mi_rigNull = mi_module.rigNull	
-
-        if str_baseName is None:
-            str_baseName = mi_module.getPartNameBase()#Get part base name	    
-            log.debug('baseName set to module: %s'%str_baseName)	    	    
-    if str_baseName is None:str_baseName = 'testSegmentCurve' 
-
+    	    
 
     if mi_useCurve:#>>> Curve Check ========================================================================================
         #must get a offset u position
         f_MatchPosOffset = CURVES.getUParamOnCurve(ml_joints[0].mNode, mi_useCurve.mNode)
         log.debug("|{0}| >> Use curve mode. uPos: {1}...".format(_str_func,f_MatchPosOffset))                            
 
-    #>>> Joint Setup ========================================================================================
 
-    #>> Group ========================================================================================
-    mi_grp = cgmMeta.cgmObject(name = 'newgroup')
-    mi_grp.addAttr('cgmName', str(str_baseName), lock=True)
-    mi_grp.addAttr('cgmTypeModifier','segmentStuff', lock=True)
-    mi_grp.doName()
-
-
-    #>> Orient ========================================================================================
-    if reorient:#if it is, we can assume it's right
-        log.debug("|{0}| >> reorient mode...".format(_str_func))                                    
-        raise NotImplementedError,'Nope'
-        JOINTS.orientChain(ml_joints,str_orientation[0]+'+', )
-        if str_secondaryAxis is None:
-            raise Exception,"Must have secondaryAxis arg if no moduleInstance is passed"
-        for mJnt in ml_joints:
-            """
-            Cannot iterate how important this step is. Lost a day trying to trouble shoot why one joint chain worked and another didn't.
-            WILL NOT connect right without this.
-            """
-            joints.orientJoint(mJnt.mNode,str_orientation,str_secondaryAxis)
-
-    #>> midtwist ========================================================================================
-    ml_midTwistJoints = [] #exteded list of before and after joints
-    int_mid = False
-
-    if b_addMidTwist:#We are gonna do two splineIK chains...
-        #>> Let's do the blend ===============================================================
-        int_mid = int(len(ml_joints)/2)
-        #ml_beforeJoints.reverse()
-        #Need to check for even value for this
-        if int_mid%2 == 0:#even
-            ml_beforeJoints = ml_joints[:int_mid]
-            ml_afterJoints = ml_joints[int_mid:]                          
-        else:
-            ml_beforeJoints = ml_joints[:int_mid+1]
-            ml_afterJoints = ml_joints[int_mid+1:]        
+    #>>> SplineIK ===========================================================================================
+    if mi_useCurve:
+        log.debug("|{0}| >> useCurve. SplineIk...".format(_str_func))                                    
+        #Because maya is stupid, when doing an existing curve splineIK setup in 2011, you need to select the objects
+        #Rather than use the flags
+        mc.select(cl=1)
+        mc.select([ml_joints[0].mNode,ml_joints[-1].mNode,mi_useCurve.mNode])
+        buffer = mc.ikHandle( simplifyCurve=False, eh = 1,curve = mi_useCurve.mNode,
+                              rootOnCurve=True, forceSolver = True, snapHandleFlagToggle=True,
+                              parentCurve = False, solver = 'ikSplineSolver',createCurve = False,)  
 
 
+        log.info(buffer)
+        mi_segmentCurve = mi_useCurve#Link
+        mi_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
+        mi_segmentCurve.doName()		
     else:
-        _res = IK.spline(ml_joints,mi_useCurve,str_orientation,str_secondaryAxis,baseName,connectBy)
-        mi_ikHandle, mi_ikEffector, mi_splineSolver, mi_segmentCurve = _res
-        mi_ikHandle.parent = mi_grp
-        mi_segmentCurve.connectChildNode(mi_grp,'segmentGroup','owner')        
-        """#>>> SplineIK ===========================================================================================
-        if mi_useCurve:
-            log.debug("|{0}| >> useCurve. SplineIk...".format(_str_func))                                    
-            #Because maya is stupid, when doing an existing curve splineIK setup in 2011, you need to select the objects
-            #Rather than use the flags
-            mc.select(cl=1)
-            mc.select([ml_joints[0].mNode,ml_joints[-1].mNode,mi_useCurve.mNode])
-            buffer = mc.ikHandle( simplifyCurve=False, eh = 1,curve = mi_useCurve.mNode,
-                                  rootOnCurve=True, forceSolver = True, snapHandleFlagToggle=True,
-                                  parentCurve = False, solver = 'ikSplineSolver',createCurve = False,)  
-    
-    
-            log.info(buffer)
-            mi_segmentCurve = mi_useCurve#Link
-            mi_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
-            mi_segmentCurve.doName()		
-        else:
-            log.debug("|{0}| >> createCurve. SplineIk...".format(_str_func))                                    
-    
-            buffer = mc.ikHandle( sj=ml_joints[0].mNode, ee=ml_joints[-1].mNode,simplifyCurve=False,
-                                  solver = 'ikSplineSolver', ns = 4, rootOnCurve=True,forceSolver = True,
-                                  createCurve = True,snapHandleFlagToggle=True )  
-    
-            mi_segmentCurve = cgmMeta.asMeta( buffer[2],'cgmObject',setClass=True )
-            mi_segmentCurve.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
-            mi_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
-            mi_segmentCurve.doName()
-    
-        #if mi_module:#if we have a module, connect vis
-            #mi_segmentCurve.overrideEnabled = 1		
-            #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_segmentCurve.mNode,'overrideVisibility'))    
-            #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_segmentCurve.mNode,'overrideDisplayType'))    
-    
-        mi_splineSolver = cgmMeta.cgmNode(name = 'ikSplineSolver')
-    
-        #>> Handle/Effector --------------------------------------------------------------------------------------
-        mi_ikHandle = cgmMeta.validateObjArg( buffer[0],'cgmObject',setClass=True )
-        mi_ikHandle.addAttr('cgmName',str_baseName,attrType='string',lock=True)    		
-        mi_ikHandle.doName()
-        mi_ikHandle.parent = mi_grp
-        mi_ikHandle = mi_ikHandle
-    
-        mi_ikEffector = cgmMeta.validateObjArg( buffer[1],'cgmObject',setClass=True )
-        mi_ikEffector.addAttr('cgmName',str_baseName,attrType='string',lock=True)  
-        mi_ikEffector.doName()
-    
-        mi_ikEffector = mi_ikEffector
-        if mi_useCurve:
-            log.debug("|{0}| >> useCurve fix. setIk handle offset to: {1}".format(_str_func,f_MatchPosOffset))                                            
-            mi_ikHandle.offset = f_MatchPosOffset
-        mi_segmentCurve.connectChildNode(mi_grp,'segmentGroup','owner')
-        mi_segmentCurve = mi_segmentCurve	"""	
-    
+        log.debug("|{0}| >> createCurve. SplineIk...".format(_str_func))                                    
+
+        buffer = mc.ikHandle( sj=ml_joints[0].mNode, ee=ml_joints[-1].mNode,simplifyCurve=False,
+                              solver = 'ikSplineSolver', ns = 4, rootOnCurve=True,forceSolver = True,
+                              createCurve = True,snapHandleFlagToggle=True )  
+
+        mi_segmentCurve = cgmMeta.asMeta( buffer[2],'cgmObject',setClass=True )
+        mi_segmentCurve.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
+        mi_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
+        mi_segmentCurve.doName()
+
+    #if mi_module:#if we have a module, connect vis
+        #mi_segmentCurve.overrideEnabled = 1		
+        #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_segmentCurve.mNode,'overrideVisibility'))    
+        #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_segmentCurve.mNode,'overrideDisplayType'))    
+
+    mi_splineSolver = cgmMeta.cgmNode(name = 'ikSplineSolver')
+
+    #>> Handle/Effector --------------------------------------------------------------------------------------
+    mi_ikHandle = cgmMeta.validateObjArg( buffer[0],'cgmObject',setClass=True )
+    mi_ikHandle.addAttr('cgmName',str_baseName,attrType='string',lock=True)    		
+    mi_ikHandle.doName()
+    #mi_ikHandle.parent = mi_grp
+    mi_ikHandle = mi_ikHandle
+
+    mi_ikEffector = cgmMeta.validateObjArg( buffer[1],'cgmObject',setClass=True )
+    mi_ikEffector.addAttr('cgmName',str_baseName,attrType='string',lock=True)  
+    mi_ikEffector.doName()
+
+    mi_ikEffector = mi_ikEffector
+    if mi_useCurve:
+        log.debug("|{0}| >> useCurve fix. setIk handle offset to: {1}".format(_str_func,f_MatchPosOffset))                                            
+        mi_ikHandle.offset = f_MatchPosOffset
+
+    pprint.pprint(vars())
+
+    return mi_ikHandle, mi_ikEffector, mi_splineSolver, mi_segmentCurve
+
     #>>> Twist Setup ========================================================================================
     #SplineIK Twist =======================================================================================
     d_twistReturn = rig_Utils.IKHandle_addSplineIKTwist(mi_ikHandle.mNode,b_advancedTwistSetup)
     mPlug_twistStart = d_twistReturn['mi_plug_start']
     mPlug_twistEnd = d_twistReturn['mi_plug_end']
+    
     return
     #>>> Twist stuff
     #=========================================================================
