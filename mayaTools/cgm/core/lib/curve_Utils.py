@@ -620,7 +620,24 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
             
     return _res
 
+def create_fromList(targetList = None, posList = None):
+    """ 
+    Create a curve from a target or pos list
+
+    :parameters:
+        target(str) - target(s) to create curves from
+
+    :returns
+        curve(str)   
+    """    
+    _str_func = 'create_fromList'
+    if targetList is not None:
+        posList = [POS.get(t) for t in targetList]
+    elif posList is None:
+        raise ValueError,"must have targetList or posList"
     
+    knot_len = len(posList)+3-1
+    return mc.curve (d=3, ep = posList, k = [i for i in range(0,knot_len)], os=True) 
     
 def controlCurve_update(target = None):
     """
