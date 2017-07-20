@@ -193,6 +193,7 @@ def get_shape_info(crvShape):
             'shape':crvShape,
             'form':_form,
             'degree':_degree,
+            'spans':_spans,
             'cvs':_cvs,
             'cps':_cps,
             'knots':_rawKnots}
@@ -1497,4 +1498,29 @@ def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
         POS.set(_l_ep_target[i], MATH.list_mult(_pos,_mult))
     
     pprint.pprint(vars())
+    
+def match(base=None, target = None, autoRebuild = True, keepOriginal = True):
+    _str_func = 'match'
+    _d_base = get_shape_info(base)
+    _d_target = get_shape_info(target)
+    
+    if _d_base['spans'] != _d_target['spans']:
+        if not autoRebuild:
+            raise ValueError,"Len of source ({0}) != target ({1})".format(_d_base['spans'],_d_target['spans'])
+        log.debug("|{0}| >> Rebuilding curve to new count...".format(_str_func))                                                            
+        
+        mc.rebuildCurve (target, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=_d_base['spans'], d=_d_base['degree'], tol=0.001)
+    
+    _d_target = get_shape_info(target)
+    if _d_base['spans'] != _d_target['spans']:
+        raise ValueError,'Nope. source: {0} | target: {1}'.format(_d_base['spans'],_d_target['spans'])
+    
+    _l_ep_source = mc.ls("{0}.cv[*]".format(base),flatten=True)
+    _l_ep_target = mc.ls("{0}.cv[*]".format(target),flatten = True)
+    for i,ep in enumerate(_l_ep_source):
+        _pos = POS.get(ep)
+        POS.set(_l_ep_target[i], _pos)
+        
+    return True
+    
     

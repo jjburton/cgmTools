@@ -10,14 +10,93 @@ import cgm.core.rig.segment_utils as SEGMENT
 reload(SEGMENT)
 
 
-
+#BASE SETUP ========================================================================================================
+SEGMENT.create_curveSetup(jointList,useCurve,'zyx','y+',baseName,stretchBy,advancedTwistSetup,addMidTwist,extendTwistToEnd,reorient,moduleInstance)
 
 #Options =========================================================================================
-jointList = [u'joint11', u'joint5', u'joint6', u'joint7', u'joint8']
-useCurve = None
+jointList = [u'chain_0', u'chain_1', u'chain_2', u'chain_3', u'chain_4']
+len(range(0,10))%2
+useCurve = 'resultCurve'
 baseName = 'test'
-connectBy = 'translate'
-advancedTwistSetup = False
+stretchBy = 'translate'
+stretchBy = 'scale'
+stretchBy = None
+advancedTwistSetup = True
 addMidTwist = False
+addMidTwist = True
 extendTwistToEnd=False
 moduleInstance = None
+reorient = False
+
+SEGMENT.create_curveSetup(jointList,useCurve,'zyx','y+',baseName,stretchBy,advancedTwistSetup,addMidTwist,extendTwistToEnd,reorient,moduleInstance)
+
+
+
+#Segment SETUP ========================================================================================================
+_d = {'jointList' : [u'chain_0', u'chain_1', u'chain_2', u'chain_3', u'chain_4'],
+      'influenceJoints' : [u'lwrArm|elbowDirect', u'handDirect'],
+      'addSquashStretch' : True,
+      'useCurve' : 'resultCurve',
+      'addTwist' : True,
+      'startControl' : 'elbowDirect_crv',
+      'endControl' : 'hand_crv',
+      'segmentType' : 'curve',
+      'rotateGroupAxis' : 'rz',
+      'secondaryAxis' : None,
+      'baseName' : None,
+      'advancedTwistSetup' : False,
+      'additiveScaleSetup' : True,
+      'connectAdditiveScale' : True,
+      'orientation' : 'zyx',
+      'controlOrientation' : None,
+      'moduleInstance' : None,
+      'stretchBy' : 'scale'}
+reload(SEGMENT)
+SEGMENT.create(**_d)
+
+#Squash and stretch SETUP ========================================================================================================
+_d = {'jointList' : [u'chain_0', u'chain_1', u'chain_2', u'chain_3', u'chain_4'],
+      'orientation' : 'zyx',
+      'stretchBy' : 'scale'}
+reload(SEGMENT)
+SEGMENT.addSquashAndStretch_toCurve(**_d)
+
+
+_d = {'jointList' : [u'chain_0', u'chain_1', u'chain_2', u'chain_3', u'chain_4'],
+      'orientation' : 'zyx',
+      'stretchBy' : 'scale'}
+reload(SEGMENT)
+SEGMENT.addAdditveScale_toCurve(**_d)
+
+
+#Add mid ========================================================================================================
+midReturn = rUtils.addCGMSegmentSubControl(ml_influenceJoints[1].mNode,
+                                           segmentCurve = i_curve,
+                                           baseParent=ml_influenceJoints[0],
+                                           endParent=ml_influenceJoints[-1],
+                                           midControls=ml_segmentHandles[1],
+                                           baseName=mi_go._partName,
+                                           controlTwistAxis =  'r'+mi_go._jointOrientation[0],
+                                           orientation=mi_go._jointOrientation)
+"""
+joints=None,segmentCurve = None, baseParent = None, endParent = None,
+midControls = None, orientation = 'zyx',controlOrientation = None,
+controlTwistAxis = 'rotateY',
+addTwist = True, baseName = None,
+rotateGroupAxis = 'rotateZ', blendLength = None,
+connectMidScale = True,
+moduleInstance = None):
+"""
+
+
+
+_d = {'joints':'lwrArm|midDirect',
+      'segmentCurve' : 'resultCurve',
+      'baseParent':'elbowDirect',
+      'endParent':'handDirect',
+      'midControls':'mid_crv',
+      #'jointList' : [u'chain_0', u'chain_1', u'chain_2', u'chain_3', u'chain_4'],
+      'baseName':None,
+      'controlTwistAxis':'rz',
+      'orientation' : 'zyx'}
+

@@ -71,7 +71,7 @@ def spline(jointList = None,
         extendTwistToEnd(bool - False) | Whether to extned the twist to the end by default
 
     :returns:
-        mi_ikHandle, mi_ikEffector, mi_splineSolver, mi_splineCurve
+        mIKHandle, mIKEffector, mIKSolver, mi_splineCurve
         
 
     :raises:
@@ -150,9 +150,9 @@ def spline(jointList = None,
                               parentCurve = False, solver = 'ikSplineSolver',createCurve = False,)  
 
         log.info(buffer)
-        mi_segmentCurve = mi_useCurve#Link
-        mi_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
-        mi_segmentCurve.doName()		
+        mSegmentCurve = mi_useCurve#Link
+        mSegmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
+        mSegmentCurve.doName()		
              
     else:
         log.debug("|{0}| >> createCurve. SplineIk...".format(_str_func))                                    
@@ -161,39 +161,39 @@ def spline(jointList = None,
                               solver = 'ikSplineSolver', ns = 4, rootOnCurve=True,forceSolver = True,
                               createCurve = True,snapHandleFlagToggle=True )  
 
-        mi_segmentCurve = cgmMeta.asMeta( buffer[2],'cgmObject',setClass=True )
-        mi_segmentCurve.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
-        mi_segmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
-        mi_segmentCurve.doName()
+        mSegmentCurve = cgmMeta.asMeta( buffer[2],'cgmObject',setClass=True )
+        mSegmentCurve.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
+        mSegmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
+        mSegmentCurve.doName()
 
     #if mi_module:#if we have a module, connect vis
-        #mi_segmentCurve.overrideEnabled = 1		
-        #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_segmentCurve.mNode,'overrideVisibility'))    
-        #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_segmentCurve.mNode,'overrideDisplayType'))    
+        #mSegmentCurve.overrideEnabled = 1		
+        #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideVisibility'))    
+        #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideDisplayType'))    
 
-    mi_splineSolver = cgmMeta.cgmNode(name = 'ikSplineSolver')
+    mIKSolver = cgmMeta.cgmNode(name = 'ikSplineSolver')
 
     #>> Handle/Effector --------------------------------------------------------------------------------------
-    mi_ikHandle = cgmMeta.validateObjArg( buffer[0],'cgmObject',setClass=True )
-    mi_ikHandle.addAttr('cgmName',str_baseName,attrType='string',lock=True)    		
-    mi_ikHandle.doName()
-    mi_ikHandle = mi_ikHandle
+    mIKHandle = cgmMeta.validateObjArg( buffer[0],'cgmObject',setClass=True )
+    mIKHandle.addAttr('cgmName',str_baseName,attrType='string',lock=True)    		
+    mIKHandle.doName()
+    mIKHandle = mIKHandle
 
-    mi_ikEffector = cgmMeta.validateObjArg( buffer[1],'cgmObject',setClass=True )
-    mi_ikEffector.addAttr('cgmName',str_baseName,attrType='string',lock=True)  
-    mi_ikEffector.doName()
-    mi_ikHandle.parent = mi_grp
+    mIKEffector = cgmMeta.validateObjArg( buffer[1],'cgmObject',setClass=True )
+    mIKEffector.addAttr('cgmName',str_baseName,attrType='string',lock=True)  
+    mIKEffector.doName()
+    mIKHandle.parent = mi_grp
     
-    mi_segmentCurve.connectChildNode(mi_grp,'segmentGroup','owner')
+    mSegmentCurve.connectChildNode(mi_grp,'segmentGroup','owner')
     
     if mi_useCurve:
         log.debug("|{0}| >> useCurve fix. setIk handle offset to: {1}".format(_str_func,f_MatchPosOffset))                                            
-        mi_ikHandle.offset = f_MatchPosOffset           
+        mIKHandle.offset = f_MatchPosOffset           
         
-    _res = {'mIKHandle':mi_ikHandle, 
-            'mIKEffector':mi_ikEffector,
-            'mIKSolver':mi_splineSolver,
-            'mIKCurve':mi_segmentCurve}
+    _res = {'mIKHandle':mIKHandle, 
+            'mIKEffector':mIKEffector,
+            'mIKSolver':mIKSolver,
+            'mSplineCurve':mSegmentCurve}
     
     #>>> Stretch ============================================================================================
     if str_stretchBy:
@@ -201,12 +201,12 @@ def spline(jointList = None,
         ml_pointOnCurveInfos = []
         
         #First thing we're going to do is create our 'follicles'
-        str_shape = mi_segmentCurve.getShapes(asMeta=False)[0]
+        str_shape = mSegmentCurve.getShapes(asMeta=False)[0]
     
         for i,mJnt in enumerate(ml_joints):   
             #import cgm.lib.distance as distance
-            #l_closestInfo = distance.returnNearestPointOnCurveInfo(mJnt.mNode,mi_segmentCurve.mNode)
-            param = CURVES.getUParamOnCurve(mJnt.mNode, mi_segmentCurve.mNode)
+            #l_closestInfo = distance.returnNearestPointOnCurveInfo(mJnt.mNode,mSegmentCurve.mNode)
+            param = CURVES.getUParamOnCurve(mJnt.mNode, mSegmentCurve.mNode)
             log.debug("|{0}| >> {1} param: {2}...".format(_str_func,mJnt.p_nameShort,param))
             
             #>>> POCI ----------------------------------------------------------------
@@ -222,7 +222,7 @@ def spline(jointList = None,
             
         ml_distanceObjects = []
         ml_distanceShapes = []  
-        mi_segmentCurve.addAttr('masterScale',value = 1.0, minValue = 0.0001, attrType='float')
+        mIKHandle.addAttr('masterScale',value = 1.0, minValue = 0.0001, attrType='float')
         
         for i,mJnt in enumerate(ml_joints[:-1]):
             #>> Distance nodes
@@ -253,27 +253,27 @@ def spline(jointList = None,
         ml_distanceAttrs = []
         ml_resultAttrs = []
 
-        #mi_jntScaleBufferNode.connectParentNode(mi_segmentCurve.mNode,'segmentCurve','scaleBuffer')
+        #mi_jntScaleBufferNode.connectParentNode(mSegmentCurve.mNode,'segmentCurve','scaleBuffer')
         ml_mainMDs = []
         
         for i,mJnt in enumerate(ml_joints[:-1]):
             #progressBar_set(status = "node setup | '%s'"%l_joints[i], progress = i, maxValue = int_lenJoints)		    
 
             #Make some attrs
-            mPlug_attrDist= cgmMeta.cgmAttr(mi_segmentCurve.mNode,
+            mPlug_attrDist= cgmMeta.cgmAttr(mIKHandle.mNode,
                                             "distance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)
-            mPlug_attrNormalBaseDist = cgmMeta.cgmAttr(mi_segmentCurve.mNode,
+            mPlug_attrNormalBaseDist = cgmMeta.cgmAttr(mIKHandle.mNode,
                                                        "normalizedBaseDistance_%s"%i,attrType = 'float',
                                                        initialValue=0,lock=True,minValue = 0)			
-            mPlug_attrNormalDist = cgmMeta.cgmAttr(mi_segmentCurve.mNode,
+            mPlug_attrNormalDist = cgmMeta.cgmAttr(mIKHandle.mNode,
                                                    "normalizedDistance_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)		
-            mPlug_attrResult = cgmMeta.cgmAttr(mi_segmentCurve.mNode,
+            mPlug_attrResult = cgmMeta.cgmAttr(mIKHandle.mNode,
                                                "scaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
-            mPlug_attrTransformedResult = cgmMeta.cgmAttr(mi_segmentCurve.mNode,
+            mPlug_attrTransformedResult = cgmMeta.cgmAttr(mIKHandle.mNode,
                                                           "scaledScaleResult_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
             
-            ATTR.datList_append(mi_segmentCurve.mNode,'baseDist',ml_distanceShapes[i].distance)
-            ATTR.set_hidden(mi_segmentCurve.mNode,'baseDist_{0}'.format(i),True)
+            ATTR.datList_append(mIKHandle.mNode,'baseDist',ml_distanceShapes[i].distance)
+            ATTR.set_hidden(mIKHandle.mNode,'baseDist_{0}'.format(i),True)
             
 
             if str_stretchBy.lower() in ['translate','trans','t']:
@@ -281,11 +281,11 @@ def spline(jointList = None,
                 l_argBuild = []
                 #distance by master
                 l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalBaseDist.p_combinedShortName,
-                                                           '{0}.baseDist_{1}'.format(mi_segmentCurve.mNode,i),
-                                                           "{0}.masterScale".format(mi_segmentCurve.mNode)))
+                                                           '{0}.baseDist_{1}'.format(mIKHandle.mNode,i),
+                                                           "{0}.masterScale".format(mIKHandle.mNode)))
                 l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalDist.p_combinedShortName,
                                                            mPlug_attrDist.p_combinedShortName,
-                                                           "{0}.masterScale".format(mi_segmentCurve.mNode)))			
+                                                           "{0}.masterScale".format(mIKHandle.mNode)))			
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NodeF.argsToNodes(arg).doBuild()
@@ -305,9 +305,9 @@ def spline(jointList = None,
                 mi_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
                 mi_mdNormalBaseDist.doName()
 
-                ATTR.connect('%s.masterScale'%(mi_segmentCurve.mNode),#>>
+                ATTR.connect('%s.masterScale'%(mIKHandle.mNode),#>>
                              '%s.%s'%(mi_mdNormalBaseDist.mNode,'input1X'))
-                ATTR.connect('{0}.baseDist_{1}'.format(mi_segmentCurve.mNode,i),#>>
+                ATTR.connect('{0}.baseDist_{1}'.format(mIKHandle.mNode,i),#>>
                              '%s.%s'%(mi_mdNormalBaseDist.mNode,'input2X'))	
                 mPlug_attrNormalBaseDist.doConnectIn('%s.%s'%(mi_mdNormalBaseDist.mNode,'output.outputX'))
 
@@ -318,7 +318,7 @@ def spline(jointList = None,
                 mi_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
                 mi_mdNormalDist.doName()
 
-                ATTR.connect('%s.masterScale'%(mi_segmentCurve.mNode),#>>
+                ATTR.connect('%s.masterScale'%(mIKHandle.mNode),#>>
                              '%s.%s'%(mi_mdNormalDist.mNode,'input1X'))
                 mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdNormalDist.mNode,'input2X'))	
                 mPlug_attrNormalDist.doConnectIn('%s.%s'%(mi_mdNormalDist.mNode,'output.outputX'))
@@ -363,11 +363,12 @@ def spline(jointList = None,
     #mc.pointConstraint(ml_driverJoints[0].mNode,ml_joints[0].mNode,maintainOffset = False)
     
     #>> Connect and close =============================================================================
-    #mi_segmentCurve.connectChildNode(mi_jntScaleBufferNode,'scaleBuffer','segmentCurve')
-    mi_segmentCurve.connectChildNode(mi_ikHandle,'ikHandle','segmentCurve')
-    mi_segmentCurve.msgList_connect('drivenJoints',ml_joints,'segmentCurve')       
+    #mSegmentCurve.connectChildNode(mi_jntScaleBufferNode,'scaleBuffer','segmentCurve')
+    mSegmentCurve.connectChildNode(mIKHandle,'ikHandle','segmentCurve')
+    #mSegmentCurve.msgList_connect('drivenJoints',ml_joints,'segmentCurve')       
+    mIKHandle.msgList_connect('drivenJoints',ml_joints,'ikHandle')       
     
-    #mi_segmentCurve.msgList_connect(ml_driverJoints,'driverJoints','segmentCurve')  
+    #mSegmentCurve.msgList_connect(ml_driverJoints,'driverJoints','segmentCurve')  
         
     """        
     except Exception,err:
@@ -382,54 +383,14 @@ def spline(jointList = None,
         print(cgmGEN._str_subLine)        
         raise Exception,err"""
 
-    #>>> Twist Setup ========================================================================================
     #SplineIK Twist =======================================================================================
-    d_twistReturn = rig_Utils.IKHandle_addSplineIKTwist(mi_ikHandle.mNode,b_advancedTwistSetup)
-    mPlug_twistStart = d_twistReturn['mi_plug_start']
-    mPlug_twistEnd = d_twistReturn['mi_plug_end']
-    _res['mPlug_twistStart'] = mPlug_twistStart
-    _res['mPlug_twistEnd'] = mPlug_twistEnd
+    #d_twistReturn = rig_Utils.IKHandle_addSplineIKTwist(mIKHandle.mNode,b_advancedTwistSetup)
+    #mPlug_twistStart = d_twistReturn['mi_plug_start']
+    #mPlug_twistEnd = d_twistReturn['mi_plug_end']
+    #_res['mPlug_twistStart'] = mPlug_twistStart
+    #_res['mPlug_twistEnd'] = mPlug_twistEnd
     return _res
-    #>>> Twist stuff
-    #=========================================================================
-    #mPlug_factorInfluenceIn = cgmMeta.cgmAttr(self.mi_segmentCurve.mNode,"twistExtendToEnd",attrType = 'float',lock=False,keyable=True,hidden=False,minValue=0,maxValue=1)               
-    #self.mPlug_factorInfluenceIn = mPlug_factorInfluenceIn#Link
-    d_midTwistOutPlugs = {} # dictionary of out plugs to index of joint in the before or after list
-    ml_midTwistJoints = [] #exteded list of before and after joints
-    int_mid = False
 
-    if b_addMidTwist:#We need to get our factors
-        #>> MidTwist =====================================================================================
-        int_mid = int(len(ml_driverJoints)/2)
-        ml_beforeJoints = ml_driverJoints[1:int_mid]
-        ml_beforeJoints.reverse()
-        ml_afterJoints = ml_driverJoints[int_mid+1:-1]
-
-        mPlug_midTwist = cgmMeta.cgmAttr(self.mi_segmentCurve,"twistMid",attrType='float',keyable=True,hidden=False)	    
-        ml_midTwistJoints.extend(ml_beforeJoints)
-        ml_midTwistJoints.extend(ml_afterJoints)
-        ml_midTwistJoints.append(ml_driverJoints[int_mid])
-        #Get our factors ------------------------------------------------------------------
-        mPlugs_factors = []
-        maxInt = (max([len(ml_beforeJoints),len(ml_afterJoints)])) +1#This is our max blend factors we need
-        fl_fac = 1.0/maxInt#get our factor
-        log.debug("maxInt: %s"%maxInt)
-        l_factors = [ (1-(i*fl_fac)) for i in range(maxInt) ]#fill our factor list
-        int_maxLen = len(l_factors)
-        for i,fac in enumerate(l_factors):
-            #self.progressBar_set(status = "Setting up midTwist factor nodes... ", progress = i, maxValue = int_maxLen)		    				    		    		    			    
-            mPlug_midFactorIn = cgmMeta.cgmAttr(self.mi_segmentCurve,"midFactor_%s"%(i),attrType='float',value=fac,hidden=False)	    
-            mPlug_midFactorOut = cgmMeta.cgmAttr(self.mi_segmentCurve,"out_midFactor_%s"%(i),attrType='float',lock=True)
-            arg = "%s = %s * %s"%(mPlug_midFactorOut.p_combinedShortName,mPlug_midTwist.p_combinedShortName,mPlug_midFactorIn.p_combinedShortName)
-            log.debug("%s arg: %s"%(i,arg))
-            NodeF.argsToNodes(arg).doBuild()
-            #Store it
-            d_midTwistOutPlugs[i] = mPlug_midFactorOut    
-
-
-
-    #>>> Attach =============================================================================================
-    #>>> Stretch ============================================================================================
 
     #import pprint
     pprint.pprint(vars())
@@ -437,7 +398,7 @@ def spline(jointList = None,
     return
 
 
-def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False):
+def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False, orientation = 'zyx'):
     """
     ikHandle(arg)
     advancedTwistSetup(bool) -- Whether to setup ramp setup or not (False)
@@ -445,15 +406,15 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
     _str_func = 'addSplineTwist'
     
     #>>> Data gather and arg check
-    mi_ikHandle = cgmMeta.validateObjArg(ikHandle,'cgmObject',noneValid=False)
+    mIKHandle = cgmMeta.validateObjArg(ikHandle,'cgmObject',noneValid=False)
     mi_midHandle = cgmMeta.validateObjArg(midHandle,'cgmObject',noneValid=True)
     
-    if mi_ikHandle.getMayaType() != 'ikHandle':
-        raise ValueError,("|{0}| >> Not an ikHandle ({2}). Type: {1}".format(_str_func, mi_ikHandle.getMayaType(), mi_ikHandle.p_nameShort))                                                    
+    if mIKHandle.getMayaType() != 'ikHandle':
+        raise ValueError,("|{0}| >> Not an ikHandle ({2}). Type: {1}".format(_str_func, mIKHandle.getMayaType(), mIKHandle.p_nameShort))                                                    
     if mi_midHandle and mi_midHandle.getMayaType() != 'ikHandle':
         raise ValueError,("|{0}| >> Mid ({2}) not an ikHandle. Type: {1}".format(_str_func, mi_midHandle.getMayaType(),mi_midHandle.p_nameShort))                                                    
 
-    ml_handles = [mi_ikHandle]
+    ml_handles = [mIKHandle]
     if mi_midHandle:
         ml_handles.append(mi_midHandle)
         
@@ -461,7 +422,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
             log.warning("|{0}| >> advancedTwistSetup not supported with midTwist setup currently. Using no advanced setup.".format(_str_func))                                                        
             advancedTwistSetup = False
         
-    mi_crv = cgmMeta.validateObjArg(ATTR.get_driver("%s.inCurve"%mi_ikHandle.mNode,getNode=True),'cgmObject',noneValid=False)
+    mi_crv = cgmMeta.validateObjArg(ATTR.get_driver("%s.inCurve"%mIKHandle.mNode,getNode=True),'cgmObject',noneValid=False)
     
     pprint.pprint(vars())
 
@@ -470,10 +431,10 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
     d_return = {"mPlug_start":mPlug_start,"mPlug_end":mPlug_end}    
     
     if not advancedTwistSetup:
-        mPlug_twist = cgmMeta.cgmAttr(mi_ikHandle.mNode,'twist',attrType='float',keyable=True, hidden=False)	
+        mPlug_twist = cgmMeta.cgmAttr(mIKHandle.mNode,'twist',attrType='float',keyable=True, hidden=False)	
     else:
         mi_ramp = cgmMeta.cgmNode(nodeType= 'ramp')
-        mi_ramp.doStore('cgmName',mi_ikHandle.mNode)
+        mi_ramp.doStore('cgmName',mIKHandle.mNode)
         mi_ramp.doName()     
         mlPlugs_twist = []
         
@@ -493,15 +454,18 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
     
     if midHandle:
         log.debug("|{0}| >> midHandle mode...".format(_str_func))    
-        
+        """
+        $sumBase = chain_0.rotateZ + chain_1.rotateZ;
+        test_mid_ikH.roll = $sumBase;
+        test_mid_ikH.twist = resultCurve_splineIKCurve_splineIKCurve.twistEnd - $sumBase;        
+        """
 
         mPlug_mid = cgmMeta.cgmAttr(mi_crv.mNode,'twistMid',attrType='float',keyable=True, hidden=False)
         mPlug_midResult = cgmMeta.cgmAttr(mi_crv.mNode,'twistMid_result',attrType='float',keyable=True, hidden=False)
         mPlug_midDiff = cgmMeta.cgmAttr(mi_crv.mNode,'twistMid_diff',attrType='float',keyable=True, hidden=False)
         mPlug_midDiv = cgmMeta.cgmAttr(mi_crv.mNode,'twistMid_div',attrType='float',keyable=True, hidden=False)
-        mPlug_midNegResult = cgmMeta.cgmAttr(mi_crv.mNode,'twistMidNeg_result',attrType='float',keyable=True, hidden=False)
-        mPlug_endMidDiffResult = cgmMeta.cgmAttr(mi_crv.mNode,'endMidDiff_result',attrType='float',keyable=True, hidden=False)
-        mPlug_endMidDiffNegResult = cgmMeta.cgmAttr(mi_crv.mNode,'endMidDiffNeg_result',attrType='float',keyable=True, hidden=False)
+       
+        #First Handle ----------------------------------------------------------------------------------------
         
         arg1 = "{0} = {1} - {2}".format(mPlug_midDiff.p_combinedShortName,
                                         mPlug_end.p_combinedShortName,
@@ -511,39 +475,39 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
         arg3 = "{0} = {1} + {2}".format(mPlug_midResult.p_combinedShortName,
                                         mPlug_midDiv.p_combinedShortName,
                                         mPlug_mid.p_combinedShortName)
-        arg4 = "{0} = -{1}".format(mPlug_midNegResult.p_combinedShortName,
-                                  mPlug_midResult.p_combinedName)
         
-        arg5 = "{0} = {1} - {2}".format(mPlug_endMidDiffResult.p_combinedShortName,
-                                        mPlug_end.p_combinedShortName,
-                                        mPlug_midResult.p_combinedShortName)
-        arg6 = "{0} = {1} - {2}".format(mPlug_endMidDiffNegResult.p_combinedShortName,
-                                        mPlug_end.p_combinedShortName,
-                                        mPlug_midResult.p_combinedShortName)             
-  
-        
-        for a in arg1,arg2,arg3,arg4,arg5,arg6:
+        for a in arg1,arg2,arg3:
             NodeF.argsToNodes(a).doBuild()
         
         d_return['mPlug_mid'] = mPlug_mid
         d_return['mPlug_midResult'] = mPlug_midResult
         
-        #Rolls...
-        mPlug_start.doConnectOut("{0}.roll".format(mi_ikHandle.mNode))     
-        mPlug_midResult.doConnectOut("{0}.twist".format(mi_ikHandle.p_nameShort))
-        """
-        arg1 = "{0}.roll = if {1} > 0: {2} else {3}".format(mi_midHandle.p_nameShort,
-                                                              mPlug_start.p_combinedName,
-                                                              mPlug_midResult.p_combinedShortName,
-                                                              mPlug_midNegResult.p_combinedShortName)        
-        NodeF.argsToNodes(arg1).doBuild()"""
+        mPlug_start.doConnectOut("{0}.roll".format(mIKHandle.mNode))     
+        mPlug_midResult.doConnectOut("{0}.twist".format(mIKHandle.p_nameShort))
         
-        mPlug_midResult.doConnectOut("{0}.roll".format(mi_midHandle.p_nameShort))
-        arg1 = "{0}.twist = if {1} > {2}: {3} else {4}".format(mi_midHandle.p_nameShort,
+
+        #Second Handle --------------------------------------------------------------------------------
+        mPlug_midSum = cgmMeta.cgmAttr(mi_crv.mNode,'twistMid_sum',attrType='float',keyable=True, hidden=False)
+        mPlug_midTwist = cgmMeta.cgmAttr(mi_crv.mNode,'twistMid_twist',attrType='float',keyable=True, hidden=False)
+        
+        ml_joints = mIKHandle.msgList_get('drivenJoints',asMeta = True)
+        mPlug_midSum.doConnectOut("{0}.roll".format(mi_midHandle.p_nameShort))
+        mPlug_midTwist.doConnectOut("{0}.twist".format(mi_midHandle.p_nameShort))
+        
+        arg1 = "{0} = {1}".format(mPlug_midSum.p_combinedShortName,
+                                  ' + '.join(["{0}.r{1}".format(mJnt.p_nameShort,orientation[0]) for mJnt in ml_joints]))
+        log.debug(arg1)
+        arg2 = "{0} = {1} - {2}".format(mPlug_midTwist.p_combinedShortName,
+                                        mPlug_end.p_combinedShortName,
+                                        mPlug_midSum.p_combinedShortName)
+        for a in arg1,arg2:
+            NodeF.argsToNodes(a).doBuild()
+        
+        """arg1 = "{0}.twist = if {1} > {2}: {3} else {4}".format(mi_midHandle.p_nameShort,
                                                                mPlug_start.p_combinedName,
                                                                mPlug_end.p_combinedName,                                                               
                                                                mPlug_endMidDiffResult.p_combinedShortName,
-                                                               mPlug_endMidDiffNegResult.p_combinedShortName)        
+                                                               mPlug_endMidDiffNegResult.p_combinedShortName)"""        
         
         #Second roll...
         
@@ -553,11 +517,10 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
                                               mPlug_end.p_combinedShortName,
                                               mPlug_midNegResult.p_combinedShortName)
         """
-        NodeF.argsToNodes(arg1).doBuild()        
         
         
     else:
-        mPlug_start.doConnectOut("%s.roll"%mi_ikHandle.mNode)
+        mPlug_start.doConnectOut("%s.roll"%mIKHandle.mNode)
         #ikHandle1.twist = (ikHandle1.roll *-.77) + curve4.twistEnd # to implement
         arg1 = "{0} = {1} - {2}".format(mlPlugs_twist[0].p_combinedShortName,
                                         mPlug_end.p_combinedShortName,
@@ -578,7 +541,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
         mPlug_twistType = cgmMeta.cgmAttr(mi_crv,'twistType', attrType = 'enum', enum = ":".join(mPlug_existingTwistType.p_enum))
         mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedShortName)	
     else:
-        mPlug_existingTwistType = cgmMeta.cgmAttr(mi_ikHandle,'twistType')
+        mPlug_existingTwistType = cgmMeta.cgmAttr(mIKHandle,'twistType')
         mPlug_twistType = cgmMeta.cgmAttr(mi_crv,'twistType', attrType = 'enum', enum = ":".join(mPlug_existingTwistType.p_enum))
         mPlug_twistType.twistType = 'linear'	
         
@@ -598,33 +561,33 @@ def addSplineTwistOLD(ikHandle, midHandle = None, advancedTwistSetup = False):
     advancedTwistSetup(bool) -- Whether to setup ramp setup or not (False)
     """
     #>>> Data gather and arg check
-    mi_ikHandle = cgmMeta.validateObjArg(ikHandle,cgmMeta.cgmObject,noneValid=False)
-    if mi_ikHandle.getMayaType() != 'ikHandle':
-        raise StandardError,"IKHandle_fixTwist>>> '%s' object not 'ikHandle'. Found type: %s"%(mi_ikHandle.getShortName(),mi_ikHandle.getMayaType())
+    mIKHandle = cgmMeta.validateObjArg(ikHandle,cgmMeta.cgmObject,noneValid=False)
+    if mIKHandle.getMayaType() != 'ikHandle':
+        raise StandardError,"IKHandle_fixTwist>>> '%s' object not 'ikHandle'. Found type: %s"%(mIKHandle.getShortName(),mIKHandle.getMayaType())
 
-    mi_crv = cgmMeta.validateObjArg(ATTR.get_driver("%s.inCurve"%mi_ikHandle.mNode,getNode=True),cgmMeta.cgmObject,noneValid=False)
+    mi_crv = cgmMeta.validateObjArg(ATTR.get_driver("%s.inCurve"%mIKHandle.mNode,getNode=True),cgmMeta.cgmObject,noneValid=False)
     log.debug(mi_crv.mNode)
 
     mPlug_start = cgmMeta.cgmAttr(mi_crv.mNode,'twistStart',attrType='float',keyable=True, hidden=False)
     mPlug_end = cgmMeta.cgmAttr(mi_crv.mNode,'twistEnd',attrType='float',keyable=True, hidden=False)
-    #mPlug_equalizedRoll = cgmMeta.cgmAttr(mi_ikHandle.mNode,'result_twistEqualized',attrType='float',keyable=True, hidden=False)
+    #mPlug_equalizedRoll = cgmMeta.cgmAttr(mIKHandle.mNode,'result_twistEqualized',attrType='float',keyable=True, hidden=False)
     d_return = {"mi_plug_start":mPlug_start,"mi_plug_end":mPlug_end}    
     if not advancedTwistSetup:
-        mPlug_twist = cgmMeta.cgmAttr(mi_ikHandle.mNode,'twist',attrType='float',keyable=True, hidden=False)	
+        mPlug_twist = cgmMeta.cgmAttr(mIKHandle.mNode,'twist',attrType='float',keyable=True, hidden=False)	
     else:
-        mi_ikHandle.dTwistControlEnable = True
-        mi_ikHandle.dTwistValueType = 2
-        mi_ikHandle.dWorldUpType = 7
-        mPlug_twist = cgmMeta.cgmAttr(mi_ikHandle,'dTwistRampMult')
+        mIKHandle.dTwistControlEnable = True
+        mIKHandle.dTwistValueType = 2
+        mIKHandle.dWorldUpType = 7
+        mPlug_twist = cgmMeta.cgmAttr(mIKHandle,'dTwistRampMult')
         mi_ramp = cgmMeta.cgmNode(nodeType= 'ramp')
-        mi_ramp.doStore('cgmName',mi_ikHandle.mNode)
+        mi_ramp.doStore('cgmName',mIKHandle.mNode)
         mi_ramp.doName()
 
         #Fix Ramp
-        ATTR.connect("%s.outColor"%mi_ramp.mNode,"%s.dTwistRamp"%mi_ikHandle.mNode)
+        ATTR.connect("%s.outColor"%mi_ramp.mNode,"%s.dTwistRamp"%mIKHandle.mNode)
         d_return['mi_ramp'] = mi_ramp
 
-    mPlug_start.doConnectOut("%s.roll"%mi_ikHandle.mNode)
+    mPlug_start.doConnectOut("%s.roll"%mIKHandle.mNode)
     d_return['mi_plug_twist']=mPlug_twist
     #ikHandle1.twist = (ikHandle1.roll *-.77) + curve4.twistEnd # to implement
     arg1 = "%s = %s - %s"%(mPlug_twist.p_combinedShortName,mPlug_end.p_combinedShortName,mPlug_start.p_combinedShortName)
@@ -645,7 +608,7 @@ def addSplineTwistOLD(ikHandle, midHandle = None, advancedTwistSetup = False):
         mPlug_twistType = cgmMeta.cgmAttr(mi_crv,'twistType', attrType = 'enum', enum = ":".join(mPlug_existingTwistType.p_enum))
         mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedShortName)	
     else:
-        mPlug_existingTwistType = cgmMeta.cgmAttr(mi_ikHandle,'twistType')
+        mPlug_existingTwistType = cgmMeta.cgmAttr(mIKHandle,'twistType')
         mPlug_twistType = cgmMeta.cgmAttr(mi_crv,'twistType', attrType = 'enum', enum = ":".join(mPlug_existingTwistType.p_enum))
         mPlug_twistType.twistType = 'linear'	
         mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedShortName)	
