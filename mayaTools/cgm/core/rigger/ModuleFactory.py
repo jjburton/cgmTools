@@ -720,16 +720,16 @@ def rigConnect(*args,**kws):
                         #pntConstBuffer = mc.parentConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)  
                         pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
                         orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 			
-                        scConstBuffer = mc.scaleConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 
-                        if 'eyeOrb' not in _str_joint:
-                            for str_a in 'xyz':
-                                attributes.doConnectAttr('%s.s%s'%(i_jnt.parent,str_a),'%s.offset%s'%(scConstBuffer[0],str_a.capitalize()))			    
-                                #attributes.doConnectAttr('%s.s%s'%(mi_faceDeformNull.mNode,str_a),'%s.offset%s'%(scConstBuffer[0],str_a.capitalize()))
+                        #scConstBuffer = mc.scaleConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 
+                        #if 'eyeOrb' not in _str_joint:
+                            #for str_a in 'xyz':
+                                #attributes.doConnectAttr('%s.s%s'%(i_jnt.parent,str_a),'%s.offset%s'%(scConstBuffer[0],str_a.capitalize()))			    
+                                ##attributes.doConnectAttr('%s.s%s'%(mi_faceDeformNull.mNode,str_a),'%s.offset%s'%(scConstBuffer[0],str_a.capitalize()))
                     else:
                         pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)        
                         orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 
-                        scConstBuffer = mc.scaleConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                         
-                        #attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
+                        #scConstBuffer = mc.scaleConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)                         
+                    attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
                 except Exception,error:
                     raise StandardError,"[Joint failed: %s]{%s}"%(_str_joint,error)
             return True
@@ -777,7 +777,8 @@ def rigDisconnect(*args,**kws):
                 self.progressBar_set(status = "Disconnecting : %s"%_str_joint, progress = i, maxValue = int_lenMax)		    				    		    		
                 try:
                     l_constraints.extend( i_jnt.getConstraintsTo() )
-                    if not _b_faceState:attributes.doBreakConnection("%s.scale"%_str_joint)
+                    #if not _b_faceState:attributes.doBreakConnection("%s.scale"%_str_joint)
+                    attributes.doBreakConnection("%s.scale"%_str_joint)
                 except Exception,error:
                     log.error(error)
                     raise StandardError,"Joint failed: %s"%(_str_joint)

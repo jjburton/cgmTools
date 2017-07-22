@@ -77,6 +77,8 @@ def run():
         #mmWindow = cgmMarkingMenu()
     except Exception,err:
         log.error("Failed to load. err:{0}".format(err))
+        for a in err.args():
+            print a
         
 _str_popWindow = 'cgmMM'#...outside to push to killUI
 
@@ -247,7 +249,13 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                         l = 'Point Snap',
                         rp = 'NW')"""	        
     def createUI(self, parent):
-        mc.menu(parent,e = True, deleteAllItems = True)
+        
+        try:mc.menu(parent,e = True, deleteAllItems = True)
+        except Exception,err:
+            log.error("Failed to delete menu items")
+            for a in err.args():
+                print a
+                
         _str_func = "createUI"
         self.setup_optionVars()
         
@@ -1697,7 +1705,6 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
 
 def killUI():
     log.debug("killUI...")
-    
     _var_mode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_menuMode', defaultValue = 0)
     if _var_mode.value in [0,1,2]:
         log.debug('animMode killUI')
@@ -1722,7 +1729,11 @@ def killUI():
         if mc.popupMenu('cgmMM',ex = True):
             mc.deleteUI('cgmMM')  
     except Exception,err:
-        log.error(err)     
+        log.error(err)   
+    finally:
+        pass
+    
+    
     
         
 from cgm.core.classes import DraggerContextFactory as cgmDrag

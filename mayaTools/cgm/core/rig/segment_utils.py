@@ -19,7 +19,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -790,13 +790,14 @@ def addSquashAndStretch_toCurve(jointList,#attrHolder,#Should be an ikHandle nor
     
     ml_jointList = cgmMeta.validateObjListArg(jointList,'cgmObject',mayaType= 'joint')
     md_jointToHandle = {}
-    
+    mSegmentCurve = None
     for mJnt in ml_jointList:
         if mJnt.getMessage('ikHandle'):
             md_jointToHandle[mJnt] = mJnt.ikHandle
+            mSegmentCurve = cgmMeta.validateObjArg( md_jointToHandle[mJnt].segmentCurve )
         else:
             raise ValueError,"|{0}| >> No attr holder data found on joint : {1}...".format(_str_func,mJnt.p_nameShort)
-
+    
     #mAttrHolder = cgmMeta.validateObjArg(attrHolder,'cgmNode',noneValid=False) 
     
     #ml_jointList = mAttrHolder.msgList_get('drivenJoints',asMeta = True)
@@ -811,12 +812,12 @@ def addSquashAndStretch_toCurve(jointList,#attrHolder,#Should be an ikHandle nor
         #make sure attr exists
         mAttrHolder = md_jointToHandle[mJnt]
         _attrHolder_short = mAttrHolder.p_nameShort
-        mPlug_segmentScale = cgmMeta.cgmAttr(_attrHolder_short,"segmentScaleMult",attrType = 'float',
+        mPlug_segmentScale = cgmMeta.cgmAttr(mSegmentCurve,"segmentScaleMult",attrType = 'float',
                                              initialValue=1.0,hidden=False,defaultValue=1.0,keyable=True)	        
         _short = mJnt.p_nameShort
         log.debug("|{0}| >> On: {1}...".format(_str_func,_short))                                    
         
-        mAttr = cgmMeta.cgmAttr(_attrHolder_short,"scaleMult_{0}".format(i),attrType = 'float',initialValue=1)
+        mAttr = cgmMeta.cgmAttr(mSegmentCurve,"scaleMult_{0}".format(i),attrType = 'float',initialValue=1)
         mPlug_resultScaleMult = cgmMeta.cgmAttr(_attrHolder_short,
                                                 "result_scaleMultByFactor_{0}".format(i),
                                                 attrType = 'float',hidden=True)
@@ -946,7 +947,7 @@ def addAdditveScale_toCurve(jointList,#attrHolder,#Should be an ikHandle normall
         log.debug("|{0}| >> On: {1} | attrHolder: {2}...".format(_str_func,mJnt.p_nameShort, attrHolder_short))                                    
         
         
-        mPlug_addFactorIn = cgmMeta.cgmAttr(attrHolder_short,
+        mPlug_addFactorIn = cgmMeta.cgmAttr(mSegmentCurve,
                                             "scaleFactor_%s"%(i),attrType='float',value=(1-(fl_factor * (i))),hidden=False)	    
         mPlug_out_startFactorUp = cgmMeta.cgmAttr(attrHolder_short,
                                                   "out_addStartUpScaleFactor_%s"%(i),attrType='float',lock=True)
@@ -1006,6 +1007,7 @@ def addAdditveScale_toCurve(jointList,#attrHolder,#Should be an ikHandle normall
 
         dPlugs_midUps[i] = mPlug_out_midFactorUp
         dPlugs_midOuts[i] = mPlug_out_midFactorOut	
+
     
     #Now we need to build our drivens for each joint ----------------------------------------------------------------------
     log.debug("|{0}| >> Drivers per joint...".format(_str_func))                                                        
@@ -1126,8 +1128,7 @@ def add_subControl_toCurve(joints=None, segmentCurve = None, baseParent = None, 
         l_pos.expand([i_obj.getPosition() for i_obj in ml_newJoints])
         l_pos.append(mEndParent.getPosition())
         mConstraintSplineCurve = cgmMeta.cgmObject( mc.curve (d=3, ep = l_pos, os=True))
-        mConstraintSplineCurve.addAttr('cgmName',baseName)
-
+    mConstraintSplineCurve.addAttr('cgmName',baseName)
     mConstraintSplineCurve.addAttr('cgmTypeModifier','constraintSpline')
     mConstraintSplineCurve.doName()
 

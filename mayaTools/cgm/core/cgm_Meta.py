@@ -516,6 +516,7 @@ class cgmNode(r9Meta.MetaClass):
         return self.mNode
             
     def getNameDict(self):
+        reload(nameTools)
         return nameTools.returnObjectGeneratedNameDict(self.mNode) or {} 
     
     def doTagAndName(self,d_tags, **kws):
@@ -967,7 +968,7 @@ class cgmNode(r9Meta.MetaClass):
             #return []
 
         if _res and _asMeta:
-            return validateObjListArg(_res)
+            return validateObjListArg(_res,noneValid=True)
         return _res
 
     def msgList_append(self,*a,**kws):
@@ -2958,8 +2959,7 @@ class cgmObject(cgmNode):
                 #cgmAttr(self,attr).doCopyTo(mObj.mNode,attr,connectSourceToTarget = False)	    
             #self.addAttr('cgmType','null',lock=True)
             mCreated.doName()
-        elif mCreated.hasAttr('cgmName'):
-            ATTR.delete(mCreated,'cgmName')
+        elif self.hasAttr('cgmName'):
             mc.rename(mCreated.mNode, self.p_nameBase+'_Transform')
             
         if not asMeta:

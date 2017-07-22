@@ -556,9 +556,15 @@ def go(*args, **kws):
             try:
                 ml_objs = []
                 mi_worldSpaceObjectsGroup = self._i_puppet.masterNull.worldSpaceObjectsGroup
+                mi_charSpaceObjectsGroup = self._i_puppet.masterNull.characterSpaceObjectsGroup
+                
                 for mObj in self._i_masterControl.getChildren(asMeta = 1):
                     if mObj.getMayaAttr('cgmType') in ['dynDriver']:
                         mObj.parent = mi_worldSpaceObjectsGroup
+                for mObj in self.self._i_puppet.masterNull.getChildren(asMeta = 1):
+                    if mObj.getMayaAttr('cgmType') in ['dynDriver']:
+                        mObj.parent = mi_charSpaceObjectsGroup 
+                        
             except Exception,error:raise Exception,"[collectObjectTypeInRigNull ! | error: {0}]".format(error)  
 
         def verify_mirrorSideArg(self,arg  = None):
@@ -898,54 +904,52 @@ def go(*args, **kws):
             _str_func = "go.build_segmentChains(%s)"%self._strShortName
             log.debug(">>> %s "%(_str_func) + "="*75)
             start = time.clock()
-            try:
-                ml_segmentChains = []
-                if ml_segmentHandleJoints is None:
-                    ml_segmentHandleJoints = get_segmentHandleTargets(self._mi_module)
+            ml_segmentChains = []
+            if ml_segmentHandleJoints is None:
+                ml_segmentHandleJoints = get_segmentHandleTargets(self._mi_module)
 
-                if not ml_segmentHandleJoints:raise StandardError,"%s.build_segmentChains>> failed to get ml_segmentHandleJoints"%self._strShortName
+            if not ml_segmentHandleJoints:raise StandardError,"%s.build_segmentChains>> failed to get ml_segmentHandleJoints"%self._strShortName
 
-                l_segPairs = lists.parseListToPairs(ml_segmentHandleJoints)
+            l_segPairs = lists.parseListToPairs(ml_segmentHandleJoints)
 
-                for i,ml_pair in enumerate(l_segPairs):
-                    index_start = self._ml_moduleJoints.index(ml_pair[0])
-                    index_end = self._ml_moduleJoints.index(ml_pair[-1]) + 1
-                    buffer_segmentTargets = self._ml_moduleJoints[index_start:index_end]
+            for i,ml_pair in enumerate(l_segPairs):
+                index_start = self._ml_moduleJoints.index(ml_pair[0])
+                index_end = self._ml_moduleJoints.index(ml_pair[-1]) + 1
+                buffer_segmentTargets = self._ml_moduleJoints[index_start:index_end]
 
-                    log.debug("segment %s: %s"%(i,buffer_segmentTargets))
+                log.debug("segment %s: %s"%(i,buffer_segmentTargets))
 
-                    ml_newChain = []
-                    for i2,j in enumerate(buffer_segmentTargets):
-                        i_j = j.doDuplicate()
-                        i_j.addAttr('cgmTypeModifier','seg_{0}'.format(i),attrType='string',lock=True)
-                        i_j.addAttr('cgmIterator','{0}'.format(i2),lock=True)			
-                        i_j.doName()
-                        #i_j.connectionChildNode(j,'segJoint','sourceJoint') <<<<<<FINISH THIS 
-                        if ml_newChain:
-                            i_j.parent = ml_newChain[-1].mNode
-                        ml_newChain.append(i_j)
+                ml_newChain = []
+                for i2,j in enumerate(buffer_segmentTargets):
+                    i_j = j.doDuplicate()
+                    i_j.addAttr('cgmTypeModifier','seg_{0}'.format(i),attrType='string',lock=True)
+                    i_j.addAttr('cgmIterator',attrType = 'string',value='{0}'.format(i2),lock=True)			
+                    i_j.doName()
+                    #i_j.connectionChildNode(j,'segJoint','sourceJoint') <<<<<<FINISH THIS 
+                    if ml_newChain:
+                        i_j.parent = ml_newChain[-1].mNode
+                    ml_newChain.append(i_j)
 
-                    ml_newChain[0].parent = False#Parent to deformGroup
-                    ml_segmentChains.append(ml_newChain)
+                ml_newChain[0].parent = False#Parent to deformGroup
+                ml_segmentChains.append(ml_newChain)
 
-                #Sometimes last segement joints have off orientaions, we're gonna fix
-                joints.doCopyJointOrient(ml_segmentChains[-1][-2].mNode,ml_segmentChains[-1][-1].mNode)
-                for segmentChain in ml_segmentChains:
-                    jntUtils.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain])
+            #Sometimes last segement joints have off orientaions, we're gonna fix
+            joints.doCopyJointOrient(ml_segmentChains[-1][-2].mNode,ml_segmentChains[-1][-1].mNode)
+            for segmentChain in ml_segmentChains:
+                jntUtils.metaFreezeJointOrientation([i_jnt.mNode for i_jnt in segmentChain])
 
-                #Connect stuff ============================================================================================    
-                #self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
-                #self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back	
-                if connectNodes:
-                    for i,ml_chain in enumerate(ml_segmentChains):
-                        l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
-                        log.debug("segment chain %s: %s"%(i,l_chain))
-                        self._i_rigNull.msgList_connect('segment%s_Joints'%i,ml_chain,"rigNull")
+            #Connect stuff ============================================================================================    
+            #self._i_rigNull.connectChildrenNodes(self._l_skinJoints,'skinJoints','rigNull')#Push back
+            #self._i_rigNull.connectChildrenNodes(self._ml_moduleJoints,'moduleJoints','rigNull')#Push back	
+            if connectNodes:
+                for i,ml_chain in enumerate(ml_segmentChains):
+                    l_chain = [i_jnt.getShortName() for i_jnt in ml_chain]
+                    log.debug("segment chain %s: %s"%(i,l_chain))
+                    self._i_rigNull.msgList_connect('segment%s_Joints'%i,ml_chain,"rigNull")
 
-                log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
-                return ml_segmentChains
-            except Exception,error:
-                raise StandardError,"%s >> %s"%(_str_func,error)  
+            log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
+            return ml_segmentChains
+
 
 
         def build_simpleInfluenceChains(self,addMidInfluence = True):

@@ -1917,7 +1917,7 @@ def build_limbSkeleton(*args, **kws):
 	    Copy naming information from template objects to the joints closest to them
 	    copy over a cgmNameModifier tag from the module first
 	    """
-
+            ml_handleJoints = []
             try:#>>>First we need to find our matches
                 _str_subFunc = "Find matches"	
                 self.log_debug("Finding matches from module controlObjects")
@@ -1929,7 +1929,7 @@ def build_limbSkeleton(*args, **kws):
                     attributes.copyUserAttrs(mObj.mNode,closestJoint,attrsToCopy=['cgmPosition','cgmNameModifier','cgmDirection','cgmName'])
                     mi_go._d_handleToHandleJoints[mObj] = idx
                     mObj.connectChildNode(closestJoint,'handleJoint')
-
+                    ml_handleJoints.append(cgmMeta.asMeta(closestJoint))
             except Exception,error:raise Exception,"Match find fail | {0} ".format(error)
 
             try:#>>>If we stole our parents anchor joint, we need to to reconnect it
@@ -1947,13 +1947,29 @@ def build_limbSkeleton(*args, **kws):
 
             #>>>Store these joints and rename the heirarchy
             try:#Metaclassing our objects
+                ii = 1
                 ml_moduleJoints = [cgmMeta.asMeta(o,'cgmObject',setClass=True) for o in self.l_limbJoints]
                 for i,mObj in enumerate(ml_moduleJoints):
                     mObj.addAttr('d_jointFlags', '{}',attrType = 'string', lock=True, hidden=True) 
-            except Exception,error:raise Exception,"Joint flag/metaing fail | {0} ".format(error)
-
-            try:#Naming
-                ml_moduleJoints[0].doName(fastName = False, nameChildren=True,fastIterate=True)#name
+                    if mObj in ml_handleJoints:
+                        ii = 1
+                    elif mObj.parent in ml_handleJoints:
+                        mObj.addAttr('cgmIterator',ii,lock=True,hidden=True)
+                        mObj.addAttr('cgmNameModifier',value = 'roll')
+                        ii +=1
+                    else:
+                        mObj.addAttr('cgmIterator',ii,lock=True,hidden=True) 
+                        mObj.addAttr('cgmNameModifier',value = 'roll')                        
+                        ii +=1                        
+                    """if not mObj.hasAttr('cgmName'):
+                        if not mObj.hasAttr('cgmIterator'):
+                            mObj.addAttr('cgmIterator',ii,lock=True,hidden=True) 
+                            ii+=1
+                        else:
+                            ii = mObj.cgmIterator =1
+                    else:
+                        ii = 2"""
+                    mObj.doName()
             except Exception,error:raise Exception,"Joint flag/metaing fail | {0} ".format(error)
 
             self.ml_moduleJoints = ml_moduleJoints

@@ -91,12 +91,15 @@ moduleInstance = None):
 
 
 _d = {'joints':'lwrArm|midDirect',
-      'segmentCurve' : 'resultCurve',
-      'baseParent':'elbowDirect',
+      'segmentCurve' : 'resultCurve_splineIKCurve_splineIKCurve',
+      'baseParent':'null5_attach|elbowDirect',
       'endParent':'handDirect',
       'midControls':'mid_crv',
       #'jointList' : [u'chain_0', u'chain_1', u'chain_2', u'chain_3', u'chain_4'],
       'baseName':None,
       'controlTwistAxis':'rz',
       'orientation' : 'zyx'}
+
+reload(SEGMENT)
+SEGMENT.add_subControl_toCurve(**_d)
 

@@ -52,6 +52,9 @@ from cgm.lib import (attributes,
                      search,
                      curves,
                      )
+import cgm.core.rig.segment_utils as SEGMENT
+import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.distance_utils as DIST
 
 
 #>>> Skeleton
@@ -98,7 +101,7 @@ def __bindSkeletonSetup__(self):
                 if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
                 i_dupJnt = i_jnt.doDuplicate(parentOnly = True)#Duplicate
                 i_dupJnt.addAttr('cgmTypeModifier','scale')#Tag
-                i_jnt.doName()#Rename
+                #i_jnt.doName()#Rename
                 i_dupJnt.doName()#Rename
                 i_dupJnt.parent = i_jnt#Parent
                 i_dupJnt.connectChildNode(i_jnt,'rootJoint','scaleJoint')#Connect
@@ -887,26 +890,26 @@ def build_deformation(self):
                     raise Exception,"[Initial Get | {0}]".format(error)
                 
                 #Create segment ========================================================================================
-                curveSegmentReturn = rUtils.createCGMSegment(l_jointChain,
-                                                             addSquashStretch=True,
-                                                             addTwist=True,
-                                                             influenceJoints=[l_infuenceJoints[0],l_infuenceJoints[-1]],
-                                                             startControl= i_startControl,
-                                                             endControl= i_endControl,
-                                                             orientation=self._jointOrientation,
-                                                             additiveScaleSetup=True,
-                                                             connectAdditiveScale=True,                                                 
-                                                             baseName = str_baseName,
-                                                             moduleInstance=self._mi_module)
+                curveSegmentReturn = SEGMENT.create(l_jointChain,
+                                                    addSquashStretch=True,
+                                                    addTwist=True,
+                                                    influenceJoints=[l_infuenceJoints[0],l_infuenceJoints[-1]],
+                                                    startControl= i_startControl,
+                                                    endControl= i_endControl,
+                                                    orientation=self._jointOrientation,
+                                                    additiveScaleSetup=True,
+                                                    connectAdditiveScale=True,                                                 
+                                                    baseName = str_baseName,
+                                                    moduleInstance=self._mi_module)
 
                 ml_segmentReturns.append(curveSegmentReturn)
 
-                i_curve = curveSegmentReturn['mi_segmentCurve']
+                i_curve = curveSegmentReturn['mSegmentCurve']
                 i_curve.parent = self._i_rigNull.mNode
                 i_curve.segmentGroup.parent = self._i_rigNull.mNode
                 ml_segmentCurves.append(i_curve)
 
-                midReturn = rUtils.addCGMSegmentSubControl(ml_influenceChains[i][1],
+                midReturn = SEGMENT.add_subControl_toCurve(ml_influenceChains[i][1],
                                                            segmentCurve = i_curve,
                                                            baseParent = l_infuenceJoints[0],
                                                            endParent = l_infuenceJoints[-1],
@@ -920,9 +923,12 @@ def build_deformation(self):
                     i_grp.parent = self._i_constrainNull.mNode
 
                 #Parent our joint chains
-                i_curve.msgList_get('driverJoints',asMeta = True)[0].parent = ml_blendJoints[i].mNode#driver chain
-                ml_segmentChains[i][0].parent = ml_blendJoints[i].mNode#segment chain    
-
+                #i_curve.msgList_get('driverJoints',asMeta = True)[0].parent = ml_blendJoints[i].mNode#driver chain
+                #ml_segmentChains[i][0].parent = ml_blendJoints[i].mNode#segment chain    
+                for mHandle in i_curve.msgList_get('ikHandles',asMeta=True):
+                    ml_chain = mHandle.msgList_get('drivenJoints',asMeta=True)
+                    ml_chain[0].parent =  ml_blendJoints[i].mNode   
+                    
                 #>>> Attach stuff
                 #==============================================================================================
                 try:#We're gonna attach to the blend chain
@@ -930,13 +936,13 @@ def build_deformation(self):
                     mi_segmentAnchorEnd = cgmMeta.validateObjArg(i_curve.anchorEnd,'cgmObject')
                     mi_segmentAttachStart = cgmMeta.validateObjArg(i_curve.attachStart,'cgmObject')
                     mi_segmentAttachEnd = cgmMeta.validateObjArg(i_curve.attachEnd,'cgmObject') 
-                    mi_distanceBuffer = cgmMeta.validateObjArg(i_curve.scaleBuffer)
+                    #mi_distanceBuffer = cgmMeta.validateObjArg(i_curve.scaleBuffer)
 
                     log.debug("mi_segmentAnchorStart: %s"%mi_segmentAnchorStart.mNode)
                     log.debug("mi_segmentAnchorEnd: %s"%mi_segmentAnchorEnd.mNode)
                     log.debug("mi_segmentAttachStart: %s"%mi_segmentAttachStart.mNode)
                     log.debug("mi_segmentAttachEnd: %s"%mi_segmentAttachEnd.mNode)
-                    log.debug("mi_distanceBuffer: %s"%mi_distanceBuffer.mNode)
+                    #log.debug("mi_distanceBuffer: %s"%mi_distanceBuffer.mNode)
 
                     #>>> parent the anchors to the deform null
                     mi_segmentAnchorStart.parent =  self._i_constrainNull.mNode
@@ -1074,25 +1080,32 @@ def build_deformation(self):
                 try:#>>> Attributes 
                     #================================================================================================================
                     #Connect master scale
-                    cgmMeta.cgmAttr(i_curve.scaleBuffer,'masterScale',lock=True).doConnectIn("%s.%s"%(self._i_masterControl.mNode,'scaleY'))    	    
+                    cgmMeta.cgmAttr(i_curve,'masterScale',lock=True).doConnectIn("%s.%s"%(self._i_masterControl.mNode,'scaleY'))    	    
     
                     #Push squash and stretch multipliers to head
-                    i_buffer = i_curve.scaleBuffer	    
-                    for ii,k in enumerate(i_buffer.d_indexToAttr.keys()):
-                        attrName = "seg_%s_%s_mult"%(i,ii)
-                        cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_settings.mNode,attrName,connectSourceToTarget = True)
-                        cgmMeta.cgmAttr(mi_settings.mNode,attrName,defaultValue = 1,keyable=True)
-    
+                    l_keys = i_curve.getSequentialAttrDict('midFactor').keys()
+                    for ii,k in enumerate(l_keys):
+                        a = 'midFactor_{0}'.format(ii)
+                        a1 = 'midFactor_{0}_{1}'.format(i,ii)
+                        ATTR.copy_to(i_curve.mNode,a,mi_settings.mNode,a1,driven='source')
+                        ATTR.set_keyable(mi_settings.mNode,a1,False)
+                        if ii == 1:
+                            ATTR.set(mi_settings.mNode,a1,1)    
+                    
+                    ATTR.copy_to(i_curve.mNode,'segmentScaleMult',mi_settings.mNode,'squashStretch_{0}'.format(i),driven='source')
+                    ATTR.set_keyable(mi_settings.mNode,'squashStretch_{0}'.format(i),False)   
                     #Segement scale 
-                    cgmMeta.cgmAttr(i_buffer,'segmentScaleMult').doCopyTo(mi_settings.mNode,"segmentScaleMult_%s"%i,connectSourceToTarget=True)	    
+                    #cgmMeta.cgmAttr(i_buffer,'segmentScaleMult').doCopyTo(mi_settings.mNode,"segmentScaleMult_%s"%i,connectSourceToTarget=True)	    
     
                     #Other attributes transfer
-                    cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
-                    cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
+                    #cgmMeta.cgmAttr(i_curve,'twistType').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
+                    #cgmMeta.cgmAttr(i_curve,'twistExtendToEnd').doCopyTo(i_midControl.mNode,connectSourceToTarget=True)
                 except Exception,error:
                     raise Exception,["Attributes fail | error: {0}".format(error)]
             except Exception,error:
-                raise Exception,["Segment {0} |  {1}".format(i,error)]                    
+                raise Exception,["Segment {0} |  {1}".format(i,error)] 
+        self._i_rigNull.msgList_connect('segmentCurves',
+                                        ml_segmentCurves,"rigNull")            
     except Exception,error:
         raise Exception,["Control Segment | error: {0}".format(error)]            
 
@@ -1480,7 +1493,9 @@ def build_rig(goInstance = None):
                     if ml_buffer:
                         ml_handDynParents.append( ml_buffer[0])	    
 
-                ml_handDynParents.append(self._go._i_masterControl)
+                #ml_handDynParents.append(self._go._i_masterControl)
+                ml_handDynParents.append(self._go._i_puppet.masterNull.puppetSpaceObjectsGroup)   
+                ml_handDynParents.append(self._go._i_puppet.masterNull.worldSpaceObjectsGroup)                   
                 if self.mi_controlIK.getMessage('spacePivots'):
                     ml_handDynParents.extend(self.mi_controlIK.msgList_get('spacePivots',asMeta = True))	
                 log.info("%s.build_rig>>> Dynamic parents to add: %s"%(self._go._strShortName,[i_obj.getShortName() for i_obj in ml_handDynParents]))
@@ -1514,8 +1529,9 @@ def build_rig(goInstance = None):
                         ml_elbowDynParents.append(ml_buffer[0])
 
                 ml_elbowDynParents.insert(1,self.mi_controlIK)
-                ml_elbowDynParents.append(self._go._i_masterControl)
-
+                #ml_elbowDynParents.append(self._go._i_masterControl)
+                ml_elbowDynParents.append(self._go._i_puppet.masterNull.puppetSpaceObjectsGroup)   
+                ml_elbowDynParents.append(self._go._i_puppet.masterNull.worldSpaceObjectsGroup)   
                 if self.mi_controlIK.getMessage('spacePivots'):
                     ml_elbowDynParents.extend(self.mi_controlIK.msgList_get('spacePivots',asMeta = True))
 
@@ -1571,7 +1587,7 @@ def build_rig(goInstance = None):
             except Exception,error:
                 raise Exception," fk shoulder | %s "%error
 
-            self._go.collect_worldDynDrivers()#...collect world dyn drivers
+            #self._go.collect_worldDynDrivers()#...collect world dyn drivers
 
         def build_rigStructure(self):
             #Parent and constrain joints
@@ -1612,8 +1628,12 @@ def build_rig(goInstance = None):
             #====================================================================================
             ml_fkJoints = self._go._i_rigNull.msgList_get('fkJoints')
             ml_ikJoints = self._go._i_rigNull.msgList_get('ikJoints')
- 
-
+            
+            for mObj in ml_ikJoints[2:]:
+                self.mi_controlIK.doConnectOut('scale', mObj.mNode + '.scale',)
+            #for mObj in ml_fkJoints[2:]:
+                #self.ml_controlsFK[-1].doConnectOut('scale',mObj.mNode + '.scale')
+            """
             mPlug_ikHandScale = cgmMeta.cgmAttr(self.mi_controlIK,'s%s'%orientation[1])	    
             for attr in [self.orientation[0],self.orientation[2]]:
                 #Ik Scale Object
@@ -1642,24 +1662,10 @@ def build_rig(goInstance = None):
 
             mPlug_fkHandScale.p_nameAlias = 'fkScale'
             mPlug_fkHandScale.p_keyable = True
-            mPlug_fkHandScale.p_locked = False
+            mPlug_fkHandScale.p_locked = False"""
             
-            #mPlug_fkHandScale.doConnectOut("%s.inverseScale"%self.ml_controlsFK[-1].mNode)
             
-            '''                #FK Scale
-                mPlug_fkFootScale = cgmMeta.cgmAttr(ml_controlsFK[-2],'s%s'%orientation[0])
 
-                #attributes.doSetLockHideKeyableAttr(ml_controlsFK[-2].mNode,lock=False,visible=True,keyable=True, channels=['s%s'%orientation[0]])
-                for attr in orientation[1:]:
-                    mPlug_fkFootScale.doConnectOut("%s.s%s"%(ml_controlsFK[-2].mNode,attr))
-
-                mPlug_fkFootScale.doConnectOut("%s.scale"%ml_controlsFK[-1].mNode)
-                mPlug_fkFootScale.doConnectOut("%s.inverseScale"%ml_controlsFK[-1].mNode)
-
-                mPlug_fkFootScale.p_nameAlias = 'fkScale'
-                mPlug_fkFootScale.p_keyable = True
-                mPlug_fkFootScale.p_lock = False'''
-            #Blend the two
             mPlug_FKIK = cgmMeta.cgmAttr(self.mi_settings.mNode,'blend_FKIK')
             rUtils.connectBlendJointChain(ml_fkJoints[-1],ml_ikJoints[2:],self.ml_blendJoints[2:],
                                           driver = mPlug_FKIK.p_combinedName,channels=['scale'])    
@@ -1755,6 +1761,7 @@ def build_twistDriver_shoulder(goInstance = None):
                 ml_blendJoints = self._go._i_rigNull.msgList_get('blendJoints')
                 ml_handleJoints = self._go._mi_module.rig_getHandleJoints()
                 mi_mainSegmentHandle = self._go._i_rigNull.mainSegmentHandle
+                fl_baseDist = DIST.get_distance_between_points(ml_blendJoints[0].p_position, ml_blendJoints[-1].p_position)
 
                 #Create joints -------------------------------------------------------------------
                 i_startRoot = ml_handleJoints[0].doDuplicate(inputConnections = False)
@@ -1780,16 +1787,11 @@ def build_twistDriver_shoulder(goInstance = None):
                 self._go.connect_toRigGutsVis(i_upLoc)
 
                 ml_twistObjects = [i_startRoot,i_startEnd,i_upLoc,i_driver]
-                fl_dist = 25
-                i_upLoc.__setattr__('t%s'%self._go._jointOrientation[1],fl_dist)	
-                '''
-		if self._go._direction == 'left':#if right, rotate the pivots
-		    i_upLoc.__setattr__('t%s'%self._go._jointOrientation[1],fl_dist)	
-		else:
-		    i_upLoc.__setattr__('t%s'%self._go._jointOrientation[2],-fl_dist)		
-		'''
+                #i_upLoc.__setattr__('t%s'%self._go._jointOrientation[1],fl_baseDist)	
+                ATTR.set(i_upLoc.mNode,'t%s'%self._go._jointOrientation[1],fl_baseDist)
                 #Move aim joint out
-                i_startEnd.__setattr__('t%s'%self._go._jointOrientation[0],5)
+                #i_startEnd.__setattr__('t%s'%self._go._jointOrientation[0],fl_baseDist)
+                ATTR.set(i_startEnd.mNode,'t%s'%self._go._jointOrientation[0],fl_baseDist)
 
             except Exception,error:
                 raise Exception,"Failed joint creation,positioning | %s"%(error)	    
@@ -1873,6 +1875,7 @@ def build_twistDriver_wrist(goInstance = None):
                 upVector = self._go._vectorUp      
                 ml_blendJoints = self._go._i_rigNull.msgList_get('blendJoints')
                 ml_ikJoints = self._go._i_rigNull.msgList_get('ikJoints')	
+                fl_baseDist = DIST.get_distance_between_points(ml_blendJoints[0].p_position, ml_blendJoints[-1].p_position)
 
                 ml_rigHandleJoints = self._go._get_handleJoints()	
                 i_targetJoint = ml_rigHandleJoints[2]#This should be the wrist
@@ -1898,13 +1901,18 @@ def build_twistDriver_wrist(goInstance = None):
 
                 i_startEnd.parent = i_startRoot.mNode
                 ml_twistObjects = [i_startRoot,i_startEnd,i_upLoc]
-                fl_dist = 10
+                
                 if self._go._direction == 'left':#if right, rotate the pivots
-                    i_upLoc.__setattr__('t%s'%self._go._jointOrientation[2],fl_dist)	
+                    #i_upLoc.__setattr__('t%s'%self._go._jointOrientation[2],fl_baseDist)
+                    ATTR.set(i_upLoc.mNode,'t%s'%self._go._jointOrientation[2],fl_baseDist)
+                    
                 else:
-                    i_upLoc.__setattr__('t%s'%self._go._jointOrientation[2],-fl_dist)
+                    #i_upLoc.__setattr__('t%s'%self._go._jointOrientation[2],-fl_baseDist)
+                    ATTR.set(i_upLoc.mNode,'t%s'%self._go._jointOrientation[2],-fl_baseDist)
+                    
 
-                i_startEnd.__setattr__('t%s'%self._go._jointOrientation[0],-(fl_dist))
+                #i_startEnd.__setattr__('t%s'%self._go._jointOrientation[0],-(fl_baseDist))
+                ATTR.set(i_startEnd.mNode,'t%s'%self._go._jointOrientation[0],-fl_baseDist)
 
                 i_startRoot.parent = ml_ikJoints[1].mNode
                 i_startRoot.rotateOrder = 0 #xyz

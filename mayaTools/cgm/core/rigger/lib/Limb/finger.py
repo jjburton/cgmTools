@@ -70,6 +70,7 @@ def __bindSkeletonSetup__(self,addHelpers = True):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
     """
+    return
     log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "-"*75)            
     try:
         if not self._cgmClass == 'JointFactory.go':
@@ -747,6 +748,8 @@ def build_FKIK(goInstance = None):
 
                     #Constrain ik base to fk base
                     mc.orientConstraint(ml_fkJoints[0].mNode,ml_ikJoints[0].mNode,maintainOffset = True)
+                    mc.pointConstraint(ml_fkJoints[0].mNode,ml_ikJoints[0].mNode,maintainOffset = True)
+                    
                     ml_fkJoints[0].parent = self._go._i_constrainNull.mNode
 
             except Exception,error:
@@ -992,7 +995,9 @@ def build_rig(goInstance = None):
                     ml_fingerDynParents.append( mi_spineRigNull.cog )
                     ml_fingerDynParents.append( mi_spineRigNull.hips )	    
 
-                ml_fingerDynParents.append(self._go._i_masterControl)
+                #ml_fingerDynParents.append(self._go._i_masterControl)
+                ml_fingerDynParents.append(self._go._i_puppet.masterNull.puppetSpaceObjectsGroup)   
+                ml_fingerDynParents.append(self._go._i_puppet.masterNull.worldSpaceObjectsGroup)                  
                 if mi_controlIK.getMessage('spacePivots'):
                     ml_fingerDynParents.extend(mi_controlIK.msgList_get('spacePivots',asMeta = True))	
                 log.info("%s.build_rig>>> Dynamic parents to add: %s"%(self._go._strShortName,[i_obj.getShortName() for i_obj in ml_fingerDynParents]))
@@ -1011,7 +1016,7 @@ def build_rig(goInstance = None):
                 log.error("finger.build_rig>> finger ik dynamic parent setup fail!")
                 raise Exception,error
 
-            self._go.collect_worldDynDrivers()#...collect world dyn drivers
+            #self._go.collect_worldDynDrivers()#...collect world dyn drivers
 
             #Make some connections
             #====================================================================================
@@ -1037,13 +1042,15 @@ def build_rig(goInstance = None):
             #==================================================================================== 
             #Parent deform Null to last blend parent
             if mi_moduleParent:
+                log.info("module parent scale hook up!")
                 mi_blendEndJoint = mi_moduleParent.rigNull.msgList_get('blendJoints')[-1]
                 mi_parentBlendPlug = cgmMeta.cgmAttr(mi_blendEndJoint,'scale')
                 self._go._i_deformNull.parent = mi_blendEndJoint.mNode
 
                 #connect blend joint scale to the finger blend joints
+                """
                 for i_jnt in ml_blendJoints:
-                    mi_parentBlendPlug.doConnectOut("%s.scale"%i_jnt.mNode)
+                    mi_parentBlendPlug.doConnectOut("%s.scale"%i_jnt.mNode)"""
 
                 #intercept world scale on finger IK and add in the blend wrist scale
                 mPlug_moduleMasterScale = cgmMeta.cgmAttr(self._go._i_rigNull,'masterScale',value = 1.0,defaultValue=1.0)

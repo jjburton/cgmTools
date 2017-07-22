@@ -11,7 +11,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -663,11 +663,13 @@ class go(object):
             self.maxDistance = self._baseModuleThickness 
             self.joinHits = [0,2,4,6,8]	  
             self.points = 10
+            self.closestInRange = False
 
             if self._mi_module.moduleType.lower() in ['finger','thumb']:
                 self.posOffset = [0,0,self.f_skinOffset/2]
                 self.maxDistance = self._baseModuleThickness * .75
                 self.joinHits = [0,5]	    
+                self.closestInRange = True
 
             for i,seg in enumerate(l_segmentsToDo):	
                 if d_kws:		
@@ -680,7 +682,7 @@ class go(object):
                                                                 joinMode=True,
                                                                 maxDistance=self.maxDistance,		                                      
                                                                 joinHits = self.joinHits,
-                                                                closestInRange=False,
+                                                                closestInRange=self.closestInRange,
                                                                 extendMode='segment')
                 mi_crv = returnBuffer['instance']	    
                 #>>> Color
@@ -1914,11 +1916,11 @@ class go(object):
 
         d_startReturn = ShapeCast.createMeshSliceCurve(self._targetMesh,mi_wristLoc.mNode,offsetMode='vector',maxDistance = dist_cast,
                                                        closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self.str_jointOrientation[1],self.str_jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
-                                                       latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=True)
+                                                       latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=False)
 
         d_endReturn = ShapeCast.createMeshSliceCurve(self._targetMesh,mi_palmLoc.mNode,offsetMode='vector',maxDistance = dist_cast,
                                                      closedCurve = True,curveDegree=3,midMeshCast=True,axisToCheck=[self.str_jointOrientation[1],self.str_jointOrientation[2]],posOffset = self.posOffset,returnDict = True,
-                                                     latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=True)
+                                                     latheAxis=self.latheAxis,aimAxis=self.aimAxis,closestInRange=False)
 
 
         #Let's collect the points to join

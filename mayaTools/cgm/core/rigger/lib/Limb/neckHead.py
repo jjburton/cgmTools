@@ -41,6 +41,9 @@ from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import rig_Utils as rUtils
+import cgm.core.rig.segment_utils as SEGMENT
+import cgm.core.lib.attribute_utils as ATTR
+
 from cgm.lib import (attributes,
                      joints,
                      skinning,
@@ -86,7 +89,7 @@ def __bindSkeletonSetup__(self):
                 if i == 0:i_jnt.parent = ml_moduleJoints[0].mNode#Parent head to root
                 i_dupJnt = i_jnt.doDuplicate()#Duplicate
                 i_dupJnt.addAttr('cgmTypeModifier','scale')#Tag
-                i_jnt.doName()#Rename
+                #i_jnt.doName()#Rename
                 i_dupJnt.doName()#Rename
                 i_dupJnt.parent = i_jnt#Parent
                 i_dupJnt.connectChildNode(i_jnt,'rootJoint','scaleJoint')#Connect
@@ -444,7 +447,7 @@ def build_deformation(*args, **kws):
                 i_startControl = ml_segmentHandles[0]
                 i_endControl = ml_segmentHandles[-1]
                 #Create segment
-                curveSegmentReturn = rUtils.createCGMSegment([i_jnt.mNode for i_jnt in ml_segmentJoints],
+                curveSegmentReturn = SEGMENT.create([i_jnt.mNode for i_jnt in ml_segmentJoints],
                                                              addSquashStretch=True,
                                                              addTwist=True,
                                                              influenceJoints=[ml_influenceJoints[0],ml_influenceJoints[-1]],
@@ -456,7 +459,7 @@ def build_deformation(*args, **kws):
                                                              connectAdditiveScale=True,	                                             
                                                              moduleInstance=mi_go._mi_module)
 
-                i_curve = curveSegmentReturn['mi_segmentCurve']
+                i_curve = curveSegmentReturn['mSegmentCurve']
                 i_curve.parent = mi_go._i_rigNull.mNode
                 mi_go._i_rigNull.msgList_connect('segmentCurves',[i_curve],'rigNull')
                 mi_go._i_rigNull.msgList_connect('segmentJoints',ml_segmentJoints,'rigNull')	#Reconnect to reset. Duplication from createCGMSegment causes issues	
@@ -464,14 +467,24 @@ def build_deformation(*args, **kws):
 
             except Exception,error:raise Exception,"Control segment! | error: {0}".format(error)
 
-
+            """
             try:#>>>Connect segment scale
-                mi_distanceBuffer = i_curve.scaleBuffer	
+                mi_distanceBuffer = i_curve	
                 cgmMeta.cgmAttr(mi_distanceBuffer,
                                 'segmentScaleMult').doTransferTo(mi_go._i_rigNull.settings.mNode)    
 
-            except Exception,error:raise Exception,"Connect Segment Scale! | error: {0}".format(error)
-
+            except Exception,error:raise Exception,"Connect Segment Scale! | error: {0}".format(error)"""
+            ATTR.copy_to(i_curve.mNode,'segmentScaleMult',mi_go._i_rigNull.settings.mNode,'squashStretch',driven='source')
+            ATTR.set_keyable(mi_go._i_rigNull.settings.mNode,'squashStretch',False)            
+            
+            #MidFactor
+            l_keys = i_curve.getSequentialAttrDict('midFactor').keys()
+            for i,k in enumerate(l_keys):
+                a = 'midFactor_{0}'.format(i)
+                ATTR.copy_to(i_curve.mNode,a,mi_handleIK.mNode,driven='source')
+                ATTR.set_keyable(mi_handleIK.mNode,a,False)
+                if i == 1:
+                    ATTR.set(mi_handleIK.mNode,a,1)
             '''
 	    try:#>>> Main attribute
 		mPlug_worldIKEndIn = cgmMeta.cgmAttr(mi_settings,"in_worldIKEnd" , attrType='float' , lock = True)
@@ -502,7 +515,7 @@ def build_deformation(*args, **kws):
 
             try:#Setup top twist driver		
                 #Create an fk additive attributes
-                str_curve = curveSegmentReturn['mi_segmentCurve'].getShortName()
+                str_curve = i_curve.getShortName()
                 #fk_drivers = ["%s.r%s"%(i_obj.mNode,mi_go._jointOrientation[0]) for i_obj in ml_controlsFK]
                 drivers = ["%s.r%s"%(ml_segmentHandles[-1].mNode,mi_go._jointOrientation[0])]
                 #drivers.append("%s.r%s"%(mi_handleIK.mNode,mi_go._jointOrientation[0]))
@@ -511,7 +524,7 @@ def build_deformation(*args, **kws):
                     drivers.append("%s.r%s"%(mObj.mNode,mi_go._jointOrientation[0]))
 
                 NodeF.createAverageNode(drivers,
-                                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistEnd"],1)
+                                        [i_curve.mNode,"twistEnd"],1)
 
 
             except Exception,error:raise Exception,"Top Twist driver! | error: {0}".format(error)
@@ -522,16 +535,16 @@ def build_deformation(*args, **kws):
                 #drivers.append("%s.r%s"%(ml_controlsFK[0].mNode,mi_go._jointOrientation[0]))
 
                 NodeF.createAverageNode(drivers,
-                                        [curveSegmentReturn['mi_segmentCurve'].mNode,"twistStart"],1)
+                                        [i_curve.mNode,"twistStart"],1)
 
             except Exception,error:raise Exception,"Bottom Twist driver! | error: {0}".format(error)
 
 
             try:#Push squash and stretch multipliers to head
-                i_buffer = i_curve.scaleBuffer
+                i_buffer = i_curve
 
-                #>>> Move attrs to handle ik ==========================================================
-                for k in i_buffer.d_indexToAttr.keys():
+                #>>> Move attrs to handle ik ==========================================================                
+                for k in i_curve.getSequentialAttrDict('scaleMult').keys():
                     attrName = 'neckHead_%s'%k
                     cgmMeta.cgmAttr(i_buffer.mNode,'scaleMult_%s'%k).doCopyTo(mi_handleIK.mNode,attrName,connectSourceToTarget = True)
                     cgmMeta.cgmAttr(mi_handleIK.mNode,attrName,defaultValue = 1,keyable=False,hidden=False)
@@ -737,13 +750,13 @@ def build_rig(*args, **kws):
                 mi_segmentAnchorEnd = cgmMeta.validateObjArg(mi_segmentCurve.anchorEnd,'cgmObject')
                 mi_segmentAttachStart = cgmMeta.validateObjArg(mi_segmentCurve.attachStart,'cgmObject')
                 mi_segmentAttachEnd = cgmMeta.validateObjArg(mi_segmentCurve.attachEnd ,'cgmObject')
-                mi_distanceBuffer = cgmMeta.validateObjArg(mi_segmentCurve.scaleBuffer,'cgmNode')
+                mi_distanceBuffer = mi_segmentCurve
                 mi_moduleParent = False
                 if mi_go._mi_module.getMessage('moduleParent'):
                     mi_moduleParent = mi_go._mi_module.moduleParent
 
                 ml_influenceJoints = mi_go._i_rigNull.msgList_get('influenceJoints')
-                ml_segmentSplineJoints = mi_segmentCurve.msgList_get('driverJoints',asMeta = True)
+                #ml_segmentSplineJoints = mi_segmentCurve.msgList_get('driverJoints',asMeta = True)
 
                 ml_anchorJoints = mi_go._i_rigNull.msgList_get('anchorJoints')
                 ml_rigJoints = mi_go._i_rigNull.msgList_get('rigJoints')    
@@ -778,7 +791,8 @@ def build_rig(*args, **kws):
                     if mi_parentRigNull.getMessage('cog'):
                         ml_headDynParents.append( mi_parentRigNull.cog )
                 ml_headDynParents.extend(mi_handleIK.msgList_get('spacePivots',asMeta = True))
-                ml_headDynParents.append(mi_go._i_masterControl)
+                ml_headDynParents.append(mi_go._i_puppet.masterNull.puppetSpaceObjectsGroup)   
+                ml_headDynParents.append(mi_go._i_puppet.masterNull.worldSpaceObjectsGroup)
                 log.info(ml_headDynParents)
                 log.info([i_obj.getShortName() for i_obj in ml_headDynParents])
 
@@ -793,7 +807,7 @@ def build_rig(*args, **kws):
 
                 i_dynGroup.dynFollow.parent = mi_go._i_masterDeformGroup.mNode
 
-                mi_go.collect_worldDynDrivers()
+                #mi_go.collect_worldDynDrivers()
 
             except Exception,error:raise Exception,"dynamic parent groups! | error: {0}".format(error)
 
@@ -803,8 +817,11 @@ def build_rig(*args, **kws):
                 mc.parentConstraint(parentAttach,mi_go._i_deformNull.mNode,maintainOffset=True)#constrain
                 mc.scaleConstraint(parentAttach,mi_go._i_deformNull.mNode,maintainOffset=True)#Constrain
 
-                ml_segmentJoints[0].parent = mi_go._i_deformNull.mNode
-                ml_segmentSplineJoints[0].parent = mi_go._i_deformNull.mNode
+                #ml_segmentJoints[0].parent = mi_go._i_deformNull.mNode
+                #ml_segmentSplineJoints[0].parent = mi_go._i_deformNull.mNode
+                for mHandle in mi_segmentCurve.msgList_get('ikHandles',asMeta=True):
+                    ml_chain = mHandle.msgList_get('drivenJoints',asMeta=True)
+                    ml_chain[0].parent = mi_go._i_deformNull.mNode
 
                 #Put the start and end controls in the heirarchy
                 mc.parent(ml_segmentHandles[0].masterGroup.mNode,mi_segmentAttachStart.mNode)

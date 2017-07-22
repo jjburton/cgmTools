@@ -236,6 +236,11 @@ class cgmPuppet(cgmMeta.cgmNode):
             else:    
                 mGroup.p_parent = mMasterNull
             ATTR.set_standardFlags(mGroup.mNode)
+            
+            if attr == 'worldSpaceObjects':
+                mGroup.addAttr('cgmAlias','world')
+            elif attr == 'puppetSpaceObjects':
+                mGroup.addAttr('cgmAlias','puppet')
 
 
 

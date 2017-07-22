@@ -26,6 +26,7 @@ import maya.cmds as mc
 from Red9.core import Red9_General as r9General
 from cgm.core.cgmPy import str_Utils as strUtils
 from cgm.lib import names
+import cgm.core.lib.attribute_utils as ATTR
 reload(strUtils)
 # From cgm ==============================================================
 from cgm.lib import (lists,
@@ -220,7 +221,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
         if tagInfo is not False:
             namesDict[tag] = (tagInfo)
             
-    _iterator = search.findRawTagInfo(obj,'cgmIterator')
+    _iterator = ATTR.get(obj,'cgmIterator')
     if _iterator is not False:
         log.debug("Iterator found")
         namesDict['cgmIterator'] = (_iterator)

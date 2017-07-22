@@ -19,7 +19,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -222,7 +222,7 @@ def spline(jointList = None,
             
         ml_distanceObjects = []
         ml_distanceShapes = []  
-        mIKHandle.addAttr('masterScale',value = 1.0, minValue = 0.0001, attrType='float')
+        mSegmentCurve.addAttr('masterScale',value = 1.0, minValue = 0.0001, attrType='float')
         
         for i,mJnt in enumerate(ml_joints[:-1]):
             #>> Distance nodes
@@ -282,10 +282,10 @@ def spline(jointList = None,
                 #distance by master
                 l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalBaseDist.p_combinedShortName,
                                                            '{0}.baseDist_{1}'.format(mIKHandle.mNode,i),
-                                                           "{0}.masterScale".format(mIKHandle.mNode)))
+                                                           "{0}.masterScale".format(mSegmentCurve.mNode)))
                 l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalDist.p_combinedShortName,
                                                            mPlug_attrDist.p_combinedShortName,
-                                                           "{0}.masterScale".format(mIKHandle.mNode)))			
+                                                           "{0}.masterScale".format(mSegmentCurve.mNode)))			
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NodeF.argsToNodes(arg).doBuild()
@@ -305,7 +305,7 @@ def spline(jointList = None,
                 mi_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
                 mi_mdNormalBaseDist.doName()
 
-                ATTR.connect('%s.masterScale'%(mIKHandle.mNode),#>>
+                ATTR.connect('%s.masterScale'%(mSegmentCurve.mNode),#>>
                              '%s.%s'%(mi_mdNormalBaseDist.mNode,'input1X'))
                 ATTR.connect('{0}.baseDist_{1}'.format(mIKHandle.mNode,i),#>>
                              '%s.%s'%(mi_mdNormalBaseDist.mNode,'input2X'))	
@@ -318,7 +318,7 @@ def spline(jointList = None,
                 mi_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
                 mi_mdNormalDist.doName()
 
-                ATTR.connect('%s.masterScale'%(mIKHandle.mNode),#>>
+                ATTR.connect('%s.masterScale'%(mSegmentCurve.mNode),#>>
                              '%s.%s'%(mi_mdNormalDist.mNode,'input1X'))
                 mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdNormalDist.mNode,'input2X'))	
                 mPlug_attrNormalDist.doConnectIn('%s.%s'%(mi_mdNormalDist.mNode,'output.outputX'))
@@ -364,7 +364,8 @@ def spline(jointList = None,
     
     #>> Connect and close =============================================================================
     #mSegmentCurve.connectChildNode(mi_jntScaleBufferNode,'scaleBuffer','segmentCurve')
-    mSegmentCurve.connectChildNode(mIKHandle,'ikHandle','segmentCurve')
+    #mSegmentCurve.connectChildNode(mIKHandle,'ikHandle','segmentCurve')
+    mSegmentCurve.msgList_append('ikHandles',mIKHandle,'segmentCurve')
     #mSegmentCurve.msgList_connect('drivenJoints',ml_joints,'segmentCurve')       
     mIKHandle.msgList_connect('drivenJoints',ml_joints,'ikHandle')       
     

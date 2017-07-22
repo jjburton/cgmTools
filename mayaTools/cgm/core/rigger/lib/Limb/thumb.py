@@ -64,7 +64,8 @@ def __bindSkeletonSetup__(self,addHelpers = True):
     """
     TODO: Do I need to connect per joint overrides or will the final group setup get them?
     """
-    #log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "="*75)            
+    #log.info(">>> %s.__bindSkeletonSetup__ >> "%self._strShortName + "="*75)    
+	return
     try:
 	if not self._cgmClass == 'JointFactory.go':
 	    log.error("Not a JointFactory.go instance: '%s'"%self)
