@@ -250,9 +250,13 @@ class cgmNode(r9Meta.MetaClass):
             Utilizing Red 9's MetaClass. Intialized a node in cgm's system.
             """
             _str_func = 'cgmNodeNew.__init__'
-            if node is None or name is not None and not mc.objExists(name):
-                createdState = True
-            else:createdState = False
+            createdState = True
+            if node is not None and mc.objExists(node):
+                log.debug("|{0}| >> Exists ".format(_str_func))                                                
+                createdState = False
+            elif name is not None and mc.objExists(name):
+                log.debug("|{0}| >> Exists ".format(_str_func))                                                                
+                createdState = False
     
             #ComponentMode ----------------------------------------------------------------------
             componentMode = False

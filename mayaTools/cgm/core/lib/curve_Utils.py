@@ -1486,6 +1486,16 @@ reload(MATH)
 import cgm.core.lib.list_utils as LISTS
 
 def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
+    sel = mc.ls(sl=True)
+    if base is None:
+        if sel:
+            base = sel[0]
+    if target is None:
+        if sel:
+            for t in sel[1:]:
+                mirror_worldSpace(base,t,mirrorAcross)
+            return
+    
     _l_ep_source = mc.ls("{0}.cv[*]".format(base),flatten=True)
     _l_ep_target = mc.ls("{0}.cv[*]".format(target),flatten = True)
     

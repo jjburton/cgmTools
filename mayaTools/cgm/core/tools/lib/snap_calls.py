@@ -323,7 +323,7 @@ class ui_optionVars(cgmUI.cgmGUI):
         _str_func = 'build_layoutWrapper'
         #Match
         #Aim
-        _column = mUI.MelColumnLayout(parent,useTemplate = 'cgmUITemplate') 
+        _column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
         
         
         #>>>Match ====================================================================================
