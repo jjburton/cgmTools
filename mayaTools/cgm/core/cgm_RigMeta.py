@@ -1706,6 +1706,9 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
     #@cgmGeneral.Timer
     def doSwitchSpace(self,attr,arg,deleteLoc = True):
         log.debug(">>> %s.doSwitchSpace(attr = %s, arg = %s, deleteLoc = %s) >> "%(self.p_nameShort,attr,arg,deleteLoc) + "="*75) 		        			
+        
+        sl = mc.ls(sl=True, l=True)
+        
         #Swich setting shile holding 
         l_attrs = ['space','follow','orientTo']
         if attr not in l_attrs:
@@ -1740,6 +1743,8 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         mc.rotate (objRot[0], objRot[1], objRot[2], [i_child.mNode], ws=True)#Set rot	
 
         if deleteLoc:i_loc.delete()
+
+        mc.select(sl)
 
     def doPurge(self):
         log.debug(">>> %s.doPurge() >> "%(self.p_nameShort) + "="*75) 		        			
