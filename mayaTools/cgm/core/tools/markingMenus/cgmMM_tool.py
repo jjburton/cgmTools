@@ -28,9 +28,29 @@ from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
 from cgm.core.mrs import Builder as RBUILDER
-reload(RBUILDER)
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
+
+#reload(mmTemplate)
+#from cgm.core.lib.zoo import baseMelUI as mUI
+from cgm.lib import search
+from cgm.lib import locators
+from cgm.tools.lib import tdToolsLib#...REFACTOR THESE!!!!
+from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
+from cgm.core.tools import meshTools
+from cgm.core.tools import attrTools as ATTRTOOLS
+
+from cgm.tools import locinator
+from cgm.tools import tdTools
+from cgm.tools import setTools
+from cgm.tools import attrTools
+import cgm.core.lib.name_utils as NAMES
+from cgm.core.tools.lib import tool_chunks as UICHUNKS
+from cgm.core.tools.lib import snap_calls as UISNAPCALLS
+import cgm.core.rig.joint_utils as JOINTS
+reload(JOINTS)
+"""
+reload(UICHUNKS)
 reload(MMPuppet)
 reload(LOCINATOR)
 reload(ATTRS)
@@ -39,27 +59,10 @@ reload(SNAP)
 reload(SHAPES)
 reload(SHARED)
 reload(RIGGING)
-#reload(mmTemplate)
-#from cgm.core.lib.zoo import baseMelUI as mUI
-from cgm.lib import search
-from cgm.lib import locators
-from cgm.tools.lib import tdToolsLib#...REFACTOR THESE!!!!
-from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
-reload(MMCONTEXT)
-from cgm.core.tools import meshTools
-from cgm.core.tools import attrTools as ATTRTOOLS
 reload(ATTRTOOLS)
 reload(meshTools)
-from cgm.tools import locinator
-from cgm.tools import tdTools
-from cgm.tools import setTools
-from cgm.tools import attrTools
-import cgm.core.lib.name_utils as NAMES
-from cgm.core.tools.lib import tool_chunks as UICHUNKS
-from cgm.core.tools.lib import snap_calls as UISNAPCALLS
-
-reload(UICHUNKS)
-
+reload(MMCONTEXT)
+reload(RBUILDER)"""
 
 from cgm.lib.ml import (ml_breakdownDragger,
                         ml_resetChannels,
@@ -243,11 +246,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
             
             
             
-    #@cgmGen.Timer
-    """def createUI(self,parent):
-        mmTemplate.mUI.MelMenuItem(parent,
-                        l = 'Point Snap',
-                        rp = 'NW')"""	        
+    @cgmGen.Timer        
     def createUI(self, parent):
         
         try:mc.menu(parent,e = True, deleteAllItems = True)
@@ -261,7 +260,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         
         self._d_radial_menu = {}
         self._l_res = []
-        self._l_sel = mc.ls(sl=True,flatten=True)
+        self._l_sel = mc.ls(sl=True,flatten=True, shortNames = False)
         self._b_sel = False
         self._l_contextTypes = []
         
@@ -394,7 +393,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         MMPuppet.uiSetupOptionVars(self)
         UISNAPCALLS.uiSetupOptionVars_curveCreation(self)
         
-    ##@cgmGen.Timer
+    @cgmGen.Timer
     def bUI_radialRoot_td(self,parent):
         #Radial---------------------------------------------------
         self.bUI_radial_snap(parent,'N')
@@ -413,7 +412,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     c = lambda *a: ml_resetChannels.main(transformsOnly = self.var_resetMode.value),
                     rp = "S")           
         #Bottom---------------------------------------------------
-        
+    @cgmGen.Timer    
     def bUI_radialRoot_anim(self,parent):
         self.bUI_radial_snap(parent,'N')
         
@@ -514,16 +513,15 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         LOCINATOR.uiBuffer_control(self, uiBuffers)
         self.bUI_rayCastBuffer(uiBuffers)        
         
-    #@cgmGen.Timer    
+    @cgmGen.Timer    
     def bUI_menuBottom_td(self,parent):
+        
         _contextMode = self.var_contextTD.value
         
         UICHUNKS.uiSection_selection(parent)
 
         UICHUNKS.uiSection_distance(parent,self._l_sel,self._b_sel_pair)	
-        
 
-        
         
         if 'joint' in self._l_contextTypes or _contextMode != 'selection':
             uiJoints = mc.menuItem(parent = parent, l='Joints', subMenu=True)
@@ -541,6 +539,12 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                         c=lambda *a: mel.eval('cometJointOrient'),
                         ann="General Joint orientation tool\n by Michael Comet")  
             
+            mc.menuItem(parent=uiJoints, 
+                        l = 'Freeze Orient',
+                        ann = "Freeze the joint orientation",                                        
+                        c = cgmGen.Callback(MMCONTEXT.func_process, JOINTS.freezeOrientation, None, 'each','FreezeOrientation',True,**{}),                                                                      
+                        )    
+            
             #-----------------------------------------------------------------------------
             UICHUNKS.uiSection_sdk(parent)
                        
@@ -555,136 +559,29 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         elif not self._b_sel:
             pass
         else:_go = True
-            
+        
         if _go:
             UICHUNKS.uiSection_arrange(parent,self._len_sel, self._b_sel_pair)
             #>>>Shape ==============================================================================================
-            UICHUNKS.uiSection_shapes(parent,self._len_sel,self._b_sel_pair)
-            """uiShape = mc.menuItem(parent = parent, l='Shape', subMenu=True)
-            
-            
-            if self._b_sel_pair:              
-                #---------------------------------------------------------------------------
-                mc.menuItem(parent=uiShape,
-                            l = 'shapeParent',
-                            #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel, 'lastFromRest','shapeParent'),
-                            rp = "W")   
-                _d_combine = {'keepSource':False}
-                mc.menuItem(parent=uiShape,
-                            l = 'Combine',
-                            #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                            c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom', **_d_combine),
-                            rp = "NW")
-                mc.menuItem(parent=uiShape,
-                            l = 'Add',
-                            #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                            c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom', **{}),
-                            rp = "NW")      
-                
-                _d_replace = {'replaceShapes':True}                
-                mc.menuItem(parent=uiShape,
-                            l = 'Replace',
-                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel,'lastFromRest', 'replaceShapes',**_d_replace),                                                        
-                            #c = cgmGen.Callback(MMCONTEXT.func_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom', **_d_replace),                            
-                            rp = "SW")                  
-            
-            mc.menuItem(parent=uiShape,
-                        l = 'Extract',
-                        c = cgmGen.Callback(MMCONTEXT.func_context_all, RIGGING.duplicate_shape, 'selection','shape'),                            
-                        rp = "SW")              
-            #>Color -------------------------------------------------------------------------------------------------
-            uiColorShape = mc.menuItem(parent = uiShape, l='Color*', subMenu=True)
-            
-            uiColorIndexShape = mc.menuItem(parent = uiColorShape, l='Index', subMenu=True)
-            _IndexKeys = SHARED._d_colorsByIndexSets.keys()
-            for k1 in _IndexKeys:
-                _keys2 = SHARED._d_colorsByIndexSets.get(k1,[])
-                _sub = False
-                
-                mc.menuItem(parent=uiColorIndexShape,subMenu = True,
-                            en = True,
-                            l=k1)
-                
-                for k2 in _keys2:
-                    mc.menuItem(en = True,
-                                l=k2,
-                                c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_index[k2],self.var_contextTD.value,'shape'))                        
-            
-            
-            uiRGBShape = mc.menuItem(parent = uiColorShape, l='RBG', subMenu=True)            
-            _IndexKeys = SHARED._d_colorSetsRGB.keys()
-            for k1 in _IndexKeys:
-                _keys2 = SHARED._d_colorSetsRGB.get(k1,[])
-                _sub = False
-                if _keys2:_sub = True
-                
-                mc.menuItem(parent=uiRGBShape,subMenu = _sub,
-                            en = True,
-                            l=k1,
-                            c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[k1],self.var_contextTD.value,'shape'))
-                
-                if _sub:
-                    mc.menuItem(en = True,
-                                l=k1,
-                                c=cgmGen.Callback(MMCONTEXT.color_override,k1,self.var_contextTD.value,'shape'))                    
-                    for k2 in _keys2:
-                        _buffer = "{0}{1}".format(k1,k2)
-                        mc.menuItem(en = True,
-                                    l=_buffer,
-                                    c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],self.var_contextTD.value,'shape'))              
-            """
+            UICHUNKS.uiSection_shapes(parent,self._l_sel,self._b_sel_pair)
+
             #>>>Curve ==============================================================================================
             UICHUNKS.uiSection_curves(parent)
             
-            """uiCurve = mc.menuItem(parent = parent, l='Curve', subMenu=True)
-            mc.menuItem(parent=uiCurve,
-                        l = 'Describe',
-                        c = cgmGen.Callback(MMCONTEXT.func_context_all, CURVES.get_python_call, 'selection','shape'),                            
-                        )   
-            mc.menuItem(parent=uiCurve,
-                        l = 'Mirror')  """            
+         
                                     
             #>>>Mesh ==============================================================================================
             UICHUNKS.uiSection_mesh(parent)
             
-            """uiMesh = mc.menuItem(parent = parent, l='Mesh', subMenu=True)
-            mc.menuItem(parent = uiMesh,
-                        l='cgmMeshTools',
-                        c=cgmGen.Callback(meshTools.run))                                 
-                        #c=lambda *a: meshTools.run())         
-            mc.menuItem(parent = uiMesh,
-                        l='abSym',
-                        c=lambda *a: mel.eval('abSymMesh'),) """      
-        
         
             #>>>Skin ==============================================================================================
             UICHUNKS.uiSection_skin(parent)
             
-            """uiSkin = mc.menuItem(parent = parent, l='Skin', subMenu=True)
-            
-            mc.menuItem(parent = uiSkin,
-                        l='abWeight',
-                        c=lambda *a: mel.eval('abWeightLifter'),)         
-            mc.menuItem(parent = uiSkin,
-                        l='ngSkin',
-                        en=False,
-                        c=lambda *a: mel.eval('cometJointOrient'),)""" 
-        
-     
+
         #>>>Nodes ==============================================================================================
         UICHUNKS.uiSection_nodes(parent)
         
-        """uiNodes = mc.menuItem(parent = parent, l='Nodes', subMenu=True)
-        
-        _uic_nodes = mc.menuItem(parent = uiNodes,subMenu=True,
-                                 l='Create',
-                                 )               
-        for n in SHARED._d_node_to_suffix.keys():
-            mc.menuItem(parent = _uic_nodes,
-                        l=n,
-                        c=cgmGen.Callback(NODES.create,'NameMe',n),                   
-                        )"""                  
+
         #-----------------------------------------------------------------------------    
         """
         uiLegacy = mc.menuItem(parent = parent, l='cgmOLD', subMenu=True)

@@ -12,7 +12,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -34,6 +34,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import transform_utils as TRANS
+import cgm.core.lib.name_utils as NAMES
 #NO DIST
 
 #>>> Utilities
@@ -377,15 +378,19 @@ def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, repl
             
             if _shapeCheck:
                 _dup_curve = duplicate_shape(c)[0]
+                log.debug("|{0}|  >> shape duplicate".format(_str_func))                                  
                 if snapFirst:
                     SNAP.go(_dup_curve,obj)                    
             else:
+                log.debug("|{0}|  >> regular duplicate".format(_str_func))                  
                 _dup_curve =  mc.duplicate(c)[0]
+                for child in TRANS.children_get(_dup_curve,True):
+                    mc.delete(child)
                 if snapFirst:
                     SNAP.go(_dup_curve,obj)                
                 
             _l_parents = SEARCH.get_all_parents(obj)
-        
+            ATTR.set_standardFlags(_dup_curve,lock=False,visible=True,keyable=True)
             _dup_curve = parent_set(_dup_curve, False)
      
             
@@ -415,15 +420,6 @@ def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, repl
             
             mc.makeIdentity(_dup_curve,apply=True,translate =True, rotate = True, scale=False)
             
-            """mc.setAttr((group+'.tx'),pos[0])
-            mc.setAttr((group+'.ty'),pos[1])
-            mc.setAttr((group+'.tz'),pos[2])
-            mc.setAttr((group+'.rx'),0)
-            mc.setAttr((group+'.ry'),0)
-            mc.setAttr((group+'.rz'),0)
-            mc.setAttr((group+'.rotateAxisX'),0)
-            mc.setAttr((group+'.rotateAxisY'),0)
-            mc.setAttr((group+'.rotateAxisZ'),0)"""
              
             #main scale fix 
             baseMultiplier = [0,0,0]
@@ -453,6 +449,7 @@ def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, repl
             
             #freeze for parent shaping 
             mc.makeIdentity(_dup_curve,apply=True,translate =True, rotate = True, scale=True)
+            
             shape = mc.listRelatives (_dup_curve, f= True,shapes=True, fullPath = True)
             mc.parent (shape,obj,add=True,shape=True)
             mc.delete(_dup_curve)
@@ -536,6 +533,95 @@ def create_joint_at(obj = None):
 
  
 group_me = TRANS.group_me
+
+
+def mirror_controlShape(source = None, target=None, colorDirection = 'right',controlType = 'main'):
+    _str_func = "mirror_controlShape"
+    if target is None:
+        _sel = mc.ls(sl=True)
+        if len(_sel) == 2:
+            return mirror_controlShape(_sel[0],_sel[1])
+
+    if not source:raise ValueError,"|{0}|  >> Must have a source".format(_str_func)
+    if not target:raise ValueError,"|{0}|  >> Must have a target".format(_str_func)    
+    _dup_curve =  mc.duplicate(source)[0]
+    for child in TRANS.children_get(_dup_curve,True):
+        mc.delete(child)
+    ATTR.set_standardFlags(_dup_curve,lock=False,keyable=True,visible=True)
+    _grp = mc.group(em=True)
+    _dup_curve = TRANS.parent_set(_dup_curve,_grp)
+    ATTR.set(_grp,'scaleX',-1)
+    _dup_curve = TRANS.parent_set(_dup_curve,False)  
+    mc.makeIdentity(_dup_curve,apply=True,translate =True, rotate = True, scale=False)
+    return
+    shapeParent_in_place(target,_dup_curve,True,True)
+    mc.delete(_grp)
+    
+    colorControl(target,colorDirection,controlType)
+    mc.select(target)
+    return target
+    
+    
+
+def push_controlResizeObj(target = None):
+    _str_func = "push_controlResizeObj"
+    if target is None:
+        _sel = mc.ls(sl=True)
+        if _sel:
+            _res = []
+            for t in _sel:
+                _res.append(push_controlResizeObj(t))
+            mc.select(_res)
+            return _res   
+    if not target:raise ValueError,"|{0}|  >> Must have a target".format(_str_func)
+    
+    if ATTR.has_attr(target, 'cgmControlResizerSource'):
+        source = ATTR.get_message(target,'cgmControlResizerSource')
+        if not source:
+            raise ValueError,"|{0}|  >> no cgmControlResizerSource data on target: {1}".format(_str_func,target)
+        source = source[0]
+        shapeParent_in_place(source,target,keepSource=False,replaceShapes=True)
+        if ATTR.has_attr(source,'cgmControlResizer'):
+            ATTR.delete(source,'cgmControlResizer')
+        ATTR.set(source,'template',0)        
+        mc.select(source)
+        return source
+
+        
+    else:
+        raise ValueError,"|{0}|  >> no cgmControlResizerSource attr on target: {1}".format(_str_func,target)
+    
+
+
+
+def create_controlResizeObj(target=None):
+    _str_func = "create_controlResizeObj"
+    if target is None:
+        _sel = mc.ls(sl=True)
+        if _sel:
+            _res = []
+            for t in _sel:
+                _res.append(create_controlResizeObj(t))
+            return _res
+                
+    if not target:raise ValueError,"|{0}|  >> Must have a target".format(_str_func)
+    
+    if ATTR.get_message(target,'cgmControlResizer'):
+        return ATTR.get_message(target,'cgmControlResizer')
+    
+    handle = create_at(target,'null')
+    ATTR.set_message(target,'cgmControlResizer',handle)
+    ATTR.set_message(handle,'cgmControlResizerSource',target)
+    
+    handle = mc.rename(handle, NAMES.base(target) + '_cgmResizer')
+    
+    shapeParent_in_place(handle,target)
+    
+    ATTR.set(target,'template',1)
+    
+    return handle
+    
+    
     
 def override_color(target = None, key = None, index = None, rgb = None, pushToShapes = True):
     """

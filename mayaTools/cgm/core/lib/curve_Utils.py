@@ -1486,6 +1486,7 @@ reload(MATH)
 import cgm.core.lib.list_utils as LISTS
 
 def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
+    _str_func = 'mirror_worldSpace'    
     sel = mc.ls(sl=True)
     if base is None:
         if sel:
@@ -1496,18 +1497,26 @@ def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
                 mirror_worldSpace(base,t,mirrorAcross)
             return
     
-    _l_ep_source = mc.ls("{0}.cv[*]".format(base),flatten=True)
-    _l_ep_target = mc.ls("{0}.cv[*]".format(target),flatten = True)
+    _l_shapes_source = mc.listRelatives(base,shapes=True,fullPath=True)
+    _l_shapes_target = mc.listRelatives(target,shapes=True,fullPath=True)
     
-    if len(_l_ep_source) != len(_l_ep_target):
-        raise ValueError,"Len of source ({0}) != target ({1})".format(len(_l_ep_source),len(_l_ep_target))
+    if len(_l_shapes_source) != len(_l_shapes_target):
+        raise ValueError,"Len of source shapes ({0}) != target ({1})".format(len(_l_shapes_source),len(_l_shapes_target)) 
     
-    for i,ep in enumerate(_l_ep_source):
-        _pos = POS.get(ep)
-        _mult = [-1,1,1]
-        POS.set(_l_ep_target[i], MATH.list_mult(_pos,_mult))
+    for i,s in enumerate(_l_shapes_source):
+        _l_ep_source = mc.ls("{0}.cv[*]".format(s),flatten=True)
+        _l_ep_target = mc.ls("{0}.cv[*]".format(_l_shapes_target[i]),flatten = True)
     
-    pprint.pprint(vars())
+        if len(_l_ep_source) != len(_l_ep_target):
+            raise ValueError,"Len of source ({0}) != target ({1})".format(len(_l_ep_source),len(_l_ep_target))
+        _mult = [-1,1,1]    
+        for ii,ep in enumerate(_l_ep_source):
+            _pos = POS.get(ep)
+            _new =  MATH.list_mult(_pos,_mult)
+            POS.set(_l_ep_target[ii], _new)
+            log.debug("|{0}| >> shape: {7} || {1} | {2} > {3} | {4} >> {5} | ?actual: {6}".format(_str_func,ii,ep,_l_ep_target[ii],_pos,_new,  POS.get(_l_ep_target[ii]), s))                                                            
+        
+    #pprint.pprint(vars())
     
 def match(base=None, target = None, autoRebuild = True, keepOriginal = True):
     _str_func = 'match'
@@ -1529,7 +1538,7 @@ def match(base=None, target = None, autoRebuild = True, keepOriginal = True):
     _l_ep_target = mc.ls("{0}.cv[*]".format(target),flatten = True)
     for i,ep in enumerate(_l_ep_source):
         _pos = POS.get(ep)
-        POS.set(_l_ep_target[i], _pos)
+        POS.set(_l_ep_target[i], _pos, space= 'os')
         
     return True
     

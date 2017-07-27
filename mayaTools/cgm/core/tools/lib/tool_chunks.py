@@ -34,17 +34,18 @@ from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.tools import meshTools
-reload(meshTools)
+#reload(meshTools)
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools import attrTools as ATTRTOOLS
-reload(ATTRTOOLS)
+#reload(ATTRTOOLS)
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
-reload(DYNPARENTTOOL)
+#reload(DYNPARENTTOOL)
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
 import cgm.core.lib.arrange_utils as ARRANGE
+import cgm.core.rig.joint_utils as JOINTS
 from cgm.lib.ml import (ml_breakdownDragger,
                         ml_resetChannels,
                         ml_deleteKey,
@@ -171,7 +172,11 @@ def uiSection_joints(parent = None):
                 l='cometJO',
                 c=lambda *a: mel.eval('cometJointOrient'),
                 ann="General Joint orientation tool  by Michael Comet")   
-    
+    mc.menuItem(parent=uiJoints, 
+                l = 'Freeze Orient',
+                ann = "Freeze the joint orientation",                                        
+                c = cgmGen.Callback(MMCONTEXT.func_process, JOINTS.freezeOrientation, 'each','FreezeOrientation',True,**{}),                                                                      
+                )    
     
     
     
