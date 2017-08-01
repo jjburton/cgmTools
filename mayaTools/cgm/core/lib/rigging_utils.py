@@ -35,6 +35,7 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import transform_utils as TRANS
 import cgm.core.lib.name_utils as NAMES
+
 #NO DIST
 
 #>>> Utilities
@@ -473,17 +474,18 @@ def create_at(obj = None, create = 'null'):
     _str_func = 'create_at'
     
     obj = VALID.mNodeString(obj)
-    _l_toCreate = ['null','joint','locator']
-    _create = VALID.kw_fromList(create, _l_toCreate, calledFrom=_str_func)
+    _create = create
     
     log.debug("|{0}| >> obj:{1}".format(_str_func,obj))  
     log.debug("|{0}| >> create:{1}".format(_str_func,_create))  
     
-    objTrans = mc.xform (obj, q=True, ws=True, rp=True)
-    objRot = mc.xform (obj, q=True, ws=True, ro=True)
-    objRotAxis = mc.xform(obj, q=True, ws = True, ra=True)
+    
 
     #return rotation order
+    if _create in ['null','joint']:
+        objTrans = mc.xform (obj, q=True, ws=True, rp=True)
+        objRot = mc.xform (obj, q=True, ws=True, ro=True)
+        objRotAxis = mc.xform(obj, q=True, ws = True, ra=True)        
     if _create == 'null':
         _created = mc.group (w=True, empty=True)
         #mc.setAttr ((groupBuffer+'.rotateOrder'), correctRo)
@@ -511,11 +513,28 @@ def create_at(obj = None, create = 'null'):
         #mc.rotate(objRot[0], objRot[1], objRot[2], [groupBuffer], ws=True)
         mc.xform(_created, ws=True, ro= objRot,p=False)
         mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
+    elif _create == 'curve':
+        l_pos = []
+        #_sel = mc.ls(sl=True,flatten=True)
+        for i,o in enumerate(obj):
+            p = TRANS.position_get(o)
+            log.info("|{0}| >> {3}: {1} | pos: {2}".format(_str_func,o,p,i)) 
+            l_pos.append(p)
+    
+        if len(l_pos) <= 1:
+            raise ValueError,"Must have more than one position to create curve"
+    
+        knot_len = len(l_pos)+3-1		
+        _created = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)  
+        log.info("|{0}| >> created: {1}".format(_str_func,_created))  
         
     elif _create == 'locator':
         raise NotImplementedError,"locators not done yet"
-        
+    else: 
+        raise NotImplementedError,"|{0}| >> unknown mode: {1}".format(_str_func,_create)  
 
+        
+    mc.select(_created)
     return _created
     
 def create_joint_at(obj = None):
@@ -560,7 +579,6 @@ def mirror_controlShape(source = None, target=None, colorDirection = 'right',con
     colorControl(target,colorDirection,controlType)
     mc.select(target)
     return target
-    
     
 
 def push_controlResizeObj(target = None):

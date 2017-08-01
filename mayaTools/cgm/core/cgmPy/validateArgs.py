@@ -13,7 +13,7 @@ It is uses Mark Jackson (Red 9)'s as a base.
 import sys
 import inspect
 import os.path
-
+import pprint
 import maya.cmds as mc
 import maya.mel as mel
 
@@ -32,7 +32,7 @@ from cgm.core.lib import euclid as EUCLID
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #=========================================================================
 def get_transform(node = None):
     """
@@ -47,18 +47,20 @@ def get_transform(node = None):
     _str_func = 'is_transform'
     _node = stringArg(node,False,_str_func) 
     
-    if '.' in node:
-        _buffer = node.split('.')[0]
+    _l = get_component(node)
+    if _l:
+        _root = _l[1]
     else:
-        _buffer = node
-        
-    _buffer = mc.ls(_buffer, type = 'transform',long = True) or False
-    if _buffer:
-        return NAME.get_short(_buffer[0])
-    else:
-        _buffer = mc.listRelatives(node,parent=True,type='transform',fullPath = True) or False
-    if _buffer:
-        return NAME.get_short(_buffer[0])
+        _root = node
+          
+    if is_transform(_root):
+        return _root
+    if is_shape(_root):
+        _buffer = mc.listRelatives(_root, parent=True) or False
+        if _buffer:
+            return _buffer[0]
+            return NAME.get_short(_buffer[0])
+    
     return False   
 
 def get_mayaType(node = None):
@@ -72,6 +74,8 @@ def get_mayaType(node = None):
         type(str)
     """   
     def simpleTransformShapeCheck(node = None):
+        if is_shape(node):
+            return mc.objectType(node)
         _shapes = mc.listRelatives(node,shapes=True,fullPath=True) or []
         _len = len(_shapes)
         
@@ -112,8 +116,9 @@ def get_mayaType(node = None):
     
     log.debug("|{0}| >> node: '{1}' ".format(_str_func,_node))    
     
-    _intialCheck = mc.objectType(_node)
-
+    try:_intialCheck = mc.objectType(_node)
+    except:_intialCheck = False
+    
     if _intialCheck in ['objectSet']:
         return _intialCheck
 
@@ -132,10 +137,14 @@ def get_mayaType(node = None):
             return 'polyVertex'
 
         if 'cv' == _compType:
-            if _intialCheck == 'nurbsCurve':
+            _root = simpleTransformShapeCheck(_root)
+            if _root == 'nurbsCurve':
                 return 'curveCV'
-            else:
+            elif _root == 'nurbsSurface':
                 return 'surfaceCV'
+            else:
+                log.debug("|{0}| >> Unknown cv root: {1}".format(_str_func, _root))
+                return _root
 
         if 'e' == _compType:
             return 'polyEdge'
@@ -148,11 +157,21 @@ def get_mayaType(node = None):
         if 'sf' == _compType:
             return 'surfacePatch'
         if 'u' == _compType or 'v' == _compType:
+            #if not is_shape(_root):
+                #_shapes = mc.listRelatives (_root, s=True, fullPath=fullPath) or []
+                #_shape = _shapes[0]
+                #log.debug("|{0}| >> Assuming first shape: {1}".format(_str_func, _shapes))
+                #_rootType = mc.objectType(_root)#simpleTransformShapeCheck(_root)                
+            #else:
+                #_rootType = mc.objectType(_root)#simpleTransformShapeCheck(_root)
             _rootType = simpleTransformShapeCheck(_root)
+            
             if _rootType == 'nurbsCurve':
                 return 'curvePoint'
             if _rootType == 'nurbsSurface':
                 return 'isoparm'
+            else:
+                raise ValueError,"unexpected rootType: {0}".format(_rootType)
         if 'ep' == _compType:
             return 'editPoint' 
         
@@ -191,12 +210,15 @@ def get_component(arg = None):
     _str_func = 'get_component'
     if is_component(arg):
         log.debug("|{0}| >> component mode...".format(_str_func))
-        _split = arg.split('[')[0].split('.')
-        _root = _split[0]
-        _compType = _split[1]
-        
+        _split = arg.split('[')
+        _splitJoin = '['+'['.join(_split[1:])
+        _rootSplit = _split[0].split('.')
+        _comp = _rootSplit[1]
+        _root = _rootSplit[0]
+        _compType = _rootSplit[1]
+        pprint.pprint(vars())
         log.info("|{0}| >> split: {1} | root: {2} | comp: {3}".format(_str_func,_split,_root,_compType))   
-        return [''.join(arg.split('.')[1:]), _root, _compType]
+        return ["{0}{1}".format(_compType,_splitJoin), _root, _compType, get_mayaType(arg)]
     return False
 
 def isFloatEquivalent(lhs, rhs, **kwargs):

@@ -10,12 +10,12 @@ Website : http://www.cgmonks.com
 # From Python =============================================================
 import copy
 import re
-
+import pprint
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -77,21 +77,32 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
             log.warning("|{0}|...boundingBox pivot is zero, using rp....".format(_str_func))                
           
     if '[' in _obj:
+        log.debug("|{0}| >> component mode...".format(_str_func))        
         if ":" in _obj:
             raise ValueError,"|{0}| >>Please specify one obj. Component list found: {1}".format(_str_func,_obj)
-        _cType = VALID.get_mayaType(_obj)
-        log.debug("|{0}| >> component mode...".format(_str_func))
-        log.debug("|{0}| >> obj: {1} | type: {2} | pivot: {3} | space: {4} | mode: {5}".format(_str_func,_obj,_cType,_pivot,_space,_mode)) 
+        #_cType = VALID.get_mayaType(_obj)
+        _l_comp = VALID.get_component(_obj)
+        _root = _l_comp[1]
+        _cType = _l_comp[3]
+        if not VALID.is_shape(_root):
+            _shapes = mc.listRelatives (_root, s=True, fullPath=True) or []
+            if len(_shapes) > 1:
+                log.warning("|{0}| >>More than one shape found. To be more accurate, specify: {1} | shapes: {2}".format(_str_func,_obj,_shapes))
+            _root = _shapes[0]
+            
+        _OBJ = '.'.join([_root,_l_comp[0]])
+        
+        log.debug("|{0}| >> obj: {1}({6}) | type: {2} | pivot: {3} | space: {4} | mode: {5}".format(_str_func,_OBJ,_cType,_pivot,_space,_mode,_obj)) 
         
         kws_pp = {'world':False,'local':False}
         if _space == 'world':kws_pp['world'] = True
         else: kws_pp['local'] = True      
                     
         if _cType == 'polyVertex':
-            _res = mc.pointPosition(_obj,**kws_pp)
+            _res = mc.pointPosition(_OBJ,**kws_pp)
         elif _cType == 'polyEdge':
             mc.select(cl=True)
-            mc.select(_obj)
+            mc.select(_OBJ)
             mel.eval("PolySelectConvert 3")
             edgeVerts = mc.ls(sl=True,fl=True)
             posList = []
@@ -100,7 +111,7 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
             _res = MATH.get_average_pos(posList)
         elif _cType == 'polyFace':
             mc.select(cl=True)
-            mc.select(_obj)
+            mc.select(_OBJ)
             mel.eval("PolySelectConvert 3")
             edgeVerts = mc.ls(sl=True,fl=True)
             posList = []
@@ -108,9 +119,13 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
                 posList.append(mc.pointPosition(vert,**kws_pp))
             _res = MATH.get_average_pos(posList)
         elif _cType in ['surfaceCV','curveCV','editPoint','surfacePoint','curvePoint']:
-            _res = mc.pointPosition (_obj,**kws_pp)
+            #_res = mc.pointPosition (_OBJ,**kws_pp)
+            print _OBJ
+            _res =  mc.pointPosition(_OBJ)
+            print mc.pointPosition(_OBJ)
+            print mc.pointPosition(_OBJ)
             
-        if not _res:
+        else:
             raise RuntimeError,"|{0}| >> Shouldn't have gotten here. Need another check for component type. '{1}'".format(_str_func,_cType)
 
     else:
@@ -336,21 +351,26 @@ def get_info(target = None, boundingBox = False):
     :returns
         info(dict)
     """   
-    _str_func = "get_dat"
+    _str_func = "get_info"
     _target = VALID.objString(target, noneValid=True, calledFrom = __name__ + _str_func + ">> validate target")
     
     _posPivot = 'rp'
     if boundingBox:
         _posPivot = 'boundingBox'
+        
+    _transform = VALID.getTransform(target)
     
+    log.debug("|{0}| >> Target: {1}  | tranform: {2}".format(_str_func, _target,_transform))                             
+        
+        
     _d = {}
     _d ['createdFrom']=_target
     _d ['objectType']=VALID.get_mayaType(_target)
     _d ['position']=get(target,_posPivot,'world')
-    _d ['scalePivot']=get(target,'sp','world')
-    _d ['rotation']= mc.xform (_target, q=True, ws=True, ro=True)
-    _d ['rotateOrder']=mc.xform (_target, q=True, roo=True )
-    _d ['rotateAxis'] = mc.xform(_target, q=True, os = True, ra=True)
+    _d ['scalePivot']=get(_transform,'sp','world')
+    _d ['rotation']= mc.xform (_transform, q=True, ws=True, ro=True)
+    _d ['rotateOrder']=mc.xform (_transform, q=True, roo=True )
+    _d ['rotateAxis'] = mc.xform(_transform, q=True, os = True, ra=True)
     
     #cgmGen.log_info_dict(_d,'|{0}.{1}| info...'.format(__name__,_str_func))
 

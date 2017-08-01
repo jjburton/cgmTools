@@ -87,6 +87,8 @@ def get_base(obj = None):
     except:pass    
     _str_func = "get_base('{0}')".format(obj)
     
+    return obj[0].split('|')[-1].split(':')[-1]
+    
     buffer = mc.ls(obj,l=True)      
     
     if buffer:
@@ -98,4 +100,6 @@ def get_base(obj = None):
         raise ValueError,"{0} || More than one object with name".format(_str_func)
     raise ValueError("{0} || No object exists!".format(_str_func)) 
 base = get_base
+
+    
 

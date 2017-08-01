@@ -23,6 +23,7 @@ from Red9.core import Red9_Meta as r9Meta
 #May not use DISTANCE,CURVES
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import name_utils as coreNames
+reload(coreNames)
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import search_utils as SEARCH
 reload(SEARCH)
@@ -96,7 +97,7 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
             return mc.rename("world_center_loc")
     
         _targets = VALID.objStringList(target, noneValid=False, calledFrom= __name__ + _str_func + ">> validate target")
-    
+        #_targets = VALID.listArg(target)
         if tag or mode:
             _mi_loc = r9Meta.MetaClass(_loc)
             if not _mi_loc.hasAttr('cgmLocDat'):
@@ -114,8 +115,7 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
             _loc = mc.rename(_loc,"{0}_fromTarget_loc".format( coreNames.get_base(_target)))
     
             if tag:#store info
-                ATTR.store_info(_loc,'cgmName',coreNames.get_short(_target), lock = True)
-    
+                ATTR.store_info(_loc,'cgmName',coreNames.get_base(_target), lock = True)
                 ATTR.store_info(_loc,'cgmLocMode','fromTarget',lock = True)
                 ATTR.set_message(_loc, 'cgmLocSource',_target,'cgmLocDat')
                 if not VALID.is_component(_target):

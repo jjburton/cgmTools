@@ -14,7 +14,7 @@ import sys
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -2049,7 +2049,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
         else:
             raise ValueError,"not sure what to do with this: {0}".format(_msgBuffer)
     else:
-        _msgBuffer = mc.listConnections(_combined,destination=True,source=True)
+        _msgBuffer = mc.listConnections(_combined,destination=True,source=True,shapes=True)
         
         if _msgBuffer and mc.objectType(_msgBuffer[0])=='reference':
             #REPAIR

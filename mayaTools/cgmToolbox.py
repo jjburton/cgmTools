@@ -398,12 +398,13 @@ def loadCGMPlugin( pluginName ):
 
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
 reload(UICHUNKS)
+@cgmGen.Timer
 def uiBuild_cgmMenu( *args ):
     _str_func = 'uiBuild_cgmMenu'
     menu = maya._cgmMenu
     menu.clear()
+    reload(UICHUNKS)
 
-    reload(UICHUNKS)	
     _l_sel = mc.ls(sl=True)
     if _l_sel:_b_sel = True
     _b_sel_pair = False
@@ -414,19 +415,16 @@ def uiBuild_cgmMenu( *args ):
     if _len_sel >2:
         _b_sel_few = True		
 
-
     #log.info("|{0}| >> Selected: {1}".format(_str_func,_l_sel))        
 
-
-
-    mUI.MelMenuItem(menu, l='Open Tool Win',
-                    c=lambda *args: ToolboxWindow())
-
+    #mUI.MelMenuItem(menu, l='Open Tool Win',
+    #                c=lambda *args: ToolboxWindow())
+    mc.menuItem(p = menu, l='Open Tool Win',
+                c=cgmGen.Callback(ToolboxWindow))
     
     #>>Snap ----------------------------------------------------------------------
     _snap = mc.menuItem(p=menu,l='Snap',subMenu = True, tearOff = True)  
     UICHUNKS.uiSection_snap(_snap)
-    
     
     #>>TD ----------------------------------------------------------------------
     _td = mc.menuItem(p=menu,l='TD/Create',subMenu = True, tearOff = True)

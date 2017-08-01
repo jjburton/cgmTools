@@ -293,7 +293,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
     else:_str_func = "func_process"
     
     if objects == None:
-        objects = mc.ls(sl=True)
+        objects = mc.ls(sl=True,flatten=True)
     
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__)) 
     log.debug("|{0}| >> mode: {1}".format(_str_func, processMode) )

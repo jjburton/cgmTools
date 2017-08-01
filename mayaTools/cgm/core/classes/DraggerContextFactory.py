@@ -26,7 +26,8 @@ import maya.OpenMaya as om
 
 
 #CANNOT IMPORT: LOC
-from cgm.core import cgm_Meta as cgmMeta
+#from cgm.core import cgm_Meta as cgmMeta
+import Red9.core.Red9_Meta as r9Meta
 from cgm.core.rigger.lib import joint_Utils as jntUtils
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core import cgm_General as cgmGen
@@ -39,6 +40,7 @@ from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import shape_utils as SHAPE
 from cgm.core.lib import attribute_utils as ATTR
+import cgm.core.lib.transform_utils as TRANS
 reload(ATTR)
 reload(POS)
 reload(NODES)
@@ -496,14 +498,14 @@ class clickMesh(ContextualPick):
                 mc.ls(sl=1)
                 ml_joints = []
                 for i,o in enumerate(self.l_created):
-                    mi_jnt = cgmMeta.cgmObject(mc.joint(n="cast_{0}_jnt".format(i)))
+                    mi_jnt = r9Meta.MetaClass(mc.joint(n="cast_{0}_jnt".format(i)))
                     ml_joints.append(mi_jnt)
                     
                     #Position
                     POS.set(mi_jnt.mNode, POS.get(o))
                     
                     #Get our orientation data
-                    _mi_loc = cgmMeta.cgmNode(self.l_created[i])
+                    _mi_loc = r9Meta.MetaClass(self.l_created[i])
                     if self.mode not in ['midPoint']:
                         _d = _mi_loc.cgmLocDat
                         _m_normal = _d['normal']
@@ -541,7 +543,8 @@ class clickMesh(ContextualPick):
                     
                     mc.delete(_constraint)
                     if ml_joints:#parent to the last
-                        mi_jnt.parent = ml_joints[-1]    
+                        TRANS.parent_set(mi_jnt.mNode, ml_joints[-1].mNode)
+                        #mi_jnt.parent = ml_joints[-1]    
                         log.info("|finalize| >> Created: {0}".format(mi_jnt))                        
                         
                 mc.delete(self.l_created)
@@ -584,11 +587,12 @@ class clickMesh(ContextualPick):
         if self.d_tagAndName:
             for o in self.l_created:
                 try:
-                    i_o = cgmMeta.cgmNode(o)
+                    #i_o = cgmMeta.cgmNode(o)
                     for tag in self.d_tagAndName.keys():
-                        i_o.doStore(tag,self.d_tagAndName[tag])
-                    i_o.doName()
-                except StandardError,error:
+                        ATTR.store_info(o, tag, self.d_tagAndName[tag])
+                        #i_o.doStore(tag,self.d_tagAndName[tag])
+                    #i_o.doName()
+                except Exception,error:
                     log.error(">>> clickMesh >> Failed to tag and name: %s | error: %s"%(i_o.p_nameShort,error))            	            		
         if self._str_castPlane:
             mc.delete(self._str_castPlane)
@@ -635,7 +639,7 @@ class clickMesh(ContextualPick):
         if self._createMode == 'data' and self.l_created:
             log.debug("Data!")
             for i,o in enumerate(self.l_created):
-                try:_mi_loc = cgmMeta.cgmNode(o)
+                try:_mi_loc = r9Meta.MetaClass(o)
                 except:continue
                 _dBuffer = _mi_loc.cgmLocDat
                 _m_normal = _dBuffer['normal']
@@ -687,7 +691,7 @@ class clickMesh(ContextualPick):
                                 log.info("|{0}| >> mesh normal: {1}".format(_str_funcName,_m_normal))
                                 break      """      
                 
-                _mi_loc = cgmMeta.cgmNode(self.l_created[-1])
+                _mi_loc = r9Meta.MetaClass(self.l_created[-1])
                 if self.mode not in ['midPoint']:
                     _d = _mi_loc.cgmLocDat
                     _m_normal = _d['normal']
@@ -1078,7 +1082,7 @@ class clickMesh(ContextualPick):
                         mc.select(cl=True)
                     
                     else:
-                        loc = cgmMeta.cgmNode(mc.spaceLocator()[0])
+                        loc = r9Meta.MetaClass(mc.spaceLocator()[0])
                         if self.mode not in ['midPoint']:
                             loc.addAttr('cgmLocDat',_jsonDict,attrType='string')
                             ATTR.set_message(loc.mNode,'meshTarget',_m)
