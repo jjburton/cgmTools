@@ -19,7 +19,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -235,6 +235,7 @@ def create_curveSetup(jointList = None,
         d_twistReturn = IK.addSplineTwist(mIKHandleFirst.mNode, mIKHandleMid.mNode, b_advancedTwistSetup)
 
     else:
+        log.debug("|{0}| >> single chain...".format(_str_func))                                                        
         _resInline = IK.spline(ml_joints,mi_useCurve,str_orientation,str_secondaryAxis,baseName,str_stretchBy,parentGutsTo=mi_grp)
         ml_splineRes.append(_resInline)
         mIKHandle = _resInline['mIKHandle']

@@ -20,7 +20,7 @@ import maya.cmds as mc
 from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
-#May not use DISTANCE,
+#May not use DISTANCE,CURVES
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import name_utils as coreNames
 from cgm.core.cgmPy import validateArgs as VALID
@@ -165,7 +165,7 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                                        
                 follicleAttach()
                 
-            return _res
+            return _loc
         elif not _targets:
             raise ValueError,"Must have targets for mode: {0} | targets: {1}".format(mode,_targets)
         else:

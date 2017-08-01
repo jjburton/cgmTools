@@ -1129,6 +1129,35 @@ def getUParamOnCurve(obj = None, crv = None):
     del(paramPtr)
     return paramUtil.getDouble(buffer)
 
+def getUParamOnCurveFromObj(obj = None, crv = None):
+    """
+    @Parameters
+    curve -- must be a curve instance or obj string
+    points -- number of points you want on the curve
+
+    returns param
+    """
+    _str_funcName = 'getUParamOnCurve'
+    log.info(">>> %s >> "%_str_funcName + "="*75)
+    mi_obj = cgmValid.objString(obj)
+    mi_crv = cgmValid.objString(crv,mayaType='nurbsCurve')
+    mi_shape = cgmMeta.validateObjArg(mc.listRelatives(mi_crv,shapes = True,f=True)[0],mayaType='shape')
+    
+    _node = mc.createNode ('nearestPointOnCurve', n = 'TESTING')
+    _loc = mc.spaceLocator()[0]
+    SNAP.go(_loc,obj)
+    #log.info(_loc)
+    p = []
+    distances = []
+    
+    mc.connectAttr ((_loc+'.translate'),(_node+'.inPosition'))
+    mc.connectAttr ((mi_shape.mNode+'.worldSpace'),(_node+'.inputCurve'))
+    
+    _param = mc.getAttr(_node+'.parameter')
+    mc.delete([_node,_loc])
+    return _param
+
+    
 
 def isEP(*args, **kws):
     """

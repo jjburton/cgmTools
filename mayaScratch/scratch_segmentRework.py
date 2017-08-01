@@ -30,7 +30,20 @@ reorient = False
 
 SEGMENT.create_curveSetup(jointList,useCurve,'zyx','y+',baseName,stretchBy,advancedTwistSetup,addMidTwist,extendTwistToEnd,reorient,moduleInstance)
 
-
+_d = {'jointList' : [u'tongue_0_jnt',
+                     u'tongue_1_jnt',
+                     u'tongue_2_jnt',
+                     u'tongue_3_jnt',
+                     u'tongue_4_jnt',
+                     u'tongue_5_jnt'],
+      'useCurve' : None,
+      'baseName' : 'test',
+      'stretchBy' : 'scale',
+      'advancedTwistSetup' : True,
+      'addMidTwist' : False,
+      'extendTwistToEnd':False,
+      'moduleInstance' : None,
+      'reorient' : False}
 
 #Segment SETUP ========================================================================================================
 _d = {'jointList' : [u'chain_0', u'chain_1', u'chain_2', u'chain_3', u'chain_4'],

@@ -19,7 +19,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -36,6 +36,7 @@ from cgm.core.rigger.lib import rig_Utils
 from cgm.core.classes import NodeFactory as NodeF
 import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.distance_utils as DIST
 
 def spline(jointList = None,
            useCurve = None,
@@ -134,12 +135,19 @@ def spline(jointList = None,
 
     outChannel = str_orientation[2]#outChannel
     upChannel = '{0}up'.format(str_orientation[1])#upChannel
-            
+    l_param = []  
+    
     #>>> SplineIK ===========================================================================================
     if mi_useCurve:
         log.debug("|{0}| >> useCurve. SplineIk...".format(_str_func))    
         f_MatchPosOffset = CURVES.getUParamOnCurve(ml_joints[0].mNode, mi_useCurve.mNode)
         log.debug("|{0}| >> Use curve mode. uPos: {1}...".format(_str_func,f_MatchPosOffset))                            
+        
+        
+        for mJnt in ml_joints:
+            param = CURVES.getUParamOnCurveFromObj(mJnt.mNode, mi_useCurve.mNode) 
+            log.debug("|{0}| >> {1}...".format(_str_func,param))                
+            l_param.append(param)
         
         #Because maya is stupid, when doing an existing curve splineIK setup in 2011, you need to select the objects
         #Rather than use the flags
@@ -148,7 +156,6 @@ def spline(jointList = None,
         buffer = mc.ikHandle( simplifyCurve=False, eh = 1,curve = mi_useCurve.mNode,
                               rootOnCurve=True, forceSolver = True, snapHandleFlagToggle=True,
                               parentCurve = False, solver = 'ikSplineSolver',createCurve = False,)  
-
         log.info(buffer)
         mSegmentCurve = mi_useCurve#Link
         mSegmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
@@ -172,7 +179,7 @@ def spline(jointList = None,
         #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideDisplayType'))    
 
     mIKSolver = cgmMeta.cgmNode(name = 'ikSplineSolver')
-
+    
     #>> Handle/Effector --------------------------------------------------------------------------------------
     mIKHandle = cgmMeta.validateObjArg( buffer[0],'cgmObject',setClass=True )
     mIKHandle.addAttr('cgmName',str_baseName,attrType='string',lock=True)    		
@@ -206,7 +213,12 @@ def spline(jointList = None,
         for i,mJnt in enumerate(ml_joints):   
             #import cgm.lib.distance as distance
             #l_closestInfo = distance.returnNearestPointOnCurveInfo(mJnt.mNode,mSegmentCurve.mNode)
-            param = CURVES.getUParamOnCurve(mJnt.mNode, mSegmentCurve.mNode)
+            #param = CURVES.getUParamOnCurve(mJnt.mNode, mSegmentCurve.mNode)
+            if not l_param:
+                param = CURVES.getUParamOnCurveFromObj(mJnt.mNode, mSegmentCurve.mNode)  
+            else:
+                param = l_param[i]
+            #param = DIST.get_closest_point(mJnt.mNode,mSegmentCurve.mNode)[1]
             log.debug("|{0}| >> {1} param: {2}...".format(_str_func,mJnt.p_nameShort,param))
             
             #>>> POCI ----------------------------------------------------------------
@@ -275,7 +287,6 @@ def spline(jointList = None,
             ATTR.datList_append(mIKHandle.mNode,'baseDist',ml_distanceShapes[i].distance)
             ATTR.set_hidden(mIKHandle.mNode,'baseDist_{0}'.format(i),True)
             
-
             if str_stretchBy.lower() in ['translate','trans','t']:
                 #Let's build our args
                 l_argBuild = []
@@ -353,8 +364,7 @@ def spline(jointList = None,
                                              '%s.s%s'%(ml_driverJoints[i].mNode,axis))"""	 	
 
 
-    
-    
+        
     #Connect last joint scale to second to last
     for axis in ['scaleX','scaleY','scaleZ']:
         ATTR.connect('%s.%s'%(ml_joints[-2].mNode,axis),#>>
@@ -432,7 +442,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
     d_return = {"mPlug_start":mPlug_start,"mPlug_end":mPlug_end}    
     
     if not advancedTwistSetup:
-        mPlug_twist = cgmMeta.cgmAttr(mIKHandle.mNode,'twist',attrType='float',keyable=True, hidden=False)	
+        mPlug_twist = cgmMeta.cgmAttr(mIKHandle.mNode,'twist',attrType='float',keyable=True, hidden=False)
     else:
         mi_ramp = cgmMeta.cgmNode(nodeType= 'ramp')
         mi_ramp.doStore('cgmName',mIKHandle.mNode)
@@ -523,7 +533,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
     else:
         mPlug_start.doConnectOut("%s.roll"%mIKHandle.mNode)
         #ikHandle1.twist = (ikHandle1.roll *-.77) + curve4.twistEnd # to implement
-        arg1 = "{0} = {1} - {2}".format(mlPlugs_twist[0].p_combinedShortName,
+        arg1 = "{0} = {1} - {2}".format(mPlug_twist.p_combinedShortName,
                                         mPlug_end.p_combinedShortName,
                                         mPlug_start.p_combinedShortName)
         NodeF.argsToNodes(arg1).doBuild()

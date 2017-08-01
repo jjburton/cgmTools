@@ -29,10 +29,12 @@ from cgm.core import cgm_General as cgmGen
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
+reload(SEARCH)
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATHUTILS
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import list_utils as LIST
+#import cgm.core.lib.shape_utils as SHAPE
 reload(POS)
 reload(MATHUTILS)
 
@@ -536,7 +538,7 @@ def create_closest_point_node(source = None, targetSurface = None):
 
 
     
-def get_closest_point_data_from_mesh(targetObj = None, targetPoint = None, mesh = None):
+def get_closest_point_data_from_mesh(mesh = None, targetObj = None, targetPoint = None):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -554,11 +556,12 @@ def get_closest_point_data_from_mesh(targetObj = None, targetPoint = None, mesh 
     _str_func = 'get_closest_point_data_from_mesh'
     
     _point = False
-    if toPoint is not None:
-        _point = toPoint
-    elif toObject is not None:
-        _point = POS.get(toObject)
+    if targetObj is not None:
+        _point = POS.get(targetObj)
+    elif targetPoint:
+        _point = targetPoint
     if not _point:raise ValueError,"Must have point of reference"
+    
     _loc = mc.spaceLocator()[0]
     POS.set(_loc,_point)  
         
@@ -568,14 +571,18 @@ def get_closest_point_data_from_mesh(targetObj = None, targetPoint = None, mesh 
             _shape = mesh
         else:raise ValueError,"Must be a mesh shape"
     else:
-        _shapes = mc.listRelatives(mesh, s=True)
-        _meshes = []
+        _shape = SEARCH.get_nonintermediateShape(mesh)
+        _shapes = mc.listRelatives(mesh, s=True, fullPath = True)
+        """_meshes = []
         for s in _shapes:
             if VALID.get_mayaType(s) == 'mesh':
                 _meshes.append(s)
-        if len(_meshes) == 1:
-            _shape = _meshes[0]
+        if len(_meshes) > 1:
+            _shape = _meshes[0]"""
     if not _shape:
+        log.error("|{0}| >> Shapes...".format(_str_func))
+        for s in _shapes:
+            print "{0} : {1}".format(s,VALID.get_mayaType(s))
         raise ValueError,"Must have a mesh shape by now"
         
         
@@ -586,16 +593,24 @@ def get_closest_point_data_from_mesh(targetObj = None, targetPoint = None, mesh 
     attributes.doConnectAttr((targetObj+'.translate'),(_node+'.inPosition'))
     attributes.doConnectAttr((_shape+'.worldMesh'),(_node+'.inMesh'))
     attributes.doConnectAttr((_shape+'.matrix'),(_node+'.inputMatrix'))
-
+    _u = mc.getAttr(_node+'.parameterU')
+    _v = mc.getAttr(_node+'.parameterV')
+    
+    #_norm = get_normalized_uv(_shape, _u,_v)
     _res = {}
+    
+    _res['shape'] = _shape
     _res['position']=attributes.doGetAttr(_node,'position')
     _res['normal']=attributes.doGetAttr(_node,'normal')
-    _res['parameterU']=mc.getAttr(_node+'.parameterU')
-    _res['parameterV']=mc.getAttr(_node+'.parameterV')
+    _res['parameterU']= _u
+    _res['parameterV']= _v
+    #_res['normalizedU'] = _norm[0]
+    #_res['normalizedV'] = _norm[1]
     _res['closestFaceIndex']=mc.getAttr(_node+'.closestFaceIndex')
     _res['closestVertexIndex']=mc.getAttr(_node+'.closestVertexIndex')
+    
 
-    mc.delete(_node)
+    mc.delete([_node,_loc])
     return _res
 
 def get_normalizedWeightsByDistance(obj,targets,normalizeTo=1.0):
