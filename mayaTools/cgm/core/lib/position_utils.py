@@ -15,7 +15,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -119,12 +119,8 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
                 posList.append(mc.pointPosition(vert,**kws_pp))
             _res = MATH.get_average_pos(posList)
         elif _cType in ['surfaceCV','curveCV','editPoint','surfacePoint','curvePoint']:
-            #_res = mc.pointPosition (_OBJ,**kws_pp)
-            print _OBJ
-            _res =  mc.pointPosition(_OBJ)
-            print mc.pointPosition(_OBJ)
-            print mc.pointPosition(_OBJ)
-            
+            _res = mc.pointPosition (_OBJ,**kws_pp)
+            #_res =  mc.pointPosition(_OBJ)            
         else:
             raise RuntimeError,"|{0}| >> Shouldn't have gotten here. Need another check for component type. '{1}'".format(_str_func,_cType)
 

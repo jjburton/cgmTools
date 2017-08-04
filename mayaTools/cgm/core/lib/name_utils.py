@@ -87,7 +87,7 @@ def get_base(obj = None):
     except:pass    
     _str_func = "get_base('{0}')".format(obj)
     
-    return obj[0].split('|')[-1].split(':')[-1]
+    return obj.split('|')[-1].split(':')[-1]
     
     buffer = mc.ls(obj,l=True)      
     

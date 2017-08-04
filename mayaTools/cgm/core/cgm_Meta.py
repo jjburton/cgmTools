@@ -19,6 +19,7 @@ import maya.OpenMayaAnim as OMANIM
 
 import copy
 import time
+import pprint
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -28,7 +29,6 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import OM_Utils as cgmOM
-#reload(cgmOM)
 from cgm.core.lib import nameTools
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import position_utils as POS
@@ -39,23 +39,14 @@ from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import constraint_utils as CONSTRAINT
 
-#import cgm.lib
-#import cgm.lib as cgmLIB
-#from cgm import lib as cgmLIB
 from cgm.lib.ml import ml_resetChannels
 from cgm.lib import lists
-#from cgm.lib import curves
 from cgm.lib import search
 from cgm.lib import attributes
 from cgm.core.lib import attribute_utils as ATTR
-#from cgm.lib import distance
-#from cgm.lib import deformers
 from cgm.lib import constraints
 from cgm.lib import dictionary
 from cgm.lib import rigging
-#from cgm.lib import settings
-#from cgm.lib import guiFactory
-#from cgm.lib import position
 from cgm.lib import locators
 from cgm.lib import names
 
@@ -6198,7 +6189,7 @@ class NameFactory(object):
         self.int_baseIterator = 0
         #If we have an assigned iterator, start with that
         d_nameDict = i_node.getNameDict()
-        if 'cgmIterator' in d_nameDict.keys():
+        if d_nameDict.get('cgmIterator'):
             return int(d_nameDict.get('cgmIterator'))
 
         #Gather info
@@ -6255,7 +6246,7 @@ class NameFactory(object):
             return self.bufferName
 
         d_nameDict = i_node.getNameDict()
-        if 'cgmIterator' in d_nameDict.keys():
+        if d_nameDict.get('cgmIterator') is not None:
             return int(d_nameDict.get('cgmIterator'))
 
         #Gather info
@@ -6381,10 +6372,8 @@ class NameFactory(object):
         else:raise StandardError,"NameFactory.doName >> node doesn't exist: '%s'"%node
 
         #Try naming object
-        try:self.doNameObject(node = i_node,fastIterate=fastIterate,**kws)
-        except StandardError,error:
-            raise StandardError,"NameFactory.doName.doNameObject failed: '%s'|%s"%(i_node.mNode,error)
-
+        self.doNameObject(node = i_node,fastIterate=fastIterate,**kws)
+       
         i_rootObject = i_node
 
         if nameShapes:

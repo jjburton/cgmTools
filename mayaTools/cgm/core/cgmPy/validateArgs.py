@@ -32,7 +32,7 @@ from cgm.core.lib import euclid as EUCLID
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #=========================================================================
 def get_transform(node = None):
     """
