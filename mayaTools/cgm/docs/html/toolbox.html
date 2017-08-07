@@ -1,0 +1,557 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Toolbox WIP &mdash; cgmTools 1.0.1 documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/styleoverrides.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="cgmTools 1.0.1 documentation" href="index.html"/>
+        <link rel="next" title="Dynamic Parent Tool" href="dynparenttool.html"/>
+        <link rel="prev" title="Quick Start" href="quickstart.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> cgmTools
+          
+
+          
+            
+            <img src="_static/cgmCalig_64px.png" class="logo" />
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Toolbox WIP</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#tool-window">Tool Window</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#access">Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tabs">Tabs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#snap">Snap</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#basic">Basic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#casting">Casting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#matching">Matching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arrange">Arrange</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#options">Options</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#td">TD</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#select">Select</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rigging-utils">Rigging Utils</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#create-from-selected">Create from selected</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#copy">Copy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#group">Group</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#control-curves">Control Curves</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#raycasting">Raycasting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#distance">Distance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#joints">Joints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sdk">SDK</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#shape">Shape</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#curve">Curve</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mesh">Mesh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#skin">Skin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#nodes">Nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#anim">Anim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#layout">Layout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hotkeys">Hotkeys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dev">Dev</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#help">Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#option-window">Option Window</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dynparenttool.html">Dynamic Parent Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="locinator.html">Locinator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">cgmTools</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Toolbox WIP</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/toolbox.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="toctree-wrapper compound">
+</div>
+<div class="section" id="toolbox-wip">
+<h1>Toolbox WIP<a class="headerlink" href="#toolbox-wip" title="Permalink to this headline">¶</a></h1>
+<p>The cgmToolbox can be accessed in a couple of different ways:</p>
+<ul class="simple">
+<li><strong>Top menu</strong> - We'll be talking about using this method in the next sections</li>
+<li><strong>Marking menu</strong> - We'll get to this later or you can LATER</li>
+</ul>
+<p>The new top menu was initially released in February 2017. It shares tool libraries with the
+marking menu so most items available in one are in the other. Menu sections may be torn off for easy access.</p>
+<div class="section" id="tool-window">
+<h2>Tool Window<a class="headerlink" href="#tool-window" title="Permalink to this headline">¶</a></h2>
+<p>This is quick access to some legacy tools and some settings for the toolbox as as whole.</p>
+<img alt="_images/toolbox.png" class="align-center" src="_images/toolbox.png" />
+<div class="section" id="access">
+<h3>Access<a class="headerlink" href="#access" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Open</span> <span class="pre">Tool</span> <span class="pre">Win</span></code> - You should see what something like the above image</li>
+</ul>
+</div>
+<div class="section" id="setup">
+<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Create</span> <span class="pre">cgmToolboxMenu</span></code> - adds the top menu to maya</li>
+<li><code class="docutils literal"><span class="pre">Autoload</span> <span class="pre">on</span> <span class="pre">maya</span> <span class="pre">start</span></code> - Yup.</li>
+</ul>
+<p>Until we get embeded video sorted. Please use this link: <a class="reference external" href="https://player.vimeo.com/video/206286478">https://player.vimeo.com/video/206286478</a></p>
+<div class="admonition tip">
+<p class="first admonition-title">Tip</p>
+<p class="last">Most functions in the top menu are also in the marking menu.</p>
+</div>
+</div>
+<div class="section" id="tabs">
+<h3>Tabs<a class="headerlink" href="#tabs" title="Permalink to this headline">¶</a></h3>
+<p>For now just take a look around.</p>
+</div>
+</div>
+<div class="section" id="snap">
+<h2>Snap<a class="headerlink" href="#snap" title="Permalink to this headline">¶</a></h2>
+<p>Functions for snapping items around. In general, they function on a selection basis with all targeting the last.</p>
+<img alt="_images/snap.png" class="align-center" src="_images/snap.png" />
+<div class="section" id="basic">
+<h3>Basic<a class="headerlink" href="#basic" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Point</span> <span class="pre">Closest</span></code> - To the closest point on the last surface,curve,shape</li>
+<li><code class="docutils literal"><span class="pre">Parent</span></code> - Position and orientation</li>
+<li><code class="docutils literal"><span class="pre">Orient</span></code> - rotation only</li>
+<li><code class="docutils literal"><span class="pre">Aim</span></code> - Currently uses object defaults from Menu. Will take into account object tagging in future.</li>
+<li><dl class="first docutils">
+<dt><code class="docutils literal"><span class="pre">Aim</span> <span class="pre">Special</span></code> - In the cgmMarkingMenu, if three or more objects are selected splits to subMenu:</dt>
+<dd><ul class="first last">
+<li><code class="docutils literal"><span class="pre">All</span> <span class="pre">to</span> <span class="pre">last</span></code> - All items aim at the last</li>
+<li><code class="docutils literal"><span class="pre">Selection</span> <span class="pre">Order</span></code> - Each object aims to the next</li>
+<li><code class="docutils literal"><span class="pre">First</span> <span class="pre">to</span> <span class="pre">Midpoint</span></code> - First object aims at the midpoint of the rest of the selection</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="casting">
+<h3>Casting<a class="headerlink" href="#casting" title="Permalink to this headline">¶</a></h3>
+<p>Casting utilizes rayCasting to help position things. Our rayCasting by default casts at all eligible surfaces.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">RayCast</span></code> - Uses the rayCast options to detect a point in space</li>
+<li><code class="docutils literal"><span class="pre">AimCast</span></code> - Uses rayCasting to aim selected objects in real time at a point of intersection</li>
+</ul>
+</div>
+<div class="section" id="matching">
+<h3>Matching<a class="headerlink" href="#matching" title="Permalink to this headline">¶</a></h3>
+<p>If an object is tagged to a cgmMatchTarget, will match the object to the match target. For example, if it is an updatable object ([Locinator](locinator.md) loc), it will update.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Self</span></code> - Update the selected object to their respective match targets</li>
+<li><code class="docutils literal"><span class="pre">Target</span></code> - Updates the selected's match targets to the selected</li>
+<li><code class="docutils literal"><span class="pre">Buffer</span></code> - Update utilizing the match buffer</li>
+</ul>
+</div>
+<div class="section" id="arrange">
+<h3>Arrange<a class="headerlink" href="#arrange" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt><code class="docutils literal"><span class="pre">Arrange</span></code> -</dt>
+<dd><ul class="first last">
+<li><code class="docutils literal"><span class="pre">Along</span> <span class="pre">Line</span> <span class="pre">(Even)</span></code> - Arrange selected along line from frist to last evenly</li>
+<li><code class="docutils literal"><span class="pre">Along</span> <span class="pre">Line</span> <span class="pre">(Spaced)</span></code> - Arrange selected along a line snapping middle objects to their nearest point on the line</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="options">
+<h3>Options<a class="headerlink" href="#options" title="Permalink to this headline">¶</a></h3>
+<p>See <cite>Options Window</cite></p>
+</div>
+</div>
+<div class="section" id="td">
+<h2>TD<a class="headerlink" href="#td" title="Permalink to this headline">¶</a></h2>
+<p>Collection of tools for rigging and td work. It will eventually cover all that our legacy tool did and much more.</p>
+<img alt="_images/td.png" class="align-center" src="_images/td.png" />
+<div class="section" id="select">
+<h3>Select<a class="headerlink" href="#select" title="Permalink to this headline">¶</a></h3>
+<p>A contextual selection tool. For each option provided you can select objects of the given type. This is a WIP tool,
+we're unsure how useful it is. Simply an easy call from some other stuff we were doing.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Selection</span></code> - Work from our current selection</li>
+<li><code class="docutils literal"><span class="pre">Children</span></code> - Check all children of all selected objects</li>
+<li><code class="docutils literal"><span class="pre">Heirarchy</span></code> - Check heirarchies of all selected objects</li>
+<li><code class="docutils literal"><span class="pre">Scene</span></code> - Check entire scene</li>
+</ul>
+<img alt="_images/select_context.png" class="align-center" src="_images/select_context.png" />
+<p>The options which are pretty self evident. If you clicked <code class="docutils literal"><span class="pre">TD/Create/Select*/scene/Joints</span></code> all joints in the scene would be selected.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Joints</span></code></li>
+<li><code class="docutils literal"><span class="pre">Curves</span></code></li>
+<li><code class="docutils literal"><span class="pre">Mesh</span></code></li>
+<li><code class="docutils literal"><span class="pre">Surface</span></code></li>
+</ul>
+</div>
+<div class="section" id="rigging-utils">
+<h3>Rigging Utils<a class="headerlink" href="#rigging-utils" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="create-from-selected">
+<h4>Create from selected<a class="headerlink" href="#create-from-selected" title="Permalink to this headline">¶</a></h4>
+<p>Series of options to create new objects matching the given selection.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Transform</span></code> -</li>
+<li><code class="docutils literal"><span class="pre">Joint</span></code> -</li>
+<li><code class="docutils literal"><span class="pre">Locator</span></code> - Locators are special. They work based off component selection and are updateable. More on that later or [here](locinator.md)</li>
+<li><code class="docutils literal"><span class="pre">Curve</span></code> - Instead of per object, creates a curve through selection. Points may be components.</li>
+</ul>
+</div>
+<div class="section" id="copy">
+<h4>Copy<a class="headerlink" href="#copy" title="Permalink to this headline">¶</a></h4>
+<p>Series or functions for copying this and that in a from&gt;to fashion.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Transform</span></code> - Copy the position and orientation.</li>
+<li><code class="docutils literal"><span class="pre">Orientation</span></code> - Only the orientation.</li>
+<li><code class="docutils literal"><span class="pre">Shapes</span></code> - Any shapes are appended.</li>
+<li><dl class="first docutils">
+<dt><code class="docutils literal"><span class="pre">Pivot</span></code> - You can specify which pivot ou want to copy.</dt>
+<dd><ul class="first last">
+<li><code class="docutils literal"><span class="pre">rotatePivot</span></code> -</li>
+<li><code class="docutils literal"><span class="pre">scalePivot</span></code> -</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="group">
+<h4>Group<a class="headerlink" href="#group" title="Permalink to this headline">¶</a></h4>
+<p>Series or functions for grouping selected per selected objects. Groups are created matching the transform of their targets so objects can be zeroed for example. They are also named.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Just</span> <span class="pre">Group</span></code> - Just the group</li>
+<li><code class="docutils literal"><span class="pre">Group</span> <span class="pre">Me</span></code> - Group created, objected paretned to said group. Group is in world.</li>
+<li><code class="docutils literal"><span class="pre">In</span> <span class="pre">Place</span></code> - Group created, and inserts itself between target and target's original parent</li>
+</ul>
+</div>
+<div class="section" id="control-curves">
+<h4>Control Curves<a class="headerlink" href="#control-curves" title="Permalink to this headline">¶</a></h4>
+<p>Options for creating control curves from selected objects.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">Create</span> <span class="pre">Control</span> <span class="pre">Curve</span></code> - Creates a control curve at each selected object utilizing stored create options. See [Toolbox Options](toolboxoptions.md) for more details.</li>
+<li><code class="docutils literal"><span class="pre">One</span> <span class="pre">of</span> <span class="pre">each</span></code> - Just a way to create one of every curve type in our library</li>
+<li><code class="docutils literal"><span class="pre">Make</span> <span class="pre">resizeObj</span></code> - Create a matching transform and shape from your selected objects so you can cleanly resize and shape without worrying about the rig. When you're done...</li>
+<li><code class="docutils literal"><span class="pre">Push</span> <span class="pre">resizeObj</span> <span class="pre">changes</span></code> - Replace the shapes of the original object and delete our resizeObj</li>
+<li><code class="docutils literal"><span class="pre">Mirror</span> <span class="pre">World</span> <span class="pre">Space</span> <span class="pre">To</span> <span class="pre">Target</span></code> - Currently only works across world x</li>
+<li><code class="docutils literal"><span class="pre">{Options}</span></code> - Opens the <cite>Option Window</cite></li>
+</ul>
+</div>
+</div>
+<div class="section" id="attributes">
+<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">[cgmAttrTools](attrtools)</span></code></li>
+<li><dl class="first docutils">
+<dt><code class="docutils literal"><span class="pre">Add</span></code> - Creates a ui prompt to add a number of attributes of the selected type. Separate by <code class="docutils literal"><span class="pre">,</span></code></dt>
+<dd><ul class="first last">
+<li><code class="docutils literal"><span class="pre">enum</span></code></li>
+<li><code class="docutils literal"><span class="pre">string</span></code></li>
+<li><code class="docutils literal"><span class="pre">int</span></code></li>
+<li><code class="docutils literal"><span class="pre">float</span></code></li>
+<li><code class="docutils literal"><span class="pre">vector</span></code></li>
+<li><code class="docutils literal"><span class="pre">bool</span></code></li>
+<li><code class="docutils literal"><span class="pre">message</span></code></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><code class="docutils literal"><span class="pre">Compare</span> <span class="pre">Attrs</span></code> - Compares the prime node to other selected nodes. That comparison comprising seeing what attributes on the given objects match and which do not. Here's example output:</li>
+</ul>
+<div class="highlight-guess"><div class="highlight"><pre><span></span># cgm.core.lib.attribute_utils : Comparing nurbsSphere2 to nurbsSphere1... #
+# cgm.core.lib.attribute_utils : Matching attrs: 199 | Unmatching: 29 #
+# cgm.core.lib.attribute_utils : -------------------------------------------------------------------------- #
+# cgm.core.lib.attribute_utils : attr: boundingBoxMin... #
+# cgm.core.lib.attribute_utils : source: [-4.348416510705419, -1.543820107219151, 0.38805085162276876] #
+# cgm.core.lib.attribute_utils : target: [-1.2264094625656805, -1.0, -1.2264094625656803] #
+# cgm.core.lib.attribute_utils : attr: boundingBoxMinX... #
+# cgm.core.lib.attribute_utils : source: -4.34841651071 #
+# cgm.core.lib.attribute_utils : target: -1.22640946257 #
+# cgm.core.lib.attribute_utils : attr: boundingBoxMinY... #
+# cgm.core.lib.attribute_utils : source: -1.54382010722 #
+# cgm.core.lib.attribute_utils : target: -1.0 #
+# cgm.core.lib.attribute_utils : attr: boundingBoxMinZ... #
+# cgm.core.lib.attribute_utils : source: 0.388050851623 #
+# cgm.core.lib.attribute_utils : target: -1.22640946257 #
+</pre></div>
+</div>
+</div>
+<div class="section" id="raycasting">
+<h3>Raycasting<a class="headerlink" href="#raycasting" title="Permalink to this headline">¶</a></h3>
+<p>WIP</p>
+</div>
+<div class="section" id="distance">
+<h3>Distance<a class="headerlink" href="#distance" title="Permalink to this headline">¶</a></h3>
+<p>WIP</p>
+</div>
+<div class="section" id="joints">
+<h3>Joints<a class="headerlink" href="#joints" title="Permalink to this headline">¶</a></h3>
+<p>WIP</p>
+</div>
+<div class="section" id="sdk">
+<h3>SDK<a class="headerlink" href="#sdk" title="Permalink to this headline">¶</a></h3>
+<p>WIP</p>
+</div>
+<div class="section" id="shape">
+<h3>Shape<a class="headerlink" href="#shape" title="Permalink to this headline">¶</a></h3>
+<p>WIP</p>
+</div>
+<div class="section" id="curve">
+<h3>Curve<a class="headerlink" href="#curve" title="Permalink to this headline">¶</a></h3>
+<p>WIP</p>
+</div>
+<div class="section" id="mesh">
+<h3>Mesh<a class="headerlink" href="#mesh" title="Permalink to this headline">¶</a></h3>
+<p>WIP</p>
+</div>
+<div class="section" id="skin">
+<h3>Skin<a class="headerlink" href="#skin" title="Permalink to this headline">¶</a></h3>
+<p>WIP</p>
+</div>
+<div class="section" id="nodes">
+<h3>Nodes<a class="headerlink" href="#nodes" title="Permalink to this headline">¶</a></h3>
+<p>WIP</p>
+</div>
+</div>
+<div class="section" id="anim">
+<h2>Anim<a class="headerlink" href="#anim" title="Permalink to this headline">¶</a></h2>
+<p>WIP</p>
+</div>
+<div class="section" id="layout">
+<h2>Layout<a class="headerlink" href="#layout" title="Permalink to this headline">¶</a></h2>
+<p>WIP</p>
+</div>
+<div class="section" id="hotkeys">
+<h2>Hotkeys<a class="headerlink" href="#hotkeys" title="Permalink to this headline">¶</a></h2>
+<p>WIP</p>
+</div>
+<div class="section" id="dev">
+<h2>Dev<a class="headerlink" href="#dev" title="Permalink to this headline">¶</a></h2>
+<p>WIP</p>
+</div>
+<div class="section" id="help">
+<h2>Help<a class="headerlink" href="#help" title="Permalink to this headline">¶</a></h2>
+<p>WIP</p>
+</div>
+<div class="section" id="option-window">
+<h2>Option Window<a class="headerlink" href="#option-window" title="Permalink to this headline">¶</a></h2>
+<img alt="_images/optionVar_ui.png" class="align-center" src="_images/optionVar_ui.png" />
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="dynparenttool.html" class="btn btn-neutral float-right" title="Dynamic Parent Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="quickstart.html" class="btn btn-neutral" title="Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, CG Monks.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
