@@ -201,7 +201,7 @@ These functions are somewhat contextual. They work both off of maya selection an
 * ``Move Up`` - Move selected up in the list
 * ``Move Up`` - Move selected down in the list
 
-Practial Uses
+Practical Uses
 =============
 
 Referenced Assets
@@ -223,7 +223,7 @@ animation channels. In this case your dynParentGroup would be setup as a space s
 7. Your control will now track your prop from this point forward on the timeline.
 
 
-Switching Stup
+Switching Setup
 ------------------
 There are a couple of ways to handle switching. Through the ui but more practical is via the marking menu.
 
