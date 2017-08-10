@@ -812,7 +812,10 @@ def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....'
                     maxValue= stepMaxValue )
     return mayaMainProgressBar
 
-def doEndMayaProgressBar(mayaMainProgressBar):
+def doEndMayaProgressBar(mayaMainProgressBar = None):
+    if mayaMainProgressBar is None:
+        mayaMainProgressBar = mel.eval('$tmp = $gMainProgressBar');
+        
     mc.progressBar(mayaMainProgressBar, edit=True, endProgress=True)
 
 def log_selfReport(self):

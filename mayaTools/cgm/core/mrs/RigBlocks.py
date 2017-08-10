@@ -17,6 +17,7 @@ import copy
 import time
 import os
 import cPickle as pickle
+import pprint
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -32,6 +33,7 @@ log.setLevel(logging.INFO)
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
+import cgm.core.cgm_RigMeta as RIGMETA
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 
 from cgm.core.lib import curve_Utils as CURVES
@@ -47,12 +49,16 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
+import cgm.core.classes.NodeFactory as NODEFAC
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
+import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 reload(BUILDERUTILS)
 from cgm.core.lib import nameTools
 reload(BLOCKSHARE)
+from cgm.core.classes import GuiFactory as CGMUI
+reload(CGMUI)
 
 get_from_scene = BLOCKGEN.get_from_scene
 
@@ -399,27 +405,43 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #========================================================================================================      
     def getModuleStatus(self,state = None):
         return get_blockModule_status(self.blockType, state)
+    
     def getBlockDat_templateControls(self,report = False):
         _short = self.p_nameShort        
-        _str_func = '[{0}] loadBlockDat'.format(_short)
+        _str_func = '[{0}] getBlockDat_templateControls'.format(_short)
         
-        _ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+        _blockState_int = self.getState(False)
+        
+        if not _blockState_int:
+            raise ValueError,'[{0}] not templated yet'.format(_short)
+        elif _blockState_int == 1:
+            _ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)            
+        else:
+            _ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)
+        
         if not _ml_templateHandles:
+            log.error('[{0}] No template or prerig handles found'.format(_short))
             return False
         
         _ml_controls = [self] + _ml_templateHandles
         
         _l_orientHelpers = []
+        _l_jointHelpers = []
         for i,mObj in enumerate(_ml_templateHandles):
             log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
             if mObj.getMessage('orientHelper'):
                 _l_orientHelpers.append(mObj.orientHelper.rotate)
             else:
                 _l_orientHelpers.append(False)
+            if mObj.getMessage('jointHelper'):
+                _l_jointHelpers.append(mObj.jointHelper.translate)
+            else:
+                _l_jointHelpers.append(False)
                 
         _d = {'positions':[mObj.p_position for mObj in _ml_templateHandles],
               'orientations':[mObj.p_orient for mObj in _ml_templateHandles],
               'scales':[mObj.scale for mObj in _ml_templateHandles],
+              'jointHelpers':_l_jointHelpers,
               'orientHelpers':_l_orientHelpers}
         
         if self.getMessage('orientHelper'):
@@ -427,6 +449,42 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
         if report:cgmGEN.walk_dat(_d,'[{0}] template blockDat'.format(self.p_nameShort))
         return _d
+    
+    def getBlockDat_prerigControls(self,report = False):
+        _short = self.p_nameShort        
+        _str_func = '[{0}] getBlockDat_prerigControls'.format(_short)
+        
+        _ml_rigHandles = self.msgList_get('rigHandles',asMeta = True)
+        if not _ml_rigHandles:
+            return False
+        
+        _ml_controls = [self] + _ml_rigHandles
+        
+        _l_orientHelpers = []
+        _l_jointHelpers = []
+        
+        for i,mObj in enumerate(_ml_rigHandles):
+            log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
+            if mObj.getMessage('orientHelper'):
+                _l_orientHelpers.append(mObj.orientHelper.rotate)
+            else:
+                _l_orientHelpers.append(False)
+            if mObj.getMessage('jointHelper'):
+                _l_jointHelpers.append(mObj.jointHelper.translate)
+            else:
+                _l_jointHelpers.append(False)
+                
+        _d = {'positions':[mObj.p_position for mObj in _ml_rigHandles],
+              'orientations':[mObj.p_orient for mObj in _ml_rigHandles],
+              'scales':[mObj.scale for mObj in _ml_rigHandles],
+              'jointHelpers':_l_jointHelpers,
+              'orientHelpers':_l_orientHelpers}
+        
+        if self.getMessage('orientHelper'):
+            _d['rootOrientHelper'] = self.orientHelper.rotate
+        
+        if report:cgmGEN.walk_dat(_d,'[{0}] prerig blockDat'.format(self.p_nameShort))
+        return _d    
     
     def getBlockAttributes(self):
         """
@@ -441,6 +499,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return _res
     p_blockAttributes = property(getBlockAttributes)
     
+    def getBlockModule(self):
+        blockType = self.getMayaAttr('blockType')
+    
+        return get_blockModule(blockType)
+    
+    p_blockModule = property(getBlockModule)
+        
     def getBlockDat(self,report = True):
         """
         Carry from Bokser stuff...
@@ -495,6 +560,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if _blockState_int >= 1:
             _d['template'] = self.getBlockDat_templateControls()
             
+        #if _blockState_int >= 2:
+            #_d['prerig'] = self.getBlockDat_prerigControls() 
         
         for a in self.getAttrs(ud=True):
             if a not in _l_udMask:
@@ -589,13 +656,21 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if not _d_template:
                 log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
             else:
-                _ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+                if _int_state == 1:
+                    _ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)            
+                else:
+                    _ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+                
+                
+                #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
                 if not _ml_templateHandles:
                     log.error("|{0}| >> No template handles found".format(_str_func))
                 else:
                     _posTempl = _d_template.get('positions')
                     _orientsTempl = _d_template.get('orientations')
                     _scaleTempl = _d_template.get('scales')
+                    _jointHelpers = _d_template.get('jointHelpers')
+                    
                     if len(_ml_templateHandles) != len(_posTempl):
                         log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
                     else:
@@ -607,7 +682,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                             for ii,v in enumerate(_scaleTempl[i]):
                                 _a = 's'+'xyz'[ii]
                                 if not self.isAttrConnected(_a):
-                                    ATTR.set(_tmp_short,_a,v)     
+                                    ATTR.set(_tmp_short,_a,v)   
+                            if _jointHelpers:
+                                mObj.jointHelper.translate = _jointHelpers[i]
                 if _d_template.get('rootOrientHelper'):
                     if self.getMessage('orientHelper'):
                         self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
@@ -751,6 +828,21 @@ class cgmRigBlock(cgmMeta.cgmControl):
             list of results(list)
         """        
         return contextual_method_call(self, context, func, *args, **kws)
+    
+    def atBlockModule(self, func = '', *args,**kws):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        _blockModule = self.p_blockModule
+        
+        return self.stringModuleCall(_blockModule,func,*args, **kws)
+    
+    def atBlockUtils(self, func = '', *args,**kws):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        
+        return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)    
     
     def string_methodCall(self, func = 'getShortName', *args,**kws):
         """
@@ -979,6 +1071,55 @@ class handleFactory(object):
         mOrientCurve.connectParentNode(mHandle.mNode,'handle','orientHelper')      
 
         return mOrientCurve
+    
+    
+    def addJointHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z-'):
+        _baseDat = self.get_baseDat(baseShape,baseSize)
+        _baseShape = _baseDat[0]
+        _baseSize = _baseDat[1]
+        
+        mHandle = self._mTransform
+        _bfr = mHandle.getMessage('jointHelper')
+        if _bfr:
+            mc.delete(_bfr)
+
+        
+        #Joint helper ======================================================================================
+        _jointHelper = CURVES.create_controlCurve(mHandle.mNode,'sphere',  direction= shapeDirection, sizeMode = 'fixed', size = _baseSize)
+        mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
+        
+        mJointCurve.doStore('cgmType','jointHandle')
+        mJointCurve.doName()    
+        
+        mJointCurve.p_parent = mHandle
+        
+
+                    
+        RIGGING.match_transform(mJointCurve.mNode, mHandle)
+        
+        mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
+                           etx = (True,True), ety = (True,True), etz = (True,True))        
+
+        mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
+        
+        mJointCurve.setAttrFlags(['rotate','scale'])
+        
+        #...loft curve -------------------------------------------------------------------------------------
+        mLoft = self.buildBaseShape('square',_baseSize*.5,'y+')
+        mLoft.doStore('cgmName',mJointCurve.mNode)
+        mLoft.doStore('cgmType','loftCurve')
+        mLoft.doName()
+        mLoft.p_parent = mJointCurve
+        self.color(mLoft.mNode,controlType='sub')
+        
+        for s in mLoft.getShapes(asMeta=True):
+            s.overrideEnabled = 1
+            s.overrideDisplayType = 2
+        mLoft.connectParentNode(mJointCurve,'handle','loftCurve')        
+        
+
+        return mJointCurve
+        
         
     def rebuildAsLoftTarget(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
         _baseDat = self.get_baseDat(baseShape,baseSize)
@@ -1477,38 +1618,55 @@ class factory(object):
         #...get our targets
         if _targetsMode == 'msgList':
             _l_targets = ATTR.msgList_get(_root, _targetsCall)
+        elif _targetsMode == 'msg':
+            _l_targets = ATTR.get_message(_root, _targetsCall)
+        elif _targetsMode == 'self':
+            _l_targets = [self._mi_block.mNode]
         else:
             raise ValueError,"targetsMode: {0} is not implemented".format(_targetsMode)
 
         log.debug("|{0}| >> Targets: {1}".format(_str_func,_l_targets))            
 
-        _helperOrient = ATTR.get_message(_root,'helperOrient')
+        _helperOrient = ATTR.get_message(_root,'orientHelper')
         if not _helperOrient:
-            log.debug("|{0}| >> No helper orient. Using root.".format(_str_func))   
+            log.info("|{0}| >> No helper orient. Using root.".format(_str_func))   
             _axisWorldUp = MATH.get_obj_vector(_root,'y+')                 
         else:
-            log.debug("|{0}| >> helperOrient: {1}".format(_str_func,_helperOrient))            
-            _axisWorldUp = MATH.get_obj_vector(_helperOrient[0],'y+') 
+            log.info("|{0}| >> orientHelper: {1}".format(_str_func,_helperOrient))            
+            _axisWorldUp = MATH.get_obj_vector(_helperOrient[0], _d_skeletonSetup.get('helperAxis','y+')) 
+            
         log.debug("|{0}| >> axisWorldUp: {1}".format(_str_func,_axisWorldUp))  
 
-        _joints = ATTR.get(_root,'joints')
+        _joints = ATTR.get(_root,'numberJoints')
 
 
         #...get our positional data
-        if _mode == 'vectorCast':
-            _p_start = POS.get(_l_targets[0])
-            _p_top = POS.get(_l_targets[1])    
-            _l_pos = get_posList_fromStartEnd(_p_start,_p_top,_joints)   
-
+        _d_res = {}
+        
+        if _mode in ['vectorCast','curveCast']:
+            if _mode == 'vectorCast':
+                _p_start = POS.get(_l_targets[0])
+                _p_top = POS.get(_l_targets[1])    
+                _l_pos = get_posList_fromStartEnd(_p_start,_p_top,_joints)   
+            elif _mode == 'curveCast':
+                import cgm.core.lib.curve_Utils as CURVES
+                _crv = CURVES.create_fromList(targetList = _l_targets)
+                _l_pos = CURVES.returnSplitCurveList(_crv,_joints)
+                mc.delete(_crv)
+            _d_res['jointCount'] = _joints
+            _d_res['helpers'] = {'orient':_helperOrient,
+                                 'targets':_l_targets}
+        elif _mode == 'handle':
+            _l_pos = [POS.get(_l_targets[0])]
+            _d_res['targets'] = _l_targets           
         else:
             raise ValueError,"mode: {0} is not implemented".format(_mode)                
 
-        _d_res = {'positions':_l_pos,
-                  'jointCount':_joints,
-                  'helpers':{'orient':_helperOrient,
-                             'targets':_l_targets},
-                  'worldUpAxis':_axisWorldUp}
-        cgmGEN.walk_dat(_d_res,_str_func)
+        _d_res['positions'] = _l_pos
+        _d_res['mode'] = _mode
+        _d_res['worldUpAxis'] = _axisWorldUp        
+        
+        #pprint.pprint(_d_res)
         return _d_res
 
     def verify(self, blockType = None, forceReset = False):
@@ -1573,7 +1731,8 @@ class factory(object):
                         _mBlock.addAttr(a,initialValue = v, attrType = t,lock=_l, keyable = False)            
             except Exception,err:
                 log.error("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
-                raise Exception,err
+                if not forceReset:                
+                    raise Exception,err
         _mBlock.addAttr('blockType', value = blockType,lock=True)	
         #_mBlock.blockState = 'base'
         
@@ -2021,7 +2180,8 @@ class factory(object):
         _blockType = self._mi_block.blockType
         #>> Get positions -----------------------------------------------------------------------------------
         _d_create = self.get_skeletonCreateDict(_blockType)
-
+        _mode = _d_create['mode']
+        
         #>> If check for module,puppet -----------------------------------------------------------------------------------
         if not self._mi_module:
             self.module_verify()
@@ -2029,7 +2189,7 @@ class factory(object):
             self.puppet_verify()
 
         #>> If skeletons there, delete ----------------------------------------------------------------------------------- 
-        _bfr = self._mi_module.rigNull.msgList_get('skinJoints')
+        _bfr = self._mi_module.rigNull.msgList_get('moduleJoints')
         if _bfr:
             log.debug("|{0}| >> Joints detected...".format(_str_func))            
             if forceNew:
@@ -2037,21 +2197,32 @@ class factory(object):
                 mc.delete([mObj.mNode for mObj in _bfr])
             else:
                 return _bfr
+            
 
         #Build skeleton -----------------------------------------------------------------------------------
-        _ml_joints = build_skeleton(_d_create['positions'],worldUpAxis=_d_create['worldUpAxis'])
-
-        #Wire and name        
-        self._mi_module.rigNull.msgList_connect(_ml_joints,'skinJoints')
-        self._mi_module.rigNull.msgList_connect(_ml_joints,'moduleJoints')
+        _ml_joints = BUILDERUTILS.build_skeleton(_d_create['positions'],worldUpAxis=_d_create['worldUpAxis'])
+        
+        if _mode == 'handle':
+            for i,mJnt in enumerate(_ml_joints):
+                mJnt.doSnapTo(_d_create['targets'][i])
+                JOINTS.metaFreezeJointOrientation(mJnt.mNode)
+                
 
         #...need to do this better...
+        
         #>>>HANDLES,CORENAMES -----------------------------------------------------------------------------------
         _ml_joints[0].addAttr('cgmName',_blockType)
-        for i,mJnt in enumerate(_ml_joints):
-            mJnt.addAttr('cgmIterator',i)
-            mJnt.doName()
+        if len(_ml_joints) > 1:
+            for i,mJnt in enumerate(_ml_joints):
+                mJnt.addAttr('cgmIterator',i)
+                mJnt.doName()                
+        else:
+            _ml_joints[0].doName()
 
+        #Wire and name        
+        self._mi_module.rigNull.msgList_connect('moduleJoints',_ml_joints)
+        
+        #>>>Connect to parent module/puppet
         return _ml_joints
 
     def create_mesh(self,mode='simple',castMesh = None):
@@ -2617,6 +2788,592 @@ def contextual_method_call(mBlock, context = 'self', func = 'getShortName',*args
             log.error(cgmGEN._str_subLine)
     
     return _res
+
+
+
+class rigFactory(object):
+    def __init__(self, rigBlock = None, forceNew = True, autoBuild = False, ignoreRigCheck = False,
+                 *a,**kws):
+        """
+        Core rig block builder factory
+
+        :parameters:
+            rigBlock(str) | base rigBlock
+
+        :returns
+            factory instance
+
+        """
+        _str_func = 'rigFactory._init_'
+        _start = time.clock()
+
+        #>>Initial call ---------------------------------------------------------------------------------
+        self.callBlock = None
+        self.call_kws = {}
+        self.mBlock = None
+        self.d_block = {}
+        self.d_module = {}
+        self.d_joints = {}
+        self.d_orientation = {}         
+        self.md_controlShapes = {} 
+
+        if a:log.debug("|{0}| >> a: {1}".format(_str_func,a))
+        if kws:#...intial population
+            self.call_kws = kws
+            #log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
+
+        self.call_kws['forceNew'] = forceNew
+        self.call_kws['rigBlock'] = rigBlock
+        self.call_kws['autoBuild'] = autoBuild
+        self.call_kws['ignoreRigCheck'] = ignoreRigCheck
+        cgmGEN.log_info_dict(self.call_kws,_str_func)
+
+        if not self.fnc_check_rigBlock():
+            raise RuntimeError,"|{0}| >> RigBlock checks failed. See warnings and errors.".format(_str_func)
+        log.debug("|{0}| >> RigBlock check passed".format(_str_func) + cgmGEN._str_subLine)
+
+        if not self.fnc_check_module():
+            raise RuntimeError,"|{0}| >> Module checks failed. See warnings and errors.".format(_str_func)
+        log.debug("|{0}| >> Module check passed...".format(_str_func)+ cgmGEN._str_subLine)
+
+        if not self.fnc_rigNeed():
+            raise RuntimeError,"|{0}| >> No rig need see errors".format(_str_func)
+        log.debug("|{0}| >> Rig needed...".format(_str_func)+ cgmGEN._str_subLine)
+
+        if not self.fnc_bufferDat():
+            raise RuntimeError,"|{0}| >> Failed to buffer data. See warnings and errors.".format(_str_func)
+
+        if not self.fnc_moduleRigChecks():
+            raise RuntimeError,"|{0}| >> Failed to process module rig Checks. See warnings and errors.".format(_str_func)
+
+        if not self.fnc_deformConstrainNulls():
+            raise RuntimeError,"|{0}| >> Failed to process deform/constrain. See warnings and errors.".format(_str_func)
+                
+        self.fnc_processBuild(**kws)
+        
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+
+        #_verify = kws.get('verify',False)
+        #log.debug("|{0}| >> verify: {1}".format(_str_func,_verify))
+
+    def __repr__(self):
+        try:return "{0}(rigBlock: {1})".format(self.__class__, self.mBlock.mNode)
+        except:return self
+    
+    def log_self(self):
+        pprint.pprint(self.__dict__)
+        
+    def atBlockModule(self, func = '', *args,**kws):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        _blockModule = self.d_block['buildModule']
+        
+        return cgmGEN.stringModuleClassCall(self, _blockModule, func, *args, **kws)
+        
+    def fnc_check_rigBlock(self):
+        """
+        Check the rig block data 
+        """
+        _str_func = 'fnc_check_rigBlock' 
+        _d = {}
+        _res = True
+        _start = time.clock()
+
+        if not self.call_kws['rigBlock']:
+            log.error("|{0}| >> No rigBlock stored in call kws".format(_str_func))
+            return False
+
+        BlockFactory = factory(self.call_kws['rigBlock'])
+        BlockFactory.verify()
+
+        _d['mBlock'] = BlockFactory._mi_block
+        self.mBlock = _d['mBlock']
+        _d['mFactory'] = BlockFactory
+        _d['shortName'] = BlockFactory._mi_block.getShortName()
+
+        _blockType = _d['mBlock'].blockType
+
+        _buildModule = get_blockModule(_blockType)
+
+        if not _buildModule:
+            log.error("|{0}| >> No build module found for: {1}".format(_str_func,_d['mBlock'].blockType))        
+            return False
+        _d['buildModule'] =  _buildModule   #if not is_buildable
+        _d['buildVersion'] = _buildModule.__version__
+
+        self.d_block = _d    
+        #cgmGEN.log_info_dict(_d,_str_func + " blockDat")   
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+
+        return True
+
+
+    def fnc_check_module(self):
+        _str_func = 'fnc_check_module'  
+        _res = True
+        BlockFactory = self.d_block['mFactory']
+
+        if BlockFactory._mi_block.blockType in ['master']:
+            return True
+
+        _start = time.clock()
+
+        #>>Module -----------------------------------------------------------------------------------  
+        _d = {}    
+        BlockFactory.module_verify()
+        _mModule = BlockFactory._mi_module
+        self.mModule = _mModule
+
+        _mRigNull = _mModule.rigNull
+        _d['mModule'] = _mModule
+        _d['mRigNull'] = _mRigNull
+        self.mRigNull = _mRigNull
+        _d['shortName'] = _mModule.getShortName()
+        _d['version'] = _mModule.rigNull.version
+
+        _d['mModuleParent'] = False
+        if _mModule.getMessage('moduleParent'):
+            _d['mModuleParent'] = _mModule.moduleParent
+
+        """
+        if not _mRigNull.getMessage('dynSwitch'):
+            _mDynSwitch = RIGMETA.cgmDynamicSwitch(dynOwner=_mRigNull.mNode)
+            log.debug("|{0}| >> Created dynSwitch: {1}".format(_str_func,_mDynSwitch))        
+        else:
+            _mDynSwitch = _mRigNull.dynSwitch  
+        _d['mDynSwitch'] = _mDynSwitch"""
+
+        #>>Puppet -----------------------------------------------------------------------------------    
+        BlockFactory.puppet_verify()
+        _mPuppet = _mModule.modulePuppet
+        self.mPuppet = _mPuppet
+
+        _d['mPuppet'] = _mPuppet
+        _mPuppet.__verifyGroups__()
+
+        if not _mModule.isSkeletonized():
+            log.warning("|{0}| >> Module isn't skeletonized. Attempting".format(_str_func))
+            
+            self.d_block['mBlock'].atBlockModule('build_skeleton')
+
+            if not _mModule.isSkeletonized():
+                log.warning("|{0}| >> Skeletonization failed".format(_str_func))            
+                _res = False
+
+        self.d_module = _d    
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+        #cgmGEN.log_info_dict(_d,_str_func + " moduleDat")    
+        return _res    
+
+
+    def fnc_moduleRigChecks(self):
+        """
+        Verify the module's rig visibility toggles and object set
+        """
+        _str_func = 'fnc_moduleRigChecks'  
+        _res = True
+        _start = time.clock()
+
+
+        #>>Connect switches ----------------------------------------------------------------------------------- 
+        _str_settings = self.d_module['mMasterSettings'].getShortName()
+        _str_partBase = self.d_module['partName'] + '_rig'
+        _str_moduleRigNull = self.d_module['mRigNull'].getShortName()
+
+        _mMasterSettings = self.d_module['mMasterSettings']
+
+        _mMasterSettings.addAttr(_str_partBase,enumName = 'off:lock:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+
+        try:NODEFAC.argsToNodes("{0}.gutsVis = if {1}.{2} > 0".format(_str_moduleRigNull,
+                                                                      _str_settings,
+                                                                      _str_partBase)).doBuild()
+        except Exception,err:
+            raise Exception,"|{0}| >> visArg failed [{1}]".format(_str_func,err)
+
+        try:NODEFAC.argsToNodes("{0}.gutsLock = if {1}.{2} == 2:0 else 2".format(_str_moduleRigNull,
+                                                                                 _str_settings,
+                                                                                 _str_partBase)).doBuild()
+        except Exception,err:
+            raise Exception,"|{0}| >> lock arg failed [{1}]".format(_str_func,err)
+
+        self.d_module['mRigNull'].overrideEnabled = 1		
+        cgmMeta.cgmAttr(_str_moduleRigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(_str_moduleRigNull,'overrideVisibility'))
+        cgmMeta.cgmAttr(_str_moduleRigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(_str_moduleRigNull,'overrideDisplayType'))    
+
+        #log.debug("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)   
+
+
+        #>>> Object Set -----------------------------------------------------------------------------------
+        self.mModule.__verifyObjectSet__()
+
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))            
+
+        return _res
+
+    def fnc_rigNeed(self):
+        """
+        Function to check if a go instance needs to be rigged
+
+        """
+        _str_func = 'fnc_rigNeed'  
+
+
+        _mModule = self.d_module['mModule']    
+        _mModuleParent = self.d_module['mModuleParent']
+        _version = self.d_module['version']
+        _buildVersion = self.d_block['buildVersion']
+
+        _d_callKWS = self.call_kws
+
+        if _mModuleParent:
+            _str_moduleParent = _mModuleParent.getShortName()
+            if not _mModuleParent.isRigged():
+                log.warning("|{0}| >> [{1}] ModuleParent not rigged".format(_str_func,_str_moduleParent))            
+                return False
+
+        _b_rigged = _mModule.isRigged()
+        log.debug("|{0}| >> Rigged: {1}".format(_str_func,_b_rigged))            
+
+        if _b_rigged and not _d_callKWS['forceNew'] and _d_callKWS['ignoreRigCheck'] is not True:
+            log.warning("|{0}| >> Already rigged and not forceNew".format(_str_func))                    
+            return False
+
+        self.b_outOfDate = False
+        if _version != _buildVersion:
+            self.b_outOfDate = True
+            log.warning("|{0}| >> Versions don't match: rigNull: {1} | buildModule: {2}".format(_str_func,_version,_buildVersion))                            
+        else:
+            if _d_callKWS['forceNew'] and _mModule.isRigged():
+                log.warning("|{0}| >> Force new and is rigged. Deleting rig...".format(_str_func))                    
+                #_mModule.rigDelete()
+            else:
+                log.info("|{0}| >> Up to date.".format(_str_func))                    
+                return False
+
+        return True
+
+    def fnc_atModule(self,func = '',*args,**kws):
+        _str_func = 'fnc_atModule'
+        _res = None
+        _short = self.d_block['mBlock'].mNode
+        _module = self.d_block['buildModule']
+        if not args:
+            _str_args = ''
+            args = [self]
+        else:
+            _str_args = ','.join(str(a) for a in args) + ','
+            args = [self] + [a for a in args]
+            
+        if not kws:
+            kws = {}
+            _kwString = ''  
+        else:
+            _l = []
+            for k,v in kws.iteritems():
+                _l.append("{0}={1}".format(k,v))
+            _kwString = ','.join(_l)  
+            
+        try:
+            log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
+            _res = getattr(_module,func)(*args,**kws)
+        except Exception,err:
+            log.error(cgmGEN._str_hardLine)
+            log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+            log.error("rigBlock: {0} | func: {1}".format(_short,func))
+            log.error("Module: {0} ".format(_module))            
+            
+            if args:
+                log.error("Args...")
+                for a in args:
+                    log.error("      {0}".format(a))
+            if kws:
+                log.error(" KWS...".format(_str_func))
+                for k,v in kws.iteritems():
+                    log.error("      {0} : {1}".format(k,v))   
+            log.error("Errors...")
+            for a in err.args:
+                log.error(a)
+            cgmGEN.cgmExceptCB(Exception,err)
+            
+            #cgmGEN.log_info_dict(self.__dict__,'rigFactory')
+            
+            raise Exception,err
+        return _res     
+    
+    def log_self(self):
+        pprint.pprint(self.__dict__)
+        
+    def fnc_bufferDat(self):
+        """
+        Function to check if a go instance needs to be rigged
+
+        """
+        _str_func = 'fnc_bufferDat'  
+
+        _mModule = self.d_module['mModule']    
+        _mModuleParent = self.d_module['mModuleParent']
+        _mPuppet = self.d_module['mPuppet']
+        _mRigNull = self.d_module['mRigNull']
+        _version = self.d_module['version']
+        _buildVersion = self.d_block['buildVersion']
+
+        _d_callKWS = self.call_kws
+
+        #>>Module dat ------------------------------------------------------------------------------
+        _d = {}
+        _d['partName'] = _mModule.getPartNameBase()
+        _d['partType'] = _mModule.moduleType.lower() or False
+
+        _d['l_moduleColors'] = _mModule.getModuleColors() 
+        _d['l_coreNames'] = []#...need to do this
+        self.mTemplateNull = _mModule.templateNull
+        _d['mTemplateNull'] = self.mTemplateNull
+        _d['bodyGeo'] = _mPuppet.getGeo() or ['Morphy_Body_GEO']
+        _d['direction'] = _mModule.getAttr('cgmDirection')
+
+        _d['mirrorDirection'] = _mModule.get_mirrorSideAsString()
+        _d['f_skinOffset'] = _mPuppet.getAttr('skinDepth') or 1
+        _d['mMasterNull'] = _mPuppet.masterNull
+
+        #>MasterControl....
+        if not _mPuppet.getMessage('masterControl'):
+            log.info("|{0}| >> Creating masterControl...".format(_str_func))                    
+            _mPuppet._verifyMasterControl(size = 5)
+
+        _d['mMasterControl'] = _mPuppet.masterControl
+        _d['mPlug_globalScale'] =  cgmMeta.cgmAttr(_d['mMasterControl'].mNode,'scaleY')	 
+        _d['mMasterSettings'] = _d['mMasterControl'].controlSettings
+        _d['mMasterDeformGroup'] = _mPuppet.masterNull.deformGroup
+
+        _d['mMasterNull'].worldSpaceObjectsGroup.parent = _mPuppet.masterControl
+
+        self.d_module.update(_d)
+
+        #cgmGEN.log_info_dict(self._d_module,_str_func + " moduleDat")      
+        log.info(cgmGEN._str_subLine)
+
+
+        #>>Joint dat ------------------------------------------------------------------------------
+        _d = {}
+
+        _d['ml_moduleJoints'] = _mRigNull.msgList_get('moduleJoints',cull=True)
+        if not _d['ml_moduleJoints']:
+            log.warning("|{0}| >> No module joints found".format(_str_func))                    
+            return False
+
+        _d['l_moduleJoints'] = []
+
+        for mJnt in _d['ml_moduleJoints']:
+            _d['l_moduleJoints'].append(mJnt.p_nameShort)
+            ATTR.set(mJnt.mNode,'displayLocalAxis',0)
+
+        _d['ml_skinJoints'] = _mModule.rig_getSkinJoints()
+        if not _d['ml_skinJoints']:
+            log.warning("|{0}| >> No skin joints found".format(_str_func))                    
+            return False      
+
+
+        self.d_joints = _d
+        #cgmGEN.log_info_dict(self.d_joints,_str_func + " jointsDat")      
+        #log.info(cgmGEN._str_subLine)    
+
+        #>>Orientation dat ------------------------------------------------------------------------------
+        _d = {}
+
+        _mOrientation = VALID.simpleOrientation('zyx')#cgmValid.simpleOrientation(str(modules.returnSettingsData('jointOrientation')) or 'zyx')
+        _d['str'] = _mOrientation.p_string
+        _d['vectorAim'] = _mOrientation.p_aim.p_vector
+        _d['vectorUp'] = _mOrientation.p_up.p_vector
+        _d['vectorOut'] = _mOrientation.p_out.p_vector
+
+        _d['vectorAimNeg'] = _mOrientation.p_aimNegative.p_vector
+        _d['vectorUpNeg'] = _mOrientation.p_upNegative.p_vector
+        _d['vectorOutNeg'] = _mOrientation.p_outNegative.p_vector    
+
+        self.d_orientation = _d
+        #cgmGEN.log_info_dict(self.d_orientation,_str_func + " orientationDat")      
+        #log.info(cgmGEN._str_subLine)    
+
+        return True
+
+
+
+    def fnc_deformConstrainNulls(self):
+        """
+        Verify the module's rig visibility toggles and object set
+        """
+        _str_func = 'fnc_deformConstrainNulls'  
+        _res = True
+        _start = time.clock()
+
+
+        #>>Connect switches ----------------------------------------------------------------------------------- 
+        _str_partType = self.d_module['partType']
+        _str_partName= self.d_module['partName']
+
+        _mMasterSettings = self.d_module['mMasterSettings']
+        _mi_moduleParent = self.d_module['mModuleParent']
+        _ml_skinJoints = self.d_joints['ml_skinJoints']
+
+        if not self.mModule.getMessage('deformNull'):
+            if _str_partType in ['eyebrow', 'mouthnose']:
+                raise ValueError,"not implemented"
+                """
+                #Make it and link it ------------------------------------------------------
+                buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
+                i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
+                i_grp.addAttr('cgmName',self.partName,lock=True)
+                i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
+                i_grp.doName()
+                i_grp.parent = self.i_faceDeformNull	
+                self.mModule.connectChildNode(i_grp,'deformNull','module')
+                self.mModule.connectChildNode(i_grp,'constrainNull','module')
+                self.i_deformNull = i_grp#link"""
+            else:
+                #Make it and link it
+                if _str_partType in ['eyelids']:
+                    buffer =  RIGGING.group_me(_mi_moduleParent.deformNull.mNode,False)			
+                else:
+                    buffer =  RIGGING.group_me(_ml_skinJoints[0].mNode,False)
+
+                i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
+                i_grp.addAttr('cgmName',_str_partName,lock=True)
+                i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
+                i_grp.doName()
+                i_grp.parent = self.d_module['mMasterDeformGroup'].mNode
+                self.mModule.connectChildNode(i_grp,'deformNull','module')
+                if _str_partType in ['eyeball']:
+                    self.mModule.connectChildNode(i_grp,'constrainNull','module')	
+                    i_grp.parent = self.i_faceDeformNull				
+        self.mDeformNull = self.mModule.deformNull
+
+
+        if not self.mModule.getMessage('constrainNull'):
+            #if _str_partType not in __l_faceModules__ or _str_partType in ['eyelids']:
+                #Make it and link it
+            buffer =  RIGGING.group_me(self.mDeformNull.mNode,False)
+            i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
+            i_grp.addAttr('cgmName',_str_partName,lock=True)
+            i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
+            i_grp.doName()
+            i_grp.parent = self.mDeformNull.mNode
+            self.mModule.connectChildNode(i_grp,'constrainNull','module')
+        self.mConstrainNull = self.mModule.constrainNull
+
+        #>> Roll joint check...
+        self.b_noRollMode = False
+        self.b_addMidTwist = True
+        if self.mBlock.hasAttr('rollJoints'):
+            if self.mBlock.rollJoints == 0:
+                self.b_noRollMode = True
+                self.b_addMidTwist = False
+                log.info("|{0}| >> No rollJoint mode...".format(_str_func))                    
+
+
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))            
+
+        return _res
+
+    def fnc_processBuild(self,**kws):
+        """
+        Verify the module's rig visibility toggles and object set
+        """
+        _str_func = 'fnc_processBuild'  
+        _start = time.clock()
+
+        if self.b_outOfDate and self.call_kws['autoBuild']:
+            self.doBuild(**kws)
+        else:log.error("|{0}| >> No autobuild condition met...".format(_str_func))                    
+
+
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))            
+
+    def doBuild(self,buildTo = '',**kws):
+        _str_func = 'doBuild'  
+        _start = time.clock()        
+
+        try:
+            _l_buildOrder = self.d_block['buildModule'].__l_buildOrder__
+            _len = len(_l_buildOrder)
+
+            if not _len:
+                log.error("|{0}| >> No steps to build!".format(_str_func))                    
+                return False
+            #Build our progress Bar
+            mayaMainProgressBar = CGMUI.doStartMayaProgressBar(_len)
+
+            for i,fnc in enumerate(_l_buildOrder):
+                try:	
+                    #str_name = d_build[k].get('name','noName')
+                    #func_current = d_build[k].get('function')
+                    #_str_subFunc = str_name
+                    _str_subFunc = fnc.__name__
+
+                    mc.progressBar(mayaMainProgressBar, edit=True,
+                                   status = "|{0}| >>Rigging>> step: {1}...".format(_str_func,_str_subFunc), progress=i+1)    
+                    fnc(self)
+
+                    if buildTo is not None:
+                        _Break = False
+                        if VALID.stringArg(buildTo):
+                            if buildTo.lower() == _str_subFunc:
+                                _Break = True
+                        elif buildTo == i:
+                            _Break = True
+
+                        if _Break:
+                            log.debug("|{0}| >> Stopped at step: [{1}]".format(_str_func, _str_subFunc))   
+                            break
+                except Exception,err:
+                    raise Exception,"Fail step: {0} | err: [{1}]".format(fnc.__name__,err)  
+
+            CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+        except Exception,err:
+            CGMUI.doEndMayaProgressBar()#Close out this progress bar    		
+            raise Exception,"|{0}| >> err: {1}".format(_str_func,err)        
+
+    def build_rigJoints(self):
+        _str_func = 'build_rigJoints'  
+        _res = True
+        _start = time.clock()
+
+        _ml_skinJoints = self.d_joints['ml_skinJoints']
+
+        #>>Check if exists -----------------------------------------------------------------------------------  
+        l_rigJointsExist = self.mRigNull.msgList_get('rigJoints',asMeta = False, cull = True)
+        if l_rigJointsExist:
+            log.warning("|{0}| >> Deleting existing chain!".format(_str_func))                    
+            mc.delete(l_rigJointsExist)
+
+        #>>Build -----------------------------------------------------------------------------------          
+        l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in _ml_skinJoints],po=True,ic=True,rc=True)
+        ml_rigJoints = [cgmMeta.cgmObject(j) for j in l_rigJoints]
+
+        for i,mJnt in enumerate(ml_rigJoints):
+            mJnt.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
+            l_rigJoints[i] = mJnt.mNode
+            mJnt.connectChildNode(_ml_skinJoints[i],'skinJoint','rigJoint')#Connect	    
+            if mJnt.hasAttr('scaleJoint'):
+                if mJnt.scaleJoint in self.ml_skinJoints:
+                    int_index = self.ml_skinJoints.index(mJnt.scaleJoint)
+                    mJnt.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
+            if mJnt.hasAttr('rigJoint'):mJnt.doRemove('rigJoint')
+            mJnt.doName()
+
+        ml_rigJoints[0].parent = False
+
+        #>>Connect back -----------------------------------------------------------------------------------                  
+        self.d_joints['ml_rigJoints'] = ml_rigJoints
+        self.d_joints['l_rigJoints'] = [i_jnt.p_nameShort for i_jnt in ml_rigJoints]
+        self.mRigNull.msgList_connect(ml_rigJoints,'rigJoints','rigNull')#connect	
+
+
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+        return ml_rigJoints
+
+
+
 
 
 

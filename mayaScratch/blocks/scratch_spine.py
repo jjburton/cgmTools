@@ -1,17 +1,21 @@
-import cgm.core.mrs.RigBlocks as BLOCKS
-import cgm.core.mrs.Builder as BUILD
-
-import cgm.core.cgm_Meta as cgmMeta
-
-reload(RBLOCKS)
-
-import cgm.core
-reload(cgm.core)
+import maya.cmds as mc
+from cgm.core import cgm_Meta as cgmMeta
 cgm.core._reload()
+
+import cgm.core.mrs.RigBlocks as RBLOCKS
 
 _root = 'NotBatman_master_block'
 mBlock = RBLOCKS.cgmRigBlock(blockType = 'master', size = 1)
 mBlock = RBLOCKS.cgmRigBlock(_root)
+
+
+#====================================================================================================
+#>>>Blockshare data
+#====================================================================================================
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+reload(BLOCKSHARE)
+for a,v in BLOCKSHARE._d_attrsTo_make.iteritems():
+    print "'{0}' - ({1})".format(a,v)
 
 
 #>>>Heirarchy ============================================================================
@@ -33,7 +37,6 @@ mBlock.p_blockAttributes
 #>>>BlockFactory
 #====================================================================================================
 BlockFactory = RBLOCKS.factory(_root)
-
 BlockFactory.get_infoBlock_report()
 
 #>>>State changes ============================================================================
@@ -48,14 +51,4 @@ BlockFactory.changeState('define')
 #>>>Utilities
 #====================================================================================================
 RBLOCKS.get_blockModule('master')
-
-
-
-#====================================================================================================
-#>>>Blockshare data
-#====================================================================================================
-import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
-reload(BLOCKSHARE)
-for a,v in BLOCKSHARE._d_attrsTo_make.iteritems():
-    print "'{0}' - ({1})".format(a,v)
 

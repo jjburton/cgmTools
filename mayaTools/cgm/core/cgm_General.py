@@ -966,7 +966,63 @@ class Callback(object):
                 log.info("kws: {0}".format(self._kwargs))
             for a in err.args:
                 log.info(a)
+                
+            cgmExceptCB(Exception,err)
             raise Exception,err
+        
+def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
+    """
+    Function to call from a given module a function by string name with args and kws. 
+    
+    self - should be a class instance you want passed forward
+    
+    """
+    try:_short = self.p_nameShort
+    except:_short = self.__class__.__name__
+    
+    _str_func = 'stringModuleClassCall( {0} )'.format(_short)
+    _res = None
+
+    if not args:
+        _str_args = ''
+        args = [self]
+    else:
+        _str_args = ','.join(str(a) for a in args) + ','
+        args = [self] + [a for a in args]
+
+    if not kws:
+        kws = {}
+        _kwString = ''  
+    else:
+        _l = []
+        for k,v in kws.iteritems():
+            _l.append("{0}={1}".format(k,v))
+        _kwString = ','.join(_l)  
+
+    try:
+        log.debug("|{0}| >> On: {1}.{2}".format(_str_func,module.__name__, _short))     
+        log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
+        _res = getattr(module,func)(*args,**kws)
+    except Exception,err:
+        log.error(_str_hardLine)
+        log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+        log.error("Self: {0} | func: {1}".format(_short,func))
+        log.error("Module: {0} ".format(module))            
+
+        if args:
+            log.error("Args...")
+            for a in args:
+                log.error("      {0}".format(a))
+        if kws:
+            log.error(" KWS...".format(_str_func))
+            for k,v in kws.iteritems():
+                log.error("      {0} : {1}".format(k,v))   
+        log.error("Errors...")
+        for a in err.args:
+            log.error(a)
+        cgmExceptCB(Exception,err)
+        raise Exception,err
+    return _res    
         
 #>>> Sub funcs ==============================================================================
 def subTimer(func):
@@ -997,7 +1053,29 @@ def myFirstFuncCls(*args, **kws):
             raise ValueError, "no"
     return fncWrap(*args, **kws).go()
 
-def cgmExceptCB(etype, value, tb, detail=2, processed = False):
+def cgmExceptCB(etype, value, tb = None, detail=2, processed = False):
+    if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
+    if detail == None:
+        if mel.eval('stackTrace -q -state;') == 1:
+            detail = 2
+    if detail == 2:	
+        #report_enviornment()
+        try:db_file = tb.tb_frame.f_code.co_filename
+        except:db_file = "<maya console>"
+        print(_str_headerDiv + " Exception Log " + _str_headerDiv + _str_subLine)		
+	
+        for i,item in enumerate(reversed(inspect.getouterframes(tb.tb_frame)[1:])):
+            print("traceback frame[{0}]".format(i+1) + _str_subLine)		    
+            print ' File "{1}", line {2}, in {3}\n'.format(*item),
+            for item in inspect.getinnerframes(tb):
+                print ' File "{1}", line {2}, in {3}\n'.format(*item)
+            if item[4] is not None:
+                for line in item[4]:
+                    print ' ' + line.lstrip()
+    print _str_hardBreak
+    
+    
+def cgmExceptCB2(etype, value, tb = None, detail=2, processed = False):
     # @param processed -- whether this exception has already been processed
     try:
         if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html

@@ -537,7 +537,7 @@ class go(object):
         
             CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
-            CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    		
+            CGMUI.doEndMayaProgressBar()#Close out this progress bar    		
             raise Exception,"|{0}| >> err: {1}".format(_str_func,err)        
     
     def build_rigJoints(self):
@@ -1035,9 +1035,11 @@ class ui(cgmUI.cgmGUI):
         self.uiFrame_blockAttrs.clear()
         
         for a in self._blockCurrent.getAttrs(ud=True):
+            if a in ['blockDat']:
+                continue
             if a not in ['attributeAliasList']:
                 if ATTR.get_type(_short,a) == 'enum':
-                    mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                    
+                    mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                   
                 else:
                     mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get(_short,a)))
         

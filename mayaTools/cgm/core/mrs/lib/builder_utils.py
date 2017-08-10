@@ -14,6 +14,7 @@ import re
 import copy
 import time
 import os
+import pprint
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -45,6 +46,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
+import cgm.core.rig.joint_utils as COREJOINTS
 
 
 
@@ -221,16 +223,17 @@ def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
         _radius = _split/4    
     return _l_pos
 
+
 def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+', worldUpAxis = [0,1,0],asMeta = True):
     _str_func = 'build_skeleton'
-
     _axisAim = axisAim
     _axisUp = axisUp
     _axisWorldUp = worldUpAxis
     _l_pos = positionList
     _radius = 1    
     mc.select(cl=True)
-
+    pprint.pprint(vars())
+    
     #>>Get positions ================================================================================
     _len = len(_l_pos)
     if _len > 1:    
@@ -249,15 +252,24 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
         _mJnt.radius = _radius
 
         _ml_joints.append ( _mJnt )
-        _mJnt.parent = False
+        """if i > 0:
+            _mJnt.parent = _ml_joints[i-1]    
+        else:
+            _mJnt.parent = False"""
 
     #>>Orient chain...
+    if _len == 1:
+        log.debug("|{0}| >> Only one joint. Can't orient chain".format(_str_func,_axisWorldUp)) 
+    else:
+        COREJOINTS.orientChain(_ml_joints,axisAim,axisUp,worldUpAxis)
+    """
     for i,mJnt in enumerate(_ml_joints[:-1]):
         if i > 0:
             mJnt.parent = _ml_joints[i-1]
             #...after our first object, we use our last object's up axis to be our new up vector.
             #...this keeps joint chains that twist around from flipping. Ideally...
-            _axisWorldUp = MATH.get_obj_vector(_ml_joints[i-1].mNode,'y+')
+            _axisWorldUp = MATH.get_obj_vector(_ml_joints[i-1].mNode,_axisUp)
+            log.debug("|{0}| >> {1} worldUp: {2}".format(_str_func,i,_axisWorldUp)) 
         mDup = mJnt.doDuplicate(parentOnly = True)
         mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
 
@@ -276,11 +288,12 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
         _ml_joints[-1].jointOrient = 0,0,0
     #_ml_joints[-1].rotate = _ml_joints[-2].rotate
     #_ml_joints[-1].rotateAxis = _ml_joints[-2].rotateAxis
-
+    """
     #JOINTS.metaFreezeJointOrientation(_ml_joints)
     if asMeta:
         return _ml_joints
     return [mJnt.mNode for mJnt in _ml_joints]
+
     #>>Wiring and naming =================================================================================
     """
     ml_handles = []
