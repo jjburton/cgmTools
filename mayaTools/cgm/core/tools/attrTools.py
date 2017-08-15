@@ -1625,7 +1625,7 @@ def uiPrompt_addAttr(attrType = None, nodes = None, title = None, message = None
         _v =  mc.promptDialog(query=True, text=True)
         _l_fails = []
         if ',' in _v:
-            _attrs = _v.split(',')
+            _attrs = [x.strip() for x in _v.split(',')]
             for a in _attrs:
                 for node in nodes:
                     try:
