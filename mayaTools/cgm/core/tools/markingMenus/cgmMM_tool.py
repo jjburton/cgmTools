@@ -225,7 +225,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
     
     def button_CallBack(self, func, *a, **kws ):
         killUI()
-        cgmGen.Callback(func,*a,**kws)
+        mmCallback(func,*a,**kws)
 
 
     def toggleVarAndReset(self, optionVar):
@@ -342,11 +342,11 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     _rb = True
                 else:_rb = False
                 """self.uiOptions_menuMode.append(self.uiRC_menuMode.createButton(uiMenu_menuMode,label=item,
-                                                                               c = cgmGen.Callback(self.var_menuMode.setValue,i),
+                                                                               c = mmCallback(self.var_menuMode.setValue,i),
                                                                                rb = _rb))"""   
                 mc.menuItem(parent=uiMenu_menuMode,collection = uiRC_menuMode, 
                             l=item,
-                            c = cgmGen.Callback(self.var_menuMode.setValue,i),
+                            c = mmCallback(self.var_menuMode.setValue,i),
                             rb = _rb)                
         except Exception,err:
             log.error("|{0}| failed to load. err: {1}".format(_str_section,err))	        
@@ -363,7 +363,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     #c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/");')        
         
         mc.menuItem(p=uiHelp,l = 'Reset Options',
-                    c=cgmGen.Callback(self.button_action,self.reset))   
+                    c=mmCallback(self.button_action,self.reset))   
         
         mc.menuItem(p=uiHelp,l='Reload local python',
                     c = lambda *a: mel.eval('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_Deformers as cgmDeformers;from cgm.core import cgm_General as cgmGen;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;from cgm.core import cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as cgmValid")'))        
@@ -533,10 +533,10 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                            
             mc.menuItem(l='Axis*', subMenu = True)
             mc.menuItem(l='Show',
-                        c=cgmGen.Callback(MMCONTEXT.set_attrs,self,'displayLocalAxis',1,self.var_contextTD.value,'joint'))
+                        c=mmCallback(MMCONTEXT.set_attrs,self,'displayLocalAxis',1,self.var_contextTD.value,'joint'))
                         
             mc.menuItem(l='Hide',
-                        c=cgmGen.Callback(MMCONTEXT.set_attrs,self,'displayLocalAxis',0,self.var_contextTD.value,'joint'))
+                        c=mmCallback(MMCONTEXT.set_attrs,self,'displayLocalAxis',0,self.var_contextTD.value,'joint'))
                         
             mc.menuItem(parent = uiJoints,
                         l='cometJO',
@@ -546,7 +546,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
             mc.menuItem(parent=uiJoints, 
                         l = 'Freeze Orient',
                         ann = "Freeze the joint orientation",                                        
-                        c = cgmGen.Callback(MMCONTEXT.func_process, JOINTS.freezeOrientation, None, 'each','FreezeOrientation',True,**{}),                                                                      
+                        c = mmCallback(MMCONTEXT.func_process, JOINTS.freezeOrientation, None, 'each','FreezeOrientation',True,**{}),                                                                      
                         )    
             
             #-----------------------------------------------------------------------------
@@ -610,7 +610,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         self.bUI_optionMenu_rayCast(uiOptions)
         LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
         mc.menuItem(parent = uiOptions, l='Option UI', 
-                    c=cgmGen.Callback(UISNAPCALLS.ui_optionVars))
+                    c=mmCallback(UISNAPCALLS.ui_optionVars))
         
         uiBuffers = mc.menuItem(parent = parent, l='Buffers', subMenu=True)
         LOCINATOR.uiBuffer_control(self, uiBuffers)
@@ -631,7 +631,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                 else:_rb = False
                 mc.menuItem(p=uiMenu,collection = uiRC,
                             label=item,
-                            c = cgmGen.Callback(self.var_keyType.setValue,i),
+                            c = mmCallback(self.var_keyType.setValue,i),
                             rb = _rb)                
         except Exception,err:
             log.error("|{0}| failed to load. err: {1}".format(_str_section,err))    
@@ -651,7 +651,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                 else:_rb = False
                 mc.menuItem(p=uiMenu,collection = uiRC,
                             label=item,
-                            c = cgmGen.Callback(self.var_keyMode.setValue,i),
+                            c = mmCallback(self.var_keyMode.setValue,i),
                             rb = _rb)                
         except Exception,err:
             log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
@@ -671,7 +671,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     else:_rb = False
                     mc.menuItem(p=uiMenu,collection = uiRC,
                                 label=item,
-                                c = cgmGen.Callback(self.var_aimMode.setValue,item),
+                                c = mmCallback(self.var_aimMode.setValue,item),
                                 rb = _rb)                
             except Exception,err:
                 log.error("|{0}| failed to load. err: {1}".format(_str_section,err))  
@@ -691,7 +691,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                 else:_rb = False
                 mc.menuItem(p=uiMenu,collection = uiRC,
                             label=item,
-                            c = cgmGen.Callback(self.var_resetMode.setValue,i),
+                            c = mmCallback(self.var_resetMode.setValue,i),
                             rb = _rb)                
         except Exception,err:
             log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
@@ -718,7 +718,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     else:_rb = False
                     mc.menuItem(parent = uiMenuAim,collection = uiRC,
                                 label=item,   
-                                c = cgmGen.Callback(self.var_objDefaultAimAxis.setValue,i),
+                                c = mmCallback(self.var_objDefaultAimAxis.setValue,i),
                                 rb = _rb)                
             except Exception,err:
                 log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
@@ -738,8 +738,8 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     else:_rb = False
                     mc.menuItem(parent = uiMenuUp,collection = uiRC,
                                 label=item,                                   
-                                #c = cgmGen.Callback(self.raySnap_setAndStart_reg,self.var_rayCastMode,i),
-                                c = cgmGen.Callback(self.var_objDefaultUpAxis.setValue,i),                                      
+                                #c = mmCallback(self.raySnap_setAndStart_reg,self.var_rayCastMode,i),
+                                c = mmCallback(self.var_objDefaultUpAxis.setValue,i),                                      
                                 #c = lambda *a:self.var_objDefaultUpAxis.setValue(i),                                  
                                 rb = _rb)                
             except Exception,err:
@@ -759,8 +759,8 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     else:_rb = False
                     mc.menuItem(parent = uiMenuOut,collection = uiRC,
                                 label=item,                                   
-                                #c = cgmGen.Callback(self.raySnap_setAndStart_reg,self.var_rayCastMode,i),  
-                                c = cgmGen.Callback(self.var_objDefaultOutAxis.setValue,i),                                                                            
+                                #c = mmCallback(self.raySnap_setAndStart_reg,self.var_rayCastMode,i),  
+                                c = mmCallback(self.var_objDefaultOutAxis.setValue,i),                                                                            
                                 #c = lambda *a:self.var_objDefaultOutAxis.setValue(i),                                  
                                 rb = _rb)                
             except Exception,err:
@@ -768,7 +768,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                            
             
             mc.menuItem( parent = uiMenu_objDefault, l='Tag selected for aim',
-                         c = cgmGen.Callback(MMCONTEXT.func_process, SNAP.verify_aimAttrs, self._l_sel,'each','Verify aim attributes',True,**{}),)                                                                    
+                         c = mmCallback(MMCONTEXT.func_process, SNAP.verify_aimAttrs, self._l_sel,'each','Verify aim attributes',True,**{}),)                                                                    
                 
             
     #@cgmGen.Timer
@@ -787,7 +787,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                 else:_rb = False
                 mc.menuItem(parent=uiMenu_context,collection = uiRC,
                             label=item,
-                            c = cgmGen.Callback(self.var_contextTD.setValue,item),                                  
+                            c = mmCallback(self.var_contextTD.setValue,item),                                  
                             #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastMode.setValue(i)),                                  
                             rb = _rb)                
         except Exception,err:
@@ -812,7 +812,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                 else:_rb = False
                 mc.menuItem(parent=uiMenu,collection = uiRC,
                             label=item,
-                            c = cgmGen.Callback(self.var_rayCastMode.setValue,i),                                  
+                            c = mmCallback(self.var_rayCastMode.setValue,i),                                  
                             #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastMode.setValue(i)),                                  
                             rb = _rb)                
         except Exception,err:
@@ -855,7 +855,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                 else:_rb = False
                 mc.menuItem(parent=uiMenu,collection = uiRC,
                             label=item,
-                            c = cgmGen.Callback(self.var_rayCastOrientMode.setValue,i),
+                            c = mmCallback(self.var_rayCastOrientMode.setValue,i),
                             #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastOffsetMode.setValue(i)),                                  
                             rb = _rb)         
         except Exception,err:
@@ -913,30 +913,30 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     en = self._b_sel,
                     l = 'Transform here',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Transform'),
+                    c = mmCallback(self.button_action_per_sel,RIGGING.create_at,'Create Transform'),
                     rp = "N")        
         mc.menuItem(parent=_r,
                     en = self._b_sel,
                     l = 'Joint here',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_joint_at,'Create Joint'),
+                    c = mmCallback(self.button_action_per_sel,RIGGING.create_joint_at,'Create Joint'),
                     rp = "NW")   
         mc.menuItem(parent=_r,
                     en = self._b_sel,
                     l = 'Curve',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(self.bc_create_curve),
+                    c = mmCallback(self.bc_create_curve),
                     rp = "S")
         _control = mc.menuItem(parent=_r,subMenu = True,
                                l = 'Control: {0}'.format(self.var_curveCreateType.value),#'Control Curve',
                                rp = "W") 
         mc.menuItem(parent=_control,
                     l = 'Create: {0}'.format(self.var_curveCreateType.value),#'Control Curve',
-                    c = cgmGen.Callback(UISNAPCALLS.uiFunc_createCurve),
+                    c = mmCallback(UISNAPCALLS.uiFunc_createCurve),
                     rp = "W")  
         mc.menuItem(parent=_control,
                     l = 'Change options'.format(self.var_curveCreateType.value),#'Control Curve',
-                    c = cgmGen.Callback(UISNAPCALLS.ui_optionVars),
+                    c = mmCallback(UISNAPCALLS.ui_optionVars),
                     rp = "SW")          
         
         
@@ -944,32 +944,32 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         _l = mc.menuItem(parent=_r,subMenu=True,
                          l = 'Locator',
                          #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                         #c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each'),
+                         #c = mmCallback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each'),
                          rp = "NE")
         
         mc.menuItem(parent=_l,
                     l = 'World Center',
-                    c = cgmGen.Callback(LOC.create),
+                    c = mmCallback(LOC.create),
                     rp = "S")          
         mc.menuItem(parent=_l,
                     l = 'Selected',
                     en = self._b_sel,
-                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each'),
+                    c = mmCallback(MMCONTEXT.func_process, LOC.create, self._l_sel,'each'),
                     rp = "N")           
         mc.menuItem(parent=_l,
                     l = 'Mid point',
                     en = self._b_sel_pair,                    
-                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','midPointLoc',False,**{'mode':'midPoint'}),                                                                      
+                    c = mmCallback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','midPointLoc',False,**{'mode':'midPoint'}),                                                                      
                     rp = "NE")            
         mc.menuItem(parent=_l,
                     l = 'closest Point',
                     en = self._b_sel_pair,                    
-                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','closestPoint',False,**{'mode':'closestPoint'}),                                                                      
+                    c = mmCallback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','closestPoint',False,**{'mode':'closestPoint'}),                                                                      
                     rp = "NW") 
         mc.menuItem(parent=_l,
                     l = 'closest Target',
                     en = self._b_sel_few,                    
-                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','closestTarget',False,**{'mode':'closestTarget'}),                                                                      
+                    c = mmCallback(MMCONTEXT.func_process, LOC.create, self._l_sel,'all','closestTarget',False,**{'mode':'closestTarget'}),                                                                      
                     rp = "W")   
         mc.menuItem(parent=_l,
                     l = 'rayCast',
@@ -1013,14 +1013,14 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         mc.menuItem(parent=_r,
                     l = 'Shapeparent',
                     en = self._b_sel_pair,
-                    c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom'),
+                    c = mmCallback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom'),
                     rp = "W")   
         _d_combine = {'keepCurve':False}
         mc.menuItem(parent=_r,
                     en = self._b_sel_pair,
                     l = 'Combine',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom', **_d_combine),
+                    c = mmCallback(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, self._l_sel,'toFrom', **_d_combine),
                     rp = "NW") 
         mc.menuItem(parent=_r,
                     en = False,                    
@@ -1035,26 +1035,26 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                              en = True,
                              l = 'Color',
                              #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                             #c = cgmGen.Callback(self.button_action_per_sel,locators.locMeObject,'Locator'),
+                             #c = mmCallback(self.button_action_per_sel,locators.locMeObject,'Locator'),
                              rp = "S")
         _center = mc.menuItem(parent=_color,subMenu=True,
                               en = True,
                               l = 'Center',
                               #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                              c=cgmGen.Callback(MMCONTEXT.color_shape,'red',self.var_contextTD.value,'shape'),
+                              c=mmCallback(MMCONTEXT.color_shape,'red',self.var_contextTD.value,'shape'),
                               rp = "S")
         
         mc.menuItem(parent=_center,
                     en = True,
                     l = 'Sub',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c=cgmGen.Callback(MMCONTEXT.color_shape,'redLight',self.var_contextTD.value,'shape'),
+                    c=mmCallback(MMCONTEXT.color_shape,'redLight',self.var_contextTD.value,'shape'),
                     rp = "SE")  
         mc.menuItem(parent=_center,
                     en = True,
                     l = 'Extra',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c=cgmGen.Callback(MMCONTEXT.color_shape,'redDark',self.var_contextTD.value,'shape'),
+                    c=mmCallback(MMCONTEXT.color_shape,'redDark',self.var_contextTD.value,'shape'),
                     rp = "SW")        
         
         
@@ -1227,7 +1227,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         #---------------------------------------------------------------------------
         mc.menuItem(parent=_r,
                     l = 'Loc me',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, self._l_sel,'firstToRest','Match Transform'),                    
+                    c = mmCallback(MMCONTEXT.func_process, LOC.create, self._l_sel,'firstToRest','Match Transform'),                    
                     rp = "N")         
     
     def bUI_radial_copy(self,parent,direction = None):
@@ -1241,23 +1241,23 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         #---------------------------------------------------------------------------
         mc.menuItem(parent=_r,
                     l = 'Transform',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_transform, self._l_sel,'eachToFirst','Match Transform'),                    
+                    c = mmCallback(MMCONTEXT.func_process, RIGGING.match_transform, self._l_sel,'eachToFirst','Match Transform'),                    
                     rp = "N")          
         mc.menuItem(parent=_r,
                     l = 'Orienation',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, self._l_sel,'eachToFirst','Match Orientation'),                    
+                    c = mmCallback(MMCONTEXT.func_process, RIGGING.match_orientation, self._l_sel,'eachToFirst','Match Orientation'),                    
                     rp = "NW")
         
         mc.menuItem(parent=_r,
                     l = 'Shapes',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel,'lastFromRest','Copy Shapes', **{'snapFirst':True}),
+                    c = mmCallback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel,'lastFromRest','Copy Shapes', **{'snapFirst':True}),
                     rp = "SW")        
         
         mc.menuItem(parent=_r,
                             l = 'Constraints',
                             en=False,
                             #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                            c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, self._l_sel,'eachToFirst','Match Orientation'),                    
+                            c = mmCallback(MMCONTEXT.func_process, RIGGING.match_orientation, self._l_sel,'eachToFirst','Match Orientation'),                    
                             rp = "E") 
         
         _piv = mc.menuItem(parent=_r,subMenu=True,
@@ -1266,11 +1266,11 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         
         mc.menuItem(parent = _piv,
                     l = 'rp',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'eachFromFirst', 'Match RP',**{'rotatePivot':True,'scalePivot':False}),                                               
+                    c = mmCallback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'eachFromFirst', 'Match RP',**{'rotatePivot':True,'scalePivot':False}),                                               
                     rp = "W")         
         mc.menuItem(parent = _piv,
                     l = 'sp',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'eachFromFirst', 'Match SP', **{'rotatePivot':False,'scalePivot':True}),                                               
+                    c = mmCallback(MMCONTEXT.func_process, RIGGING.copy_pivot, self._l_sel,'eachFromFirst', 'Match SP', **{'rotatePivot':False,'scalePivot':True}),                                               
                     rp = "SW")         
         
 
@@ -1292,25 +1292,25 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                    en = self._b_sel_pair,
                    l = 'Combine Curves',
                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                   #c = cgmGen.Callback(self.copy_pivot,True, False,'Rotate Pivot'),
+                   #c = mmCallback(self.copy_pivot,True, False,'Rotate Pivot'),
                    rp = "W")   
         mc.menuItem(parent=_r,
                     en = self._b_sel_pair,
                     l = 'ParentShape',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    #c = cgmGen.Callback(self.copy_pivot,True, False,'Rotate Pivot'),
+                    #c = mmCallback(self.copy_pivot,True, False,'Rotate Pivot'),
                     rp = "SW")      
         mc.menuItem(parent=_r,
                     en = False,
                     l = 'Replace Curves',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    #c = cgmGen.Callback(self.copy_pivot,True, False,'Rotate Pivot'),
+                    #c = mmCallback(self.copy_pivot,True, False,'Rotate Pivot'),
                     rp = "NW")
         mc.menuItem(parent=_r,subMenu = True,
                         en = False,
                         l = 'Color',
                         #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                        #c = cgmGen.Callback(self.copy_pivot,True, False,'Rotate Pivot'),
+                        #c = mmCallback(self.copy_pivot,True, False,'Rotate Pivot'),
                         rp = "E")         
         
     def button_action_per_sel(self,func,calling = None):
@@ -1377,7 +1377,7 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         mc.menuItem(parent=_r,
                     l = 'shapeParent',
                     en = self._b_sel_pair,
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel, 'lastFromRest'),
+                    c = mmCallback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, self._l_sel, 'lastFromRest'),
                     rp = "NE")         
         
         
@@ -1389,25 +1389,26 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     en = self._b_sel,
                     l = 'Just Group',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, self._l_sel,'each','Group',**{'parent':False,'maintainParent':False}),                                             
+                    c = mmCallback(MMCONTEXT.func_process, RIGGING.group_me, self._l_sel,'each','Group',**{'parent':False,'maintainParent':False}),                                             
                     rp = "N")  
         mc.menuItem(parent=_gSet,
                     en = self._b_sel,
                     l = 'Group Me',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, self._l_sel,'each','Group',**{'parent':True,'maintainParent':False}),                                             
+                    c = mmCallback(MMCONTEXT.func_process, RIGGING.group_me, self._l_sel,'each','Group',**{'parent':True,'maintainParent':False}),                                             
                     rp = "W")          
         mc.menuItem(parent=_gSet,
                     en = self._b_sel,
                     l = 'In Place',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, self._l_sel,'each','Group In Place',**{'parent':True,'maintainParent':True}),                                                                 
+                    c = mmCallback(MMCONTEXT.func_process, RIGGING.group_me, self._l_sel,'each','Group In Place',**{'parent':True,'maintainParent':True}),                                                                 
                     rp = "NW")    
         
         mc.menuItem(parent = _r,
                     rp='N',
                     l='cgmDynParentTool',
                     ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
-                    c = lambda *a: ui_CallAndKill(DYNPARENTTOOL.ui))
+                    #c = lambda *a: ui_CallAndKill(DYNPARENTTOOL.ui))
+                    c = mmCallback(DYNPARENTTOOL.ui))
                     #c=lambda *a: DYNPARENTTOOL.ui())           
         mc.menuItem(parent = _r,
                     rp='S',
@@ -1422,11 +1423,11 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         if self._b_sel_few:
             mc.menuItem(parent=_p, #subMenu = True,
                              l = 'Reverse',
-                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToNext','Reverse Parent'),                                             
+                             c = mmCallback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToNext','Reverse Parent'),                                             
                              rp = 'S')
             mc.menuItem(parent=_p, #subMenu = True,
                              l = 'Ordered',
-                             c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToPrevious','Parent Order'),                                             
+                             c = mmCallback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToPrevious','Parent Order'),                                             
                              rp = 'SW')   
         
 
@@ -1439,29 +1440,29 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         _add = mc.menuItem(parent=_attr,subMenu=True,
                            l='Add',
                            en=self._b_sel,
-                           #c = cgmGen.Callback(ATTRTOOLS.uiWin_multiSetAttr),
+                           #c = mmCallback(ATTRTOOLS.uiWin_multiSetAttr),
                            rp='S') 
         _d_attrTypes = {"string":'E','float':'S','enum':'NE','vector':'SW','int':'W','bool':'NW','message':'SE'}
         for _t,_d in _d_attrTypes.iteritems():
             mc.menuItem(parent=_add,
                         l=_t,
-                        c = cgmGen.Callback(ATTRTOOLS.uiPrompt_addAttr,_t,**{'autoLoadFail':True}),
+                        c = mmCallback(ATTRTOOLS.uiPrompt_addAttr,_t,**{'autoLoadFail':True}),
                         rp=_d)             
         
         
         mc.menuItem(parent=_attr,
                     l='Manage',
                     en=False,
-                    #c = cgmGen.Callback(ATTRTOOLS.uiWin_multiSetAttr),
+                    #c = mmCallback(ATTRTOOLS.uiWin_multiSetAttr),
                     rp='W')       
         mc.menuItem(parent=_attr,
                     l='attrTools 2.0',
-                    c = cgmGen.Callback(ATTRTOOLS.ui),
+                    c = mmCallback(ATTRTOOLS.ui),
                     rp='SW')          
         mc.menuItem(parent=_attr, #subMenu = True,
                     l = 'Compare Attrs',
                     en=self._b_sel_pair,
-                    c = cgmGen.Callback(MMCONTEXT.func_process, ATTRS.compare_attrs, self._l_sel, 'firstToRest','Compare Attrs',True,**{}),                                                                      
+                    c = mmCallback(MMCONTEXT.func_process, ATTRS.compare_attrs, self._l_sel, 'firstToRest','Compare Attrs',True,**{}),                                                                      
                     rp = 'N')         
         
         
@@ -1478,22 +1479,22 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                          
         mc.menuItem(parent=_n, #subMenu = True,
                     l = 'Target',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'object'}),                                                                      
+                    c = mmCallback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'object'}),                                                                      
                     rp = 'N')   
         mc.menuItem(parent=_n, #subMenu = True,
                     l = 'Shape',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'shape'}),                                                                      
+                    c = mmCallback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near Target',True,**{'mode':'closest','resMode':'shape'}),                                                                      
                     rp = 'N') 
         mc.menuItem(parent=_n, #subMenu = True,
                     l = 'Point on surface',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'shape'}),                                                                      
+                    c = mmCallback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Near point on surface',True,**{'mode':'closest','resMode':'shape'}),                                                                      
                     rp = 'NE')     
         
         
         
         mc.menuItem(parent=_f, #subMenu = True,
                     l = 'Target',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Far Target',True,**{'mode':'far','resMode':'object'}),                                                                      
+                    c = mmCallback(MMCONTEXT.func_process, DIST.get_by_dist, self._l_sel,'firstToRest','Far Target',True,**{'mode':'far','resMode':'object'}),                                                                      
                     rp = 'E') """         
         
     #@cgmGen.Timer    
@@ -1542,49 +1543,49 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         mc.menuItem(parent=_r,
                         l = 'RayCast',
                         en = self._b_sel,
-                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),		            
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),		            
                         c = lambda *a:self.button_action(raySnap_start(self._l_sel)),
                         rp = 'W')	
         mc.menuItem(parent=_r,
                         l = 'AimCast',
                         en = self._b_sel,                        
-                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                 
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),                 
                         c = lambda *a:self.button_action(aimSnap_start(self._l_sel)),
                         rp = 'E')
         if self._b_sel_few:
             _aim = mc.menuItem(parent=_r,subMenu = True,
                             l = 'Aim Special',
-                            #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                            #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
                             #c = lambda *a:snap_action(self,'aim'),
                             rp = 'SE')
             mc.menuItem(parent=_aim,
                         l = 'All to last',
-                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
                         c = lambda *a:snap_action(self,'aim','eachToLast'),
                         rp = 'E') 
             mc.menuItem(parent=_aim,
                         l = 'Selection Order',
-                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
                         c = lambda *a:snap_action(self,'aim','eachToNext'),
                         rp = 'SE')
             mc.menuItem(parent=_aim,
                         l = 'First to Midpoint',
-                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
                         c = lambda *a:snap_action(self,'aim','firstToRest'),
                         rp = 'S')             
         else:
             mc.menuItem(parent=_r,
                         l = 'Aim',
                         en = self._b_sel_pair,
-                        #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
                         c = lambda *a:snap_action(self,'aim','eachToLast'),
                         rp = 'SE')     
         
         """mc.menuItem(parent=_r,
                     l = 'Match',
                     en=self._b_sel,
-                    #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
+                    c = mmCallback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,}),#'targetPivot':self.var_matchModePivot.value                                                                      
                     rp = 'SW')"""      
         _match= mc.menuItem(parent=_r,subMenu = True,
                             l = 'Match',
@@ -1592,21 +1593,21 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         mc.menuItem(parent=_match,
                     l = 'Self',
                     en=self._b_sel,
-                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    c = mmCallback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                     rp = 'SW')     
         mc.menuItem(parent=_match,
                     l = 'Target',
                     en=self._b_sel,
-                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    c = mmCallback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                     rp = 'W')           
         mc.menuItem(parent=_match,
                     l = 'Buffer',
-                    #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                    c = cgmGen.Callback(LOCINATOR.update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
+                    c = mmCallback(LOCINATOR.update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                     rp = 'S')  
 
 def killUI():
-    log.debug("killUI...")
+    log.info("killUI...")
     _var_mode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_menuMode', defaultValue = 0)
     if _var_mode.value in [0,1,2]:
         log.debug('animMode killUI')
@@ -1929,6 +1930,30 @@ def ui_CallAndKill(func, *a, **kws ):
         log.info("Failed...")
         print Exception
         pprint.pprint(err)
+
+class mmCallback(object):
+    '''
+    Callback with kill ui
+    '''
+    def __init__( self, func, *a, **kw ):
+        self._func = func
+        self._args = a
+        self._kwargs = kw
+    def __call__( self, *args ):
+        try:
+            killUI()            
+            return self._func( *self._args, **self._kwargs )
+        except Exception,err:
+            killUI()            
+            try:log.info("Func: {0}".format(self._func.__name__))
+            except:log.info("Func: {0}".format(self._func))
+            if self._args:
+                log.info("args: {0}".format(self._args))
+            if self._kwargs:
+                log.info("kws: {0}".format(self._kwargs))
+            for a in err.args:
+                log.info(a)
+            raise Exception,err
 
 
 	
