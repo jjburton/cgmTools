@@ -1,6 +1,6 @@
 import maya.cmds as mc
 import maya.mel as mel
-
+import pprint
 import time
 import webbrowser
 import logging
@@ -221,7 +221,11 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
         if command:
             try:command()
             except Exception,err:
-                log.info("{0} button >> error {1}".format(self._str_MM, err))      
+                log.info("{0} button >> error {1}".format(self._str_MM, err))     
+    
+    def button_CallBack(self, func, *a, **kws ):
+        killUI()
+        cgmGen.Callback(func,*a,**kws)
 
 
     def toggleVarAndReset(self, optionVar):
@@ -1403,7 +1407,8 @@ class cgmMarkingMenu(mUI.BaseMelWindow):
                     rp='N',
                     l='cgmDynParentTool',
                     ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
-                    c=lambda *a: DYNPARENTTOOL.ui())           
+                    c = lambda *a: ui_CallAndKill(DYNPARENTTOOL.ui))
+                    #c=lambda *a: DYNPARENTTOOL.ui())           
         mc.menuItem(parent = _r,
                     rp='S',
                     l='MRS',
@@ -1903,7 +1908,27 @@ def deleteKey():
             mc.cutKey(selection)	    
         else:
             mc.cutKey(selection,breakdown = True)
-
+            
+            
+def ui_CallAndKill(func, *a, **kws ):
+    try:
+        _str_func = 'ui_CallAndKill'
+        killUI()
+        try:return func( *a, **kws )
+        except Exception,err:
+            try:log.info("Func: {0}".format(func.__name__))
+            except:log.info("Func: {0}".format(_func))
+            if a:
+                log.info("args: {0}".format(a))
+            if kws:
+                log.info("kws: {0}".format(kws))
+            for a in err.args:
+                log.info(a)
+            raise Exception,err
+    except Exception,err:
+        log.info("Failed...")
+        print Exception
+        pprint.pprint(err)
 
 
 	
