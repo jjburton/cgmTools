@@ -31,7 +31,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import rigging_utils as RIGGING
-reload(RIGGING)
+#reload(RIGGING)
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.lib.locator_utils as LOC
@@ -804,7 +804,6 @@ def uiSection_riggingUtils(parent, selection = None):
     
 
 from cgm.core.tools.lib import snap_calls as SNAPCALLS
-reload(SNAPCALLS)
 
 def call_optionVar_ui():
     reload(SNAPCALLS)    

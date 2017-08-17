@@ -216,7 +216,7 @@ def get_component(arg = None):
         _comp = _rootSplit[1]
         _root = _rootSplit[0]
         _compType = _rootSplit[1]
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         log.info("|{0}| >> split: {1} | root: {2} | comp: {3}".format(_str_func,_split,_root,_compType))   
         return ["{0}{1}".format(_compType,_splitJoin), _root, _compType, get_mayaType(arg)]
     return False

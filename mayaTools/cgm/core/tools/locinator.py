@@ -507,7 +507,10 @@ def uiBuffer_control(self, parent):
     except Exception,err:
         log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
         
-def uiRadialMenu_root(self,parent,direction = None):
+def uiRadialMenu_root(self,parent,direction = None, callback = None):
+    if callback == None:
+        callback = cgmGen.Callback
+        
     _r = mc.menuItem(parent=parent,subMenu = True,
                      l = 'Locinator',
                      rp = direction)  
@@ -520,7 +523,7 @@ def uiRadialMenu_root(self,parent,direction = None):
     
     mc.menuItem(parent=_r,
                 l = 'UI',
-                c = cgmGen.Callback(ui),                                                                                      
+                c = callback(ui),                                                                                      
                 rp = 'NW')       
     
     #>>>Bake ==============================================================================================
@@ -547,18 +550,18 @@ def uiRadialMenu_root(self,parent,direction = None):
     
     mc.menuItem(parent=_bakeFrames,
                 l = 'Selection',
-                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
-                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'selected'}),                                                                                      
+                c = callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
+                             **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'selected'}),                                                                                      
                 rp = 'NE')      
     mc.menuItem(parent=_bakeFrames,
                 l = 'Slider',
-                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
-                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'slider'}),                                                                                      
+                c = callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
+                             **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'slider'}),                                                                                      
                 rp = 'E') 
     mc.menuItem(parent=_bakeFrames,
                 l = 'Scene',
-                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
-                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'scene'}),                                                                                      
+                c = callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
+                             **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'scene'}),                                                                                      
                 rp = 'SE')   
     
     
@@ -566,26 +569,26 @@ def uiRadialMenu_root(self,parent,direction = None):
   
     mc.menuItem(parent=_bakeForward,
                 l = 'Slider',
-                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
-                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'slider','keysDirection':'forward'}),                                                                                      
+                c = callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
+                             **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'slider','keysDirection':'forward'}),                                                                                      
                 rp = 'NE') 
     mc.menuItem(parent=_bakeForward,
                 l = 'Scene',
-                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
-                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'scene','keysDirection':'forward'}),                                                                                      
+                c = callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
+                             **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'scene','keysDirection':'forward'}),                                                                                      
                 rp = 'SE')   
     
     
     
     mc.menuItem(parent=_bakeBack,
                 l = 'Slider',
-                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
-                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'slider','keysDirection':'back'}),                                                                                      
+                c = callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
+                             **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'slider','keysDirection':'back'}),                                                                                      
                 rp = 'NE') 
     mc.menuItem(parent=_bakeBack,
                 l = 'Scene',
-                c = cgmGen.Callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
-                                    **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'scene','keysDirection':'back'}),                                                                                      
+                c = callback(MMCONTEXT.func_process, bake_match, self._l_sel,'all','Bake range',False,
+                             **{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'boundingBox':False,'keysMode':self.var_keysMode.value,'timeMode':'scene','keysDirection':'back'}),                                                                                      
                 rp = 'SE') 
     
     
@@ -599,22 +602,22 @@ def uiRadialMenu_root(self,parent,direction = None):
     #self._l_pivotModes = ['rotatePivot','scalePivot','boundingBox']
     _l_toBuild = [{'l':'loc',
                    'rp':'NW',
-                   'c':lambda *a:self.var_keysMode.setValue('loc')},
+                   'c':callback(self.var_keysMode.setValue,'loc')},
                   {'l':'source',
                    'rp':'N',
-                   'c':lambda *a:self.var_keysMode.setValue('source')},
+                   'c':callback(self.var_keysMode.setValue,'source')},
                   {'l':'combine',
                    'rp':'NE',
-                   'c':lambda *a:self.var_keysMode.setValue('combine')},
+                   'c':callback(self.var_keysMode.setValue,'combine')},
                   {'l':'frames',
                    'rp':'SW',
-                   'c':lambda *a:self.var_keysMode.setValue('frames')},
+                   'c':callback(self.var_keysMode.setValue,'frames')},
                   {'l':'twos',
                    'rp':'S',
-                   'c':lambda *a:self.var_keysMode.setValue('twos')},
+                   'c':callback(self.var_keysMode.setValue,'twos')},
                   {'l':'threes',
                    'rp':'SE',
-                   'c':lambda *a:self.var_keysMode.setValue('threes')},]                      
+                   'c':callback(self.var_keysMode.setValue,'threes')},]                      
     for i,m in enumerate(_l_toBuild):
         _l = m['l']
         if _l == _optionVar_keysMode_value:
@@ -634,18 +637,18 @@ def uiRadialMenu_root(self,parent,direction = None):
                 l = 'Self',
                 #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),  
                 en=self._b_sel,                
-                c = cgmGen.Callback(MMCONTEXT.func_process, update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                c = callback(MMCONTEXT.func_process, update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                 rp = 'S')     
     mc.menuItem(parent=_match,
                  l = 'Target',
                  #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),   
                  en=self._b_sel,                 
-                 c = cgmGen.Callback(MMCONTEXT.func_process, update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                 c = callback(MMCONTEXT.func_process, update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                  rp = 'SW')      
     mc.menuItem(parent=_match,
                  l = 'Buffer',
                  #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
-                 c = cgmGen.Callback(update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                 c = callback(update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                  rp = 'SE')   
     
     
@@ -656,17 +659,17 @@ def uiRadialMenu_root(self,parent,direction = None):
     mc.menuItem(parent=_utils,
                 l = 'Tag to last',
                 en=self._b_sel,
-                c = cgmGen.Callback(MMCONTEXT.func_process, SNAP.matchTarget_set, self._l_sel,'eachToLast','Tag cgmMatchTarget',False),                                                                                      
+                c = callback(MMCONTEXT.func_process, SNAP.matchTarget_set, self._l_sel,'eachToLast','Tag cgmMatchTarget',False),                                                                                      
                 rp = 'SW') 
     mc.menuItem(parent=_utils,
                 l = 'Clear match data',
                 en=self._b_sel,
-                c = cgmGen.Callback(MMCONTEXT.func_process, SNAP.matchTarget_clear, self._l_sel,'each','Clear cgmMatch data',True),                                                                                                      
+                c = callback(MMCONTEXT.func_process, SNAP.matchTarget_clear, self._l_sel,'each','Clear cgmMatch data',True),                                                                                                      
                 rp = 'S')     
     mc.menuItem(parent=_utils,
                 l = 'Report',
                 en=self._b_sel,
-                c = cgmGen.Callback(MMCONTEXT.func_process, get_objDat, self._l_sel,'each','Report',True,**{'report':True}),                                                                                      
+                c = callback(MMCONTEXT.func_process, get_objDat, self._l_sel,'each','Report',True,**{'report':True}),                                                                                      
                 rp = 'W')   
     #mc.menuItem(parent=_utils,
                 #l = 'Select Source Targets',
