@@ -4,6 +4,8 @@ What's new?
 ==============
 We'll keep this page update with the most important bits of what's new and getting started with the tools.
 
+Last update: 08.17.2017
+
 Quick Start
 ----------------- 
 
@@ -49,20 +51,19 @@ Docs
 
 These help docs will be continued to be fleshed out. We currently only have about 20% coverage on tools
 
-   * In que:
-      * cgmTop menu - finish
-      * AttrTools
-      * Marking Menu
+   * Toolbox/Toolbox ui started 08.17.207  
+   * Knowledge - Added 08.17.2017
 
 Bugs
 ^^^^^^^
 
    * `2017`
-      * General ui slow down
-   * dynParentTool crash - Potential fix in bugs branch we're testing
+      * General ui slow down - This seems to be an issue with 2017. Rebooting the computer resolves and sometimes force stopping Python. Continuing to investigate.
+   * dynParentTool crash - ``Patch testing`` - Potential fix in bugs branch we're testing
 
 Features/Updates
 ^^^^^^^^^^^^^^^^^^
 
 * **MRS** - Morpheus Rig System
 * **cgmSetTools** - 2.0 rewrite needed
+* **Build Pulls** - Working on a method to make getting update much easier

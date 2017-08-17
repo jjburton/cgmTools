@@ -108,7 +108,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#id2">2016</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#raycasting-issues-with-openmata-2-0-vs-1-0">Raycasting issues with OpenMata 2.0 vs 1.0</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#raycasting-issues-with-openmaya-2-0-vs-1-0">Raycasting issues with OpenMaya 2.0 vs 1.0</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hotkey-system-changed">Hotkey system changed</a></li>
 </ul>
 </li>
@@ -129,6 +129,9 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#concepts">Concepts</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#raycasting">Raycasting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optionvar">OptionVar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#msglist">msgList</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#object-buffer">Object Buffer</a></li>
 </ul>
 </li>
 </ul>
@@ -201,8 +204,8 @@
 </div>
 <div class="section" id="knowledege">
 <h1>Knowledege<a class="headerlink" href="#knowledege" title="Permalink to this headline">¶</a></h1>
-<p>Hopefully you find some of this helpful. It&quot;s a collection of places we&quot;ve beat our heads in the wall.</p>
-<p>Last update: 08.18.2017</p>
+<p>Hopefully you find some of this helpful. It's a collection of places we&quot;ve beat our heads in the wall.</p>
+<p>Last update: 08.17.2017</p>
 <div class="section" id="maya-known-things">
 <h2>Maya Known Things<a class="headerlink" href="#maya-known-things" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="id1">
@@ -223,12 +226,14 @@
 </div>
 <div class="section" id="id2">
 <h3>2016<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
-<div class="section" id="raycasting-issues-with-openmata-2-0-vs-1-0">
-<h4>Raycasting issues with OpenMata 2.0 vs 1.0<a class="headerlink" href="#raycasting-issues-with-openmata-2-0-vs-1-0" title="Permalink to this headline">¶</a></h4>
-<p>Calls on OpenMaya 1 and 2 variations after some bugs were discovered with 2016 casting. Sepcifically 2.0:
-* when casting at poly edge, fails
-* nurbsSurface UV returns a different rawUV than 1. 1 Normalizes as expected, 2&quot;s does not.
-* nurbsSurface normal returns junk and broken</p>
+<div class="section" id="raycasting-issues-with-openmaya-2-0-vs-1-0">
+<h4>Raycasting issues with OpenMaya 2.0 vs 1.0<a class="headerlink" href="#raycasting-issues-with-openmaya-2-0-vs-1-0" title="Permalink to this headline">¶</a></h4>
+<p>Calls on OpenMaya 1 and 2 variations after some bugs were discovered with 2016 casting. Sepcifically 2.0:</p>
+<ul class="simple">
+<li>when casting at poly edge, fails</li>
+<li>nurbsSurface UV returns a different rawUV than 1. 1 Normalizes as expected, 2&quot;s does not.</li>
+<li>nurbsSurface normal returns junk and broken</li>
+</ul>
 </div>
 <div class="section" id="hotkey-system-changed">
 <h4>Hotkey system changed<a class="headerlink" href="#hotkey-system-changed" title="Permalink to this headline">¶</a></h4>
@@ -349,6 +354,7 @@
 </div>
 <div class="section" id="concepts">
 <h2>Concepts<a class="headerlink" href="#concepts" title="Permalink to this headline">¶</a></h2>
+<p>Not everyone does things the same way and use terms differently. Here's some help in following what we're talking about.</p>
 <div class="section" id="raycasting">
 <h3>Raycasting<a class="headerlink" href="#raycasting" title="Permalink to this headline">¶</a></h3>
 <p>This is the function of using a point and vector in 3d space and shooting those rays at surfaces. We then can do all
@@ -357,6 +363,22 @@ manner of things with that information. Some possiblities are:</p>
 <li>Snapping to a position in space</li>
 <li>Getting uv data for follicles</li>
 <li>On interactive aiming</li>
+</ul>
+</div>
+<div class="section" id="optionvar">
+<h3>OptionVar<a class="headerlink" href="#optionvar" title="Permalink to this headline">¶</a></h3>
+<p>Option variables are maya preference items that we use mainly for ui consistancy and saving settings between sessions and between tools. For example, changing the optionVar for rayCasting options will be used by the various tools that use it.</p>
+</div>
+<div class="section" id="msglist">
+<h3>msgList<a class="headerlink" href="#msglist" title="Permalink to this headline">¶</a></h3>
+<p>This was our answer to the limiatations of MultiMessage attributes where we wanted specific defined lists of items. To do this we utilized single message attribute connections in an attribute sequence. More to come</p>
+</div>
+<div class="section" id="object-buffer">
+<h3>Object Buffer<a class="headerlink" href="#object-buffer" title="Permalink to this headline">¶</a></h3>
+<p>This is a way we store information to make things happen regardless of what you have selected or storing settings. In general we do this by optionVars As a couple of examples:</p>
+<ul class="simple">
+<li>The <a class="reference external" href="locinator.html#match-buffer">match buffer</a> stores objects to use with snapping regardless of selection</li>
+<li>The rayCast buffer defines cast targets for raycasting.</li>
 </ul>
 </div>
 </div>

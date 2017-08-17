@@ -4,9 +4,9 @@
 Knowledege
 ********************
 
-Hopefully you find some of this helpful. It"s a collection of places we"ve beat our heads in the wall.
+Hopefully you find some of this helpful. It's a collection of places we"ve beat our heads in the wall.
 
-Last update: 08.18.2017
+Last update: 08.17.2017
 
 Maya Known Things
 ====================
@@ -23,20 +23,24 @@ Props to `Charles Wardlaw <http://sugarandcyanide.com/blog/>`_ for help on this.
 
 Python update broke zoo.path and other things
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 2017 brought in a new version of Python which broke how strings were handled. Rewrote zoo.path and some other modules as Hamish isn"t developing currently.
 
 2016
 -------
 
-Raycasting issues with OpenMata 2.0 vs 1.0
+Raycasting issues with OpenMaya 2.0 vs 1.0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Calls on OpenMaya 1 and 2 variations after some bugs were discovered with 2016 casting. Sepcifically 2.0: 
+
 * when casting at poly edge, fails
 * nurbsSurface UV returns a different rawUV than 1. 1 Normalizes as expected, 2"s does not.
 * nurbsSurface normal returns junk and broken
 
 Hotkey system changed
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Any previous hotkey setup tools probably broke. We"d been using zoo"s but wrote our own to address. You may find it ``cgm.core.classes.HotkeyFactory``. The biggest add was the addition of workspace which need to be dealt with.
 
 
@@ -117,6 +121,7 @@ cmds/mc
 
 Concepts
 ====================
+Not everyone does things the same way and use terms differently. Here's some help in following what we're talking about.
 
 Raycasting
 ---------------
@@ -126,3 +131,20 @@ manner of things with that information. Some possiblities are:
 * Snapping to a position in space
 * Getting uv data for follicles
 * On interactive aiming
+
+
+OptionVar
+------------
+Option variables are maya preference items that we use mainly for ui consistancy and saving settings between sessions and between tools. For example, changing the optionVar for rayCasting options will be used by the various tools that use it.
+
+
+msgList
+----------
+This was our answer to the limiatations of MultiMessage attributes where we wanted specific defined lists of items. To do this we utilized single message attribute connections in an attribute sequence. More to come
+
+Object Buffer
+--------------
+This is a way we store information to make things happen regardless of what you have selected or storing settings. In general we do this by optionVars As a couple of examples:
+
+* The `match buffer <locinator.html#match-buffer>`_ stores objects to use with snapping regardless of selection
+* The rayCast buffer defines cast targets for raycasting.
