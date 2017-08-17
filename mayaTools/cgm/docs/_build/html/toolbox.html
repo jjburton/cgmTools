@@ -39,7 +39,7 @@
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="cgmTools 1.0.1 documentation" href="index.html"/>
         <link rel="next" title="Dynamic Parent Tool" href="dynparenttool.html"/>
-        <link rel="prev" title="Quick Start" href="quickstart.html"/> 
+        <link rel="prev" title="What&#39;s new?" href="quickstart.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -96,7 +96,7 @@
             
             
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">What's new?</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Toolbox WIP</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#tool-window">Tool Window</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#access">Access</a></li>
@@ -143,7 +143,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="dynparenttool.html">Dynamic Parent Tool</a></li>
 <li class="toctree-l1"><a class="reference internal" href="locinator.html">Locinator</a></li>
-<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="knowledge.html">Knowledege</a></li>
 <li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
 </ul>
 
@@ -252,20 +252,23 @@ marking menu so most items available in one are in the other. Menu sections may 
 <img alt="_images/snap.png" class="align-center" src="_images/snap.png" />
 <div class="section" id="basic">
 <h3>Basic<a class="headerlink" href="#basic" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li><code class="docutils literal"><span class="pre">Point</span> <span class="pre">Closest</span></code> - To the closest point on the last surface,curve,shape</li>
-<li><code class="docutils literal"><span class="pre">Parent</span></code> - Position and orientation</li>
-<li><code class="docutils literal"><span class="pre">Orient</span></code> - rotation only</li>
-<li><code class="docutils literal"><span class="pre">Aim</span></code> - Currently uses object defaults from Menu. Will take into account object tagging in future.</li>
-<li><dl class="first docutils">
-<dt><code class="docutils literal"><span class="pre">Aim</span> <span class="pre">Special</span></code> - In the cgmMarkingMenu, if three or more objects are selected splits to subMenu:</dt>
-<dd><ul class="first last">
+<ul>
+<li><p class="first"><code class="docutils literal"><span class="pre">Point</span> <span class="pre">Closest</span></code> - To the closest point on the last surface,curve,shape</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">Parent</span></code> - Position and orientation</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">Orient</span></code> - rotation only</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">Aim</span></code> - Currently uses object defaults from Menu. Will take into account object tagging in future.</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">Aim</span> <span class="pre">Special</span></code> - In the cgmMarkingMenu, if three or more objects are selected splits to subMenu:</p>
+<blockquote>
+<div><ul class="simple">
 <li><code class="docutils literal"><span class="pre">All</span> <span class="pre">to</span> <span class="pre">last</span></code> - All items aim at the last</li>
 <li><code class="docutils literal"><span class="pre">Selection</span> <span class="pre">Order</span></code> - Each object aims to the next</li>
 <li><code class="docutils literal"><span class="pre">First</span> <span class="pre">to</span> <span class="pre">Midpoint</span></code> - First object aims at the midpoint of the rest of the selection</li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 </li>
 </ul>
 </div>
@@ -343,18 +346,20 @@ we're unsure how useful it is. Simply an easy call from some other stuff we were
 <div class="section" id="copy">
 <h4>Copy<a class="headerlink" href="#copy" title="Permalink to this headline">¶</a></h4>
 <p>Series or functions for copying this and that in a from&gt;to fashion.</p>
-<ul class="simple">
-<li><code class="docutils literal"><span class="pre">Transform</span></code> - Copy the position and orientation.</li>
-<li><code class="docutils literal"><span class="pre">Orientation</span></code> - Only the orientation.</li>
-<li><code class="docutils literal"><span class="pre">Shapes</span></code> - Any shapes are appended.</li>
-<li><dl class="first docutils">
-<dt><code class="docutils literal"><span class="pre">Pivot</span></code> - You can specify which pivot ou want to copy.</dt>
-<dd><ul class="first last">
+<ul>
+<li><p class="first"><code class="docutils literal"><span class="pre">Transform</span></code> - Copy the position and orientation.</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">Orientation</span></code> - Only the orientation.</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">Shapes</span></code> - Any shapes are appended.</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">Pivot</span></code> - You can specify which pivot ou want to copy.</p>
+<blockquote>
+<div><ul class="simple">
 <li><code class="docutils literal"><span class="pre">rotatePivot</span></code> -</li>
 <li><code class="docutils literal"><span class="pre">scalePivot</span></code> -</li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 </li>
 </ul>
 </div>
@@ -382,11 +387,12 @@ we're unsure how useful it is. Simply an easy call from some other stuff we were
 </div>
 <div class="section" id="attributes">
 <h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li><code class="docutils literal"><span class="pre">[cgmAttrTools](attrtools)</span></code></li>
-<li><dl class="first docutils">
-<dt><code class="docutils literal"><span class="pre">Add</span></code> - Creates a ui prompt to add a number of attributes of the selected type. Separate by <code class="docutils literal"><span class="pre">,</span></code></dt>
-<dd><ul class="first last">
+<ul>
+<li><p class="first"><code class="docutils literal"><span class="pre">[cgmAttrTools](attrtools)</span></code></p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">Add</span></code> - Creates a ui prompt to add a number of attributes of the selected type. Separate by <code class="docutils literal"><span class="pre">,</span></code></p>
+<blockquote>
+<div><ul class="simple">
 <li><code class="docutils literal"><span class="pre">enum</span></code></li>
 <li><code class="docutils literal"><span class="pre">string</span></code></li>
 <li><code class="docutils literal"><span class="pre">int</span></code></li>
@@ -395,10 +401,10 @@ we're unsure how useful it is. Simply an easy call from some other stuff we were
 <li><code class="docutils literal"><span class="pre">bool</span></code></li>
 <li><code class="docutils literal"><span class="pre">message</span></code></li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 </li>
-<li><code class="docutils literal"><span class="pre">Compare</span> <span class="pre">Attrs</span></code> - Compares the prime node to other selected nodes. That comparison comprising seeing what attributes on the given objects match and which do not. Here's example output:</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">Compare</span> <span class="pre">Attrs</span></code> - Compares the prime node to other selected nodes. That comparison comprising seeing what attributes on the given objects match and which do not. Here's example output:</p>
+</li>
 </ul>
 <div class="highlight-guess"><div class="highlight"><pre><span></span># cgm.core.lib.attribute_utils : Comparing nurbsSphere2 to nurbsSphere1... #
 # cgm.core.lib.attribute_utils : Matching attrs: 199 | Unmatching: 29 #
@@ -494,7 +500,7 @@ we're unsure how useful it is. Simply an easy call from some other stuff we were
         <a href="dynparenttool.html" class="btn btn-neutral float-right" title="Dynamic Parent Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="quickstart.html" class="btn btn-neutral" title="Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="quickstart.html" class="btn btn-neutral" title="What&#39;s new?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

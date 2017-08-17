@@ -3,6 +3,7 @@
 ********************
 Locinator
 ********************
+Status: Alpha release
 
 Overview
 ==========

@@ -49,11 +49,13 @@ Functions for snapping items around. In general, they function on a selection ba
     
 Basic
 ---------
+
 * ``Point Closest`` - To the closest point on the last surface,curve,shape
 * ``Parent`` - Position and orientation
 * ``Orient`` - rotation only
 * ``Aim`` - Currently uses object defaults from Menu. Will take into account object tagging in future.
 * ``Aim Special`` - In the cgmMarkingMenu, if three or more objects are selected splits to subMenu:
+
     * ``All to last`` - All items aim at the last
     * ``Selection Order`` - Each object aims to the next
     * ``First to Midpoint`` - First object aims at the midpoint of the rest of the selection
@@ -130,6 +132,7 @@ Series or functions for copying this and that in a from>to fashion.
 * ``Orientation`` - Only the orientation.
 * ``Shapes`` - Any shapes are appended.
 * ``Pivot`` - You can specify which pivot ou want to copy.
+
     * ``rotatePivot`` - 
     * ``scalePivot`` - 
 
@@ -158,6 +161,7 @@ Attributes
 
 * ``[cgmAttrTools](attrtools)`` 
 * ``Add`` - Creates a ui prompt to add a number of attributes of the selected type. Separate by ``,`` 
+
     * ``enum``
     * ``string``
     * ``int``
