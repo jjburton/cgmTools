@@ -1,15 +1,21 @@
 .. toctree::
 
+What's new?
+==============
+We'll keep this page update with the most important bits of what's new and getting started with the tools.
+
+Last update: 08.17.2017
+
 Quick Start
-=============== 
+----------------- 
 
 Requirments
-------------
+^^^^^^^^^^^^^^
 * Maya 2010+
 * OS - WIndows, Mac, Linux
 
 Tutorial
-----------------   
+^^^^^^^^^^^^^^   
 Let's do this
 
 .. raw: html
@@ -20,7 +26,7 @@ Let's do this
 Until we get embeded video sorted. Please use this link: https://player.vimeo.com/video/204937700 
 
 Stand Alone
----------------
+^^^^^^^^^^^^^^^^^
 1. Download the latest
 2. Unzip it to your maya scripts folder
 
@@ -35,3 +41,29 @@ Stand Alone
 You should see a new window pop up.
 
 If you're having issues, check .. `Support`
+
+
+Active Development
+-------------------
+
+Docs
+^^^^^^^^
+
+These help docs will be continued to be fleshed out. We currently only have about 20% coverage on tools
+
+   * Toolbox/Toolbox ui started 08.17.207  
+   * Knowledge - Added 08.17.2017
+
+Bugs
+^^^^^^^
+
+   * `2017`
+      * General ui slow down - This seems to be an issue with 2017. Rebooting the computer resolves and sometimes force stopping Python. Continuing to investigate.
+   * dynParentTool crash - ``Patch testing`` - Potential fix in bugs branch we're testing
+
+Features/Updates
+^^^^^^^^^^^^^^^^^^
+
+* **MRS** - Morpheus Rig System
+* **cgmSetTools** - 2.0 rewrite needed
+* **Build Pulls** - Working on a method to make getting update much easier

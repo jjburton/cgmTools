@@ -31,7 +31,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import rigging_utils as RIGGING
-reload(RIGGING)
+#reload(RIGGING)
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.lib.locator_utils as LOC
@@ -46,6 +46,7 @@ from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
+import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.rig.joint_utils as JOINTS
 from cgm.lib.ml import (ml_breakdownDragger,
@@ -224,13 +225,14 @@ def uiSection_controlCurves(parent, selection = None):
 
     mc.menuItem(parent=uiCurve,
                 l='Create Control Curve',
-                c=cgmGen.Callback(UISNAPCALLS.uiFunc_createCurve),
+                c=cgmGen.Callback(TOOLBOX.uiFunc_createCurve),
                 ann='Create control curves from stored optionVars. Shape: {0} | Color: {1} | Direction: {2}'.format(var_curveCreateType.value,
                                                                                                                     var_defaultCreateColor.value,
                                                                                                                     SHARED._l_axis_by_string[var_createAimAxis.value]))                    
     mc.menuItem(parent=uiCurve,
                 l='One of each',
-                c=lambda *a:UISNAPCALLS.uiFunc_createOneOfEach(),
+                c=cgmGen.Callback(TOOLBOX.uiFunc_createOneOfEach),                
+                #c=lambda *a:TOOLBOX.uiFunc_createOneOfEach(),
                 ann='Create one of each curve stored in cgm libraries. Size: {0} '.format(var_createSizeValue.value) )       
     
     mc.menuItem(parent = uiCurve, l = '_______________________')
@@ -253,7 +255,7 @@ def uiSection_controlCurves(parent, selection = None):
     #>>Options ----------------------------------------------------------------------------------------
     mc.menuItem(parent=uiCurve,
                 l = '{Options}',
-                c = lambda *a:call_optionVar_ui(),
+                c = lambda *a:call_toolbox_ui(),
                 ann = "Set shared option variables")    
 
 def uiSection_shapes(parent = None, selection = None, pairSelected = True):
@@ -495,6 +497,11 @@ def uiSection_layout(parent):
     
 def uiSection_help(parent):
     _str_func = 'uiSection_help'  
+    
+    mc.menuItem(parent = parent,
+                l='CGM Docs',
+                ann = "Find help for various tools",
+                c=lambda *a: webbrowser.open("http://docs.cgmonks.com"))  
     
     mc.menuItem(parent = parent,
                 l='Report issue',
@@ -804,11 +811,13 @@ def uiSection_riggingUtils(parent, selection = None):
     
 
 from cgm.core.tools.lib import snap_calls as SNAPCALLS
-reload(SNAPCALLS)
 
 def call_optionVar_ui():
     reload(SNAPCALLS)    
     SNAPCALLS.ui_optionVars()
+def call_toolbox_ui():
+    reload(TOOLBOX)
+    TOOLBOX.ui()
 
 def uiSection_snap(parent, selection = None ):
     _str_func = 'uiSection_snap'
@@ -898,7 +907,7 @@ def uiSection_snap(parent, selection = None ):
     #>>Options ----------------------------------------------------------------------------------------
     mc.menuItem(parent=parent,
                 l = '{Options}',
-                c = lambda *a:call_optionVar_ui(),
+                c = lambda *a:call_toolbox_ui(),
                 ann = "Set shared option variables")
     
     return
@@ -945,7 +954,7 @@ def uiSection_rayCast(parent, selection = None):
     #>>Options ----------------------------------------------------------------------------------------
     mc.menuItem(parent=_p,
                 l = '{Options}',
-                c = lambda *a:call_optionVar_ui(),
+                c = lambda *a:call_toolbox_ui(),
                 ann = "Set shared option variables")
     
     

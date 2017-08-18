@@ -4,6 +4,9 @@
 Toolbox WIP
 ********************
 
+Last update: 08.17.2017
+
+
 The cgmToolbox can be accessed in a couple of different ways:
 
 * **Top menu** - We'll be talking about using this method in the next sections
@@ -14,7 +17,9 @@ marking menu so most items available in one are in the other. Menu sections may 
 
 Tool Window
 ====================
-This is quick access to some legacy tools and some settings for the toolbox as as whole. 
+Note - this window is probably just gonna go away when we get the main new Toolbox where we want it.
+
+This is quick access to some legacy tools and some settings for the toolbox as as whole. This is not the main toolbox ui.
 
 .. image:: _static/img/topmenu/toolbox.png
     :align: center
@@ -22,7 +27,8 @@ This is quick access to some legacy tools and some settings for the toolbox as a
 Access
 -------------
 * ``Open Tool Win`` - You should see what something like the above image
-
+  
+    
 
 Setup
 ----------------
@@ -40,6 +46,113 @@ Tabs
 For now just take a look around.
 
 
+Toolbox ui
+=============
+This is where we can set options for all out tools regardless of where we access them. It is divided into two tabs and a buffer menu at top.
+
+
+    
+Access
+-------------
+* Menu/Top Menu
+    * ``{Options}`` - Various place in the top menu and marking menu
+* Python
+    
+.. code-block:: guess
+
+    import cgm.core.tools.toolbox as TOOLBOX
+    TOOLBOX.ui()
+  
+Buffers
+------------
+Provides access to buffers used by our tools Currently they are:
+
+* `Match <locinator.html#match-buffer>`_
+* Raycast - NEED LINKS
+
+
+Options
+-----------------
+The options menu iteracts with our `optionVar <knowledge.html#optionvar>`_ setups that most of our tools access. Most of these things are accessible in the marking menu but it's tedious changing settings there. Thus we moved it here.
+
+.. image:: _static/img/toolbox/toolbox_options.png
+    :align: center
+    
+Match
+^^^^^^^^
+This if for snapping accessed via marking menu or top.
+
+**Mode**
+
+* ``point`` - Position only
+* ``orient`` - Rotation only
+* ``point/orient`` - Position and rotation
+
+
+Aim
+^^^^^
+
+**Mode**
+
+* ``local`` - Use local vector based on object defaults OR stored aiming options
+* ``world`` - Use world vector
+* ``matrix`` - ``IN DEVELOPMENT`` Bokser is playing around
+
+
+
+Object Defaults
+^^^^^^^^^^^^^^^^^
+Because assumptions are often wrong.
+
+**Obj Aim**
+
+The local aim axis for vector work
+
+**Obj Up**
+
+The local up axis for vector work
+
+**Obj Out**
+
+The local out axis for vector work. Out is rarely used and may be deprecated.
+
+RayCast Options
+^^^^^^^^^^^^^^^^^^^^
+
+**Cast**
+
+* ``close`` - Only use first impact regardless of mesh hit
+* ``mid`` - Mid point of impacts
+* ``far`` - Only far hits.
+* ``all`` - All hits.
+* ``x`` - Creates a temporary x axis plane to cast at
+* ``y`` - Creates a temporary y axis plane to cast at
+* ``z`` - Creates a temporary z axis plane to cast at
+
+
+**Offset**
+
+* ``None`` - Hit point is the position used
+* ``Distance`` - Fixed instance offset along normal or cast vector
+* ``snapCast`` - Technique for offsetting created or snapped objects to the impact point by multiple casts. Will explain more later 
+
+
+**Orient**
+
+* ``None`` - Don't even try
+* ``Normal`` - Orient to the normal
+
+.. note::
+    Not thrilled with the orient stuff yet. We'll be revisting or any contributors are welcome to take a stab at it
+
+* ``Set Drag Interval`` - Creates a uiPrompt to change the value. Drag interval sets how often to register hits during drag mode.
+* ``Set offset`` - Creates a uiPrompt to change the value
+   
+
+Tools - WIP
+------------------
+WIP
+
 Snap
 ===============
 Functions for snapping items around. In general, they function on a selection basis with all targeting the last.
@@ -49,11 +162,13 @@ Functions for snapping items around. In general, they function on a selection ba
     
 Basic
 ---------
+
 * ``Point Closest`` - To the closest point on the last surface,curve,shape
 * ``Parent`` - Position and orientation
 * ``Orient`` - rotation only
 * ``Aim`` - Currently uses object defaults from Menu. Will take into account object tagging in future.
 * ``Aim Special`` - In the cgmMarkingMenu, if three or more objects are selected splits to subMenu:
+
     * ``All to last`` - All items aim at the last
     * ``Selection Order`` - Each object aims to the next
     * ``First to Midpoint`` - First object aims at the midpoint of the rest of the selection
@@ -130,6 +245,7 @@ Series or functions for copying this and that in a from>to fashion.
 * ``Orientation`` - Only the orientation.
 * ``Shapes`` - Any shapes are appended.
 * ``Pivot`` - You can specify which pivot ou want to copy.
+
     * ``rotatePivot`` - 
     * ``scalePivot`` - 
 
@@ -158,6 +274,7 @@ Attributes
 
 * ``[cgmAttrTools](attrtools)`` 
 * ``Add`` - Creates a ui prompt to add a number of attributes of the selected type. Separate by ``,`` 
+
     * ``enum``
     * ``string``
     * ``int``
@@ -186,71 +303,76 @@ Attributes
     # cgm.core.lib.attribute_utils : target: -1.22640946257 # 
 
 
-Raycasting
+Raycasting - WIP
 ----------------
 WIP
 
-Distance
+Distance - WIP
 ----------------
 WIP
 
-Joints
+Joints - WIP
 ----------------
 WIP
 
-SDK
+SDK - WIP
 ----------------
 WIP
 
-Shape
+Shape - WIP
 ----------------
 WIP
 
-Curve
+Curve - WIP
 ----------------
 WIP
 
-Mesh
+Mesh - WIP
 ----------------
 WIP
 
-Skin
-----------------
-WIP
-
-
-Nodes
+Skin - WIP
 ----------------
 WIP
 
 
-
-
-
-
-Anim
-=====
+Nodes - WIP
+----------------
 WIP
 
-Layout
-=======
+
+
+
+
+
+Anim - WIP
+===========
 WIP
 
-Hotkeys
-========
+Layout - WIP
+=============
 WIP
 
-Dev
-=====
+Hotkeys - WIP
+=============
+WIP
+
+Dev - WIP
+==========
 WIP
 
 Help
 =====
-WIP
 
-Option Window
-===============
-.. image:: _static/img/toolboxoptions/optionVar_ui.png
+.. image:: _static/img/topmenu/help.png
     :align: center
+    
+* ``CGM Docs`` - Gets you here.
+* ``Report Issue`` - Brings up a form on bitbucket for you to report errors. Please see the info in `support <support.html#reporting-issues>`_ before submitting.
+* ``Get Builds`` - Link to the download location on bitbucket. Working on making this better
+* ``Videos`` - Links to red9 and our vimeo channels
+* ``Coding Questions`` - Visit one of our favorite places - stackoverflow
+* ``Enviornment Info`` - See `support <support.html#reporting-issues>`_ for details.
+
 
 

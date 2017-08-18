@@ -1098,6 +1098,55 @@ class cgmNode(r9Meta.MetaClass):
     #========================================================================================================     
     #>>> Utilities... 
     #========================================================================================================      
+    def stringModuleCall(self, module = None,  func = '', *args,**kws):
+        """
+        Function to call from a given module a function by string name with args and kws. 
+        """
+        _short = self.p_nameShort        
+        _str_func = 'stringModuleCall( {0} )'.format(_short)
+        _res = None
+        
+        if not args:
+            _str_args = ''
+            args = [self]
+        else:
+            _str_args = ','.join(str(a) for a in args) + ','
+            args = [self] + [a for a in args]
+            
+        if not kws:
+            kws = {}
+            _kwString = ''  
+        else:
+            _l = []
+            for k,v in kws.iteritems():
+                _l.append("{0}={1}".format(k,v))
+            _kwString = ','.join(_l)  
+            
+        try:
+            log.debug("|{0}| >> On: {1}.{2}".format(_str_func,module.__name__, _short))     
+            log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
+            _res = getattr(module,func)(*args,**kws)
+        except Exception,err:
+            log.error(cgmGEN._str_hardLine)
+            log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+            log.error("Node: {0} | func: {1}".format(_short,func))
+            log.error("Module: {0} ".format(module))            
+            
+            if args:
+                log.error("Args...")
+                for a in args:
+                    log.error("      {0}".format(a))
+            if kws:
+                log.error(" KWS...".format(_str_func))
+                for k,v in kws.iteritems():
+                    log.error("      {0} : {1}".format(k,v))   
+            log.error("Errors...")
+            for a in err.args:
+                log.error(a)
+            cgmGEN.cgmExceptCB(Exception,err)
+            raise Exception,err
+        return _res    
+    
     def doLoc(self,forceBBCenter = False,nameLink = False, fastMode = False):
         """
         Create a locator from an object
@@ -1217,6 +1266,9 @@ class cgmNode(r9Meta.MetaClass):
         """       
         #key = None, index = None, rgb = None, pushToShapes = True,
         return RIGGING.override_color(self.mNode,*a,**kws)
+    
+    
+    
     #========================================================================================================     
     #>>> THESE ARE GOING AWAY... 
     #========================================================================================================    

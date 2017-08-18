@@ -1,0 +1,465 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Knowledege &mdash; cgmTools 1.0.1 documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/styleoverrides.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="cgmTools 1.0.1 documentation" href="index.html"/>
+        <link rel="next" title="Support" href="support.html"/>
+        <link rel="prev" title="Locinator" href="locinator.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> cgmTools
+          
+
+          
+            
+            <img src="_static/cgmCalig_64px.png" class="logo" />
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">What's new?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="toolbox.html">Toolbox WIP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynparenttool.html">Dynamic Parent Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="locinator.html">Locinator</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Knowledege</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#maya-known-things">Maya Known Things</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">2017</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#reloading-a-ui-from-a-menu-crashes-maya">Reloading a ui from a menu crashes maya</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#python-update-broke-zoo-path-and-other-things">Python update broke zoo.path and other things</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">2016</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#raycasting-issues-with-openmaya-2-0-vs-1-0">Raycasting issues with OpenMaya 2.0 vs 1.0</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hotkey-system-changed">Hotkey system changed</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#lessons-learned">Lessons learned</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#animation">Animation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#joints">Joints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#logging">Logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blendshapes">Blendshapes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#breakdown">Breakdown</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#storage">Storage</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#cmds-mc">cmds/mc</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#concepts">Concepts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#locators">Locators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#msglist">msgList</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#object-buffer">Object Buffer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optionvar">OptionVar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#raycasting">Raycasting</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">cgmTools</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Knowledege</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/knowledge.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="toctree-wrapper compound">
+</div>
+<div class="section" id="knowledege">
+<h1>Knowledege<a class="headerlink" href="#knowledege" title="Permalink to this headline">¶</a></h1>
+<p>Hopefully you find some of this helpful. It's a collection of places we&quot;ve beat our heads in the wall.</p>
+<p>Last update: 08.17.2017</p>
+<div class="section" id="maya-known-things">
+<h2>Maya Known Things<a class="headerlink" href="#maya-known-things" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>2017<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="reloading-a-ui-from-a-menu-crashes-maya">
+<h4>Reloading a ui from a menu crashes maya<a class="headerlink" href="#reloading-a-ui-from-a-menu-crashes-maya" title="Permalink to this headline">¶</a></h4>
+<p>Props to <a class="reference external" href="http://sugarandcyanide.com/blog/">Charles Wardlaw</a> for help on this. This stems from maya changing the way things work and what worked from 2011-2016 broke. However there&quot;s a pretty simple fix.</p>
+<blockquote>
+<div><ul class="simple">
+<li>Changing my previous <code class="docutils literal"><span class="pre">c</span> <span class="pre">=</span> <span class="pre">lambda</span> <span class="pre">*a:self.reload()</span></code> to <code class="docutils literal"><span class="pre">c</span> <span class="pre">=</span> <span class="pre">lambda</span> <span class="pre">*a:mc.evalDeferred(self.reload,lp=True)</span></code> resolved it.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="python-update-broke-zoo-path-and-other-things">
+<h4>Python update broke zoo.path and other things<a class="headerlink" href="#python-update-broke-zoo-path-and-other-things" title="Permalink to this headline">¶</a></h4>
+<p>2017 brought in a new version of Python which broke how strings were handled. Rewrote zoo.path and some other modules as Hamish isn&quot;t developing currently.</p>
+</div>
+</div>
+<div class="section" id="id2">
+<h3>2016<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="raycasting-issues-with-openmaya-2-0-vs-1-0">
+<h4>Raycasting issues with OpenMaya 2.0 vs 1.0<a class="headerlink" href="#raycasting-issues-with-openmaya-2-0-vs-1-0" title="Permalink to this headline">¶</a></h4>
+<p>Calls on OpenMaya 1 and 2 variations after some bugs were discovered with 2016 casting. Sepcifically 2.0:</p>
+<ul class="simple">
+<li>when casting at poly edge, fails</li>
+<li>nurbsSurface UV returns a different rawUV than 1. 1 Normalizes as expected, 2&quot;s does not.</li>
+<li>nurbsSurface normal returns junk and broken</li>
+</ul>
+</div>
+<div class="section" id="hotkey-system-changed">
+<h4>Hotkey system changed<a class="headerlink" href="#hotkey-system-changed" title="Permalink to this headline">¶</a></h4>
+<p>Any previous hotkey setup tools probably broke. We&quot;d been using zoo&quot;s but wrote our own to address. You may find it <code class="docutils literal"><span class="pre">cgm.core.classes.HotkeyFactory</span></code>. The biggest add was the addition of workspace which need to be dealt with.</p>
+</div>
+</div>
+</div>
+<div class="section" id="lessons-learned">
+<h2>Lessons learned<a class="headerlink" href="#lessons-learned" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="animation">
+<h3>Animation<a class="headerlink" href="#animation" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>If you see <code class="docutils literal"><span class="pre">//</span> <span class="pre">Warning:</span> <span class="pre">Non</span> <span class="pre">object-space</span> <span class="pre">scale</span> <span class="pre">baked</span> <span class="pre">onto</span> <span class="pre">components.</span></code> check your scale settings and put it in object mode.</li>
+</ul>
+</div>
+<div class="section" id="attributes">
+<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>MultiMessage attributes - In the end, not a fan of multi message nodes for things that we need to track specifically. When an item connected via mult message attr is duplicated. The multiMsg connections are duplicated. While this can be handy for certain things, when you need specific lists of items, it's not so hot. We developed our msgList setup for this reason.</li>
+</ul>
+</div>
+<div class="section" id="joints">
+<h3>Joints<a class="headerlink" href="#joints" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>When doing chained segments, parenting the root of the roll segment to it&quot;s root and leaving the handle joints clean works best.</li>
+<li>Joints doing funky scale things? Check that the <code class="docutils literal"><span class="pre">inverseScale</span></code> is conected to the joint parent.</li>
+<li><code class="docutils literal"><span class="pre">segmentScale</span></code> is a very cool attribute when you wanna do fun scale stuff. Took way to many years of working in maya before discovering it.</li>
+</ul>
+</div>
+<div class="section" id="logging">
+<h3>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Log.debugs still take a hit on processing time. Watch em</li>
+<li>Logger is much faster that print</li>
+<li>pprint rules all.</li>
+</ul>
+</div>
+<div class="section" id="blendshapes">
+<h3>Blendshapes<a class="headerlink" href="#blendshapes" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="breakdown">
+<h4>Breakdown<a class="headerlink" href="#breakdown" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li>Index -- this is it's index in the blendshape node. Note - not necessarily sequential.</li>
+<li>Weight -- this is the value at which this shape is &quot;on'. Usually it is 1.0. Inbetween shapes are between 0 and 1.0.</li>
+<li>Shape -- this is the shape that drives the blendshape channel</li>
+<li>Dag -- the dag node for the shape</li>
+<li>Alias -- the attribute corresponding to its index in the weight list. Typically it is the name of the dag node.</li>
+<li>Plug -- the actual raw attribute of the shape on the node. <code class="docutils literal"><span class="pre">BSNODE.w[index]</span></code></li>
+<li>Weight Index -- follows a maya formula of index = wt * 1000 + 5000. So a 1.0 weight is a weight index of 6000.</li>
+</ul>
+</div>
+<div class="section" id="storage">
+<h4>Storage<a class="headerlink" href="#storage" title="Permalink to this headline">¶</a></h4>
+<ul>
+<li><p class="first">Blendshape data is stored in these arrays in real time so that if you query the data and your base mesh isn't zeroed out, the transformation happening is baked into that</p>
+</li>
+<li><p class="first">The caveat to that is that targets that have their base geo deleted are &quot;locked&quot; in to their respective data channels at the point they were when deleted. Their delta information is frozen.</p>
+</li>
+<li><dl class="first docutils">
+<dt><code class="docutils literal"><span class="pre">BlendshapeNode.inputTarget[0].inputTargetGroup[index].inputTargetItem[weightIndex]</span></code></dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal"><span class="pre">inputTarget</span></code> -- this is most often 0.</li>
+<li><code class="docutils literal"><span class="pre">inputTargetGroup</span></code> -- information for a particular shape index</li>
+<li><code class="docutils literal"><span class="pre">inputTargetItem</span></code> -- information for a particular weight index</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Sub items at that index</dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal"><span class="pre">inputPointsTarget</span></code> -- the is the differential data of the point positions being transformed by a given shape target. It is indexed to the inputComponentsTarget array</li>
+<li><code class="docutils literal"><span class="pre">inputComponentsTarget</span></code> -- these are the compents that are being affected by a given shape</li>
+<li><code class="docutils literal"><span class="pre">inputGeomTarget</span></code> -- this is the geo affecting a particular target shape</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">Replacing blendshapes - you can 1) use a copy geo function if the point count is exact to change the shape to what you want or 2) make a function to do it yourself. There's not a great way to replace a shape except to rebuild that whole index or the node itself. We made a function to do that</p>
+</li>
+<li><p class="first">Once a blendshape node is created with targets, the individual targets are no longer needed and just take up space. Especially when you have the easy ability to extract shapes.</p>
+</li>
+<li><p class="first">Getting a base for calculating delta information. As the blendshapes are stored as delta off of the base, the best way I could find to get that delta was to turn off all the deformers on the base object, query that and then return on/connect the envelopes. I'm sure there's more elegant solutions but I was unsuccessful in finding one.</p>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="first docutils">
+<dt>Once you have that creating a new mesh from a an existing one is as simple as:</dt>
+<dd><ul class="first last">
+<li>Taking base data</li>
+<li>For components that are affected on a given index/weight: add the delta to base</li>
+<li>duplicating the base and xform(t=vPos, absolute = True) each of the verts will give you a duplicate shape</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">Aliasing weight attributes - mc.aliasAttr(&quot;NAME&quot;, &quot;BSNODE.w[index]&quot;)</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="cmds-mc">
+<h3>cmds/mc<a class="headerlink" href="#cmds-mc" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>mc all the way. cmds eats toenails, Keith!</li>
+<li><dl class="first docutils">
+<dt><code class="docutils literal"><span class="pre">mc.listConnections</span></code></dt>
+<dd><ul class="first last">
+<li>To get plugs properly, you need both source and destination flags set - one True, one False to get expected results. Ran into a bug where the default value in maya changed between versions. Don&quot;t assume.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="concepts">
+<h2>Concepts<a class="headerlink" href="#concepts" title="Permalink to this headline">¶</a></h2>
+<p>Not everyone does things the same way and use terms differently. Here's some help in following what we're talking about.</p>
+<div class="section" id="locators">
+<h3>Locators<a class="headerlink" href="#locators" title="Permalink to this headline">¶</a></h3>
+<p>See <a class="reference external" href="locinator.html#concepts">locinator's section</a></p>
+</div>
+<div class="section" id="msglist">
+<h3>msgList<a class="headerlink" href="#msglist" title="Permalink to this headline">¶</a></h3>
+<p>This was our answer to the limiatations of MultiMessage attributes where we wanted specific defined lists of items. To do this we utilized single message attribute connections in an attribute sequence. More to come</p>
+</div>
+<div class="section" id="object-buffer">
+<h3>Object Buffer<a class="headerlink" href="#object-buffer" title="Permalink to this headline">¶</a></h3>
+<p>This is a way we store information to make things happen regardless of what you have selected or storing settings. In general we do this by optionVars As a couple of examples:</p>
+<ul class="simple">
+<li>The <a class="reference external" href="locinator.html#match-buffer">match buffer</a> stores objects to use with snapping regardless of selection</li>
+<li>The rayCast buffer defines cast targets for raycasting.</li>
+</ul>
+</div>
+<div class="section" id="optionvar">
+<h3>OptionVar<a class="headerlink" href="#optionvar" title="Permalink to this headline">¶</a></h3>
+<p>Option variables are maya preference items that we use mainly for ui consistancy and saving settings between sessions and between tools. For example, changing the optionVar for rayCasting options will be used by the various tools that use it.</p>
+</div>
+<div class="section" id="raycasting">
+<h3>Raycasting<a class="headerlink" href="#raycasting" title="Permalink to this headline">¶</a></h3>
+<p>This is the function of using a point and vector in 3d space and shooting those rays at surfaces. We then can do all
+manner of things with that information. Some possiblities are:</p>
+<ul class="simple">
+<li>Snapping to a position in space</li>
+<li>Getting uv data for follicles</li>
+<li>On interactive aiming</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="support.html" class="btn btn-neutral float-right" title="Support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="locinator.html" class="btn btn-neutral" title="Locinator" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, CG Monks.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
